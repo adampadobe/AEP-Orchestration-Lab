@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="profile-generation.css?v=20260502b">
+  <link rel="stylesheet" href="profile-generation.css?v=20260502c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -2093,6 +2093,455 @@
       </details>
     </section>
 
+    <!-- FSI Profile (industry === "fsi") — uses the shared
+         AepProfileGenIndustry runtime (see profile-generation-industry-runtime.js).
+         Same wizard, same Customer Analytics, same shared counter — only the
+         industry-attributes block (banking / credit / life-stage) is unique.
+         profile-generation.js toggles this on when industry === "fsi". -->
+    <section class="consent-panel" id="fsiProfilePanel" aria-labelledby="fsiProfileHeading" hidden>
+      <h2 id="fsiProfileHeading" class="panel-title"><span class="icon">🏦</span> FSI profile</h2>
+
+      <details class="consent-streaming-details" id="fsiProfileInfraDetails" open aria-label="FSI Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="fsiProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update FSI profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - FSI Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - FSI Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile FSI</strong> (custom tenant FG), <strong>Personal Finance Details</strong>, and <strong>Personal Tax Details</strong>; sandboxes that lack any of those fall back to the <code>_{tenant}.industryFsi.*</code> tenant subtree and the wizard still succeeds.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - FSI Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - FSI Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the FSI schema's field groups, open <code>AEP Lab - FSI Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="fsiCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="fsiStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="fsiStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="fsiStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="fsiStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="fsiInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="fsiStreamSchemaId">Schema $id</label>
+              <input type="text" id="fsiStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="fsiStreamDatasetId">Dataset ID</label>
+              <input type="text" id="fsiStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="fsiStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="fsiStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="fsiStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="fsiStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="fsiStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="fsiStreamFlowName" value="AEP Lab - FSI Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="fsiStreamUrl">Collection URL</label>
+              <input type="url" id="fsiStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="fsiLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="fsiFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="fsiSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="fsiLookupNs">Namespace</label>
+              <select id="fsiLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="fsiLookupIdentifier">Identifier value</label>
+              <input type="text" id="fsiLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="fsiLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic, Travel, and FSI profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="fsiBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="fsiBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="fsiCounter">Counter (N)</label>
+              <input type="number" id="fsiCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="fsiGenerateCount">Count</label>
+              <input type="number" id="fsiGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="fsiEmailPreview">—</code>
+            <button type="button" id="fsiResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="fsiUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="fsiGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="fsiDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="fsiProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="fsiFirstName">First name</label>
+            <input type="text" id="fsiFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="fsiLastName">Last name</label>
+            <input type="text" id="fsiLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="fsiRecentPicker" hidden>
+        <label for="fsiRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="fsiRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="fsiRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="fsiRecentDetails" class="gen-recent-list">
+          <summary><span id="fsiRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="fsiRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="fsiChurnValue">50%</span>
+            </div>
+            <input type="range" id="fsiChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="fsiChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="fsiPropensityValue">50%</span>
+            </div>
+            <input type="range" id="fsiPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="fsiPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="fsiNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="fsiAovValue">$500</span>
+            </div>
+            <input type="range" id="fsiAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="fsiAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="fsiPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="fsiPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="fsiGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="fsiLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="fsiLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="fsiLoyaltyID">Loyalty ID</label>
+                <input type="text" id="fsiLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiLoyaltyTier">Tier / level</label>
+                  <select id="fsiLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiLoyaltyPoints">Points balance</label>
+                  <input type="number" id="fsiLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="fsiLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="fsiLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="fsiLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- FSI-specific attributes — tenant subtree under Profile Core v2.
+           Paths: _<tenant>.industryFsi.* (banking channel, credit band,
+           household income, employment, life stage) and
+           _<tenant>.industryFsi.financialProducts.* (boolean flags per product).
+           When the sandbox has the custom Profile FSI v2 FG attached the
+           paths still live under industryFsi.* — Profile FSI v2's
+           tenant subtree subsumes them. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">🏦</span> FSI attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="fsiPrimaryBankingChannel">Primary banking channel</label>
+            <select id="fsiPrimaryBankingChannel">
+              <option value="">— Select —</option>
+              <option value="mobile_app">Mobile app</option>
+              <option value="online_banking">Online banking</option>
+              <option value="branch">Branch</option>
+              <option value="phone">Phone</option>
+              <option value="atm">ATM</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fsiCreditScoreBand">Credit score band</label>
+            <select id="fsiCreditScoreBand">
+              <option value="">— Select —</option>
+              <option value="poor">Poor (300–579)</option>
+              <option value="fair">Fair (580–669)</option>
+              <option value="good">Good (670–739)</option>
+              <option value="very_good">Very good (740–799)</option>
+              <option value="excellent">Excellent (800–850)</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fsiLifeStage">Life stage</label>
+            <select id="fsiLifeStage">
+              <option value="">— Select —</option>
+              <option value="student">Student</option>
+              <option value="young_professional">Young professional</option>
+              <option value="family">Family / household</option>
+              <option value="pre_retirement">Pre-retirement</option>
+              <option value="retired">Retired</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fsiEmploymentStatus">Employment status</label>
+            <select id="fsiEmploymentStatus">
+              <option value="">— Select —</option>
+              <option value="employed">Employed</option>
+              <option value="self_employed">Self-employed</option>
+              <option value="contract">Contract / freelance</option>
+              <option value="student">Student</option>
+              <option value="retired">Retired</option>
+              <option value="unemployed">Unemployed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fsiHouseholdIncomeBand">Household income band</label>
+            <select id="fsiHouseholdIncomeBand">
+              <option value="">— Select —</option>
+              <option value="under_50k">&lt; $50k</option>
+              <option value="50k_100k">$50k – $100k</option>
+              <option value="100k_200k">$100k – $200k</option>
+              <option value="200k_500k">$200k – $500k</option>
+              <option value="500k_plus">$500k+</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Financial product holdings</h4>
+          <div class="form-row form-row--inline">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldChecking"> <span>Checking account</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldSavings"> <span>Savings account</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldCreditCard"> <span>Credit card</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldMortgage"> <span>Mortgage</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldInvestment"> <span>Investment account</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHoldLoan"> <span>Personal loan</span></label>
+          </div>
+        </div>
+      </div>
+
+      <details id="fsiProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="fsiDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="fsiDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="fsiDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
       </main>
     </div>
   </div>
@@ -2116,10 +2565,15 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260502"></script>
-  <script src="profile-generation.js"></script>
-  <script src="profile-generation-generic.js"></script>
-  <script src="profile-generation-travel.js?v=20260502"></script>
+  <script src="profile-generation-shared.js?v=20260502b"></script>
+  <script src="profile-generation.js?v=20260502b"></script>
+  <script src="profile-generation-generic.js?v=20260502b"></script>
+  <script src="profile-generation-travel.js?v=20260502b"></script>
+  <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
+       Media, Sports). MUST load before any of the per-industry modules
+       below — they each call window.AepProfileGenIndustry.bind(...). -->
+  <script src="profile-generation-industry-runtime.js?v=20260502b"></script>
+  <script src="profile-generation-fsi.js?v=20260502b"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

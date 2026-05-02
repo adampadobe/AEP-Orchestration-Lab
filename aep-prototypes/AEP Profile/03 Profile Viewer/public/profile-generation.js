@@ -426,6 +426,18 @@ function showIndustryFields(industry) {
   const topBoxes = document.querySelector('.profile-gen-boxes');
   const genericPanel = document.getElementById('genericProfilePanel');
   const travelPanel = document.getElementById('travelProfilePanel');
+  // Dedicated panels for the new industries (added in the multi-industry
+  // rollout — each one mirrors travelPanel's behaviour via the shared
+  // AepProfileGenIndustry runtime). Each lookup is null-tolerant so a
+  // sandbox build that hasn't shipped a given industry's panel yet still
+  // works without a JS error.
+  const fsiPanel = document.getElementById('fsiProfilePanel');
+  const telecomPanel = document.getElementById('telecomProfilePanel');
+  const retailPanel = document.getElementById('retailProfilePanel');
+  const mediaPanel = document.getElementById('mediaProfilePanel');
+  const sportsPanel = document.getElementById('sportsProfilePanel');
+  const dedicatedPanels = [genericPanel, travelPanel, fsiPanel, telecomPanel, retailPanel, mediaPanel, sportsPanel];
+  const hideAllDedicated = () => dedicatedPanels.forEach((p) => { if (p) p.hidden = true; });
   const profileIndexRow = document.getElementById('profileIndex')?.closest('.form-row');
   const topActionRow = document.querySelector('#configPanel .profile-gen-actions');
   const mergeRow = document.querySelector('#configPanel .profile-gen-merge-row');
@@ -433,8 +445,8 @@ function showIndustryFields(industry) {
 
   if (industry === 'generic') {
     if (topBoxes) topBoxes.hidden = true;
+    hideAllDedicated();
     if (genericPanel) genericPanel.hidden = false;
-    if (travelPanel) travelPanel.hidden = true;
     if (profileIndexRow) profileIndexRow.hidden = true;
     if (topActionRow) topActionRow.hidden = true;
     if (mergeRow) mergeRow.hidden = true;
@@ -454,7 +466,7 @@ function showIndustryFields(industry) {
   // attributes. Counter is shared with Generic via window.AepProfileGenShared.
   if (industry === 'travel') {
     if (topBoxes) topBoxes.hidden = true;
-    if (genericPanel) genericPanel.hidden = true;
+    hideAllDedicated();
     if (travelPanel) travelPanel.hidden = false;
     if (profileIndexRow) profileIndexRow.hidden = true;
     if (topActionRow) topActionRow.hidden = true;
@@ -467,6 +479,34 @@ function showIndustryFields(industry) {
     return;
   }
 
+  // Same dedicated-panel pattern for the multi-industry rollout: each
+  // industry that has a dedicated profile panel hides the legacy
+  // top boxes + kirkham+<industry>-<x> editor and dispatches its own
+  // panel-shown event so the corresponding profile-generation-<industry>.js
+  // module re-renders the recent-picker, applies toggles, etc.
+  const DEDICATED_INDUSTRY_PANELS = {
+    fsi:    { panel: fsiPanel,    event: 'aep-fsi-panel-shown' },
+    telecommunications: { panel: telecomPanel, event: 'aep-telecom-panel-shown' },
+    retail: { panel: retailPanel, event: 'aep-retail-panel-shown' },
+    media:  { panel: mediaPanel,  event: 'aep-media-panel-shown' },
+    sports: { panel: sportsPanel, event: 'aep-sports-panel-shown' },
+  };
+  const dedicatedSpec = DEDICATED_INDUSTRY_PANELS[industry];
+  if (dedicatedSpec && dedicatedSpec.panel) {
+    if (topBoxes) topBoxes.hidden = true;
+    hideAllDedicated();
+    dedicatedSpec.panel.hidden = false;
+    if (profileIndexRow) profileIndexRow.hidden = true;
+    if (topActionRow) topActionRow.hidden = true;
+    if (mergeRow) mergeRow.hidden = true;
+    if (debugDetails) debugDetails.hidden = true;
+    if (placeholder) placeholder.hidden = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(dedicatedSpec.event));
+    }
+    return;
+  }
+
   // No industry picked yet — keep the page in its lightweight "select an
   // industry to begin" state. Same controls hide as Generic (the
   // kirkham+<industry>-<x> pattern is meaningless without an industry, and
@@ -474,8 +514,7 @@ function showIndustryFields(industry) {
   // also stays hidden because the user has not opted into Generic.
   if (!industry) {
     if (topBoxes) topBoxes.hidden = true;
-    if (genericPanel) genericPanel.hidden = true;
-    if (travelPanel) travelPanel.hidden = true;
+    hideAllDedicated();
     if (profileIndexRow) profileIndexRow.hidden = true;
     if (topActionRow) topActionRow.hidden = true;
     if (mergeRow) mergeRow.hidden = true;
@@ -490,8 +529,7 @@ function showIndustryFields(industry) {
   // legacy #industry<Name> attribute boxes alongside the kirkham+<industry>-<x>
   // generator until each one is migrated to its own panel.
   if (topBoxes) topBoxes.hidden = false;
-  if (genericPanel) genericPanel.hidden = true;
-  if (travelPanel) travelPanel.hidden = true;
+  hideAllDedicated();
   if (profileIndexRow) profileIndexRow.hidden = false;
   if (topActionRow) topActionRow.hidden = false;
   if (mergeRow) mergeRow.hidden = false;

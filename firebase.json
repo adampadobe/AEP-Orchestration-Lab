@@ -357,6 +357,34 @@
         }
       },
       {
+        "source": "/api/fsi-profile-infra/status",
+        "function": {
+          "functionId": "fsiProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/step",
+        "function": {
+          "functionId": "fsiProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "fsiProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-connection",
+        "function": {
+          "functionId": "fsiProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/update",
         "function": {
           "functionId": "profileUpdateProxy",

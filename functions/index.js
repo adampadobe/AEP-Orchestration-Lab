@@ -60,6 +60,9 @@ const genericProfileInfraService = lazyRequireMod('./genericProfileInfraService'
 const genericProfileConnectionStore = lazyRequireMod('./genericProfileConnectionStore');
 const travelProfileInfraService = lazyRequireMod('./travelProfileInfraService');
 const travelProfileConnectionStore = lazyRequireMod('./travelProfileConnectionStore');
+const fsiProfileInfraService = lazyRequireMod('./fsiProfileInfraService');
+const fsiProfileConnectionStore = lazyRequireMod('./fsiProfileConnectionStore');
+const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
@@ -1133,6 +1136,41 @@ exports.travelProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (r
   }
   res.status(405).json({ error: 'Method not allowed' });
 });
+
+// ---------------------------------------------------------------------------
+// Industry profile pipelines (FSI, Telecommunications, Retail, Media, Sports)
+//
+// These industries share the route-handler factory below — each one only
+// supplies its own infra service + connection store (≈10 LOC per industry)
+// instead of cloning ~140 LOC of route boilerplate. Generic and Travel keep
+// their hand-rolled handlers above to preserve the Phase 0 "behaviour-
+// unchanged" guarantee.
+// ---------------------------------------------------------------------------
+
+const profileIndustryRoutesCtx = {
+  onRequest,
+  profileFnOpts,
+  storeFnOpts: CONSENT_STORE_FN_OPTS,
+  setCors,
+  resolveSandboxFromQuery,
+  getAdobeAccessToken,
+  adobeClientIdValue: () => ADOBE_CLIENT_ID.value(),
+  adobeImsOrgValue: () => ADOBE_IMS_ORG.value(),
+  flowLookup: (...args) => consentFlowLookup.lookupConsentHttpFlow(...args),
+  serializeFirestoreRecord: serializeConsentFirestoreRecord,
+};
+
+const fsiProfileRoutes = createProfileIndustryRoutes({
+  industryKey: 'fsi',
+  routePathPrefix: 'fsi-profile',
+  infraService: fsiProfileInfraService,
+  connectionStore: fsiProfileConnectionStore,
+  ctx: profileIndustryRoutesCtx,
+});
+exports.fsiProfileInfraStatus = fsiProfileRoutes.statusHandler;
+exports.fsiProfileInfraStep = fsiProfileRoutes.stepHandler;
+exports.fsiProfileInfraFlowLookup = fsiProfileRoutes.flowLookupHandler;
+exports.fsiProfileConnectionStore = fsiProfileRoutes.connectionStoreHandler;
 
 /**
  * POST /api/profile/update — streams to the HTTP API connection (body.streaming.url + flowId, sandbox).
