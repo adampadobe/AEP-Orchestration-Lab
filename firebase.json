@@ -329,6 +329,34 @@
         }
       },
       {
+        "source": "/api/travel-profile-infra/status",
+        "function": {
+          "functionId": "travelProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/step",
+        "function": {
+          "functionId": "travelProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "travelProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/travel-profile-connection",
+        "function": {
+          "functionId": "travelProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/update",
         "function": {
           "functionId": "profileUpdateProxy",

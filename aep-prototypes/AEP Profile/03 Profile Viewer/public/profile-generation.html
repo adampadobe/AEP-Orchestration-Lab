@@ -57,7 +57,7 @@
               <option value="generic">Generic (industry-less)</option>
               <option value="retail">Retail (to be built)</option>
               <option value="fsi">FSI (to be built)</option>
-              <option value="travel">Travel (to be built)</option>
+              <option value="travel">Travel</option>
               <option value="media">Media (to be built)</option>
               <option value="sports">Sports (to be built)</option>
               <option value="telecommunications">Telecommunications (to be built)</option>
@@ -1502,6 +1502,597 @@
       </details>
     </section>
 
+    <!-- Travel Profile (industry === "travel") — mirrors #genericProfilePanel.
+         Same 4-step wizard, same Customer Analytics editor, same email scaler
+         and shared counter (window.AepProfileGenShared) so a Generic profile
+         and a Travel profile in the same sandbox + base email never collide
+         on the same scaled email. Travel-specific attributes (favourite
+         airline, travel class, recent stay, reservations) ride on Profile
+         Core v2's tenant subtree so they surface in UPS without a custom
+         tenant field group. profile-generation.js toggles this on when
+         industry === "travel". -->
+    <section class="consent-panel" id="travelProfilePanel" aria-labelledby="travelProfileHeading" hidden>
+      <h2 id="travelProfileHeading" class="panel-title"><span class="icon">✈️</span> Travel profile</h2>
+
+      <details class="consent-streaming-details" id="travelProfileInfraDetails" open aria-label="Travel Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="travelProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update Travel profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Travel Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Travel Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. Travel attribute paths (<code>individualCharacteristics.travel.*</code>, <code>travelReservations.*</code>) ride on Profile Core v2's tenant subtree so no custom tenant field group is required.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Travel Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Travel Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Travel schema's field groups, open <code>AEP Lab - Travel Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="travelCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="travelStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="travelStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="travelStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="travelStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="travelInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="travelStreamSchemaId">Schema $id</label>
+              <input type="text" id="travelStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="travelStreamDatasetId">Dataset ID</label>
+              <input type="text" id="travelStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="travelStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="travelStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="travelStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="travelStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="travelStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="travelStreamFlowName" value="AEP Lab - Travel Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="travelStreamUrl">Collection URL</label>
+              <input type="url" id="travelStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="travelLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="travelFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="travelSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="travelLookupNs">Namespace</label>
+              <select id="travelLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="travelLookupIdentifier">Identifier value</label>
+              <input type="text" id="travelLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="travelLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic and a Travel profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="travelBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="travelBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="travelCounter">Counter (N)</label>
+              <input type="number" id="travelCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="travelGenerateCount">Count</label>
+              <input type="number" id="travelGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="travelEmailPreview">—</code>
+            <button type="button" id="travelResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="travelUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="travelGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="travelDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="travelProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="travelFirstName">First name</label>
+            <input type="text" id="travelFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="travelLastName">Last name</label>
+            <input type="text" id="travelLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="travelRecentPicker" hidden>
+        <label for="travelRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="travelRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="travelRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="travelRecentDetails" class="gen-recent-list">
+          <summary><span id="travelRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="travelRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="travelChurnValue">50%</span>
+            </div>
+            <input type="range" id="travelChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="travelChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="travelPropensityValue">50%</span>
+            </div>
+            <input type="range" id="travelPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="travelPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="travelNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="travelAovValue">$500</span>
+            </div>
+            <input type="range" id="travelAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="travelAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="travelPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="travelPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="travelGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="travelLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="travelLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="travelLoyaltyID">Loyalty ID</label>
+                <input type="text" id="travelLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelLoyaltyTier">Tier / level</label>
+                  <select id="travelLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="travelLoyaltyPoints">Points balance</label>
+                  <input type="number" id="travelLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="travelLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="travelLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="travelLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="en-AU">English (Australia)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="fr-CA">French (Canada)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="de-AT">German (Austria)</option>
+              <option value="de-CH">German (Switzerland)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="es-MX">Spanish (Mexico)</option>
+              <option value="es-AR">Spanish (Argentina)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-PT">Portuguese (Portugal)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="nl-BE">Dutch (Belgium)</option>
+              <option value="da-DK">Danish (Denmark)</option>
+              <option value="sv-SE">Swedish (Sweden)</option>
+              <option value="no-NO">Norwegian (Norway)</option>
+              <option value="fi-FI">Finnish (Finland)</option>
+              <option value="pl-PL">Polish (Poland)</option>
+              <option value="ru-RU">Russian (Russia)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+              <option value="zh-TW">Chinese (Traditional)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="ko-KR">Korean (South Korea)</option>
+              <option value="ar-SA">Arabic (Saudi Arabia)</option>
+              <option value="ar-AE">Arabic (UAE)</option>
+              <option value="he-IL">Hebrew (Israel)</option>
+              <option value="tr-TR">Turkish (Turkey)</option>
+              <option value="hi-IN">Hindi (India)</option>
+              <option value="th-TH">Thai (Thailand)</option>
+              <option value="vi-VN">Vietnamese (Vietnam)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Travel-specific attributes — tenant subtree under Profile Core v2.
+           Paths: _<tenant>.individualCharacteristics.travel.* and
+           _<tenant>.travelReservations.{flightReservations,hotelReservations,carReservations}.
+           profile-generation-travel.js builds the update list from these. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">✈️</span> Travel attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="travelFavouriteAirlineCompany">Favourite airline</label>
+            <input type="text" id="travelFavouriteAirlineCompany" placeholder="e.g. British Airways">
+          </div>
+          <div class="form-group">
+            <label for="travelPrimaryTravelClass2">Primary travel class</label>
+            <select id="travelPrimaryTravelClass2">
+              <option value="">— Select —</option>
+              <option value="economy">Economy</option>
+              <option value="premium_economy">Premium economy</option>
+              <option value="business">Business</option>
+              <option value="first">First</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Recent stay</h4>
+          <label class="gen-loyalty-toggle">
+            <input type="checkbox" id="travelRecentStayEnabled">
+            <span>Include recent stay attributes</span>
+          </label>
+          <div class="gen-loyalty-fields" id="travelRecentStayFields" hidden>
+            <div class="form-row form-row--inline">
+              <div class="form-group form-group--flex">
+                <label for="travelRecentStayHotelName">Hotel name</label>
+                <input type="text" id="travelRecentStayHotelName" placeholder="e.g. The Savoy">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayCity">City</label>
+                <input type="text" id="travelRecentStayCity" placeholder="e.g. London">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayCountry">Country</label>
+                <input type="text" id="travelRecentStayCountry" placeholder="e.g. United Kingdom">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayCheckIn">Check-in</label>
+                <input type="date" id="travelRecentStayCheckIn">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayCheckOut">Check-out</label>
+                <input type="date" id="travelRecentStayCheckOut">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRoomType">Room type</label>
+                <input type="text" id="travelRecentStayRoomType" placeholder="e.g. Deluxe King">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Travel reservations</h4>
+          <label class="gen-loyalty-toggle">
+            <input type="checkbox" id="travelReservationsEnabled">
+            <span>Include flight + hotel + car reservation attributes</span>
+          </label>
+          <div class="gen-loyalty-fields" id="travelReservationsFields" hidden>
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 8px;">Flight reservation</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightDeparture">Departure airport</label>
+                <input type="text" id="travelFlightDeparture" placeholder="LHR">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightArrival">Arrival airport</label>
+                <input type="text" id="travelFlightArrival" placeholder="JFK">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightNumber">Flight number</label>
+                <input type="text" id="travelFlightNumber" placeholder="BA177">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightDate">Flight date</label>
+                <input type="date" id="travelFlightDate">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightClass">Class</label>
+                <select id="travelFlightClass">
+                  <option value="">— Select —</option>
+                  <option value="economy">Economy</option>
+                  <option value="premium_economy">Premium economy</option>
+                  <option value="business">Business</option>
+                  <option value="first">First</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightConfirmation">Confirmation #</label>
+                <input type="text" id="travelFlightConfirmation" placeholder="ABC123">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightPassengers"># Passengers</label>
+                <input type="number" id="travelFlightPassengers" min="1" step="1" placeholder="2">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightChildren">Children travelling?</label>
+                <select id="travelFlightChildren">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightMultiLeg">Multi-leg?</label>
+                <select id="travelFlightMultiLeg">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelFlightLayovers"># Layovers</label>
+                <input type="number" id="travelFlightLayovers" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Hotel reservation</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group form-group--flex">
+                <label for="travelHotelName">Hotel name</label>
+                <input type="text" id="travelHotelName" placeholder="The Plaza">
+              </div>
+              <div class="form-group">
+                <label for="travelHotelCity">City</label>
+                <input type="text" id="travelHotelCity" placeholder="New York">
+              </div>
+              <div class="form-group">
+                <label for="travelHotelCountry">Country</label>
+                <input type="text" id="travelHotelCountry" placeholder="USA">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelHotelCheckIn">Check-in</label>
+                <input type="date" id="travelHotelCheckIn">
+              </div>
+              <div class="form-group">
+                <label for="travelHotelCheckOut">Check-out</label>
+                <input type="date" id="travelHotelCheckOut">
+              </div>
+              <div class="form-group">
+                <label for="travelHotelRoomType">Room type</label>
+                <input type="text" id="travelHotelRoomType" placeholder="Deluxe King">
+              </div>
+              <div class="form-group">
+                <label for="travelHotelConfirmation">Confirmation #</label>
+                <input type="text" id="travelHotelConfirmation" placeholder="HX123">
+              </div>
+            </div>
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Car reservation</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelCarCompany">Rental company</label>
+                <input type="text" id="travelCarCompany" placeholder="Hertz">
+              </div>
+              <div class="form-group">
+                <label for="travelCarPickupCity">Pickup city</label>
+                <input type="text" id="travelCarPickupCity" placeholder="Los Angeles">
+              </div>
+              <div class="form-group">
+                <label for="travelCarClass">Car class</label>
+                <input type="text" id="travelCarClass" placeholder="Mid-size SUV">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelCarPickupDate">Pickup date</label>
+                <input type="date" id="travelCarPickupDate">
+              </div>
+              <div class="form-group">
+                <label for="travelCarReturnDate">Return date</label>
+                <input type="date" id="travelCarReturnDate">
+              </div>
+              <div class="form-group">
+                <label for="travelCarConfirmation">Confirmation #</label>
+                <input type="text" id="travelCarConfirmation" placeholder="CR987">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <details id="travelProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="travelDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="travelDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="travelDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
       </main>
     </div>
   </div>
@@ -1521,8 +2112,14 @@
        live-activities.js, etc. -->
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
+  <!-- Shared cross-industry helpers (scaler / counter / base email / recent /
+       one-time genericProfile* → profileGen* localStorage migration). MUST
+       load BEFORE the per-industry modules below — both Generic and Travel
+       call into window.AepProfileGenShared on init. -->
+  <script src="profile-generation-shared.js?v=20260502"></script>
   <script src="profile-generation.js"></script>
   <script src="profile-generation-generic.js"></script>
+  <script src="profile-generation-travel.js?v=20260502"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

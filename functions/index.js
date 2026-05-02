@@ -58,6 +58,8 @@ const consentFlowLookup = lazyRequireMod('./consentFlowLookup');
 const consentConnectionStore = lazyRequireMod('./consentConnectionStore');
 const genericProfileInfraService = lazyRequireMod('./genericProfileInfraService');
 const genericProfileConnectionStore = lazyRequireMod('./genericProfileConnectionStore');
+const travelProfileInfraService = lazyRequireMod('./travelProfileInfraService');
+const travelProfileConnectionStore = lazyRequireMod('./travelProfileConnectionStore');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
@@ -979,6 +981,152 @@ exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (
       res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
     } catch (e) {
       console.log('[genericProfileConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/**
+ * GET /api/travel-profile-infra/status — readiness of the Travel Profile pipeline in this sandbox.
+ * Same wizard / readiness contract as Generic — separate (schema, dataset, dataflow) triplet.
+ */
+exports.travelProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[travelProfileInfra.http]', JSON.stringify({ route: 'GET /api/travel-profile-infra/status', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await travelProfileInfraService.runTravelProfileInfraStatus(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/travel-profile-infra/step — one wizard step for the Travel Profile pipeline.
+ * Body: { step: "createSchema" | "attachFieldGroups" | "createDataset" | "httpFlow" }
+ */
+exports.travelProfileInfraStep = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const step = String(body.step || '').trim();
+  console.log('[travelProfileInfra.http]', JSON.stringify({ route: 'POST /api/travel-profile-infra/step', sandbox, step }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await travelProfileInfraService.runTravelProfileInfraStep(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value(),
+      step
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox, step });
+  }
+});
+
+/** GET /api/travel-profile-infra/flow-lookup?sandbox=&flowId=&flowName= — Flow Service inlet URL + flow id. */
+exports.travelProfileInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const flowId = String(req.query.flowId || '').trim();
+  const flowName = String(req.query.flowName || '').trim() || travelProfileInfraService.TRAVEL_PROFILE_HTTP_DATAFLOW_NAME;
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await consentFlowLookup.lookupConsentHttpFlow(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+      flowId: flowId || undefined,
+      flowName,
+    });
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * GET/POST /api/travel-profile-connection?sandbox= — read or merge-save streaming + infra IDs per sandbox (Firestore).
+ * POST body: { sandbox?, streaming?: { url, flowId, flowName, datasetId, schemaId, xdmKey, apiKey }, infra?: { schemaMetaAltId, schemaId, datasetId, profileCoreMixinId, analyticsFieldGroupId, datasetName, imsOrg } }
+ */
+exports.travelProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  const sandboxQ = resolveSandboxFromQuery(req);
+  if (req.method === 'GET') {
+    try {
+      const record = await travelProfileConnectionStore.getTravelProfileConnection(sandboxQ);
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[travelProfileConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sb = String(body.sandbox || sandboxQ).trim() || sandboxQ;
+    try {
+      const record = await travelProfileConnectionStore.saveTravelProfileConnection(sb, {
+        streaming: body.streaming,
+        infra: body.infra,
+      });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[travelProfileConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
     }
     return;

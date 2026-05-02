@@ -425,6 +425,7 @@ function showIndustryFields(industry) {
   const placeholder = document.getElementById('industryPlaceholder');
   const topBoxes = document.querySelector('.profile-gen-boxes');
   const genericPanel = document.getElementById('genericProfilePanel');
+  const travelPanel = document.getElementById('travelProfilePanel');
   const profileIndexRow = document.getElementById('profileIndex')?.closest('.form-row');
   const topActionRow = document.querySelector('#configPanel .profile-gen-actions');
   const mergeRow = document.querySelector('#configPanel .profile-gen-merge-row');
@@ -433,6 +434,7 @@ function showIndustryFields(industry) {
   if (industry === 'generic') {
     if (topBoxes) topBoxes.hidden = true;
     if (genericPanel) genericPanel.hidden = false;
+    if (travelPanel) travelPanel.hidden = true;
     if (profileIndexRow) profileIndexRow.hidden = true;
     if (topActionRow) topActionRow.hidden = true;
     if (mergeRow) mergeRow.hidden = true;
@@ -440,6 +442,27 @@ function showIndustryFields(industry) {
     if (placeholder) placeholder.hidden = true;
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('aep-generic-panel-shown'));
+    }
+    return;
+  }
+
+  // Travel (industry === 'travel') uses the same dedicated-panel pattern as
+  // Generic: hide the kirkham+<industry>-<x> generator, hide the legacy
+  // #industryTravel attribute box (the .industry-field-group loop above
+  // already set it hidden), and show #travelProfilePanel which owns its
+  // own scaled-email generator, lookup, identity, analytics, and travel
+  // attributes. Counter is shared with Generic via window.AepProfileGenShared.
+  if (industry === 'travel') {
+    if (topBoxes) topBoxes.hidden = true;
+    if (genericPanel) genericPanel.hidden = true;
+    if (travelPanel) travelPanel.hidden = false;
+    if (profileIndexRow) profileIndexRow.hidden = true;
+    if (topActionRow) topActionRow.hidden = true;
+    if (mergeRow) mergeRow.hidden = true;
+    if (debugDetails) debugDetails.hidden = true;
+    if (placeholder) placeholder.hidden = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aep-travel-panel-shown'));
     }
     return;
   }
@@ -452,6 +475,7 @@ function showIndustryFields(industry) {
   if (!industry) {
     if (topBoxes) topBoxes.hidden = true;
     if (genericPanel) genericPanel.hidden = true;
+    if (travelPanel) travelPanel.hidden = true;
     if (profileIndexRow) profileIndexRow.hidden = true;
     if (topActionRow) topActionRow.hidden = true;
     if (mergeRow) mergeRow.hidden = true;
@@ -460,10 +484,14 @@ function showIndustryFields(industry) {
     return;
   }
 
-  // Industry-driven layout (retail / fsi / travel / media / sports / telco /
-  // public): show the top boxes and reveal the matching field group.
+  // Industry-driven layout (retail / fsi / media / sports / telco / public):
+  // show the top boxes and reveal the matching field group. Travel takes the
+  // dedicated-panel branch above; the other industries keep using the
+  // legacy #industry<Name> attribute boxes alongside the kirkham+<industry>-<x>
+  // generator until each one is migrated to its own panel.
   if (topBoxes) topBoxes.hidden = false;
   if (genericPanel) genericPanel.hidden = true;
+  if (travelPanel) travelPanel.hidden = true;
   if (profileIndexRow) profileIndexRow.hidden = false;
   if (topActionRow) topActionRow.hidden = false;
   if (mergeRow) mergeRow.hidden = false;

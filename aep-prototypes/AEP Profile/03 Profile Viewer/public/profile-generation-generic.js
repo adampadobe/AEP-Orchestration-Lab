@@ -113,6 +113,18 @@
   // Bail out if the section isn't on the page (defensive — same JS file is shared).
   if (!baseEmailEl || !counterEl || !emailPreviewEl) return;
 
+  // Cross-industry shared helpers (scaler / counter / base email / recent /
+  // lastStreamed). Loaded by profile-generation.html as
+  // profile-generation-shared.js BEFORE this module so we can rely on the
+  // global being present. Both Generic and Travel modules read/write the
+  // same `profileGen*` storage keys via this shim — guaranteeing we never
+  // produce the same scaled email twice across industries.
+  const Shared = window.AepProfileGenShared;
+  if (!Shared) {
+    console.error('[generic-profile] AepProfileGenShared missing — load profile-generation-shared.js before this script.');
+    return;
+  }
+
   // ---------- Helpers ----------
   function setMessage(el, text, type) {
     if (!el) return;
@@ -183,19 +195,14 @@
     return String((sandboxSelect && sandboxSelect.value) || '').trim();
   }
 
-  /** Per-sandbox localStorage key for the generic profile base email (same `sb` partition as `counterStorageKey`). */
+  /** Per-sandbox localStorage key for the profile generator base email (shared across industries). */
   function baseEmailStorageKey() {
-    return `genericProfileBaseEmail:${getSandboxName() || 'default'}`;
+    return Shared.baseEmailStorageKey(getSandboxName());
   }
 
   function loadBaseEmailForCurrentSandbox() {
     if (!baseEmailEl) return;
-    try {
-      const raw = localStorage.getItem(baseEmailStorageKey());
-      baseEmailEl.value = raw == null ? '' : raw;
-    } catch (_) {
-      baseEmailEl.value = '';
-    }
+    baseEmailEl.value = Shared.readBaseEmail(getSandboxName());
   }
 
   function querySuffix(extra) {
@@ -226,36 +233,8 @@
     };
   }
 
-  // ---------- Email scaler ----------
-  /**
-   * Scale a base email to a plus-addressed pattern with today's DDMMYYYY and a counter N.
-   * Examples:
-   *   adamp.adobedemo@gmail.com   → adamp.adobedemo+30042026-1@gmail.com
-   *   apalmer@adobetest.com       → apalmer+30042026-1@adobetest.com
-   * Existing plus-tags on the local part are preserved (we append after them with a `-N` suffix only).
-   * @param {string} base
-   * @param {number} n
-   * @param {Date} [date]
-   * @returns {string} scaled email or empty string when base is invalid
-   */
-  function scaleEmail(base, n, date) {
-    const s = String(base || '').trim();
-    if (!s.includes('@')) return '';
-    const at = s.lastIndexOf('@');
-    const local = s.slice(0, at);
-    const domain = s.slice(at + 1);
-    if (!local || !domain) return '';
-    const d = date instanceof Date ? date : new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    const counter = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
-    // If the user typed `local+something`, append `-DDMMYYYY-N` to that, otherwise add a fresh `+DDMMYYYY-N`.
-    if (local.includes('+')) {
-      return `${local}-${dd}${mm}${yyyy}-${counter}@${domain}`;
-    }
-    return `${local}+${dd}${mm}${yyyy}-${counter}@${domain}`;
-  }
+  // ---------- Email scaler (shared across industries via window.AepProfileGenShared) ----------
+  const scaleEmail = Shared.scaleEmail;
 
   function getCurrentScaledEmail() {
     const base = trimVal(baseEmailEl);
@@ -269,49 +248,27 @@
     emailPreviewEl.textContent = out || '— enter a base email like apalmer@adobetest.com —';
   }
 
-  // ---------- Daily per-sandbox counter persistence ----------
-  function todayYmd() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}${m}${day}`;
-  }
+  // ---------- Daily per-sandbox counter persistence (shared across industries) ----------
+  // All functions below proxy to window.AepProfileGenShared so the Generic
+  // and Travel modules read/write the same `profileGen*` storage keys.
+  // Function signatures here intentionally stay zero-arg so the rest of the
+  // module is unchanged — context (sandbox + base email) is resolved here.
+  const todayYmd = Shared.todayYmd;
 
   function counterStorageKey() {
-    const sb = getSandboxName() || 'default';
-    const base = (trimVal(baseEmailEl) || 'no-email').toLowerCase();
-    return `genericProfileCounter:${sb}:${base}:${todayYmd()}`;
+    return Shared.counterStorageKey(getSandboxName(), trimVal(baseEmailEl));
   }
 
-  /** Same partition as counter — last scaled email we successfully streamed (generate/update). */
   function lastStreamedStorageKey() {
-    return counterStorageKey().replace(/^genericProfileCounter:/, 'genericProfileLastStreamed:');
+    return Shared.lastStreamedKey(getSandboxName(), trimVal(baseEmailEl));
   }
 
   function persistLastStreamed(email, n) {
-    const e = String(email || '').trim();
-    if (!e.includes('@')) return;
-    try {
-      localStorage.setItem(
-        lastStreamedStorageKey(),
-        JSON.stringify({ email: e, n: Number.isFinite(n) ? n : null, ts: Date.now() }),
-      );
-    } catch (_) {
-      /* ignore */
-    }
+    Shared.persistLastStreamed(getSandboxName(), trimVal(baseEmailEl), email, n);
   }
 
   function readLastStreamed() {
-    try {
-      const raw = localStorage.getItem(lastStreamedStorageKey());
-      if (!raw) return null;
-      const o = JSON.parse(raw);
-      if (o && typeof o.email === 'string' && o.email.includes('@')) return o;
-    } catch (_) {
-      /* ignore */
-    }
-    return null;
+    return Shared.readLastStreamed(getSandboxName(), trimVal(baseEmailEl));
   }
 
   /**
@@ -327,29 +284,17 @@
   }
 
   function loadCounterForCurrentContext() {
-    try {
-      const raw = localStorage.getItem(counterStorageKey());
-      const n = raw != null ? parseInt(raw, 10) : NaN;
-      counterEl.value = String(Number.isFinite(n) && n > 0 ? n : 1);
-    } catch (_) {
-      counterEl.value = '1';
-    }
+    counterEl.value = String(Shared.readCounter(getSandboxName(), trimVal(baseEmailEl)));
     updateEmailPreview();
   }
 
   function persistCounter(n) {
-    try {
-      localStorage.setItem(counterStorageKey(), String(n));
-    } catch (_) {
-      /* ignore */
-    }
+    Shared.persistCounter(getSandboxName(), trimVal(baseEmailEl), n);
   }
 
   function bumpCounter() {
-    const cur = parseInt(counterEl.value || '1', 10) || 1;
-    const next = cur + 1;
+    const next = Shared.incrementCounter(getSandboxName(), trimVal(baseEmailEl));
     counterEl.value = String(next);
-    persistCounter(next);
     updateEmailPreview();
   }
 
@@ -1286,50 +1231,32 @@
     if (loyaltyEnabledEl) loyaltyEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
   }
 
-  // ---------- Recently-generated picker ----------
-  // We persist the last ~20 successful generates per (sandbox, base email,
-  // day) so the user can reload any of them to inspect/modify. The same
-  // partitioning as the counter (see counterStorageKey) means the day
-  // rollover automatically clears stale entries.
-  const RECENT_LIMIT = 20;
-
+  // ---------- Recently-generated picker (shared storage across industries) ----------
+  // Storage / partitioning (sandbox + base email + day) and the 20-entry cap
+  // both live in window.AepProfileGenShared. Same key namespace as Travel,
+  // so the picker shows recents created in either generator.
   function recentStorageKey() {
-    const sb = getSandboxName() || 'default';
-    const base = (trimVal(baseEmailEl) || 'no-email').toLowerCase();
-    return `genericProfileRecent:${sb}:${base}:${todayYmd()}`;
+    return Shared.recentKey(getSandboxName(), trimVal(baseEmailEl));
   }
 
   function readRecent() {
-    try {
-      const raw = localStorage.getItem(recentStorageKey());
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch (_) {
-      return [];
-    }
+    return Shared.readRecent(getSandboxName(), trimVal(baseEmailEl));
   }
 
   function writeRecent(arr) {
-    try {
-      localStorage.setItem(recentStorageKey(), JSON.stringify(arr.slice(0, RECENT_LIMIT)));
-    } catch (_) {
-      /* quota / privacy mode — non-fatal, just lose the picker for this session */
-    }
+    Shared.writeRecent(getSandboxName(), trimVal(baseEmailEl), arr);
   }
 
   function recordGenerated(scaledEmail, n, snapshotOverride) {
     if (!scaledEmail) return;
     const snap =
       snapshotOverride && typeof snapshotOverride === 'object' ? snapshotOverride : snapshotForm();
-    const entry = {
+    Shared.pushRecent(getSandboxName(), trimVal(baseEmailEl), {
       scaledEmail,
       n: Number.isFinite(n) ? n : null,
       ts: Date.now(),
       snapshot: snap,
-    };
-    const next = [entry, ...readRecent().filter((e) => e && e.scaledEmail !== scaledEmail)];
-    writeRecent(next);
+    });
     renderRecent();
     // Also seed the shared cross-page identifier cache so this scaled email
     // appears in the autocomplete datalist on every other lookup page in
@@ -1465,8 +1392,8 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
-      // Persist base email per sandbox (set-and-forget for this sandbox only; no migration from legacy global key).
-      try { localStorage.setItem(baseEmailStorageKey(), baseEmailEl.value || ''); } catch (_) {}
+      // Persist base email per sandbox via shared store (set-and-forget for this sandbox only).
+      Shared.writeBaseEmail(getSandboxName(), baseEmailEl.value || '');
       // When the base email changes, reload the counter for the new (sandbox, base, today) key.
       loadCounterForCurrentContext();
     });

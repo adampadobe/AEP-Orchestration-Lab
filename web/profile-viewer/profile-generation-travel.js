@@ -1,131 +1,155 @@
 /**
- * Profile Generation — generic (industry-less) section.
+ * Profile Generation — Travel industry section.
  *
- * Handles:
- *  - Sandbox-portable setup wizard (4 steps): Create schema → Attach field groups → Create dataset → HTTP flow instructions.
- *  - Per-sandbox saved DCS HTTP API connection (URL, Flow ID, Dataset ID, Schema $id) via Firestore.
- *  - Customer Analytics editor (churn, propensity, NPS, AOV, preferred marketing channel → consents.marketing.preferred, gender, loyalty tier+points, language).
- *  - Plain-email-to-pattern scaler `<local>+DDMMYYYY-N@<domain>` with daily counter per (sandbox, base email).
- *  - Find existing profile by scaled email (`/api/profile/table`).
- *  - Update / generate-N profiles via the existing Adobe Profile Updater (`/api/profile/update`).
- *  - Generate rolls a fresh random persona (name, gender, analytics, channel, language; loyalty when enabled) per profile.
+ * Mirrors profile-generation-generic.js exactly — same wizard, same lookup,
+ * same Customer Analytics editor, same Generate-N flow. Differences are
+ * limited to:
+ *  - DOM ids prefixed `travel*` (`#travelStreamSchemaId`, `#travelGenerateBtn`, …).
+ *  - `/api/travel-profile-infra/*` and `/api/travel-profile-connection`
+ *    endpoints back the wizard / connection store (separate Firestore
+ *    collection from Generic).
+ *  - `buildUpdatesFromForm()` adds Travel attribute paths under the tenant
+ *    (`individualCharacteristics.travel.*`, `travelReservations.*`).
  *
- * Sandbox is read from the global `AepGlobalSandbox` so the section follows the page's sandbox switcher.
+ * Cross-industry coordination (counter / base email / recent / lastStreamed)
+ * runs through window.AepProfileGenShared, so a Generic profile and a
+ * Travel profile in the same sandbox + base email never produce the same
+ * scaled email on the same day.
  */
 
 (function () {
   'use strict';
 
-  // ---------- DOM lookups ----------
   const sandboxSelect = document.getElementById('sandboxSelect');
 
   // Setup wizard
-  const checkInfraBtn = document.getElementById('genCheckInfraBtn');
-  const stepCreateSchemaBtn = document.getElementById('genStepCreateSchemaBtn');
-  const stepAttachFgBtn = document.getElementById('genStepAttachFgBtn');
-  const stepCreateDatasetBtn = document.getElementById('genStepCreateDatasetBtn');
-  const stepHttpFlowBtn = document.getElementById('genStepHttpFlowBtn');
-  const infraStatusMessage = document.getElementById('genInfraStatusMessage');
-  // Collapsible <details> wrapping the wizard. We capture the original hint
-  // copy at module load so applyConfiguredCollapseState() can restore it
-  // when the user re-opens / clears fields.
-  const infraDetailsEl = document.getElementById('genericProfileInfraDetails');
-  const infraHintEl = document.getElementById('genericProfileInfraHint');
+  const checkInfraBtn = document.getElementById('travelCheckInfraBtn');
+  const stepCreateSchemaBtn = document.getElementById('travelStepCreateSchemaBtn');
+  const stepAttachFgBtn = document.getElementById('travelStepAttachFgBtn');
+  const stepCreateDatasetBtn = document.getElementById('travelStepCreateDatasetBtn');
+  const stepHttpFlowBtn = document.getElementById('travelStepHttpFlowBtn');
+  const infraStatusMessage = document.getElementById('travelInfraStatusMessage');
+  const infraDetailsEl = document.getElementById('travelProfileInfraDetails');
+  const infraHintEl = document.getElementById('travelProfileInfraHint');
   const ORIGINAL_INFRA_HINT = infraHintEl ? infraHintEl.textContent.trim() : '';
 
   // Streaming connection fields
-  const streamSchemaIdEl = document.getElementById('genStreamSchemaId');
-  const streamDatasetIdEl = document.getElementById('genStreamDatasetId');
-  const streamXdmKeyEl = document.getElementById('genStreamXdmKey');
-  const streamFlowIdEl = document.getElementById('genStreamFlowId');
-  const streamFlowNameEl = document.getElementById('genStreamFlowName');
-  const streamUrlEl = document.getElementById('genStreamUrl');
-  const loadFromFirebaseBtn = document.getElementById('genLoadFromFirebaseBtn');
-  const fetchFlowFromAepBtn = document.getElementById('genFetchFlowFromAepBtn');
-  const saveStreamBtn = document.getElementById('genSaveStreamBtn');
+  const streamSchemaIdEl = document.getElementById('travelStreamSchemaId');
+  const streamDatasetIdEl = document.getElementById('travelStreamDatasetId');
+  const streamXdmKeyEl = document.getElementById('travelStreamXdmKey');
+  const streamFlowIdEl = document.getElementById('travelStreamFlowId');
+  const streamFlowNameEl = document.getElementById('travelStreamFlowName');
+  const streamUrlEl = document.getElementById('travelStreamUrl');
+  const loadFromFirebaseBtn = document.getElementById('travelLoadFromFirebaseBtn');
+  const fetchFlowFromAepBtn = document.getElementById('travelFetchFlowFromAepBtn');
+  const saveStreamBtn = document.getElementById('travelSaveStreamBtn');
 
-  // Profile lookup (any identity namespace) — mirrors the standard widget on index.html.
-  // The namespace <select> is wired to AepIdentityPicker (shared aepIdentityNamespace
-  // localStorage key, kept in sync across every lookup page in the lab) and the
-  // identifier <input> gets per-namespace autocomplete via attachEmailDatalist
-  // (shared 'aep-profile-viewer-recent-identifiers-v1' cache, populated by every
-  // successful lookup on consent.html, index.html, event-tool, live-activities, etc).
-  const lookupNsEl = document.getElementById('genLookupNs');
-  const lookupIdentifierEl = document.getElementById('genLookupIdentifier');
-  const lookupBtn = document.getElementById('genLookupBtn');
+  // Profile lookup
+  const lookupNsEl = document.getElementById('travelLookupNs');
+  const lookupIdentifierEl = document.getElementById('travelLookupIdentifier');
+  const lookupBtn = document.getElementById('travelLookupBtn');
   if (typeof window.AepIdentityPicker !== 'undefined' && typeof window.AepIdentityPicker.init === 'function') {
-    window.AepIdentityPicker.init('genLookupIdentifier', 'genLookupNs');
+    window.AepIdentityPicker.init('travelLookupIdentifier', 'travelLookupNs');
   }
   if (typeof window.attachEmailDatalist === 'function') {
-    // Page-local datalist id avoids collision with the global 'recentEmails'
-    // datalist that consent.html and others create — same shared cache, separate
-    // <datalist> element so the input's `list=` attribute resolves cleanly.
-    window.attachEmailDatalist('genLookupIdentifier', 'genLookupRecent', 'genLookupNs');
+    window.attachEmailDatalist('travelLookupIdentifier', 'travelLookupRecent', 'travelLookupNs');
   }
 
-  // Base email + counter + actions ("Generate from your base email" sub-block)
-  const baseEmailEl = document.getElementById('genBaseEmail');
-  const counterEl = document.getElementById('genCounter');
-  const generateCountEl = document.getElementById('genGenerateCount');
-  const emailPreviewEl = document.getElementById('genEmailPreview');
-  const resetCounterBtn = document.getElementById('genResetCounterBtn');
-  const updateProfileBtn = document.getElementById('genUpdateProfileBtn');
-  const generateBtn = document.getElementById('genGenerateBtn');
-  const dryRunEl = document.getElementById('genDryRun');
-  const messageEl = document.getElementById('genericProfileMessage');
+  // Base email + counter + actions
+  const baseEmailEl = document.getElementById('travelBaseEmail');
+  const counterEl = document.getElementById('travelCounter');
+  const generateCountEl = document.getElementById('travelGenerateCount');
+  const emailPreviewEl = document.getElementById('travelEmailPreview');
+  const resetCounterBtn = document.getElementById('travelResetCounterBtn');
+  const updateProfileBtn = document.getElementById('travelUpdateProfileBtn');
+  const generateBtn = document.getElementById('travelGenerateBtn');
+  const dryRunEl = document.getElementById('travelDryRun');
+  const messageEl = document.getElementById('travelProfileMessage');
 
-  // Identity (added when Generic became an industry option — basic profile fields)
-  const firstNameEl = document.getElementById('genFirstName');
-  const lastNameEl = document.getElementById('genLastName');
+  // Identity
+  const firstNameEl = document.getElementById('travelFirstName');
+  const lastNameEl = document.getElementById('travelLastName');
 
   // Customer Analytics
-  const churnEl = document.getElementById('genChurn');
-  const churnValueEl = document.getElementById('genChurnValue');
-  const propensityEl = document.getElementById('genPropensity');
-  const propensityValueEl = document.getElementById('genPropensityValue');
-  const npsEl = document.getElementById('genNps');
-  const aovEl = document.getElementById('genAov');
-  const aovValueEl = document.getElementById('genAovValue');
-  const preferredChannelEl = document.getElementById('genPreferredChannel');
-  const genderEl = document.getElementById('genGender');
-  // Loyalty subgroup (now toggle-gated — see genLoyaltyEnabled)
-  const loyaltyEnabledEl = document.getElementById('genLoyaltyEnabled');
-  const loyaltyFieldsEl = document.getElementById('genLoyaltyFields');
-  const loyaltyIDEl = document.getElementById('genLoyaltyID');
-  const loyaltyTierEl = document.getElementById('genLoyaltyTier');
-  const loyaltyPointsEl = document.getElementById('genLoyaltyPoints');
-  const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
-  const languageEl = document.getElementById('genLanguage');
-  // Recently-generated picker (per sandbox + base email + day)
-  const recentPickerEl = document.getElementById('genRecentPicker');
-  const recentSelectEl = document.getElementById('genRecentSelect');
-  const recentLoadBtn = document.getElementById('genRecentLoadBtn');
-  const recentDetailsEl = document.getElementById('genRecentDetails');
-  const recentListBodyEl = document.getElementById('genRecentListBody');
-  const recentCountLabelEl = document.getElementById('genRecentCountLabel');
+  const churnEl = document.getElementById('travelChurn');
+  const churnValueEl = document.getElementById('travelChurnValue');
+  const propensityEl = document.getElementById('travelPropensity');
+  const propensityValueEl = document.getElementById('travelPropensityValue');
+  const npsEl = document.getElementById('travelNps');
+  const aovEl = document.getElementById('travelAov');
+  const aovValueEl = document.getElementById('travelAovValue');
+  const preferredChannelEl = document.getElementById('travelPreferredChannel');
+  const genderEl = document.getElementById('travelGender');
+  const loyaltyEnabledEl = document.getElementById('travelLoyaltyEnabled');
+  const loyaltyFieldsEl = document.getElementById('travelLoyaltyFields');
+  const loyaltyIDEl = document.getElementById('travelLoyaltyID');
+  const loyaltyTierEl = document.getElementById('travelLoyaltyTier');
+  const loyaltyPointsEl = document.getElementById('travelLoyaltyPoints');
+  const loyaltyRandomBtn = document.getElementById('travelLoyaltyRandomBtn');
+  const languageEl = document.getElementById('travelLanguage');
+
+  // Travel-specific attributes
+  const favouriteAirlineEl = document.getElementById('travelFavouriteAirlineCompany');
+  const primaryTravelClassEl = document.getElementById('travelPrimaryTravelClass2');
+
+  const recentStayEnabledEl = document.getElementById('travelRecentStayEnabled');
+  const recentStayFieldsEl = document.getElementById('travelRecentStayFields');
+  const recentStayHotelEl = document.getElementById('travelRecentStayHotelName');
+  const recentStayCityEl = document.getElementById('travelRecentStayCity');
+  const recentStayCountryEl = document.getElementById('travelRecentStayCountry');
+  const recentStayCheckInEl = document.getElementById('travelRecentStayCheckIn');
+  const recentStayCheckOutEl = document.getElementById('travelRecentStayCheckOut');
+  const recentStayRoomTypeEl = document.getElementById('travelRecentStayRoomType');
+
+  const reservationsEnabledEl = document.getElementById('travelReservationsEnabled');
+  const reservationsFieldsEl = document.getElementById('travelReservationsFields');
+  const flightDepartureEl = document.getElementById('travelFlightDeparture');
+  const flightArrivalEl = document.getElementById('travelFlightArrival');
+  const flightNumberEl = document.getElementById('travelFlightNumber');
+  const flightDateEl = document.getElementById('travelFlightDate');
+  const flightClassEl = document.getElementById('travelFlightClass');
+  const flightConfirmationEl = document.getElementById('travelFlightConfirmation');
+  const flightPassengersEl = document.getElementById('travelFlightPassengers');
+  const flightChildrenEl = document.getElementById('travelFlightChildren');
+  const flightMultiLegEl = document.getElementById('travelFlightMultiLeg');
+  const flightLayoversEl = document.getElementById('travelFlightLayovers');
+  const hotelNameEl = document.getElementById('travelHotelName');
+  const hotelCityEl = document.getElementById('travelHotelCity');
+  const hotelCountryEl = document.getElementById('travelHotelCountry');
+  const hotelCheckInEl = document.getElementById('travelHotelCheckIn');
+  const hotelCheckOutEl = document.getElementById('travelHotelCheckOut');
+  const hotelRoomTypeEl = document.getElementById('travelHotelRoomType');
+  const hotelConfirmationEl = document.getElementById('travelHotelConfirmation');
+  const carCompanyEl = document.getElementById('travelCarCompany');
+  const carPickupCityEl = document.getElementById('travelCarPickupCity');
+  const carClassEl = document.getElementById('travelCarClass');
+  const carPickupDateEl = document.getElementById('travelCarPickupDate');
+  const carReturnDateEl = document.getElementById('travelCarReturnDate');
+  const carConfirmationEl = document.getElementById('travelCarConfirmation');
+
+  // Recently-generated picker
+  const recentPickerEl = document.getElementById('travelRecentPicker');
+  const recentSelectEl = document.getElementById('travelRecentSelect');
+  const recentLoadBtn = document.getElementById('travelRecentLoadBtn');
+  const recentDetailsEl = document.getElementById('travelRecentDetails');
+  const recentListBodyEl = document.getElementById('travelRecentListBody');
+  const recentCountLabelEl = document.getElementById('travelRecentCountLabel');
 
   // Debug
-  const debugEl = document.getElementById('genericProfileDebug');
-  const debugClientReqEl = document.getElementById('genDebugClientRequest');
-  const debugStatusEl = document.getElementById('genDebugStatus');
-  const debugResponseEl = document.getElementById('genDebugResponse');
+  const debugEl = document.getElementById('travelProfileDebug');
+  const debugClientReqEl = document.getElementById('travelDebugClientRequest');
+  const debugStatusEl = document.getElementById('travelDebugStatus');
+  const debugResponseEl = document.getElementById('travelDebugResponse');
 
-  // Bail out if the section isn't on the page (defensive — same JS file is shared).
   if (!baseEmailEl || !counterEl || !emailPreviewEl) return;
 
-  // Cross-industry shared helpers (scaler / counter / base email / recent /
-  // lastStreamed). Loaded by profile-generation.html as
-  // profile-generation-shared.js BEFORE this module so we can rely on the
-  // global being present. Both Generic and Travel modules read/write the
-  // same `profileGen*` storage keys via this shim — guaranteeing we never
-  // produce the same scaled email twice across industries.
   const Shared = window.AepProfileGenShared;
   if (!Shared) {
-    console.error('[generic-profile] AepProfileGenShared missing — load profile-generation-shared.js before this script.');
+    console.error('[travel-profile] AepProfileGenShared missing — load profile-generation-shared.js before this script.');
     return;
   }
 
-  // ---------- Helpers ----------
+  // ---------- Helpers (mirror of Generic) ----------
   function setMessage(el, text, type) {
     if (!el) return;
     el.textContent = text || '';
@@ -138,35 +162,14 @@
     infraStatusMessage.textContent = text || '';
     infraStatusMessage.className = 'consent-message' + (type ? ' ' + type : '');
     infraStatusMessage.hidden = !text;
-    if (text && type === 'error') {
-      const det = document.getElementById('genericProfileInfraDetails');
-      if (det) det.open = true;
-    }
+    if (text && type === 'error' && infraDetailsEl) infraDetailsEl.open = true;
   }
 
-  /**
-   * True when the four required streaming fields (Schema $id, Dataset ID,
-   * Flow ID, Collection URL) are all filled. We treat that as "fully
-   * configured" — the operator has either completed the wizard or pasted
-   * a saved connection from Firebase.
-   */
   function streamingFieldsAreFullyConfigured() {
     const s = getStreamingPayload();
     return !!(s && s.url && s.flowId && s.datasetId && s.schemaId);
   }
 
-  /**
-   * Collapse the wizard <details> when fully configured (and swap the hint
-   * for a green "Configured" message); expand it again when the
-   * configuration becomes incomplete. Called from:
-   *   - loadConnectionFromFirestore() after a successful Firebase load.
-   *   - saveConnectionToFirestore() after a successful save.
-   *   - onSandboxChange() so switching sandboxes re-evaluates state.
-   *   - The "aep-generic-panel-shown" handler so the first reveal of the
-   *     Generic editor reflects the current state correctly.
-   * `showInfraMessage('…', 'error')` still force-opens the <details>
-   * regardless, so error states stay visible.
-   */
   function applyConfiguredCollapseState() {
     if (!infraDetailsEl) return;
     const ready = streamingFieldsAreFullyConfigured();
@@ -193,11 +196,6 @@
       return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
     }
     return String((sandboxSelect && sandboxSelect.value) || '').trim();
-  }
-
-  /** Per-sandbox localStorage key for the profile generator base email (shared across industries). */
-  function baseEmailStorageKey() {
-    return Shared.baseEmailStorageKey(getSandboxName());
   }
 
   function loadBaseEmailForCurrentSandbox() {
@@ -233,50 +231,25 @@
     };
   }
 
-  // ---------- Email scaler (shared across industries via window.AepProfileGenShared) ----------
+  // ---------- Email scaler / counter (shared) ----------
   const scaleEmail = Shared.scaleEmail;
 
   function getCurrentScaledEmail() {
-    const base = trimVal(baseEmailEl);
-    const n = parseInt(counterEl.value || '1', 10) || 1;
-    return scaleEmail(base, n, new Date());
+    return scaleEmail(trimVal(baseEmailEl), parseInt(counterEl.value || '1', 10) || 1, new Date());
   }
 
   function updateEmailPreview() {
-    const out = getCurrentScaledEmail();
     if (!emailPreviewEl) return;
-    emailPreviewEl.textContent = out || '— enter a base email like apalmer@adobetest.com —';
-  }
-
-  // ---------- Daily per-sandbox counter persistence (shared across industries) ----------
-  // All functions below proxy to window.AepProfileGenShared so the Generic
-  // and Travel modules read/write the same `profileGen*` storage keys.
-  // Function signatures here intentionally stay zero-arg so the rest of the
-  // module is unchanged — context (sandbox + base email) is resolved here.
-  const todayYmd = Shared.todayYmd;
-
-  function counterStorageKey() {
-    return Shared.counterStorageKey(getSandboxName(), trimVal(baseEmailEl));
-  }
-
-  function lastStreamedStorageKey() {
-    return Shared.lastStreamedKey(getSandboxName(), trimVal(baseEmailEl));
+    emailPreviewEl.textContent = getCurrentScaledEmail() || '— enter a base email like apalmer@adobetest.com —';
   }
 
   function persistLastStreamed(email, n) {
     Shared.persistLastStreamed(getSandboxName(), trimVal(baseEmailEl), email, n);
   }
-
   function readLastStreamed() {
     return Shared.readLastStreamed(getSandboxName(), trimVal(baseEmailEl));
   }
 
-  /**
-   * Email to pre-fill for email-namespace lookup when the field is empty.
-   * After Generate, the counter points at the *next* slot; the last profile
-   * that exists in AEP is the one we just streamed — prefer that over
-   * `getCurrentScaledEmail()` (which would be one slot ahead).
-   */
   function getDefaultEmailLookupIdentifier() {
     const last = readLastStreamed();
     if (last && last.email) return last.email;
@@ -298,7 +271,7 @@
     updateEmailPreview();
   }
 
-  // ---------- Streaming connection (Firestore-backed) ----------
+  // ---------- Streaming connection (Firestore) ----------
   function fillStreamingFields(streaming) {
     if (!streaming || typeof streaming !== 'object') return;
     if (streamUrlEl && streaming.url) streamUrlEl.value = streaming.url;
@@ -315,12 +288,11 @@
     if (streamDatasetIdEl) streamDatasetIdEl.value = '';
     if (streamSchemaIdEl) streamSchemaIdEl.value = '';
     if (streamXdmKeyEl) streamXdmKeyEl.value = '_demoemea';
-    // Keep streamFlowName at the canonical default; user can override.
   }
 
   async function loadConnectionFromFirestore(silent) {
     try {
-      const res = await fetch('/api/generic-profile-connection' + querySuffix());
+      const res = await fetch('/api/travel-profile-connection' + querySuffix());
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
         if (!silent) showInfraMessage(data.error || 'Failed to load saved connection.', 'error');
@@ -329,12 +301,12 @@
       const rec = data.record;
       if (rec && rec.streaming) {
         fillStreamingFields(rec.streaming);
-        if (!silent) showInfraMessage('Loaded saved Generic Profile connection for this sandbox.', 'success');
+        if (!silent) showInfraMessage('Loaded saved Travel Profile connection for this sandbox.', 'success');
         applyConfiguredCollapseState();
         return true;
       }
       if (!silent) {
-        showInfraMessage('No saved connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
+        showInfraMessage('No saved Travel connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
       }
       applyConfiguredCollapseState();
       return false;
@@ -355,7 +327,7 @@
       body.infra = extraInfra;
     }
     try {
-      const res = await fetch('/api/generic-profile-connection' + querySuffix(), {
+      const res = await fetch('/api/travel-profile-connection' + querySuffix(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -381,7 +353,7 @@
     if (streamXdmKeyEl && data.xdmKey) streamXdmKeyEl.value = String(data.xdmKey);
   }
 
-  async function runStep(step, btn) {
+  async function runStep(step) {
     const labels = {
       createSchema: 'Creating schema…',
       attachFieldGroups: 'Attaching field groups…',
@@ -392,7 +364,7 @@
     busy.forEach((b) => { b.disabled = true; });
     showInfraMessage(labels[step] || 'Working…', '');
     try {
-      const res = await fetch('/api/generic-profile-infra/step' + querySuffix(), {
+      const res = await fetch('/api/travel-profile-infra/step' + querySuffix(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ step }),
@@ -421,14 +393,14 @@
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
-        console.warn('[generic-profile] infra sync:', e && e.message);
+        console.warn('[travel-profile] infra sync:', e && e.message);
       }
       const msg =
         data.message ||
         (data.manual && Array.isArray(data.nextSteps) ? data.nextSteps.join(' ') : 'Step completed.');
       showInfraMessage(msg, 'success');
       if (Array.isArray(data.nextSteps) && data.nextSteps.length) {
-        console.info('[generic-profile-infra] Next steps:', data.nextSteps.join('\n'));
+        console.info('[travel-profile-infra] Next steps:', data.nextSteps.join('\n'));
       }
     } catch (e) {
       showInfraMessage(e.message || 'Network error', 'error');
@@ -442,7 +414,7 @@
     checkInfraBtn.disabled = true;
     showInfraMessage('Checking…', '');
     try {
-      const res = await fetch('/api/generic-profile-infra/status' + querySuffix());
+      const res = await fetch('/api/travel-profile-infra/status' + querySuffix());
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
         showInfraMessage(data.error || 'Status request failed', 'error');
@@ -466,7 +438,7 @@
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
-        console.warn('[generic-profile] status sync:', e && e.message);
+        console.warn('[travel-profile] status sync:', e && e.message);
       }
     } catch (e) {
       showInfraMessage(e.message || 'Network error', 'error');
@@ -478,14 +450,14 @@
   async function fetchFlowFromAep() {
     if (!fetchFlowFromAepBtn) return;
     fetchFlowFromAepBtn.disabled = true;
-    showInfraMessage('Looking up dataflow in Flow Service…', '');
+    showInfraMessage('Looking up Travel dataflow in Flow Service…', '');
     try {
       const flowId = trimVal(streamFlowIdEl);
       const flowName = trimVal(streamFlowNameEl);
       const extra = {};
       if (flowId) extra.flowId = flowId;
       if (!flowId && flowName) extra.flowName = flowName;
-      const res = await fetch('/api/generic-profile-infra/flow-lookup' + querySuffix(extra));
+      const res = await fetch('/api/travel-profile-infra/flow-lookup' + querySuffix(extra));
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
         showInfraMessage(data.error || 'Flow lookup failed', 'error');
@@ -502,15 +474,14 @@
     }
   }
 
-  // ---------- Customer Analytics editor wiring ----------
-  /** Same semantics as `content-decision-live-edge-micro-profile.js` (churn reversed: high = bad). */
-  function pickGenSliderToken(pct, reverse) {
+  // ---------- Customer Analytics editor wiring (mirror of Generic) ----------
+  function pickSliderToken(pct, reverse) {
     if (pct < 0.34) return reverse ? '--dash-success-border' : '--dash-error-border';
     if (pct < 0.67) return '--dash-warning-border';
     return reverse ? '--dash-error-border' : '--dash-success-border';
   }
 
-  function applyGenSliderTint(input, reverse) {
+  function applySliderTint(input, reverse) {
     if (!input) return;
     if (input.disabled) {
       input.style.setProperty('--gen-slider-fill', 'var(--dash-input-border)');
@@ -522,7 +493,7 @@
     const val = Number(input.value);
     if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(val)) return;
     const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
-    const token = pickGenSliderToken(pct, !!reverse);
+    const token = pickSliderToken(pct, !!reverse);
     input.style.setProperty('--gen-slider-fill', `var(${token})`);
     input.style.setProperty('--gen-slider-pct', `${(pct * 100).toFixed(2)}%`);
   }
@@ -536,18 +507,9 @@
     if (aovValueEl) aovValueEl.textContent = `$${n.toLocaleString('en-US')}`;
   }
 
-  function syncChurnSlider() {
-    renderChurn();
-    applyGenSliderTint(churnEl, true);
-  }
-  function syncPropensitySlider() {
-    renderPropensity();
-    applyGenSliderTint(propensityEl, false);
-  }
-  function syncAovSlider() {
-    renderAov();
-    applyGenSliderTint(aovEl, false);
-  }
+  function syncChurnSlider() { renderChurn(); applySliderTint(churnEl, true); }
+  function syncPropensitySlider() { renderPropensity(); applySliderTint(propensityEl, false); }
+  function syncAovSlider() { renderAov(); applySliderTint(aovEl, false); }
 
   function randomBetween(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
@@ -568,7 +530,6 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  /** Non-placeholder `<option value="">` values from a `<select>`. */
   function selectNonEmptyValues(selectEl) {
     if (!selectEl || !selectEl.options) return [];
     const out = [];
@@ -579,18 +540,15 @@
     return out;
   }
 
-  /** XDM consent enum sentinels — exclude from random persona so we do not stream `unknown` / `none` as a “channel”. */
   const PREFERRED_CHANNEL_RANDOM_SKIP = new Set(['unknown', 'none']);
 
   function selectPreferredChannelValuesForRandom(selectEl) {
     const raw = selectNonEmptyValues(selectEl);
     const filtered = raw.filter((v) => !PREFERRED_CHANNEL_RANDOM_SKIP.has(String(v).toLowerCase()));
     if (filtered.length) return filtered;
-    const hasEmail = raw.includes('email');
-    return hasEmail ? ['email'] : raw;
+    return raw.includes('email') ? ['email'] : raw;
   }
 
-  /** First matching `<option>.value` for a canonical gender string (case-insensitive). */
   function resolveGenderOptionValue(selectEl, canonicalLower) {
     if (!selectEl || !selectEl.options) return '';
     const want = String(canonicalLower || '').toLowerCase();
@@ -612,7 +570,6 @@
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  /** First names loosely aligned with `person.gender` for believable demo personas. */
   const RANDOM_MALE_FIRST = [
     'James', 'Michael', 'Robert', 'David', 'Daniel', 'Matthew', 'Ryan', 'Kevin', 'Brian', 'Jason',
     'Eric', 'Thomas', 'William', 'John', 'Christopher', 'Andrew', 'Steven', 'Adam', 'Marcus', 'Omar',
@@ -639,10 +596,15 @@
     return randomPick(RANDOM_NEUTRAL_FIRST);
   }
 
-  /**
-   * Fills Identity + Customer Analytics (and loyalty when enabled) with one random persona.
-   * Called before each profile in Generate-N so every scaled email gets distinct demo data.
-   */
+  // Travel-flavoured persona randomization for Generate-N. Plus airline /
+  // travel class so each generated profile carries believable attributes
+  // even when the operator only fills the analytics sliders.
+  const RANDOM_AIRLINES = [
+    'British Airways', 'Air France', 'Lufthansa', 'KLM', 'Emirates',
+    'Qatar Airways', 'Delta Air Lines', 'United Airlines', 'American Airlines',
+    'Singapore Airlines', 'Cathay Pacific', 'ANA', 'Turkish Airlines', 'Iberia',
+  ];
+
   function applyRandomCustomerPersonaForGenerate() {
     const mfCanon = ['male', 'female'];
     const available = [];
@@ -682,15 +644,21 @@
       if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
       if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
     }
+
+    // Light Travel persona — only fill if blank so operator-supplied values stick.
+    if (favouriteAirlineEl && !trimVal(favouriteAirlineEl)) {
+      favouriteAirlineEl.value = randomPick(RANDOM_AIRLINES);
+    }
+    const travelClassChoices = selectNonEmptyValues(primaryTravelClassEl);
+    if (primaryTravelClassEl && !trimVal(primaryTravelClassEl) && travelClassChoices.length) {
+      primaryTravelClassEl.value = randomPick(travelClassChoices);
+    }
   }
 
-  /**
-   * Snapshot the current form state so a successful generate can be replayed
-   * later via the Recently-generated picker. Mirror of buildUpdatesFromForm
-   * but as a plain object — the `Load` action restores fields from this.
-   */
   function snapshotForm() {
     const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    const recentStayOn = !!(recentStayEnabledEl && recentStayEnabledEl.checked);
+    const reservationsOn = !!(reservationsEnabledEl && reservationsEnabledEl.checked);
     return {
       firstName: trimVal(firstNameEl),
       lastName: trimVal(lastNameEl),
@@ -707,35 +675,73 @@
         tier: loyaltyEnabled ? trimVal(loyaltyTierEl) : '',
         points: loyaltyEnabled ? trimVal(loyaltyPointsEl) : '',
       },
+      travel: {
+        favouriteAirline: trimVal(favouriteAirlineEl),
+        primaryTravelClass: trimVal(primaryTravelClassEl),
+        recentStay: recentStayOn ? {
+          enabled: true,
+          hotelName: trimVal(recentStayHotelEl),
+          city: trimVal(recentStayCityEl),
+          country: trimVal(recentStayCountryEl),
+          checkIn: trimVal(recentStayCheckInEl),
+          checkOut: trimVal(recentStayCheckOutEl),
+          roomType: trimVal(recentStayRoomTypeEl),
+        } : { enabled: false },
+        reservations: reservationsOn ? {
+          enabled: true,
+          flight: {
+            departure: trimVal(flightDepartureEl),
+            arrival: trimVal(flightArrivalEl),
+            number: trimVal(flightNumberEl),
+            date: trimVal(flightDateEl),
+            class: trimVal(flightClassEl),
+            confirmation: trimVal(flightConfirmationEl),
+            passengers: trimVal(flightPassengersEl),
+            children: trimVal(flightChildrenEl),
+            multiLeg: trimVal(flightMultiLegEl),
+            layovers: trimVal(flightLayoversEl),
+          },
+          hotel: {
+            name: trimVal(hotelNameEl),
+            city: trimVal(hotelCityEl),
+            country: trimVal(hotelCountryEl),
+            checkIn: trimVal(hotelCheckInEl),
+            checkOut: trimVal(hotelCheckOutEl),
+            roomType: trimVal(hotelRoomTypeEl),
+            confirmation: trimVal(hotelConfirmationEl),
+          },
+          car: {
+            company: trimVal(carCompanyEl),
+            pickupCity: trimVal(carPickupCityEl),
+            class: trimVal(carClassEl),
+            pickupDate: trimVal(carPickupDateEl),
+            returnDate: trimVal(carReturnDateEl),
+            confirmation: trimVal(carConfirmationEl),
+          },
+        } : { enabled: false },
+      },
     };
   }
 
   /**
-   * HTTP/DCS XDM shape is defined by profileUpdateProxy + profileStreamingCore merge:
-   * these path suffixes nest under streaming.xdmKey (e.g. `_demoemea`) unless the
-   * top segment is in PROFILE_STREAM_ROOT_PATH_PREFIXES. Random persona code only
-   * mutates scalar form values—it never changes path strings or push order below.
+   * Travel update list. Same Generic Customer Analytics + Loyalty paths
+   * (so Travel profiles still carry churn/propensity/NPS/AOV/etc.) PLUS
+   * Travel-specific tenant paths under `individualCharacteristics.travel.*`
+   * and `travelReservations.*`. The proxy auto-prefixes paths whose top
+   * segment isn't in PROFILE_STREAM_ROOT_PATH_PREFIXES with the discovered
+   * tenant XDM key (e.g. `_demoemea`), so we only specify suffixes here.
    */
   function buildUpdatesFromForm() {
     const updates = [];
     const push = (path, value) => updates.push({ path, value });
 
-    // Identity (XDM root via PROFILE_STREAM_ROOT_PATH_PREFIXES "person.")
+    // Identity (root via PROFILE_STREAM_ROOT_PATH_PREFIXES)
     const firstName = trimVal(firstNameEl);
     if (firstName) push('person.name.firstName', firstName);
     const lastName = trimVal(lastNameEl);
     if (lastName) push('person.name.lastName', lastName);
 
-    // Tenant analytics — these XDM paths live under the Profile Core v2
-    // tenant field group attached by the wizard (see the schema dump in the
-    // chat thread that introduced this mapping). The proxy auto-prefixes
-    // any path NOT in PROFILE_STREAM_ROOT_PATH_PREFIXES with the discovered
-    // xdmKey (e.g. `_demoemea`), so we only specify the suffix here.
-    //
-    // Path notes (Profile Core v2):
-    //   NPS lives at `_<tenant>.scoring.npsScore` (NOT `scoring.nps`)
-    //   AOV lives at `_<tenant>.orderProfile.avgOrderSize`
-    //         (NOT `commerce.averageOrderValue`)
+    // Customer Analytics (Profile Core v2 tenant paths — see Generic comments)
     const churnRaw = churnEl ? String(churnEl.value || '').trim() : '';
     const propRaw = propensityEl ? String(propensityEl.value || '').trim() : '';
     const aovRaw = aovEl ? String(aovEl.value || '').trim() : '';
@@ -745,49 +751,23 @@
     if (npsRaw !== '') push('scoring.npsScore', parseInt(npsRaw, 10));
     if (aovRaw !== '') push('orderProfile.avgOrderSize', Number(aovRaw));
 
-    // Consent and Preference Details: enum string at consents.marketing.preferred
-    // (not a Profile Core v2 tenant path — merged at root via tenant.consents
-    // in profileStreamingCore.resolveStreamingConsentsOptInOut).
     const preferredRaw = preferredChannelEl ? String(preferredChannelEl.value || '').trim() : '';
     if (preferredRaw !== '') push('consents.marketing.preferred', preferredRaw);
 
-    // Standalone Language card — canonical BCP-47 on `preferences.preferredLanguage`
-    // (profile-preferences-details); mirror to `personalEmail.language`.
     const lang = languageEl ? trimVal(languageEl) : '';
     if (lang) {
       push('preferences.preferredLanguage', lang);
       push('personalEmail.language', lang);
     }
 
-    // Person.gender — root via PROFILE_STREAM_ROOT_PATH_PREFIXES
     const gender = genderEl ? trimVal(genderEl) : '';
     if (gender) push('person.gender', gender);
 
-    // Loyalty — only stream when the user has explicitly toggled the loyalty
-    // sub-form on. This keeps non-loyalty profiles clean (no empty loyalty.*
-    // keys end up in the AEP profile).
-    //
-    // Each of the three loyalty fields below is DUAL-WRITTEN to two XDM
-    // paths so the profile lights up both the standard XDM Loyalty Details
-    // view AND the demo-platform's Profile Core v2 tenant tree (which the
-    // user has wired into other dashboards / journeys):
-    //
-    //                     standard XDM (loyalty.*)        Profile Core v2 tenant
-    //   Loyalty Tier   →  loyalty.tier                    _<tenant>.loyaltyDetails.level
-    //   Loyalty Points →  loyalty.points                  _<tenant>.loyaltyDetails.points
-    //   Loyalty ID     →  loyalty.loyaltyID (array)       _<tenant>.identification.core.loyaltyId
-    //
-    // The standard XDM `loyalty.*` paths reach the profile via the standard
-    // Loyalty Details field group attached by the wizard (step 2). The
-    // tenant `_<tenant>.*` paths reach it via Profile Core v2. The proxy
-    // sends the same payload to AEP exactly once; AEP populates both views
-    // because the field groups overlap on these semantic concepts.
     const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
     if (loyaltyEnabled) {
       const loyaltyID = loyaltyIDEl ? trimVal(loyaltyIDEl) : '';
       if (loyaltyID) {
         push('identification.core.loyaltyId', loyaltyID);
-        // Standard XDM loyalty.loyaltyID is an ARRAY of strings — wrap.
         push('loyalty.loyaltyID', [loyaltyID]);
       }
       const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
@@ -803,39 +783,87 @@
       }
     }
 
+    // Travel attributes — tenant subtree under Profile Core v2.
+    const favAirline = trimVal(favouriteAirlineEl);
+    if (favAirline) push('individualCharacteristics.travel.favouriteAirlineCompany', favAirline);
+    const travelClass = trimVal(primaryTravelClassEl);
+    if (travelClass) push('individualCharacteristics.travel.primaryTravelClass', travelClass);
+
+    if (recentStayEnabledEl && recentStayEnabledEl.checked) {
+      const stayPath = 'individualCharacteristics.travel.recentStay';
+      const v = (el) => trimVal(el);
+      if (v(recentStayHotelEl)) push(`${stayPath}.hotelName`, v(recentStayHotelEl));
+      if (v(recentStayCityEl)) push(`${stayPath}.city`, v(recentStayCityEl));
+      if (v(recentStayCountryEl)) push(`${stayPath}.country`, v(recentStayCountryEl));
+      if (v(recentStayCheckInEl)) push(`${stayPath}.checkInDate`, v(recentStayCheckInEl));
+      if (v(recentStayCheckOutEl)) push(`${stayPath}.checkOutDate`, v(recentStayCheckOutEl));
+      if (v(recentStayRoomTypeEl)) push(`${stayPath}.roomType`, v(recentStayRoomTypeEl));
+    }
+
+    if (reservationsEnabledEl && reservationsEnabledEl.checked) {
+      const flightPath = 'travelReservations.flightReservations';
+      const hotelPath = 'travelReservations.hotelReservations';
+      const carPath = 'travelReservations.carReservations';
+      const v = (el) => trimVal(el);
+      const intVal = (el) => {
+        const s = trimVal(el);
+        if (!s) return null;
+        const n = parseInt(s, 10);
+        return Number.isFinite(n) ? n : null;
+      };
+      const boolFromTriState = (el) => {
+        const s = trimVal(el);
+        if (s === 'true') return true;
+        if (s === 'false') return false;
+        return null;
+      };
+
+      if (v(flightDepartureEl)) push(`${flightPath}.departureAirportCode`, v(flightDepartureEl));
+      if (v(flightArrivalEl)) push(`${flightPath}.arrivalAirportCode`, v(flightArrivalEl));
+      if (v(flightNumberEl)) push(`${flightPath}.flightNumber`, v(flightNumberEl));
+      if (v(flightDateEl)) push(`${flightPath}.flightDate`, v(flightDateEl));
+      if (v(flightClassEl)) push(`${flightPath}.flightClass`, v(flightClassEl));
+      if (v(flightConfirmationEl)) push(`${flightPath}.confirmationNumber`, v(flightConfirmationEl));
+      const pax = intVal(flightPassengersEl);
+      if (pax != null) push(`${flightPath}.numberofPassengers`, pax);
+      const children = boolFromTriState(flightChildrenEl);
+      if (children != null) push(`${flightPath}.childrenTravelling`, children);
+      const multiLeg = boolFromTriState(flightMultiLegEl);
+      if (multiLeg != null) push(`${flightPath}.multiLeg.multiLeg`, multiLeg);
+      const layovers = intVal(flightLayoversEl);
+      if (layovers != null) push(`${flightPath}.multiLeg.numberofLayovers`, layovers);
+
+      if (v(hotelNameEl)) push(`${hotelPath}.hotelName`, v(hotelNameEl));
+      if (v(hotelCityEl)) push(`${hotelPath}.city`, v(hotelCityEl));
+      if (v(hotelCountryEl)) push(`${hotelPath}.country`, v(hotelCountryEl));
+      if (v(hotelCheckInEl)) push(`${hotelPath}.checkInDate`, v(hotelCheckInEl));
+      if (v(hotelCheckOutEl)) push(`${hotelPath}.checkOutDate`, v(hotelCheckOutEl));
+      if (v(hotelRoomTypeEl)) push(`${hotelPath}.roomType`, v(hotelRoomTypeEl));
+      if (v(hotelConfirmationEl)) push(`${hotelPath}.confirmationNumber`, v(hotelConfirmationEl));
+
+      if (v(carCompanyEl)) push(`${carPath}.rentalCompany`, v(carCompanyEl));
+      if (v(carPickupCityEl)) push(`${carPath}.pickupCity`, v(carPickupCityEl));
+      if (v(carClassEl)) push(`${carPath}.carClass`, v(carClassEl));
+      if (v(carPickupDateEl)) push(`${carPath}.pickupDate`, v(carPickupDateEl));
+      if (v(carReturnDateEl)) push(`${carPath}.returnDate`, v(carReturnDateEl));
+      if (v(carConfirmationEl)) push(`${carPath}.confirmationNumber`, v(carConfirmationEl));
+    }
+
     return updates;
   }
 
   /**
-   * Hydrate the editor below from a /api/profile/table response so the
-   * operator can pull a profile, tweak fields, and resend an update — the
-   * core "round-trip" workflow on this page.
-   *
-   * The table API returns a flat row array: { found, rows: [{ path, value,
-   * attribute, displayName }], profileEmail, ecid, entityId, lastModified }
-   * — see functions/profileTableHelpers.js → buildProfileTablePayload().
-   * That's the same shape index.html consumes through extractProfileInsightFields.
-   *
-   * We deliberately avoid hard-coding the tenant prefix (`_demoemea` etc.)
-   * — sandbox tenant ids vary per IMS org. Path-suffix / path-keyword
-   * matching against the lower-cased path strings in rows[] gives us a
-   * tenant-agnostic, schema-version-agnostic resolver that works for both
-   * legacy paths (Customer Analytics: scoring.nps, commerce.averageOrderValue)
-   * AND the current Profile Core v2 paths (scoring.npsScore,
-   * orderProfile.avgOrderSize) emitted by buildUpdatesFromForm().
-   *
-   * The legacy entity-walking branch is kept as a fallback for any caller
-   * that hands us a raw UPS entity (e.g. a future code path that bypasses
-   * the table proxy).
+   * Hydrate the editor below from a /api/profile/table response. Same
+   * suffix-/keyword-match strategy as Generic for tenant-agnostic handling
+   * (we don't hard-code `_demoemea` etc.). Travel attributes are pulled
+   * back from the same paths buildUpdatesFromForm sends them out on.
    */
   function applyProfileFindResultToForm(found) {
     if (!found || typeof found !== 'object') return;
-
     const rows = Array.isArray(found.rows) ? found.rows : null;
     const trim = (v) => (v == null ? '' : String(v).trim());
     const pathLower = (r) => String(r && r.path || '').toLowerCase().replace(/_/g, '.');
 
-    // Path-suffix match (e.g. ['npsscore', 'nps']) — first non-empty wins.
     function findBySuffix(suffixes) {
       if (!rows) return '';
       for (const row of rows) {
@@ -850,9 +878,6 @@
       }
       return '';
     }
-    // All-keywords match (e.g. ['loyalty', 'points']) — useful when the
-    // suffix alone is too generic ('points' on its own would also match
-    // 'rewards.points'). First non-empty wins.
     function findByKeywords(...keywords) {
       if (!rows) return '';
       const kws = keywords.map((k) => String(k).toLowerCase());
@@ -866,82 +891,30 @@
       return '';
     }
 
-    let firstName = findBySuffix(['firstname', 'givenname']);
-    let lastName = findBySuffix(['lastname', 'surname', 'familyname']);
-    let churn = findByKeywords('churn', 'prediction') || findBySuffix(['churnprediction', 'churnscore']);
-    let propensity = findByKeywords('scoring', 'propensity') || findBySuffix(['propensityscore']);
-    // NPS: prefer Profile Core v2 (scoring.npsScore), fall back to legacy
-    // (scoring.nps from the old AEP Lab Customer Analytics field group).
-    let nps = findBySuffix(['npsscore']) || findByKeywords('scoring', 'nps');
-    // AOV: Profile Core v2 = orderProfile.avgOrderSize; legacy = commerce.averageOrderValue.
-    let aov = findBySuffix(['avgordersize', 'averageordervalue']);
-    let lang = findBySuffix(['preferredlanguage']) ||
+    const firstName = findBySuffix(['firstname', 'givenname']);
+    const lastName = findBySuffix(['lastname', 'surname', 'familyname']);
+    const churn = findByKeywords('churn', 'prediction') || findBySuffix(['churnprediction', 'churnscore']);
+    const propensity = findByKeywords('scoring', 'propensity') || findBySuffix(['propensityscore']);
+    const nps = findBySuffix(['npsscore']) || findByKeywords('scoring', 'nps');
+    const aov = findBySuffix(['avgordersize', 'averageordervalue']);
+    const lang = findBySuffix(['preferredlanguage']) ||
       findByKeywords('personalemail', 'language') ||
       findBySuffix(['language', 'locale']);
-    let gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
-    let preferredChannel = findBySuffix(['marketing.preferred']);
-
-    // Loyalty (dual-written by buildUpdatesFromForm to both the standard
-    // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
-    // pulls whichever one made it into the profile, regardless of order.
-    let loyaltyId =
+    const gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
+    const preferredChannel = findBySuffix(['marketing.preferred']);
+    const loyaltyId =
       findByKeywords('loyalty', 'loyaltyid') ||
       findByKeywords('identification', 'loyaltyid') ||
       findBySuffix(['loyaltyid']);
-    let tier = findByKeywords('loyalty', 'tier') ||
+    const tier = findByKeywords('loyalty', 'tier') ||
       findByKeywords('loyaltydetails', 'level') ||
       findBySuffix(['tier']);
-    let points = findByKeywords('loyalty', 'points') ||
+    const points = findByKeywords('loyalty', 'points') ||
       findByKeywords('loyaltydetails', 'points');
 
-    // Fallback path for raw UPS entity payloads (rows[] absent).
-    if (!rows) {
-      let entity = null;
-      if (found.entity && typeof found.entity === 'object') entity = found.entity;
-      if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
-      if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
-      if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
-      if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
-      if (!entity) return;
-      const get = (obj, path) => {
-        const keys = path.split('.');
-        let cur = obj;
-        for (const k of keys) {
-          if (cur == null || typeof cur !== 'object') return undefined;
-          cur = cur[k];
-        }
-        return cur;
-      };
-      // Discover tenant prefix dynamically (any key starting with `_`).
-      const tenantKey = Object.keys(entity).find((k) => k.startsWith('_'));
-      const tenant = tenantKey && entity[tenantKey] && typeof entity[tenantKey] === 'object'
-        ? entity[tenantKey]
-        : {};
-      if (!firstName) { const v = get(entity, 'person.name.firstName'); if (v != null) firstName = String(v); }
-      if (!lastName)  { const v = get(entity, 'person.name.lastName');  if (v != null) lastName  = String(v); }
-      if (!churn)      { const v = get(tenant, 'scoring.churn.churnPrediction'); if (v != null) churn = String(v); }
-      if (!propensity) { const v = get(tenant, 'scoring.core.propensityScore'); if (v != null) propensity = String(v); }
-      if (!nps) { const v = get(tenant, 'scoring.npsScore'); if (v != null) nps = String(v); }
-      if (!nps) { const v = get(tenant, 'scoring.nps'); if (v != null) nps = String(v); }
-      if (!aov) { const v = get(tenant, 'orderProfile.avgOrderSize'); if (v != null) aov = String(v); }
-      if (!aov) { const v = get(tenant, 'commerce.averageOrderValue'); if (v != null) aov = String(v); }
-      if (!lang) {
-        const v = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
-        if (v != null) lang = String(v);
-      }
-      if (!gender) { const v = get(entity, 'person.gender'); if (v != null) gender = String(v); }
-      if (!preferredChannel) {
-        const v = get(entity, 'consents.marketing.preferred');
-        if (v != null) preferredChannel = String(v);
-      }
-      if (!loyaltyId) {
-        const arr = get(entity, 'loyalty.loyaltyID');
-        if (Array.isArray(arr) && arr.length) loyaltyId = String(arr[0]);
-        else { const v = get(tenant, 'identification.core.loyaltyId'); if (v != null) loyaltyId = String(v); }
-      }
-      if (!tier)   { let v = get(entity, 'loyalty.tier');   if (v == null) v = get(tenant, 'loyaltyDetails.level');  if (v != null) tier   = String(v); }
-      if (!points) { let v = get(entity, 'loyalty.points'); if (v == null) v = get(tenant, 'loyaltyDetails.points'); if (v != null) points = String(v); }
-    }
+    // Travel
+    const favAirline = findBySuffix(['favouriteairlinecompany', 'favoriteairlinecompany']);
+    const travelClass = findBySuffix(['primarytravelclass']);
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
@@ -956,22 +929,16 @@
     const hasLoyalty = !!(loyaltyId || tier || points);
     if (hasLoyalty && loyaltyEnabledEl) {
       loyaltyEnabledEl.checked = true;
-      if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
+      applyLoyaltyToggleVisibility();
     }
     if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
     setSelectValueLoose(loyaltyTierEl, tier);
     if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+
+    if (favAirline && favouriteAirlineEl) favouriteAirlineEl.value = favAirline;
+    setSelectValueLoose(primaryTravelClassEl, travelClass);
   }
 
-  /**
-   * Set a <select> to a value with case- and label-fallback matching. Profile
-   * Core v2 stores loyalty tier as lower-case 'silver' / 'gold' but the form's
-   * <option> values are Title Case ('Silver' / 'Gold') — direct assignment
-   * silently leaves the dropdown on '— Select —' because <select>.value is
-   * case-sensitive. Try exact value, then case-insensitive value, then
-   * case-insensitive option text. If nothing matches, leave the existing
-   * selection alone (don't blank out a value the operator may have set).
-   */
   function setSelectValueLoose(selectEl, raw) {
     if (!selectEl || raw == null) return;
     const val = String(raw).trim();
@@ -994,8 +961,7 @@
     if (!s.datasetId) missing.push('Dataset ID');
     if (!s.schemaId) missing.push('Schema $id');
     if (missing.length) {
-      const det = document.getElementById('genericProfileInfraDetails');
-      if (det) det.open = true;
+      if (infraDetailsEl) infraDetailsEl.open = true;
       setMessage(
         messageEl,
         `Streaming connection missing: ${missing.join(', ')}. Run setup or click Fetch URL & Flow ID, then Save connection.`,
@@ -1006,14 +972,6 @@
     return s;
   }
 
-  /**
-   * Look up an existing profile by any identity namespace (email / ecid / crmId / loyaltyId / phone)
-   * via /api/profile/table — same endpoint as the standard widget on index.html. Result is fed into
-   * the editor below through applyProfileFindResultToForm so the Customer Analytics + Loyalty fields
-   * pre-populate. When namespace=email and the identifier is blank, we substitute the current
-   * last streamed scaled email when available (see `getDefaultEmailLookupIdentifier`),
-   * else the scaled email for the current counter.
-   */
   async function lookupProfile() {
     if (!lookupNsEl || !lookupIdentifierEl || !lookupBtn) return;
     const ns = String(lookupNsEl.value || 'email').trim();
@@ -1037,10 +995,6 @@
         setMessage(messageEl, data.error || `Lookup failed (HTTP ${res.status}).`, 'error');
         return;
       }
-      // /api/profile/table contract: { found: bool, rows: [...] } when the
-      // proxy resolved a UPS entity, otherwise { found: false, rows: [] }.
-      // The legacy entity-shape branches stay in place to cover any future
-      // caller that pipes a raw UPS payload through the same handler.
       const found =
         (data && data.found === true) ||
         (data && (data.entity || data.profile)) ||
@@ -1057,9 +1011,6 @@
       }
       applyProfileFindResultToForm(data);
       if (ns === 'email') persistLastStreamed(identifier, null);
-      // Remember the resolved identifier in the shared per-namespace cache
-      // so autocomplete on the next visit (or on any other lookup page in
-      // the lab — consent.html, index.html, event-tool, etc.) suggests it.
       if (typeof window.addRecentIdentifier === 'function') {
         try { window.addRecentIdentifier(identifier, ns); } catch (_) {}
       }
@@ -1116,7 +1067,7 @@
     if (!streaming) return;
     const updates = buildUpdatesFromForm();
     if (!updates.length) {
-      setMessage(messageEl, 'No fields to update — fill at least one Customer Analytics field.', 'warning');
+      setMessage(messageEl, 'No fields to update — fill at least one Customer Analytics or Travel field.', 'warning');
       return;
     }
     updateProfileBtn.disabled = true;
@@ -1128,8 +1079,6 @@
         setMessage(messageEl, data.error || `Update failed (HTTP ${res.status}).`, 'error');
         return;
       }
-      // Refresh recent so an Update on a brand-new email also surfaces in
-      // the picker (Generate-N is not the only path that creates a profile).
       if (!dryRun) {
         const n = parseInt(counterEl.value || '1', 10) || 1;
         recordGenerated(email, n);
@@ -1157,7 +1106,7 @@
     const dryRun = !!(dryRunEl && dryRunEl.checked);
 
     generateBtn.disabled = true;
-    setMessage(messageEl, `Generating ${count} profile${count === 1 ? '' : 's'}…`, '');
+    setMessage(messageEl, `Generating ${count} Travel profile${count === 1 ? '' : 's'}…`, '');
     let successCount = 0;
     let lastError = '';
     let lastEmail = '';
@@ -1183,9 +1132,6 @@
             break;
           }
           successCount += 1;
-          // Record in the per-(sandbox, base, day) recent picker so the user
-          // can reload this exact profile to inspect or modify it later.
-          // Skip dry runs — they didn't actually create anything in AEP.
           if (!dryRun) {
             recordGenerated(email, n, snapshotForm());
             persistLastStreamed(email, n);
@@ -1194,19 +1140,18 @@
           lastError = e.message || 'Network error';
           break;
         }
-        // Always bump counter after a successful send so retries don't collide.
         bumpCounter();
       }
       if (successCount === count && !lastError) {
         setMessage(
           messageEl,
-          `Generated ${successCount} profile${successCount === 1 ? '' : 's'}${dryRun ? ' (dry run)' : ''}. Latest: ${lastEmail}.`,
+          `Generated ${successCount} Travel profile${successCount === 1 ? '' : 's'}${dryRun ? ' (dry run)' : ''}. Latest: ${lastEmail}.`,
           'success'
         );
       } else if (successCount > 0) {
         setMessage(
           messageEl,
-          `Generated ${successCount}/${count} profile${count === 1 ? '' : 's'} before stopping. Last error: ${lastError}`,
+          `Generated ${successCount}/${count} Travel profile${count === 1 ? '' : 's'} before stopping. Last error: ${lastError}`,
           'warning'
         );
       } else {
@@ -1217,34 +1162,26 @@
     }
   }
 
-  // ---------- Loyalty toggle UX ----------
-  /**
-   * Show/hide the loyalty subgroup based on the toggle state. The standalone
-   * Language card stays visible at all times — when loyalty is ON the loyalty
-   * subgroup adds its own Language preference field alongside it (both write
-   * to `personalEmail.language` on the AEP side, with the loyalty subgroup
-   * winning on precedence; see buildUpdatesFromForm()).
-   */
+  // ---------- Toggle UX ----------
   function applyLoyaltyToggleVisibility() {
     const enabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
     if (loyaltyFieldsEl) loyaltyFieldsEl.hidden = !enabled;
     if (loyaltyEnabledEl) loyaltyEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
   }
-
-  // ---------- Recently-generated picker (shared storage across industries) ----------
-  // Storage / partitioning (sandbox + base email + day) and the 20-entry cap
-  // both live in window.AepProfileGenShared. Same key namespace as Travel,
-  // so the picker shows recents created in either generator.
-  function recentStorageKey() {
-    return Shared.recentKey(getSandboxName(), trimVal(baseEmailEl));
+  function applyRecentStayToggleVisibility() {
+    const enabled = !!(recentStayEnabledEl && recentStayEnabledEl.checked);
+    if (recentStayFieldsEl) recentStayFieldsEl.hidden = !enabled;
+    if (recentStayEnabledEl) recentStayEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
+  }
+  function applyReservationsToggleVisibility() {
+    const enabled = !!(reservationsEnabledEl && reservationsEnabledEl.checked);
+    if (reservationsFieldsEl) reservationsFieldsEl.hidden = !enabled;
+    if (reservationsEnabledEl) reservationsEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
   }
 
+  // ---------- Recently-generated picker (shared storage) ----------
   function readRecent() {
     return Shared.readRecent(getSandboxName(), trimVal(baseEmailEl));
-  }
-
-  function writeRecent(arr) {
-    Shared.writeRecent(getSandboxName(), trimVal(baseEmailEl), arr);
   }
 
   function recordGenerated(scaledEmail, n, snapshotOverride) {
@@ -1258,9 +1195,6 @@
       snapshot: snap,
     });
     renderRecent();
-    // Also seed the shared cross-page identifier cache so this scaled email
-    // appears in the autocomplete datalist on every other lookup page in
-    // the lab (consent.html, index.html, event-tool, live-activities, etc.).
     if (typeof window.addRecentIdentifier === 'function') {
       try { window.addRecentIdentifier(scaledEmail, 'email'); } catch (_) {}
     }
@@ -1271,6 +1205,8 @@
     const parts = [];
     if (snap.firstName || snap.lastName) parts.push(`${snap.firstName || ''} ${snap.lastName || ''}`.trim());
     if (snap.gender) parts.push(snap.gender);
+    if (snap.travel && snap.travel.favouriteAirline) parts.push(`Airline: ${snap.travel.favouriteAirline}`);
+    if (snap.travel && snap.travel.primaryTravelClass) parts.push(snap.travel.primaryTravelClass);
     if (snap.loyalty && snap.loyalty.enabled) {
       const lp = [];
       if (snap.loyalty.tier) lp.push(snap.loyalty.tier);
@@ -1279,7 +1215,6 @@
     }
     if (snap.nps) parts.push(`NPS ${snap.nps}`);
     if (snap.aov) parts.push(`AOV $${snap.aov}`);
-    if (snap.preferredChannel) parts.push(`Preferred ${snap.preferredChannel}`);
     return parts.join(' · ');
   }
 
@@ -1299,7 +1234,6 @@
     if (!recentPickerEl) return;
     recentPickerEl.hidden = list.length === 0;
     if (recentCountLabelEl) recentCountLabelEl.textContent = `Recently generated (${list.length})`;
-    // Dropdown
     if (recentSelectEl) {
       const prev = recentSelectEl.value;
       recentSelectEl.innerHTML = '<option value="">— pick to load —</option>';
@@ -1310,10 +1244,8 @@
         opt.textContent = tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail;
         recentSelectEl.appendChild(opt);
       });
-      // Restore previous selection if still in the list.
       if (list.some((e) => e.scaledEmail === prev)) recentSelectEl.value = prev;
     }
-    // Table
     if (recentListBodyEl) {
       recentListBodyEl.innerHTML = '';
       list.forEach((entry) => {
@@ -1341,25 +1273,70 @@
   function loadRecentSnapshot(entry) {
     if (!entry || !entry.snapshot) return;
     const s = entry.snapshot;
-    // Identity
     if (firstNameEl) firstNameEl.value = s.firstName || '';
     if (lastNameEl) lastNameEl.value = s.lastName || '';
-    // Analytics
     if (genderEl) genderEl.value = s.gender || '';
     if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
     if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
     if (npsEl) npsEl.value = s.nps || '';
     if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
     if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
-    if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
-    // Loyalty
+    if (languageEl) languageEl.value = s.language || '';
     if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
     if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
     if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
     if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
     applyLoyaltyToggleVisibility();
-    // Restore counter so subsequent Update/Generate target the same scaled
-    // email. The base email is whatever produced this entry — keep it.
+
+    // Travel
+    const t = s.travel || {};
+    if (favouriteAirlineEl) favouriteAirlineEl.value = t.favouriteAirline || '';
+    if (primaryTravelClassEl) primaryTravelClassEl.value = t.primaryTravelClass || '';
+    if (recentStayEnabledEl && t.recentStay) {
+      recentStayEnabledEl.checked = !!t.recentStay.enabled;
+      if (t.recentStay.enabled) {
+        if (recentStayHotelEl) recentStayHotelEl.value = t.recentStay.hotelName || '';
+        if (recentStayCityEl) recentStayCityEl.value = t.recentStay.city || '';
+        if (recentStayCountryEl) recentStayCountryEl.value = t.recentStay.country || '';
+        if (recentStayCheckInEl) recentStayCheckInEl.value = t.recentStay.checkIn || '';
+        if (recentStayCheckOutEl) recentStayCheckOutEl.value = t.recentStay.checkOut || '';
+        if (recentStayRoomTypeEl) recentStayRoomTypeEl.value = t.recentStay.roomType || '';
+      }
+      applyRecentStayToggleVisibility();
+    }
+    if (reservationsEnabledEl && t.reservations) {
+      reservationsEnabledEl.checked = !!t.reservations.enabled;
+      if (t.reservations.enabled) {
+        const f = t.reservations.flight || {};
+        const h = t.reservations.hotel || {};
+        const c = t.reservations.car || {};
+        if (flightDepartureEl) flightDepartureEl.value = f.departure || '';
+        if (flightArrivalEl) flightArrivalEl.value = f.arrival || '';
+        if (flightNumberEl) flightNumberEl.value = f.number || '';
+        if (flightDateEl) flightDateEl.value = f.date || '';
+        if (flightClassEl) flightClassEl.value = f.class || '';
+        if (flightConfirmationEl) flightConfirmationEl.value = f.confirmation || '';
+        if (flightPassengersEl) flightPassengersEl.value = f.passengers || '';
+        if (flightChildrenEl) flightChildrenEl.value = f.children || '';
+        if (flightMultiLegEl) flightMultiLegEl.value = f.multiLeg || '';
+        if (flightLayoversEl) flightLayoversEl.value = f.layovers || '';
+        if (hotelNameEl) hotelNameEl.value = h.name || '';
+        if (hotelCityEl) hotelCityEl.value = h.city || '';
+        if (hotelCountryEl) hotelCountryEl.value = h.country || '';
+        if (hotelCheckInEl) hotelCheckInEl.value = h.checkIn || '';
+        if (hotelCheckOutEl) hotelCheckOutEl.value = h.checkOut || '';
+        if (hotelRoomTypeEl) hotelRoomTypeEl.value = h.roomType || '';
+        if (hotelConfirmationEl) hotelConfirmationEl.value = h.confirmation || '';
+        if (carCompanyEl) carCompanyEl.value = c.company || '';
+        if (carPickupCityEl) carPickupCityEl.value = c.pickupCity || '';
+        if (carClassEl) carClassEl.value = c.class || '';
+        if (carPickupDateEl) carPickupDateEl.value = c.pickupDate || '';
+        if (carReturnDateEl) carReturnDateEl.value = c.returnDate || '';
+        if (carConfirmationEl) carConfirmationEl.value = c.confirmation || '';
+      }
+      applyReservationsToggleVisibility();
+    }
+
     if (counterEl && Number.isFinite(entry.n)) {
       counterEl.value = String(entry.n);
       persistCounter(entry.n);
@@ -1371,10 +1348,10 @@
 
   // ---------- Wire events ----------
   if (checkInfraBtn) checkInfraBtn.addEventListener('click', checkInfra);
-  if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema', stepCreateSchemaBtn));
-  if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups', stepAttachFgBtn));
-  if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset', stepCreateDatasetBtn));
-  if (stepHttpFlowBtn) stepHttpFlowBtn.addEventListener('click', () => runStep('httpFlow', stepHttpFlowBtn));
+  if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema'));
+  if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups'));
+  if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset'));
+  if (stepHttpFlowBtn) stepHttpFlowBtn.addEventListener('click', () => runStep('httpFlow'));
 
   if (loadFromFirebaseBtn) loadFromFirebaseBtn.addEventListener('click', () => loadConnectionFromFirestore(false));
   if (fetchFlowFromAepBtn) fetchFlowFromAepBtn.addEventListener('click', fetchFlowFromAep);
@@ -1392,9 +1369,7 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
-      // Persist base email per sandbox via shared store (set-and-forget for this sandbox only).
       Shared.writeBaseEmail(getSandboxName(), baseEmailEl.value || '');
-      // When the base email changes, reload the counter for the new (sandbox, base, today) key.
       loadCounterForCurrentContext();
     });
     baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
@@ -1414,17 +1389,9 @@
     });
   }
 
-  // Customer Analytics
   if (churnEl) churnEl.addEventListener('input', syncChurnSlider);
   if (propensityEl) propensityEl.addEventListener('input', syncPropensitySlider);
   if (aovEl) aovEl.addEventListener('input', syncAovSlider);
-  document.querySelectorAll('.analytics-randomize').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const target = document.getElementById(btn.getAttribute('data-target') || '');
-      if (!target) return;
-      randomizeSliderControl(target);
-    });
-  });
   if (loyaltyRandomBtn && loyaltyTierEl && loyaltyPointsEl) {
     loyaltyRandomBtn.addEventListener('click', () => {
       const tier = trimVal(loyaltyTierEl);
@@ -1432,12 +1399,10 @@
     });
   }
 
-  // Loyalty toggle wiring
-  if (loyaltyEnabledEl) {
-    loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
-  }
+  if (loyaltyEnabledEl) loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
+  if (recentStayEnabledEl) recentStayEnabledEl.addEventListener('change', applyRecentStayToggleVisibility);
+  if (reservationsEnabledEl) reservationsEnabledEl.addEventListener('change', applyReservationsToggleVisibility);
 
-  // Recently-generated picker wiring
   if (recentLoadBtn && recentSelectEl) {
     recentLoadBtn.addEventListener('click', () => {
       const v = recentSelectEl.value;
@@ -1449,24 +1414,18 @@
       if (entry) loadRecentSnapshot(entry);
     });
   }
-  // Reload recent when the base email changes — same partition key as counter.
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', renderRecent);
   }
 
-  // Profile lookup wiring (replaces the old "Find profile by current scaled email" button —
-  // the lookup widget below covers that case via auto-fill on focus when namespace=email).
   if (lookupBtn) lookupBtn.addEventListener('click', lookupProfile);
   if (lookupIdentifierEl) {
     lookupIdentifierEl.addEventListener('focus', () => {
-      // One-click parity with the old Find button: when nothing is typed and namespace=email,
-      // pre-fill the identifier with the current scaled email so the user just clicks Look up.
       if (!trimVal(lookupIdentifierEl) && lookupNsEl && lookupNsEl.value === 'email') {
         const scaled = getDefaultEmailLookupIdentifier();
         if (scaled) lookupIdentifierEl.value = scaled;
       }
     });
-    // Pressing Enter inside the identifier input triggers lookup.
     lookupIdentifierEl.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
@@ -1477,48 +1436,39 @@
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
 
-  // Sandbox change: reload connection + counter context.
+  // Sandbox change
   function onSandboxChange() {
     clearStreamingFields();
-    // Immediately reflect the cleared fields in the wizard <details>
-    // (re-expand it) — the async loadConnectionFromFirestore() below will
-    // collapse it again if it finds a saved connection for the new sandbox.
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
     loadBaseEmailForCurrentSandbox();
     loadCounterForCurrentContext();
     renderRecent();
   }
-  if (sandboxSelect) {
-    sandboxSelect.addEventListener('change', onSandboxChange);
-  }
+  if (sandboxSelect) sandboxSelect.addEventListener('change', onSandboxChange);
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
 
-  // When the user picks "Generic" in the industry dropdown, profile-generation.js
-  // emits aep-generic-panel-shown — that's a good cue to refresh the picker
-  // (the panel was hidden on initial load so the table wasn't drawn).
-  window.addEventListener('aep-generic-panel-shown', () => {
+  window.addEventListener('aep-travel-panel-shown', () => {
     renderRecent();
     applyLoyaltyToggleVisibility();
-    // Reflect the current configured state in the wizard <details> on the
-    // first reveal (the deferred loadConnectionFromFirestore at the bottom
-    // of this module already calls applyConfiguredCollapseState, but if the
-    // user picks Generic before that 750ms delay fires we still want a
-    // sensible initial state based on whatever fields are populated now).
+    applyRecentStayToggleVisibility();
+    applyReservationsToggleVisibility();
     applyConfiguredCollapseState();
+    // Refresh the picker now that the panel is on screen — the partition
+    // depends on the live sandbox + base email, both of which can have
+    // changed while the user was on Generic.
+    loadCounterForCurrentContext();
   });
 
-  // Restore base email for the current sandbox before the counter so the counter partition matches.
   loadBaseEmailForCurrentSandbox();
-
-  // Initial render (labels + Edge-style slider tints)
   if (churnEl) syncChurnSlider();
   if (propensityEl) syncPropensitySlider();
   if (aovEl) syncAovSlider();
   applyLoyaltyToggleVisibility();
+  applyRecentStayToggleVisibility();
+  applyReservationsToggleVisibility();
   loadCounterForCurrentContext();
   updateEmailPreview();
   renderRecent();
-  // Defer initial connection load so the sandbox dropdown finishes loading first.
-  setTimeout(() => loadConnectionFromFirestore(true), 750);
+  setTimeout(() => loadConnectionFromFirestore(true), 800);
 })();
