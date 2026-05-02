@@ -1,0 +1,88 @@
+# AEP Orchestration Lab — Cursor rules
+
+# Baseline derived from everything-claude-code (`rules/common/` + `.cursor/rules`).
+# Trim sections that do not match a given task (e.g. drop UI section for functions-only work).
+
+---
+
+## Security (before any commit)
+
+- No hardcoded secrets (API keys, passwords, tokens); use environment variables or a secret manager; validate required secrets at startup; rotate anything exposed.
+- Validate all user input at boundaries; use schema-based validation where possible; fail fast with clear messages; never trust external data.
+- SQL: parameterized queries only (no string-concatenated SQL).
+- Web: sanitize/escape for XSS; CSRF protection where applicable; safe authn/authz.
+- APIs: rate limiting on endpoints; errors must not leak sensitive internals.
+
+If you find a security issue: stop, fix critical issues first, rotate exposed secrets, then scan for similar patterns.
+
+---
+
+## Coding style
+
+- **Immutability:** prefer returning new data over mutating shared state unless the language/framework idioms clearly differ.
+- **KISS / DRY / YAGNI:** simplest working solution; extract real duplication; avoid speculative abstractions.
+- **Files:** many small, cohesive modules; typical ~200–400 lines per file, avoid files beyond ~800 lines; organize by feature/domain.
+- **Errors:** handle explicitly at each layer; user-facing friendly messages; server-side detailed context; never swallow errors silently.
+- **Naming:** descriptive `camelCase` for vars/functions; `PascalCase` for types/components; `UPPER_SNAKE_CASE` for true constants; booleans with `is`/`has`/`should`/`can` where it reads well.
+- **Quality bar:** functions roughly under ~50 lines; avoid nesting deeper than ~4 levels (prefer early returns); replace magic numbers with named constants; no stray debug logging in committed code.
+
+---
+
+## Testing
+
+- **Coverage target:** aim for **≥80%** on code you own when tooling exists.
+- **Layers:** unit tests (functions/components), integration tests (DB/API boundaries), E2E for critical user journeys (tooling per stack).
+- **TDD loop:** write a failing test → minimal implementation to pass → refactor → re-run suite and coverage.
+- **Tests:** prefer Arrange–Act–Assert; names should describe behavior (inputs, edge cases, errors).
+- **Failures:** fix implementation first; change tests only when the specification or test was wrong.
+
+---
+
+## Architecture patterns
+
+- **Repository-style boundaries:** hide storage details behind a small interface (`find`, `create`, `update`, `delete`, etc.) so business logic does not depend on a specific database/client.
+- **API responses:** consistent envelope (success flag, data, error message, pagination metadata where relevant).
+- **Greenfield features:** prefer proven libraries and patterns; search for mature examples before inventing utilities from scratch.
+
+---
+
+## Development workflow
+
+1. **Research** — check official docs and registries for your stack; look for established libraries before custom utilities.
+2. **Plan** — for non-trivial work, outline approach, risks, dependencies, and phases before coding.
+3. **Implement with tests** — follow the TDD loop above when adding behavior or fixing bugs.
+4. **Review** — self-review diffs against security and quality checklists; run linters/tests locally.
+5. **Ship** — conventional commits; PR describes full change set and how to verify.
+
+---
+
+## Git and pull requests
+
+**Commits:** `<type>: <description>` with optional body.
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+
+**PRs:** summarize the full branch diff (not only the last commit), include a test plan, resolve conflicts, and ensure CI is green before requesting review.
+
+---
+
+## Code review checklist (self or peer)
+
+- Readable names; focused functions; cohesive files; shallow nesting; explicit error handling.
+- No secrets in repo; no obvious injection/XSS/CSRF/auth bypass issues in changed code.
+- New behavior covered by tests; coverage expectations still met where enforced.
+- **Severity:** treat security/data-loss issues as merge blockers; major correctness issues should be fixed before merge.
+
+---
+
+## Context and complexity
+
+- Prefer tackling large multi-file refactors while you still have ample context; split work into reviewable steps.
+- For complex design decisions, write down constraints and options before coding.
+
+---
+
+## Frontend / UI (when your project has a UI)
+
+- Ship intentional design, not generic template layouts: hierarchy, spacing rhythm, typography choices, states (hover/focus/active), and motion that clarifies flow—not decorative noise.
+- Avoid “all defaults from the component library” as the final visual system unless that is a deliberate product choice.
