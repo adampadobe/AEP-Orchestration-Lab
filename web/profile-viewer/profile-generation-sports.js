@@ -116,6 +116,8 @@
       profileMessage: 'sportsProfileMessage',
       firstName: 'sportsFirstName',
       lastName: 'sportsLastName',
+      birthDate: 'sportsBirthDate',
+      age: 'sportsAge',
       churn: 'sportsChurn',
       churnValue: 'sportsChurnValue',
       propensity: 'sportsPropensity',

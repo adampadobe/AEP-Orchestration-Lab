@@ -265,6 +265,8 @@
       profileMessage: 'retailProfileMessage',
       firstName: 'retailFirstName',
       lastName: 'retailLastName',
+      birthDate: 'retailBirthDate',
+      age: 'retailAge',
       churn: 'retailChurn',
       churnValue: 'retailChurnValue',
       propensity: 'retailPropensity',

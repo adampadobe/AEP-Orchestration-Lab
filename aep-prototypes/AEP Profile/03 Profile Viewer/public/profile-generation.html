@@ -1263,8 +1263,16 @@
             <label for="genLastName">Last name</label>
             <input type="text" id="genLastName" placeholder="e.g. Palmer" autocomplete="off">
           </div>
+          <div class="form-group">
+            <label for="genBirthDate">Birth date</label>
+            <input type="date" id="genBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="genAge">Age</label>
+            <input type="number" id="genAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
+          </div>
         </div>
-        <p class="field-hint">Maps to <code>person.name.firstName</code> and <code>person.name.lastName</code> at the XDM root.</p>
+        <p class="field-hint">Maps to <code>person.name.firstName</code>, <code>person.name.lastName</code>, <code>person.birthDate</code> at the XDM root and <code>_&lt;tenant&gt;.individualCharacteristics.core.age</code> in the Profile Core v2 tenant subtree.</p>
       </div>
 
       <!-- C1. Recently generated (per sandbox + base email + day) -->
@@ -1659,6 +1667,14 @@
           <div class="form-group">
             <label for="travelLastName">Last name</label>
             <input type="text" id="travelLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="travelBirthDate">Birth date</label>
+            <input type="date" id="travelBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="travelAge">Age</label>
+            <input type="number" id="travelAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
           </div>
         </div>
       </div>
@@ -2469,6 +2485,14 @@
             <label for="fsiLastName">Last name</label>
             <input type="text" id="fsiLastName" placeholder="e.g. Palmer" autocomplete="off">
           </div>
+          <div class="form-group">
+            <label for="fsiBirthDate">Birth date</label>
+            <input type="date" id="fsiBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="fsiAge">Age</label>
+            <input type="number" id="fsiAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
+          </div>
         </div>
       </div>
 
@@ -2756,11 +2780,8 @@
         <p class="field-hint">All inputs in this section stream to schema-valid leaves on the AEP Lab FSI Profile schema (Profile Core v2 + OOTB <code>personalFinances.*</code> mixin). They populate automatically when you click Generate.</p>
 
         <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Demographic profile (Profile Core v2)</h4>
+        <p class="field-hint" style="margin-top: 0;">Birth date + age now live in the Identity section above (shared across every industry — see <code>person.birthDate</code> + <code>_&lt;tenant&gt;.individualCharacteristics.core.age</code>).</p>
         <div class="gen-identity-grid">
-          <div class="form-group">
-            <label for="fsiAge">Age</label>
-            <input type="number" id="fsiAge" min="13" max="110" step="1" placeholder="e.g. 38">
-          </div>
           <div class="form-group">
             <label for="fsiEmployer">Employer</label>
             <input type="text" id="fsiEmployer" placeholder="e.g. JPMorgan" autocomplete="off">
@@ -2985,6 +3006,14 @@
           <div class="form-group">
             <label for="sportsLastName">Last name</label>
             <input type="text" id="sportsLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="sportsBirthDate">Birth date</label>
+            <input type="date" id="sportsBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="sportsAge">Age</label>
+            <input type="number" id="sportsAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
           </div>
         </div>
       </div>
@@ -3447,6 +3476,14 @@
           <div class="form-group">
             <label for="mediaLastName">Last name</label>
             <input type="text" id="mediaLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="mediaBirthDate">Birth date</label>
+            <input type="date" id="mediaBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="mediaAge">Age</label>
+            <input type="number" id="mediaAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
           </div>
         </div>
       </div>
@@ -4024,6 +4061,14 @@
           <div class="form-group">
             <label for="retailLastName">Last name</label>
             <input type="text" id="retailLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="retailBirthDate">Birth date</label>
+            <input type="date" id="retailBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="retailAge">Age</label>
+            <input type="number" id="retailAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
           </div>
         </div>
       </div>
@@ -4672,6 +4717,14 @@
             <label for="telecomLastName">Last name</label>
             <input type="text" id="telecomLastName" placeholder="e.g. Palmer" autocomplete="off">
           </div>
+          <div class="form-group">
+            <label for="telecomBirthDate">Birth date</label>
+            <input type="date" id="telecomBirthDate" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="telecomAge">Age</label>
+            <input type="number" id="telecomAge" min="0" max="120" step="1" placeholder="auto from birth date" autocomplete="off">
+          </div>
         </div>
       </div>
 
@@ -5065,17 +5118,17 @@
        call into window.AepProfileGenShared on init. -->
   <script src="profile-generation-shared.js?v=20260502c"></script>
   <script src="profile-generation.js?v=20260502c"></script>
-  <script src="profile-generation-generic.js?v=20260502c"></script>
-  <script src="profile-generation-travel.js?v=20260502j"></script>
+  <script src="profile-generation-generic.js?v=20260503a"></script>
+  <script src="profile-generation-travel.js?v=20260503a"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260502k"></script>
-  <script src="profile-generation-fsi.js?v=20260502k"></script>
-  <script src="profile-generation-telecom.js?v=20260502k"></script>
-  <script src="profile-generation-retail.js?v=20260502g"></script>
-  <script src="profile-generation-media.js?v=20260502k"></script>
-  <script src="profile-generation-sports.js?v=20260502k"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260503a"></script>
+  <script src="profile-generation-fsi.js?v=20260503a"></script>
+  <script src="profile-generation-telecom.js?v=20260503a"></script>
+  <script src="profile-generation-retail.js?v=20260503a"></script>
+  <script src="profile-generation-media.js?v=20260503a"></script>
+  <script src="profile-generation-sports.js?v=20260503a"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

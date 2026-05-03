@@ -157,6 +157,8 @@
       profileMessage: 'telecomProfileMessage',
       firstName: 'telecomFirstName',
       lastName: 'telecomLastName',
+      birthDate: 'telecomBirthDate',
+      age: 'telecomAge',
       churn: 'telecomChurn',
       churnValue: 'telecomChurnValue',
       propensity: 'telecomPropensity',

@@ -253,6 +253,8 @@
 
       firstName: 'fsiFirstName',
       lastName: 'fsiLastName',
+      birthDate: 'fsiBirthDate',
+      age: 'fsiAge',
 
       churn: 'fsiChurn',
       churnValue: 'fsiChurnValue',
@@ -295,8 +297,11 @@
           const v = ($(f.id) && String($(f.id).value || '').trim()) || '';
           if (v) scalar[f.key] = v;
         });
+        // Note: birthDate + age are owned by the shared runtime (snapshotForm
+        // captures `birthDate` / `age` on the base snapshot directly via the
+        // `birthDate` / `age` ids declared above). Profile Core extras kept
+        // here are the FSI-specific Employer + Occupation pair only.
         const profileCore = {
-          age: trim($('fsiAge')),
           employer: trim($('fsiEmployer')),
           occupation: trim($('fsiOccupation')),
         };
@@ -354,8 +359,9 @@
         }
 
         // ---- New Profile Core v2 tenant-subtree leaves ----
-        const age = intOr($('fsiAge'));
-        if (age != null) push('individualCharacteristics.core.age', age);
+        // (age is now owned by the shared runtime — see `age: 'fsiAge'` in
+        // the ids map above; runtime pushes individualCharacteristics.core.age
+        // re-derived from person.birthDate so both stay consistent.)
 
         const employer = trim($('fsiEmployer'));
         if (employer) push('individualCharacteristics.core.employer', employer);
@@ -425,10 +431,9 @@
           setCheckbox(p.id, String(v).toLowerCase() === 'true');
         });
 
-        // Profile Core v2 hydration.
-        const age = findBySuffix(['individualcharacteristics.core.age']) ||
-                    findByKeywords('individualcharacteristics', 'core', 'age');
-        if (age) setVal('fsiAge', String(age));
+        // Profile Core v2 hydration. (age is owned by the shared runtime —
+        // applyProfileFindResultToForm in profile-generation-industry-runtime.js
+        // resolves it from person.birthDate / individualCharacteristics.core.age.)
 
         const employer = findBySuffix(['individualcharacteristics.core.employer']) ||
                          findByKeywords('individualcharacteristics', 'core', 'employer');
@@ -500,7 +505,7 @@
         FSI_PRODUCT_CHECKBOXES.forEach((p) => { setCheckbox(p.id, !!products[p.key]); });
 
         const pc = (snap.profileCore && typeof snap.profileCore === 'object') ? snap.profileCore : {};
-        setVal('fsiAge', pc.age || '');
+        // (age is owned by the shared runtime — restored from snap.age at the base level.)
         setVal('fsiEmployer', pc.employer || '');
         setVal('fsiOccupation', pc.occupation || '');
 
@@ -561,8 +566,8 @@
         setCheckbox('fsiHoldInvestment', Math.random() < 0.30);
         setCheckbox('fsiHoldLoan',       Math.random() < 0.25);
 
-        // Profile Core v2 demographic enrichment.
-        setVal('fsiAge', String(randInt(18, 80)));
+        // Profile Core v2 demographic enrichment. (age is owned by the
+        // shared runtime — randomized via randomBirthDateIso → derived age.)
         setVal('fsiEmployer', randPick(EMPLOYER_POOL));
         setVal('fsiOccupation', randPick(OCCUPATION_POOL));
 

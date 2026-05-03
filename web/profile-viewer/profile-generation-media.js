@@ -175,6 +175,8 @@
       profileMessage: 'mediaProfileMessage',
       firstName: 'mediaFirstName',
       lastName: 'mediaLastName',
+      birthDate: 'mediaBirthDate',
+      age: 'mediaAge',
       churn: 'mediaChurn',
       churnValue: 'mediaChurnValue',
       propensity: 'mediaPropensity',

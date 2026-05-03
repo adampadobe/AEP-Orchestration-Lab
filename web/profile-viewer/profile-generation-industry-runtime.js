@@ -88,6 +88,51 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  // ---- Birth date / age helpers (shared across every industry) ----
+  // person.birthDate is a string/date leaf at XDM root (profile-person-details
+  // mixin attached by every Profile-class schema). The tenant Profile Core v2
+  // mixin contributes `_<tenant>.individualCharacteristics.core.age` (integer).
+  // Both fields are populated on every Generate so cohorts get realistic
+  // demographics, and the two are kept consistent: any time birthDate changes
+  // (operator typing or randomizer), age is recomputed from it.
+  const BIRTH_AGE_MIN = 18;
+  const BIRTH_AGE_MAX = 85;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function isValidIsoBirthDate(str) {
+    if (!str || typeof str !== 'string') return false;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str.trim());
+    if (!m) return false;
+    const y = Number(m[1]); const mo = Number(m[2]); const d = Number(m[3]);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+    if (y < 1900 || y > new Date().getFullYear()) return false;
+    return true;
+  }
+
+  function computeAgeFromBirthDate(isoStr) {
+    if (!isValidIsoBirthDate(isoStr)) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoStr.trim());
+    const by = Number(m[1]); const bm = Number(m[2]); const bd = Number(m[3]);
+    const today = new Date();
+    let age = today.getFullYear() - by;
+    const beforeBirthday =
+      today.getMonth() + 1 < bm ||
+      (today.getMonth() + 1 === bm && today.getDate() < bd);
+    if (beforeBirthday) age -= 1;
+    if (age < 0) return null;
+    return age;
+  }
+
+  function randomBirthDateIso() {
+    const now = new Date();
+    const year = now.getFullYear() - randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX);
+    const month = randomBetween(1, 12);
+    // 1..28 avoids month-end rollover edge cases (Feb 29, etc).
+    const day = randomBetween(1, 28);
+    return `${year}-${pad2(month)}-${pad2(day)}`;
+  }
+
   function selectNonEmptyValues(selectEl) {
     if (!selectEl || !selectEl.options) return [];
     const out = [];
@@ -234,6 +279,8 @@
 
     const firstNameEl = $(ids.firstName);
     const lastNameEl = $(ids.lastName);
+    const birthDateEl = $(ids.birthDate);
+    const ageEl = $(ids.age);
 
     const churnEl = $(ids.churn);
     const churnValueEl = $(ids.churnValue);
@@ -655,6 +702,20 @@
       if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
       if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
 
+      // Always overwrite birth date + age on Generate so every generated
+      // profile carries a realistic person.birthDate (string/date at XDM
+      // root) and a consistent _<tenant>.individualCharacteristics.core.age
+      // (integer). Force-overwrite even if the operator had typed a value —
+      // matches the Travel "Generate always populates everything" pattern.
+      if (birthDateEl) {
+        const iso = randomBirthDateIso();
+        birthDateEl.value = iso;
+        const a = computeAgeFromBirthDate(iso);
+        if (ageEl && a != null) ageEl.value = String(a);
+      } else if (ageEl) {
+        ageEl.value = String(randomBetween(BIRTH_AGE_MIN, BIRTH_AGE_MAX));
+      }
+
       randomizeSliderControl(churnEl);
       randomizeSliderControl(propensityEl);
       randomizeSliderControl(aovEl);
@@ -696,6 +757,8 @@
       const base = {
         firstName: trimVal(firstNameEl),
         lastName: trimVal(lastNameEl),
+        birthDate: trimVal(birthDateEl),
+        age: trimVal(ageEl),
         gender: trimVal(genderEl),
         churn: trimVal(churnEl),
         propensity: trimVal(propensityEl),
@@ -728,6 +791,30 @@
       if (firstName) push('person.name.firstName', firstName);
       const lastName = trimVal(lastNameEl);
       if (lastName) push('person.name.lastName', lastName);
+
+      // Birth date + age. Stream both leaves whenever either input has a
+      // value; re-derive age from birthDate at push time so the two never
+      // drift apart even if the operator hand-edited only one (e.g.
+      // typed an age then changed birth year). Skip entirely when both
+      // fields are blank.
+      //   person.birthDate              → root (PROFILE_STREAM_ROOT_PATH_PREFIXES has `person`)
+      //   individualCharacteristics.core.age → tenant subtree (auto _<tenant>-prefixed by proxy)
+      const birthDateRaw = trimVal(birthDateEl);
+      const ageRaw = trimVal(ageEl);
+      if (birthDateRaw || ageRaw) {
+        let derivedAge = null;
+        if (isValidIsoBirthDate(birthDateRaw)) {
+          push('person.birthDate', birthDateRaw);
+          derivedAge = computeAgeFromBirthDate(birthDateRaw);
+        }
+        let ageInt = null;
+        if (derivedAge != null) ageInt = derivedAge;
+        else if (ageRaw !== '') {
+          const n = parseInt(ageRaw, 10);
+          if (Number.isFinite(n) && n >= 0 && n <= 120) ageInt = n;
+        }
+        if (ageInt != null) push('individualCharacteristics.core.age', ageInt);
+      }
 
       const churnRaw = churnEl ? String(churnEl.value || '').trim() : '';
       const propRaw = propensityEl ? String(propensityEl.value || '').trim() : '';
@@ -827,6 +914,9 @@
 
       const firstName = findBySuffix(['firstname', 'givenname']);
       const lastName = findBySuffix(['lastname', 'surname', 'familyname']);
+      const birthDate = findBySuffix(['person.birthdate', 'birthdate']);
+      const ageRaw = findBySuffix(['individualcharacteristics.core.age']) ||
+        findByKeywords('individualcharacteristics', 'core', 'age');
       const churn = findByKeywords('churn', 'prediction') || findBySuffix(['churnprediction', 'churnscore']);
       const propensity = findByKeywords('scoring', 'propensity') || findBySuffix(['propensityscore']);
       const nps = findBySuffix(['npsscore']) || findByKeywords('scoring', 'nps');
@@ -848,6 +938,24 @@
 
       if (firstName && firstNameEl) firstNameEl.value = firstName;
       if (lastName && lastNameEl) lastNameEl.value = lastName;
+      // Birth date / age: prefer the lookup's birthDate (it's the source of
+      // truth — we re-derive age from it on every push). When only age is
+      // returned, populate the age input but leave birthDate blank (we
+      // can't reliably back-derive a specific year/month/day from age).
+      if (birthDate && birthDateEl) {
+        // Profile API may return ISO with timestamp; trim to date portion.
+        const iso = String(birthDate).slice(0, 10);
+        if (isValidIsoBirthDate(iso)) {
+          birthDateEl.value = iso;
+          if (ageEl) {
+            const a = computeAgeFromBirthDate(iso);
+            if (a != null) ageEl.value = String(a);
+          }
+        }
+      } else if (ageRaw && ageEl) {
+        const n = parseInt(String(ageRaw), 10);
+        if (Number.isFinite(n)) ageEl.value = String(n);
+      }
       if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
       if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
       if (nps && npsEl) npsEl.value = nps;
@@ -1123,7 +1231,12 @@
     function summariseSnapshot(snap) {
       if (!snap || typeof snap !== 'object') return '';
       const parts = [];
-      if (snap.firstName || snap.lastName) parts.push(`${snap.firstName || ''} ${snap.lastName || ''}`.trim());
+      if (snap.firstName || snap.lastName) {
+        const name = `${snap.firstName || ''} ${snap.lastName || ''}`.trim();
+        // Show age in parentheses next to the identity when present so
+        // operators can scan recently-generated cohorts at a glance.
+        parts.push(snap.age ? `${name} (${snap.age})` : name);
+      }
       if (snap.gender) parts.push(snap.gender);
 
       let industryTail = '';
@@ -1202,6 +1315,8 @@
       const s = entry.snapshot;
       if (firstNameEl) firstNameEl.value = s.firstName || '';
       if (lastNameEl) lastNameEl.value = s.lastName || '';
+      if (birthDateEl) birthDateEl.value = s.birthDate || '';
+      if (ageEl) ageEl.value = s.age || '';
       if (genderEl) genderEl.value = s.gender || '';
       if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
       if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
@@ -1277,6 +1392,23 @@
     if (churnEl) churnEl.addEventListener('input', syncChurnSlider);
     if (propensityEl) propensityEl.addEventListener('input', syncPropensitySlider);
     if (aovEl) aovEl.addEventListener('input', syncAovSlider);
+
+    // Birth date → age sync. Whenever the operator picks a new date (or the
+    // input loses focus with a value) recompute age and write it back to
+    // the age input. Keeping the two consistent ensures buildUpdatesFromForm
+    // doesn't accidentally stream a stale age alongside an updated birthDate.
+    function applyBirthDateChange() {
+      if (!birthDateEl) return;
+      const iso = trimVal(birthDateEl);
+      if (!iso) return;
+      if (!isValidIsoBirthDate(iso)) return;
+      const a = computeAgeFromBirthDate(iso);
+      if (ageEl && a != null) ageEl.value = String(a);
+    }
+    if (birthDateEl) {
+      birthDateEl.addEventListener('change', applyBirthDateChange);
+      birthDateEl.addEventListener('blur', applyBirthDateChange);
+    }
     if (loyaltyRandomBtn && loyaltyTierEl && loyaltyPointsEl) {
       loyaltyRandomBtn.addEventListener('click', () => {
         const tier = trimVal(loyaltyTierEl);
