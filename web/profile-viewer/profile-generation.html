@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="profile-generation.css?v=20260503b">
+  <link rel="stylesheet" href="profile-generation.css?v=20260503i">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1072,6 +1072,34 @@
           <span class="consent-streaming-details__hint" id="genericProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <!-- Agent-driven path banner.
+               The new normal: an AEP architect prompts the Cursor agent to
+               provision schema + field groups + dataset for every industry
+               in their sandbox in one go (direct AEP REST). The architect
+               then only does Profile-toggle (schema + dataset) + the HTTP
+               streaming source + paste the resulting dataflow ID below.
+               The 4-step wizard buttons remain as a safe, idempotent
+               fallback for sandboxes that haven't been agent-provisioned. -->
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Generic:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Generic Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Generic Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Generic Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#genStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update generic profiles in a new sandbox:</h4>
             <ol>
@@ -1080,10 +1108,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong> (OOTB <code>consents.marketing.*</code>, including the preferred-channel enum at <code>consents.marketing.preferred</code>), and <strong>Preference Details</strong> (<code>preferences.*</code>, e.g. preferred language) to <code>AEP Lab - Generic Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Generic Profile - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name (used for lookup when Flow ID is empty)</em> field below) so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve the <strong>Flow ID</strong> and <strong>Collection URL</strong> automatically — or copy the Flow ID manually if you used a different name.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Generic Profile - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name (used for lookup when Flow ID is empty)</em> field below) so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve the <strong>Flow ID</strong> and <strong>Collection URL</strong> automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#genStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or just click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the schema's field groups, open <code>AEP Lab - Generic Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. The wizard intentionally never sets this flag because enabling a schema for Profile is a <strong>one-way action</strong> in AEP — once enabled you cannot add or remove field groups, and the schema becomes very difficult to retire. Only toggle it on after you confirm step 2 attached every field group you need.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the schema's field groups, open <code>AEP Lab - Generic Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself, <em>then</em> open <code>AEP Lab - Generic Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. The wizard intentionally never sets either flag because enabling a schema for Profile is a <strong>one-way action</strong> in AEP — once enabled you cannot add or remove field groups, and the schema becomes very difficult to retire. Only toggle Profile on after you confirm step 2 attached every field group you need.
             </p>
           </div>
           <div class="button-row">
@@ -1484,6 +1512,26 @@
           <span class="consent-streaming-details__hint" id="travelProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Travel:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Travel Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Travel Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Travel Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#travelStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update Travel profiles in a new sandbox:</h4>
             <ol>
@@ -1492,10 +1540,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Travel Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. Travel attribute paths (<code>individualCharacteristics.travel.*</code>, <code>travelReservations.*</code>) ride on Profile Core v2's tenant subtree so no custom tenant field group is required.
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Travel Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Travel Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Travel Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#travelStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Travel schema's field groups, open <code>AEP Lab - Travel Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Travel schema's field groups, open <code>AEP Lab - Travel Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - Travel Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -2299,6 +2347,26 @@
           <span class="consent-streaming-details__hint" id="fsiProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for FSI:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - FSI Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - FSI Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - FSI Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#fsiStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update FSI profiles in a new sandbox:</h4>
             <ol>
@@ -2307,10 +2375,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - FSI Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile FSI</strong> (custom tenant FG), <strong>Personal Finance Details</strong>, and <strong>Personal Tax Details</strong>; sandboxes that lack any of those fall back to the <code>_{tenant}.industryFsi.*</code> tenant subtree and the wizard still succeeds. <strong>Auto-create:</strong> if neither <code>Profile FSI v1</code> nor <code>v2</code> exists in this sandbox, the wizard creates <code>Profile FSI v1</code> with the canonical attribute tree before attaching it. The wizard also discovers any other Profile-class OOTB FG that matches the FSI tag/title hints and attaches it too.
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - FSI Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - FSI Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - FSI Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#fsiStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the FSI schema's field groups, open <code>AEP Lab - FSI Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the FSI schema's field groups, open <code>AEP Lab - FSI Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - FSI Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -2819,6 +2887,26 @@
           <span class="consent-streaming-details__hint" id="sportsProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Sports:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Sports Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Sports Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Sports Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#sportsStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update Sports profiles in a new sandbox:</h4>
             <ol>
@@ -2827,10 +2915,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Sports Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. <strong>Auto-create:</strong> Adobe ships no Profile-class Sports OOTB FG today, so the wizard creates a custom <code>Profile Sports v1</code> tenant FG (with the canonical <code>industrySports.*</code> attribute tree) on first run and re-uses it on every subsequent run. The wizard also discovers any Profile-class OOTB FG that matches the Sports tag/title hints (none today, kept for forward compat).
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Sports Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Sports Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Sports Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#sportsStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Sports schema's field groups, open <code>AEP Lab - Sports Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Sports schema's field groups, open <code>AEP Lab - Sports Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - Sports Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -3282,6 +3370,26 @@
           <span class="consent-streaming-details__hint" id="mediaProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Media:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Media Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Media Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Media Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#mediaStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update Media profiles in a new sandbox:</h4>
             <ol>
@@ -3290,10 +3398,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Media Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile Media</strong> (custom tenant FG, when available) and the OOTB <strong>Subscription Details</strong>; sandboxes that lack both fall back to the <code>_{tenant}.industryMedia.*</code> tenant subtree and the wizard still succeeds. <strong>Auto-create:</strong> if no <code>Profile Media v*</code> tenant FG exists in this sandbox, the wizard creates <code>Profile Media v1</code> with the canonical attribute tree before attaching it. The wizard also discovers any other Profile-class OOTB FG that matches the Media tag/title hints and attaches it too.
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Media Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Media Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Media Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#mediaStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Media schema's field groups, open <code>AEP Lab - Media Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Media schema's field groups, open <code>AEP Lab - Media Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - Media Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -3865,6 +3973,26 @@
           <span class="consent-streaming-details__hint" id="retailProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Retail:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Retail Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Retail Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Retail Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#retailStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update Retail profiles in a new sandbox:</h4>
             <ol>
@@ -3873,10 +4001,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Retail Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile Retail v2</strong> and <strong>Profile Retail Scoring</strong> (custom tenant FGs); sandboxes that lack them fall back to the <code>_{tenant}.industryRetail.*</code> tenant subtree and the wizard still succeeds. <strong>Auto-create:</strong> if neither <code>Profile Retail v1</code> nor <code>v2</code> exists in this sandbox, the wizard creates <code>Profile Retail v1</code> with the canonical attribute tree before attaching it (sandboxes that already have v2 keep using it). The wizard also discovers any other Profile-class OOTB FG that matches the Retail tag/title hints (none today, kept for forward compat).
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Retail Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Retail Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Retail Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#retailStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Retail schema's field groups, open <code>AEP Lab - Retail Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Retail schema's field groups, open <code>AEP Lab - Retail Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - Retail Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -4524,6 +4652,26 @@
           <span class="consent-streaming-details__hint" id="telecomProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
+          <div class="consent-agent-banner" role="note" aria-label="Already provisioned by the Cursor agent? Manual steps">
+            <h4 class="consent-agent-banner__title"><span aria-hidden="true">⚡</span> Already provisioned by the Cursor agent?</h4>
+            <p class="consent-agent-banner__lead">
+              If you (or your AEP architect) ran the agent-driven sandbox setup, your <strong>schema</strong>, <strong>field groups</strong>, and <strong>dataset</strong> already exist for every industry in this sandbox. You only need to do these <strong>three</strong> things by hand for Telecom:
+            </p>
+            <ol class="consent-agent-banner__steps">
+              <li>
+                <strong>Toggle Profile ON</strong> in the AEP UI for <em>both</em> the schema (<code>AEP Lab - Telecom Profile - Schema</code>) <em>and</em> the dataset (<code>AEP Lab - Telecom Profile - Dataset</code>). Both must be Profile-enabled — the dataset surfaces <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union too.
+              </li>
+              <li>
+                <strong>Create the HTTP API streaming source</strong> in <em>Sources → Streaming → HTTP API</em>, name it <code>AEP Lab - Telecom Profile - Dataflow</code>, and point it at the dataset above.
+              </li>
+              <li>
+                <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a class="consent-agent-banner__field-link" href="#telecomStreamFlowId">Flow ID (x-adobe-flow-id)</a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name. The lab needs this ID to stream sample profiles.
+              </li>
+            </ol>
+            <p class="consent-agent-banner__fallback">
+              <strong>Provisioning from scratch instead?</strong> Click <strong>1 · Create schema</strong> below — the four wizard buttons still work end-to-end and are safe to re-run on an already-provisioned sandbox (idempotent).
+            </p>
+          </div>
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update Telecom profiles in a new sandbox:</h4>
             <ol>
@@ -4532,10 +4680,10 @@
                 <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Telecom Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Telecom Subscription Details</strong> (OOTB Adobe field group); sandboxes that lack it fall back to the <code>_{tenant}.industryTelecom.*</code> tenant subtree and the wizard still succeeds. <strong>Auto-create:</strong> if no <code>Profile Telecom v*</code> tenant FG exists in this sandbox, the wizard creates <code>Profile Telecom v1</code> with the canonical attribute tree before attaching it. The wizard also discovers any other Profile-class OOTB FG that matches the Telecom tag/title hints and attaches it too.
               </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Telecom Profile - Dataset</code>.</li>
-              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Telecom Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Telecom Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically. <strong>Copy the dataflow ID</strong> from the streaming source detail page in AEP and paste it into the <a href="#telecomStreamFlowId"><strong>Flow ID (x-adobe-flow-id)</strong></a> field below — or click <strong>Fetch URL &amp; Flow ID from AEP</strong> if you used the canonical name.</li>
             </ol>
             <p class="consent-setup-instructions__note">
-              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Telecom schema's field groups, open <code>AEP Lab - Telecom Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Telecom schema's field groups, open <code>AEP Lab - Telecom Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON, <em>then</em> open <code>AEP Lab - Telecom Profile - Dataset</code> and toggle <strong>Profile</strong> ON there too. Both must be Profile-enabled — the dataset's <code>unifiedProfile.enabled:true</code> tag silently flips to <code>UPDAEM-089029-400: Union Schema cannot be retrieved</code> until the schema is on Union. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
             </p>
           </div>
           <div class="button-row">
@@ -5058,19 +5206,19 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260502c"></script>
-  <script src="profile-generation.js?v=20260502c"></script>
-  <script src="profile-generation-generic.js?v=20260503c"></script>
-  <script src="profile-generation-travel.js?v=20260503c"></script>
+  <script src="profile-generation-shared.js?v=20260503i"></script>
+  <script src="profile-generation.js?v=20260503i"></script>
+  <script src="profile-generation-generic.js?v=20260503i"></script>
+  <script src="profile-generation-travel.js?v=20260503i"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260503c"></script>
-  <script src="profile-generation-fsi.js?v=20260503h"></script>
-  <script src="profile-generation-telecom.js?v=20260503d"></script>
-  <script src="profile-generation-retail.js?v=20260503c"></script>
-  <script src="profile-generation-media.js?v=20260503f"></script>
-  <script src="profile-generation-sports.js?v=20260503c"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260503i"></script>
+  <script src="profile-generation-fsi.js?v=20260503i"></script>
+  <script src="profile-generation-telecom.js?v=20260503i"></script>
+  <script src="profile-generation-retail.js?v=20260503i"></script>
+  <script src="profile-generation-media.js?v=20260503i"></script>
+  <script src="profile-generation-sports.js?v=20260503i"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

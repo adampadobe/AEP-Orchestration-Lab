@@ -878,6 +878,79 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   background: rgba(0, 0, 0, 0.18);
 }
 
+/* "Already provisioned by the Cursor agent?" banner.
+ * Sits above each industry's 4-step wizard preamble and tells architects
+ * who used the agent-driven sandbox-provisioning path (schema +
+ * field groups + dataset POSTed via AEP REST in one go) what's left to
+ * do by hand: Profile toggle on schema + dataset, HTTP API streaming
+ * source, then paste the resulting dataflow ID into the Flow ID field
+ * below. The classic 4-step wizard buttons remain as a fallback for
+ * sandboxes that haven't been agent-provisioned. Same accent colour as
+ * the info-blue setup-instructions block but with a leftward green
+ * success accent so it reads as "good news, less work". */
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner {
+  background: var(--dash-success-bg, var(--dash-surface-alt));
+  border: 1px solid var(--dash-success-border, var(--dash-border));
+  border-left: 4px solid var(--dash-success-border, var(--dash-blue));
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.85rem;
+  color: var(--dash-success-text, var(--dash-text));
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--dash-success-text, var(--dash-text));
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__lead {
+  margin: 0 0 0.5rem;
+  color: var(--dash-success-text, var(--dash-text));
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__steps {
+  margin: 0 0 0.6rem;
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__steps li + li {
+  margin-top: 0.3rem;
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner code {
+  background: var(--dash-code-bg);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--dash-text);
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__field-link {
+  color: var(--dash-blue);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__field-link:hover {
+  color: var(--dash-text);
+}
+
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__fallback {
+  margin: 0;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--dash-border);
+  font-size: 0.83rem;
+  color: var(--dash-text-secondary);
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;
