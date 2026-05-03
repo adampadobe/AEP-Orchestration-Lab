@@ -31,6 +31,8 @@ via add-only JSON-Patch.
 
 - **ADD only.** Never REMOVE and never REPLACE an existing leaf with a
   different type. Type conflicts are reported in `conflicts`, not overwritten.
+  (Adobe also enforces this server-side — REMOVE on a mixin used by any
+  schema returns `XDM-1536-400 "Breaking change violation"`.)
 - **Idempotent.** A second invocation in a sandbox that already contains every
   required leaf is a no-op (zero PATCH calls, `added: []`).
 - **Concurrency-safe.** On HTTP 409 / 412 / 428 the helper re-GETs the mixin,
@@ -44,6 +46,21 @@ via add-only JSON-Patch.
   shared datatype (e.g. `identification.core.*`) cannot be added via FG PATCH —
   the datatype owns them. Those are reported as `conflict` and skipped, not
   silently overwritten.
+
+## PATCH header contract (`/tenant/fieldgroups/{altId}`)
+
+Verified live against `kirkham` (May 2026):
+
+| Header        | Value                                         | Note |
+|---------------|-----------------------------------------------|------|
+| Content-Type  | `application/json`                            | **NOT** `application/json-patch+json` — Adobe's gateway rejects that with HTTP 415 *"Content-Type 'application/json-patch+json' is not supported."* The request body is still a JSON-Patch ARRAY (`[ {op,path,value}, … ]`); the registry parses it as a JSON document. |
+| Accept        | `application/vnd.adobe.xed+json;version=1`    | Returns the updated FG body so the caller can verify the version bump.|
+| If-Match      | `<current FG version>` e.g. `1.6`             | Optimistic concurrency. On 412/428/409 the helper re-GETs and retries.|
+
+If a future PATCH fails non-2xx, the helper now also surfaces the registry's
+`detail` and `report` fields in the wizard's status message (and in the
+`profileCoreV2TopUp.error` payload) so the operator can see exactly what the
+gateway rejected.
 
 ## How to add a new required leaf
 

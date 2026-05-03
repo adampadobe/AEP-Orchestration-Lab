@@ -73,7 +73,13 @@ const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
 const ACCEPT_XED_FULL = 'application/vnd.adobe.xed-full+json';
 const ACCEPT_JSON = 'application/json';
-const ACCEPT_JSON_PATCH = 'application/json-patch+json';
+// NOTE intentionally NOT used as Content-Type on /tenant/fieldgroups PATCH —
+// Adobe's gateway rejects `application/json-patch+json` with HTTP 415
+// (verified against kirkham Apr 2026). The PATCH body IS a JSON-Patch
+// array but the request must declare `Content-Type: application/json`.
+// Kept as a named constant for documentation only.
+// eslint-disable-next-line no-unused-vars
+const ACCEPT_JSON_PATCH_DOCUMENTED_NOT_USED = 'application/json-patch+json';
 
 const { getManifestForIndustry } = require('./profileCoreV2Manifest');
 
@@ -1216,6 +1222,19 @@ function createProfileInfraService(config) {
    * uses `If-Match` with the current FG version and retries once on 409 /
    * 412 / 428 (re-GET, recompute diff via the caller's closure, retry).
    *
+   * Header contract — verified live against `kirkham` sandbox Apr 2026:
+   *   - Content-Type : `application/json`
+   *       Adobe's Schema Registry gateway rejects `application/json-patch+json`
+   *       on /tenant/fieldgroups/{altId} PATCH with HTTP 415
+   *       "Content-Type 'application/json-patch+json' is not supported."
+   *       The body still IS a JSON-Patch ARRAY ([ {op,path,value}, … ]) —
+   *       the registry parses it as a JSON document, not as a patch type.
+   *   - Accept       : `application/vnd.adobe.xed+json;version=1`
+   *       Returns the new FG body so the caller can verify the version bump.
+   *   - If-Match     : `<current FG version>` (e.g. "1.6")
+   *       Required for optimistic concurrency. On 412/428/409 the caller
+   *       re-GETs and retries with the new version.
+   *
    * @param {string[]} ops      JSON-Patch array (already validated upstream)
    * @param {string}   altId    FG `meta:altId`
    * @param {string}   version  current FG version string (e.g. "1.5")
@@ -1231,17 +1250,27 @@ function createProfileInfraService(config) {
         'x-api-key': clientId,
         'x-gw-ims-org-id': orgId,
         'x-sandbox-name': sandbox,
-        'Content-Type': ACCEPT_JSON_PATCH,
+        'Content-Type': ACCEPT_JSON,
         Accept: ACCEPT_XED,
         'If-Match': String(version || '1'),
       },
       body: JSON.stringify(ops),
     });
     if (res.ok) return { ok: true, applied: true, body: data };
+    // Adobe Schema Registry 4xx responses always include a `detail` and
+    // sometimes a `report` object. Surface the most informative field so
+    // the wizard's status message and the function logs make the next
+    // failure easy to triage.
+    const detail = (data && (data.detail || data.message || data.title)) || res.statusText;
+    const report = data && data.report;
+    let reportSummary = '';
+    if (report && typeof report === 'object') {
+      try { reportSummary = ` [report: ${JSON.stringify(report).slice(0, 240)}]`; } catch (_) { /* ignore */ }
+    }
     return {
       ok: false,
       status: res.status,
-      message: data.message || data.title || data.detail || res.statusText,
+      message: `${detail}${reportSummary}`,
       body: data,
     };
   }
