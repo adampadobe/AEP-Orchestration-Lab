@@ -126,7 +126,13 @@
     'The North Face', 'Patagonia', 'Carhartt', 'Reformation', 'COS',
   ];
   const SHIRT_POOL = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  // Audit §3.7: cobranded card holders pay on the cobranded card most of
+  // the time. We add the synthetic `cobranded_card` payment value so the
+  // bias has somewhere to land — the schema accepts free-form strings
+  // here. The base pool stays the same shape as before so non-cobranded
+  // personas keep their realistic mix.
   const PAYMENT_POOL = ['credit_card', 'debit_card', 'paypal', 'apple_pay', 'google_pay', 'bnpl', 'bank_transfer'];
+  const COBRANDED_PAYMENT_VALUE = 'cobranded_card';
   const ORDER_TYPE_POOL = ['online', 'click-and-collect', 'in-store', 'subscription'];
   const SKU_PREFIX = ['SKU', 'PRD', 'ITM'];
 
@@ -638,13 +644,28 @@
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
-        // Engagement flags — typical retail customer profile.
-        setCheck('retailCartAbandoned',   Math.random() < 0.30);
-        setCheck('retailWishlist',        Math.random() < 0.40);
-        setCheck('retailStoreCardHolder', Math.random() < 0.25);
-        setCheck('retailSubscribed',      Math.random() < 0.55);
-        setCheck('retailReturnedRecent',  Math.random() < 0.20);
-        setCheck('retailReviewsItems',    Math.random() < 0.15);
+
+        // Engagement flags — declared as a weights table consumed by the
+        // shared randomizeFlagToggles helper (audit §10 A). Drops the
+        // ad-hoc `Math.random() < N` calls that previously lived inline.
+        const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
+          helpers.randomizeFlagToggles([
+            { id: 'retailCartAbandoned',   weight: 0.30 },
+            { id: 'retailWishlist',        weight: 0.40 },
+            { id: 'retailStoreCardHolder', weight: 0.25 },
+            { id: 'retailSubscribed',      weight: 0.55 },
+            { id: 'retailReturnedRecent',  weight: 0.20 },
+            { id: 'retailReviewsItems',    weight: 0.15 },
+          ]);
+        } else {
+          setCheck('retailCartAbandoned',   Math.random() < 0.30);
+          setCheck('retailWishlist',        Math.random() < 0.40);
+          setCheck('retailStoreCardHolder', Math.random() < 0.25);
+          setCheck('retailSubscribed',      Math.random() < 0.55);
+          setCheck('retailReturnedRecent',  Math.random() < 0.20);
+          setCheck('retailReviewsItems',    Math.random() < 0.15);
+        }
 
         // Retail products & sizes.
         setVal('retailFavoriteStore', randPick(STORE_POOL));
@@ -662,21 +683,61 @@
           setPropensitySliderInt(s, randInt(0, 100));
         });
 
-        // Last-order details — auto-enable + populate.
+        // Last-order details — auto-enable + populate. Audit §3.7 ties
+        // the order-value triplet together so a cohort persona reads as
+        // a coherent customer (avg unit price × order size, lifetime value
+        // ≥ rolling spend, payment method tracks cobranded-card status).
         setCheck('retailLastOrderEnabled', true);
         applyLastOrderToggle();
         setVal('retailLastOrderDate', isoDateAgo(randInt(1, 90)));
-        setVal('retailLastOrderSize', String(randInt(1, 12)));
-        const orderValue = (randInt(2000, 200000) / 100).toFixed(2);
-        setVal('retailLastOrderValue', orderValue);
-        setSelect('retailLastOrderPaymentMethod', randPick(PAYMENT_POOL));
+
+        const lastOrderSize = randInt(1, 12);
+        setVal('retailLastOrderSize', String(lastOrderSize));
+
+        // lastOrderValue ≈ lastOrderSize × $15..$120 average unit price.
+        // Replaces the previous flat 20..2000 dollar-cents draw which
+        // could ship a 12-item order at $20.
+        const avgUnitPrice = randInt(15, 120);
+        const lastOrderValue = +(lastOrderSize * avgUnitPrice).toFixed(2);
+        setVal('retailLastOrderValue', String(lastOrderValue));
+
+        // Cobranded card holder ↔ payment-method bias (~70%). When the
+        // persona holds the co-brand card, prefer the new co-branded
+        // option over the generic pool. Otherwise pick from the regular
+        // pool (which excludes cobranded_card so non-holders never land
+        // on it). The ~30% non-cobranded path leaves room for the cohort
+        // to still exhibit other payment behaviours occasionally.
+        const isCobranded = getCheck('retailCobrandedCreditCardHolder');
+        const wb = (helpers && typeof helpers.weightedBool === 'function')
+          ? helpers.weightedBool
+          : (p) => Math.random() < p;
+        const paymentChoice = isCobranded && wb(0.70)
+          ? COBRANDED_PAYMENT_VALUE
+          : randPick(PAYMENT_POOL);
+        setSelect('retailLastOrderPaymentMethod', paymentChoice);
+
         const skus = [];
         for (let i = 0; i < randInt(1, 4); i++) skus.push(randomSku());
         setVal('retailLastOrderSku', joinCsv(skus));
         setVal('retailLastOrderStore', joinCsv(randPickN(STORE_POOL, randInt(1, 2))));
         setVal('retailLastOrderType', joinCsv(randPickN(ORDER_TYPE_POOL, randInt(1, 2))));
-        setVal('retailOrdersYTD', String(randInt(1, 50)));
-        setVal('retailLifetimeValue', String(randInt(200, 50000)));
+
+        const ordersYTD = randInt(1, 50);
+        setVal('retailOrdersYTD', String(ordersYTD));
+
+        // lifetimeValue ≥ max(LTV-band midpoint, ordersYTD × lastOrderValue × 0.6..1.2).
+        // Captures the realistic floor that a customer with N orders this
+        // year MUST have spent at least roughly N × avg-order-value over
+        // their lifetime, regardless of the LTV band the operator (or
+        // the random scalar pass above) picked. Min 200 keeps the LTV
+        // sane for tiny edge-case orders.
+        const ltvBandKey = trim($('retailLtvBand'));
+        const ltvBandFloor = LTV_MIDPOINT[ltvBandKey] || 0;
+        const orderActivityFloor = Math.round(
+          ordersYTD * lastOrderValue * (0.6 + Math.random() * 0.6)
+        );
+        const lifetimeValue = Math.max(200, ltvBandFloor, orderActivityFloor);
+        setVal('retailLifetimeValue', String(lifetimeValue));
       },
     },
   });

@@ -207,6 +207,165 @@
     if (byText) { selectEl.value = byText.value; return; }
   }
 
+  // ============================================================
+  // Cross-industry helpers (audit §10 follow-ups, May 2026).
+  //
+  // Exported on window.AepProfileGenIndustry.helpers so per-industry
+  // modules can compose them without re-implementing the same math
+  // (and so the verification harness at /tmp/verify-audit-followups.mjs
+  // can load and exercise the same code paths as the browser does).
+  //
+  // Design contract:
+  //   - All helpers are pure functions of their args + Math.random()
+  //     (no DOM access except for the checkbox/select-id helpers, which
+  //     read+write live elements via document.getElementById).
+  //   - Every helper short-circuits gracefully on missing elements / bad
+  //     inputs so a misconfigured industry module can't crash Generate-N.
+  //   - Numeric helpers clamp to sensible ranges; string helpers always
+  //     return strings.
+  // ============================================================
+
+  /**
+   * Weighted boolean draw — `true` with probability `p` (clamped 0..1).
+   * Replaces the ad-hoc `Math.random() < N` pattern that was scattered
+   * across every per-industry randomiser. (Audit §10 H.)
+   */
+  function weightedBool(p) {
+    const probability = Number.isFinite(p) ? Math.max(0, Math.min(1, p)) : 0;
+    return Math.random() < probability;
+  }
+
+  /**
+   * Triangular-ish distribution biased toward `mean` over the [min, max]
+   * range. Uses the average of two uniform draws, which approximates a
+   * triangular PDF centered at the midpoint; we then shift by
+   * `mean - midpoint` so the operator can bias the centre. Returns an
+   * integer when both inputs are integers (snapping to nearest), else a
+   * float. Always clamped to [min, max]. (Audit §10 J — biggest realism
+   * multiplier.)
+   */
+  function randomBellBetween(min, max, mean) {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+      return Number.isFinite(min) ? min : 0;
+    }
+    const m = Number.isFinite(mean) ? mean : (min + max) / 2;
+    const midpoint = (min + max) / 2;
+    const shift = m - midpoint;
+    const span = max - min;
+    const uniform1 = Math.random() * span;
+    const uniform2 = Math.random() * span;
+    let v = min + (uniform1 + uniform2) / 2 + shift;
+    if (v < min) v = min;
+    if (v > max) v = max;
+    if (Number.isInteger(min) && Number.isInteger(max)) {
+      return Math.round(v);
+    }
+    return v;
+  }
+
+  /**
+   * Mutual-exclusion checkbox setter. Given an array of checkbox ids
+   * (or live <input> elements), set exactly ONE to true and clear the
+   * rest. Returns the id (or empty string) of the chosen checkbox.
+   * Missing elements are silently skipped so an old DOM that lacks one
+   * of the ids in the list still works. (Audit §10 G — generalises the
+   * FSI tax-filing mutex.)
+   */
+  function pickOneOf(checkboxElsOrIds) {
+    if (!Array.isArray(checkboxElsOrIds) || !checkboxElsOrIds.length) return '';
+    const resolved = checkboxElsOrIds
+      .map((entry) => {
+        if (!entry) return null;
+        if (typeof entry === 'string') {
+          const el = document.getElementById(entry);
+          return el ? { id: entry, el } : null;
+        }
+        if (entry.id) return { id: entry.id, el: entry };
+        return null;
+      })
+      .filter((x) => x);
+    if (!resolved.length) return '';
+    const chosen = resolved[Math.floor(Math.random() * resolved.length)];
+    resolved.forEach((r) => {
+      r.el.checked = r === chosen;
+    });
+    return chosen.id;
+  }
+
+  /**
+   * Apply weighted random to a list of checkbox toggles. `toggleSpecs` is
+   * an array of `{ id, weight }` (weight in [0, 1]). For each entry, the
+   * checkbox is set to `weightedBool(weight)`. Used by Retail / Media /
+   * Sports / Telecom to centralise their engagement-flag passes so the
+   * weights live in one declarative table per industry. (Audit §10 A.)
+   */
+  function randomizeFlagToggles(toggleSpecs) {
+    if (!Array.isArray(toggleSpecs)) return;
+    toggleSpecs.forEach((spec) => {
+      if (!spec || !spec.id) return;
+      const el = document.getElementById(spec.id);
+      if (!el) return;
+      el.checked = weightedBool(spec.weight);
+    });
+  }
+
+  /**
+   * Resolve a band key to a numeric value, optionally jittered. Useful
+   * when a UI dropdown ("under_30k", "30k_75k", …) needs to project to
+   * a realistic numeric leaf (income amount, credit score midpoint, …).
+   *   bandValue: the dropdown's selected value
+   *   mappingTable: { bandKey: numericValue } lookup
+   *   jitterPct: 0..1 — how much to perturb the midpoint as a fraction
+   *     of the value itself (0.1 = ±10%). Default 0.1. Pass 0 for the
+   *     midpoint exact.
+   * Returns null when the band isn't in the mapping. (Audit §10 B.)
+   */
+  function deriveFromBand(bandValue, mappingTable, jitterPct) {
+    if (!bandValue || !mappingTable || !(bandValue in mappingTable)) return null;
+    const base = Number(mappingTable[bandValue]);
+    if (!Number.isFinite(base)) return null;
+    const j = Number.isFinite(jitterPct) ? jitterPct : 0.1;
+    if (j === 0) return base;
+    const factor = 1 + j * (Math.random() - 0.5) * 2;
+    return base * factor;
+  }
+
+  /**
+   * Recency-band-driven date generator. Returns ISO `YYYY-MM-DD` for
+   * `now() - randomBetween(min, max) * MS_PER_DAY` where the range is
+   * looked up from `mapping[bandValue]`. Returns '' when the band is
+   * absent or invalid. (Audit §10 C.)
+   */
+  const MS_PER_DAY_FOR_RECENCY = 24 * 60 * 60 * 1000;
+  function dateFromRecencyBand(bandValue, mapping) {
+    if (!bandValue || !mapping || !mapping[bandValue]) return '';
+    const cfg = mapping[bandValue];
+    const minDays = Number(cfg.minDays);
+    const maxDays = Number(cfg.maxDays);
+    if (!Number.isFinite(minDays) || !Number.isFinite(maxDays) || maxDays < minDays) return '';
+    const days = randomBetween(minDays, maxDays);
+    const t = Date.now() - days * MS_PER_DAY_FOR_RECENCY;
+    return new Date(t).toISOString().slice(0, 10);
+  }
+
+  /**
+   * Read a <select>'s option values, intersect with an allowlist, and
+   * return the filtered list. Lets industry randomisers safely pick
+   * from a schema-enum-constrained subset of whatever options the HTML
+   * happens to declare. (Audit §10 I.)
+   */
+  function safeSelectValues(selectId, schemaEnumAllowlist) {
+    const el = document.getElementById(selectId);
+    if (!el || !el.options) return [];
+    const allow = new Set((schemaEnumAllowlist || []).map((v) => String(v)));
+    const out = [];
+    for (let i = 0; i < el.options.length; i++) {
+      const v = el.options[i].value;
+      if (v !== '' && allow.has(String(v))) out.push(v);
+    }
+    return out;
+  }
+
   /**
    * Bind a new industry's profile-generation page to this runtime.
    * Returns nothing; binding is purely side-effects (event listeners +
@@ -1497,5 +1656,22 @@
     setTimeout(() => loadConnectionFromFirestore(true), 800);
   }
 
-  window.AepProfileGenIndustry = { bind };
+  window.AepProfileGenIndustry = {
+    bind,
+    // Cross-industry helpers (audit §10) — exposed so per-industry modules
+    // can compose them without re-implementing the math, and so the
+    // verification harness at /tmp/verify-audit-followups.mjs can reach
+    // them via the same global the browser uses.
+    helpers: {
+      weightedBool,
+      randomBellBetween,
+      pickOneOf,
+      randomizeFlagToggles,
+      deriveFromBand,
+      dateFromRecencyBand,
+      safeSelectValues,
+      randomBetween,
+      randomPick,
+    },
+  };
 })();

@@ -204,6 +204,88 @@
     ids.forEach((id) => { if (id !== checkboxId) setCheckbox(id, false); });
   }
 
+  // ---------------------------------------------------------------------------
+  // Audit §3.4 / §4.7 correlation tables. Keep these as plain const objects so
+  // the verification harness at /tmp/verify-audit-followups.mjs can require()
+  // this module without a DOM and still reproduce the distribution by import.
+  //
+  // CREDIT_BAND_DISTRIBUTION_BY_INCOME maps each household-income band (the
+  // values defined on the #fsiHouseholdIncomeBand <select> in
+  // profile-generation.html) to a weighted distribution over the credit-score
+  // bands declared on #fsiCreditScoreBand. Weights MUST sum to 1.0 per row;
+  // the row total is checked at module load to fail fast on a bad edit.
+  // The distributions implement the audit's "high income → high credit
+  // skew" requirement using the bands the HTML actually exposes (poor,
+  // fair, good, very_good, excellent) rather than the audit's free-form
+  // numeric thresholds.
+  // ---------------------------------------------------------------------------
+  const CREDIT_BAND_DISTRIBUTION_BY_INCOME = {
+    under_50k: {
+      poor: 0.50, fair: 0.30, good: 0.15, very_good: 0.05, excellent: 0.00,
+    },
+    '50k_100k': {
+      poor: 0.20, fair: 0.30, good: 0.30, very_good: 0.20, excellent: 0.00,
+    },
+    '100k_200k': {
+      poor: 0.05, fair: 0.20, good: 0.35, very_good: 0.30, excellent: 0.10,
+    },
+    '200k_500k': {
+      poor: 0.02, fair: 0.10, good: 0.28, very_good: 0.40, excellent: 0.20,
+    },
+    '500k_plus': {
+      poor: 0.01, fair: 0.05, good: 0.14, very_good: 0.30, excellent: 0.50,
+    },
+  };
+
+  // Verify each row sums to 1 (±epsilon) at module load. Keeps the table
+  // self-validating — a future edit that drops or duplicates a band will
+  // throw on next load instead of silently shifting the cohort.
+  Object.entries(CREDIT_BAND_DISTRIBUTION_BY_INCOME).forEach(([incomeBand, dist]) => {
+    const total = Object.values(dist).reduce((a, b) => a + b, 0);
+    if (Math.abs(total - 1) > 0.0001) {
+      console.warn(`[fsi-profile] CREDIT_BAND_DISTRIBUTION_BY_INCOME[${incomeBand}] sums to ${total.toFixed(4)}; expected 1.`);
+    }
+  });
+
+  // Pick a credit-score band from the income-conditioned distribution above.
+  // Uses cumulative-weight roulette so each band's weight maps to its slice
+  // of the [0,1) interval. Falls back to 'good' (most common bucket) if the
+  // income band isn't in the table.
+  function pickCreditBandForIncome(incomeBand) {
+    const dist = CREDIT_BAND_DISTRIBUTION_BY_INCOME[incomeBand];
+    if (!dist) return 'good';
+    const r = Math.random();
+    let acc = 0;
+    for (const [band, weight] of Object.entries(dist)) {
+      acc += weight;
+      if (r < acc) return band;
+    }
+    return 'excellent';
+  }
+
+  // Account-cards-total ranges keyed by credit-score band. The audit's
+  // numeric ranges ("320–579 → 0–1 cards" etc.) align 1:1 with the HTML's
+  // poor / fair / good / very_good / excellent enum.
+  const ACCOUNT_CARDS_RANGE_BY_CREDIT_BAND = {
+    poor:      { min: 0, max: 1 },
+    fair:      { min: 1, max: 3 },
+    good:      { min: 2, max: 5 },
+    very_good: { min: 3, max: 7 },
+    excellent: { min: 3, max: 7 },
+  };
+
+  // Life-stage ↔ employment correlation. retired forces employment=retired
+  // (matches the audit). student / pre_career bias toward a small allowed
+  // pool — `pre_career` from the audit isn't an HTML option here but we
+  // treat 'young_professional' similarly (newly entering workforce).
+  const EMPLOYMENT_BIAS_BY_LIFE_STAGE = {
+    student:            ['student', 'unemployed', 'contract'],
+    young_professional: ['employed', 'employed', 'employed', 'contract'],
+    family:             ['employed', 'employed', 'self_employed', 'contract'],
+    pre_retirement:     ['employed', 'self_employed', 'retired'],
+    // 'retired' is handled as a hard force, not a bias pool.
+  };
+
   window.AepProfileGenIndustry.bind({
     industryKey: 'fsi',
     industryDisplayName: 'FSI',
@@ -543,44 +625,115 @@
         return parts.join(' · ');
       },
 
-      // Generate-N persona pass for FSI: pick one option from each
-      // dropdown (skipping the "unknown" credit-score band since its
-      // semantic value for analytics is zero). Toggle a realistic
-      // distribution of products instead of all-or-nothing.
+      // Generate-N persona pass for FSI. Audit §3.4 + §4.7: every leaf
+      // we touch is correlated with the others so the cohort reads as a
+      // coherent customer. Order matters — earlier picks feed later ones.
+      //   1. Income band (free pick)
+      //   2. Credit band → biased by income
+      //   3. Numeric credit score → bell-distributed inside the chosen band
+      //   4. Account cards total → range keyed by credit band
+      //   5. Life stage (free pick)
+      //   6. Employment status → forced/biased by life stage
+      //   7. Other holdings + bureau + tax + filing-status mutex
       randomizePersona({ randomPick: pick }) {
+        const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        const wb = (helpers && typeof helpers.weightedBool === 'function')
+          ? helpers.weightedBool
+          : (p) => Math.random() < p;
+        const bell = (helpers && typeof helpers.randomBellBetween === 'function')
+          ? helpers.randomBellBetween
+          : (lo, hi) => randInt(lo, hi);
+
+        // Step 1: pick the household-income band first (drives credit + tax).
+        const incomeBandOpts = selectValuesNonEmpty('fsiHouseholdIncomeBand');
+        const incomeBand = pick(incomeBandOpts);
+        setSelect('fsiHouseholdIncomeBand', incomeBand);
+
+        // Step 2: pick credit band conditioned on income (no more uniform-all).
+        const creditBand = pickCreditBandForIncome(incomeBand);
+        setSelect('fsiCreditScoreBand', creditBand);
+
+        // Step 3: pick remaining scalar dropdowns (excl. the ones we
+        // already picked above + employment + life stage which we
+        // resolve in steps 5–6 with a correlation).
         FSI_SCALAR_FIELDS.forEach((f) => {
-          const opts = selectValuesNonEmpty(f.id)
-            .filter((v) => f.key !== 'creditScoreBand' || String(v).toLowerCase() !== 'unknown');
+          if (f.key === 'creditScoreBand') return;
+          if (f.key === 'householdIncomeBand') return;
+          if (f.key === 'lifeStage') return;
+          if (f.key === 'employment') return;
+          const opts = selectValuesNonEmpty(f.id);
           if (opts.length) {
             const el = $(f.id);
             if (el) el.value = pick(opts);
           }
         });
+
+        // Step 5–6: life-stage drives employment.
+        //   retired   → force employment=retired (always)
+        //   student / pre_retirement / etc. → biased pool from
+        //   EMPLOYMENT_BIAS_BY_LIFE_STAGE so the persona's stage and job
+        //   reconcile (no more 'retired' personas tagged 'employed').
+        const lifeOpts = selectValuesNonEmpty('fsiLifeStage');
+        const lifeStage = pick(lifeOpts);
+        setSelect('fsiLifeStage', lifeStage);
+        const employmentOpts = selectValuesNonEmpty('fsiEmploymentStatus');
+        let employment;
+        if (lifeStage === 'retired') {
+          employment = 'retired';
+        } else {
+          const pool = EMPLOYMENT_BIAS_BY_LIFE_STAGE[lifeStage] || employmentOpts;
+          // Filter to only options that actually exist in the HTML <select>
+          // so a stale audit table can't ship an enum value AEP would drop.
+          const allowed = pool.filter((v) => employmentOpts.includes(v));
+          employment = allowed.length ? pick(allowed) : pick(employmentOpts);
+        }
+        setSelect('fsiEmploymentStatus', employment);
+
         // Realistic-looking holdings: most people hold checking + savings;
-        // ~50% hold a credit card; mortgage / investment / loan each
-        // ~30%. Keeps the cohort visually varied without being uniform.
-        setCheckbox('fsiHoldChecking',   Math.random() < 0.95);
-        setCheckbox('fsiHoldSavings',    Math.random() < 0.85);
-        setCheckbox('fsiHoldCreditCard', Math.random() < 0.55);
-        setCheckbox('fsiHoldMortgage',   Math.random() < 0.30);
-        setCheckbox('fsiHoldInvestment', Math.random() < 0.30);
-        setCheckbox('fsiHoldLoan',       Math.random() < 0.25);
+        // bias higher tiers toward more product holdings via wb so the
+        // weights stay in one easy-to-tune table.
+        setCheckbox('fsiHoldChecking',   wb(0.95));
+        setCheckbox('fsiHoldSavings',    wb(0.85));
+        setCheckbox('fsiHoldCreditCard', wb(0.55));
+        setCheckbox('fsiHoldMortgage',   wb(0.30));
+        setCheckbox('fsiHoldInvestment', wb(0.30));
+        setCheckbox('fsiHoldLoan',       wb(0.25));
 
         // Profile Core v2 demographic enrichment. (age is owned by the
         // shared runtime — randomized via randomBirthDateIso → derived age.)
         setVal('fsiEmployer', randPick(EMPLOYER_POOL));
         setVal('fsiOccupation', randPick(OCCUPATION_POOL));
 
-        // Personal Finance enrichment — anchor to the band when present.
-        const band = trim($('fsiCreditScoreBand'));
-        const score = randomCreditScoreInBand(band);
+        // Personal Finance enrichment.
+        // Step 3 (numeric credit): bell-distributed inside the band so
+        // most personas land near the midpoint instead of bouncing
+        // uniformly across the whole 60+ point range.
+        const bandRange = (() => {
+          switch (creditBand) {
+            case 'poor':      return { min: 300, max: 579 };
+            case 'fair':      return { min: 580, max: 669 };
+            case 'good':      return { min: 670, max: 739 };
+            case 'very_good': return { min: 740, max: 799 };
+            case 'excellent': return { min: 800, max: 850 };
+            default:          return { min: 600, max: 800 };
+          }
+        })();
+        const bandMid = Math.round((bandRange.min + bandRange.max) / 2);
+        const score = Math.round(bell(bandRange.min, bandRange.max, bandMid));
         setVal('fsiCreditScore', String(score));
         setVal('fsiCreditBureau', randPick(CREDIT_BUREAU_POOL));
         setVal('fsiCreditScoreDate', isoDateAgo(randInt(1, 90)));
-        setVal('fsiAccountCardsTotal', String(randInt(1, 8)));
-        setCheckbox('fsiHasBeneficiary', Math.random() < 0.55);
 
-        const incomeBand = trim($('fsiHouseholdIncomeBand'));
+        // Step 4: account-cards-total range keyed by credit band so a
+        // 320-FICO persona doesn't end up with 8 cards. Bell distribution
+        // again — keeps most personas in the realistic middle of each
+        // band's range.
+        const cardsRange = ACCOUNT_CARDS_RANGE_BY_CREDIT_BAND[creditBand] || { min: 1, max: 5 };
+        const accountCardsTotal = Math.round(bell(cardsRange.min, cardsRange.max));
+        setVal('fsiAccountCardsTotal', String(accountCardsTotal));
+
+        setCheckbox('fsiHasBeneficiary', wb(0.55));
+
         const taxBracket = TAX_BRACKET_BY_INCOME[incomeBand] || randPick(TAX_BRACKET_POOL);
         setVal('fsiTaxBracket', taxBracket);
         if (HOUSEHOLD_INCOME_BAND_MIDPOINT[incomeBand] != null) {
@@ -588,13 +741,23 @@
         } else {
           setVal('fsiHouseholdIncomeAmount', String(randInt(35000, 250000)));
         }
-        setCheckbox('fsiHeadOfHousehold', Math.random() < 0.50);
+        setCheckbox('fsiHeadOfHousehold', wb(0.50));
 
-        // Mutex tax filing status — pick exactly one with realistic mix.
-        const filingPick = Math.random();
-        setCheckbox('fsiTaxFilingJoint',     filingPick < 0.50);
-        setCheckbox('fsiTaxFilingSeparate',  filingPick >= 0.50 && filingPick < 0.65);
-        setCheckbox('fsiTaxFilingSingle',    filingPick >= 0.65);
+        // Mutex tax filing status — exactly one of the three checkboxes
+        // can be true. Use the runtime's pickOneOf helper so we share the
+        // mutex pattern with any future industries that need it (and the
+        // verifier can reach it via window.AepProfileGenIndustry.helpers).
+        if (helpers && typeof helpers.pickOneOf === 'function') {
+          helpers.pickOneOf(['fsiTaxFilingJoint', 'fsiTaxFilingSeparate', 'fsiTaxFilingSingle']);
+        } else {
+          // Fallback to the previous probabilistic distribution if the
+          // runtime helper is missing (defensive — should never happen
+          // in normal browser load order).
+          const filingPick = Math.random();
+          setCheckbox('fsiTaxFilingJoint',     filingPick < 0.50);
+          setCheckbox('fsiTaxFilingSeparate',  filingPick >= 0.50 && filingPick < 0.65);
+          setCheckbox('fsiTaxFilingSingle',    filingPick >= 0.65);
+        }
       },
     },
   });

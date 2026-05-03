@@ -927,8 +927,30 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function isoPastDate(daysAgo) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Audit §2.7: split flightDate 70% future / 30% past per Generate. Future
+  // flights ride the existing 1..180-day window; past flights fall in the
+  // 1..90-day window so the recently-flown cohort reads as believable too.
+  function randomFlightDateBiased() {
+    if (Math.random() < 0.30) {
+      return isoPastDate(randomBetween(1, 90));
+    }
+    return isoFutureDate(randomBetween(1, 180));
+  }
+
+  // Audit §2.7: airlines split between 6-character mixed-alphanumeric PNRs
+  // (most carriers — BA, AF, EK, etc.) and 6-character all-letter PNRs
+  // (Delta-style). Roughly 50/50 in the wild, so we toss a coin per
+  // generate to keep cohorts varied.
   function randomConfirmationCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // unambiguous
+    const ALPHA_NUMERIC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // unambiguous
+    const ALPHA_ONLY    = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const chars = Math.random() < 0.5 ? ALPHA_NUMERIC : ALPHA_ONLY;
     let out = '';
     for (let i = 0; i < 6; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
     return out;
@@ -1002,7 +1024,9 @@
     if (flightDepartureEl) flightDepartureEl.value = dep.code;
     if (flightArrivalEl) flightArrivalEl.value = arr.code;
     if (flightNumberEl) flightNumberEl.value = randomFlightNumber(airline);
-    if (flightDateEl) flightDateEl.value = isoFutureDate(randomBetween(7, 120));
+    // Flight date: 70% future (upcoming travel), 30% past (recent travel).
+    // See randomFlightDateBiased — replaces the previous always-future logic.
+    if (flightDateEl) flightDateEl.value = randomFlightDateBiased();
     if (flightClassEl) {
       const opts = selectNonEmptyValues(flightClassEl);
       flightClassEl.value = opts.includes(flightClassRaw) ? flightClassRaw : (opts[0] || '');
@@ -1112,6 +1136,42 @@
       const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
       if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
       if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
+    }
+
+    // AOV ↔ loyalty tier bias (audit §1.7 — applies to every industry that
+    // ships its own randomiser). Higher tiers spend more on average; bell
+    // distribution centres each tier in a believable spend band.
+    const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+    const bell = (helpers && typeof helpers.randomBellBetween === 'function')
+      ? helpers.randomBellBetween
+      : (lo, hi) => randomBetween(lo, hi);
+    const tierForAov = (loyaltyEnabledEl && loyaltyEnabledEl.checked && loyaltyTierEl)
+      ? String(loyaltyTierEl.value || '').toLowerCase()
+      : '';
+    let aovBiased = null;
+    switch (tierForAov) {
+      case 'bronze':
+      case 'silver':
+        aovBiased = bell(20, 200);
+        break;
+      case 'gold':
+      case 'platinum':
+        aovBiased = bell(150, 800);
+        break;
+      case 'diamond':
+        aovBiased = bell(500, 2000);
+        break;
+      default:
+        break;
+    }
+    if (aovEl && aovBiased != null) {
+      const aovInt = Math.round(aovBiased);
+      const aovMin = Number(aovEl.min);
+      const aovMax = Number(aovEl.max);
+      const lo = Number.isFinite(aovMin) ? aovMin : 0;
+      const hi = Number.isFinite(aovMax) ? aovMax : 2000;
+      aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
+      try { syncAovSlider(); } catch (_) {}
     }
 
     // Full Travel persona — picks airline + airport pair + class, fills the

@@ -56,6 +56,52 @@
     { id: 'sportsChildFan',      key: 'childFan' },
   ];
 
+  // Realistic team pools per favourite-sport option value (HTML
+  // <select id="sportsFavouriteSport"> values, see profile-generation.html).
+  // The HTML uses `football` for "Football / soccer" and `american_football`
+  // for the NFL — pools below match those keys verbatim. Sports with no
+  // canonical "team" concept (tennis is individual; rugby/cricket/motorsport
+  // pull from a curated short list) keep a small pool so personas read as
+  // believable Sports customers.
+  const TEAMS_BY_SPORT = {
+    football: [
+      'Manchester United', 'Real Madrid', 'Barcelona', 'Arsenal',
+      'Bayern Munich', 'PSG', 'Liverpool', 'Chelsea',
+    ],
+    american_football: [
+      'Patriots', 'Chiefs', '49ers', 'Cowboys',
+      'Eagles', 'Packers', 'Steelers', 'Ravens',
+    ],
+    basketball: [
+      'Lakers', 'Celtics', 'Warriors', 'Heat',
+      'Bulls', 'Knicks', 'Nets', 'Bucks',
+    ],
+    baseball: [
+      'Yankees', 'Red Sox', 'Dodgers', 'Giants',
+      'Cubs', 'Cardinals', 'Mets', 'Astros',
+    ],
+    hockey: [
+      'Maple Leafs', 'Rangers', 'Bruins', 'Blackhawks',
+      'Penguins', 'Capitals', 'Lightning', 'Avalanche',
+    ],
+    rugby: [
+      'All Blacks', 'Springboks', 'Saracens', 'Crusaders',
+      'Toulouse', 'Leinster', 'Stormers', 'Brumbies',
+    ],
+    cricket: [
+      'Mumbai Indians', 'Chennai Super Kings', 'England', 'Australia',
+      'India', 'Pakistan', 'South Africa', 'New Zealand',
+    ],
+    tennis: [
+      'No team — individual sport',
+    ],
+    motorsport: [
+      'Ferrari', 'Mercedes', 'Red Bull', 'McLaren',
+      'Aston Martin', 'Williams', 'Haas', 'Alpine',
+    ],
+  };
+  const TEAMS_PLACEHOLDER = '— Pick a sport first —';
+
   const $ = (id) => document.getElementById(id);
   const trim = (el) => (el && typeof el.value === 'string') ? el.value.trim() : '';
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
@@ -75,6 +121,32 @@
     const el = $(id); if (!el || !el.options) return [];
     const out = []; for (let i = 0; i < el.options.length; i++) { const v = el.options[i].value; if (v !== '') out.push(v); } return out;
   };
+
+  // Repopulate the favouriteTeam <select> options from TEAMS_BY_SPORT for
+  // the currently-picked favourite sport. Preserves the operator's current
+  // pick when it still appears in the new pool; otherwise clears the value
+  // so the operator notices the team field needs a re-pick. Always emits a
+  // single placeholder option at the top for the empty-value state.
+  function repopulateTeamOptions(preserveValue) {
+    const select = $('sportsFavouriteTeam');
+    if (!select) return;
+    const sport = trim($('sportsFavouriteSport'));
+    const pool = (sport && TEAMS_BY_SPORT[sport]) ? TEAMS_BY_SPORT[sport] : [];
+    const currentValue = preserveValue != null ? String(preserveValue) : trim(select);
+    const placeholder = sport ? '— Select a team —' : TEAMS_PLACEHOLDER;
+    const html = [`<option value="">${placeholder}</option>`]
+      .concat(pool.map((team) => {
+        const safe = String(team).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        return `<option value="${safe}">${safe}</option>`;
+      }))
+      .join('');
+    select.innerHTML = html;
+    if (currentValue && pool.includes(currentValue)) {
+      select.value = currentValue;
+    } else {
+      select.value = '';
+    }
+  }
 
   window.AepProfileGenIndustry.bind({
     industryKey: 'sports',
@@ -185,7 +257,11 @@
         }
       },
       applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose }) {
+        // Set non-team scalar fields first; then handle favouriteTeam after
+        // we've populated favouriteSport so the team's option pool exists
+        // when we assign the value.
         SCALAR_FIELDS.forEach((f) => {
+          if (f.id === 'sportsFavouriteTeam') return;
           const v = findBySuffix([`industrysports.${f.key.toLowerCase()}`, f.key.toLowerCase()]) ||
                     findByKeywords('industrysports', f.key.toLowerCase());
           if (v) setSelectValueLoose($(f.id), v);
@@ -203,17 +279,68 @@
                       findByKeywords('individualcharacteristics', 'core', 'favouritesubcategory');
           if (sub) setSelectValueLoose($('sportsFavouriteSport'), sub);
         }
-        if (!trim($('sportsFavouriteTeam'))) {
-          const aff = findBySuffix(['scoring.product.affinity']) ||
-                      findByKeywords('scoring', 'product', 'affinity');
-          if (aff) setSelectValueLoose($('sportsFavouriteTeam'), aff);
+        // Now resolve favouriteTeam — first repopulate the team options for
+        // the chosen sport so the pool contains the team value we're about
+        // to assign, THEN look up the team and set it.
+        repopulateTeamOptions();
+        const teamFromTenant = findBySuffix(['industrysports.favouriteteam']) ||
+                               findByKeywords('industrysports', 'favouriteteam');
+        const teamFromCore = findBySuffix(['scoring.product.affinity']) ||
+                             findByKeywords('scoring', 'product', 'affinity');
+        const team = teamFromTenant || teamFromCore;
+        if (team) {
+          const teamVal = String(team).trim();
+          const teamSelect = $('sportsFavouriteTeam');
+          if (teamSelect) {
+            const matchExisting = Array.from(teamSelect.options || []).find(
+              (o) => o.value === teamVal
+            );
+            if (matchExisting) {
+              teamSelect.value = teamVal;
+            } else if (teamVal) {
+              // Profile carried a team value not in our curated pool — add
+              // it so the operator's lookup never silently loses data.
+              const opt = document.createElement('option');
+              opt.value = teamVal;
+              opt.textContent = teamVal;
+              teamSelect.appendChild(opt);
+              teamSelect.value = teamVal;
+            }
+          }
         }
       },
       loadFromSnapshot(snap) {
         if (!snap || typeof snap !== 'object') return;
-        SCALAR_FIELDS.forEach((f) => { setSelect(f.id, snap[f.key]); });
+        // Same ordering as applyFindResult: sport first, then repopulate the
+        // team pool, then assign the team. Snapshot may carry team values
+        // from older sessions that pre-dated TEAMS_BY_SPORT (e.g. team_a),
+        // so we tolerate values that aren't in the curated pool.
+        SCALAR_FIELDS.forEach((f) => {
+          if (f.id === 'sportsFavouriteTeam') return;
+          setSelect(f.id, snap[f.key]);
+        });
         const flags = (snap.fanFlags && typeof snap.fanFlags === 'object') ? snap.fanFlags : {};
         FLAG_TOGGLES.forEach((t) => { setCheck(t.id, !!flags[t.key]); });
+        repopulateTeamOptions();
+        const team = snap.favouriteTeam;
+        if (team) {
+          const teamSelect = $('sportsFavouriteTeam');
+          if (teamSelect) {
+            const teamVal = String(team).trim();
+            const matchExisting = Array.from(teamSelect.options || []).find(
+              (o) => o.value === teamVal
+            );
+            if (matchExisting) {
+              teamSelect.value = teamVal;
+            } else if (teamVal) {
+              const opt = document.createElement('option');
+              opt.value = teamVal;
+              opt.textContent = teamVal;
+              teamSelect.appendChild(opt);
+              teamSelect.value = teamVal;
+            }
+          }
+        }
       },
       summarise(snap) {
         if (!snap || !snap.industry) return '';
@@ -230,20 +357,100 @@
         return parts.join(' · ');
       },
       randomizePersona({ randomPick: pick }) {
+        // Fill non-team scalar fields. We deliberately skip the team here
+        // so it can be sourced from the realistic TEAMS_BY_SPORT pool keyed
+        // off the (just-randomised) favourite sport — picking from the
+        // <select>'s own placeholder option set would always pick
+        // "— Pick a sport first —" or nothing.
         SCALAR_FIELDS.forEach((f) => {
+          if (f.id === 'sportsFavouriteTeam') return;
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
-        // Fan-flag distribution: most fans stream live games and
-        // subscribe to the club newsletter; season tickets and betting
-        // are minorities.
-        setCheck('sportsSeasonTicket',  Math.random() < 0.20);
-        setCheck('sportsFantasyPlayer', Math.random() < 0.30);
-        setCheck('sportsBetsRegularly', Math.random() < 0.20);
-        setCheck('sportsStreamLive',    Math.random() < 0.65);
-        setCheck('sportsNewsletterSub', Math.random() < 0.55);
-        setCheck('sportsChildFan',      Math.random() < 0.30);
+        // Repopulate the team pool now the sport is known, then pick a
+        // realistic team value from TEAMS_BY_SPORT (or leave blank when
+        // the sport has no curated pool).
+        repopulateTeamOptions();
+        const sport = trim($('sportsFavouriteSport'));
+        const teamPool = (sport && TEAMS_BY_SPORT[sport]) ? TEAMS_BY_SPORT[sport] : [];
+        if (teamPool.length) {
+          const teamSelect = $('sportsFavouriteTeam');
+          const team = pick(teamPool);
+          if (teamSelect && team) teamSelect.value = team;
+        }
+
+        // Fan-flag pass via the shared randomizeFlagToggles helper so the
+        // weights sit in one declarative table that audit tooling can
+        // reason about (replaces the loose per-flag `Math.random() < N`
+        // calls we previously had inline).
+        const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
+          helpers.randomizeFlagToggles([
+            { id: 'sportsSeasonTicket',  weight: 0.20 },
+            { id: 'sportsFantasyPlayer', weight: 0.30 },
+            { id: 'sportsBetsRegularly', weight: 0.20 },
+            { id: 'sportsStreamLive',    weight: 0.65 },
+            { id: 'sportsNewsletterSub', weight: 0.55 },
+            { id: 'sportsChildFan',      weight: 0.30 },
+          ]);
+        } else {
+          setCheck('sportsSeasonTicket',  Math.random() < 0.20);
+          setCheck('sportsFantasyPlayer', Math.random() < 0.30);
+          setCheck('sportsBetsRegularly', Math.random() < 0.20);
+          setCheck('sportsStreamLive',    Math.random() < 0.65);
+          setCheck('sportsNewsletterSub', Math.random() < 0.55);
+          setCheck('sportsChildFan',      Math.random() < 0.30);
+        }
+
+        // Cross-flag correlations (audit §6.7). Only nudge AFTER the random
+        // first pass so the population still hits the marginal weights
+        // above on average; the bias here just rules out implausible
+        // combinations.
+        const weightedBool = (helpers && typeof helpers.weightedBool === 'function')
+          ? helpers.weightedBool
+          : (p) => Math.random() < p;
+
+        // attendsLiveGames === true → seasonTicketHolder 60% bias true.
+        // The "live attendance" signal in this UI is the lastAttendedEvent
+        // dropdown (anything other than `never` / blank → has attended).
+        const lastAttended = trim($('sportsLastAttendedEvent'));
+        const attendsLive = lastAttended && lastAttended !== 'never';
+        if (attendsLive && weightedBool(0.60)) {
+          setCheck('sportsSeasonTicket', true);
+        }
+
+        // watchesEverySeason ≈ streamLive (the streamLive flag is the
+        // only "watches every game" signal in the schema). When true,
+        // bias fanSegment toward the top tiers.
+        if (getCheck('sportsStreamLive')) {
+          const fanSegmentEl = $('sportsFanSegment');
+          const topTiers = ['superfan', 'day_one'];
+          if (fanSegmentEl) {
+            const opts = selectValuesNonEmpty('sportsFanSegment');
+            const candidates = topTiers.filter((t) => opts.includes(t));
+            if (candidates.length && weightedBool(0.70)) {
+              fanSegmentEl.value = pick(candidates);
+            }
+          }
+        }
+
+        // participatesInFantasy → 70% bias newsletterSub true (engaged
+        // fantasy players almost always subscribe to club newsletters).
+        if (getCheck('sportsFantasyPlayer') && weightedBool(0.70)) {
+          setCheck('sportsNewsletterSub', true);
+        }
       },
     },
   });
+
+  // ----- Post-bind DOM wiring (runs after the runtime sets up its panel). -----
+
+  // Repopulate the team pool whenever the operator picks a different sport.
+  // Initial paint runs once on module load so the placeholder text matches
+  // whatever the HTML currently holds (typically the empty default).
+  const sportEl = $('sportsFavouriteSport');
+  if (sportEl) {
+    sportEl.addEventListener('change', () => repopulateTeamOptions());
+  }
+  repopulateTeamOptions();
 })();

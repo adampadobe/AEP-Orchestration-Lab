@@ -737,6 +737,54 @@
       if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
       if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
     }
+
+    // AOV ↔ loyalty tier bias (audit §1.7): higher tiers spend more on
+    // average. Replaces the prior uniform `randomizeSliderControl(aovEl)`
+    // value with a tier-anchored bell-distributed integer so cohorts
+    // generated for diamond/platinum customers don't accidentally read
+    // as $5 spenders. Always re-derives from the freshly-picked tier (we
+    // ran the loyalty randomiser above) so the AOV always tracks the
+    // tier the operator sees in the UI. Falls back to the runtime helper
+    // `randomBellBetween` when available, else uses a quick uniform
+    // approximation in the same range so non-runtime callers (legacy
+    // generic page) still get a tier-shaped distribution.
+    const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+    const bell = (helpers && typeof helpers.randomBellBetween === 'function')
+      ? helpers.randomBellBetween
+      : (lo, hi) => randomBetween(lo, hi);
+    const tierForAov = (loyaltyEnabledEl && loyaltyEnabledEl.checked && loyaltyTierEl)
+      ? String(loyaltyTierEl.value || '').toLowerCase()
+      : '';
+    let aovBiased = null;
+    switch (tierForAov) {
+      case 'bronze':
+      case 'silver':
+        aovBiased = bell(20, 200);
+        break;
+      case 'gold':
+      case 'platinum':
+        aovBiased = bell(150, 800);
+        break;
+      case 'diamond':
+        aovBiased = bell(500, 2000);
+        break;
+      default:
+        // No loyalty tier picked — leave AOV at the uniform value the
+        // shared randomiser already set so non-loyalty cohorts still
+        // exhibit variance.
+        break;
+    }
+    if (aovEl && aovBiased != null) {
+      const aovInt = Math.round(aovBiased);
+      // Clamp to the AOV slider's declared range (0..2000 in the HTML;
+      // bell can occasionally land just outside on Diamond personas).
+      const aovMin = Number(aovEl.min);
+      const aovMax = Number(aovEl.max);
+      const lo = Number.isFinite(aovMin) ? aovMin : 0;
+      const hi = Number.isFinite(aovMax) ? aovMax : 2000;
+      aovEl.value = String(Math.max(lo, Math.min(hi, aovInt)));
+      try { syncAovSlider(); } catch (_) {}
+    }
   }
 
   /**

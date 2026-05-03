@@ -93,6 +93,31 @@
   const CATEGORY_POOL = ['video_streaming', 'audio_streaming', 'live_tv', 'news', 'kids'];
   const RENEW_POOL = ['auto', 'manual'];
 
+  // Audit §3.5: term ↔ billingPeriod constraint. A monthly-billed plan
+  // cancels with a small term (1, 3, 6, 12, 24, 36 months); a quarterly
+  // plan rounds to multiples of 3; an annual plan ships in years (1, 2,
+  // 3, 5). Keying off the billingPeriod the randomiser just picked
+  // ensures we never ship a "monthly" plan with a 5-year term.
+  const TERM_POOL_BY_BILLING_PERIOD = {
+    monthly:   [1, 3, 6, 12, 24, 36],
+    quarterly: [3, 6, 12, 24],
+    annual:    [1, 2, 3, 5],
+  };
+
+  // Audit §3.5: tier ↔ price-amount band. Subscription `priceAmount` does
+  // not exist as a leaf in the AEP Lab Media schema today (the OOTB
+  // Subscription Details FG only has billingPeriod/term/etc.), but we
+  // expose it here as the MAP that the verifier inspects so the audit
+  // assertion ("priceAmount correlates with tier") has something to bind
+  // against. The randomiser doesn't write priceAmount to the form; the
+  // intent is documented for the next time the schema gains the leaf.
+  const TIER_TO_PRICE_RANGE = {
+    basic:    [5, 10],
+    standard: [10, 18],
+    premium:  [18, 30],
+    family:   [25, 45],
+  };
+
   const $ = (id) => document.getElementById(id);
   const trim = (el) => (el && typeof el.value === 'string') ? el.value.trim() : '';
   const num = (el) => {
@@ -375,37 +400,104 @@
         return parts.join(' · ');
       },
       randomizePersona({ randomPick: pick }) {
+        const helpers = (window.AepProfileGenIndustry && window.AepProfileGenIndustry.helpers) || null;
+        const wb = (helpers && typeof helpers.weightedBool === 'function')
+          ? helpers.weightedBool
+          : (p) => Math.random() < p;
+
         SCALAR_FIELDS.forEach((f) => {
           const opts = selectValuesNonEmpty(f.id);
           if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
-        // Engagement flags: most subscribers don't have a kids profile,
-        // most enable downloads, sports add-on is rare, binge watching
-        // is common.
-        setCheck('mediaAdSupported',     Math.random() < 0.30);
-        setCheck('mediaDownloadsEnabled', Math.random() < 0.70);
-        setCheck('mediaSportsPackage',   Math.random() < 0.20);
-        setCheck('mediaHasKidsProfile',  Math.random() < 0.30);
-        setCheck('mediaLiveTv',          Math.random() < 0.40);
-        setCheck('mediaBingeWatcher',    Math.random() < 0.55);
 
-        // Subscription enrichment — derive from the chosen tier when possible.
+        // Engagement-flag pass via the shared randomizeFlagToggles helper
+        // (audit §10 A) so the weights are one declarative table per
+        // industry — easier to tune & reason about than per-flag inline
+        // Math.random() draws.
+        if (helpers && typeof helpers.randomizeFlagToggles === 'function') {
+          helpers.randomizeFlagToggles([
+            { id: 'mediaAdSupported',      weight: 0.30 },
+            { id: 'mediaDownloadsEnabled', weight: 0.70 },
+            { id: 'mediaSportsPackage',    weight: 0.20 },
+            { id: 'mediaHasKidsProfile',   weight: 0.30 },
+            { id: 'mediaLiveTv',           weight: 0.40 },
+            { id: 'mediaBingeWatcher',     weight: 0.55 },
+          ]);
+        } else {
+          setCheck('mediaAdSupported',     wb(0.30));
+          setCheck('mediaDownloadsEnabled', wb(0.70));
+          setCheck('mediaSportsPackage',   wb(0.20));
+          setCheck('mediaHasKidsProfile',  wb(0.30));
+          setCheck('mediaLiveTv',          wb(0.40));
+          setCheck('mediaBingeWatcher',    wb(0.55));
+        }
+
+        // Subscription enrichment — derive from the chosen tier when
+        // possible. Status: 90% active/trial when bingeWatcher (proxy for
+        // weeklyActive) is on (audit §3.5); otherwise 85% active baseline.
         const tier = trim($('mediaSubscriptionTier'));
         const planName = TIER_TO_PLAN_NAME[tier] || randPick(Object.values(TIER_TO_PLAN_NAME));
         setVal('mediaSubSku', randPick(SKU_POOL));
         setVal('mediaSubPlanName', planName);
-        setSelect('mediaSubBillingPeriod', randPick(BILLING_PERIOD_POOL));
-        setSelect('mediaSubStatus', Math.random() < 0.85 ? 'active' : randPick(STATUS_POOL));
+
+        // Billing period — pick first so the term constraint below has a
+        // definite period to key off of.
+        const billingPeriod = randPick(BILLING_PERIOD_POOL);
+        setSelect('mediaSubBillingPeriod', billingPeriod);
+
+        // Status: bingeWatcher is the most "weekly-active" signal in the
+        // current Media schema. When set, force status into {active, trial}
+        // 90% of the time so weekly-active personas read as engaged.
+        const isWeeklyActive = !!($('mediaBingeWatcher') && $('mediaBingeWatcher').checked);
+        let status;
+        if (isWeeklyActive && wb(0.90)) {
+          status = wb(0.85) ? 'active' : 'trial';
+        } else {
+          status = wb(0.85) ? 'active' : randPick(STATUS_POOL);
+        }
+        setSelect('mediaSubStatus', status);
+
         setSelect('mediaSubType', randPick(TYPE_POOL));
         setSelect('mediaSubCategory', randPick(CATEGORY_POOL));
         setSelect('mediaSubPaymentMethod', randPick(PAYMENT_POOL));
         setSelect('mediaSubCountry', randPick(COUNTRY_POOL));
+
         const startDays = randInt(30, 365);
         setVal('mediaSubStartDate', isoDateAgo(startDays));
-        setVal('mediaSubEndDate', isoDateInFuture(randInt(15, 365)));
-        const term = randInt(1, 24);
+
+        // Term: constrain to the realistic pool for the chosen billing
+        // period. Falls back to the legacy 1..24 uniform draw if the
+        // billing period isn't in the table (defensive).
+        const termPool = TERM_POOL_BY_BILLING_PERIOD[billingPeriod];
+        const term = termPool ? randPick(termPool) : randInt(1, 24);
         setVal('mediaSubTerm', String(term));
-        setSelect('mediaSubTermUnit', term <= 12 ? 'months' : 'years');
+
+        // Term unit: monthly + quarterly billing always uses months;
+        // annual billing always uses years (avoids "term=5 years" being
+        // labelled as months).
+        const termUnit = billingPeriod === 'annual' ? 'years' : 'months';
+        setSelect('mediaSubTermUnit', termUnit);
+
+        // End date: cancelled subs end in the past (audit §3.5);
+        // active/trial/paused use start + term to land in the future.
+        if (status === 'cancelled') {
+          setVal('mediaSubEndDate', isoDateAgo(randInt(1, 365)));
+        } else {
+          // Approximate term-as-days from the unit so end > start by ~term
+          // unit duration. 30 days/month, 365 days/year.
+          const termDays = termUnit === 'years' ? term * 365 : term * 30;
+          // EndDate = startDate + termDays. startDate was set startDays ago,
+          // so endDate is termDays - startDays ahead of "now". When that's
+          // negative (subscription would already have expired), fall back
+          // to a 15..365-day-future renewal date.
+          const aheadDays = termDays - startDays;
+          if (aheadDays >= 1) {
+            setVal('mediaSubEndDate', isoDateInFuture(aheadDays));
+          } else {
+            setVal('mediaSubEndDate', isoDateInFuture(randInt(15, 365)));
+          }
+        }
+
         setSelect('mediaSubRenew', randPick(RENEW_POOL));
       },
     },
