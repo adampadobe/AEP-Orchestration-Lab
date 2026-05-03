@@ -840,12 +840,16 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 /* "Configured" state for the Sandbox & streaming connection <details>
- * summary hint. Flipped on by applyConfiguredCollapseState() in
- * profile-generation-generic.js / profile-generation-travel.js once all
- * four streaming fields are populated (after Save connection or after
- * a per-sandbox Firebase load), which also collapses the <details>.
+ * summary hint. Single source of truth — any industry panel whose
+ * applyConfiguredCollapseState() helper flips the
+ * .consent-streaming-details__hint--configured class on its hint span
+ * (Generic + Travel do this from their own modules; Retail, FSI, Media,
+ * Sports, Telecom go through the shared profile-generation-industry-runtime.js
+ * helper) inherits the green pill below. Do NOT re-scope this to specific
+ * industry IDs — every <details id="<industry>ProfileInfraDetails"> uses
+ * the same hint class and must render the same green configured state.
  * Uses --dash-success-* tokens so it themes correctly in light + dark. */
-.profile-generation-page :is(#genericProfileInfraDetails, #travelProfileInfraDetails) .consent-streaming-details__hint--configured {
+.profile-generation-page .consent-streaming-details__hint--configured {
   color: var(--dash-success-text);
   background: var(--dash-success-bg);
   border: 1px solid var(--dash-success-border);
