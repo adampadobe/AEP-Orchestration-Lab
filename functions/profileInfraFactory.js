@@ -71,7 +71,11 @@ const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 
 const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
+const ACCEPT_XED_FULL = 'application/vnd.adobe.xed-full+json';
 const ACCEPT_JSON = 'application/json';
+const ACCEPT_JSON_PATCH = 'application/json-patch+json';
+
+const { getManifestForIndustry } = require('./profileCoreV2Manifest');
 
 /**
  * Mandatory base set attached to EVERY industry Profile schema.
@@ -242,6 +246,258 @@ function schemaHasProfileUnionTag(fullSchema) {
   const tags = fullSchema['meta:immutableTags'];
   if (!Array.isArray(tags)) return false;
   return tags.includes('union');
+}
+
+/* -------------------- Profile Core v2 top-up helpers (pure) -------------------- */
+
+/**
+ * Walk a resolved `xed-full` mixin body and return:
+ *   - presentPathSet  :  every dot-joined tenant-relative path that resolves
+ *                         to a concrete object/leaf (so `travelReservations`,
+ *                         `travelReservations.flightReservations`, and every
+ *                         leaf below it all appear).
+ *   - presentNodeMap  :  Map<dotPath, node>  — the actual schema subtree at
+ *                         each path. Used to detect type conflicts (a leaf
+ *                         already exists but with a different JSON-Schema
+ *                         `type` than the manifest wants).
+ *   - tenantKey       :  e.g. `_demoemea` (null if the body has no tenant
+ *                         object, which means Profile Core v2 is malformed
+ *                         and the wizard should surface a hard error).
+ *
+ * Both authoring (`xed+json`) and resolved (`xed-full+json`) shapes are
+ * supported — authoring puts the tenant object under
+ * `definitions.customFields.properties._<tenant>`, resolved puts it at
+ * top-level `properties._<tenant>`.
+ */
+function walkResolvedMixinTenantTree(fgBody) {
+  const tryRoots = [
+    fgBody && fgBody.properties,
+    fgBody && fgBody.definitions && fgBody.definitions.customFields && fgBody.definitions.customFields.properties,
+  ];
+  let rootProps = null;
+  for (const p of tryRoots) { if (p && typeof p === 'object' && !Array.isArray(p)) { rootProps = p; break; } }
+  if (!rootProps) return { tenantKey: null, presentPathSet: new Set(), presentNodeMap: new Map() };
+  const tenantKey = Object.keys(rootProps).find((k) => k.startsWith('_')) || null;
+  if (!tenantKey) return { tenantKey: null, presentPathSet: new Set(), presentNodeMap: new Map() };
+  const tenantNode = rootProps[tenantKey];
+  const presentPathSet = new Set();
+  const presentNodeMap = new Map();
+  function visit(node, dotPath) {
+    if (!node || typeof node !== 'object') return;
+    const childProps = node.properties;
+    if (!childProps || typeof childProps !== 'object') return;
+    for (const [k, child] of Object.entries(childProps)) {
+      const p = dotPath ? `${dotPath}.${k}` : k;
+      presentPathSet.add(p);
+      presentNodeMap.set(p, child);
+      visit(child, p);
+    }
+  }
+  visit(tenantNode, '');
+  return { tenantKey, presentPathSet, presentNodeMap };
+}
+
+/**
+ * Walk the AUTHORING (`xed+json`) mixin body and find every ancestor path
+ * that terminates in a `$ref`-linked datatype (e.g. `identification.core`
+ * → `$ref: https://ns.adobe.com/<tenant>/datatypes/<id>`). Leaves under
+ * those paths cannot be PATCHed on the FG directly — they live in the
+ * shared datatype, so the top-up treats them as `conflict` (skip) rather
+ * than trying to overwrite the $ref with an inline properties tree.
+ *
+ * Returns a Set<dotPath> of tenant-relative paths whose subtree is
+ * $ref-linked. Empty if the body has no tenant object.
+ */
+function collectRefBlockedAncestorPaths(authoringBody) {
+  const blocked = new Set();
+  const root =
+    authoringBody &&
+    authoringBody.definitions &&
+    authoringBody.definitions.customFields &&
+    authoringBody.definitions.customFields.properties;
+  if (!root || typeof root !== 'object') return blocked;
+  const tenantKey = Object.keys(root).find((k) => k.startsWith('_'));
+  if (!tenantKey) return blocked;
+  function visit(node, dotPath) {
+    if (!node || typeof node !== 'object') return;
+    if (typeof node.$ref === 'string' && node.$ref.length > 0) {
+      if (dotPath) blocked.add(dotPath);
+      return;
+    }
+    const childProps = node.properties;
+    if (!childProps || typeof childProps !== 'object') return;
+    for (const [k, child] of Object.entries(childProps)) {
+      const p = dotPath ? `${dotPath}.${k}` : k;
+      visit(child, p);
+    }
+  }
+  visit(root[tenantKey], '');
+  return blocked;
+}
+
+/**
+ * Compare the resolved mixin tree with a manifest and produce:
+ *   - needsAdd       :  [{ path, schema }]  smallest non-overlapping parents
+ *                        to ADD (e.g. if the whole `travelReservations`
+ *                        parent is missing, one entry for that parent —
+ *                        NOT one entry per leaf inside).
+ *   - alreadyPresent :  [path] every manifest path whose resolved type
+ *                        already matches (simple primitive-type check).
+ *   - conflicts      :  [{ path, reason }] where the sandbox already has
+ *                        something with a conflicting shape / type, OR the
+ *                        path would fall under a $ref-linked ancestor
+ *                        (can't PATCH the FG — the shared datatype owns
+ *                        those leaves).
+ *
+ * The caller (`topUpProfileCoreV2`) then turns `needsAdd` into JSON-Patch
+ * `add` ops targeting `/definitions/customFields/properties/_<tenant>/properties/...`.
+ */
+function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refBlockedAncestorPaths) {
+  const needsAdd = [];
+  const alreadyPresent = [];
+  const conflicts = [];
+  const refBlocked = refBlockedAncestorPaths || new Set();
+  // Sort manifest paths so shallower paths sort before deeper ones (when
+  // an ancestor is missing we record ONE add for that ancestor and skip
+  // all of its descendants in the same manifest).
+  const manifestPaths = Object.keys(manifest).sort((a, b) => a.split('.').length - b.split('.').length || a.localeCompare(b));
+  const coveredByAddedAncestor = new Set();
+
+  function pathIsUnderRefAncestor(path) {
+    for (const bp of refBlocked) {
+      if (path === bp) continue; // the $ref node itself is fine; only descendants are blocked
+      if (path.startsWith(`${bp}.`)) return bp;
+    }
+    return null;
+  }
+
+  function schemasTypesAgree(manifestSchema, liveNode) {
+    const mType = manifestSchema && manifestSchema.type;
+    const lType = liveNode && liveNode.type;
+    if (!mType || !lType) return true; // nothing to compare
+    if (mType === lType) return true;
+    return false;
+  }
+
+  for (const mpath of manifestPaths) {
+    // If a shallower ancestor is in this manifest AND was added to
+    // `needsAdd` above, skip this entry — it'll come along for the ride
+    // inside the added ancestor subtree.
+    let skip = false;
+    for (const ancestor of coveredByAddedAncestor) {
+      if (mpath.startsWith(`${ancestor}.`)) { skip = true; break; }
+    }
+    if (skip) continue;
+
+    const blockedBy = pathIsUnderRefAncestor(mpath);
+    if (blockedBy) {
+      if (presentPathSet.has(mpath)) {
+        // Present via the shared datatype — fine, count as alreadyPresent.
+        alreadyPresent.push(mpath);
+      } else {
+        conflicts.push({ path: mpath, reason: `ancestor '${blockedBy}' is a $ref to a shared datatype; FG PATCH cannot add leaves here (edit the datatype instead)` });
+      }
+      continue;
+    }
+
+    if (presentPathSet.has(mpath)) {
+      const live = presentNodeMap.get(mpath);
+      if (!schemasTypesAgree(manifest[mpath], live)) {
+        conflicts.push({ path: mpath, reason: `existing leaf has type '${live && live.type}' but manifest expects '${manifest[mpath].type}'` });
+      } else {
+        alreadyPresent.push(mpath);
+      }
+      continue;
+    }
+
+    // Not present — figure out the shallowest missing ancestor in `mpath`
+    // so we add the biggest subtree we can in a single op.
+    const parts = mpath.split('.');
+    let addPath = mpath;
+    for (let i = 1; i < parts.length; i++) {
+      const ancestor = parts.slice(0, i).join('.');
+      if (!presentPathSet.has(ancestor)) { addPath = ancestor; break; }
+    }
+    if (!coveredByAddedAncestor.has(addPath)) {
+      coveredByAddedAncestor.add(addPath);
+      // The schema we ADD is whichever manifest entry matches addPath
+      // (may be an ancestor of the current manifest path). If the
+      // manifest doesn't have an entry at addPath exactly (e.g. it only
+      // has `travelReservations.flightReservations.*` leaves flattened),
+      // we still need a schema body — in that case we build one by
+      // walking the manifest for everything under addPath and nesting it.
+      let addSchema = manifest[addPath];
+      if (!addSchema) addSchema = buildCompositeSubtreeFromManifest(manifest, addPath);
+      if (!addSchema) {
+        conflicts.push({ path: addPath, reason: 'no manifest schema available for this path' });
+        continue;
+      }
+      needsAdd.push({ path: addPath, schema: addSchema });
+    }
+  }
+
+  return { needsAdd, alreadyPresent, conflicts };
+}
+
+/**
+ * When a manifest is flat (path-keyed) and we need to add a whole parent,
+ * assemble the inline JSON-Schema object from every manifest entry
+ * whose path is at-or-under `parentDotPath`. Used as a fallback when
+ * the manifest doesn't declare the parent itself (only its leaves).
+ */
+function buildCompositeSubtreeFromManifest(manifest, parentDotPath) {
+  const prefix = parentDotPath ? `${parentDotPath}.` : '';
+  const entries = Object.keys(manifest).filter((k) => k === parentDotPath || k.startsWith(prefix));
+  if (entries.length === 0) return null;
+  // Build a nested `{ type:'object', properties:{...} }` tree.
+  const root = { type: 'object', properties: {} };
+  for (const key of entries) {
+    if (key === parentDotPath) {
+      Object.assign(root, manifest[key]);
+      continue;
+    }
+    const rel = key.slice(prefix.length).split('.');
+    let node = root;
+    for (let i = 0; i < rel.length; i++) {
+      const seg = rel[i];
+      if (i === rel.length - 1) {
+        node.properties = node.properties || {};
+        node.properties[seg] = manifest[key];
+      } else {
+        node.properties = node.properties || {};
+        node.properties[seg] = node.properties[seg] || { type: 'object', properties: {} };
+        node = node.properties[seg];
+      }
+    }
+  }
+  return root;
+}
+
+/**
+ * Turn a `diffManifestAgainstMixin` result into JSON-Patch ADD ops
+ * targeting the authoring `definitions.customFields.properties._<tenant>/properties/*`
+ * subtree. Handles adding missing intermediate parents via recursive-add:
+ * if the manifest says "add `travelReservations`" and the tenant object
+ * has no `travelReservations` key yet, we ADD that whole subtree in one
+ * op at path `.../properties/travelReservations`.
+ *
+ * Returns an array of `{ op:'add', path, value }` objects.
+ */
+function buildTopUpJsonPatchOps(tenantKey, needsAdd) {
+  const ops = [];
+  const encodeSegment = (s) => String(s).replace(/~/g, '~0').replace(/\//g, '~1');
+  for (const { path, schema } of needsAdd || []) {
+    const parts = String(path || '').split('.').filter(Boolean);
+    if (parts.length === 0) continue;
+    const prefix = `/definitions/customFields/properties/${encodeSegment(tenantKey)}/properties`;
+    const segPath = parts.map((seg, i) => {
+      if (i === 0) return encodeSegment(seg);
+      return `properties/${encodeSegment(seg)}`;
+    }).join('/');
+    const jsonPointer = `${prefix}/${segPath}`;
+    ops.push({ op: 'add', path: jsonPointer, value: schema });
+  }
+  return ops;
 }
 
 /* -------------------- Layered industry FG resolver -------------------- */
@@ -929,10 +1185,238 @@ function createProfileInfraService(config) {
     return last;
   }
 
+  /**
+   * Fetch one tenant field group body by its `meta:altId` with the given
+   * Accept variant (raw authoring `xed+json` OR resolved `xed-full+json`).
+   *
+   * Returns the parsed body on 2xx; throws with a clean message otherwise.
+   */
+  async function getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, metaAltId, accept) {
+    const enc = encodeURIComponent(metaAltId);
+    const url = `${SCHEMA_REGISTRY}/tenant/fieldgroups/${enc}`;
+    const { res, data } = await fetchJson(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-api-key': clientId,
+        'x-gw-ims-org-id': orgId,
+        'x-sandbox-name': sandbox,
+        Accept: accept || ACCEPT_XED,
+      },
+    });
+    if (!res.ok) {
+      const msg = data.message || data.title || data.detail || res.statusText;
+      throw new Error(`Get field group ${metaAltId} failed: HTTP ${res.status} — ${msg}`);
+    }
+    return data;
+  }
+
+  /**
+   * PATCH a tenant field group with JSON-Patch ADD ops. Concurrency-safe:
+   * uses `If-Match` with the current FG version and retries once on 409 /
+   * 412 / 428 (re-GET, recompute diff via the caller's closure, retry).
+   *
+   * @param {string[]} ops      JSON-Patch array (already validated upstream)
+   * @param {string}   altId    FG `meta:altId`
+   * @param {string}   version  current FG version string (e.g. "1.5")
+   */
+  async function patchTenantFieldGroupJsonPatch(token, clientId, orgId, sandbox, altId, version, ops) {
+    if (!ops || ops.length === 0) return { ok: true, applied: false };
+    const enc = encodeURIComponent(altId);
+    const url = `${SCHEMA_REGISTRY}/tenant/fieldgroups/${enc}`;
+    const { res, data } = await fetchJson(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-api-key': clientId,
+        'x-gw-ims-org-id': orgId,
+        'x-sandbox-name': sandbox,
+        'Content-Type': ACCEPT_JSON_PATCH,
+        Accept: ACCEPT_XED,
+        'If-Match': String(version || '1'),
+      },
+      body: JSON.stringify(ops),
+    });
+    if (res.ok) return { ok: true, applied: true, body: data };
+    return {
+      ok: false,
+      status: res.status,
+      message: data.message || data.title || data.detail || res.statusText,
+      body: data,
+    };
+  }
+
+  /**
+   * Ensure the local `Profile Core v2` field group contains every tenant-
+   * relative leaf the AEP Orchestration Lab streams for the given
+   * industry. Missing leaves are ADDED via JSON-Patch (smallest non-
+   * overlapping subtree per gap). Never REMOVES or REPLACES existing
+   * leaves with a conflicting shape — those are reported as `conflicts`
+   * for the operator to resolve manually.
+   *
+   * Concurrency-safe: on HTTP 409 / 412 / 428 the function re-GETs the
+   * FG, recomputes the diff, and retries once. A second conflict fails
+   * with a clean message.
+   *
+   * Return shape:
+   *   {
+   *     mixinAltId         : string        the FG meta:altId
+   *     mixinPriorVersion  : string        version seen BEFORE the PATCH
+   *     mixinNewVersion    : string|null   version AFTER the PATCH (null if no PATCH was sent)
+   *     added              : string[]      tenant-relative paths newly added
+   *     alreadyPresent     : string[]      paths confirmed already present
+   *     conflicts          : string[]      paths skipped due to type / $ref conflicts
+   *     patchOpCount       : number        # of JSON-Patch ops sent (0 for idempotent no-op runs)
+   *   }
+   */
+  async function topUpProfileCoreV2(token, clientId, orgId, sandbox, profileCore) {
+    if (!profileCore || !profileCore['meta:altId']) {
+      throw new Error('topUpProfileCoreV2: missing profileCore.meta:altId');
+    }
+    const altId = profileCore['meta:altId'];
+    const manifest = getManifestForIndustry(industryKey);
+    const manifestPathCount = Object.keys(manifest).length;
+
+    async function planOnce() {
+      const [rawBody, resolvedBody] = await Promise.all([
+        getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED),
+        getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED_FULL),
+      ]);
+      const walked = walkResolvedMixinTenantTree(resolvedBody);
+      if (!walked.tenantKey) {
+        throw new Error(
+          `Profile Core v2 has no tenant object (no _<tenant> key under properties). Mixin appears malformed; fix manually before re-running the wizard.`
+        );
+      }
+      const refBlocked = collectRefBlockedAncestorPaths(rawBody);
+      const diff = diffManifestAgainstMixin(manifest, walked.presentPathSet, walked.presentNodeMap, refBlocked);
+      const ops = buildTopUpJsonPatchOps(walked.tenantKey, diff.needsAdd);
+      return { rawBody, resolvedBody, walked, diff, ops };
+    }
+
+    let attempt = 0;
+    let plan = await planOnce();
+    log(sandbox, 'topUpProfileCoreV2.plan', {
+      industryKey,
+      manifestPathCount,
+      presentLeafCount: plan.walked.presentPathSet.size,
+      addedPlanCount: plan.diff.needsAdd.length,
+      conflictCount: plan.diff.conflicts.length,
+      tenantKey: plan.walked.tenantKey,
+      mixinVersion: plan.rawBody.version,
+    });
+
+    if (plan.ops.length === 0) {
+      // Idempotent no-op — nothing to add.
+      return {
+        mixinAltId: altId,
+        mixinPriorVersion: String(plan.rawBody.version || ''),
+        mixinNewVersion: null,
+        added: [],
+        alreadyPresent: plan.diff.alreadyPresent,
+        conflicts: plan.diff.conflicts.map((c) => `${c.path} (${c.reason})`),
+        patchOpCount: 0,
+      };
+    }
+
+    let lastError = null;
+    while (attempt < 2) {
+      const priorVersion = String(plan.rawBody.version || '1');
+      const result = await patchTenantFieldGroupJsonPatch(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        altId,
+        priorVersion,
+        plan.ops
+      );
+      if (result.ok) {
+        // Re-GET to verify and capture the new version number.
+        const verifyRaw = await getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED);
+        const verifyResolved = await getTenantFieldGroupByAltId(token, clientId, orgId, sandbox, altId, ACCEPT_XED_FULL);
+        const verifyWalked = walkResolvedMixinTenantTree(verifyResolved);
+        const stillMissing = [];
+        for (const a of plan.diff.needsAdd) {
+          if (!verifyWalked.presentPathSet.has(a.path)) stillMissing.push(a.path);
+        }
+        if (stillMissing.length) {
+          throw new Error(
+            `topUpProfileCoreV2 PATCH returned 2xx but post-check could not see: ${stillMissing.join(', ')}. Sandbox: ${sandbox}, altId: ${altId}.`
+          );
+        }
+        log(sandbox, 'topUpProfileCoreV2.patched', {
+          industryKey,
+          added: plan.diff.needsAdd.map((a) => a.path),
+          priorVersion,
+          newVersion: verifyRaw.version,
+          opCount: plan.ops.length,
+        });
+        return {
+          mixinAltId: altId,
+          mixinPriorVersion: priorVersion,
+          mixinNewVersion: String(verifyRaw.version || ''),
+          added: plan.diff.needsAdd.map((a) => a.path),
+          alreadyPresent: plan.diff.alreadyPresent,
+          conflicts: plan.diff.conflicts.map((c) => `${c.path} (${c.reason})`),
+          patchOpCount: plan.ops.length,
+        };
+      }
+      lastError = result;
+      const retriable = result.status === 409 || result.status === 412 || result.status === 428;
+      if (!retriable || attempt >= 1) break;
+      log(sandbox, 'topUpProfileCoreV2.retryOnConflict', {
+        attempt,
+        status: result.status,
+        message: String(result.message || '').slice(0, 240),
+      });
+      attempt++;
+      plan = await planOnce();
+      if (plan.ops.length === 0) {
+        // Someone else patched in the same paths while we were waiting.
+        return {
+          mixinAltId: altId,
+          mixinPriorVersion: String(plan.rawBody.version || ''),
+          mixinNewVersion: null,
+          added: [],
+          alreadyPresent: plan.diff.alreadyPresent,
+          conflicts: plan.diff.conflicts.map((c) => `${c.path} (${c.reason})`),
+          patchOpCount: 0,
+        };
+      }
+    }
+    throw new Error(
+      `Profile Core v2 top-up PATCH failed in sandbox ${sandbox} after ${attempt + 1} attempt(s): HTTP ${lastError && lastError.status} — ${(lastError && lastError.message) || 'unknown'}. AltId: ${altId}.`
+    );
+  }
+
   async function attachFieldGroupsAndDescriptor(token, clientId, orgId, sandbox, tenantCtx, profileCore, schemaRow, tenantFgList, globalFgList) {
     const metaAltId = schemaRow['meta:altId'];
     const schemaId = schemaRow.$id;
     let full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
+
+    // Step 2a: sandbox-drift guard. Ensure the local Profile Core v2 mixin
+    // contains every tenant-relative leaf this industry streams. ADD-only
+    // (never REMOVE/REPLACE); conflicts are reported non-fatally so the
+    // wizard continues even if a type-conflicting leaf exists. Runs BEFORE
+    // the FG is attached to the industry schema — subsequent streams from
+    // the lab therefore see a Profile Core v2 shape that actually types
+    // every path the UI sends.
+    /** @type {object} */
+    let topUp = { skipped: true, reason: 'no altId' };
+    if (profileCore && profileCore['meta:altId']) {
+      try {
+        topUp = await topUpProfileCoreV2(token, clientId, orgId, sandbox, profileCore);
+      } catch (e) {
+        // Non-fatal: log and surface the error in the response so the
+        // operator can see WHY top-up failed, but let the wizard proceed
+        // to attach the existing Profile Core v2 shape. The industry FG
+        // attachment still provides the industry-specific paths.
+        const msg = String(e.message || e);
+        log(sandbox, 'topUpProfileCoreV2.failedNonFatal', { error: msg.slice(0, 400) });
+        topUp = { skipped: true, error: msg };
+      }
+    }
 
     // First pass: see whether any tenantTitlePattern entries need creation.
     let workingTenantList = tenantFgList;
@@ -1006,6 +1490,7 @@ function createProfileInfraService(config) {
       skippedOptional: planResult.skippedOptional,
       created,
       discovered: planResult.discovered,
+      profileCoreV2TopUp: topUp,
     };
   }
 
@@ -1113,19 +1598,36 @@ function createProfileInfraService(config) {
   /**
    * Compose the success message for step 2: the mandatory base set, followed
    * by any industry FGs that resolved in this sandbox, plus any FGs
-   * auto-created for this sandbox during this run. The base list mirrors
-   * the labels operators see in the UI's setup-instructions card so the
-   * message is verifiable against what the wizard says it'll do.
+   * auto-created for this sandbox during this run, plus a summary of the
+   * Profile Core v2 drift top-up (added leaves / conflicts / no-op).
+   * The base list mirrors the labels operators see in the UI's
+   * setup-instructions card so the message is verifiable against what
+   * the wizard says it'll do.
    */
-  function buildStep2SuccessMessage(resolvedIndustry, patchApplied, created) {
+  function buildStep2SuccessMessage(resolvedIndustry, patchApplied, created, topUp) {
     const createdFragment =
       created && created.length ? ` (created in this sandbox: ${created.map((c) => c.title).join(', ')})` : '';
+    const parts = [];
     if (!patchApplied) {
-      return `Field groups were already present; primary Email identity checked${createdFragment}.`;
+      parts.push(`Field groups were already present; primary Email identity checked${createdFragment}.`);
+    } else {
+      const labels = [...BASE_PROFILE_FIELD_GROUP_LABELS];
+      for (const r of resolvedIndustry) labels.push(r.label);
+      parts.push(`Field groups attached and primary Email identity set (${labels.join(' + ')})${createdFragment}.`);
     }
-    const labels = [...BASE_PROFILE_FIELD_GROUP_LABELS];
-    for (const r of resolvedIndustry) labels.push(r.label);
-    return `Field groups attached and primary Email identity set (${labels.join(' + ')})${createdFragment}.`;
+    if (topUp && !topUp.skipped) {
+      if (topUp.added && topUp.added.length) {
+        parts.push(`Profile Core v2 patched: added ${topUp.added.length} tenant-subtree leaf/leaves (${topUp.added.join(', ')}).`);
+      } else if ((topUp.alreadyPresent || []).length) {
+        parts.push('Profile Core v2 already up to date.');
+      }
+      if (topUp.conflicts && topUp.conflicts.length) {
+        parts.push(`Warning: ${topUp.conflicts.length} Profile Core v2 leaf/leaves skipped due to conflicts (${topUp.conflicts.join('; ')}).`);
+      }
+    } else if (topUp && topUp.error) {
+      parts.push(`Warning: Profile Core v2 top-up skipped (${topUp.error}).`);
+    }
+    return parts.join(' ');
   }
 
   /* ---- Wizard runners ---- */
@@ -1366,7 +1868,8 @@ function createProfileInfraService(config) {
           })),
           industryFieldGroupsCreated: ar.created,
           industryFieldGroupsDiscovered: ar.discovered,
-          message: buildStep2SuccessMessage(ar.resolvedIndustry, ar.patchApplied, ar.created),
+          profileCoreV2TopUp: ar.profileCoreV2TopUp || { skipped: true },
+          message: buildStep2SuccessMessage(ar.resolvedIndustry, ar.patchApplied, ar.created, ar.profileCoreV2TopUp),
         };
       }
 
@@ -1473,4 +1976,11 @@ module.exports = {
   isProfileClassFieldGroup,
   buildTenantFieldGroupCreateBody,
   resolveIndustryFgEntry,
+  // Profile Core v2 top-up helpers — pure functions, exposed for the local
+  // probe at scripts/verify-profile-core-v2-topup.mjs and for unit tests.
+  walkResolvedMixinTenantTree,
+  collectRefBlockedAncestorPaths,
+  diffManifestAgainstMixin,
+  buildCompositeSubtreeFromManifest,
+  buildTopUpJsonPatchOps,
 };
