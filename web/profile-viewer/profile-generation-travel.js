@@ -343,16 +343,24 @@
         return false;
       }
       const rec = data.record;
-      if (rec && rec.streaming) {
-        fillStreamingFields(rec.streaming);
+      const recordedStreaming = rec && rec.streaming && typeof rec.streaming === 'object' ? rec.streaming : null;
+      const hasFirestoreSchemaAndDataset = !!(recordedStreaming && recordedStreaming.schemaId && recordedStreaming.datasetId);
+      if (recordedStreaming) {
+        fillStreamingFields(recordedStreaming);
         if (!silent) showInfraMessage('Loaded saved Travel Profile connection for this sandbox.', 'success');
         applyConfiguredCollapseState();
-        return true;
+        if (!hasFirestoreSchemaAndDataset && isProfilePanelVisible()) {
+          autoDiscoverInfraFromSandbox();
+        }
+        return hasFirestoreSchemaAndDataset;
       }
       if (!silent) {
         showInfraMessage('No saved Travel connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
       }
       applyConfiguredCollapseState();
+      if (isProfilePanelVisible()) {
+        autoDiscoverInfraFromSandbox();
+      }
       return false;
     } catch (e) {
       if (!silent) showInfraMessage(e.message || 'Network error loading connection.', 'error');
@@ -515,6 +523,61 @@
       showInfraMessage(e.message || 'Network error', 'error');
     } finally {
       fetchFlowFromAepBtn.disabled = false;
+    }
+  }
+
+  // ---------- Sandbox-driven auto-discovery of Schema $id + Dataset ID ----------
+  //
+  // When the agent (or anyone) provisions schemas/datasets directly in a
+  // sandbox under their canonical names (`AEP Lab - Travel Profile - Schema` /
+  // `AEP Lab - Travel Profile - Dataset`), the architect should not have
+  // to open the AEP UI to copy the resolved `$id` / dataset ID into the
+  // wizard by hand. The `/api/travel-profile-infra/status` endpoint
+  // already returns `schemaId` and `datasetId` resolved by canonical name,
+  // so we call it once per (sandbox) and pre-fill the two empty inputs.
+  //
+  // Discovery rules mirror profile-generation-industry-runtime.js exactly
+  // (skip when fields are pre-populated, cache attempts per sandbox, reset
+  // cache on sandbox change, silent on failure / not-found).
+  const _autoDiscoverAttempted = new Set();
+
+  function isProfilePanelVisible() {
+    const panelEl = document.getElementById('travelProfilePanel');
+    if (!panelEl) return true;
+    return !panelEl.hidden;
+  }
+
+  async function autoDiscoverInfraFromSandbox() {
+    const sb = getSandboxName();
+    if (!sb) return false;
+    if (trimVal(streamSchemaIdEl) || trimVal(streamDatasetIdEl)) return false;
+    if (_autoDiscoverAttempted.has(sb)) return false;
+    _autoDiscoverAttempted.add(sb);
+    try {
+      const res = await fetch('/api/travel-profile-infra/status' + querySuffix());
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) return false;
+      const schemaOk = !!(data.schemaFound && data.schemaId);
+      const datasetOk = !!(data.datasetFound && data.datasetId);
+      if (!schemaOk || !datasetOk) return false;
+      if (streamSchemaIdEl && !trimVal(streamSchemaIdEl)) {
+        streamSchemaIdEl.value = data.schemaId;
+      }
+      if (streamDatasetIdEl && !trimVal(streamDatasetIdEl)) {
+        streamDatasetIdEl.value = data.datasetId;
+      }
+      if (streamXdmKeyEl && !trimVal(streamXdmKeyEl) && data.xdmKey) {
+        streamXdmKeyEl.value = data.xdmKey;
+      }
+      showInfraMessage(
+        `✓ Auto-filled Schema $id and Dataset ID from sandbox "${sb}" (matched canonical names "AEP Lab - Travel Profile - Schema" / "AEP Lab - Travel Profile - Dataset"). Create the HTTP API source then paste the dataflow ID below — or click Fetch URL & Flow ID from AEP.`,
+        'success'
+      );
+      applyConfiguredCollapseState();
+      return true;
+    } catch (e) {
+      console.warn('[travel-profile] autoDiscoverInfraFromSandbox failed:', e && e.message);
+      return false;
     }
   }
 
@@ -2257,6 +2320,11 @@
 
   // Sandbox change
   function onSandboxChange() {
+    // Reset the auto-discover cache so the new sandbox gets one fresh
+    // attempt; the cache exists to avoid re-hitting AEP on panel-show /
+    // firestore-reload cycles within a single sandbox, not to suppress
+    // discovery across sandboxes.
+    _autoDiscoverAttempted.clear();
     clearStreamingFields();
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
@@ -2278,6 +2346,9 @@
     // depends on the live sandbox + base email, both of which can have
     // changed while the user was on Generic.
     loadCounterForCurrentContext();
+    // Panel just became visible — kick the sandbox-driven Schema $id /
+    // Dataset ID auto-discover. No-op when fields are already populated.
+    autoDiscoverInfraFromSandbox();
   });
 
   loadBaseEmailForCurrentSandbox();

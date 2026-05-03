@@ -633,16 +633,32 @@
           return false;
         }
         const rec = data.record;
-        if (rec && rec.streaming) {
-          fillStreamingFields(rec.streaming);
+        const recordedStreaming = rec && rec.streaming && typeof rec.streaming === 'object' ? rec.streaming : null;
+        const hasFirestoreSchemaAndDataset = !!(recordedStreaming && recordedStreaming.schemaId && recordedStreaming.datasetId);
+        if (recordedStreaming) {
+          fillStreamingFields(recordedStreaming);
           if (!silent) showInfraMessage(`Loaded saved ${displayName} Profile connection for this sandbox.`, 'success');
           applyConfiguredCollapseState();
-          return true;
+          // Even when Firestore returned a record, the architect may have
+          // saved BEFORE running the wizard (so Schema $id / Dataset ID are
+          // empty). Try the sandbox auto-discover only when those leaves
+          // are still missing AND the panel is the visible one — never
+          // worth a heavy /status round-trip for a hidden panel.
+          if (!hasFirestoreSchemaAndDataset && isProfilePanelVisible()) {
+            autoDiscoverInfraFromSandbox();
+          }
+          return hasFirestoreSchemaAndDataset;
         }
         if (!silent) {
           showInfraMessage(`No saved ${displayName} connection for this sandbox yet — run the 4 setup steps and Save connection.`, '');
         }
         applyConfiguredCollapseState();
+        // No Firestore record at all — try sandbox auto-discover when the
+        // panel is visible. The discover function itself caches per sandbox
+        // so panel-show / firestore-reload pairs are safe to call repeatedly.
+        if (isProfilePanelVisible()) {
+          autoDiscoverInfraFromSandbox();
+        }
         return false;
       } catch (e) {
         if (!silent) showInfraMessage(e.message || 'Network error loading connection.', 'error');
@@ -825,6 +841,68 @@
         showInfraMessage(e.message || 'Network error', 'error');
       } finally {
         fetchFlowFromAepBtn.disabled = false;
+      }
+    }
+
+    // ---- Sandbox-driven auto-discovery of Schema $id + Dataset ID ----
+    //
+    // When the agent (or anyone) provisions schemas/datasets directly in a
+    // sandbox under their canonical names (e.g. `AEP Lab - FSI Profile -
+    // Schema` / `AEP Lab - FSI Profile - Dataset`), the architect should
+    // not have to open the AEP UI to copy `$id` / dataset ID into this
+    // wizard by hand. The `/api/<industry>-profile-infra/status` endpoint
+    // already returns `schemaId` and `datasetId` resolved by canonical
+    // name, so we simply call it once per (sandbox, industry) and pre-fill
+    // the two empty inputs.
+    //
+    // Discovery rules:
+    //   - Skip if either field is already populated (don't clobber Firestore-
+    //     loaded values or anything the operator typed by hand).
+    //   - Skip if no sandbox is selected yet.
+    //   - Cache attempts per sandbox name so panel-shown / firestore-load
+    //     cycles don't re-hit AEP unnecessarily.
+    //   - Silent on failure / not-found — the user is allowed to be on a
+    //     sandbox the agent hasn't provisioned, and the four-step manual
+    //     wizard remains the documented fallback below.
+    const _autoDiscoverAttempted = new Set();
+
+    function isProfilePanelVisible() {
+      const panelEl = ids.profilePanel ? document.getElementById(ids.profilePanel) : null;
+      if (!panelEl) return true;
+      return !panelEl.hidden;
+    }
+
+    async function autoDiscoverInfraFromSandbox() {
+      const sb = getSandboxName();
+      if (!sb) return false;
+      if (trimVal(streamSchemaIdEl) || trimVal(streamDatasetIdEl)) return false;
+      if (_autoDiscoverAttempted.has(sb)) return false;
+      _autoDiscoverAttempted.add(sb);
+      try {
+        const res = await fetch(`/api/${apiPathPrefix}-infra/status` + querySuffix());
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) return false;
+        const schemaOk = !!(data.schemaFound && data.schemaId);
+        const datasetOk = !!(data.datasetFound && data.datasetId);
+        if (!schemaOk || !datasetOk) return false;
+        if (streamSchemaIdEl && !trimVal(streamSchemaIdEl)) {
+          streamSchemaIdEl.value = data.schemaId;
+        }
+        if (streamDatasetIdEl && !trimVal(streamDatasetIdEl)) {
+          streamDatasetIdEl.value = data.datasetId;
+        }
+        if (streamXdmKeyEl && !trimVal(streamXdmKeyEl) && data.xdmKey) {
+          streamXdmKeyEl.value = data.xdmKey;
+        }
+        showInfraMessage(
+          `✓ Auto-filled Schema $id and Dataset ID from sandbox "${sb}" (matched canonical names "${displayName} Profile - Schema" / "Dataset"). Create the HTTP API source then paste the dataflow ID below — or click Fetch URL & Flow ID from AEP.`,
+          'success'
+        );
+        applyConfiguredCollapseState();
+        return true;
+      } catch (e) {
+        warn('autoDiscoverInfraFromSandbox failed:', e && e.message);
+        return false;
       }
     }
 
@@ -1625,6 +1703,11 @@
     if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
 
     function onSandboxChange() {
+      // Reset the auto-discover cache so the new sandbox gets one fresh
+      // attempt; the cache exists to avoid re-hitting AEP on panel-show /
+      // firestore-reload cycles within a single sandbox, not to suppress
+      // discovery across sandboxes.
+      _autoDiscoverAttempted.clear();
       clearStreamingFields();
       applyConfiguredCollapseState();
       loadConnectionFromFirestore(true);
@@ -1641,6 +1724,11 @@
       applyAllIndustryToggles();
       applyConfiguredCollapseState();
       loadCounterForCurrentContext();
+      // Panel just became visible — kick the sandbox-driven Schema $id /
+      // Dataset ID auto-discover. No-op when fields are already populated
+      // (Firestore-loaded values, hand-typed values, or a previous discover
+      // attempt) thanks to the per-sandbox cache + emptiness guards.
+      autoDiscoverInfraFromSandbox();
     });
 
     // ---- Initial state ----

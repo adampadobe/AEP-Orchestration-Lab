@@ -951,6 +951,23 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-text-secondary);
 }
 
+/* Auto-fill clarifier — explains that the Schema $id and Dataset ID inputs
+ * below the banner are pre-populated from the sandbox by the lab itself
+ * (no manual lookup required) when the agent has already provisioned the
+ * canonical AEP Lab schema/dataset under their well-known names. Sits
+ * above the "Provisioning from scratch instead?" fallback paragraph and
+ * uses a slightly tighter, more conversational tint than the success
+ * accent on the banner shell. */
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__autofill {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  background: var(--dash-surface, rgba(255, 255, 255, 0.6));
+  color: var(--dash-success-text, var(--dash-text));
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;
