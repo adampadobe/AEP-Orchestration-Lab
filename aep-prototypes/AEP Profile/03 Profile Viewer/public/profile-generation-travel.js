@@ -714,26 +714,46 @@
   // Curated airport pool. Each entry carries the country + USA flag so we can
   // derive _<tenant>.travelReservations.flightReservations.{departureCountry,
   // arrivalCountry, usaFlight} from the picked codes without a second API call.
+  // The list is intentionally hub-heavy: every code referenced by the
+  // route-aware layover picker (`pickRealisticLayovers`) MUST exist here so
+  // the layover-name input downstream renders the correct city / country.
   const AIRPORTS = [
     { code: 'LHR', city: 'London',         country: 'United Kingdom',     isUSA: false },
     { code: 'CDG', city: 'Paris',          country: 'France',             isUSA: false },
     { code: 'FRA', city: 'Frankfurt',      country: 'Germany',            isUSA: false },
+    { code: 'MUC', city: 'Munich',         country: 'Germany',            isUSA: false },
     { code: 'AMS', city: 'Amsterdam',      country: 'Netherlands',        isUSA: false },
     { code: 'MAD', city: 'Madrid',         country: 'Spain',              isUSA: false },
+    { code: 'BCN', city: 'Barcelona',      country: 'Spain',              isUSA: false },
     { code: 'FCO', city: 'Rome',           country: 'Italy',              isUSA: false },
     { code: 'IST', city: 'Istanbul',       country: 'Turkey',             isUSA: false },
+    { code: 'DUB', city: 'Dublin',         country: 'Ireland',            isUSA: false },
+    { code: 'KEF', city: 'Reykjavik',      country: 'Iceland',            isUSA: false },
     { code: 'DXB', city: 'Dubai',          country: 'United Arab Emirates', isUSA: false },
+    { code: 'AUH', city: 'Abu Dhabi',      country: 'United Arab Emirates', isUSA: false },
     { code: 'DOH', city: 'Doha',           country: 'Qatar',              isUSA: false },
     { code: 'SIN', city: 'Singapore',      country: 'Singapore',          isUSA: false },
     { code: 'HKG', city: 'Hong Kong',      country: 'Hong Kong',          isUSA: false },
+    { code: 'BKK', city: 'Bangkok',        country: 'Thailand',           isUSA: false },
+    { code: 'ICN', city: 'Seoul',          country: 'South Korea',        isUSA: false },
     { code: 'NRT', city: 'Tokyo',          country: 'Japan',              isUSA: false },
+    { code: 'HND', city: 'Tokyo',          country: 'Japan',              isUSA: false },
     { code: 'SYD', city: 'Sydney',         country: 'Australia',          isUSA: false },
+    { code: 'JNB', city: 'Johannesburg',   country: 'South Africa',       isUSA: false },
     { code: 'YYZ', city: 'Toronto',        country: 'Canada',             isUSA: false },
     { code: 'JFK', city: 'New York',       country: 'United States',      isUSA: true },
+    { code: 'EWR', city: 'Newark',         country: 'United States',      isUSA: true },
+    { code: 'BOS', city: 'Boston',         country: 'United States',      isUSA: true },
+    { code: 'IAD', city: 'Washington',     country: 'United States',      isUSA: true },
+    { code: 'ATL', city: 'Atlanta',        country: 'United States',      isUSA: true },
+    { code: 'MIA', city: 'Miami',          country: 'United States',      isUSA: true },
+    { code: 'ORD', city: 'Chicago',        country: 'United States',      isUSA: true },
+    { code: 'DFW', city: 'Dallas',         country: 'United States',      isUSA: true },
+    { code: 'DEN', city: 'Denver',         country: 'United States',      isUSA: true },
+    { code: 'LAS', city: 'Las Vegas',      country: 'United States',      isUSA: true },
     { code: 'LAX', city: 'Los Angeles',    country: 'United States',      isUSA: true },
     { code: 'SFO', city: 'San Francisco',  country: 'United States',      isUSA: true },
-    { code: 'ORD', city: 'Chicago',        country: 'United States',      isUSA: true },
-    { code: 'MIA', city: 'Miami',          country: 'United States',      isUSA: true },
+    { code: 'SEA', city: 'Seattle',        country: 'United States',      isUSA: true },
   ];
 
   // OOTB Travel Preferences mixin enums (root-level travelPreferences.*).
@@ -791,6 +811,116 @@
     return { dep, arr };
   }
 
+  // Route-aware layover hub picker. Given a dep + arr airport and the desired
+  // count (1 or 2), returns that many AIRPORTS entries chosen from a hub set
+  // appropriate to the geographic route class:
+  //   * Domestic US        → ATL/ORD/DFW/DEN/LAX/JFK/etc.
+  //   * Both endpoints EU  → LHR/CDG/FRA/AMS/MUC/MAD/IST/DUB/BCN
+  //   * Transatlantic      → JFK/EWR/BOS/IAD/LHR/DUB/KEF/CDG/AMS
+  //   * Asia ↔ Europe      → DXB/AUH/DOH (Gulf) or SIN/HKG/ICN/BKK
+  //   * Asia ↔ Americas    → NRT/HND/ICN/HKG/SIN/LAX/SFO (Pacific)
+  //   * Oceania anywhere   → SIN/HKG/DXB/NRT
+  //   * Africa / ME        → DXB/DOH/IST/FRA/CDG
+  //   * Fallback           → mixed global hubs
+  // Always filters out dep + arr; ensures uniqueness when count === 2.
+  function pickRealisticLayovers(departureAirport, arrivalAirport, count) {
+    if (!departureAirport || !arrivalAirport || !count) return [];
+
+    const HUBS_EUROPE = ['LHR', 'CDG', 'FRA', 'AMS', 'MUC', 'MAD', 'IST', 'DUB', 'BCN'];
+    const HUBS_GULF   = ['DXB', 'AUH', 'DOH'];
+    const HUBS_ASIA   = ['SIN', 'HKG', 'ICN', 'BKK', 'NRT', 'HND'];
+    const HUBS_USA_E  = ['JFK', 'EWR', 'BOS', 'IAD', 'ATL'];
+    const HUBS_USA_W  = ['LAX', 'SFO', 'SEA', 'LAS'];
+    const HUBS_USA_C  = ['ORD', 'DFW', 'DEN'];
+    const HUBS_TRANSATLANTIC = ['JFK', 'EWR', 'BOS', 'IAD', 'LHR', 'DUB', 'KEF', 'CDG', 'AMS'];
+    const HUBS_PACIFIC = ['NRT', 'HND', 'ICN', 'HKG', 'SIN', 'LAX', 'SFO'];
+    const HUBS_FALLBACK = ['LHR', 'CDG', 'FRA', 'DXB', 'SIN', 'JFK', 'LAX', 'IST'];
+
+    const EUR = new Set([
+      'United Kingdom', 'France', 'Germany', 'Netherlands', 'Spain', 'Italy',
+      'Turkey', 'Ireland', 'Iceland', 'Switzerland', 'Belgium', 'Portugal',
+      'Sweden', 'Norway', 'Denmark', 'Austria', 'Poland', 'Finland',
+    ]);
+    const ASIA = new Set([
+      'Japan', 'Singapore', 'Hong Kong', 'South Korea', 'China', 'Thailand',
+      'Malaysia', 'Vietnam', 'Indonesia', 'Philippines', 'India',
+    ]);
+    const ME = new Set([
+      'United Arab Emirates', 'Qatar', 'Saudi Arabia', 'Bahrain', 'Kuwait',
+      'Oman', 'Jordan', 'Israel', 'Egypt',
+    ]);
+    const OCEAN = new Set(['Australia', 'New Zealand']);
+    const AFRICA = new Set([
+      'South Africa', 'Kenya', 'Nigeria', 'Morocco', 'Ethiopia', 'Tanzania',
+    ]);
+
+    const dCountry = departureAirport.country;
+    const aCountry = arrivalAirport.country;
+    const dUS = !!departureAirport.isUSA;
+    const aUS = !!arrivalAirport.isUSA;
+    const dCA = dCountry === 'Canada';
+    const aCA = aCountry === 'Canada';
+    const dNA = dUS || dCA;
+    const aNA = aUS || aCA;
+    const dEur = EUR.has(dCountry);
+    const aEur = EUR.has(aCountry);
+    const dAsia = ASIA.has(dCountry);
+    const aAsia = ASIA.has(aCountry);
+    const dME = ME.has(dCountry);
+    const aME = ME.has(aCountry);
+    const dOcean = OCEAN.has(dCountry);
+    const aOcean = OCEAN.has(aCountry);
+    const dAfr = AFRICA.has(dCountry);
+    const aAfr = AFRICA.has(aCountry);
+
+    let candidates;
+    if (dUS && aUS) {
+      candidates = HUBS_USA_E.concat(HUBS_USA_C, HUBS_USA_W);
+    } else if (dEur && aEur) {
+      candidates = HUBS_EUROPE;
+    } else if ((dEur && aNA) || (dNA && aEur)) {
+      candidates = HUBS_TRANSATLANTIC;
+    } else if ((dAsia && aEur) || (dEur && aAsia)) {
+      candidates = HUBS_GULF.concat(HUBS_ASIA);
+    } else if ((dAsia && aNA) || (dNA && aAsia)) {
+      candidates = HUBS_PACIFIC;
+    } else if (dOcean || aOcean) {
+      candidates = ['SIN', 'HKG', 'DXB', 'NRT'];
+    } else if (dAfr || aAfr || dME || aME) {
+      candidates = ['DXB', 'DOH', 'IST', 'FRA', 'CDG'];
+    } else {
+      candidates = HUBS_FALLBACK;
+    }
+
+    // Resolve hub codes → AIRPORTS entries; drop dep + arr; sample without
+    // replacement so layover-1 ≠ layover-2 when count === 2.
+    const pool = candidates
+      .map((code) => AIRPORTS.find((a) => a.code === code))
+      .filter((a) => a && a.code !== departureAirport.code && a.code !== arrivalAirport.code);
+
+    const picks = [];
+    const usedCodes = new Set();
+    for (let i = 0; i < count; i++) {
+      const remaining = pool.filter((a) => !usedCodes.has(a.code));
+      if (!remaining.length) break;
+      const pick = randomPick(remaining);
+      picks.push(pick);
+      usedCodes.add(pick.code);
+    }
+    return picks;
+  }
+
+  // Realistic layover duration in minutes. Distribution:
+  //   20% short (45–90 min, tight major-hub connections)
+  //   60% medium (90–240 min, typical international layover)
+  //   20% long (240–540 min, occasional overnight at Gulf / Asia hubs)
+  function pickLayoverDurationMinutes() {
+    const r = Math.random();
+    if (r < 0.20) return randomBetween(45, 90);
+    if (r < 0.80) return randomBetween(90, 240);
+    return randomBetween(240, 540);
+  }
+
   function isoFutureDate(daysAhead) {
     const d = new Date();
     d.setDate(d.getDate() + daysAhead);
@@ -836,15 +966,28 @@
 
     const airline = randomPick(RANDOM_AIRLINES);
     const { dep, arr } = pickAirportPair();
+    // Passengers: 1–4. Children gate keeps the schema honest: children only
+    // travel when there are ≥ 2 passengers (so we never ship a 1-pax flight
+    // with childrenTravelling=true). Roughly 30% of multi-pax bookings carry
+    // children — feels right for a leisure-heavy travel persona pool.
     const passengers = randomBetween(1, 4);
     const childrenTravelling = passengers >= 2 && Math.random() < 0.3;
     const flightClassRaw = randomPick(['economy', 'economy', 'economy', 'premium_economy', 'business', 'business', 'first']);
-    const isMultiLeg = Math.random() < 0.35;
-    const layovers = isMultiLeg ? randomBetween(1, 2) : 0;
-    const layover1 = isMultiLeg ? randomPick(AIRPORTS.filter((a) => a.code !== dep.code && a.code !== arr.code)) : null;
-    const layover2 = isMultiLeg && layovers === 2
-      ? randomPick(AIRPORTS.filter((a) => a.code !== dep.code && a.code !== arr.code && a.code !== (layover1 && layover1.code)))
-      : null;
+
+    // Multi-leg distribution: ~60% direct, ~30% one-layover, ~10% two-layover.
+    // Tweak these thresholds to taste; the sim at /tmp/verify-travel-multileg.mjs
+    // asserts the distribution stays roughly here (±5pp over 1000 runs).
+    const r = Math.random();
+    let isMultiLeg;
+    let layovers;
+    if (r < 0.60) { isMultiLeg = false; layovers = 0; }
+    else if (r < 0.90) { isMultiLeg = true; layovers = 1; }
+    else { isMultiLeg = true; layovers = 2; }
+
+    // Route-aware hub pick (filters out dep + arr, ensures layover-1 ≠ layover-2).
+    const layoverPicks = isMultiLeg ? pickRealisticLayovers(dep, arr, layovers) : [];
+    const layover1 = layoverPicks[0] || null;
+    const layover2 = layoverPicks[1] || null;
 
     // Visible Travel attribute fields — always overwrite (the operator wants a
     // fresh realistic persona on every click, not partial holdover values).
@@ -874,12 +1017,17 @@
     if (flightDepartureCountryEl) flightDepartureCountryEl.value = dep.country;
     if (flightArrivalCountryEl) flightArrivalCountryEl.value = arr.country;
     if (flightUsaFlightEl) flightUsaFlightEl.value = (dep.isUSA || arr.isUSA) ? 'true' : 'false';
+
+    // Layover slots — populated ONLY for the slot the persona warrants.
+    // Direct flights blank ALL six layover inputs so a stale value from a
+    // previous click can't leak into buildUpdatesFromForm. Two-layover
+    // personas fill both slots; one-layover personas fill slot 1 only.
     if (flightLayover1CodeEl) flightLayover1CodeEl.value = layover1 ? layover1.code : '';
     if (flightLayover1NameEl) flightLayover1NameEl.value = layover1 ? layover1.city : '';
-    if (flightLayover1DurationEl) flightLayover1DurationEl.value = layover1 ? String(randomBetween(45, 240)) : '';
+    if (flightLayover1DurationEl) flightLayover1DurationEl.value = layover1 ? String(pickLayoverDurationMinutes()) : '';
     if (flightLayover2CodeEl) flightLayover2CodeEl.value = layover2 ? layover2.code : '';
     if (flightLayover2NameEl) flightLayover2NameEl.value = layover2 ? layover2.city : '';
-    if (flightLayover2DurationEl) flightLayover2DurationEl.value = layover2 ? String(randomBetween(45, 240)) : '';
+    if (flightLayover2DurationEl) flightLayover2DurationEl.value = layover2 ? String(pickLayoverDurationMinutes()) : '';
 
     // OOTB Adobe travel-preferences mixin (root-level travelPreferences.*).
     // Booleans bias toward leisure-friendly defaults so the resulting AEP
@@ -1186,10 +1334,23 @@
       if (pax != null) push(`${flightPath}.numberofPassengers`, pax);
       const children = boolFromTriState(flightChildrenEl);
       if (children != null) push(`${flightPath}.childrenTravelling`, children);
-      const multiLeg = boolFromTriState(flightMultiLegEl);
-      if (multiLeg != null) push(`${flightPath}.multiLeg.multiLeg`, multiLeg);
-      const layovers = intVal(flightLayoversEl);
-      if (layovers != null) push(`${flightPath}.multiLeg.numberofLayovers`, layovers);
+
+      // Multi-leg core leaves stream UNCONDITIONALLY — `multiLeg=false` and
+      // `numberofLayovers=0` are valid, meaningful values for direct flights
+      // and we want every Travel persona to carry a definitive answer (not
+      // leave stale layover state implied by an absent property). Empty
+      // select / blank input is treated as false / 0 so an operator who hasn't
+      // touched these gets a sensible direct-flight default.
+      const multiLegRaw = trimVal(flightMultiLegEl);
+      const multiLegBool = multiLegRaw === 'true';
+      push(`${flightPath}.multiLeg.multiLeg`, multiLegBool);
+      const layoversRaw = trimVal(flightLayoversEl);
+      let layoversInt = 0;
+      if (layoversRaw !== '') {
+        const n = parseInt(layoversRaw, 10);
+        if (Number.isFinite(n) && n >= 0) layoversInt = n;
+      }
+      push(`${flightPath}.multiLeg.numberofLayovers`, layoversInt);
 
       // Schema-only flight extras — operator-editable via the new UI inputs.
       if (v(flightDepartureCountryEl)) push(`${flightPath}.departureCountry`, v(flightDepartureCountryEl));
@@ -1204,16 +1365,18 @@
       }
       if (usaFlight != null) push(`${flightPath}.usaFlight`, usaFlight);
 
-      // Layovers — only stream when the multi-leg toggle is Yes (so the operator
-      // can leave layover values populated from a previous Generate without them
-      // accidentally streaming on a single-leg flight).
-      if (multiLeg === true) {
+      // Layover detail leaves — gated TWICE: only when (a) multiLeg is true
+      // AND (b) numberofLayovers >= the slot index AND (c) the input itself
+      // is non-blank. This prevents stale layover values from a previous
+      // Generate (or hand-edit) leaking into a direct-flight payload. If you
+      // want to clear a layover, set multi-leg to No or layovers to 0 — don't
+      // push empty strings because AEP would still treat them as set values.
+      if (multiLegBool && layoversInt >= 1) {
         if (v(flightLayover1NameEl)) push(`${flightPath}.multiLeg.layoverAirport_1`, v(flightLayover1NameEl));
         if (v(flightLayover1CodeEl)) push(`${flightPath}.multiLeg.layoverAirportCode_1`, v(flightLayover1CodeEl));
         const ld1 = intVal(flightLayover1DurationEl);
         if (ld1 != null) push(`${flightPath}.multiLeg.layoverDuration_1`, ld1);
-        // Layover 2 only when there are at least 2 layovers.
-        if (layovers != null && layovers >= 2) {
+        if (layoversInt >= 2) {
           // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
           if (v(flightLayover2NameEl)) push(`${flightPath}.multiLeg.layoverAiport_2`, v(flightLayover2NameEl));
           if (v(flightLayover2CodeEl)) push(`${flightPath}.multiLeg.layoverAirportCode_2`, v(flightLayover2CodeEl));
