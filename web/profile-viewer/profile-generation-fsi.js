@@ -26,7 +26,14 @@
  *
  *   root XDM mixins (proxy must allow these top keys via
  *   `PROFILE_STREAM_ROOT_PATH_PREFIXES` in functions/profileStreamingCore.js)
- *     • personalFinances.creditScores.{provider, score, scoreDate}
+ *     • personalFinances.creditScores = [{ provider, score, scoreDate }]
+ *           ← OOTB Personal Finance Details FG (https://ns.adobe.com/xdm/mixins/profile-personal-finance-details)
+ *              types `personalFinances.creditScores` as `array of object`.
+ *              Pushing the leaves as flat dotted paths produced the
+ *              JSONObject-vs-JSONArray DCVS-1104-400 ingestion failure
+ *              ("expected type: JSONArray, found: JSONObject") that prompted
+ *              the May 2026 rewrite — wrap the score/provider/scoreDate trio
+ *              in a single-element array before streaming.
  *     • personalFinances.employmentStatus
  *     • personalFinances.accountCardsTotal
  *     • personalFinances.hasAssignedBeneficiary
@@ -452,18 +459,31 @@
         if (occupation) push('individualCharacteristics.core.occupation', occupation);
 
         // ---- New OOTB personalFinances.* leaves ----
+        // CRITICAL: `personalFinances.creditScores` is typed as
+        // `array of object` in the OOTB Personal Finance Details FG
+        // (https://ns.adobe.com/xdm/mixins/profile-personal-finance-details).
+        // Earlier this module emitted the three leaves as flat dotted pushes
+        // (`personalFinances.creditScores.score = 740`) which the proxy's
+        // setByPath assigned as a JSON object — AEP DCVS rejected with
+        // DCVS-1104-400 ("expected type: JSONArray, found: JSONObject"),
+        // 0 records ingested. Fix: collect the per-score leaves into one
+        // object and push the wrapping single-element array as one leaf
+        // (Route A — same canonical pattern the May 2026 Telecom fix used
+        // for `telecomSubscription.{mobile,internet,media,landline}Subscription`).
         const explicitCreditScore = num($('fsiCreditScore'));
         if (explicitCreditScore != null) {
           // Explicit numeric value overrides the band-derived one.
           push('individualCharacteristics.core.creditScore', explicitCreditScore);
-          push('personalFinances.creditScores.score', Math.round(explicitCreditScore));
         }
-
         const creditBureau = trim($('fsiCreditBureau'));
-        if (creditBureau) push('personalFinances.creditScores.provider', creditBureau);
-
         const creditScoreDate = trim($('fsiCreditScoreDate'));
-        if (creditScoreDate) push('personalFinances.creditScores.scoreDate', creditScoreDate);
+        const creditScoreEntry = {};
+        if (explicitCreditScore != null) creditScoreEntry.score = Math.round(explicitCreditScore);
+        if (creditBureau) creditScoreEntry.provider = creditBureau;
+        if (creditScoreDate) creditScoreEntry.scoreDate = creditScoreDate;
+        if (Object.keys(creditScoreEntry).length) {
+          push('personalFinances.creditScores', [creditScoreEntry]);
+        }
 
         const accountCards = intOr($('fsiAccountCardsTotal'));
         if (accountCards != null) push('personalFinances.accountCardsTotal', accountCards);

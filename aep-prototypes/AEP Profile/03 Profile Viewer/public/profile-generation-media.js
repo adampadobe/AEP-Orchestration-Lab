@@ -25,12 +25,20 @@
  *
  *   root XDM mixin (proxy must allow the `subscriptions` top key via
  *   `PROFILE_STREAM_ROOT_PATH_PREFIXES` in functions/profileStreamingCore.js)
- *     • subscriptions.{SKU, planName, billingPeriod, status, type,
+ *     • subscriptions = [{ SKU, planName, billingPeriod, status, type,
  *         paymentMethod, startDate, endDate, term, termUnitOfTime,
- *         category, country, renew}
- *           ← OOTB Subscription Details FG attached by the Media wizard.
- *              Previously had no UI exposure for Media — fixed May 2026
- *              alongside the parallel FSI / Telecom / Sports / runtime audit.
+ *         category, country, renew }]
+ *           ← OOTB Subscription Details FG attached by the Media wizard
+ *              (https://ns.adobe.com/xdm/context/profile-subscriptions).
+ *              CRITICAL: `subscriptions` is typed as `array of object` in
+ *              the OOTB FG (verified against the global registry, May 2026),
+ *              so we wrap every leaf into a single-element array before
+ *              streaming. Pushing the leaves as flat dotted paths would
+ *              produce the JSONObject-vs-JSONArray DCVS-1104-400 ingestion
+ *              failure that bit Telecom (subProducts) and FSI (creditScores)
+ *              — same root cause, same canonical fix pattern. Field-group
+ *              first attached for Media in May 2026 alongside the parallel
+ *              FSI / Telecom / Sports / runtime audit.
  *
  * Operator-context dropdown re-mappings (added without changing the original
  * `industryMedia.*` push targets — those already land on real schema leaves):
@@ -263,68 +271,78 @@
           push(`industryMedia.engagementFlags.${t.key}`, !!el.checked);
         });
 
-        // ---- Operator-context dropdown re-mappings ----
-        const tier = trim($('mediaSubscriptionTier'));
-        if (tier && TIER_TO_PLAN_NAME[tier]) {
-          // Don't override an explicit plan name if the operator typed one.
-          const explicitPlan = trim($('mediaSubPlanName'));
-          if (!explicitPlan) push('subscriptions.planName', TIER_TO_PLAN_NAME[tier]);
-        }
-        const recency = trim($('mediaLastViewedRecency'));
-        if (recency && RECENCY_DAYS[recency] != null) {
-          // Don't override an explicit start date.
-          const explicitStart = trim($('mediaSubStartDate'));
-          if (!explicitStart) {
-            // last-viewed-recency seeds a 30-day-old subscription start when
-            // recency is "today" so the subscription always pre-dates the
-            // most recent view (operator can override the date below).
-            push('subscriptions.startDate', isoDateAgo(RECENCY_DAYS[recency] + 30));
-          }
-        }
+        // ---- Operator-context dropdown re-mapping (non-array leaves) ----
         const genre = trim($('mediaPrimaryGenre'));
         if (genre) {
           push('individualCharacteristics.core.favouriteSubCategory', genre);
         }
 
-        // ---- New OOTB subscriptions.* leaves ----
-        const sku = trim($('mediaSubSku'));
-        if (sku) push('subscriptions.SKU', sku);
+        // ---- OOTB subscriptions[0] (root XDM mixin) -------------------------
+        // The OOTB Subscription Details FG types `subscriptions` itself as
+        // `array of object`, so every leaf below has to land under
+        // `subscriptions[0].*` rather than as a flat `subscriptions.<leaf>`
+        // dotted push. The proxy's setByPath assigns array values verbatim
+        // (Route A), so we collect every operator-context-derived,
+        // operator-typed, or randomiser-seeded leaf into one entry object
+        // and push the wrapping single-element array as one leaf at the end.
+        // Mirrors the May 2026 Telecom DCVS-1104-400 fix pattern for
+        // `telecomSubscription.{mobile,internet,media,landline}Subscription`
+        // and the parallel FSI fix for `personalFinances.creditScores`.
+        const sub = {};
 
-        const planName = trim($('mediaSubPlanName'));
-        if (planName) push('subscriptions.planName', planName);
+        // Operator-context derivations (only fill if no explicit value).
+        const tier = trim($('mediaSubscriptionTier'));
+        const explicitPlan = trim($('mediaSubPlanName'));
+        const planName = explicitPlan || (tier && TIER_TO_PLAN_NAME[tier]) || '';
+        if (planName) sub.planName = planName;
+
+        const recency = trim($('mediaLastViewedRecency'));
+        const explicitStart = trim($('mediaSubStartDate'));
+        // last-viewed-recency seeds a 30-day-old subscription start when
+        // recency is "today" so the subscription always pre-dates the most
+        // recent view (operator can override the date below).
+        const startDate = explicitStart ||
+          (recency && RECENCY_DAYS[recency] != null ? isoDateAgo(RECENCY_DAYS[recency] + 30) : '');
+        if (startDate) sub.startDate = startDate;
+
+        // Operator-typed leaves (the form widgets exposed in
+        // mediaProfilePanel's "Subscription details" section).
+        const sku = trim($('mediaSubSku'));
+        if (sku) sub.SKU = sku;
 
         const billingPeriod = trim($('mediaSubBillingPeriod'));
-        if (billingPeriod) push('subscriptions.billingPeriod', billingPeriod);
+        if (billingPeriod) sub.billingPeriod = billingPeriod;
 
         const status = trim($('mediaSubStatus'));
-        if (status) push('subscriptions.status', status);
+        if (status) sub.status = status;
 
         const type = trim($('mediaSubType'));
-        if (type) push('subscriptions.type', type);
+        if (type) sub.type = type;
 
         const category = trim($('mediaSubCategory'));
-        if (category) push('subscriptions.category', category);
+        if (category) sub.category = category;
 
         const paymentMethod = trim($('mediaSubPaymentMethod'));
-        if (paymentMethod) push('subscriptions.paymentMethod', paymentMethod);
+        if (paymentMethod) sub.paymentMethod = paymentMethod;
 
         const country = trim($('mediaSubCountry'));
-        if (country) push('subscriptions.country', country);
-
-        const startDate = trim($('mediaSubStartDate'));
-        if (startDate) push('subscriptions.startDate', startDate); // overrides recency-derived
+        if (country) sub.country = country;
 
         const endDate = trim($('mediaSubEndDate'));
-        if (endDate) push('subscriptions.endDate', endDate);
+        if (endDate) sub.endDate = endDate;
 
         const term = intOr($('mediaSubTerm'));
-        if (term != null) push('subscriptions.term', term);
+        if (term != null) sub.term = term;
 
         const termUnit = trim($('mediaSubTermUnit'));
-        if (termUnit) push('subscriptions.termUnitOfTime', termUnit);
+        if (termUnit) sub.termUnitOfTime = termUnit;
 
         const renew = trim($('mediaSubRenew'));
-        if (renew) push('subscriptions.renew', renew);
+        if (renew) sub.renew = renew;
+
+        if (Object.keys(sub).length) {
+          push('subscriptions', [sub]);
+        }
       },
       applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose }) {
         SCALAR_FIELDS.forEach((f) => {
