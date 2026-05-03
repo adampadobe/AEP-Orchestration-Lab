@@ -157,6 +157,58 @@ function headersXed(token, clientId, orgId, sandbox, withContentType) {
   return h;
 }
 
+/**
+ * Extract the most informative human-readable error message from an Adobe
+ * Schema Registry / Catalog 4xx response body. Adobe wraps the actually-
+ * useful detail (e.g. "Descriptor with id <…> already exists", schema
+ * validation drift, missing reference, …) inside `report.additionalDetails[]`
+ * or `report.details[]`, leaving only a generic `title` like "Descriptor
+ * validation error" or "Schema validation error" at the top level.
+ *
+ * Caller-friendly priority:
+ *   1. report.additionalDetails[].errorReason   (joined by "; ")
+ *   2. report.details[].message                 (joined by "; ")
+ *   3. detail
+ *   4. message
+ *   5. title
+ *   6. fallback
+ *
+ * Always returns a non-empty string.
+ */
+function extractAepErrorMessage(data, fallback) {
+  const fb = String(fallback || 'Unknown error');
+  if (!data || typeof data !== 'object') return fb;
+  const report = data.report;
+  if (report && typeof report === 'object') {
+    if (Array.isArray(report.additionalDetails)) {
+      const reasons = report.additionalDetails
+        .map((x) => x && (x.errorReason || x.detail || x.message))
+        .filter((s) => typeof s === 'string' && s.length > 0);
+      if (reasons.length) return reasons.join('; ');
+    }
+    if (Array.isArray(report.details)) {
+      const msgs = report.details
+        .map((x) => x && (x.message || x.detail || x.errorReason))
+        .filter((s) => typeof s === 'string' && s.length > 0);
+      if (msgs.length) return msgs.join('; ');
+    }
+  }
+  return data.detail || data.message || data.title || fb;
+}
+
+/**
+ * Detect Adobe's "already exists" error variants, including the case where
+ * the duplicate signal is buried inside `report.additionalDetails[].errorReason`
+ * under a generic top-level title like "Descriptor validation error" or
+ * "Schema validation error". Used for idempotency in createPrimaryEmailDescriptor
+ * and other wizard creators.
+ */
+function looksLikeAlreadyExists(messageOrError) {
+  if (!messageOrError) return false;
+  const s = String(messageOrError);
+  return /already exists|duplicate|already created|409\b/i.test(s);
+}
+
 function collectSchemaRefUris(schema) {
   const set = new Set();
   for (const x of schema.allOf || []) {
@@ -683,9 +735,9 @@ function createProfileInfraService(config) {
     const url = `${SCHEMA_REGISTRY}/tenant/schemas?limit=10&properties=title,$id,meta:altId`;
     const { res, data } = await fetchJson(url, { method: 'GET', headers: headersXed(token, clientId, orgId, sandbox) });
     if (!res.ok) {
-      const msg = data.message || data.title || res.statusText;
+      const msg = extractAepErrorMessage(data, res.statusText);
       log(sandbox, 'discoverTenant.failed', { httpStatus: res.status, msg });
-      throw new Error(`Schema list failed: ${msg}`);
+      throw new Error(`Schema list failed (HTTP ${res.status}): ${msg}`);
     }
     const results = data.results || [];
     for (const s of results) {
@@ -732,9 +784,9 @@ function createProfileInfraService(config) {
           log(sandbox, 'listFieldGroupsLike.ok', { path: pathSuffix.split('?')[0], count: rows.length });
           return rows;
         }
-        lastErr = data.message || data.title || res.statusText || String(res.status);
+        lastErr = extractAepErrorMessage(data, res.statusText || String(res.status));
         if (!/accept header/i.test(String(lastErr))) {
-          throw new Error(`Tenant field groups list failed: ${lastErr}`);
+          throw new Error(`Tenant field groups list failed (HTTP ${res.status}): ${lastErr}`);
         }
       }
     }
@@ -793,7 +845,7 @@ function createProfileInfraService(config) {
         if (res.status !== 406 && res.status !== 415) {
           log(sandbox, 'listGlobalFieldGroups.failed', {
             httpStatus: res.status,
-            msg: data?.message || data?.title || res.statusText,
+            msg: extractAepErrorMessage(data, res.statusText),
           });
           return out;
         }
@@ -844,10 +896,10 @@ function createProfileInfraService(config) {
         });
         return data;
       }
-      lastErr = data.message || data.title || data.detail || res.statusText || String(res.status);
+      lastErr = extractAepErrorMessage(data, res.statusText || String(res.status));
       const retry = res.status === 415 || res.status === 406 || /unsupported media type|not acceptable/i.test(String(lastErr));
       if (!retry) {
-        throw new Error(`Create tenant field group "${body.title}" failed: ${lastErr}`);
+        throw new Error(`Create tenant field group "${body.title}" failed (HTTP ${res.status}): ${lastErr}`);
       }
     }
     throw new Error(`Create tenant field group "${body.title}" failed: ${lastErr}`);
@@ -911,9 +963,9 @@ function createProfileInfraService(config) {
         log(sandbox, 'postTenantSchema.ok', { acceptUsed: accept.slice(0, 48) });
         return data;
       }
-      lastErr = data.message || data.title || data.detail || res.statusText || String(res.status);
+      lastErr = extractAepErrorMessage(data, res.statusText || String(res.status));
       const retry = res.status === 415 || res.status === 406 || /unsupported media type|not acceptable/i.test(String(lastErr));
-      if (!retry) throw new Error(`Create schema failed: ${lastErr}`);
+      if (!retry) throw new Error(`Create schema failed (HTTP ${res.status}): ${lastErr}`);
     }
     throw new Error(`Create schema failed: ${lastErr}`);
   }
@@ -1046,7 +1098,7 @@ function createProfileInfraService(config) {
         await new Promise((r) => setTimeout(r, NOT_FOUND_BACKOFF_MS[attempt]));
         continue;
       }
-      const msg = data.message || data.title || data.detail || res.statusText;
+      const msg = extractAepErrorMessage(data, res.statusText);
       throw new Error(`Schema PATCH failed: HTTP ${res.status} — ${msg} (altId: ${metaAltId})`);
     }
     throw new Error(
@@ -1145,6 +1197,7 @@ function createProfileInfraService(config) {
       { 'Content-Type': 'application/json', Accept: ACCEPT_XED },
     ];
     let lastErr = '';
+    let lastStatus = 0;
     for (const h of attempts) {
       const { res, data } = await fetchJson(url, {
         method: 'POST',
@@ -1152,12 +1205,13 @@ function createProfileInfraService(config) {
         body: JSON.stringify(body),
       });
       if (res.ok) return data;
-      lastErr = data.message || data.title || data.detail || res.statusText;
+      lastStatus = res.status;
+      lastErr = extractAepErrorMessage(data, res.statusText);
       if (res.status !== 415 && !/unsupported media type/i.test(String(lastErr))) {
-        throw new Error(`Create identity descriptor failed: ${lastErr}`);
+        throw new Error(`Create identity descriptor failed (HTTP ${res.status}): ${lastErr}`);
       }
     }
-    throw new Error(`Create identity descriptor failed: ${lastErr}`);
+    throw new Error(`Create identity descriptor failed (HTTP ${lastStatus}): ${lastErr}`);
   }
 
   /**
@@ -1211,7 +1265,7 @@ function createProfileInfraService(config) {
       },
     });
     if (!res.ok) {
-      const msg = data.message || data.title || data.detail || res.statusText;
+      const msg = extractAepErrorMessage(data, res.statusText);
       throw new Error(`Get field group ${metaAltId} failed: HTTP ${res.status} — ${msg}`);
     }
     return data;
@@ -1257,20 +1311,16 @@ function createProfileInfraService(config) {
       body: JSON.stringify(ops),
     });
     if (res.ok) return { ok: true, applied: true, body: data };
-    // Adobe Schema Registry 4xx responses always include a `detail` and
-    // sometimes a `report` object. Surface the most informative field so
-    // the wizard's status message and the function logs make the next
-    // failure easy to triage.
-    const detail = (data && (data.detail || data.message || data.title)) || res.statusText;
-    const report = data && data.report;
-    let reportSummary = '';
-    if (report && typeof report === 'object') {
-      try { reportSummary = ` [report: ${JSON.stringify(report).slice(0, 240)}]`; } catch (_) { /* ignore */ }
-    }
+    // Adobe Schema Registry 4xx responses bury the most useful field
+    // (e.g. "Descriptor with id <…> already exists") under
+    // `report.additionalDetails[].errorReason`. Use the shared extractor
+    // so wizard status messages, function logs, and the retry classifier
+    // all see the same human-readable detail.
+    const detail = extractAepErrorMessage(data, res.statusText);
     return {
       ok: false,
       status: res.status,
-      message: `${detail}${reportSummary}`,
+      message: detail,
       body: data,
     };
   }
@@ -1506,9 +1556,21 @@ function createProfileInfraService(config) {
         await createPrimaryEmailDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey);
         descriptorOk = true;
       } catch (e) {
+        // Idempotency: if AEP rejects because the descriptor already exists
+        // (we missed it in the pre-check above due to filter encoding /
+        // shape variance), treat that as success. Now that
+        // createPrimaryEmailDescriptor surfaces the buried
+        // `report.additionalDetails[].errorReason`, the duplicate signal
+        // ("Descriptor with id <…> already exists", under a generic
+        // top-level title like "Descriptor validation error") arrives in
+        // the message and `looksLikeAlreadyExists` matches it.
         const msg = String(e.message || e);
-        if (/409|already exists|duplicate/i.test(msg)) descriptorOk = true;
-        else throw e;
+        if (looksLikeAlreadyExists(msg)) {
+          log(sandbox, 'createPrimaryEmailDescriptor.alreadyExists', { msg: msg.slice(0, 240) });
+          descriptorOk = true;
+        } else {
+          throw e;
+        }
       }
     }
     return {
@@ -1531,8 +1593,8 @@ function createProfileInfraService(config) {
     for (let i = 0; i < 100; i++) {
       const { res, data } = await fetchJson(url, { method: 'GET', headers: headersJson(token, clientId, orgId, sandbox) });
       if (!res.ok) {
-        const msg = data.message || data.title || res.statusText;
-        throw new Error(`Catalog dataSets: ${msg}`);
+        const msg = extractAepErrorMessage(data, res.statusText);
+        throw new Error(`Catalog dataSets failed (HTTP ${res.status}): ${msg}`);
       }
       pages.push(data);
       const next = data._links?.next?.href || data._page?.next;
@@ -1589,8 +1651,8 @@ function createProfileInfraService(config) {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const msg = data.message || data.title || data.detail || res.statusText;
-      throw new Error(`Create dataset failed: ${msg}`);
+      const msg = extractAepErrorMessage(data, res.statusText);
+      throw new Error(`Create dataset failed (HTTP ${res.status}): ${msg}`);
     }
     if (Array.isArray(data) && data[0] && typeof data[0] === 'string') {
       const m = data[0].match(/@\/dataSets\/([0-9a-fA-F]+)/);
@@ -1610,7 +1672,7 @@ function createProfileInfraService(config) {
       body: JSON.stringify(body),
     });
     if (res.ok) return { ok: true };
-    return { ok: false, error: data.message || data.title || res.statusText };
+    return { ok: false, error: extractAepErrorMessage(data, res.statusText) };
   }
 
   /* ---- Step messages ---- */
@@ -2012,4 +2074,8 @@ module.exports = {
   diffManifestAgainstMixin,
   buildCompositeSubtreeFromManifest,
   buildTopUpJsonPatchOps,
+  // Shared error-surface helpers — exposed for unit tests and for any
+  // future per-industry service that bypasses the factory wrappers.
+  extractAepErrorMessage,
+  looksLikeAlreadyExists,
 };
