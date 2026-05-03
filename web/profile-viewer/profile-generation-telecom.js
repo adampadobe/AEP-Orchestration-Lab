@@ -23,27 +23,26 @@
  *   root XDM mixin (`telecomSubscription` is in
  *   `PROFILE_STREAM_ROOT_PATH_PREFIXES` already — required so the proxy
  *   doesn't tenant-prefix it under `_<tenant>.telecomSubscription.*`)
- *     • telecomSubscription.bundleName
- *     • telecomSubscription.mobileSubscription.planLevel
- *     • telecomSubscription.mobileSubscription.portedNumber
- *     • telecomSubscription.mobileSubscription.earlyUpgradeEnrollment
- *     • telecomSubscription.internetSubscription.connectionType
- *     • telecomSubscription.internetSubscription.downloadSpeed
- *     • telecomSubscription.internetSubscription.uploadSpeed
- *     • telecomSubscription.internetSubscription.dataCap
- *     • telecomSubscription.internetSubscription.selfSetup
- *     • telecomSubscription.mediaSubscription.channels
- *     • telecomSubscription.landlineSubscription.{voicemail, callerID}
+ *     • telecomSubscription.bundleName                     (string at root)
+ *     • telecomSubscription.mobileSubscription   = [{ planLevel, portedNumber, earlyUpgradeEnrollment }]
+ *     • telecomSubscription.internetSubscription = [{ connectionType, downloadSpeed, uploadSpeed, dataCap, selfSetup }]
+ *     • telecomSubscription.mediaSubscription    = [{ channels }]
+ *     • telecomSubscription.landlineSubscription = [{ voicemail, callerID }]
  *           ← OOTB Telecom Subscription FG (https://ns.adobe.com/xdm/mixins/profile/profile-telecom-subscription)
- *              attached by the wizard. Verified leaves against the resolved
- *              FG (apalmer, May 2026) — every path above maps to an actual
- *              schema leaf. Array children of {mobile,internet,landline,media}
- *              Subscription.subscriptionDetails.* are intentionally NOT
+ *              attached by the wizard. CRITICAL: the four sub-product leaves
+ *              ({mobile,internet,media,landline}Subscription) are typed as
+ *              `array of object` in the OOTB schema (verified against the
+ *              resolved FG in apalmer, May 2026 via Accept: xed-full+json),
+ *              so we wrap each sub-product's leaves in a single-element array
+ *              before streaming. Pushing them as flat dotted paths produced
+ *              the JSONObject-vs-JSONArray DCVS-1104-400 ingestion failure
+ *              that prompted this rewrite. Array children of
+ *              <subProduct>.subscriptionDetails.* are intentionally NOT
  *              exposed (they require array-element editors).
  *
  * Operator-context dropdown re-mappings:
- *   • planTier  → telecomSubscription.bundleName  (when bundle name unset)
- *   • planTier  → telecomSubscription.mobileSubscription.planLevel  (when planLevel unset)
+ *   • planTier  → telecomSubscription.bundleName              (when bundle name unset)
+ *   • planTier  → telecomSubscription.mobileSubscription[0].planLevel  (when planLevel unset)
  *
  * Wire-up:
  *   - DOM scope: #telecomProfilePanel.
@@ -310,50 +309,69 @@
           push(`industryTelecom.serviceFlags.${t.key}`, !!el.checked);
         });
 
-        // ---- Operator-context plan-tier remapping onto OOTB scalars ----
+        // ---- OOTB telecomSubscription.* (root XDM mixin) ---------------------
+        // The OOTB Telecom Subscription FG types `telecomSubscription` itself
+        // as an object, but every sub-product
+        // (mobile/internet/media/landline)Subscription is `type: array of
+        // object`. The previous flat per-leaf pushes
+        // (`telecomSubscription.mobileSubscription.planLevel = "Premium"`)
+        // hit DCVS-1104-400 because they emitted an OBJECT where the schema
+        // demanded an ARRAY. Fix: collect every leaf into a per-sub-product
+        // object and push the wrapping single-element array as one leaf
+        // (Route A — the proxy's setByPath assigns array values verbatim).
+
+        // bundleName is a scalar at the root and stays a flat push.
         const tier = trim($('telecomPlanTier'));
         const explicitBundle = trim($('telecomSubBundleName'));
-        if (!explicitBundle && tier && BUNDLE_NAME_BY_PLAN[tier]) {
-          push('telecomSubscription.bundleName', BUNDLE_NAME_BY_PLAN[tier]);
-        }
+        const bundleName = explicitBundle || (tier && BUNDLE_NAME_BY_PLAN[tier]) || '';
+        if (bundleName) push('telecomSubscription.bundleName', bundleName);
+
+        // mobileSubscription[0] — planLevel + the two boolean toggles.
         const explicitPlanLevel = trim($('telecomSubMobilePlanLevel'));
-        if (!explicitPlanLevel && tier && PLAN_LEVEL_BY_PLAN[tier]) {
-          push('telecomSubscription.mobileSubscription.planLevel', PLAN_LEVEL_BY_PLAN[tier]);
+        const planLevel = explicitPlanLevel || (tier && PLAN_LEVEL_BY_PLAN[tier]) || '';
+        const mobile = {};
+        if (planLevel) mobile.planLevel = planLevel;
+        const portedEl = $('telecomSubPortedNumber');
+        if (portedEl) mobile.portedNumber = !!portedEl.checked;
+        const earlyUpgradeEl = $('telecomSubEarlyUpgrade');
+        if (earlyUpgradeEl) mobile.earlyUpgradeEnrollment = !!earlyUpgradeEl.checked;
+        if (Object.keys(mobile).length) {
+          push('telecomSubscription.mobileSubscription', [mobile]);
         }
 
-        // ---- New OOTB telecomSubscription.* leaves ----
-        if (explicitBundle) push('telecomSubscription.bundleName', explicitBundle);
-        if (explicitPlanLevel) push('telecomSubscription.mobileSubscription.planLevel', explicitPlanLevel);
-
-        const portedEl = $('telecomSubPortedNumber');
-        if (portedEl) push('telecomSubscription.mobileSubscription.portedNumber', !!portedEl.checked);
-
-        const earlyUpgradeEl = $('telecomSubEarlyUpgrade');
-        if (earlyUpgradeEl) push('telecomSubscription.mobileSubscription.earlyUpgradeEnrollment', !!earlyUpgradeEl.checked);
-
+        // internetSubscription[0] — connectionType + speeds + cap + self-setup.
+        const internet = {};
         const internetConn = trim($('telecomSubInternetConnection'));
-        if (internetConn) push('telecomSubscription.internetSubscription.connectionType', internetConn);
-
+        if (internetConn) internet.connectionType = internetConn;
         const dlSpeed = intOr($('telecomSubInternetDownload'));
-        if (dlSpeed != null) push('telecomSubscription.internetSubscription.downloadSpeed', dlSpeed);
-
+        if (dlSpeed != null) internet.downloadSpeed = dlSpeed;
         const upSpeed = intOr($('telecomSubInternetUpload'));
-        if (upSpeed != null) push('telecomSubscription.internetSubscription.uploadSpeed', upSpeed);
-
+        if (upSpeed != null) internet.uploadSpeed = upSpeed;
         const dataCap = intOr($('telecomSubInternetDataCap'));
-        if (dataCap != null) push('telecomSubscription.internetSubscription.dataCap', dataCap);
-
+        if (dataCap != null) internet.dataCap = dataCap;
         const selfSetupEl = $('telecomSubInternetSelfSetup');
-        if (selfSetupEl) push('telecomSubscription.internetSubscription.selfSetup', !!selfSetupEl.checked);
+        if (selfSetupEl) internet.selfSetup = !!selfSetupEl.checked;
+        if (Object.keys(internet).length) {
+          push('telecomSubscription.internetSubscription', [internet]);
+        }
 
+        // mediaSubscription[0] — currently just the channels integer.
+        const media = {};
         const channels = intOr($('telecomSubMediaChannels'));
-        if (channels != null) push('telecomSubscription.mediaSubscription.channels', channels);
+        if (channels != null) media.channels = channels;
+        if (Object.keys(media).length) {
+          push('telecomSubscription.mediaSubscription', [media]);
+        }
 
+        // landlineSubscription[0] — the two boolean feature toggles.
+        const landline = {};
         const voicemailEl = $('telecomSubLandlineVoicemail');
-        if (voicemailEl) push('telecomSubscription.landlineSubscription.voicemail', !!voicemailEl.checked);
-
+        if (voicemailEl) landline.voicemail = !!voicemailEl.checked;
         const callerIDEl = $('telecomSubLandlineCallerID');
-        if (callerIDEl) push('telecomSubscription.landlineSubscription.callerID', !!callerIDEl.checked);
+        if (callerIDEl) landline.callerID = !!callerIDEl.checked;
+        if (Object.keys(landline).length) {
+          push('telecomSubscription.landlineSubscription', [landline]);
+        }
       },
       applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose }) {
         SCALAR_FIELDS.forEach((f) => {
