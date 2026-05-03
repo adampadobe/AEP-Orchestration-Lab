@@ -193,6 +193,18 @@
     d.setUTCDate(d.getUTCDate() - daysAgo);
     return d.toISOString().slice(0, 10);
   }
+  // Convert a date-only string ('YYYY-MM-DD') into a full ISO-8601 instant
+  // ('YYYY-MM-DDTHH:mm:ssZ') for OOTB schema leaves typed as `format: date-time`.
+  // Required by personalFinances.creditScores[].scoreDate — that leaf rejected
+  // bare 'YYYY-MM-DD' values with DCVS-1102-400 ("not a valid date-time")
+  // on the May 3 2026 batch (4 records failed) until this conversion was added.
+  // DO NOT use this for `format: date` leaves (e.g. person.birthDate,
+  // homeInsuranceDataType.effectiveDate) — those want bare 'YYYY-MM-DD'.
+  function toIsoDateTime(dateOnly) {
+    if (!dateOnly || typeof dateOnly !== 'string') return dateOnly;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return `${dateOnly}T00:00:00Z`;
+    return dateOnly;
+  }
   function randomCreditScoreInBand(bandKey) {
     switch (bandKey) {
       case 'poor':      return randInt(300, 579);
@@ -480,7 +492,7 @@
         const creditScoreEntry = {};
         if (explicitCreditScore != null) creditScoreEntry.score = Math.round(explicitCreditScore);
         if (creditBureau) creditScoreEntry.provider = creditBureau;
-        if (creditScoreDate) creditScoreEntry.scoreDate = creditScoreDate;
+        if (creditScoreDate) creditScoreEntry.scoreDate = toIsoDateTime(creditScoreDate);
         if (Object.keys(creditScoreEntry).length) {
           push('personalFinances.creditScores', [creditScoreEntry]);
         }
