@@ -4435,23 +4435,23 @@
           </div>
         </div>
 
-        <!-- Retail propensity scores — _<tenant>.scoring.retail.* (0.00 – 1.00) -->
+        <!-- Retail propensity scores — _<tenant>.scoring.retail.* (0–100 integer) -->
         <div class="generic-identity-section" style="margin-top: 20px;">
           <h4 class="generic-subhead" style="font-size: 0.95em;">🎯 Retail propensity scores</h4>
           <p class="form-help" style="margin: 4px 0 12px 0; font-size: 0.85em; color: var(--dash-text-secondary);">
-            AEP propensity scores (0.00 – 1.00). Streamed to <code>scoring.retail.*</code>.
+            AEP propensity scores (0 – 100). Streamed to <code>scoring.retail.*</code> as integers (matches the lab-wide churn / propensity / NPS convention).
           </p>
           <div class="generic-analytics-grid">
             <div class="analytics-card">
               <div class="analytics-card-header">
                 <span class="analytics-card-icon">💳</span>
                 <h4 class="analytics-card-title">Co-branded card sign-up</h4>
-                <span class="analytics-card-value" id="retailCobrandedCreditCardSignUpValue">0.50</span>
+                <span class="analytics-card-value" id="retailCobrandedCreditCardSignUpValue">50</span>
               </div>
               <input type="range" id="retailCobrandedCreditCardSignUp" class="analytics-slider" min="0" max="100" step="1" value="50">
               <div class="analytics-slider-meta">
                 <span>Low</span>
-                <button type="button" class="btn btn-link analytics-randomize" data-target="retailCobrandedCreditCardSignUp" data-display="retailCobrandedCreditCardSignUpValue" data-format="prob" title="Randomize">🎲</button>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailCobrandedCreditCardSignUp" data-display="retailCobrandedCreditCardSignUpValue" title="Randomize">🎲</button>
                 <span>High</span>
               </div>
             </div>
@@ -4459,12 +4459,12 @@
               <div class="analytics-card-header">
                 <span class="analytics-card-icon">🎁</span>
                 <h4 class="analytics-card-title">Loyalty programme sign-up</h4>
-                <span class="analytics-card-value" id="retailLoyaltyProgramSignUpValue">0.50</span>
+                <span class="analytics-card-value" id="retailLoyaltyProgramSignUpValue">50</span>
               </div>
               <input type="range" id="retailLoyaltyProgramSignUp" class="analytics-slider" min="0" max="100" step="1" value="50">
               <div class="analytics-slider-meta">
                 <span>Low</span>
-                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyProgramSignUp" data-display="retailLoyaltyProgramSignUpValue" data-format="prob" title="Randomize">🎲</button>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyProgramSignUp" data-display="retailLoyaltyProgramSignUpValue" title="Randomize">🎲</button>
                 <span>High</span>
               </div>
             </div>
@@ -4472,12 +4472,12 @@
               <div class="analytics-card-header">
                 <span class="analytics-card-icon">⬆️</span>
                 <h4 class="analytics-card-title">Loyalty status upgrade</h4>
-                <span class="analytics-card-value" id="retailLoyaltyStatusUpgradeValue">0.50</span>
+                <span class="analytics-card-value" id="retailLoyaltyStatusUpgradeValue">50</span>
               </div>
               <input type="range" id="retailLoyaltyStatusUpgrade" class="analytics-slider" min="0" max="100" step="1" value="50">
               <div class="analytics-slider-meta">
                 <span>Low</span>
-                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyStatusUpgrade" data-display="retailLoyaltyStatusUpgradeValue" data-format="prob" title="Randomize">🎲</button>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyStatusUpgrade" data-display="retailLoyaltyStatusUpgradeValue" title="Randomize">🎲</button>
                 <span>High</span>
               </div>
             </div>
@@ -5126,7 +5126,7 @@
   <script src="profile-generation-industry-runtime.js?v=20260503a"></script>
   <script src="profile-generation-fsi.js?v=20260503a"></script>
   <script src="profile-generation-telecom.js?v=20260503a"></script>
-  <script src="profile-generation-retail.js?v=20260503a"></script>
+  <script src="profile-generation-retail.js?v=20260503b"></script>
   <script src="profile-generation-media.js?v=20260503a"></script>
   <script src="profile-generation-sports.js?v=20260503a"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

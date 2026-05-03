@@ -19,7 +19,9 @@
  *           ← Retail products & sizes section
  *     • scoring.retail.{cobrandedCreditCardSignUp, loyaltyProgramSignUp,
  *         loyaltyStatusUpgrade}
- *           ← Retail propensity sliders (each 0.00 – 1.00)
+ *           ← Retail propensity sliders (each 0–100 integer; matches the
+ *              lab-wide churn / propensity / NPS scoring scale so every
+ *              propensity-style score in the lab speaks the same units)
  *     • orderProfile.{lastOrderDate, lastOrderSize, lastOrderValue,
  *         lastOrderPaymentMethod, lastOrderSku[], lastOrderStore[],
  *         lastOrderType[], ordersYTD, lifetimeValue}
@@ -185,37 +187,78 @@
   };
 
   // ---- Slider display sync for the 3 retail propensity sliders. ----
-  // The runtime helper randomizes via `randomizeSliderControl` which
-  // dispatches an `input` event; our listener formats the displayed
-  // probability as 0.00 – 1.00 (slider value 0–100).
+  // Convention (matches the shared Customer Analytics churn / propensity /
+  // NPS sliders on every industry page): integer 0–100 in the UI, pushed
+  // AS-IS as an integer 0–100 to AEP. The runtime helper randomizes via
+  // `randomizeSliderControl` which respects min/max/step from the input
+  // (already 0/100/1 in the HTML) and dispatches an `input` event; our
+  // listener updates the displayed integer AND repaints the green/amber/
+  // red track tint so the visual fill always matches the value.
   const PROPENSITY_SLIDERS = [
     { id: 'retailCobrandedCreditCardSignUp', display: 'retailCobrandedCreditCardSignUpValue', key: 'cobrandedCreditCardSignUp' },
     { id: 'retailLoyaltyProgramSignUp',      display: 'retailLoyaltyProgramSignUpValue',      key: 'loyaltyProgramSignUp' },
     { id: 'retailLoyaltyStatusUpgrade',      display: 'retailLoyaltyStatusUpgradeValue',      key: 'loyaltyStatusUpgrade' },
   ];
+
+  // Inlined replica of the runtime's `applySliderTint` (not exported on
+  // window.AepProfileGenIndustry). Keeping it local avoids a runtime API
+  // change and keeps this file self-contained. Higher = better here, so
+  // no `reverse` flag — green sits at the top of the scale.
+  function applyPropensityTint(input) {
+    if (!input) return;
+    if (input.disabled) {
+      input.style.setProperty('--gen-slider-fill', 'var(--dash-input-border)');
+      input.style.setProperty('--gen-slider-pct', '0%');
+      return;
+    }
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const val = Number(input.value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(val)) return;
+    const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+    let token = '--dash-warning-border';
+    if (pct < 0.34) token = '--dash-error-border';
+    else if (pct >= 0.67) token = '--dash-success-border';
+    input.style.setProperty('--gen-slider-fill', `var(${token})`);
+    input.style.setProperty('--gen-slider-pct', `${(pct * 100).toFixed(2)}%`);
+  }
+
   function renderPropensity(slider) {
     const cfg = PROPENSITY_SLIDERS.find((s) => s.id === slider.id);
     if (!cfg) return;
     const disp = $(cfg.display);
-    if (!disp) return;
-    const pct = Math.max(0, Math.min(100, Number(slider.value) || 0));
-    disp.textContent = (pct / 100).toFixed(2);
+    const pct = Math.max(0, Math.min(100, Math.round(Number(slider.value) || 0)));
+    if (disp) disp.textContent = String(pct);
+    applyPropensityTint(slider);
   }
-  function setPropensitySliderProb(cfg, prob01) {
+
+  // Coerce a raw value to an integer in [0, 100]. Treats legacy floats in
+  // [0, 1] (i.e. older snapshots / profiles streamed before this fix used
+  // the 0.00–1.00 scale) as probabilities and rescales them to 0–100 so
+  // already-streamed data still renders sensibly.
+  function coerceToPropensityInt(raw) {
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    if (n > 0 && n <= 1) return Math.round(n * 100); // legacy 0.0–1.0 → 0–100
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  function setPropensitySliderInt(cfg, intVal) {
     const slider = $(cfg.id);
     if (!slider) return;
-    const pct = Math.max(0, Math.min(100, Math.round(prob01 * 100)));
+    const pct = Math.max(0, Math.min(100, Math.round(Number(intVal) || 0)));
     slider.value = String(pct);
     renderPropensity(slider);
   }
-  function readPropensityProb(cfg) {
+  function readPropensityInt(cfg) {
     const slider = $(cfg.id);
     if (!slider) return null;
     const raw = String(slider.value || '').trim();
     if (raw === '') return null;
     const pct = Number(raw);
     if (!Number.isFinite(pct)) return null;
-    return Math.max(0, Math.min(1, pct / 100));
+    return Math.max(0, Math.min(100, Math.round(pct)));
   }
 
   // ---- Last-order toggle visibility. ----
@@ -319,8 +362,8 @@
 
         const propensity = {};
         PROPENSITY_SLIDERS.forEach((s) => {
-          const v = readPropensityProb(s);
-          if (v != null) propensity[s.key] = Number(v.toFixed(2));
+          const v = readPropensityInt(s);
+          if (v != null) propensity[s.key] = v; // integer 0–100
         });
 
         const lastOrder = {
@@ -391,9 +434,14 @@
         }
 
         // ----- Retail propensity scores (scoring.retail.*).
+        // Push the slider value AS-IS as an integer 0–100 to match the
+        // shared Customer Analytics scores (scoring.churn.churnPrediction,
+        // scoring.core.propensityScore, scoring.npsScore). The schema
+        // types these leaves as `number` with no min/max constraint, so
+        // integers in [0,100] are valid AEP payloads.
         PROPENSITY_SLIDERS.forEach((s) => {
-          const v = readPropensityProb(s);
-          if (v != null) push(`scoring.retail.${s.key}`, Number(v.toFixed(4)));
+          const v = readPropensityInt(s);
+          if (v != null) push(`scoring.retail.${s.key}`, v);
         });
 
         // ----- Last order details (orderProfile.* extras).
@@ -479,13 +527,15 @@
           setCheck('retailCobrandedCreditCardHolder', String(cobranded).toLowerCase() === 'true');
         }
 
-        // Retail propensity sliders (numbers in 0–1).
+        // Retail propensity sliders (integers 0–100). Older profiles
+        // streamed before this fix used the 0.00–1.00 scale; coerce both
+        // shapes via coerceToPropensityInt so legacy data still renders.
         PROPENSITY_SLIDERS.forEach((s) => {
           const v = findBySuffix([`scoring.retail.${s.key.toLowerCase()}`]) ||
                     findByKeywords('scoring', 'retail', s.key.toLowerCase());
           if (v == null || v === '') return;
-          const n = Number(v);
-          if (Number.isFinite(n)) setPropensitySliderProb(s, Math.max(0, Math.min(1, n)));
+          const n = coerceToPropensityInt(v);
+          if (n != null) setPropensitySliderInt(s, n);
         });
 
         // Last-order details. Auto-open the toggle if any field shows up.
@@ -543,10 +593,12 @@
         setVal('retailShoeSize', p.shoeSize || '');
         setCheck('retailCobrandedCreditCardHolder', !!p.cobrandedCreditCardHolder);
 
+        // Snapshots may carry either the new 0–100 integer or the legacy
+        // 0.00–1.00 float depending on when they were captured; coerce.
         const pr = (snap.propensity && typeof snap.propensity === 'object') ? snap.propensity : {};
         PROPENSITY_SLIDERS.forEach((s) => {
-          const v = pr[s.key];
-          if (v != null && Number.isFinite(Number(v))) setPropensitySliderProb(s, Math.max(0, Math.min(1, Number(v))));
+          const n = coerceToPropensityInt(pr[s.key]);
+          if (n != null) setPropensitySliderInt(s, n);
         });
 
         const lo = (snap.lastOrder && typeof snap.lastOrder === 'object') ? snap.lastOrder : {};
@@ -605,9 +657,9 @@
         setVal('retailShoeSize', randomShoeSize());
         setCheck('retailCobrandedCreditCardHolder', Math.random() < 0.30);
 
-        // Retail propensity sliders.
+        // Retail propensity sliders — random integer in [0, 100].
         PROPENSITY_SLIDERS.forEach((s) => {
-          setPropensitySliderProb(s, Math.random());
+          setPropensitySliderInt(s, randInt(0, 100));
         });
 
         // Last-order details — auto-enable + populate.
