@@ -1650,6 +1650,31 @@ function createProfileInfraService(config) {
     return flattenDatasets([data]);
   }
 
+  /**
+   * Catalog metadata field that AEP requires on Profile-enabled streaming
+   * datasets. The Catalog API now (verified May 2026 against gerdos) rejects
+   * `PATCH /dataSets/<id>` with HTTP 422 — `Field 'adobe/siphon/table/format'
+   * cannot be empty or blank` — when the resulting tags object would not
+   * contain a non-empty value for this key. The canonical value for the
+   * Delta-Lake-backed at-rest format AEP Profile expects is `delta` —
+   * verified live against every Profile-enabled dataset in apalmer, kirkham,
+   * and gerdos (see /tmp/aep-probe-dataset-format.json).
+   *
+   * NOTE: this is the value stored in `tags["adobe/siphon/table/format"]`
+   * on the Catalog dataset (NOT the same as `fileDescription.format`, which
+   * is `"parquet"` on every dataset). The two are different metadata
+   * surfaces — `tags` is what the Profile-enable PATCH validates, so this
+   * is what we set.
+   */
+  const ADOBE_SIPHON_TABLE_FORMAT_KEY = 'adobe/siphon/table/format';
+  const ADOBE_SIPHON_TABLE_FORMAT_VALUE = ['delta'];
+
+  function tagValueIsEmpty(v) {
+    if (v == null) return true;
+    if (Array.isArray(v)) return v.length === 0 || v.every((s) => String(s ?? '').trim().length === 0);
+    return String(v).trim().length === 0;
+  }
+
   async function createDataset(token, clientId, orgId, sandbox, schemaId, name) {
     const description =
       datasetDescription ||
@@ -1663,6 +1688,11 @@ function createProfileInfraService(config) {
       },
       tags: {
         unifiedProfile: ['enabled:true'],
+        // Required by the Catalog API on Profile-enabled streaming datasets.
+        // Without it, subsequent PATCHes (e.g. re-enabling Profile) fail with
+        // HTTP 422 "Field 'adobe/siphon/table/format' cannot be empty or blank".
+        // See ADOBE_SIPHON_TABLE_FORMAT_VALUE comment above for sourcing.
+        [ADOBE_SIPHON_TABLE_FORMAT_KEY]: ADOBE_SIPHON_TABLE_FORMAT_VALUE,
       },
     };
     const url = `${CATALOG_BASE}/dataSets`;
@@ -1686,10 +1716,61 @@ function createProfileInfraService(config) {
     return { id: null, raw: data };
   }
 
+  async function getDatasetById(token, clientId, orgId, sandbox, datasetId) {
+    if (!datasetId) return null;
+    const url = `${CATALOG_BASE}/dataSets/${encodeURIComponent(datasetId)}`;
+    const { res, data } = await fetchJson(url, {
+      method: 'GET',
+      headers: headersJson(token, clientId, orgId, sandbox),
+    });
+    if (!res.ok) return null;
+    // Catalog GET-by-id returns `{ <id>: { ...dataset } }`. Unwrap so callers
+    // get the dataset object directly.
+    if (data && typeof data === 'object' && !Array.isArray(data) && data[datasetId] && typeof data[datasetId] === 'object') {
+      return { id: datasetId, ...data[datasetId] };
+    }
+    return data;
+  }
+
+  /**
+   * PATCH `tags.unifiedProfile = ['enabled:true']` on a streaming dataset,
+   * preserving every other tag key that already exists AND ensuring the
+   * Catalog-required `adobe/siphon/table/format` key is non-empty.
+   *
+   * AEP's `/data/foundation/catalog/dataSets/<id>` PATCH treats the `tags`
+   * object as a REPLACE on PATCH (not a merge) — so a PATCH body of just
+   * `{ tags: { unifiedProfile: [...] } }` would erase all the other tag
+   * keys AND trigger HTTP 422 "Field 'adobe/siphon/table/format' cannot
+   * be empty or blank". This helper avoids both by:
+   *   1. GETting the current dataset to read the live tags object.
+   *   2. Merging in `unifiedProfile: ['enabled:true']` and (if missing /
+   *      empty) `adobe/siphon/table/format: ['delta']`.
+   *   3. PATCHing the merged tags object.
+   *
+   * Idempotent: if the dataset is already Profile-enabled AND the format
+   * field is already non-empty, the function returns `{ ok: true,
+   * skipped: true }` without sending a PATCH.
+   */
   async function enableProfileOnDataset(token, clientId, orgId, sandbox, datasetId) {
     if (!datasetId) return { ok: false };
     const url = `${CATALOG_BASE}/dataSets/${encodeURIComponent(datasetId)}`;
-    const body = { tags: { unifiedProfile: ['enabled:true'] } };
+
+    const current = await getDatasetById(token, clientId, orgId, sandbox, datasetId);
+    const existingTags = (current && current.tags && typeof current.tags === 'object') ? current.tags : {};
+
+    const alreadyProfileEnabled = datasetHasProfileEnabledTag(current);
+    const formatPresent = !tagValueIsEmpty(existingTags[ADOBE_SIPHON_TABLE_FORMAT_KEY]);
+    if (alreadyProfileEnabled && formatPresent) {
+      return { ok: true, skipped: true };
+    }
+
+    const mergedTags = { ...existingTags };
+    mergedTags.unifiedProfile = ['enabled:true'];
+    if (!formatPresent) {
+      mergedTags[ADOBE_SIPHON_TABLE_FORMAT_KEY] = ADOBE_SIPHON_TABLE_FORMAT_VALUE;
+    }
+
+    const body = { tags: mergedTags };
     const { res, data } = await fetchJson(url, {
       method: 'PATCH',
       headers: { ...headersJson(token, clientId, orgId, sandbox), Accept: 'application/json' },
