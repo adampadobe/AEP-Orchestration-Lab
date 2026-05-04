@@ -1090,6 +1090,13 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     }
   }
 
+  // Consent dataset is intentionally NOT Profile-enabled (consent flows are
+  // event-only, not Profile attributes). The flag is still surfaced so the
+  // at-a-glance status badges can render the same shape as the per-industry
+  // panels — the consent badge interprets `datasetProfileEnabled === false`
+  // as the expected good state.
+  const datasetProfileEnabled = !!dataset && datasetHasProfileEnabledTag(dataset);
+
   const ready =
     !!(profileCore && schema && dataset && hasDescriptor) && !schemaInProfileUnion;
 
@@ -1110,6 +1117,8 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     sandbox,
     ready,
     schemaInProfileUnion,
+    // Short alias for the at-a-glance status badges added May 2026.
+    schemaInUnion: schemaInProfileUnion,
     warnings: schemaInProfileUnion ? [PROFILE_UNION_IRREVERSIBLE] : [],
     tenantId: tenantCtx.tenantId,
     xdmKey: tenantCtx.xdmKey,
@@ -1121,6 +1130,7 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     primaryEmailDescriptor: hasDescriptor,
     datasetFound: !!dataset,
     datasetId: dataset?.id || null,
+    datasetProfileEnabled,
     prepSteps: {
       step1_schemaShell: !!schema,
       /** Field groups + union guard; primary Email is still reported separately via `primaryEmailDescriptor` (descriptor list API can lag). */

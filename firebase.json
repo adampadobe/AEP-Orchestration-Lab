@@ -553,6 +553,13 @@
         }
       },
       {
+        "source": "/api/profile-infra/status-all",
+        "function": {
+          "functionId": "profileInfraStatusAll",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/update",
         "function": {
           "functionId": "profileUpdateProxy",

@@ -1911,6 +1911,11 @@ function createProfileInfraService(config) {
       sandbox,
       ready,
       schemaInProfileUnion,
+      // Short alias for the at-a-glance status badges added May 2026 — same
+      // boolean as `schemaInProfileUnion`, kept under both names so the
+      // existing wizard call sites and the new aggregate `/api/profile-infra
+      // /status-all` endpoint stay consistent.
+      schemaInUnion: schemaInProfileUnion,
       tenantId: tenantCtx.tenantId,
       xdmKey: tenantCtx.xdmKey,
       profileCoreMixinFound: !!profileCore,

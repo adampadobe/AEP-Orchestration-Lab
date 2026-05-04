@@ -1114,6 +1114,15 @@
         try { applyConfiguredCollapseState(); } catch (_) { /* ignore */ }
       } finally {
         busy.forEach((b) => { b.disabled = false; });
+        // Refresh the at-a-glance status badges (industry dropdown +
+        // panel headers) regardless of success/failure — the user just
+        // attempted to change Profile-enabled state, so the indicators
+        // must re-poll. force=true bypasses the 30s server cache.
+        try {
+          if (window.AepProfileInfraStatus && typeof window.AepProfileInfraStatus.refresh === 'function') {
+            window.AepProfileInfraStatus.refresh({ force: true });
+          }
+        } catch (_) { /* ignore */ }
       }
     }
 

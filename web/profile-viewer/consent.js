@@ -1645,6 +1645,14 @@ async function enableConsentSchemaAndDatasetForProfile() {
     showInfraMessage(data.message || 'Consent schema and dataset are Profile-enabled.', 'success');
   } finally {
     enableProfileBtn.disabled = false;
+    // Refresh the at-a-glance Profile-enabled badge in the panel header.
+    // Force=true bypasses both client and server caches so the new state
+    // surfaces immediately.
+    try {
+      if (window.AepProfileInfraStatus && typeof window.AepProfileInfraStatus.refresh === 'function') {
+        window.AepProfileInfraStatus.refresh({ force: true });
+      }
+    } catch (_) { /* ignore */ }
   }
 }
 stepCreateSchemaBtn &&

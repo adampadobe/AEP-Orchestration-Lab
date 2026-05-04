@@ -1261,3 +1261,70 @@ body.consent-onboarding-open {
   align-items: center;
   gap: 0.75rem;
 }
+
+/* ----------------------------------------------------------------------
+ * Profile-enabled status badge (May 2026)
+ *
+ * Mirrors the per-panel badge added to profile-generation.html. Driven
+ * by web/profile-viewer/profile-generation-status-badges.js — never edit
+ * these classes from elsewhere. Tokenised via --dash-success-* /
+ * --dash-warning-* / --dash-muted so light + dark themes stay aligned.
+ *
+ * Consent semantics (different from the Profile Generation panels):
+ *   ✓ Profile enabled  — schema + dataset present, schema NOT in union
+ *                         (the desired state — consent should not be
+ *                          part of the Profile union).
+ *   ◐ Partial          — schema or dataset accidentally Profile-enabled.
+ *                         Surfaces alongside the existing inline warning
+ *                         in consent.js / consentInfraService.js.
+ *   — Not provisioned  — schema or dataset missing.
+ * -------------------------------------------------------------------- */
+.profile-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.65rem;
+  padding: 0.18rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+  border: 1px solid var(--dash-border, transparent);
+  background: var(--dash-surface-alt, var(--dash-surface));
+  color: var(--dash-text-secondary, var(--dash-muted));
+  vertical-align: middle;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.profile-status-badge.is-enabled {
+  background: var(--dash-success-bg);
+  border-color: var(--dash-success-border, var(--dash-success-text));
+  color: var(--dash-success-text);
+}
+
+.profile-status-badge.is-partial,
+.profile-status-badge.is-unknown {
+  background: var(--dash-warning-bg);
+  border-color: var(--dash-warning-border, var(--dash-warning-text));
+  color: var(--dash-warning-text);
+}
+
+.profile-status-badge.is-not-enabled,
+.profile-status-badge.is-not-provisioned {
+  background: transparent;
+  border-color: var(--dash-border, var(--dash-muted));
+  color: var(--dash-muted);
+}
+
+.profile-status-badge.is-not-provisioned {
+  font-style: italic;
+}
+
+.profile-status-badge.is-pending {
+  background: transparent;
+  border-color: var(--dash-border, var(--dash-muted));
+  color: var(--dash-muted);
+  opacity: 0.7;
+}

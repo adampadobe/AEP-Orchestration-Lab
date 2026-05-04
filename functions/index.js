@@ -69,6 +69,7 @@ const retailProfileConnectionStore = lazyRequireMod('./retailProfileConnectionSt
 const mediaProfileInfraService = lazyRequireMod('./mediaProfileInfraService');
 const mediaProfileConnectionStore = lazyRequireMod('./mediaProfileConnectionStore');
 const sportsProfileInfraService = lazyRequireMod('./sportsProfileInfraService');
+const profileInfraStatusAllSvc = lazyRequireMod('./profileInfraStatusAll');
 const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionStore');
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
@@ -1348,6 +1349,64 @@ exports.sportsProfileInfraStep = sportsProfileRoutes.stepHandler;
 exports.sportsProfileInfraEnableProfile = sportsProfileRoutes.enableProfileHandler;
 exports.sportsProfileInfraFlowLookup = sportsProfileRoutes.flowLookupHandler;
 exports.sportsProfileConnectionStore = sportsProfileRoutes.connectionStoreHandler;
+
+/**
+ * GET /api/profile-infra/status-all?sandbox=<name> — aggregate status
+ * across all 7 industries (Generic, Travel, FSI, Telecom, Retail, Media,
+ * Sports). Returns the four boolean flags + canonical ids the
+ * profile-generation status badges read to render at-a-glance "Profile
+ * enabled" indicators on the industry selector dropdown and per-panel
+ * badges. Server-side 30s in-memory cache per sandbox so rapid
+ * panel-switch / sandbox-change cycles don't re-hit AEP.
+ */
+exports.profileInfraStatusAll = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  // `?refresh=1` bypasses the per-sandbox 30s cache. Used by the front
+  // end after a successful Enable-for-Profile click so the dropdown +
+  // panel badges immediately reflect the new state.
+  const bypassCache = String(req.query.refresh || '').trim() === '1';
+  console.log(
+    '[profileInfraStatusAll.http]',
+    JSON.stringify({ route: 'GET /api/profile-infra/status-all', sandbox, bypassCache })
+  );
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e), sandbox });
+    return;
+  }
+  try {
+    const payload = await profileInfraStatusAllSvc.runProfileInfraStatusAll({
+      sandbox,
+      token: accessToken,
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+      bypassCache,
+      services: {
+        generic: genericProfileInfraService,
+        travel: travelProfileInfraService,
+        fsi: fsiProfileInfraService,
+        telecom: telecomProfileInfraService,
+        retail: retailProfileInfraService,
+        media: mediaProfileInfraService,
+        sports: sportsProfileInfraService,
+      },
+    });
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
 
 /**
  * POST /api/profile/update — streams to the HTTP API connection (body.streaming.url + flowId, sandbox).

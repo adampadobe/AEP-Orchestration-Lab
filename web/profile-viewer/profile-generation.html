@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="profile-generation.css?v=20260504c">
+  <link rel="stylesheet" href="profile-generation.css?v=20260504d">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1054,7 +1054,7 @@
     <!-- Generic Profile (industry-less) — sandbox-portable streaming + Customer Analytics editor.
          Hidden by default; profile-generation.js toggles this on when industry === "generic". -->
     <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading" hidden>
-      <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less)</h2>
+      <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less) <span class="profile-status-badge is-pending" data-industry-status="generic" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern).
            Starts expanded so a fresh visitor sees the wizard. JS in
@@ -1495,7 +1495,7 @@
          tenant field group. profile-generation.js toggles this on when
          industry === "travel". -->
     <section class="consent-panel" id="travelProfilePanel" aria-labelledby="travelProfileHeading" hidden>
-      <h2 id="travelProfileHeading" class="panel-title"><span class="icon">✈️</span> Travel profile</h2>
+      <h2 id="travelProfileHeading" class="panel-title"><span class="icon">✈️</span> Travel profile <span class="profile-status-badge is-pending" data-industry-status="travel" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="travelProfileInfraDetails" open aria-label="Travel Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -2315,7 +2315,7 @@
          industry-attributes block (banking / credit / life-stage) is unique.
          profile-generation.js toggles this on when industry === "fsi". -->
     <section class="consent-panel" id="fsiProfilePanel" aria-labelledby="fsiProfileHeading" hidden>
-      <h2 id="fsiProfileHeading" class="panel-title"><span class="icon">🏦</span> FSI profile</h2>
+      <h2 id="fsiProfileHeading" class="panel-title"><span class="icon">🏦</span> FSI profile <span class="profile-status-badge is-pending" data-industry-status="fsi" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="fsiProfileInfraDetails" open aria-label="FSI Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -2840,7 +2840,7 @@
          industry-attributes block is unique. profile-generation.js toggles this
          on when industry === "sports". -->
     <section class="consent-panel" id="sportsProfilePanel" aria-labelledby="sportsProfileHeading" hidden>
-      <h2 id="sportsProfileHeading" class="panel-title"><span class="icon">⚽</span> Sports profile</h2>
+      <h2 id="sportsProfileHeading" class="panel-title"><span class="icon">⚽</span> Sports profile <span class="profile-status-badge is-pending" data-industry-status="sports" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="sportsProfileInfraDetails" open aria-label="Sports Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -3308,7 +3308,7 @@
          industry-attributes block is unique. profile-generation.js toggles this
          on when industry === "media". -->
     <section class="consent-panel" id="mediaProfilePanel" aria-labelledby="mediaProfileHeading" hidden>
-      <h2 id="mediaProfileHeading" class="panel-title"><span class="icon">🎬</span> Media profile</h2>
+      <h2 id="mediaProfileHeading" class="panel-title"><span class="icon">🎬</span> Media profile <span class="profile-status-badge is-pending" data-industry-status="media" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="mediaProfileInfraDetails" open aria-label="Media Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -3896,7 +3896,7 @@
          industry-attributes block is unique. profile-generation.js toggles this
          on when industry === "retail". -->
     <section class="consent-panel" id="retailProfilePanel" aria-labelledby="retailProfileHeading" hidden>
-      <h2 id="retailProfileHeading" class="panel-title"><span class="icon">🛍️</span> Retail profile</h2>
+      <h2 id="retailProfileHeading" class="panel-title"><span class="icon">🛍️</span> Retail profile <span class="profile-status-badge is-pending" data-industry-status="retail" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="retailProfileInfraDetails" open aria-label="Retail Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -4560,7 +4560,7 @@
          industry-attributes block is unique. profile-generation.js toggles this
          on when industry === "telecommunications". -->
     <section class="consent-panel" id="telecomProfilePanel" aria-labelledby="telecomProfileHeading" hidden>
-      <h2 id="telecomProfileHeading" class="panel-title"><span class="icon">📡</span> Telecom profile</h2>
+      <h2 id="telecomProfileHeading" class="panel-title"><span class="icon">📡</span> Telecom profile <span class="profile-status-badge is-pending" data-industry-status="telecom" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span></h2>
 
       <details class="consent-streaming-details" id="telecomProfileInfraDetails" open aria-label="Telecom Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
@@ -5110,19 +5110,26 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260503i"></script>
-  <script src="profile-generation.js?v=20260503i"></script>
-  <script src="profile-generation-generic.js?v=20260504c"></script>
-  <script src="profile-generation-travel.js?v=20260504c"></script>
+  <script src="profile-generation-shared.js?v=20260504d"></script>
+  <script src="profile-generation.js?v=20260504d"></script>
+  <script src="profile-generation-generic.js?v=20260504d"></script>
+  <script src="profile-generation-travel.js?v=20260504d"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260504c"></script>
-  <script src="profile-generation-fsi.js?v=20260504c"></script>
-  <script src="profile-generation-telecom.js?v=20260504c"></script>
-  <script src="profile-generation-retail.js?v=20260504c"></script>
-  <script src="profile-generation-media.js?v=20260504c"></script>
-  <script src="profile-generation-sports.js?v=20260504c"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260504d"></script>
+  <script src="profile-generation-fsi.js?v=20260504d"></script>
+  <script src="profile-generation-telecom.js?v=20260504d"></script>
+  <script src="profile-generation-retail.js?v=20260504d"></script>
+  <script src="profile-generation-media.js?v=20260504d"></script>
+  <script src="profile-generation-sports.js?v=20260504d"></script>
+  <!-- At-a-glance Profile-enabled status indicators (May 2026). Hits the
+       aggregate /api/profile-infra/status-all endpoint once per sandbox
+       and renders glyphs in the #industry dropdown + per-panel badges so
+       architects can see which industries are already Profile-enabled in
+       the selected sandbox. Loads after the per-industry modules so it
+       can listen to their `aep-<industry>-panel-shown` events. -->
+  <script src="profile-generation-status-badges.js?v=20260504d"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

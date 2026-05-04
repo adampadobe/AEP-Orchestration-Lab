@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="consent.css?v=20260504c">
+  <link rel="stylesheet" href="consent.css?v=20260504d">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -119,6 +119,7 @@
           <span class="consent-streaming-details__title" id="streamingSetupHeading">
             <span class="icon" aria-hidden="true">⚙</span>
             Sandbox &amp; streaming connection
+            <span class="profile-status-badge is-pending" data-industry-status="consent" role="status" aria-label="Profile-enable status: Checking…">… Checking…</span>
           </span>
           <span class="consent-streaming-details__hint">Per-sandbox setup — run the wizard, create the HTTP API dataflow in AEP, then enable for Profile.</span>
         </summary>
@@ -486,7 +487,13 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="profile-streaming-shared.js"></script>
-  <script src="consent.js?v=20260504c"></script>
+  <script src="consent.js?v=20260504d"></script>
+  <!-- At-a-glance Profile-enabled status badge for the consent panel
+       (May 2026). Loads the same module the Profile Generation page
+       uses; the consent badge resolves via the existing
+       /api/consent-infra/status endpoint (consent isn't part of the
+       7-industry aggregate). -->
+  <script src="profile-generation-status-badges.js?v=20260504d"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

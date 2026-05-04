@@ -704,6 +704,14 @@
       showInfraMessage(data.message || 'Schema and dataset are Profile-enabled.', 'success');
     } finally {
       enableProfileBtn.disabled = false;
+      // Refresh the at-a-glance Profile-enabled badges (industry dropdown +
+      // panel headers). Force=true bypasses the 30s server cache so the
+      // user sees the new state immediately.
+      try {
+        if (window.AepProfileInfraStatus && typeof window.AepProfileInfraStatus.refresh === 'function') {
+          window.AepProfileInfraStatus.refresh({ force: true });
+        }
+      } catch (_) { /* ignore */ }
     }
   }
 
