@@ -141,51 +141,40 @@ const CONSENT_ONBOARDING_STEPS = [
   {
     title: 'Welcome — Consent backend setup',
     body:
-      '<p class="consent-onb-lead">This sandbox does not have a saved Consent Manager connection yet.</p>' +
-      '<p class="consent-onb-p">Follow this guided flow once, then click <strong>Save connection (browser &amp; Firebase)</strong>. After that, this sandbox is ready for consent updates.</p>' +
-      '<p class="consent-onb-hint">You can reopen this wizard anytime with <code>?consentOnboarding=1</code> in the URL.</p>',
+      '<p class="consent-onb-lead">No Consent Manager connection saved for this sandbox yet.</p>' +
+      '<p class="consent-onb-p">Walk through these four steps once and this sandbox is ready for consent updates.</p>' +
+      '<p class="consent-onb-hint">Reopen this wizard anytime with <code>?consentOnboarding=1</code> in the URL.</p>',
     checks: [],
   },
   {
-    title: 'Step 1 — Create schema in AEP',
+    title: 'Step 1 — Run the wizard',
     body:
-      '<ol class="consent-onb-ol">' +
-      '<li>Create a schema using <strong>XDM Individual Profile</strong>.</li>' +
-      '<li>Attach field groups: <strong>Profile Core v2</strong>, <strong>Preference Details</strong>, <strong>Consent and Preference Details</strong>, <strong>Demographic Details</strong>.</li>' +
-      '<li>Set primary identity to your tenant email path (namespace: <strong>Email</strong>).</li>' +
-      '<li>Copy the schema <strong>$id</strong>.</li>' +
-      '</ol>',
-    checks: [{ id: 'consentOnbCheckSchema', label: 'I created/verified the schema and have the Schema $id.' }],
-  },
-  {
-    title: 'Step 2 — Create dataset + HTTP API dataflow',
-    body:
-      '<ol class="consent-onb-ol">' +
-      '<li>Create a dataset from that schema (enable Real-Time Profile if required).</li>' +
-      '<li>Create an HTTP API streaming connection to that dataset.</li>' +
-      '<li>Copy the <strong>Dataset ID</strong>, <strong>Flow ID</strong>, and <strong>Collection URL</strong>.</li>' +
-      '</ol>',
-    checks: [{ id: 'consentOnbCheckDataflow', label: 'I have Dataset ID, Flow ID, and Collection URL.' }],
-  },
-  {
-    title: 'Step 3 — Fill the connection form',
-    body:
-      '<p class="consent-onb-p">Open the setup section and paste values into:</p>' +
-      '<ul class="consent-onb-ul">' +
-      '<li><strong>Schema $id</strong></li>' +
-      '<li><strong>Dataset ID</strong></li>' +
-      '<li><strong>Flow ID</strong></li>' +
-      '<li><strong>Collection URL</strong></li>' +
-      '</ul>' +
+      '<p class="consent-onb-p">In the setup section, click <strong>Set up schema, field groups &amp; dataset</strong>. It is idempotent and creates the consent schema, field groups, primary email identity, and dataset under their canonical AEP Lab names.</p>' +
       '<p class="consent-onb-p"><button type="button" class="btn btn-secondary consent-onb-inline-btn" id="consentOnbOpenSetupBtn">Open setup section now</button></p>',
-    checks: [{ id: 'consentOnbCheckFilled', label: 'I filled the connection fields for this sandbox.' }],
+    checks: [{ id: 'consentOnbCheckSchema', label: 'I ran the wizard for this sandbox.' }],
   },
   {
-    title: 'Step 4 — Save to Firebase',
+    title: 'Step 2 — Create the HTTP API source',
     body:
-      '<p class="consent-onb-p">Click <strong>Save connection (browser &amp; Firebase)</strong> in the setup section. That stores this sandbox config so the page loads it automatically next time.</p>' +
+      '<ol class="consent-onb-ol">' +
+      '<li>In AEP, go to <em>Sources → Streaming → HTTP API</em>.</li>' +
+      '<li>Create a streaming connection pointing at <code>AEP Profile Viewer - Consent - Dataset</code>.</li>' +
+      '<li>Name the dataflow <code>AEP Profile Viewer - Consent - Dataflow</code> so the lab can resolve <strong>Flow ID</strong> and <strong>Collection URL</strong> for you.</li>' +
+      '</ol>',
+    checks: [{ id: 'consentOnbCheckDataflow', label: 'I created the HTTP API streaming source.' }],
+  },
+  {
+    title: 'Step 3 — Paste the Flow ID and save',
+    body:
+      '<p class="consent-onb-p">Click <strong>Fetch URL &amp; Flow ID from AEP</strong> (or paste them by hand), then click <strong>Save connection (browser &amp; Firebase)</strong> to persist for this sandbox.</p>' +
       '<p class="consent-onb-status" id="consentOnbSaveHint" role="status" aria-live="polite"></p>',
-    checks: [{ id: 'consentOnbCheckSave', label: 'I am ready to save the connection for this sandbox.' }],
+    checks: [{ id: 'consentOnbCheckFilled', label: 'I have Flow ID + Collection URL filled in.' }],
+  },
+  {
+    title: 'Step 4 — Validate, then enable for Profile',
+    body:
+      '<p class="consent-onb-p">Send a sample event from this page and confirm a batch lands in <code>AEP Profile Viewer - Consent - Dataset</code>. Then click <strong>Enable schema + dataset for Profile</strong> at the bottom of the setup section.</p>',
+    checks: [{ id: 'consentOnbCheckSave', label: 'I am ready to enable for Profile.' }],
   },
 ];
 
@@ -1514,7 +1503,7 @@ async function previewData() {
   if (!streaming.datasetId || !streaming.schemaId) {
     showMessage(
       step4Message,
-      'Add Dataset ID and Schema $id under Sandbox & streaming connection, then save — preview needs the DCS envelope header.',
+      'Add Dataset ID and Schema ID under Sandbox & streaming connection, then save — preview needs the DCS envelope header.',
       'error',
     );
     return;

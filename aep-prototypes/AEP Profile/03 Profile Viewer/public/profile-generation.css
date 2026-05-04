@@ -878,16 +878,13 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   background: rgba(0, 0, 0, 0.18);
 }
 
-/* "Already provisioned by the Cursor agent?" banner.
- * Sits above each industry's 4-step wizard preamble and tells architects
- * who used the agent-driven sandbox-provisioning path (schema +
- * field groups + dataset POSTed via AEP REST in one go) what's left to
- * do by hand: Profile toggle on schema + dataset, HTTP API streaming
- * source, then paste the resulting dataflow ID into the Flow ID field
- * below. The classic 4-step wizard buttons remain as a fallback for
- * sandboxes that haven't been agent-provisioned. Same accent colour as
- * the info-blue setup-instructions block but with a leftward green
- * success accent so it reads as "good news, less work". */
+/* Sandbox-setup summary banner.
+ * Sits above each industry's HTTP streaming form and outlines the
+ * end-to-end setup: run the wizard (schema, field groups, dataset),
+ * create the HTTP API source in AEP and paste the dataflow ID, then
+ * enable the schema and dataset for Profile. Uses a leftward green
+ * success accent against the info-blue setup-instructions surface
+ * so it reads as a quick orientation rather than a long checklist. */
 .profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner {
   background: var(--dash-success-bg, var(--dash-surface-alt));
   border: 1px solid var(--dash-success-border, var(--dash-border));
@@ -951,12 +948,10 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-text-secondary);
 }
 
-/* Auto-fill clarifier — explains that the Schema $id and Dataset ID inputs
- * below the banner are pre-populated from the sandbox by the lab itself
- * (no manual lookup required) when the agent has already provisioned the
- * canonical AEP Lab schema/dataset under their well-known names. Sits
- * above the "Provisioning from scratch instead?" fallback paragraph and
- * uses a slightly tighter, more conversational tint than the success
+/* Auto-fill clarifier — notes that the Schema ID and Dataset ID inputs
+ * below the banner are pre-populated from the sandbox by canonical name
+ * when the schema/dataset already exist. Uses a tighter, more
+ * conversational tint than the success
  * accent on the banner shell. */
 .profile-generation-page :is(#genericProfilePanel, #travelProfilePanel, #fsiProfilePanel, #telecomProfilePanel, #retailProfilePanel, #mediaProfilePanel, #sportsProfilePanel) .consent-agent-banner__autofill {
   margin: 0 0 0.6rem;

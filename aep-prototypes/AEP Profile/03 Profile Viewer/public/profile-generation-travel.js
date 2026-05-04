@@ -816,7 +816,7 @@
         streamXdmKeyEl.value = data.xdmKey;
       }
       showInfraMessage(
-        `✓ Auto-filled Schema $id and Dataset ID from sandbox "${sb}" (matched canonical names "AEP Lab - Travel Profile - Schema" / "AEP Lab - Travel Profile - Dataset"). Create the HTTP API source then paste the dataflow ID below — or click Fetch URL & Flow ID from AEP.`,
+        `✓ Auto-filled Schema ID and Dataset ID from sandbox "${sb}". Create the HTTP API source in AEP and paste the dataflow ID below.`,
         'success'
       );
       applyConfiguredCollapseState();
@@ -2044,7 +2044,7 @@
     if (!s.url) missing.push('Collection URL');
     if (!s.flowId) missing.push('Flow ID');
     if (!s.datasetId) missing.push('Dataset ID');
-    if (!s.schemaId) missing.push('Schema $id');
+    if (!s.schemaId) missing.push('Schema ID');
     if (missing.length) {
       if (infraDetailsEl) infraDetailsEl.open = true;
       setMessage(

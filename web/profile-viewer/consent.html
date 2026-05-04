@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="consent.css?v=20260504a">
+  <link rel="stylesheet" href="consent.css?v=20260504c">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -120,25 +120,14 @@
             <span class="icon" aria-hidden="true">⚙</span>
             Sandbox &amp; streaming connection
           </span>
-          <span class="consent-streaming-details__hint">Configure the streaming connection for this sandbox — required before sending consent updates. Fields are cleared when you switch sandboxes.</span>
+          <span class="consent-streaming-details__hint">Per-sandbox setup — run the wizard, create the HTTP API dataflow in AEP, then enable for Profile.</span>
         </summary>
         <div class="consent-streaming-details__body">
-      <div class="consent-setup-instructions" style="background: var(--card-bg, #f5f5f5); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; border-left: 4px solid var(--accent, #1473e6);">
-        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Before you can use the Consent Manager on a new sandbox:</h4>
-        <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.9rem; line-height: 1.6;">
-          <li><strong>Create a Schema</strong> — In AEP, go to <em>Schemas</em> and create a new schema using the <strong>XDM Individual Profile</strong> class. Add these four field groups:
-            <ul style="margin: 0.25rem 0 0.25rem 0; padding-left: 1.25rem;">
-              <li><strong>Profile Core v2</strong> — custom tenant identity fields (includes <code>email</code>)</li>
-              <li><strong>Preference Details</strong> — preferred language and communication preferences</li>
-              <li><strong>Consent and Preference Details</strong> — marketing consent flags (email, SMS, push, call, postal, etc.)</li>
-              <li><strong>Demographic Details</strong> — person name and demographic attributes</li>
-            </ul>
-            Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
-          <li><strong>Create a Dataset</strong> — In AEP, go to <em>Datasets</em> and create a new dataset from your schema. Enable it for <strong>Real-Time Customer Profile</strong> if you want consent updates to appear on the profile. Copy the <strong>Dataset ID</strong>.</li>
-          <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Profile Viewer - Consent - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name in AEP</em> field below) so the wizard can later look up the <strong>Flow ID</strong> and <strong>Collection URL</strong> for you — or copy the Flow ID manually if you used a different name.</li>
-          <li><strong>Enter the details below</strong> — Paste Schema $id, Dataset ID, Flow ID, and Collection URL into the fields, then click <strong>Save connection</strong>. The connection is stored per sandbox in Firebase so you only need to do this once.</li>
-        </ol>
-        <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">If this sandbox already has a saved connection, click <strong>Load from Firebase</strong> to populate the fields.</p>
+      <div class="consent-agent-banner" role="note" aria-label="Sandbox setup status" style="background: var(--card-bg, #f5f5f5); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; border-left: 4px solid var(--accent, #1473e6);">
+        <p style="margin: 0; font-size: 0.9rem; line-height: 1.55;">
+          <strong>To save consent updates against this sandbox:</strong>
+          run <strong>Set up schema, field groups &amp; dataset</strong> below (idempotent), create an HTTP API source in AEP named <code>AEP Profile Viewer - Consent - Dataflow</code> and paste its dataflow ID into <strong>Flow ID</strong> below (or click <strong>Fetch URL &amp; Flow ID from AEP</strong>), confirm a batch lands, then click <strong>Enable schema + dataset for Profile</strong>.
+        </p>
       </div>
       <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
         <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
@@ -160,12 +149,12 @@
       <div class="sandbox-config" style="margin-top: 1rem;">
         <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
         <div class="form-row">
-          <label for="streamSchemaId">Schema $id</label>
-          <input type="text" id="streamSchemaId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false" title="Full schema $id URI from AEP. Paste manually or filled by Prepare steps.">
+          <label for="streamSchemaId">Schema ID</label>
+          <input type="text" id="streamSchemaId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false" title="Full schema ID URI from AEP. Paste manually or filled by the wizard.">
         </div>
         <div class="form-row">
           <label for="streamDatasetId">Dataset ID</label>
-          <input type="text" id="streamDatasetId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:28rem;" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false" title="Dataset ID from AEP. Paste manually or filled by Prepare steps.">
+          <input type="text" id="streamDatasetId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:28rem;" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false" title="Dataset ID from AEP. Paste manually or filled by the wizard.">
         </div>
         <div class="form-row">
           <label for="streamXdmKey">Tenant XDM key</label>
@@ -205,7 +194,7 @@
       <div class="enable-profile-step">
         <div class="enable-profile-warning" role="note">
           <strong>⚠ Validate data is flowing first.</strong>
-          Once a schema is enabled for Profile, the change is effectively one-way — you cannot remove it from the Union without recreating the schema. Confirm consent batches are landing in the dataset (<em>Datasets → <code>AEP Profile Viewer - Consent - Dataset</code> → Batches</em> in the AEP UI, OR send a sample event from this page and watch a successful batch land) before clicking the button below.
+          Enabling Profile is effectively one-way — confirm consent batches are landing in <code>AEP Profile Viewer - Consent - Dataset</code> (or send a sample event from this page and watch one land) before clicking below.
         </div>
         <div class="enable-profile-step__action">
           <button type="button" id="enableProfileBtn" class="btn btn-primary">Enable schema + dataset for Profile</button>
@@ -497,7 +486,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="profile-streaming-shared.js"></script>
-  <script src="consent.js?v=20260504a"></script>
+  <script src="consent.js?v=20260504c"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
