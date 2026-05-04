@@ -157,6 +157,8 @@
     ids: {
       profilePanel: 'sportsProfilePanel',
       checkInfraBtn: 'sportsCheckInfraBtn',
+      stepRunAllBtn: 'sportsStepRunAllBtn',
+      infraProgressList: 'sportsInfraProgressList',
       stepCreateSchemaBtn: 'sportsStepCreateSchemaBtn',
       stepAttachFgBtn: 'sportsStepAttachFgBtn',
       stepCreateDatasetBtn: 'sportsStepCreateDatasetBtn',

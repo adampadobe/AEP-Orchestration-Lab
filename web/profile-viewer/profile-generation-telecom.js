@@ -216,6 +216,8 @@
     ids: {
       profilePanel: 'telecomProfilePanel',
       checkInfraBtn: 'telecomCheckInfraBtn',
+      stepRunAllBtn: 'telecomStepRunAllBtn',
+      infraProgressList: 'telecomInfraProgressList',
       stepCreateSchemaBtn: 'telecomStepCreateSchemaBtn',
       stepAttachFgBtn: 'telecomStepAttachFgBtn',
       stepCreateDatasetBtn: 'telecomStepCreateDatasetBtn',

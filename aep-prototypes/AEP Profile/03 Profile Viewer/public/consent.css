@@ -1151,3 +1151,70 @@ body.consent-onboarding-open {
 .consent-onb-status--warn {
   color: var(--dash-warning-text);
 }
+
+/* ===== Inline provisioning progress list (May 2026 single-button consolidation) =====
+ * Renders the three sub-step rows (Schema → Field groups → Dataset) for the
+ * combined "Set up schema, field groups & dataset" wizard button on the
+ * Consent page. The matching styles for the per-industry profile-generation
+ * wizards live in web/profile-viewer/profile-generation.css; we duplicate
+ * the rule set here so the consent page (which doesn't load
+ * profile-generation.css) gets the same inline progress UX. All colours
+ * flow through `--dash-*` tokens so light + dark themes share the structure
+ * with no hex-coded fallbacks. */
+.consent-page .consent-infra-progress {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--dash-surface-alt, var(--dash-surface));
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.consent-page .consent-infra-progress[hidden] {
+  display: none;
+}
+
+.consent-page .consent-infra-progress__item {
+  display: grid;
+  grid-template-columns: 1.4rem auto 1fr;
+  align-items: baseline;
+  gap: 0.4rem;
+  line-height: 1.45;
+}
+
+.consent-page .consent-infra-progress__icon {
+  text-align: center;
+  font-weight: 700;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+
+.consent-page .consent-infra-progress__label {
+  font-weight: 600;
+}
+
+.consent-page .consent-infra-progress__detail {
+  color: var(--dash-text-secondary, var(--dash-muted));
+  font-style: italic;
+}
+
+.consent-page .consent-infra-progress__item--working .consent-infra-progress__icon {
+  color: var(--dash-blue, var(--dash-text));
+}
+
+.consent-page .consent-infra-progress__item--success .consent-infra-progress__icon {
+  color: var(--dash-success-border, var(--dash-blue));
+}
+
+.consent-page .consent-infra-progress__item--error .consent-infra-progress__icon {
+  color: var(--dash-error-border, var(--dash-text));
+}
+
+.consent-page .consent-infra-progress__item--error .consent-infra-progress__detail {
+  color: var(--dash-error-text, var(--dash-text));
+  font-style: normal;
+}

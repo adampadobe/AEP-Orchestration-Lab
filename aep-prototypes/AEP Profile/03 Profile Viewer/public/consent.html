@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="consent.css?v=20260504a">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -143,12 +143,19 @@
       <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
         <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
       </div>
+      <!-- Single-button consolidation (May 2026): the three setup steps
+           (schema → field groups → dataset) always run in sequence, share
+           data, and are now fully idempotent in functions/profileInfraFactory.js
+           — so the operator gets one primary action with inline ✓ progress
+           instead of three buttons that had to be clicked in order. The
+           underlying per-step Cloud Functions (and per-step button ids)
+           are intentionally not removed; consent.js still listens for the
+           legacy ids defensively in case a cached page renders them. -->
       <div class="button-row consent-infra-step-buttons" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem;">
-        <button type="button" id="stepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
-        <button type="button" id="stepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
-        <button type="button" id="stepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
-        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+        <button type="button" id="stepRunAllBtn" class="btn btn-primary">Set up schema, field groups &amp; dataset</button>
+        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">Configure HTTP API streaming</button>
       </div>
+      <ol id="infraProgressList" class="consent-infra-progress" hidden aria-live="polite"></ol>
       <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
       <div class="sandbox-config" style="margin-top: 1rem;">
         <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
@@ -472,7 +479,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="profile-streaming-shared.js"></script>
-  <script src="consent.js"></script>
+  <script src="consent.js?v=20260504a"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

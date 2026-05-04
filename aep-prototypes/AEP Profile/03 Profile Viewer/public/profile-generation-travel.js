@@ -28,6 +28,11 @@
   const stepAttachFgBtn = document.getElementById('travelStepAttachFgBtn');
   const stepCreateDatasetBtn = document.getElementById('travelStepCreateDatasetBtn');
   const stepHttpFlowBtn = document.getElementById('travelStepHttpFlowBtn');
+  // May 2026 single-button consolidation — see runProvisioningStepsCombined()
+  // below. Underlying per-step Cloud Functions and the legacy per-step
+  // buttons (when still rendered) remain functional for diagnostics.
+  const stepRunAllBtn = document.getElementById('travelStepRunAllBtn');
+  const infraProgressListEl = document.getElementById('travelInfraProgressList');
   const infraStatusMessage = document.getElementById('travelInfraStatusMessage');
   const infraDetailsEl = document.getElementById('travelProfileInfraDetails');
   const infraHintEl = document.getElementById('travelProfileInfraHint');
@@ -355,7 +360,7 @@
         return hasFirestoreSchemaAndDataset;
       }
       if (!silent) {
-        showInfraMessage('No saved Travel connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
+        showInfraMessage('No saved Travel connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and Save connection.', '');
       }
       applyConfiguredCollapseState();
       if (isProfilePanelVisible()) {
@@ -456,6 +461,145 @@
       }
     } catch (e) {
       showInfraMessage(e.message || 'Network error', 'error');
+    } finally {
+      busy.forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  // ---- Combined provisioning (Schema → Field groups → Dataset) ----
+  // Mirrors the helper in profile-generation-industry-runtime.js. Travel +
+  // Generic pre-date the runtime; we add a parallel
+  // runProvisioningStepsCombined() so both modules expose the same
+  // single-button UX (May 2026 consolidation).
+  const COMBINED_PROVISIONING_STEPS_TRAVEL = [
+    { step: 'createSchema',      label: 'Schema' },
+    { step: 'attachFieldGroups', label: 'Field groups' },
+    { step: 'createDataset',     label: 'Dataset' },
+  ];
+
+  function ensureTravelProgressList() {
+    if (!infraProgressListEl) return null;
+    infraProgressListEl.hidden = false;
+    infraProgressListEl.innerHTML = '';
+    COMBINED_PROVISIONING_STEPS_TRAVEL.forEach((s, i) => {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = `${i + 1}. ${s.label}`;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      infraProgressListEl.appendChild(li);
+    });
+    return infraProgressListEl;
+  }
+
+  function setTravelProgressItem(step, state, detailText) {
+    if (!infraProgressListEl) return;
+    const li = infraProgressListEl.querySelector(`[data-step="${step}"]`);
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent =
+        state === 'success' ? '✓' :
+        state === 'error'   ? '✗' :
+        state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+  }
+
+  function classifyTravelStepResult(stepName, data) {
+    if (!data || typeof data !== 'object') return 'created';
+    if (stepName === 'attachFieldGroups') return data.patchApplied ? 'created' : 'already';
+    return data.skipped ? 'already' : 'created';
+  }
+
+  function describeTravelStepOutcome(stepName, outcome) {
+    if (outcome === 'already') return 'already configured';
+    if (stepName === 'createSchema') return 'created';
+    if (stepName === 'attachFieldGroups') return 'attached';
+    if (stepName === 'createDataset') return 'created';
+    return 'done';
+  }
+
+  async function runProvisioningStepsCombined() {
+    const busy = [
+      stepRunAllBtn,
+      stepCreateSchemaBtn,
+      stepAttachFgBtn,
+      stepCreateDatasetBtn,
+      stepHttpFlowBtn,
+      checkInfraBtn,
+    ].filter(Boolean);
+    busy.forEach((b) => { b.disabled = true; });
+    ensureTravelProgressList();
+    showInfraMessage('Setting up schema, field groups and dataset…', '');
+    let lastSuccessData = null;
+    try {
+      for (const cfg of COMBINED_PROVISIONING_STEPS_TRAVEL) {
+        setTravelProgressItem(cfg.step, 'working', 'working…');
+        let res, data;
+        try {
+          res = await fetch('/api/travel-profile-infra/step' + querySuffix(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ step: cfg.step }),
+          });
+          data = await res.json().catch(() => ({}));
+        } catch (e) {
+          const errMsg = e && e.message ? e.message : 'Network error';
+          setTravelProgressItem(cfg.step, 'error', errMsg);
+          showInfraMessage(`${cfg.label} failed: ${errMsg}`, 'error');
+          return;
+        }
+        if (!res.ok || data.ok === false) {
+          // AEP error already extracted by extractAepErrorMessage in the
+          // factory (report.additionalDetails[].errorReason).
+          const aepError =
+            data && data.error
+              ? data.error
+              : data && data.profileCoreMixinMissing
+                ? 'Profile Core v2 not imported in this sandbox.'
+                : `Step request failed (HTTP ${res.status}).`;
+          setTravelProgressItem(cfg.step, 'error', aepError);
+          showInfraMessage(`${cfg.label} failed: ${aepError}`, 'error');
+          return;
+        }
+        applyStepResultToFields(data);
+        try {
+          const infra = {};
+          if (data.schemaId) infra.schemaId = data.schemaId;
+          if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+          if (data.datasetId) infra.datasetId = data.datasetId;
+          if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+          if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
+        } catch (e) {
+          console.warn(`[travel-profile] combined infra sync after ${cfg.step}:`, e && e.message);
+        }
+        const outcome = classifyTravelStepResult(cfg.step, data);
+        setTravelProgressItem(cfg.step, 'success', describeTravelStepOutcome(cfg.step, outcome));
+        lastSuccessData = data;
+      }
+      const summary = (lastSuccessData && lastSuccessData.message) || 'Schema, field groups and dataset ready.';
+      showInfraMessage(
+        `${summary} Now create the HTTP API streaming source in AEP and paste the dataflow ID below.`,
+        'success'
+      );
+      if (infraDetailsEl) infraDetailsEl.open = true;
+      try {
+        await autoDiscoverInfraFromSandbox();
+      } catch (e) {
+        console.warn('[travel-profile] autoDiscoverInfraFromSandbox after combined run:', e && e.message);
+      }
     } finally {
       busy.forEach((b) => { b.disabled = false; });
     }
@@ -2212,6 +2356,9 @@
 
   // ---------- Wire events ----------
   if (checkInfraBtn) checkInfraBtn.addEventListener('click', checkInfra);
+  // Combined provisioning button (May 2026 consolidation). Legacy per-step
+  // wiring stays in place for older / cached HTML.
+  if (stepRunAllBtn) stepRunAllBtn.addEventListener('click', runProvisioningStepsCombined);
   if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema'));
   if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups'));
   if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset'));

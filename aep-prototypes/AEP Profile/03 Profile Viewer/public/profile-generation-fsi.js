@@ -319,6 +319,8 @@
       profilePanel: 'fsiProfilePanel',
 
       checkInfraBtn: 'fsiCheckInfraBtn',
+      stepRunAllBtn: 'fsiStepRunAllBtn',
+      infraProgressList: 'fsiInfraProgressList',
       stepCreateSchemaBtn: 'fsiStepCreateSchemaBtn',
       stepAttachFgBtn: 'fsiStepAttachFgBtn',
       stepCreateDatasetBtn: 'fsiStepCreateDatasetBtn',

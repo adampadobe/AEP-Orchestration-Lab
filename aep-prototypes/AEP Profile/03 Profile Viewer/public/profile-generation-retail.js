@@ -283,6 +283,8 @@
     ids: {
       profilePanel: 'retailProfilePanel',
       checkInfraBtn: 'retailCheckInfraBtn',
+      stepRunAllBtn: 'retailStepRunAllBtn',
+      infraProgressList: 'retailInfraProgressList',
       stepCreateSchemaBtn: 'retailStepCreateSchemaBtn',
       stepAttachFgBtn: 'retailStepAttachFgBtn',
       stepCreateDatasetBtn: 'retailStepCreateDatasetBtn',

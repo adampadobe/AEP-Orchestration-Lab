@@ -397,10 +397,22 @@
 
     // ---- DOM bindings (mirrors the pattern from Travel) ----
     const checkInfraBtn = $(ids.checkInfraBtn);
+    // The legacy per-step buttons (`stepCreateSchemaBtn` / `stepAttachFgBtn` /
+    // `stepCreateDatasetBtn`) are no longer rendered by profile-generation.html
+    // — the May 2026 single-button consolidation collapsed steps 1-3 into the
+    // new `stepRunAllBtn` (handled by `runProvisioningStepsCombined` below).
+    // We still resolve the old ids defensively so any older / out-of-date
+    // markup (e.g. a cached HTML page or the Express prototype) keeps working
+    // and so the underlying per-step Cloud Functions remain reachable from
+    // diagnostics tools that build the same DOM. Resolves to null in current
+    // markup → all `disabled` / wire-up calls below short-circuit.
     const stepCreateSchemaBtn = $(ids.stepCreateSchemaBtn);
     const stepAttachFgBtn = $(ids.stepAttachFgBtn);
     const stepCreateDatasetBtn = $(ids.stepCreateDatasetBtn);
     const stepHttpFlowBtn = $(ids.stepHttpFlowBtn);
+    // New combined button + inline progress list (May 2026 consolidation).
+    const stepRunAllBtn = $(ids.stepRunAllBtn);
+    const infraProgressListEl = $(ids.infraProgressList);
     const infraStatusMessage = $(ids.infraStatusMessage);
     const infraDetailsEl = $(ids.infraDetails);
     const infraHintEl = $(ids.infraHint);
@@ -650,7 +662,7 @@
           return hasFirestoreSchemaAndDataset;
         }
         if (!silent) {
-          showInfraMessage(`No saved ${displayName} connection for this sandbox yet — run the 4 setup steps and Save connection.`, '');
+          showInfraMessage(`No saved ${displayName} connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and Save connection.`, '');
         }
         applyConfiguredCollapseState();
         // No Firestore record at all — try sandbox auto-discover when the
@@ -774,6 +786,199 @@
         }
       } catch (e) {
         showInfraMessage(e.message || 'Network error', 'error');
+      } finally {
+        busy.forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    // ---- Combined provisioning (Schema → Field groups → Dataset) ----
+    //
+    // Replaces the legacy 3-button stepper with a single primary action that
+    // runs `createSchema → attachFieldGroups → createDataset` in sequence.
+    // The three sub-steps share data, never run independently for production
+    // sandboxes, and the underlying Cloud Functions are fully idempotent
+    // after `0d18852` (factory hardening). Operators previously had to click
+    // them in order and remember to re-click after partial failures — this
+    // collapses them into a single "Set up schema, field groups & dataset"
+    // button with inline ✓ progress and AEP-error surfacing.
+    //
+    // Underlying per-step Cloud Functions are NOT removed — they remain
+    // reachable for diagnostics, Postman collections, and any future
+    // "advanced" UX. This is purely a front-end orchestration layer.
+    const COMBINED_PROVISIONING_STEPS = [
+      { step: 'createSchema',      label: 'Schema' },
+      { step: 'attachFieldGroups', label: 'Field groups' },
+      { step: 'createDataset',     label: 'Dataset' },
+    ];
+
+    function ensureProgressList() {
+      if (!infraProgressListEl) return null;
+      infraProgressListEl.hidden = false;
+      infraProgressListEl.innerHTML = '';
+      COMBINED_PROVISIONING_STEPS.forEach((s, i) => {
+        const li = document.createElement('li');
+        li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+        li.dataset.step = s.step;
+        li.dataset.idx = String(i + 1);
+        const icon = document.createElement('span');
+        icon.className = 'consent-infra-progress__icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '·';
+        const label = document.createElement('span');
+        label.className = 'consent-infra-progress__label';
+        label.textContent = `${i + 1}. ${s.label}`;
+        const detail = document.createElement('span');
+        detail.className = 'consent-infra-progress__detail';
+        detail.textContent = '';
+        li.append(icon, label, detail);
+        infraProgressListEl.appendChild(li);
+      });
+      return infraProgressListEl;
+    }
+
+    function setProgressItemState(step, state, detailText) {
+      if (!infraProgressListEl) return;
+      const li = infraProgressListEl.querySelector(`[data-step="${step}"]`);
+      if (!li) return;
+      li.className =
+        'consent-infra-progress__item consent-infra-progress__item--' + state;
+      const icon = li.querySelector('.consent-infra-progress__icon');
+      const detail = li.querySelector('.consent-infra-progress__detail');
+      if (icon) {
+        icon.textContent =
+          state === 'success' ? '✓' :
+          state === 'error'   ? '✗' :
+          state === 'working' ? '…' : '·';
+      }
+      if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+    }
+
+    /**
+     * Classify a /step success payload as "created/changed" vs
+     * "already configured" so the combined progress UI can tell the
+     * operator what actually happened in this sandbox on this run.
+     *
+     *   - createSchema  → factory returns `skipped: true` when the
+     *     schema already exists; otherwise the schema was created.
+     *   - createDataset → same `skipped: true` semantics.
+     *   - attachFieldGroups → factory returns `patchApplied: true`
+     *     when at least one JSON-Patch op landed; `false` means every
+     *     field group was already attached and the primary email
+     *     descriptor was already in place. The `profileCoreV2TopUp`
+     *     sub-block also matters, but treating top-up-only changes as
+     *     "already configured" is fine for the inline UX — the full
+     *     message string still surfaces in `infraStatusMessage` so
+     *     architects who care about the drift top-up details still see
+     *     them.
+     */
+    function classifyStepResult(stepName, data) {
+      if (!data || typeof data !== 'object') return 'created';
+      if (stepName === 'attachFieldGroups') {
+        return data.patchApplied ? 'created' : 'already';
+      }
+      return data.skipped ? 'already' : 'created';
+    }
+
+    function describeStepOutcome(stepName, outcome) {
+      if (outcome === 'already') return 'already configured';
+      if (stepName === 'createSchema')      return 'created';
+      if (stepName === 'attachFieldGroups') return 'attached';
+      if (stepName === 'createDataset')     return 'created';
+      return 'done';
+    }
+
+    async function runProvisioningStepsCombined() {
+      // Disable wizard buttons so the operator can't fire conflicting
+      // requests mid-chain. The legacy per-step buttons are usually null
+      // (consolidated markup) but we still defensively disable them in
+      // case an older HTML render is in front of us.
+      const busy = [
+        stepRunAllBtn,
+        stepCreateSchemaBtn,
+        stepAttachFgBtn,
+        stepCreateDatasetBtn,
+        stepHttpFlowBtn,
+        checkInfraBtn,
+      ].filter(Boolean);
+      busy.forEach((b) => { b.disabled = true; });
+      ensureProgressList();
+      showInfraMessage('Setting up schema, field groups and dataset…', '');
+
+      let lastSuccessData = null;
+      try {
+        for (const cfg of COMBINED_PROVISIONING_STEPS) {
+          setProgressItemState(cfg.step, 'working', 'working…');
+          let res, data;
+          try {
+            res = await fetch(`/api/${apiPathPrefix}-infra/step` + querySuffix(), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ step: cfg.step }),
+            });
+            data = await res.json().catch(() => ({}));
+          } catch (e) {
+            const errMsg = e && e.message ? e.message : 'Network error';
+            setProgressItemState(cfg.step, 'error', errMsg);
+            showInfraMessage(`${cfg.label} failed: ${errMsg}`, 'error');
+            return;
+          }
+          if (!res.ok || data.ok === false) {
+            // Server-side AEP error already extracted via
+            // extractAepErrorMessage (see profileInfraFactory.js — pulls
+            // report.additionalDetails[].errorReason on 4xx bodies).
+            const aepError =
+              data && data.error
+                ? data.error
+                : data && data.profileCoreMixinMissing
+                  ? 'Profile Core v2 not imported in this sandbox.'
+                  : `Step request failed (HTTP ${res.status}).`;
+            setProgressItemState(cfg.step, 'error', aepError);
+            showInfraMessage(`${cfg.label} failed: ${aepError}`, 'error');
+            return;
+          }
+
+          // Success: update the relevant streaming form fields and persist
+          // any infra ids back to Firestore so the streaming connection
+          // record stays in sync (mirrors what the original per-step
+          // runStep() did, intentionally kept here so we don't lose the
+          // Firestore round-trip when the operator uses the combined flow).
+          applyStepResultToFields(data);
+          try {
+            const infra = {};
+            if (data.schemaId) infra.schemaId = data.schemaId;
+            if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+            if (data.datasetId) infra.datasetId = data.datasetId;
+            if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+            if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
+          } catch (e) {
+            warn(`combined infra sync after ${cfg.step}:`, e && e.message);
+          }
+
+          const outcome = classifyStepResult(cfg.step, data);
+          const detailText = describeStepOutcome(cfg.step, outcome);
+          setProgressItemState(cfg.step, 'success', detailText);
+          lastSuccessData = data;
+        }
+
+        // All three sub-steps succeeded. Surface the full per-step message
+        // (which already encodes the field-group / Profile Core v2 top-up
+        // breakdown) and try the sandbox-driven Schema $id / Dataset ID
+        // auto-fill so the operator sees the connection panel populate
+        // immediately. Open the streaming details so they can paste the
+        // dataflow ID as the only remaining manual concern.
+        const summary =
+          (lastSuccessData && lastSuccessData.message) ||
+          'Schema, field groups and dataset ready.';
+        showInfraMessage(
+          `${summary} Now create the HTTP API streaming source in AEP and paste the dataflow ID below.`,
+          'success'
+        );
+        if (infraDetailsEl) infraDetailsEl.open = true;
+        try {
+          await autoDiscoverInfraFromSandbox();
+        } catch (e) {
+          warn('autoDiscoverInfraFromSandbox after combined run:', e && e.message);
+        }
       } finally {
         busy.forEach((b) => { b.disabled = false; });
       }
@@ -1585,6 +1790,10 @@
 
     // ---- Wire events ----
     if (checkInfraBtn) checkInfraBtn.addEventListener('click', checkInfra);
+    // Combined provisioning button (May 2026 consolidation). The legacy
+    // per-step buttons are intentionally removed from the rendered HTML
+    // but the handlers stay defensive so older markup keeps functioning.
+    if (stepRunAllBtn) stepRunAllBtn.addEventListener('click', runProvisioningStepsCombined);
     if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema'));
     if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups'));
     if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset'));

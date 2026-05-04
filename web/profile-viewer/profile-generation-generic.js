@@ -25,6 +25,11 @@
   const stepAttachFgBtn = document.getElementById('genStepAttachFgBtn');
   const stepCreateDatasetBtn = document.getElementById('genStepCreateDatasetBtn');
   const stepHttpFlowBtn = document.getElementById('genStepHttpFlowBtn');
+  // May 2026 single-button consolidation — see runProvisioningStepsCombined()
+  // below. Underlying per-step Cloud Functions and the legacy per-step
+  // buttons (when still rendered) remain functional for diagnostics.
+  const stepRunAllBtn = document.getElementById('genStepRunAllBtn');
+  const infraProgressListEl = document.getElementById('genInfraProgressList');
   const infraStatusMessage = document.getElementById('genInfraStatusMessage');
   // Collapsible <details> wrapping the wizard. We capture the original hint
   // copy at module load so applyConfiguredCollapseState() can restore it
@@ -350,7 +355,7 @@
         return hasFirestoreSchemaAndDataset;
       }
       if (!silent) {
-        showInfraMessage('No saved connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
+        showInfraMessage('No saved connection for this sandbox yet — click "Set up schema, field groups & dataset", then create the HTTP API source and Save connection.', '');
       }
       applyConfiguredCollapseState();
       // No Firestore record at all — try sandbox auto-discover when the
@@ -454,6 +459,147 @@
       }
     } catch (e) {
       showInfraMessage(e.message || 'Network error', 'error');
+    } finally {
+      busy.forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  // ---- Combined provisioning (Schema → Field groups → Dataset) ----
+  // Mirrors the helper added to profile-generation-industry-runtime.js
+  // for the new industries. Generic + Travel pre-date the runtime helper
+  // and keep their own runStep() — we add a parallel
+  // runProvisioningStepsCombined() here so both modules expose the same
+  // single-button UX. See the runtime file for the full design rationale
+  // (May 2026 single-button consolidation).
+  const COMBINED_PROVISIONING_STEPS_GEN = [
+    { step: 'createSchema',      label: 'Schema' },
+    { step: 'attachFieldGroups', label: 'Field groups' },
+    { step: 'createDataset',     label: 'Dataset' },
+  ];
+
+  function ensureGenProgressList() {
+    if (!infraProgressListEl) return null;
+    infraProgressListEl.hidden = false;
+    infraProgressListEl.innerHTML = '';
+    COMBINED_PROVISIONING_STEPS_GEN.forEach((s, i) => {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = `${i + 1}. ${s.label}`;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      infraProgressListEl.appendChild(li);
+    });
+    return infraProgressListEl;
+  }
+
+  function setGenProgressItem(step, state, detailText) {
+    if (!infraProgressListEl) return;
+    const li = infraProgressListEl.querySelector(`[data-step="${step}"]`);
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent =
+        state === 'success' ? '✓' :
+        state === 'error'   ? '✗' :
+        state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+  }
+
+  function classifyGenStepResult(stepName, data) {
+    if (!data || typeof data !== 'object') return 'created';
+    if (stepName === 'attachFieldGroups') return data.patchApplied ? 'created' : 'already';
+    return data.skipped ? 'already' : 'created';
+  }
+
+  function describeGenStepOutcome(stepName, outcome) {
+    if (outcome === 'already') return 'already configured';
+    if (stepName === 'createSchema') return 'created';
+    if (stepName === 'attachFieldGroups') return 'attached';
+    if (stepName === 'createDataset') return 'created';
+    return 'done';
+  }
+
+  async function runProvisioningStepsCombined() {
+    const busy = [
+      stepRunAllBtn,
+      stepCreateSchemaBtn,
+      stepAttachFgBtn,
+      stepCreateDatasetBtn,
+      stepHttpFlowBtn,
+      checkInfraBtn,
+    ].filter(Boolean);
+    busy.forEach((b) => { b.disabled = true; });
+    ensureGenProgressList();
+    showInfraMessage('Setting up schema, field groups and dataset…', '');
+    let lastSuccessData = null;
+    try {
+      for (const cfg of COMBINED_PROVISIONING_STEPS_GEN) {
+        setGenProgressItem(cfg.step, 'working', 'working…');
+        let res, data;
+        try {
+          res = await fetch('/api/generic-profile-infra/step' + querySuffix(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ step: cfg.step }),
+          });
+          data = await res.json().catch(() => ({}));
+        } catch (e) {
+          const errMsg = e && e.message ? e.message : 'Network error';
+          setGenProgressItem(cfg.step, 'error', errMsg);
+          showInfraMessage(`${cfg.label} failed: ${errMsg}`, 'error');
+          return;
+        }
+        if (!res.ok || data.ok === false) {
+          // AEP error reason already extracted via extractAepErrorMessage in
+          // functions/profileInfraFactory.js (report.additionalDetails[].errorReason).
+          const aepError =
+            data && data.error
+              ? data.error
+              : data && data.profileCoreMixinMissing
+                ? 'Profile Core v2 not imported in this sandbox.'
+                : `Step request failed (HTTP ${res.status}).`;
+          setGenProgressItem(cfg.step, 'error', aepError);
+          showInfraMessage(`${cfg.label} failed: ${aepError}`, 'error');
+          return;
+        }
+        applyStepResultToFields(data);
+        try {
+          const infra = {};
+          if (data.schemaId) infra.schemaId = data.schemaId;
+          if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+          if (data.datasetId) infra.datasetId = data.datasetId;
+          if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+          if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
+        } catch (e) {
+          console.warn(`[generic-profile] combined infra sync after ${cfg.step}:`, e && e.message);
+        }
+        const outcome = classifyGenStepResult(cfg.step, data);
+        setGenProgressItem(cfg.step, 'success', describeGenStepOutcome(cfg.step, outcome));
+        lastSuccessData = data;
+      }
+      const summary = (lastSuccessData && lastSuccessData.message) || 'Schema, field groups and dataset ready.';
+      showInfraMessage(
+        `${summary} Now create the HTTP API streaming source in AEP and paste the dataflow ID below.`,
+        'success'
+      );
+      if (infraDetailsEl) infraDetailsEl.open = true;
+      try {
+        await autoDiscoverInfraFromSandbox();
+      } catch (e) {
+        console.warn('[generic-profile] autoDiscoverInfraFromSandbox after combined run:', e && e.message);
+      }
     } finally {
       busy.forEach((b) => { b.disabled = false; });
     }
@@ -1602,6 +1748,9 @@
 
   // ---------- Wire events ----------
   if (checkInfraBtn) checkInfraBtn.addEventListener('click', checkInfra);
+  // Combined provisioning button (May 2026 consolidation). Legacy per-step
+  // button wiring stays in place so older / cached HTML keeps working.
+  if (stepRunAllBtn) stepRunAllBtn.addEventListener('click', runProvisioningStepsCombined);
   if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema', stepCreateSchemaBtn));
   if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups', stepAttachFgBtn));
   if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset', stepCreateDatasetBtn));

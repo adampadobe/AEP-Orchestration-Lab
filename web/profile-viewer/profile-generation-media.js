@@ -177,6 +177,8 @@
     ids: {
       profilePanel: 'mediaProfilePanel',
       checkInfraBtn: 'mediaCheckInfraBtn',
+      stepRunAllBtn: 'mediaStepRunAllBtn',
+      infraProgressList: 'mediaInfraProgressList',
       stepCreateSchemaBtn: 'mediaStepCreateSchemaBtn',
       stepAttachFgBtn: 'mediaStepAttachFgBtn',
       stepCreateDatasetBtn: 'mediaStepCreateDatasetBtn',

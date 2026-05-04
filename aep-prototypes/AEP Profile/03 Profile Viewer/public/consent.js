@@ -57,6 +57,13 @@ const stepCreateSchemaBtn = document.getElementById('stepCreateSchemaBtn');
 const stepAttachFgBtn = document.getElementById('stepAttachFgBtn');
 const stepCreateDatasetBtn = document.getElementById('stepCreateDatasetBtn');
 const stepHttpFlowBtn = document.getElementById('stepHttpFlowBtn');
+// May 2026 single-button consolidation — replaces the legacy per-step
+// stepper with a single primary action that runs createSchema →
+// attachFieldGroups → createDataset in sequence with inline ✓ progress.
+// The legacy ids are still resolved above so any cached markup keeps
+// working and the per-step Cloud Functions remain reachable for diagnostics.
+const stepRunAllBtn = document.getElementById('stepRunAllBtn');
+const infraProgressListEl = document.getElementById('infraProgressList');
 const saveStreamBtn = document.getElementById('saveStreamBtn');
 const fetchFlowFromAepBtn = document.getElementById('fetchFlowFromAepBtn');
 
@@ -755,6 +762,150 @@ async function runConsentInfraWizardStep(step, btn) {
   }
 }
 
+// ---- Combined consent provisioning (Schema → Field groups → Dataset) ----
+//
+// Replaces the legacy 3-button consent infra stepper with a single primary
+// action that runs `createSchema → attachFieldGroups → createDataset` in
+// sequence. The three sub-steps share data, never run independently for
+// production sandboxes, and the underlying Cloud Functions are fully
+// idempotent (functions/consentInfraService.js delegates to the same
+// factory that powers each industry's profile infra). Mirrors the helper
+// in profile-generation-industry-runtime.js — see that file for the full
+// design rationale.
+const COMBINED_CONSENT_PROVISIONING_STEPS = [
+  { step: 'createSchema',      label: 'Schema' },
+  { step: 'attachFieldGroups', label: 'Field groups' },
+  { step: 'createDataset',     label: 'Dataset' },
+];
+
+function ensureConsentProgressList() {
+  if (!infraProgressListEl) return null;
+  infraProgressListEl.hidden = false;
+  infraProgressListEl.innerHTML = '';
+  COMBINED_CONSENT_PROVISIONING_STEPS.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+    li.dataset.step = s.step;
+    const icon = document.createElement('span');
+    icon.className = 'consent-infra-progress__icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '·';
+    const label = document.createElement('span');
+    label.className = 'consent-infra-progress__label';
+    label.textContent = `${i + 1}. ${s.label}`;
+    const detail = document.createElement('span');
+    detail.className = 'consent-infra-progress__detail';
+    detail.textContent = '';
+    li.append(icon, label, detail);
+    infraProgressListEl.appendChild(li);
+  });
+  return infraProgressListEl;
+}
+
+function setConsentProgressItem(step, state, detailText) {
+  if (!infraProgressListEl) return;
+  const li = infraProgressListEl.querySelector(`[data-step="${step}"]`);
+  if (!li) return;
+  li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+  const icon = li.querySelector('.consent-infra-progress__icon');
+  const detail = li.querySelector('.consent-infra-progress__detail');
+  if (icon) {
+    icon.textContent =
+      state === 'success' ? '✓' :
+      state === 'error'   ? '✗' :
+      state === 'working' ? '…' : '·';
+  }
+  if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+}
+
+function classifyConsentStepResult(stepName, data) {
+  if (!data || typeof data !== 'object') return 'created';
+  if (stepName === 'attachFieldGroups') return data.patchApplied ? 'created' : 'already';
+  return data.skipped ? 'already' : 'created';
+}
+
+function describeConsentStepOutcome(stepName, outcome) {
+  if (outcome === 'already') return 'already configured';
+  if (stepName === 'createSchema') return 'created';
+  if (stepName === 'attachFieldGroups') return 'attached';
+  if (stepName === 'createDataset') return 'created';
+  return 'done';
+}
+
+async function runConsentInfraWizardAllSteps() {
+  const busy = [
+    stepRunAllBtn,
+    stepCreateSchemaBtn,
+    stepAttachFgBtn,
+    stepCreateDatasetBtn,
+    stepHttpFlowBtn,
+    checkInfraBtn,
+  ].filter(Boolean);
+  busy.forEach((b) => {
+    b.disabled = true;
+  });
+  ensureConsentProgressList();
+  showInfraMessage('Setting up schema, field groups and dataset…', '');
+  let lastSuccessData = null;
+  try {
+    for (const cfg of COMBINED_CONSENT_PROVISIONING_STEPS) {
+      setConsentProgressItem(cfg.step, 'working', 'working…');
+      let res, data;
+      try {
+        res = await fetch('/api/consent-infra/step' + consentInfraQuerySuffix(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: cfg.step }),
+        });
+        data = await res.json().catch(() => ({}));
+      } catch (e) {
+        const errMsg = e && e.message ? e.message : 'Network error';
+        setConsentProgressItem(cfg.step, 'error', errMsg);
+        showInfraMessage(`${cfg.label} failed: ${errMsg}`, 'error');
+        return;
+      }
+      if (!res.ok || data.ok === false) {
+        // AEP error already extracted by extractAepErrorMessage in the
+        // shared factory (report.additionalDetails[].errorReason on 4xx).
+        const aepError =
+          data && data.error
+            ? data.error
+            : data && data.profileCoreMixinMissing
+              ? 'Profile Core v2 not imported in this sandbox.'
+              : `Step request failed (HTTP ${res.status}).`;
+        setConsentProgressItem(cfg.step, 'error', aepError);
+        showInfraMessage(`${cfg.label} failed: ${aepError}`, 'error');
+        return;
+      }
+      applyConsentStepResultToStreamFields(data);
+      try {
+        const infra = {};
+        if (data.schemaId) infra.schemaId = data.schemaId;
+        if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+        if (data.datasetId) infra.datasetId = data.datasetId;
+        if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+        await pushConsentConnectionToFirestore(Object.keys(infra).length ? infra : undefined);
+      } catch (e) {
+        console.warn(`[consent-connection] combined step sync after ${cfg.step}:`, e && e.message);
+      }
+      const outcome = classifyConsentStepResult(cfg.step, data);
+      setConsentProgressItem(cfg.step, 'success', describeConsentStepOutcome(cfg.step, outcome));
+      lastSuccessData = data;
+    }
+    const summary =
+      (lastSuccessData && lastSuccessData.message) ||
+      'Schema, field groups and dataset ready.';
+    showInfraMessage(
+      `${summary} Now create the HTTP API streaming source in AEP and paste the dataflow ID below.`,
+      'success',
+    );
+  } finally {
+    busy.forEach((b) => {
+      b.disabled = false;
+    });
+  }
+}
+
 /** Consent radios live under Step 2 so :checked is never read from another part of the page. */
 function consentFormRoot() {
   return document.getElementById('step3') || document;
@@ -1397,6 +1548,9 @@ loadConsentPageSandboxes()
   });
 
 checkInfraBtn && checkInfraBtn.addEventListener('click', checkConsentInfra);
+// Combined provisioning button (May 2026 consolidation). Legacy per-step
+// button wiring stays in place defensively for older / cached HTML.
+stepRunAllBtn && stepRunAllBtn.addEventListener('click', runConsentInfraWizardAllSteps);
 stepCreateSchemaBtn &&
   stepCreateSchemaBtn.addEventListener('click', () => runConsentInfraWizardStep('createSchema', stepCreateSchemaBtn));
 stepAttachFgBtn &&

@@ -968,6 +968,86 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   line-height: 1.5;
 }
 
+/* ===== Inline provisioning progress list =====
+ * Renders the three sub-step rows (Schema → Field groups → Dataset) for the
+ * combined "Set up schema, field groups & dataset" wizard button. Each <li>
+ * gets a state class (`--pending` / `--working` / `--success` / `--error`)
+ * that controls the leading icon glyph (set via JS) and the row colour. All
+ * colours flow through `--dash-*` tokens so light + dark themes share the
+ * structure with no hex-coded fallbacks.
+ *
+ * Lives directly under the wizard button row in profile-generation.html
+ * (one per industry) and consent.html. The list is `hidden` until the
+ * operator clicks the combined button — the JS removes that attribute
+ * before painting the first sub-step. */
+.profile-generation-page .consent-infra-progress,
+.consent-page .consent-infra-progress {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--dash-surface-alt, var(--dash-surface));
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.profile-generation-page .consent-infra-progress[hidden],
+.consent-page .consent-infra-progress[hidden] {
+  display: none;
+}
+
+.profile-generation-page .consent-infra-progress__item,
+.consent-page .consent-infra-progress__item {
+  display: grid;
+  grid-template-columns: 1.4rem auto 1fr;
+  align-items: baseline;
+  gap: 0.4rem;
+  line-height: 1.45;
+}
+
+.profile-generation-page .consent-infra-progress__icon,
+.consent-page .consent-infra-progress__icon {
+  text-align: center;
+  font-weight: 700;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+
+.profile-generation-page .consent-infra-progress__label,
+.consent-page .consent-infra-progress__label {
+  font-weight: 600;
+}
+
+.profile-generation-page .consent-infra-progress__detail,
+.consent-page .consent-infra-progress__detail {
+  color: var(--dash-text-secondary, var(--dash-muted));
+  font-style: italic;
+}
+
+.profile-generation-page .consent-infra-progress__item--working .consent-infra-progress__icon,
+.consent-page .consent-infra-progress__item--working .consent-infra-progress__icon {
+  color: var(--dash-blue, var(--dash-text));
+}
+
+.profile-generation-page .consent-infra-progress__item--success .consent-infra-progress__icon,
+.consent-page .consent-infra-progress__item--success .consent-infra-progress__icon {
+  color: var(--dash-success-border, var(--dash-blue));
+}
+
+.profile-generation-page .consent-infra-progress__item--error .consent-infra-progress__icon,
+.consent-page .consent-infra-progress__item--error .consent-infra-progress__icon {
+  color: var(--dash-error-border, var(--dash-text));
+}
+
+.profile-generation-page .consent-infra-progress__item--error .consent-infra-progress__detail,
+.consent-page .consent-infra-progress__item--error .consent-infra-progress__detail {
+  color: var(--dash-error-text, var(--dash-text));
+  font-style: normal;
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;
