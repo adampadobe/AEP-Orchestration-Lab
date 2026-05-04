@@ -71,6 +71,7 @@ const mediaProfileConnectionStore = lazyRequireMod('./mediaProfileConnectionStor
 const sportsProfileInfraService = lazyRequireMod('./sportsProfileInfraService');
 const profileInfraStatusAllSvc = lazyRequireMod('./profileInfraStatusAll');
 const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionStore');
+const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
@@ -451,9 +452,77 @@ exports.profileTableProxy = onRequest(
     try {
       const ups = await profileTableHelpers.fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
       const payload = profileTableHelpers.buildProfileTablePayload(identifier, ups);
+      // Layer per-row industry ownership + writability so the new
+      // Dataflow column has everything it needs in one round trip.
+      // Failures here MUST NOT block the lookup — fall back to the
+      // un-enriched payload so the table still renders.
+      try {
+        const statusAllPayload = await profileInfraStatusAllSvc.runProfileInfraStatusAll({
+          sandbox,
+          token: accessToken,
+          clientId,
+          orgId,
+          services: {
+            generic: genericProfileInfraService,
+            travel: travelProfileInfraService,
+            fsi: fsiProfileInfraService,
+            telecom: telecomProfileInfraService,
+            retail: retailProfileInfraService,
+            media: mediaProfileInfraService,
+            sports: sportsProfileInfraService,
+          },
+        });
+        const writability = await profileTableHelpers.buildIndustryWritabilityMap({
+          statusAllPayload,
+          sandbox,
+          connectionStores: {
+            generic: genericProfileConnectionStore,
+            travel: travelProfileConnectionStore,
+            fsi: fsiProfileConnectionStore,
+            telecom: telecomProfileConnectionStore,
+            retail: retailProfileConnectionStore,
+            media: mediaProfileConnectionStore,
+            sports: sportsProfileConnectionStore,
+          },
+        });
+        profileTableHelpers.enrichProfileTablePayloadWithWritability(payload, writability);
+      } catch (enrichErr) {
+        console.warn(
+          '[profileTableProxy.enrich]',
+          JSON.stringify({ sandbox, error: String(enrichErr && enrichErr.message ? enrichErr.message : enrichErr).slice(0, 240) })
+        );
+      }
       res.status(200).json(payload);
     } catch (e) {
       res.status(500).json({ error: String(e.message || e) });
+    }
+  }
+);
+
+/**
+ * GET /api/profile/attribute-ownership — return the static
+ * path-prefix → industry map used by the Profile Viewer's Attributes
+ * table for its Dataflow column. Stable across sandboxes (no AEP
+ * round-trip), so this handler doesn't need PROFILE_FN_SECRETS or
+ * IMS auth — but it lives in the same region/profileFnOpts shape so
+ * `firebase.json` can route `/api/profile/attribute-ownership` here.
+ */
+exports.profileAttributeOwnership = onRequest(
+  { region: REGION, invoker: 'public', memory: '256MiB' },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    try {
+      res.status(200).json({ ok: true, ...industryAttributeMap.getAttributeOwnershipPayload() });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e) });
     }
   }
 );
@@ -1452,12 +1521,70 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
 
+  // Industry routing — `?industry=<key>` (or body.industry) tells us
+  // which per-industry HTTP API streaming dataflow to write to. When
+  // absent we keep the historical default of `generic` so existing
+  // callers (Consent Manager, Profile Viewer's old single-target Update
+  // button) keep working unchanged. The body's `streaming.{url, flowId,
+  // datasetId, schemaId, xdmKey}` STILL win when explicitly set — that
+  // is the back-compat path for callers that already do their own
+  // connection lookup client-side.
+  const INDUSTRY_TO_CONNECTION_STORE = {
+    generic: genericProfileConnectionStore,
+    travel: travelProfileConnectionStore,
+    fsi: fsiProfileConnectionStore,
+    telecom: telecomProfileConnectionStore,
+    retail: retailProfileConnectionStore,
+    media: mediaProfileConnectionStore,
+    sports: sportsProfileConnectionStore,
+  };
+  const requestedIndustryRaw = String(req.query.industry || body.industry || '').trim().toLowerCase();
+  const industryKey = requestedIndustryRaw && INDUSTRY_TO_CONNECTION_STORE[requestedIndustryRaw]
+    ? requestedIndustryRaw
+    : 'generic';
+  if (requestedIndustryRaw && !INDUSTRY_TO_CONNECTION_STORE[requestedIndustryRaw]) {
+    res.status(400).json({
+      error: `Unknown industry "${requestedIndustryRaw}". Supported: ${Object.keys(INDUSTRY_TO_CONNECTION_STORE).join(', ')}.`,
+    });
+    return;
+  }
+
   const streaming = body.streaming && typeof body.streaming === 'object' ? body.streaming : {};
-  const streamUrl = String(streaming.url || '').trim();
-  const flowId = String(streaming.flowId || '').trim();
-  const datasetId = String(streaming.datasetId || '').trim();
-  const schemaId = String(streaming.schemaId || '').trim();
-  const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
+  // Look up the industry's persisted streaming connection. Body wins
+  // when it sets a field; the connection store fills in the gaps. We
+  // NEVER overwrite a non-empty body value — that would be a foot-gun
+  // for the legacy single-target Update path.
+  let industryConnection = null;
+  try {
+    const getter = profileTableHelpers.resolveConnectionGetter(
+      INDUSTRY_TO_CONNECTION_STORE[industryKey],
+      industryKey,
+    );
+    if (getter) {
+      industryConnection = await getter(sandbox);
+    }
+  } catch (lookupErr) {
+    console.warn(
+      '[profileUpdateProxy.connection-lookup]',
+      JSON.stringify({
+        industry: industryKey,
+        sandbox,
+        error: String(lookupErr && lookupErr.message ? lookupErr.message : lookupErr).slice(0, 240),
+      }),
+    );
+  }
+  const persistedStreaming =
+    industryConnection && industryConnection.streaming && typeof industryConnection.streaming === 'object'
+      ? industryConnection.streaming
+      : {};
+
+  const streamUrl = String(streaming.url || persistedStreaming.url || '').trim();
+  const flowId = String(streaming.flowId || persistedStreaming.flowId || '').trim();
+  const datasetId = String(streaming.datasetId || persistedStreaming.datasetId || '').trim();
+  const schemaId = String(streaming.schemaId || persistedStreaming.schemaId || '').trim();
+  const xdmKey = String(
+    streaming.xdmKey || persistedStreaming.xdmKey || '_demoemea',
+  ).trim();
   const isAdobeDcsCollection = streamUrl ? /dcs\.adobedc\.net/i.test(streamUrl) : false;
   const hasDatasetAndSchema = Boolean(datasetId && schemaId);
   /** DCS HTTP API inlets require { header, body }; bare JSON returns 400 "header field is mandatory". */
@@ -1497,7 +1624,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
-  const apiKey = String(streaming.apiKey || '').trim() || clientId;
+  const apiKey = String(streaming.apiKey || persistedStreaming.apiKey || '').trim() || clientId;
 
   let accessToken;
   if (!dryRun) {
@@ -1633,6 +1760,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       streamPayloadProfile: useOperational ? 'operational' : 'standard',
       envelope: payload,
       imsOrgId: orgId,
+      industry: industryKey,
       note: useOperational
         ? 'Operational payload (explicit streamPayloadProfile only).'
         : payloadFormat === 'envelope'
@@ -1668,6 +1796,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       sentToAep: payload,
       payloadFormat,
       requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
+      industry: industryKey,
     });
     return;
   }
@@ -1680,6 +1809,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
+    industry: industryKey,
     ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
   });
 });

@@ -182,6 +182,13 @@
         }
       },
       {
+        "source": "/api/profile/attribute-ownership",
+        "function": {
+          "functionId": "profileAttributeOwnership",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/sandboxes",
         "function": {
           "functionId": "sandboxesProxy",

@@ -3,6 +3,8 @@
  * Kept in functions/ for Firebase Hosting rewrite — not imported from aep-prototypes server.
  */
 
+const { resolveIndustryForPath, RESOLUTION_REASON } = require('./industryAttributeMap');
+
 const get = (obj, path) => path.split('.').reduce((o, k) => (o && o[k]), obj);
 
 function humanize(str) {
@@ -16,18 +18,49 @@ function humanize(str) {
   );
 }
 
+/**
+ * Attach `{ industry, ownershipReason }` to one row by resolving its
+ * `path` against the static industry-attribute map. `industry` is `null`
+ * when no map entry claims the path; the row is still returned so the
+ * UI can render a muted "(no dataflow)" placeholder. Existing keys on
+ * the row are preserved (back-compat with any client that still reads
+ * the original `attribute / displayName / value / path` quartet only).
+ *
+ * Kept private to this module — `flattenEntityToTableRows()` is the
+ * single call site so every row added by the table builder gets the
+ * same enrichment exactly once.
+ */
+function annotateRowWithIndustry(row) {
+  if (!row || typeof row !== 'object') return row;
+  if ('industry' in row && 'ownershipReason' in row) return row;
+  const { industry, reason } = resolveIndustryForPath(row.path);
+  row.industry = industry;
+  row.ownershipReason = reason;
+  return row;
+}
+
 function flattenEntityToTableRows(obj, prefix = '') {
   const rows = [];
   if (obj === null || typeof obj === 'undefined') {
     if (prefix) {
       const attr = prefix.split('.').pop();
-      rows.push({ attribute: attr, displayName: humanize(attr), value: String(obj), path: prefix });
+      rows.push(annotateRowWithIndustry({
+        attribute: attr,
+        displayName: humanize(attr),
+        value: String(obj),
+        path: prefix,
+      }));
     }
     return rows;
   }
   if (typeof obj !== 'object') {
     const attr = prefix ? prefix.split('.').pop() : '';
-    rows.push({ attribute: attr, displayName: humanize(attr), value: String(obj), path: prefix });
+    rows.push(annotateRowWithIndustry({
+      attribute: attr,
+      displayName: humanize(attr),
+      value: String(obj),
+      path: prefix,
+    }));
     return rows;
   }
   if (Array.isArray(obj)) {
@@ -37,12 +70,12 @@ function flattenEntityToTableRows(obj, prefix = '') {
         rows.push(...flattenEntityToTableRows(item, path));
       } else {
         const attr = path.split('.').pop();
-        rows.push({
+        rows.push(annotateRowWithIndustry({
           attribute: attr,
           displayName: humanize(attr),
           value: item == null ? '' : String(item),
           path,
-        });
+        }));
       }
     });
     return rows;
@@ -60,22 +93,22 @@ function flattenEntityToTableRows(obj, prefix = '') {
           rows.push(...flattenEntityToTableRows(item, subPath));
         } else {
           const attr = attrForPath(subPath);
-          rows.push({
+          rows.push(annotateRowWithIndustry({
             attribute: attr,
             displayName: humanize(attr),
             value: item == null ? '' : String(item),
             path: subPath,
-          });
+          }));
         }
       });
     } else {
       const attr = path && /\.\d+$/.test(path) ? path.split('.').slice(-2).join('.') : key;
-      rows.push({
+      rows.push(annotateRowWithIndustry({
         attribute: attr,
         displayName: humanize(attr),
         value: value == null ? '' : String(value),
         path,
-      });
+      }));
     }
   }
   return rows;
@@ -349,6 +382,206 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
   throw err;
 }
 
+/**
+ * Reason templates for the new `writable=false` rows. The UI surfaces
+ * these as `<input disabled title="…">` tooltips.
+ *
+ *   - INDUSTRY_NOT_PROVISIONED — the row's owning industry has no schema
+ *     OR no dataset (per `/api/profile-infra/status-all`). The architect
+ *     would have to run that industry's setup wizard first.
+ *   - INDUSTRY_NOT_PROFILE_ENABLED — schema + dataset exist but at least
+ *     one is not Profile-enabled (schemaInUnion + datasetProfileEnabled
+ *     must both be true to write).
+ *   - INDUSTRY_NO_DATAFLOW — schema + dataset are Profile-enabled but no
+ *     HTTP API streaming connection is saved in Firestore for this
+ *     sandbox; architect needs to save a connection on the industry's
+ *     panel.
+ *   - UNOWNED_PATH — no industry schema in this sandbox declares this
+ *     path (resolveIndustryForPath returned null). Almost always means
+ *     the path was streamed via a previous sandbox/schema, or the path
+ *     is part of an OOTB mixin we haven't mapped yet.
+ */
+const WRITABLE_FALSE_REASON = {
+  INDUSTRY_NOT_PROVISIONED: (display) =>
+    `${display} not yet provisioned in this sandbox (run the ${display} setup wizard first).`,
+  INDUSTRY_NOT_PROFILE_ENABLED: (display) =>
+    `${display} schema or dataset is not yet enabled for Real-Time Customer Profile in this sandbox.`,
+  INDUSTRY_NO_DATAFLOW: (display) =>
+    `${display} has no HTTP API streaming connection saved for this sandbox (open the ${display} panel and click Save connection).`,
+  UNOWNED_PATH: 'No industry schema in this sandbox declares this path.',
+};
+
+/** Display labels for industry pills in the new Dataflow column. */
+const INDUSTRY_DISPLAY_NAMES = {
+  generic: 'Generic',
+  travel: 'Travel',
+  fsi: 'FSI',
+  telecom: 'Telecom',
+  retail: 'Retail',
+  media: 'Media',
+  sports: 'Sports',
+};
+
+/**
+ * Resolve `{ get }` from an industry connection store regardless of its
+ * export shape. Some stores spread the factory output (`...store`, so
+ * `store.get` exists), others export a wrapped function with the
+ * industry name baked in (e.g. `getGenericProfileConnection`).
+ */
+function resolveConnectionGetter(store, industryKey) {
+  if (!store) return null;
+  if (typeof store.get === 'function') return store.get.bind(store);
+  const candidates = [
+    `get${industryKey.charAt(0).toUpperCase()}${industryKey.slice(1)}ProfileConnection`,
+  ];
+  for (const name of candidates) {
+    if (typeof store[name] === 'function') return store[name].bind(store);
+  }
+  return null;
+}
+
+/**
+ * Build a per-industry `{ industryKey -> { dataflow, writable, reason } }`
+ * map for one sandbox by combining:
+ *
+ *   1. The aggregate `/api/profile-infra/status-all` flags
+ *      (schemaFound, schemaInUnion, datasetFound, datasetProfileEnabled)
+ *      → tells us whether a write would even land in Profile.
+ *   2. The per-industry Firestore connection record
+ *      (`streaming.url`, `streaming.flowId`, `streaming.datasetId`,
+ *      `streaming.schemaId`, `streaming.xdmKey`)
+ *      → tells us whether a streaming dataflow exists to write to.
+ *
+ * @param {object} cfg
+ * @param {object} cfg.statusAllPayload   - shape of runProfileInfraStatusAll output
+ * @param {object} cfg.connectionStores   - { generic, travel, fsi, telecom, retail, media, sports }
+ * @param {string} cfg.sandbox
+ * @returns {Promise<Record<string, { display: string,
+ *   schemaFound: boolean, schemaInUnion: boolean, datasetFound: boolean,
+ *   datasetProfileEnabled: boolean, dataflowId: string|null,
+ *   datasetId: string|null, schemaId: string|null,
+ *   collectionUrl: string|null, xdmKey: string|null,
+ *   writable: boolean, notWritableReason: string|null }>>}
+ */
+async function buildIndustryWritabilityMap({ statusAllPayload, connectionStores, sandbox }) {
+  const industriesFlags = (statusAllPayload && statusAllPayload.industries) || {};
+  /** @type {Record<string, object>} */
+  const out = {};
+  await Promise.all(
+    Object.keys(INDUSTRY_DISPLAY_NAMES).map(async (industryKey) => {
+      const display = INDUSTRY_DISPLAY_NAMES[industryKey];
+      const flags = industriesFlags[industryKey] || {};
+      const schemaFound = !!flags.schemaFound;
+      const schemaInUnion = !!flags.schemaInUnion;
+      const datasetFound = !!flags.datasetFound;
+      const datasetProfileEnabled = !!flags.datasetProfileEnabled;
+
+      let dataflowId = null;
+      let datasetId = null;
+      let schemaId = null;
+      let collectionUrl = null;
+      let xdmKey = null;
+      try {
+        const getter = resolveConnectionGetter(connectionStores[industryKey], industryKey);
+        if (getter) {
+          const record = await getter(sandbox);
+          if (record && record.streaming && typeof record.streaming === 'object') {
+            const s = record.streaming;
+            dataflowId = String(s.flowId || '').trim() || null;
+            datasetId = String(s.datasetId || '').trim() || null;
+            schemaId = String(s.schemaId || '').trim() || null;
+            collectionUrl = String(s.url || '').trim() || null;
+            xdmKey = String(s.xdmKey || '').trim() || null;
+          }
+        }
+      } catch {
+        // Connection store read failed — treat as no-dataflow but keep
+        // the rest of the map intact so other industries still surface.
+      }
+
+      let writable;
+      let notWritableReason = null;
+      if (!schemaFound || !datasetFound) {
+        writable = false;
+        notWritableReason = WRITABLE_FALSE_REASON.INDUSTRY_NOT_PROVISIONED(display);
+      } else if (!schemaInUnion || !datasetProfileEnabled) {
+        writable = false;
+        notWritableReason = WRITABLE_FALSE_REASON.INDUSTRY_NOT_PROFILE_ENABLED(display);
+      } else if (!collectionUrl || !dataflowId) {
+        writable = false;
+        notWritableReason = WRITABLE_FALSE_REASON.INDUSTRY_NO_DATAFLOW(display);
+      } else {
+        writable = true;
+      }
+
+      out[industryKey] = {
+        display,
+        schemaFound,
+        schemaInUnion,
+        datasetFound,
+        datasetProfileEnabled,
+        dataflowId,
+        datasetId,
+        schemaId,
+        collectionUrl,
+        xdmKey,
+        writable,
+        notWritableReason,
+      };
+    }),
+  );
+  return out;
+}
+
+/**
+ * Layer per-row writability/dataflow context onto a payload returned by
+ * `buildProfileTablePayload`. Mutates each row in place; safe to call
+ * even if the payload is empty / not-found. Adds a top-level
+ * `industries` block so the UI can render legend / debug info without
+ * a second round-trip.
+ *
+ * @param {object} payload   - output of buildProfileTablePayload
+ * @param {object} writability - output of buildIndustryWritabilityMap
+ */
+function enrichProfileTablePayloadWithWritability(payload, writability) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const map = writability && typeof writability === 'object' ? writability : {};
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+  for (const row of rows) {
+    const key = row && row.industry;
+    if (!key) {
+      row.dataflowId = null;
+      row.datasetId = null;
+      row.schemaId = null;
+      row.collectionUrl = null;
+      row.industryDisplay = null;
+      row.writable = false;
+      row.notWritableReason = WRITABLE_FALSE_REASON.UNOWNED_PATH;
+      continue;
+    }
+    const entry = map[key];
+    if (!entry) {
+      row.dataflowId = null;
+      row.datasetId = null;
+      row.schemaId = null;
+      row.collectionUrl = null;
+      row.industryDisplay = INDUSTRY_DISPLAY_NAMES[key] || key;
+      row.writable = false;
+      row.notWritableReason = `${INDUSTRY_DISPLAY_NAMES[key] || key} status unavailable for this sandbox.`;
+      continue;
+    }
+    row.industryDisplay = entry.display;
+    row.dataflowId = entry.dataflowId;
+    row.datasetId = entry.datasetId;
+    row.schemaId = entry.schemaId;
+    row.collectionUrl = entry.collectionUrl;
+    row.writable = !!entry.writable;
+    row.notWritableReason = entry.notWritableReason;
+  }
+  payload.industries = map;
+  return payload;
+}
+
 module.exports = {
   buildProfileTablePayload,
   fetchUpsProfileEntities,
@@ -361,4 +594,10 @@ module.exports = {
   toEcidString,
   humanize,
   ECID_PATH_DEMOEMEA,
+  buildIndustryWritabilityMap,
+  enrichProfileTablePayloadWithWritability,
+  resolveConnectionGetter,
+  INDUSTRY_DISPLAY_NAMES,
+  WRITABLE_FALSE_REASON,
+  RESOLUTION_REASON,
 };
