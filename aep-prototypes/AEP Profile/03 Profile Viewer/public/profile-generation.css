@@ -1048,6 +1048,54 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   font-style: normal;
 }
 
+/* "Enable schema + dataset for Profile" final-step block.
+ * Sits at the bottom of each industry's wizard panel (and the consent page)
+ * after the HTTP API streaming step. Yellow warning banner above the button
+ * makes the one-way nature of the schema-Union toggle explicit so the
+ * architect validates batches are landing in the dataset before clicking. */
+.profile-generation-page .enable-profile-step,
+.consent-page .enable-profile-step {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--dash-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.profile-generation-page .enable-profile-warning,
+.consent-page .enable-profile-warning {
+  background: var(--dash-warning-bg, #fff8e1);
+  border: 1px solid var(--dash-warning-border, #f0c14b);
+  border-left: 4px solid var(--dash-warning-border, #f0c14b);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  color: var(--dash-warning-text, #5c3d2e);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.profile-generation-page .enable-profile-warning strong,
+.consent-page .enable-profile-warning strong {
+  font-weight: 600;
+}
+
+.profile-generation-page .enable-profile-warning code,
+.consent-page .enable-profile-warning code {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.profile-generation-page .enable-profile-step__action,
+.consent-page .enable-profile-step__action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;

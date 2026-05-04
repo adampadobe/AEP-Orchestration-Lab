@@ -417,6 +417,14 @@
     const infraDetailsEl = $(ids.infraDetails);
     const infraHintEl = $(ids.infraHint);
     const ORIGINAL_INFRA_HINT = infraHintEl ? infraHintEl.textContent.trim() : '';
+    // Enable for Profile button + its inline two-row progress list (May 2026
+    // addition). The button is the FINAL on-platform action: PATCHes the
+    // schema's `meta:immutableTags` to add `"union"` (Profile Union) then
+    // PATCHes the dataset's `tags.unifiedProfile=['enabled:true']`. The
+    // server enforces strict schema-first ordering; the front end only
+    // surfaces the result.
+    const enableProfileBtn = $(ids.enableProfileBtn);
+    const enableProfileProgressListEl = $(ids.enableProfileProgressList);
 
     const streamSchemaIdEl = $(ids.streamSchemaId);
     const streamDatasetIdEl = $(ids.streamDatasetId);
@@ -979,6 +987,131 @@
         } catch (e) {
           warn('autoDiscoverInfraFromSandbox after combined run:', e && e.message);
         }
+      } finally {
+        busy.forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    /**
+     * Final on-platform action: enable schema + dataset for Real-Time
+     * Customer Profile. Calls `/api/<industry>-profile-infra/enable-profile`
+     * and renders an inline two-row progress list above the button.
+     *
+     *   ✓ Schema enabled for Profile      → already enabled / failed
+     *   ✓ Dataset enabled for Profile     → already enabled / failed / skipped
+     *
+     * Server enforces strict schema-first → dataset-second ordering and the
+     * idempotent `already-enabled` semantics — this function only translates
+     * the structured response into UI state. AEP error reasons surfaced via
+     * the shared `extractAepErrorMessage` helper appear in the inline
+     * progress detail and the message bar.
+     */
+    const ENABLE_PROFILE_PROGRESS_STEPS = [
+      { step: 'schemaUnion',    label: 'Schema enabled for Profile' },
+      { step: 'datasetProfile', label: 'Dataset enabled for Profile' },
+    ];
+
+    function ensureEnableProfileProgressList() {
+      if (!enableProfileProgressListEl) return null;
+      enableProfileProgressListEl.hidden = false;
+      enableProfileProgressListEl.innerHTML = '';
+      ENABLE_PROFILE_PROGRESS_STEPS.forEach((s) => {
+        const li = document.createElement('li');
+        li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+        li.dataset.step = s.step;
+        const icon = document.createElement('span');
+        icon.className = 'consent-infra-progress__icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '·';
+        const label = document.createElement('span');
+        label.className = 'consent-infra-progress__label';
+        label.textContent = s.label;
+        const detail = document.createElement('span');
+        detail.className = 'consent-infra-progress__detail';
+        detail.textContent = '';
+        li.append(icon, label, detail);
+        enableProfileProgressListEl.appendChild(li);
+      });
+      return enableProfileProgressListEl;
+    }
+
+    function setEnableProfileProgressItem(step, state, detailText) {
+      if (!enableProfileProgressListEl) return;
+      const li = enableProfileProgressListEl.querySelector(`[data-step="${step}"]`);
+      if (!li) return;
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+      const icon = li.querySelector('.consent-infra-progress__icon');
+      const detail = li.querySelector('.consent-infra-progress__detail');
+      if (icon) {
+        icon.textContent =
+          state === 'success' ? '✓' :
+          state === 'error'   ? '✗' :
+          state === 'working' ? '…' : '·';
+      }
+      if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+    }
+
+    function describeEnableSubResult(part, value, errorText) {
+      if (value === 'enabled') {
+        return { state: 'success', text: part === 'schema' ? 'enabled' : 'enabled' };
+      }
+      if (value === 'already-enabled') {
+        return { state: 'success', text: 'already enabled' };
+      }
+      if (value === 'skipped') {
+        return { state: 'pending', text: 'skipped' };
+      }
+      // 'failed' or unknown
+      return { state: 'error', text: errorText || 'failed' };
+    }
+
+    async function enableProfileOnSchemaAndDataset() {
+      if (!enableProfileBtn) return;
+      const busy = [enableProfileBtn].filter(Boolean);
+      busy.forEach((b) => { b.disabled = true; });
+      ensureEnableProfileProgressList();
+      setEnableProfileProgressItem('schemaUnion', 'working', 'working…');
+      setEnableProfileProgressItem('datasetProfile', 'pending', '');
+      showInfraMessage('Enabling schema, then dataset, for Real-Time Customer Profile…', '');
+      try {
+        let res;
+        let data;
+        try {
+          res = await fetch(`/api/${apiPathPrefix}-infra/enable-profile` + querySuffix(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          data = await res.json().catch(() => ({}));
+        } catch (e) {
+          const errMsg = e && e.message ? e.message : 'Network error';
+          setEnableProfileProgressItem('schemaUnion', 'error', errMsg);
+          showInfraMessage(`Enable for Profile failed: ${errMsg}`, 'error');
+          return;
+        }
+        if (!res.ok || data.ok === false) {
+          // Schema-side error gets the schema row; dataset-side gets the dataset row.
+          const schemaSub = describeEnableSubResult('schema', data.schemaUnion, data.schemaError || data.error);
+          setEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+          if (data.datasetProfile) {
+            const dsSub = describeEnableSubResult('dataset', data.datasetProfile, data.datasetError);
+            setEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+          }
+          showInfraMessage(
+            data.message || data.error || `Enable for Profile failed (HTTP ${res.status}).`,
+            'error'
+          );
+          return;
+        }
+        // Success path. Surface each sub-step state from the structured payload.
+        const schemaSub = describeEnableSubResult('schema', data.schemaUnion, data.schemaError);
+        setEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+        const dsSub = describeEnableSubResult('dataset', data.datasetProfile, data.datasetError);
+        setEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+        showInfraMessage(data.message || 'Schema and dataset are Profile-enabled.', 'success');
+        // The streaming connection panel may want to refresh now that the
+        // dataset is Profile-enabled — re-render the collapse hint just in
+        // case it was relying on Profile state.
+        try { applyConfiguredCollapseState(); } catch (_) { /* ignore */ }
       } finally {
         busy.forEach((b) => { b.disabled = false; });
       }
@@ -1798,6 +1931,9 @@
     if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups'));
     if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset'));
     if (stepHttpFlowBtn) stepHttpFlowBtn.addEventListener('click', () => runStep('httpFlow'));
+    // Final on-platform action (May 2026 addition) — Enable schema + dataset
+    // for Real-Time Customer Profile.
+    if (enableProfileBtn) enableProfileBtn.addEventListener('click', enableProfileOnSchemaAndDataset);
 
     if (loadFromFirebaseBtn) loadFromFirebaseBtn.addEventListener('click', () => loadConnectionFromFirestore(false));
     if (fetchFlowFromAepBtn) fetchFlowFromAepBtn.addEventListener('click', fetchFlowFromAep);

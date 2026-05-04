@@ -61,9 +61,14 @@ async function runTravelProfileInfraStep(sandbox, token, clientId, orgId, stepNa
   return service.runStep(sandbox, token, clientId, orgId, stepName);
 }
 
+async function runTravelProfileInfraEnableProfile(sandbox, token, clientId, orgId) {
+  return service.runEnableProfile(sandbox, token, clientId, orgId);
+}
+
 module.exports = {
   runTravelProfileInfraStatus,
   runTravelProfileInfraStep,
+  runTravelProfileInfraEnableProfile,
   TRAVEL_PROFILE_SCHEMA_TITLE,
   TRAVEL_PROFILE_DATASET_NAME,
   TRAVEL_PROFILE_HTTP_DATAFLOW_NAME,

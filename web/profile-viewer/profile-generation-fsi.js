@@ -325,6 +325,10 @@
       stepAttachFgBtn: 'fsiStepAttachFgBtn',
       stepCreateDatasetBtn: 'fsiStepCreateDatasetBtn',
       stepHttpFlowBtn: 'fsiStepHttpFlowBtn',
+      // Final on-platform action (May 2026) — Enable schema + dataset for
+      // Real-Time Customer Profile. Strict schema-first → dataset-second.
+      enableProfileBtn: 'fsiEnableProfileBtn',
+      enableProfileProgressList: 'fsiEnableProfileProgressList',
       infraStatusMessage: 'fsiInfraStatusMessage',
       infraDetails: 'fsiProfileInfraDetails',
       infraHint: 'fsiProfileInfraHint',

@@ -289,6 +289,8 @@
       stepAttachFgBtn: 'retailStepAttachFgBtn',
       stepCreateDatasetBtn: 'retailStepCreateDatasetBtn',
       stepHttpFlowBtn: 'retailStepHttpFlowBtn',
+      enableProfileBtn: 'retailEnableProfileBtn',
+      enableProfileProgressList: 'retailEnableProfileProgressList',
       infraStatusMessage: 'retailInfraStatusMessage',
       infraDetails: 'retailProfileInfraDetails',
       infraHint: 'retailProfileInfraHint',

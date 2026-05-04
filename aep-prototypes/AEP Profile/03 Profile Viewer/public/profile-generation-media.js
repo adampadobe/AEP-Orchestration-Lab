@@ -183,6 +183,8 @@
       stepAttachFgBtn: 'mediaStepAttachFgBtn',
       stepCreateDatasetBtn: 'mediaStepCreateDatasetBtn',
       stepHttpFlowBtn: 'mediaStepHttpFlowBtn',
+      enableProfileBtn: 'mediaEnableProfileBtn',
+      enableProfileProgressList: 'mediaEnableProfileProgressList',
       infraStatusMessage: 'mediaInfraStatusMessage',
       infraDetails: 'mediaProfileInfraDetails',
       infraHint: 'mediaProfileInfraHint',

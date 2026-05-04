@@ -52,9 +52,14 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
   return service.runStep(sandbox, token, clientId, orgId, stepName);
 }
 
+async function runGenericProfileInfraEnableProfile(sandbox, token, clientId, orgId) {
+  return service.runEnableProfile(sandbox, token, clientId, orgId);
+}
+
 module.exports = {
   runGenericProfileInfraStatus,
   runGenericProfileInfraStep,
+  runGenericProfileInfraEnableProfile,
   GENERIC_PROFILE_SCHEMA_TITLE,
   GENERIC_PROFILE_DATASET_NAME,
   GENERIC_PROFILE_HTTP_DATAFLOW_NAME,

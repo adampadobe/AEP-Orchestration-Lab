@@ -34,6 +34,10 @@
   const stepRunAllBtn = document.getElementById('travelStepRunAllBtn');
   const infraProgressListEl = document.getElementById('travelInfraProgressList');
   const infraStatusMessage = document.getElementById('travelInfraStatusMessage');
+  // Enable schema + dataset for Real-Time Customer Profile (May 2026 addition).
+  // Final on-platform action — strict schema-first → dataset-second; idempotent.
+  const enableProfileBtn = document.getElementById('travelEnableProfileBtn');
+  const enableProfileProgressListEl = document.getElementById('travelEnableProfileProgressList');
   const infraDetailsEl = document.getElementById('travelProfileInfraDetails');
   const infraHintEl = document.getElementById('travelProfileInfraHint');
   const ORIGINAL_INFRA_HINT = infraHintEl ? infraHintEl.textContent.trim() : '';
@@ -602,6 +606,104 @@
       }
     } finally {
       busy.forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  // ---- Enable schema + dataset for Real-Time Customer Profile ----
+  // Mirrors the orchestrator in profile-generation-industry-runtime.js for
+  // the new industries (Generic + Travel pre-date that runtime helper). The
+  // server enforces strict schema-first → dataset-second ordering and
+  // idempotent `already-enabled` semantics; the UI here only renders the
+  // structured response into a two-row progress list above the button.
+  const ENABLE_PROFILE_PROGRESS_STEPS_TR = [
+    { step: 'schemaUnion',    label: 'Schema enabled for Profile' },
+    { step: 'datasetProfile', label: 'Dataset enabled for Profile' },
+  ];
+
+  function ensureTravelEnableProfileProgressList() {
+    if (!enableProfileProgressListEl) return null;
+    enableProfileProgressListEl.hidden = false;
+    enableProfileProgressListEl.innerHTML = '';
+    ENABLE_PROFILE_PROGRESS_STEPS_TR.forEach((s) => {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = s.label;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      enableProfileProgressListEl.appendChild(li);
+    });
+    return enableProfileProgressListEl;
+  }
+
+  function setTravelEnableProfileProgressItem(step, state, detailText) {
+    if (!enableProfileProgressListEl) return;
+    const li = enableProfileProgressListEl.querySelector(`[data-step="${step}"]`);
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent =
+        state === 'success' ? '✓' :
+        state === 'error'   ? '✗' :
+        state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+  }
+
+  function describeTravelEnableSubResult(value, errorText) {
+    if (value === 'enabled') return { state: 'success', text: 'enabled' };
+    if (value === 'already-enabled') return { state: 'success', text: 'already enabled' };
+    if (value === 'skipped') return { state: 'pending', text: 'skipped' };
+    return { state: 'error', text: errorText || 'failed' };
+  }
+
+  async function enableProfileOnSchemaAndDataset() {
+    if (!enableProfileBtn) return;
+    enableProfileBtn.disabled = true;
+    ensureTravelEnableProfileProgressList();
+    setTravelEnableProfileProgressItem('schemaUnion', 'working', 'working…');
+    setTravelEnableProfileProgressItem('datasetProfile', 'pending', '');
+    showInfraMessage('Enabling schema, then dataset, for Real-Time Customer Profile…', '');
+    try {
+      let res, data;
+      try {
+        res = await fetch('/api/travel-profile-infra/enable-profile' + querySuffix(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        data = await res.json().catch(() => ({}));
+      } catch (e) {
+        const errMsg = e && e.message ? e.message : 'Network error';
+        setTravelEnableProfileProgressItem('schemaUnion', 'error', errMsg);
+        showInfraMessage(`Enable for Profile failed: ${errMsg}`, 'error');
+        return;
+      }
+      const schemaSub = describeTravelEnableSubResult(data.schemaUnion, data.schemaError || data.error);
+      setTravelEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+      if (data.datasetProfile) {
+        const dsSub = describeTravelEnableSubResult(data.datasetProfile, data.datasetError);
+        setTravelEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+      }
+      if (!res.ok || data.ok === false) {
+        showInfraMessage(
+          data.message || data.error || `Enable for Profile failed (HTTP ${res.status}).`,
+          'error'
+        );
+        return;
+      }
+      showInfraMessage(data.message || 'Schema and dataset are Profile-enabled.', 'success');
+    } finally {
+      enableProfileBtn.disabled = false;
     }
   }
 
@@ -2359,6 +2461,7 @@
   // Combined provisioning button (May 2026 consolidation). Legacy per-step
   // wiring stays in place for older / cached HTML.
   if (stepRunAllBtn) stepRunAllBtn.addEventListener('click', runProvisioningStepsCombined);
+  if (enableProfileBtn) enableProfileBtn.addEventListener('click', enableProfileOnSchemaAndDataset);
   if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema'));
   if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups'));
   if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset'));

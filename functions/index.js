@@ -726,6 +726,47 @@ exports.consentInfraStep = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/consent-infra/enable-profile?sandbox= — final on-platform action
+ * for the Consent Manager pipeline. Schema-first → dataset-second; idempotent.
+ *
+ * NOTE: enabling the consent schema for Real-Time Customer Profile is a
+ * one-way action in AEP (the union tag cannot be removed). The UI banner
+ * above the button repeats that warning; this endpoint is only reached
+ * after the architect deliberately clicks Enable.
+ */
+exports.consentInfraEnableProfile = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[consentInfra.http]', JSON.stringify({ route: 'POST /api/consent-infra/enable-profile', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await consentInfraService.runConsentInfraEnableProfile(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
 /** POST /api/consent-infra/ensure — create schema, identity, dataset when missing (HTTP flow manual). Body: { dryRun?: boolean } */
 exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -928,6 +969,45 @@ exports.genericProfileInfraStep = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/generic-profile-infra/enable-profile?sandbox= — final on-platform action.
+ * Adds `union` to the schema's `meta:immutableTags` (Profile Union), then PATCHes
+ * the dataset to set `tags.unifiedProfile=['enabled:true']`. Strict schema-first
+ * order: the dataset PATCH is never attempted if the schema PATCH fails.
+ * Idempotent — already-enabled schemas/datasets return `already-enabled`.
+ */
+exports.genericProfileInfraEnableProfile = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[genericProfileInfra.http]', JSON.stringify({ route: 'POST /api/generic-profile-infra/enable-profile', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await genericProfileInfraService.runGenericProfileInfraEnableProfile(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
 /** GET /api/generic-profile-infra/flow-lookup?sandbox=&flowId=&flowName= — Flow Service inlet URL + flow id. */
 exports.genericProfileInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -1074,6 +1154,42 @@ exports.travelProfileInfraStep = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/travel-profile-infra/enable-profile?sandbox= — final on-platform action
+ * for the Travel Profile pipeline. Schema-first → dataset-second; idempotent.
+ */
+exports.travelProfileInfraEnableProfile = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[travelProfileInfra.http]', JSON.stringify({ route: 'POST /api/travel-profile-infra/enable-profile', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await travelProfileInfraService.runTravelProfileInfraEnableProfile(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
 /** GET /api/travel-profile-infra/flow-lookup?sandbox=&flowId=&flowName= — Flow Service inlet URL + flow id. */
 exports.travelProfileInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -1177,6 +1293,7 @@ const fsiProfileRoutes = createProfileIndustryRoutes({
 });
 exports.fsiProfileInfraStatus = fsiProfileRoutes.statusHandler;
 exports.fsiProfileInfraStep = fsiProfileRoutes.stepHandler;
+exports.fsiProfileInfraEnableProfile = fsiProfileRoutes.enableProfileHandler;
 exports.fsiProfileInfraFlowLookup = fsiProfileRoutes.flowLookupHandler;
 exports.fsiProfileConnectionStore = fsiProfileRoutes.connectionStoreHandler;
 
@@ -1189,6 +1306,7 @@ const telecomProfileRoutes = createProfileIndustryRoutes({
 });
 exports.telecomProfileInfraStatus = telecomProfileRoutes.statusHandler;
 exports.telecomProfileInfraStep = telecomProfileRoutes.stepHandler;
+exports.telecomProfileInfraEnableProfile = telecomProfileRoutes.enableProfileHandler;
 exports.telecomProfileInfraFlowLookup = telecomProfileRoutes.flowLookupHandler;
 exports.telecomProfileConnectionStore = telecomProfileRoutes.connectionStoreHandler;
 
@@ -1201,6 +1319,7 @@ const retailProfileRoutes = createProfileIndustryRoutes({
 });
 exports.retailProfileInfraStatus = retailProfileRoutes.statusHandler;
 exports.retailProfileInfraStep = retailProfileRoutes.stepHandler;
+exports.retailProfileInfraEnableProfile = retailProfileRoutes.enableProfileHandler;
 exports.retailProfileInfraFlowLookup = retailProfileRoutes.flowLookupHandler;
 exports.retailProfileConnectionStore = retailProfileRoutes.connectionStoreHandler;
 
@@ -1213,6 +1332,7 @@ const mediaProfileRoutes = createProfileIndustryRoutes({
 });
 exports.mediaProfileInfraStatus = mediaProfileRoutes.statusHandler;
 exports.mediaProfileInfraStep = mediaProfileRoutes.stepHandler;
+exports.mediaProfileInfraEnableProfile = mediaProfileRoutes.enableProfileHandler;
 exports.mediaProfileInfraFlowLookup = mediaProfileRoutes.flowLookupHandler;
 exports.mediaProfileConnectionStore = mediaProfileRoutes.connectionStoreHandler;
 
@@ -1225,6 +1345,7 @@ const sportsProfileRoutes = createProfileIndustryRoutes({
 });
 exports.sportsProfileInfraStatus = sportsProfileRoutes.statusHandler;
 exports.sportsProfileInfraStep = sportsProfileRoutes.stepHandler;
+exports.sportsProfileInfraEnableProfile = sportsProfileRoutes.enableProfileHandler;
 exports.sportsProfileInfraFlowLookup = sportsProfileRoutes.flowLookupHandler;
 exports.sportsProfileConnectionStore = sportsProfileRoutes.connectionStoreHandler;
 

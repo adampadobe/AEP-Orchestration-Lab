@@ -31,6 +31,10 @@
   const stepRunAllBtn = document.getElementById('genStepRunAllBtn');
   const infraProgressListEl = document.getElementById('genInfraProgressList');
   const infraStatusMessage = document.getElementById('genInfraStatusMessage');
+  // Enable schema + dataset for Real-Time Customer Profile (May 2026 addition).
+  // Final on-platform action — strict schema-first → dataset-second; idempotent.
+  const enableProfileBtn = document.getElementById('genEnableProfileBtn');
+  const enableProfileProgressListEl = document.getElementById('genEnableProfileProgressList');
   // Collapsible <details> wrapping the wizard. We capture the original hint
   // copy at module load so applyConfiguredCollapseState() can restore it
   // when the user re-opens / clears fields.
@@ -602,6 +606,104 @@
       }
     } finally {
       busy.forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  // ---- Enable schema + dataset for Real-Time Customer Profile ----
+  // Mirrors the orchestrator in profile-generation-industry-runtime.js for
+  // the new industries (Generic + Travel pre-date that runtime helper). The
+  // server enforces strict schema-first → dataset-second ordering and
+  // idempotent `already-enabled` semantics; the UI here only renders the
+  // structured response into a two-row progress list above the button.
+  const ENABLE_PROFILE_PROGRESS_STEPS_GEN = [
+    { step: 'schemaUnion',    label: 'Schema enabled for Profile' },
+    { step: 'datasetProfile', label: 'Dataset enabled for Profile' },
+  ];
+
+  function ensureGenEnableProfileProgressList() {
+    if (!enableProfileProgressListEl) return null;
+    enableProfileProgressListEl.hidden = false;
+    enableProfileProgressListEl.innerHTML = '';
+    ENABLE_PROFILE_PROGRESS_STEPS_GEN.forEach((s) => {
+      const li = document.createElement('li');
+      li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+      li.dataset.step = s.step;
+      const icon = document.createElement('span');
+      icon.className = 'consent-infra-progress__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '·';
+      const label = document.createElement('span');
+      label.className = 'consent-infra-progress__label';
+      label.textContent = s.label;
+      const detail = document.createElement('span');
+      detail.className = 'consent-infra-progress__detail';
+      detail.textContent = '';
+      li.append(icon, label, detail);
+      enableProfileProgressListEl.appendChild(li);
+    });
+    return enableProfileProgressListEl;
+  }
+
+  function setGenEnableProfileProgressItem(step, state, detailText) {
+    if (!enableProfileProgressListEl) return;
+    const li = enableProfileProgressListEl.querySelector(`[data-step="${step}"]`);
+    if (!li) return;
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+    const icon = li.querySelector('.consent-infra-progress__icon');
+    const detail = li.querySelector('.consent-infra-progress__detail');
+    if (icon) {
+      icon.textContent =
+        state === 'success' ? '✓' :
+        state === 'error'   ? '✗' :
+        state === 'working' ? '…' : '·';
+    }
+    if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+  }
+
+  function describeGenEnableSubResult(value, errorText) {
+    if (value === 'enabled') return { state: 'success', text: 'enabled' };
+    if (value === 'already-enabled') return { state: 'success', text: 'already enabled' };
+    if (value === 'skipped') return { state: 'pending', text: 'skipped' };
+    return { state: 'error', text: errorText || 'failed' };
+  }
+
+  async function enableProfileOnSchemaAndDataset() {
+    if (!enableProfileBtn) return;
+    enableProfileBtn.disabled = true;
+    ensureGenEnableProfileProgressList();
+    setGenEnableProfileProgressItem('schemaUnion', 'working', 'working…');
+    setGenEnableProfileProgressItem('datasetProfile', 'pending', '');
+    showInfraMessage('Enabling schema, then dataset, for Real-Time Customer Profile…', '');
+    try {
+      let res, data;
+      try {
+        res = await fetch('/api/generic-profile-infra/enable-profile' + querySuffix(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        data = await res.json().catch(() => ({}));
+      } catch (e) {
+        const errMsg = e && e.message ? e.message : 'Network error';
+        setGenEnableProfileProgressItem('schemaUnion', 'error', errMsg);
+        showInfraMessage(`Enable for Profile failed: ${errMsg}`, 'error');
+        return;
+      }
+      const schemaSub = describeGenEnableSubResult(data.schemaUnion, data.schemaError || data.error);
+      setGenEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+      if (data.datasetProfile) {
+        const dsSub = describeGenEnableSubResult(data.datasetProfile, data.datasetError);
+        setGenEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+      }
+      if (!res.ok || data.ok === false) {
+        showInfraMessage(
+          data.message || data.error || `Enable for Profile failed (HTTP ${res.status}).`,
+          'error'
+        );
+        return;
+      }
+      showInfraMessage(data.message || 'Schema and dataset are Profile-enabled.', 'success');
+    } finally {
+      enableProfileBtn.disabled = false;
     }
   }
 
@@ -1751,6 +1853,7 @@
   // Combined provisioning button (May 2026 consolidation). Legacy per-step
   // button wiring stays in place so older / cached HTML keeps working.
   if (stepRunAllBtn) stepRunAllBtn.addEventListener('click', runProvisioningStepsCombined);
+  if (enableProfileBtn) enableProfileBtn.addEventListener('click', enableProfileOnSchemaAndDataset);
   if (stepCreateSchemaBtn) stepCreateSchemaBtn.addEventListener('click', () => runStep('createSchema', stepCreateSchemaBtn));
   if (stepAttachFgBtn) stepAttachFgBtn.addEventListener('click', () => runStep('attachFieldGroups', stepAttachFgBtn));
   if (stepCreateDatasetBtn) stepCreateDatasetBtn.addEventListener('click', () => runStep('createDataset', stepCreateDatasetBtn));

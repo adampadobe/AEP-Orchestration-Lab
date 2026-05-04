@@ -194,6 +194,24 @@
           <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
         </div>
       </div>
+      <!-- Final on-platform action (May 2026): Enable schema + dataset for
+           Real-Time Customer Profile in one click. Strict server-side
+           ordering — schema PATCH (meta:immutableTags adds "union") must
+           succeed before the dataset PATCH (tags.unifiedProfile=
+           ["enabled:true"]) is even attempted. Idempotent re-runs report
+           "already enabled" instead of re-PATCHing. AEP error reasons
+           surface inline via report.additionalDetails[].errorReason.
+           Note: enabling the consent schema for Profile is one-way in AEP. -->
+      <div class="enable-profile-step">
+        <div class="enable-profile-warning" role="note">
+          <strong>⚠ Validate data is flowing first.</strong>
+          Once a schema is enabled for Profile, the change is effectively one-way — you cannot remove it from the Union without recreating the schema. Confirm consent batches are landing in the dataset (<em>Datasets → <code>AEP Profile Viewer - Consent - Dataset</code> → Batches</em> in the AEP UI, OR send a sample event from this page and watch a successful batch land) before clicking the button below.
+        </div>
+        <div class="enable-profile-step__action">
+          <button type="button" id="enableProfileBtn" class="btn btn-primary">Enable schema + dataset for Profile</button>
+        </div>
+        <ol id="enableProfileProgressList" class="consent-infra-progress" hidden aria-live="polite"></ol>
+      </div>
         </div>
       </details>
     </section>

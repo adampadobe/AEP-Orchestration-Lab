@@ -287,6 +287,13 @@
         }
       },
       {
+        "source": "/api/consent-infra/enable-profile",
+        "function": {
+          "functionId": "consentInfraEnableProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/consent-infra/flow-lookup",
         "function": {
           "functionId": "consentInfraFlowLookup",
@@ -311,6 +318,13 @@
         "source": "/api/generic-profile-infra/step",
         "function": {
           "functionId": "genericProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/enable-profile",
+        "function": {
+          "functionId": "genericProfileInfraEnableProfile",
           "region": "us-central1"
         }
       },
@@ -343,6 +357,13 @@
         }
       },
       {
+        "source": "/api/travel-profile-infra/enable-profile",
+        "function": {
+          "functionId": "travelProfileInfraEnableProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/travel-profile-infra/flow-lookup",
         "function": {
           "functionId": "travelProfileInfraFlowLookup",
@@ -367,6 +388,13 @@
         "source": "/api/fsi-profile-infra/step",
         "function": {
           "functionId": "fsiProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/enable-profile",
+        "function": {
+          "functionId": "fsiProfileInfraEnableProfile",
           "region": "us-central1"
         }
       },
@@ -399,6 +427,13 @@
         }
       },
       {
+        "source": "/api/telecom-profile-infra/enable-profile",
+        "function": {
+          "functionId": "telecomProfileInfraEnableProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/telecom-profile-infra/flow-lookup",
         "function": {
           "functionId": "telecomProfileInfraFlowLookup",
@@ -423,6 +458,13 @@
         "source": "/api/retail-profile-infra/step",
         "function": {
           "functionId": "retailProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/enable-profile",
+        "function": {
+          "functionId": "retailProfileInfraEnableProfile",
           "region": "us-central1"
         }
       },
@@ -455,6 +497,13 @@
         }
       },
       {
+        "source": "/api/media-profile-infra/enable-profile",
+        "function": {
+          "functionId": "mediaProfileInfraEnableProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/media-profile-infra/flow-lookup",
         "function": {
           "functionId": "mediaProfileInfraFlowLookup",
@@ -479,6 +528,13 @@
         "source": "/api/sports-profile-infra/step",
         "function": {
           "functionId": "sportsProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/enable-profile",
+        "function": {
+          "functionId": "sportsProfileInfraEnableProfile",
           "region": "us-central1"
         }
       },

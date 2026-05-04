@@ -116,6 +116,30 @@ const BASE_PROFILE_FIELD_GROUP_LABELS = [
 
 const STEP_NAMES = Object.freeze(['createSchema', 'attachFieldGroups', 'createDataset', 'httpFlow']);
 
+/**
+ * Build the JSON-Patch body that adds `"union"` to a schema's
+ * `meta:immutableTags` array. Two ops are emitted so the PATCH works
+ * on schemas that have NO `meta:immutableTags` field yet (the first op
+ * adds the array, the second op appends `"union"`). Schemas that already
+ * have an array but no `"union"` value will see the first op fail with
+ * 400 and the second succeed — except Adobe applies the array as a
+ * whole, so we instead emit a single conditional patch sequence:
+ *
+ *   - if no array: { add /meta:immutableTags ["union"] }
+ *   - if array exists but no "union": { add /meta:immutableTags/- "union" }
+ *
+ * The caller decides which shape to send based on a fresh GET. Returning
+ * BOTH a "set" op and an "append" op is the cleanest way to express the
+ * two cases without spreading branching logic across the orchestrator.
+ */
+function buildAddProfileUnionPatchOps(currentImmutableTags) {
+  if (Array.isArray(currentImmutableTags)) {
+    if (currentImmutableTags.includes('union')) return [];
+    return [{ op: 'add', path: '/meta:immutableTags/-', value: 'union' }];
+  }
+  return [{ op: 'add', path: '/meta:immutableTags', value: ['union'] }];
+}
+
 /* -------------------- Pure helpers (no closures over config) -------------------- */
 
 function parseTenantFromUri(uri) {
@@ -2045,9 +2069,198 @@ function createProfileInfraService(config) {
     }
   }
 
+  /* ---- Enable for Profile (schema-first → dataset-second) ---- */
+
+  /**
+   * One-click "enable schema + dataset for Real-Time Customer Profile":
+   *
+   *   1. Look up `AEP Lab - <Industry> Profile - Schema` and the matching
+   *      dataset by canonical name.
+   *   2. STRICT: PATCH the schema FIRST. Add `"union"` to
+   *      `meta:immutableTags` (or no-op if it's already there). After the
+   *      PATCH, GET the schema and confirm the tag landed — if not, throw.
+   *   3. ONLY THEN: PATCH the dataset to set
+   *      `tags.unifiedProfile=['enabled:true']` (or no-op if it's already
+   *      there). The schema-first order avoids the
+   *      `UPDAEM-089029-400: Union Schema cannot be retrieved` warning that
+   *      AEP raises when a Profile-enabled dataset references a non-Union
+   *      schema.
+   *
+   * Idempotent: re-runs on already-Profile-enabled sandboxes report
+   * `already-enabled` for both halves and never re-PATCH.
+   *
+   * Refuses to attempt step 2 if step 1 fails. AEP error reasons (the
+   * useful ones buried under `report.additionalDetails[].errorReason`)
+   * are surfaced verbatim via the shared `extractAepErrorMessage` helper.
+   *
+   * Return shape (always set, never throws — errors are surfaced as
+   * structured fields so the caller HTTP layer can keep the 200 envelope
+   * contract used by the rest of the wizard endpoints):
+   *
+   *   {
+   *     ok                 : boolean   true iff schemaUnion landed AND datasetProfile landed
+   *     sandbox, schemaId, schemaMetaAltId, datasetId
+   *     schemaUnion        : 'enabled' | 'already-enabled' | 'failed' | 'skipped'
+   *     datasetProfile     : 'enabled' | 'already-enabled' | 'skipped' | 'failed'
+   *     schemaError        : string|null    extractAepErrorMessage on schema PATCH failure
+   *     datasetError       : string|null    extractAepErrorMessage on dataset PATCH failure
+   *     message            : string         human-readable summary for UI
+   *   }
+   */
+  async function runEnableProfile(sandbox, token, clientId, orgId) {
+    log(sandbox, 'enableProfile.start', {});
+
+    /** @type {{ok: boolean, sandbox: string, schemaId: string|null, schemaMetaAltId: string|null, datasetId: string|null, schemaUnion: string, datasetProfile: string, schemaError: string|null, datasetError: string|null, message: string}} */
+    const out = {
+      ok: false,
+      sandbox,
+      schemaId: null,
+      schemaMetaAltId: null,
+      datasetId: null,
+      schemaUnion: 'skipped',
+      datasetProfile: 'skipped',
+      schemaError: null,
+      datasetError: null,
+      message: '',
+    };
+
+    // 1. Find schema + dataset under their canonical names.
+    let schemaRow;
+    try {
+      const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
+      schemaRow = findOurSchema(allSchemas);
+    } catch (e) {
+      out.schemaUnion = 'failed';
+      out.schemaError = String(e.message || e);
+      out.message = `Could not list schemas: ${out.schemaError}`;
+      log(sandbox, 'enableProfile.listSchemas.failed', { error: out.schemaError.slice(0, 240) });
+      return out;
+    }
+
+    if (!schemaRow) {
+      out.schemaUnion = 'failed';
+      out.schemaError = `Schema "${schemaTitle}" not found in this sandbox. Run Set up schema, field groups & dataset first.`;
+      out.message = out.schemaError;
+      return out;
+    }
+    out.schemaId = schemaRow.$id || null;
+    out.schemaMetaAltId = schemaRow['meta:altId'] || null;
+
+    if (!out.schemaMetaAltId) {
+      out.schemaUnion = 'failed';
+      out.schemaError =
+        `Schema "${schemaTitle}" has no meta:altId yet (AEP propagation lag). Wait a few seconds and click Enable again.`;
+      out.message = out.schemaError;
+      return out;
+    }
+
+    // 2. Schema-first: PATCH `meta:immutableTags` to add "union" if missing.
+    try {
+      const fullSchema = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
+      if (!fullSchema) {
+        out.schemaUnion = 'failed';
+        out.schemaError =
+          `Schema "${schemaTitle}" found in listing but not retrievable by altId yet. AEP propagation can lag a few seconds; wait and try again.`;
+        out.message = out.schemaError;
+        return out;
+      }
+      if (schemaHasProfileUnionTag(fullSchema)) {
+        out.schemaUnion = 'already-enabled';
+        log(sandbox, 'enableProfile.schemaUnion.alreadyEnabled', { schemaIdSuffix: String(out.schemaId || '').split('/').pop() });
+      } else {
+        const ops = buildAddProfileUnionPatchOps(fullSchema['meta:immutableTags']);
+        await patchSchemaJsonPatch(token, clientId, orgId, sandbox, out.schemaMetaAltId, ops);
+        const verify = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
+        if (!verify || !schemaHasProfileUnionTag(verify)) {
+          out.schemaUnion = 'failed';
+          out.schemaError =
+            'Schema PATCH returned 2xx but post-check could not see "union" in meta:immutableTags. Refresh and retry; if this persists, inspect the schema in AEP UI.';
+          out.message = out.schemaError;
+          return out;
+        }
+        out.schemaUnion = 'enabled';
+        log(sandbox, 'enableProfile.schemaUnion.enabled', { schemaIdSuffix: String(out.schemaId || '').split('/').pop() });
+      }
+    } catch (e) {
+      out.schemaUnion = 'failed';
+      out.schemaError = String(e.message || e);
+      out.message = `Schema PATCH failed: ${out.schemaError}`;
+      log(sandbox, 'enableProfile.schemaUnion.failed', { error: out.schemaError.slice(0, 240) });
+      // STRICT: never proceed to dataset PATCH if schema step did not succeed.
+      return out;
+    }
+
+    // 3. Dataset-second: only reached if schema step is enabled OR already-enabled.
+    let dataset;
+    try {
+      const pages = await paginateDataSets(token, clientId, orgId, sandbox);
+      const datasets = flattenDatasets(pages);
+      dataset = findDatasetForSchema(datasets, out.schemaId, out.schemaMetaAltId);
+      if (!dataset) {
+        try {
+          const byName = await listDataSetsByPropertyFilter(token, clientId, orgId, sandbox, `name==${datasetName}`);
+          dataset = findDatasetForSchema(byName, out.schemaId, out.schemaMetaAltId);
+        } catch (_) {
+          /* ignore — handled by null check below */
+        }
+      }
+    } catch (e) {
+      out.datasetProfile = 'failed';
+      out.datasetError = String(e.message || e);
+      out.message = `Schema enabled. Could not list datasets: ${out.datasetError}`;
+      log(sandbox, 'enableProfile.listDatasets.failed', { error: out.datasetError.slice(0, 240) });
+      return out;
+    }
+
+    if (!dataset) {
+      out.datasetProfile = 'failed';
+      out.datasetError = `Dataset "${datasetName}" not found in this sandbox. Run Set up schema, field groups & dataset first.`;
+      out.message = `Schema enabled. ${out.datasetError}`;
+      return out;
+    }
+    out.datasetId = dataset.id || null;
+
+    if (datasetHasProfileEnabledTag(dataset)) {
+      out.datasetProfile = 'already-enabled';
+      log(sandbox, 'enableProfile.datasetProfile.alreadyEnabled', { datasetId: out.datasetId });
+    } else {
+      const r = await enableProfileOnDataset(token, clientId, orgId, sandbox, dataset.id);
+      if (!r.ok) {
+        out.datasetProfile = 'failed';
+        out.datasetError = r.error || 'Dataset PATCH failed without an error message.';
+        out.message = `Schema enabled. Dataset PATCH failed: ${out.datasetError}`;
+        log(sandbox, 'enableProfile.datasetProfile.failed', { error: String(out.datasetError).slice(0, 240) });
+        return out;
+      }
+      out.datasetProfile = 'enabled';
+      log(sandbox, 'enableProfile.datasetProfile.enabled', { datasetId: out.datasetId });
+    }
+
+    out.ok = true;
+    out.message = formatEnableProfileMessage(out);
+    log(sandbox, 'enableProfile.ok', {
+      schemaUnion: out.schemaUnion,
+      datasetProfile: out.datasetProfile,
+    });
+    return out;
+  }
+
+  function formatEnableProfileMessage(result) {
+    const schemaPart =
+      result.schemaUnion === 'enabled' ? `Schema enabled for Profile`
+        : result.schemaUnion === 'already-enabled' ? `Schema already enabled for Profile`
+        : `Schema not enabled (${result.schemaUnion})`;
+    const datasetPart =
+      result.datasetProfile === 'enabled' ? `Dataset enabled for Profile`
+        : result.datasetProfile === 'already-enabled' ? `Dataset already enabled for Profile`
+        : `Dataset not enabled (${result.datasetProfile})`;
+    return `${schemaPart}. ${datasetPart}.`;
+  }
+
   return {
     runStatus,
     runStep,
+    runEnableProfile,
     STEP_NAMES,
     SCHEMA_TITLE: schemaTitle,
     DATASET_NAME: datasetName,
@@ -2078,4 +2291,6 @@ module.exports = {
   // future per-industry service that bypasses the factory wrappers.
   extractAepErrorMessage,
   looksLikeAlreadyExists,
+  // Pure helper for the Enable-for-Profile orchestrator (exposed for unit tests).
+  buildAddProfileUnionPatchOps,
 };

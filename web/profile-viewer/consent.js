@@ -64,6 +64,13 @@ const stepHttpFlowBtn = document.getElementById('stepHttpFlowBtn');
 // working and the per-step Cloud Functions remain reachable for diagnostics.
 const stepRunAllBtn = document.getElementById('stepRunAllBtn');
 const infraProgressListEl = document.getElementById('infraProgressList');
+// Enable schema + dataset for Real-Time Customer Profile (May 2026 addition).
+// Final on-platform action — strict schema-first → dataset-second; idempotent.
+// The historical consent flow design discouraged enabling the schema for
+// Profile (the union tag cannot be removed by Adobe). The UI banner above
+// the button repeats that warning; this button is only clicked deliberately.
+const enableProfileBtn = document.getElementById('enableProfileBtn');
+const enableProfileProgressListEl = document.getElementById('enableProfileProgressList');
 const saveStreamBtn = document.getElementById('saveStreamBtn');
 const fetchFlowFromAepBtn = document.getElementById('fetchFlowFromAepBtn');
 
@@ -1551,6 +1558,106 @@ checkInfraBtn && checkInfraBtn.addEventListener('click', checkConsentInfra);
 // Combined provisioning button (May 2026 consolidation). Legacy per-step
 // button wiring stays in place defensively for older / cached HTML.
 stepRunAllBtn && stepRunAllBtn.addEventListener('click', runConsentInfraWizardAllSteps);
+enableProfileBtn && enableProfileBtn.addEventListener('click', enableConsentSchemaAndDatasetForProfile);
+
+// ---- Enable consent schema + dataset for Real-Time Customer Profile ----
+// Mirrors the per-industry runtime helper exactly. Server enforces strict
+// schema-first → dataset-second ordering and idempotent `already-enabled`
+// semantics; the UI here only renders the structured response into a
+// two-row progress list above the button. The action is one-way for the
+// schema (Adobe does not support removing the union tag); the warning
+// banner copy above the button reflects that.
+const ENABLE_PROFILE_PROGRESS_STEPS_CONSENT = [
+  { step: 'schemaUnion',    label: 'Schema enabled for Profile' },
+  { step: 'datasetProfile', label: 'Dataset enabled for Profile' },
+];
+
+function ensureConsentEnableProfileProgressList() {
+  if (!enableProfileProgressListEl) return null;
+  enableProfileProgressListEl.hidden = false;
+  enableProfileProgressListEl.innerHTML = '';
+  ENABLE_PROFILE_PROGRESS_STEPS_CONSENT.forEach((s) => {
+    const li = document.createElement('li');
+    li.className = 'consent-infra-progress__item consent-infra-progress__item--pending';
+    li.dataset.step = s.step;
+    const icon = document.createElement('span');
+    icon.className = 'consent-infra-progress__icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '·';
+    const label = document.createElement('span');
+    label.className = 'consent-infra-progress__label';
+    label.textContent = s.label;
+    const detail = document.createElement('span');
+    detail.className = 'consent-infra-progress__detail';
+    detail.textContent = '';
+    li.append(icon, label, detail);
+    enableProfileProgressListEl.appendChild(li);
+  });
+  return enableProfileProgressListEl;
+}
+
+function setConsentEnableProfileProgressItem(step, state, detailText) {
+  if (!enableProfileProgressListEl) return;
+  const li = enableProfileProgressListEl.querySelector(`[data-step="${step}"]`);
+  if (!li) return;
+  li.className = 'consent-infra-progress__item consent-infra-progress__item--' + state;
+  const icon = li.querySelector('.consent-infra-progress__icon');
+  const detail = li.querySelector('.consent-infra-progress__detail');
+  if (icon) {
+    icon.textContent =
+      state === 'success' ? '✓' :
+      state === 'error'   ? '✗' :
+      state === 'working' ? '…' : '·';
+  }
+  if (detail) detail.textContent = detailText ? ` — ${detailText}` : '';
+}
+
+function describeConsentEnableSubResult(value, errorText) {
+  if (value === 'enabled') return { state: 'success', text: 'enabled' };
+  if (value === 'already-enabled') return { state: 'success', text: 'already enabled' };
+  if (value === 'skipped') return { state: 'pending', text: 'skipped' };
+  return { state: 'error', text: errorText || 'failed' };
+}
+
+async function enableConsentSchemaAndDatasetForProfile() {
+  if (!enableProfileBtn) return;
+  enableProfileBtn.disabled = true;
+  ensureConsentEnableProfileProgressList();
+  setConsentEnableProfileProgressItem('schemaUnion', 'working', 'working…');
+  setConsentEnableProfileProgressItem('datasetProfile', 'pending', '');
+  showInfraMessage('Enabling consent schema, then dataset, for Real-Time Customer Profile…', '');
+  try {
+    let res, data;
+    try {
+      res = await fetch('/api/consent-infra/enable-profile' + consentInfraQuerySuffix(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      data = await res.json().catch(() => ({}));
+    } catch (e) {
+      const errMsg = e && e.message ? e.message : 'Network error';
+      setConsentEnableProfileProgressItem('schemaUnion', 'error', errMsg);
+      showInfraMessage(`Enable for Profile failed: ${errMsg}`, 'error');
+      return;
+    }
+    const schemaSub = describeConsentEnableSubResult(data.schemaUnion, data.schemaError || data.error);
+    setConsentEnableProfileProgressItem('schemaUnion', schemaSub.state, schemaSub.text);
+    if (data.datasetProfile) {
+      const dsSub = describeConsentEnableSubResult(data.datasetProfile, data.datasetError);
+      setConsentEnableProfileProgressItem('datasetProfile', dsSub.state, dsSub.text);
+    }
+    if (!res.ok || data.ok === false) {
+      showInfraMessage(
+        data.message || data.error || `Enable for Profile failed (HTTP ${res.status}).`,
+        'error'
+      );
+      return;
+    }
+    showInfraMessage(data.message || 'Consent schema and dataset are Profile-enabled.', 'success');
+  } finally {
+    enableProfileBtn.disabled = false;
+  }
+}
 stepCreateSchemaBtn &&
   stepCreateSchemaBtn.addEventListener('click', () => runConsentInfraWizardStep('createSchema', stepCreateSchemaBtn));
 stepAttachFgBtn &&

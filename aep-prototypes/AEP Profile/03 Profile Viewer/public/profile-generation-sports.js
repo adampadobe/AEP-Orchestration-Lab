@@ -163,6 +163,8 @@
       stepAttachFgBtn: 'sportsStepAttachFgBtn',
       stepCreateDatasetBtn: 'sportsStepCreateDatasetBtn',
       stepHttpFlowBtn: 'sportsStepHttpFlowBtn',
+      enableProfileBtn: 'sportsEnableProfileBtn',
+      enableProfileProgressList: 'sportsEnableProfileProgressList',
       infraStatusMessage: 'sportsInfraStatusMessage',
       infraDetails: 'sportsProfileInfraDetails',
       infraHint: 'sportsProfileInfraHint',

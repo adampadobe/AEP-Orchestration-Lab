@@ -222,6 +222,8 @@
       stepAttachFgBtn: 'telecomStepAttachFgBtn',
       stepCreateDatasetBtn: 'telecomStepCreateDatasetBtn',
       stepHttpFlowBtn: 'telecomStepHttpFlowBtn',
+      enableProfileBtn: 'telecomEnableProfileBtn',
+      enableProfileProgressList: 'telecomEnableProfileProgressList',
       infraStatusMessage: 'telecomInfraStatusMessage',
       infraDetails: 'telecomProfileInfraDetails',
       infraHint: 'telecomProfileInfraHint',

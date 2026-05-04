@@ -1,7 +1,8 @@
 /**
- * Build the 4 HTTPS handlers a new industry's profile-generation pipeline needs:
+ * Build the 5 HTTPS handlers a new industry's profile-generation pipeline needs:
  *   - GET  /api/<route>-infra/status         → infraService.runStatus
  *   - POST /api/<route>-infra/step           → infraService.runStep
+ *   - POST /api/<route>-infra/enable-profile → infraService.runEnableProfile
  *   - GET  /api/<route>-infra/flow-lookup    → consentFlowLookup.lookupConsentHttpFlow
  *   - GET/POST /api/<route>-connection       → connectionStore.get / .save
  *
@@ -126,6 +127,33 @@ function createProfileIndustryRoutes(cfg) {
     }
   });
 
+  const enableProfileHandler = onRequest(profileFnOpts, async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    const sandbox = resolveSandboxFromQuery(req);
+    console.log(httpLogTag, JSON.stringify({ route: `POST /api/${routePrefix}-infra/enable-profile`, sandbox }));
+    let accessToken;
+    try {
+      accessToken = await getAdobeAccessToken();
+    } catch (e) {
+      res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+      return;
+    }
+    try {
+      const payload = await infraService.runEnableProfile(sandbox, accessToken, adobeClientIdValue(), adobeImsOrgValue());
+      res.status(200).json(payload);
+    } catch (e) {
+      res.status(500).json({ error: String(e.message || e), sandbox });
+    }
+  });
+
   const flowLookupHandler = onRequest(profileFnOpts, async (req, res) => {
     setCors(res);
     if (req.method === 'OPTIONS') {
@@ -192,7 +220,7 @@ function createProfileIndustryRoutes(cfg) {
     res.status(405).json({ error: 'Method not allowed' });
   });
 
-  return { statusHandler, stepHandler, flowLookupHandler, connectionStoreHandler };
+  return { statusHandler, stepHandler, flowLookupHandler, connectionStoreHandler, enableProfileHandler };
 }
 
 module.exports = { createProfileIndustryRoutes };

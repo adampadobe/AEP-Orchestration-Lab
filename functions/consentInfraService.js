@@ -19,6 +19,11 @@ const CONSENT_HTTP_DATAFLOW_NAME = 'AEP Profile Viewer - Consent - Dataflow';
 const PROFILE_UNION_IRREVERSIBLE =
   'This schema is enabled for Real-Time Customer Profile (it has the union tag). Adobe does not support disabling Profile for a schema after that — use another sandbox or a new schema if you need a non-Profile consent schema. This automation never adds the union tag.';
 
+// Reuse the shared error-surface extractor from the factory so consent-side
+// enable-profile failures show the same `report.additionalDetails[].errorReason`
+// detail as every other industry wizard surfaces.
+const { extractAepErrorMessage, buildAddProfileUnionPatchOps } = require('./profileInfraFactory');
+
 const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
 const ACCEPT_JSON = 'application/json';
@@ -1345,10 +1350,187 @@ async function runConsentInfraStep(sandbox, token, clientId, orgId, stepName) {
   }
 }
 
+/* ---- Enable for Profile (schema-first → dataset-second) ---- */
+
+/** Mirrors profileInfraFactory.datasetHasProfileEnabledTag (consent has no factory dependency). */
+function datasetHasProfileEnabledTag(ds) {
+  const tags = ds && ds.tags;
+  if (!tags || typeof tags !== 'object') return false;
+  const v = tags.unifiedProfile;
+  if (!Array.isArray(v)) return false;
+  return v.some((s) => /enabled\s*[:=]\s*true/i.test(String(s)));
+}
+
+/** Mirrors profileInfraFactory.enableProfileOnDataset. */
+async function patchDatasetUnifiedProfileEnabled(token, clientId, orgId, sandbox, datasetId) {
+  if (!datasetId) return { ok: false, error: 'No dataset id' };
+  const url = `${CATALOG_BASE}/dataSets/${encodeURIComponent(datasetId)}`;
+  const body = { tags: { unifiedProfile: ['enabled:true'] } };
+  const { res, data } = await fetchJson(url, {
+    method: 'PATCH',
+    headers: { ...headersJson(token, clientId, orgId, sandbox), Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (res.ok) return { ok: true };
+  return { ok: false, error: extractAepErrorMessage(data, res.statusText) };
+}
+
+/**
+ * One-click "enable consent schema + dataset for Real-Time Customer Profile".
+ *
+ * Mirrors the per-industry `runEnableProfile` from `profileInfraFactory.js`:
+ * STRICT schema-first PATCH (add `"union"` to `meta:immutableTags`) → only
+ * if that succeeds, PATCH the dataset (`tags.unifiedProfile=['enabled:true']`).
+ * Idempotent — already-enabled schemas/datasets return `already-enabled`.
+ *
+ * The historical consent-flow design strongly cautioned against enabling
+ * the consent schema for Profile (see PROFILE_UNION_IRREVERSIBLE). The
+ * UI banner above this button repeats that caution: this action is a
+ * deliberate, explicit choice by the architect after they have validated
+ * data is flowing into the dataset.
+ */
+async function runConsentInfraEnableProfile(sandbox, token, clientId, orgId) {
+  logConsentInfra(sandbox, 'enableProfile.start', {});
+
+  const out = {
+    ok: false,
+    sandbox,
+    schemaId: null,
+    schemaMetaAltId: null,
+    datasetId: null,
+    schemaUnion: 'skipped',
+    datasetProfile: 'skipped',
+    schemaError: null,
+    datasetError: null,
+    message: '',
+  };
+
+  let schemaRow;
+  try {
+    const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
+    schemaRow = findConsentSchema(allSchemas);
+  } catch (e) {
+    out.schemaUnion = 'failed';
+    out.schemaError = String(e.message || e);
+    out.message = `Could not list schemas: ${out.schemaError}`;
+    return out;
+  }
+
+  if (!schemaRow) {
+    out.schemaUnion = 'failed';
+    out.schemaError = `Consent schema "${CONSENT_SCHEMA_TITLE}" not found in this sandbox. Run Set up schema, field groups & dataset first.`;
+    out.message = out.schemaError;
+    return out;
+  }
+  out.schemaId = schemaRow.$id || null;
+  out.schemaMetaAltId = schemaRow['meta:altId'] || null;
+
+  if (!out.schemaMetaAltId) {
+    out.schemaUnion = 'failed';
+    out.schemaError = `Consent schema has no meta:altId yet (AEP propagation lag). Wait a few seconds and click Enable again.`;
+    out.message = out.schemaError;
+    return out;
+  }
+
+  // 1. Schema-first.
+  try {
+    const fullSchema = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
+    if (!fullSchema) {
+      out.schemaUnion = 'failed';
+      out.schemaError = 'Consent schema found in listing but not retrievable by altId yet. AEP propagation can lag a few seconds.';
+      out.message = out.schemaError;
+      return out;
+    }
+    if (schemaHasProfileUnionTag(fullSchema)) {
+      out.schemaUnion = 'already-enabled';
+    } else {
+      const ops = buildAddProfileUnionPatchOps(fullSchema['meta:immutableTags']);
+      try {
+        await patchSchemaJsonPatch(token, clientId, orgId, sandbox, out.schemaMetaAltId, ops);
+      } catch (e) {
+        out.schemaUnion = 'failed';
+        out.schemaError = String(e.message || e);
+        out.message = `Schema PATCH failed: ${out.schemaError}`;
+        return out;
+      }
+      const verify = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
+      if (!verify || !schemaHasProfileUnionTag(verify)) {
+        out.schemaUnion = 'failed';
+        out.schemaError = 'Schema PATCH returned 2xx but post-check could not see "union" in meta:immutableTags.';
+        out.message = out.schemaError;
+        return out;
+      }
+      out.schemaUnion = 'enabled';
+    }
+  } catch (e) {
+    out.schemaUnion = 'failed';
+    out.schemaError = String(e.message || e);
+    out.message = `Schema PATCH failed: ${out.schemaError}`;
+    return out;
+  }
+
+  // 2. Dataset-second (only reached on schema success).
+  let dataset;
+  try {
+    const pages = await paginateDataSets(token, clientId, orgId, sandbox);
+    const datasets = flattenDatasets(pages);
+    dataset = findDatasetForSchema(datasets, out.schemaId, out.schemaMetaAltId);
+    if (!dataset) {
+      try {
+        const byName = await listDataSetsByPropertyFilter(token, clientId, orgId, sandbox, `name==${CONSENT_DATASET_NAME}`);
+        dataset = findDatasetForSchema(byName, out.schemaId, out.schemaMetaAltId);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  } catch (e) {
+    out.datasetProfile = 'failed';
+    out.datasetError = String(e.message || e);
+    out.message = `Schema enabled. Could not list datasets: ${out.datasetError}`;
+    return out;
+  }
+
+  if (!dataset) {
+    out.datasetProfile = 'failed';
+    out.datasetError = `Consent dataset "${CONSENT_DATASET_NAME}" not found in this sandbox.`;
+    out.message = `Schema enabled. ${out.datasetError}`;
+    return out;
+  }
+  out.datasetId = dataset.id || null;
+
+  if (datasetHasProfileEnabledTag(dataset)) {
+    out.datasetProfile = 'already-enabled';
+  } else {
+    const r = await patchDatasetUnifiedProfileEnabled(token, clientId, orgId, sandbox, dataset.id);
+    if (!r.ok) {
+      out.datasetProfile = 'failed';
+      out.datasetError = r.error || 'Dataset PATCH failed without an error message.';
+      out.message = `Schema enabled. Dataset PATCH failed: ${out.datasetError}`;
+      return out;
+    }
+    out.datasetProfile = 'enabled';
+  }
+
+  out.ok = true;
+  const schemaPart =
+    out.schemaUnion === 'enabled' ? 'Schema enabled for Profile'
+      : 'Schema already enabled for Profile';
+  const datasetPart =
+    out.datasetProfile === 'enabled' ? 'Dataset enabled for Profile'
+      : 'Dataset already enabled for Profile';
+  out.message = `${schemaPart}. ${datasetPart}.`;
+  logConsentInfra(sandbox, 'enableProfile.ok', {
+    schemaUnion: out.schemaUnion,
+    datasetProfile: out.datasetProfile,
+  });
+  return out;
+}
+
 module.exports = {
   runConsentInfraEnsure,
   runConsentInfraStatus,
   runConsentInfraStep,
+  runConsentInfraEnableProfile,
   CONSENT_SCHEMA_TITLE,
   CONSENT_DATASET_NAME,
   CONSENT_HTTP_DATAFLOW_NAME,
