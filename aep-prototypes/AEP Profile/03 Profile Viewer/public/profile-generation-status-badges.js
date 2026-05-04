@@ -3,17 +3,19 @@
  *
  * Adds two synchronised UI surfaces:
  *
- *  1. Industry-selector dropdown indicators — every <option value="…"> in
- *     #industry gets prefixed with a one-character status glyph based on
- *     the per-sandbox aggregate status. Native <select> elements can't
- *     render rich content per option, so the visual signal is emoji /
- *     character only (Option Y in the May 2026 design discussion). This
- *     keeps full keyboard / screen-reader compatibility intact.
+ *  1. Industry-selector dropdown — option labels stay clean (no status
+ *     glyph prefix). On macOS the native <select> renders its own
+ *     checkmark in front of the selected option, and a second emoji
+ *     tick caused a "double tick" visual collision (May 2026). Status
+ *     is exposed only via `option.title` (hover tooltip) and
+ *     `option.dataset.profileStatus` (for optional CSS hooks), so
+ *     full keyboard / screen-reader compatibility stays intact.
  *
  *  2. Per-panel badges — every #<industry>ProfilePanel header (h2.panel-title)
  *     gets a sibling <span data-industry-status="<key>" class="profile-status-badge">
  *     that renders the same 4-state legend in the panel surface itself, so
  *     architects can confirm the current industry's state in detail.
+ *     This is the canonical surface for "is this industry Profile-enabled?".
  *
  * 4-state legend:
  *   ✓ Profile enabled   — schemaInUnion AND datasetProfileEnabled
@@ -79,25 +81,14 @@
     return 'notEnabled';
   }
 
-  // Original dropdown labels captured once on first run — every refresh
-  // rewrites option.text from this table so glyphs don't accumulate
-  // ("✓ ✓ FSI" after two refreshes etc.).
-  const _originalOptionLabels = new WeakMap();
-
-  function rememberOriginalLabels(selectEl) {
-    if (!selectEl || _originalOptionLabels.has(selectEl)) return;
-    const map = new Map();
-    Array.from(selectEl.options).forEach((opt) => {
-      map.set(opt, opt.text || '');
-    });
-    _originalOptionLabels.set(selectEl, map);
-  }
-
-  function restoreOptionLabel(selectEl, opt) {
-    const map = _originalOptionLabels.get(selectEl);
-    if (!map) return;
-    const original = map.get(opt);
-    if (typeof original === 'string') opt.text = original;
+  // Strip any legacy status-glyph prefix that earlier (cached) versions
+  // of this module might have injected — "✓  FSI", "◐  Travel", etc.
+  // Keeps the first page-paint on a returning browser clean even
+  // before the aggregate fetch returns.
+  const LEGACY_GLYPH_PREFIX_RE = /^(?:[✓◐○—?…•]|\s)+/u;
+  function stripLegacyGlyphPrefix(text) {
+    if (!text) return text;
+    return String(text).replace(LEGACY_GLYPH_PREFIX_RE, '').replace(/^\s+/, '') || text;
   }
 
   function getSandboxName() {
@@ -157,10 +148,11 @@
   function applyToIndustrySelect(payload) {
     const selectEl = document.getElementById('industry');
     if (!selectEl) return;
-    rememberOriginalLabels(selectEl);
     const industries = (payload && payload.industries) || {};
     Array.from(selectEl.options).forEach((opt) => {
-      restoreOptionLabel(selectEl, opt);
+      // Defensive: strip any glyph a cached older bundle may have written.
+      const cleaned = stripLegacyGlyphPrefix(opt.text);
+      if (cleaned !== opt.text) opt.text = cleaned;
       const value = (opt.value || '').trim().toLowerCase();
       if (!value) return;
       const key = OPTION_VALUE_TO_KEY[value];
@@ -168,7 +160,10 @@
       const flags = industries[key];
       const stateKey = payload && payload.ok ? classifyFlags(flags) : 'unknown';
       const state = STATE[stateKey] || STATE.unknown;
-      opt.text = `${state.glyph}  ${opt.text}`;
+      // Intentionally DO NOT mutate opt.text — the per-panel badge is the
+      // source of truth for Profile-enable status, and on macOS a glyph
+      // prefix collides with the browser's own selected-option checkmark
+      // (double-tick). Hover title + data attribute are enough.
       opt.title = `${state.label} (${key})`;
       opt.dataset.profileStatus = stateKey;
     });
@@ -270,8 +265,10 @@
     if (!sandbox) {
       const selectEl = document.getElementById('industry');
       if (selectEl) {
-        rememberOriginalLabels(selectEl);
-        Array.from(selectEl.options).forEach((opt) => restoreOptionLabel(selectEl, opt));
+        Array.from(selectEl.options).forEach((opt) => {
+          const cleaned = stripLegacyGlyphPrefix(opt.text);
+          if (cleaned !== opt.text) opt.text = cleaned;
+        });
       }
       markPanelBadgesPending();
       return null;

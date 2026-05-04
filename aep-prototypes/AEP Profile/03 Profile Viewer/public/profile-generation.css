@@ -1377,12 +1377,58 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   opacity: 0.7;
 }
 
-/* Industry selector indicator polish — when the dropdown is rendering
- * status glyphs, push the option text out a little so the glyph reads as
- * a left-rail icon rather than crammed into the label. The double space
- * after the glyph in JS handles most of this; this rule keeps the closed
- * (selected) state legible too. */
+/* Industry selector option polish — kept tabular for any status glyphs
+ * injected by older (cached) bundles. The current bundle deliberately
+ * does NOT prefix option.text, so the dropdown list reads cleanly and
+ * doesn't collide with the browser's own selected-option checkmark on
+ * macOS. Per-panel .profile-status-badge is the source of truth for
+ * Profile-enable status. */
 .profile-generation-page #industry option {
   font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------
+ * Industry selector — active-state highlight (May 2026)
+ * Mirrors the lab nav active-page treatment (.dashboard-nav-item--active
+ * in home.css) so the closed <select> reads as "this is the industry
+ * I'm currently configuring". Only applies to the closed box — the open
+ * option list is browser-rendered and is not affected.
+ * The highlight is suppressed when the placeholder "— Select industry —"
+ * (value="") is still the selected option so first-paint stays neutral.
+ * -------------------------------------------------------------------- */
+.profile-generation-page #industry {
+  border: 2px solid var(--dash-blue, var(--menu-nav-active-bg, #1473e6));
+  background-color: color-mix(
+    in srgb,
+    var(--dash-blue, #1473e6) 10%,
+    var(--dash-input-bg, transparent)
+  );
+  font-weight: 600;
+  transition:
+    border-color 140ms ease-out,
+    background-color 140ms ease-out,
+    font-weight 140ms ease-out;
+}
+
+.profile-generation-page #industry:hover {
+  border-color: var(--dash-blue, var(--menu-nav-active-bg, #1473e6));
+  background-color: color-mix(
+    in srgb,
+    var(--dash-blue, #1473e6) 14%,
+    var(--dash-input-bg, transparent)
+  );
+}
+
+.profile-generation-page #industry:focus {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 1px;
+}
+
+/* Placeholder "— Select industry —" (value="") — neutral styling until
+ * the architect actually picks an industry. */
+.profile-generation-page #industry:has(option[value=""]:checked) {
+  border: 1px solid var(--dash-input-border, var(--dash-border, #ddd));
+  background-color: var(--dash-input-bg, transparent);
+  font-weight: 500;
 }
 
