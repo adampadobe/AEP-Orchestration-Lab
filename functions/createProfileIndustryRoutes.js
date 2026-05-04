@@ -25,7 +25,17 @@
  * accessors and function-options objects). This avoids importing the secret-
  * binding plumbing into the helper module itself, keeping the helper free
  * of `defineSecret` side-effects.
+ *
+ * Status caching (May 2026): the GET status handler is cache-aware via
+ * `profileInfraStatusCache` (Firestore-backed). On cache hit (and not
+ * stale) we return the cached `runStatus` payload verbatim with two
+ * extra diagnostic fields (`cached: true`, `lastChecked: <ISO>`); on
+ * miss / stale / `?refresh=1` we call AEP and write the fresh payload
+ * back to Firestore. Cache invalidation is the responsibility of
+ * `runStep` / `runEnableProfile` in `profileInfraFactory.js`.
  */
+
+const statusCache = require('./profileInfraStatusCache');
 
 /**
  * @param {object} cfg
@@ -82,7 +92,31 @@ function createProfileIndustryRoutes(cfg) {
       return;
     }
     const sandbox = resolveSandboxFromQuery(req);
-    console.log(httpLogTag, JSON.stringify({ route: `GET /api/${routePrefix}-infra/status`, sandbox }));
+    const bypassCache = String(req.query.refresh || '').trim() === '1';
+    console.log(
+      httpLogTag,
+      JSON.stringify({ route: `GET /api/${routePrefix}-infra/status`, sandbox, bypassCache })
+    );
+
+    // 1. Firestore cache fast-path — only when the caller didn't ask
+    //    for a fresh check.
+    if (!bypassCache) {
+      try {
+        const cached = await statusCache.readCachedStatus({ sandbox, industry: industryKey });
+        if (cached && cached.payload) {
+          const lastIso = cached.lastChecked instanceof Date
+            ? cached.lastChecked.toISOString()
+            : null;
+          res.status(200).json({
+            ...cached.payload,
+            cached: true,
+            lastChecked: lastIso,
+          });
+          return;
+        }
+      } catch (_) { /* fall through to AEP */ }
+    }
+
     let accessToken;
     try {
       accessToken = await getAdobeAccessToken();
@@ -92,7 +126,17 @@ function createProfileIndustryRoutes(cfg) {
     }
     try {
       const payload = await infraService.runStatus(sandbox, accessToken, adobeClientIdValue(), adobeImsOrgValue());
-      res.status(200).json(payload);
+      // 2. Write-through on success (don't block the response).
+      if (payload && typeof payload === 'object' && payload.ok !== false) {
+        statusCache
+          .writeStatusCacheEntry({ sandbox, industry: industryKey, payload, source: 'aep-fresh' })
+          .catch(() => { /* helper logs internally */ });
+      }
+      res.status(200).json({
+        ...payload,
+        cached: false,
+        lastChecked: new Date().toISOString(),
+      });
     } catch (e) {
       res.status(500).json({ error: String(e.message || e), sandbox });
     }

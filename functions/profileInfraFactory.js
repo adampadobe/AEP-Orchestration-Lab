@@ -84,6 +84,32 @@ const ACCEPT_JSON_PATCH_DOCUMENTED_NOT_USED = 'application/json-patch+json';
 const { getManifestForIndustry } = require('./profileCoreV2Manifest');
 
 /**
+ * Durable Firestore status cache invalidation hook. Loaded lazily so
+ * unit tests / scripts that import this factory without firebase-admin
+ * configured don't pay the import cost. Failures are non-fatal — the
+ * cache is a perf optimisation, never a correctness boundary.
+ */
+let _statusCacheModule;
+function getStatusCache() {
+  if (!_statusCacheModule) {
+    try {
+      _statusCacheModule = require('./profileInfraStatusCache');
+    } catch (_) {
+      _statusCacheModule = { invalidateStatusCache: async () => {} };
+    }
+  }
+  return _statusCacheModule;
+}
+async function safeInvalidateStatusCache(industryKey, sandbox) {
+  if (!industryKey || !sandbox) return;
+  try {
+    await getStatusCache().invalidateStatusCache({ sandbox, industry: industryKey });
+  } catch (_) {
+    /* helper logs internally */
+  }
+}
+
+/**
  * Mandatory base set attached to EVERY industry Profile schema.
  *
  * Loyalty Details lives under the nested `mixins/profile/...` namespace (NOT
@@ -1956,6 +1982,10 @@ function createProfileInfraService(config) {
         const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
         const existing = findOurSchema(allSchemas);
         if (existing) {
+          // Skip-by-already-exists is also a successful "schema present"
+          // outcome — drop the cached status doc so the next read
+          // reflects current AEP truth (e.g. an out-of-band FG attach).
+          await safeInvalidateStatusCache(industryKey, sandbox);
           return {
             ok: true,
             sandbox,
@@ -1969,6 +1999,7 @@ function createProfileInfraService(config) {
           };
         }
         const created = await createSchemaShell(token, clientId, orgId, sandbox);
+        await safeInvalidateStatusCache(industryKey, sandbox);
         return {
           ok: true,
           sandbox,
@@ -2051,6 +2082,7 @@ function createProfileInfraService(config) {
           mixins,
           globalFgList
         );
+        await safeInvalidateStatusCache(industryKey, sandbox);
         return {
           ok: true,
           sandbox,
@@ -2105,6 +2137,7 @@ function createProfileInfraService(config) {
             const r = await enableProfileOnDataset(token, clientId, orgId, sandbox, dataset.id);
             enabledNow = r.ok;
           }
+          await safeInvalidateStatusCache(industryKey, sandbox);
           return {
             ok: true,
             sandbox,
@@ -2123,6 +2156,7 @@ function createProfileInfraService(config) {
         }
         const dsRes = await createDataset(token, clientId, orgId, sandbox, schemaId, datasetName);
         dataset = { id: dsRes.id, name: datasetName, schemaRef: { id: schemaId } };
+        await safeInvalidateStatusCache(industryKey, sandbox);
         return {
           ok: true,
           sandbox,
@@ -2193,7 +2227,7 @@ function createProfileInfraService(config) {
    *     message            : string         human-readable summary for UI
    *   }
    */
-  async function runEnableProfile(sandbox, token, clientId, orgId) {
+  async function runEnableProfileImpl(sandbox, token, clientId, orgId) {
     log(sandbox, 'enableProfile.start', {});
 
     /** @type {{ok: boolean, sandbox: string, schemaId: string|null, schemaMetaAltId: string|null, datasetId: string|null, schemaUnion: string, datasetProfile: string, schemaError: string|null, datasetError: string|null, message: string}} */
@@ -2360,6 +2394,23 @@ function createProfileInfraService(config) {
       datasetProfile: out.datasetProfile,
     });
     return out;
+  }
+
+  /**
+   * Public wrapper around `runEnableProfileImpl` that drops the durable
+   * status cache on EVERY exit path (success or failure). The schema /
+   * dataset state in AEP can change even on partial failures (e.g. the
+   * schema PATCH lands but the dataset PATCH 5xx's), so always
+   * invalidating is the safest cheap option — false invalidations only
+   * cost the next status read one extra AEP fetch, and runEnableProfile
+   * is a rare per-provisioning click.
+   */
+  async function runEnableProfile(sandbox, token, clientId, orgId) {
+    try {
+      return await runEnableProfileImpl(sandbox, token, clientId, orgId);
+    } finally {
+      await safeInvalidateStatusCache(industryKey, sandbox);
+    }
   }
 
   function formatEnableProfileMessage(result) {

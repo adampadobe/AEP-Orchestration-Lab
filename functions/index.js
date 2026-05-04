@@ -70,6 +70,7 @@ const mediaProfileInfraService = lazyRequireMod('./mediaProfileInfraService');
 const mediaProfileConnectionStore = lazyRequireMod('./mediaProfileConnectionStore');
 const sportsProfileInfraService = lazyRequireMod('./sportsProfileInfraService');
 const profileInfraStatusAllSvc = lazyRequireMod('./profileInfraStatusAll');
+const profileInfraStatusCache = lazyRequireMod('./profileInfraStatusCache');
 const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionStore');
 const industryAttributeMap = lazyRequireMod('./industryAttributeMap');
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
@@ -967,7 +968,8 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-/** GET /api/generic-profile-infra/status?sandbox= — schema/field-groups/dataset readiness for the Generic Profile lab. */
+/** GET /api/generic-profile-infra/status?sandbox= — schema/field-groups/dataset readiness for the Generic Profile lab.
+ *  `?refresh=1` bypasses the durable Firestore cache (see profileInfraStatusCache.js). */
 exports.genericProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') {
@@ -979,7 +981,23 @@ exports.genericProfileInfraStatus = onRequest(profileFnOpts, async (req, res) =>
     return;
   }
   const sandbox = resolveSandboxFromQuery(req);
-  console.log('[genericProfileInfra.http]', JSON.stringify({ route: 'GET /api/generic-profile-infra/status', sandbox }));
+  const bypassCache = String(req.query.refresh || '').trim() === '1';
+  console.log('[genericProfileInfra.http]', JSON.stringify({ route: 'GET /api/generic-profile-infra/status', sandbox, bypassCache }));
+
+  if (!bypassCache) {
+    try {
+      const cached = await profileInfraStatusCache.readCachedStatus({ sandbox, industry: 'generic' });
+      if (cached && cached.payload) {
+        res.status(200).json({
+          ...cached.payload,
+          cached: true,
+          lastChecked: cached.lastChecked instanceof Date ? cached.lastChecked.toISOString() : null,
+        });
+        return;
+      }
+    } catch (_) { /* fall through to AEP */ }
+  }
+
   let accessToken;
   try {
     accessToken = await getAdobeAccessToken();
@@ -994,7 +1012,16 @@ exports.genericProfileInfraStatus = onRequest(profileFnOpts, async (req, res) =>
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value()
     );
-    res.status(200).json(payload);
+    if (payload && typeof payload === 'object' && payload.ok !== false) {
+      profileInfraStatusCache
+        .writeStatusCacheEntry({ sandbox, industry: 'generic', payload, source: 'aep-fresh' })
+        .catch(() => { /* helper logs internally */ });
+    }
+    res.status(200).json({
+      ...payload,
+      cached: false,
+      lastChecked: new Date().toISOString(),
+    });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
   }
@@ -1152,6 +1179,7 @@ exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (
 /**
  * GET /api/travel-profile-infra/status — readiness of the Travel Profile pipeline in this sandbox.
  * Same wizard / readiness contract as Generic — separate (schema, dataset, dataflow) triplet.
+ * `?refresh=1` bypasses the durable Firestore cache (see profileInfraStatusCache.js).
  */
 exports.travelProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -1164,7 +1192,23 @@ exports.travelProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => 
     return;
   }
   const sandbox = resolveSandboxFromQuery(req);
-  console.log('[travelProfileInfra.http]', JSON.stringify({ route: 'GET /api/travel-profile-infra/status', sandbox }));
+  const bypassCache = String(req.query.refresh || '').trim() === '1';
+  console.log('[travelProfileInfra.http]', JSON.stringify({ route: 'GET /api/travel-profile-infra/status', sandbox, bypassCache }));
+
+  if (!bypassCache) {
+    try {
+      const cached = await profileInfraStatusCache.readCachedStatus({ sandbox, industry: 'travel' });
+      if (cached && cached.payload) {
+        res.status(200).json({
+          ...cached.payload,
+          cached: true,
+          lastChecked: cached.lastChecked instanceof Date ? cached.lastChecked.toISOString() : null,
+        });
+        return;
+      }
+    } catch (_) { /* fall through to AEP */ }
+  }
+
   let accessToken;
   try {
     accessToken = await getAdobeAccessToken();
@@ -1179,7 +1223,16 @@ exports.travelProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => 
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value()
     );
-    res.status(200).json(payload);
+    if (payload && typeof payload === 'object' && payload.ok !== false) {
+      profileInfraStatusCache
+        .writeStatusCacheEntry({ sandbox, industry: 'travel', payload, source: 'aep-fresh' })
+        .catch(() => { /* helper logs internally */ });
+    }
+    res.status(200).json({
+      ...payload,
+      cached: false,
+      lastChecked: new Date().toISOString(),
+    });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
   }
@@ -1425,8 +1478,11 @@ exports.sportsProfileConnectionStore = sportsProfileRoutes.connectionStoreHandle
  * Sports). Returns the four boolean flags + canonical ids the
  * profile-generation status badges read to render at-a-glance "Profile
  * enabled" indicators on the industry selector dropdown and per-panel
- * badges. Server-side 30s in-memory cache per sandbox so rapid
- * panel-switch / sandbox-change cycles don't re-hit AEP.
+ * badges. Each per-industry result is read from a durable Firestore
+ * cache (see profileInfraStatusCache.js); cache misses fan out to AEP
+ * in parallel. The cache is invalidated by every successful provisioning
+ * step + Enable-for-Profile click so the next read repopulates from AEP.
+ * `?refresh=1` forces all 7 industries to re-check AEP.
  */
 exports.profileInfraStatusAll = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);

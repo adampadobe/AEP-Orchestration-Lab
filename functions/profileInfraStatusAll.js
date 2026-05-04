@@ -17,10 +17,32 @@
  * of the response still rolls forward and the dropdown renders that
  * industry as "?" (see web/profile-viewer/profile-generation-status-badges.js).
  *
- * Cache: 30s in-memory cache keyed by `sandbox` so rapid renders
- * (industry-change → panel-show → after-enable refresh) don't re-hit
- * AEP. Cloud Functions v2 spins up multiple instances in parallel; the
- * cache is per-instance which is fine — staleness is bounded to 30s.
+ * Caching (May 2026 — durable Firestore cache):
+ *
+ *   The original implementation kept a 30s in-memory map keyed by
+ *   sandbox. Cloud Functions v2 spins up many parallel instances so
+ *   that cache barely helped — every architect cold-loaded their own
+ *   copy. We now back the cache with Firestore via
+ *   `profileInfraStatusCache.js` so all instances and architects share
+ *   one cache per (sandbox, industry).
+ *
+ *   - Read flow per industry: Firestore GET first; on hit (and
+ *     `lastChecked` younger than the 7-day max-staleness safety net)
+ *     project flags from the cached payload. On miss/stale, call
+ *     `runStatus(...)` against AEP and write the fresh result back.
+ *   - `?refresh=1` (bypassCache=true) skips the cache for all 7
+ *     industries.
+ *   - Each per-industry result is annotated with `cached: boolean` and
+ *     `lastChecked: ISO string` for diagnostics; the original flag
+ *     fields (`schemaFound`, `schemaInUnion`, `datasetFound`,
+ *     `datasetProfileEnabled`, `schemaId`, `datasetId`) keep their
+ *     existing names — clients that don't know about the cache see no
+ *     change.
+ *
+ *   The 30s in-memory cache has been removed: Firestore reads inside
+ *   the same region land in single-digit milliseconds and the new
+ *   write-through invalidation hooks (in `profileInfraFactory.js`)
+ *   keep the durable cache fresh.
  *
  * Shape (response):
  * ```json
@@ -28,18 +50,17 @@
  *   "ok": true,
  *   "sandbox": "gerdos",
  *   "industries": {
- *     "generic":  { "schemaFound": true,  "schemaInUnion": true,  "datasetFound": true,  "datasetProfileEnabled": true,  "schemaId": "…", "datasetId": "…" },
- *     "fsi":      { "schemaFound": false, "schemaInUnion": false, "datasetFound": false, "datasetProfileEnabled": false },
- *     "telecom":  { "error": "Auth failed: …" },
+ *     "generic":  { "schemaFound": true,  "schemaInUnion": true,  "datasetFound": true,  "datasetProfileEnabled": true,  "schemaId": "…", "datasetId": "…", "cached": true,  "lastChecked": "2026-05-04T19:42:00.000Z" },
+ *     "fsi":      { "schemaFound": false, "schemaInUnion": false, "datasetFound": false, "datasetProfileEnabled": false, "cached": false, "lastChecked": "2026-05-04T19:50:01.000Z" },
+ *     "telecom":  { "error": "Auth failed: …", "cached": false },
  *     ...
  *   },
- *   "fetchedAt": 1714836180000,
- *   "cacheMs": 30000
+ *   "fetchedAt": 1714836180000
  * }
  * ```
  */
 
-const CACHE_TTL_MS = 30_000;
+const statusCache = require('./profileInfraStatusCache');
 
 /**
  * Industry → infra-service module key. The keys here mirror the
@@ -47,9 +68,6 @@ const CACHE_TTL_MS = 30_000;
  * status-badge module can address each industry by its short name.
  */
 const INDUSTRY_KEYS = ['generic', 'travel', 'fsi', 'telecom', 'retail', 'media', 'sports'];
-
-/** @type {Map<string, { ts: number, payload: object }>} */
-const cache = new Map();
 
 /**
  * Strip the per-industry `runStatus` payload down to just the four
@@ -81,17 +99,6 @@ function projectStatusFlags(status) {
 }
 
 /**
- * Build the industries object via `Promise.allSettled`. Per-industry
- * failures collapse to `{ error: '<reason>' }`; successes project to
- * the trimmed flag set above.
- *
- * @param {object} services — { generic, travel, fsi, telecom, retail, media, sports }
- * @param {string} sandbox
- * @param {string} token
- * @param {string} clientId
- * @param {string} orgId
- */
-/**
  * Resolve the per-industry status function. The newer industries (FSI,
  * Telecom, Retail, Media, Sports) all flow through `createProfileInfraService`
  * and export `runStatus` directly. The original Generic + Travel services
@@ -106,17 +113,76 @@ function resolveRunStatus(svc, key) {
   return null;
 }
 
-async function gatherIndustries(services, sandbox, token, clientId, orgId) {
-  const tasks = INDUSTRY_KEYS.map((key) => {
-    const svc = services[key];
-    const runStatus = resolveRunStatus(svc, key);
-    if (!runStatus) {
-      return Promise.resolve({ key, payload: { error: `service ${key} missing runStatus()` } });
+/**
+ * One per-industry resolution: Firestore cache first, then AEP fallback.
+ * Returns the projected flag set with `cached` + `lastChecked`.
+ */
+async function resolveOneIndustry({ key, svc, sandbox, token, clientId, orgId, bypassCache }) {
+  // 1. Cache fast-path.
+  if (!bypassCache) {
+    let cached = null;
+    try {
+      cached = await statusCache.readCachedStatus({ sandbox, industry: key });
+    } catch (e) {
+      // readCachedStatus already swallows + logs errors and returns null —
+      // belt-and-braces try/catch in case the helper changes shape.
+      cached = null;
     }
-    return runStatus(sandbox, token, clientId, orgId)
-      .then((status) => ({ key, payload: projectStatusFlags(status) }))
-      .catch((err) => ({ key, payload: { error: String(err && err.message ? err.message : err).slice(0, 240) } }));
-  });
+    if (cached && cached.payload) {
+      const flags = projectStatusFlags(cached.payload);
+      flags.cached = true;
+      flags.lastChecked = cached.lastChecked instanceof Date ? cached.lastChecked.toISOString() : null;
+      return flags;
+    }
+  }
+
+  // 2. AEP fetch on miss / stale / bypassCache.
+  const runStatus = resolveRunStatus(svc, key);
+  if (!runStatus) {
+    return { error: `service ${key} missing runStatus()`, cached: false };
+  }
+
+  let status;
+  try {
+    status = await runStatus(sandbox, token, clientId, orgId);
+  } catch (e) {
+    return {
+      error: String(e && e.message ? e.message : e).slice(0, 240),
+      cached: false,
+    };
+  }
+
+  // 3. Write-through to Firestore on success. Never block the response
+  //    on the write — fire-and-forget keeps the hot path snappy.
+  if (status && typeof status === 'object' && status.ok !== false) {
+    statusCache
+      .writeStatusCacheEntry({ sandbox, industry: key, payload: status, source: 'aep-fresh' })
+      .catch(() => { /* helper logs internally */ });
+  }
+
+  const flags = projectStatusFlags(status);
+  flags.cached = false;
+  flags.lastChecked = new Date().toISOString();
+  return flags;
+}
+
+/**
+ * Build the industries object via `Promise.allSettled`. Per-industry
+ * failures collapse to `{ error: '<reason>' }`; successes project to
+ * the trimmed flag set above.
+ */
+async function gatherIndustries(services, sandbox, token, clientId, orgId, bypassCache) {
+  const tasks = INDUSTRY_KEYS.map((key) =>
+    resolveOneIndustry({ key, svc: services[key], sandbox, token, clientId, orgId, bypassCache })
+      .then((payload) => ({ key, payload }))
+      .catch((err) => ({
+        key,
+        payload: {
+          error: String(err && err.message ? err.message : err).slice(0, 240),
+          cached: false,
+        },
+      })),
+  );
 
   const settled = await Promise.allSettled(tasks);
   /** @type {Record<string, object>} */
@@ -127,7 +193,7 @@ async function gatherIndustries(services, sandbox, token, clientId, orgId) {
     }
   }
   for (const key of INDUSTRY_KEYS) {
-    if (!(key in industries)) industries[key] = { error: 'aggregator-internal' };
+    if (!(key in industries)) industries[key] = { error: 'aggregator-internal', cached: false };
   }
   return industries;
 }
@@ -151,43 +217,17 @@ async function runProfileInfraStatusAll(cfg) {
   if (!sandbox) {
     return { ok: false, error: 'sandbox required', industries: {} };
   }
-  const cacheKey = String(sandbox);
-  const now = Date.now();
-  if (!bypassCache) {
-    const hit = cache.get(cacheKey);
-    if (hit && now - hit.ts < CACHE_TTL_MS) {
-      return { ...hit.payload, cached: true };
-    }
-  }
-
-  const industries = await gatherIndustries(services, sandbox, token, clientId, orgId);
-  const payload = {
+  const industries = await gatherIndustries(services, sandbox, token, clientId, orgId, !!bypassCache);
+  return {
     ok: true,
     sandbox,
     industries,
-    fetchedAt: now,
-    cacheMs: CACHE_TTL_MS,
+    fetchedAt: Date.now(),
   };
-  cache.set(cacheKey, { ts: now, payload });
-  // Keep the cache bounded — it grows by sandbox name, but if a long-lived
-  // function instance ever fans out to dozens of sandboxes we'd rather drop
-  // the oldest entries than grow indefinitely.
-  if (cache.size > 64) {
-    const firstKey = cache.keys().next().value;
-    if (firstKey) cache.delete(firstKey);
-  }
-  return payload;
-}
-
-/** Test/diagnostic helper — wipe the in-memory cache. */
-function _clearCache() {
-  cache.clear();
 }
 
 module.exports = {
   runProfileInfraStatusAll,
   INDUSTRY_KEYS,
   projectStatusFlags,
-  _clearCache,
-  CACHE_TTL_MS,
 };

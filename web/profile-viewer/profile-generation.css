@@ -1386,6 +1386,51 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   opacity: 0.7;
 }
 
+/* "Re-check AEP" inline refresh icon next to each per-panel badge.
+ * Sits inline-after the .profile-status-badge inside
+ * .enable-profile-step__action; muted by default so it doesn't compete
+ * with the Enable button. Click → repolls just that industry's status
+ * endpoint with `?refresh=1` (see profile-generation-status-badges.js
+ * → refreshOneIndustry). Disabled + spinning while in-flight. */
+.profile-status-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--dash-border, var(--dash-muted));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.profile-status-refresh:hover,
+.profile-status-refresh:focus-visible {
+  color: var(--dash-text);
+  border-color: var(--dash-text-secondary, var(--dash-text));
+  background: var(--dash-hover, transparent);
+  outline: none;
+}
+
+.profile-status-refresh:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@keyframes profile-status-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
+.profile-status-refresh.is-spinning {
+  animation: profile-status-refresh-spin 0.8s linear infinite;
+}
+
 /* Industry selector option polish — kept tabular for any status glyphs
  * injected by older (cached) bundles. The current bundle deliberately
  * does NOT prefix option.text, so the dropdown list reads cleanly and

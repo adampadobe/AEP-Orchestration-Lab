@@ -34,12 +34,27 @@
  *   - On page load (after sandbox select is populated).
  *   - On any panel-shown event (`aep-<industry>-panel-shown`).
  *   - After a successful Enable-for-Profile click — runtime calls
- *     `window.AepProfileInfraStatus.invalidate()`.
+ *     `window.AepProfileInfraStatus.refresh({force: true})`.
  *   - On sandbox change (`aep-global-sandbox-change` + #sandboxSelect change).
+ *   - On click of the per-badge "Re-check AEP" refresh icon (May 2026)
+ *     — calls `refresh({force: true, industry: '<key>'})` to repoll a
+ *     single industry without re-fetching the other six.
  *
  * Tolerance: aggregator errors don't block other industries. Per-industry
  * `error` keys render as ? Status unknown; the dropdown indicator falls
  * back to "?" without throwing.
+ *
+ * Caching (May 2026 — server side):
+ *   The `/api/profile-infra/status-all` and `/api/<industry>-profile-infra
+ *   /status` endpoints are now backed by a durable Firestore cache
+ *   (functions/profileInfraStatusCache.js). Once a sandbox + industry
+ *   has been verified Profile-enabled, the cache survives function cold
+ *   starts and is shared across architects. Provisioning + Enable-for-
+ *   Profile success paths invalidate the cache server-side, so the
+ *   next read repopulates from AEP. The 7-day max-staleness safety net
+ *   catches out-of-band changes; the per-badge refresh icon below is
+ *   the manual escape hatch for architects who want to force a re-check
+ *   sooner.
  */
 (function () {
   'use strict';
@@ -109,7 +124,7 @@
 
   // ---- In-flight + cached aggregate response ----
   // Cache one payload per (sandbox) so panel-show / sandbox-change
-  // cycles don't refetch within the server's 30s window. `invalidate()`
+  // cycles don't refetch within the server's cache TTL. `invalidate()`
   // (called by the runtime after Enable-for-Profile) drops the cache
   // and forces a fresh fetch with `?refresh=1`.
   let _cachedSandbox = null;
@@ -189,6 +204,46 @@
     badgeEl.title = state.label;
   }
 
+  // ---- Per-badge "Re-check AEP" refresh icon (May 2026) ----
+  // Each badge gets a sibling <button.profile-status-refresh> that
+  // re-polls JUST that industry's status endpoint with `?refresh=1`,
+  // bypassing the durable Firestore cache for that one row. Uses
+  // var(--dash-muted) styling so it doesn't compete with the main UI.
+  // Tooltip: "Re-check AEP". Injected lazily — runs once per badge in
+  // applyToPanelBadges so newly-rendered panels also get the button.
+  function ensureRefreshButton(badge) {
+    if (!badge || !badge.parentElement) return null;
+    const key = String(badge.getAttribute('data-industry-status') || '').trim().toLowerCase();
+    if (!key) return null;
+    let btn = badge.parentElement.querySelector(`.profile-status-refresh[data-industry="${key}"]`);
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'profile-status-refresh';
+    btn.dataset.industry = key;
+    btn.setAttribute('aria-label', 'Re-check AEP for Profile-enable status');
+    btn.title = 'Re-check AEP';
+    // Counter-clockwise refresh arrow (U+21BB). Inline glyph keeps the
+    // module dependency-free; CSS handles size/colour/hover state.
+    btn.textContent = '\u21BB';
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      btn.disabled = true;
+      btn.classList.add('is-spinning');
+      Promise.resolve(refresh({ force: true, industry: key })).finally(() => {
+        btn.disabled = false;
+        btn.classList.remove('is-spinning');
+      });
+    });
+    if (badge.nextSibling) {
+      badge.parentElement.insertBefore(btn, badge.nextSibling);
+    } else {
+      badge.parentElement.appendChild(btn);
+    }
+    return btn;
+  }
+
   function applyToPanelBadges(payload) {
     const badges = document.querySelectorAll('[data-industry-status]');
     if (!badges.length) return;
@@ -196,6 +251,7 @@
     badges.forEach((badge) => {
       const key = String(badge.getAttribute('data-industry-status') || '').trim().toLowerCase();
       if (!key) return;
+      ensureRefreshButton(badge);
       // Consent badge has its own resolver below.
       if (key === 'consent') return;
       const flags = industries[key];
@@ -204,10 +260,11 @@
     });
   }
 
-  function markPanelBadgesPending() {
+  function markPanelBadgesPending(filterIndustry) {
     document.querySelectorAll('[data-industry-status]').forEach((badge) => {
       const key = String(badge.getAttribute('data-industry-status') || '').trim().toLowerCase();
       if (key === 'consent') return;
+      if (filterIndustry && key !== filterIndustry) return;
       setBadgeContent(badge, 'pending');
     });
   }
@@ -222,7 +279,10 @@
       badges.forEach((b) => setBadgeContent(b, 'unknown'));
       return;
     }
-    badges.forEach((b) => setBadgeContent(b, 'pending'));
+    badges.forEach((b) => {
+      ensureRefreshButton(b);
+      setBadgeContent(b, 'pending');
+    });
     try {
       const res = await fetch(`/api/consent-infra/status?sandbox=${encodeURIComponent(sandbox)}`, {
         headers: { Accept: 'application/json' },
@@ -262,12 +322,59 @@
   }
 
   /**
+   * Single-industry refresh — hits `/api/<industry>-profile-infra
+   * /status?sandbox=…&refresh=1` and updates only that badge. Lets
+   * architects re-check ONE row without re-fetching the other six.
+   * Also drops the aggregate client cache so the next aggregate refresh
+   * picks up the new server-side value.
+   */
+  async function refreshOneIndustry(industry, { force } = {}) {
+    const sandbox = getSandboxName();
+    if (!sandbox || !INDUSTRY_KEYS.includes(industry)) return null;
+    markPanelBadgesPending(industry);
+    const url = `/api/${industry}-profile-infra/status?sandbox=${encodeURIComponent(sandbox)}${force ? '&refresh=1' : ''}`;
+    const badges = document.querySelectorAll(`[data-industry-status="${industry}"]`);
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        badges.forEach((b) => setBadgeContent(b, 'unknown'));
+        return null;
+      }
+      const flags = {
+        schemaFound: !!data.schemaFound,
+        schemaInUnion: !!(data.schemaInUnion ?? data.schemaInProfileUnion),
+        datasetFound: !!data.datasetFound,
+        datasetProfileEnabled: !!data.datasetProfileEnabled,
+      };
+      const stateKey = classifyFlags(flags);
+      badges.forEach((b) => setBadgeContent(b, stateKey));
+      // Drop the aggregate client cache so the dropdown indicator
+      // re-syncs on next access. (The next full aggregate refresh will
+      // re-pull all 7 industries from the durable server cache.)
+      invalidate();
+      return data;
+    } catch (_) {
+      badges.forEach((b) => setBadgeContent(b, 'unknown'));
+      return null;
+    }
+  }
+
+  /**
    * Refresh both surfaces (industry select + panel badges) for the
    * current sandbox. `force=true` bypasses the client + server caches
    * — used after Enable-for-Profile so the new state surfaces
-   * immediately.
+   * immediately. `industry` (May 2026) restricts the refresh to a
+   * single row (used by the per-badge "Re-check AEP" icon).
    */
-  async function refresh({ force } = {}) {
+  async function refresh({ force, industry } = {}) {
+    if (industry === 'consent') {
+      const sandbox = getSandboxName();
+      return refreshConsentBadge(sandbox);
+    }
+    if (industry && INDUSTRY_KEYS.includes(industry)) {
+      return refreshOneIndustry(industry, { force });
+    }
     const sandbox = getSandboxName();
     if (!sandbox) {
       const selectEl = document.getElementById('industry');
