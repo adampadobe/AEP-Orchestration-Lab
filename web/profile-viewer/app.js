@@ -2131,14 +2131,22 @@ if (updateProfileBtn && updateStatusEl) {
     const emailEl = document.getElementById('profileEmailDisplay');
     const ecidEl = document.getElementById('profileEcidDisplay');
     const profileEmail = String((emailEl?.dataset.profileEmail ?? emailEl?.textContent) ?? '').trim();
-    const ecid = String((ecidEl?.dataset.ecid ?? ecidEl?.textContent) ?? '').trim();
+    const rawEcid = String((ecidEl?.dataset.ecid ?? ecidEl?.textContent) ?? '').trim();
     if (!profileEmail) {
       setUpdateStatus('Load a profile first (Get profile) to get profile email.', 'error');
       return;
     }
-    if (!ecid || ecid.length < 10) {
-      setUpdateStatus('Load a profile first (Get profile) to get ECID.', 'error');
-      return;
+    // Soft ECID: every industry schema in this project uses email as the
+    // primary identity (createPrimaryEmailDescriptor), so write-back works on
+    // email-only profiles too — e.g. profiles streamed in with an email-only
+    // identityMap that never touched Web SDK. When ECID is present we still
+    // pass it for better merge fidelity; when missing we pass null and the
+    // proxy emits a single-key identityMap with email primary.
+    const ecid = rawEcid && rawEcid.length >= 10 ? rawEcid : null;
+    if (!ecid) {
+      console.info(
+        '[updateProfile] No ECID on loaded profile — using email as primary identity for write-back.',
+      );
     }
 
     // Collect dirty rows from enabled inputs only — disabled inputs are
