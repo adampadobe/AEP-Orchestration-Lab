@@ -619,10 +619,46 @@ function showResults(data) {
       const path = escapeHtml(row.path || '');
       const originalValue = String(row.value ?? '');
       const value = escapeHtml(originalValue);
+      // Dataflow column: industry pill + writable flag drive both the
+      // input's `disabled` state (read-only when no industry owns the
+      // path or when the owning industry has no streaming connection in
+      // this sandbox) and the cell content. Keep `data-industry` /
+      // `data-writable` on the row so the multi-target Update handler
+      // can group dirty rows by industry without re-querying the DOM.
+      const industryKey = row.industry || '';
+      const industryDisplay = row.industryDisplay || '';
+      const writable = row.writable === true;
+      const reasonRaw = row.notWritableReason || row.ownershipReason || '';
+      const reason = escapeHtml(reasonRaw);
+      const dataflowId = row.dataflowId || '';
+      const ownershipReason = row.ownershipReason || '';
+      // Pill tooltip surfaces the resolved dataflow + ownership reason
+      // (matches the per-panel badge tooltip pattern in
+      // profile-generation-status-badges.js).
+      const pillTooltipParts = [];
+      if (industryDisplay) pillTooltipParts.push(`${industryDisplay} dataflow`);
+      if (dataflowId) pillTooltipParts.push(`Flow ID: ${dataflowId}`);
+      if (ownershipReason) pillTooltipParts.push(ownershipReason);
+      const pillTooltip = escapeHtml(pillTooltipParts.join(' · '));
+      let dataflowCell;
+      if (writable && industryKey) {
+        const pillKey = escapeHtml(industryKey);
+        const pillLabel = escapeHtml(industryDisplay || industryKey);
+        dataflowCell = `<span class="dataflow-pill dataflow-pill--${pillKey}" data-industry="${pillKey}" title="${pillTooltip}">${pillLabel}</span>`;
+      } else {
+        const noFlowTooltip = reason || 'No dataflow available for this attribute in this sandbox.';
+        dataflowCell = `<span class="dataflow-pill dataflow-pill--none" title="${escapeHtml(noFlowTooltip)}">(no dataflow)</span>`;
+      }
+      const inputDisabledAttrs = writable
+        ? ''
+        : ` disabled aria-disabled="true" title="${reason || 'Read-only attribute.'}"`;
+      tr.dataset.industry = industryKey;
+      tr.dataset.writable = writable ? '1' : '0';
       tr.innerHTML = `
         <td class="attr-cell">${escapeHtml(row.attribute)}</td>
         <td class="display-name-cell">${escapeHtml(row.displayName)}</td>
-        <td class="value-cell"><input type="text" class="profile-value-input" data-path="${path}" data-original-value="${value}" value="${value}" aria-label="Value for ${escapeHtml(row.attribute)}"></td>
+        <td class="value-cell"><input type="text" class="profile-value-input" data-path="${path}" data-original-value="${value}" data-industry="${escapeHtml(industryKey)}" value="${value}" aria-label="Value for ${escapeHtml(row.attribute)}"${inputDisabledAttrs}></td>
+        <td class="dataflow-cell">${dataflowCell}</td>
         <td class="path-cell">${path}</td>
       `;
       attributeTableBody.appendChild(tr);
@@ -2019,9 +2055,27 @@ if (viewJsonClose && viewJsonModal) {
   });
 }
 
-// Update profile – send changed attributes via streaming (Data Prep merge) or Edge fallback
+// Update profile — fan dirty rows out to the per-industry HTTP API
+// streaming dataflow that owns each path. The new Dataflow column gives
+// every row an `industry` (set as `tr.dataset.industry` and
+// `input.dataset.industry` by showResults). We group dirty rows by
+// industry, fire one POST /api/profile/update?industry=<key> per group
+// in parallel, and render per-industry results inline using the same
+// .consent-infra-progress pattern as the consolidation worker's
+// "Set up schema, field groups & dataset" button on the consent page.
 const updateProfileBtn = document.getElementById('updateProfileBtn');
 const updateStatusEl = document.getElementById('updateStatus');
+const updateResultsListEl = document.getElementById('updateResultsList');
+
+const INDUSTRY_DISPLAY = {
+  generic: 'Generic',
+  travel: 'Travel',
+  fsi: 'FSI',
+  telecom: 'Telecom',
+  retail: 'Retail',
+  media: 'Media',
+  sports: 'Sports',
+};
 
 function setUpdateStatus(text, type) {
   if (updateStatusEl) {
@@ -2031,11 +2085,51 @@ function setUpdateStatus(text, type) {
   }
 }
 
+function clearUpdateResultsList() {
+  if (!updateResultsListEl) return;
+  updateResultsListEl.innerHTML = '';
+  updateResultsListEl.hidden = true;
+}
+
+/**
+ * Append (or update) one progress row in the per-industry results list.
+ * State map: 'working' (●), 'success' (✓), 'error' (✗). Re-uses the
+ * .consent-infra-progress styling shipped on consent.css; the wrapper
+ * <ul> in index.html already carries that class.
+ */
+function setUpdateResultRow(industryKey, state, label, detail) {
+  if (!updateResultsListEl) return;
+  let li = updateResultsListEl.querySelector(`li[data-industry="${industryKey}"]`);
+  if (!li) {
+    li = document.createElement('li');
+    li.dataset.industry = industryKey;
+    li.className = 'consent-infra-progress__item';
+    li.innerHTML = `
+      <span class="consent-infra-progress__icon"></span>
+      <span class="consent-infra-progress__label"></span>
+      <span class="consent-infra-progress__detail"></span>
+    `;
+    updateResultsListEl.appendChild(li);
+  }
+  li.classList.remove(
+    'consent-infra-progress__item--working',
+    'consent-infra-progress__item--success',
+    'consent-infra-progress__item--error',
+  );
+  let glyph = '●';
+  if (state === 'success') glyph = '✓';
+  else if (state === 'error') glyph = '✗';
+  if (state) li.classList.add(`consent-infra-progress__item--${state}`);
+  li.querySelector('.consent-infra-progress__icon').textContent = glyph;
+  li.querySelector('.consent-infra-progress__label').textContent = label || '';
+  li.querySelector('.consent-infra-progress__detail').textContent = detail || '';
+  updateResultsListEl.hidden = false;
+}
+
 if (updateProfileBtn && updateStatusEl) {
   updateProfileBtn.addEventListener('click', async () => {
     const emailEl = document.getElementById('profileEmailDisplay');
     const ecidEl = document.getElementById('profileEcidDisplay');
-    // Use data attributes (set when profile loads) so payload uses same email/ECID as displayed profile; display truncates ECID to 38 chars
     const profileEmail = String((emailEl?.dataset.profileEmail ?? emailEl?.textContent) ?? '').trim();
     const ecid = String((ecidEl?.dataset.ecid ?? ecidEl?.textContent) ?? '').trim();
     if (!profileEmail) {
@@ -2046,103 +2140,166 @@ if (updateProfileBtn && updateStatusEl) {
       setUpdateStatus('Load a profile first (Get profile) to get ECID.', 'error');
       return;
     }
-    const inputs = attributeTableBody.querySelectorAll('.profile-value-input');
-    const updates = [];
+
+    // Collect dirty rows from enabled inputs only — disabled inputs are
+    // read-only because their owning industry has no streaming dataflow
+    // in this sandbox (or no industry claims the path at all).
+    const inputs = Array.from(attributeTableBody.querySelectorAll('.profile-value-input'));
+    /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
+    const groupsByIndustry = new Map();
+    let totalDirty = 0;
     inputs.forEach((input) => {
+      if (input.disabled) return;
       const path = input.getAttribute('data-path');
       const originalValue = input.getAttribute('data-original-value') ?? '';
       const currentValue = input.value == null ? '' : String(input.value);
-      if (path && currentValue !== originalValue) {
-        const valueToSend = normalizeProfileStreamDateField(path, currentValue);
-        updates.push({ path, value: valueToSend });
-      }
+      if (!path || currentValue === originalValue) return;
+      const industryKey = (input.getAttribute('data-industry') || '').trim() || 'generic';
+      const valueToSend = normalizeProfileStreamDateField(path, currentValue);
+      const list = groupsByIndustry.get(industryKey) || [];
+      list.push({ path, value: valueToSend, input });
+      groupsByIndustry.set(industryKey, list);
+      totalDirty++;
     });
-    const loyaltySel = document.getElementById('addLoyaltyIdSelect');
-    const loyaltyChoice = String(loyaltySel?.value ?? '').trim();
-    if (loyaltyChoice) {
-      const loyaltyId =
-        loyaltyChoice === '__random__'
-          ? `LYL-${Math.floor(Math.random() * 900000) + 100000}`
-          : loyaltyChoice;
-      updates.push({ path: '_demoemea.identification.core.loyaltyId', value: loyaltyId });
-    }
-    if (updates.length === 0) {
+
+    if (totalDirty === 0) {
       setUpdateStatus(
-        'No changes to update. Edit attribute values or choose a loyalty ID above, then click Update profile.',
+        'No changes to update. Edit one or more editable attribute values, then click Update profile.',
         'error',
       );
       return;
     }
+
     updateProfileBtn.disabled = true;
-    setUpdateStatus('Sending update…', '');
+    setUpdateStatus(
+      `Sending update to ${groupsByIndustry.size} dataflow${groupsByIndustry.size === 1 ? '' : 's'}…`,
+      '',
+    );
     const payloadDetailsEl = document.getElementById('sentPayloadDetails');
     if (payloadDetailsEl) payloadDetailsEl.hidden = true;
-    try {
-      const sandbox = sandboxSelect?.value?.trim() || undefined;
-      const { ok, data } = await postProfileUpdate({ email: profileEmail, ecid, updates, sandbox });
-      if (!ok) {
-        const errMsg = formatProfileUpdateError(data);
-        setUpdateStatus(errMsg, 'error');
-        const payloadDetails = document.getElementById('sentPayloadDetails');
-        const payloadPre = document.getElementById('sentPayloadPre');
-        const requestInfo = document.getElementById('sentRequestInfo');
-        const requestUrlEl = document.getElementById('sentRequestUrl');
-        const requestHeadersEl = document.getElementById('sentRequestHeaders');
-        const showPayloadDetails =
-          payloadDetails &&
-          payloadPre &&
-          (data.sentToAep != null ||
-            resolveProfileStreamingUiFields(data) != null);
-        if (showPayloadDetails) {
-          if (requestInfo && requestUrlEl && requestHeadersEl && data.requestUrl != null) {
-            requestUrlEl.textContent = data.requestUrl;
-            requestHeadersEl.textContent = data.requestHeaders != null ? JSON.stringify(data.requestHeaders, null, 2) : '';
-            requestInfo.hidden = false;
-          } else if (requestInfo) {
-            requestInfo.hidden = true;
-          }
-          payloadPre.textContent =
-            data.sentToAep != null ? formatAepPayloadPreContent(data) : '— (no request body returned)';
-          payloadDetails.hidden = false;
-          payloadDetails.open = false;
-        }
-        return;
-      }
-      updates.forEach(({ path, value }) => {
-        attributeTableBody.querySelectorAll('.profile-value-input').forEach((input) => {
-          if (input.getAttribute('data-path') === path) {
-            const v = Array.isArray(value) ? value.join(', ') : value == null ? '' : String(value);
-            input.setAttribute('data-original-value', v);
-          }
+    clearUpdateResultsList();
+
+    const sandbox = sandboxSelect?.value?.trim() || undefined;
+    const groups = Array.from(groupsByIndustry.entries());
+    // Surface a "working" row per industry up-front so the operator can
+    // see which dataflows are in flight even on slow networks.
+    groups.forEach(([industryKey, items]) => {
+      const display = INDUSTRY_DISPLAY[industryKey] || industryKey;
+      setUpdateResultRow(
+        industryKey,
+        'working',
+        `${display} — sending`,
+        `${items.length} attribute${items.length === 1 ? '' : 's'}`,
+      );
+    });
+
+    /**
+     * Fire one POST per industry. Each group sends only the paths that
+     * belong to it so the proxy never sees a path it can't write — the
+     * grouping IS the routing.
+     */
+    const tasks = groups.map(async ([industryKey, items]) => {
+      const display = INDUSTRY_DISPLAY[industryKey] || industryKey;
+      const updatesForIndustry = items.map(({ path, value }) => ({ path, value }));
+      try {
+        const { ok, data } = await postProfileUpdate({
+          email: profileEmail,
+          ecid,
+          updates: updatesForIndustry,
+          sandbox,
+          industry: industryKey,
         });
-      });
-      if (loyaltyChoice && loyaltySel) loyaltySel.value = '';
-      let okMsg =
-        data.message ||
-        `Profile update sent (${updates.length} attribute${updates.length === 1 ? '' : 's'}). Refresh the profile to see changes.`;
-      if (data.streamingWarning) okMsg += ` Streaming note: ${data.streamingWarning}`;
-      setUpdateStatus(okMsg, data.streamingWarning ? 'warning' : 'success');
+        return { industryKey, display, ok, data, items };
+      } catch (err) {
+        return {
+          industryKey,
+          display,
+          ok: false,
+          data: { error: err && err.message ? err.message : String(err) },
+          items,
+        };
+      }
+    });
+
+    const settled = await Promise.allSettled(tasks);
+    let firstSuccessData = null;
+    let successCount = 0;
+    let failCount = 0;
+
+    settled.forEach((result) => {
+      if (result.status !== 'fulfilled' || !result.value) return;
+      const { industryKey, display, ok, data, items } = result.value;
+      if (ok) {
+        successCount++;
+        if (!firstSuccessData) firstSuccessData = data;
+        // Refresh the dirty-detection baseline so a re-click does NOT
+        // re-send the same value as a new edit.
+        items.forEach(({ path, value, input }) => {
+          const v = Array.isArray(value) ? value.join(', ') : value == null ? '' : String(value);
+          input.setAttribute('data-original-value', v);
+        });
+        setUpdateResultRow(
+          industryKey,
+          'success',
+          `${display} updated`,
+          `${items.length} attribute${items.length === 1 ? '' : 's'}`,
+        );
+      } else {
+        failCount++;
+        const errMsg = formatProfileUpdateError(data);
+        setUpdateResultRow(
+          industryKey,
+          'error',
+          `${display} failed`,
+          errMsg,
+        );
+      }
+    });
+
+    // Headline status — reflect the aggregate outcome.
+    if (failCount === 0) {
+      setUpdateStatus(
+        `Profile update sent · ${successCount} dataflow${successCount === 1 ? '' : 's'} · ${totalDirty} attribute${totalDirty === 1 ? '' : 's'}. Refresh the profile to see changes.`,
+        'success',
+      );
+    } else if (successCount === 0) {
+      setUpdateStatus(
+        `Profile update failed for all ${failCount} dataflow${failCount === 1 ? '' : 's'}. See per-dataflow details above.`,
+        'error',
+      );
+    } else {
+      setUpdateStatus(
+        `Profile update partial · ${successCount} succeeded · ${failCount} failed. See per-dataflow details above.`,
+        'warning',
+      );
+    }
+
+    // Surface the first successful payload in the existing
+    // sent-payload <details>. Multi-target updates can have N payloads;
+    // we keep the existing single-pre UI by showing the first one and
+    // prefixing with a per-dataflow note.
+    if (firstSuccessData && firstSuccessData.sentToAep != null) {
       const payloadDetails = document.getElementById('sentPayloadDetails');
       const payloadPre = document.getElementById('sentPayloadPre');
       const requestInfo = document.getElementById('sentRequestInfo');
       const requestUrlEl = document.getElementById('sentRequestUrl');
       const requestHeadersEl = document.getElementById('sentRequestHeaders');
-      if (payloadDetails && payloadPre && data.sentToAep != null) {
-        if (requestInfo && requestUrlEl && requestHeadersEl && data.requestUrl != null) {
-          requestUrlEl.textContent = data.requestUrl;
-          requestHeadersEl.textContent = data.requestHeaders != null ? JSON.stringify(data.requestHeaders, null, 2) : '';
+      if (payloadDetails && payloadPre) {
+        if (requestInfo && requestUrlEl && requestHeadersEl && firstSuccessData.requestUrl != null) {
+          requestUrlEl.textContent = firstSuccessData.requestUrl;
+          requestHeadersEl.textContent = firstSuccessData.requestHeaders != null
+            ? JSON.stringify(firstSuccessData.requestHeaders, null, 2)
+            : '';
           requestInfo.hidden = false;
         } else if (requestInfo) {
           requestInfo.hidden = true;
         }
-        payloadPre.textContent = formatAepPayloadPreContent(data);
+        payloadPre.textContent = formatAepPayloadPreContent(firstSuccessData);
         payloadDetails.hidden = false;
         payloadDetails.open = false;
       }
-    } catch (err) {
-      setUpdateStatus(err.message || 'Network error', 'error');
-    } finally {
-      updateProfileBtn.disabled = false;
     }
+
+    updateProfileBtn.disabled = false;
   });
 }
