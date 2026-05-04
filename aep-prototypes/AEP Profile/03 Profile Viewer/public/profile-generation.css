@@ -1091,6 +1091,15 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   gap: 0.75rem;
 }
 
+/* Badge sits inline-after the Enable button. The badge itself carries a
+ * default 0.65rem margin-left for its previous panel-title placement; in
+ * this flex row the parent's `gap` is the single source of horizontal
+ * rhythm, so zero out the legacy margin to avoid 1.4rem of stacked space. */
+.profile-generation-page .enable-profile-step__action .profile-status-badge,
+.consent-page .enable-profile-step__action .profile-status-badge {
+  margin-left: 0;
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;

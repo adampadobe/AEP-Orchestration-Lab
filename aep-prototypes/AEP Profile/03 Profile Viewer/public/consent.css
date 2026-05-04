@@ -1262,6 +1262,14 @@ body.consent-onboarding-open {
   gap: 0.75rem;
 }
 
+/* Badge sits inline-after the Enable button. The badge itself carries a
+ * default 0.65rem margin-left for its previous summary-row placement; in
+ * this flex row the parent's `gap` is the single source of horizontal
+ * rhythm, so zero out the legacy margin to avoid 1.4rem of stacked space. */
+.consent-page .enable-profile-step__action .profile-status-badge {
+  margin-left: 0;
+}
+
 /* ----------------------------------------------------------------------
  * Profile-enabled status badge (May 2026)
  *

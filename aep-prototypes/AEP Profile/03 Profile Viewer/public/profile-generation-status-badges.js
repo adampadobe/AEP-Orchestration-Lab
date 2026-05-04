@@ -11,11 +11,18 @@
  *     `option.dataset.profileStatus` (for optional CSS hooks), so
  *     full keyboard / screen-reader compatibility stays intact.
  *
- *  2. Per-panel badges — every #<industry>ProfilePanel header (h2.panel-title)
- *     gets a sibling <span data-industry-status="<key>" class="profile-status-badge">
- *     that renders the same 4-state legend in the panel surface itself, so
- *     architects can confirm the current industry's state in detail.
- *     This is the canonical surface for "is this industry Profile-enabled?".
+ *  2. Per-panel badges — every industry's "Enable schema + dataset for
+ *     Profile" button (in .enable-profile-step__action, just below the
+ *     yellow "Validate data is flowing first" warning) gets a sibling
+ *     <span data-industry-status="<key>" class="profile-status-badge">
+ *     that renders the same 4-state legend right next to the action.
+ *     The badge is intentionally adjacent to the button — when it reads
+ *     "✓ Profile enabled" the architect can see at a glance the action
+ *     has already been taken and the button doesn't need to be pressed
+ *     again. The consent page uses the same pattern next to its own
+ *     enableProfileBtn. Was previously rendered next to the panel title
+ *     (May 2026) but moved adjacent to the action so the "is this done?"
+ *     signal is contextual to the action it gates.
  *
  * 4-state legend:
  *   ✓ Profile enabled   — schemaInUnion AND datasetProfileEnabled
