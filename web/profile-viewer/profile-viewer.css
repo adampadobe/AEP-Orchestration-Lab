@@ -1784,9 +1784,79 @@ body.profile-generation-page.audience-membership-page #audienceResults .audience
   width: 38%;
   min-width: 420px;
 }
+.profile-viewer-page .profile-attribute-table .col-dataflow {
+  width: auto;
+  min-width: 130px;
+}
 .profile-viewer-page .profile-attribute-table .col-path {
   width: auto;
   min-width: 200px;
+}
+
+/* Dataflow column — per-row industry ownership pill. Uses the same
+ * `--dash-*` tokens as the per-panel status badges
+ * (profile-generation-status-badges.js / profile-generation.css) so
+ * light + dark themes share the structure with no hardcoded hex. */
+.profile-viewer-page .profile-attribute-table .dataflow-cell {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.profile-viewer-page .dataflow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 999px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt, var(--dash-surface));
+  color: var(--dash-text-secondary, var(--dash-text));
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Industry-specific pill colouring. All seven industries use the
+ * existing semantic tokens — `--dash-blue` for the writable / active
+ * states, with a tinted background drawn from `--dash-success-bg` so
+ * the pill reads as "this row is editable and routed to a real
+ * dataflow". Keep the variants distinct enough to scan at a glance
+ * without competing with the per-panel status badges; we deliberately
+ * don't introduce any new colour tokens. */
+.profile-viewer-page .dataflow-pill--generic,
+.profile-viewer-page .dataflow-pill--travel,
+.profile-viewer-page .dataflow-pill--fsi,
+.profile-viewer-page .dataflow-pill--telecom,
+.profile-viewer-page .dataflow-pill--retail,
+.profile-viewer-page .dataflow-pill--media,
+.profile-viewer-page .dataflow-pill--sports {
+  background: var(--dash-success-bg);
+  border-color: var(--dash-success-border, var(--dash-success-text));
+  color: var(--dash-success-text);
+}
+
+/* "(no dataflow)" placeholder for rows whose owning industry isn't
+ * provisioned in this sandbox (or whose path doesn't match any industry
+ * map entry). Italic + muted matches the not-provisioned panel badge
+ * (.profile-status-badge.is-not-provisioned). */
+.profile-viewer-page .dataflow-pill--none {
+  background: transparent;
+  border-color: var(--dash-border, var(--dash-muted));
+  color: var(--dash-muted);
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Disabled inputs in the value column — visually quiet so the pill in
+ * the Dataflow column is the primary signal that the row is read-only. */
+.profile-viewer-page .profile-value-input:disabled {
+  background: var(--dash-surface-alt, transparent);
+  color: var(--dash-text-secondary, var(--dash-muted));
+  border-color: var(--dash-border);
+  cursor: not-allowed;
+  opacity: 0.85;
 }
 
 .profile-viewer-page .profile-attribute-table .value-cell {

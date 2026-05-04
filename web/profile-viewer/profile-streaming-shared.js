@@ -73,7 +73,17 @@
 
   /**
    * POST /api/profile/update — same endpoint for attribute edits (updates[]) and consent (consent object).
-   * @param {{ email: string, ecid: string, sandbox?: string, updates?: Array<{ path: string, value: unknown }>, consent?: Record<string, unknown> }} body
+   *
+   * Accepts an optional `industry` field. When set, the proxy routes the
+   * write to that industry's per-sandbox HTTP API streaming dataflow
+   * (looked up via the industry's connection store). The industry is
+   * sent both as a query param (`?industry=<key>`) and on the body for
+   * symmetry with the proxy's resolution rules. When omitted the proxy
+   * defaults to `generic` for backward compatibility.
+   *
+   * @param {{ email: string, ecid: string, sandbox?: string, industry?: string,
+   *           updates?: Array<{ path: string, value: unknown }>,
+   *           consent?: Record<string, unknown> }} body
    */
   async function postProfileUpdate(body) {
     const payload =
@@ -86,7 +96,11 @@
       const sn = global.AepGlobalSandbox.getSandboxName();
       if (sn) payload.sandbox = sn;
     }
-    const res = await fetch('/api/profile/update', {
+    const industry = payload.industry ? String(payload.industry).trim().toLowerCase() : '';
+    const url = industry
+      ? `/api/profile/update?industry=${encodeURIComponent(industry)}`
+      : '/api/profile/update';
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

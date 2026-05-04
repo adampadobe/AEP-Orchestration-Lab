@@ -13,7 +13,6 @@
     email: 'Enter email address',
     ecid: 'Enter ECID value',
     crmId: 'Enter CRM ID',
-    loyaltyId: 'Enter Loyalty ID',
     phone: 'Enter phone number',
   };
 

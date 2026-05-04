@@ -61,7 +61,6 @@
               <option value="email">Email</option>
               <option value="ecid">ECID</option>
               <option value="crmId">CRM ID</option>
-              <option value="loyaltyId">Loyalty ID</option>
               <option value="phone">Phone</option>
             </select>
           </div>
@@ -325,21 +324,10 @@
             <input type="search" id="attributeSearch" placeholder="Search attributes..." class="attributes-search-input" aria-label="Search attributes">
           </div>
           <div class="button-row profile-update-row">
-            <div class="add-loyalty-attribute-wrap">
-              <label for="addLoyaltyIdSelect" class="add-loyalty-label"><span class="add-loyalty-path">_demoemea.identification.core.loyaltyId</span></label>
-              <select id="addLoyaltyIdSelect" class="add-loyalty-select" aria-label="Choose loyalty ID to add when updating profile">
-                <option value="">— None —</option>
-                <option value="LYL-TEST-ALPHA">LYL-TEST-ALPHA</option>
-                <option value="LYL-TEST-BETA">LYL-TEST-BETA</option>
-                <option value="LYL-100001">LYL-100001</option>
-                <option value="LYL-200002">LYL-200002</option>
-                <option value="LYL-300003">LYL-300003</option>
-                <option value="__random__">New random (LYL-…)</option>
-              </select>
-            </div>
             <button type="button" id="updateProfileBtn" class="btn btn-primary btn-save">Update profile</button>
             <span id="updateStatus" class="profile-update-status consent-message" role="status" aria-live="polite" hidden></span>
           </div>
+          <ul id="updateResultsList" class="consent-infra-progress profile-update-results-progress" role="status" aria-live="polite" hidden></ul>
         </div>
         <p class="panel-desc attributes-meta" id="meta"></p>
         <div class="table-wrap profile-table-wrap">
@@ -348,6 +336,7 @@
               <col class="col-attr">
               <col class="col-display">
               <col class="col-value">
+              <col class="col-dataflow">
               <col class="col-path">
             </colgroup>
             <thead>
@@ -355,6 +344,7 @@
                 <th>ATTRIBUTE<span class="resize-handle" aria-hidden="true"></span></th>
                 <th>DISPLAY NAME<span class="resize-handle" aria-hidden="true"></span></th>
                 <th>VALUE<span class="resize-handle" aria-hidden="true"></span></th>
+                <th>DATAFLOW<span class="resize-handle" aria-hidden="true"></span></th>
                 <th class="path-col">PATH <span class="path-hint">↑</span><span class="resize-handle" aria-hidden="true"></span></th>
               </tr>
             </thead>
