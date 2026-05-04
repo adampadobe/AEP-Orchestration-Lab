@@ -2251,11 +2251,42 @@ function createProfileInfraService(config) {
       } else {
         const ops = buildAddProfileUnionPatchOps(fullSchema['meta:immutableTags']);
         await patchSchemaJsonPatch(token, clientId, orgId, sandbox, out.schemaMetaAltId, ops);
-        const verify = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
-        if (!verify || !schemaHasProfileUnionTag(verify)) {
+        // Verify the tag landed. AEP's schema-registry read replicas can lag
+        // the write by a few seconds — verified against gerdos Telecom on
+        // May 4 2026 where a 2xx PATCH read back the OLD `meta:immutableTags`
+        // for ~1–2s before the union tag became visible. We therefore retry
+        // the verify GET with a short backoff before declaring failure.
+        // Total worst-case wait ≈ 9.5s (0 + 0.5 + 1 + 1.5 + 2.5 + 4) — short
+        // enough to keep the wizard responsive, long enough to swallow the
+        // typical replica-lag window.
+        const VERIFY_BACKOFF_MS = [0, 500, 1000, 1500, 2500, 4000];
+        let verified = false;
+        let lastVerify = null;
+        for (let i = 0; i < VERIFY_BACKOFF_MS.length; i++) {
+          if (VERIFY_BACKOFF_MS[i] > 0) {
+            await new Promise((r) => setTimeout(r, VERIFY_BACKOFF_MS[i]));
+          }
+          lastVerify = await getSchemaByAltId(token, clientId, orgId, sandbox, out.schemaMetaAltId);
+          if (lastVerify && schemaHasProfileUnionTag(lastVerify)) {
+            verified = true;
+            if (i > 0) {
+              log(sandbox, 'enableProfile.schemaUnion.verifyDelayed', {
+                attempt: i,
+                waitedMs: VERIFY_BACKOFF_MS.slice(0, i + 1).reduce((a, b) => a + b, 0),
+              });
+            }
+            break;
+          }
+          log(sandbox, 'enableProfile.schemaUnion.verifyRetry', {
+            attempt: i,
+            backoffMs: VERIFY_BACKOFF_MS[i],
+            sawTags: lastVerify ? JSON.stringify(lastVerify['meta:immutableTags'] ?? null).slice(0, 120) : 'null',
+          });
+        }
+        if (!verified) {
           out.schemaUnion = 'failed';
           out.schemaError =
-            'Schema PATCH returned 2xx but post-check could not see "union" in meta:immutableTags. Refresh and retry; if this persists, inspect the schema in AEP UI.';
+            'Schema PATCH returned 2xx but post-check could not see "union" in meta:immutableTags after ~10s of read-replica retries. Refresh and retry; if this persists, inspect the schema in AEP UI.';
           out.message = out.schemaError;
           return out;
         }
