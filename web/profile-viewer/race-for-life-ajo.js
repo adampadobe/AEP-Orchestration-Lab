@@ -26,18 +26,6 @@
     var base = 'web://' + host + path;
     /* Full web:// URIs match most AJO code-based surfaces; hash-only #ContentCardContainer covers some Content Card configs that do not use the web:// prefix. */
     var out = [base + '#hero-banner', base + '#ContentCardContainer', '#ContentCardContainer'];
-    /*
-      Demo Delivery Concept uses the same #hero-banner / #ContentCardContainer mounts as Race for Life, but the page path differs.
-      Merge Race for Life web:// surfaces so existing AJO code-based surfaces keep resolving while content renders on this page.
-    */
-    if (path.indexOf('demo-delivery-concept') !== -1) {
-      var rflPath = '/profile-viewer/race-for-life-demo.html';
-      if (path.indexOf('/profile-viewer/') === -1) {
-        rflPath = '/race-for-life-demo.html';
-      }
-      var rflBase = 'web://' + host + rflPath;
-      out.push(rflBase + '#hero-banner', rflBase + '#ContentCardContainer');
-    }
     return out;
   }
 

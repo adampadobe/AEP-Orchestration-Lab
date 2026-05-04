@@ -27,6 +27,9 @@ const REQUIRED_FILES = [
 // merge resurrection, or future automation. Bookmark URLs were accepted to 404.
 const FORBIDDEN_FILES = [
   'web/profile-viewer/decisioning-overview-v2.html',
+  'web/profile-viewer/demo-delivery-concept.html',
+  'web/profile-viewer/demo-delivery-concept.css',
+  'web/profile-viewer/demo-delivery-concept.js',
 ];
 
 let failed = false;
@@ -68,6 +71,10 @@ if (nav.includes('decisioning-overview-v2.html')) {
   console.error('aep-lab-nav.js must NOT include href decisioning-overview-v2.html (page hard-deleted)');
   failed = true;
 }
+if (nav.includes('demo-delivery-concept.html')) {
+  console.error('aep-lab-nav.js must NOT include href demo-delivery-concept.html (page hard-deleted)');
+  failed = true;
+}
 if (!nav.includes('journey-arbitration-v2.html')) {
   console.error('aep-lab-nav.js must include href journey-arbitration-v2.html');
   failed = true;
@@ -103,6 +110,10 @@ if (!gs.includes('journeyArbitrationV2')) {
 }
 if (gs.includes('decisioningOverviewV2')) {
   console.error('global-settings.html must NOT include nav hide key decisioningOverviewV2 (page hard-deleted)');
+  failed = true;
+}
+if (gs.includes('demoDeliveryConcept')) {
+  console.error('global-settings.html must NOT include nav hide key demoDeliveryConcept (page hard-deleted)');
   failed = true;
 }
 if (!gs.includes('data-aep-nav-hide-key="edsQuickstart"')) {
