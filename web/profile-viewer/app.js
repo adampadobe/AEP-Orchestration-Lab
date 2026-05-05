@@ -2149,13 +2149,15 @@ if (updateProfileBtn && updateStatusEl) {
       );
     }
 
-    // Collect dirty rows from enabled inputs only — disabled inputs are
-    // read-only because their owning industry has no streaming dataflow
-    // in this sandbox (or no industry claims the path at all).
+    // Timeseries / streaming ingestion caveat: sending only the edited
+    // leaves can clear other attributes that were not included in the same
+    // XDM record for that dataset. So once ANY cell in an industry changes,
+    // we re-stream a *full snapshot* of every writable attribute row that
+    // routes to that industry (current input values), not just the deltas.
     const inputs = Array.from(attributeTableBody.querySelectorAll('.profile-value-input'));
     /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
-    const groupsByIndustry = new Map();
-    let totalDirty = 0;
+    const dirtyByIndustry = new Map();
+    let dirtyCellCount = 0;
     inputs.forEach((input) => {
       if (input.disabled) return;
       const path = input.getAttribute('data-path');
@@ -2163,14 +2165,13 @@ if (updateProfileBtn && updateStatusEl) {
       const currentValue = input.value == null ? '' : String(input.value);
       if (!path || currentValue === originalValue) return;
       const industryKey = (input.getAttribute('data-industry') || '').trim() || 'generic';
-      const valueToSend = normalizeProfileStreamDateField(path, currentValue);
-      const list = groupsByIndustry.get(industryKey) || [];
-      list.push({ path, value: valueToSend, input });
-      groupsByIndustry.set(industryKey, list);
-      totalDirty++;
+      const list = dirtyByIndustry.get(industryKey) || [];
+      list.push({ path, value: null, input });
+      dirtyByIndustry.set(industryKey, list);
+      dirtyCellCount++;
     });
 
-    if (totalDirty === 0) {
+    if (dirtyCellCount === 0) {
       setUpdateStatus(
         'No changes to update. Edit one or more editable attribute values, then click Update profile.',
         'error',
@@ -2178,9 +2179,29 @@ if (updateProfileBtn && updateStatusEl) {
       return;
     }
 
+    /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
+    const groupsByIndustry = new Map();
+    dirtyByIndustry.forEach((_, industryKey) => {
+      const snapshot = [];
+      inputs.forEach((input) => {
+        if (input.disabled) return;
+        const path = input.getAttribute('data-path');
+        if (!path) return;
+        const rowIndustry = (input.getAttribute('data-industry') || '').trim() || 'generic';
+        if (rowIndustry !== industryKey) return;
+        const currentValue = input.value == null ? '' : String(input.value);
+        const valueToSend = normalizeProfileStreamDateField(path, currentValue);
+        snapshot.push({ path, value: valueToSend, input });
+      });
+      if (snapshot.length) groupsByIndustry.set(industryKey, snapshot);
+    });
+
+    const industriesTouched = groupsByIndustry.size;
+    const totalPathsSent = Array.from(groupsByIndustry.values()).reduce((sum, arr) => sum + arr.length, 0);
+
     updateProfileBtn.disabled = true;
     setUpdateStatus(
-      `Sending update to ${groupsByIndustry.size} dataflow${groupsByIndustry.size === 1 ? '' : 's'}…`,
+      `Sending full snapshot to ${industriesTouched} dataflow${industriesTouched === 1 ? '' : 's'} (${totalPathsSent} attribute${totalPathsSent === 1 ? '' : 's'})…`,
       '',
     );
     const payloadDetailsEl = document.getElementById('sentPayloadDetails');
@@ -2197,14 +2218,14 @@ if (updateProfileBtn && updateStatusEl) {
         industryKey,
         'working',
         `${display} — sending`,
-        `${items.length} attribute${items.length === 1 ? '' : 's'}`,
+        `full snapshot · ${items.length} attribute${items.length === 1 ? '' : 's'}`,
       );
     });
 
     /**
-     * Fire one POST per industry. Each group sends only the paths that
-     * belong to it so the proxy never sees a path it can't write — the
-     * grouping IS the routing.
+     * Fire one POST per industry. Each POST carries the full set of writable
+     * rows for that industry (current values), so streaming ingestion does
+     * not interpret omitted leaves as deletes for that dataset/schema.
      */
     const tasks = groups.map(async ([industryKey, items]) => {
       const display = INDUSTRY_DISPLAY[industryKey] || industryKey;
@@ -2250,7 +2271,7 @@ if (updateProfileBtn && updateStatusEl) {
           industryKey,
           'success',
           `${display} updated`,
-          `${items.length} attribute${items.length === 1 ? '' : 's'}`,
+          `full snapshot · ${items.length} attribute${items.length === 1 ? '' : 's'}`,
         );
       } else {
         failCount++;
@@ -2267,7 +2288,7 @@ if (updateProfileBtn && updateStatusEl) {
     // Headline status — reflect the aggregate outcome.
     if (failCount === 0) {
       setUpdateStatus(
-        `Profile update sent · ${successCount} dataflow${successCount === 1 ? '' : 's'} · ${totalDirty} attribute${totalDirty === 1 ? '' : 's'}. Refresh the profile to see changes.`,
+        `Profile update sent · ${successCount} dataflow${successCount === 1 ? '' : 's'} · ${dirtyCellCount} edited cell${dirtyCellCount === 1 ? '' : 's'} · ${totalPathsSent} streamed field${totalPathsSent === 1 ? '' : 's'} (full snapshots). Refresh the profile to see changes.`,
         'success',
       );
     } else if (successCount === 0) {
