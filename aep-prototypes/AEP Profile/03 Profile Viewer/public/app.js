@@ -168,6 +168,30 @@ function coerceProfileStreamScalar(originalType, rawValue) {
   return String(rawValue == null ? '' : rawValue);
 }
 
+const ALLOWED_PERSONAL_TAX_BRACKETS = new Set(['10%', '12%', '22%', '24%', '32%', '35%', '37%']);
+
+/**
+ * Normalize + validate personal tax bracket enum before streaming.
+ * Returns unchanged value for non-taxBracket paths.
+ */
+function normalizeTaxBracketField(path, rawValue) {
+  const p = String(path || '').toLowerCase();
+  if (p !== 'personalfinances.personaltaxprofile.taxbracket') {
+    return { ok: true, value: rawValue };
+  }
+  let normalized = String(rawValue == null ? '' : rawValue).trim();
+  if (/^\d+$/.test(normalized)) normalized = `${normalized}%`;
+  if (!ALLOWED_PERSONAL_TAX_BRACKETS.has(normalized)) {
+    return {
+      ok: false,
+      error:
+        `Invalid tax bracket "${normalized || String(rawValue)}". ` +
+        `Allowed: ${Array.from(ALLOWED_PERSONAL_TAX_BRACKETS).join(', ')}`,
+    };
+  }
+  return { ok: true, value: normalized };
+}
+
 function pathLower(r) {
   return (r.path || '').toLowerCase().replace(/_/g, '.');
 }
@@ -2208,6 +2232,7 @@ if (updateProfileBtn && updateStatusEl) {
 
     /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
     const groupsByIndustry = new Map();
+    const invalidValueMessages = [];
     dirtyByIndustry.forEach((_, industryKey) => {
       const snapshot = [];
       inputs.forEach((input) => {
@@ -2217,13 +2242,25 @@ if (updateProfileBtn && updateStatusEl) {
         const rowIndustry = (input.getAttribute('data-industry') || '').trim() || 'generic';
         if (rowIndustry !== industryKey) return;
         const currentValue = input.value == null ? '' : String(input.value);
+        const taxNormalized = normalizeTaxBracketField(path, currentValue);
+        if (!taxNormalized.ok) {
+          invalidValueMessages.push(taxNormalized.error);
+          return;
+        }
+        const finalInputValue = String(taxNormalized.value == null ? '' : taxNormalized.value);
+        if (finalInputValue !== currentValue) input.value = finalInputValue;
         const originalType = input.getAttribute('data-original-type') || 'string';
-        const normalized = normalizeProfileStreamDateField(path, currentValue);
+        const normalized = normalizeProfileStreamDateField(path, finalInputValue);
         const valueToSend = coerceProfileStreamScalar(originalType, normalized);
         snapshot.push({ path, value: valueToSend, valueType: originalType, input });
       });
       if (snapshot.length) groupsByIndustry.set(industryKey, snapshot);
     });
+
+    if (invalidValueMessages.length) {
+      setUpdateStatus(invalidValueMessages[0], 'error');
+      return;
+    }
 
     const industriesTouched = groupsByIndustry.size;
     const totalPathsSent = Array.from(groupsByIndustry.values()).reduce((sum, arr) => sum + arr.length, 0);
