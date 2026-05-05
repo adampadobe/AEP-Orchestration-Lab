@@ -1153,7 +1153,7 @@
       if (!hydrated) throw new Error('Failed to load scrape ' + pick.scrapeId);
       if (hydrated.payloadExpired) {
         showScrapeMissing(domain, sandbox, true, urlInput.value);
-        setStatus(lookupStatus, 'Scrape payload has expired (>3 days). Re-run the scrape.', 'error');
+        setStatus(lookupStatus, 'Scrape JSON payload is no longer in storage. Re-run the scrape in Brand scraper.', 'error');
         return;
       }
       onScrapeLoaded(hydrated);
@@ -1170,7 +1170,7 @@
     summarySection.hidden = false;
     var hasUrl = looksLikeUrl(rawInput);
     var msg = expired
-      ? 'The scrape for <strong>' + escapeHtml(domain) + '</strong> in sandbox "' + escapeHtml(sandbox) + '" exists but its payload has expired (bucket lifecycle is 3 days).'
+      ? 'The scrape for <strong>' + escapeHtml(domain) + '</strong> in sandbox "' + escapeHtml(sandbox) + '" exists but its JSON payload is no longer in storage (retention expired or cleanup).'
       : 'No brand scrape for <strong>' + escapeHtml(domain) + '</strong> in sandbox "' + escapeHtml(sandbox) + '".';
     var actionHtml;
     if (hasUrl) {

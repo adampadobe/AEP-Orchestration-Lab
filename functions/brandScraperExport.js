@@ -230,7 +230,7 @@ function mdReadme(record) {
     '- `assets/images/` — downloaded images (if classify step was run).',
     '- `crawl.json` — full raw scrape record.',
     '',
-    'Signed URL for this ZIP expires in 72 hours. Source bucket also auto-deletes objects at age ≥ 3 days.',
+    'Signed URL for this ZIP expires in 72 hours. Scrape JSON uses ~14d bucket retention (extend in Brand scraper); classified images use ~3d unless published to Image hosting.',
     '',
   ].join('\n');
 }

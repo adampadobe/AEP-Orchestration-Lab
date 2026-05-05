@@ -1727,6 +1727,40 @@
     }
   }
 
+  async function extendRetentionForScrapeId(scrapeId) {
+    const sb = getSandbox();
+    if (!sb || !scrapeId) { setStatus('Select a sandbox first.', 'error'); return; }
+    let cardBtn = null;
+    if (historyListEl) {
+      const card = Array.from(historyListEl.querySelectorAll('[data-scrape-id]')).find(function (el) {
+        return el.getAttribute('data-scrape-id') === scrapeId;
+      });
+      cardBtn = card && card.querySelector('[data-action="extend-from-card"]');
+    }
+    const panelBtn = resultsEl && resultsEl.querySelector('[data-action="extend-retention"]');
+    const btns = [cardBtn, panelBtn].filter(Boolean);
+    btns.forEach(b => { b.disabled = true; });
+    try {
+      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + '/extend'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 14 }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { setStatus('Extend failed: ' + (data.error || resp.statusText), 'error'); return; }
+      setStatus('Text payload retention extended to ' + fmtDate(data.payloadRetentionExpiresAt) + '.', 'info');
+      if (currentScrapeData && currentScrapeData.scrapeId === scrapeId) {
+        currentScrapeData.payloadRetentionExpiresAt = data.payloadRetentionExpiresAt;
+        renderResults(currentScrapeData);
+      }
+      await loadHistory();
+    } catch (e) {
+      setStatus('Network error: ' + (e && e.message || e), 'error');
+    } finally {
+      btns.forEach(b => { b.disabled = false; });
+    }
+  }
+
   if (historyListEl) {
     historyListEl.addEventListener('click', (evt) => {
       // Clicks on the checkbox wrapper should not also trigger view/delete.
@@ -1747,6 +1781,7 @@
       if (!id) return;
       if (btn.dataset.action === 'view') viewScrape(id);
       else if (btn.dataset.action === 'delete') deleteScrape(id);
+      else if (btn.dataset.action === 'extend-from-card') extendRetentionForScrapeId(id);
     });
   }
 
@@ -1911,6 +1946,9 @@
     if (!btn) return;
     if (btn.dataset.action === 'classify-assets') runClassify();
     else if (btn.dataset.action === 'export-kit') runExport();
+    else if (btn.dataset.action === 'extend-retention' && currentScrapeData && currentScrapeData.scrapeId) {
+      extendRetentionForScrapeId(currentScrapeData.scrapeId);
+    }
   });
 
   resultsEl.addEventListener('change', (evt) => {

@@ -5,6 +5,14 @@
         "action": { "type": "Delete" },
         "condition": {
           "age": 3,
+          "matchesPrefix": ["scrape-cache-images/"],
+          "isLive": true
+        }
+      },
+      {
+        "action": { "type": "Delete" },
+        "condition": {
+          "daysSinceCustomTime": 14,
           "matchesPrefix": ["scrapes/"],
           "isLive": true
         }

@@ -13,6 +13,8 @@
  *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
  *       runStartedAt, crawlEngine, includeSummary,
+ *       payloadRetentionExpiresAt (Timestamp) — when JSON payload may be GC’d;
+ *         user can POST …/extend to push this out (images use shorter storage),
  *       scrapeVersions: [{ version, storagePath, savedAt }] — archived snapshots
  *         before append/overwrite (GCS under …/versions/vN.json, max 25) }
  *
@@ -30,6 +32,12 @@ const admin = require('firebase-admin');
 const COLLECTION = 'brandScrapes';
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const RECORD_OBJECT_NAME = 'record.json';
+
+const MS_PER_DAY = 86400000;
+/** Default text/JSON payload retention (Firestore + GCS record.json / versions). */
+const DEFAULT_PAYLOAD_RETENTION_MS = 14 * MS_PER_DAY;
+/** Classified crawl images: short-lived GCS prefix `scrape-cache-images/` + legacy `…/images/`. */
+const IMAGE_ARTIFACT_MAX_AGE_MS = 3 * MS_PER_DAY;
 
 let db;
 function getDb() {
@@ -76,9 +84,8 @@ function docId(sandbox, id) {
 }
 
 function storageKey(sandbox, scrapeId) {
-  // Scrape artifacts live under the `scrapes/` prefix so the bucket
-  // lifecycle can expire them after 3 days without touching the
-  // curated `<sandbox>/library/` tree.
+  // JSON payloads live under `scrapes/` (see docs/image-hosting-lifecycle.json:
+  // daysSinceCustomTime ~14d + user extend; images use `scrape-cache-images/`).
   return `scrapes/${safeSlug(sandbox || 'default')}/${safeSlug(scrapeId)}/${RECORD_OBJECT_NAME}`;
 }
 
@@ -90,6 +97,42 @@ function serializeTimestamp(v) {
   if (!v) return null;
   if (typeof v.toDate === 'function') return v.toDate().toISOString();
   return v;
+}
+
+function firestoreTimestampToMs(ts) {
+  if (!ts) return null;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (typeof ts === 'number' && Number.isFinite(ts)) return ts;
+  if (typeof ts === 'string') {
+    const d = Date.parse(ts);
+    return Number.isFinite(d) ? d : null;
+  }
+  return null;
+}
+
+/** First retention window for a scrape row (no immediate mass-delete for legacy rows). */
+function computeInitialPayloadRetentionExpiresAtMs({ createdAtMs, nowMs }) {
+  const now = typeof nowMs === 'number' ? nowMs : Date.now();
+  const created = typeof createdAtMs === 'number' && createdAtMs > 0 ? createdAtMs : now;
+  return Math.max(created, now) + DEFAULT_PAYLOAD_RETENTION_MS;
+}
+
+/** Resolve expiry for API/UI from Firestore index (lazy default when field missing). */
+function derivePayloadRetentionExpiresAtMsFromIndex(data) {
+  if (!data || typeof data !== 'object') return Date.now() + DEFAULT_PAYLOAD_RETENTION_MS;
+  const direct = firestoreTimestampToMs(data.payloadRetentionExpiresAt);
+  if (direct != null) return direct;
+  const created = firestoreTimestampToMs(data.createdAt);
+  const now = Date.now();
+  if (created == null) return now + DEFAULT_PAYLOAD_RETENTION_MS;
+  return computeInitialPayloadRetentionExpiresAtMs({ createdAtMs: created, nowMs: now });
+}
+
+/** ISO expiry for list/detail responses (always defined for UX countdown). */
+function payloadRetentionExpiresIsoForApi(data) {
+  const s = serializeTimestamp(data.payloadRetentionExpiresAt);
+  if (s) return s;
+  return new Date(derivePayloadRetentionExpiresAtMsFromIndex(data)).toISOString();
 }
 
 function hydrateScrapeVersions(arr) {
@@ -112,6 +155,9 @@ function hydrate(data) {
     createdAt: serializeTimestamp(data.createdAt),
     updatedAt: serializeTimestamp(data.updatedAt),
     runStartedAt: serializeTimestamp(data.runStartedAt),
+    payloadRetentionExpiresAt: payloadRetentionExpiresIsoForApi(data),
+    payloadRetentionExtendedAt: serializeTimestamp(data.payloadRetentionExtendedAt),
+    scrapeImageRetentionDays: 3,
     scrapeVersions,
   };
 }
@@ -210,6 +256,10 @@ async function writeArchiveSnapshotIfWorthy(sandboxName, scrapeId, snapshot) {
     console.error('[brandScrapeStore] archive snapshot GCS failed', vPath, String((lastErr && lastErr.message) || lastErr));
     return null;
   }
+
+  try {
+    await file.setMetadata({ customTime: new Date().toISOString() });
+  } catch (_e) { /* best-effort — lifecycle still has age fallback during migration */ }
 
   const savedIso = new Date().toISOString();
   const newEntry = stripUndefined({ version: nextV, storagePath: vPath, savedAt: savedIso });
@@ -339,6 +389,10 @@ async function saveScrape(sandbox, payload, options = {}) {
   };
 
   const path = storageKey(name, scrapeId);
+  const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
+  const preSnap = await ref.get();
+  const hadIndexedPayload = !!(preSnap.exists && preSnap.data() && preSnap.data().storagePath);
+
   const blob = Buffer.from(JSON.stringify(fullRecord), 'utf8');
   const saveOpts = {
     contentType: 'application/json; charset=utf-8',
@@ -362,6 +416,22 @@ async function saveScrape(sandbox, payload, options = {}) {
   }
   if (lastErr) {
     throw new Error('GCS write failed for ' + path + ': ' + ((lastErr && lastErr.message) || lastErr));
+  }
+
+  try {
+    if (!hadIndexedPayload) {
+      await file.setMetadata({ customTime: new Date().toISOString() });
+    } else {
+      const [m] = await file.getMetadata();
+      if (!m || !m.customTime) {
+        const created = m && m.timeCreated ? Date.parse(m.timeCreated) : Date.now();
+        const ageMs = Date.now() - created;
+        const ctMs = ageMs >= DEFAULT_PAYLOAD_RETENTION_MS ? Date.now() : created;
+        await file.setMetadata({ customTime: new Date(ctMs).toISOString() });
+      }
+    }
+  } catch (e) {
+    console.warn('[brandScrapeStore] record.json customTime align failed', path, String((e && e.message) || e));
   }
 
   // 2. Write the slim, queryable index doc to Firestore.
@@ -398,16 +468,27 @@ async function saveScrape(sandbox, payload, options = {}) {
     buildPhase: resolvedBuildPhase,
   };
 
-  const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
   const safeIndexDoc = stripUndefined(indexDoc);
   await getDb().runTransaction(async (tx) => {
     const prev = await tx.get(ref);
     const now = admin.firestore.FieldValue.serverTimestamp();
     const base = prev.exists ? prev.data() : {};
+    const nowWall = Date.now();
+    const createdMs = firestoreTimestampToMs(base.createdAt);
+    let payloadRetentionExpiresAt = base.payloadRetentionExpiresAt;
+    if (!payloadRetentionExpiresAt) {
+      payloadRetentionExpiresAt = admin.firestore.Timestamp.fromMillis(
+        computeInitialPayloadRetentionExpiresAtMs({
+          createdAtMs: createdMs != null ? createdMs : nowWall,
+          nowMs: nowWall,
+        }),
+      );
+    }
     tx.set(ref, {
       ...safeIndexDoc,
       createdAt: base.createdAt || now,
       updatedAt: now,
+      payloadRetentionExpiresAt,
       runSteps: admin.firestore.FieldValue.delete(),
     }, { merge: true });
   });
@@ -480,6 +561,11 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       buildPhase: data.buildPhase || null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+      payloadRetentionExpiresAt: payloadRetentionExpiresIsoForApi({
+        ...data,
+        scrapeId: data.scrapeId || d.id,
+      }),
+      scrapeImageRetentionDays: 3,
     }));
   });
   items.sort((a, b) => {
@@ -540,7 +626,7 @@ async function getScrape(sandbox, id, opts = {}) {
       error: String((e && e.message) || e),
     });
     if (wantVersion != null) return null;
-    // Bucket lifecycle can delete the blob after 3 days — in that case
+    // GCS lifecycle (or manual delete) removed the JSON blob — in that case
     // we still return the index-doc summary so the UI can display what
     // it knows and the user gets a clear "payload expired" state.
     const expired = hydrate({
@@ -564,11 +650,117 @@ async function getScrape(sandbox, id, opts = {}) {
 
 const STALE_RUNNING_SCRAPE_MS = 95 * 60 * 1000;
 
+async function refreshGcsPayloadCustomTime(sandbox, scrapeId) {
+  const prefix = `scrapes/${safeSlug(sandbox)}/${safeSlug(scrapeId)}/`;
+  const bucket = getBucket();
+  const iso = new Date().toISOString();
+  const [files] = await bucket.getFiles({ prefix, maxResults: 200 });
+  for (const f of files || []) {
+    const n = f.name || '';
+    if (!n.endsWith(RECORD_OBJECT_NAME) && !/\/versions\/v\d+\.json$/i.test(n)) continue;
+    await f.setMetadata({ customTime: iso }).catch(() => {});
+  }
+}
+
+/**
+ * Push JSON payload retention (Firestore + GCS customTime on record.json / versions).
+ * Does not extend classified image blobs (short-lived; use Image hosting for long URLs).
+ */
+async function extendScrapeRetention(sandbox, scrapeId, { days = 14 } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid) throw new Error('sandbox and scrapeId are required');
+  const d = Math.min(90, Math.max(1, Math.round(Number(days)) || 14));
+  const addMs = d * MS_PER_DAY;
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  let outIso = '';
+
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw Object.assign(new Error('not found'), { code: 'NOT_FOUND' });
+    const data = snap.data() || {};
+    if (data.sandbox && data.sandbox !== name) throw Object.assign(new Error('forbidden'), { code: 'FORBIDDEN' });
+    const prevExpiryMs = derivePayloadRetentionExpiresAtMsFromIndex(data);
+    const baseFrom = Math.max(Date.now(), prevExpiryMs);
+    const nextTs = admin.firestore.Timestamp.fromMillis(baseFrom + addMs);
+    outIso = nextTs.toDate().toISOString();
+    tx.set(ref, {
+      payloadRetentionExpiresAt: nextTs,
+      payloadRetentionExtendedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+
+  await refreshGcsPayloadCustomTime(name, sid);
+  return { ok: true, scrapeId: sid, sandbox: name, days: d, payloadRetentionExpiresAt: outIso };
+}
+
+/** Legacy path `scrapes/.../images/` (pre split-prefix); delete when older than IMAGE_ARTIFACT_MAX_AGE_MS. */
+async function purgeLegacyScrapeImages({ maxDeletes = 200 } = {}) {
+  const bucket = getBucket();
+  const [files] = await bucket.getFiles({ prefix: 'scrapes/', maxResults: 800 });
+  const cutoff = Date.now() - IMAGE_ARTIFACT_MAX_AGE_MS;
+  let deleted = 0;
+  for (const f of files || []) {
+    const n = f.name || '';
+    if (!n.includes('/images/')) continue;
+    let created = 0;
+    try {
+      const [meta] = await f.getMetadata();
+      created = meta && meta.timeCreated ? Date.parse(meta.timeCreated) : 0;
+    } catch (_e) { /* ignore */ }
+    if (!created || created > cutoff) continue;
+    await f.delete({ ignoreNotFound: true }).catch(() => {});
+    deleted += 1;
+    if (deleted >= maxDeletes) break;
+  }
+  return deleted;
+}
+
+/** Backfill GCS customTime on JSON blobs missing it (pairs with daysSinceCustomTime lifecycle). */
+async function backfillGcsCustomTimeForRecordObjects({ maxPatches = 60 } = {}) {
+  const bucket = getBucket();
+  const [files] = await bucket.getFiles({ prefix: 'scrapes/', maxResults: 400 });
+  let patched = 0;
+  for (const f of files || []) {
+    const n = f.name || '';
+    if (!n.endsWith(RECORD_OBJECT_NAME) && !/\/versions\/v\d+\.json$/i.test(n)) continue;
+    let meta = {};
+    try {
+      const [m] = await f.getMetadata();
+      meta = m || {};
+    } catch (_e) { continue; }
+    if (meta.customTime) continue;
+    const created = meta.timeCreated ? Date.parse(meta.timeCreated) : Date.now();
+    const ageMs = Date.now() - created;
+    const ctMs = ageMs >= DEFAULT_PAYLOAD_RETENTION_MS ? Date.now() : created;
+    try {
+      await f.setMetadata({ customTime: new Date(ctMs).toISOString() });
+      patched += 1;
+    } catch (_e) { /* ignore */ }
+    if (patched >= maxPatches) break;
+  }
+  return patched;
+}
+
 /** Scheduled maintenance: fail very old running scrapes (stuck index rows). */
 async function runBrandScrapeStaleMaintenance() {
   const db = getDb();
   const nowMs = Date.now();
   let failedStaleRunning = 0;
+  let legacyImagesPurged = 0;
+  let gcsCustomTimeBackfilled = 0;
+
+  try {
+    legacyImagesPurged = await purgeLegacyScrapeImages({ maxDeletes: 200 });
+  } catch (e) {
+    console.warn('[brandScrapeStore] purgeLegacyScrapeImages', String((e && e.message) || e));
+  }
+  try {
+    gcsCustomTimeBackfilled = await backfillGcsCustomTimeForRecordObjects({ maxPatches: 60 });
+  } catch (e) {
+    console.warn('[brandScrapeStore] backfillGcsCustomTimeForRecordObjects', String((e && e.message) || e));
+  }
 
   const runSnap = await db.collection(COLLECTION).where('scrapeStatus', '==', 'running').limit(300).get();
   for (const doc of runSnap.docs) {
@@ -593,6 +785,8 @@ async function runBrandScrapeStaleMaintenance() {
     src: 'brandScrapeStore.maintenance',
     phase: 'stale_cleanup',
     failedStaleRunning,
+    legacyImagesPurged,
+    gcsCustomTimeBackfilled,
     t: new Date().toISOString(),
   }));
 }
@@ -629,5 +823,10 @@ module.exports = {
   markScrapeRunning,
   markScrapeFailed,
   runBrandScrapeStaleMaintenance,
+  extendScrapeRetention,
   hasRealPayload,
+  computeInitialPayloadRetentionExpiresAtMs,
+  derivePayloadRetentionExpiresAtMsFromIndex,
+  DEFAULT_PAYLOAD_RETENTION_MS,
+  IMAGE_ARTIFACT_MAX_AGE_MS,
 };

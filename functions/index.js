@@ -3845,15 +3845,15 @@ exports.brandScraperStaleCleanup = onSchedule(
   {
     schedule: 'every 15 minutes',
     region: REGION,
-    timeoutSeconds: 120,
-    memory: '256MiB',
+    timeoutSeconds: 240,
+    memory: '512MiB',
   },
   async () => {
     await brandScrapeStore.runBrandScrapeStaleMaintenance();
   },
 );
 
-/** GET /api/brand-scraper/scrapes?sandbox=… — list, one by id, or DELETE by id. */
+/** GET/POST/DELETE /api/brand-scraper/scrapes… — list, get, delete, POST …/extend retention. */
 exports.brandScraperScrapes = onRequest(
   {
     region: REGION,
@@ -3862,7 +3862,7 @@ exports.brandScraperScrapes = onRequest(
     memory: '256MiB',
   },
   async (req, res) => {
-    setCors(res, 'GET, DELETE, OPTIONS');
+    setCors(res, 'GET, POST, DELETE, OPTIONS');
     res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     await brandScraperService.handleScrapes(req, res);
   }

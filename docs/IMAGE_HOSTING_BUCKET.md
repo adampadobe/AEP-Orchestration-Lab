@@ -4,7 +4,9 @@ This bucket holds two kinds of content with different lifecycles:
 
 | Prefix | Contents | Retention |
 | --- | --- | --- |
-| `scrapes/<sandbox>/<scrapeId>/…` | Short-lived brand-scraper artifacts (crawled images, `record.json`) | Live versions deleted after 3 days; noncurrent versions deleted after 7 days. |
+| `scrapes/<sandbox>/<scrapeId>/record.json` and `…/versions/*.json` | Brand-scraper JSON payloads | Live objects use **GCS `customTime`** with lifecycle **14 days since `customTime`** (reset on each **Extend** in Brand scraper). Noncurrent versions deleted after 7 days. |
+| `scrape-cache-images/<sandbox>/<scrapeId>/…` | Classified crawl images (Gemini vision step) | Live versions deleted after **3 days** (not extended — publish to Image hosting for long-lived URLs). |
+| `scrapes/…/images/…` | **Legacy** classified image path (older uploads) | Purged by scheduled function after ~3 days; new uploads use `scrape-cache-images/`. |
 | `<sandbox>/library/**` | Curated per-sandbox assets served at `/cdn/<sandbox>/<path>` | **Never expires.** Only deleted by explicit user actions (Delete button, ZIP restore with replace, or in-place card replacement). |
 | `<sandbox>/library_backups/**` | Reserved for future preset snapshots | Never expires. |
 
@@ -22,34 +24,7 @@ This bucket holds two kinds of content with different lifecycles:
 
 ## Lifecycle JSON
 
-```json
-{
-  "rule": [
-    {
-      "action": { "type": "Delete" },
-      "condition": {
-        "age": 3,
-        "matchesPrefix": ["scrapes/"],
-        "isLive": true
-      }
-    },
-    {
-      "action": { "type": "Delete" },
-      "condition": {
-        "age": 7,
-        "matchesPrefix": ["scrapes/"],
-        "isLive": false
-      }
-    },
-    {
-      "action": { "type": "Delete" },
-      "condition": {
-        "numNewerVersions": 2
-      }
-    }
-  ]
-}
-```
+See repo file `docs/image-hosting-lifecycle.json` (scrape-cache-images 3d; scrapes JSON `daysSinceCustomTime` 14d; library rules unchanged).
 
 **Rule 3 explained.** `numNewerVersions: 2` deletes any noncurrent
 version that has 2+ newer versions of the same object. In practice

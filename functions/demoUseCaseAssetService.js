@@ -913,7 +913,7 @@ async function generateDemoUseCase(opts) {
   const scrape = await brandScrapeStore.getScrape(sandbox, scrapeId);
   if (!scrape) throw new Error(`Brand scrape not found for sandbox=${sandbox} id=${scrapeId}`);
   if (scrape.payloadExpired) {
-    throw new Error('Brand scrape payload has expired (>3 days). Re-run the scrape in Brand scraper.');
+    throw new Error('Brand scrape JSON payload is no longer in storage (retention expired or bucket cleanup). Re-run the scrape in Brand scraper or extend retention before expiry.');
   }
 
   const built = buildUserPayload({ ...opts, scrape });

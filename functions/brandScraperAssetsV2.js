@@ -2,10 +2,10 @@
  * Brand Scraper V2 assets: download crawled image URLs to GCS, classify each
  * with Gemini Flash vision, and return a manifest with signed URLs.
  *
- * Storage layout:
- *   gs://aep-orchestration-lab-brand-scrapes/<sandbox>/<scrapeId>/images/<n>-<hash>.<ext>
+ * Storage layout (short-lived; separate from JSON under `scrapes/`):
+ *   gs://…/scrape-cache-images/<sandbox>/<scrapeId>/<n>-<hash>.<ext>
  *
- * Bucket lifecycle (set at infra time) deletes objects at age ≥ 3 days.
+ * Bucket lifecycle deletes this prefix at age ≥ 3 days (see docs/image-hosting-lifecycle.json).
  */
 'use strict';
 
@@ -112,7 +112,7 @@ async function uploadBytes(sandbox, scrapeId, index, bytes, contentType, extensi
   const hash = crypto.createHash('sha1').update(bytes).digest('hex').slice(0, 10);
   const safeScrape = String(scrapeId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeSandbox = String(sandbox || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const name = `scrapes/${safeSandbox}/${safeScrape}/images/${String(index).padStart(3, '0')}-${hash}.${extension}`;
+  const name = `scrape-cache-images/${safeSandbox}/${safeScrape}/${String(index).padStart(3, '0')}-${hash}.${extension}`;
   const file = bucket.file(name);
   await file.save(bytes, {
     contentType: contentType || 'application/octet-stream',

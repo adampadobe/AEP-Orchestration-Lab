@@ -831,6 +831,41 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   font-size: 12px;
 }
 
+.brand-scraper-history-retention {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.brand-scraper-history-retention .brand-scraper-history-extend-btn {
+  align-self: flex-start;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.brand-scraper-retention-panel {
+  padding: 12px 14px;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-retention-panel--expired {
+  border-color: var(--dash-error-border, color-mix(in srgb, var(--dash-error) 35%, var(--dash-border)));
+  background: var(--dash-error-bg, color-mix(in srgb, var(--dash-error) 8%, var(--dash-surface)));
+}
+
+.brand-scraper-retention-warn {
+  margin: 10px 0 0;
+}
+
+.brand-scraper-retention-countdown {
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
 .brand-scraper-results {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);

@@ -1783,18 +1783,48 @@ async function handleScrapes(req, res) {
   // to a lone path segment that looks like a generated scrape id.
   const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
   let scrapeId = '';
-  const m = /\/scrapes\/([^/]+)$/.exec(path);
-  if (m) {
-    scrapeId = decodeURIComponent(m[1]);
+  let isExtend = false;
+  const mExt = /\/scrapes\/([^/]+)\/extend$/.exec(path);
+  if (mExt) {
+    scrapeId = decodeURIComponent(mExt[1]);
+    isExtend = true;
   } else {
-    const segs = path.split('/').filter(Boolean);
-    const last = segs.length ? segs[segs.length - 1] : '';
-    if (last && last !== 'scrapes' && /^[a-z0-9]{10,24}$/i.test(last)) {
-      scrapeId = last;
+    const m = /\/scrapes\/([^/]+)$/.exec(path);
+    if (m) {
+      scrapeId = decodeURIComponent(m[1]);
+    } else {
+      const segs = path.split('/').filter(Boolean);
+      const last = segs.length ? segs[segs.length - 1] : '';
+      const prev = segs.length > 1 ? segs[segs.length - 2] : '';
+      if (last === 'extend' && prev && /^[a-z0-9]{10,24}$/i.test(prev)) {
+        scrapeId = prev;
+        isExtend = true;
+      } else if (last && last !== 'scrapes' && /^[a-z0-9]{10,24}$/i.test(last)) {
+        scrapeId = last;
+      }
     }
   }
 
   try {
+    if (req.method === 'POST' && scrapeId && isExtend) {
+      let body = {};
+      try {
+        body = (req.body && typeof req.body === 'object') ? req.body : JSON.parse((req.rawBody && req.rawBody.toString()) || '{}');
+      } catch (_e) {
+        body = {};
+      }
+      const days = body.days != null ? Number(body.days) : 14;
+      try {
+        const out = await brandScrapeStore.extendScrapeRetention(sandbox, scrapeId, { days });
+        res.status(200).json(out);
+      } catch (e) {
+        const code = e && e.code;
+        if (code === 'NOT_FOUND') res.status(404).json({ error: 'not found' });
+        else if (code === 'FORBIDDEN') res.status(403).json({ error: 'forbidden' });
+        else res.status(500).json({ error: String((e && e.message) || e) });
+      }
+      return;
+    }
     if (req.method === 'GET' && !scrapeId) {
       const items = await brandScrapeStore.listScrapes(sandbox);
       res.status(200).json({ sandbox, items });
