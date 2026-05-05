@@ -799,21 +799,6 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-hint {
   line-height: 1.45;
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-wrap {
-  min-height: 420px;
-  max-height: 80vh;
-  overflow: auto;
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 10px);
-  background: var(--dash-bg);
-}
-
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-html {
-  min-height: 100%;
-  padding: 1.1rem;
-  color: var(--dash-text);
-}
-
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-opg-header {
   display: flex;
   align-items: flex-start;
@@ -944,16 +929,30 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-opg-blank {
   height: 0.4rem;
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap {
+/* Preview iframe + one-pager: same outer chrome (border, height) and inner surface scroll canvas. */
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap,
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-wrap {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   height: clamp(600px, 75vh, 1100px);
+  min-height: 0;
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm, 10px);
   overflow: hidden;
   background: var(--dash-bg);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-html {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.85rem 1rem 1rem;
+  background: var(--dash-surface);
+  color: var(--dash-text);
 }
 
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-fullscreen-toolbar {
@@ -992,9 +991,7 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap iframe {
 }
 
 #cjv2PreviewMount:fullscreen,
-#cjv2PreviewMount:-webkit-full-screen,
-#cjv2OnePagerMount:fullscreen,
-#cjv2OnePagerMount:-webkit-full-screen {
+#cjv2PreviewMount:-webkit-full-screen {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -1015,14 +1012,21 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap iframe {
 #cjv2OnePagerMount:fullscreen,
 #cjv2OnePagerMount:-webkit-full-screen {
   max-height: none;
-  overflow: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--dash-bg);
-  padding: 1rem;
+  padding: 0;
 }
 
 #cjv2OnePagerMount:fullscreen .cjv2-onepager-html,
 #cjv2OnePagerMount:-webkit-full-screen .cjv2-onepager-html {
-  padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+  background: var(--dash-surface);
 }
 
 /* ── Debug panel ─────────────────────────────────────────────────────────── */
