@@ -1576,6 +1576,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(400).json({ error: 'No updates provided (updates[] or consent object).' });
     return;
   }
+  const ALLOWED_PERSONAL_TAX_BRACKETS = new Set(['10%', '12%', '22%', '24%', '32%', '35%', '37%']);
 
   // Industry routing — `?industry=<key>` (or body.industry) tells us
   // which per-industry HTTP API streaming dataflow to write to. When
@@ -1763,6 +1764,23 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
         }
       } else if (valueType === 'null') {
         if (typeof out === 'string' && out.trim() === '') out = null;
+      }
+      if (path.toLowerCase() === 'personalfinances.personaltaxprofile.taxbracket') {
+        const normalized =
+          typeof out === 'string'
+            ? (/^\d+$/.test(out.trim()) ? `${out.trim()}%` : out.trim())
+            : String(out == null ? '' : out).trim();
+        if (!ALLOWED_PERSONAL_TAX_BRACKETS.has(normalized)) {
+          res.status(400).json({
+            error:
+              `Invalid personalTaxProfile.taxBracket "${normalized || String(out)}". ` +
+              `Allowed values: ${Array.from(ALLOWED_PERSONAL_TAX_BRACKETS).join(', ')}.`,
+            invalidPath: rawPath || path,
+            allowedValues: Array.from(ALLOWED_PERSONAL_TAX_BRACKETS),
+          });
+          return;
+        }
+        out = normalized;
       }
       const top = path.split('.')[0];
       const underRootMixin = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
