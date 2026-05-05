@@ -38,6 +38,7 @@
   var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
   var brandColorScrapeWrap = document.getElementById('cjv2BrandColorScrapeWrap');
   var brandColorScrapeGrid = document.getElementById('cjv2BrandColorScrapeGrid');
+  var brandColorScrapeSummaryMeta = document.getElementById('cjv2BrandColorScrapeSummaryMeta');
   /** Same id as other Profile Viewer pages — AepGlobalSandbox.getSandboxName() reads this first. */
   var sandboxSelectEl = document.getElementById('sandboxSelect');
   var importLoadBtn = document.getElementById('cjv2ImportLoadBtn');
@@ -185,7 +186,11 @@
   function clearBrandColorScrapeUi() {
     lastBrandColorOptions = [];
     if (brandColorScrapeGrid) brandColorScrapeGrid.innerHTML = '';
-    if (brandColorScrapeWrap) brandColorScrapeWrap.hidden = true;
+    if (brandColorScrapeWrap) {
+      brandColorScrapeWrap.hidden = true;
+      brandColorScrapeWrap.removeAttribute('open');
+    }
+    if (brandColorScrapeSummaryMeta) brandColorScrapeSummaryMeta.textContent = '';
   }
 
   function syncBrandColorSwatchSelection() {
@@ -204,6 +209,8 @@
     brandColorScrapeGrid.innerHTML = '';
     if (!options || !options.length) {
       brandColorScrapeWrap.hidden = true;
+      brandColorScrapeWrap.removeAttribute('open');
+      if (brandColorScrapeSummaryMeta) brandColorScrapeSummaryMeta.textContent = '';
       lastBrandColorOptions = [];
       return;
     }
@@ -256,6 +263,11 @@
       brandColorScrapeGrid.appendChild(btn);
     });
     brandColorScrapeWrap.hidden = false;
+    brandColorScrapeWrap.removeAttribute('open');
+    if (brandColorScrapeSummaryMeta) {
+      var n = options.length;
+      brandColorScrapeSummaryMeta.textContent = n === 1 ? '1 colour' : String(n) + ' colours';
+    }
     syncBrandColorSwatchSelection();
   }
 
