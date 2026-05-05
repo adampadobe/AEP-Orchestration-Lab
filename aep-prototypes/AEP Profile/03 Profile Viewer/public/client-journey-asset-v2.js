@@ -34,7 +34,6 @@
   var longCallNote = document.getElementById('cjv2LongCallNote');
   var brandColorInput = document.getElementById('cjv2BrandColor');
   var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
-  var brandSwatch = document.getElementById('cjv2BrandSwatch');
 
   var outputSection = document.getElementById('cjv2Output');
   var refinePanel = document.getElementById('cjv2RefinePanel');
@@ -84,7 +83,7 @@
     '<path fill="currentColor" d="M16.25,19.75c-.41406,0-.75-.33594-.75-.75v-2.25c0-.68945.56055-1.25,1.25-1.25h2.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2v2c0,.41406-.33594.75-.75.75Z"/>' +
     '</svg>';
 
-  // ── Brand colour swatch live preview ───────────────────────────────────
+  // ── Brand colour: hex text + native colour input sync ───────────────────
 
   function normaliseHex(raw) {
     var cleaned = String(raw || '').replace(/^#/, '').trim();
@@ -99,15 +98,8 @@
 
   function syncBrandColorUi(hex) {
     var upper = normaliseHex(hex);
-    if (!upper) {
-      brandSwatch.style.background = '';
-      brandSwatch.style.borderColor = '';
-      return;
-    }
-    var prefixed = '#' + upper;
-    brandSwatch.style.background = prefixed;
-    brandSwatch.style.borderColor = prefixed;
-    if (brandColorPicker) brandColorPicker.value = prefixed;
+    if (!upper || !brandColorPicker) return;
+    brandColorPicker.value = '#' + upper;
   }
 
   function applyBrandColor(hex, source) {
@@ -127,10 +119,6 @@
     var raw = String(brandColorInput.value || '').trim();
     if (!raw) {
       setBrandColorInvalid(false);
-      if (brandColorPicker) {
-        brandSwatch.style.background = '';
-        brandSwatch.style.borderColor = '';
-      }
       return { ok: true, value: '' };
     }
     var upper = normaliseHex(raw);

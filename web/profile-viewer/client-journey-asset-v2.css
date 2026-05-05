@@ -1,8 +1,7 @@
 /**
  * Client Journey Asset v2 — page styles.
  * Light/dark via --dash-* tokens only. No hardcoded hex values
- * for project palette anywhere — the only hex that ever lives in this file
- * is on the user-supplied brand-colour swatch (set inline at runtime).
+ * for project palette anywhere.
  */
 
 body.home-dashboard-concierge.client-journey-v2-page {
@@ -261,15 +260,6 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-row input.cjv2-
   border-radius: var(--dash-radius-sm, 8px);
   cursor: pointer;
   overflow: hidden;
-}
-
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--dash-radius-sm, 8px);
-  border: 1px solid var(--dash-input-border);
-  background: var(--dash-input-bg);
-  flex-shrink: 0;
 }
 
 /* ── Actions row ─────────────────────────────────────────────────────────── */
