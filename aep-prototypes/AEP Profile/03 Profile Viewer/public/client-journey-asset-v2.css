@@ -171,6 +171,11 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list-wrap {
   min-height: 0;
 }
 
+/* Author `display:flex` above must not defeat the HTML `hidden` attribute (otherwise the sort + table chrome shows before any list load). */
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list-wrap[hidden] {
+  display: none !important;
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list-toolbar {
   flex: 0 0 auto;
   padding: 0.45rem 0.65rem;
