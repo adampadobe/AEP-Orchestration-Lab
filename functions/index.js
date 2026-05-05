@@ -1736,6 +1736,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     appliedPathsDetail = [];
     for (const u of updates) {
       const rawPath = u?.path != null ? String(u.path).trim() : '';
+      const valueType = u?.valueType != null ? String(u.valueType).trim().toLowerCase() : '';
       let path = rawPath
         .replace(/^(_demoemea\.|xdm:demoss\.)/i, '')
         .replace(/^demoemea\./i, '');
@@ -1748,10 +1749,30 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       if (typeof out === 'string') {
         out = profileStreamingCore.normalizeProfileUpdateDateString(path, out);
       }
+      if (valueType === 'boolean') {
+        if (typeof out === 'string') {
+          const n = out.trim().toLowerCase();
+          out = n === 'true' || n === '1' || n === 'yes' || n === 'y';
+        } else {
+          out = Boolean(out);
+        }
+      } else if (valueType === 'number') {
+        if (typeof out === 'string') {
+          const n = Number(out.trim());
+          out = Number.isFinite(n) ? n : out;
+        }
+      } else if (valueType === 'null') {
+        if (typeof out === 'string' && out.trim() === '') out = null;
+      }
       const top = path.split('.')[0];
       const underRootMixin = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
       const target = underRootMixin ? rootExtras : demoemea;
-      if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) {
+      if (
+        typeof out === 'string' &&
+        valueType !== 'string' &&
+        out.trim() !== '' &&
+        /^\d+$/.test(out)
+      ) {
         profileStreamingCore.setByPath(target, path, parseInt(out, 10));
       } else {
         profileStreamingCore.setByPath(target, path, out);

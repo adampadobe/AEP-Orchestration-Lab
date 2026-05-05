@@ -142,6 +142,32 @@ function normalizeProfileStreamDateField(fullPath, raw) {
   return `${y}-${a}-${b}`;
 }
 
+/**
+ * Convert text-input values back to their original scalar type so full-snapshot
+ * updates do not turn booleans/numbers into strings.
+ * @param {string} originalType
+ * @param {string} rawValue
+ */
+function coerceProfileStreamScalar(originalType, rawValue) {
+  const t = String(originalType || 'string').toLowerCase();
+  const s = rawValue == null ? '' : String(rawValue).trim();
+  if (t === 'boolean') {
+    if (s === '') return false;
+    if (/^(true|1|yes|y)$/i.test(s)) return true;
+    if (/^(false|0|no|n)$/i.test(s)) return false;
+    return String(rawValue);
+  }
+  if (t === 'number') {
+    if (s === '') return '';
+    const n = Number(s);
+    return Number.isFinite(n) ? n : String(rawValue);
+  }
+  if (t === 'null') {
+    return s === '' ? null : String(rawValue);
+  }
+  return String(rawValue == null ? '' : rawValue);
+}
+
 function pathLower(r) {
   return (r.path || '').toLowerCase().replace(/_/g, '.');
 }
@@ -618,6 +644,7 @@ function showResults(data) {
       const tr = document.createElement('tr');
       const path = escapeHtml(row.path || '');
       const originalValue = String(row.value ?? '');
+      const originalType = String(row.valueType || 'string');
       const value = escapeHtml(originalValue);
       // Dataflow column: industry pill + writable flag drive both the
       // input's `disabled` state (read-only when no industry owns the
@@ -657,7 +684,7 @@ function showResults(data) {
       tr.innerHTML = `
         <td class="attr-cell">${escapeHtml(row.attribute)}</td>
         <td class="display-name-cell">${escapeHtml(row.displayName)}</td>
-        <td class="value-cell"><input type="text" class="profile-value-input" data-path="${path}" data-original-value="${value}" data-industry="${escapeHtml(industryKey)}" value="${value}" aria-label="Value for ${escapeHtml(row.attribute)}"${inputDisabledAttrs}></td>
+        <td class="value-cell"><input type="text" class="profile-value-input" data-path="${path}" data-original-value="${value}" data-original-type="${escapeHtml(originalType)}" data-industry="${escapeHtml(industryKey)}" value="${value}" aria-label="Value for ${escapeHtml(row.attribute)}"${inputDisabledAttrs}></td>
         <td class="dataflow-cell">${dataflowCell}</td>
         <td class="path-cell">${path}</td>
       `;
@@ -2190,8 +2217,10 @@ if (updateProfileBtn && updateStatusEl) {
         const rowIndustry = (input.getAttribute('data-industry') || '').trim() || 'generic';
         if (rowIndustry !== industryKey) return;
         const currentValue = input.value == null ? '' : String(input.value);
-        const valueToSend = normalizeProfileStreamDateField(path, currentValue);
-        snapshot.push({ path, value: valueToSend, input });
+        const originalType = input.getAttribute('data-original-type') || 'string';
+        const normalized = normalizeProfileStreamDateField(path, currentValue);
+        const valueToSend = coerceProfileStreamScalar(originalType, normalized);
+        snapshot.push({ path, value: valueToSend, valueType: originalType, input });
       });
       if (snapshot.length) groupsByIndustry.set(industryKey, snapshot);
     });
@@ -2229,7 +2258,7 @@ if (updateProfileBtn && updateStatusEl) {
      */
     const tasks = groups.map(async ([industryKey, items]) => {
       const display = INDUSTRY_DISPLAY[industryKey] || industryKey;
-      const updatesForIndustry = items.map(({ path, value }) => ({ path, value }));
+      const updatesForIndustry = items.map(({ path, value, valueType }) => ({ path, value, valueType }));
       try {
         const { ok, data } = await postProfileUpdate({
           email: profileEmail,

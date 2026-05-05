@@ -39,28 +39,34 @@ function annotateRowWithIndustry(row) {
   return row;
 }
 
+function scalarValueType(value) {
+  if (value == null) return 'null';
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return Number.isFinite(value) ? 'number' : 'string';
+  return 'string';
+}
+
+function buildScalarRow(path, value, attributeOverride) {
+  const attr = attributeOverride || (path ? path.split('.').pop() : '');
+  return annotateRowWithIndustry({
+    attribute: attr,
+    displayName: humanize(attr),
+    value: value == null ? '' : String(value),
+    valueType: scalarValueType(value),
+    path,
+  });
+}
+
 function flattenEntityToTableRows(obj, prefix = '') {
   const rows = [];
   if (obj === null || typeof obj === 'undefined') {
     if (prefix) {
-      const attr = prefix.split('.').pop();
-      rows.push(annotateRowWithIndustry({
-        attribute: attr,
-        displayName: humanize(attr),
-        value: String(obj),
-        path: prefix,
-      }));
+      rows.push(buildScalarRow(prefix, obj));
     }
     return rows;
   }
   if (typeof obj !== 'object') {
-    const attr = prefix ? prefix.split('.').pop() : '';
-    rows.push(annotateRowWithIndustry({
-      attribute: attr,
-      displayName: humanize(attr),
-      value: String(obj),
-      path: prefix,
-    }));
+    rows.push(buildScalarRow(prefix, obj));
     return rows;
   }
   if (Array.isArray(obj)) {
@@ -69,13 +75,7 @@ function flattenEntityToTableRows(obj, prefix = '') {
       if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
         rows.push(...flattenEntityToTableRows(item, path));
       } else {
-        const attr = path.split('.').pop();
-        rows.push(annotateRowWithIndustry({
-          attribute: attr,
-          displayName: humanize(attr),
-          value: item == null ? '' : String(item),
-          path,
-        }));
+        rows.push(buildScalarRow(path, item));
       }
     });
     return rows;
@@ -92,23 +92,12 @@ function flattenEntityToTableRows(obj, prefix = '') {
         if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
           rows.push(...flattenEntityToTableRows(item, subPath));
         } else {
-          const attr = attrForPath(subPath);
-          rows.push(annotateRowWithIndustry({
-            attribute: attr,
-            displayName: humanize(attr),
-            value: item == null ? '' : String(item),
-            path: subPath,
-          }));
+          rows.push(buildScalarRow(subPath, item, attrForPath(subPath)));
         }
       });
     } else {
       const attr = path && /\.\d+$/.test(path) ? path.split('.').slice(-2).join('.') : key;
-      rows.push(annotateRowWithIndustry({
-        attribute: attr,
-        displayName: humanize(attr),
-        value: value == null ? '' : String(value),
-        path,
-      }));
+      rows.push(buildScalarRow(path, value, attr));
     }
   }
   return rows;
