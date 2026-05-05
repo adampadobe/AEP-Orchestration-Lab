@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260501a">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505a">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -44,6 +44,17 @@
             </header>
           </div>
         </section>
+
+        <div id="cjv2RestoreBanner" class="cjv2-restore-banner" hidden role="region" aria-label="Saved journey">
+          <div class="cjv2-restore-banner-inner">
+            <p class="cjv2-restore-banner-text" id="cjv2RestoreBannerText"></p>
+            <p class="cjv2-restore-banner-privacy">Saved only in this browser on this device.</p>
+            <div class="cjv2-restore-banner-actions">
+              <button type="button" id="cjv2RestoreBtn" class="cjv2-btn cjv2-btn-primary">Restore</button>
+              <button type="button" id="cjv2RestoreDiscardBtn" class="cjv2-btn cjv2-btn-danger">Discard</button>
+            </div>
+          </div>
+        </div>
 
         <section class="cjv2-panel">
           <h2 class="cjv2-panel-title">1. Brief</h2>
@@ -174,7 +185,7 @@
     </div>
   </div>
 
-  <script src="client-journey-asset-v2.js?v=20260501a"></script>
+  <script src="client-journey-asset-v2.js?v=20260505a"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>

@@ -17,6 +17,56 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-main {
   padding: 1rem clamp(1rem, 2vw, 1.5rem) 2rem;
 }
 
+/* ── Restore banner (localStorage last run) ─────────────────────────────── */
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-restore-banner {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.85rem 1rem;
+  box-shadow: var(--dash-shadow);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-restore-banner-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-restore-banner-text {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--dash-text);
+  line-height: 1.45;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-restore-banner-privacy {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+  line-height: 1.35;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-restore-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn-danger {
+  background: var(--dash-surface);
+  color: var(--dash-error, #d12424);
+  border-color: var(--dash-error, #d12424);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn-danger:hover:not(:disabled) {
+  background: var(--dash-error-bg, rgba(209, 36, 36, 0.12));
+  border-color: var(--dash-error, #d12424);
+  color: var(--dash-error, #d12424);
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
