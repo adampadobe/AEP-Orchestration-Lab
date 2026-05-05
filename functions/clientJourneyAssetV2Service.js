@@ -2504,8 +2504,9 @@ async function renderPptx(journey, input) {
     spTree.appendChild(sp);
   }
 
-  const newSlideXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-    new XMLSerializer().serializeToString(doc);
+  // serializeToString(Document) already emits the XML declaration; do not
+  // prepend a second one — PowerPoint treats the package as corrupt/repair.
+  const newSlideXml = new XMLSerializer().serializeToString(doc);
 
   zip.file('ppt/slides/slide1.xml', newSlideXml);
   if (relsXmlStr) zip.file(RELS_PATH, relsXmlStr);
