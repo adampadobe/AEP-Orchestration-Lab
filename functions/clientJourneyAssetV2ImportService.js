@@ -156,6 +156,59 @@ function firstDetectedCampaign(record) {
   return '';
 }
 
+function uniqueStrings(values, max = 40) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of values) {
+    const v = safeString(raw);
+    if (!v) continue;
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function buildPersonaNameOptions(record) {
+  const list = record && record.personas && Array.isArray(record.personas.personas)
+    ? record.personas.personas
+    : [];
+  const names = [];
+  for (const persona of list) {
+    names.push(safeString(persona && persona.name));
+  }
+  return uniqueStrings(names, 30);
+}
+
+function buildJourneyTypeOptions(record) {
+  const out = [];
+  const campaigns = record && record.campaigns && Array.isArray(record.campaigns.campaigns)
+    ? record.campaigns.campaigns
+    : [];
+  for (const campaign of campaigns) {
+    out.push(safeString(campaign && campaign.name));
+  }
+  const segments = record && record.segments && Array.isArray(record.segments.segments)
+    ? record.segments.segments
+    : [];
+  for (const seg of segments) {
+    out.push(safeString(seg && seg.name));
+  }
+  const industry = safeString(record && (record.industry || (record.industryInfo && record.industryInfo.industry)));
+  if (industry) out.push(industry + ' customer journey');
+  const about = safeString(record && record.analysis && record.analysis.about);
+  if (about) {
+    const short = about
+      .split(/[.!?]/)[0]
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (short) out.push(short);
+  }
+  return uniqueStrings(out, 40).map((v) => v.slice(0, 80));
+}
+
 function deriveJourneyType(record) {
   const campaignName = firstDetectedCampaign(record);
   if (campaignName) return campaignName.slice(0, 80);
@@ -264,6 +317,8 @@ function mapScrapeToCjv2Profile(record, sandbox) {
   const client = clientFromBrand || clientFallback;
   const clientDomain = parseOrigin((record && record.baseUrl) || '') || parseOrigin((record && record.url) || '');
   const brandColor = pickBrandColor(record);
+  const personaNameOptions = buildPersonaNameOptions(record);
+  const journeyTypeOptions = buildJourneyTypeOptions(record);
   const journeyType = deriveJourneyType(record);
   const personaName = pickPersonaName(record);
   const personaGender = inferPersonaGender(record);
@@ -276,7 +331,9 @@ function mapScrapeToCjv2Profile(record, sandbox) {
     clientDomain,
     brandColor,
     journeyType,
+    journeyTypeOptions,
     personaName,
+    personaNameOptions,
     personaGender,
     marketerPersonaName: '',
     tier: 'Foundation',

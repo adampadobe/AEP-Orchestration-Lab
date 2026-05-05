@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505f">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505i">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -120,12 +120,22 @@
               </label>
               <label class="cjv2-field">
                 <span class="cjv2-label">Journey type</span>
-                <input type="text" id="cjv2JourneyType" name="journeyType" autocomplete="off" spellcheck="false" placeholder="Broadband acquisition · Insurance renewal · SaaS expansion">
+                <div class="cjv2-choice-stack">
+                  <input type="hidden" id="cjv2JourneyTypeHidden" name="journeyType" value="">
+                  <select id="cjv2JourneyTypeSelect" class="cjv2-scrape-select" aria-label="Journey type from brand scrape or custom"></select>
+                  <input type="text" id="cjv2JourneyTypeCustom" class="cjv2-scrape-custom" autocomplete="off" spellcheck="false" placeholder="Custom journey type" hidden>
+                  <small class="cjv2-help-hint cjv2-scrape-hint" id="cjv2JourneyTypeHint" hidden>Populated from the selected brand scrape — pick a campaign / segment label or enter a custom journey type.</small>
+                </div>
               </label>
 
               <label class="cjv2-field">
                 <span class="cjv2-label">Customer persona name</span>
-                <input type="text" id="cjv2Persona" name="personaName" autocomplete="off" spellcheck="false" placeholder="Sarah">
+                <div class="cjv2-choice-stack">
+                  <input type="hidden" id="cjv2PersonaHidden" name="personaName" value="">
+                  <select id="cjv2PersonaSelect" class="cjv2-scrape-select" aria-label="Customer persona from brand scrape or custom"></select>
+                  <input type="text" id="cjv2PersonaCustom" class="cjv2-scrape-custom" autocomplete="off" spellcheck="false" placeholder="Custom persona name" hidden>
+                  <small class="cjv2-help-hint cjv2-scrape-hint" id="cjv2PersonaHint" hidden>Populated from the selected brand scrape — pick a persona or enter a custom name.</small>
+                </div>
               </label>
               <label class="cjv2-field">
                 <span class="cjv2-label">Persona gender (avatar)</span>
@@ -251,7 +261,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="client-journey-asset-v2.js?v=20260505g"></script>
+  <script src="client-journey-asset-v2.js?v=20260505i"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>

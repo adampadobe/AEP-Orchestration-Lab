@@ -43,6 +43,19 @@
   var importListEl = document.getElementById('cjv2ImportList');
   var importSourceEl = document.getElementById('cjv2ImportSource');
 
+  var journeyTypeHidden = document.getElementById('cjv2JourneyTypeHidden');
+  var journeyTypeSelect = document.getElementById('cjv2JourneyTypeSelect');
+  var journeyTypeCustom = document.getElementById('cjv2JourneyTypeCustom');
+  var journeyTypeHint = document.getElementById('cjv2JourneyTypeHint');
+  var personaHidden = document.getElementById('cjv2PersonaHidden');
+  var personaSelect = document.getElementById('cjv2PersonaSelect');
+  var personaCustom = document.getElementById('cjv2PersonaCustom');
+  var personaHint = document.getElementById('cjv2PersonaHint');
+
+  /** Last scrape-derived option lists (also persisted on generate for restore). */
+  var lastJourneyTypeOptions = [];
+  var lastPersonaNameOptions = [];
+
   var outputSection = document.getElementById('cjv2Output');
   var refinePanel = document.getElementById('cjv2RefinePanel');
   var refinePromptEl = document.getElementById('cjv2RefinePrompt');
@@ -248,6 +261,203 @@
     return detail;
   }
 
+  var SCRAPE_CHOICE_CUSTOM = '__custom__';
+
+  function normaliseChoiceList(raw) {
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    raw.forEach(function (item) {
+      var v = String(item == null ? '' : item).trim();
+      if (v) out.push(v);
+    });
+    return out;
+  }
+
+  function optionValueSet(selectEl) {
+    var set = new Set();
+    if (!selectEl || !selectEl.options) return set;
+    for (var i = 0; i < selectEl.options.length; i += 1) {
+      var v = String(selectEl.options[i].value || '');
+      if (v && v !== SCRAPE_CHOICE_CUSTOM) set.add(v);
+    }
+    return set;
+  }
+
+  function populateScrapeSelect(selectEl, options, current) {
+    if (!selectEl) return;
+    var list = normaliseChoiceList(options);
+    var want = String(current == null ? '' : current).trim();
+    selectEl.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = list.length ? 'Choose from scrape…' : 'No scrape labels — use custom';
+    placeholder.disabled = !list.length;
+    placeholder.selected = !want;
+    selectEl.appendChild(placeholder);
+    list.forEach(function (label) {
+      var opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = label;
+      selectEl.appendChild(opt);
+    });
+    var customOpt = document.createElement('option');
+    customOpt.value = SCRAPE_CHOICE_CUSTOM;
+    customOpt.textContent = 'Custom…';
+    selectEl.appendChild(customOpt);
+    var values = optionValueSet(selectEl);
+    if (want && values.has(want)) {
+      selectEl.value = want;
+    } else if (want) {
+      selectEl.value = SCRAPE_CHOICE_CUSTOM;
+    } else {
+      selectEl.value = list.length ? '' : SCRAPE_CHOICE_CUSTOM;
+    }
+  }
+
+  function syncJourneyHiddenFromUi() {
+    if (!journeyTypeHidden) return;
+    if (journeyTypeSelect && !journeyTypeSelect.hidden) {
+      if (journeyTypeSelect.value === SCRAPE_CHOICE_CUSTOM) {
+        journeyTypeHidden.value = journeyTypeCustom ? String(journeyTypeCustom.value || '').trim() : '';
+        return;
+      }
+      journeyTypeHidden.value = String(journeyTypeSelect.value || '').trim();
+      return;
+    }
+    journeyTypeHidden.value = journeyTypeCustom ? String(journeyTypeCustom.value || '').trim() : '';
+  }
+
+  function syncPersonaHiddenFromUi() {
+    if (!personaHidden) return;
+    if (personaSelect && !personaSelect.hidden) {
+      if (personaSelect.value === SCRAPE_CHOICE_CUSTOM) {
+        personaHidden.value = personaCustom ? String(personaCustom.value || '').trim() : '';
+        return;
+      }
+      personaHidden.value = String(personaSelect.value || '').trim();
+      return;
+    }
+    personaHidden.value = personaCustom ? String(personaCustom.value || '').trim() : '';
+  }
+
+  function syncScrapeChoiceHiddenFields() {
+    syncJourneyHiddenFromUi();
+    syncPersonaHiddenFromUi();
+  }
+
+  function setJourneyCustomVisible(show) {
+    if (!journeyTypeCustom) return;
+    journeyTypeCustom.hidden = !show;
+    if (!show) journeyTypeCustom.value = '';
+  }
+
+  function setPersonaCustomVisible(show) {
+    if (!personaCustom) return;
+    personaCustom.hidden = !show;
+    if (!show) personaCustom.value = '';
+  }
+
+  function refreshJourneyCustomVisibility() {
+    if (!journeyTypeSelect || journeyTypeSelect.hidden) {
+      setJourneyCustomVisible(true);
+      return;
+    }
+    setJourneyCustomVisible(journeyTypeSelect.value === SCRAPE_CHOICE_CUSTOM);
+  }
+
+  function refreshPersonaCustomVisibility() {
+    if (!personaSelect || personaSelect.hidden) {
+      setPersonaCustomVisible(true);
+      return;
+    }
+    setPersonaCustomVisible(personaSelect.value === SCRAPE_CHOICE_CUSTOM);
+  }
+
+  /**
+   * Before a brand-scrape import (or after reset): type freely; selects stay hidden.
+   */
+  function enterManualScrapeChoiceMode() {
+    lastJourneyTypeOptions = [];
+    lastPersonaNameOptions = [];
+    if (journeyTypeSelect) {
+      journeyTypeSelect.innerHTML = '';
+      journeyTypeSelect.hidden = true;
+      journeyTypeSelect.disabled = true;
+    }
+    if (journeyTypeHint) journeyTypeHint.hidden = true;
+    setJourneyCustomVisible(true);
+
+    if (personaSelect) {
+      personaSelect.innerHTML = '';
+      personaSelect.hidden = true;
+      personaSelect.disabled = true;
+    }
+    if (personaHint) personaHint.hidden = true;
+    setPersonaCustomVisible(true);
+    syncScrapeChoiceHiddenFields();
+  }
+
+  /**
+   * After import: show dropdowns when the scrape produced option lists.
+   */
+  function applyImportedScrapeChoices(mapped) {
+    var jOpts = normaliseChoiceList(mapped && mapped.journeyTypeOptions);
+    var pOpts = normaliseChoiceList(mapped && mapped.personaNameOptions);
+    lastJourneyTypeOptions = jOpts.slice();
+    lastPersonaNameOptions = pOpts.slice();
+
+    var jVal = journeyTypeHidden ? String(journeyTypeHidden.value || '').trim() : '';
+    var pVal = personaHidden ? String(personaHidden.value || '').trim() : '';
+
+    if (journeyTypeSelect) {
+      journeyTypeSelect.hidden = false;
+      journeyTypeSelect.disabled = false;
+    }
+    if (journeyTypeHint) journeyTypeHint.hidden = !jOpts.length;
+    populateScrapeSelect(journeyTypeSelect, jOpts, jVal);
+    refreshJourneyCustomVisibility();
+    if (journeyTypeCustom && journeyTypeSelect && journeyTypeSelect.value === SCRAPE_CHOICE_CUSTOM) {
+      journeyTypeCustom.value = jVal;
+    }
+
+    if (personaSelect) {
+      personaSelect.hidden = false;
+      personaSelect.disabled = false;
+    }
+    if (personaHint) personaHint.hidden = !pOpts.length;
+    populateScrapeSelect(personaSelect, pOpts, pVal);
+    refreshPersonaCustomVisibility();
+    if (personaCustom && personaSelect && personaSelect.value === SCRAPE_CHOICE_CUSTOM) {
+      personaCustom.value = pVal;
+    }
+
+    syncScrapeChoiceHiddenFields();
+  }
+
+  function bindScrapeChoiceControls() {
+    if (form.getAttribute('data-cjv2-scrape-choice-bound') === '1') return;
+    form.setAttribute('data-cjv2-scrape-choice-bound', '1');
+
+    if (journeyTypeSelect) {
+      journeyTypeSelect.addEventListener('change', function () {
+        refreshJourneyCustomVisibility();
+        syncJourneyHiddenFromUi();
+      });
+    }
+    if (personaSelect) {
+      personaSelect.addEventListener('change', function () {
+        refreshPersonaCustomVisibility();
+        syncPersonaHiddenFromUi();
+      });
+    }
+    if (journeyTypeCustom) {
+      journeyTypeCustom.addEventListener('input', syncJourneyHiddenFromUi);
+    }
+    if (personaCustom) {
+      personaCustom.addEventListener('input', syncPersonaHiddenFromUi);
+    }
+  }
+
   function readForm() {
     var fd = new FormData(form);
     var body = {};
@@ -264,7 +474,7 @@
    * @param {Record<string, string>} body
    */
   function cloneFormSnapshot(body) {
-    return {
+    var snap = {
       tier: body.tier === 'Advanced' ? 'Advanced' : 'Foundation',
       client: String(body.client || '').trim(),
       clientDomain: String(body.clientDomain || '').trim(),
@@ -276,6 +486,13 @@
       techStack: String(body.techStack || ''),
       additionalContext: String(body.additionalContext || ''),
     };
+    if (lastJourneyTypeOptions && lastJourneyTypeOptions.length) {
+      snap.journeyTypeOptions = lastJourneyTypeOptions.slice();
+    }
+    if (lastPersonaNameOptions && lastPersonaNameOptions.length) {
+      snap.personaNameOptions = lastPersonaNameOptions.slice();
+    }
+    return snap;
   }
 
   function applyFormSnapshot(snap) {
@@ -298,6 +515,22 @@
     }
     if (snap.brandColor) applyBrandColor(snap.brandColor, 'text');
     else syncBrandColorUi('');
+
+    var jList = normaliseChoiceList(snap.journeyTypeOptions);
+    var pList = normaliseChoiceList(snap.personaNameOptions);
+    if (jList.length || pList.length) {
+      lastJourneyTypeOptions = jList.slice();
+      lastPersonaNameOptions = pList.slice();
+      applyImportedScrapeChoices({
+        journeyTypeOptions: lastJourneyTypeOptions,
+        personaNameOptions: lastPersonaNameOptions,
+      });
+    } else {
+      enterManualScrapeChoiceMode();
+      if (journeyTypeCustom && snap.journeyType != null) journeyTypeCustom.value = String(snap.journeyType);
+      if (personaCustom && snap.personaName != null) personaCustom.value = String(snap.personaName);
+      syncScrapeChoiceHiddenFields();
+    }
   }
 
   function showImportSource(meta) {
@@ -802,6 +1035,9 @@
     return rendered;
   }
 
+  bindScrapeChoiceControls();
+  enterManualScrapeChoiceMode();
+
   resetBtn.addEventListener('click', function () {
     form.reset();
     setStatus('');
@@ -809,11 +1045,13 @@
     clearLastResult();
     longCallNote.hidden = true;
     showImportSource(null);
+    enterManualScrapeChoiceMode();
     syncBrandColorUi(brandColorInput.value);
   });
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
+    syncScrapeChoiceHiddenFields();
     var body = readForm();
     if (!body.client) {
       setStatus('Client name is required.', 'error');
@@ -893,6 +1131,7 @@
       if (refinePromptEl) refinePromptEl.focus();
       return;
     }
+    syncScrapeChoiceHiddenFields();
     var body = readForm();
     var brandValidation = validateBrandColorForSubmit();
     if (!brandValidation.ok) {

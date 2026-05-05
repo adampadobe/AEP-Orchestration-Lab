@@ -300,6 +300,16 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-help-hint {
   line-height: 1.35;
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-choice-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-scrape-hint {
+  margin-top: 0;
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-req {
   color: var(--dash-error, #d12424);
   margin-left: 0.15em;
