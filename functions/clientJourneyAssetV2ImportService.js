@@ -109,17 +109,32 @@ function normaliseHex(raw) {
   return '';
 }
 
-function pickBrandColor(record) {
+/**
+ * Frequency-ranked palette from crawl (same order as Brand scraper UI).
+ * @returns {Array<{ hex: string, count?: number }>}
+ */
+function buildBrandColorOptions(record) {
   const assets = record && record.crawlSummary && record.crawlSummary.assets;
   const colours = assets && Array.isArray(assets.colours) ? assets.colours : [];
+  const out = [];
+  const seen = new Set();
   for (const entry of colours) {
-    const candidate = typeof entry === 'string'
+    const raw = typeof entry === 'string'
       ? entry
       : (entry && (entry.value || entry.hex || entry.color || ''));
-    const hex = normaliseHex(candidate);
-    if (hex) return hex;
+    const hex = normaliseHex(raw);
+    if (!hex) continue;
+    const key = hex.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const row = { hex };
+    if (entry && typeof entry === 'object' && typeof entry.count === 'number' && entry.count > 0) {
+      row.count = entry.count;
+    }
+    out.push(row);
+    if (out.length >= 16) break;
   }
-  return '';
+  return out;
 }
 
 function pickPersonaName(record) {
@@ -316,7 +331,8 @@ function mapScrapeToCjv2Profile(record, sandbox) {
   const clientFallback = titleCaseHost((record && (record.baseUrl || record.url)) || '');
   const client = clientFromBrand || clientFallback;
   const clientDomain = parseOrigin((record && record.baseUrl) || '') || parseOrigin((record && record.url) || '');
-  const brandColor = pickBrandColor(record);
+  const brandColorOptions = buildBrandColorOptions(record);
+  const brandColor = brandColorOptions.length ? brandColorOptions[0].hex : '';
   const personaNameOptions = buildPersonaNameOptions(record);
   const journeyTypeOptions = buildJourneyTypeOptions(record);
   const journeyType = deriveJourneyType(record);
@@ -330,6 +346,7 @@ function mapScrapeToCjv2Profile(record, sandbox) {
     client,
     clientDomain,
     brandColor,
+    brandColorOptions,
     journeyType,
     journeyTypeOptions,
     personaName,
@@ -347,7 +364,10 @@ function mapScrapeToCjv2Profile(record, sandbox) {
     provenance: {
       client: { source: clientFromBrand ? 'brandName' : 'baseUrl/url hostname', confidence: clientFromBrand ? 'high' : 'medium' },
       clientDomain: { source: safeString(record && record.baseUrl) ? 'baseUrl origin' : 'url origin', confidence: clientDomain ? 'high' : 'low' },
-      brandColor: { source: brandColor ? 'crawlSummary.assets.colours[0]' : 'none', confidence: brandColor ? 'medium' : 'low' },
+      brandColor: {
+        source: brandColor ? 'crawlSummary.assets.colours (frequency-ranked primary)' : 'none',
+        confidence: brandColor ? 'medium' : 'low',
+      },
       journeyType: { source: firstDetectedCampaign(record) ? 'campaigns.detected[0].name' : (safeString(record && record.industry) ? 'industry fallback' : 'analysis.about fallback'), confidence: journeyType ? 'medium' : 'low' },
       personaName: { source: personaName ? 'personas.personas[0].name' : 'none', confidence: personaName ? 'medium' : 'low' },
       personaGender: { source: 'persona.gender fallback', confidence: 'low' },

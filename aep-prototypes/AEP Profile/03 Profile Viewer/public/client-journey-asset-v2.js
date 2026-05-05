@@ -36,6 +36,8 @@
   var longCallNote = document.getElementById('cjv2LongCallNote');
   var brandColorInput = document.getElementById('cjv2BrandColor');
   var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
+  var brandColorScrapeWrap = document.getElementById('cjv2BrandColorScrapeWrap');
+  var brandColorScrapeGrid = document.getElementById('cjv2BrandColorScrapeGrid');
   /** Same id as other Profile Viewer pages — AepGlobalSandbox.getSandboxName() reads this first. */
   var sandboxSelectEl = document.getElementById('sandboxSelect');
   var importLoadBtn = document.getElementById('cjv2ImportLoadBtn');
@@ -56,6 +58,8 @@
   /** Last scrape-derived option lists (also persisted on generate for restore). */
   var lastJourneyTypeOptions = [];
   var lastPersonaNameOptions = [];
+  /** @type {Array<{ hex: string, count?: number }>} */
+  var lastBrandColorOptions = [];
 
   var outputSection = document.getElementById('cjv2Output');
   var refinePanel = document.getElementById('cjv2RefinePanel');
@@ -152,21 +156,123 @@
     return { ok: true, value: upper };
   }
 
+  function normaliseBrandColorOptionsFromSnap(raw) {
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    var seen = new Set();
+    for (var i = 0; i < raw.length; i += 1) {
+      var item = raw[i];
+      var hex = '';
+      if (typeof item === 'string') hex = normaliseHex(item) || '';
+      else if (item && typeof item === 'object') hex = normaliseHex(item.hex || item.value || '') || '';
+      if (!hex) continue;
+      var key = hex.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      var row = { hex: hex };
+      var c = item && typeof item === 'object' ? item.count : null;
+      if (typeof c === 'number' && c > 0) row.count = c;
+      out.push(row);
+      if (out.length >= 20) break;
+    }
+    return out;
+  }
+
+  function clearBrandColorScrapeUi() {
+    lastBrandColorOptions = [];
+    if (brandColorScrapeGrid) brandColorScrapeGrid.innerHTML = '';
+    if (brandColorScrapeWrap) brandColorScrapeWrap.hidden = true;
+  }
+
+  function syncBrandColorSwatchSelection() {
+    if (!brandColorScrapeGrid) return;
+    var current = normaliseHex(brandColorInput.value);
+    brandColorScrapeGrid.querySelectorAll('.cjv2-brand-color-swatch').forEach(function (btn) {
+      var h = btn.getAttribute('data-hex');
+      var match = current && h && current === normaliseHex(h);
+      btn.classList.toggle('is-selected', !!match);
+      btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+    });
+  }
+
+  function renderBrandColorScrapePalette(options) {
+    if (!brandColorScrapeWrap || !brandColorScrapeGrid) return;
+    brandColorScrapeGrid.innerHTML = '';
+    if (!options || !options.length) {
+      brandColorScrapeWrap.hidden = true;
+      lastBrandColorOptions = [];
+      return;
+    }
+    lastBrandColorOptions = options.map(function (o) {
+      var row = { hex: o.hex };
+      if (typeof o.count === 'number' && o.count > 0) row.count = o.count;
+      return row;
+    });
+    options.forEach(function (opt, idx) {
+      var hex = normaliseHex(opt.hex);
+      if (!hex) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cjv2-brand-color-swatch';
+      btn.setAttribute('data-hex', hex);
+      var count = typeof opt.count === 'number' && opt.count > 0 ? opt.count : 0;
+      var label =
+        (idx === 0 ? 'Suggested primary brand colour. ' : '') +
+        '#' + hex +
+        (count ? ', seen ' + count + ' times on scraped pages' : ', from brand scrape palette');
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('aria-pressed', 'false');
+      if (idx === 0) {
+        var badge = document.createElement('span');
+        badge.className = 'cjv2-brand-color-swatch-badge';
+        badge.textContent = 'Primary';
+        btn.appendChild(badge);
+      }
+      var chip = document.createElement('span');
+      chip.className = 'cjv2-brand-color-swatch-chip';
+      chip.style.backgroundColor = '#' + hex;
+      btn.appendChild(chip);
+      var meta = document.createElement('span');
+      meta.className = 'cjv2-brand-color-swatch-meta';
+      var hexLine = document.createElement('span');
+      hexLine.className = 'cjv2-brand-color-swatch-hex';
+      hexLine.textContent = '#' + hex;
+      meta.appendChild(hexLine);
+      if (count) {
+        var countLine = document.createElement('span');
+        countLine.className = 'cjv2-brand-color-swatch-count';
+        countLine.textContent = String(count) + '× on site';
+        meta.appendChild(countLine);
+      }
+      btn.appendChild(meta);
+      btn.addEventListener('click', function () {
+        applyBrandColor(hex, 'text');
+        syncBrandColorSwatchSelection();
+      });
+      brandColorScrapeGrid.appendChild(btn);
+    });
+    brandColorScrapeWrap.hidden = false;
+    syncBrandColorSwatchSelection();
+  }
+
   brandColorInput.addEventListener('input', function () {
     var upper = normaliseHex(brandColorInput.value);
     if (upper) applyBrandColor(upper, 'text');
     else syncBrandColorUi('');
+    syncBrandColorSwatchSelection();
   });
   brandColorInput.addEventListener('blur', function () {
     var raw = String(brandColorInput.value || '').trim();
     if (!raw) {
       setBrandColorInvalid(false);
       syncBrandColorUi('');
+      syncBrandColorSwatchSelection();
       return;
     }
     var upper = normaliseHex(raw);
     if (upper) {
       applyBrandColor(upper, 'text');
+      syncBrandColorSwatchSelection();
       return;
     }
     setBrandColorInvalid(true);
@@ -174,9 +280,11 @@
   if (brandColorPicker) {
     brandColorPicker.addEventListener('input', function () {
       applyBrandColor(brandColorPicker.value, 'picker');
+      syncBrandColorSwatchSelection();
     });
   }
   syncBrandColorUi(brandColorInput.value);
+  syncBrandColorSwatchSelection();
 
   // ── Form submit → generate ─────────────────────────────────────────────
 
@@ -477,6 +585,13 @@
     if (lastPersonaNameOptions && lastPersonaNameOptions.length) {
       snap.personaNameOptions = lastPersonaNameOptions.slice();
     }
+    if (lastBrandColorOptions && lastBrandColorOptions.length) {
+      snap.brandColorOptions = lastBrandColorOptions.map(function (o) {
+        var row = { hex: o.hex };
+        if (typeof o.count === 'number' && o.count > 0) row.count = o.count;
+        return row;
+      });
+    }
     return snap;
   }
 
@@ -515,6 +630,18 @@
       if (journeyTypeCustom && snap.journeyType != null) journeyTypeCustom.value = String(snap.journeyType);
       if (personaCustom && snap.personaName != null) personaCustom.value = String(snap.personaName);
       syncScrapeChoiceHiddenFields();
+    }
+
+    var colorOpts = normaliseBrandColorOptionsFromSnap(snap.brandColorOptions);
+    if (colorOpts.length) {
+      lastBrandColorOptions = colorOpts.map(function (o) {
+        var row = { hex: o.hex };
+        if (typeof o.count === 'number' && o.count > 0) row.count = o.count;
+        return row;
+      });
+      renderBrandColorScrapePalette(lastBrandColorOptions);
+    } else {
+      clearBrandColorScrapeUi();
     }
   }
 
@@ -1031,6 +1158,7 @@
     longCallNote.hidden = true;
     showImportSource(null);
     enterManualScrapeChoiceMode();
+    clearBrandColorScrapeUi();
     syncBrandColorUi(brandColorInput.value);
   });
 

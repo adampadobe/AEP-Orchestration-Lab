@@ -374,6 +374,124 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-row input.cjv2-
   overflow: hidden;
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-scrape-colors {
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  background: var(--dash-surface-alt);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-scrape-colors-head {
+  margin-bottom: 0.45rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-scrape-colors-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dash-text-secondary);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-scrape-colors-sub {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  line-height: 1.35;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-scrape-colors-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.28rem;
+  min-width: 4.5rem;
+  max-width: 6.25rem;
+  padding: 0.4rem 0.45rem 0.35rem;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch:hover {
+  border-color: var(--dash-blue);
+  background: var(--dash-hover);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px var(--dash-hover);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch.is-selected {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px var(--dash-hover);
+  background: var(--dash-surface);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch-chip {
+  display: block;
+  width: 100%;
+  height: 1.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  box-shadow: inset 0 0 0 1px var(--dash-border);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch-hex {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--dash-text);
+  word-break: break-all;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-brand-color-swatch-badge {
+  align-self: flex-start;
+  margin-bottom: 0.05rem;
+  padding: 0.1rem 0.32rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+}
+
 /* ── Actions row ─────────────────────────────────────────────────────────── */
 
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-actions {
