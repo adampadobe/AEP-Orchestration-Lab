@@ -713,7 +713,8 @@
     return '<ul class="brand-scraper-result-list">' + items.map(fmt).join('') + '</ul>';
   }
 
-  function renderAnalysis(a) {
+  function renderAnalysis(a, opts) {
+    opts = opts || {};
     if (!a) return '';
     if (a.skipped) {
       return '<p class="brand-scraper-result-muted">LLM analysis skipped: ' + esc(a.reason || 'no key') + '.</p>';
@@ -723,7 +724,9 @@
         + (a.raw ? '<pre class="brand-scraper-pre">' + esc(a.raw) + '</pre>' : '');
     }
     const blocks = [];
-    if (a.about) blocks.push('<section class="brand-scraper-result-block"><h4>About</h4><p>' + esc(a.about) + '</p></section>');
+    if (a.about && !opts.omitAbout) {
+      blocks.push('<section class="brand-scraper-result-block"><h4>About</h4><p>' + esc(a.about) + '</p></section>');
+    }
     if (Array.isArray(a.tone_of_voice)) blocks.push('<section class="brand-scraper-result-block"><h4>Tone of voice</h4>' + renderList(a.tone_of_voice, it => '<li><strong>' + esc(it.rule) + '</strong>' + (it.example ? ' — <em>' + esc(it.example) + '</em>' : '') + '</li>') + '</section>');
     if (Array.isArray(a.brand_values)) blocks.push('<section class="brand-scraper-result-block"><h4>Brand values</h4>' + renderList(a.brand_values, it => '<li><strong>' + esc(it.value) + '</strong> — ' + esc(it.description) + '</li>') + '</section>');
     if (Array.isArray(a.editorial_guidelines)) blocks.push('<section class="brand-scraper-result-block"><h4>Editorial guidelines</h4>' + renderList(a.editorial_guidelines, it => '<li><strong>' + esc(it.rule) + '</strong>' + (it.example ? ' — <em>' + esc(it.example) + '</em>' : '') + '</li>') + '</section>');
@@ -740,6 +743,9 @@
             (ch.cta ? '<div class="brand-scraper-channel-cta">' + esc(ch.cta) + '</div>' : '') +
           '</article>'
         )).join('') + '</div></section>');
+    }
+    if (!blocks.length && opts.omitAbout && a.about) {
+      return '<p class="brand-scraper-result-muted">Structured tone, values, and channel samples were not returned separately; the overview is in <strong>Summary</strong> above.</p>';
     }
     return blocks.join('');
   }
@@ -1164,7 +1170,8 @@
     '</section>';
   }
 
-  function renderExecutiveSummary(data, crawl) {
+  /** Shared fields for Summary + Conversation starters blocks (brand overview vs demo talking points). */
+  function buildExecutiveSummaryModel(data, crawl) {
     const analysis = (data.analysis && !data.analysis.skipped && !data.analysis.error) ? data.analysis : null;
     const about = analysis && analysis.about ? String(analysis.about).trim() : '';
     const tagSummary = crawl && crawl.tagAuditSummary ? crawl.tagAuditSummary : null;
@@ -1197,28 +1204,51 @@
         .sort(function (a, b) { return (b[1] && b[1].pct ? b[1].pct : 0) - (a[1] && a[1].pct ? a[1].pct : 0); })
         .slice(0, 3)
       : [];
-    const hasTech = vendors.length || topCoverage.length || (crawl && crawl.engine);
-    if (!about && !starters.length && !hasTech) return '';
+    const hasTech = !!(vendors.length || topCoverage.length || (crawl && crawl.engine));
+    const showSummaryBand = !!(about || starters.length || hasTech);
+    return {
+      about,
+      starters,
+      hasTech,
+      vendors,
+      topCoverage,
+      crawl,
+      showSummaryBand,
+    };
+  }
 
+  function renderSummarySection(data, crawl) {
+    const m = buildExecutiveSummaryModel(data, crawl);
+    if (!m.showSummaryBand || (!m.about && !m.hasTech)) return '';
     return (
       '<section class="brand-scraper-result-block brand-scraper-summary-block">' +
-        '<h4>Summary &amp; conversation starters</h4>' +
-        (about ? '<p class="brand-scraper-summary-intro">' + esc(about) + '</p>' : '') +
-        (starters.length
-          ? '<ul class="brand-scraper-result-list">' + starters.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('') + '</ul>'
-          : '<p class="brand-scraper-result-muted">No concise starter points were generated from this crawl.</p>') +
-        (hasTech
+        '<h4>Summary</h4>' +
+        (m.about ? '<p class="brand-scraper-summary-intro">' + esc(m.about) + '</p>' : '') +
+        (m.hasTech
           ? (
             '<div class="brand-scraper-tech-profile">' +
               '<h5>Technology profile (crawl sample)</h5>' +
-              (vendors.length ? '<p class="brand-scraper-tech-profile-line"><strong>Detected vendors:</strong> ' + vendors.map(function (v) { return '<code>' + esc(v) + '</code>'; }).join(' ') + '</p>' : '') +
-              (topCoverage.length ? '<p class="brand-scraper-tech-profile-line"><strong>Coverage:</strong> ' + topCoverage.map(function (entry) {
+              (m.vendors.length ? '<p class="brand-scraper-tech-profile-line"><strong>Detected vendors:</strong> ' + m.vendors.map(function (v) { return '<code>' + esc(v) + '</code>'; }).join(' ') + '</p>' : '') +
+              (m.topCoverage.length ? '<p class="brand-scraper-tech-profile-line"><strong>Coverage:</strong> ' + m.topCoverage.map(function (entry) {
                 return entry[0] + ' on ' + (((entry[1] && entry[1].pct) || 0)) + '% of audited pages';
               }).join('; ') + '.</p>' : '') +
-              (crawl && crawl.engine ? '<p class="brand-scraper-result-muted">Crawler mode: <code>' + esc(crawl.engine) + '</code>. Pair this with BuiltWith for deeper technology confidence.</p>' : '') +
+              (m.crawl && m.crawl.engine ? '<p class="brand-scraper-result-muted">Crawler mode: <code>' + esc(m.crawl.engine) + '</code>. Pair this with BuiltWith for deeper technology confidence.</p>' : '') +
             '</div>'
           )
           : '') +
+      '</section>'
+    );
+  }
+
+  function renderConversationStartersSection(data, crawl) {
+    const m = buildExecutiveSummaryModel(data, crawl);
+    if (!m.showSummaryBand) return '';
+    return (
+      '<section class="brand-scraper-result-block brand-scraper-summary-block">' +
+        '<h4>Conversation starters</h4>' +
+        (m.starters.length
+          ? '<ul class="brand-scraper-result-list">' + m.starters.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('') + '</ul>'
+          : '<p class="brand-scraper-result-muted">No concise starter points were generated from this crawl.</p>') +
       '</section>'
     );
   }
@@ -1377,7 +1407,18 @@
                 'saving\u2026',
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
         : '') +
-      renderExecutiveSummary(data, crawl) +
+      renderSummarySection(data, crawl) +
+      renderConversationStartersSection(data, crawl) +
+      (function () {
+        const guidelinesTile = renderTileSection(
+          'Brand guidelines',
+          renderAnalysis(data.analysis, { omitAbout: true }),
+          !!(data.analysis && !data.analysis.skipped && !data.analysis.error && data.analysis.about),
+          inProgress && buildPhase === 'crawl',
+        );
+        if (!guidelinesTile) return '';
+        return '<div class="brand-scraper-guidelines-container" aria-label="Brand guidelines">' + guidelinesTile + '</div>';
+      })() +
       renderTileSection(
         'Tag and analytics (on-site)',
         (function () {
@@ -1391,12 +1432,6 @@
         inProgress && (!buildPhase || buildPhase === 'crawl') && !(crawl && crawl.tagAuditSummary),
       ) +
       renderTileSection('Brand assets (from crawl)', renderAssets(crawl && crawl.assets), !!(crawl && crawl.assets), false) +
-      renderTileSection(
-        'Brand guidelines',
-        renderAnalysis(data.analysis),
-        !!(data.analysis && !data.analysis.skipped && !data.analysis.error && data.analysis.about),
-        inProgress && buildPhase === 'crawl',
-      ) +
       renderTileSection(
         'Campaigns (detected on-site)',
         renderCampaigns(data.campaigns),

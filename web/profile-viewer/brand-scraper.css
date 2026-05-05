@@ -1010,6 +1010,27 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
   background: color-mix(in srgb, var(--dash-surface-alt) 76%, var(--dash-surface));
 }
 
+/* Brand guidelines tile — outer shell so it sits below Summary + Conversation starters */
+.brand-scraper-guidelines-container {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius, 16px);
+  padding: 0;
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+}
+
+.brand-scraper-guidelines-container > .brand-scraper-tile {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.brand-scraper-guidelines-container > .brand-scraper-tile .brand-scraper-tile-head {
+  border-radius: 0;
+}
+
 .brand-scraper-summary-intro {
   margin: 0 0 10px;
   color: var(--dash-text);
