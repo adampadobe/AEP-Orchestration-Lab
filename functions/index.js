@@ -97,6 +97,7 @@ const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
+const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
@@ -4020,6 +4021,42 @@ exports.clientJourneyV2Refine = onRequest(
     await clientJourneyAssetV2Service.handleRefine(req, res, {
       contextSevenKey: CONTEXT7_API_KEY.value(),
     });
+  }
+);
+
+/**
+ * GET /api/client-journey-v2/import/scrapes?sandbox=...
+ * Returns: slim brand-scrape list for CJv2 prefill picker.
+ */
+exports.clientJourneyV2ImportScrapes = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2ImportService.handleImportScrapeList(req, res);
+  }
+);
+
+/**
+ * GET /api/client-journey-v2/import/profile?sandbox=...&scrapeId=...
+ * Returns: deterministic CJv2 form prefill mapped from one scrape record.
+ */
+exports.clientJourneyV2ImportProfile = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2ImportService.handleImportMappedProfile(req, res);
   }
 );
 

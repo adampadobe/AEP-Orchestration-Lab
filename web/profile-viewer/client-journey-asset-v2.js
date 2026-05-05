@@ -21,6 +21,8 @@
   var GENERATE_URL = FN_BASE + '/clientJourneyV2Generate';
   var REFINE_URL = FN_BASE + '/clientJourneyV2Refine';
   var PPTX_URL = '/api/client-journey-v2/pptx';
+  var IMPORT_LIST_URL = '/api/client-journey-v2/import/scrapes';
+  var IMPORT_PROFILE_URL = '/api/client-journey-v2/import/profile';
 
   // Local-dev override: if the page is served from localhost (the Express
   // prototype), the direct Cloud Function URL still works because
@@ -34,6 +36,12 @@
   var longCallNote = document.getElementById('cjv2LongCallNote');
   var brandColorInput = document.getElementById('cjv2BrandColor');
   var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
+  var importSandboxInput = document.getElementById('cjv2ImportSandbox');
+  var importLoadBtn = document.getElementById('cjv2ImportLoadBtn');
+  var importStatusEl = document.getElementById('cjv2ImportStatus');
+  var importListWrapEl = document.getElementById('cjv2ImportListWrap');
+  var importListEl = document.getElementById('cjv2ImportList');
+  var importSourceEl = document.getElementById('cjv2ImportSource');
 
   var outputSection = document.getElementById('cjv2Output');
   var refinePanel = document.getElementById('cjv2RefinePanel');
@@ -177,6 +185,36 @@
     if (kind) refineStatusEl.classList.add(kind);
   }
 
+  function setImportStatus(text, kind) {
+    if (!importStatusEl) return;
+    importStatusEl.textContent = text || '';
+    importStatusEl.classList.remove('error', 'success');
+    if (kind) importStatusEl.classList.add(kind);
+  }
+
+  function getGlobalSandboxName() {
+    try {
+      if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+        return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (_e) {}
+    return '';
+  }
+
+  function getSandboxForImport() {
+    var fromInput = importSandboxInput ? String(importSandboxInput.value || '').trim() : '';
+    if (fromInput) return fromInput;
+    return getGlobalSandboxName();
+  }
+
+  function syncImportSandboxFromGlobal() {
+    if (!importSandboxInput) return;
+    var current = String(importSandboxInput.value || '').trim();
+    if (current) return;
+    var resolved = getSandboxForImport();
+    if (resolved) importSandboxInput.value = resolved;
+  }
+
   function userFacingServerError(json, detail) {
     if (!json || typeof json !== 'object') return detail;
     if (json.code === 'CJV2_JSON_PARSE_FAILED') {
@@ -243,6 +281,109 @@
     }
     if (snap.brandColor) applyBrandColor(snap.brandColor, 'text');
     else syncBrandColorUi('');
+  }
+
+  function showImportSource(meta) {
+    if (!importSourceEl) return;
+    if (!meta || !meta.scrapeId) {
+      importSourceEl.hidden = true;
+      importSourceEl.textContent = '';
+      return;
+    }
+    importSourceEl.textContent = 'Prefilled from scrape ' + String(meta.scrapeId);
+    importSourceEl.hidden = false;
+  }
+
+  function renderImportList(items, sandbox) {
+    if (!importListEl || !importListWrapEl) return;
+    importListEl.innerHTML = '';
+    if (!Array.isArray(items) || !items.length) {
+      importListWrapEl.hidden = true;
+      return;
+    }
+    items.forEach(function (item) {
+      var li = document.createElement('li');
+      var copy = document.createElement('div');
+      copy.className = 'cjv2-import-item-copy';
+      var title = document.createElement('strong');
+      title.textContent = item.brandName || item.url || item.scrapeId || 'Unnamed scrape';
+      var meta = document.createElement('span');
+      var flags = [];
+      if (item.analysisPresent) flags.push('analysis');
+      if (item.personasPresent) flags.push('personas');
+      if (item.campaignsPresent) flags.push('campaigns');
+      if (item.segmentsPresent) flags.push('segments');
+      meta.textContent = (item.updatedAt || 'No timestamp') + (flags.length ? ' · ' + flags.join(', ') : '');
+      copy.appendChild(title);
+      copy.appendChild(meta);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cjv2-btn cjv2-btn-secondary';
+      btn.textContent = 'Use';
+      btn.addEventListener('click', function () {
+        importMappedProfile(sandbox, item.scrapeId || item.id);
+      });
+      li.appendChild(copy);
+      li.appendChild(btn);
+      importListEl.appendChild(li);
+    });
+    importListWrapEl.hidden = false;
+  }
+
+  async function importMappedProfile(sandbox, scrapeId) {
+    if (!sandbox || !scrapeId) return;
+    if (importLoadBtn) importLoadBtn.disabled = true;
+    setImportStatus('Importing scrape profile…');
+    try {
+      var url = IMPORT_PROFILE_URL + '?sandbox=' + encodeURIComponent(sandbox) +
+        '&scrapeId=' + encodeURIComponent(scrapeId);
+      var resp = await fetch(url, { cache: 'no-store' });
+      var json = await resp.json();
+      if (!resp.ok || !json || !json.mapped) {
+        throw new Error((json && (json.error || json.detail)) || ('HTTP ' + resp.status));
+      }
+      applyFormSnapshot(json.mapped);
+      showImportSource(json.mapped.metadata || { scrapeId: scrapeId });
+      setImportStatus('Fields prefilled from scrape ' + scrapeId + '.', 'success');
+      setStatus('');
+    } catch (err) {
+      console.error('[cjv2] import mapped profile failed:', err);
+      setImportStatus('Import failed: ' + String(err.message || err), 'error');
+    } finally {
+      if (importLoadBtn) importLoadBtn.disabled = false;
+    }
+  }
+
+  async function loadImportScrapes() {
+    var sandbox = getSandboxForImport();
+    if (!sandbox) {
+      setImportStatus('Select a sandbox first.', 'error');
+      if (importListWrapEl) importListWrapEl.hidden = true;
+      return;
+    }
+    if (importLoadBtn) importLoadBtn.disabled = true;
+    setImportStatus('Loading available scrapes…');
+    try {
+      var url = IMPORT_LIST_URL + '?sandbox=' + encodeURIComponent(sandbox);
+      var resp = await fetch(url, { cache: 'no-store' });
+      var json = await resp.json();
+      if (!resp.ok || !json || !Array.isArray(json.items)) {
+        throw new Error((json && (json.error || json.detail)) || ('HTTP ' + resp.status));
+      }
+      if (!json.items.length) {
+        renderImportList([], sandbox);
+        setImportStatus('No scrape records found for sandbox "' + sandbox + '".');
+        return;
+      }
+      renderImportList(json.items, sandbox);
+      setImportStatus('Select a scrape to prefill the brief.', 'success');
+    } catch (err) {
+      console.error('[cjv2] list scrapes failed:', err);
+      if (importListWrapEl) importListWrapEl.hidden = true;
+      setImportStatus('Could not load scrapes: ' + String(err.message || err), 'error');
+    } finally {
+      if (importLoadBtn) importLoadBtn.disabled = false;
+    }
   }
 
   function buildPersistPayload(formSnap, serverJson) {
@@ -650,6 +791,7 @@
     setPptxStatus('');
     clearLastResult();
     longCallNote.hidden = true;
+    showImportSource(null);
     syncBrandColorUi(brandColorInput.value);
   });
 
@@ -928,6 +1070,7 @@
   downloadHtmlBtn.addEventListener('click', downloadHtml);
   downloadPptxBtn.addEventListener('click', downloadPptx);
   openNewTabBtn.addEventListener('click', openInNewTab);
+  if (importLoadBtn) importLoadBtn.addEventListener('click', loadImportScrapes);
   if (refineBtn) refineBtn.addEventListener('click', refineJourney);
   if (refinePromptEl) {
     refinePromptEl.addEventListener('keydown', function (ev) {
@@ -954,6 +1097,13 @@
       hideRestoreBanner();
     });
   }
+
+  syncImportSandboxFromGlobal();
+  window.addEventListener('aep-global-sandbox-change', function () {
+    if (!importSandboxInput) return;
+    if (document.activeElement === importSandboxInput) return;
+    importSandboxInput.value = getGlobalSandboxName();
+  });
 
   showRestoreBannerIfNeeded();
   bindFullscreen();

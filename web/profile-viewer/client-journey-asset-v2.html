@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505e">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505f">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -63,6 +63,26 @@
             <strong>Decision Management</strong> and <strong>Brand Concierge</strong> appear
             in the deliverable.
           </p>
+
+          <div class="cjv2-import-shell" aria-labelledby="cjv2ImportTitle">
+            <div class="cjv2-import-head">
+              <h3 class="cjv2-import-title" id="cjv2ImportTitle">Import from Brand Scraper discovery</h3>
+              <span id="cjv2ImportSource" class="cjv2-import-source" hidden></span>
+            </div>
+            <div class="cjv2-import-row">
+              <label class="cjv2-field cjv2-field-inline" for="cjv2ImportSandbox">
+                <span class="cjv2-label">Sandbox</span>
+                <input type="text" id="cjv2ImportSandbox" autocomplete="off" spellcheck="false" placeholder="e.g. apalmer">
+              </label>
+              <button type="button" id="cjv2ImportLoadBtn" class="cjv2-btn cjv2-btn-secondary">Import from brand scrape</button>
+            </div>
+            <div class="cjv2-import-status-row">
+              <span id="cjv2ImportStatus" class="cjv2-status" role="status" aria-live="polite"></span>
+            </div>
+            <div id="cjv2ImportListWrap" class="cjv2-import-list-wrap" hidden>
+              <ul id="cjv2ImportList" class="cjv2-import-list"></ul>
+            </div>
+          </div>
 
           <form id="cjv2Form" novalidate>
             <fieldset class="cjv2-fieldset">
@@ -230,7 +250,7 @@
     </div>
   </div>
 
-  <script src="client-journey-asset-v2.js?v=20260505e"></script>
+  <script src="client-journey-asset-v2.js?v=20260505f"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>

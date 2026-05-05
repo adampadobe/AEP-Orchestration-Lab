@@ -728,6 +728,20 @@
         }
       },
       {
+        "source": "/api/client-journey-v2/import/scrapes",
+        "function": {
+          "functionId": "clientJourneyV2ImportScrapes",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/import/profile",
+        "function": {
+          "functionId": "clientJourneyV2ImportProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/client-journey-v2/pptx",
         "function": {
           "functionId": "clientJourneyV2Pptx",
