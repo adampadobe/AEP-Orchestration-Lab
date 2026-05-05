@@ -263,12 +263,6 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-row input.cjv2-
   overflow: hidden;
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-eyedropper {
-  flex: 0 0 auto;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.82rem;
-}
-
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-swatch {
   width: 36px;
   height: 36px;

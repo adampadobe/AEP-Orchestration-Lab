@@ -34,7 +34,6 @@
   var longCallNote = document.getElementById('cjv2LongCallNote');
   var brandColorInput = document.getElementById('cjv2BrandColor');
   var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
-  var brandEyedropperBtn = document.getElementById('cjv2BrandEyedropper');
   var brandSwatch = document.getElementById('cjv2BrandSwatch');
 
   var outputSection = document.getElementById('cjv2Output');
@@ -165,26 +164,6 @@
     brandColorPicker.addEventListener('input', function () {
       applyBrandColor(brandColorPicker.value, 'picker');
     });
-  }
-  if (brandEyedropperBtn) {
-    if (typeof window.EyeDropper === 'function') {
-      brandEyedropperBtn.hidden = false;
-      brandEyedropperBtn.addEventListener('click', async function () {
-        try {
-          var eyeDropper = new window.EyeDropper();
-          var picked = await eyeDropper.open();
-          if (picked && picked.sRGBHex) applyBrandColor(picked.sRGBHex, 'picker');
-        } catch (err) {
-          // User cancel is normal for EyeDropper.
-          if (err && err.name !== 'AbortError') {
-            console.warn('[cjv2] eyedropper failed:', err);
-          }
-        }
-      });
-    } else {
-      brandEyedropperBtn.hidden = true;
-      brandEyedropperBtn.disabled = true;
-    }
   }
   syncBrandColorUi(brandColorInput.value);
 
