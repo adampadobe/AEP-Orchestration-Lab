@@ -190,6 +190,22 @@
     if (kind) refineStatusEl.classList.add(kind);
   }
 
+  function userFacingServerError(json, detail) {
+    if (!json || typeof json !== 'object') return detail;
+    if (json.code === 'CJV2_JSON_PARSE_FAILED') {
+      console.error('[cjv2] CJV2_JSON_PARSE_FAILED — server detail:', detail, json.details || null);
+      return 'Temporary model issue — please press Generate again. ' +
+        'Vertex AI Gemini returned slightly-malformed JSON for this run; the ' +
+        'server already tried an automatic repair and a self-correcting retry.';
+    }
+    var hasSchemaErrors = Array.isArray(json.validationErrors) && json.validationErrors.length > 0;
+    var schemaFailure = /schema validation/i.test(String(json.error || ''));
+    if (hasSchemaErrors || schemaFailure) {
+      return 'Model returned incomplete structure, please retry.';
+    }
+    return detail;
+  }
+
   function readForm() {
     var fd = new FormData(form);
     var body = {};
@@ -429,16 +445,9 @@
         if (Array.isArray(json && json.validationErrors) && json.validationErrors.length) {
           detail += ' — schema errors: ' + json.validationErrors.slice(0, 3).join('; ');
         }
-        // Map known structured codes to friendly user-facing messages.
-        // The raw detail (incl. parse-position) still goes to the console
-        // for debugging — we just don't expose it on-screen.
-        var userMessage = detail;
-        if (json && json.code === 'CJV2_JSON_PARSE_FAILED') {
-          console.error('[cjv2] CJV2_JSON_PARSE_FAILED — server detail:', detail, json.details || null);
-          userMessage = 'Temporary model issue — please press Generate again. ' +
-            'Vertex AI Gemini returned slightly-malformed JSON for this run; the ' +
-            'server already tried an automatic repair and a self-correcting retry.';
-        }
+        // Preserve full backend detail in console while showing concise guidance.
+        console.error('[cjv2] generate server error detail:', detail, json || null);
+        var userMessage = userFacingServerError(json, detail);
         throw new Error(userMessage);
       }
       if (!json.html || !json.journey) {
@@ -524,7 +533,8 @@
         if (Array.isArray(json && json.validationErrors) && json.validationErrors.length) {
           detail += ' — schema errors: ' + json.validationErrors.slice(0, 3).join('; ');
         }
-        throw new Error(detail);
+        console.error('[cjv2] refine server error detail:', detail, json || null);
+        throw new Error(userFacingServerError(json, detail));
       }
       if (!json.html || !json.journey) {
         throw new Error('Server returned ok but no html or journey in payload');

@@ -1282,6 +1282,64 @@ function validateJourney(j, tier) {
   return errs;
 }
 
+function normaliseJourneyDescriptions(journey, logFn) {
+  if (!journey || typeof journey !== 'object' || !Array.isArray(journey.descriptions)) return;
+
+  const source = journey.descriptions.map((item) => (item == null ? '' : String(item)));
+  const sourceLen = source.length;
+
+  // Keep strict failure for genuinely incomplete payloads.
+  if (sourceLen < 12) {
+    journey.descriptions = source;
+    return;
+  }
+
+  if (sourceLen === 12) {
+    journey.descriptions = [
+      source[0] || '',
+      source[1] || '',
+      '',
+      ...source.slice(2, 12),
+    ];
+    if (typeof logFn === 'function') {
+      logFn('[cjv2] normalized descriptions from 12->13 by inserting merge placeholder at index 2');
+    }
+    return;
+  }
+
+  const hasMergePlaceholder = source[2] === '';
+  const orderedStepDescriptions = hasMergePlaceholder
+    ? [source[0] || '', source[1] || '', ...source.slice(3)]
+    : source.slice();
+
+  if (orderedStepDescriptions.length < 12) {
+    journey.descriptions = source;
+    return;
+  }
+
+  const rebuilt = [
+    orderedStepDescriptions[0] || '',
+    orderedStepDescriptions[1] || '',
+    '',
+    ...orderedStepDescriptions.slice(2, 12),
+  ];
+
+  const changed = rebuilt.length !== source.length || rebuilt.some((value, idx) => value !== source[idx]);
+  journey.descriptions = rebuilt;
+
+  if (!changed || typeof logFn !== 'function') return;
+
+  if (sourceLen === 13 && source[2] !== '') {
+    const dropped = source[12] ? ' (dropped trailing non-placeholder entry)' : '';
+    logFn(`[cjv2] normalized descriptions from 13->13 by forcing merge placeholder at index 2 and realigning step order${dropped}`);
+    return;
+  }
+
+  if (sourceLen > 13) {
+    logFn(`[cjv2] normalized descriptions from ${sourceLen}->13 by preserving step mapping and trimming extras`);
+  }
+}
+
 function fillIconDefaults(icons) {
   const out = Array.isArray(icons) ? icons.slice(0, 12) : [];
   for (let i = out.length; i < 12; i++) out.push(DEFAULT_STEP_ICONS[i]);
@@ -2551,6 +2609,7 @@ async function handleGenerate(req, res, opts = {}) {
     marketerPersonaName: (journey.meta && journey.meta.marketerPersonaName) || input.marketerPersonaName,
   });
   journey.icons = fillIconDefaults(journey.icons);
+  normaliseJourneyDescriptions(journey, log_);
 
   const errs = validateJourney(journey, input.tier);
   if (errs.length) {
@@ -2692,6 +2751,7 @@ async function handleRefine(req, res, opts = {}) {
     additionalContext: (journey.meta && journey.meta.additionalContext) || input.additionalContext,
   });
   journey.icons = fillIconDefaults(journey.icons);
+  normaliseJourneyDescriptions(journey, log_);
 
   const errs = validateJourney(journey, input.tier);
   if (errs.length) {
@@ -2794,6 +2854,7 @@ module.exports = {
     PINNED_LIBRARY_IDS,
     normaliseInput,
     normaliseRefineInput,
+    normaliseJourneyDescriptions,
     validateJourney,
     renderStandaloneHtml,
     buildSystemPrompt,
