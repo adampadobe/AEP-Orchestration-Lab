@@ -13,11 +13,24 @@
   var openKind = null;
   var webBuilt = false;
   var mobBuilt = false;
+  var webSizeObserver = null;
+  var webMutationObserver = null;
+  var webSizeRaf = null;
+  var webWinResizeHandler = null;
   var mobScaleObserver = null;
   var mobScaleRaf = null;
   var mobWinResizeHandler = null;
   var USER_PHONE_SCALE_KEY = 'cdEdgePhoneUserScale';
   var PHONE_BEZEL_DARK_KEY = 'cdEdgePhoneBezelDark';
+  var WEB_PRESET_KEY = 'cdEdgeWebPreset';
+  var WEB_BEZEL_DARK_KEY = 'cdEdgeWebBezelDark';
+  var WEB_PRESETS = {
+    chrome: { label: 'Chrome', width: 1240, browser: 'chrome', minHeight: 180, pad: 12 },
+    firefox: { label: 'Firefox', width: 1240, browser: 'firefox', minHeight: 180, pad: 12 },
+    ipad: { label: 'iPad', width: 834, browser: 'safari', minHeight: 240, pad: 16 },
+    mac: { label: 'Mac', width: 1440, browser: 'safari', minHeight: 200, pad: 12 },
+    windows: { label: 'Windows PC', width: 1366, browser: 'chrome', minHeight: 200, pad: 12 },
+  };
 
   function readPhoneBezelDark() {
     try {
@@ -40,12 +53,47 @@
     shellEl.classList.toggle('cd-ch-em-phone-shell--bezel-dark', !!isDark);
   }
 
-  function syncPhoneBezelRadios(defaultBtn, blackBtn, isDark) {
+  function syncBezelRadios(defaultBtn, blackBtn, isDark) {
     if (!defaultBtn || !blackBtn) return;
     defaultBtn.setAttribute('aria-checked', isDark ? 'false' : 'true');
     blackBtn.setAttribute('aria-checked', isDark ? 'true' : 'false');
     defaultBtn.setAttribute('tabindex', isDark ? '-1' : '0');
     blackBtn.setAttribute('tabindex', isDark ? '0' : '-1');
+  }
+
+  function syncPhoneBezelRadios(defaultBtn, blackBtn, isDark) {
+    syncBezelRadios(defaultBtn, blackBtn, isDark);
+  }
+
+  function readWebPreset() {
+    try {
+      var v = global.sessionStorage ? String(global.sessionStorage.getItem(WEB_PRESET_KEY) || '').trim().toLowerCase() : '';
+      return WEB_PRESETS[v] ? v : 'chrome';
+    } catch (e) {
+      return 'chrome';
+    }
+  }
+
+  function writeWebPreset(preset) {
+    try {
+      if (global.sessionStorage) global.sessionStorage.setItem(WEB_PRESET_KEY, String(preset || 'chrome'));
+    } catch (e) {}
+  }
+
+  function readWebBezelDark() {
+    try {
+      return !!(global.sessionStorage && global.sessionStorage.getItem(WEB_BEZEL_DARK_KEY) === '1');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function writeWebBezelDark(on) {
+    try {
+      if (global.sessionStorage) {
+        global.sessionStorage.setItem(WEB_BEZEL_DARK_KEY, on ? '1' : '0');
+      }
+    } catch (e) {}
   }
 
   function escAttrId(id) {
@@ -306,6 +354,47 @@
 
   function ensureWebPanel(panelWeb) {
     if (webBuilt) return;
+    var webPreset = readWebPreset();
+    var webBezelDark = readWebBezelDark();
+    var toolbarRow = document.createElement('div');
+    toolbarRow.className = 'cd-ch-em-web-toolbar-row';
+    var presetLabel = document.createElement('span');
+    presetLabel.className = 'cd-ch-em-web-prefix';
+    presetLabel.textContent = 'Viewport';
+    toolbarRow.appendChild(presetLabel);
+    var presetSelect = document.createElement('select');
+    presetSelect.className = 'cd-ch-em-web-preset-select';
+    presetSelect.id = 'cdChEmWebPreset';
+    presetSelect.setAttribute('aria-label', 'Web emulator viewport');
+    Object.keys(WEB_PRESETS).forEach(function (key) {
+      var opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = WEB_PRESETS[key].label;
+      presetSelect.appendChild(opt);
+    });
+    toolbarRow.appendChild(presetSelect);
+    var bezelLabel = document.createElement('span');
+    bezelLabel.className = 'cd-ch-em-web-prefix';
+    bezelLabel.textContent = 'Bezel';
+    toolbarRow.appendChild(bezelLabel);
+    var bezelRg = document.createElement('div');
+    bezelRg.className = 'cd-ch-em-web-bezel-toggle';
+    bezelRg.setAttribute('role', 'radiogroup');
+    bezelRg.setAttribute('aria-label', 'Web frame bezel color');
+    var bBezDef = document.createElement('button');
+    bBezDef.type = 'button';
+    bBezDef.id = 'cdChEmWebBezelDefault';
+    bBezDef.setAttribute('role', 'radio');
+    bBezDef.textContent = 'Default';
+    var bBezBlk = document.createElement('button');
+    bBezBlk.type = 'button';
+    bBezBlk.id = 'cdChEmWebBezelBlack';
+    bBezBlk.setAttribute('role', 'radio');
+    bBezBlk.textContent = 'Black';
+    bezelRg.appendChild(bBezDef);
+    bezelRg.appendChild(bBezBlk);
+    toolbarRow.appendChild(bezelRg);
+    panelWeb.appendChild(toolbarRow);
     var frame = document.createElement('div');
     frame.className = 'cd-ch-em-web-frame';
     var chrome = document.createElement('div');
@@ -332,6 +421,108 @@
     frame.appendChild(vp);
     panelWeb.appendChild(frame);
     buildMountTree(vp, PREFIX_WEB);
+    function applyWebPreset(id) {
+      var next = WEB_PRESETS[id] ? id : 'chrome';
+      webPreset = next;
+      writeWebPreset(next);
+      var cfg = WEB_PRESETS[next];
+      frame.dataset.webPreset = next;
+      frame.dataset.browserUi = cfg.browser;
+      frame.style.maxWidth = cfg.width + 'px';
+      frame.style.setProperty('--cd-web-content-pad', String(cfg.pad || 12) + 'px');
+      if (presetSelect.value !== next) presetSelect.value = next;
+      scheduleWebViewportSize();
+    }
+    function applyWebBezelDark(on) {
+      var dark = !!on;
+      writeWebBezelDark(dark);
+      frame.classList.toggle('cd-ch-em-web-frame--bezel-dark', dark);
+      syncBezelRadios(bBezDef, bBezBlk, dark);
+    }
+    presetSelect.addEventListener('change', function () {
+      applyWebPreset(presetSelect.value);
+    });
+    bBezDef.addEventListener('click', function () {
+      applyWebBezelDark(false);
+    });
+    bBezBlk.addEventListener('click', function () {
+      applyWebBezelDark(true);
+    });
+    function updateWebViewportSize() {
+      var vpEl = document.getElementById('cdChEmWebViewport');
+      if (!vpEl) return;
+      var stage = document.getElementById('cdEdgeMainStage');
+      var mountRoot = vpEl.querySelector('.cd-edge-mounts');
+      var contentHeight = mountRoot ? mountRoot.scrollHeight : vpEl.scrollHeight;
+      var presetCfg = WEB_PRESETS[webPreset] || WEB_PRESETS.chrome;
+      var chromeHeight = 0;
+      var chromeEl = vpEl.previousElementSibling;
+      if (chromeEl) chromeHeight = chromeEl.offsetHeight || 0;
+
+      var viewportCap = Math.min(Math.floor(global.innerHeight * 0.72), 576);
+      var stageCap = viewportCap;
+      if (stage) {
+        var stageRect = stage.getBoundingClientRect();
+        if (stageRect && stageRect.height > 220) {
+          stageCap = Math.max(220, Math.floor(stageRect.height - chromeHeight - 56));
+        }
+      }
+      var maxHeight = Math.max(220, Math.min(viewportCap, stageCap));
+      var minHeight = Number(presetCfg.minHeight) || 180;
+      var desired = Math.max(minHeight, Math.ceil(contentHeight + 12));
+      var nextHeight = Math.min(desired, maxHeight);
+      vpEl.style.height = nextHeight + 'px';
+      vpEl.style.overflowY = desired > nextHeight + 1 ? 'auto' : 'hidden';
+    }
+
+    function scheduleWebViewportSize() {
+      if (webSizeRaf) cancelAnimationFrame(webSizeRaf);
+      webSizeRaf = requestAnimationFrame(function () {
+        webSizeRaf = null;
+        updateWebViewportSize();
+      });
+    }
+
+    if (webSizeObserver) {
+      try {
+        webSizeObserver.disconnect();
+      } catch (e) {}
+      webSizeObserver = null;
+    }
+    if (webMutationObserver) {
+      try {
+        webMutationObserver.disconnect();
+      } catch (e1) {}
+      webMutationObserver = null;
+    }
+    webSizeObserver = new ResizeObserver(scheduleWebViewportSize);
+    webSizeObserver.observe(vp);
+    var mounts = vp.querySelector('.cd-edge-mounts');
+    if (mounts) {
+      try {
+        webSizeObserver.observe(mounts);
+      } catch (e2) {}
+    }
+    if (webWinResizeHandler) {
+      try {
+        global.removeEventListener('resize', webWinResizeHandler);
+      } catch (e3) {}
+      webWinResizeHandler = null;
+    }
+    webMutationObserver = new MutationObserver(scheduleWebViewportSize);
+    webMutationObserver.observe(vp, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['style', 'class', 'hidden'],
+    });
+    webWinResizeHandler = scheduleWebViewportSize;
+    global.addEventListener('resize', webWinResizeHandler);
+    applyWebPreset(webPreset);
+    applyWebBezelDark(webBezelDark);
+    scheduleWebViewportSize();
+    setTimeout(scheduleWebViewportSize, 40);
     webBuilt = true;
   }
 
@@ -946,11 +1137,29 @@
         } catch (e) {}
         mobScaleObserver = null;
       }
+      if (webSizeObserver) {
+        try {
+          webSizeObserver.disconnect();
+        } catch (e3) {}
+        webSizeObserver = null;
+      }
+      if (webMutationObserver) {
+        try {
+          webMutationObserver.disconnect();
+        } catch (e3m) {}
+        webMutationObserver = null;
+      }
       if (mobWinResizeHandler) {
         try {
           global.removeEventListener('resize', mobWinResizeHandler);
         } catch (e) {}
         mobWinResizeHandler = null;
+      }
+      if (webWinResizeHandler) {
+        try {
+          global.removeEventListener('resize', webWinResizeHandler);
+        } catch (e4) {}
+        webWinResizeHandler = null;
       }
       webBuilt = false;
       mobBuilt = false;

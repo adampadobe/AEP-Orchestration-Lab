@@ -156,6 +156,67 @@
 }
 
 /* Web: laptop frame */
+.cd-ch-em-web-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  justify-content: center;
+  margin: 0 auto 0.45rem;
+}
+
+.cd-ch-em-web-prefix {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.cd-ch-em-web-preset-select {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  padding: 0.2rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.cd-ch-em-web-preset-select:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.cd-ch-em-web-bezel-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+  background: var(--dash-surface);
+}
+
+.cd-ch-em-web-bezel-toggle button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border: 0;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+}
+
+.cd-ch-em-web-bezel-toggle button[aria-checked='true'] {
+  background: var(--dash-info-bg);
+  color: var(--dash-text);
+}
+
+.cd-ch-em-web-bezel-toggle button:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
 .cd-ch-em-web-frame {
   margin: 0 auto;
   max-width: 100%;
@@ -166,6 +227,25 @@
   box-shadow: var(--dash-shadow);
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.cd-ch-em-web-frame--bezel-dark {
+  border-color: color-mix(in srgb, var(--dash-text) 72%, var(--dash-border));
+  background: color-mix(in srgb, var(--dash-text) 92%, var(--dash-border));
+  box-shadow:
+    var(--dash-shadow),
+    inset 0 0 0 1px color-mix(in srgb, var(--dash-text) 28%, transparent);
+}
+
+.cd-ch-em-web-frame--bezel-dark .cd-ch-em-web-chrome {
+  background: color-mix(in srgb, var(--dash-text) 88%, var(--dash-surface-alt));
+  border-bottom-color: color-mix(in srgb, var(--dash-text) 56%, var(--dash-border));
+}
+
+.cd-ch-em-web-frame--bezel-dark .cd-ch-em-web-url {
+  background: color-mix(in srgb, var(--dash-text) 82%, var(--dash-input-bg));
+  border-color: color-mix(in srgb, var(--dash-text) 60%, var(--dash-input-border));
+  color: color-mix(in srgb, var(--dash-surface) 80%, var(--dash-text-secondary));
 }
 
 .cd-ch-em-web-chrome {
@@ -220,10 +300,20 @@
 }
 
 .cd-channel-emulator-host .cd-ch-em-web-viewport {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 180px;
   max-height: min(72vh, 36rem);
   overflow: auto;
+}
+
+.cd-ch-em-web-frame[data-browser-ui='firefox'] .cd-ch-em-web-dot {
+  background: color-mix(in srgb, var(--dash-blue) 55%, var(--dash-muted));
+  opacity: 0.8;
+}
+
+.cd-ch-em-web-frame[data-browser-ui='safari'] .cd-ch-em-web-dot {
+  background: color-mix(in srgb, var(--dash-text-secondary) 55%, var(--dash-muted));
+  opacity: 0.8;
 }
 
 /* Emulator mounts: compact variant of main mounts */

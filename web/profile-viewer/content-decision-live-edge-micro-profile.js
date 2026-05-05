@@ -722,7 +722,7 @@
     if (ovEl) {
       if (aov != null && !Number.isNaN(aov)) {
         var step = Number(ovEl.step) || 50;
-        var max = Number(ovEl.max) || 5000;
+        var max = Number(ovEl.max) || 10000;
         var min = Number(ovEl.min) || 0;
         var snapped = Math.round(aov / step) * step;
         ovEl.value = String(clamp(snapped, min, max));
