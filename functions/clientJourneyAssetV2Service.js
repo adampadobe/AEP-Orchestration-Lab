@@ -646,6 +646,51 @@ function buildUserPrompt(input, snippets, research) {
   return parts.join('\n');
 }
 
+function buildRefineUserPrompt(input, snippets, refinePrompt, existingJourney) {
+  const parts = [];
+  parts.push('### REFINE REQUEST INPUT');
+  parts.push(JSON.stringify({
+    client: input.client,
+    clientDomain: input.clientDomain || '',
+    brandColor: input.brandColor,
+    journeyType: input.journeyType || '',
+    personaName: input.personaName || '',
+    personaGender: input.personaGender || 'female',
+    marketerPersonaName: input.marketerPersonaName || '',
+    tier: input.tier,
+    techStack: input.techStack || '',
+    additionalContext: input.additionalContext || '',
+  }, null, 2));
+  parts.push('');
+  parts.push('### USER REFINEMENT PROMPT');
+  parts.push(String(refinePrompt || '').trim());
+  parts.push('');
+  parts.push('### CURRENT JOURNEY JSON (MUST BE UPDATED, NOT REBUILT FROM SCRATCH)');
+  parts.push(JSON.stringify(existingJourney, null, 2));
+  parts.push('');
+  parts.push('### CONTEXT7 EXPERIENCE LEAGUE SNIPPETS');
+  for (const s of snippets) {
+    parts.push(`#### ${s.title}  (source: ${s.source})`);
+    parts.push(s.text);
+    parts.push('');
+  }
+  parts.push('');
+  parts.push('### REFINEMENT REQUIREMENTS');
+  parts.push(
+    'Apply only the requested edits while preserving untouched structure, order, and schema rules. ' +
+    'Keep a strict 12-step journey plus overview (13 slides total), keep required arrays and fields, ' +
+    'maintain tier constraints (Foundation vs Advanced), and keep Context7 / Experience League alignment. ' +
+    'Do not remove required slide, row, or tech/adobe/data sections unless explicitly requested and still schema-valid.'
+  );
+  parts.push('');
+  parts.push('### OUTPUT REQUIREMENT');
+  parts.push(
+    'Respond with one JSON object matching the schema in the system prompt. ' +
+    'No markdown, no commentary, no fences. Run the eight self-scans silently before emitting and fix any flag.'
+  );
+  return parts.join('\n');
+}
+
 // ─── TWO-CALL FLOW (research + generation) ───────────────────────────────────
 //
 // Vertex AI rejects `tools: [{ googleSearch: {} }]` combined with
@@ -1090,6 +1135,54 @@ async function runGenerationPass(input, snippets, research) {
   };
 }
 
+async function runRefinementPass(input, snippets, refinePrompt, existingJourney) {
+  const systemPrompt = buildSystemPrompt(input.tier);
+  const baseUserPrompt = buildRefineUserPrompt(input, snippets, refinePrompt, existingJourney);
+  const t0 = Date.now();
+  const call = (extra = '') => callGemini(systemPrompt, baseUserPrompt + extra, {
+    maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
+    temperature: GEMINI_TEMPERATURE,
+    jsonMode: true,
+    retryOn429: true,
+    retryOn429Attempts: 1,
+  });
+  const firstRaw = await call();
+  let parseResult;
+  try {
+    parseResult = await parseGenerationJson(firstRaw, {
+      retryFn: async (firstErr) => {
+        const pos = (firstErr && Object.prototype.hasOwnProperty.call(firstErr, 'position'))
+          ? firstErr.position
+          : null;
+        const positionHint = (pos != null) ? ` around position ${pos}` : '';
+        const errMsg = (firstErr && firstErr.message) ? firstErr.message : 'unknown';
+        const repairHint =
+          '\n\n### RETRY NOTE\n' +
+          `Your previous response had a JSON syntax error${positionHint}. ` +
+          `The parser reported: "${errMsg}". ` +
+          'Return ONLY valid JSON matching the schema in the system prompt — ' +
+          'no prose, no markdown, no code fences, no trailing commas, no comments.';
+        return call(repairHint);
+      },
+    });
+  } catch (e) {
+    const ms = Date.now() - t0;
+    console.warn('[cjv2] refinement pass failed', {
+      ms,
+      code: e && e.code,
+      details: e && e.details,
+      rawChars: String(firstRaw || '').length,
+    });
+    throw e;
+  }
+  return {
+    journey: parseResult.journey,
+    ms: Date.now() - t0,
+    retried: parseResult.retried,
+    repaired: parseResult.repaired,
+  };
+}
+
 // ─── INPUT VALIDATION ────────────────────────────────────────────────────────
 
 function normaliseInput(raw) {
@@ -1110,6 +1203,42 @@ function normaliseInput(raw) {
     tier,
     techStack: String(body.techStack || ''),
     additionalContext: String(body.additionalContext || ''),
+  };
+}
+
+function normaliseRefineInput(raw) {
+  const body = (raw && typeof raw === 'object') ? raw : {};
+  const journey = body.journey;
+  const refinePrompt = String(body.refinePrompt || '').trim();
+  if (!journey || typeof journey !== 'object' || Array.isArray(journey)) {
+    throw new Error('journey object is required');
+  }
+  if (!refinePrompt) {
+    throw new Error('refinePrompt is required');
+  }
+
+  const meta = (journey.meta && typeof journey.meta === 'object') ? journey.meta : {};
+  const context = (body.context && typeof body.context === 'object') ? body.context : {};
+  const tier = context.tier === 'Advanced' || meta.tier === 'Advanced' ? 'Advanced' : 'Foundation';
+  const client = String(context.client || meta.client || '').trim();
+  if (!client) throw new Error('context.client (or journey.meta.client) is required');
+
+  return {
+    refinePrompt,
+    journey,
+    context: {
+      client,
+      clientSlug: slugify(client),
+      clientDomain: String(context.clientDomain || meta.clientDomain || '').trim(),
+      brandColor: normaliseHex(context.brandColor || meta.brandColor),
+      journeyType: String(context.journeyType || meta.journeyType || '').trim(),
+      personaName: String(context.personaName || meta.personaName || '').trim(),
+      personaGender: context.personaGender === 'male' || meta.personaGender === 'male' ? 'male' : 'female',
+      marketerPersonaName: String(context.marketerPersonaName || meta.marketerPersonaName || '').trim(),
+      tier,
+      techStack: String(context.techStack || ''),
+      additionalContext: String(context.additionalContext || ''),
+    },
   };
 }
 
@@ -2471,6 +2600,137 @@ async function handleGenerate(req, res, opts = {}) {
   });
 }
 
+async function handleRefine(req, res, opts = {}) {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const log = [];
+  const log_ = (msg) => { log.push(`${new Date().toISOString()} ${msg}`); console.log(`[client-journey-v2] ${msg}`); };
+
+  let request;
+  try {
+    const body = await readBody(req);
+    request = normaliseRefineInput(body);
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid request body', detail: String(err.message || err) });
+    return;
+  }
+
+  const input = request.context;
+  const sourceErrors = validateJourney(request.journey, input.tier);
+  if (sourceErrors.length) {
+    res.status(400).json({
+      error: 'Provided journey failed schema validation',
+      validationErrors: sourceErrors,
+    });
+    return;
+  }
+  log_(`refine start client="${input.client}" tier=${input.tier}`);
+
+  const ctx7Key = (opts && opts.contextSevenKey) || '';
+  if (!ctx7Key) log_('Context7 key missing — every topic will use the static-summary fallback');
+
+  let snippets = [];
+  try {
+    snippets = await fetchExperienceLeagueContext(input.tier, ctx7Key);
+    log_(`Context7 sources: ${snippets.map((s) => `${s.id}=${s.source}`).join(', ')}`);
+  } catch (err) {
+    log_(`Context7 fetch unexpectedly threw: ${err.message || err}`);
+    snippets = CONTEXT7_TOPICS
+      .filter((t) => t.tier === 'all' || t.tier === input.tier)
+      .map((t) => ({
+        id: t.id,
+        title: t.query,
+        source: 'fallback',
+        libraryId: null,
+        text: STATIC_DOC_FALLBACKS[t.id] || '',
+      }));
+  }
+
+  let journey;
+  let refinementMs = 0;
+  let refinementRetried = false;
+  let refinementRepaired = false;
+  try {
+    const out = await runRefinementPass(input, snippets, request.refinePrompt, request.journey);
+    journey = out.journey;
+    refinementMs = out.ms;
+    refinementRetried = !!out.retried;
+    refinementRepaired = !!out.repaired;
+  } catch (err) {
+    if (err && err.code === 'CJV2_JSON_PARSE_FAILED') {
+      log_(`Gemini JSON parse failed during refine after repair + retry: ${err.message}`);
+      res.status(502).json({
+        error: 'Gemini returned malformed JSON even after repair. Please try refining again — transient model issue.',
+        code: 'CJV2_JSON_PARSE_FAILED',
+        details: err.details,
+        log,
+      });
+      return;
+    }
+    log_(`Gemini refinement pass failed: ${err.message || err}`);
+    res.status(502).json({
+      error: 'Vertex AI Gemini failed to refine the journey',
+      code: err && err.code,
+      detail: String(err.message || err),
+      log,
+    });
+    return;
+  }
+
+  journey.meta = Object.assign({}, journey.meta, {
+    client: input.client,
+    clientSlug: input.clientSlug,
+    clientDomain: input.clientDomain,
+    brandColor: normaliseHex(journey.meta && journey.meta.brandColor || input.brandColor),
+    tier: input.tier,
+    personaName: (journey.meta && journey.meta.personaName) || input.personaName,
+    personaGender: (journey.meta && journey.meta.personaGender) || input.personaGender,
+    marketerPersonaName: (journey.meta && journey.meta.marketerPersonaName) || input.marketerPersonaName,
+    journeyType: (journey.meta && journey.meta.journeyType) || input.journeyType,
+    additionalContext: (journey.meta && journey.meta.additionalContext) || input.additionalContext,
+  });
+  journey.icons = fillIconDefaults(journey.icons);
+
+  const errs = validateJourney(journey, input.tier);
+  if (errs.length) {
+    res.status(502).json({
+      error: 'Vertex AI refined response failed schema validation',
+      validationErrors: errs,
+      meta: journey.meta,
+      log,
+    });
+    return;
+  }
+
+  let html;
+  try {
+    html = renderStandaloneHtml(journey, input);
+  } catch (err) {
+    res.status(500).json({ error: 'HTML render failed', detail: String(err.message || err), log });
+    return;
+  }
+
+  log_(
+    `refinement pass: ms=${refinementMs} slideCount=${(journey.slides || []).length} ` +
+    `stepLabels=${(journey.stepLabels || []).length} ` +
+    `retried=${refinementRetried} repaired=${refinementRepaired}`
+  );
+  log_(`refine ok client="${input.client}" tier=${input.tier} htmlBytes=${html.length}`);
+
+  res.status(200).json({
+    ok: true,
+    meta: journey.meta,
+    journey,
+    html,
+    sources: snippets.map((s) => ({
+      id: s.id, title: s.title, source: s.source, libraryId: s.libraryId,
+    })),
+    log,
+  });
+}
+
 async function handlePptx(req, res) {
   setCors(res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
@@ -2522,6 +2782,7 @@ async function handlePptx(req, res) {
 
 module.exports = {
   handleGenerate,
+  handleRefine,
   handlePptx,
   // Exported for unit-test harnesses (none committed yet).
   __internal: {
@@ -2532,14 +2793,17 @@ module.exports = {
     CONTEXT7_TOPICS,
     PINNED_LIBRARY_IDS,
     normaliseInput,
+    normaliseRefineInput,
     validateJourney,
     renderStandaloneHtml,
     buildSystemPrompt,
     buildUserPrompt,
+    buildRefineUserPrompt,
     buildResearchUserPrompt,
     parseResearchSections,
     runResearchPass,
     runGenerationPass,
+    runRefinementPass,
     parseGenerationJson,
     stripGenerationFences,
   },

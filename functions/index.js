@@ -3956,6 +3956,35 @@ exports.clientJourneyV2Generate = onRequest(
 );
 
 /**
+ * POST clientJourneyV2Refine
+ * Body: {
+ *   journey: <previous clientJourneyV2Generate journey JSON>,
+ *   refinePrompt: string,
+ *   context?: { client, tier, clientDomain, journeyType, personaName, ... }
+ * }
+ * Returns: { ok, meta, journey, html, sources, log }
+ *
+ * Applies conversational edits against an existing generated journey while
+ * preserving schema/tier constraints. Same response contract as generate so
+ * the front-end can swap the result in-place without resetting downloads.
+ */
+exports.clientJourneyV2Refine = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    secrets: [CONTEXT7_API_KEY],
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2Service.handleRefine(req, res, {
+      contextSevenKey: CONTEXT7_API_KEY.value(),
+    });
+  }
+);
+
+/**
  * POST /api/client-journey-v2/pptx
  * Body: the journey JSON returned by clientJourneyV2Generate (or `{ journey }`
  * wrapping it). Re-validates the schema before rendering to keep tampered

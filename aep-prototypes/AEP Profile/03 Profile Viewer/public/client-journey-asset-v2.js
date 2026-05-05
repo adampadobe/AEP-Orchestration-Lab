@@ -19,6 +19,7 @@
 
   var FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
   var GENERATE_URL = FN_BASE + '/clientJourneyV2Generate';
+  var REFINE_URL = FN_BASE + '/clientJourneyV2Refine';
   var PPTX_URL = '/api/client-journey-v2/pptx';
 
   // Local-dev override: if the page is served from localhost (the Express
@@ -32,9 +33,15 @@
   var resetBtn = document.getElementById('cjv2ResetBtn');
   var longCallNote = document.getElementById('cjv2LongCallNote');
   var brandColorInput = document.getElementById('cjv2BrandColor');
+  var brandColorPicker = document.getElementById('cjv2BrandColorPicker');
+  var brandEyedropperBtn = document.getElementById('cjv2BrandEyedropper');
   var brandSwatch = document.getElementById('cjv2BrandSwatch');
 
   var outputSection = document.getElementById('cjv2Output');
+  var refinePanel = document.getElementById('cjv2RefinePanel');
+  var refinePromptEl = document.getElementById('cjv2RefinePrompt');
+  var refineBtn = document.getElementById('cjv2RefineBtn');
+  var refineStatusEl = document.getElementById('cjv2RefineStatus');
   var pptxStatusEl = document.getElementById('cjv2PptxStatus');
   var downloadHtmlBtn = document.getElementById('cjv2DownloadHtmlBtn');
   var downloadPptxBtn = document.getElementById('cjv2DownloadPptxBtn');
@@ -60,18 +67,107 @@
 
   // ── Brand colour swatch live preview ───────────────────────────────────
 
-  function updateSwatch() {
-    var raw = String(brandColorInput.value || '').replace(/^#/, '').trim();
-    if (/^[0-9A-Fa-f]{6}$/.test(raw)) {
-      brandSwatch.style.background = '#' + raw;
-      brandSwatch.style.borderColor = '#' + raw;
-    } else {
+  function normaliseHex(raw) {
+    var cleaned = String(raw || '').replace(/^#/, '').trim();
+    if (!cleaned) return '';
+    return /^[0-9A-Fa-f]{6}$/.test(cleaned) ? cleaned.toUpperCase() : null;
+  }
+
+  function setBrandColorInvalid(isInvalid) {
+    if (isInvalid) brandColorInput.setAttribute('aria-invalid', 'true');
+    else brandColorInput.removeAttribute('aria-invalid');
+  }
+
+  function syncBrandColorUi(hex) {
+    var upper = normaliseHex(hex);
+    if (!upper) {
       brandSwatch.style.background = '';
       brandSwatch.style.borderColor = '';
+      return;
+    }
+    var prefixed = '#' + upper;
+    brandSwatch.style.background = prefixed;
+    brandSwatch.style.borderColor = prefixed;
+    if (brandColorPicker) brandColorPicker.value = prefixed;
+  }
+
+  function applyBrandColor(hex, source) {
+    var upper = normaliseHex(hex);
+    if (!upper) return false;
+    if (source !== 'text') brandColorInput.value = upper;
+    if (source !== 'picker' && brandColorPicker) brandColorPicker.value = '#' + upper;
+    syncBrandColorUi(upper);
+    setBrandColorInvalid(false);
+    if (statusEl.classList.contains('error') && /brand colour/i.test(statusEl.textContent || '')) {
+      setStatus('');
+    }
+    return true;
+  }
+
+  function validateBrandColorForSubmit() {
+    var raw = String(brandColorInput.value || '').trim();
+    if (!raw) {
+      setBrandColorInvalid(false);
+      if (brandColorPicker) {
+        brandSwatch.style.background = '';
+        brandSwatch.style.borderColor = '';
+      }
+      return { ok: true, value: '' };
+    }
+    var upper = normaliseHex(raw);
+    if (!upper) {
+      setBrandColorInvalid(true);
+      return { ok: false, message: 'Brand colour must be a 6-digit hex value (for example E60000).' };
+    }
+    applyBrandColor(upper, 'text');
+    return { ok: true, value: upper };
+  }
+
+  brandColorInput.addEventListener('input', function () {
+    var upper = normaliseHex(brandColorInput.value);
+    if (upper) applyBrandColor(upper, 'text');
+    else syncBrandColorUi('');
+  });
+  brandColorInput.addEventListener('blur', function () {
+    var raw = String(brandColorInput.value || '').trim();
+    if (!raw) {
+      setBrandColorInvalid(false);
+      syncBrandColorUi('');
+      return;
+    }
+    var upper = normaliseHex(raw);
+    if (upper) {
+      applyBrandColor(upper, 'text');
+      return;
+    }
+    setBrandColorInvalid(true);
+  });
+  if (brandColorPicker) {
+    brandColorPicker.addEventListener('input', function () {
+      applyBrandColor(brandColorPicker.value, 'picker');
+    });
+  }
+  if (brandEyedropperBtn) {
+    if (typeof window.EyeDropper === 'function') {
+      brandEyedropperBtn.hidden = false;
+      brandEyedropperBtn.addEventListener('click', async function () {
+        try {
+          var eyeDropper = new window.EyeDropper();
+          var picked = await eyeDropper.open();
+          if (picked && picked.sRGBHex) applyBrandColor(picked.sRGBHex, 'picker');
+        } catch (err) {
+          // User cancel is normal for EyeDropper.
+          if (err && err.name !== 'AbortError') {
+            console.warn('[cjv2] eyedropper failed:', err);
+          }
+        }
+      });
+    } else {
+      brandEyedropperBtn.hidden = true;
+      brandEyedropperBtn.disabled = true;
     }
   }
-  brandColorInput.addEventListener('input', updateSwatch);
-  updateSwatch();
+  syncBrandColorUi(brandColorInput.value);
 
   // ── Form submit → generate ─────────────────────────────────────────────
 
@@ -87,13 +183,21 @@
     if (kind) pptxStatusEl.classList.add(kind);
   }
 
+  function setRefineStatus(text, kind) {
+    if (!refineStatusEl) return;
+    refineStatusEl.textContent = text || '';
+    refineStatusEl.classList.remove('error', 'success');
+    if (kind) refineStatusEl.classList.add(kind);
+  }
+
   function readForm() {
     var fd = new FormData(form);
     var body = {};
     fd.forEach(function (val, key) { body[key] = String(val); });
     body.tier = body.tier === 'Advanced' ? 'Advanced' : 'Foundation';
     body.client = String(body.client || '').trim();
-    body.brandColor = String(body.brandColor || '').trim();
+    var maybeHex = normaliseHex(body.brandColor || '');
+    body.brandColor = maybeHex || '';
     return body;
   }
 
@@ -134,6 +238,8 @@
     if (genderEl && 'value' in genderEl) {
       genderEl.value = snap.personaGender === 'male' ? 'male' : 'female';
     }
+    if (snap.brandColor) applyBrandColor(snap.brandColor, 'text');
+    else syncBrandColorUi('');
   }
 
   function buildPersistPayload(formSnap, serverJson) {
@@ -267,6 +373,7 @@
     iframeEl.src = 'about:blank';
     outputSection.hidden = true;
     debugSection.hidden = true;
+    setRefineStatus('');
   }
 
   resetBtn.addEventListener('click', function () {
@@ -285,11 +392,20 @@
       setStatus('Client name is required.', 'error');
       return;
     }
+    var brandValidation = validateBrandColorForSubmit();
+    if (!brandValidation.ok) {
+      setStatus(brandValidation.message, 'error');
+      brandColorInput.focus();
+      return;
+    }
+    body.brandColor = brandValidation.value;
     clearLastResult();
     generateBtn.disabled = true;
+    if (refineBtn) refineBtn.disabled = true;
     longCallNote.hidden = false;
     var startedAt = Date.now();
     setStatus('Sending request to Vertex AI Gemini…');
+    setRefineStatus('');
 
     var tickHandle = setInterval(function () {
       var elapsed = Math.round((Date.now() - startedAt) / 1000);
@@ -340,9 +456,97 @@
     } finally {
       clearInterval(tickHandle);
       generateBtn.disabled = false;
+      if (refineBtn) refineBtn.disabled = false;
       longCallNote.hidden = true;
     }
   });
+
+  async function refineJourney() {
+    if (!lastResult || !lastResult.journey) {
+      setRefineStatus('Generate a journey first, then refine it.', 'error');
+      return;
+    }
+    var prompt = String(refinePromptEl && refinePromptEl.value || '').trim();
+    if (!prompt) {
+      setRefineStatus('Type a refinement prompt before clicking Refine assets.', 'error');
+      if (refinePromptEl) refinePromptEl.focus();
+      return;
+    }
+    var body = readForm();
+    var brandValidation = validateBrandColorForSubmit();
+    if (!brandValidation.ok) {
+      setStatus(brandValidation.message, 'error');
+      brandColorInput.focus();
+      return;
+    }
+    body.brandColor = brandValidation.value;
+
+    var contextPayload = {
+      client: body.client,
+      clientDomain: body.clientDomain || '',
+      brandColor: body.brandColor || '',
+      journeyType: body.journeyType || '',
+      personaName: body.personaName || '',
+      personaGender: body.personaGender || 'female',
+      marketerPersonaName: body.marketerPersonaName || '',
+      tier: body.tier,
+      techStack: body.techStack || '',
+      additionalContext: body.additionalContext || '',
+      meta: lastResult.meta || {},
+    };
+
+    refineBtn.disabled = true;
+    generateBtn.disabled = true;
+    longCallNote.hidden = false;
+    setRefineStatus('Refining with Vertex AI…');
+    setStatus('');
+    setPptxStatus('');
+    var startedAt = Date.now();
+
+    try {
+      var resp = await fetch(REFINE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          journey: lastResult.journey,
+          refinePrompt: prompt,
+          context: contextPayload,
+        }),
+        cache: 'no-store',
+      });
+      var json;
+      try { json = await resp.json(); }
+      catch (parseErr) {
+        throw new Error('Server returned non-JSON (HTTP ' + resp.status + ')');
+      }
+      if (!resp.ok || !json.ok) {
+        var detail = json && (json.detail || json.error) || ('HTTP ' + resp.status);
+        if (Array.isArray(json && json.validationErrors) && json.validationErrors.length) {
+          detail += ' — schema errors: ' + json.validationErrors.slice(0, 3).join('; ');
+        }
+        throw new Error(detail);
+      }
+      if (!json.html || !json.journey) {
+        throw new Error('Server returned ok but no html or journey in payload');
+      }
+
+      lastResult = json;
+      tryPersistLastRun(cloneFormSnapshot(body), json);
+      renderOutput();
+      setRefineStatus('Updated. The journey output was refined and replaced.', 'success');
+      if (refinePromptEl) refinePromptEl.value = '';
+      var elapsed = Math.round((Date.now() - startedAt) / 1000);
+      setStatus('Refinement complete in ' + elapsed + 's.', 'success');
+    } catch (err) {
+      console.error('[cjv2] refine failed:', err);
+      setRefineStatus('Refine failed: ' + String(err.message || err), 'error');
+      setStatus('Your previous result is still loaded.', '');
+    } finally {
+      refineBtn.disabled = false;
+      generateBtn.disabled = false;
+      longCallNote.hidden = true;
+    }
+  }
 
   // ── Output rendering ──────────────────────────────────────────────────
 
@@ -358,6 +562,7 @@
 
     outputSection.hidden = false;
     debugSection.hidden = false;
+    if (refinePanel) refinePanel.hidden = false;
 
     sourcesEl.innerHTML = '';
     (lastResult.sources || []).forEach(function (s) {
@@ -452,6 +657,15 @@
   downloadHtmlBtn.addEventListener('click', downloadHtml);
   downloadPptxBtn.addEventListener('click', downloadPptx);
   openNewTabBtn.addEventListener('click', openInNewTab);
+  if (refineBtn) refineBtn.addEventListener('click', refineJourney);
+  if (refinePromptEl) {
+    refinePromptEl.addEventListener('keydown', function (ev) {
+      if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+        ev.preventDefault();
+        refineJourney();
+      }
+    });
+  }
 
   if (restoreBtn && restoreDiscardBtn) {
     restoreBtn.addEventListener('click', function () {

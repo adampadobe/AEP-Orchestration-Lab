@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505a">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505b">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -95,6 +95,10 @@
                 <span class="cjv2-label">Brand colour (hex)</span>
                 <div class="cjv2-color-row">
                   <input type="text" id="cjv2BrandColor" name="brandColor" maxlength="7" autocomplete="off" spellcheck="false" placeholder="E60000">
+                  <input type="color" id="cjv2BrandColorPicker" class="cjv2-color-picker" aria-label="Pick brand colour" title="Pick brand colour">
+                  <button type="button" id="cjv2BrandEyedropper" class="cjv2-color-eyedropper cjv2-btn cjv2-btn-secondary" aria-label="Pick a colour from the screen" title="Pick a colour from the screen" hidden>
+                    Eyedropper
+                  </button>
                   <span class="cjv2-color-swatch" id="cjv2BrandSwatch" aria-hidden="true"></span>
                 </div>
               </label>
@@ -151,6 +155,20 @@
 
         <section class="cjv2-panel cjv2-panel-output" id="cjv2Output" hidden>
           <h2 class="cjv2-panel-title">2. Output</h2>
+          <div class="cjv2-refine-panel" id="cjv2RefinePanel">
+            <div class="cjv2-refine-header">
+              <span class="cjv2-refine-title">Refine with Vertex AI</span>
+              <span id="cjv2RefineStatus" class="cjv2-status" role="status" aria-live="polite"></span>
+            </div>
+            <label class="cjv2-refine-field" for="cjv2RefinePrompt">
+              <span class="visually-hidden">Refinement prompt</span>
+              <textarea id="cjv2RefinePrompt" rows="3" placeholder="e.g. Make step 7 emphasize sustainability messaging and move loyalty upsell to step 9." spellcheck="true"></textarea>
+            </label>
+            <div class="cjv2-refine-actions">
+              <button type="button" id="cjv2RefineBtn" class="cjv2-btn cjv2-btn-primary">Refine assets</button>
+              <span class="cjv2-refine-hint">Sends your prompt + the current journey JSON back to Vertex AI to update this output. It can take about as long as first generation.</span>
+            </div>
+          </div>
           <div class="cjv2-output-actions">
             <button type="button" id="cjv2DownloadHtmlBtn" class="cjv2-btn cjv2-btn-secondary">
               Download HTML journey
@@ -185,7 +203,7 @@
     </div>
   </div>
 
-  <script src="client-journey-asset-v2.js?v=20260505a"></script>
+  <script src="client-journey-asset-v2.js?v=20260505b"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>
