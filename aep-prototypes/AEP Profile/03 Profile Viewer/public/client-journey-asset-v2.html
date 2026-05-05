@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505k">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505l">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -82,7 +82,30 @@
               <span id="cjv2ImportStatus" class="cjv2-status" role="status" aria-live="polite"></span>
             </div>
             <div id="cjv2ImportListWrap" class="cjv2-import-list-wrap" hidden>
-              <ul id="cjv2ImportList" class="cjv2-import-list"></ul>
+              <div class="cjv2-import-list-toolbar">
+                <label class="cjv2-field cjv2-import-sort-field" for="cjv2ImportSort">
+                  <span class="cjv2-label">Order list</span>
+                  <select id="cjv2ImportSort" class="cjv2-import-sort" aria-label="Sort saved brand scrapes">
+                    <option value="newest" selected>Newest run first</option>
+                    <option value="oldest">Oldest run first</option>
+                    <option value="name-asc">Name A–Z</option>
+                    <option value="name-desc">Name Z–A</option>
+                  </select>
+                </label>
+              </div>
+              <div class="cjv2-import-table-scroll">
+                <table class="cjv2-import-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Brand</th>
+                      <th scope="col">Run time</th>
+                      <th scope="col">Signals</th>
+                      <th scope="col" class="cjv2-import-th-action">Import</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cjv2ImportList"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -270,7 +293,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="client-journey-asset-v2.js?v=20260505k"></script>
+  <script src="client-journey-asset-v2.js?v=20260505l"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>

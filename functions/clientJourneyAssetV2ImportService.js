@@ -391,6 +391,8 @@ async function handleImportScrapeList(req, res) {
       scrapeId: safeString(item && item.scrapeId),
       brandName: safeString(item && item.brandName),
       url: safeString(item && (item.baseUrl || item.url)),
+      runStartedAt: safeString(item && item.runStartedAt),
+      createdAt: safeString(item && item.createdAt),
       updatedAt: safeString(item && item.updatedAt),
       scrapeVersion: safeString(item && item.updatedAt),
       analysisPresent: !!(item && item.analysisPresent),

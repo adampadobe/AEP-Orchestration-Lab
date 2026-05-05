@@ -44,7 +44,11 @@
   var importStatusEl = document.getElementById('cjv2ImportStatus');
   var importListWrapEl = document.getElementById('cjv2ImportListWrap');
   var importListEl = document.getElementById('cjv2ImportList');
+  var importSortEl = document.getElementById('cjv2ImportSort');
   var importSourceEl = document.getElementById('cjv2ImportSource');
+  /** Cached scrape rows for client-side re-sort (last successful list load). */
+  var lastImportScrapeItems = [];
+  var lastImportScrapeSandbox = '';
 
   var journeyTypeHidden = document.getElementById('cjv2JourneyTypeHidden');
   var journeyTypeSelect = document.getElementById('cjv2JourneyTypeSelect');
@@ -656,28 +660,120 @@
     importSourceEl.hidden = false;
   }
 
+  function scrapeRunIsoForDisplay(item) {
+    var r = item && (item.runStartedAt || item.createdAt || item.updatedAt);
+    return r != null ? String(r).trim() : '';
+  }
+
+  function scrapeRunTimestampMs(item) {
+    var iso = scrapeRunIsoForDisplay(item);
+    if (!iso) return 0;
+    var t = Date.parse(iso);
+    return Number.isNaN(t) ? 0 : t;
+  }
+
+  function importNameSortKey(item) {
+    return String(item && (item.brandName || item.url || item.scrapeId || '') || '').toLowerCase().trim();
+  }
+
+  function formatScrapeRunDisplay(iso) {
+    if (!iso) return '';
+    var t = Date.parse(String(iso));
+    if (Number.isNaN(t)) return String(iso).slice(0, 22);
+    try {
+      return new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    } catch (_e) {
+      return String(iso);
+    }
+  }
+
+  function sortImportItems(items, sortKey) {
+    var key = sortKey || 'newest';
+    var arr = items.slice();
+    if (key === 'newest') {
+      arr.sort(function (a, b) {
+        return scrapeRunTimestampMs(b) - scrapeRunTimestampMs(a);
+      });
+      return arr;
+    }
+    if (key === 'oldest') {
+      arr.sort(function (a, b) {
+        return scrapeRunTimestampMs(a) - scrapeRunTimestampMs(b);
+      });
+      return arr;
+    }
+    if (key === 'name-desc') {
+      arr.sort(function (a, b) {
+        return importNameSortKey(b).localeCompare(importNameSortKey(a));
+      });
+      return arr;
+    }
+    arr.sort(function (a, b) {
+      return importNameSortKey(a).localeCompare(importNameSortKey(b));
+    });
+    return arr;
+  }
+
+  function bindImportSortControl() {
+    if (!importSortEl || importSortEl.dataset.cjv2SortBound === '1') return;
+    importSortEl.dataset.cjv2SortBound = '1';
+    importSortEl.addEventListener('change', function () {
+      renderImportList(lastImportScrapeItems, lastImportScrapeSandbox);
+    });
+  }
+
   function renderImportList(items, sandbox) {
     if (!importListEl || !importListWrapEl) return;
+    lastImportScrapeItems = Array.isArray(items) ? items.slice() : [];
+    lastImportScrapeSandbox = sandbox || '';
     importListEl.innerHTML = '';
-    if (!Array.isArray(items) || !items.length) {
+    if (!lastImportScrapeItems.length) {
       importListWrapEl.hidden = true;
       return;
     }
-    items.forEach(function (item) {
-      var li = document.createElement('li');
-      var copy = document.createElement('div');
-      copy.className = 'cjv2-import-item-copy';
-      var title = document.createElement('strong');
-      title.textContent = item.brandName || item.url || item.scrapeId || 'Unnamed scrape';
-      var meta = document.createElement('span');
+    var sortKey = importSortEl && importSortEl.value ? importSortEl.value : 'newest';
+    var sorted = sortImportItems(lastImportScrapeItems, sortKey);
+    sorted.forEach(function (item) {
+      var tr = document.createElement('tr');
+
+      var tdBrand = document.createElement('td');
+      tdBrand.className = 'cjv2-import-cell-brand';
+      var strong = document.createElement('strong');
+      strong.textContent = item.brandName || item.url || item.scrapeId || 'Unnamed scrape';
+      tdBrand.appendChild(strong);
+      var urlLine = item.url ? String(item.url) : '';
+      if (urlLine) {
+        var urlEl = document.createElement('span');
+        urlEl.className = 'cjv2-import-cell-brand-url';
+        urlEl.textContent = urlLine;
+        tdBrand.appendChild(urlEl);
+      }
+
+      var tdTime = document.createElement('td');
+      var runIso = scrapeRunIsoForDisplay(item);
+      if (runIso) {
+        tdTime.className = 'cjv2-import-cell-time';
+        var timeEl = document.createElement('time');
+        timeEl.dateTime = runIso;
+        timeEl.textContent = formatScrapeRunDisplay(runIso);
+        timeEl.title = 'Scrape run time (run start if known, else created / last updated) — ' + runIso;
+        tdTime.appendChild(timeEl);
+      } else {
+        tdTime.className = 'cjv2-import-cell-time cjv2-import-cell-time--empty';
+        tdTime.textContent = 'No timestamp';
+      }
+
+      var tdFlags = document.createElement('td');
+      tdFlags.className = 'cjv2-import-cell-flags';
       var flags = [];
       if (item.analysisPresent) flags.push('analysis');
       if (item.personasPresent) flags.push('personas');
       if (item.campaignsPresent) flags.push('campaigns');
       if (item.segmentsPresent) flags.push('segments');
-      meta.textContent = (item.updatedAt || 'No timestamp') + (flags.length ? ' · ' + flags.join(', ') : '');
-      copy.appendChild(title);
-      copy.appendChild(meta);
+      tdFlags.textContent = flags.length ? flags.join(', ') : '—';
+
+      var tdAct = document.createElement('td');
+      tdAct.className = 'cjv2-import-cell-action';
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'cjv2-btn cjv2-btn-secondary';
@@ -685,9 +781,13 @@
       btn.addEventListener('click', function () {
         importMappedProfile(sandbox, item.scrapeId || item.id);
       });
-      li.appendChild(copy);
-      li.appendChild(btn);
-      importListEl.appendChild(li);
+      tdAct.appendChild(btn);
+
+      tr.appendChild(tdBrand);
+      tr.appendChild(tdTime);
+      tr.appendChild(tdFlags);
+      tr.appendChild(tdAct);
+      importListEl.appendChild(tr);
     });
     importListWrapEl.hidden = false;
   }
@@ -719,6 +819,8 @@
   async function loadImportScrapes() {
     var sandbox = getSandboxForImport();
     if (!sandbox) {
+      lastImportScrapeItems = [];
+      lastImportScrapeSandbox = '';
       setImportStatus('Select a sandbox first.', 'error');
       if (importListWrapEl) importListWrapEl.hidden = true;
       return;
@@ -741,6 +843,8 @@
       setImportStatus('Select a scrape to prefill the brief.', 'success');
     } catch (err) {
       console.error('[cjv2] list scrapes failed:', err);
+      lastImportScrapeItems = [];
+      lastImportScrapeSandbox = '';
       if (importListWrapEl) importListWrapEl.hidden = true;
       setImportStatus('Could not load scrapes: ' + String(err.message || err), 'error');
     } finally {
@@ -1440,6 +1544,7 @@
   downloadPptxBtn.addEventListener('click', downloadPptx);
   openNewTabBtn.addEventListener('click', openInNewTab);
   if (importLoadBtn) importLoadBtn.addEventListener('click', loadImportScrapes);
+  bindImportSortControl();
   if (refineBtn) refineBtn.addEventListener('click', refineJourney);
   if (refinePromptEl) {
     refinePromptEl.addEventListener('keydown', function (ev) {

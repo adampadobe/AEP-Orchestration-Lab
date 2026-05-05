@@ -165,41 +165,137 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list-wrap {
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm, 10px);
   background: var(--dash-surface);
-  max-height: 260px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list-toolbar {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-sort-field {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-sort-field .cjv2-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-sort {
+  min-width: 11rem;
+  max-width: 100%;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 8px);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-sort:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px var(--dash-hover);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  color: var(--dash-text);
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list li {
-  padding: 0.55rem 0.7rem;
-  border-bottom: 1px solid var(--dash-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-list li:last-child {
-  border-bottom: 0;
-}
-
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-item-copy {
-  min-width: 0;
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--dash-text-secondary);
-  font-size: 0.8rem;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  white-space: nowrap;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-th-action {
+  width: 4.5rem;
+  text-align: right;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-table tbody td {
+  padding: 0.5rem 0.65rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--dash-border);
+  color: var(--dash-text-secondary);
   line-height: 1.35;
 }
 
-body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-item-copy strong {
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-brand strong {
   display: block;
   color: var(--dash-text);
   font-size: 0.86rem;
-  margin-bottom: 0.1rem;
+  font-weight: 600;
+  margin-bottom: 0.12rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-brand-url {
+  display: block;
+  font-size: 0.72rem;
+  word-break: break-all;
+  color: var(--dash-muted);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-time--empty {
+  color: var(--dash-muted);
+  font-style: italic;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-flags {
+  font-size: 0.75rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-action {
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-cell-action .cjv2-btn {
+  padding: 0.32rem 0.55rem;
+  font-size: 0.78rem;
 }
 
 /* ── Form ────────────────────────────────────────────────────────────────── */
