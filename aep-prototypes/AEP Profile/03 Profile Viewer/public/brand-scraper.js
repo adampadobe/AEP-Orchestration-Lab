@@ -1259,6 +1259,8 @@
     const failureParts = failureSummary && failureSummary.byReason
       ? Object.entries(failureSummary.byReason).map(([k, v]) => k + ' × ' + v).join(', ')
       : '';
+    /** Same scrape-level signal as the "Tag and analytics (on-site)" tile (`renderResults` / `renderTileSection`). */
+    const tagAnalyticsForScrape = !!(c.tagAuditSummary);
     const rows = c.pages.map(function (p) {
       const ta = p.tagAudit;
       const mode = ta && ta.mode ? ta.mode : '—';
@@ -1268,6 +1270,16 @@
       const failN = ta && ta.networkBeaconSummary ? (ta.networkBeaconSummary.failedBeaconRequests || 0) : 0;
       const hint = ta && ta.consentOrderHint ? ta.consentOrderHint.state : '';
       const tagCellExtra = (dupN ? ' · dup ' + dupN : '') + (failN ? ' · HTTP ' + failN : '') + (hint === 'analytics_before_cmp' ? ' · consent?' : '');
+      const detailRow = tagAnalyticsForScrape
+        ? (
+          '<tr class="brand-scraper-crawl-detail"><td colspan="6">' +
+            '<details class="brand-scraper-tag-page-wrap">' +
+              '<summary>Tag / network detail for this URL</summary>' +
+              renderTagAuditPageDetails(ta) +
+            '</details>' +
+          '</td></tr>'
+        )
+        : '';
       return (
         '<tr>' +
           '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
@@ -1277,12 +1289,7 @@
           '<td><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
           '<td class="brand-scraper-num">' + errCell + '</td>' +
         '</tr>' +
-        '<tr class="brand-scraper-crawl-detail"><td colspan="6">' +
-          '<details class="brand-scraper-tag-page-wrap">' +
-            '<summary>Tag / network detail for this URL</summary>' +
-            renderTagAuditPageDetails(ta) +
-          '</details>' +
-        '</td></tr>'
+        detailRow
       );
     }).join('');
     return '<section class="brand-scraper-result-block">' +
