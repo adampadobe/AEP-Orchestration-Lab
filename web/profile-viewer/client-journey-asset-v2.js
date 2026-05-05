@@ -201,18 +201,35 @@
     return '';
   }
 
+  /**
+   * True only after the user edits the import sandbox text to a non-empty value
+   * that does not match the global sandbox at edit time. Cleared when they clear
+   * the field or type the same name as the current global (so lab-wide changes
+   * still update a mirrored field, but a deliberate other-sandbox import is kept).
+   */
+  var importSandboxUserOverride = false;
+
+  function recomputeImportSandboxUserOverrideFromField() {
+    if (!importSandboxInput) return;
+    var v = String(importSandboxInput.value || '').trim();
+    var g = getGlobalSandboxName();
+    if (!v || v === g) importSandboxUserOverride = false;
+    else importSandboxUserOverride = true;
+  }
+
+  /** Mirror global sandbox into the import field when the user is not overriding it. */
+  function applyGlobalSandboxToImportField() {
+    if (!importSandboxInput) return;
+    if (document.activeElement === importSandboxInput) return;
+    if (importSandboxUserOverride) return;
+    var g = getGlobalSandboxName();
+    importSandboxInput.value = g;
+  }
+
   function getSandboxForImport() {
     var fromInput = importSandboxInput ? String(importSandboxInput.value || '').trim() : '';
     if (fromInput) return fromInput;
     return getGlobalSandboxName();
-  }
-
-  function syncImportSandboxFromGlobal() {
-    if (!importSandboxInput) return;
-    var current = String(importSandboxInput.value || '').trim();
-    if (current) return;
-    var resolved = getSandboxForImport();
-    if (resolved) importSandboxInput.value = resolved;
   }
 
   function userFacingServerError(json, detail) {
@@ -1098,12 +1115,31 @@
     });
   }
 
-  syncImportSandboxFromGlobal();
+  if (importSandboxInput) {
+    importSandboxInput.addEventListener('input', function () {
+      recomputeImportSandboxUserOverrideFromField();
+    });
+    importSandboxInput.addEventListener('change', function () {
+      recomputeImportSandboxUserOverrideFromField();
+    });
+  }
+
+  applyGlobalSandboxToImportField();
+  recomputeImportSandboxUserOverrideFromField();
+
   window.addEventListener('aep-global-sandbox-change', function () {
-    if (!importSandboxInput) return;
-    if (document.activeElement === importSandboxInput) return;
-    importSandboxInput.value = getGlobalSandboxName();
+    recomputeImportSandboxUserOverrideFromField();
+    applyGlobalSandboxToImportField();
   });
+  try {
+    window.addEventListener('storage', function (e) {
+      if (!e || !e.key) return;
+      if (e.key === 'aepGlobalSandboxName' || e.key.indexOf('aepGlobal') === 0) {
+        recomputeImportSandboxUserOverrideFromField();
+        applyGlobalSandboxToImportField();
+      }
+    });
+  } catch (_e) {}
 
   showRestoreBannerIfNeeded();
   bindFullscreen();
