@@ -46,7 +46,8 @@
   var downloadPptxBtn = document.getElementById('cjv2DownloadPptxBtn');
   var openNewTabBtn = document.getElementById('cjv2OpenNewTabBtn');
   var previewMountEl = document.getElementById('cjv2PreviewMount');
-  var previewFullscreenBtn = document.getElementById('cjv2FullscreenBtn');
+  var onePagerMountEl = document.getElementById('cjv2OnePagerMount');
+  var onePagerHtmlEl = document.getElementById('cjv2OnePagerHtml');
   var iframeEl = document.getElementById('cjv2HtmlPreview');
 
   var debugSection = document.getElementById('cjv2DebugSection');
@@ -61,7 +62,7 @@
   /** @type {object|null} */
   var pendingRestorePayload = null;
 
-  /** @type {{html:string,journey:object,sources:Array,meta:object,log:Array}|null} */
+  /** @type {{html:string,journey:object,sources:Array,meta:object,log:Array,onePagerHtml?:string}|null} */
   var lastResult = null;
   /** @type {string|null} */
   var lastBlobUrl = null;
@@ -264,6 +265,7 @@
       form: formSnap,
       result: {
         html: serverJson.html,
+        onePagerHtml: typeof serverJson.onePagerHtml === 'string' ? serverJson.onePagerHtml : '',
         journey: serverJson.journey,
         meta: serverJson.meta && typeof serverJson.meta === 'object' ? serverJson.meta : {},
         sources: Array.isArray(serverJson.sources) ? serverJson.sources : [],
@@ -367,6 +369,7 @@
     lastResult = {
       ok: true,
       html: r.html,
+      onePagerHtml: typeof r.onePagerHtml === 'string' ? r.onePagerHtml : '',
       journey: r.journey,
       meta: r.meta || {},
       sources: r.sources || [],
@@ -385,6 +388,7 @@
     }
     lastResult = null;
     iframeEl.src = 'about:blank';
+    if (onePagerHtmlEl) onePagerHtmlEl.innerHTML = '';
     outputSection.hidden = true;
     debugSection.hidden = true;
     setRefineStatus('');
@@ -415,32 +419,210 @@
     return Promise.reject(new Error('Unable to exit full screen.'));
   }
 
-  function syncFullscreenButton() {
-    if (!previewFullscreenBtn || !previewMountEl) return;
-    var isFullscreen = getFullscreenElement() === previewMountEl;
-    var label = isFullscreen ? 'Exit full screen' : 'Enter full screen';
-    previewFullscreenBtn.innerHTML = isFullscreen ? FULLSCREEN_ICON_EXIT : FULLSCREEN_ICON_ENTER;
-    previewFullscreenBtn.setAttribute('aria-pressed', isFullscreen ? 'true' : 'false');
-    previewFullscreenBtn.setAttribute('aria-label', label);
-    previewFullscreenBtn.setAttribute('title', label);
+  function syncFullscreenButtons() {
+    var fsEl = getFullscreenElement();
+    var btns = document.querySelectorAll('.cjv2-fullscreen-btn[data-target]');
+    btns.forEach(function (btn) {
+      var targetId = btn.getAttribute('data-target');
+      var targetEl = targetId ? document.getElementById(targetId) : null;
+      if (!targetEl) return;
+      var isFullscreen = fsEl === targetEl;
+      var label = isFullscreen ? 'Exit full screen' : 'Enter full screen';
+      btn.innerHTML = isFullscreen ? FULLSCREEN_ICON_EXIT : FULLSCREEN_ICON_ENTER;
+      btn.setAttribute('aria-pressed', isFullscreen ? 'true' : 'false');
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+    });
   }
 
   function bindFullscreen() {
-    if (!previewFullscreenBtn || !previewMountEl || previewFullscreenBtn.getAttribute('data-cjv2-fs-bound') === '1') {
-      return;
-    }
-    previewFullscreenBtn.setAttribute('data-cjv2-fs-bound', '1');
-    syncFullscreenButton();
-    previewFullscreenBtn.addEventListener('click', function () {
-      var active = getFullscreenElement() === previewMountEl;
-      var p = active ? exitFullscreen() : requestFullscreen(previewMountEl);
-      Promise.resolve(p)
-        .catch(function () {})
-        .finally(syncFullscreenButton);
+    var btns = document.querySelectorAll('.cjv2-fullscreen-btn[data-target]');
+    btns.forEach(function (btn) {
+      if (btn.getAttribute('data-cjv2-fs-bound') === '1') return;
+      btn.setAttribute('data-cjv2-fs-bound', '1');
+      btn.addEventListener('click', function () {
+        var targetId = btn.getAttribute('data-target');
+        var targetEl = targetId ? document.getElementById(targetId) : null;
+        if (!targetEl) return;
+        var active = getFullscreenElement() === targetEl;
+        var p = active ? exitFullscreen() : requestFullscreen(targetEl);
+        Promise.resolve(p)
+          .catch(function () {})
+          .finally(syncFullscreenButtons);
+      });
     });
+    if (document.documentElement.getAttribute('data-cjv2-fs-events-bound') === '1') return;
+    document.documentElement.setAttribute('data-cjv2-fs-events-bound', '1');
     ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (eventName) {
-      document.addEventListener(eventName, syncFullscreenButton);
+      document.addEventListener(eventName, syncFullscreenButtons);
     });
+    syncFullscreenButtons();
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+
+  function normaliseStepLabel(label, index) {
+    var text = String(label == null ? '' : label).trim();
+    if (text) return text;
+    return String(index + 1).padStart(2, '0') + ' Step';
+  }
+
+  function normaliseDescriptionForStep(descriptions, index) {
+    if (!Array.isArray(descriptions)) return '';
+    if (descriptions.length >= 13) {
+      return String(index < 2 ? descriptions[index] : descriptions[index + 1] || '');
+    }
+    return String(descriptions[index] || '');
+  }
+
+  function renderDataCell(cell) {
+    var status = cell && cell.status ? escapeHtml(cell.status) : '';
+    var bullets = Array.isArray(cell && cell.bullets) ? cell.bullets : [];
+    var rows = '';
+    if (status) rows += '<span class="cjv2-opg-status">' + status + '</span>';
+    if (bullets.length) {
+      rows += '<ul class="cjv2-opg-list">' + bullets.map(function (bullet) {
+        return '<li>' + escapeHtml(bullet) + '</li>';
+      }).join('') + '</ul>';
+    }
+    return rows || '<span class="cjv2-opg-text-strong">-</span>';
+  }
+
+  function renderAdobeCell(cell) {
+    var blocks = Array.isArray(cell && cell.blocks) ? cell.blocks : [];
+    if (!blocks.length) return '<span class="cjv2-opg-text-strong">-</span>';
+    var html = '';
+    var listItems = [];
+    function flushList() {
+      if (!listItems.length) return;
+      html += '<ul class="cjv2-opg-list">' + listItems.join('') + '</ul>';
+      listItems = [];
+    }
+    blocks.forEach(function (block) {
+      var type = String(block && block.type || '').toLowerCase();
+      var text = escapeHtml(block && block.text || '');
+      if (type === 'bullet') {
+        listItems.push('<li>' + text + '</li>');
+        return;
+      }
+      flushList();
+      if (type === 'product') html += '<p class="cjv2-opg-product">' + text + '</p>';
+      else if (type === 'heading') html += '<p class="cjv2-opg-block-title">' + text + '</p>';
+      else if (type === 'blank') html += '<div class="cjv2-opg-blank" aria-hidden="true"></div>';
+    });
+    flushList();
+    return html || '<span class="cjv2-opg-text-strong">-</span>';
+  }
+
+  function renderTechCell(cell) {
+    var heading = cell && cell.heading ? escapeHtml(cell.heading) : '';
+    var bullets = Array.isArray(cell && cell.bullets) ? cell.bullets : [];
+    var html = '';
+    if (heading) html += '<span class="cjv2-opg-status">' + heading + '</span>';
+    if (bullets.length) {
+      html += '<ul class="cjv2-opg-list">' + bullets.map(function (bullet) {
+        var raw = String(bullet == null ? '' : bullet);
+        var badge = '';
+        var text = raw;
+        var match = raw.match(/\[(confirmed|assumed)\]\s*$/i);
+        if (match) {
+          badge = '<span class="cjv2-opg-badge">' + escapeHtml(match[1]) + '</span>';
+          text = raw.replace(/\[(confirmed|assumed)\]\s*$/i, '').trim();
+        }
+        return '<li>' + escapeHtml(text) + badge + '</li>';
+      }).join('') + '</ul>';
+    }
+    return html || '<span class="cjv2-opg-text-strong">-</span>';
+  }
+
+  function buildOnePagerHtml(result) {
+    var journey = result && result.journey || {};
+    var meta = result && result.meta || journey.meta || {};
+    var client = String(meta.client || 'Client');
+    var journeyType = String(meta.journeyType || 'Customer journey');
+    var tier = String(meta.tier || 'Foundation');
+    var persona = String(meta.personaName || '');
+    var marketer = String(meta.marketerPersonaName || '');
+    var brand = String(meta.brandColor || '');
+    var brandChipStyle = brand ? ' style="border-color:#' + escapeAttr(brand) + ';color:#' + escapeAttr(brand) + ';"' : '';
+
+    var stepLabels = Array.isArray(journey.stepLabels) ? journey.stepLabels.slice(0, 12) : [];
+    while (stepLabels.length < 12) stepLabels.push('');
+    var descriptions = Array.isArray(journey.descriptions) ? journey.descriptions.slice(0, 13) : [];
+    while (descriptions.length < 13) descriptions.push('');
+    var dataCells = Array.isArray(journey.pptxData) ? journey.pptxData.slice(0, 12) : [];
+    var adobeCells = Array.isArray(journey.pptxAdobe) ? journey.pptxAdobe.slice(0, 12) : [];
+    var techCells = Array.isArray(journey.pptxTech) ? journey.pptxTech.slice(0, 12) : [];
+    while (dataCells.length < 12) dataCells.push({ status: '', bullets: [] });
+    while (adobeCells.length < 12) adobeCells.push({ blocks: [] });
+    while (techCells.length < 12) techCells.push({ heading: '', bullets: [] });
+
+    var stepHeadings = stepLabels.map(function (label, idx) {
+      return '<th scope="col">' + escapeHtml(normaliseStepLabel(label, idx)) + '</th>';
+    }).join('');
+
+    var descriptionRow = descriptions.slice(0, 12).map(function (_, idx) {
+      return '<td><p class="cjv2-opg-text-strong">' +
+        escapeHtml(normaliseDescriptionForStep(descriptions, idx)) +
+        '</p></td>';
+    }).join('');
+    var dataRow = dataCells.map(function (cell) {
+      return '<td>' + renderDataCell(cell) + '</td>';
+    }).join('');
+    var adobeRow = adobeCells.map(function (cell) {
+      return '<td>' + renderAdobeCell(cell) + '</td>';
+    }).join('');
+    var techRow = techCells.map(function (cell) {
+      return '<td>' + renderTechCell(cell) + '</td>';
+    }).join('');
+
+    var whoLine = persona ? 'Persona: ' + escapeHtml(persona) : '';
+    if (marketer) {
+      whoLine += (whoLine ? ' · ' : '') + 'Marketer: ' + escapeHtml(marketer);
+    }
+    var whoHtml = whoLine ? '<p class="cjv2-opg-subheading">' + whoLine + '</p>' : '';
+
+    return '' +
+      '<div class="cjv2-opg-header">' +
+        '<div>' +
+          '<h4 class="cjv2-opg-heading">' + escapeHtml(client) + ' — Adobe Experience Platform one-pager</h4>' +
+          '<p class="cjv2-opg-subheading">' + escapeHtml(journeyType) + '</p>' +
+          whoHtml +
+        '</div>' +
+        '<span class="cjv2-opg-pill"' + brandChipStyle + '>' + escapeHtml(tier) + '</span>' +
+      '</div>' +
+      '<div class="cjv2-opg-table-wrap">' +
+        '<table class="cjv2-opg-table">' +
+          '<thead><tr><th scope="col" class="cjv2-opg-row-label">Section</th>' + stepHeadings + '</tr></thead>' +
+          '<tbody>' +
+            '<tr><th scope="row" class="cjv2-opg-row-label">Description</th>' + descriptionRow + '</tr>' +
+            '<tr><th scope="row" class="cjv2-opg-row-label">Data collected</th>' + dataRow + '</tr>' +
+            '<tr><th scope="row" class="cjv2-opg-row-label">Adobe platform</th>' + adobeRow + '</tr>' +
+            '<tr><th scope="row" class="cjv2-opg-row-label">Existing ' + escapeHtml(client) + ' technology</th>' + techRow + '</tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function ensureOnePagerHtml(result) {
+    if (!result) return '';
+    if (typeof result.onePagerHtml === 'string' && result.onePagerHtml.trim()) {
+      return result.onePagerHtml;
+    }
+    var rendered = buildOnePagerHtml(result);
+    result.onePagerHtml = rendered;
+    return rendered;
   }
 
   resetBtn.addEventListener('click', function () {
@@ -449,7 +631,7 @@
     setPptxStatus('');
     clearLastResult();
     longCallNote.hidden = true;
-    updateSwatch();
+    syncBrandColorUi(brandColorInput.value);
   });
 
   form.addEventListener('submit', async function (e) {
@@ -506,6 +688,7 @@
       }
 
       lastResult = json;
+      ensureOnePagerHtml(lastResult);
       tryPersistLastRun(cloneFormSnapshot(body), json);
       var elapsed = Math.round((Date.now() - startedAt) / 1000);
       setStatus('Done in ' + elapsed + 's. ' + (json.meta && json.meta.tier) + ' tier journey for ' + (json.meta && json.meta.client) + '.', 'success');
@@ -592,6 +775,7 @@
       }
 
       lastResult = json;
+      ensureOnePagerHtml(lastResult);
       tryPersistLastRun(cloneFormSnapshot(body), json);
       renderOutput();
       setRefineStatus('Updated. The journey output was refined and replaced.', 'success');
@@ -620,6 +804,10 @@
     var blob = new Blob([lastResult.html], { type: 'text/html;charset=utf-8' });
     lastBlobUrl = URL.createObjectURL(blob);
     iframeEl.src = lastBlobUrl;
+    if (onePagerHtmlEl) {
+      onePagerHtmlEl.innerHTML = ensureOnePagerHtml(lastResult);
+      if (onePagerMountEl && getFullscreenElement() === onePagerMountEl) onePagerMountEl.scrollTop = 0;
+    }
 
     outputSection.hidden = false;
     debugSection.hidden = false;
@@ -736,7 +924,7 @@
         return;
       }
       applyFormSnapshot(p.form);
-      updateSwatch();
+      syncBrandColorUi(brandColorInput.value);
       applyRestoredResult(p);
     });
     restoreDiscardBtn.addEventListener('click', function () {

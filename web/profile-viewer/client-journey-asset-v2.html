@@ -191,6 +191,26 @@
             </div>
             <iframe id="cjv2HtmlPreview" title="Standalone interactive HTML journey preview"></iframe>
           </div>
+          <section class="cjv2-onepager-section" aria-labelledby="cjv2OnePagerTitle">
+            <div class="cjv2-onepager-header">
+              <h3 class="cjv2-onepager-title" id="cjv2OnePagerTitle">One-pager (HTML view)</h3>
+              <button
+                type="button"
+                id="cjv2OnePagerFullscreenBtn"
+                class="aep-fullscreen-btn cjv2-fullscreen-btn"
+                data-target="cjv2OnePagerMount"
+                aria-pressed="false"
+                aria-label="Enter full screen"
+                title="Enter full screen"
+              ></button>
+            </div>
+            <p class="cjv2-onepager-hint">
+              Presentation-friendly one-pager built from the current v2 journey payload.
+            </p>
+            <div class="cjv2-onepager-wrap" id="cjv2OnePagerMount" tabindex="-1" aria-labelledby="cjv2OnePagerTitle">
+              <div id="cjv2OnePagerHtml" class="cjv2-onepager-html" role="document"></div>
+            </div>
+          </section>
         </section>
 
         <section class="cjv2-panel cjv2-debug-panel" id="cjv2DebugSection" hidden>
