@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260420a">
-  <link rel="stylesheet" href="brand-scraper.css?v=20260427a">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260505a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
 </head>
@@ -263,6 +263,26 @@
 
         <section class="brand-scraper-results" id="brandScraperResults" hidden aria-label="Results"></section>
       </main>
+
+      <div
+        id="brandScraperProgressDock"
+        class="brand-scraper-progress-dock"
+        role="status"
+        aria-live="polite"
+        aria-busy="false"
+        hidden>
+        <div class="brand-scraper-progress-dock-card" id="brandScraperProgressDockCard">
+          <div class="brand-scraper-progress-dock-track">
+            <div class="brand-scraper-progress-dock-fill" id="brandScraperProgressDockFill"></div>
+          </div>
+          <div class="brand-scraper-progress-dock-meta">
+            <span class="brand-scraper-progress-dock-phase" id="brandScraperProgressDockPhase">Starting…</span>
+            <span class="brand-scraper-progress-dock-timing">
+              <span id="brandScraperProgressDockElapsed">0s</span> / ~<span id="brandScraperProgressDockEta">—</span>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -274,6 +294,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260420a-brand-scraper"></script>
-  <script src="brand-scraper.js?v=20260420a"></script>
+  <script src="brand-scraper.js?v=20260505a"></script>
 </body>
 </html>

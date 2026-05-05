@@ -348,8 +348,74 @@
   const progressPhaseEl = document.getElementById('brandScraperProgressPhase');
   const progressElapsedEl = document.getElementById('brandScraperProgressElapsed');
   const progressEtaEl = document.getElementById('brandScraperProgressEta');
+  const dockRootEl = document.getElementById('brandScraperProgressDock');
+  const dockCardEl = document.getElementById('brandScraperProgressDockCard');
+  const dockFillEl = document.getElementById('brandScraperProgressDockFill');
+  const dockPhaseEl = document.getElementById('brandScraperProgressDockPhase');
+  const dockElapsedEl = document.getElementById('brandScraperProgressDockElapsed');
+  const dockEtaEl = document.getElementById('brandScraperProgressDockEta');
 
   let progressHandle = null;
+  /** When true, bottom dock mirrors Analyse progress; classify/export keep in-card only. */
+  let progressBottomDockEnabled = false;
+
+  function rowIndicatesActiveScrape(row) {
+    if (!row || typeof row !== 'object') return false;
+    const st = row.scrapeStatus;
+    if (st === 'running' || st === 'crawl_complete') return true;
+    if (st === 'complete') {
+      if (row.analysisPending === true) return true;
+      if (row.buildPhase && row.buildPhase !== 'complete') return true;
+    }
+    return false;
+  }
+
+  function detailIndicatesInProgress(data) {
+    if (!data || typeof data !== 'object') return false;
+    const st = data.scrapeStatus;
+    if (st === 'running' || st === 'crawl_complete') return true;
+    if (st === 'complete') {
+      if (data.analysisPending === true) return true;
+      if (data.buildPhase && data.buildPhase !== 'complete') return true;
+    }
+    return false;
+  }
+
+  /** Full GET payload is safe to treat as finished for progress + “Done” UI. */
+  function isFullDetailReadyForDone(d) {
+    if (!d || d.scrapeStatus !== 'complete') return false;
+    if (d.analysisPending === true) return false;
+    if (d.buildPhase && d.buildPhase !== 'complete') return false;
+    const crawl = d.crawl || d.crawlSummary;
+    if (!crawl || typeof crawl.pagesScraped !== 'number') return false;
+    return true;
+  }
+
+  function setBottomDockVisible(visible) {
+    if (!dockRootEl) return;
+    dockRootEl.hidden = !visible;
+    dockRootEl.setAttribute('aria-busy', visible ? 'true' : 'false');
+    try {
+      document.body.classList.toggle('brand-scraper-dock-on', !!visible);
+    } catch (_e) { /* ignore */ }
+  }
+
+  function setProgressPhaseBoth(text) {
+    if (progressPhaseEl) progressPhaseEl.textContent = text;
+    if (progressBottomDockEnabled && dockPhaseEl) dockPhaseEl.textContent = text;
+  }
+
+  function applyProgressWidthsPct(pctStr) {
+    if (progressFillEl) progressFillEl.style.width = pctStr;
+    if (progressBottomDockEnabled && dockFillEl) dockFillEl.style.width = pctStr;
+  }
+
+  function applyProgressElapsedEta(elapsedStr, etaStr) {
+    if (progressElapsedEl) progressElapsedEl.textContent = elapsedStr;
+    if (progressEtaEl) progressEtaEl.textContent = etaStr;
+    if (progressBottomDockEnabled && dockElapsedEl) dockElapsedEl.textContent = elapsedStr;
+    if (progressBottomDockEnabled && dockEtaEl) dockEtaEl.textContent = etaStr;
+  }
 
   function fmtSeconds(ms) {
     const s = Math.max(0, Math.round(ms / 1000));
@@ -370,18 +436,25 @@
     return (crawl + brandWall + trioWall + segmentsWall + industryWall) * 1000;
   }
 
-  function startProgress(totalMs, phases) {
+  function startProgress(totalMs, phases, startOpts) {
+    startOpts = startOpts || {};
+    if (progressHandle) { clearInterval(progressHandle); progressHandle = null; }
+    progressBottomDockEnabled = !!startOpts.bottomDock;
+    if (progressBottomDockEnabled) {
+      setBottomDockVisible(true);
+      if (dockCardEl) dockCardEl.classList.remove('is-done');
+    } else {
+      setBottomDockVisible(false);
+    }
     if (!progressEl) return;
-    stopProgress();
     progressEl.hidden = false;
     progressEl.classList.remove('is-done');
-    progressFillEl.style.width = '0%';
-    progressElapsedEl.textContent = '0s';
-    progressEtaEl.textContent = fmtSeconds(totalMs);
+    applyProgressWidthsPct('0%');
+    applyProgressElapsedEta('0s', fmtSeconds(totalMs));
 
     const started = Date.now();
     const rotationMs = Math.max(2500, Math.floor(totalMs / (phases.length || 1)));
-    progressPhaseEl.textContent = phases[0] || 'Working…';
+    setProgressPhaseBoth(phases[0] || 'Working…');
 
     progressHandle = setInterval(() => {
       const elapsed = Date.now() - started;
@@ -391,10 +464,10 @@
       const overrun = Math.max(0, elapsed - totalMs * 0.85);
       const slow = remaining * (1 - Math.exp(-overrun / (totalMs || 1)));
       const pct = Math.min(0.95, linearFrac + slow) * 100;
-      progressFillEl.style.width = pct.toFixed(1) + '%';
-      progressElapsedEl.textContent = fmtSeconds(elapsed);
+      applyProgressWidthsPct(pct.toFixed(1) + '%');
+      applyProgressElapsedEta(fmtSeconds(elapsed), fmtSeconds(totalMs));
       const phaseIdx = Math.min(phases.length - 1, Math.floor(elapsed / rotationMs));
-      if (phases[phaseIdx]) progressPhaseEl.textContent = phases[phaseIdx];
+      if (phases[phaseIdx]) setProgressPhaseBoth(phases[phaseIdx]);
     }, 250);
   }
 
@@ -402,13 +475,77 @@
     if (progressHandle) { clearInterval(progressHandle); progressHandle = null; }
     if (!progressEl) return;
     if (success) {
-      progressFillEl.style.width = '100%';
+      applyProgressWidthsPct('100%');
       progressEl.classList.add('is-done');
-      progressPhaseEl.textContent = 'Done';
-      setTimeout(() => { progressEl.hidden = true; }, 900);
+      if (progressBottomDockEnabled && dockCardEl) dockCardEl.classList.add('is-done');
+      setProgressPhaseBoth('Done');
+      setTimeout(() => {
+        progressEl.hidden = true;
+        if (progressBottomDockEnabled) setBottomDockVisible(false);
+        progressBottomDockEnabled = false;
+      }, 900);
     } else {
       progressEl.hidden = true;
+      if (progressBottomDockEnabled) setBottomDockVisible(false);
+      progressBottomDockEnabled = false;
     }
+  }
+
+  /**
+   * After Firestore index says complete, wait until GET returns a fully merged record
+   * before showing terminal “Done” (avoids race where list is ahead of GCS hydrate).
+   */
+  function finishAnalyzeWithDetail(scrapeId, sandboxName, onDone) {
+    const sid = String(scrapeId || '').trim();
+    const sb = String(sandboxName || '').trim();
+    let attempt = 0;
+    const maxAttempts = 14;
+    analyzeAwaitingDetailHydrate = true;
+
+    function done(ok) {
+      analyzeAwaitingDetailHydrate = false;
+      if (onDone) onDone(ok);
+    }
+
+    function runFetch() {
+      fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
+        .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
+        .then(function (o) {
+          if (!o.r.ok) {
+            setStatus('Could not load finished scrape: ' + (o.j.error || o.r.statusText), 'error');
+            stopProgress();
+            done(false);
+            return;
+          }
+          if (isFullDetailReadyForDone(o.j)) {
+            renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
+            setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in sandbox "' + sb + '".', 'info');
+            stopProgress({ success: true });
+            loadHistory();
+            done(true);
+            return;
+          }
+          attempt += 1;
+          if (attempt < maxAttempts) {
+            setProgressPhaseBoth('Finalising…');
+            setTimeout(runFetch, 1100);
+          } else {
+            renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
+            setStatus('Scrape finished; the server is still merging some fields. Refresh the history list if sections look incomplete.', 'info');
+            stopProgress({ success: true });
+            loadHistory();
+            done(true);
+          }
+        })
+        .catch(function (e) {
+          setStatus('Network error loading result: ' + (e && e.message || e), 'error');
+          stopProgress();
+          done(false);
+        });
+    }
+
+    setProgressPhaseBoth('Finalising…');
+    runFetch();
   }
 
   // Retry on Cloud Run cold-start 401/403 and transient 5xx. Short backoff
@@ -1182,7 +1319,7 @@
     currentScrapeData = data;
     resultsEl.hidden = false;
     const crawl = data.crawl || data.crawlSummary;
-    const inProgress = data.scrapeStatus === 'running' || data.scrapeStatus === 'crawl_complete';
+    const inProgress = detailIndicatesInProgress(data);
     const buildPhase = data.buildPhase || '';
     const lastExport = data.lastExport || null;
     const versions = Array.isArray(data.availableVersions) ? data.availableVersions : [];
@@ -1296,13 +1433,16 @@
   function cardHtml(it) {
     const isChecked = selected.has(it.scrapeId);
     const runState = it.scrapeStatus || '';
+    const activeRow = rowIndicatesActiveScrape(it);
     const runPill = runState === 'running'
       ? '<span class="brand-scraper-run-pill" title="Crawler in progress">Running…</span>'
       : (runState === 'crawl_complete'
         ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Crawl saved; LLM analysis in progress">Analyzing…</span>'
-        : (runState === 'failed'
-          ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
-          : ''));
+        : (activeRow && runState === 'complete'
+          ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Saving merged results">Finalising…</span>'
+          : (runState === 'failed'
+            ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
+            : '')));
     const runSteps = Array.isArray(it.runSteps) ? it.runSteps : [];
     const failDetails = runState === 'failed'
       ? (
@@ -1340,7 +1480,7 @@
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
-            ((runState === 'running' || runState === 'crawl_complete') && it.crawlEngine ? ' · engine ' + esc(it.crawlEngine) : '') +
+            ((runState === 'running' || runState === 'crawl_complete' || activeRow) && it.crawlEngine ? ' · engine ' + esc(it.crawlEngine) : '') +
             (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
             (it.analysisPresent ? ' · analysed' : (it.analysisError ? ' · error' : ' · no analysis')) +
             (it.personasPresent ? ' · personas' : '') +
@@ -1426,6 +1566,8 @@
   let scrapePollTimer = null;
   /** When set, analyze returned 202 — keep polling until terminal (submit finally skips stop poll). */
   let pendingAsyncScrapeId = null;
+  /** Sync 200 returned before GET payload was fully merged — blocks submit `finally` from re-enabling the button early. */
+  let analyzeAwaitingDetailHydrate = false;
 
   function stopScrapePoll() {
     if (scrapePollTimer) {
@@ -1441,7 +1583,8 @@
   }
 
   /**
-   * While scrapeStatus is running or crawl_complete, refresh history until terminal.
+   * While list row still indicates work (running, crawl_complete, or index “complete”
+   * before final merge), refresh history until terminal.
    * opts.onTerminal(row, st, timedOut)
    * opts.progressPhases — optional; syncs progress bar label with Firestore status during async runs.
    */
@@ -1466,30 +1609,30 @@
           scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
           return;
         }
-        if (progressPhases && progressPhaseEl) {
+        if (progressPhases) {
           if (st === 'running' && !bp) {
-            progressPhaseEl.textContent = progressPhases[0] || 'Crawling pages…';
+            setProgressPhaseBoth(progressPhases[0] || 'Crawling pages…');
           } else if (bp === 'crawl') {
-            progressPhaseEl.textContent = 'Crawl saved — generating brand core…';
+            setProgressPhaseBoth('Crawl saved — generating brand core…');
           } else if (bp === 'brand') {
-            progressPhaseEl.textContent = 'Brand core saved — personas & campaigns…';
+            setProgressPhaseBoth('Brand core saved — personas & campaigns…');
           } else if (bp === 'audiences') {
-            progressPhaseEl.textContent = 'Audiences saved — segments & industry…';
+            setProgressPhaseBoth('Audiences saved — segments & industry…');
           } else if (st === 'crawl_complete') {
-            progressPhaseEl.textContent = progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…';
+            setProgressPhaseBoth(progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…');
           }
         }
-        if (onPartial && row && (st === 'running' || st === 'crawl_complete') && bp && bp !== lastBuildPhase && bp !== 'complete') {
+        const stillActive = rowIndicatesActiveScrape(row);
+        if (onPartial && row && stillActive && bp && bp !== lastBuildPhase && bp !== 'complete') {
           lastBuildPhase = bp;
           onPartial(row, bp);
         }
-        const inProgress = st === 'running' || st === 'crawl_complete';
-        if (!row || !inProgress || ticks >= maxTicks) {
-          scrapePollTimer = null;
-          if (onTerminal) onTerminal(row, st, ticks >= maxTicks || !row);
+        if (row && stillActive && ticks < maxTicks) {
+          scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
           return;
         }
-        scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
+        scrapePollTimer = null;
+        if (onTerminal) onTerminal(row, st, ticks >= maxTicks || !row);
       });
     }
     scrapePollTimer = setTimeout(scheduleNext, 900);
@@ -1528,8 +1671,7 @@
     const key = urlKey(targetUrl);
     if (!key) return null;
     return historyItemsCache.find(it =>
-      it.scrapeStatus !== 'running' &&
-      it.scrapeStatus !== 'crawl_complete' &&
+      !rowIndicatesActiveScrape(it) &&
       (urlKey(it.baseUrl) === key || urlKey(it.url) === key)) || null;
   }
 
@@ -1837,7 +1979,7 @@
       runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
       'Saving',
     ].filter(Boolean);
-    startProgress(estMs, phases);
+    startProgress(estMs, phases, { bottomDock: true });
 
     try {
       pendingAsyncScrapeId = null;
@@ -1891,42 +2033,33 @@
               .catch(function () { /* ignore */ });
           },
           onTerminal: function (row, st, timedOut) {
-            pendingAsyncScrapeId = null;
-            if (runBtn) runBtn.disabled = false;
             if (timedOut || !row) {
+              pendingAsyncScrapeId = null;
+              if (runBtn) runBtn.disabled = false;
               setStatus('Stopped watching this scrape (timeout or row missing). Refresh the history list.', 'info');
               stopProgress();
               return;
             }
             if (st === 'failed') {
+              pendingAsyncScrapeId = null;
+              if (runBtn) runBtn.disabled = false;
               setStatus('Scrape failed: ' + (row.scrapeError || 'Unknown error'), 'error');
               stopProgress();
               loadHistory();
               return;
             }
             if (st !== 'complete') {
+              pendingAsyncScrapeId = null;
+              if (runBtn) runBtn.disabled = false;
               stopProgress();
               loadHistory();
               return;
             }
             const sid = row.scrapeId;
-            fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
-              .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
-              .then(function (o) {
-                if (!o.r.ok) {
-                  setStatus('Could not load finished scrape: ' + (o.j.error || o.r.statusText), 'error');
-                  stopProgress();
-                  return;
-                }
-                renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
-                setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in sandbox "' + sb + '".', 'info');
-                stopProgress({ success: true });
-                loadHistory();
-              })
-              .catch(function (e) {
-                setStatus('Network error loading result: ' + (e && e.message || e), 'error');
-                stopProgress();
-              });
+            finishAnalyzeWithDetail(sid, sb, function () {
+              pendingAsyncScrapeId = null;
+              if (runBtn) runBtn.disabled = false;
+            });
           },
         });
         return;
@@ -1952,17 +2085,25 @@
         return;
       }
       const actionVerb = data.appended ? 'Appended to existing scrape' : 'Saved as new scrape';
-      setStatus('Done \u2014 crawled ' + (data.crawl && data.crawl.pagesScraped) + ' pages in ' +
-        (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in sandbox "' + sb + '".', 'info');
-      stopProgress({ success: true });
-      renderResults(data);
-      loadHistory();
+      const sid = data.scrapeId || headerScrapeId;
+      if (!isFullDetailReadyForDone(data) && sid) {
+        setProgressPhaseBoth('Finalising…');
+        finishAnalyzeWithDetail(sid, sb, function () {
+          if (runBtn) runBtn.disabled = false;
+        });
+      } else {
+        setStatus('Done \u2014 crawled ' + (data.crawl && data.crawl.pagesScraped) + ' pages in ' +
+          (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in sandbox "' + sb + '".', 'info');
+        stopProgress({ success: true });
+        renderResults(data);
+        loadHistory();
+      }
     } catch (e) {
       setStatus('Network error: ' + (e && e.message || e), 'error');
       stopProgress();
     } finally {
       if (!pendingAsyncScrapeId) stopScrapePoll();
-      if (!pendingAsyncScrapeId && runBtn) runBtn.disabled = false;
+      if (!pendingAsyncScrapeId && !analyzeAwaitingDetailHydrate && runBtn) runBtn.disabled = false;
     }
   });
 

@@ -6,6 +6,10 @@
   gap: 24px;
 }
 
+body.brand-scraper-page.brand-scraper-dock-on .brand-scraper-main {
+  padding-bottom: 96px;
+}
+
 .brand-scraper-dev-pill {
   background: var(--dash-warning-bg, rgba(255, 170, 0, 0.12));
   color: var(--dash-warning, #b86a00);
@@ -280,6 +284,95 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
 }
 
 .brand-scraper-progress.is-done .brand-scraper-progress-fill::after { animation: none; opacity: 0; }
+
+/* Fixed bottom dock — Analyse / scrape lifecycle only (mirrors in-card progress) */
+.brand-scraper-progress-dock[hidden] {
+  display: none !important;
+}
+
+.brand-scraper-progress-dock {
+  position: fixed;
+  z-index: 60;
+  right: 0;
+  bottom: 0;
+  left: 240px;
+  padding: 0 16px 12px;
+  pointer-events: none;
+}
+
+html[data-sidebar-collapsed] .brand-scraper-progress-dock {
+  left: 56px;
+}
+
+@media (max-width: 768px) {
+  .brand-scraper-progress-dock {
+    left: 0;
+    padding: 0 12px 10px;
+  }
+}
+
+.brand-scraper-progress-dock-card {
+  pointer-events: auto;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.brand-scraper-progress-dock-card.is-done .brand-scraper-progress-dock-fill::after {
+  animation: none;
+  opacity: 0;
+}
+
+.brand-scraper-progress-dock-track {
+  height: 8px;
+  background: var(--dash-hover, color-mix(in srgb, var(--dash-text) 6%, transparent));
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.brand-scraper-progress-dock-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--dash-blue), color-mix(in srgb, var(--dash-blue) 60%, var(--dash-success)));
+  border-radius: 999px;
+  transition: width 300ms linear;
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-scraper-progress-dock-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--dash-surface) 55%, transparent) 50%,
+    transparent 100%
+  );
+  animation: brand-scraper-progress-shimmer 1.6s ease-in-out infinite;
+}
+
+.brand-scraper-progress-dock-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-progress-dock-phase {
+  color: var(--dash-text);
+  font-weight: 500;
+}
 
 .brand-scraper-progress-meta {
   display: flex;
