@@ -96,13 +96,45 @@ function setByPath(obj, path, value) {
   if (!path || typeof path !== 'string') return;
   const keys = path.split('.').filter(Boolean);
   if (keys.length === 0) return;
+  const isArrayIndex = (k) => /^\d+$/.test(k);
   let cur = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     const k = keys[i];
-    if (!(k in cur) || typeof cur[k] !== 'object' || cur[k] === null) cur[k] = {};
+    const nextKey = keys[i + 1];
+    const nextIsArrayIndex = isArrayIndex(nextKey);
+
+    if (Array.isArray(cur)) {
+      if (!isArrayIndex(k)) return;
+      const idx = Number(k);
+      if (
+        cur[idx] == null ||
+        typeof cur[idx] !== 'object' ||
+        (nextIsArrayIndex && !Array.isArray(cur[idx])) ||
+        (!nextIsArrayIndex && Array.isArray(cur[idx]))
+      ) {
+        cur[idx] = nextIsArrayIndex ? [] : {};
+      }
+      cur = cur[idx];
+      continue;
+    }
+
+    if (
+      !(k in cur) ||
+      cur[k] == null ||
+      typeof cur[k] !== 'object' ||
+      (nextIsArrayIndex && !Array.isArray(cur[k])) ||
+      (!nextIsArrayIndex && Array.isArray(cur[k]))
+    ) {
+      cur[k] = nextIsArrayIndex ? [] : {};
+    }
     cur = cur[k];
   }
-  cur[keys[keys.length - 1]] = value;
+  const lastKey = keys[keys.length - 1];
+  if (Array.isArray(cur) && isArrayIndex(lastKey)) {
+    cur[Number(lastKey)] = value;
+    return;
+  }
+  cur[lastKey] = value;
 }
 
 function normalizeProfileUpdateDateString(relativePath, val) {
