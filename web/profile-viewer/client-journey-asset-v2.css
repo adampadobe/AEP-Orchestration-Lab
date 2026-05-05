@@ -152,6 +152,11 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-field-inline {
   flex: 1 1 260px;
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-row .sandbox-select {
+  width: 100%;
+  min-width: 0;
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-import-status-row {
   min-height: 1.1rem;
 }

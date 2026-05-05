@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505i">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260505j">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -70,9 +70,11 @@
               <span id="cjv2ImportSource" class="cjv2-import-source" hidden></span>
             </div>
             <div class="cjv2-import-row">
-              <label class="cjv2-field cjv2-field-inline" for="cjv2ImportSandbox">
+              <label class="cjv2-field cjv2-field-inline" for="sandboxSelect">
                 <span class="cjv2-label">Sandbox</span>
-                <input type="text" id="cjv2ImportSandbox" autocomplete="off" spellcheck="false" placeholder="e.g. apalmer">
+                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
               </label>
               <button type="button" id="cjv2ImportLoadBtn" class="cjv2-btn cjv2-btn-secondary">Import from brand scrape</button>
             </div>
@@ -261,7 +263,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="client-journey-asset-v2.js?v=20260505i"></script>
+  <script src="client-journey-asset-v2.js?v=20260505j"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>
