@@ -442,6 +442,21 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-header {
   gap: 0.75rem;
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-header .cjv2-fullscreen-btn {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-header .cjv2-fullscreen-btn svg {
+  display: block;
+  color: inherit;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-header .cjv2-fullscreen-btn svg path {
+  fill: currentColor;
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-onepager-title {
   margin: 0;
   font-size: 0.9rem;

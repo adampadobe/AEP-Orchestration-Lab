@@ -380,12 +380,14 @@
     outputSection.hidden = true;
     debugSection.hidden = true;
     setRefineStatus('');
+    syncFullscreenButtons();
   }
 
   function getFullscreenElement() {
     return (
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
       document.msFullscreenElement ||
       null
     );
@@ -395,6 +397,7 @@
     if (!el) return Promise.reject(new Error('No element.'));
     if (typeof el.requestFullscreen === 'function') return el.requestFullscreen();
     if (typeof el.webkitRequestFullscreen === 'function') return el.webkitRequestFullscreen();
+    if (typeof el.mozRequestFullScreen === 'function') return el.mozRequestFullScreen();
     if (typeof el.msRequestFullscreen === 'function') return el.msRequestFullscreen();
     return Promise.reject(new Error('Full screen is not supported in this browser.'));
   }
@@ -403,16 +406,29 @@
     if (!getFullscreenElement()) return Promise.resolve();
     if (typeof document.exitFullscreen === 'function') return document.exitFullscreen();
     if (typeof document.webkitExitFullscreen === 'function') return document.webkitExitFullscreen();
+    if (typeof document.mozCancelFullScreen === 'function') return document.mozCancelFullScreen();
     if (typeof document.msExitFullscreen === 'function') return document.msExitFullscreen();
     return Promise.reject(new Error('Unable to exit full screen.'));
   }
 
+  /** @param {Element|null} btn */
+  function resolveFullscreenMount(btn) {
+    if (!btn) return null;
+    var raw = btn.getAttribute('data-target');
+    var id = raw != null ? String(raw).trim() : '';
+    if (id) {
+      var byAttr = document.getElementById(id);
+      if (byAttr) return byAttr;
+    }
+    if (btn.id === 'cjv2FullscreenBtn' && previewMountEl) return previewMountEl;
+    if (btn.id === 'cjv2OnePagerFullscreenBtn' && onePagerMountEl) return onePagerMountEl;
+    return null;
+  }
+
   function syncFullscreenButtons() {
     var fsEl = getFullscreenElement();
-    var btns = document.querySelectorAll('.cjv2-fullscreen-btn[data-target]');
-    btns.forEach(function (btn) {
-      var targetId = btn.getAttribute('data-target');
-      var targetEl = targetId ? document.getElementById(targetId) : null;
+    document.querySelectorAll('button.cjv2-fullscreen-btn').forEach(function (btn) {
+      var targetEl = resolveFullscreenMount(btn);
       if (!targetEl) return;
       var isFullscreen = fsEl === targetEl;
       var label = isFullscreen ? 'Exit full screen' : 'Enter full screen';
@@ -424,24 +440,39 @@
   }
 
   function bindFullscreen() {
-    var btns = document.querySelectorAll('.cjv2-fullscreen-btn[data-target]');
-    btns.forEach(function (btn) {
+    document.querySelectorAll('button.cjv2-fullscreen-btn').forEach(function (btn) {
       if (btn.getAttribute('data-cjv2-fs-bound') === '1') return;
+      if (!resolveFullscreenMount(btn)) return;
       btn.setAttribute('data-cjv2-fs-bound', '1');
       btn.addEventListener('click', function () {
-        var targetId = btn.getAttribute('data-target');
-        var targetEl = targetId ? document.getElementById(targetId) : null;
-        if (!targetEl) return;
+        var targetEl = resolveFullscreenMount(btn);
+        if (!targetEl) {
+          console.warn('[cjv2] fullscreen: no mount for button', btn && btn.id);
+          setStatus('Full screen target is missing — refresh the page and try again.', 'error');
+          return;
+        }
         var active = getFullscreenElement() === targetEl;
         var p = active ? exitFullscreen() : requestFullscreen(targetEl);
         Promise.resolve(p)
-          .catch(function () {})
+          .catch(function (err) {
+            var detail = err && err.message ? String(err.message) : String(err || 'unknown error');
+            console.warn('[cjv2] fullscreen request failed:', detail, err || null);
+            setStatus(
+              'Could not toggle full screen — the browser blocked the request, full screen is not allowed for this element, or it is not supported. Try again with a direct click, or check site permissions.',
+              'error'
+            );
+          })
           .finally(syncFullscreenButtons);
       });
     });
     if (document.documentElement.getAttribute('data-cjv2-fs-events-bound') === '1') return;
     document.documentElement.setAttribute('data-cjv2-fs-events-bound', '1');
-    ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (eventName) {
+    [
+      'fullscreenchange',
+      'webkitfullscreenchange',
+      'mozfullscreenchange',
+      'msfullscreenchange',
+    ].forEach(function (eventName) {
       document.addEventListener(eventName, syncFullscreenButtons);
     });
     syncFullscreenButtons();
@@ -824,6 +855,9 @@
 
     logEl.textContent = (lastResult.log || []).join('\n');
     metaEl.textContent = JSON.stringify(lastResult.meta || {}, null, 2);
+
+    bindFullscreen();
+    syncFullscreenButtons();
   }
 
   // ── Download buttons ──────────────────────────────────────────────────
