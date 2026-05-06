@@ -88,7 +88,7 @@
                   <option value="keyPair">Key pair (RSA private key)</option>
                 </select>
                 <p id="sfAuthMethodHint" class="field-hint">
-                  Same options as the AgenticAI Demo's <code>snowflake_settings.py</code>. Key-pair auth pairs with the existing <code>aep_integration_1.p8</code> file.
+                  Same options as the AgenticAI Demo's <code>snowflake_settings.py</code>. The Snowflake Node driver expects <strong>PKCS#8 PEM</strong> (<code>BEGIN PRIVATE KEY</code>). PKCS#1 (<code>BEGIN RSA PRIVATE KEY</code>) and encrypted PKCS#8 (<code>.p8</code>) keys are converted automatically when you Save / Test — use the passphrase field if your key file is encrypted.
                 </p>
               </div>
 
@@ -267,6 +267,6 @@ ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;<
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260506a"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260506d"></script>
+  <script src="profile-generation-snowflake.js?v=20260506e"></script>
 </body>
 </html>

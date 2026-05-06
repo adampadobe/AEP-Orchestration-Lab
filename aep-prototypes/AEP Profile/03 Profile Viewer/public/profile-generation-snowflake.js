@@ -197,7 +197,7 @@
     var t = String(text || '').trim();
     if (t.indexOf('-----BEGIN') === -1) return false;
     if (t.indexOf('-----END') === -1) return false;
-    return /PRIVATE KEY|RSA PRIVATE KEY|ENCRYPTED PRIVATE KEY/.test(t);
+    return /PRIVATE KEY|RSA PRIVATE KEY|ENCRYPTED PRIVATE KEY|EC PRIVATE KEY/.test(t);
   }
 
   function ingestKeyFile(file) {

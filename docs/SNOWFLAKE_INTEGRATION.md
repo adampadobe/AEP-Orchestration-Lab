@@ -73,7 +73,7 @@ anonymous Firebase auth (already booted by `aep-lab-sandbox-sync.js`) is enough.
 | ---------- | ---------------------------------------------------------------------- |
 | `password` | The Snowflake user's password.                                         |
 | `pat`      | A Snowflake [Programmatic Access Token](https://docs.snowflake.com/en/user-guide/programmatic-access-tokens). Recommended over passwords. |
-| `keyPair`  | The full PEM private key (including `-----BEGIN PRIVATE KEY-----` lines). If the `.p8` is encrypted, fill in the passphrase field; otherwise leave it blank. |
+| `keyPair`  | PEM private key text (including `BEGIN` / `END` lines). The Cloud Function normalizes PKCS#1 (`BEGIN RSA PRIVATE KEY`) and encrypted PKCS#8 (common `.p8` exports) to **PKCS#8 PEM**, which the Snowflake Node driver requires for JWT auth. If the key is encrypted, set the passphrase field; otherwise leave it blank. |
 
 The AgenticAI Demo's `snowflake_settings.py` uses key-pair auth with
 `aep_integration_1.p8`. The lab supports the same flow: paste the PEM

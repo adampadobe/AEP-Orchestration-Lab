@@ -290,8 +290,14 @@ async function handleGenerateBaseProfiles(input) {
 
   let conn;
   let warehouseUsed = cfg.warehouse || null;
+  let connectOptions;
   try {
-    conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
+    connectOptions = buildSnowflakeConnectOptions(resolved);
+  } catch (err) {
+    return { ok: false, error: describeConnectError(err) };
+  }
+  try {
+    conn = await connectAsync(snowflake, connectOptions);
 
     if (warehouseUsed) {
       await execAsync(conn, { sqlText: `USE WAREHOUSE ${safeIdentifier(warehouseUsed, '')}` });
