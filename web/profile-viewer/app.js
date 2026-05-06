@@ -2200,14 +2200,13 @@ if (updateProfileBtn && updateStatusEl) {
       );
     }
 
-    // Timeseries / streaming ingestion caveat: sending only the edited
-    // leaves can clear other attributes that were not included in the same
-    // XDM record for that dataset. So once ANY cell in an industry changes,
-    // we re-stream a *full snapshot* of every writable attribute row that
-    // routes to that industry (current input values), not just the deltas.
+    // Timeseries / streaming: partial leaves can clear siblings in the same
+    // dataset. After ANY edit, re-stream a *full writable snapshot* per
+    // configured dataflow (every industry that has at least one enabled row
+    // in this table), not only the industry where the cell changed — so e.g.
+    // adding Generic loyalty still re-sends FSI / Travel / … snapshots with
+    // current table values and does not orphan other industry datasets.
     const inputs = Array.from(attributeTableBody.querySelectorAll('.profile-value-input'));
-    /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
-    const dirtyByIndustry = new Map();
     let dirtyCellCount = 0;
     inputs.forEach((input) => {
       if (input.disabled) return;
@@ -2215,10 +2214,6 @@ if (updateProfileBtn && updateStatusEl) {
       const originalValue = input.getAttribute('data-original-value') ?? '';
       const currentValue = input.value == null ? '' : String(input.value);
       if (!path || currentValue === originalValue) return;
-      const industryKey = (input.getAttribute('data-industry') || '').trim() || 'generic';
-      const list = dirtyByIndustry.get(industryKey) || [];
-      list.push({ path, value: null, input });
-      dirtyByIndustry.set(industryKey, list);
       dirtyCellCount++;
     });
 
@@ -2230,10 +2225,18 @@ if (updateProfileBtn && updateStatusEl) {
       return;
     }
 
+    /** Every industry that has at least one writable (non-disabled) row. */
+    const writableIndustries = new Set();
+    inputs.forEach((input) => {
+      if (input.disabled) return;
+      const industryKey = (input.getAttribute('data-industry') || '').trim() || 'generic';
+      writableIndustries.add(industryKey);
+    });
+
     /** @type {Map<string, Array<{ path: string, value: unknown, input: HTMLInputElement }>>} */
     const groupsByIndustry = new Map();
     const invalidValueMessages = [];
-    dirtyByIndustry.forEach((_, industryKey) => {
+    writableIndustries.forEach((industryKey) => {
       const snapshot = [];
       inputs.forEach((input) => {
         if (input.disabled) return;
@@ -2267,7 +2270,7 @@ if (updateProfileBtn && updateStatusEl) {
 
     updateProfileBtn.disabled = true;
     setUpdateStatus(
-      `Sending full snapshot to ${industriesTouched} dataflow${industriesTouched === 1 ? '' : 's'} (${totalPathsSent} attribute${totalPathsSent === 1 ? '' : 's'})…`,
+      `Sending full snapshot to ${industriesTouched} configured dataflow${industriesTouched === 1 ? '' : 's'} (${totalPathsSent} streamed field${totalPathsSent === 1 ? '' : 's'} total)…`,
       '',
     );
     const payloadDetailsEl = document.getElementById('sentPayloadDetails');
@@ -2354,7 +2357,7 @@ if (updateProfileBtn && updateStatusEl) {
     // Headline status — reflect the aggregate outcome.
     if (failCount === 0) {
       setUpdateStatus(
-        `Profile update sent · ${successCount} dataflow${successCount === 1 ? '' : 's'} · ${dirtyCellCount} edited cell${dirtyCellCount === 1 ? '' : 's'} · ${totalPathsSent} streamed field${totalPathsSent === 1 ? '' : 's'} (full snapshots). Refresh the profile to see changes.`,
+        `Profile update sent · ${successCount} dataflow${successCount === 1 ? '' : 's'} (full snapshot each) · ${dirtyCellCount} edited cell${dirtyCellCount === 1 ? '' : 's'} · ${totalPathsSent} streamed field${totalPathsSent === 1 ? '' : 's'} total. Refresh the profile to see changes.`,
         'success',
       );
     } else if (successCount === 0) {

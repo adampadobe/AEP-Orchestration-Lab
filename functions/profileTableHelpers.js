@@ -317,6 +317,14 @@ function buildProfileTablePayload(email, response) {
 
 const UPS_ENTITIES = 'https://platform.adobe.io/data/core/ups/access/entities';
 
+/** Optional; same env as profile events — steers UPS merge when org default is unset. */
+function profileAccessMergePolicyId() {
+  const id = String(
+    process.env.AEP_PROFILE_ACCESS_MERGE_POLICY_ID || process.env.AEP_PROFILE_EVENTS_MERGE_POLICY_ID || '',
+  ).trim();
+  return id || null;
+}
+
 /**
  * UI namespace key → UPS entityIdNS attempts (order matters; sandboxes vary casing).
  * Unknown keys fall back to a single attempt using the key as entityIdNS (custom namespaces).
@@ -354,6 +362,8 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
       entityId: identityValue,
       entityIdNS,
     });
+    const mp = profileAccessMergePolicyId();
+    if (mp) qs.set('mergePolicyId', mp);
     const url = `${UPS_ENTITIES}?${qs}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json().catch(() => ({}));
