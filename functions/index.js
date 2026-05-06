@@ -101,6 +101,7 @@ const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const snowflakeService = lazyRequireMod('./snowflakeService');
 const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
+const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -133,6 +134,13 @@ const SNOWFLAKE_FN_OPTS = {
   memory: '512MiB',
   vpcConnector: 'snowflake-egress',
   vpcConnectorEgressSettings: 'ALL_TRAFFIC',
+};
+
+/** Long jobs: full Agentic phased generate + enrich (Python runner or heavy SQL). */
+const SNOWFLAKE_AGENTIC_FN_OPTS = {
+  ...SNOWFLAKE_FN_OPTS,
+  timeoutSeconds: 540,
+  memory: '2GiB',
 };
 
 function serializeConsentFirestoreRecord(doc) {
@@ -4644,6 +4652,159 @@ exports.snowflakeConnectionTest = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) 
  * first-run targets. Returns rowcount + first 3 generated rows so the UI
  * can render a sample without a separate SELECT round-trip.
  */
+/**
+ * POST /api/snowflake/agentic/query-profiles — body { sandbox, filterType?,
+ * timePeriod?, limit? }. Same semantics as AgenticAI `/api/query-profiles`.
+ */
+exports.snowflakeAgenticQueryProfiles = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required (anonymous sign-in is enough).',
+    });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+  try {
+    const result = await snowflakeAgenticTravelService.handleQueryProfiles({
+      labUser: uid,
+      sandbox,
+      filterType: body.filterType,
+      timePeriod: body.timePeriod,
+      limit: body.limit,
+    });
+    res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+  } catch (e) {
+    console.error('[snowflakeAgenticQueryProfiles]', String(e && e.message || e));
+    res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/snowflake/agentic/table-structure — body { sandbox, phase }.
+ * phase: phase1 | phase2 | phase3 (AgenticAI PHASE_TABLES).
+ */
+exports.snowflakeAgenticTableStructure = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required (anonymous sign-in is enough).',
+    });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+  try {
+    const result = await snowflakeAgenticTravelService.handleTableStructure({
+      labUser: uid,
+      sandbox,
+      phase: body.phase,
+    });
+    res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+  } catch (e) {
+    console.error('[snowflakeAgenticTableStructure]', String(e && e.message || e));
+    res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/snowflake/agentic/generate-full — body { sandbox, count }.
+ * Forwards to Python runner when AGENTIC_TRAVEL_RUNNER_* env is set.
+ */
+exports.snowflakeAgenticGenerateFull = onRequest(SNOWFLAKE_AGENTIC_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required (anonymous sign-in is enough).',
+    });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+  try {
+    const result = await snowflakeAgenticTravelService.handleAgenticGenerateFull({
+      labUser: uid,
+      sandbox,
+      count: body.count,
+    });
+    const httpStatus = result.ok
+      ? 200
+      : (result.error && result.error.code === 'RUNNER_NOT_CONFIGURED' ? 501 : 400);
+    res.status(httpStatus).json({ ok: result.ok, sandbox, result });
+  } catch (e) {
+    console.error('[snowflakeAgenticGenerateFull]', String(e && e.message || e));
+    res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/snowflake/agentic/enrich-profiles — body { sandbox, profiles, eventTypes }.
+ * Forwards to Python runner when AGENTIC_TRAVEL_RUNNER_* env is set.
+ */
+exports.snowflakeAgenticEnrichProfiles = onRequest(SNOWFLAKE_AGENTIC_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required (anonymous sign-in is enough).',
+    });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+  try {
+    const result = await snowflakeAgenticTravelService.handleAgenticEnrich({
+      labUser: uid,
+      sandbox,
+      profiles: body.profiles,
+      eventTypes: body.eventTypes,
+    });
+    const httpStatus = result.ok
+      ? 200
+      : (result.error && result.error.code === 'RUNNER_NOT_CONFIGURED' ? 501 : 400);
+    res.status(httpStatus).json({ ok: result.ok, sandbox, result });
+  } catch (e) {
+    console.error('[snowflakeAgenticEnrichProfiles]', String(e && e.message || e));
+    res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
 exports.snowflakeGenerateBaseProfiles = onRequest(
   { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 300, memory: '1GiB' },
   async (req, res) => {

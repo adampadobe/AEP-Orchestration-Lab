@@ -39,6 +39,8 @@
   var els = {};
   /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
   var lastSnowflakeTestOk = false;
+  /** Rows last returned from /api/snowflake/agentic/query-profiles (for enrich payload). */
+  var loadedProfiles = [];
 
   function $(id) {
     return document.getElementById(id);
@@ -635,6 +637,321 @@
     return payload;
   }
 
+  function setUpdaterMessage(text, tone, extras) {
+    var node = els.updaterMessage;
+    if (!node) return;
+    if (!text) {
+      node.hidden = true;
+      node.removeAttribute('data-tone');
+      node.textContent = '';
+      return;
+    }
+    node.hidden = false;
+    node.setAttribute('data-tone', tone || 'info');
+    node.textContent = '';
+    var p = document.createElement('div');
+    p.textContent = text;
+    node.appendChild(p);
+    if (extras && extras.hints && extras.hints.length) {
+      var ul = document.createElement('ul');
+      for (var i = 0; i < extras.hints.length; i++) {
+        var li = document.createElement('li');
+        li.textContent = extras.hints[i];
+        ul.appendChild(li);
+      }
+      node.appendChild(ul);
+    }
+  }
+
+  function setUpdaterBusy(busy) {
+    if (els.updaterForm) els.updaterForm.setAttribute('aria-busy', busy ? 'true' : 'false');
+    if (els.loadProfilesBtn) els.loadProfilesBtn.disabled = !!busy;
+    if (els.enrichBtn) els.enrichBtn.disabled = !!busy;
+  }
+
+  function setFullGenMessage(text, tone) {
+    var node = els.fullGenMessage;
+    if (!node) return;
+    if (!text) {
+      node.hidden = true;
+      node.removeAttribute('data-tone');
+      node.textContent = '';
+      return;
+    }
+    node.hidden = false;
+    node.setAttribute('data-tone', tone || 'info');
+    node.textContent = text;
+  }
+
+  function setFullGenBusy(busy) {
+    if (els.fullGenForm) els.fullGenForm.setAttribute('aria-busy', busy ? 'true' : 'false');
+    if (els.fullGenBtn) els.fullGenBtn.disabled = !!busy;
+  }
+
+  function renderProfileRows(rows) {
+    loadedProfiles = Array.isArray(rows) ? rows : [];
+    var tb = els.profileTbody;
+    if (!tb) return;
+    tb.textContent = '';
+    for (var i = 0; i < loadedProfiles.length; i++) {
+      var r = loadedProfiles[i];
+      var tr = document.createElement('tr');
+      var td0 = document.createElement('td');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'sf-pick';
+      cb.setAttribute('data-idx', String(i));
+      td0.appendChild(cb);
+      tr.appendChild(td0);
+      function cell(t) {
+        var td = document.createElement('td');
+        td.textContent = t == null ? '' : String(t);
+        tr.appendChild(td);
+      }
+      cell(r.crmId);
+      cell(r.email);
+      cell(r.loyaltyId != null && r.loyaltyId !== '' ? r.loyaltyId : '—');
+      cell(r.createdAt);
+      tb.appendChild(tr);
+    }
+    if (els.selectAll) els.selectAll.checked = false;
+  }
+
+  function loadProfiles() {
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      setUpdaterMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    setUpdaterBusy(true);
+    setUpdaterMessage('Loading profiles…', 'info');
+    authHeaders().then(function (h) {
+      if (!h.Authorization) {
+        setUpdaterMessage('Sign-in not ready yet — try again in a second.', 'error');
+        setUpdaterBusy(false);
+        return;
+      }
+      var url = '/api/snowflake/agentic/query-profiles';
+      var body = JSON.stringify({
+        sandbox: sandbox,
+        filterType: els.filterType ? els.filterType.value : 'all',
+        timePeriod: els.timePeriod ? els.timePeriod.value : 'all_time',
+        limit: els.queryLimit ? parseInt(els.queryLimit.value, 10) : 50,
+      });
+      fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: body,
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          var result = data && data.result;
+          if (res.ok && result && result.ok && Array.isArray(result.profiles)) {
+            renderProfileRows(result.profiles);
+            setUpdaterMessage('Loaded ' + result.profiles.length + ' profile(s).', 'success');
+          } else {
+            var msg = (result && result.error && result.error.message) || (data && data.error) ||
+              ('Query failed (HTTP ' + res.status + ').');
+            var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
+            setUpdaterMessage(msg, 'error', { hints: hints });
+            renderProfileRows([]);
+          }
+        });
+      }).catch(function (e) {
+        setUpdaterMessage('Network error: ' + (e && e.message || e), 'error');
+      }).then(function () {
+        setUpdaterBusy(false);
+      });
+    });
+  }
+
+  function getCheckedEventTypes() {
+    var root = els.eventTypes;
+    if (!root) return [];
+    var out = [];
+    var inputs = root.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].checked) out.push(inputs[i].value);
+    }
+    return out;
+  }
+
+  function enrichSelected() {
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      setUpdaterMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    var picks = document.querySelectorAll('.sf-pick:checked');
+    var profiles = [];
+    for (var i = 0; i < picks.length; i++) {
+      var idx = parseInt(picks[i].getAttribute('data-idx'), 10);
+      if (!Number.isFinite(idx) || !loadedProfiles[idx]) continue;
+      var p = loadedProfiles[idx];
+      profiles.push({
+        crmId: p.crmId,
+        ecid: p.ecid,
+        email: p.email,
+        phoneNumber: p.phoneNumber || '+447425627462',
+        loyaltyId: p.loyaltyId,
+      });
+    }
+    if (!profiles.length) {
+      setUpdaterMessage('Select at least one profile row.', 'error');
+      return;
+    }
+    var eventTypes = getCheckedEventTypes();
+    if (!eventTypes.length) {
+      setUpdaterMessage('Select at least one event type.', 'error');
+      return;
+    }
+    setUpdaterBusy(true);
+    setUpdaterMessage('Enriching ' + profiles.length + ' profile(s)… This may take several minutes.', 'info');
+    authHeaders().then(function (h) {
+      if (!h.Authorization) {
+        setUpdaterMessage('Sign-in not ready yet — try again in a second.', 'error');
+        setUpdaterBusy(false);
+        return;
+      }
+      var url = '/api/snowflake/agentic/enrich-profiles';
+      var payload = { sandbox: sandbox, profiles: profiles, eventTypes: eventTypes };
+      fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify(payload),
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          var result = data && data.result;
+          if (res.status === 501) {
+            setUpdaterMessage(
+              (data.result && data.result.error && data.result.error.message) ||
+                'Full enrich is not configured (set AGENTIC_TRAVEL_RUNNER_URL on the Cloud Function).',
+              'error'
+            );
+            return;
+          }
+          if (res.ok && data && data.ok && data.result && data.result.ok && data.result.data) {
+            var st = data.result.data.enrichment_status || {};
+            var lr = st.last_result || {};
+            setUpdaterMessage(st.message || 'Enrichment finished.', lr.success === false ? 'error' : 'success');
+          } else {
+            var msg = (data.result && data.result.error && data.result.error.message) || (data && data.error) ||
+              ('Enrich failed (HTTP ' + res.status + ').');
+            setUpdaterMessage(msg, 'error');
+          }
+        });
+      }).catch(function (e) {
+        setUpdaterMessage('Network error: ' + (e && e.message || e), 'error');
+      }).then(function () {
+        setUpdaterBusy(false);
+      });
+    });
+  }
+
+  function runFullPhasedGenerate() {
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      setFullGenMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    var count = els.fullGenCount ? parseInt(els.fullGenCount.value, 10) : 5;
+    if (!Number.isFinite(count) || count < 1) count = 5;
+    if (count > 1000) {
+      setFullGenMessage('Maximum 1000 per run.', 'error');
+      return;
+    }
+    setFullGenBusy(true);
+    if (els.fullGenResult) {
+      els.fullGenResult.hidden = true;
+      els.fullGenResult.textContent = '';
+    }
+    setFullGenMessage('Running full phased generate… This may take several minutes.', 'info');
+    authHeaders().then(function (h) {
+      if (!h.Authorization) {
+        setFullGenMessage('Sign-in not ready yet — try again in a second.', 'error');
+        setFullGenBusy(false);
+        return;
+      }
+      var url = '/api/snowflake/agentic/generate-full';
+      fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({ sandbox: sandbox, count: count }),
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          var result = data && data.result;
+          if (res.status === 501) {
+            setFullGenMessage(
+              (data.result && data.result.error && data.result.error.message) ||
+                'Runner not configured. See services/agentic-travel-runner in the repo.',
+              'error'
+            );
+            return;
+          }
+          if (res.ok && data && data.ok && data.result && data.result.ok && data.result.data) {
+            var st = data.result.data.generation_status || {};
+            var lr = st.last_result || {};
+            setFullGenMessage(st.message || 'Done.', lr.success === false ? 'error' : 'success');
+            if (els.fullGenResult) {
+              els.fullGenResult.hidden = false;
+              els.fullGenResult.textContent = safeStringify(data.result.data);
+            }
+          } else {
+            setFullGenMessage(
+              (data.result && data.result.error && data.result.error.message) || (data && data.error) ||
+                ('Generate failed (HTTP ' + res.status + ').'),
+              'error'
+            );
+          }
+        });
+      }).catch(function (e) {
+        setFullGenMessage('Network error: ' + (e && e.message || e), 'error');
+      }).then(function () {
+        setFullGenBusy(false);
+      });
+    });
+  }
+
+  function describePhaseTables() {
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      setFullGenMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    var phase = els.phaseSelect ? els.phaseSelect.value : 'phase1';
+    setFullGenBusy(true);
+    authHeaders().then(function (h) {
+      if (!h.Authorization) {
+        setFullGenMessage('Sign-in not ready yet.', 'error');
+        setFullGenBusy(false);
+        return;
+      }
+      var url = '/api/snowflake/agentic/table-structure';
+      fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: JSON.stringify({ sandbox: sandbox, phase: phase }),
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          var result = data && data.result;
+          if (res.ok && result && result.ok && result.structure_text) {
+            if (els.phaseStructureOut) {
+              els.phaseStructureOut.hidden = false;
+              els.phaseStructureOut.textContent = result.structure_text;
+            }
+            setFullGenMessage('Loaded structure for ' + phase + '.', 'success');
+          } else {
+            var msg = (result && result.error && result.error.message) || (data && data.error) || 'Failed.';
+            setFullGenMessage(msg, 'error');
+          }
+        });
+      }).catch(function (e) {
+        setFullGenMessage('Network error: ' + (e && e.message || e), 'error');
+      }).then(function () {
+        setFullGenBusy(false);
+      });
+    });
+  }
+
   function generateProfiles() {
     var payload = readGenerateForm();
     if (!payload.sandbox) {
@@ -770,6 +1087,37 @@
       });
     }
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
+
+    els.updaterForm = $('sfUpdaterForm');
+    els.filterType = $('sfFilterType');
+    els.timePeriod = $('sfTimePeriod');
+    els.queryLimit = $('sfQueryLimit');
+    els.loadProfilesBtn = $('sfLoadProfilesBtn');
+    els.profileTbody = $('sfProfileTbody');
+    els.selectAll = $('sfSelectAll');
+    els.eventTypes = $('sfEventTypes');
+    els.enrichBtn = $('sfEnrichBtn');
+    els.updaterMessage = $('sfUpdaterMessage');
+    els.fullGenForm = $('sfFullGenForm');
+    els.fullGenCount = $('sfFullGenCount');
+    els.fullGenBtn = $('sfFullGenBtn');
+    els.fullGenMessage = $('sfFullGenMessage');
+    els.fullGenResult = $('sfFullGenResult');
+    els.phaseSelect = $('sfPhaseSelect');
+    els.phaseStructureBtn = $('sfPhaseStructureBtn');
+    els.phaseStructureOut = $('sfPhaseStructureOut');
+
+    if (els.loadProfilesBtn) els.loadProfilesBtn.addEventListener('click', loadProfiles);
+    if (els.enrichBtn) els.enrichBtn.addEventListener('click', enrichSelected);
+    if (els.fullGenBtn) els.fullGenBtn.addEventListener('click', runFullPhasedGenerate);
+    if (els.phaseStructureBtn) els.phaseStructureBtn.addEventListener('click', describePhaseTables);
+    if (els.selectAll) {
+      els.selectAll.addEventListener('change', function () {
+        var on = els.selectAll.checked;
+        var picks = document.querySelectorAll('.sf-pick');
+        for (var i = 0; i < picks.length; i++) picks[i].checked = on;
+      });
+    }
 
     bindKeyFileUi();
 

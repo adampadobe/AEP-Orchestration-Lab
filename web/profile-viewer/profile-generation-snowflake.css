@@ -16,9 +16,23 @@
   grid-template-columns: 1fr;
   grid-template-areas:
     "config"
-    "phase2";
+    "dual";
   gap: 18px;
   margin-top: 18px;
+}
+
+.sf-gen-dual {
+  grid-area: dual;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .sf-gen-dual {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sf-gen-card {
@@ -31,7 +45,96 @@
 }
 
 .sf-gen-card--config { grid-area: config; }
-.sf-gen-card--phase2 { grid-area: phase2; }
+
+.sf-gen-profile-table-wrap {
+  overflow-x: auto;
+  margin: 10px 0 12px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.sf-gen-profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.sf-gen-profile-table th,
+.sf-gen-profile-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--dash-border);
+  color: var(--dash-text);
+}
+
+.sf-gen-profile-table th {
+  position: sticky;
+  top: 0;
+  background: var(--dash-surface-alt);
+  z-index: 1;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+
+.sf-gen-profile-table tr:hover td {
+  background: var(--dash-hover);
+}
+
+.sf-gen-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 14px;
+  margin: 10px 0 14px;
+}
+
+.sf-gen-checkbox-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+.sf-gen-phase-sql {
+  margin-top: 12px;
+}
+
+.sf-gen-phase-sql select {
+  max-width: 100%;
+}
+
+.sf-gen-sql-pre {
+  margin-top: 8px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--dash-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sf-gen-divider {
+  border: none;
+  border-top: 1px solid var(--dash-border);
+  margin: 20px 0;
+}
+
+.sf-gen-card-header--tight {
+  margin-top: 4px;
+}
+
+.sf-gen-label-block {
+  display: block;
+  margin-bottom: 6px;
+}
 
 details.sf-gen-card {
   padding: 0;

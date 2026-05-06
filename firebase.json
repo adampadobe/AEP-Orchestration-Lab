@@ -672,6 +672,34 @@
         }
       },
       {
+        "source": "/api/snowflake/agentic/query-profiles",
+        "function": {
+          "functionId": "snowflakeAgenticQueryProfiles",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/table-structure",
+        "function": {
+          "functionId": "snowflakeAgenticTableStructure",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/generate-full",
+        "function": {
+          "functionId": "snowflakeAgenticGenerateFull",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/enrich-profiles",
+        "function": {
+          "functionId": "snowflakeAgenticEnrichProfiles",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/tags/reactor",
         "function": {
           "functionId": "tagsReactorProxy",
