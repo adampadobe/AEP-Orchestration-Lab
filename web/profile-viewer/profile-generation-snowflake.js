@@ -37,6 +37,8 @@
   };
 
   var els = {};
+  /** True after a successful Test connection in this page session (reset on Save / Clear / reload). */
+  var lastSnowflakeTestOk = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -79,6 +81,37 @@
       }
     }
     reflectAuthMethod();
+    updateConnectionSummary();
+  }
+
+  function updateConnectionSummary() {
+    var st = els.connectionSummaryStatus;
+    if (!st) return;
+    var sandbox = readSandbox();
+    if (!sandbox) {
+      st.textContent = 'Pick a sandbox in Global values';
+      return;
+    }
+    if (lastSnowflakeTestOk) {
+      st.textContent = 'Connected — expand to edit or retest';
+      return;
+    }
+    var account = els.account && els.account.value.trim();
+    var user = els.user && els.user.value.trim();
+    var credState = els.credentialStatus && els.credentialStatus.getAttribute('data-state');
+    if (account && user && credState === 'set') {
+      st.textContent = 'Saved — run Test connection';
+      return;
+    }
+    if (account && user) {
+      st.textContent = 'Incomplete — add credential & Save';
+      return;
+    }
+    if (account || user) {
+      st.textContent = 'Incomplete — expand to finish';
+      return;
+    }
+    st.textContent = 'Not configured — expand to edit';
   }
 
   function authHeaders() {
@@ -302,11 +335,13 @@
       node.textContent = 'No credential saved yet — paste one to enable connection tests.';
       node.setAttribute('data-state', 'missing');
     }
+    updateConnectionSummary();
   }
 
   function applyRecordToForm(rec) {
     if (!rec) {
       reflectCredentialState(null);
+      updateConnectionSummary();
       return;
     }
     if (els.account) els.account.value = rec.account || '';
@@ -342,7 +377,9 @@
 
   function loadConfig() {
     var sandbox = readSandbox();
+    lastSnowflakeTestOk = false;
     if (!sandbox) {
+      updateConnectionSummary();
       setMessage(
         'Pick a sandbox from Global values before configuring Snowflake. The connection is saved per lab user, per sandbox.',
         'info'
@@ -362,9 +399,11 @@
           setDebug('GET ' + url, null, res.status, body);
           if (res.ok && body && body.ok) {
             var rec = body.record || null;
+            lastSnowflakeTestOk = false;
             applyRecordToForm(rec);
             if (isApalmerSandbox(sandbox) && (!rec || !rec.account)) {
               applyAgenticTravelPreset(true, false);
+              updateConnectionSummary();
               setMessage(
                 'No saved Snowflake config for sandbox "' + sandbox + '" yet — applied AgenticAI travel defaults (account, user, warehouse, database, schema, key-pair). Paste your RSA private key from your aep_integration_1.p8 file, optional passphrase, then Save.',
                 'info'
@@ -421,6 +460,7 @@
         return res.json().then(function (data) {
           setDebug('POST ' + url, debugPayload, res.status, data);
           if (res.ok && data && data.ok) {
+            lastSnowflakeTestOk = false;
             applyRecordToForm(data.record || null);
             if (els.credential) els.credential.value = '';
             if (els.keyPassphrase) els.keyPassphrase.value = '';
@@ -464,8 +504,13 @@
           if (res.ok && result && result.ok) {
             var line = 'Connected — Snowflake ' + (result.version || 'unknown') +
               ' (account ' + (result.account || '?') + ').';
+            lastSnowflakeTestOk = true;
+            updateConnectionSummary();
             setMessage(line, 'success');
+            if (els.connectionDetails) els.connectionDetails.open = false;
           } else {
+            lastSnowflakeTestOk = false;
+            updateConnectionSummary();
             var msg = (result && result.error && result.error.message) || (data && data.error) ||
               'Connection test failed (HTTP ' + res.status + ').';
             var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
@@ -522,7 +567,7 @@
   }
 
   function copyStaticIp() {
-    var copy = STATIC_EGRESS_IP;
+    var copy = STATIC_EGRESS_IP + '/32';
     var ok = function () {
       var prev = els.copyBtn ? els.copyBtn.textContent : '';
       if (els.copyBtn) {
@@ -693,6 +738,8 @@
     els.keyFilePick = $('sfKeyFilePick');
     els.keyDropTarget = $('sfKeyDropTarget');
     els.copyBtn = $('sfCopyIpBtn');
+    els.connectionDetails = $('sfConnectionDetails');
+    els.connectionSummaryStatus = $('sfConnectionSummaryStatus');
     els.message = $('sfConfigMessage');
     els.debug = $('sfConfigDebug');
     els.debugEndpoint = $('sfDebugEndpoint');
@@ -717,20 +764,43 @@
     els.genDebugStatus = $('sfGenDebugStatus');
     els.genDebugResponse = $('sfGenDebugResponse');
 
-    if (els.authMethod) els.authMethod.addEventListener('change', reflectAuthMethod);
+    if (els.authMethod) {
+      els.authMethod.addEventListener('change', function () {
+        reflectAuthMethod();
+        lastSnowflakeTestOk = false;
+        updateConnectionSummary();
+      });
+    }
     if (els.saveBtn) els.saveBtn.addEventListener('click', saveConfig);
     if (els.testBtn) els.testBtn.addEventListener('click', testConnection);
     if (els.clearCredBtn) els.clearCredBtn.addEventListener('click', clearCredential);
     if (els.fillPresetBtn) {
       els.fillPresetBtn.addEventListener('click', function () {
         applyAgenticTravelPreset(false, true);
+        updateConnectionSummary();
         setMessage(
           'Filled AgenticAI travel defaults. Paste your RSA private key (.p8 PEM) if not already saved, then Save.',
           'info'
         );
       });
     }
-    if (els.copyBtn) els.copyBtn.addEventListener('click', copyStaticIp);
+    if (els.copyBtn) {
+      els.copyBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        copyStaticIp();
+      });
+    }
+    if (els.form) {
+      els.form.addEventListener('input', function () {
+        lastSnowflakeTestOk = false;
+        updateConnectionSummary();
+      });
+      els.form.addEventListener('change', function () {
+        lastSnowflakeTestOk = false;
+        updateConnectionSummary();
+      });
+    }
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
 
     bindKeyFileUi();
@@ -742,6 +812,7 @@
       if (e && e.key === LS_SANDBOX) loadConfig();
     });
     reflectAuthMethod();
+    updateConnectionSummary();
   }
 
   document.addEventListener('DOMContentLoaded', function () {
