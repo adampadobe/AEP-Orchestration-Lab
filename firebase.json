@@ -665,6 +665,13 @@
         }
       },
       {
+        "source": "/api/snowflake/generate-base-profiles",
+        "function": {
+          "functionId": "snowflakeGenerateBaseProfiles",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/tags/reactor",
         "function": {
           "functionId": "tagsReactorProxy",

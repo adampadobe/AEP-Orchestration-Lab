@@ -100,6 +100,7 @@ const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Servic
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const snowflakeService = lazyRequireMod('./snowflakeService');
+const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -4634,3 +4635,51 @@ exports.snowflakeConnectionTest = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) 
     res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
   }
 });
+
+/**
+ * POST /api/snowflake/generate-base-profiles — body { sandbox, count?, table?,
+ * batchSize?, startIndex? }. Generates N base profiles using Faker (Phase 2
+ * minimal port of AgenticAI Demo's data_generator.py) and INSERTs them into
+ * the user's Snowflake target. Idempotent CREATE TABLE IF NOT EXISTS for
+ * first-run targets. Returns rowcount + first 3 generated rows so the UI
+ * can render a sample without a separate SELECT round-trip.
+ */
+exports.snowflakeGenerateBaseProfiles = onRequest(
+  { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 300, memory: '1GiB' },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+    if (!uid) {
+      res.status(401).json({
+        ok: false,
+        error: 'Sign in required to generate Snowflake profiles (anonymous sign-in is enough).',
+      });
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+    if (!sandbox) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+
+    try {
+      const result = await snowflakeDataGeneratorService.handleGenerateBaseProfiles({
+        labUser: uid,
+        sandbox,
+        count: Number(body.count),
+        table: body.table,
+        batchSize: Number(body.batchSize) || undefined,
+        startIndex: Number(body.startIndex) || undefined,
+      });
+      res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+    } catch (e) {
+      console.error('[snowflakeGenerateBaseProfiles]', String(e && e.message || e));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  }
+);

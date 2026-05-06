@@ -378,6 +378,131 @@
     }
   }
 
+  function setGenerateMessage(text, tone, extras) {
+    var node = els.genMessage;
+    if (!node) return;
+    if (!text) {
+      node.hidden = true;
+      node.removeAttribute('data-tone');
+      node.textContent = '';
+      return;
+    }
+    node.hidden = false;
+    node.setAttribute('data-tone', tone || 'info');
+    node.textContent = '';
+    var p = document.createElement('div');
+    p.textContent = text;
+    node.appendChild(p);
+    if (extras && extras.hints && extras.hints.length) {
+      var ul = document.createElement('ul');
+      for (var i = 0; i < extras.hints.length; i++) {
+        var li = document.createElement('li');
+        li.textContent = extras.hints[i];
+        ul.appendChild(li);
+      }
+      node.appendChild(ul);
+    }
+  }
+
+  function setGenerateDebug(endpoint, request, status, response) {
+    if (els.genDebugEndpoint) els.genDebugEndpoint.textContent = endpoint || '';
+    if (els.genDebugRequest) els.genDebugRequest.textContent = request ? safeStringify(request) : '';
+    if (els.genDebugStatus) els.genDebugStatus.textContent = status == null ? '' : String(status);
+    if (els.genDebugResponse) els.genDebugResponse.textContent = response ? safeStringify(response) : '';
+    if (els.genDebug) els.genDebug.hidden = false;
+  }
+
+  function setGenerateBusy(busy) {
+    if (els.genForm) els.genForm.setAttribute('aria-busy', busy ? 'true' : 'false');
+    if (els.generateBtn) els.generateBtn.disabled = !!busy;
+  }
+
+  function showGenerateResult(result) {
+    if (!els.genResult) return;
+    if (!result || !result.ok) {
+      els.genResult.hidden = true;
+      return;
+    }
+    els.genResult.hidden = false;
+    if (els.genResultRowcount) els.genResultRowcount.textContent = String(result.rowcount || 0);
+    if (els.genResultTable) els.genResultTable.textContent = result.table || '—';
+    if (els.genResultSample) {
+      els.genResultSample.textContent = Array.isArray(result.sample) && result.sample.length
+        ? safeStringify(result.sample)
+        : '(no rows generated)';
+    }
+  }
+
+  function readGenerateForm() {
+    var count = els.genCount ? parseInt(els.genCount.value, 10) : 10;
+    if (!Number.isFinite(count) || count <= 0) count = 10;
+    var batchSize = els.genBatchSize ? parseInt(els.genBatchSize.value, 10) : NaN;
+    var payload = {
+      sandbox: readSandbox(),
+      count: count,
+      table: (els.genTable && els.genTable.value.trim()) || 'BASE_PROFILES',
+      industry: els.genIndustry ? els.genIndustry.value : '',
+    };
+    if (Number.isFinite(batchSize) && batchSize > 0) payload.batchSize = batchSize;
+    return payload;
+  }
+
+  function generateProfiles() {
+    var payload = readGenerateForm();
+    if (!payload.sandbox) {
+      setGenerateMessage('Pick a sandbox from Global values first.', 'error');
+      return;
+    }
+    if (payload.count > 1000) {
+      setGenerateMessage('Maximum 1000 profiles per run.', 'error');
+      return;
+    }
+    setGenerateBusy(true);
+    if (els.genResult) els.genResult.hidden = true;
+    setGenerateMessage(
+      'Generating ' + payload.count + ' base profile' + (payload.count === 1 ? '' : 's') +
+        ' into ' + payload.table + ' (egress IP ' + STATIC_EGRESS_IP + ')…',
+      'info'
+    );
+    authHeaders().then(function (h) {
+      if (!h.Authorization) {
+        setGenerateMessage('Sign-in not ready yet — try again in a second.', 'error');
+        setGenerateBusy(false);
+        return;
+      }
+      var url = '/api/snowflake/generate-base-profiles';
+      var body = JSON.stringify(payload);
+      fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+        body: body,
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          setGenerateDebug('POST ' + url, payload, res.status, data);
+          var result = data && data.result;
+          if (res.ok && result && result.ok) {
+            setGenerateMessage(
+              'Inserted ' + result.rowcount + ' base profile' + (result.rowcount === 1 ? '' : 's') +
+                ' into ' + result.table + '.',
+              'success'
+            );
+            showGenerateResult(result);
+          } else {
+            var msg = (result && result.error && result.error.message) || (data && data.error) ||
+              ('Generation failed (HTTP ' + res.status + ').');
+            var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
+            setGenerateMessage(msg, 'error', { hints: hints });
+            showGenerateResult(null);
+          }
+        });
+      }).catch(function (e) {
+        setGenerateMessage('Network error during generation: ' + (e && e.message || e), 'error');
+      }).then(function () {
+        setGenerateBusy(false);
+      });
+    });
+  }
+
   function bind() {
     els.form = $('sfConfigForm');
     els.account = $('sfAccount');
@@ -403,11 +528,29 @@
     els.debugStatus = $('sfDebugStatus');
     els.debugResponse = $('sfDebugResponse');
 
+    els.genForm = $('sfGenerateForm');
+    els.genCount = $('sfGenCount');
+    els.genTable = $('sfGenTable');
+    els.genIndustry = $('sfGenIndustry');
+    els.genBatchSize = $('sfGenBatchSize');
+    els.generateBtn = $('sfGenerateBtn');
+    els.genMessage = $('sfGenerateMessage');
+    els.genResult = $('sfGenerateResult');
+    els.genResultRowcount = $('sfGenResultRowcount');
+    els.genResultTable = $('sfGenResultTable');
+    els.genResultSample = $('sfGenResultSample');
+    els.genDebug = $('sfGenerateDebug');
+    els.genDebugEndpoint = $('sfGenDebugEndpoint');
+    els.genDebugRequest = $('sfGenDebugRequest');
+    els.genDebugStatus = $('sfGenDebugStatus');
+    els.genDebugResponse = $('sfGenDebugResponse');
+
     if (els.authMethod) els.authMethod.addEventListener('change', reflectAuthMethod);
     if (els.saveBtn) els.saveBtn.addEventListener('click', saveConfig);
     if (els.testBtn) els.testBtn.addEventListener('click', testConnection);
     if (els.clearCredBtn) els.clearCredBtn.addEventListener('click', clearCredential);
     if (els.copyBtn) els.copyBtn.addEventListener('click', copyStaticIp);
+    if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
 
     document.addEventListener('aep-lab-sandbox-synced', function () {
       loadConfig();

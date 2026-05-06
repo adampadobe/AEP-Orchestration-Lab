@@ -6,7 +6,12 @@ in the Profile Viewer at **`/profile-viewer/profile-generation-snowflake.html`**
 
 The integration ports the AgenticAI Demo (`AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`)
 into the lab. **Phase 1** ships per-user Snowflake connection management plus a
-server-side connection test. **Phases 2 and 3** will port the data generators.
+server-side connection test. **Phase 2 (this commit)** adds a minimal
+base-profile generator that ports `data_generator.py → generate_base_profiles`
+to Node and bulk-INSERTs Faker-driven rows into a target Snowflake table.
+**Phase 3** will port the remaining generators (full profiles, website /
+booking events, loyalty, mobile, call, disruption, in-flight, hotel, POS) and
+the query / enrich panel.
 
 ---
 
@@ -84,13 +89,14 @@ All endpoints require a Firebase Auth Bearer token (anonymous OK) and a
 [`firebase.json`](../firebase.json) rewrites and exported in
 [`functions/index.js`](../functions/index.js):
 
-| Method | Path                              | Function name              | Purpose                                                                  |
-| ------ | --------------------------------- | -------------------------- | ------------------------------------------------------------------------ |
-| GET    | `/api/snowflake/config`           | `snowflakeConfig`          | Public projection of saved config (never the credential).                |
-| POST   | `/api/snowflake/config`           | `snowflakeConfig`          | Save / update config; credential, if supplied, is written to Secret Manager. |
-| POST   | `/api/snowflake/connection-test`  | `snowflakeConnectionTest`  | Open a Snowflake connection, run `SELECT CURRENT_VERSION()`, tear down.  |
+| Method | Path                                       | Function name                    | Purpose                                                                  |
+| ------ | ------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------ |
+| GET    | `/api/snowflake/config`                    | `snowflakeConfig`                | Public projection of saved config (never the credential).                |
+| POST   | `/api/snowflake/config`                    | `snowflakeConfig`                | Save / update config; credential, if supplied, is written to Secret Manager. |
+| POST   | `/api/snowflake/connection-test`           | `snowflakeConnectionTest`        | Open a Snowflake connection, run `SELECT CURRENT_VERSION()`, tear down.  |
+| POST   | `/api/snowflake/generate-base-profiles`    | `snowflakeGenerateBaseProfiles`  | Phase 2 — generate `count` Faker-driven base profiles and bulk-INSERT into the target table (auto-creates the table if missing). Returns `{ rowcount, table, sample[3] }`. |
 
-All three handlers attach the `snowflake-egress` VPC connector with
+All four handlers attach the `snowflake-egress` VPC connector with
 `vpcConnectorEgressSettings: 'ALL_TRAFFIC'`, which is the bit that actually
 forces the static-IP path. Without `ALL_TRAFFIC` only RFC1918 traffic would
 go through the connector and Snowflake calls would still leak the dynamic
@@ -173,6 +179,13 @@ plus `secretmanager.admin` only on the resource prefix `snowflake-cred-*`.
 4. Click **Test connection**. Expect "Connected — Snowflake \<version\>".
 5. If the test reports `IP not allowed`, the Snowflake admin still needs to
    add `34.58.81.28/32` to the `NETWORK POLICY` for the user.
+6. **Generate base profiles (Phase 2):** in the *Generate base profiles*
+   panel, set the count (default 10, max 1000) and target table (default
+   `BASE_PROFILES`), then click **Generate profiles**. The function
+   idempotently `CREATE TABLE IF NOT EXISTS` for the target, then bulk
+   INSERTs Faker-generated rows in batches (default 200/batch). The
+   response shows the rowcount, fully-qualified table, and a sample of
+   the first three rows that were inserted.
 
 ---
 
@@ -184,6 +197,7 @@ plus `secretmanager.admin` only on the resource prefix `snowflake-cred-*`.
 - Nav entry: [`web/profile-viewer/aep-lab-nav.js`](../web/profile-viewer/aep-lab-nav.js)
 - Backend: [`functions/snowflakeConnectionStore.js`](../functions/snowflakeConnectionStore.js)
   · [`functions/snowflakeService.js`](../functions/snowflakeService.js)
+  · [`functions/snowflakeDataGeneratorService.js`](../functions/snowflakeDataGeneratorService.js) (Phase 2 — base-profile generator)
   · handler exports + `SNOWFLAKE_FN_OPTS` in [`functions/index.js`](../functions/index.js)
 - Hosting rewrites: [`firebase.json`](../firebase.json) (`/api/snowflake/*`)
 - Source project mirrored: `/Users/apalmer/Library/CloudStorage/OneDrive-Adobe/AI Projects/AgenticAI Demo/Agentic_Demo_Platform/`
@@ -192,9 +206,15 @@ plus `secretmanager.admin` only on the resource prefix `snowflake-cred-*`.
 
 ## Roadmap
 
-- **Phase 2** — port `data_generator.py` Phase 1 base-profile generation to
-  `functions/snowflakeDataGeneratorService.js` and wire the "Generate profiles"
-  button on the page.
-- **Phase 3** — port Phase 2/3 generators (loyalty, mobile, website, booking,
-  check-in, call, disruption, in-flight, hotel, POS) and the query / enrich
-  panel from the original Flask app.
+- ✅ **Phase 1** — connection plumbing, Secret Manager + Firestore store,
+  static-IP egress, connection test.
+- ✅ **Phase 2 (this commit)** — minimal port of `data_generator.py →
+  generate_base_profiles` in
+  [`functions/snowflakeDataGeneratorService.js`](../functions/snowflakeDataGeneratorService.js)
+  ; idempotent `CREATE TABLE IF NOT EXISTS` for the target, batch INSERT via
+  `snowflake-sdk` binds, sample preview in the UI.
+- **Phase 3** — port the rest of the generators (full profiles, website /
+  booking events, loyalty, mobile, call, disruption, in-flight, hotel, POS),
+  the industry-aware code paths (the industry selector is wired to the UI
+  but informational only in Phase 2), and the query / enrich panel from the
+  original Flask app.
