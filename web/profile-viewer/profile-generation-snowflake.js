@@ -566,30 +566,6 @@
     });
   }
 
-  function copyStaticIp() {
-    var copy = STATIC_EGRESS_IP + '/32';
-    var ok = function () {
-      var prev = els.copyBtn ? els.copyBtn.textContent : '';
-      if (els.copyBtn) {
-        els.copyBtn.textContent = 'Copied!';
-        setTimeout(function () { if (els.copyBtn) els.copyBtn.textContent = prev || 'Copy'; }, 1500);
-      }
-    };
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(copy).then(ok).catch(function () { ok(); });
-    } else {
-      try {
-        var ta = document.createElement('textarea');
-        ta.value = copy;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        ok();
-      } catch (_) {}
-    }
-  }
-
   function setGenerateMessage(text, tone, extras) {
     var node = els.genMessage;
     if (!node) return;
@@ -737,7 +713,6 @@
     els.keyFile = $('sfKeyFile');
     els.keyFilePick = $('sfKeyFilePick');
     els.keyDropTarget = $('sfKeyDropTarget');
-    els.copyBtn = $('sfCopyIpBtn');
     els.connectionDetails = $('sfConnectionDetails');
     els.connectionSummaryStatus = $('sfConnectionSummaryStatus');
     els.message = $('sfConfigMessage');
@@ -782,13 +757,6 @@
           'Filled AgenticAI travel defaults. Paste your RSA private key (.p8 PEM) if not already saved, then Save.',
           'info'
         );
-      });
-    }
-    if (els.copyBtn) {
-      els.copyBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        copyStaticIp();
       });
     }
     if (els.form) {

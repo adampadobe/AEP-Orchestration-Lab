@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260506a">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506f">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506g">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -40,30 +40,6 @@
         </section>
 
         <section class="sf-gen-grid" aria-label="Snowflake configuration">
-          <details class="sf-gen-card sf-gen-card--ip" id="sfIpDetails">
-            <summary class="sf-gen-ip-summary">
-              <code class="sf-gen-ip-value" id="sfStaticEgressIp">34.58.81.28</code>
-              <button type="button" class="btn btn-secondary sf-gen-copy-btn" id="sfCopyIpBtn" aria-label="Copy allowlist CIDR (IPv4 with slash-32)">Copy</button>
-              <span class="sf-gen-ip-summary-mid" aria-hidden="true">
-                <span class="sf-gen-ip-summary-tag">CIDR</span>
-                <code class="sf-gen-ip-cidr">34.58.81.28/32</code>
-              </span>
-              <span class="sf-gen-ip-summary-expand">Expand for Snowflake network policy steps &amp; sample SQL</span>
-            </summary>
-            <div class="sf-gen-ip-body">
-              <p class="sf-gen-card-subtitle sf-gen-ip-body-lead">
-                Cloud Functions egress for this lab uses this single IPv4 (Cloud NAT, <code>us-central1</code>). Add <code>34.58.81.28/32</code> to your allowlist (IP list or network rule) before <strong>Test connection</strong> succeeds.
-              </p>
-              <pre class="sf-gen-snippet"><code>CREATE NETWORK POLICY aep_orchestration_lab_policy
-  ALLOWED_IP_LIST = ('34.58.81.28/32');
-
-ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;</code></pre>
-              <p class="sf-gen-side-hint">
-                Full setup guide: <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/SNOWFLAKE_INTEGRATION.md" target="_blank" rel="noopener"><code>docs/SNOWFLAKE_INTEGRATION.md</code></a>.
-              </p>
-            </div>
-          </details>
-
           <details class="sf-gen-card sf-gen-card--config" id="sfConnectionDetails" open>
             <summary class="sf-gen-connection-summary" id="sfConnectionSummary">
               <span class="sf-gen-connection-summary-title">Snowflake connection</span>
@@ -273,6 +249,6 @@ ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;<
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260506a"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260506f"></script>
+  <script src="profile-generation-snowflake.js?v=20260506g"></script>
 </body>
 </html>
