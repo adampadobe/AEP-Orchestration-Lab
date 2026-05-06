@@ -193,3 +193,155 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
+
+(function setupModDemoAskOverlay() {
+  const body = document.body;
+  const floatBtn = document.getElementById('modDemoAskFloat');
+  const overlay = document.getElementById('modDemoAskDialog');
+  const panelInput = document.getElementById('modDemoAskInput');
+  const sendBtn = document.getElementById('modDemoAskSend');
+  if (!floatBtn || !overlay || !panelInput || !sendBtn) return;
+
+  function deepQuerySelector(root, selector) {
+    if (!root || !root.querySelector) return null;
+    const hit = root.querySelector(selector);
+    if (hit) return hit;
+    const hosts = root.querySelectorAll('*');
+    for (let i = 0; i < hosts.length; i++) {
+      const el = hosts[i];
+      if (el.shadowRoot) {
+        const inner = deepQuerySelector(el.shadowRoot, selector);
+        if (inner) return inner;
+      }
+    }
+    return null;
+  }
+
+  function findConciergeField(mount) {
+    if (!mount) return null;
+    const selectors = ['textarea', 'input[type="text"]', 'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])'];
+    for (let s = 0; s < selectors.length; s++) {
+      const el = deepQuerySelector(mount, selectors[s]);
+      if (el && typeof el.value === 'string' && !el.disabled) return el;
+    }
+    return null;
+  }
+
+  function findConciergeSend(mount) {
+    if (!mount) return null;
+    return (
+      deepQuerySelector(mount, 'button[aria-label*="Send" i]') ||
+      deepQuerySelector(mount, 'button[type="submit"]') ||
+      null
+    );
+  }
+
+  function forwardToConcierge(text) {
+    const mount = document.getElementById('brand-concierge-mount');
+    if (!mount) return false;
+    const field = findConciergeField(mount);
+    if (!field) return false;
+    field.focus();
+    field.value = text;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    const go = findConciergeSend(mount);
+    if (go) {
+      go.click();
+    } else {
+      field.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true, cancelable: true })
+      );
+    }
+    return true;
+  }
+
+  function attemptForward(text, attempt) {
+    const n = typeof attempt === 'number' ? attempt : 0;
+    if (forwardToConcierge(text)) {
+      panelInput.value = '';
+      return;
+    }
+    if (n >= 45) return;
+    window.setTimeout(function () {
+      attemptForward(text, n + 1);
+    }, 120);
+  }
+
+  function isOverlayOpen() {
+    return overlay && !overlay.hasAttribute('hidden');
+  }
+
+  function closeAskOverlay() {
+    overlay.setAttribute('hidden', '');
+    body.classList.remove('mod-demo-page--ask-open');
+    floatBtn.setAttribute('aria-expanded', 'false');
+    body.style.overflow = '';
+    floatBtn.focus();
+  }
+
+  function openAskOverlay() {
+    overlay.removeAttribute('hidden');
+    body.classList.add('mod-demo-page--ask-open');
+    floatBtn.setAttribute('aria-expanded', 'true');
+    body.style.overflow = 'hidden';
+    window.setTimeout(function () {
+      panelInput.focus();
+    }, 0);
+  }
+
+  floatBtn.addEventListener('click', function () {
+    if (isOverlayOpen()) return;
+    openAskOverlay();
+  });
+
+  overlay.querySelectorAll('[data-mod-demo-ask-close]').forEach(function (el) {
+    el.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      closeAskOverlay();
+    });
+  });
+
+  overlay.querySelectorAll('[data-mod-demo-ask-suggestion]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const q = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!q) return;
+      panelInput.value = q;
+      submitFromPanel();
+    });
+  });
+
+  function submitFromPanel() {
+    const text = (panelInput.value || '').trim();
+    if (!text) return;
+
+    closeAskOverlay();
+
+    const dismissed = document.body.classList.contains('aep-bc-panel-dismissed');
+    if (dismissed) {
+      const reopen = document.getElementById('aepBcReopenBtn');
+      if (reopen) reopen.click();
+      window.setTimeout(function () {
+        attemptForward(text, 0);
+      }, 280);
+      return;
+    }
+
+    attemptForward(text, 0);
+  }
+
+  sendBtn.addEventListener('click', submitFromPanel);
+  panelInput.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      submitFromPanel();
+    }
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    if (!isOverlayOpen()) return;
+    ev.preventDefault();
+    closeAskOverlay();
+  });
+})();
