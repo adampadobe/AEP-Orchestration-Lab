@@ -1496,6 +1496,28 @@
         return '';
       }
 
+      function findLoyaltyIdFromRows() {
+        if (!rows) return '';
+        const pick = (pred) => {
+          for (const row of rows) {
+            const p = pathLower(row);
+            if (!pred(p)) continue;
+            const v = trim(row.value);
+            if (v) return v;
+          }
+          return '';
+        };
+        return (
+          pick((p) => p.includes('identification') && p.includes('loyaltyid')) ||
+          pick((p) => p.includes('loyalty.loyaltyid')) ||
+          pick((p) => /\.loyaltyid\.\d+$/.test(p) || p.endsWith('.loyaltyid')) ||
+          pick((p) => p.includes('identitymap') && p.includes('loyalty') && p.endsWith('.id')) ||
+          findByKeywords('loyalty', 'loyaltyid') ||
+          findByKeywords('identification', 'loyaltyid') ||
+          findBySuffix(['loyaltyid'])
+        );
+      }
+
       const firstName = findBySuffix(['firstname', 'givenname']);
       const lastName = findBySuffix(['lastname', 'surname', 'familyname']);
       const birthDate = findBySuffix(['person.birthdate', 'birthdate']);
@@ -1510,10 +1532,7 @@
         findBySuffix(['language', 'locale']);
       const gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
       const preferredChannel = findBySuffix(['marketing.preferred']);
-      const loyaltyId =
-        findByKeywords('loyalty', 'loyaltyid') ||
-        findByKeywords('identification', 'loyaltyid') ||
-        findBySuffix(['loyaltyid']);
+      const loyaltyId = findLoyaltyIdFromRows();
       const tier = findByKeywords('loyalty', 'tier') ||
         findByKeywords('loyaltydetails', 'level') ||
         findBySuffix(['tier']);

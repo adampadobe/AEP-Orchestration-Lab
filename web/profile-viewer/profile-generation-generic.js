@@ -1326,6 +1326,29 @@
       return '';
     }
 
+    /** UPS often stores the program id on identityMap.Loyalty.*.id — not `*loyaltyid*` in the path. */
+    function findLoyaltyIdFromRows() {
+      if (!rows) return '';
+      const pick = (pred) => {
+        for (const row of rows) {
+          const p = pathLower(row);
+          if (!pred(p)) continue;
+          const v = trim(row.value);
+          if (v) return v;
+        }
+        return '';
+      };
+      return (
+        pick((p) => p.includes('identification') && p.includes('loyaltyid')) ||
+        pick((p) => p.includes('loyalty.loyaltyid')) ||
+        pick((p) => /\.loyaltyid\.\d+$/.test(p) || p.endsWith('.loyaltyid')) ||
+        pick((p) => p.includes('identitymap') && p.includes('loyalty') && p.endsWith('.id')) ||
+        findByKeywords('loyalty', 'loyaltyid') ||
+        findByKeywords('identification', 'loyaltyid') ||
+        findBySuffix(['loyaltyid'])
+      );
+    }
+
     let firstName = findBySuffix(['firstname', 'givenname']);
     let lastName = findBySuffix(['lastname', 'surname', 'familyname']);
     let birthDate = findBySuffix(['person.birthdate', 'birthdate']);
@@ -1347,10 +1370,7 @@
     // Loyalty (dual-written by buildUpdatesFromForm to both the standard
     // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
     // pulls whichever one made it into the profile, regardless of order.
-    let loyaltyId =
-      findByKeywords('loyalty', 'loyaltyid') ||
-      findByKeywords('identification', 'loyaltyid') ||
-      findBySuffix(['loyaltyid']);
+    let loyaltyId = findLoyaltyIdFromRows();
     let tier = findByKeywords('loyalty', 'tier') ||
       findByKeywords('loyaltydetails', 'level') ||
       findBySuffix(['tier']);
