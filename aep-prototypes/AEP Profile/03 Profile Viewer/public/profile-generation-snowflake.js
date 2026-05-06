@@ -19,6 +19,8 @@
 
   var LS_SANDBOX = 'aepGlobalSandboxName';
   var STATIC_EGRESS_IP = '34.58.81.28';
+  /** Max PEM / PKCS#8 file size read in the browser before Save. */
+  var KEY_FILE_MAX_BYTES = 256 * 1024;
 
   /**
    * Public connection defaults from AgenticAI Demo `snowflake_settings.py`
@@ -161,13 +163,27 @@
     }
   }
 
+  function isKeyPairMode() {
+    return els.authMethod && els.authMethod.value === 'keyPair';
+  }
+
   function reflectAuthMethod() {
     var method = els.authMethod ? els.authMethod.value : 'password';
     if (els.passphraseRow) els.passphraseRow.hidden = method !== 'keyPair';
+    if (els.keyPairExtras) els.keyPairExtras.hidden = method !== 'keyPair';
+    if (els.keyDropTarget) {
+      if (method === 'keyPair') {
+        els.keyDropTarget.classList.add('sf-gen-key-drop-target--keypair');
+      } else {
+        els.keyDropTarget.classList.remove('sf-gen-key-drop-target--keypair');
+        els.keyDropTarget.classList.remove('sf-gen-key-drop-target--active');
+      }
+    }
     if (!els.credentialLabel) return;
     if (method === 'keyPair') {
       els.credentialLabel.textContent = 'Private key (PEM, including BEGIN/END lines)';
-      els.credential.placeholder = '-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY----- — leave blank to keep the previously saved value';
+      els.credential.placeholder =
+        'Paste PEM, use Choose file…, or drop a .p8 here — leave blank to keep the previously saved value';
     } else if (method === 'pat') {
       els.credentialLabel.textContent = 'Programmatic access token';
       els.credential.placeholder = 'Paste PAT — leave blank to keep the previously saved value';
@@ -175,6 +191,104 @@
       els.credentialLabel.textContent = 'Password';
       els.credential.placeholder = 'Paste password — leave blank to keep the previously saved value';
     }
+  }
+
+  function looksLikePemPrivateKey(text) {
+    var t = String(text || '').trim();
+    if (t.indexOf('-----BEGIN') === -1) return false;
+    if (t.indexOf('-----END') === -1) return false;
+    return /PRIVATE KEY|RSA PRIVATE KEY|ENCRYPTED PRIVATE KEY/.test(t);
+  }
+
+  function ingestKeyFile(file) {
+    if (!file) return Promise.reject(new Error('No file selected.'));
+    if (file.size > KEY_FILE_MAX_BYTES) {
+      return Promise.reject(new Error('File is too large (max 256 KB).'));
+    }
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () {
+        var text = String(r.result || '').replace(/^\uFEFF/, '').trim();
+        if (!looksLikePemPrivateKey(text)) {
+          reject(new Error('File does not look like a PEM private key (expected -----BEGIN … PRIVATE KEY-----).'));
+          return;
+        }
+        if (els.credential) els.credential.value = text;
+        resolve(text.length);
+      };
+      r.onerror = function () {
+        reject(new Error('Could not read file.'));
+      };
+      r.readAsText(file);
+    });
+  }
+
+  function bindKeyFileUi() {
+    if (!els.keyFilePick || !els.keyFile || !els.keyDropTarget) return;
+
+    els.keyFilePick.addEventListener('click', function () {
+      if (!isKeyPairMode()) return;
+      els.keyFile.click();
+    });
+
+    els.keyFile.addEventListener('change', function (e) {
+      var input = e.target;
+      var f = input && input.files && input.files[0];
+      if (!f) return;
+      ingestKeyFile(f)
+        .then(function () {
+          setMessage('Loaded private key from file "' + f.name + '". Review the PEM, then Save.', 'success');
+        })
+        .catch(function (err) {
+          setMessage(err && err.message ? err.message : String(err), 'error');
+        })
+        .then(function () {
+          input.value = '';
+        });
+    });
+
+    var dropDepth = 0;
+    els.keyDropTarget.addEventListener('dragenter', function (e) {
+      if (!isKeyPairMode()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dropDepth++;
+      els.keyDropTarget.classList.add('sf-gen-key-drop-target--active');
+    });
+    els.keyDropTarget.addEventListener('dragleave', function (e) {
+      if (!isKeyPairMode()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dropDepth = Math.max(0, dropDepth - 1);
+      if (dropDepth === 0) els.keyDropTarget.classList.remove('sf-gen-key-drop-target--active');
+    });
+    els.keyDropTarget.addEventListener('dragover', function (e) {
+      if (!isKeyPairMode()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        e.dataTransfer.dropEffect = 'copy';
+      } catch (_) {}
+    });
+    els.keyDropTarget.addEventListener('drop', function (e) {
+      if (!isKeyPairMode()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dropDepth = 0;
+      els.keyDropTarget.classList.remove('sf-gen-key-drop-target--active');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) {
+        setMessage('Drop a single .p8 or PEM file (not a folder).', 'info');
+        return;
+      }
+      ingestKeyFile(f)
+        .then(function () {
+          setMessage('Loaded private key from dropped file "' + f.name + '". Review the PEM, then Save.', 'success');
+        })
+        .catch(function (err) {
+          setMessage(err && err.message ? err.message : String(err), 'error');
+        });
+    });
   }
 
   function reflectCredentialState(rec) {
@@ -574,6 +688,10 @@
     els.testBtn = $('sfTestBtn');
     els.clearCredBtn = $('sfClearCredBtn');
     els.fillPresetBtn = $('sfFillPresetBtn');
+    els.keyPairExtras = $('sfKeyPairExtras');
+    els.keyFile = $('sfKeyFile');
+    els.keyFilePick = $('sfKeyFilePick');
+    els.keyDropTarget = $('sfKeyDropTarget');
     els.copyBtn = $('sfCopyIpBtn');
     els.message = $('sfConfigMessage');
     els.debug = $('sfConfigDebug');
@@ -614,6 +732,8 @@
     }
     if (els.copyBtn) els.copyBtn.addEventListener('click', copyStaticIp);
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
+
+    bindKeyFileUi();
 
     document.addEventListener('aep-lab-sandbox-synced', function () {
       loadConfig();

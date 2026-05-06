@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260506a">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506b">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506d">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -94,7 +94,16 @@
 
               <div class="form-row" id="sfCredentialRow">
                 <label for="sfCredential" id="sfCredentialLabel">Password</label>
-                <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
+                <div id="sfKeyPairExtras" class="sf-gen-key-pair-extras" hidden>
+                  <input type="file" id="sfKeyFile" class="visually-hidden" accept=".p8,.pem,.key,application/x-pem-file,text/plain" aria-label="Choose Snowflake private key file">
+                  <div class="sf-gen-key-toolbar">
+                    <button type="button" id="sfKeyFilePick" class="btn btn-secondary">Choose private key file…</button>
+                    <span id="sfKeyDropHint" class="sf-gen-key-drop-hint">or drag a <code>.p8</code> / PEM file onto the box below</span>
+                  </div>
+                </div>
+                <div id="sfKeyDropTarget" class="sf-gen-key-drop-target">
+                  <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
+                </div>
                 <p class="field-hint">
                   <span class="sf-gen-cred-status" id="sfCredentialStatus">No credential saved yet.</span>
                 </p>
@@ -106,7 +115,7 @@
               </div>
 
               <p class="field-hint sf-gen-preset-hint">
-                Sandboxes whose technical name contains <code>apalmer</code> get these defaults automatically when no Snowflake config is saved yet (same values as AgenticAI Demo <code>snowflake_settings.py</code>). You still paste your RSA private key once — it is never stored in the repo.
+                Sandboxes whose technical name contains <code>apalmer</code> get these defaults automatically when no Snowflake config is saved yet (same values as AgenticAI Demo <code>snowflake_settings.py</code>). You still load your RSA private key once (paste, <strong>Choose file…</strong>, or drag-and-drop) — it is never stored in the repo.
               </p>
 
               <div class="form-row form-row--actions sf-gen-actions">
@@ -258,6 +267,6 @@ ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;<
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260506a"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260506c"></script>
+  <script src="profile-generation-snowflake.js?v=20260506d"></script>
 </body>
 </html>
