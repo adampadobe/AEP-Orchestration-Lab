@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Generation – Snowflake (in development) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260506a">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20260506a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260506a">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="profile-generation-snowflake-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="In development">In dev</span>
+          <a href="https://docs.snowflake.com/en/user-guide/network-policies" class="dashboard-topbar-link" target="_blank" rel="noopener">Snowflake docs</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page sf-gen-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingSfGen">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingSfGen" class="dashboard-hero-title">Profile generation – Snowflake</h2>
+              <p class="dashboard-hero-subtitle">
+                Configure the Snowflake target this lab user uses for the AgenticAI demo data loader. Phase 1 ships connection management and a connection test; data generation arrives in a follow-up phase.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="sf-gen-grid" aria-label="Snowflake configuration">
+          <article class="sf-gen-card sf-gen-card--config" aria-labelledby="sfConfigHeading">
+            <header class="sf-gen-card-header">
+              <h3 id="sfConfigHeading" class="sf-gen-card-title">Snowflake connection</h3>
+              <p class="sf-gen-card-subtitle">
+                Saved per lab user, per AEP sandbox. Credentials never touch Firestore — they are written to Google Secret Manager and only read from inside the Cloud Function that opens the connection.
+              </p>
+            </header>
+
+            <div class="sf-gen-form" id="sfConfigForm" aria-busy="false">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="sfAccount">Account identifier</label>
+                  <input type="text" id="sfAccount" placeholder="e.g. dh96551.west-europe.azure" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="sfUser">User</label>
+                  <input type="text" id="sfUser" placeholder="e.g. AEP_INTEGRATION_1" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="sfRole">Role <span class="sf-gen-optional">(optional)</span></label>
+                  <input type="text" id="sfRole" placeholder="e.g. SYSADMIN" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="sfWarehouse">Warehouse</label>
+                  <input type="text" id="sfWarehouse" placeholder="e.g. AEP_WH" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="sfDatabase">Database</label>
+                  <input type="text" id="sfDatabase" placeholder="e.g. TRAVEL_DATABASE" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="sfSchema">Schema</label>
+                  <input type="text" id="sfSchema" placeholder="e.g. AEP_SCHEMA" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <label for="sfAuthMethod">Authentication method</label>
+                <select id="sfAuthMethod" aria-describedby="sfAuthMethodHint">
+                  <option value="password">Password</option>
+                  <option value="pat">Programmatic access token (PAT)</option>
+                  <option value="keyPair">Key pair (RSA private key)</option>
+                </select>
+                <p id="sfAuthMethodHint" class="field-hint">
+                  Same options as the AgenticAI Demo's <code>snowflake_settings.py</code>. Key-pair auth pairs with the existing <code>aep_integration_1.p8</code> file.
+                </p>
+              </div>
+
+              <div class="form-row" id="sfCredentialRow">
+                <label for="sfCredential" id="sfCredentialLabel">Password</label>
+                <textarea id="sfCredential" rows="2" placeholder="Paste credential — leave blank to keep the previously saved value" autocomplete="off" spellcheck="false"></textarea>
+                <p class="field-hint">
+                  <span class="sf-gen-cred-status" id="sfCredentialStatus">No credential saved yet.</span>
+                </p>
+              </div>
+
+              <div class="form-row" id="sfPassphraseRow" hidden>
+                <label for="sfKeyPassphrase">Private key passphrase <span class="sf-gen-optional">(optional)</span></label>
+                <input type="password" id="sfKeyPassphrase" placeholder="Leave blank if your .p8 is unencrypted" autocomplete="new-password">
+              </div>
+
+              <div class="form-row form-row--actions sf-gen-actions">
+                <button type="button" id="sfSaveBtn" class="btn btn-primary">Save connection</button>
+                <button type="button" id="sfTestBtn" class="btn btn-secondary">Test connection</button>
+                <button type="button" id="sfClearCredBtn" class="btn btn-secondary sf-gen-danger">Clear credential</button>
+              </div>
+
+              <div id="sfConfigMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+
+              <details id="sfConfigDebug" class="sf-gen-debug" hidden>
+                <summary>Last request &amp; response</summary>
+                <div class="sf-gen-debug-content">
+                  <div class="sf-gen-debug-section">
+                    <strong>Endpoint:</strong> <span id="sfDebugEndpoint"></span>
+                  </div>
+                  <div class="sf-gen-debug-section">
+                    <strong>Request:</strong>
+                    <pre id="sfDebugRequest"></pre>
+                  </div>
+                  <div class="sf-gen-debug-section">
+                    <strong>Status:</strong> <span id="sfDebugStatus"></span>
+                  </div>
+                  <div class="sf-gen-debug-section">
+                    <strong>Response:</strong>
+                    <pre id="sfDebugResponse"></pre>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </article>
+
+          <aside class="sf-gen-card sf-gen-card--side" aria-labelledby="sfNetworkHeading">
+            <header class="sf-gen-card-header">
+              <h3 id="sfNetworkHeading" class="sf-gen-card-title">Snowflake IP allowlist</h3>
+              <p class="sf-gen-card-subtitle">
+                Cloud Functions egress for this lab is pinned to a single static IPv4 via Cloud NAT. Add it to your Snowflake <code>NETWORK POLICY</code> before testing.
+              </p>
+            </header>
+            <div class="sf-gen-ip-callout">
+              <span class="sf-gen-ip-label">Lab static egress IP</span>
+              <code class="sf-gen-ip-value" id="sfStaticEgressIp">34.58.81.28</code>
+              <button type="button" class="btn btn-secondary sf-gen-copy-btn" id="sfCopyIpBtn" aria-label="Copy static egress IP">Copy</button>
+            </div>
+            <pre class="sf-gen-snippet"><code>CREATE NETWORK POLICY aep_orchestration_lab_policy
+  ALLOWED_IP_LIST = ('34.58.81.28/32');
+
+ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;</code></pre>
+            <p class="sf-gen-side-hint">
+              Full setup guide: <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/SNOWFLAKE_INTEGRATION.md" target="_blank" rel="noopener"><code>docs/SNOWFLAKE_INTEGRATION.md</code></a>.
+            </p>
+          </aside>
+
+          <article class="sf-gen-card sf-gen-card--phase2" aria-labelledby="sfFutureHeading">
+            <header class="sf-gen-card-header">
+              <h3 id="sfFutureHeading" class="sf-gen-card-title">Generate / enrich data <span class="sf-gen-pill">Coming in Phase 2</span></h3>
+              <p class="sf-gen-card-subtitle">
+                The data-generator port from <code>AgenticAI Demo / Agentic_Demo_Platform</code> lands here. For Phase 1 only the connection plumbing is shipped so admins can validate the Snowflake network policy end-to-end before generators are wired.
+              </p>
+            </header>
+            <ul class="sf-gen-roadmap">
+              <li>Phase 2 — port <code>data_generator.py</code> (Phase 1 base profiles) to Node.</li>
+              <li>Phase 3 — port Phase 2/3 generators (loyalty, mobile, website, booking, check-in, call, disruption, in-flight, hotel, POS) and the query/enrich panel.</li>
+            </ul>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="aep-lab-nav.js?v=20260506a"></script>
+  <script src="aep-theme.js?v=20260506a" defer></script>
+  <script src="profile-generation-snowflake.js?v=20260506a"></script>
+</body>
+</html>

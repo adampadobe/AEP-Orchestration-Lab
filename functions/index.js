@@ -99,6 +99,7 @@ const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
+const snowflakeService = lazyRequireMod('./snowflakeService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -112,6 +113,25 @@ const CONSENT_STORE_FN_OPTS = {
   invoker: 'public',
   timeoutSeconds: 30,
   memory: '256MiB',
+};
+
+/**
+ * Snowflake handlers route ALL outbound traffic through the Serverless VPC
+ * Access connector `snowflake-egress`, which exits Cloud NAT through the
+ * reserved static external IP recorded in docs/SNOWFLAKE_INTEGRATION.md.
+ * The Snowflake admin allowlists exactly that IP in their NETWORK POLICY.
+ *
+ * `vpcConnectorEgressSettings: 'ALL_TRAFFIC'` is the bit that actually
+ * forces the static-IP path (the default `PRIVATE_RANGES_ONLY` would still
+ * use Google's dynamic IPs for public Snowflake hostnames).
+ */
+const SNOWFLAKE_FN_OPTS = {
+  region: REGION,
+  invoker: 'public',
+  timeoutSeconds: 60,
+  memory: '512MiB',
+  vpcConnector: 'snowflake-egress',
+  vpcConnectorEgressSettings: 'ALL_TRAFFIC',
 };
 
 function serializeConsentFirestoreRecord(doc) {
@@ -4523,3 +4543,94 @@ exports.imageHostingAsset = onRequest(
     }
   }
 );
+
+/**
+ * GET /api/snowflake/config?sandbox=… — public projection of saved Snowflake
+ * config for the signed-in lab user. Never returns the credential value.
+ *
+ * POST /api/snowflake/config — body { sandbox, account, user, role,
+ * warehouse, database, schema, authMethod, credential?, keyPassphrase?,
+ * clearCredential?, clearKeyPassphrase? }. Stores the credential in Secret
+ * Manager (one secret per labUser+sandbox) and returns the public projection.
+ */
+exports.snowflakeConfig = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required to manage Snowflake config (anonymous sign-in is enough).',
+    });
+    return;
+  }
+
+  const sandbox = (req.method === 'POST' && req.body?.sandbox)
+    ? String(req.body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const record = await snowflakeService.handleConfigGet({ labUser: uid, sandbox });
+      res.status(200).json({ ok: true, sandbox, record });
+    } catch (e) {
+      console.error('[snowflakeConfig:get]', String(e && e.message || e));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const record = await snowflakeService.handleConfigPut({ labUser: uid, sandbox, payload: body });
+      res.status(200).json({ ok: true, sandbox, record });
+    } catch (e) {
+      console.error('[snowflakeConfig:post]', String(e && e.message || e));
+      res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/**
+ * POST /api/snowflake/connection-test — opens a Snowflake connection using
+ * the saved config + Secret Manager credential and runs a single
+ * `SELECT CURRENT_VERSION()`. Bubbles up Snowflake errors verbatim so
+ * the caller can see things like "IP not allowed by network policy" and
+ * paste the lab's reserved static IP into Snowflake.
+ */
+exports.snowflakeConnectionTest = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({
+      ok: false,
+      error: 'Sign in required to test Snowflake connection (anonymous sign-in is enough).',
+    });
+    return;
+  }
+
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+
+  try {
+    const result = await snowflakeService.handleConnectionTest({ labUser: uid, sandbox });
+    res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+  } catch (e) {
+    console.error('[snowflakeConnectionTest]', String(e && e.message || e));
+    res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});

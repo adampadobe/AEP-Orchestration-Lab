@@ -1,0 +1,393 @@
+/*
+ * Profile Generation – Snowflake (in development)
+ *
+ * Uses only --dash-* design tokens (defined in home.css; dark overrides in
+ * aep-theme.css). No hardcoded hex / rgb / hsl colors live in this file —
+ * the page must work in both light and dark themes via the data-aep-theme
+ * attribute on the document element.
+ */
+
+.sf-gen-main {
+  padding-bottom: 32px;
+}
+
+.sf-gen-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+  grid-template-areas:
+    "config side"
+    "phase2 phase2";
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 980px) {
+  .sf-gen-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "config"
+      "side"
+      "phase2";
+  }
+}
+
+.sf-gen-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  box-shadow: var(--dash-shadow);
+  padding: 20px 22px;
+  color: var(--dash-text);
+}
+
+.sf-gen-card--config { grid-area: config; }
+.sf-gen-card--side { grid-area: side; }
+.sf-gen-card--phase2 { grid-area: phase2; }
+
+.sf-gen-card-header {
+  margin-bottom: 14px;
+}
+
+.sf-gen-card-title {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sf-gen-card-subtitle {
+  margin: 0;
+  color: var(--dash-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.sf-gen-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--dash-info-bg);
+  color: var(--dash-info-text);
+  border: 1px solid var(--dash-info-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.sf-gen-form .form-row + .form-row {
+  margin-top: 12px;
+}
+
+.sf-gen-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sf-gen-form .form-row--inline {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.sf-gen-form .form-row--inline .form-group {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sf-gen-form label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  letter-spacing: 0.01em;
+}
+
+.sf-gen-form .field-hint {
+  margin: 4px 0 0 0;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+  line-height: 1.4;
+}
+
+.sf-gen-optional {
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+.sf-gen-form input[type="text"],
+.sf-gen-form input[type="password"],
+.sf-gen-form input[type="number"],
+.sf-gen-form select,
+.sf-gen-form textarea {
+  font-family: inherit;
+  font-size: 0.92rem;
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 9px 11px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sf-gen-form input:focus,
+.sf-gen-form select:focus,
+.sf-gen-form textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dash-blue) 18%, transparent);
+}
+
+.sf-gen-form textarea {
+  resize: vertical;
+  min-height: 64px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.sf-gen-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.sf-gen-actions .btn {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+.sf-gen-actions .btn-primary {
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  border-color: var(--dash-blue);
+}
+
+.sf-gen-actions .btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: var(--dash-shadow-hover);
+}
+
+.sf-gen-actions .btn-secondary {
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  border-color: var(--dash-border);
+}
+
+.sf-gen-actions .btn-secondary:hover {
+  background: var(--dash-hover);
+}
+
+.sf-gen-actions .sf-gen-danger {
+  color: var(--dash-error-text);
+  border-color: var(--dash-error-border);
+}
+
+.sf-gen-actions .sf-gen-danger:hover {
+  background: var(--dash-error-bg);
+}
+
+.sf-gen-actions .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  box-shadow: none;
+}
+
+.sf-gen-cred-status {
+  font-weight: 500;
+}
+
+.sf-gen-cred-status[data-state="set"] {
+  color: var(--dash-success-text);
+}
+
+.sf-gen-cred-status[data-state="missing"] {
+  color: var(--dash-warning-text);
+}
+
+.sf-gen-message {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sf-gen-message[data-tone="success"] {
+  background: var(--dash-success-bg);
+  border-color: var(--dash-success-border);
+  color: var(--dash-success-text);
+}
+
+.sf-gen-message[data-tone="error"] {
+  background: var(--dash-error-bg);
+  border-color: var(--dash-error-border);
+  color: var(--dash-error-text);
+}
+
+.sf-gen-message[data-tone="info"] {
+  background: var(--dash-info-bg);
+  border-color: var(--dash-info-border);
+  color: var(--dash-info-text);
+}
+
+.sf-gen-message ul {
+  margin: 4px 0 0 18px;
+  padding: 0;
+}
+
+.sf-gen-debug {
+  margin-top: 14px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+}
+
+.sf-gen-debug > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  user-select: none;
+}
+
+.sf-gen-debug-content {
+  padding: 4px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sf-gen-debug-section {
+  font-size: 0.82rem;
+  color: var(--dash-text);
+}
+
+.sf-gen-debug-section pre {
+  margin: 4px 0 0 0;
+  padding: 8px 10px;
+  background: var(--dash-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  overflow-x: auto;
+  max-height: 280px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sf-gen-ip-callout {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--dash-info-bg);
+  color: var(--dash-info-text);
+  border: 1px solid var(--dash-info-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.sf-gen-ip-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sf-gen-ip-value {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 4px 10px;
+}
+
+.sf-gen-copy-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  cursor: pointer;
+}
+
+.sf-gen-copy-btn:hover {
+  background: var(--dash-hover);
+}
+
+.sf-gen-snippet {
+  margin-top: 12px;
+  background: var(--dash-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.sf-gen-side-hint {
+  margin: 14px 0 0 0;
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+}
+
+.sf-gen-roadmap {
+  margin: 8px 0 0 18px;
+  padding: 0;
+  color: var(--dash-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.sf-gen-roadmap li + li {
+  margin-top: 4px;
+}
+
+code,
+.sf-gen-card-subtitle code,
+.sf-gen-side-hint code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--dash-text);
+}

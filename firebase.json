@@ -651,6 +651,20 @@
         }
       },
       {
+        "source": "/api/snowflake/config",
+        "function": {
+          "functionId": "snowflakeConfig",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/connection-test",
+        "function": {
+          "functionId": "snowflakeConnectionTest",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/tags/reactor",
         "function": {
           "functionId": "tagsReactorProxy",
