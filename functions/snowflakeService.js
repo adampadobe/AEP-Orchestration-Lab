@@ -19,6 +19,36 @@ const crypto = require('crypto');
 const store = require('./snowflakeConnectionStore');
 
 /**
+ * Strip UTF-8 BOM and normalize newlines so PEM pasted from Windows / OneDrive
+ * or saved via JSON round-trips still parses and signs JWTs consistently.
+ *
+ * @param {string} pem
+ * @returns {string}
+ */
+function sanitizePemInput(pem) {
+  let s = String(pem || '');
+  if (s.length && s.charCodeAt(0) === 0xfeff) {
+    s = s.slice(1);
+  }
+  s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  return s;
+}
+
+/**
+ * Snowflake key-pair JWT uses the login name in token claims; Snowflake docs
+ * recommend uppercase. Skip mangling for values that look like email logins.
+ *
+ * @param {string} user
+ * @returns {string}
+ */
+function normalizeSnowflakeLoginName(user) {
+  const u = String(user || '').trim();
+  if (!u) return u;
+  if (u.includes('@')) return u;
+  return u.toUpperCase();
+}
+
+/**
  * snowflake-sdk JWT auth expects PKCS#8 PEM. Keys from OpenSSL / Snowflake
  * docs are often PKCS#1 (`BEGIN RSA PRIVATE KEY`) or encrypted PKCS#8
  * (`BEGIN ENCRYPTED PRIVATE KEY`). Node parses those and re-exports PKCS#8
@@ -30,7 +60,7 @@ const store = require('./snowflakeConnectionStore');
  * @returns {string}
  */
 function normalizePrivateKeyForSnowflake(credentialPem, passphrase) {
-  const raw = String(credentialPem || '').trim();
+  const raw = sanitizePemInput(credentialPem);
   if (!raw) {
     const err = new Error('Private key is empty');
     err.code = 'PRIVATE_KEY_EMPTY';
@@ -102,8 +132,8 @@ function publicConfig(record) {
 function buildSnowflakeConnectOptions(resolved) {
   const cfg = resolved.config;
   const opts = {
-    account: cfg.account,
-    username: cfg.user,
+    account: String(cfg.account || '').trim(),
+    username: String(cfg.user || '').trim(),
     role: cfg.role || undefined,
     warehouse: cfg.warehouse || undefined,
     database: cfg.database || undefined,
@@ -113,9 +143,10 @@ function buildSnowflakeConnectOptions(resolved) {
   switch (cfg.authMethod) {
     case 'pat':
       // PAT == programmatic access token; supplied via the password field.
-      opts.password = resolved.credential;
+      opts.password = String(resolved.credential || '').trim();
       break;
     case 'keyPair': {
+      opts.username = normalizeSnowflakeLoginName(opts.username);
       opts.authenticator = 'SNOWFLAKE_JWT';
       const pkcs8Pem = normalizePrivateKeyForSnowflake(
         resolved.credential,
@@ -126,7 +157,7 @@ function buildSnowflakeConnectOptions(resolved) {
     }
     case 'password':
     default:
-      opts.password = resolved.credential;
+      opts.password = String(resolved.credential || '');
       break;
   }
   return opts;
@@ -145,6 +176,10 @@ function describeConnectError(err) {
     hints.push(
       'Key-pair auth: paste or upload a PEM private key. PKCS#1 (RSA PRIVATE KEY) and ' +
         'encrypted PKCS#8 are converted to PKCS#8 automatically — ensure the passphrase matches if the key is encrypted.'
+    );
+    hints.push(
+      'If Test connection succeeded earlier but a later call fails with JWT invalid, click Save again with the same key ' +
+        '(or Clear credential and re-paste) so Secret Manager stores a clean PEM; also confirm the User matches the Snowflake login exactly.'
     );
   }
   if (/incorrect username or password|authentication/i.test(msg)) {
@@ -271,6 +306,8 @@ async function handleConnectionTest({ labUser, sandbox }) {
 module.exports = {
   publicConfig,
   buildSnowflakeConnectOptions,
+  sanitizePemInput,
+  normalizeSnowflakeLoginName,
   normalizePrivateKeyForSnowflake,
   describeConnectError,
   runConnectionTest,
