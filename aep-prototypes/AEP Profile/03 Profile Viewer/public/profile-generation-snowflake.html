@@ -105,7 +105,12 @@
                 <input type="password" id="sfKeyPassphrase" placeholder="Leave blank if your .p8 is unencrypted" autocomplete="new-password">
               </div>
 
+              <p class="field-hint sf-gen-preset-hint">
+                Sandboxes whose technical name contains <code>apalmer</code> get these defaults automatically when no Snowflake config is saved yet (same values as AgenticAI Demo <code>snowflake_settings.py</code>). You still paste your RSA private key once — it is never stored in the repo.
+              </p>
+
               <div class="form-row form-row--actions sf-gen-actions">
+                <button type="button" id="sfFillPresetBtn" class="btn btn-secondary">Fill AgenticAI travel defaults</button>
                 <button type="button" id="sfSaveBtn" class="btn btn-primary">Save connection</button>
                 <button type="button" id="sfTestBtn" class="btn btn-secondary">Test connection</button>
                 <button type="button" id="sfClearCredBtn" class="btn btn-secondary sf-gen-danger">Clear credential</button>
@@ -253,6 +258,6 @@ ALTER USER &lt;your_user&gt; SET NETWORK_POLICY = aep_orchestration_lab_policy;<
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="aep-lab-nav.js?v=20260506a"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
-  <script src="profile-generation-snowflake.js?v=20260506b"></script>
+  <script src="profile-generation-snowflake.js?v=20260506c"></script>
 </body>
 </html>

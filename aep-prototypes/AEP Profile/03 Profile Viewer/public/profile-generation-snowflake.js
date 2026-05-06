@@ -20,6 +20,20 @@
   var LS_SANDBOX = 'aepGlobalSandboxName';
   var STATIC_EGRESS_IP = '34.58.81.28';
 
+  /**
+   * Public connection defaults from AgenticAI Demo `snowflake_settings.py`
+   * (`get_snowflake_connection_kwargs` env fallbacks). Never put private keys here.
+   */
+  var PRESET_AGENTIC_TRAVEL_DEMO = {
+    account: 'dh96551.west-europe.azure',
+    user: 'AEP_INTEGRATION_1',
+    role: '',
+    warehouse: 'AEP_WH',
+    database: 'TRAVEL_DATABASE',
+    schema: 'AEP_SCHEMA',
+    authMethod: 'keyPair',
+  };
+
   var els = {};
 
   function $(id) {
@@ -33,6 +47,36 @@
     } catch (_) {
       return '';
     }
+  }
+
+  /** True when Global values sandbox is Adam's dev sandbox (technical name contains `apalmer`). */
+  function isApalmerSandbox(sandbox) {
+    return String(sandbox || '').toLowerCase().indexOf('apalmer') !== -1;
+  }
+
+  /**
+   * @param {boolean} onlyFillEmpty — when true, only writes a field if it is blank (used after load when no saved config).
+   * @param {boolean} force — when true with onlyFillEmpty false, overwrites all preset-mapped fields from PRESET_AGENTIC_TRAVEL_DEMO.
+   */
+  function applyAgenticTravelPreset(onlyFillEmpty, force) {
+    var p = PRESET_AGENTIC_TRAVEL_DEMO;
+    function setField(el, val) {
+      if (!el) return;
+      if (onlyFillEmpty && String(el.value || '').trim() && !force) return;
+      el.value = val;
+    }
+    setField(els.account, p.account);
+    setField(els.user, p.user);
+    setField(els.role, p.role);
+    setField(els.warehouse, p.warehouse);
+    setField(els.database, p.database);
+    setField(els.schema, p.schema);
+    if (els.authMethod) {
+      if (!onlyFillEmpty || !String(els.authMethod.value || '').trim() || force) {
+        els.authMethod.value = p.authMethod;
+      }
+    }
+    reflectAuthMethod();
   }
 
   function authHeaders() {
@@ -110,7 +154,7 @@
 
   function setBusy(busy) {
     if (els.form) els.form.setAttribute('aria-busy', busy ? 'true' : 'false');
-    var ids = ['saveBtn', 'testBtn', 'clearCredBtn'];
+    var ids = ['saveBtn', 'testBtn', 'clearCredBtn', 'fillPresetBtn'];
     for (var i = 0; i < ids.length; i++) {
       var b = els[ids[i]];
       if (b) b.disabled = !!busy;
@@ -203,13 +247,22 @@
         return res.json().then(function (body) {
           setDebug('GET ' + url, null, res.status, body);
           if (res.ok && body && body.ok) {
-            applyRecordToForm(body.record || null);
-            setMessage(
-              body.record && body.record.account
-                ? 'Loaded saved config for sandbox ' + sandbox + '.'
-                : 'No saved config yet for sandbox ' + sandbox + ' — fill the form and save.',
-              'info'
-            );
+            var rec = body.record || null;
+            applyRecordToForm(rec);
+            if (isApalmerSandbox(sandbox) && (!rec || !rec.account)) {
+              applyAgenticTravelPreset(true, false);
+              setMessage(
+                'No saved Snowflake config for sandbox "' + sandbox + '" yet — applied AgenticAI travel defaults (account, user, warehouse, database, schema, key-pair). Paste your RSA private key from your aep_integration_1.p8 file, optional passphrase, then Save.',
+                'info'
+              );
+            } else {
+              setMessage(
+                rec && rec.account
+                  ? 'Loaded saved config for sandbox ' + sandbox + '.'
+                  : 'No saved config yet for sandbox ' + sandbox + ' — fill the form and save.',
+                'info'
+              );
+            }
           } else {
             setMessage((body && body.error) || ('Failed to load config (HTTP ' + res.status + ')'), 'error');
           }
@@ -520,6 +573,7 @@
     els.saveBtn = $('sfSaveBtn');
     els.testBtn = $('sfTestBtn');
     els.clearCredBtn = $('sfClearCredBtn');
+    els.fillPresetBtn = $('sfFillPresetBtn');
     els.copyBtn = $('sfCopyIpBtn');
     els.message = $('sfConfigMessage');
     els.debug = $('sfConfigDebug');
@@ -549,6 +603,15 @@
     if (els.saveBtn) els.saveBtn.addEventListener('click', saveConfig);
     if (els.testBtn) els.testBtn.addEventListener('click', testConnection);
     if (els.clearCredBtn) els.clearCredBtn.addEventListener('click', clearCredential);
+    if (els.fillPresetBtn) {
+      els.fillPresetBtn.addEventListener('click', function () {
+        applyAgenticTravelPreset(false, true);
+        setMessage(
+          'Filled AgenticAI travel defaults. Paste your RSA private key (.p8 PEM) if not already saved, then Save.',
+          'info'
+        );
+      });
+    }
     if (els.copyBtn) els.copyBtn.addEventListener('click', copyStaticIp);
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
 
