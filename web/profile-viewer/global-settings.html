@@ -94,9 +94,9 @@
                 <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all in-development</button>
               </div>
               <div id="aepNavInDevChecklist" class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;"></div>
-              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:20px;font-weight:600;">Hide any sidebar &amp; home item</label>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:20px;font-weight:600;">Hide released sidebar &amp; home items</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
-                Full menu list (all items that expose a nav hide key). This lets users keep <strong>Show in development capabilities</strong> on, while independently showing/hiding specific pages per sandbox.
+                Released items only (non in-development). This list is auto-derived from <code>aep-lab-nav.js</code> and excludes anything flagged <code>inDevelopment: true</code>.
               </p>
               <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
                 <button type="button" class="dashboard-btn-outline" id="aepNavSidebarHideAll">Hide all below</button>
@@ -314,10 +314,11 @@
       function renderNavVisibilityChecklists() {
         var options = getVisibilityOptions();
         var inDev = options.filter(function (item) { return !!item.inDevelopment; });
+        var released = options.filter(function (item) { return !item.inDevelopment; });
         inDevKeysCache = inDev.map(function (item) { return item.navHideKey; });
-        sidebarKeysCache = options.map(function (item) { return item.navHideKey; });
+        sidebarKeysCache = released.map(function (item) { return item.navHideKey; });
         renderChecklist('aepNavInDevChecklist', inDev, 'aep-nav-indev-hide-cb', false);
-        renderChecklist('aepNavSidebarChecklist', options, 'aep-nav-sidebar-hide-cb', true);
+        renderChecklist('aepNavSidebarChecklist', released, 'aep-nav-sidebar-hide-cb', false);
         bindChecklistChangeHandlers();
       }
 
