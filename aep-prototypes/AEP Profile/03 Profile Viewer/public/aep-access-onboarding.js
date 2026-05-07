@@ -56,6 +56,9 @@
       '<div><label for="aepAccessOnbFirstName">First name</label><input id="aepAccessOnbFirstName" type="text" maxlength="80" autocomplete="given-name"></div>' +
       '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
       '<div class="full"><label for="aepAccessOnbEmail">Adobe email address</label><input id="aepAccessOnbEmail" type="email" maxlength="160" autocomplete="email" placeholder="name@adobe.com"></div>' +
+      '<div><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" maxlength="160" autocomplete="new-password" placeholder="At least 8 characters"></div>' +
+      '<div><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" maxlength="160" autocomplete="new-password" placeholder="Re-enter password"></div>' +
+      '<p class="full aep-access-onb-copy" style="margin:0">Sign up once. Your account remains pending until admin approval.</p>' +
       '</div>' +
       '<div class="aep-access-onb-foot">' +
       '<p id="aepAccessOnbMsg" class="aep-access-onb-msg" role="status" aria-live="polite"></p>' +
@@ -101,10 +104,14 @@
     var firstName = String((document.getElementById('aepAccessOnbFirstName') || {}).value || '').trim();
     var lastName = String((document.getElementById('aepAccessOnbLastName') || {}).value || '').trim();
     var adobeEmail = String((document.getElementById('aepAccessOnbEmail') || {}).value || '').trim().toLowerCase();
+    var password = String((document.getElementById('aepAccessOnbPassword') || {}).value || '');
+    var confirmPassword = String((document.getElementById('aepAccessOnbPasswordConfirm') || {}).value || '');
     if (!firstName) return { ok: false, error: 'First name is required.' };
     if (!lastName) return { ok: false, error: 'Last name is required.' };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adobeEmail)) return { ok: false, error: 'Enter a valid Adobe email address.' };
-    return { ok: true, firstName: firstName, lastName: lastName, adobeEmail: adobeEmail };
+    if (password.length < 8) return { ok: false, error: 'Password must be at least 8 characters.' };
+    if (password !== confirmPassword) return { ok: false, error: 'Passwords do not match.' };
+    return { ok: true, firstName: firstName, lastName: lastName, adobeEmail: adobeEmail, password: password };
   }
 
   function hide() {
@@ -119,6 +126,91 @@
     document.body.classList.add('aep-access-onboarding-open');
     var first = document.getElementById('aepAccessOnbSandbox');
     if (first) first.focus();
+  }
+
+  function ensureFirebaseAuth() {
+    if (typeof firebase === 'undefined') return null;
+    if (!firebase.apps.length && global.firebaseDatabaseConfig) {
+      firebase.initializeApp(global.firebaseDatabaseConfig);
+    }
+    return firebase.auth ? firebase.auth() : null;
+  }
+
+  function signInWorkspaceUser(email, password) {
+    var auth = ensureFirebaseAuth();
+    if (!auth) return Promise.resolve({ ok: false, error: 'Firebase auth is not available.' });
+    return auth
+      .signInWithEmailAndPassword(email, password)
+      .then(function (cred) {
+        return { ok: true, user: cred && cred.user ? cred.user : null };
+      })
+      .catch(function (e) {
+        var code = String((e && e.code) || '');
+        if (code === 'auth/user-disabled') {
+          return { ok: false, pending: true, error: 'Account pending approval. You will be able to log in after approval.' };
+        }
+        if (code === 'auth/user-not-found') {
+          return { ok: false, needsSignup: true };
+        }
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          return { ok: false, error: 'Incorrect email or password.' };
+        }
+        return { ok: false, error: String((e && e.message) || e || 'Could not sign in.') };
+      });
+  }
+
+  function requestWorkspaceSignup(payload) {
+    return fetch('/api/lab/workspace-auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) {
+        return res
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (json) {
+            return { status: res.status, body: json || {} };
+          });
+      })
+      .then(function (resp) {
+        if (resp.status >= 200 && resp.status < 300 && resp.body && resp.body.ok) {
+          return { ok: true, pendingApproval: !!resp.body.pendingApproval, emailSent: !!resp.body.emailSent };
+        }
+        return {
+          ok: false,
+          code: String((resp.body && resp.body.code) || ''),
+          error: (resp.body && resp.body.error) || 'Signup request failed.',
+        };
+      })
+      .catch(function (e) {
+        return { ok: false, error: String((e && e.message) || e || 'Signup request failed.') };
+      });
+  }
+
+  function ensureApprovedWorkspaceAuth(input) {
+    return signInWorkspaceUser(input.adobeEmail, input.password).then(function (signInResult) {
+      if (signInResult && signInResult.ok) return { ok: true };
+      if (signInResult && signInResult.pending) return signInResult;
+      if (signInResult && !signInResult.needsSignup) return signInResult;
+      return requestWorkspaceSignup({
+        firstName: input.firstName,
+        lastName: input.lastName,
+        adobeEmail: input.adobeEmail,
+        password: input.password,
+      }).then(function (signupResult) {
+        if (!signupResult.ok) return signupResult;
+        return {
+          ok: false,
+          pending: true,
+          error: signupResult.emailSent
+            ? 'Signup submitted. Approval email sent to admin. Please try signing in after approval.'
+            : 'Signup submitted, but approval email could not be sent. Contact the admin.',
+        };
+      });
+    });
   }
 
   function saveWorkspaceProfile(payload) {
@@ -172,7 +264,7 @@
     function onModeChange() {
       var workspaceMode = selectedMode() === 'workspace';
       setWorkspaceFormVisible(workspaceMode);
-      setMsg(workspaceMode ? 'No-sandbox mode requires your details.' : '', '');
+      setMsg(workspaceMode ? 'No-sandbox mode requires signup and admin approval.' : '', '');
     }
     sandboxRadio.addEventListener('change', onModeChange);
     workspaceRadio.addEventListener('change', onModeChange);
@@ -208,26 +300,34 @@
         return;
       }
 
-      saveWorkspaceProfile({
-        firstName: input.firstName,
-        lastName: input.lastName,
-        adobeEmail: input.adobeEmail,
-        workspaceName: workspaceName,
-        workspaceSlug: workspaceSlug,
-      }).then(function (result) {
-        if (!result || !result.ok) {
-          setMsg((result && result.error) || 'Failed to save workspace profile.', 'err');
+      ensureApprovedWorkspaceAuth(input).then(function (authResult) {
+        if (!authResult || !authResult.ok) {
+          setMsg((authResult && authResult.error) || 'Could not sign in.', 'err');
           saveBtn.disabled = false;
           return;
         }
-        global.AepAccessScope.setWorkspaceName(workspaceName);
-        global.AepAccessScope.setWorkspaceSlug(workspaceSlug);
-        global.AepAccessScope.setAccessMode('workspace');
-        try { localStorage.removeItem('aepGlobalSandboxName'); } catch (_e) {}
-        setMsg('Saved. You are in no-sandbox mode.', 'ok');
-        refreshSummary();
-        setTimeout(function () { hide(); }, 250);
-        saveBtn.disabled = false;
+
+        return saveWorkspaceProfile({
+          firstName: input.firstName,
+          lastName: input.lastName,
+          adobeEmail: input.adobeEmail,
+          workspaceName: workspaceName,
+          workspaceSlug: workspaceSlug,
+        }).then(function (result) {
+          if (!result || !result.ok) {
+            setMsg((result && result.error) || 'Failed to save workspace profile.', 'err');
+            saveBtn.disabled = false;
+            return;
+          }
+          global.AepAccessScope.setWorkspaceName(workspaceName);
+          global.AepAccessScope.setWorkspaceSlug(workspaceSlug);
+          global.AepAccessScope.setAccessMode('workspace');
+          try { localStorage.removeItem('aepGlobalSandboxName'); } catch (_e) {}
+          setMsg('Saved. You are in no-sandbox mode.', 'ok');
+          refreshSummary();
+          setTimeout(function () { hide(); }, 250);
+          saveBtn.disabled = false;
+        });
       });
     });
   }

@@ -658,6 +658,20 @@
         }
       },
       {
+        "source": "/api/lab/workspace-auth/register",
+        "function": {
+          "functionId": "labWorkspaceAuthRegister",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-auth/approve",
+        "function": {
+          "functionId": "labWorkspaceAuthApprove",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/config",
         "function": {
           "functionId": "snowflakeConfig",

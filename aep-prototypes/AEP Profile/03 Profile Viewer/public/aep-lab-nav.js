@@ -11,6 +11,8 @@
   var LS_GROUPS    = 'aepNavGroups';
   /** Same key as aep-global-sandbox.js — selected sandbox technical name */
   var LS_SANDBOX   = 'aepGlobalSandboxName';
+  /** Access mode selector from aep-access-scope.js (sandbox | workspace). */
+  var LS_ACCESS_MODE = 'aepAccessMode';
   /** Legacy — Decisioning overview; kept in sync with navHideKey decisioningOverview in global-settings */
   var LS_HIDE_EDP  = 'aepHideDataViewerDecisioningPlayground';
   /** Per–in-development nav item: localStorage key = LS_NAV_HIDE_PREFIX + navHideKey → "1" hides from sidebar when in-dev is enabled */
@@ -56,6 +58,7 @@
 
   /** Sidebar: respect per-item hide (Global values); in-development items also need the per-sandbox master toggle */
   function shouldShowNavItem(item) {
+    if (!isAccessModeAllowedForNavItem(item)) return false;
     if (!isSandboxAllowedForNavItem(item)) return false;
     var hideKey = navHideKeyForItem(item);
     if (hideKey && isNavInDevHidden(hideKey)) return false;
@@ -84,9 +87,37 @@
     });
   }
 
+  function getAccessMode() {
+    try {
+      if (window.AepAccessScope && typeof window.AepAccessScope.getAccessMode === 'function') {
+        return String(window.AepAccessScope.getAccessMode() || 'sandbox');
+      }
+    } catch (e) {}
+    try {
+      var stored = String(localStorage.getItem(LS_ACCESS_MODE) || '').trim().toLowerCase();
+      return stored === 'workspace' ? 'workspace' : 'sandbox';
+    } catch (e2) {
+      return 'sandbox';
+    }
+  }
+
+  function isWorkspaceMode() {
+    return getAccessMode() === 'workspace';
+  }
+
+  /**
+   * No-sandbox users should only see tools that are explicitly marked as safe
+   * without an Adobe sandbox. This keeps the menu focused and avoids dead-end pages.
+   */
+  function isAccessModeAllowedForNavItem(item) {
+    if (!isWorkspaceMode()) return true;
+    if (!item) return false;
+    return !!item.allowWorkspace;
+  }
+
   var NAV = [
-    { label: 'Home', href: 'home.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
-    { label: 'Global values', href: 'global-settings.html?v=20260507b', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
+    { label: 'Home', href: 'home.html', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
+    { label: 'Global values', href: 'global-settings.html?v=20260507b', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
     {
       group: 'Profiles', id: 'profiles',
       items: [
@@ -110,8 +141,8 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M10.25,7.027a.247.247,0,0,0-.25.244v9.897a.247.247,0,0,0,.423.1765L13.255,14.5h4c.223,0,.2395-.363.1125-.49S10.423,7.1,10.423,7.1A.24451.24451,0,0,0,10.25,7.027Z"/><path fill="currentColor" d="M1,1V6.238A5.36747,5.36747,0,0,1,3,5.15V3H14V8.579l2,2V1Z"/><path fill="currentColor" d="M4.5,6.1835a4.125,4.125,0,0,0-4.125,4.125c0,2.278,4.125,7.4765,4.125,7.4765s4.125-5.2,4.125-7.4765A4.125,4.125,0,0,0,4.5,6.1835Zm0,5.875a1.75,1.75,0,1,1,1.75-1.75A1.75,1.75,0,0,1,4.5,12.0585Z"/></svg>',
         },
-        { label: 'Brand scraper', href: 'brand-scraper.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15"/><path d="M10 2.5a11 11 0 0 1 0 15"/><path d="M10 2.5a11 11 0 0 0 0 15"/></svg>' },
-        { label: 'Client journey assets', href: 'client-journey-asset-v2.html', navHideKey: 'clientJourneyAssetV2', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14c1.5-2 3-4 5.5-4S11 13 14 13s4-2 4-2"/><circle cx="2.8" cy="14" r="1.2" fill="currentColor"/><circle cx="7.5" cy="10" r="1.2" fill="currentColor"/><circle cx="14" cy="13" r="1.2" fill="currentColor"/><path d="M14.5 4l1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L11.5 6.3l2-.3z"/></svg>' },
+        { label: 'Brand scraper', href: 'brand-scraper.html', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15"/><path d="M10 2.5a11 11 0 0 1 0 15"/><path d="M10 2.5a11 11 0 0 0 0 15"/></svg>' },
+        { label: 'Client journey assets', href: 'client-journey-asset-v2.html', allowWorkspace: true, navHideKey: 'clientJourneyAssetV2', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14c1.5-2 3-4 5.5-4S11 13 14 13s4-2 4-2"/><circle cx="2.8" cy="14" r="1.2" fill="currentColor"/><circle cx="7.5" cy="10" r="1.2" fill="currentColor"/><circle cx="14" cy="13" r="1.2" fill="currentColor"/><path d="M14.5 4l1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L11.5 6.3l2-.3z"/></svg>' },
         { label: 'Client journey asset old (in development)', href: 'client-journey-asset.html', inDevelopment: true, navHideKey: 'clientJourneyAsset', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14c1.5-2 3-4 5.5-4S11 13 14 13s4-2 4-2"/><circle cx="2.8" cy="14" r="1.2" fill="currentColor"/><circle cx="7.5" cy="10" r="1.2" fill="currentColor"/><circle cx="14" cy="13" r="1.2" fill="currentColor"/><path d="M14.5 4l1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L11.5 6.3l2-.3z"/></svg>' },
         { label: 'Demo use case assets (in development)', href: 'demo-use-case-asset.html', inDevelopment: true, navHideKey: 'demoUseCaseAsset', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="16" height="11" rx="1.4"/><path d="M2 8h16"/><path d="M7 18h6"/><path d="M10 15v3"/><circle cx="5.5" cy="6" r="0.6" fill="currentColor"/><circle cx="7.5" cy="6" r="0.6" fill="currentColor"/></svg>' },
         { label: 'Image hosting', href: 'image-hosting.html', navHideKey: 'imageHosting', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.5,4H2.5a.5.5,0,0,0-.5.5v11a.5.5,0,0,0,.5.5h15a.5.5,0,0,0,.5-.5V4.5A.5.5,0,0,0,17.5,4ZM17,13.6865,14.364,11.05a1,1,0,0,0-1.414,0l-1.536,1.536L7.636,8.8075a1,1,0,0,0-1.414,0L3,12.0295V5H17Z"/><circle fill="currentColor" cx="14.5" cy="7.5" r="1.25"/></svg>' },
@@ -667,6 +698,10 @@
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
 
+  window.addEventListener('aep-access-scope-change', function () {
+    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+  });
+
   window.addEventListener('aep-edp-visibility-change', function () {
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
@@ -682,7 +717,8 @@
         e.key.indexOf(LS_NAV_HIDE_PREFIX) === 0 ||
         e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
         e.key === LS_HIDE_EDP ||
-        e.key === LS_SANDBOX
+        e.key === LS_SANDBOX ||
+        e.key === LS_ACCESS_MODE
       ) {
         document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
       }
