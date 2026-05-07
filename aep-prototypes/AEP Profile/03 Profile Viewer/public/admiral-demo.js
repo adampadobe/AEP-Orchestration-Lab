@@ -13,6 +13,9 @@ const tagsPropertyList = document.getElementById('admiralTagsPropertyList');
 const tagsEnvironmentSelect = document.getElementById('admiralTagsEnvironment');
 const admiralSiteFrame = document.getElementById('admiralSiteFrame');
 
+const LS_SELECTED_LAUNCH_SCRIPT = 'admiralSelectedLaunchScriptUrl';
+const SS_PENDING_LAUNCH_INJECT = 'admiralPendingLaunchInject';
+
 let selectedScriptUrl = '';
 let allPropertyOptions = [];
 let selectedPropertyId = '';
@@ -61,6 +64,58 @@ function renderSelectedScript(url) {
   selectedScriptUrl = url || '';
   if (!selectedScriptEl) return;
   selectedScriptEl.textContent = selectedScriptUrl || 'None';
+}
+
+function persistSelectedScriptUrl(url) {
+  try {
+    if (!url) localStorage.removeItem(LS_SELECTED_LAUNCH_SCRIPT);
+    else localStorage.setItem(LS_SELECTED_LAUNCH_SCRIPT, url);
+  } catch {}
+}
+
+function readPersistedSelectedScriptUrl() {
+  try {
+    return String(localStorage.getItem(LS_SELECTED_LAUNCH_SCRIPT) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function markPendingLaunchInject(url) {
+  try {
+    sessionStorage.setItem(SS_PENDING_LAUNCH_INJECT, String(url || '').trim());
+  } catch {}
+}
+
+function consumePendingLaunchInject() {
+  try {
+    const v = String(sessionStorage.getItem(SS_PENDING_LAUNCH_INJECT) || '').trim();
+    sessionStorage.removeItem(SS_PENDING_LAUNCH_INJECT);
+    return v;
+  } catch {
+    return '';
+  }
+}
+
+function withCacheBust(url) {
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('aepcb', String(Date.now()));
+    return u.toString();
+  } catch {
+    const sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
+    return String(url || '') + sep + 'aepcb=' + String(Date.now());
+  }
+}
+
+function reloadPageForLaunchInjection() {
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.set('admiralLaunchReload', String(Date.now()));
+    window.location.replace(u.toString());
+  } catch {
+    window.location.reload();
+  }
 }
 
 async function fetchTags(resource, companyId, propertyId) {
@@ -258,17 +313,28 @@ function extractEcid(result) {
   return '';
 }
 
+function delay(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 async function syncEcidFromAlloy() {
-  const alloyFn = await waitForAlloy(6000);
+  const alloyFn = await waitForAlloy(12000);
   if (!alloyFn) {
     setAdmiralMessage('Launch script loaded, but alloy is not available yet.', 'error');
     return;
   }
   try {
-    const result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
-    const ecid = extractEcid(result);
+    let ecid = '';
+    for (let i = 0; i < 7; i++) {
+      const result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+      ecid = extractEcid(result);
+      if (ecid) break;
+      await delay(500);
+    }
     if (!ecid) {
-      setAdmiralMessage('No ECID returned from alloy.getIdentity.', 'error');
+      setAdmiralMessage('No ECID returned yet from alloy.getIdentity after retry.', 'error');
       return;
     }
     if (infoEcid) infoEcid.textContent = ecid;
@@ -311,14 +377,29 @@ async function injectSelectedScript() {
     setAdmiralMessage('Select a valid Tags environment script first.', 'error');
     return;
   }
+
+  markPendingLaunchInject(scriptUrl);
+  persistSelectedScriptUrl(scriptUrl);
+  setAdmiralMessage('Reloading page with cache-busted script injection...', '');
+  reloadPageForLaunchInjection();
+}
+
+async function injectSelectedScriptNow(scriptOverride) {
+  const scriptUrl = sanitiseLaunchScriptUrl(scriptOverride || selectedScriptUrl);
+  if (!scriptUrl) return;
+
   if (injectSdkBtn) injectSdkBtn.disabled = true;
   try {
     setAdmiralMessage('Injecting selected Launch script...', '');
-    await injectScriptIntoDocument(document, scriptUrl, 'admiralLaunchScript');
+    await injectScriptIntoDocument(document, withCacheBust(scriptUrl), 'admiralLaunchScript');
 
     if (admiralSiteFrame && admiralSiteFrame.contentDocument && admiralSiteFrame.contentDocument.head) {
       try {
-        await injectScriptIntoDocument(admiralSiteFrame.contentDocument, scriptUrl, 'admiralLaunchScriptFrame');
+        await injectScriptIntoDocument(
+          admiralSiteFrame.contentDocument,
+          withCacheBust(scriptUrl),
+          'admiralLaunchScriptFrame'
+        );
       } catch {
         // Do not fail the main flow if frame injection misses.
       }
@@ -368,20 +449,15 @@ tagsPropertyInput &&
 tagsEnvironmentSelect &&
   tagsEnvironmentSelect.addEventListener('change', function () {
     const raw = decodeScriptUrl(String(tagsEnvironmentSelect.value || '').trim());
-    renderSelectedScript(sanitiseLaunchScriptUrl(raw));
+    const clean = sanitiseLaunchScriptUrl(raw);
+    renderSelectedScript(clean);
+    persistSelectedScriptUrl(clean);
   });
 
 injectSdkBtn &&
   injectSdkBtn.addEventListener('click', function () {
     void injectSelectedScript();
   });
-
-if (admiralSiteFrame) {
-  admiralSiteFrame.addEventListener('load', function () {
-    if (!selectedScriptUrl) return;
-    void injectSelectedScript();
-  });
-}
 
 (function initAdmiralDemoFlyoutSidebar() {
   const body = document.body;
@@ -460,5 +536,16 @@ DemoProfileDrawer.init({
   messageSetter: setAdmiralMessage,
   fetchBrowserEcidOnInit: true,
 });
+
+const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+if (persistedScript) {
+  renderSelectedScript(persistedScript);
+}
+
+const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
+if (pendingScriptInject) {
+  renderSelectedScript(pendingScriptInject);
+  void injectSelectedScriptNow(pendingScriptInject);
+}
 
 void loadTagsCompanies();
