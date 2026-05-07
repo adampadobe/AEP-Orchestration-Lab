@@ -215,6 +215,14 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="6.5" cy="7" r="0.75" fill="currentColor"/><circle cx="6.5" cy="17" r="0.75" fill="currentColor"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M10 7h7M10 17h7"/></svg>',
         },
+        {
+          label: 'Admiral journey (in development)',
+          href: 'admiral-demo.html',
+          inDevelopment: true,
+          navHideKey: 'admiralDemo',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3.5L19.2 7.2V16.8L12 20.5L4.8 16.8V7.2L12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.8 7.2L12 11L19.2 7.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        },
       ],
     },
   ];

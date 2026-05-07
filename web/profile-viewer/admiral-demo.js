@@ -1,0 +1,329 @@
+const customerEmail = document.getElementById('customerEmail');
+if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'admiralNs');
+
+const queryProfileBtn = document.getElementById('queryProfileBtn');
+const infoEcid = document.getElementById('infoEcid');
+const admiralMessage = document.getElementById('admiralMessage');
+const injectSdkBtn = document.getElementById('injectSdkBtn');
+const selectedScriptEl = document.getElementById('admiralSelectedScript');
+const tagsCompanySelect = document.getElementById('admiralTagsCompany');
+const tagsPropertySelect = document.getElementById('admiralTagsProperty');
+const tagsEnvironmentSelect = document.getElementById('admiralTagsEnvironment');
+const admiralSiteFrame = document.getElementById('admiralSiteFrame');
+
+let selectedScriptUrl = '';
+
+function setAdmiralMessage(text, type) {
+  if (!admiralMessage) return;
+  admiralMessage.textContent = text || '';
+  admiralMessage.className =
+    'admiral-demo-message' + (type ? ' admiral-demo-message--' + String(type).replace(/\s+/g, '-') : '');
+  admiralMessage.hidden = !text;
+}
+
+function getEmail() {
+  return (customerEmail && customerEmail.value) || '';
+}
+
+function getSandboxName() {
+  if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+  }
+  return '';
+}
+
+function tagsApiUrl(resource, companyId, propertyId) {
+  const p = new URLSearchParams();
+  const sandbox = getSandboxName();
+  if (sandbox) p.set('sandbox', sandbox);
+  p.set('resource', resource);
+  if (companyId) p.set('companyId', companyId);
+  if (propertyId) p.set('propertyId', propertyId);
+  return '/api/tags/reactor?' + p.toString();
+}
+
+function sanitiseLaunchScriptUrl(raw) {
+  let v = String(raw || '').trim();
+  if (!v) return '';
+  const m = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/i.exec(v);
+  if (m) v = m[1].trim();
+  if (/^http:\/\/assets\.adobedtm\.com/i.test(v)) v = v.replace(/^http:/i, 'https:');
+  if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+  if (!/^https:\/\/assets\.adobedtm\.com\//i.test(v)) return '';
+  return v;
+}
+
+function renderSelectedScript(url) {
+  selectedScriptUrl = url || '';
+  if (!selectedScriptEl) return;
+  selectedScriptEl.textContent = selectedScriptUrl || 'None';
+}
+
+async function fetchTags(resource, companyId, propertyId) {
+  const res = await fetch(tagsApiUrl(resource, companyId, propertyId));
+  const data = await res.json().catch(() => ({}));
+  if (!data.ok) {
+    throw new Error(data.error || data.detail || 'Request failed.');
+  }
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+function setSelectOptions(select, rows, labelGetter, valueGetter, emptyLabel) {
+  if (!select) return;
+  select.innerHTML = '';
+  const base = document.createElement('option');
+  base.value = '';
+  base.textContent = emptyLabel;
+  select.appendChild(base);
+  rows.forEach((row) => {
+    const opt = document.createElement('option');
+    opt.value = valueGetter(row);
+    opt.textContent = labelGetter(row);
+    select.appendChild(opt);
+  });
+}
+
+async function loadTagsCompanies() {
+  try {
+    setAdmiralMessage('Loading Tags companies...', '');
+    const items = await fetchTags('companies');
+    setSelectOptions(
+      tagsCompanySelect,
+      items,
+      (c) => {
+        const n = c && c.attributes && (c.attributes.name || c.attributes.title);
+        return (n || c.id || 'Unnamed') + ' (' + String(c.id || '') + ')';
+      },
+      (c) => String(c && c.id ? c.id : ''),
+      'Select company'
+    );
+    setSelectOptions(tagsPropertySelect, [], () => '', () => '', 'Select property');
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    setAdmiralMessage('Tags companies loaded.', 'success');
+  } catch (err) {
+    setAdmiralMessage(err.message || 'Failed to load Tags companies.', 'error');
+  }
+}
+
+async function loadTagsProperties(companyId) {
+  if (!companyId) {
+    setSelectOptions(tagsPropertySelect, [], () => '', () => '', 'Select property');
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    return;
+  }
+  try {
+    setAdmiralMessage('Loading properties...', '');
+    const items = await fetchTags('properties', companyId, '');
+    setSelectOptions(
+      tagsPropertySelect,
+      items,
+      (p) => {
+        const n = p && p.attributes && p.attributes.name;
+        return (n || p.id || 'Unnamed') + ' (' + String(p.id || '') + ')';
+      },
+      (p) => String(p && p.id ? p.id : ''),
+      'Select property'
+    );
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    setAdmiralMessage('Properties loaded.', 'success');
+  } catch (err) {
+    setAdmiralMessage(err.message || 'Failed to load properties.', 'error');
+  }
+}
+
+async function loadTagsEnvironments(propertyId) {
+  if (!propertyId) {
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    return;
+  }
+  try {
+    setAdmiralMessage('Loading environments...', '');
+    const items = await fetchTags('environments', '', propertyId);
+    setSelectOptions(
+      tagsEnvironmentSelect,
+      items,
+      (env) => {
+        const label = env && env.name ? env.name : env && env.environmentId ? env.environmentId : 'Environment';
+        const stage = env && env.stage ? ' [' + env.stage + ']' : '';
+        return label + stage;
+      },
+      (env) => encodeURIComponent(String(env && env.scriptUrl ? env.scriptUrl : '')),
+      'Select environment'
+    );
+    renderSelectedScript('');
+    setAdmiralMessage('Environments loaded.', 'success');
+  } catch (err) {
+    setAdmiralMessage(err.message || 'Failed to load environments.', 'error');
+  }
+}
+
+function decodeScriptUrl(value) {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function waitForAlloy(timeoutMs) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    function poll() {
+      if (typeof window.alloy === 'function') {
+        resolve(window.alloy);
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(null);
+        return;
+      }
+      window.setTimeout(poll, 120);
+    }
+    poll();
+  });
+}
+
+function extractEcid(result) {
+  if (!result || typeof result !== 'object') return '';
+  const identity = result.identity || {};
+  if (identity.ECID && Array.isArray(identity.ECID) && identity.ECID[0] && identity.ECID[0].id) {
+    return String(identity.ECID[0].id);
+  }
+  if (identity.ecid && Array.isArray(identity.ecid) && identity.ecid[0] && identity.ecid[0].id) {
+    return String(identity.ecid[0].id);
+  }
+  if (result.id) return String(result.id);
+  return '';
+}
+
+async function syncEcidFromAlloy() {
+  const alloyFn = await waitForAlloy(6000);
+  if (!alloyFn) {
+    setAdmiralMessage('Launch script loaded, but alloy is not available yet.', 'error');
+    return;
+  }
+  try {
+    const result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+    const ecid = extractEcid(result);
+    if (!ecid) {
+      setAdmiralMessage('No ECID returned from alloy.getIdentity.', 'error');
+      return;
+    }
+    if (infoEcid) infoEcid.textContent = ecid;
+    if (window.DemoProfileDrawer && typeof window.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
+      window.DemoProfileDrawer.patchLastProfileOrUpdate({
+        ecid: ecid,
+        identities: [{ namespace: 'ECID', value: ecid }],
+      });
+    }
+    if (window.DemoProfileDrawer && typeof window.DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+      void window.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+    }
+    setAdmiralMessage('ECID resolved from Web SDK and linked to drawer context.', 'success');
+  } catch (err) {
+    setAdmiralMessage(err.message || 'ECID fetch failed.', 'error');
+  }
+}
+
+function injectScriptIntoDocument(doc, scriptUrl, scriptId) {
+  return new Promise((resolve, reject) => {
+    if (!doc || !doc.head) {
+      reject(new Error('Document head is not available for script injection.'));
+      return;
+    }
+    const existing = doc.getElementById(scriptId);
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    const script = doc.createElement('script');
+    script.id = scriptId;
+    script.src = scriptUrl;
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => reject(new Error('Failed to load script: ' + scriptUrl));
+    doc.head.appendChild(script);
+  });
+}
+
+async function injectSelectedScript() {
+  const scriptUrl = sanitiseLaunchScriptUrl(selectedScriptUrl);
+  if (!scriptUrl) {
+    setAdmiralMessage('Select a valid Tags environment script first.', 'error');
+    return;
+  }
+  if (injectSdkBtn) injectSdkBtn.disabled = true;
+  try {
+    setAdmiralMessage('Injecting selected Launch script...', '');
+    await injectScriptIntoDocument(document, scriptUrl, 'admiralLaunchScript');
+
+    if (admiralSiteFrame && admiralSiteFrame.contentDocument && admiralSiteFrame.contentDocument.head) {
+      try {
+        await injectScriptIntoDocument(admiralSiteFrame.contentDocument, scriptUrl, 'admiralLaunchScriptFrame');
+      } catch {
+        // Do not fail the main flow if frame injection misses.
+      }
+    }
+
+    await syncEcidFromAlloy();
+  } catch (err) {
+    setAdmiralMessage(err.message || 'Script injection failed.', 'error');
+  } finally {
+    if (injectSdkBtn) injectSdkBtn.disabled = false;
+  }
+}
+
+queryProfileBtn &&
+  queryProfileBtn.addEventListener('click', async () => {
+    const email = getEmail().trim();
+    if (!email) {
+      setAdmiralMessage('Enter a customer identifier first.', 'error');
+      return;
+    }
+    setAdmiralMessage('Looking up profile...', '');
+    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+  });
+
+tagsCompanySelect &&
+  tagsCompanySelect.addEventListener('change', function () {
+    const companyId = String(tagsCompanySelect.value || '').trim();
+    void loadTagsProperties(companyId);
+  });
+
+tagsPropertySelect &&
+  tagsPropertySelect.addEventListener('change', function () {
+    const propertyId = String(tagsPropertySelect.value || '').trim();
+    void loadTagsEnvironments(propertyId);
+  });
+
+tagsEnvironmentSelect &&
+  tagsEnvironmentSelect.addEventListener('change', function () {
+    const raw = decodeScriptUrl(String(tagsEnvironmentSelect.value || '').trim());
+    renderSelectedScript(sanitiseLaunchScriptUrl(raw));
+  });
+
+injectSdkBtn &&
+  injectSdkBtn.addEventListener('click', function () {
+    void injectSelectedScript();
+  });
+
+if (admiralSiteFrame) {
+  admiralSiteFrame.addEventListener('load', function () {
+    if (!selectedScriptUrl) return;
+    void injectSelectedScript();
+  });
+}
+
+DemoProfileDrawer.init({
+  emailInputId: 'customerEmail',
+  profileOpenClass: 'admiral-demo-page--profile-open',
+  viewName: 'Admiral demo',
+  emailGetter: getEmail,
+  messageSetter: setAdmiralMessage,
+  fetchBrowserEcidOnInit: true,
+});
+
+void loadTagsCompanies();
