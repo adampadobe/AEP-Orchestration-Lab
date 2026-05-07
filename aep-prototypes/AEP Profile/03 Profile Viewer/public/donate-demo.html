@@ -82,11 +82,40 @@
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="donate-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
             </div>
+            <div class="donate-sdk-config-fields" id="donateSdkConfigFields">
+              <div class="form-row">
+                <label for="donateTagsCompany">Tags company</label>
+                <select id="donateTagsCompany" aria-label="Tags company"></select>
+              </div>
+              <div class="form-row">
+                <label for="donateTagsProperty">Tags property</label>
+                <input
+                  id="donateTagsProperty"
+                  type="text"
+                  list="donateTagsPropertyList"
+                  placeholder="Type to filter properties"
+                  autocomplete="off"
+                />
+                <datalist id="donateTagsPropertyList"></datalist>
+              </div>
+              <div class="form-row">
+                <label for="donateTagsEnvironment">Tags environment</label>
+                <select id="donateTagsEnvironment" aria-label="Tags environment"></select>
+              </div>
+              <div class="donate-email-actions">
+                <button type="button" id="donateInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+              </div>
+            </div>
+            <div class="donate-sdk-summary" id="donateSdkConfigSummary" hidden>
+              <span id="donateSdkConfigSummaryText"></span>
+              <button type="button" id="donateChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+            </div>
             <div class="donate-advanced">
               <label for="generatorTarget">Event destination</label>
               <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
             </div>
           </div>
+          <p class="donate-script-preview">Selected script: <code id="donateSelectedScript">None</code></p>
         </section>
 
         <!-- Same hero photo as cancerresearchuk.org/get-involved/donate (Next.js optimized asset). -->
@@ -342,6 +371,7 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260422-ng"></script>
+  <script src="demo-tags-injection.js?v=20260507-standard"></script>
   <script src="donate-demo.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>

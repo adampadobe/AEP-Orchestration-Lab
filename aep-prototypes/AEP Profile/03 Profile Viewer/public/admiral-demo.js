@@ -12,8 +12,13 @@ const tagsPropertyInput = document.getElementById('admiralTagsProperty');
 const tagsPropertyList = document.getElementById('admiralTagsPropertyList');
 const tagsEnvironmentSelect = document.getElementById('admiralTagsEnvironment');
 const admiralSiteFrame = document.getElementById('admiralSiteFrame');
+const sdkConfigFields = document.getElementById('admiralSdkConfigFields');
+const sdkConfigSummary = document.getElementById('admiralSdkConfigSummary');
+const sdkConfigSummaryText = document.getElementById('admiralSdkConfigSummaryText');
+const changeSdkConfigBtn = document.getElementById('admiralChangeSdkConfigBtn');
 
-const LS_SELECTED_LAUNCH_SCRIPT = 'admiralSelectedLaunchScriptUrl';
+const LS_SELECTED_LAUNCH_SCRIPT = 'admiralSelectedLaunchScriptBySandbox';
+const LS_CONFIGURED_SANDBOX = 'admiralSdkConfiguredBySandbox';
 const SS_PENDING_LAUNCH_INJECT = 'admiralPendingLaunchInject';
 
 let selectedScriptUrl = '';
@@ -37,6 +42,28 @@ function getSandboxName() {
     return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
   }
   return '';
+}
+
+function sandboxConfigKey() {
+  const raw = getSandboxName().toLowerCase();
+  return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+}
+
+function readStorageMap(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStorageMap(key, mapObj) {
+  try {
+    localStorage.setItem(key, JSON.stringify(mapObj || {}));
+  } catch {}
 }
 
 function tagsApiUrl(resource, companyId, propertyId) {
@@ -67,17 +94,38 @@ function renderSelectedScript(url) {
 }
 
 function persistSelectedScriptUrl(url) {
-  try {
-    if (!url) localStorage.removeItem(LS_SELECTED_LAUNCH_SCRIPT);
-    else localStorage.setItem(LS_SELECTED_LAUNCH_SCRIPT, url);
-  } catch {}
+  const map = readStorageMap(LS_SELECTED_LAUNCH_SCRIPT);
+  const key = sandboxConfigKey();
+  if (!url) delete map[key];
+  else map[key] = String(url);
+  writeStorageMap(LS_SELECTED_LAUNCH_SCRIPT, map);
 }
 
 function readPersistedSelectedScriptUrl() {
-  try {
-    return String(localStorage.getItem(LS_SELECTED_LAUNCH_SCRIPT) || '').trim();
-  } catch {
-    return '';
+  const map = readStorageMap(LS_SELECTED_LAUNCH_SCRIPT);
+  return String(map[sandboxConfigKey()] || '').trim();
+}
+
+function isSdkConfiguredForSandbox() {
+  const map = readStorageMap(LS_CONFIGURED_SANDBOX);
+  return map[sandboxConfigKey()] === 1;
+}
+
+function markSdkConfiguredForSandbox(configured) {
+  const map = readStorageMap(LS_CONFIGURED_SANDBOX);
+  const key = sandboxConfigKey();
+  if (configured) map[key] = 1;
+  else delete map[key];
+  writeStorageMap(LS_CONFIGURED_SANDBOX, map);
+}
+
+function setSdkConfigExpanded(expanded) {
+  if (sdkConfigFields) sdkConfigFields.hidden = !expanded;
+  if (sdkConfigSummary) sdkConfigSummary.hidden = expanded;
+  if (sdkConfigSummaryText) {
+    const sb = getSandboxName() || 'default sandbox';
+    const script = selectedScriptUrl || 'no script selected';
+    sdkConfigSummaryText.textContent = 'SDK configured for ' + sb + ' (' + script + ').';
   }
 }
 
@@ -353,6 +401,46 @@ async function syncEcidFromAlloy() {
   }
 }
 
+function looksLikeEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function resolveKnownEcid(profile) {
+  if (profile && profile.ecid) return String(profile.ecid).trim();
+  if (profile && Array.isArray(profile.identities)) {
+    const found = profile.identities.find((id) => String(id.namespace || '').toLowerCase() === 'ecid');
+    if (found && found.value) return String(found.value).trim();
+  }
+  const ui = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+  return ui && ui !== '-' ? ui : '';
+}
+
+function resolveKnownEmail(profile, fallbackIdentifier) {
+  if (profile && profile.email && looksLikeEmail(profile.email)) return String(profile.email).trim().toLowerCase();
+  if (looksLikeEmail(fallbackIdentifier)) return String(fallbackIdentifier).trim().toLowerCase();
+  return '';
+}
+
+async function stitchEmailToEcid(email, ecid) {
+  const alloyFn = await waitForAlloy(8000);
+  if (!alloyFn) return false;
+  if (!email || !ecid) return false;
+  try {
+    await alloyFn('sendEvent', {
+      xdm: {
+        eventType: 'admiral.identity.stitch',
+        identityMap: {
+          ECID: [{ id: ecid, authenticatedState: 'authenticated', primary: true }],
+          Email: [{ id: email, authenticatedState: 'authenticated', primary: false }],
+        },
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function injectScriptIntoDocument(doc, scriptUrl, scriptId) {
   return new Promise((resolve, reject) => {
     if (!doc || !doc.head) {
@@ -386,7 +474,7 @@ async function injectSelectedScript() {
 
 async function injectSelectedScriptNow(scriptOverride) {
   const scriptUrl = sanitiseLaunchScriptUrl(scriptOverride || selectedScriptUrl);
-  if (!scriptUrl) return;
+  if (!scriptUrl) return false;
 
   if (injectSdkBtn) injectSdkBtn.disabled = true;
   try {
@@ -406,8 +494,12 @@ async function injectSelectedScriptNow(scriptOverride) {
     }
 
     await syncEcidFromAlloy();
+    markSdkConfiguredForSandbox(true);
+    setSdkConfigExpanded(false);
+    return true;
   } catch (err) {
     setAdmiralMessage(err.message || 'Script injection failed.', 'error');
+    return false;
   } finally {
     if (injectSdkBtn) injectSdkBtn.disabled = false;
   }
@@ -421,7 +513,20 @@ queryProfileBtn &&
       return;
     }
     setAdmiralMessage('Looking up profile...', '');
-    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    if (!ok) return;
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    const ecid = resolveKnownEcid(profile);
+    const stitchedEmail = resolveKnownEmail(profile, email);
+    if (stitchedEmail && ecid) {
+      const stitched = await stitchEmailToEcid(stitchedEmail, ecid);
+      if (stitched) {
+        setAdmiralMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+      }
+    }
   });
 
 tagsCompanySelect &&
@@ -537,15 +642,40 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-if (persistedScript) {
-  renderSelectedScript(persistedScript);
+if (changeSdkConfigBtn) {
+  changeSdkConfigBtn.addEventListener('click', function () {
+    markSdkConfiguredForSandbox(false);
+    setSdkConfigExpanded(true);
+    setAdmiralMessage('SDK config reopened for this sandbox.', '');
+  });
 }
+
+function applySandboxConfigState(options) {
+  const opts = options || {};
+  const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+  renderSelectedScript(persistedScript);
+  const configured = isSdkConfiguredForSandbox();
+  setSdkConfigExpanded(!configured);
+  if (opts.announceSandboxChange) {
+    if (configured) {
+      setAdmiralMessage('Sandbox changed. Existing SDK config found for this sandbox.', 'success');
+    } else {
+      setAdmiralMessage('Sandbox changed. Configure SDK injection for this sandbox.', '');
+    }
+  }
+}
+
+window.addEventListener('aep-global-sandbox-change', function () {
+  applySandboxConfigState({ announceSandboxChange: true });
+  void loadTagsCompanies();
+});
 
 const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
 if (pendingScriptInject) {
   renderSelectedScript(pendingScriptInject);
   void injectSelectedScriptNow(pendingScriptInject);
+} else {
+  applySandboxConfigState();
 }
 
 void loadTagsCompanies();

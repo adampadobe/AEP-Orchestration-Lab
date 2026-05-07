@@ -184,6 +184,30 @@
   gap: 0.75rem;
 }
 
+.donate-sdk-config-fields {
+  display: contents;
+}
+
+.donate-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  color: #475569;
+  font-size: 0.8125rem;
+}
+
+.donate-script-preview {
+  max-width: var(--donate-content-max);
+  margin: 0.35rem auto 0;
+  color: #475569;
+  font-size: 0.8125rem;
+}
+
+.donate-script-preview code {
+  color: #0f172a;
+}
+
 .donate-email-actions .btn-lookup {
   padding: 0.55rem 1rem;
   border-radius: 6px;

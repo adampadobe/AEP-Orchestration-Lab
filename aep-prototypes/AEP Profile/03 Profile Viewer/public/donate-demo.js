@@ -28,6 +28,26 @@ const presetsSingle = document.getElementById('donatePresetsSingle');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
+const donateTagsInjection =
+  typeof window.DemoTagsInjection !== 'undefined'
+    ? window.DemoTagsInjection.init({
+        storagePrefix: 'donateDemo',
+        identityEventType: 'donate.identity.stitch',
+        messageSetter: setDonateMessage,
+        infoEcidId: 'infoEcid',
+        tagsCompanyId: 'donateTagsCompany',
+        tagsPropertyInputId: 'donateTagsProperty',
+        tagsPropertyListId: 'donateTagsPropertyList',
+        tagsEnvironmentId: 'donateTagsEnvironment',
+        injectButtonId: 'donateInjectSdkBtn',
+        selectedScriptId: 'donateSelectedScript',
+        configFieldsId: 'donateSdkConfigFields',
+        configSummaryId: 'donateSdkConfigSummary',
+        configSummaryTextId: 'donateSdkConfigSummaryText',
+        changeConfigButtonId: 'donateChangeSdkConfigBtn',
+      })
+    : null;
+
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';
 }
@@ -146,9 +166,18 @@ queryProfileBtn &&
       return;
     }
     setDonateMessage('Looking up profile…', '');
-    await DemoProfileDrawer.loadProfileDataForDrawer(email, {
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, {
       updateMessage: true,
     });
+    if (!ok || !donateTagsInjection || typeof donateTagsInjection.stitchAfterProfileLookup !== 'function') return;
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    const stitched = await donateTagsInjection.stitchAfterProfileLookup(profile, email);
+    if (stitched) {
+      setDonateMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    }
   });
 
 donateNowBtn &&

@@ -32,6 +32,26 @@ const sandboxSelect = document.getElementById('sandboxSelect');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+const navigatorTagsInjection =
+  typeof window.DemoTagsInjection !== 'undefined'
+    ? window.DemoTagsInjection.init({
+        storagePrefix: 'navigatorGlobalDemo',
+        identityEventType: 'navigator.identity.stitch',
+        messageSetter: setModMessage,
+        infoEcidId: 'infoEcid',
+        tagsCompanyId: 'navigatorTagsCompany',
+        tagsPropertyInputId: 'navigatorTagsProperty',
+        tagsPropertyListId: 'navigatorTagsPropertyList',
+        tagsEnvironmentId: 'navigatorTagsEnvironment',
+        injectButtonId: 'navigatorInjectSdkBtn',
+        selectedScriptId: 'navigatorSelectedScript',
+        configFieldsId: 'navigatorSdkConfigFields',
+        configSummaryId: 'navigatorSdkConfigSummary',
+        configSummaryTextId: 'navigatorSdkConfigSummaryText',
+        changeConfigButtonId: 'navigatorChangeSdkConfigBtn',
+        iframeIds: ['navigatorDemoSiteFrame'],
+      })
+    : null;
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';
@@ -104,7 +124,15 @@ queryProfileBtn &&
       return;
     }
     setModMessage('Looking up profile...', '');
-    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    if (ok && navigatorTagsInjection && typeof navigatorTagsInjection.stitchAfterProfileLookup === 'function') {
+      const profile =
+        window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+          ? window.DemoProfileDrawer.getLastLookedUpProfile()
+          : null;
+      const stitched = await navigatorTagsInjection.stitchAfterProfileLookup(profile, email);
+      if (stitched) setModMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    }
   });
 
 loadGeneratorTargets();

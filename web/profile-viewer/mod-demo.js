@@ -13,6 +13,26 @@ const modMessage = document.getElementById('modMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+const modTagsInjection =
+  typeof window.DemoTagsInjection !== 'undefined'
+    ? window.DemoTagsInjection.init({
+        storagePrefix: 'modDemo',
+        identityEventType: 'mod.identity.stitch',
+        messageSetter: setModMessage,
+        infoEcidId: 'infoEcid',
+        tagsCompanyId: 'modTagsCompany',
+        tagsPropertyInputId: 'modTagsProperty',
+        tagsPropertyListId: 'modTagsPropertyList',
+        tagsEnvironmentId: 'modTagsEnvironment',
+        injectButtonId: 'modInjectSdkBtn',
+        selectedScriptId: 'modSelectedScript',
+        configFieldsId: 'modSdkConfigFields',
+        configSummaryId: 'modSdkConfigSummary',
+        configSummaryTextId: 'modSdkConfigSummaryText',
+        changeConfigButtonId: 'modChangeSdkConfigBtn',
+        iframeIds: ['modDemoSiteFrame'],
+      })
+    : null;
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';
@@ -68,7 +88,14 @@ queryProfileBtn &&
       return;
     }
     setModMessage('Looking up profile...', '');
-    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    if (!ok || !modTagsInjection || typeof modTagsInjection.stitchAfterProfileLookup !== 'function') return;
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    const stitched = await modTagsInjection.stitchAfterProfileLookup(profile, email);
+    if (stitched) setModMessage('Profile loaded and email linked to ECID for stitching.', 'success');
   });
 
 loadGeneratorTargets();

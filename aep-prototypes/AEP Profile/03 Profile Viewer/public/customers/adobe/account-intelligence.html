@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Empty = same origin. If this HTML is opened from another dev server, set to http://localhost:3333 -->
+  <meta name="aep-api-base" content="">
+  <title>Adobe — Account intelligence – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/home.css">
+  <link rel="stylesheet" href="/customers/account-intelligence.css">
+</head>
+<body class="customer-ai-page home-dashboard-concierge home-dashboard-ajo">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/customers/adobe/account-intelligence.html">http://localhost:3333/customers/adobe/account-intelligence.html</a>
+  </div>
+
+  <div class="dashboard-shell dashboard-shell--ajo">
+    <aside class="dashboard-sidebar dashboard-sidebar--ajo" aria-label="Primary">
+      <div class="dashboard-sidebar-brand dashboard-sidebar-brand--ajo">
+        <span class="dashboard-sidebar-mark dashboard-sidebar-mark--ajo" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav dashboard-sidebar-nav--ajo" aria-label="Application navigation">
+        <a href="/home.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Home
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Profile &amp; data</p>
+        <a href="/index.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Profile Viewer
+        </a>
+        <a href="/schema-viewer.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          </svg>
+          Data viewer
+        </a>
+        <a href="/audience-membership.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Audience
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Journeys &amp; events</p>
+        <a href="/journeys.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Journeys
+        </a>
+        <a href="/event-generator.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          Event generator
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Implementation</p>
+        <a href="/profile-generation.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Profile generation
+        </a>
+        <a href="/consent.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          Consent
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Reporting</p>
+        <a href="/reporting.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Overview
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Customers</p>
+        <a href="/customers/index.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Overview
+        </a>
+        <a href="/customers/adobe/account-intelligence.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested dashboard-nav-item--active">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          Adobe
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Demos</p>
+        <a href="/donate-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+          Donate (demo)
+        </a>
+        <a href="/race-for-life-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            <line x1="9" y1="9" x2="9.01" y2="9" />
+            <line x1="15" y1="9" x2="15.01" y2="9" />
+          </svg>
+          Race for Life (demo)
+        </a>
+        <a href="/events-trigger.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          Events trigger
+        </a>
+        <a href="/firebase-hosting.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <main class="dashboard-main dashboard-main--ajo" style="padding: 1.5rem 1.75rem 2.5rem;">
+        <header class="customer-ai-hero">
+          <h1>Account Intelligence — Adobe</h1>
+          <p><strong>Ingests (public):</strong> customer website, annual report / investor-deck hub (IR page), press releases, public job postings, recent news (RSS). <strong>Produces:</strong> one-page executive briefing, likely KPIs and pain points, AI and data maturity guess, and five tailored discovery questions. The server also collects image URLs from each page (meta tags, icons, hero/logo hints) and stores JPEG thumbnails under <code>/customers/asset-cache/</code> (SVGs skipped; some CDNs may 404). Optional CRM notes add private context. PDF annual reports are not parsed here; use the IR hub page and discovery to go deeper.</p>
+        </header>
+
+        <section class="customer-ai-panel" aria-labelledby="crmHeading">
+          <h2 id="crmHeading">CRM / meeting notes (optional)</h2>
+          <p style="margin: 0 0 0.5rem; font-size: 0.85rem; color: #64748b;">Paste bullets from your CRM or last call. This is included in the synthesis step as retrieval context only; it is sent only to this app’s server (not to Adobe).</p>
+          <label for="accountIntelCrm" class="visually-hidden">CRM notes</label>
+          <textarea id="accountIntelCrm" placeholder="e.g. Interested in journey orchestration with AEP; concerned about consent in EU…"></textarea>
+          <div class="customer-ai-actions">
+            <button type="button" id="accountIntelRun">Run ingestion &amp; briefing</button>
+            <span class="customer-ai-mode" id="accountIntelMode" aria-live="polite"></span>
+          </div>
+          <p id="accountIntelError" class="customer-ai-error" hidden role="alert"></p>
+        </section>
+
+        <section class="customer-ai-panel" aria-labelledby="ingestHeading">
+          <h2 id="ingestHeading">Ingestion status</h2>
+          <table class="customer-ai-ingest">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>URL</th>
+                <th>HTTP</th>
+                <th>Status</th>
+                <th>Chars</th>
+                <th>Images</th>
+              </tr>
+            </thead>
+            <tbody id="accountIntelIngest"></tbody>
+          </table>
+        </section>
+
+        <div id="accountIntelOutput" hidden>
+          <section class="customer-ai-panel" aria-labelledby="briefHeading">
+            <h2 id="briefHeading">Executive briefing</h2>
+            <div id="accountIntelBriefing"></div>
+          </section>
+          <section class="customer-ai-panel" aria-labelledby="kpiHeading">
+            <h2 id="kpiHeading">Likely KPIs to explore</h2>
+            <div id="accountIntelKpis"></div>
+          </section>
+          <section class="customer-ai-panel" aria-labelledby="painHeading">
+            <h2 id="painHeading">Likely pain points</h2>
+            <div id="accountIntelPain"></div>
+          </section>
+          <section class="customer-ai-panel" aria-labelledby="matHeading">
+            <h2 id="matHeading">AI &amp; data maturity guess</h2>
+            <div id="accountIntelMaturity"></div>
+          </section>
+          <section class="customer-ai-panel" aria-labelledby="qHeading">
+            <h2 id="qHeading">Discovery questions</h2>
+            <div id="accountIntelQuestions"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="/recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+  <script src="/home-layout.js" defer></script>
+  <script src="/sidebar-collapse.js" defer></script>
+  <script src="/customers/account-intelligence-page.js" defer></script>
+</body>
+</html>

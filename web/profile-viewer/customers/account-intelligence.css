@@ -1,0 +1,232 @@
+/* Account Intelligence & customer hub pages */
+
+.customer-ai-page .customer-ai-hero {
+  max-width: 52rem;
+  margin-bottom: 1.5rem;
+}
+
+.customer-ai-page .customer-ai-hero h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+}
+
+.customer-ai-page .customer-ai-hero p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.customer-ai-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.customer-ai-panel h2 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 0.65rem;
+}
+
+.customer-ai-panel textarea {
+  width: 100%;
+  min-height: 5rem;
+  padding: 0.65rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.customer-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.customer-ai-actions button {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #0265dc;
+  color: #fff;
+}
+
+.customer-ai-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.customer-ai-actions .customer-ai-mode {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.customer-ai-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+.customer-ai-ingest {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.customer-ai-ingest th,
+.customer-ai-ingest td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.customer-ai-ingest th {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.customer-ai-ingest .ok {
+  color: #15803d;
+}
+
+.customer-ai-ingest .bad {
+  color: #b45309;
+}
+
+.customer-ai-thumb-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  max-width: 14rem;
+}
+
+.customer-ai-thumb-strip a {
+  display: block;
+  line-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.customer-ai-thumb-strip img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  background: #f8fafc;
+}
+
+.customer-ai-thumb-meta {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.customer-ai-prose {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #1e293b;
+}
+
+.customer-ai-prose strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.customer-ai-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.customer-ai-list li {
+  margin-bottom: 0.35rem;
+}
+
+.customer-ai-questions {
+  counter-reset: q;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.customer-ai-questions li {
+  counter-increment: q;
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.customer-ai-questions li::before {
+  content: counter(q);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 6px;
+}
+
+.customer-hub-cards {
+  display: grid;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
+.customer-hub-card {
+  display: block;
+  padding: 1.1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.customer-hub-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.customer-hub-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.customer-hub-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.45;
+}

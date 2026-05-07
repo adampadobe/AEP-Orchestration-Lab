@@ -110,6 +110,24 @@
   gap: 0.75rem;
 }
 
+.admiral-sdk-config-fields {
+  display: contents;
+}
+
+.admiral-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.admiral-sdk-summary .btn-lookup {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
 .admiral-demo-ecid-hint {
   font-size: 0.8rem;
   color: var(--dash-text-secondary);

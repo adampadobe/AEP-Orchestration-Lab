@@ -29,6 +29,25 @@ const raceMessage = document.getElementById('raceMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+const raceTagsInjection =
+  typeof window.DemoTagsInjection !== 'undefined'
+    ? window.DemoTagsInjection.init({
+        storagePrefix: 'raceForLifeDemo',
+        identityEventType: 'raceforlife.identity.stitch',
+        messageSetter: setRaceMessage,
+        infoEcidId: 'infoEcid',
+        tagsCompanyId: 'raceTagsCompany',
+        tagsPropertyInputId: 'raceTagsProperty',
+        tagsPropertyListId: 'raceTagsPropertyList',
+        tagsEnvironmentId: 'raceTagsEnvironment',
+        injectButtonId: 'raceInjectSdkBtn',
+        selectedScriptId: 'raceSelectedScript',
+        configFieldsId: 'raceSdkConfigFields',
+        configSummaryId: 'raceSdkConfigSummary',
+        configSummaryTextId: 'raceSdkConfigSummaryText',
+        changeConfigButtonId: 'raceChangeSdkConfigBtn',
+      })
+    : null;
 
 /** Fires `form.abandon` after profile lookup unless submit or manual abandon happens first. */
 let abandonBasketTimerId = null;
@@ -109,6 +128,14 @@ queryProfileBtn &&
           ? AepIdentityPicker.getNamespace('customerEmail')
           : 'email';
       void RaceForLifeAjo.refreshFromProfile(DemoProfileDrawer.getLastLookedUpProfile(), email, ns);
+    }
+    if (ok && raceTagsInjection && typeof raceTagsInjection.stitchAfterProfileLookup === 'function') {
+      const profile =
+        window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+          ? window.DemoProfileDrawer.getLastLookedUpProfile()
+          : null;
+      const stitched = await raceTagsInjection.stitchAfterProfileLookup(profile, email);
+      if (stitched) setRaceMessage('Profile loaded and email linked to ECID for stitching.', 'success');
     }
     scheduleAutoAbandonAfterLookup();
   });

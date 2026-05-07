@@ -1,0 +1,404 @@
+/* Business insurance subpage — aligned to OM business insurance source + shared demo shell. */
+
+.oldmutual-business-page {
+  --om-business-accent: #1f8f5a;
+}
+
+.oldmutual-business-page .om-aep-login-bar {
+  border-bottom-color: var(--om-business-accent);
+}
+
+.om-hero--business {
+  background: #123029;
+}
+
+.om-hero--business .om-hero-bg {
+  background-image: url('https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/blt59b9f93dd0222736/62b58ea420dc5b0df24d1676/Insurance_for_business1b.jpg?width=1312&height=540&format=webp&quality=100');
+}
+
+.om-hero--business .om-hero-bg::after {
+  background: linear-gradient(90deg, rgba(9, 35, 29, 0.9) 0%, rgba(9, 35, 29, 0.58) 52%, rgba(9, 35, 29, 0.2) 100%);
+}
+
+.om-btn-primary--business {
+  background: linear-gradient(90deg, #1d8f58 0%, #5dbf64 100%);
+}
+
+.om-btn-primary--business:hover {
+  filter: brightness(1.06);
+}
+
+.om-business-packages {
+  padding: 1.2rem 0 1.35rem;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(0, 0, 0, 0.02) 10px, transparent 11px) 0 0 / 44px 44px,
+    radial-gradient(circle at 34px 34px, rgba(0, 0, 0, 0.02) 10px, transparent 11px) 0 0 / 44px 44px,
+    #fff;
+}
+
+.om-business-packages h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.3vw, 1.55rem);
+  color: #1d2f2a;
+}
+
+.om-business-packages-lead {
+  margin: 0.35rem 0 1rem;
+  max-width: 920px;
+  color: #485b55;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.om-business-packages-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(260px, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.om-business-packages-layout img {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #d9e8df;
+  display: block;
+}
+
+.om-business-packages-card {
+  border: 1px solid #d4e4da;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgba(0, 61, 46, 0.08);
+  padding: 0.85rem 0.95rem 0.95rem;
+}
+
+.om-business-packages-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.04rem;
+  color: #164335;
+}
+
+.om-business-packages-card p {
+  margin: 0;
+  color: #4e605a;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.om-business-package-selector {
+  margin-top: 0.8rem;
+}
+
+.om-business-package-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.om-business-package-option {
+  cursor: pointer;
+}
+
+.om-business-package-option input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.om-business-package-option-box {
+  display: block;
+  border: 1px solid #e3e9e6;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.68rem 0.8rem 0.64rem;
+  min-height: 0;
+}
+
+.om-business-package-option-box strong {
+  display: block;
+  margin-bottom: 0.28rem;
+  color: #1a2e28;
+  font-size: 0.95rem;
+}
+
+.om-business-package-option-box > span {
+  display: block;
+  color: #596862;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.om-business-package-option-box em {
+  display: block;
+  margin-top: 0.72rem;
+  color: #1f2f29;
+  font-style: normal;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.om-business-package-option input[type='radio']:checked + .om-business-package-option-box {
+  border-color: #2d915a;
+  box-shadow: 0 0 0 2px rgba(45, 145, 90, 0.16);
+}
+
+.om-business-package-option input[type='radio']:focus-visible + .om-business-package-option-box {
+  outline: 2px solid #2d915a;
+  outline-offset: 2px;
+}
+
+.om-business-package-note {
+  margin: 0.7rem 0 0;
+  color: #44554f;
+  font-size: 0.82rem;
+  line-height: 1.42;
+}
+
+.om-business-packages-cta {
+  margin-top: 0.9rem;
+}
+
+.om-business-intro {
+  margin-top: 2rem;
+}
+
+.om-business-intro h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.25rem;
+  color: var(--om-green, #003d2e);
+}
+
+.om-business-intro > p {
+  margin: 0 0 1.2rem;
+  max-width: 760px;
+  color: #3d524c;
+  line-height: 1.5;
+}
+
+.om-business-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.om-business-point-card {
+  border: 1px solid #d6e5dd;
+  background: linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%);
+  border-radius: 10px;
+  padding: 1rem 1.05rem;
+}
+
+.om-business-point-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #134738;
+}
+
+.om-business-point-card p {
+  margin: 0;
+  color: #4a5c56;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.om-business-products {
+  margin-top: 2rem;
+}
+
+.om-business-products h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  color: var(--om-green, #003d2e);
+}
+
+.om-business-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.om-business-product-card {
+  background: #fff;
+  border: 1px solid #dbe8e1;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 61, 46, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.om-business-product-card img,
+.om-business-product-art {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  display: block;
+}
+
+.om-business-product-art--agri {
+  background: linear-gradient(135deg, #294d38 0%, #5d9f6f 58%, #d8e8ac 100%);
+}
+
+.om-business-product-art--fleet {
+  background: linear-gradient(140deg, #1f2d3d 0%, #3f6787 55%, #8fb3c7 100%);
+}
+
+.om-business-product-body {
+  padding: 1rem 1.05rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.om-business-product-body h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.03rem;
+  color: #1a2e28;
+}
+
+.om-business-product-body p {
+  margin: 0;
+  color: #4a5c56;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.om-business-product-body a {
+  margin-top: 0.85rem;
+  text-decoration: none;
+  color: #0f6f4d;
+  font-weight: 700;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.om-business-product-body a:hover {
+  text-decoration: underline;
+}
+
+.om-business-product-body button.om-business-get-quote {
+  margin-top: 0.85rem;
+  color: #0f6f4d;
+  font-weight: 700;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.om-business-product-body button.om-business-get-quote:hover {
+  text-decoration: underline;
+}
+
+/* Business quote thank-you (FNB-style two-column confirmation) */
+.oldmutual-business-quote-thank-you-page {
+  --om-business-accent: #1f8f5a;
+}
+
+.oldmutual-business-quote-thank-you-page .om-aep-login-bar {
+  border-bottom-color: var(--om-business-accent);
+}
+
+.om-thank-you-main {
+  padding-top: 0;
+  padding-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.om-thank-you-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.15fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: start;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+@media (max-width: 720px) {
+  .om-thank-you-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.om-thank-you-heading {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.om-thank-you-icon-wrap {
+  width: min(220px, 72vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.om-thank-you-icon-wrap svg {
+  width: 42%;
+  height: 42%;
+  color: #0d9488;
+}
+
+.om-thank-you-subtitle {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-weight: 700;
+  color: #111827;
+}
+
+.om-thank-you-lead {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+  line-height: 1.55;
+  color: #1f2937;
+  max-width: 42rem;
+}
+
+.om-thank-you-lead strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.om-thank-you-lead.om-thank-you-lead--awaiting-name {
+  visibility: hidden;
+}
+
+.om-thank-you-lead.om-thank-you-lead--name-ready {
+  visibility: visible;
+}
+
+.om-thank-you-return {
+  margin: 1.25rem 0 0;
+  font-size: 0.95rem;
+}
+
+.om-thank-you-return a {
+  color: #0f6f4d;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .om-business-packages-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .om-business-package-options {
+    grid-template-columns: 1fr;
+  }
+}

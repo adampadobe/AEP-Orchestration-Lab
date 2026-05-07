@@ -1,0 +1,178 @@
+/* Rows */
+/* Min Rows */
+/* Columns 
+$col: ;
+$col--mobi: ;*/
+/* Font */
+/** RMB Fonts**/
+/* Animations */
+/* Misc (Untill we get a better name) */
+/*Skin codes*/
+/*
+
+Variables.
+
+*/
+@page {
+  size: A4; }
+
+@media print {
+  /* BiFr general */
+  * {
+    padding: 0px !important;
+    margin: 0px !important;
+    font-size: 11px !important;
+    color: black !important;
+    min-height: 0% !important;
+    height: auto !important; }
+  header {
+    display: none; }
+  .atom.printLogo {
+    display: block !important;
+    float: none !important;
+    margin-left: 20px !important;
+    margin-top: 20px !important;
+    position: absolute;
+    right: 85px;
+    top: 30px; }
+  .content > .contentInner > .atom.section {
+    top: 75px; }
+  .atom.section.section-full > .container--background, .atom.section.section-half > .container--background, .atom.section.section-default > .container--background, .atom.section.section-auto > .container--background {
+    overflow: hidden !important; }
+  .frame-col.frame-col-12 {
+    width: 100%;
+    height: inherit; }
+  .atom.section .section-content {
+    width: calc(100% - 40px);
+    margin: 0 20px !important; }
+  form.atom .frame-row-1 > .frame-row-2 .atom.grid--split.grid--split-50:first-of-type {
+    position: absolute;
+    right: 0px;
+    top: -55px;
+    text-align: right; }
+  .atom.column--container.box--container {
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    padding-bottom: 20px !important; }
+  .atom--viewBtn {
+    display: none; }
+  .input--search, .table--input-search {
+    display: none; }
+  .atom.chevron--group {
+    display: none; }
+  .atom.advanced--search {
+    display: none; }
+  .atom.table {
+    border-collapse: none;
+    border-spacing: 0 1px; }
+  .atom.table thead {
+    display: table-row-group; }
+  .atom.table tr {
+    page-break-inside: avoid;
+    -webkit-region-break-inside: avoid;
+    page-break-before: auto; }
+  .atom.table .table--row .table--cell {
+    line-height: 20px !important;
+    height: auto !important;
+    vertical-align: middle; }
+  .atom.table thead .table--row-header:not(.groupHeader) .table--cell-header[data-sortable="true"] .text--heading-sub {
+    top: 0; }
+  .atom.table thead .table--row-header:not(.groupHeader) .table--cell-header[data-sortable="true"]:after {
+    display: none; }
+  .atom.table thead .table--row-header.groupHeader .table--cell-header .text--heading-sub:after {
+    height: 4px;
+    bottom: 0; }
+  .atom.table .table--row .table--cell:first-of-type {
+    padding-left: 20px !important; }
+  .atom.table .table--row .table--cell:last-of-type {
+    padding-right: 20px !important; }
+  .atom.table .table--row .table--cell:not(:last-of-type) {
+    padding-right: 10px !important; }
+  .atom.table .table--row .table--cell.table--cell-content, .atom.table thead .table--row-header .table--cell-header {
+    min-height: 20px !important; }
+  .atom.table tbody {
+    border-top: thin solid black !important;
+    border-radius: 0 !important; }
+  .text--heading {
+    color: #000000; }
+  .atom.table tbody .table--row-content:not(.total--row):nth-child(even) .table--cell-content {
+    background-color: #ffffff; }
+  .container-content .atom.table a.atom.link span {
+    text-decoration: none;
+    font-size: 11px !important;
+    line-height: 12px; }
+  .container-content .atom.table a.atom.link {
+    text-decoration: none;
+    font-size: 11px !important;
+    line-height: 12px; }
+  .container-content .atom.table .form--input-container.atom input {
+    border-bottom: none; }
+  .atom.table .table--cell .form--input-container:not(.form--input-checkbox) input, .atom.table .table--cell .form--input-container:not(.form--input-checkbox) .placeholder, .atom.table .table--cell .form--input-container:not(.form--input-checkbox) .selectChoice {
+    font-size: 11px !important;
+    line-height: 12px;
+    bottom: 0px;
+    top: 0px;
+    min-height: 20px !important; }
+  .atom.table .table--row .table--cell.table--cell-content {
+    height: 20px !important; }
+  .atom.table .table--row .table--cell.table--cell-content > div {
+    min-height: 20px !important;
+    height: auto !important; }
+  .atom.table .table--row .table--cell .text--heading-sub, .atom.table .table--row .table--cell .text--paragraph, .atom.table .table--row .table--cell .btn--text, .atom.table .table--row .table--cell .link {
+    line-height: 12px !important; }
+  .atom.table .table--row:not(.groupHeader) .text--heading-sub, .atom.table .table--row:not(.groupHeader) .text--paragraph, .atom.table .table--row:not(.groupHeader) .btn--text {
+    top: unset;
+    vertical-align: middle; }
+  form.atom .heading-4 {
+    font-family: "AtomFNBSansRegular", sans-serif;
+    font-size: 20px !important;
+    padding-top: 15px !important; }
+  form.atom .container-content .heading-4 {
+    font-family: RobotoRegular;
+    font-size: 14px !important;
+    margin-bottom: 20px !important; }
+  form.atom .container-content p {
+    font-family: RobotoRegular;
+    font-size: 11px !important; }
+  .atom.table .table--cell .form--input-checkbox.atom .checkboxItems.atom {
+    display: none; }
+  .atom.btn--wrapper {
+    display: none; }
+  .atom.chevron {
+    display: none; }
+  .atom.bonding--box {
+    display: none; }
+  .atom.pagination {
+    display: none; }
+  div.atom--footer {
+    display: none; }
+  /* Bkg with BiFr tags */
+  .atom--subTabs {
+    border: none;
+    height: 100px !important; }
+  .atom--subTabs .text--heading.heading-3 {
+    top: 40px;
+    right: 0;
+    font-size: 20px !important;
+    font-family: "AtomFNBSansRegular", sans-serif, sans-serif; }
+  .atom--subTabs .subTab {
+    display: none; }
+  .atom.table .table--cell .btn--wrapper.atom {
+    display: none; }
+  form.atom .container-content .heading-2 {
+    font-family: RobotoRegular;
+    font-size: 14px !important;
+    line-height: 15px !important;
+    margin-bottom: 20px !important; }
+  .atom.table {
+    empty-cells: show; }
+  .content .contentInner > .atom.image {
+    position: absolute; }
+  .content .contentInner > .atom.image > .atom.printLogo {
+    margin-left: -50px !important;
+    position: absolute; }
+  .atom.table tbody .table--row-content.total--row .table--cell {
+    vertical-align: bottom !important; } }
+
+/*# sourceMappingURL=print.css.map */

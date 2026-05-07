@@ -1,0 +1,579 @@
+/**
+ * Mobile device simulator host page (phone chrome + customize drawer).
+ */
+
+:root {
+  /* Approximates Win11 “Sunrise” feel (browser cannot load the OS wallpaper file) */
+  --mobile-demo-bg: #e6dcf0;
+  --mobile-demo-bezel: #1a1d24;
+  --mobile-demo-frame-rim: #3d4454;
+  --device-vp-w: 412px;
+  --device-vp-h: 915px;
+  /* Keeps iframe content below the simulated notch overlay */
+  /* Space below notch overlay — keep small so page sits nearer the top of the glass */
+  --mobile-demo-safe-top: 8px;
+}
+
+body.mobile-demo-page {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 95% 52% at 50% 108%, rgba(255, 165, 125, 0.42), transparent 55%),
+    radial-gradient(ellipse 70% 42% at 8% 92%, rgba(255, 190, 175, 0.38), transparent 50%),
+    radial-gradient(ellipse 65% 40% at 92% 88%, rgba(236, 160, 195, 0.28), transparent 48%),
+    radial-gradient(ellipse 130% 65% at 50% -18%, rgba(165, 190, 245, 0.45), transparent 52%),
+    linear-gradient(172deg, #b9c7ea 0%, #d4c8e8 24%, #e8bfcc 52%, #f5cbb8 76%, #ffd8c6 100%);
+  color: #0f172a;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  overflow-x: hidden;
+}
+
+/* Hide Customize tab while browser fullscreen is active on the simulator root */
+.mobile-demo-fs-root:fullscreen ~ .mobile-demo-customize-tab,
+.mobile-demo-fs-root:-webkit-full-screen ~ .mobile-demo-customize-tab,
+body.mobile-demo-page--fs .mobile-demo-customize-tab {
+  display: none !important;
+}
+
+/* Fullscreen: Win11 “Sunrise”-style sky → rose → warm horizon (CSS approximation only) */
+.mobile-demo-fs-root:fullscreen,
+.mobile-demo-fs-root:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse 110% 58% at 50% 112%, rgba(255, 155, 118, 0.48), transparent 54%),
+    radial-gradient(ellipse 75% 48% at 6% 94%, rgba(255, 185, 165, 0.42), transparent 51%),
+    radial-gradient(ellipse 72% 46% at 96% 90%, rgba(232, 155, 188, 0.34), transparent 49%),
+    radial-gradient(ellipse 140% 85% at 50% -30%, rgba(140, 175, 245, 0.38), transparent 56%),
+    radial-gradient(ellipse 90% 50% at 72% 22%, rgba(255, 210, 225, 0.22), transparent 45%),
+    linear-gradient(172deg, #aebee8 0%, #cbbfe6 18%, #dcb8d4 38%, #eabfbf 58%, #f5c9ae 78%, #ffd4c2 100%);
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-topbar,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-topbar,
+body.mobile-demo-page--fs .mobile-demo-topbar {
+  display: none !important;
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-device-label,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-device-label,
+body.mobile-demo-page--fs .mobile-demo-device-label {
+  display: none !important;
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-hint,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-hint,
+body.mobile-demo-page--fs .mobile-demo-hint {
+  display: none !important;
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-main,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25vmin 1.25vmin 4.5rem;
+  padding-bottom: max(4.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-stage,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-stage {
+  gap: 0;
+}
+
+.mobile-demo-fs-root:fullscreen .mobile-demo-viewport,
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-viewport {
+  max-height: calc(100vh - 5.5rem);
+  max-height: calc(100dvh - 5.5rem);
+}
+
+.mobile-demo-fs-exit-float {
+  position: fixed;
+  right: 1rem;
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  z-index: 58;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+}
+
+.mobile-demo-fs-exit-float:hover {
+  background: #ffffff;
+}
+
+.mobile-demo-fs-exit-float:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.mobile-demo-fs-exit-float[hidden] {
+  display: none !important;
+}
+
+.mobile-demo-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  flex-wrap: wrap;
+}
+
+.mobile-demo-topbar-text {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.mobile-demo-topbar-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-demo-fullscreen-btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-demo-fullscreen-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.mobile-demo-fullscreen-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.mobile-demo-topbar a.mobile-demo-home {
+  font-weight: 600;
+  color: #0f172a;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.mobile-demo-topbar a.mobile-demo-home:hover {
+  color: #0369a1;
+}
+
+.mobile-demo-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mobile-demo-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.mobile-demo-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1rem 1rem 4rem;
+  box-sizing: border-box;
+}
+
+.mobile-demo-stage {
+  width: 100%;
+  max-width: min(1100px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mobile-demo-device-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+  text-align: center;
+  max-width: 100%;
+  padding: 0 0.5rem;
+}
+
+.mobile-demo-frame-outer {
+  filter: drop-shadow(0 22px 40px rgba(15, 23, 42, 0.22));
+}
+
+.mobile-demo-bezel {
+  position: relative;
+  padding: 14px;
+  border-radius: 44px;
+  background:
+    linear-gradient(145deg, #5c6578 0%, var(--mobile-demo-bezel) 38%, #0f1116 100%);
+  box-sizing: border-box;
+}
+
+.mobile-demo-bezel--samsung {
+  border-radius: 44px;
+  padding: 14px;
+  background:
+    linear-gradient(145deg, #5c6578 0%, var(--mobile-demo-bezel) 38%, #0f1116 100%);
+}
+
+.mobile-demo-bezel--apple {
+  border-radius: 52px;
+  padding: 12px;
+  background:
+    linear-gradient(155deg, #3a3a3e 0%, #1c1c1e 42%, #0a0a0c 100%);
+}
+
+.mobile-demo-bezel--pixel {
+  border-radius: 40px;
+  padding: 13px;
+  background:
+    linear-gradient(145deg, #4a5568 0%, #1e293b 45%, #0f172a 100%);
+}
+
+.mobile-demo-bezel--oneplus {
+  border-radius: 36px;
+  padding: 13px;
+  background:
+    linear-gradient(145deg, #374151 0%, #111827 40%, #030712 100%);
+}
+
+.mobile-demo-bezel::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 38px;
+  border: 3px solid rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.mobile-demo-bezel--apple::after {
+  inset: 8px;
+  border-radius: 46px;
+}
+
+.mobile-demo-bezel--pixel::after {
+  border-radius: 34px;
+}
+
+.mobile-demo-bezel--oneplus::after {
+  inset: 8px;
+  border-radius: 30px;
+}
+
+.mobile-demo-notch {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: #0c0e12;
+}
+
+.mobile-demo-notch--samsung {
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 26px;
+  border-radius: 0 0 18px 18px;
+}
+
+.mobile-demo-notch--dynamic-island {
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 34px;
+  border-radius: 20px;
+  background: #0a0a0c;
+}
+
+.mobile-demo-notch--apple-lite {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 118px;
+  height: 28px;
+  border-radius: 16px;
+  background: #0c0c0e;
+}
+
+.mobile-demo-notch--punch-hole {
+  top: 18px;
+  left: 22px;
+  transform: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.mobile-demo-notch--oblong {
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 24px;
+  border-radius: 12px;
+}
+
+/* Inner screen radius per chassis (matches bezel inner curve). */
+.mobile-demo-viewport {
+  --mobile-demo-screen-radius: 32px;
+  position: relative;
+  z-index: 1;
+  width: var(--device-vp-w);
+  height: var(--device-vp-h);
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 140px);
+  min-width: 260px;
+  min-height: 420px;
+  resize: both;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--mobile-demo-screen-radius);
+  /* Do not use clip-path here — it clips away Chromium’s resize grip in the corner */
+  isolation: isolate;
+  background: #fff;
+  box-sizing: border-box;
+  padding-top: var(--mobile-demo-safe-top);
+  box-shadow:
+    inset 0 0 0 2px var(--mobile-demo-frame-rim),
+    inset 0 0 0 6px #0a0c10;
+}
+
+/* Dedicated clip layer so the iframe paints inside the rounded glass (Chromium/Safari/WebKit) */
+.mobile-demo-viewport-clip {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+  isolation: isolate;
+}
+
+.mobile-demo-viewport-clip iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  background: #fff;
+  border-radius: inherit;
+  transform: translateZ(0);
+}
+
+.mobile-demo-bezel--apple .mobile-demo-viewport {
+  --mobile-demo-screen-radius: 40px;
+  --mobile-demo-safe-top: 7px;
+  box-shadow:
+    inset 0 0 0 2px #2d2d32,
+    inset 0 0 0 5px #0d0d0f;
+}
+
+.mobile-demo-bezel--pixel .mobile-demo-viewport {
+  --mobile-demo-screen-radius: 28px;
+}
+
+.mobile-demo-bezel--oneplus .mobile-demo-viewport {
+  --mobile-demo-screen-radius: 26px;
+}
+
+.mobile-demo-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  text-align: center;
+  max-width: 34rem;
+  line-height: 1.45;
+}
+
+/* Floating customize tab */
+.mobile-demo-customize-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 60;
+  padding: 0.65rem 0.45rem 0.65rem 0.55rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+  border: none;
+  border-radius: 10px 0 0 10px;
+  cursor: pointer;
+  box-shadow: -4px 4px 18px rgba(3, 105, 161, 0.35);
+}
+
+.mobile-demo-customize-tab:hover {
+  filter: brightness(1.06);
+}
+
+.mobile-demo-customize-tab:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.mobile-demo-customize-tab.mobile-demo-customize-tab--open {
+  right: min(320px, 100vw);
+  transition: right 0.22s ease;
+}
+
+.mobile-demo-customize-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(15, 23, 42, 0.25);
+}
+
+.mobile-demo-customize {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(320px, 100vw);
+  height: 100vh;
+  max-height: 100dvh;
+  z-index: 56;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.12);
+  transform: translateX(100%);
+  transition: transform 0.26s cubic-bezier(0.33, 1, 0.68, 1);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.mobile-demo-customize.mobile-demo-customize--open {
+  transform: translateX(0);
+}
+
+.mobile-demo-customize-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.mobile-demo-customize-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mobile-demo-customize-close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mobile-demo-customize-close:hover {
+  background: #e2e8f0;
+}
+
+.mobile-demo-customize-body {
+  padding: 1rem 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+.mobile-demo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-demo-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.mobile-demo-field-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.mobile-demo-select {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+
+.mobile-demo-customize-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .mobile-demo-customize-tab.mobile-demo-customize-tab--open {
+    right: min(100vw, 320px);
+  }
+
+  .mobile-demo-viewport {
+    width: min(var(--device-vp-w), calc(100vw - 1.5rem));
+    height: min(var(--device-vp-h), calc(100vh - 160px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-demo-customize {
+    transition: none;
+  }
+}

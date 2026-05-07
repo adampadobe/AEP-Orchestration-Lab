@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 — same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
-  <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
   <title>Race for Life (demo) - AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,11 +78,40 @@
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="race-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
             </div>
+            <div class="race-sdk-config-fields" id="raceSdkConfigFields">
+              <div class="form-row">
+                <label for="raceTagsCompany">Tags company</label>
+                <select id="raceTagsCompany" aria-label="Tags company"></select>
+              </div>
+              <div class="form-row">
+                <label for="raceTagsProperty">Tags property</label>
+                <input
+                  id="raceTagsProperty"
+                  type="text"
+                  list="raceTagsPropertyList"
+                  placeholder="Type to filter properties"
+                  autocomplete="off"
+                >
+                <datalist id="raceTagsPropertyList"></datalist>
+              </div>
+              <div class="form-row">
+                <label for="raceTagsEnvironment">Tags environment</label>
+                <select id="raceTagsEnvironment" aria-label="Tags environment"></select>
+              </div>
+              <div class="race-email-actions">
+                <button type="button" id="raceInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+              </div>
+            </div>
+            <div class="race-sdk-summary" id="raceSdkConfigSummary" hidden>
+              <span id="raceSdkConfigSummaryText"></span>
+              <button type="button" id="raceChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+            </div>
             <div class="race-advanced">
               <label for="generatorTarget">Event destination</label>
               <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
             </div>
           </div>
+          <p class="race-script-preview">Selected script: <code id="raceSelectedScript">None</code></p>
         </section>
 
         <section class="race-hero" aria-label="Race for Life inspired hero">
@@ -302,6 +329,7 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
+  <script src="demo-tags-injection.js?v=20260507-standard"></script>
   <script src="race-for-life-ajo.js?v=20260420b"></script>
   <script src="race-for-life-demo.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

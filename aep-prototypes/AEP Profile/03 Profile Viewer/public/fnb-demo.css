@@ -1,0 +1,733 @@
+body.fnb-demo-page {
+  margin: 0;
+  /* Override style.css body padding so no white band above the FNB header */
+  padding: 0;
+  padding-bottom: 26px;
+  background: #ffffff;
+  color: #1f2937;
+  font-family: Inter, Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Home (fnb-demo.html): wider content rail than legacy 1360px; header + main share this cap */
+  --fnb-home-max: min(1720px, calc(100vw - 28px));
+}
+
+.server-warning {
+  padding: 0.65rem 1rem;
+  background: #fff3cd;
+  border-bottom: 1px solid #f0dba0;
+  color: #734f00;
+  font-size: 0.9rem;
+}
+
+.fnb-aep-login-bar {
+  background: #ffffff;
+  border-bottom: 1px solid #e6e6e6;
+  padding: 0.6rem 1rem;
+}
+
+.fnb-message-reveal-zone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  z-index: 4100;
+}
+
+.fnb-ecid-hint {
+  font-size: 0.81rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+#generatorTarget {
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.race-message {
+  position: fixed;
+  left: 50%;
+  top: 0;
+  width: min(980px, calc(100% - 16px));
+  margin: 0;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  z-index: 4200;
+  transform: translate(-50%, -120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.fnb-demo-page.fnb-race-message-peek .race-message:not([hidden]) {
+  transform: translate(-50%, 8px);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.race-message.error {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #991b1b;
+}
+
+.race-message.success {
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  color: #166534;
+}
+
+.fnb-site-frame {
+  max-width: var(--fnb-home-max);
+  margin: 0 auto;
+  /* Flush under header (same as business banking); horizontal + bottom padding only */
+  padding: 0 clamp(0.55rem, 2.1vw, 1.4rem) 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex: 1 0 auto;
+}
+
+/* Business banking subpage: full-width hero (no embedded FNB chrome/cookies) */
+body.fnb-business-banking-page {
+  background: #ffffff;
+  padding: 0;
+  padding-bottom: 0;
+  overflow-x: hidden;
+}
+
+.fnb-business-main {
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.fnb-business-banking-page .fnb-business-hero {
+  /* Fill viewport below header (~utility row + tab strip); background covers full band */
+  min-height: calc(100svh - 132px);
+  min-height: calc(100vh - 132px);
+}
+
+.fnb-business-hero {
+  position: relative;
+  min-height: clamp(300px, 48vw, 460px);
+  overflow: hidden;
+  background: #0d9488;
+}
+
+.fnb-business-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('https://contenthosting.web.app/web-email/fnb_business_background.jpg');
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+}
+
+.fnb-business-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: clamp(300px, 48vw, 460px);
+  display: flex;
+  align-items: stretch;
+  padding: clamp(1.25rem, 3vw, 2.5rem) clamp(0.75rem, 2vw, 1.25rem);
+  box-sizing: border-box;
+}
+
+.fnb-business-banking-page .fnb-business-hero-inner {
+  min-height: inherit;
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-left: clamp(1rem, 4vw, 4rem);
+  padding-right: clamp(0.75rem, 2vw, 2rem);
+}
+
+/* Larger, left-anchored teal panel (~3× prior headline/padding scale vs original demo caps). */
+.fnb-business-banking-page .fnb-business-hero-panel {
+  align-self: flex-start;
+  max-width: min(1560px, 94vw);
+  padding: clamp(2.25rem, 6vmin, 6rem) clamp(2rem, 5vmin, 5.5rem);
+}
+
+.fnb-business-banking-page .fnb-business-hero-title {
+  font-size: clamp(2rem, 7.5vmin, 4.5rem);
+  margin-bottom: clamp(1rem, 2.5vmin, 2rem);
+}
+
+.fnb-business-banking-page .fnb-business-hero-lead {
+  font-size: clamp(1.1rem, 2.8vmin, 2.15rem);
+  margin-bottom: clamp(1.5rem, 3vmin, 2.75rem);
+}
+
+.fnb-business-banking-page .fnb-business-hero-actions {
+  gap: clamp(0.65rem, 2vmin, 1.25rem);
+}
+
+.fnb-business-banking-page .fnb-business-cta {
+  padding: clamp(0.65rem, 1.8vmin, 1.2rem) clamp(1.35rem, 3.5vmin, 3rem);
+  font-size: clamp(1rem, 2.2vmin, 1.65rem);
+}
+
+.fnb-business-hero-panel {
+  align-self: center;
+  max-width: min(100%, 520px);
+  padding: clamp(1.25rem, 2.5vw, 2rem) clamp(1.25rem, 2.5vw, 2.25rem);
+  background: #00a8a8;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.fnb-business-hero-title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.35rem, 3.2vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.fnb-business-hero-lead {
+  margin: 0 0 1.25rem;
+  font-size: clamp(0.92rem, 1.6vw, 1.05rem);
+  line-height: 1.45;
+  opacity: 0.98;
+}
+
+.fnb-business-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.fnb-business-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.35rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid transparent;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.fnb-business-cta:hover {
+  opacity: 0.92;
+}
+
+.fnb-business-cta--primary {
+  background: #f37a22;
+  color: #fff;
+  border-color: #f37a22;
+}
+
+.fnb-business-cta--dark {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+@media (max-width: 640px) {
+  .fnb-business-hero-bg {
+    background-position: center center;
+    opacity: 0.95;
+  }
+
+  .fnb-business-hero-inner {
+    align-items: flex-end;
+    padding-bottom: 1.5rem;
+  }
+
+  .fnb-business-hero-panel {
+    width: 100%;
+    max-width: none;
+  }
+
+  .fnb-business-banking-page .fnb-business-hero-inner {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .fnb-business-banking-page .fnb-business-hero-title {
+    font-size: clamp(1.5rem, 6.5vw, 2.25rem);
+  }
+
+  .fnb-business-banking-page .fnb-business-hero-lead {
+    font-size: clamp(0.95rem, 3.5vw, 1.15rem);
+  }
+}
+
+/* Saved FNB HTML below custom hero: iframe grows to full inner doc height so the outer page scrolls */
+.fnb-business-saved-wrap {
+  width: 100%;
+  background: #fff;
+  flex: 1 0 auto;
+}
+
+.fnb-business-saved-embed {
+  display: block;
+  width: 100%;
+  min-height: 720px;
+  border: 0;
+  vertical-align: top;
+  overflow: hidden;
+}
+
+/* Gold application thank-you: two-column layout (matches FNB apply flow reference) */
+.fnb-thank-you-main {
+  padding-top: 0;
+  padding-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.fnb-thank-you-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.15fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: start;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+@media (max-width: 720px) {
+  .fnb-thank-you-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fnb-thank-you-heading {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.fnb-thank-you-icon-wrap {
+  width: min(220px, 72vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fnb-thank-you-icon-wrap svg {
+  width: 42%;
+  height: 42%;
+  color: #0d9488;
+}
+
+.fnb-thank-you-subtitle {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-weight: 700;
+  color: #111827;
+}
+
+.fnb-thank-you-lead {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+  line-height: 1.55;
+  color: #1f2937;
+  max-width: 42rem;
+}
+
+.fnb-thank-you-lead strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Avoid flashing placeholder text before profile firstName is applied */
+.fnb-thank-you-lead.fnb-thank-you-lead--awaiting-name {
+  visibility: hidden;
+}
+
+.fnb-thank-you-lead.fnb-thank-you-lead--name-ready {
+  visibility: visible;
+}
+
+.fnb-header {
+  background: #fff;
+  border-top: 1px solid #e3e3e3;
+  border-bottom: 1px solid #e3e3e3;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fnb-header--menu {
+  max-width: var(--fnb-home-max);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.fnb-utility-row {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.2rem 0.35rem;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.fnb-mini-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.fnb-utility-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.62rem;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+
+.fnb-utility-links a {
+  color: #1f2937;
+  text-decoration: none;
+  border-right: 1px solid #d8d8d8;
+  padding-right: 0.45rem;
+}
+
+.fnb-utility-links a:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.fnb-utility-login-label {
+  font-size: 0.76rem;
+  color: #374151;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fnb-utility-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.fnb-demo-page .fnb-utility-auth input[type='email'] {
+  /* Override global style.css input[type=email] flex + padding */
+  flex: 0 1 220px;
+  width: min(100%, 280px);
+  min-width: 0;
+  max-width: 280px;
+  height: 32px;
+  min-height: 0;
+  line-height: 1.25;
+  border: 1px solid #cfd6e3;
+  border-radius: 6px;
+  padding: 0 0.45rem;
+  font-size: 0.84rem;
+  background: #fff;
+  color: #1f2937;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.fnb-demo-page .fnb-utility-auth input[type='email']::placeholder {
+  color: #9ba6be;
+}
+
+.fnb-utility-auth button {
+  background: #009999;
+  color: #fff;
+  border: 1px solid #009999;
+  border-radius: 6px;
+  padding: 0.34rem 0.85rem;
+  height: 32px;
+  line-height: 1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.fnb-utility-auth #queryProfileBtn,
+.fnb-utility-auth #fnbLogoutBtn {
+  width: 92px;
+  min-width: 92px;
+  white-space: nowrap;
+}
+
+.fnb-utility-auth button.fnb-logout-btn {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #cfd6e3;
+}
+.fnb-utility-auth button.fnb-logout-btn:hover {
+  background: #f3f4f6;
+}
+
+.fnb-utility-auth button.fnb-reset-ecid-btn {
+  background: #fff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+  white-space: nowrap;
+}
+.fnb-utility-auth button.fnb-reset-ecid-btn:hover {
+  background: #f8fafc;
+}
+.fnb-utility-auth button.fnb-reset-ecid-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.fnb-tab-menu {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  background: #fff;
+}
+
+.fnb-tab-menu a {
+  text-decoration: none;
+  color: #0f172a;
+  text-align: center;
+  font-size: 0.62rem;
+  padding: 0.36rem 0.2rem;
+  border-right: 1px solid #dcdcdc;
+  line-height: 1.25;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fnb-tab-menu a:last-child {
+  border-right: 0;
+}
+
+.fnb-header-icons {
+  background: transparent;
+}
+
+.fnb-icon-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: clamp(0.38rem, 0.95vw, 0.82rem);
+  max-width: 100%;
+  margin: 0 auto 0.55rem;
+  padding: 0.9rem clamp(0.25rem, 1vw, 0.8rem) 0.72rem;
+  border-top: 0;
+}
+
+.fnb-icon-row a {
+  text-decoration: none;
+  color: #3f4854;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.fnb-icon-row img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.fnb-main-banner {
+  margin-top: 0.6rem;
+}
+
+.fnb-main-banner a {
+  display: block;
+  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 21 / 4;
+  min-height: 104px;
+  text-decoration: none;
+  color: #111827;
+  background: url("https://www.fnb.co.za/04banners/_v2.3/2025/BF14-Speedpoint/img//med/banner.jpg");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.fnb-main-banner-copy {
+  position: absolute;
+  left: clamp(0.75rem, 8.5vw, 140px);
+  top: clamp(0.75rem, 2.4vw, 40px);
+  width: min(470px, calc(100% - 28px));
+  min-height: 98px;
+  padding: 0.5rem 1rem 0.9rem;
+  border-radius: 8px;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.fnb-main-banner-copy h2 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.9vw, 2rem);
+  max-width: 430px;
+  line-height: 1.04;
+  font-weight: 700;
+  color: #0f172a;
+  text-shadow: none;
+}
+
+.fnb-card-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.5rem, 1.1vw, 0.95rem);
+  margin-top: 0.95rem;
+}
+
+.fnb-pill-card {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 108px;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  color: #fff;
+  display: flex;
+  align-items: flex-start;
+  padding: 0.65rem 0.9rem;
+  font-size: 1.02rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.fnb-pill-card-personal {
+  background:
+    linear-gradient(to right, rgba(40, 56, 68, 0.45), rgba(40, 56, 68, 0.12)),
+    url("fnb-assets/personal.jpg");
+  background-size: cover;
+  background-position: center top;
+}
+
+.fnb-pill-card-private {
+  background:
+    linear-gradient(to right, rgba(48, 57, 72, 0.4), rgba(48, 57, 72, 0.18)),
+    url("fnb-assets/private.jpg");
+  background-size: cover;
+  background-position: center top;
+}
+
+.fnb-pill-card-business {
+  background:
+    linear-gradient(to right, rgba(53, 48, 42, 0.4), rgba(53, 48, 42, 0.18)),
+    url("fnb-assets/business.jpg");
+  background-size: cover;
+  background-position: center top;
+}
+
+.fnb-site-footer {
+  margin-top: auto;
+  background: #000;
+  color: #fff;
+  padding: 1.05rem 2.6rem 1.15rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 2rem;
+  max-width: none;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.fnb-site-footer-col h3 {
+  margin: 0 0 0.38rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.fnb-site-footer-col p {
+  margin: 0 0 0.24rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.fnb-event-form-shell {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 980px) {
+  .fnb-utility-row {
+    flex-wrap: wrap;
+  }
+
+  .fnb-utility-links {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .fnb-utility-auth {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .fnb-demo-page .fnb-utility-auth input[type='email'] {
+    flex: 1 1 160px;
+    max-width: 100%;
+    width: auto;
+  }
+
+  .fnb-tab-menu {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .fnb-icon-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fnb-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .fnb-site-footer {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0.85rem 1rem 0.95rem;
+  }
+}
+
+/* FNB-only: reduce profile drawer vertical footprint by ~25%. */
+.fnb-demo-page .aep-profile-drawer {
+  --fnb-drawer-scale: 0.75;
+  left: 50%;
+  right: auto;
+  width: calc(100% / var(--fnb-drawer-scale));
+  transform-origin: bottom center;
+  transform: translate(-50%, calc(100% - 22px)) scale(var(--fnb-drawer-scale));
+}
+
+.fnb-demo-page.aep-profile-drawer-open .aep-profile-drawer,
+.fnb-demo-page .aep-profile-drawer:focus-within {
+  transform: translate(-50%, 0) scale(var(--fnb-drawer-scale));
+}

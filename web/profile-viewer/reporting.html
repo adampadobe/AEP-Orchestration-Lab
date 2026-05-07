@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporting – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="reporting.css">
+</head>
+<body class="reporting-page home-dashboard-concierge home-dashboard-ajo">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/reporting.html">http://localhost:3333/reporting.html</a>
+  </div>
+
+    <div class="dashboard-shell dashboard-shell--ajo">
+    <aside class="dashboard-sidebar dashboard-sidebar--ajo" aria-label="Primary">
+      <div class="dashboard-sidebar-brand dashboard-sidebar-brand--ajo">
+        <span class="dashboard-sidebar-mark dashboard-sidebar-mark--ajo" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav dashboard-sidebar-nav--ajo" aria-label="Application navigation">
+        <a href="home.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Home
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Profile &amp; data</p>
+        <a href="index.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          </svg>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Audience
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Journeys &amp; events</p>
+        <a href="journeys.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Journeys
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          Event generator
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Implementation</p>
+        <a href="profile-generation.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          Consent
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Reporting</p>
+        <a href="reporting.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--active">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Overview
+        </a>
+        <a href="agentic-ai.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+          Agentic AI
+        </a>
+        <a href="agentic-ai-v2.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          Agentic AI v2
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Customers</p>
+        <a href="customers/index.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Overview
+        </a>
+        <a href="customers/adobe/account-intelligence.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          Adobe
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Demos</p>
+        <a href="donate-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            <line x1="9" y1="9" x2="9.01" y2="9" />
+            <line x1="15" y1="9" x2="15.01" y2="9" />
+          </svg>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <button
+        type="button"
+        class="home-ajo-layout-edit"
+        id="homeLayoutEditBtn"
+        aria-expanded="false"
+        aria-controls="homeLayoutDrawer"
+        title="Layout"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      </button>
+      <div class="home-ajo-layout-backdrop" id="homeLayoutBackdrop" hidden aria-hidden="true"></div>
+      <aside
+        class="home-ajo-layout-drawer"
+        id="homeLayoutDrawer"
+        aria-hidden="true"
+        aria-labelledby="homeLayoutDrawerTitle"
+      >
+        <div class="home-ajo-layout-drawer-head">
+          <h2 class="home-ajo-layout-drawer-title" id="homeLayoutDrawerTitle">Layout</h2>
+          <button type="button" class="home-ajo-layout-drawer-close" id="homeLayoutDrawerClose" aria-label="Close layout panel">
+            ×
+          </button>
+        </div>
+        <p class="home-ajo-layout-hint">Choose background, sidebar, and image options.</p>
+        <div class="home-ajo-layout-section">
+          <p class="home-ajo-layout-section-title">Sidebar</p>
+          <div class="home-ajo-swatch-grid home-ajo-swatch-grid--sidebar">
+            <button
+              type="button"
+              class="home-ajo-swatch"
+              data-sidebar-theme="dark"
+              style="background: #0e1628"
+              aria-label="Dark blue sidebar"
+            ></button>
+            <button
+              type="button"
+              class="home-ajo-swatch"
+              data-sidebar-theme="light"
+              style="background: #f8f8f8; border: 1px solid #e2e8f0"
+              aria-label="White sidebar"
+            ></button>
+          </div>
+          <p class="home-ajo-layout-section-title">Colors</p>
+          <div class="home-ajo-swatch-grid">
+            <button type="button" class="home-ajo-swatch home-ajo-swatch--none" data-layout-color="none" aria-label="No background tint">
+              ×
+            </button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="peach" style="background: linear-gradient(160deg, #ffecd2 0%, #fcb69f 100%)" aria-label="Peach"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="mint" style="background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 100%)" aria-label="Mint"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="lavender" style="background: linear-gradient(160deg, #e0e7ff 0%, #c7d2fe 100%)" aria-label="Lavender"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="rose" style="background: linear-gradient(160deg, #fce7f3 0%, #fbcfe8 100%)" aria-label="Rose"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-blue" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)" aria-label="Blue purple gradient"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sun" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" aria-label="Sunset gradient"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sea" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" aria-label="Sea gradient"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-forest" style="background: linear-gradient(135deg, #134e5e 0%, #71b280 100%)" aria-label="Forest gradient"></button>
+          </div>
+          <p class="home-ajo-layout-section-title">Images</p>
+          <div class="home-ajo-thumb-grid">
+            <button type="button" class="home-ajo-thumb" data-layout-image="beach" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=200&q=60')" aria-label="Beach"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="abstract-pink" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=60')" aria-label="Abstract"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-red" style="background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=200&q=60')" aria-label="Mountains"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-blue" style="background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=200&q=60')" aria-label="Peaks"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="forest" style="background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=200&q=60')" aria-label="Forest"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="galaxy" style="background-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=200&q=60')" aria-label="Galaxy"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="sand" style="background-image: url('https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=200&q=60')" aria-label="Shore"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="city-dusk" style="background-image: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f290?auto=format&fit=crop&w=200&q=60')" aria-label="City"></button>
+          </div>
+        </div>
+      </aside>
+<main class="dashboard-main dashboard-main--ajo consent-main">
+        <div class="ajo-page-inner">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingReporting">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingReporting" class="dashboard-hero-title">Reporting</h2>
+              <p class="dashboard-hero-subtitle">
+                Event volumes from the AEP lakehouse (Query Service), grouped by <code>eventType</code>. By default all events in the range are included; set <code>AEP_REPORTING_JOURNEY_SQL_PREDICATE</code> on the server to restrict to journey-linked rows when your dataset has AJO fields.
+              </p>
+            </header>
+          </div>
+        </section>
+    <section class="consent-panel" id="reportingJourneyEvents">
+      <h2 class="panel-title"><span class="icon">📊</span> Events timeline</h2>
+      <p class="panel-desc">
+        Daily counts of <strong>experience events</strong> grouped by <code>eventType</code> (all rows in the date range by default). Data is loaded via
+        <strong>AEP Query Service</strong> on your events dataset (<code>AEP_QUERY_EVENTS_DATASET_ID</code>). To limit to AJO journey-linked rows only, set <code>AEP_REPORTING_JOURNEY_SQL_PREDICATE</code> to a fragment that references columns your lakehouse actually has (for example <code>_experience.customerjourneymanagement.messageexecution.journeyVersionID</code> when present).
+        <strong>Customer Journey Analytics (CJA)</strong> is a separate product—this view does not call CJA APIs; for Workspace-style reports use Adobe’s CJA tools or connect CJA APIs in addition.
+      </p>
+
+      <div class="reporting-controls">
+        <label>Range
+          <select id="reportingRangePreset" aria-label="Quick range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </label>
+        <label>From
+          <input type="date" id="reportingDateFrom" autocomplete="off">
+        </label>
+        <label>To
+          <input type="date" id="reportingDateTo" autocomplete="off">
+        </label>
+        <button type="button" class="btn btn-primary" id="reportingApplyRange">Apply range</button>
+        <button type="button" class="btn btn-secondary" id="reportingReload">Reload</button>
+      </div>
+
+      <div id="reportingTimelineError" class="reporting-error" hidden role="alert"></div>
+
+      <div class="reporting-events-layout">
+        <aside class="reporting-events-sidebar" aria-label="Event types">
+          <h3>Events</h3>
+          <div id="reportingEventList"></div>
+        </aside>
+        <div class="reporting-chart-wrap">
+          <div class="reporting-chart-head">
+            <svg class="reporting-chart-title-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M8 14l2.5-3 2.5 2 3 4" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+            <h3>Events</h3>
+          </div>
+          <div class="reporting-chart-svg-wrap" id="reportingChartSvgWrap">
+            <div class="reporting-chart-empty">Loading…</div>
+          </div>
+          <div class="reporting-range-sliders">
+            <p>Timeline window (zoom)</p>
+            <div class="reporting-range-row">
+              <input type="range" id="reportingViewMin" min="0" max="0" value="0" aria-label="Window start">
+              <input type="range" id="reportingViewMax" min="0" max="0" value="0" aria-label="Window end">
+              <div class="reporting-range-labels">
+                <span id="reportingViewLabelLo">—</span>
+                <span id="reportingViewLabelHi">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="reporting-api-note" id="reportingDataNote"></p>
+    </section>
+      
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+  <script src="reporting.js" defer></script>
+  <script src="home-layout.js" defer></script>
+  <script src="sidebar-collapse.js" defer></script>
+</body>
+</html>

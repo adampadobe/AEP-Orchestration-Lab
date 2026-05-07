@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FNB Business banking (demo) - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="fnb-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
+  <script defer src="aep-sim-mobile.js"></script>
+</head>
+<body class="fnb-demo-page fnb-business-banking-page">
+  <div id="serverWarning" class="server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/fnb-business-banking.html">http://localhost:3333/fnb-business-banking.html</a>
+  </div>
+  <div id="raceMessageRevealZone" class="fnb-message-reveal-zone" aria-hidden="true"></div>
+
+  <header class="fnb-aep-login-bar" aria-label="AEP profile login">
+    <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
+    <section class="fnb-header fnb-header--menu">
+      <div class="fnb-utility-row">
+        <img
+          class="fnb-mini-logo"
+          src="Easy &amp; Efficient Personal, Family and Business Banking _ FNB_files/header-logo_lrg.svg"
+          alt="FNB logo"
+        >
+        <div class="fnb-utility-links">
+          <a href="https://www.online.fnb.co.za/banking/main.jsp?country=15&amp;skin=0&amp;nav=verifyremittance.VerifyRemittanceAdvise" target="_blank" rel="noopener">Verify payments</a>
+          <a href="https://www.online.fnb.co.za/banking/main.jsp?country=15&amp;skin=0&amp;nav=loginproblems.FnbLoginProblems" target="_blank" rel="noopener">Forgot Username or Password</a>
+          <a href="https://www.online.fnb.co.za/banking/main.jsp?country=15&amp;skin=0&amp;nav=registration.navigator.RegistrationLanding&amp;simple=true" target="_blank" rel="noopener">Register</a>
+        </div>
+        <div class="fnb-utility-auth">
+          <label class="fnb-utility-login-label" for="customerEmail">Profile login email</label>
+          <input type="email" id="customerEmail" placeholder="name@example.com" autocomplete="email" spellcheck="false">
+          <button type="button" id="queryProfileBtn">Login</button>
+          <button type="button" id="fnbLogoutBtn" class="fnb-logout-btn">Log out</button>
+          <span class="fnb-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
+          <button type="button" id="fnbResetVisitorEcidBtn" class="fnb-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
+          <select id="generatorTarget" aria-label="Generator target"></select>
+        </div>
+      </div>
+      <nav class="fnb-tab-menu" aria-label="FNB site menu">
+        <a href="fnb-demo.html">Home</a>
+        <a href="#">For Me<br>&amp; My Family</a>
+        <a href="fnb-business-banking.html">For My Business</a>
+        <a href="#">Corporates + Public Sector</a>
+        <a href="/fnb-private/overview.html">Private</a>
+        <a href="#">Calculators</a>
+        <a href="#">Rates + Pricing</a>
+        <a href="#">About FNB + Legal</a>
+        <a href="#">Contact Us + Tools</a>
+        <a href="#">Careers at FNB</a>
+      </nav>
+    </section>
+  </header>
+
+  <main class="fnb-site-frame fnb-business-main" aria-label="Business banking">
+    <section class="fnb-business-hero">
+      <div class="fnb-business-hero-bg" aria-hidden="true"></div>
+      <div class="fnb-business-hero-inner">
+        <div class="fnb-business-hero-panel">
+          <h1 class="fnb-business-hero-title">Proud to be behind 1 million unstoppable businesses</h1>
+          <p class="fnb-business-hero-lead">
+            FNB Business Banking is all about perfecting how we provide help. Explore SA&rsquo;s Best SME Bank for your business.
+          </p>
+          <div class="fnb-business-hero-actions">
+            <a
+              class="fnb-business-cta fnb-business-cta--primary"
+              id="fnbSwitchBusinessCta"
+              href="fnb-business-accounts.html"
+            >Switch my business</a>
+            <a
+              class="fnb-business-cta fnb-business-cta--dark"
+              href="https://www.fnb.co.za/business-banking/overview.html"
+              target="_blank"
+              rel="noopener"
+            >Explore</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="fnb-business-saved-wrap" aria-label="Business banking page content from saved reference">
+      <iframe
+        id="fnbBusinessSavedEmbed"
+        class="fnb-business-saved-embed"
+        title="FNB Business Banking — saved overview content"
+        src="Switch to FNB &amp; Unlock Unstoppable Business Growth _ FNB.html"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        scrolling="no"
+      ></iframe>
+    </section>
+  </main>
+
+  <footer class="fnb-site-footer" aria-label="Address details">
+    <div class="fnb-site-footer-col">
+      <h3>Physical address</h3>
+      <p>4 Merchant Place</p>
+      <p>Corner Fredman Drive and Rivonia Road</p>
+      <p>Sandton</p>
+      <p>2196</p>
+    </div>
+    <div class="fnb-site-footer-col">
+      <h3>Postal address</h3>
+      <p>PO Box 650149</p>
+      <p>Benmore</p>
+      <p>2010</p>
+    </div>
+  </footer>
+
+  <section class="fnb-event-form-shell" aria-hidden="true">
+    <form id="raceEventForm">
+      <select id="eventLocation">
+        <option value="Personal Banking">Personal Banking</option>
+        <option value="Private Banking">Private Banking</option>
+        <option value="Business Banking" selected>Business Banking</option>
+      </select>
+      <select id="eventType">
+        <option value="web.pageView" selected>Page view</option>
+        <option value="cta.click">CTA click</option>
+        <option value="form.start">Form start</option>
+        <option value="application.start">Application start</option>
+      </select>
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+      <button type="submit" id="eventSubmitBtn">Send</button>
+      <button type="button" id="abandonedBasketBtn">Abandon</button>
+    </form>
+  </section>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
+        aria-labelledby="profileDrawerCustomerHeading"
+      >
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img
+            id="profileDrawerAvatar"
+            class="aep-profile-drawer-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt="Customer profile photo"
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
+          <label><input type="checkbox" checked disabled> Marketing</label>
+          <label><input type="checkbox" checked disabled> Notifications</label>
+          <label><input type="checkbox" disabled> Newsletter</label>
+        </div>
+      </section>
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
+        aria-labelledby="profileDrawerIdentityHeading"
+      >
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row">
+            <strong>ECID</strong>
+            <span id="profileDrawerDesktopId">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+            <span id="profileDrawerPropensityScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+            <span id="profileDrawerChurnScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong>Loyalty Status</strong>
+            <span id="profileDrawerLoyalty">Unknown</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.individualCharacteristics.fsi.productOverview.checkingAcctType">Account Type</strong>
+            <span id="profileDrawerCheckingAcctType">—</span>
+          </div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg
+            class="aep-profile-drawer-graph-svg"
+            id="identityGraphSvg"
+            viewBox="0 0 320 320"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          ></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div
+          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+          aria-labelledby="profileDrawerMessageSentHeading"
+        >
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerMessageSentUnit"
+              ></span>
+            </p>
+            <p
+              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+              id="profileDrawerPushSendsRow"
+              hidden
+              aria-live="polite"
+            >
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerPushSentUnit"
+              ></span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js"></script>
+  <script src="fnb-demo.js"></script>
+  <script src="recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+</body>
+</html>

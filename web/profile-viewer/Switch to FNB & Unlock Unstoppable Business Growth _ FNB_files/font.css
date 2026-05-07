@@ -1,0 +1,219 @@
+@font-face {
+font-family: 'f_regular';
+src: url('FoundationSans-Roman-webfont.eot');
+src: url('FoundationSans-Roman-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Roman-webfont.woff') format('woff'),
+     url('FoundationSans-Roman-webfont.ttf') format('truetype'),
+     url('FoundationSans-Roman-webfont.svg#foundation_sansregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansRegular';
+src: url('FoundationSans-Roman-webfont.eot');
+src: url('FoundationSans-Roman-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Roman-webfont.woff') format('woff'),
+     url('FoundationSans-Roman-webfont.ttf') format('truetype'),
+     url('FoundationSans-Roman-webfont.svg#foundation_sansregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FoundationSansRegular';
+src: url('FoundationSans-Roman-webfont.eot');
+src: url('FoundationSans-Roman-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Roman-webfont.woff') format('woff'),
+     url('FoundationSans-Roman-webfont.ttf') format('truetype'),
+     url('FoundationSans-Roman-webfont.svg#foundation_sansregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansRegular';
+src: url('FoundationSans-Roman-webfont.eot');
+src: url('FoundationSans-Roman-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Roman-webfont.woff') format('woff'),
+     url('FoundationSans-Roman-webfont.ttf') format('truetype'),
+     url('FoundationSans-Roman-webfont.svg#foundation_sansregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'f_bold';
+src: url('FoundationSans-Bold-webfont.eot');
+src: url('FoundationSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Bold-webfont.woff') format('woff'),
+     url('FoundationSans-Bold-webfont.ttf') format('truetype'),
+     url('FoundationSans-Bold-webfont.svg#foundation_sansbold') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FoundationSansBold';
+src: url('FoundationSans-Bold-webfont.eot');
+src: url('FoundationSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Bold-webfont.woff') format('woff'),
+     url('FoundationSans-Bold-webfont.ttf') format('truetype'),
+     url('FoundationSans-Bold-webfont.svg#foundation_sansbold') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansBold';
+src: url('FoundationSans-Bold-webfont.eot');
+src: url('FoundationSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Bold-webfont.woff') format('woff'),
+     url('FoundationSans-Bold-webfont.ttf') format('truetype'),
+     url('FoundationSans-Bold-webfont.svg#foundation_sansbold') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'f_light';
+src: url('FoundationSans-Light-webfont.eot');
+src: url('FoundationSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Light-webfont.woff') format('woff'),
+     url('FoundationSans-Light-webfont.ttf') format('truetype'),
+     url('FoundationSans-Light-webfont.svg#foundation_sans_lightregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FoundationSansLight';
+src: url('FoundationSans-Light-webfont.eot');
+src: url('FoundationSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Light-webfont.woff') format('woff'),
+     url('FoundationSans-Light-webfont.ttf') format('truetype'),
+     url('FoundationSans-Light-webfont.svg#foundation_sans_lightregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansLight';
+src: url('FoundationSans-Light-webfont.eot');
+src: url('FoundationSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Light-webfont.woff') format('woff'),
+     url('FoundationSans-Light-webfont.ttf') format('truetype'),
+     url('FoundationSans-Light-webfont.svg#foundation_sans_lightregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'f_ulight';
+src: url('FoundationSans-UltraLight-webfont.eot');
+src: url('FoundationSans-UltraLight-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-UltraLight-webfont.woff') format('woff'),
+     url('FoundationSans-UltraLight-webfont.ttf') format('truetype'),
+     url('FoundationSans-UltraLight-webfont.svg#foundation_sans_ultra_lightIt') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+@font-face {
+font-family: 'FNBSansThin';
+src: url('FoundationSans-UltraLight-webfont.eot');
+src: url('FoundationSans-UltraLight-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-UltraLight-webfont.woff') format('woff'),
+     url('FoundationSans-UltraLight-webfont.ttf') format('truetype'),
+     url('FoundationSans-UltraLight-webfont.svg#foundation_sans_ultra_lightIt') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'f_cond';
+src: url('FoundationSans-Cond-webfont.eot');
+src: url('FoundationSans-Cond-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Cond-webfont.woff') format('woff'),
+     url('FoundationSans-Cond-webfont.ttf') format('truetype'),
+     url('FoundationSans-Cond-webfont.svg#foundation_sans_cdregular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'f_black';
+src: url('FoundationSans-Black-webfont.eot');
+src: url('FoundationSans-Black-webfont.eot?#iefix') format('embedded-opentype'),
+     url('FoundationSans-Black-webfont.woff') format('woff'),
+     url('FoundationSans-Black-webfont.ttf') format('truetype'),
+     url('FoundationSans-Black-webfont.svg#FoundationSans-Black-webfont') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansRegularBrand';
+src: url('fnb_sans-regular-webfont.eot');
+src: url('fnb_sans-regular-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-regular-webfont.woff') format('woff'),
+     url('fnb_sans-regular-webfont.ttf') format('truetype'),
+     url('fnb_sans-regular-webfont.svg#FNBSansRegularRegular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansBoldBrand';
+src: url('fnb_sans-bold-webfont.eot');
+src: url('fnb_sans-bold-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-bold-webfont.woff') format('woff'),
+     url('fnb_sans-bold-webfont.ttf') format('truetype'),
+     url('fnb_sans-bold-webfont.svg#FNBSansRegularBold') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansLightBrand';
+src: url('fnb_sans-light-webfont.eot');
+src: url('fnb_sans-light-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-light-webfont.woff') format('woff'),
+     url('fnb_sans-light-webfont.ttf') format('truetype'),
+     url('fnb_sans-light-webfont.svg#FNBSansLightRegular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansThinBrand';
+src: url('fnb_sans-thin-webfont.eot');
+src: url('fnb_sans-thin-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-thin-webfont.woff') format('woff'),
+     url('fnb_sans-thin-webfont.ttf') format('truetype'),
+     url('fnb_sans-thin-webfont.svg#FNBSansThinRegular') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansThinItalicBrand';
+src: url('fnb_sans-thinitalic-webfont.eot');
+src: url('fnb_sans-thinitalic-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-thinitalic-webfont.woff') format('woff'),
+     url('fnb_sans-thinitalic-webfont.ttf') format('truetype'),
+     url('fnb_sans-thinitalic-webfont.svg#FNBSansThinItalic') format('svg');
+font-weight: normal;
+font-style: normal;
+}
+
+@font-face {
+font-family: 'FNBSansItalicBrand';
+src: url('fnb_sans-italic-webfont.eot');
+src: url('fnb_sans-italic-webfont.eot?#iefix') format('embedded-opentype'),
+     url('fnb_sans-italic-webfont.woff') format('woff'),
+     url('fnb_sans-italic-webfont.ttf') format('truetype'),
+     url('fnb_sans-italic-webfont.svg#FNBSansRegularItalic') format('svg');
+font-weight: normal;
+font-style: normal;
+
+}

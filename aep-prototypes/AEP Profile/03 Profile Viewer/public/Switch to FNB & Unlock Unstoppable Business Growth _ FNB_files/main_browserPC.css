@@ -1,0 +1,172 @@
+/* ***** HEADER ***** */
+.headerSpacer1
+{
+position: fixed;
+top: 36px;
+height: 4px!important;
+}
+
+.headerTabs
+{
+position: fixed;
+top: 40px;
+height: 28px!important;
+border-bottom: 1px solid #01aaad;
+}
+
+.headerSpacer2
+{
+position: fixed;
+top: 69px;
+height: 4px!important;
+box-shadow: 0px 3px 4px rgba(0,102,102,.2);
+}
+
+.header
+{
+border-bottom: 1px solid white;
+}
+
+/* ***** OVERLAY PANEL ***** */
+.overlayPanel .innerSection2
+{
+width: 95%!important;
+}
+
+.overlayPanel .innerSection2.squeeze2 
+{
+ width: 62.7%!important;
+}
+
+.overlayPanel .innerSection2.squeeze3
+{
+ width: 33.33333333%!important;
+}
+
+.overlayPanelHide
+{
+display: none;
+}
+
+.overlayPanelBack
+{
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: url('../images/global/transparency_black.png') top left repeat;
+}
+
+.overlayPanel
+{
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.overlayPanel2
+{
+width: 100%;
+height: 100%;
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+padding: 24px 0;
+
+-webkit-box-sizing: border-box; 
+-moz-box-sizing: border-box;   
+box-sizing: border-box;
+}
+
+.overlayPanel3
+{
+background: white;
+width: 95%;
+max-width: 1000px;
+min-height: 100%;
+margin: 0 auto;
+-webkit-box-sizing: border-box; 
+-moz-box-sizing: border-box;   
+box-sizing: border-box;    
+-webkit-border-radius: 16px;
+-moz-border-radius: 16px;
+border-radius: 16px;
+-webkit-box-shadow: 0px 0px 200px rgba(0,0,0,.8);
+-moz-box-shadow: 0px 0px 200px rgba(0,0,0,.8);
+box-shadow: 0px 0px 200px rgba(0,0,0,.8);
+position: relative;
+overflow: hidden;
+}
+
+.fixed {
+	position: fixed;
+    top: 0;
+    background: #fff;
+    max-width: 921px;
+    width: 86%;
+    padding: 20px 0 0 0;
+    margin: 0 auto;
+    min-height: 115px;
+   }
+		.fixed td{
+			display: block;
+			float: left;
+			box-sizing: border-box;
+		}
+
+@media screen and (min-width: 950px) 
+{
+	.overlayPanel3
+	{
+	width: 80%;
+	}
+	.fixed {
+		width: 73%;
+	}
+	
+}
+
+/*with sizer*/
+.overlayPanel4
+{
+position: absolute;
+top: 0;
+bottom: 0;
+left: 0;
+right: 0;
+padding: 48px 0 0 0;
+}
+
+.overlayPanel4:before 
+{
+content: '';
+display: inline-block;
+vertical-align: middle;
+height: 100%;
+}
+  
+.overlayPanel5
+{
+width: 100%;
+height: 673px;
+margin: 0 auto;
+display: inline-block;
+vertical-align: middle;
+}
+
+.overlayPanel5 .overlayPanelControls
+{
+position: absolute;
+top: 0;
+}
+
+.closeButton:hover
+{
+-ms-transform: rotate(180deg);
+-webkit-transform: rotate(180deg);
+transform: rotate(180deg);
+}

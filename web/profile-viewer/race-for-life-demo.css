@@ -169,6 +169,30 @@
   gap: 0.75rem;
 }
 
+.race-sdk-config-fields {
+  display: contents;
+}
+
+.race-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.race-script-preview {
+  max-width: var(--race-content-max);
+  margin: 0.4rem auto 0;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.race-script-preview code {
+  color: #0f172a;
+}
+
 .btn-lookup {
   padding: 0.65rem 1.1rem;
   border-radius: 8px;

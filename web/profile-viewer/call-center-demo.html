@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact center (demo) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="call-center-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
+  <script defer src="aep-sim-mobile.js"></script>
+</head>
+<body class="call-center-demo-page cc-theme-banking-dark home-dashboard-concierge home-dashboard-ajo">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/call-center-demo.html">http://localhost:3333/call-center-demo.html</a>
+  </div>
+
+  <div class="dashboard-shell dashboard-shell--ajo">
+    <button
+      type="button"
+      id="ccNavBackdrop"
+      class="call-center-nav-backdrop"
+      hidden
+      aria-label="Close navigation menu"
+    ></button>
+
+    <aside class="dashboard-sidebar dashboard-sidebar--ajo" id="ccSidebar" aria-label="Primary" aria-hidden="true">
+      <div class="call-center-sidebar-head">
+        <div class="dashboard-sidebar-brand dashboard-sidebar-brand--ajo">
+          <span class="dashboard-sidebar-mark dashboard-sidebar-mark--ajo" aria-hidden="true">◆</span>
+          <div class="dashboard-sidebar-titles">
+            <span class="dashboard-sidebar-name">AEP</span>
+            <span class="dashboard-sidebar-sub">Profile Viewer</span>
+          </div>
+        </div>
+        <button type="button" class="call-center-sidebar-close" id="ccNavCloseBtn" aria-label="Close navigation menu">
+          ×
+        </button>
+      </div>
+      <nav class="dashboard-sidebar-nav dashboard-sidebar-nav--ajo" aria-label="Application navigation">
+        <a href="home.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Home
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Profile &amp; data</p>
+        <a href="index.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          </svg>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Audience
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Journeys &amp; events</p>
+        <a href="journeys.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Journeys
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          Event generator
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Implementation</p>
+        <a href="profile-generation.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          Consent
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Reporting</p>
+        <a href="reporting.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Overview
+        </a>
+        <a href="agentic-ai.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+          Agentic AI
+        </a>
+        <a href="agentic-ai-v2.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          Agentic AI v2
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Customers</p>
+        <a href="customers/index.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Overview
+        </a>
+        <a href="customers/adobe/account-intelligence.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--nested">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          Adobe
+        </a>
+
+        <p class="dashboard-sidebar-section-label dashboard-sidebar-section-label--ajo">Demos</p>
+        <a href="donate-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            <line x1="9" y1="9" x2="9.01" y2="9" />
+            <line x1="15" y1="9" x2="15.01" y2="9" />
+          </svg>
+          Race for Life (demo)
+        </a>
+        <a href="fnb-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2" />
+            <line x1="7" y1="9" x2="17" y2="9" />
+            <line x1="7" y1="13" x2="17" y2="13" />
+          </svg>
+          FNB (demo)
+        </a>
+        <a href="mobile-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="6" y="2" width="12" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12" y2="18.01" />
+          </svg>
+          Mobile (demo)
+        </a>
+        <a href="call-center-demo.html" class="dashboard-nav-item dashboard-nav-item--ajo dashboard-nav-item--active">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+          </svg>
+          Contact center (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item dashboard-nav-item--ajo">
+          <svg class="home-nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <main class="dashboard-main dashboard-main--ajo">
+        <h1 class="dashboard-home-page-title-sr">Contact center workspace — demo</h1>
+
+        <div class="cc-agent-shell">
+          <header class="cc-app-header">
+            <div class="cc-app-header-left">
+              <button
+                type="button"
+                class="call-center-menu-btn cc-header-menu cc-app-header-menu"
+                id="ccNavOpenBtn"
+                aria-label="Open navigation menu"
+                aria-expanded="false"
+                aria-controls="ccSidebar"
+              >
+                <span class="call-center-menu-icon" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </span>
+              </button>
+              <div class="cc-brand-lockup">
+                <span class="cc-brand-mark" aria-hidden="true"></span>
+                <span class="cc-brand-name">Experience Care</span>
+              </div>
+            </div>
+            <div class="cc-app-header-right">
+              <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="cc-header-link" target="_blank" rel="noopener">Need help?</a>
+              <button type="button" class="cc-header-icon-round" aria-label="Notifications" title="Demo">🔔</button>
+              <button type="button" class="cc-header-icon-round" aria-label="Settings" title="Demo">⚙</button>
+              <div class="cc-header-agent">
+                <span class="cc-header-agent-name">Alex</span>
+                <span class="cc-user-chip" id="ccUserInitials" title="Demo agent">AL</span>
+              </div>
+            </div>
+          </header>
+
+          <nav class="cc-service-nav" aria-label="Workspace areas">
+            <div class="cc-service-nav-inner">
+              <a href="index.html" class="cc-service-link">Profile</a>
+              <a href="journeys.html" class="cc-service-link">Journeys</a>
+              <a href="audience-membership.html" class="cc-service-link">Audiences</a>
+              <a href="schema-viewer.html" class="cc-service-link">Schema</a>
+              <a href="event-generator.html" class="cc-service-link">Events</a>
+              <span class="cc-service-nav-spacer" aria-hidden="true"></span>
+              <button type="button" class="cc-service-cta" disabled title="Demo — not wired">Recommended actions</button>
+            </div>
+          </nav>
+
+          <div class="cc-workspace-intro" aria-label="Workspace context">
+            <p id="ccWorkspaceTitle" class="cc-workspace-title"></p>
+            <p id="ccWorkspaceSubtitle" class="cc-workspace-sub"></p>
+          </div>
+
+          <div class="cc-layout">
+            <nav class="cc-general-nav cc-icon-rail-nav" aria-label="Workspace tools">
+              <p class="cc-general-nav-heading">Tools</p>
+              <a href="home.html" class="cc-general-nav-item" title="Home" aria-label="Home">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Home</span>
+              </a>
+              <a href="index.html" class="cc-general-nav-item" title="Profile Viewer" aria-label="Customer profile">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Cards</span>
+              </a>
+              <span class="cc-general-nav-item cc-general-nav-item--active" aria-current="page" title="Calls workspace" aria-label="Calls">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Calls</span>
+              </span>
+              <a href="journeys.html" class="cc-general-nav-item" title="Journeys" aria-label="Calendar and journeys">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Calendar</span>
+              </a>
+              <a href="reporting.html" class="cc-general-nav-item" title="Reporting" aria-label="Analytics">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Analytics</span>
+              </a>
+              <a href="event-generator.html" class="cc-general-nav-item" title="Event generator" aria-label="Apps and events">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Apps</span>
+              </a>
+              <div class="cc-general-nav-spacer" aria-hidden="true"></div>
+              <button type="button" class="cc-general-nav-item cc-general-nav-item--quiet" disabled title="Demo" aria-label="Settings">
+                <span class="cc-general-nav-ico" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </span>
+                <span class="cc-general-nav-label">Settings</span>
+              </button>
+            </nav>
+
+            <div class="cc-center-column">
+
+        <section class="call-center-pinned-lookup" aria-labelledby="ccPinnedHeading">
+          <div class="call-center-pinned-lookup-inner">
+            <div class="call-center-pinned-lookup-head">
+              <h2 id="ccPinnedHeading" class="call-center-pinned-title">Look up a customer</h2>
+              <p id="ccPinnedLead" class="call-center-pinned-lead">
+                Enter an email to load Real-Time Customer Profile data from your Adobe Experience Platform sandbox (attributes, identity graph, audiences, recent events).
+              </p>
+            </div>
+            <div class="call-center-pinned-form">
+              <div class="call-center-pinned-field call-center-pinned-field--email">
+                <label id="ccCustomerEmailLabel" for="customerEmail">Customer email</label>
+                <input
+                  type="email"
+                  id="customerEmail"
+                  placeholder="e.g. customer@example.com"
+                  autocomplete="email"
+                  spellcheck="false"
+                  aria-describedby="ccPinnedLead"
+                >
+              </div>
+              <div class="call-center-pinned-field call-center-pinned-field--target">
+                <label for="generatorTarget">Event destination</label>
+                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+              </div>
+              <div class="call-center-pinned-actions">
+                <button type="button" id="queryProfileBtn" class="btn-lookup call-center-pinned-submit">Load profile</button>
+                <span class="call-center-ecid call-center-pinned-ecid">ECID: <strong id="infoEcid">—</strong></span>
+              </div>
+            </div>
+            <div id="ccStatus" class="call-center-status call-center-pinned-status" hidden role="status" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="cc-banking-widgets" aria-label="Workspace overview">
+          <div class="cc-banking-widgets-grid">
+            <div class="cc-card-stack" aria-hidden="true">
+              <div class="cc-faux-card cc-faux-card--back"></div>
+              <div class="cc-faux-card cc-faux-card--mid"></div>
+              <div class="cc-faux-card cc-faux-card--front">
+                <span class="cc-faux-card-brand">Adobe Experience Platform</span>
+                <span class="cc-faux-card-type">Real-Time CDP</span>
+                <span class="cc-faux-card-pan" id="ccFauxCardLast4">···· ···· ···· ——</span>
+              </div>
+            </div>
+            <div class="cc-chart-panel">
+              <p class="cc-chart-title">Engagement trend <span class="cc-chart-note">(illustrative)</span></p>
+              <div class="cc-chart-svg-wrap">
+                <svg class="cc-chart-svg" viewBox="0 0 280 120" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="ccChartFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="rgba(225,29,72,0.35)"/>
+                      <stop offset="100%" stop-color="rgba(225,29,72,0)"/>
+                    </linearGradient>
+                  </defs>
+                  <line class="cc-chart-grid" x1="0" y1="24" x2="280" y2="24"/>
+                  <line class="cc-chart-grid" x1="0" y1="48" x2="280" y2="48"/>
+                  <line class="cc-chart-grid" x1="0" y1="72" x2="280" y2="72"/>
+                  <line class="cc-chart-grid" x1="0" y1="96" x2="280" y2="96"/>
+                  <polygon fill="url(#ccChartFill)" points="0,96 40,72 80,88 120,40 160,56 200,32 240,48 280,24 280,120 0,120"/>
+                  <polyline class="cc-chart-line cc-chart-line--a" fill="none" stroke-width="2" points="0,96 40,72 80,88 120,40 160,56 200,32 240,48 280,24"/>
+                  <polyline class="cc-chart-line cc-chart-line--b" fill="none" stroke-width="2" stroke-dasharray="4 3" points="0,104 56,80 112,96 168,64 224,72 280,56"/>
+                </svg>
+              </div>
+              <div class="cc-chart-legend">
+                <span><i class="cc-chart-dot cc-chart-dot--a"></i> Web sessions</span>
+                <span><i class="cc-chart-dot cc-chart-dot--b"></i> Cross-channel</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="cc-transactions-block" aria-labelledby="ccTxHeading">
+          <div class="cc-transactions-head">
+            <h3 id="ccTxHeading" class="cc-transactions-title">Recent experience events</h3>
+            <button type="button" class="cc-transactions-refresh" disabled title="Demo">Refresh</button>
+          </div>
+          <div class="cc-transactions-table-wrap">
+            <table class="cc-transactions-table">
+              <thead>
+                <tr>
+                  <th scope="col">Source</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">When</th>
+                  <th scope="col">Detail</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Journey Optimizer</td>
+                  <td>Campaign</td>
+                  <td>Today · 08:13</td>
+                  <td>Email open</td>
+                  <td><span class="cc-tx-status cc-tx-status--ok">Done</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Edge Network</td>
+                  <td>Streaming</td>
+                  <td>Today · 07:51</td>
+                  <td>commerce.productViews</td>
+                  <td><span class="cc-tx-status cc-tx-status--pending">In processing</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Identity</td>
+                  <td>Graph</td>
+                  <td>Yesterday</td>
+                  <td>ECID link</td>
+                  <td><span class="cc-tx-status cc-tx-status--ok">Done</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="cc-profile-hero" aria-label="Active customer">
+          <img
+            id="ccHeroAvatar"
+            class="cc-profile-hero-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt=""
+            width="72"
+            height="72"
+            loading="lazy"
+            decoding="async"
+          >
+          <div class="cc-profile-hero-main">
+            <div class="cc-profile-hero-title-row">
+              <h2 class="cc-profile-hero-name" id="ccSessionName">No active customer</h2>
+              <span id="ccRecordPill" class="cc-rec-pill">Quality monitoring</span>
+            </div>
+            <p class="cc-profile-hero-phone" id="ccHeroPhoneLine">—</p>
+            <p class="cc-profile-hero-email-sr visually-hidden" id="ccSessionEmail">—</p>
+            <p class="cc-profile-hero-status-line">
+              <span id="ccHeroStatusVerb">Idle</span>
+              · <span id="ccHeroTimer" class="cc-hero-timer">00:00</span>
+              · <span id="ccHeroChannel">Load a profile to simulate engagement</span>
+            </p>
+          </div>
+        </section>
+
+        <div class="call-center-workspace">
+          <div class="call-center-metrics" aria-label="Queue snapshot (illustrative)" id="ccMetricsRegion">
+            <div class="call-center-metric">
+              <p class="call-center-metric-label" id="ccMetricQLabel">Calls in queue</p>
+              <p class="call-center-metric-value" id="ccMetricQValue">14</p>
+              <p class="call-center-metric-hint" id="ccMetricQHint">Skill: Retail service</p>
+            </div>
+            <div class="call-center-metric">
+              <p class="call-center-metric-label" id="ccMetricWaitLabel">Longest wait</p>
+              <p class="call-center-metric-value" id="ccMetricWaitValue">03:42</p>
+              <p class="call-center-metric-hint" id="ccMetricWaitHint">ASA target 03:00</p>
+            </div>
+            <div class="call-center-metric">
+              <p class="call-center-metric-label" id="ccMetricAgentsLabel">Agents available</p>
+              <p class="call-center-metric-value" id="ccMetricAgentsValue">28</p>
+              <p class="call-center-metric-hint" id="ccMetricAgentsHint">Occupancy 82%</p>
+            </div>
+          </div>
+
+          <div class="cc-tabbed-region">
+            <div class="cc-tabs-bar" role="tablist" aria-label="Customer views">
+              <button type="button" class="cc-tab cc-tab--active" role="tab" id="ccTabDetails" aria-selected="true" aria-controls="ccPanelDetails">Customer details</button>
+              <button type="button" class="cc-tab" role="tab" id="ccTabOrders" aria-selected="false" aria-controls="ccPanelOrders">Orders</button>
+              <button type="button" class="cc-tab" role="tab" id="ccTabNotes" aria-selected="false" aria-controls="ccPanelNotes">Notes</button>
+              <button type="button" class="cc-tab" role="tab" id="ccTabPlatform" aria-selected="false" aria-controls="ccPanelPlatform">Platform</button>
+            </div>
+
+            <div id="ccPanelDetails" role="tabpanel" aria-labelledby="ccTabDetails" class="cc-tab-panel cc-tab-panel--active">
+              <div class="cc-cards-grid">
+                <section class="cc-card">
+                  <h4 class="cc-card-title">Contact details</h4>
+                  <dl class="cc-dl">
+                    <div><dt>Email</dt><dd id="ccCardEmail">—</dd></div>
+                    <div><dt>Phone</dt><dd id="ccCardPhone">—</dd></div>
+                    <div><dt>City</dt><dd id="ccCardCity">—</dd></div>
+                    <div><dt>Full name</dt><dd id="ccCardFullName">—</dd></div>
+                  </dl>
+                </section>
+                <section class="cc-card">
+                  <h4 class="cc-card-title">Profile attributes</h4>
+                  <dl class="cc-dl">
+                    <div><dt>Lifetime value</dt><dd id="ccCardLtv">—</dd></div>
+                    <div><dt>Propensity</dt><dd id="ccCardPropensity">—</dd></div>
+                    <div><dt>Churn</dt><dd id="ccCardChurn">—</dd></div>
+                    <div><dt>Loyalty</dt><dd id="ccCardLoyalty">—</dd></div>
+                  </dl>
+                </section>
+                <section class="cc-card cc-card--wide">
+                  <h4 class="cc-card-title">Engagement signals <span class="cc-card-title-note">(demo)</span></h4>
+                  <table class="cc-mini-table">
+                    <thead>
+                      <tr><th>Signal</th><th>Value</th><th>Source</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Marketing consent</td><td id="ccSigMarket">—</td><td>Profile</td></tr>
+                      <tr><td>ECID</td><td id="ccSigEcid">—</td><td>Identity</td></tr>
+                      <tr><td>Audience summary</td><td id="ccSigAud">—</td><td>RTCDP</td></tr>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+
+              <section class="cc-activity-feed" aria-labelledby="ccActivityHeading">
+                <h3 id="ccActivityHeading" class="cc-activity-feed-title">Recent activity</h3>
+                <ul class="cc-activity-list">
+                  <li class="cc-activity-row">
+                    <span class="cc-activity-avatar" aria-hidden="true">A</span>
+                    <div class="cc-activity-bubble">
+                      <p class="cc-activity-meta"><strong>Automation</strong> · 09:12</p>
+                      <p>Journey entry · welcome series (demo).</p>
+                    </div>
+                  </li>
+                  <li class="cc-activity-row cc-activity-row--agent">
+                    <span class="cc-activity-avatar cc-activity-avatar--agent" aria-hidden="true">You</span>
+                    <div class="cc-activity-bubble cc-activity-bubble--agent">
+                      <p class="cc-activity-meta"><strong>You</strong> · 09:18</p>
+                      <p>Opened profile after lookup — RTCDP unified record.</p>
+                    </div>
+                  </li>
+                  <li class="cc-activity-row">
+                    <span class="cc-activity-avatar" aria-hidden="true">S</span>
+                    <div class="cc-activity-bubble">
+                      <p class="cc-activity-meta"><strong>System</strong> · 09:22</p>
+                      <p>Consent flags refreshed from profile service.</p>
+                    </div>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <div id="ccPanelOrders" role="tabpanel" aria-labelledby="ccTabOrders" class="cc-tab-panel" hidden>
+              <p class="cc-history-lead">Illustrative order — tie-outs to commerce events would surface here from Experience Platform.</p>
+              <div class="cc-order-card">
+                <div class="cc-order-actions">
+                  <button type="button" class="cc-order-chip" disabled title="Demo">Cancel order</button>
+                  <button type="button" class="cc-order-chip" disabled title="Demo">Change delivery</button>
+                  <button type="button" class="cc-order-chip" disabled title="Demo">Pickup in store</button>
+                </div>
+                <div class="cc-order-main">
+                  <div class="cc-order-thumb" role="img" aria-label="Product placeholder"></div>
+                  <div class="cc-order-copy">
+                    <p class="cc-order-product">AE 24/7 Active hoodie · demo SKU</p>
+                    <p class="cc-order-price">$129.00</p>
+                    <dl class="cc-order-dl">
+                      <div><dt>Ordered</dt><dd>May 12, 2026</dd></div>
+                      <div><dt>Est. delivery</dt><dd>May 30, 2026</dd></div>
+                      <div><dt>Tracking</dt><dd>1Z999AA10123456784</dd></div>
+                    </dl>
+                  </div>
+                </div>
+                <ol class="cc-order-stepper" aria-label="Fulfillment progress">
+                  <li class="cc-step cc-step--done"><span class="cc-step-label">Processed</span><span class="cc-step-date">May 14</span></li>
+                  <li class="cc-step cc-step--done"><span class="cc-step-label">Shipped</span><span class="cc-step-date">May 20</span></li>
+                  <li class="cc-step cc-step--current"><span class="cc-step-label">In transit</span><span class="cc-step-date">May 24</span></li>
+                  <li class="cc-step"><span class="cc-step-label">Delivered</span><span class="cc-step-date">May 30</span></li>
+                </ol>
+              </div>
+            </div>
+
+            <div id="ccPanelNotes" role="tabpanel" aria-labelledby="ccTabNotes" class="cc-tab-panel" hidden>
+              <label for="ccNotes" class="cc-notes-field-label">Case notes</label>
+              <textarea
+                id="ccNotes"
+                class="call-center-notes cc-notes-area"
+                placeholder="Case notes… (demo — not saved)"
+                aria-label="Interaction notes"
+              ></textarea>
+              <p class="cc-notes-hint">Notes stay in this browser tab only — connect AEP or your CRM to persist in production.</p>
+            </div>
+
+            <div id="ccPanelPlatform" role="tabpanel" aria-labelledby="ccTabPlatform" class="cc-tab-panel" hidden>
+              <p class="cc-history-lead">Full technical view — same panels as other demos (identity graph, audiences, messaging, events).</p>
+
+          <section class="call-center-panel call-center-profile-panel" aria-labelledby="ccProfileDockHeading">
+            <h3 class="call-center-panel-title" id="ccProfileDockHeading" style="margin-bottom: 0.75rem">
+              Real-Time Customer Profile
+              <span class="call-center-profile-heading-note">Same drawer data as other demos</span>
+            </h3>
+            <div class="call-center-profile-dock">
+              <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+              <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Customer profile from Adobe Experience Platform">
+                <div class="aep-profile-drawer-inner">
+                  <section
+                    class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
+                    aria-labelledby="profileDrawerCustomerHeading"
+                  >
+                    <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+                    <div class="aep-profile-drawer-avatar-ring">
+                      <img
+                        id="profileDrawerAvatar"
+                        class="aep-profile-drawer-avatar"
+                        src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+                        alt="Customer profile photo"
+                        loading="lazy"
+                        decoding="async"
+                      >
+                    </div>
+                    <div class="aep-profile-drawer-card-fields">
+                      <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+                      <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+                      <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+                      <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+                      <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+                      <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+                      <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+                    </div>
+                    <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
+                      <label><input type="checkbox" checked disabled> Marketing</label>
+                      <label><input type="checkbox" checked disabled> Notifications</label>
+                      <label><input type="checkbox" disabled> Newsletter</label>
+                    </div>
+                  </section>
+                  <section
+                    class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
+                    aria-labelledby="profileDrawerIdentityHeading"
+                  >
+                    <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+                    <div class="aep-profile-drawer-identity-fields">
+                      <div class="aep-profile-drawer-identity-row">
+                        <strong>ECID</strong>
+                        <span id="profileDrawerDesktopId">—</span>
+                      </div>
+                      <div class="aep-profile-drawer-identity-row">
+                        <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+                        <span id="profileDrawerPropensityScore">—</span>
+                      </div>
+                      <div class="aep-profile-drawer-identity-row">
+                        <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+                        <span id="profileDrawerChurnScore">—</span>
+                      </div>
+                      <div class="aep-profile-drawer-identity-row">
+                        <strong>Loyalty Status</strong>
+                        <span id="profileDrawerLoyalty">Unknown</span>
+                      </div>
+                      <div class="aep-profile-drawer-identity-row">
+                        <strong title="_demoemea.individualCharacteristics.fsi.productOverview.checkingAcctType">Account Type</strong>
+                        <span id="profileDrawerCheckingAcctType">—</span>
+                      </div>
+                    </div>
+                  </section>
+                  <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+                    <div class="aep-profile-drawer-graph-head">
+                      <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+                      <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+                        <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+                        <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+                      </div>
+                    </div>
+                    <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+                      <svg
+                        class="aep-profile-drawer-graph-svg"
+                        id="identityGraphSvg"
+                        viewBox="0 0 320 320"
+                        preserveAspectRatio="xMidYMid meet"
+                        aria-hidden="true"
+                      ></svg>
+                    </div>
+                  </div>
+                  <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+                    <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+                      <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+                      <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+                        <li>No audience membership loaded</li>
+                      </ul>
+                    </div>
+                    <div
+                      class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+                      aria-labelledby="profileDrawerMessageSentHeading"
+                    >
+                      <div class="aep-profile-drawer-message-sent-heading-row">
+                        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+                        <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+                      </div>
+                      <div class="aep-profile-drawer-email-sends-body">
+                        <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+                          <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                            class="aep-profile-drawer-email-sends-unit"
+                            id="profileDrawerMessageSentUnit"
+                          ></span>
+                        </p>
+                        <p
+                          class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+                          id="profileDrawerPushSendsRow"
+                          hidden
+                          aria-live="polite"
+                        >
+                          <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                            class="aep-profile-drawer-email-sends-unit"
+                            id="profileDrawerPushSentUnit"
+                          ></span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="aep-profile-drawer-col">
+                    <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+                    <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+                      <p>No events loaded</p>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+            </div>
+
+          </div>
+        </div>
+            </div>
+
+            <aside class="cc-conversations-rail" aria-labelledby="ccConvHeading">
+              <h3 id="ccConvHeading" class="visually-hidden">Conversations</h3>
+
+              <div class="cc-conv-topbar">
+                <div class="cc-conv-topbar-row">
+                  <p class="cc-conv-topbar-title">
+                    Conversations
+                    <span class="cc-conv-count-inline">(<span id="ccConvCount">16</span>)</span>
+                    <span class="cc-conv-notify-dot" aria-hidden="true"></span>
+                  </p>
+                  <button type="button" class="cc-conv-filter" aria-label="Filter conversations" title="Demo">⚙</button>
+                </div>
+                <label class="visually-hidden" for="ccConvSearch">Search conversations</label>
+                <input type="search" id="ccConvSearch" class="cc-conv-search" placeholder="Search…" disabled title="Demo">
+              </div>
+
+              <div class="cc-conv-help-card">
+                <p class="cc-conv-help-title">How to trace a major experience event</p>
+                <a
+                  class="cc-conv-help-link"
+                  href="https://experienceleague.adobe.com/docs/experience-platform/ingestion/home.html"
+                  target="_blank"
+                  rel="noopener"
+                >Experience League →</a>
+              </div>
+
+              <div id="ccScreenPop" class="cc-sticky-note cc-screen-pop-rail" hidden>
+                <p class="cc-sticky-note-label">Screen pop</p>
+                <p class="cc-sticky-note-body">Matched profile: <strong id="ccScreenPopName">—</strong></p>
+              </div>
+
+              <div class="cc-context-toggle cc-conv-toggle" role="group" aria-label="Record focus">
+                <button type="button" class="cc-context-toggle-btn is-active" id="ccToggleContact">Contact</button>
+                <button type="button" class="cc-context-toggle-btn" id="ccToggleOrg" title="Demo">Organization</button>
+              </div>
+
+              <div class="cc-queue-block">
+                <h4 class="cc-queue-block-title">Active</h4>
+                <div class="cc-queue-active-card" id="ccQueueActiveCard">
+                  <span class="cc-queue-active-name" id="ccQueueActiveName">Awaiting lookup</span>
+                  <span class="cc-queue-active-sub" id="ccQueueActiveSub">Session idle</span>
+                </div>
+              </div>
+
+              <div class="cc-conv-section">
+                <p class="cc-conv-section-label">Voice</p>
+                <ul class="cc-conv-list">
+                  <li class="cc-conv-item cc-conv-item--hot">
+                    <span class="cc-conv-item-avatar" aria-hidden="true">DC</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">Daya Chitanis</span>
+                      <span class="cc-conv-item-sub">+27 82 555 0142</span>
+                    </div>
+                    <span class="cc-conv-item-meta">
+                      <span class="cc-conv-item-time">Now</span>
+                      <span class="cc-conv-item-status cc-conv-item-status--live">Ongoing</span>
+                    </span>
+                  </li>
+                  <li class="cc-conv-item">
+                    <span class="cc-conv-item-avatar" aria-hidden="true">MK</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">M. Kumar</span>
+                      <span class="cc-conv-item-sub">Billing queue</span>
+                    </div>
+                    <span class="cc-conv-item-meta">
+                      <span class="cc-conv-item-time">2 min</span>
+                      <span class="cc-conv-item-status">Waiting</span>
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="cc-conv-section">
+                <p class="cc-conv-section-label">Chat</p>
+                <ul class="cc-conv-list">
+                  <li class="cc-conv-item">
+                    <span class="cc-conv-item-avatar cc-conv-item-avatar--bot" aria-hidden="true">◇</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">Virtual assistant</span>
+                      <span class="cc-conv-item-sub">Handoff suggested · retail</span>
+                    </div>
+                    <span class="cc-conv-item-meta">
+                      <span class="cc-conv-item-time">14:02</span>
+                      <span class="cc-conv-item-status">Bot</span>
+                    </span>
+                  </li>
+                  <li class="cc-conv-item">
+                    <span class="cc-conv-item-avatar" aria-hidden="true">JR</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">Jordan R.</span>
+                      <span class="cc-conv-item-sub">Thanks — issue resolved</span>
+                    </div>
+                    <span class="cc-conv-item-meta">
+                      <span class="cc-conv-item-time">13:40</span>
+                      <span class="cc-conv-item-status">Closed</span>
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="cc-conv-section">
+                <p class="cc-conv-section-label">Email</p>
+                <ul class="cc-conv-list cc-conv-list--dense">
+                  <li class="cc-conv-item cc-conv-item--email">
+                    <span class="cc-conv-item-avatar" aria-hidden="true">TM</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">Thomas M.</span>
+                      <span class="cc-conv-item-sub">Re: activation checklist…</span>
+                    </div>
+                    <span class="cc-conv-item-meta"><span class="cc-conv-item-time">Mon</span></span>
+                  </li>
+                  <li class="cc-conv-item cc-conv-item--email">
+                    <span class="cc-conv-item-avatar" aria-hidden="true">BF</span>
+                    <div class="cc-conv-item-main">
+                      <span class="cc-conv-item-name">Brandie F.</span>
+                      <span class="cc-conv-item-sub">Sandbox sync question</span>
+                    </div>
+                    <span class="cc-conv-item-meta"><span class="cc-conv-item-time">Sun</span></span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="cc-queue-agent cc-queue-agent--rail">
+                <p class="cc-queue-agent-label" id="ccAgentToolkitTitle">Agent toolkit</p>
+                <p id="ccAgentToolkitHint" class="cc-queue-agent-hint">Use Look up a customer above to load profile data.</p>
+                <div class="call-center-agent-row" role="group" aria-label="Agent state">
+                  <button type="button" class="call-center-state-btn is-active">Available</button>
+                  <button type="button" class="call-center-state-btn">After call work</button>
+                  <button type="button" class="call-center-state-btn">Break</button>
+                </div>
+              </div>
+
+              <div class="cc-context-block cc-context-block--compact">
+                <p class="cc-context-block-title">Tags</p>
+                <div class="cc-tag-row" aria-label="Demo tags">
+                  <span class="cc-tag">rtcdp</span>
+                  <span class="cc-tag">personalization</span>
+                  <button type="button" class="cc-tag cc-tag--add" disabled title="Demo">+</button>
+                </div>
+              </div>
+
+              <div class="cc-context-block cc-context-block--compact">
+                <p class="cc-context-block-title">Recent tickets</p>
+                <ul class="cc-ticket-list">
+                  <li><span class="cc-ticket-subj">Care · plan change</span><span class="cc-ticket-meta">Today</span></li>
+                  <li><span class="cc-ticket-subj">Digital · sign-in</span><span class="cc-ticket-meta">Yesterday</span></li>
+                </ul>
+              </div>
+
+              <div class="call-center-quick-links cc-conv-links">
+                <a href="index.html">Profile Viewer</a>
+                <a href="journeys.html">Journeys</a>
+                <a href="audience-membership.html">Audiences</a>
+              </div>
+
+              <button type="button" class="cc-schedule-call" disabled title="Demo">Start new</button>
+            </aside>
+
+          <div class="cc-float-callbar" role="toolbar" aria-label="Call controls">
+            <span class="cc-float-timer-wrap" aria-live="polite"><span id="ccSessionTimerDock">00:00</span></span>
+            <div class="cc-float-group">
+              <button type="button" class="cc-float-btn cc-float-btn--hold" disabled title="Demo">Hold</button>
+              <button type="button" class="cc-float-btn cc-float-btn--add" disabled title="Demo">Add</button>
+            </div>
+            <div class="cc-float-group cc-float-group--icons" role="group" aria-label="In-call tools">
+              <button type="button" class="cc-float-icon-btn" disabled title="Mute" aria-label="Mute">🔇</button>
+              <button type="button" class="cc-float-icon-btn" disabled title="Message" aria-label="Message">💬</button>
+              <button type="button" class="cc-float-icon-btn" disabled title="Settings" aria-label="Settings">⚙</button>
+            </div>
+            <button type="button" class="cc-float-end" id="ccSessionEndBtn"><span class="cc-float-end-icon" aria-hidden="true">📞</span> End call</button>
+          </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="cc-customize-dock" id="ccCustomizeDock">
+    <button
+      type="button"
+      class="cc-customize-tab"
+      id="ccCustomizeTabBtn"
+      aria-expanded="false"
+      aria-controls="ccCustomizePanel"
+    >
+      <span class="cc-customize-tab-label">Customise</span>
+      <span class="cc-customize-tab-current" id="ccIndustryTabBadge">Adobe &amp; digital experience</span>
+    </button>
+    <div class="cc-customize-panel" id="ccCustomizePanel" role="region" aria-label="Workspace customise" aria-hidden="true">
+      <div class="cc-customize-panel-inner">
+        <div class="cc-customize-field">
+          <label for="ccIndustrySelect">Industry context</label>
+          <p class="cc-customize-field-hint">This demo defaults to <strong>Adobe &amp; digital experience</strong> (CDP, journeys, personalization). Change the preset to retitle KPIs and copy for telco, banking, healthcare, and other verticals.</p>
+          <select id="ccIndustrySelect" class="cc-industry-select"></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js"></script>
+  <script src="call-center-demo.js"></script>
+  <script src="recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+</body>
+</html>

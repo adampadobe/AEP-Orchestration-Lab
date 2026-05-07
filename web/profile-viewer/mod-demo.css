@@ -123,6 +123,27 @@
   gap: 0.75rem;
 }
 
+.mod-sdk-config-fields {
+  display: contents;
+}
+
+.mod-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-script-preview {
+  max-width: var(--mod-demo-content-max);
+  margin: 0 auto;
+  padding: 0 1rem 0.2rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
 .mod-demo-ecid-hint {
   font-size: 0.8rem;
   color: var(--dash-text-secondary);

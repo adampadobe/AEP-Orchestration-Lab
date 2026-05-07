@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 — same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
-  <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
   <title>MOD (British Army demo) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +43,36 @@
           <label for="generatorTarget">Event destination</label>
           <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
         </div>
+        <div class="mod-sdk-config-fields" id="modSdkConfigFields">
+          <div class="form-row">
+            <label for="modTagsCompany">Tags company</label>
+            <select id="modTagsCompany" aria-label="Tags company"></select>
+          </div>
+          <div class="form-row">
+            <label for="modTagsProperty">Tags property</label>
+            <input
+              id="modTagsProperty"
+              type="text"
+              list="modTagsPropertyList"
+              placeholder="Type to filter properties"
+              autocomplete="off"
+            >
+            <datalist id="modTagsPropertyList"></datalist>
+          </div>
+          <div class="form-row">
+            <label for="modTagsEnvironment">Tags environment</label>
+            <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+          </div>
+          <div class="mod-demo-id-actions">
+            <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+          </div>
+        </div>
+        <div class="mod-sdk-summary" id="modSdkConfigSummary" hidden>
+          <span id="modSdkConfigSummaryText"></span>
+          <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+        </div>
       </div>
+      <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
       <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
       <p class="mod-demo-disclaimer">
         Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
@@ -54,6 +81,7 @@
   </div>
 
   <iframe
+    id="modDemoSiteFrame"
     class="mod-demo-site-frame"
     title="British Army — homepage snapshot (embedded)"
     src="mod-demo-assets/army-home-snapshot.html"
@@ -200,6 +228,7 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
+  <script src="demo-tags-injection.js?v=20260507-standard"></script>
   <script src="mod-demo.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>

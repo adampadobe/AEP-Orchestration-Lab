@@ -1,0 +1,223 @@
+/* Wealth Management subpage — theme inspired by saved oldmutual.co.za Wealth HTML (theme-wealth). */
+
+.oldmutual-wealth-page {
+  --om-wealth-accent: #c9a227;
+}
+
+.oldmutual-wealth-page .om-aep-login-bar {
+  border-bottom-color: var(--om-wealth-accent);
+}
+
+.om-wealth-breadcrumb {
+  padding: 0.65rem 0 0;
+  font-size: 0.9rem;
+  color: #3d524c;
+}
+
+.om-wealth-breadcrumb a {
+  color: var(--om-green, #003d2e);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.om-wealth-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.om-hero--wealth {
+  background: #1a1610;
+}
+
+.om-hero--wealth .om-hero-bg {
+  background-image: url('https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/blt8d608a652d927469/67d1658eb40f402decf44f3f/Wealth-New-Home-Hero-Banner.webp?width=1312&height=540&format=webp&quality=85');
+}
+
+.om-hero--wealth .om-hero-bg::after {
+  background: linear-gradient(90deg, rgba(26, 22, 16, 0.92) 0%, rgba(26, 22, 16, 0.55) 48%, rgba(26, 22, 16, 0.15) 100%);
+}
+
+.om-btn-primary--wealth {
+  background: var(--om-wealth-accent, #c9a227);
+  color: #1a1610;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.om-btn-primary--wealth:hover {
+  filter: brightness(1.05);
+}
+
+.om-wealth-clients {
+  margin-top: 1.2rem;
+  padding: clamp(1.35rem, 4vw, 2.2rem) 0 clamp(1.5rem, 4vw, 2.4rem);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06) 0, rgba(255, 255, 255, 0.01) 32%, transparent 33%),
+    radial-gradient(circle at 72% 35%, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.01) 26%, transparent 27%),
+    linear-gradient(180deg, #151617 0%, #232527 100%);
+  color: #f3f5f6;
+}
+
+.om-wealth-clients .om-content-rail {
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+
+.om-wealth-clients h2 {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  font-weight: 700;
+  color: #fff;
+}
+
+.om-wealth-clients-lead {
+  margin: 0.45rem auto 1.2rem;
+  max-width: 1000px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.om-wealth-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+  margin-bottom: 1.1rem;
+}
+
+.om-wealth-stat {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.2rem 0 0.8rem;
+}
+
+.om-wealth-stat-value {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.2vw, 2.35rem);
+  line-height: 0.95;
+  font-weight: 700;
+  color: #fff;
+}
+
+.om-wealth-stat-label {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.om-wealth-client-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.om-wealth-client-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.om-wealth-client-card img {
+  width: 100%;
+  height: 145px;
+  object-fit: cover;
+  display: block;
+}
+
+.om-wealth-client-card-body {
+  padding: 0.75rem 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.om-wealth-client-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.om-wealth-client-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+  flex: 1;
+}
+
+.om-wealth-client-card a {
+  margin-top: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.32rem 0.9rem;
+  border-radius: 999px;
+  width: fit-content;
+  background: linear-gradient(90deg, #2d915a 0%, #76c043 100%);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.om-wealth-client-card a:hover {
+  filter: brightness(1.08);
+}
+
+.om-wealth-pillars {
+  margin-top: 2rem;
+}
+
+.om-wealth-pillars h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: var(--om-green, #003d2e);
+}
+
+.om-wealth-lead {
+  margin: 0 0 1.25rem;
+  color: #3d524c;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+.om-tool-card--wealth {
+  border-color: #e8e0cf;
+  background: linear-gradient(180deg, #fffefb 0%, #faf8f4 100%);
+}
+
+.om-tool-card--wealth h3 {
+  color: #5c4a20;
+}
+
+.om-wealth-cards-from-save {
+  margin-top: 1.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.om-wealth-cards-from-save img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid #e8e0cf;
+  display: block;
+  background: #fff;
+}
+
+@media (max-width: 900px) {
+  .om-wealth-stats-grid,
+  .om-wealth-client-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

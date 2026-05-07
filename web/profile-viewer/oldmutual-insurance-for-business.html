@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance for Business (demo) - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="oldmutual-demo.css">
+  <link rel="stylesheet" href="oldmutual-business.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
+  <script defer src="aep-sim-mobile.js"></script>
+</head>
+<body class="oldmutual-demo-page oldmutual-business-page">
+  <div id="serverWarning" class="server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/oldmutual-insurance-for-business.html">http://localhost:3333/oldmutual-insurance-for-business.html</a>
+  </div>
+  <div id="raceMessageRevealZone" class="om-message-reveal-zone" aria-hidden="true"></div>
+
+  <header class="om-aep-login-bar" aria-label="AEP profile login">
+    <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
+    <div class="om-aep-inner">
+      <a class="om-wordmark" href="oldmutual-demo.html" title="Old Mutual demo home">
+        <img
+          class="om-wordmark-logo"
+          src="oldmutual-assets/oldmutual-logo-mark.png"
+          width="88"
+          height="104"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        >
+        Old Mutual
+      </a>
+      <div class="om-aep-controls">
+        <label for="customerEmail">Profile login email</label>
+        <input type="email" id="customerEmail" placeholder="name@example.com" autocomplete="email" spellcheck="false">
+        <button type="button" id="queryProfileBtn">Login</button>
+        <button type="button" id="omLogoutBtn">Log out</button>
+        <span class="om-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
+        <button type="button" id="omResetVisitorEcidBtn" class="om-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
+        <select id="generatorTarget" aria-label="Generator target"></select>
+      </div>
+    </div>
+  </header>
+
+  <main class="om-site-frame" aria-label="Insurance for Business inspired layout">
+    <nav class="om-site-nav om-content-rail" aria-label="Audience">
+      <a href="oldmutual-demo.html">Personal</a>
+      <a href="oldmutual-wealth.html" data-om-wealth-demo="1">Wealth</a>
+      <a href="oldmutual-insurance-for-business.html" class="om-site-nav--active" aria-current="page">Business</a>
+      <a href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Corporate</a>
+    </nav>
+
+    <section class="om-hero om-hero--business" aria-labelledby="omBusinessHeroHeading">
+      <div class="om-hero-bg" role="presentation"></div>
+      <div class="om-hero-content">
+        <div class="om-hero-content-inner">
+          <h1 id="omBusinessHeroHeading">Insurance for <strong>business</strong></h1>
+          <p class="om-hero-sub">
+            Tailor-made business cover from as little as R249 per month.
+            <br><strong>FOR SME</strong>
+          </p>
+          <button type="button" class="om-btn-primary om-btn-primary--business om-business-get-quote">
+            Get a quote<span class="om-btn-primary__arrow" aria-hidden="true"> →</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="om-business-packages" aria-labelledby="omBusinessPackagesHeading">
+      <div class="om-content-rail">
+        <h2 id="omBusinessPackagesHeading">Protect your business today with Old Mutual Insurance for Business</h2>
+        <p class="om-business-packages-lead">
+          We understand that your assets are key to the success of your business. Let us arrange a tailor-made package
+          that meets your business insurance requirements and helps you stay focused on growth.
+        </p>
+        <div class="om-business-packages-layout">
+          <img
+            src="https://www.oldmutual.co.za/v3/assets/blt0554f48052bb4620/blt33ef8e97cce253d6/62b44bf6e8749d0d6021b48d/business_insurance_2_col.jpg"
+            alt=""
+            width="656"
+            height="270"
+            loading="lazy"
+          >
+          <div class="om-business-packages-card">
+            <h3>Our packages</h3>
+            <p>Select a package below and continue to quote.</p>
+            <div class="om-business-package-selector" role="group" aria-label="Select a package">
+              <div class="om-business-package-options">
+                <label class="om-business-package-option">
+                  <input type="radio" name="businessPackage" value="Business Cover Silver">
+                  <span class="om-business-package-option-box">
+                    <strong>Business Cover Silver</strong>
+                    <span>Loss/damage cover up to R35,000</span>
+                    <span>Liability up to R150,000</span>
+                    <em>R249 per month</em>
+                  </span>
+                </label>
+                <label class="om-business-package-option">
+                  <input type="radio" name="businessPackage" value="Business Cover Gold">
+                  <span class="om-business-package-option-box">
+                    <strong>Business Cover Gold</strong>
+                    <span>Loss/damage cover up to R50,000</span>
+                    <span>Liability up to R250,000</span>
+                    <em>R349 per month</em>
+                  </span>
+                </label>
+                <label class="om-business-package-option">
+                  <input type="radio" name="businessPackage" value="Business Cover Platinum">
+                  <span class="om-business-package-option-box">
+                    <strong>Business Cover Platinum</strong>
+                    <span>Loss/damage cover up to R100,000</span>
+                    <span>Liability up to R500,000</span>
+                    <em>R499 per month</em>
+                  </span>
+                </label>
+              </div>
+              <p class="om-business-package-note">
+                By tapping "Get a quote" you agree to the Old Mutual Insurance for Business Privacy Notice.
+              </p>
+              <button type="button" class="om-btn-primary om-btn-primary--business om-business-packages-cta om-business-get-quote">
+                Get a quote<span class="om-btn-primary__arrow" aria-hidden="true"> →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="om-business-intro om-content-rail" aria-labelledby="omBusinessIntroHeading">
+      <h2 id="omBusinessIntroHeading">Protect your business and people</h2>
+      <p>
+        Built from the Business &amp; Agriculture Insurance source page, this demo uses the same AEP shell and
+        event plumbing as the other Old Mutual pages.
+      </p>
+      <div class="om-business-points">
+        <article class="om-business-point-card">
+          <h3>Business interruption</h3>
+          <p>Cover downtime risk and keep operations running when unexpected events disrupt trade.</p>
+        </article>
+        <article class="om-business-point-card">
+          <h3>Liability cover</h3>
+          <p>Protect against claims from third parties and support compliance with contractual requirements.</p>
+        </article>
+        <article class="om-business-point-card">
+          <h3>Buildings and contents</h3>
+          <p>Safeguard your premises, stock and equipment with cover scaled to your business model.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="om-business-products om-content-rail" aria-labelledby="omBusinessProductsHeading">
+      <h2 id="omBusinessProductsHeading">Insurance and agriculture options</h2>
+      <div class="om-business-product-grid">
+        <article class="om-business-product-card">
+          <img src="https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/blt59b9f93dd0222736/62b58ea420dc5b0df24d1676/Insurance_for_business1b.jpg?width=656&height=270&format=webp&quality=100" alt="" width="656" height="270" loading="lazy">
+          <div class="om-business-product-body">
+            <h3>SME business insurance</h3>
+            <p>Tailor a package for your operation size, turnover profile and risk exposure.</p>
+            <button type="button" class="om-business-get-quote">Get a quote</button>
+          </div>
+        </article>
+        <article class="om-business-product-card">
+          <div class="om-business-product-art om-business-product-art--agri" aria-hidden="true"></div>
+          <div class="om-business-product-body">
+            <h3>Agriculture cover</h3>
+            <p>Support farm and agri-business resilience across assets, weather-driven events and operations.</p>
+            <a href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Explore options</a>
+          </div>
+        </article>
+        <article class="om-business-product-card">
+          <div class="om-business-product-art om-business-product-art--fleet" aria-hidden="true"></div>
+          <div class="om-business-product-body">
+            <h3>Commercial vehicle and fleet</h3>
+            <p>Protect vehicles, drivers and goods in transit with practical cover for day-to-day logistics.</p>
+            <a href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Learn more</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="om-site-footer">
+    <div class="om-footer-inner">
+      <div class="om-footer-apps">
+        <a href="https://apps.apple.com/" target="_blank" rel="noopener" aria-label="Download on the App Store">
+          <img src="oldmutual-assets/app-store.svg" width="120" height="40" alt="Download on the App Store">
+        </a>
+        <a href="https://play.google.com/" target="_blank" rel="noopener" aria-label="Get it on Google Play">
+          <img src="oldmutual-assets/googl-play.svg" width="135" height="40" alt="Get it on Google Play">
+        </a>
+      </div>
+      <div class="om-footer-flags" aria-label="Old Mutual regional sites">
+        <img src="oldmutual-assets/flag-south-africa.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-namibia.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-botswana.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-zimbabwe.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-malawi.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-eswatini.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-kenya.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-uganda.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-rwanda.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-ghana.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-south-sudan.svg" alt="" width="40" height="28">
+      </div>
+      <p class="om-footer-note">
+        Demo business layout is aligned with Old Mutual business insurance source content while keeping this project's AEP demo shell and instrumentation.
+      </p>
+    </div>
+  </footer>
+
+  <section class="om-event-form-shell" aria-hidden="true">
+    <form id="raceEventForm">
+      <select id="eventLocation">
+        <option value="Personal">Personal</option>
+        <option value="Wealth">Wealth</option>
+        <option value="Business" selected>Business</option>
+        <option value="Insurance">Insurance</option>
+        <option value="Investments">Investments</option>
+      </select>
+      <select id="eventType">
+        <option value="web.pageView" selected>Page view</option>
+        <option value="cta.click">CTA click</option>
+        <option value="form.start">Form start</option>
+        <option value="application.start">Application start</option>
+      </select>
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+      <button type="submit" id="eventSubmitBtn">Send</button>
+      <button type="button" id="abandonedBasketBtn">Abandon</button>
+    </form>
+  </section>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
+        aria-labelledby="profileDrawerCustomerHeading"
+      >
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img
+            id="profileDrawerAvatar"
+            class="aep-profile-drawer-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt="Customer profile photo"
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
+          <label><input type="checkbox" checked disabled> Marketing</label>
+          <label><input type="checkbox" checked disabled> Notifications</label>
+          <label><input type="checkbox" disabled> Newsletter</label>
+        </div>
+      </section>
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
+        aria-labelledby="profileDrawerIdentityHeading"
+      >
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row">
+            <strong>ECID</strong>
+            <span id="profileDrawerDesktopId">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+            <span id="profileDrawerPropensityScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+            <span id="profileDrawerChurnScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong>Loyalty Status</strong>
+            <span id="profileDrawerLoyalty">Unknown</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.individualCharacteristics.fsi.productOverview.checkingAcctType">Account Type</strong>
+            <span id="profileDrawerCheckingAcctType">—</span>
+          </div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg
+            class="aep-profile-drawer-graph-svg"
+            id="identityGraphSvg"
+            viewBox="0 0 320 320"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          ></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div
+          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+          aria-labelledby="profileDrawerMessageSentHeading"
+        >
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerMessageSentUnit"
+              ></span>
+            </p>
+            <p
+              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+              id="profileDrawerPushSendsRow"
+              hidden
+              aria-live="polite"
+            >
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerPushSentUnit"
+              ></span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js"></script>
+  <script src="oldmutual-demo.js"></script>
+  <script src="recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+</body>
+</html>

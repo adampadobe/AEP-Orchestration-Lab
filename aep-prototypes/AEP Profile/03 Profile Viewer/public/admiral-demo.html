@@ -34,29 +34,35 @@
           <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
           <span class="admiral-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">-</strong></span>
         </div>
-        <div class="form-row">
-          <label for="admiralTagsCompany">Tags company</label>
-          <select id="admiralTagsCompany" aria-label="Tags company"></select>
+        <div id="admiralSdkConfigFields" class="admiral-sdk-config-fields">
+          <div class="form-row">
+            <label for="admiralTagsCompany">Tags company</label>
+            <select id="admiralTagsCompany" aria-label="Tags company"></select>
+          </div>
+          <div class="form-row">
+            <label for="admiralTagsProperty">Tags property</label>
+            <input
+              type="text"
+              id="admiralTagsProperty"
+              aria-label="Tags property"
+              placeholder="Select property"
+              list="admiralTagsPropertyList"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <datalist id="admiralTagsPropertyList"></datalist>
+          </div>
+          <div class="form-row">
+            <label for="admiralTagsEnvironment">Tags environment</label>
+            <select id="admiralTagsEnvironment" aria-label="Tags environment"></select>
+          </div>
+          <div class="admiral-demo-id-actions">
+            <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+          </div>
         </div>
-        <div class="form-row">
-          <label for="admiralTagsProperty">Tags property</label>
-          <input
-            type="text"
-            id="admiralTagsProperty"
-            aria-label="Tags property"
-            placeholder="Select property"
-            list="admiralTagsPropertyList"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <datalist id="admiralTagsPropertyList"></datalist>
-        </div>
-        <div class="form-row">
-          <label for="admiralTagsEnvironment">Tags environment</label>
-          <select id="admiralTagsEnvironment" aria-label="Tags environment"></select>
-        </div>
-        <div class="admiral-demo-id-actions">
-          <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+        <div id="admiralSdkConfigSummary" class="admiral-sdk-summary" hidden>
+          <span id="admiralSdkConfigSummaryText"></span>
+          <button type="button" id="admiralChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
         </div>
       </div>
       <p class="admiral-demo-script-preview">Selected script: <code id="admiralSelectedScript">None</code></p>

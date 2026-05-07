@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Old Mutual (demo) - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="oldmutual-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
+  <script defer src="aep-sim-mobile.js"></script>
+  <!-- Optional: embed Adobe Experience Platform Tags (Launch) before oldmutual-demo.js so window.alloy is available for ECID. -->
+</head>
+<body class="oldmutual-demo-page">
+  <div id="serverWarning" class="server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/oldmutual-demo.html">http://localhost:3333/oldmutual-demo.html</a>
+  </div>
+  <div id="raceMessageRevealZone" class="om-message-reveal-zone" aria-hidden="true"></div>
+
+  <header class="om-aep-login-bar" aria-label="AEP profile login">
+    <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
+    <div class="om-aep-inner">
+      <a class="om-wordmark" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener noreferrer">
+        <img
+          class="om-wordmark-logo"
+          src="oldmutual-assets/oldmutual-logo-mark.png"
+          width="88"
+          height="104"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        >
+        Old Mutual
+      </a>
+      <div class="om-aep-controls">
+        <label for="customerEmail">Profile login email</label>
+        <input type="email" id="customerEmail" placeholder="name@example.com" autocomplete="email" spellcheck="false">
+        <button type="button" id="queryProfileBtn">Login</button>
+        <button type="button" id="omLogoutBtn">Log out</button>
+        <span class="om-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
+        <button type="button" id="omResetVisitorEcidBtn" class="om-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
+        <select id="generatorTarget" aria-label="Generator target"></select>
+      </div>
+    </div>
+  </header>
+
+  <main class="om-site-frame" aria-label="Old Mutual homepage inspired layout">
+    <nav class="om-site-nav om-content-rail" aria-label="Audience">
+      <a href="https://www.oldmutual.co.za/personal/" class="om-site-nav--active" target="_blank" rel="noopener">Personal</a>
+      <a href="oldmutual-wealth.html" data-om-wealth-demo="1">Wealth</a>
+      <a href="oldmutual-insurance-for-business.html" data-om-business-demo="1">Business</a>
+      <a href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Corporate</a>
+    </nav>
+
+    <section class="om-hero" aria-labelledby="omHeroHeading">
+      <div class="om-hero-bg" role="presentation"></div>
+      <div class="om-hero-content">
+        <div class="om-hero-content-inner">
+          <h1 id="omHeroHeading">Wherever you're at, let's<br><strong>go from there.</strong></h1>
+          <p class="om-hero-sub">
+            Insurance, investments, loans &amp; financial planning — tools and guidance for every stage of life.
+          </p>
+          <a class="om-btn-primary" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Explore Old Mutual<span class="om-btn-primary__arrow" aria-hidden="true"> →</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="om-bank-promo-band" aria-labelledby="omBankPromoHeading">
+      <div class="om-content-rail om-bank-promo-layout">
+        <div class="om-bank-promo-card">
+          <p class="om-bank-promo-kicker" id="omBankPromoHeading">OM Bank is here!</p>
+          <p class="om-bank-promo-body">
+            We see a different future for South Africans — where banking is designed for real life. This is banking on your terms. Be part of the change.
+          </p>
+          <a class="om-bank-promo-cta" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Join OM Bank →</a>
+        </div>
+        <div class="om-bank-promo-visual">
+          <img
+            class="om-bank-promo-hero-img"
+            src="https://www.oldmutual.co.za/v3/assets/blt0554f48052bb4620/bltfaf2248caf490cea/69b7e3b3a77307197ea13766/755_X_388copy.webp"
+            alt=""
+            width="755"
+            height="388"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="om-solutions-showcase" id="omSolutionsShowcase" aria-label="Product solutions">
+      <div class="om-content-rail">
+        <h2 class="om-solutions-heading">
+          Your financial needs deserve <strong>solutions that match</strong>
+        </h2>
+        <p class="om-solutions-sub">
+          Whoever you are, we have financial solutions and advice to make life great — today and tomorrow.
+        </p>
+
+        <div class="om-solutions-tabs" role="tablist" aria-label="Audience">
+          <button type="button" class="om-solutions-tab om-solutions-tab--active" role="tab" aria-selected="true" data-om-solution-tab="0">Personal</button>
+          <button type="button" class="om-solutions-tab" role="tab" aria-selected="false" data-om-solution-tab="1">Wealth</button>
+          <button type="button" class="om-solutions-tab" role="tab" aria-selected="false" data-om-solution-tab="2">Business</button>
+          <button type="button" class="om-solutions-tab" role="tab" aria-selected="false" data-om-solution-tab="3">Corporate</button>
+        </div>
+
+        <div class="om-carousel-shell">
+          <button type="button" class="om-carousel-nav om-carousel-nav--prev" aria-label="Scroll products left">‹</button>
+          <div class="om-carousel-viewport">
+            <div class="om-carousel-panel" data-om-solution-panel="0" role="tabpanel">
+              <div class="om-carousel-track">
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb">
+                    <img
+                      src="https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/bltdbbb33011c07b7c1/698f2e4993a11b00081f79dd/Rewards.png?width=288&amp;height=146&amp;format=png&amp;quality=100"
+                      alt=""
+                      width="288"
+                      height="146"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Rewards</p>
+                    <h3 class="om-solution-card-title">Prize campaigns</h3>
+                    <p class="om-solution-card-desc">Spend on qualifying purchases and enter draws for monthly and grand prizes. Terms apply.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb">
+                    <img
+                      src="https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/blt6ec037ce30689af5/69b7e3b30e55773ab6416762/288_X_146copy.webp?width=288&amp;height=146&amp;format=webp&amp;quality=100"
+                      alt=""
+                      width="288"
+                      height="146"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Bank &amp; borrow</p>
+                    <h3 class="om-solution-card-title">Everyday banking</h3>
+                    <p class="om-solution-card-desc">A current account experience with transparent fees and tools to stay on top of cash flow.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb">
+                    <img
+                      src="https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/bltd4a3d7cc63ca82ea/65605121b8c711040a3c16c9/Tax_Free_Savings_ProductCard.webp?width=288&amp;height=146&amp;format=webp&amp;quality=100"
+                      alt=""
+                      width="288"
+                      height="146"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Save &amp; invest</p>
+                    <h3 class="om-solution-card-title">Tax-free savings</h3>
+                    <p class="om-solution-card-desc">Build long-term wealth in a tax-efficient wrapper with flexible contribution options.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Buy now</a>
+                      <a class="om-solution-pill om-solution-pill--ghost" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb">
+                    <img
+                      src="https://eu-images.contentstack.com/v3/assets/blt0554f48052bb4620/blt0c048fa091c6ac0c/67f7fd5e8ee3c855762f5854/Funeral_Plan_288x146.jpg?width=288&amp;height=146&amp;format=webp&amp;quality=100"
+                      alt=""
+                      width="288"
+                      height="146"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Insure</p>
+                    <h3 class="om-solution-card-title">Funeral cover range</h3>
+                    <p class="om-solution-card-desc">Choose a benefit level that fits your family — from dignified basics to a fuller send-off.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="om-carousel-panel" data-om-solution-panel="1" role="tabpanel" hidden>
+              <div class="om-carousel-track">
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--wealth-a"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Wealth</p>
+                    <h3 class="om-solution-card-title">Goal-based planning</h3>
+                    <p class="om-solution-card-desc">Align investments and risk with life milestones and retirement targets.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/wealth/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--wealth-b"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Invest</p>
+                    <h3 class="om-solution-card-title">Diversified funds</h3>
+                    <p class="om-solution-card-desc">Access local and global building blocks with adviser support.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/wealth/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--wealth-c"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Trusts</p>
+                    <h3 class="om-solution-card-title">Estate structures</h3>
+                    <p class="om-solution-card-desc">Plan how assets pass to the next generation with professional guidance.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/wealth/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--wealth-d"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Advice</p>
+                    <h3 class="om-solution-card-title">Dedicated planners</h3>
+                    <p class="om-solution-card-desc">Ongoing reviews and scenario modelling as your situation evolves.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/wealth/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="om-carousel-panel" data-om-solution-panel="2" role="tabpanel" hidden>
+              <div class="om-carousel-track">
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--biz-a"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Business</p>
+                    <h3 class="om-solution-card-title">Cash management</h3>
+                    <p class="om-solution-card-desc">Accounts, cards and visibility for day-to-day operations.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--biz-b"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Credit</p>
+                    <h3 class="om-solution-card-title">Growth funding</h3>
+                    <p class="om-solution-card-desc">Working capital and asset solutions sized to your business stage.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--biz-c"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Risk</p>
+                    <h3 class="om-solution-card-title">Commercial cover</h3>
+                    <p class="om-solution-card-desc">Protect premises, stock and liability exposures.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--biz-d"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Benefits</p>
+                    <h3 class="om-solution-card-title">Employee schemes</h3>
+                    <p class="om-solution-card-desc">Group risk and retirement options for your teams.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/business/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="om-carousel-panel" data-om-solution-panel="3" role="tabpanel" hidden>
+              <div class="om-carousel-track">
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--corp-a"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Corporate</p>
+                    <h3 class="om-solution-card-title">Institutional investing</h3>
+                    <p class="om-solution-card-desc">Large-scale mandates and governance-ready reporting.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--corp-b"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Pensions</p>
+                    <h3 class="om-solution-card-title">Fund solutions</h3>
+                    <p class="om-solution-card-desc">Design and administer retirement programmes for members.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--corp-c"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Risk</p>
+                    <h3 class="om-solution-card-title">Specialist cover</h3>
+                    <p class="om-solution-card-desc">Complex, high-value and cross-border risk programmes.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+                <article class="om-solution-card">
+                  <div class="om-solution-card-thumb om-solution-card-thumb--corp-d"></div>
+                  <div class="om-solution-card-body">
+                    <p class="om-solution-card-cat">Advisory</p>
+                    <h3 class="om-solution-card-title">Strategic partnership</h3>
+                    <p class="om-solution-card-desc">Work with specialists aligned to your sector and footprint.</p>
+                    <div class="om-solution-card-actions">
+                      <a class="om-solution-pill" href="https://www.oldmutual.co.za/corporate/" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="om-carousel-nav om-carousel-nav--next" aria-label="Scroll products right">›</button>
+        </div>
+
+        <div class="om-carousel-dots"></div>
+
+        <p class="om-solutions-footer">
+          <a href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">View all products →</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="om-tools om-content-rail" aria-labelledby="omToolsHeading">
+      <h2 id="omToolsHeading">Tools &amp; resources</h2>
+      <p>
+        No matter who you are or where you're going, take advantage of our tools, resources, apps and rewards to master your money.
+      </p>
+      <div class="om-tool-grid">
+        <article class="om-tool-card">
+          <h3>Old Mutual Will</h3>
+          <p>Create a free will and leave your loved ones with a legacy.</p>
+          <a href="https://www.oldmutual.co.za/personal/solutions/mywill/" target="_blank" rel="noopener">Learn more</a>
+        </article>
+        <article class="om-tool-card">
+          <h3>Vault22</h3>
+          <p>Secure storage for important documents and wishes.</p>
+          <a href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Discover Vault22</a>
+        </article>
+        <article class="om-tool-card">
+          <h3>Moneyversity</h3>
+          <p>Learn at your pace with articles, guides and calculators.</p>
+          <a href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Visit Moneyversity</a>
+        </article>
+        <article class="om-tool-card">
+          <h3>Old Mutual App</h3>
+          <p>Manage policies and investments from your phone.</p>
+          <a href="https://www.oldmutual.co.za/" target="_blank" rel="noopener">Get the app</a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="om-site-footer">
+    <div class="om-footer-inner">
+      <div class="om-footer-apps">
+        <a href="https://apps.apple.com/" target="_blank" rel="noopener" aria-label="Download on the App Store">
+          <img src="oldmutual-assets/app-store.svg" width="120" height="40" alt="Download on the App Store">
+        </a>
+        <a href="https://play.google.com/" target="_blank" rel="noopener" aria-label="Get it on Google Play">
+          <img src="oldmutual-assets/googl-play.svg" width="135" height="40" alt="Get it on Google Play">
+        </a>
+      </div>
+      <div class="om-footer-flags" aria-label="Old Mutual regional sites">
+        <img src="oldmutual-assets/flag-south-africa.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-namibia.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-botswana.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-zimbabwe.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-malawi.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-eswatini.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-kenya.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-uganda.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-rwanda.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-ghana.svg" alt="" width="40" height="28">
+        <img src="oldmutual-assets/flag-south-sudan.svg" alt="" width="40" height="28">
+      </div>
+      <p class="om-footer-note">
+        Demo layout uses imagery and copy aligned with <a href="https://www.oldmutual.co.za/" target="_blank" rel="noopener" style="color: inherit;">oldmutual.co.za</a>. App store badges and flags come from the saved page export in this project’s static assets folder.
+      </p>
+    </div>
+  </footer>
+
+  <section class="om-event-form-shell" aria-hidden="true">
+    <form id="raceEventForm">
+      <select id="eventLocation">
+        <option value="Personal" selected>Personal</option>
+        <option value="Wealth">Wealth</option>
+        <option value="Business">Business</option>
+        <option value="Insurance">Insurance</option>
+        <option value="Investments">Investments</option>
+      </select>
+      <select id="eventType">
+        <option value="web.pageView" selected>Page view</option>
+        <option value="cta.click">CTA click</option>
+        <option value="form.start">Form start</option>
+        <option value="application.start">Application start</option>
+      </select>
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+      <button type="submit" id="eventSubmitBtn">Send</button>
+      <button type="button" id="abandonedBasketBtn">Abandon</button>
+    </form>
+  </section>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
+        aria-labelledby="profileDrawerCustomerHeading"
+      >
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img
+            id="profileDrawerAvatar"
+            class="aep-profile-drawer-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt="Customer profile photo"
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
+          <label><input type="checkbox" checked disabled> Marketing</label>
+          <label><input type="checkbox" checked disabled> Notifications</label>
+          <label><input type="checkbox" disabled> Newsletter</label>
+        </div>
+      </section>
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
+        aria-labelledby="profileDrawerIdentityHeading"
+      >
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row">
+            <strong>ECID</strong>
+            <span id="profileDrawerDesktopId">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+            <span id="profileDrawerPropensityScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+            <span id="profileDrawerChurnScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong>Loyalty Status</strong>
+            <span id="profileDrawerLoyalty">Unknown</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.individualCharacteristics.fsi.productOverview.checkingAcctType">Account Type</strong>
+            <span id="profileDrawerCheckingAcctType">—</span>
+          </div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg
+            class="aep-profile-drawer-graph-svg"
+            id="identityGraphSvg"
+            viewBox="0 0 320 320"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          ></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div
+          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+          aria-labelledby="profileDrawerMessageSentHeading"
+        >
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerMessageSentUnit"
+              ></span>
+            </p>
+            <p
+              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+              id="profileDrawerPushSendsRow"
+              hidden
+              aria-live="polite"
+            >
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerPushSentUnit"
+              ></span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js"></script>
+  <script src="oldmutual-demo.js"></script>
+  <script src="recent-access.js"></script>
+  <script>AEPRecentAccess.recordCurrentPage();</script>
+</body>
+</html>
