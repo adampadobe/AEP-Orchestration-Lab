@@ -1,7 +1,7 @@
 /**
- * Per–AEP-sandbox lab data in Firestore (via Cloud Function + Firebase Auth).
+ * Per-scope lab data in Firestore (sandbox/workspace via Cloud Function + Firebase Auth).
  * Uses anonymous auth so each browser gets a stable uid without a login screen.
- * Syncs selected localStorage keys when the sandbox changes or after edits (debounced).
+ * Syncs selected localStorage keys when the active scope changes or after edits (debounced).
  */
 (function (global) {
   'use strict';
@@ -24,17 +24,26 @@
   ];
 
   var pushTimer = null;
-  var lastKnownSandbox = null;
+  var lastKnownScopeId = null;
   var authStarted = false;
 
-  function getSandbox() {
+  function getScope() {
+    if (typeof AepAccessScope !== 'undefined' && AepAccessScope.getScope) {
+      return AepAccessScope.getScope();
+    }
     if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-      return String(AepGlobalSandbox.getSandboxName() || '').trim();
+      return {
+        scopeType: 'sandbox',
+        scopeId: String(AepGlobalSandbox.getSandboxName() || '').trim(),
+      };
     }
     try {
-      return String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
+      return {
+        scopeType: 'sandbox',
+        scopeId: String(localStorage.getItem('aepGlobalSandboxName') || '').trim(),
+      };
     } catch (e) {
-      return '';
+      return { scopeType: 'sandbox', scopeId: '' };
     }
   }
 
@@ -59,8 +68,8 @@
   }
 
   /**
-   * Apply Firestore snapshot for the *current* sandbox. Keys omitted from the server payload
-   * are removed from localStorage so we never show another sandbox’s data (inputs fall back to placeholders).
+   * Apply Firestore snapshot for the *current* scope. Keys omitted from the server payload
+   * are removed from localStorage so we never show another scope’s data (inputs fall back to placeholders).
    */
   function applyKeys(keys) {
     var kobj = keys && typeof keys === 'object' ? keys : {};
@@ -103,22 +112,36 @@
     });
   }
 
-  function pushReplaceForSandbox(sandbox) {
+  function pushReplaceForScope(scope) {
     return authHeadersPromise().then(function (headers) {
-      if (!headers.Authorization || !sandbox) return null;
+      if (!headers.Authorization || !scope || !scope.scopeId) return null;
       var keys = collectKeys();
+      var body = {
+        sandbox: scope.scopeType === 'sandbox' ? scope.scopeId : '',
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+        keys: keys,
+        replace: true,
+      };
       return fetch('/api/lab/sandbox-state', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
-        body: JSON.stringify({ sandbox: sandbox, keys: keys, replace: true }),
+        body: JSON.stringify(body),
       });
     });
   }
 
-  function pullForSandbox(sandbox) {
+  function pullForScope(scope) {
     return authHeadersPromise().then(function (headers) {
-      if (!headers.Authorization || !sandbox) return null;
-      return fetch('/api/lab/sandbox-state?sandbox=' + encodeURIComponent(sandbox), {
+      if (!headers.Authorization || !scope || !scope.scopeId) return null;
+      var qs = new URLSearchParams();
+      if (scope.scopeType === 'workspace') {
+        qs.set('scopeType', 'workspace');
+        qs.set('scopeId', scope.scopeId);
+      } else {
+        qs.set('sandbox', scope.scopeId);
+      }
+      return fetch('/api/lab/sandbox-state?' + qs.toString(), {
         headers: headers,
       })
         .then(function (res) {
@@ -134,28 +157,31 @@
   function schedulePush() {
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () {
-      var sb = getSandbox();
-      if (!sb) return;
-      pushReplaceForSandbox(sb);
+      var scope = getScope();
+      if (!scope || !scope.scopeId) return;
+      pushReplaceForScope(scope);
     }, 2000);
   }
 
   function onGlobalSandboxChange() {
-    var next = getSandbox();
-    var prev = lastKnownSandbox;
-    if (prev && next && prev !== next) {
-      pushReplaceForSandbox(prev).then(function () {
-        return pullForSandbox(next);
+    var next = getScope();
+    var prev = lastKnownScopeId;
+    var nextId = next && next.scopeType ? (next.scopeType + ':' + next.scopeId) : '';
+    if (prev && nextId && prev !== nextId) {
+      var prevSplit = prev.split(':');
+      var prevScope = { scopeType: prevSplit[0] || 'sandbox', scopeId: prevSplit.slice(1).join(':') };
+      pushReplaceForScope(prevScope).then(function () {
+        return pullForScope(next);
       }).then(function () {
-        lastKnownSandbox = next;
+        lastKnownScopeId = nextId;
         try {
           global.dispatchEvent(
-            new CustomEvent('aep-lab-sandbox-synced', { detail: { sandbox: next, previous: prev } })
+            new CustomEvent('aep-lab-sandbox-synced', { detail: { sandbox: next.scopeId, scopeType: next.scopeType, previous: prev } })
           );
         } catch (e) {}
       });
     } else {
-      lastKnownSandbox = next || lastKnownSandbox;
+      lastKnownScopeId = nextId || lastKnownScopeId;
     }
   }
 
@@ -171,11 +197,13 @@
   }
 
   global.__aepLabSyncReady = bootAuth().then(function () {
-    var sb = getSandbox();
-    lastKnownSandbox = sb || null;
-    if (sb) {
-      return pullForSandbox(sb).then(function () {
-        lastKnownSandbox = getSandbox() || sb;
+    var scope = getScope();
+    var scopeId = scope && scope.scopeType ? (scope.scopeType + ':' + scope.scopeId) : '';
+    lastKnownScopeId = scopeId || null;
+    if (scope && scope.scopeId) {
+      return pullForScope(scope).then(function () {
+        var latest = getScope();
+        lastKnownScopeId = latest && latest.scopeType ? (latest.scopeType + ':' + latest.scopeId) : scopeId;
       });
     }
     return null;
@@ -184,11 +212,16 @@
   global.AepLabSandboxSync = {
     notifyDirty: schedulePush,
     getAuthHeaders: authHeadersPromise,
-    getSandbox: getSandbox,
+    getSandbox: function () {
+      var scope = getScope();
+      return scope && scope.scopeType === 'sandbox' ? scope.scopeId : '';
+    },
+    getScope: getScope,
     whenReady: global.__aepLabSyncReady,
   };
 
   global.addEventListener('aep-global-sandbox-change', onGlobalSandboxChange);
+  global.addEventListener('aep-access-scope-change', onGlobalSandboxChange);
 
   global.__aepLabSyncReady.catch(function () {});
 })(typeof window !== 'undefined' ? window : this);

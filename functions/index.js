@@ -3045,7 +3045,7 @@ exports.decisionLabConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-/** GET/POST /api/lab/sandbox-state — per-user per-sandbox localStorage mirror (Firestore) */
+/** GET/POST /api/lab/sandbox-state — per-user scope localStorage mirror (sandbox/workspace) */
 exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
   setCors(res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') {
@@ -3059,34 +3059,54 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
     return;
   }
 
-  const sandbox = (req.method === 'POST' && req.body?.sandbox)
-    ? String(req.body.sandbox).trim()
-    : resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const scopeType = String((body.scopeType || (req.query && req.query.scopeType) || '')).trim().toLowerCase();
+  const scopeIdRaw = String((body.scopeId || (req.query && req.query.scopeId) || '')).trim();
+  const sandbox = (req.method === 'POST' && body.sandbox)
+    ? String(body.sandbox).trim()
+    : String((req.query && req.query.sandbox) || '').trim();
 
-  if (!sandbox) {
-    res.status(400).json({ ok: false, error: 'sandbox is required' });
+  let scopeId = '';
+  let resolvedScopeType = 'sandbox';
+  if (scopeType === 'workspace') {
+    scopeId = scopeIdRaw.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+    resolvedScopeType = 'workspace';
+    if (!scopeId) {
+      res.status(400).json({ ok: false, error: 'scopeId is required for workspace scope' });
+      return;
+    }
+  } else {
+    scopeId = sandbox;
+    if (!scopeId) {
+      res.status(400).json({ ok: false, error: 'sandbox is required' });
+      return;
+    }
+  }
+
+  const storageScope = resolvedScopeType + ':' + scopeId;
+  if (!storageScope) {
+    res.status(400).json({ ok: false, error: 'scope is required' });
     return;
   }
 
   if (req.method === 'GET') {
     try {
-      const keys = await labUserSandboxStore.getLabKeys(uid, sandbox);
-      res.status(200).json({ ok: true, sandbox, keys });
+      const keys = await labUserSandboxStore.getLabKeys(uid, storageScope);
+      res.status(200).json({ ok: true, sandbox: scopeId, scopeType: resolvedScopeType, scopeId, keys });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: scopeId, scopeType: resolvedScopeType, scopeId });
     }
     return;
   }
 
   if (req.method === 'POST') {
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
     const patch = body.keys && typeof body.keys === 'object' ? body.keys : {};
     const replace = !!body.replace;
     try {
-      const keys = await labUserSandboxStore.mergeLabKeys(uid, sandbox, patch, { replace });
-      res.status(200).json({ ok: true, sandbox, keys });
+      const keys = await labUserSandboxStore.mergeLabKeys(uid, storageScope, patch, { replace });
+      res.status(200).json({ ok: true, sandbox: scopeId, scopeType: resolvedScopeType, scopeId, keys });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: scopeId, scopeType: resolvedScopeType, scopeId });
     }
     return;
   }

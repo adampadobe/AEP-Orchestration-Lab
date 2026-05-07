@@ -1,5 +1,5 @@
 /**
- * Per-user, per-AEP-sandbox lab preferences (localStorage mirror) in Firestore.
+ * Per-user, per-scope lab preferences (sandbox/workspace localStorage mirror) in Firestore.
  * Access only via Cloud Functions + Firebase Auth ID token (anonymous OK).
  */
 
@@ -23,7 +23,7 @@ function getDb() {
 function docId(uid, sandbox) {
   const u = String(uid || '').trim().slice(0, 128);
   const s = String(sandbox || 'default').trim() || 'default';
-  const safe = s.replace(/[/\s.#$\[\]]/g, '_').slice(0, 200);
+  const safe = s.replace(/[:/\s.#$\[\]]/g, '_').slice(0, 200);
   const id = `${u}__${safe}`;
   return id.slice(0, 800);
 }

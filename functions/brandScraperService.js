@@ -11,6 +11,7 @@ const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 const modelConfigStore = require('./brandScraperModelConfigStore');
 const tagAudit = require('./brandScraperTagAudit');
+const labUserSandboxStore = require('./labUserSandboxStore');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -1263,6 +1264,45 @@ function resolveSandbox(req) {
   return fromQuery;
 }
 
+function safeSlug(v) {
+  return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+}
+
+function safeUid(v) {
+  return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').slice(0, 64);
+}
+
+async function resolveScope(req) {
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const scopeType = String(body.scopeType || (req.query && req.query.scopeType) || '').trim().toLowerCase();
+  const scopeId = String(body.scopeId || (req.query && req.query.scopeId) || '').trim();
+
+  if (scopeType === 'workspace') {
+    const slug = safeSlug(scopeId);
+    if (!slug) return { ok: false, status: 400, error: 'scopeId is required for workspace scope' };
+    const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+    if (!uid) return { ok: false, status: 401, error: 'Workspace mode requires Firebase Auth (anonymous sign-in is enough).' };
+    const uidSlug = safeUid(uid);
+    return {
+      ok: true,
+      scopeType: 'workspace',
+      scopeId: slug,
+      storageScope: 'workspace_' + uidSlug + '__' + slug,
+      responseScope: { scopeType: 'workspace', scopeId: slug },
+    };
+  }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) return { ok: false, status: 400, error: 'sandbox is required' };
+  return {
+    ok: true,
+    scopeType: 'sandbox',
+    scopeId: sandbox,
+    storageScope: sandbox,
+    responseScope: { scopeType: 'sandbox', scopeId: sandbox, sandbox: sandbox },
+  };
+}
+
 function analyzePipelineLog(scrapeId, phase, extra = {}) {
   console.log(JSON.stringify({
     src: 'brandScraper.analyze',
@@ -1668,8 +1708,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   const url = body.url;
   if (!url) { res.status(400).json({ error: 'url is required' }); return; }
 
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
 
   const started = Date.now();
   let runScrapeId = null;
@@ -1703,7 +1744,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         accepted: true,
         async: true,
         scrapeId: runScrapeId,
-        sandbox,
+        sandbox: scope.scopeId,
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
       });
       try {
         await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
@@ -1751,6 +1794,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       anthropicKey,
       started,
     });
+    out.payload.sandbox = scope.scopeId;
+    out.payload.scopeType = scope.scopeType;
+    out.payload.scopeId = scope.scopeId;
     res.status(out.status).json(out.payload);
   } catch (e) {
     if (runScrapeId) {
@@ -1775,8 +1821,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 async function handleScrapes(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
 
   // Hosting rewrites sometimes forward only the trailing segment (e.g. `/moew4…`)
   // without `/api/brand-scraper/scrapes/`. Prefer full URL parts, then fall back
@@ -1827,7 +1874,18 @@ async function handleScrapes(req, res) {
     }
     if (req.method === 'GET' && !scrapeId) {
       const items = await brandScrapeStore.listScrapes(sandbox);
-      res.status(200).json({ sandbox, items });
+      res.status(200).json({
+        sandbox: scope.scopeId,
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+        items: items.map(function (item) {
+          return Object.assign({}, item, {
+            sandbox: scope.scopeId,
+            scopeType: scope.scopeType,
+            scopeId: scope.scopeId,
+          });
+        }),
+      });
       return;
     }
     if (req.method === 'GET' && scrapeId) {
@@ -1837,7 +1895,11 @@ async function handleScrapes(req, res) {
         : {};
       const record = await brandScrapeStore.getScrape(sandbox, scrapeId, versionOpts);
       if (!record) { res.status(404).json({ error: 'not found' }); return; }
-      res.status(200).json(record);
+      res.status(200).json(Object.assign({}, record, {
+        sandbox: scope.scopeId,
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+      }));
       return;
     }
     if (req.method === 'DELETE' && scrapeId) {
@@ -1856,8 +1918,9 @@ async function handleClassifyAssets(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
   const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
   if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
 
@@ -1888,7 +1951,9 @@ async function handleClassifyAssets(req, res) {
 
   res.status(200).json({
     scrapeId,
-    sandbox,
+    sandbox: scope.scopeId,
+    scopeType: scope.scopeType,
+    scopeId: scope.scopeId,
     classified: result.classified,
     total: result.total || (result.images || []).length,
     signedUrlExpiresAt: result.signedUrlExpiresAt,
@@ -1901,8 +1966,9 @@ async function handleExport(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
   const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
   if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
 
@@ -1931,7 +1997,9 @@ async function handleExport(req, res) {
 
   res.status(200).json({
     scrapeId,
-    sandbox,
+    sandbox: scope.scopeId,
+    scopeType: scope.scopeType,
+    scopeId: scope.scopeId,
     storagePath: result.storagePath,
     signedUrl: result.signedUrl,
     signedUrlExpiresAt: result.signedUrlExpiresAt,
@@ -1941,19 +2009,28 @@ async function handleExport(req, res) {
 
 async function handleModelConfig(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
 
   try {
     if (req.method === 'GET') {
       const cfg = await modelConfigStore.getConfig(sandbox);
-      res.status(200).json(cfg);
+      res.status(200).json(Object.assign({}, cfg, {
+        sandbox: scope.scopeId,
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+      }));
       return;
     }
     if (req.method === 'PUT' || req.method === 'POST') {
       const body = (req.body && typeof req.body === 'object') ? req.body : {};
       const cfg = await modelConfigStore.updateConfig(sandbox, body);
-      res.status(200).json(cfg);
+      res.status(200).json(Object.assign({}, cfg, {
+        sandbox: scope.scopeId,
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+      }));
       return;
     }
     res.status(405).json({ error: 'Method not allowed' });

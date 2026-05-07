@@ -233,6 +233,11 @@
       }
     } catch (e) {}
     try {
+      if (global.AepAccessScope && global.AepAccessScope.getAccessMode && global.AepAccessScope.getAccessMode() === 'workspace') {
+        return '';
+      }
+    } catch (e0) {}
+    try {
       var el = typeof document !== 'undefined' ? document.getElementById('sandboxSelect') : null;
       var v = el && el.value != null ? String(el.value).trim() : '';
       if (v) return v;
@@ -246,12 +251,24 @@
     return n ? '&sandbox=' + encodeURIComponent(n) : '';
   }
 
+  function getScopeQuery() {
+    try {
+      if (global.AepAccessScope && typeof global.AepAccessScope.buildScopeQuery === 'function') {
+        var q = String(global.AepAccessScope.buildScopeQuery() || '');
+        if (q) return q;
+      }
+    } catch (e) {}
+    var n = getSandboxName();
+    return n ? 'sandbox=' + encodeURIComponent(n) : '';
+  }
+
   global.AepGlobalSandbox = {
     LS_SANDBOX: LS_SANDBOX,
     getSelected: getSelected,
     setSelected: setSelected,
     getSandboxName: getSandboxName,
     getSandboxParam: getSandboxParam,
+    getScopeQuery: getScopeQuery,
     loadSandboxesIntoSelect: loadSandboxesIntoSelect,
     fillSandboxSelect: fillSandboxSelect,
     onSandboxSelectChange: onSandboxSelectChange,

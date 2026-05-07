@@ -32,10 +32,39 @@
   const deleteSelectedBtn = document.getElementById('brandScraperDeleteSelected');
   if (!form || !urlInput || !statusEl || !resultsEl) return;
 
-  function getSandbox() {
+  function getScope() {
     try {
-      return (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
-    } catch (_e) { return ''; }
+      if (window.AepAccessScope && typeof window.AepAccessScope.getScope === 'function') {
+        return window.AepAccessScope.getScope();
+      }
+    } catch (_e) {}
+    try {
+      var fallback = (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
+      return {
+        mode: 'sandbox',
+        scopeType: 'sandbox',
+        scopeId: String(fallback || '').trim(),
+        sandbox: String(fallback || '').trim(),
+        workspaceName: '',
+      };
+    } catch (_e2) {
+      return { mode: 'sandbox', scopeType: 'sandbox', scopeId: '', sandbox: '', workspaceName: '' };
+    }
+  }
+
+  function getScopeLabel(scope) {
+    var s = scope || getScope();
+    if (s.scopeType === 'workspace') {
+      return (s.workspaceName || s.scopeId)
+        ? ('Workspace: ' + (s.workspaceName || s.scopeId))
+        : 'Workspace not selected';
+    }
+    return s.scopeId ? ('Sandbox: ' + s.scopeId) : 'No sandbox selected';
+  }
+
+  function getSandbox() {
+    var scope = getScope();
+    return scope.scopeType === 'sandbox' ? String(scope.scopeId || '').trim() : '';
   }
 
   const LS_PAGES = 'aepBrandScraperPages';
@@ -158,17 +187,17 @@
 
   async function loadModelConfig() {
     if (!modelSelectEl) return;
-    // Fresh sandbox → reset manual override; user can click Override again if wanted.
+    // Scope switch → reset manual override; user can click Override again if wanted.
     modelManualOverride = false;
-    const sb = getSandbox();
-    if (!sb) {
+    const scope = getScope();
+    if (!scope.scopeId) {
       modelConfigCache = null;
-      if (modelStatusEl) modelStatusEl.textContent = 'Select a sandbox to configure model.';
+      if (modelStatusEl) modelStatusEl.textContent = 'Select an access scope to configure model.';
       modelKeyRowEl.hidden = true;
       return;
     }
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/model-config'));
+      const resp = await scopedFetch('/api/brand-scraper/model-config');
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { modelStatusEl.textContent = 'Failed to load model config: ' + (data.error || resp.statusText); return; }
       modelConfigCache = data;
@@ -179,9 +208,9 @@
   }
 
   async function putModelConfig(body) {
-    const sb = getSandbox();
-    if (!sb) { setStatus('Select a sandbox first.', 'error'); return null; }
-    const resp = await fetch(withSandboxQuery('/api/brand-scraper/model-config'), {
+    const scope = getScope();
+    if (!scope.scopeId) { setStatus('Select an access scope first.', 'error'); return null; }
+    const resp = await scopedFetch('/api/brand-scraper/model-config', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -222,7 +251,7 @@
         const body = { preferredProvider: provider };
         body[provider + 'Key'] = key;
         await putModelConfig(body);
-        setStatus('Key saved to Secret Manager for this sandbox. Future Analyses will use ' + provider + '.', 'info');
+        setStatus('Key saved for this scope. Future analyses will use ' + provider + '.', 'info');
       } catch (e) {
         setStatus('Could not save key: ' + (e && e.message || e), 'error');
       } finally {
@@ -234,7 +263,7 @@
     modelRemoveBtn.addEventListener('click', async () => {
       const provider = modelSelectEl && modelSelectEl.value;
       if (!provider || provider === 'default') return;
-      if (!confirm('Remove the stored ' + provider + ' API key for this sandbox?')) return;
+      if (!confirm('Remove the stored ' + provider + ' API key for this scope?')) return;
       modelRemoveBtn.disabled = true;
       try {
         const body = { preferredProvider: 'default' };
@@ -306,13 +335,18 @@
   applyRunOptionsToUI();
 
   const LS_COUNTRY_PREFIX = 'aepBrandScraperCountry_';
-  function countryKey(sb) { return LS_COUNTRY_PREFIX + (sb || 'default'); }
+  function countryKey(scope) {
+    var s = scope || getScope();
+    var id = s && s.scopeId ? s.scopeId : 'default';
+    var kind = s && s.scopeType ? s.scopeType : 'sandbox';
+    return LS_COUNTRY_PREFIX + kind + '_' + id;
+  }
 
   function applyStoredCountry() {
     if (!countrySel) return;
-    const sb = getSandbox();
+    const scope = getScope();
     let stored = null;
-    try { stored = localStorage.getItem(countryKey(sb)); } catch (_e) { /* ignore */ }
+    try { stored = localStorage.getItem(countryKey(scope)); } catch (_e) { /* ignore */ }
     if (!stored) return;
     // Only set if the option actually exists in the dropdown.
     const has = Array.from(countrySel.options).some(o => o.value === stored);
@@ -321,16 +355,23 @@
 
   if (countrySel) {
     countrySel.addEventListener('change', () => {
-      const sb = getSandbox();
-      if (!sb) return; // no sandbox, no sticky save
-      try { localStorage.setItem(countryKey(sb), countrySel.value); } catch (_e) { /* ignore */ }
+      const scope = getScope();
+      if (!scope.scopeId) return;
+      try { localStorage.setItem(countryKey(scope), countrySel.value); } catch (_e) { /* ignore */ }
     });
   }
 
-  function withSandboxQuery(path, extraParams) {
-    const sb = getSandbox();
+  function withScopeQuery(path, extraParams) {
+    const scope = getScope();
     const parts = [];
-    if (sb) parts.push('sandbox=' + encodeURIComponent(sb));
+    if (scope.scopeType === 'workspace') {
+      if (scope.scopeId) {
+        parts.push('scopeType=workspace');
+        parts.push('scopeId=' + encodeURIComponent(scope.scopeId));
+      }
+    } else if (scope.scopeId) {
+      parts.push('sandbox=' + encodeURIComponent(scope.scopeId));
+    }
     if (extraParams && typeof extraParams === 'object') {
       Object.keys(extraParams).forEach(function (k) {
         const v = extraParams[k];
@@ -340,6 +381,25 @@
     }
     if (!parts.length) return path;
     return path + (path.indexOf('?') >= 0 ? '&' : '?') + parts.join('&');
+  }
+
+  async function getScopeAuthHeaders() {
+    var scope = getScope();
+    if (scope.scopeType !== 'workspace') return {};
+    try {
+      if (window.AepLabSandboxSync && typeof window.AepLabSandboxSync.getAuthHeaders === 'function') {
+        return await window.AepLabSandboxSync.getAuthHeaders();
+      }
+    } catch (_e) {}
+    return {};
+  }
+
+  async function scopedFetch(path, opts) {
+    var init = Object.assign({}, opts || {});
+    var headers = Object.assign({}, (init && init.headers) || {});
+    var authHeaders = await getScopeAuthHeaders();
+    init.headers = Object.assign(headers, authHeaders || {});
+    return fetch(withScopeQuery(path), init);
   }
 
   // ---------- Progress bar (client-side elapsed-time estimate) ----------
@@ -495,9 +555,9 @@
    * After Firestore index says complete, wait until GET returns a fully merged record
    * before showing terminal “Done” (avoids race where list is ahead of GCS hydrate).
    */
-  function finishAnalyzeWithDetail(scrapeId, sandboxName, onDone) {
+  function finishAnalyzeWithDetail(scrapeId, scopeLabel, onDone) {
     const sid = String(scrapeId || '').trim();
-    const sb = String(sandboxName || '').trim();
+    const label = String(scopeLabel || '').trim();
     let attempt = 0;
     const maxAttempts = 14;
     analyzeAwaitingDetailHydrate = true;
@@ -508,7 +568,7 @@
     }
 
     function runFetch() {
-      fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
+      scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(sid))
         .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
         .then(function (o) {
           if (!o.r.ok) {
@@ -519,7 +579,7 @@
           }
           if (isFullDetailReadyForDone(o.j)) {
             renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
-            setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in sandbox "' + sb + '".', 'info');
+            setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in ' + (label || 'selected scope') + '.', 'info');
             stopProgress({ success: true });
             loadHistory();
             done(true);
@@ -1544,8 +1604,8 @@
   }
 
   function renderHistory(items) {
-    const sb = getSandbox();
-    if (historySandboxEl) historySandboxEl.textContent = sb ? 'Sandbox: ' + sb : 'No sandbox selected';
+    const scope = getScope();
+    if (historySandboxEl) historySandboxEl.textContent = getScopeLabel(scope);
 
     // Drop stale selections if their rows are gone.
     const presentIds = new Set((items || []).map(i => i.scrapeId));
@@ -1556,9 +1616,9 @@
       historyListEl.hidden = true;
       historyListEl.innerHTML = '';
       historyEmptyEl.hidden = false;
-      historyEmptyEl.textContent = sb
-        ? 'No scrapes yet for this sandbox. Run one above to populate the list.'
-        : 'Select a sandbox to see its scrapes.';
+      historyEmptyEl.textContent = scope.scopeId
+        ? 'No scrapes yet for this scope. Run one above to populate the list.'
+        : 'Select a sandbox or workspace to see saved scrapes.';
       return;
     }
     historyEmptyEl.hidden = true;
@@ -1681,14 +1741,14 @@
   }
 
   async function loadHistory() {
-    const sb = getSandbox();
-    if (historySandboxEl) historySandboxEl.textContent = sb ? 'Sandbox: ' + sb : 'No sandbox selected';
-    if (!sb) { historyItemsCache = []; renderHistory([]); return; }
+    const scope = getScope();
+    if (historySandboxEl) historySandboxEl.textContent = getScopeLabel(scope);
+    if (!scope.scopeId) { historyItemsCache = []; renderHistory([]); return; }
     historyEmptyEl.hidden = false;
     historyEmptyEl.textContent = 'Loading…';
     historyListEl.hidden = true;
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes'));
+      const resp = await scopedFetch('/api/brand-scraper/scrapes');
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         historyEmptyEl.textContent = 'Failed to load scrapes: ' + (data.error || resp.statusText);
@@ -1723,7 +1783,7 @@
       if (optVersion != null && String(optVersion).trim() !== '' && String(optVersion).toLowerCase() !== 'latest') {
         extra.version = String(optVersion).trim();
       }
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId), extra));
+      const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + (extra && extra.version ? ('?version=' + encodeURIComponent(String(extra.version))) : ''));
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Could not load scrape: ' + (data.error || resp.statusText), 'error'); return; }
       if (data.scrapeStatus === 'running') {
@@ -1760,7 +1820,7 @@
   async function deleteScrape(scrapeId) {
     if (!confirm('Delete this scrape? This cannot be undone.')) return;
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId)), { method: 'DELETE' });
+      const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId), { method: 'DELETE' });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Delete failed: ' + (data.error || resp.statusText), 'error'); return; }
       await loadHistory();
@@ -1770,8 +1830,8 @@
   }
 
   async function extendRetentionForScrapeId(scrapeId) {
-    const sb = getSandbox();
-    if (!sb || !scrapeId) { setStatus('Select a sandbox first.', 'error'); return; }
+    const scope = getScope();
+    if (!scope.scopeId || !scrapeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
     let cardBtn = null;
     if (historyListEl) {
       const card = Array.from(historyListEl.querySelectorAll('[data-scrape-id]')).find(function (el) {
@@ -1783,7 +1843,7 @@
     const btns = [cardBtn, panelBtn].filter(Boolean);
     btns.forEach(b => { b.disabled = true; });
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + '/extend'), {
+      const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + '/extend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ days: 14 }),
@@ -1857,7 +1917,7 @@
       let fail = 0;
       for (const id of ids) {
         try {
-          const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(id)), { method: 'DELETE' });
+          const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(id), { method: 'DELETE' });
           if (resp.ok) ok++; else fail++;
         } catch (_e) { fail++; }
       }
@@ -1885,18 +1945,24 @@
       setStatus('Switch to “Latest (current)” in the snapshot menu to classify images on the saved run.', 'info');
       return;
     }
-    const sb = getSandbox();
-    if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
+    const scope = getScope();
+    if (!scope.scopeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="classify-assets"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Classifying…'; }
     setStatus('Downloading images to GCS and classifying with Gemini vision \u2026', 'info');
     startProgress(30000, ['Downloading images', 'Classifying with Gemini vision', 'Generating signed URLs', 'Updating scrape']);
     try {
-      const url = CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
+      const url = withScopeQuery(CLASSIFY_URL);
+      const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders || {}),
+        body: JSON.stringify({
+          sandbox: scope.scopeType === 'sandbox' ? scope.scopeId : '',
+          scopeType: scope.scopeType,
+          scopeId: scope.scopeId,
+          scrapeId: currentScrapeData.scrapeId,
+        }),
       }, {
         retries: 2,
         onRetry: (n, status) => setStatus('Warming classifier (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
@@ -1928,18 +1994,24 @@
       setStatus('Switch to “Latest (current)” in the snapshot menu to export the saved run.', 'info');
       return;
     }
-    const sb = getSandbox();
-    if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
+    const scope = getScope();
+    if (!scope.scopeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="export-kit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Building ZIP…'; }
     setStatus('Building export kit ZIP (brand guidelines + personas + campaigns + segments + images) \u2026', 'info');
     startProgress(8000, ['Serialising scrape', 'Packaging images', 'Uploading ZIP to GCS', 'Generating signed URL']);
     try {
-      const url = EXPORT_URL + '?sandbox=' + encodeURIComponent(sb);
+      const url = withScopeQuery(EXPORT_URL);
+      const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders || {}),
+        body: JSON.stringify({
+          sandbox: scope.scopeType === 'sandbox' ? scope.scopeId : '',
+          scopeType: scope.scopeType,
+          scopeId: scope.scopeId,
+          scrapeId: currentScrapeData.scrapeId,
+        }),
       }, {
         retries: 2,
         onRetry: (n, status) => setStatus('Warming export kit (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
@@ -2009,6 +2081,14 @@
     loadHistory();
     loadModelConfig();
   });
+  window.addEventListener('aep-access-scope-change', () => {
+    resultsEl.hidden = true;
+    resultsEl.innerHTML = '';
+    setStatus('');
+    applyStoredCountry();
+    loadHistory();
+    loadModelConfig();
+  });
 
   form.addEventListener('submit', async function (evt) {
     evt.preventDefault();
@@ -2019,13 +2099,13 @@
       urlInput.focus(); return;
     }
 
-    const sb = getSandbox();
-    if (!sb) {
-      setStatus('Select a sandbox in the sidebar before running a scrape — results are stored per sandbox.', 'error');
+    const scope = getScope();
+    if (!scope.scopeId) {
+      setStatus('Select a sandbox or workspace before running a scrape.', 'error');
       return;
     }
 
-    // Ask about append if this URL has been scraped already in this sandbox.
+    // Ask about append if this URL has already been scraped in this scope.
     const existing = findExistingScrape(url);
     let mode = 'new';
     let existingScrapeId = '';
@@ -2044,7 +2124,7 @@
 
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
-    setStatus('Crawling ' + url + ' for sandbox "' + sb + '" (' + modeLabel + ') \u2026', 'info');
+    setStatus('Crawling ' + url + ' for ' + getScopeLabel(scope).toLowerCase() + ' (' + modeLabel + ') \u2026', 'info');
     resultsEl.hidden = true;
 
     const estMs = estimateAnalyzeDurationMs({
@@ -2063,13 +2143,16 @@
 
     try {
       pendingAsyncScrapeId = null;
-      const analyzeUrl = ANALYZE_URL + (ANALYZE_URL.includes('?') ? '&' : '?') + 'sandbox=' + encodeURIComponent(sb);
+      const analyzeUrl = withScopeQuery(ANALYZE_URL);
+      const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(analyzeUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders || {}),
         body: JSON.stringify({
           url: url,
-          sandbox: sb,
+          sandbox: scope.scopeType === 'sandbox' ? scope.scopeId : '',
+          scopeType: scope.scopeType,
+          scopeId: scope.scopeId,
           mode: mode,
           existingScrapeId: existingScrapeId,
           businessType: btypeSel && btypeSel.value,
@@ -2104,7 +2187,7 @@
           onPartial: function (row) {
             const sid = row && row.scrapeId;
             if (!sid) return;
-            fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
+            scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(sid))
               .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
               .then(function (o) {
                 if (!o.r.ok) return;
@@ -2136,7 +2219,7 @@
               return;
             }
             const sid = row.scrapeId;
-            finishAnalyzeWithDetail(sid, sb, function () {
+            finishAnalyzeWithDetail(sid, getScopeLabel(scope), function () {
               pendingAsyncScrapeId = null;
               if (runBtn) runBtn.disabled = false;
             });
@@ -2168,12 +2251,12 @@
       const sid = data.scrapeId || headerScrapeId;
       if (!isFullDetailReadyForDone(data) && sid) {
         setProgressPhaseBoth('Finalising…');
-        finishAnalyzeWithDetail(sid, sb, function () {
+        finishAnalyzeWithDetail(sid, getScopeLabel(scope), function () {
           if (runBtn) runBtn.disabled = false;
         });
       } else {
         setStatus('Done \u2014 crawled ' + (data.crawl && data.crawl.pagesScraped) + ' pages in ' +
-          (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in sandbox "' + sb + '".', 'info');
+          (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in ' + getScopeLabel(scope) + '.', 'info');
         stopProgress({ success: true });
         renderResults(data);
         loadHistory();

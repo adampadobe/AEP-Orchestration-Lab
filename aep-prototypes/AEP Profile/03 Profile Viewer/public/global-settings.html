@@ -39,6 +39,29 @@
         </section>
         <section class="dashboard-hero" style="max-width: 640px;">
           <div class="dashboard-action-card" style="text-align: left;">
+            <div id="globalAccessModeSection" style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--dash-border);">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Access mode</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Choose whether this browser uses Adobe sandbox mode or a no-sandbox named workspace profile.</p>
+              <div style="display:flex; flex-wrap:wrap; gap:14px;">
+                <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; font-size: 14px;">
+                  <input type="radio" id="globalAccessModeSandbox" name="globalAccessMode" value="sandbox" />
+                  <span><strong>Adobe sandbox</strong><br><small>Use existing sandbox selection and per-sandbox saves.</small></span>
+                </label>
+                <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; font-size: 14px;">
+                  <input type="radio" id="globalAccessModeWorkspace" name="globalAccessMode" value="workspace" />
+                  <span><strong>No Adobe sandbox</strong><br><small>Use a named workspace profile for non-AEP tools.</small></span>
+                </label>
+              </div>
+              <div id="globalWorkspaceRow" style="margin-top:10px; max-width: 420px;">
+                <label for="globalWorkspaceNameInput" class="schema-aep-sandbox-label" style="display:block;margin-bottom:6px;font-weight:600;">Workspace name</label>
+                <input id="globalWorkspaceNameInput" type="text" maxlength="120" placeholder="e.g. Adam no-sandbox workspace" style="width:100%;padding:10px 12px;border:1px solid var(--dash-input-border);border-radius:10px;background:var(--dash-input-bg);color:var(--dash-text);" />
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+                <button type="button" class="dashboard-btn-outline" id="globalAccessModeSaveBtn">Save mode</button>
+                <span id="globalAccessModeStatus" class="dashboard-hero-subtitle" style="margin:0; font-size:13px;"></span>
+              </div>
+            </div>
+            <div id="globalSandboxSection">
             <label for="globalSandboxSelect" class="schema-aep-sandbox-label" style="display:block;margin-bottom:4px;font-weight:600;">Active sandbox</label>
             <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Loads active sandboxes from your org. The selection is stored in this browser; templates, recent identifiers, and Edge/catalog config are also saved per sandbox in Firestore (after anonymous Firebase sign-in).</p>
             <select id="globalSandboxSelect" class="sandbox-select schema-aep-sandbox-select" style="max-width: 100%; width: 100%; margin-bottom: 12px;" aria-label="Global AEP sandbox"></select>
@@ -47,6 +70,7 @@
               <button type="button" class="dashboard-btn-outline" id="btnClearSandbox">Use server default</button>
             </div>
             <p id="globalSettingsStatus" class="dashboard-hero-subtitle" style="margin-top: 16px; font-size: 13px;"></p>
+            </div>
             <div class="aep-theme-global-row">
               <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Appearance</label>
               <button type="button" class="aep-theme-toggle-btn" aria-label="Toggle color theme">Dark mode</button>
@@ -113,6 +137,7 @@
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-access-scope.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script>
@@ -165,6 +190,50 @@
       } else {
         init().then(showStatus);
       }
+    })();
+  </script>
+  <script>
+    (function () {
+      if (!window.AepAccessScope) return;
+      var modeSandbox = document.getElementById('globalAccessModeSandbox');
+      var modeWorkspace = document.getElementById('globalAccessModeWorkspace');
+      var workspaceRow = document.getElementById('globalWorkspaceRow');
+      var workspaceInput = document.getElementById('globalWorkspaceNameInput');
+      var saveBtn = document.getElementById('globalAccessModeSaveBtn');
+      var statusEl = document.getElementById('globalAccessModeStatus');
+      var sandboxSection = document.getElementById('globalSandboxSection');
+
+      function syncUi() {
+        var mode = window.AepAccessScope.getAccessMode();
+        var ws = window.AepAccessScope.getWorkspaceName();
+        modeSandbox.checked = mode === 'sandbox';
+        modeWorkspace.checked = mode === 'workspace';
+        workspaceRow.style.display = mode === 'workspace' ? 'block' : 'none';
+        workspaceInput.value = ws;
+        if (sandboxSection) sandboxSection.style.display = mode === 'workspace' ? 'none' : 'block';
+      }
+
+      function save() {
+        var mode = modeWorkspace.checked ? 'workspace' : 'sandbox';
+        if (mode === 'workspace') {
+          var ws = String(workspaceInput.value || '').trim();
+          if (!ws) {
+            statusEl.textContent = 'Enter a workspace name.';
+            return;
+          }
+          window.AepAccessScope.setWorkspaceName(ws);
+          try { localStorage.removeItem('aepGlobalSandboxName'); } catch (_e) {}
+        }
+        window.AepAccessScope.setAccessMode(mode);
+        statusEl.textContent = 'Saved.';
+        syncUi();
+      }
+
+      modeSandbox.addEventListener('change', syncUi);
+      modeWorkspace.addEventListener('change', syncUi);
+      saveBtn.addEventListener('click', save);
+      window.addEventListener('aep-access-scope-change', syncUi);
+      syncUi();
     })();
   </script>
   <script>

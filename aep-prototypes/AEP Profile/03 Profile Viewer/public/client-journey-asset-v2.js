@@ -339,12 +339,59 @@
     return '';
   }
 
-  function getSandboxForImport() {
-    return getGlobalSandboxName();
+  function getImportScope() {
+    try {
+      if (window.AepAccessScope && typeof window.AepAccessScope.getScope === 'function') {
+        return window.AepAccessScope.getScope();
+      }
+    } catch (_e) {}
+    var sb = getGlobalSandboxName();
+    return { scopeType: 'sandbox', scopeId: sb, sandbox: sb, workspaceName: '', mode: 'sandbox' };
+  }
+
+  function getImportScopeLabel(scope) {
+    var s = scope || getImportScope();
+    if (s.scopeType === 'workspace') {
+      return (s.workspaceName || s.scopeId)
+        ? ('Workspace: ' + (s.workspaceName || s.scopeId))
+        : 'Workspace not selected';
+    }
+    return s.scopeId ? ('Sandbox: ' + s.scopeId) : 'No sandbox selected';
+  }
+
+  function buildScopeParams(scope) {
+    var s = scope || getImportScope();
+    var p = new URLSearchParams();
+    if (s.scopeType === 'workspace') {
+      if (s.scopeId) {
+        p.set('scopeType', 'workspace');
+        p.set('scopeId', s.scopeId);
+      }
+      return p;
+    }
+    if (s.scopeId) p.set('sandbox', s.scopeId);
+    return p;
+  }
+
+  async function getScopeAuthHeaders(scope) {
+    var s = scope || getImportScope();
+    if (s.scopeType !== 'workspace') return {};
+    try {
+      if (window.AepLabSandboxSync && typeof window.AepLabSandboxSync.getAuthHeaders === 'function') {
+        return await window.AepLabSandboxSync.getAuthHeaders();
+      }
+    } catch (_e) {}
+    return {};
   }
 
   async function initGlobalSandboxSelect() {
     if (!sandboxSelectEl || !window.AepGlobalSandbox) return;
+    if (window.AepAccessScope && window.AepAccessScope.getAccessMode && window.AepAccessScope.getAccessMode() === 'workspace') {
+      sandboxSelectEl.disabled = true;
+      sandboxSelectEl.innerHTML = '<option value="">Workspace mode</option>';
+      return;
+    }
+    sandboxSelectEl.disabled = false;
     try {
       await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelectEl);
       window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelectEl);
@@ -734,10 +781,10 @@
     });
   }
 
-  function renderImportList(items, sandbox) {
+  function renderImportList(items, scope) {
     if (!importListEl || !importListWrapEl) return;
     lastImportScrapeItems = Array.isArray(items) ? items.slice() : [];
-    lastImportScrapeSandbox = sandbox || '';
+    lastImportScrapeSandbox = scope && scope.scopeId ? scope.scopeId : '';
     importListEl.innerHTML = '';
     if (!lastImportScrapeItems.length) {
       importListWrapEl.hidden = true;
@@ -791,7 +838,7 @@
       btn.className = 'cjv2-btn cjv2-btn-secondary';
       btn.textContent = 'Use';
       btn.addEventListener('click', function () {
-        importMappedProfile(sandbox, item.scrapeId || item.id);
+        importMappedProfile(scope, item.scrapeId || item.id);
       });
       tdAct.appendChild(btn);
 
@@ -804,14 +851,16 @@
     importListWrapEl.hidden = false;
   }
 
-  async function importMappedProfile(sandbox, scrapeId) {
-    if (!sandbox || !scrapeId) return;
+  async function importMappedProfile(scope, scrapeId) {
+    if (!scope || !scope.scopeId || !scrapeId) return;
     if (importLoadBtn) importLoadBtn.disabled = true;
     setImportStatus('Importing scrape profile…');
     try {
-      var url = IMPORT_PROFILE_URL + '?sandbox=' + encodeURIComponent(sandbox) +
-        '&scrapeId=' + encodeURIComponent(scrapeId);
-      var resp = await fetch(url, { cache: 'no-store' });
+      var params = buildScopeParams(scope);
+      params.set('scrapeId', scrapeId);
+      var url = IMPORT_PROFILE_URL + '?' + params.toString();
+      var authHeaders = await getScopeAuthHeaders(scope);
+      var resp = await fetch(url, { cache: 'no-store', headers: authHeaders || {} });
       var json = await resp.json();
       if (!resp.ok || !json || !json.mapped) {
         throw new Error((json && (json.error || json.detail)) || ('HTTP ' + resp.status));
@@ -829,29 +878,31 @@
   }
 
   async function loadImportScrapes() {
-    var sandbox = getSandboxForImport();
-    if (!sandbox) {
+    var scope = getImportScope();
+    if (!scope.scopeId) {
       lastImportScrapeItems = [];
       lastImportScrapeSandbox = '';
-      setImportStatus('Select a sandbox first.', 'error');
+      setImportStatus('Select a sandbox or workspace first.', 'error');
       if (importListWrapEl) importListWrapEl.hidden = true;
       return;
     }
     if (importLoadBtn) importLoadBtn.disabled = true;
     setImportStatus('Loading available scrapes…');
     try {
-      var url = IMPORT_LIST_URL + '?sandbox=' + encodeURIComponent(sandbox);
-      var resp = await fetch(url, { cache: 'no-store' });
+      var params = buildScopeParams(scope);
+      var url = IMPORT_LIST_URL + '?' + params.toString();
+      var authHeaders = await getScopeAuthHeaders(scope);
+      var resp = await fetch(url, { cache: 'no-store', headers: authHeaders || {} });
       var json = await resp.json();
       if (!resp.ok || !json || !Array.isArray(json.items)) {
         throw new Error((json && (json.error || json.detail)) || ('HTTP ' + resp.status));
       }
       if (!json.items.length) {
-        renderImportList([], sandbox);
-        setImportStatus('No scrape records found for sandbox "' + sandbox + '".');
+        renderImportList([], scope);
+        setImportStatus('No scrape records found for ' + getImportScopeLabel(scope).toLowerCase() + '.');
         return;
       }
-      renderImportList(json.items, sandbox);
+      renderImportList(json.items, scope);
       setImportStatus('Select a scrape to prefill the brief.', 'success');
     } catch (err) {
       console.error('[cjv2] list scrapes failed:', err);
@@ -1557,6 +1608,15 @@
   openNewTabBtn.addEventListener('click', openInNewTab);
   if (importLoadBtn) importLoadBtn.addEventListener('click', loadImportScrapes);
   bindImportSortControl();
+  window.addEventListener('aep-global-sandbox-change', function () {
+    if (importListWrapEl) importListWrapEl.hidden = true;
+    setImportStatus('');
+  });
+  window.addEventListener('aep-access-scope-change', function () {
+    void initGlobalSandboxSelect();
+    if (importListWrapEl) importListWrapEl.hidden = true;
+    setImportStatus('');
+  });
   if (refineBtn) refineBtn.addEventListener('click', refineJourney);
   if (refinePromptEl) {
     refinePromptEl.addEventListener('keydown', function (ev) {

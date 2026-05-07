@@ -1,6 +1,7 @@
 'use strict';
 
 const brandScrapeStore = require('./brandScrapeStore');
+const labUserSandboxStore = require('./labUserSandboxStore');
 
 const KNOWN_PLATFORM_PATTERNS = [
   { label: 'Adobe Experience Platform', re: /\badobe experience platform\b|\baep\b/i },
@@ -67,6 +68,31 @@ function resolveSandbox(req) {
   const fromBody = safeString(body.sandbox);
   if (fromBody) return fromBody;
   return safeString(req.query && req.query.sandbox);
+}
+
+function safeSlug(v) {
+  return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+}
+
+function safeUid(v) {
+  return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').slice(0, 64);
+}
+
+async function resolveScope(req) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const scopeType = safeString(body.scopeType || (req.query && req.query.scopeType)).toLowerCase();
+  const scopeId = safeString(body.scopeId || (req.query && req.query.scopeId));
+  if (scopeType === 'workspace') {
+    const slug = safeSlug(scopeId);
+    if (!slug) return { ok: false, status: 400, error: 'scopeId is required for workspace scope' };
+    const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+    if (!uid) return { ok: false, status: 401, error: 'Workspace mode requires Firebase Auth (anonymous sign-in is enough).' };
+    const uidSlug = safeUid(uid);
+    return { ok: true, scopeType: 'workspace', scopeId: slug, storageScope: 'workspace_' + uidSlug + '__' + slug };
+  }
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) return { ok: false, status: 400, error: 'sandbox is required' };
+  return { ok: true, scopeType: 'sandbox', scopeId: sandbox, storageScope: sandbox };
 }
 
 function parseOrigin(rawUrl) {
@@ -382,10 +408,10 @@ function mapScrapeToCjv2Profile(record, sandbox) {
 async function handleImportScrapeList(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   try {
-    const items = await brandScrapeStore.listScrapes(sandbox, { limit: 50 });
+    const items = await brandScrapeStore.listScrapes(scope.storageScope, { limit: 50 });
     const slim = items.map((item) => ({
       id: safeString(item && item.scrapeId),
       scrapeId: safeString(item && item.scrapeId),
@@ -401,7 +427,13 @@ async function handleImportScrapeList(req, res) {
       segmentsPresent: !!(item && item.segmentsPresent),
       stakeholdersPresent: !!(item && item.stakeholdersPresent),
     }));
-    res.status(200).json({ ok: true, sandbox, items: slim });
+    res.status(200).json({
+      ok: true,
+      sandbox: scope.scopeId,
+      scopeType: scope.scopeType,
+      scopeId: scope.scopeId,
+      items: slim,
+    });
   } catch (e) {
     res.status(500).json({ error: String((e && e.message) || e) });
   }
@@ -410,18 +442,29 @@ async function handleImportScrapeList(req, res) {
 async function handleImportMappedProfile(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const scrapeId = safeString(req.query && req.query.scrapeId);
   if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
   try {
-    const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+    const record = await brandScrapeStore.getScrape(scope.storageScope, scrapeId);
     if (!record) {
       res.status(404).json({ error: 'not found' });
       return;
     }
-    const mapped = mapScrapeToCjv2Profile(record, sandbox);
-    res.status(200).json({ ok: true, sandbox, scrapeId, mapped });
+    const mapped = mapScrapeToCjv2Profile(record, scope.scopeId);
+    if (mapped && mapped.metadata) {
+      mapped.metadata.scopeType = scope.scopeType;
+      mapped.metadata.scopeId = scope.scopeId;
+    }
+    res.status(200).json({
+      ok: true,
+      sandbox: scope.scopeId,
+      scopeType: scope.scopeType,
+      scopeId: scope.scopeId,
+      scrapeId,
+      mapped,
+    });
   } catch (e) {
     res.status(500).json({ error: String((e && e.message) || e) });
   }
