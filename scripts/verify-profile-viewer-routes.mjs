@@ -104,10 +104,6 @@ if (gs.includes('data-aep-nav-hide-key="journeyArbitration"')) {
   console.error('global-settings.html must not include nav hide key journeyArbitration (legacy v1 removed)');
   failed = true;
 }
-if (!gs.includes('journeyArbitrationV2')) {
-  console.error('global-settings.html must include nav hide key journeyArbitrationV2');
-  failed = true;
-}
 if (gs.includes('decisioningOverviewV2')) {
   console.error('global-settings.html must NOT include nav hide key decisioningOverviewV2 (page hard-deleted)');
   failed = true;
@@ -116,8 +112,20 @@ if (gs.includes('demoDeliveryConcept')) {
   console.error('global-settings.html must NOT include nav hide key demoDeliveryConcept (page hard-deleted)');
   failed = true;
 }
-if (!gs.includes('data-aep-nav-hide-key="edsQuickstart"')) {
-  console.error('global-settings.html must include nav hide key edsQuickstart (per-item toggle for EDS Demo Creator)');
+if (!nav.includes("navHideKey: 'journeyArbitrationV2'")) {
+  console.error("aep-lab-nav.js must include navHideKey 'journeyArbitrationV2'");
+  failed = true;
+}
+if (!nav.includes("navHideKey: 'edsQuickstart'")) {
+  console.error("aep-lab-nav.js must include navHideKey 'edsQuickstart' (per-item toggle for EDS Demo Creator)");
+  failed = true;
+}
+if (!gs.includes('id="aepNavInDevChecklist"') || !gs.includes('id="aepNavSidebarChecklist"')) {
+  console.error('global-settings.html must include in-development + full-menu checklist containers');
+  failed = true;
+}
+if (!gs.includes('getMenuVisibilityOptions')) {
+  console.error('global-settings.html must render nav visibility controls from AepNavInDev.getMenuVisibilityOptions()');
   failed = true;
 }
 

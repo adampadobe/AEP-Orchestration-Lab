@@ -93,95 +93,16 @@
                 <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all in-development</button>
                 <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all in-development</button>
               </div>
-              <div class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;">
-                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:4px;">Tools</span>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="clientJourneyAsset" style="margin-top:3px;" />
-                  <span>Hide <strong>Client journey asset old</strong> (Tools)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demoUseCaseAsset" style="margin-top:3px;" />
-                  <span>Hide <strong>Demo use case assets</strong> (Tools)</span>
-                </label>
-                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Decisioning</span>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLab" style="margin-top:3px;" />
-                  <span>Hide <strong>Decisioning lab</strong> (Decisioning)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningOverview" style="margin-top:3px;" />
-                  <span>Hide <strong>Decisioning overview</strong> (Decisioning)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="journeyArbitrationV2" style="margin-top:3px;" />
-                  <span>Hide <strong>Journey arbitration v2</strong> (Decisioning)</span>
-                </label>
-                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Experimentation</span>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationVisualiser" style="margin-top:3px;" />
-                  <span>Hide <strong>Experimentation visualiser</strong> (Experimentation)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationOverview" style="margin-top:3px;" />
-                  <span>Hide <strong>Experimentation overview</strong> (Experimentation)</span>
-                </label>
-                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Architecture</span>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="aepArchitectureApps" style="margin-top:3px;" />
-                  <span>Hide <strong>AEP &amp; Apps</strong> (Architecture)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="agenticLayerArchitectureV2" style="margin-top:3px;" />
-                  <span>Hide <strong>Agentic layer</strong> (Architecture)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="architectureEndToEnd" style="margin-top:3px;" />
-                  <span>Hide <strong>Adobe integration flow</strong> (Architecture)</span>
-                </label>
-                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Demos</span>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="edsQuickstart" style="margin-top:3px;" />
-                  <span>Hide <strong>EDS Demo Creator</strong> (Demos)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demos" style="margin-top:3px;" />
-                  <span>Hide <strong>Demos</strong> group (Donate, Race for Life, …)</span>
-                </label>
-              </div>
-              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:20px;font-weight:600;">Hide other sidebar &amp; home items</label>
+              <div id="aepNavInDevChecklist" class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;"></div>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:20px;font-weight:600;">Hide any sidebar &amp; home item</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
-                These pages are <strong>not</strong> gated by the in-development master toggle. Use the row below to hide them any time (same localStorage keys as the sidebar).
+                Full menu list (all items that expose a nav hide key). This lets users keep <strong>Show in development capabilities</strong> on, while independently showing/hiding specific pages per sandbox.
               </p>
               <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
                 <button type="button" class="dashboard-btn-outline" id="aepNavSidebarHideAll">Hide all below</button>
                 <button type="button" class="dashboard-btn-outline" id="aepNavSidebarShowAll">Show all below</button>
               </div>
-              <div class="aep-nav-sidebar-checklist" style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
-                  <span>Hide <strong>Profile generation</strong> (Profiles)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="decisioningLabEdge" style="margin-top:3px;" />
-                  <span>Hide <strong>Decisioning lab (Edge)</strong> (Decisioning)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="experimentationAccelerator" style="margin-top:3px;" />
-                  <span>Hide <strong>Experimentation Accelerator</strong> (Experimentation)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="clientJourneyAssetV2" style="margin-top:3px;" />
-                  <span>Hide <strong>Client journey assets</strong> (Tools)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="imageHosting" style="margin-top:3px;" />
-                  <span>Hide <strong>Image hosting</strong> (Tools)</span>
-                </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="dataCollectionTags" style="margin-top:3px;" />
-                  <span>Hide <strong>Tags</strong> (Data Collection)</span>
-                </label>
-              </div>
+              <div id="aepNavSidebarChecklist" class="aep-nav-sidebar-checklist" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
           </div>
         </section>
@@ -308,11 +229,116 @@
         } catch (e) {}
       }
 
+      var inDevKeysCache = [];
+      var sidebarKeysCache = [];
+
+      function getVisibilityOptions() {
+        try {
+          if (window.AepNavInDev && typeof window.AepNavInDev.getMenuVisibilityOptions === 'function') {
+            return window.AepNavInDev.getMenuVisibilityOptions();
+          }
+        } catch (e) {}
+        return [];
+      }
+
+      function clearNode(el) {
+        while (el && el.firstChild) el.removeChild(el.firstChild);
+      }
+
+      function renderChecklist(containerId, options, cbClass, includeInDevTag) {
+        var root = document.getElementById(containerId);
+        if (!root) return;
+        clearNode(root);
+        if (!Array.isArray(options) || !options.length) {
+          var empty = document.createElement('p');
+          empty.className = 'dashboard-hero-subtitle';
+          empty.style.margin = '0';
+          empty.style.fontSize = '13px';
+          empty.textContent = 'No items available.';
+          root.appendChild(empty);
+          return;
+        }
+
+        var byGroup = {};
+        var groupOrder = [];
+        options.forEach(function (item) {
+          var g = String(item.group || 'Other');
+          if (!byGroup[g]) {
+            byGroup[g] = [];
+            groupOrder.push(g);
+          }
+          byGroup[g].push(item);
+        });
+
+        groupOrder.forEach(function (group, idx) {
+          var heading = document.createElement('span');
+          heading.className = 'schema-aep-sandbox-label';
+          heading.style.fontSize = '13px';
+          heading.style.fontWeight = '600';
+          heading.style.marginTop = idx === 0 ? '4px' : '8px';
+          heading.textContent = group;
+          root.appendChild(heading);
+
+          byGroup[group].forEach(function (item) {
+            var row = document.createElement('label');
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.alignItems = 'flex-start';
+            row.style.cursor = 'pointer';
+            row.style.fontSize = '14px';
+            row.style.lineHeight = '1.4';
+
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = cbClass;
+            cb.setAttribute('data-aep-nav-hide-key', item.navHideKey);
+            cb.style.marginTop = '3px';
+            row.appendChild(cb);
+
+            var txt = document.createElement('span');
+            txt.appendChild(document.createTextNode('Hide '));
+            var strong = document.createElement('strong');
+            strong.textContent = String(item.label || item.navHideKey);
+            txt.appendChild(strong);
+            if (includeInDevTag && item.inDevelopment) {
+              txt.appendChild(document.createTextNode(' (in development)'));
+            }
+            txt.appendChild(document.createTextNode(' (' + group + ')'));
+            row.appendChild(txt);
+
+            root.appendChild(row);
+          });
+        });
+      }
+
+      function renderNavVisibilityChecklists() {
+        var options = getVisibilityOptions();
+        var inDev = options.filter(function (item) { return !!item.inDevelopment; });
+        inDevKeysCache = inDev.map(function (item) { return item.navHideKey; });
+        sidebarKeysCache = options.map(function (item) { return item.navHideKey; });
+        renderChecklist('aepNavInDevChecklist', inDev, 'aep-nav-indev-hide-cb', false);
+        renderChecklist('aepNavSidebarChecklist', options, 'aep-nav-sidebar-hide-cb', true);
+        bindChecklistChangeHandlers();
+      }
+
       function syncCheckboxes() {
         document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
           var key = cb.getAttribute('data-aep-nav-hide-key');
           if (!key) return;
           cb.checked = isHiddenKey(key);
+        });
+      }
+
+      function bindChecklistChangeHandlers() {
+        document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
+          cb.addEventListener('change', function () {
+            var key = cb.getAttribute('data-aep-nav-hide-key');
+            if (!key) return;
+            setHiddenKey(key, cb.checked);
+            // Same key can appear in both lists; keep them in sync.
+            syncCheckboxes();
+            dispatchNavChange();
+          });
         });
       }
 
@@ -326,10 +352,7 @@
       }
 
       function forEachInDevKey(fn) {
-        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
-          var key = cb.getAttribute('data-aep-nav-hide-key');
-          if (key) fn(key);
-        });
+        inDevKeysCache.forEach(function (key) { fn(key); });
       }
 
       function hideAllInDevNav() {
@@ -349,10 +372,7 @@
       }
 
       function forEachSidebarHideKey(fn) {
-        document.querySelectorAll('.aep-nav-sidebar-hide-cb').forEach(function (cb) {
-          var key = cb.getAttribute('data-aep-nav-hide-key');
-          if (key) fn(key);
-        });
+        sidebarKeysCache.forEach(function (key) { fn(key); });
       }
 
       function hideAllSidebarOptional() {
@@ -372,6 +392,7 @@
       }
 
       function init() {
+        renderNavVisibilityChecklists();
         syncMasterToggle();
         syncCheckboxes();
         var master = document.getElementById('aepShowInDevCapabilitiesToggle');
@@ -389,15 +410,8 @@
         var btnShowSidebar = document.getElementById('aepNavSidebarShowAll');
         if (btnHideSidebar) btnHideSidebar.addEventListener('click', hideAllSidebarOptional);
         if (btnShowSidebar) btnShowSidebar.addEventListener('click', showAllSidebarOptional);
-        document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
-          cb.addEventListener('change', function () {
-            var key = cb.getAttribute('data-aep-nav-hide-key');
-            if (!key) return;
-            setHiddenKey(key, cb.checked);
-            dispatchNavChange();
-          });
-        });
         window.addEventListener('aep-global-sandbox-change', function () {
+          renderNavVisibilityChecklists();
           syncMasterToggle();
           syncCheckboxes();
         });
@@ -409,6 +423,7 @@
             e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
             e.key === LS_HIDE_EDP_LEGACY
           ) {
+            renderNavVisibilityChecklists();
             syncMasterToggle();
             syncCheckboxes();
           }
@@ -424,6 +439,6 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>
+  <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>
 </body>
 </html>

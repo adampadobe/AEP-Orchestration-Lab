@@ -287,6 +287,45 @@
     return normalizeNavLabelText(s).replace(/\s+\(in development\)\s*$/i, '').trim();
   }
 
+  /**
+   * Flat list for Global values visibility controls.
+   * Includes only items with navHideKey since those are the keys understood by
+   * sidebar/home visibility logic.
+   */
+  function getMenuVisibilityOptions() {
+    var out = [];
+    var seen = {};
+    NAV.forEach(function (entry) {
+      if (!entry || !Array.isArray(entry.items)) return;
+      var groupName = entry.group || '';
+      entry.items.forEach(function (item) {
+        if (!item || !item.navHideKey) return;
+        var key = String(item.navHideKey);
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        out.push({
+          navHideKey: key,
+          group: groupName,
+          label: stripInDevelopmentSuffix(item.label || key),
+          inDevelopment: !!item.inDevelopment,
+          href: item.href || '',
+        });
+      });
+    });
+    // Demos group visibility toggle is not a concrete NAV item, but is
+    // controlled with the same hide-key mechanism.
+    if (!seen.demos) {
+      out.push({
+        navHideKey: 'demos',
+        group: 'Demos',
+        label: 'Demos group',
+        inDevelopment: true,
+        href: '',
+      });
+    }
+    return out;
+  }
+
   /* ── Builders ── */
 
   function buildItem(def, filename) {
@@ -605,6 +644,8 @@
       shouldShowDemosMenu: function () {
         return isDemosNavVisible();
       },
+      /** Global values helper: all nav items that support independent hide/show */
+      getMenuVisibilityOptions: getMenuVisibilityOptions,
     };
   } catch (e3) {}
 })();
