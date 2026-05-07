@@ -40,7 +40,16 @@
         </div>
         <div class="form-row">
           <label for="admiralTagsProperty">Tags property</label>
-          <select id="admiralTagsProperty" aria-label="Tags property"></select>
+          <input
+            type="text"
+            id="admiralTagsProperty"
+            aria-label="Tags property"
+            placeholder="Select property"
+            list="admiralTagsPropertyList"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <datalist id="admiralTagsPropertyList"></datalist>
         </div>
         <div class="form-row">
           <label for="admiralTagsEnvironment">Tags environment</label>

@@ -8,11 +8,14 @@ const admiralMessage = document.getElementById('admiralMessage');
 const injectSdkBtn = document.getElementById('injectSdkBtn');
 const selectedScriptEl = document.getElementById('admiralSelectedScript');
 const tagsCompanySelect = document.getElementById('admiralTagsCompany');
-const tagsPropertySelect = document.getElementById('admiralTagsProperty');
+const tagsPropertyInput = document.getElementById('admiralTagsProperty');
+const tagsPropertyList = document.getElementById('admiralTagsPropertyList');
 const tagsEnvironmentSelect = document.getElementById('admiralTagsEnvironment');
 const admiralSiteFrame = document.getElementById('admiralSiteFrame');
 
 let selectedScriptUrl = '';
+let allPropertyOptions = [];
+let selectedPropertyId = '';
 
 function setAdmiralMessage(text, type) {
   if (!admiralMessage) return;
@@ -84,6 +87,59 @@ function setSelectOptions(select, rows, labelGetter, valueGetter, emptyLabel) {
   });
 }
 
+function propertyLabelFromItem(p) {
+  const n = p && p.attributes && p.attributes.name;
+  return (n || p.id || 'Unnamed') + ' (' + String(p && p.id ? p.id : '') + ')';
+}
+
+function renderPropertySuggestions(query) {
+  if (!tagsPropertyList) return;
+  const q = String(query || '').trim().toLowerCase();
+  tagsPropertyList.innerHTML = '';
+  const matches = allPropertyOptions
+    .filter((p) => {
+      if (!q) return true;
+      const label = propertyLabelFromItem(p).toLowerCase();
+      return label.indexOf(q) !== -1;
+    })
+    .slice(0, 200);
+  matches.forEach((p) => {
+    const opt = document.createElement('option');
+    opt.value = propertyLabelFromItem(p);
+    tagsPropertyList.appendChild(opt);
+  });
+}
+
+function findPropertyByLabel(label) {
+  const target = String(label || '').trim().toLowerCase();
+  if (!target) return null;
+  return (
+    allPropertyOptions.find((p) => propertyLabelFromItem(p).toLowerCase() === target) ||
+    null
+  );
+}
+
+async function applyPropertySelectionFromInput() {
+  const raw = tagsPropertyInput ? String(tagsPropertyInput.value || '').trim() : '';
+  if (!raw) {
+    selectedPropertyId = '';
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    return;
+  }
+  const hit = findPropertyByLabel(raw);
+  if (!hit || !hit.id) {
+    selectedPropertyId = '';
+    setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+    renderSelectedScript('');
+    return;
+  }
+  const nextPropertyId = String(hit.id);
+  if (nextPropertyId === selectedPropertyId) return;
+  selectedPropertyId = nextPropertyId;
+  await loadTagsEnvironments(selectedPropertyId);
+}
+
 async function loadTagsCompanies() {
   try {
     setAdmiralMessage('Loading Tags companies...', '');
@@ -98,7 +154,10 @@ async function loadTagsCompanies() {
       (c) => String(c && c.id ? c.id : ''),
       'Select company'
     );
-    setSelectOptions(tagsPropertySelect, [], () => '', () => '', 'Select property');
+    allPropertyOptions = [];
+    selectedPropertyId = '';
+    if (tagsPropertyInput) tagsPropertyInput.value = '';
+    renderPropertySuggestions('');
     setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
     renderSelectedScript('');
     setAdmiralMessage('Tags companies loaded.', 'success');
@@ -109,7 +168,10 @@ async function loadTagsCompanies() {
 
 async function loadTagsProperties(companyId) {
   if (!companyId) {
-    setSelectOptions(tagsPropertySelect, [], () => '', () => '', 'Select property');
+    allPropertyOptions = [];
+    selectedPropertyId = '';
+    if (tagsPropertyInput) tagsPropertyInput.value = '';
+    renderPropertySuggestions('');
     setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
     renderSelectedScript('');
     return;
@@ -117,16 +179,10 @@ async function loadTagsProperties(companyId) {
   try {
     setAdmiralMessage('Loading properties...', '');
     const items = await fetchTags('properties', companyId, '');
-    setSelectOptions(
-      tagsPropertySelect,
-      items,
-      (p) => {
-        const n = p && p.attributes && p.attributes.name;
-        return (n || p.id || 'Unnamed') + ' (' + String(p.id || '') + ')';
-      },
-      (p) => String(p && p.id ? p.id : ''),
-      'Select property'
-    );
+    allPropertyOptions = items;
+    selectedPropertyId = '';
+    if (tagsPropertyInput) tagsPropertyInput.value = '';
+    renderPropertySuggestions('');
     setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
     renderSelectedScript('');
     setAdmiralMessage('Properties loaded.', 'success');
@@ -293,10 +349,20 @@ tagsCompanySelect &&
     void loadTagsProperties(companyId);
   });
 
-tagsPropertySelect &&
-  tagsPropertySelect.addEventListener('change', function () {
-    const propertyId = String(tagsPropertySelect.value || '').trim();
-    void loadTagsEnvironments(propertyId);
+tagsPropertyInput &&
+  tagsPropertyInput.addEventListener('input', function () {
+    renderPropertySuggestions(tagsPropertyInput.value || '');
+    void applyPropertySelectionFromInput();
+  });
+
+tagsPropertyInput &&
+  tagsPropertyInput.addEventListener('change', function () {
+    void applyPropertySelectionFromInput();
+  });
+
+tagsPropertyInput &&
+  tagsPropertyInput.addEventListener('blur', function () {
+    void applyPropertySelectionFromInput();
   });
 
 tagsEnvironmentSelect &&
