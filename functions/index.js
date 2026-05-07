@@ -3114,6 +3114,50 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
   res.status(405).json({ error: 'Method not allowed' });
 });
 
+/** GET/POST /api/lab/workspace-profile — per-user no-sandbox identity details */
+exports.labWorkspaceProfile = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({ ok: false, error: 'Firebase Auth required (anonymous sign-in is enough).' });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+      res.status(200).json({ ok: true, profile });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const profile = await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+        firstName: body.firstName,
+        lastName: body.lastName,
+        adobeEmail: body.adobeEmail,
+        workspaceName: body.workspaceName,
+        workspaceSlug: body.workspaceSlug,
+      });
+      res.status(200).json({ ok: true, profile });
+    } catch (e) {
+      res.status(400).json({ ok: false, error: String(e.message || e) });
+    }
+    return;
+  }
+
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
 /** GET /api/tags/reactor — Reactor JSON:API: companies, properties, allProperties, property-scoped lists, ruleComponents&ruleId= */
 exports.tagsReactorProxy = onRequest(
   {

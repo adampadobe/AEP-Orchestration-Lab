@@ -140,26 +140,11 @@
         <section class="dashboard-panel" id="aepAccessModePanel" aria-labelledby="aepAccessModeHeading">
           <div class="dashboard-panel-head">
             <h3 class="dashboard-panel-title" id="aepAccessModeHeading">Access mode</h3>
-            <span id="aepAccessModeSummary" class="dashboard-muted"></span>
+            <span id="aepAccessModeSummary" class="dashboard-muted">Detecting mode…</span>
           </div>
-          <p class="dashboard-panel-text">Choose whether this browser should run with an Adobe sandbox or a no-sandbox workspace profile for tools that do not require AEP APIs.</p>
-          <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
-            <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
-              <input type="radio" name="aepAccessModeChoice" value="sandbox" id="aepAccessModeSandbox">
-              <span><strong>Adobe sandbox</strong><br><small class="dashboard-muted">Use existing AEP sandbox selection and per-sandbox saves.</small></span>
-            </label>
-            <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
-              <input type="radio" name="aepAccessModeChoice" value="workspace" id="aepAccessModeWorkspace">
-              <span><strong>No Adobe sandbox</strong><br><small class="dashboard-muted">Use a named workspace profile for non-AEP tools.</small></span>
-            </label>
-          </div>
-          <div id="aepWorkspaceNameRow" style="margin-top:12px;max-width:420px;">
-            <label for="aepWorkspaceNameInput" class="schema-aep-sandbox-label" style="display:block;margin-bottom:6px;font-weight:600;">Workspace name</label>
-            <input id="aepWorkspaceNameInput" type="text" maxlength="120" placeholder="e.g. Adam no-sandbox workspace" style="width:100%;padding:10px 12px;border:1px solid var(--dash-input-border);border-radius:10px;background:var(--dash-input-bg);color:var(--dash-text);">
-            <p class="dashboard-muted" style="margin-top:6px;">Saved in this browser and used on re-entry.</p>
-          </div>
+          <p class="dashboard-panel-text">First-time visitors now get a setup popup to choose Adobe sandbox or no-sandbox access. You can reopen it anytime here.</p>
           <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
-            <button type="button" class="dashboard-btn-outline" id="aepAccessModeSaveBtn">Save access mode</button>
+            <button type="button" class="dashboard-btn-outline" id="aepAccessModeOpenBtn">Configure access mode</button>
             <span id="aepAccessModeStatus" class="dashboard-muted" aria-live="polite"></span>
           </div>
         </section>
@@ -198,52 +183,39 @@
   </div>
 
   <script src="aep-access-scope.js"></script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260507-access-popup"></script>
+  <script src="aep-access-onboarding.js?v=20260507a"></script>
   <script>
     (function () {
       if (!window.AepAccessScope) return;
-      var modeSandbox = document.getElementById('aepAccessModeSandbox');
-      var modeWorkspace = document.getElementById('aepAccessModeWorkspace');
-      var workspaceRow = document.getElementById('aepWorkspaceNameRow');
-      var workspaceInput = document.getElementById('aepWorkspaceNameInput');
-      var saveBtn = document.getElementById('aepAccessModeSaveBtn');
+      if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.init === 'function') {
+        window.AepAccessOnboarding.init();
+      }
+      var openBtn = document.getElementById('aepAccessModeOpenBtn');
       var statusEl = document.getElementById('aepAccessModeStatus');
       var summaryEl = document.getElementById('aepAccessModeSummary');
 
       function syncUi() {
-        var mode = window.AepAccessScope.getAccessMode();
-        var wsName = window.AepAccessScope.getWorkspaceName();
-        modeSandbox.checked = mode === 'sandbox';
-        modeWorkspace.checked = mode === 'workspace';
-        workspaceRow.style.display = mode === 'workspace' ? 'block' : 'none';
-        workspaceInput.value = wsName;
-        summaryEl.textContent = mode === 'workspace'
-          ? (wsName ? 'No-sandbox workspace: ' + wsName : 'No-sandbox workspace not set')
+        var scope = window.AepAccessScope.getScope();
+        summaryEl.textContent = scope.mode === 'workspace'
+          ? ('No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured'))
           : 'Adobe sandbox mode';
       }
-
-      function save() {
-        var mode = modeWorkspace.checked ? 'workspace' : 'sandbox';
-        if (mode === 'workspace') {
-          var ws = String(workspaceInput.value || '').trim();
-          if (!ws) {
-            statusEl.textContent = 'Enter a workspace name.';
-            return;
+      if (openBtn) {
+        openBtn.addEventListener('click', function () {
+          if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
+            window.AepAccessOnboarding.open();
+            statusEl.textContent = '';
           }
-          window.AepAccessScope.setWorkspaceName(ws);
-          try { localStorage.removeItem('aepGlobalSandboxName'); } catch (_e) {}
-        }
-        window.AepAccessScope.setAccessMode(mode);
-        statusEl.textContent = 'Saved.';
-        syncUi();
+        });
       }
-
-      modeSandbox.addEventListener('change', syncUi);
-      modeWorkspace.addEventListener('change', syncUi);
-      saveBtn.addEventListener('click', save);
       window.addEventListener('aep-access-scope-change', syncUi);
       syncUi();
       if (!window.AepAccessScope.hasExplicitMode()) {
-        statusEl.textContent = 'Choose your access mode for this browser.';
+        statusEl.textContent = 'Choose your access mode to continue.';
       }
     })();
   </script>

@@ -651,6 +651,13 @@
         }
       },
       {
+        "source": "/api/lab/workspace-profile",
+        "function": {
+          "functionId": "labWorkspaceProfile",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/snowflake/config",
         "function": {
           "functionId": "snowflakeConfig",

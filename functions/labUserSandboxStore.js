@@ -6,6 +6,7 @@
 const admin = require('firebase-admin');
 
 const COLLECTION = 'labUserSandboxData';
+const WORKSPACE_PROFILE_COLLECTION = 'labWorkspaceAccessProfiles';
 
 const MAX_KEY_LEN = 120;
 const MAX_VAL_CHARS = 450000;
@@ -130,10 +131,78 @@ async function mergeLabKeys(uid, sandbox, patch, options) {
   return getLabKeys(uid, name);
 }
 
+function sanitizeWorkspaceProfile(profile) {
+  const body = profile && typeof profile === 'object' ? profile : {};
+  const firstName = String(body.firstName || '').trim().slice(0, 80);
+  const lastName = String(body.lastName || '').trim().slice(0, 80);
+  const adobeEmail = String(body.adobeEmail || '').trim().toLowerCase().slice(0, 160);
+  const workspaceName = String(body.workspaceName || '').trim().slice(0, 120);
+  const workspaceSlug = String(body.workspaceSlug || '').trim().slice(0, 80);
+  return { firstName, lastName, adobeEmail, workspaceName, workspaceSlug };
+}
+
+function isValidAdobeEmail(email) {
+  const v = String(email || '').trim().toLowerCase();
+  if (!v || v.length < 6 || v.length > 160) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+async function getWorkspaceProfile(uid) {
+  const userId = String(uid || '').trim().slice(0, 128);
+  if (!userId) return null;
+  const ref = getDb().collection(WORKSPACE_PROFILE_COLLECTION).doc(userId);
+  const snap = await ref.get();
+  if (!snap.exists) return null;
+  const data = snap.data() || {};
+  return {
+    uid: userId,
+    firstName: String(data.firstName || ''),
+    lastName: String(data.lastName || ''),
+    adobeEmail: String(data.adobeEmail || ''),
+    workspaceName: String(data.workspaceName || ''),
+    workspaceSlug: String(data.workspaceSlug || ''),
+    updatedAt: data.updatedAt && typeof data.updatedAt.toDate === 'function'
+      ? data.updatedAt.toDate().toISOString()
+      : null,
+    createdAt: data.createdAt && typeof data.createdAt.toDate === 'function'
+      ? data.createdAt.toDate().toISOString()
+      : null,
+  };
+}
+
+async function upsertWorkspaceProfile(uid, profile) {
+  const userId = String(uid || '').trim().slice(0, 128);
+  if (!userId) throw new Error('uid is required');
+  const clean = sanitizeWorkspaceProfile(profile);
+  if (!clean.firstName) throw new Error('firstName is required');
+  if (!clean.lastName) throw new Error('lastName is required');
+  if (!isValidAdobeEmail(clean.adobeEmail)) throw new Error('adobeEmail is invalid');
+
+  const ref = getDb().collection(WORKSPACE_PROFILE_COLLECTION).doc(userId);
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    tx.set(ref, {
+      uid: userId,
+      firstName: clean.firstName,
+      lastName: clean.lastName,
+      adobeEmail: clean.adobeEmail,
+      workspaceName: clean.workspaceName,
+      workspaceSlug: clean.workspaceSlug,
+      createdAt: snap.exists && snap.data() && snap.data().createdAt ? snap.data().createdAt : now,
+      updatedAt: now,
+    }, { merge: true });
+  });
+  return getWorkspaceProfile(userId);
+}
+
 module.exports = {
   COLLECTION,
+  WORKSPACE_PROFILE_COLLECTION,
   docId,
   getLabKeys,
   mergeLabKeys,
+  getWorkspaceProfile,
+  upsertWorkspaceProfile,
   verifyIdTokenFromRequest,
 };
