@@ -317,6 +317,75 @@ if (admiralSiteFrame) {
   });
 }
 
+(function initAdmiralDemoFlyoutSidebar() {
+  const body = document.body;
+  if (!body.classList.contains('admiral-demo-page')) return;
+  const sidebar = document.querySelector('.dashboard-sidebar');
+  if (!sidebar) return;
+
+  const mq = window.matchMedia('(max-width: 768px)');
+  let hideTimer = null;
+
+  function clearHideTimer() {
+    if (hideTimer) {
+      window.clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+  }
+
+  function setFlyoutOpen(open) {
+    body.classList.toggle('admiral-demo-page--nav-open', open);
+  }
+
+  function scheduleClose() {
+    clearHideTimer();
+    hideTimer = window.setTimeout(function () {
+      setFlyoutOpen(false);
+      hideTimer = null;
+    }, 450);
+  }
+
+  function onPointerMove(e) {
+    if (mq.matches) return;
+    if (e.clientX <= 24) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
+    const r = sidebar.getBoundingClientRect();
+    const over =
+      e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (over) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
+    if (body.classList.contains('admiral-demo-page--nav-open')) {
+      scheduleClose();
+    }
+  }
+
+  sidebar.addEventListener('mouseenter', function () {
+    if (!mq.matches) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+    }
+  });
+
+  sidebar.addEventListener('mouseleave', function () {
+    if (!mq.matches) scheduleClose();
+  });
+
+  document.addEventListener('mousemove', onPointerMove, { passive: true });
+
+  mq.addEventListener('change', function () {
+    clearHideTimer();
+    if (mq.matches) body.classList.remove('admiral-demo-page--nav-open');
+  });
+
+  setFlyoutOpen(false);
+})();
+
 DemoProfileDrawer.init({
   emailInputId: 'customerEmail',
   profileOpenClass: 'admiral-demo-page--profile-open',
