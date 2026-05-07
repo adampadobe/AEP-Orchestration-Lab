@@ -24,14 +24,67 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-callout {
   overflow: hidden;
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.8rem 1.15rem;
+  list-style: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--dash-hover) 0%, var(--dash-surface) 58%);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary::-webkit-details-marker {
+  display: none;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  color: var(--dash-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary-chevron {
+  display: inline-block;
+  font-size: 0.72rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-summary-chevron::before {
+  content: '\25B8';
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-callout[open] .cjv2-skill-summary-chevron {
+  transform: rotate(90deg);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-callout[open] .cjv2-skill-summary-label::after {
+  content: ' less';
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-callout:not([open]) .cjv2-skill-summary-label::after {
+  content: ' details';
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-callout-inner {
-  padding: 1rem 1.15rem;
-  background:
-    linear-gradient(
-      135deg,
-      var(--dash-hover) 0%,
-      var(--dash-surface) 58%
-    );
+  padding: 0.25rem 1.15rem 1rem;
+  border-top: 1px solid var(--dash-border);
+  background: var(--dash-surface);
 }
 
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-skill-eyebrow {

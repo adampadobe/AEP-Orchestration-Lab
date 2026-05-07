@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260507a">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260507b">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -45,10 +45,18 @@
           </div>
         </section>
 
-        <section class="cjv2-skill-callout" aria-labelledby="cjv2SkillTitle">
+        <details class="cjv2-skill-callout" aria-labelledby="cjv2SkillTitle">
+          <summary class="cjv2-skill-summary">
+            <span class="cjv2-skill-summary-left">
+              <span class="cjv2-skill-eyebrow">For Claude users</span>
+              <span id="cjv2SkillTitle" class="cjv2-skill-title">Download the Client Journey v2 skill</span>
+            </span>
+            <span class="cjv2-skill-summary-right">
+              <span class="cjv2-skill-summary-label">Show</span>
+              <span class="cjv2-skill-summary-chevron" aria-hidden="true"></span>
+            </span>
+          </summary>
           <div class="cjv2-skill-callout-inner">
-            <p class="cjv2-skill-eyebrow">For Claude users</p>
-            <h3 id="cjv2SkillTitle" class="cjv2-skill-title">Download the Client Journey v2 skill</h3>
             <p class="cjv2-skill-copy">
               One-click download of a ZIP bundle with <code>SKILL.md</code> and the full reference rule files so you can run this workflow directly in Claude.
             </p>
@@ -61,7 +69,7 @@
               </a>
             </div>
           </div>
-        </section>
+        </details>
 
         <div id="cjv2RestoreBanner" class="cjv2-restore-banner" hidden role="region" aria-label="Saved journey">
           <div class="cjv2-restore-banner-inner">
@@ -89,7 +97,7 @@
             </div>
             <div class="cjv2-import-row">
               <label class="cjv2-field cjv2-field-inline" for="sandboxSelect">
-                <span class="cjv2-label">Sandbox</span>
+                <span class="cjv2-label">Sandbox / workspace</span>
                 <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
                   <option value="">Loading sandboxes…</option>
                 </select>
@@ -318,7 +326,12 @@
     </div>
   </div>
 
+  <script src="aep-access-scope.js"></script>
   <script src="aep-global-sandbox.js"></script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260507-scope"></script>
   <script src="client-journey-asset-v2.js?v=20260505p"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
