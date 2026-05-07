@@ -57,7 +57,8 @@
   /** Sidebar: respect per-item hide (Global values); in-development items also need the per-sandbox master toggle */
   function shouldShowNavItem(item) {
     if (!isSandboxAllowedForNavItem(item)) return false;
-    if (item.navHideKey && isNavInDevHidden(item.navHideKey)) return false;
+    var hideKey = navHideKeyForItem(item);
+    if (hideKey && isNavInDevHidden(hideKey)) return false;
     if (!item.inDevelopment) return true;
     if (!isInDevCapabilitiesEnabled()) return false;
     return true;
@@ -85,7 +86,7 @@
 
   var NAV = [
     { label: 'Home', href: 'home.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
-    { label: 'Global values', href: 'global-settings.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
+    { label: 'Global values', href: 'global-settings.html?v=20260507b', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
     {
       group: 'Profiles', id: 'profiles',
       items: [
@@ -272,7 +273,7 @@
   function navItemActive(defHref, filename) {
     if (!defHref) return false;
     var parts = defHref.split('#');
-    var base = parts[0] || '';
+    var base = (parts[0] || '').split('?')[0];
     if (filename !== base) return false;
     if (parts.length >= 2 && parts[1]) {
       return (window.location.hash || '') === '#' + parts[1];
@@ -295,30 +296,52 @@
     return normalizeNavLabelText(s).replace(/\s+\(in development\)\s*$/i, '').trim();
   }
 
-  /**
-   * Flat list for Global values visibility controls.
-   * Includes only items with navHideKey since those are the keys understood by
-   * sidebar/home visibility logic.
-   */
+  function generatedNavHideKeyFromHref(href) {
+    var base = String(href || '').split('#')[0].trim();
+    if (!base || /^https?:\/\//i.test(base) || !/\.html$/i.test(base)) return '';
+    // Keep Home + Global values always available so users can recover settings.
+    if (base === 'home.html' || base === 'global-settings.html') return '';
+    return 'menu_' + base
+      .replace(/\.html$/i, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase();
+  }
+
+  function navHideKeyForItem(item) {
+    if (!item) return '';
+    return String(item.navHideKey || '').trim() || generatedNavHideKeyFromHref(item.href);
+  }
+
+  /** Flat list for Global values visibility controls (all sidebar items). */
   function getMenuVisibilityOptions() {
     var out = [];
     var seen = {};
-    NAV.forEach(function (entry) {
-      if (!entry || !Array.isArray(entry.items)) return;
-      var groupName = entry.group || '';
-      entry.items.forEach(function (item) {
-        if (!item || !item.navHideKey) return;
-        var key = String(item.navHideKey);
-        if (!key || seen[key]) return;
-        seen[key] = true;
-        out.push({
-          navHideKey: key,
-          group: groupName,
-          label: stripInDevelopmentSuffix(item.label || key),
-          inDevelopment: !!item.inDevelopment,
-          href: item.href || '',
-        });
+    function pushOption(item, groupName) {
+      if (!item) return;
+      var key = navHideKeyForItem(item);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      out.push({
+        navHideKey: key,
+        group: groupName || 'General',
+        label: stripInDevelopmentSuffix(item.label || key),
+        inDevelopment: !!item.inDevelopment,
+        href: item.href || '',
       });
+    }
+
+    NAV.forEach(function (entry) {
+      if (!entry) return;
+      if (entry.group) {
+        var groupName = entry.group || 'General';
+        (entry.items || []).forEach(function (item) { pushOption(item, groupName); });
+        (entry.subgroups || []).forEach(function (sg) {
+          (sg.items || []).forEach(function (item) { pushOption(item, groupName); });
+        });
+      } else {
+        pushOption(entry, 'General');
+      }
     });
     // Demos group visibility toggle is not a concrete NAV item, but is
     // controlled with the same hide-key mechanism.
