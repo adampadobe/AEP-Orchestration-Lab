@@ -149,10 +149,10 @@
         if (code === 'auth/user-disabled') {
           return { ok: false, pending: true, error: 'Account pending approval. You will be able to log in after approval.' };
         }
-        if (code === 'auth/user-not-found') {
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
           return { ok: false, needsSignup: true };
         }
-        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        if (code === 'auth/wrong-password') {
           return { ok: false, error: 'Incorrect email or password.' };
         }
         return { ok: false, error: String((e && e.message) || e || 'Could not sign in.') };
@@ -201,6 +201,9 @@
         adobeEmail: input.adobeEmail,
         password: input.password,
       }).then(function (signupResult) {
+        if (signupResult && signupResult.code === 'already_active') {
+          return { ok: false, error: 'Incorrect email or password.' };
+        }
         if (!signupResult.ok) return signupResult;
         return {
           ok: false,
