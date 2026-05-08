@@ -31,3 +31,6 @@ functions/version.json
 # .cursor/mcp.json are intentionally tracked — only the per-machine .claude/
 # scratch dir is excluded here)
 .claude/
+
+# Adobe IMS credentials for tools/aep-lab-adobe-mcp (copy .env.mcp.example → .env.mcp)
+tools/aep-lab-adobe-mcp/.env.mcp

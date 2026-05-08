@@ -1,0 +1,42 @@
+App Builder — sandbox list Runtime action
+==========================================
+
+Files:
+  actions/sandbox-list/index.js  → copy into your aio App Builder project under the same path (or merge).
+
+1) Create or open your App Builder app (aio app init …).
+
+2) Copy actions/sandbox-list/ into the aio project.
+
+3) Register the action in app.config.yaml (your aio template may differ). Typical fragment:
+
+   actions:
+     sandbox-list:
+       function: actions/sandbox-list/index.js
+       web: true
+       runtime: nodejs:22
+
+   (Exact YAML follows your aio CLI version — use `aio app add action` and replace the generated handler with this file’s logic if easier.)
+
+4) Set Runtime environment / aio secrets (same IMS credential pattern as Firebase):
+   ADOBE_CLIENT_ID
+   ADOBE_CLIENT_SECRET
+   ADOBE_IMS_ORG
+   ADOBE_SCOPES        (single string, space-separated scopes including sandbox / Experience Platform access)
+
+   Optional shared secret so only your Firebase proxy can call this URL:
+   SANDBOX_LIST_ACTION_KEY   (same value as Firebase SANDBOX_LIST_UPSTREAM_KEY)
+
+5) Deploy: aio app deploy
+
+6) Copy the HTTPS URL for the web action (see aio deploy output or Developer Console). Example shape:
+   https://<namespace>.adobeioruntime.net/api/v1/web/<pkg>/sandbox-list
+
+7) Firebase — set environment variables on function sandboxesProxy (Google Cloud Console → Cloud Functions → sandboxesProxy → Edit → Runtime environment variables), or your deploy pipeline:
+
+   SANDBOX_LIST_UPSTREAM_URL = <full Runtime URL from step 6>
+   SANDBOX_LIST_UPSTREAM_KEY = <same as SANDBOX_LIST_ACTION_KEY if you enabled it>
+
+   Leave SANDBOX_LIST_UPSTREAM_URL unset to keep current in-process sandbox list (no App Builder).
+
+Frontend: unchanged — still GET /api/sandboxes on Firebase Hosting.

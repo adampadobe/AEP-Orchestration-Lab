@@ -2060,6 +2060,33 @@ exports.sandboxesProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(405).json({ error: 'Method not allowed', sandboxes: [] });
     return;
   }
+
+  const upstreamUrl = String(process.env.SANDBOX_LIST_UPSTREAM_URL || '').trim();
+  const upstreamKey = String(process.env.SANDBOX_LIST_UPSTREAM_KEY || '').trim();
+  if (upstreamUrl) {
+    try {
+      /** @type {Record<string, string>} */
+      const headers = { Accept: 'application/json' };
+      if (upstreamKey) headers['X-Sandbox-List-Key'] = upstreamKey;
+      const upstream = await fetch(upstreamUrl, { method: 'GET', headers });
+      const data = await upstream.json().catch(() => ({}));
+      const sandboxes = Array.isArray(data.sandboxes) ? data.sandboxes : [];
+      if (!upstream.ok) {
+        const status = upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502;
+        res.status(status).json({
+          error: data.error || upstream.statusText || 'Upstream error',
+          sandboxes,
+        });
+        return;
+      }
+      res.status(200).json({ sandboxes });
+      return;
+    } catch (e) {
+      res.status(502).json({ error: String(e.message || e), sandboxes: [] });
+      return;
+    }
+  }
+
   let accessToken;
   try {
     accessToken = await getAdobeAccessToken();
