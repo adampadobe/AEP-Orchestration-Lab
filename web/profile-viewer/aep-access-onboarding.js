@@ -3,6 +3,7 @@
 
   var OVERLAY_ID = 'aepAccessOnboardingOverlay';
   var FORCE_QUERY = /(?:^|[?&])accessSetup=1(?:&|$)/;
+  var FORCE_ONBOARDING_FLAG = 'aepAccessForceOnboarding';
 
   function injectStyles() {
     if (document.getElementById('aepAccessOnboardingStyle')) return;
@@ -69,11 +70,22 @@
   }
 
   function shouldForceOpen() {
+    var fromQuery = false;
     try {
-      return FORCE_QUERY.test(String(global.location.search || ''));
+      fromQuery = FORCE_QUERY.test(String(global.location.search || ''));
     } catch (_e) {
+      fromQuery = false;
+    }
+    if (fromQuery) return true;
+    try {
+      return localStorage.getItem(FORCE_ONBOARDING_FLAG) === '1';
+    } catch (_e2) {
       return false;
     }
+  }
+
+  function clearForceOpenFlag() {
+    try { localStorage.removeItem(FORCE_ONBOARDING_FLAG); } catch (_e) {}
   }
 
   function workspaceSlugFromProfile(scope, email, firstName, lastName) {
@@ -98,6 +110,15 @@
   function selectedMode() {
     var workspace = document.getElementById('aepAccessOnbWorkspace');
     return workspace && workspace.checked ? 'workspace' : 'sandbox';
+  }
+
+  function selectWorkspaceMode() {
+    var sandboxRadio = document.getElementById('aepAccessOnbSandbox');
+    var workspaceRadio = document.getElementById('aepAccessOnbWorkspace');
+    if (!workspaceRadio || !sandboxRadio) return;
+    workspaceRadio.checked = true;
+    sandboxRadio.checked = false;
+    setWorkspaceFormVisible(true);
   }
 
   function validateWorkspaceInput() {
@@ -341,8 +362,19 @@
     refreshSummary();
 
     var needsSetup = !global.AepAccessScope.hasExplicitMode();
-    if (needsSetup || shouldForceOpen()) show();
+    if (needsSetup || shouldForceOpen()) {
+      clearForceOpenFlag();
+      show();
+    }
     global.addEventListener('aep-access-scope-change', refreshSummary);
+    global.addEventListener('aep-access-forced-logout', function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      if (!detail.requireOnboarding) return;
+      clearForceOpenFlag();
+      show();
+      selectWorkspaceMode();
+      setMsg('Your no-sandbox account is no longer active. Sign up again to continue.', 'err');
+    });
   }
 
   global.AepAccessOnboarding = {

@@ -86,6 +86,13 @@
     dispatchChange();
   }
 
+  function resetWorkspaceAccess() {
+    safeRemove(LS_WORKSPACE_NAME);
+    safeRemove(LS_WORKSPACE_SLUG);
+    safeSet(LS_MODE, MODE_SANDBOX);
+    dispatchChange();
+  }
+
   function getSandboxNameFromStorage() {
     return String(safeGet('aepGlobalSandboxName') || '').trim();
   }
@@ -147,6 +154,7 @@
     getWorkspaceSlug: getWorkspaceSlug,
     setWorkspaceName: setWorkspaceName,
     setWorkspaceSlug: setWorkspaceSlug,
+    resetWorkspaceAccess: resetWorkspaceAccess,
     toSlug: toSlug,
     getScope: getScope,
     buildScopeQuery: buildScopeQuery,

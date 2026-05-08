@@ -26,6 +26,22 @@
   var pushTimer = null;
   var lastKnownScopeId = null;
   var authStarted = false;
+  var authMonitorStarted = false;
+  var tokenHealthTimer = null;
+  var forcedLogoutInProgress = false;
+  var FORCED_LOGOUT_EVENT = 'aep-access-forced-logout';
+  var FORCE_ONBOARDING_FLAG = 'aepAccessForceOnboarding';
+  var AUTH_POLL_MS = 60000;
+
+  var AUTH_SESSION_ERROR_CODES = {
+    'auth/invalid-user-token': true,
+    'auth/user-token-expired': true,
+    'auth/user-disabled': true,
+    'auth/user-not-found': true,
+    'auth/invalid-credential': true,
+    'auth/id-token-expired': true,
+    'auth/id-token-revoked': true,
+  };
 
   function getScope() {
     if (typeof AepAccessScope !== 'undefined' && AepAccessScope.getScope) {
@@ -106,10 +122,130 @@
         .then(function (t) {
           resolve(t ? { Authorization: 'Bearer ' + t } : {});
         })
-        .catch(function () {
+        .catch(function (error) {
+          handleAuthFailure(error, { source: 'get-auth-headers' });
           resolve({});
         });
     });
+  }
+
+  function getErrorCode(error) {
+    return String((error && error.code) || '').trim();
+  }
+
+  function extractApiErrorCode(payload) {
+    var direct = String((payload && payload.code) || '').trim();
+    if (direct) return direct;
+    return String((payload && payload.errorCode) || '').trim();
+  }
+
+  function isAuthSessionErrorCode(code) {
+    var normalized = String(code || '').trim();
+    if (!normalized) return false;
+    if (AUTH_SESSION_ERROR_CODES[normalized]) return true;
+    if (normalized.indexOf('auth/') === 0 && normalized.indexOf('token') >= 0) return true;
+    return false;
+  }
+
+  function isAuthApiFailure(status, payload) {
+    if (!(status === 401 || status === 403)) return false;
+    var code = extractApiErrorCode(payload);
+    if (isAuthSessionErrorCode(code)) return true;
+    var errorText = String((payload && payload.error) || '').toLowerCase();
+    return errorText.indexOf('token') >= 0 || errorText.indexOf('user disabled') >= 0 || errorText.indexOf('user not found') >= 0;
+  }
+
+  function clearWorkspaceIndicators() {
+    if (typeof AepAccessScope !== 'undefined' && AepAccessScope && typeof AepAccessScope.resetWorkspaceAccess === 'function') {
+      AepAccessScope.resetWorkspaceAccess();
+      return;
+    }
+    try { localStorage.removeItem('aepWorkspaceName'); } catch (_e1) {}
+    try { localStorage.removeItem('aepWorkspaceSlug'); } catch (_e2) {}
+    try { localStorage.setItem('aepAccessMode', 'sandbox'); } catch (_e3) {}
+  }
+
+  function markOnboardingRequired() {
+    try { localStorage.setItem(FORCE_ONBOARDING_FLAG, '1'); } catch (_e) {}
+  }
+
+  function redirectToOnboardingIfNeeded() {
+    try {
+      var pathname = String((global.location && global.location.pathname) || '');
+      var isHome = /\/home\.html$/i.test(pathname);
+      if (!isHome) {
+        global.location.assign('home.html?accessSetup=1&forcedLogout=1');
+      }
+    } catch (_e) {}
+  }
+
+  function forceLogout(detail) {
+    if (forcedLogoutInProgress) return Promise.resolve();
+    forcedLogoutInProgress = true;
+    clearTimeout(pushTimer);
+    lastKnownScopeId = null;
+    var currentScope = getScope();
+    var shouldRequireOnboarding = currentScope && currentScope.scopeType === 'workspace';
+    if (shouldRequireOnboarding) {
+      clearWorkspaceIndicators();
+      markOnboardingRequired();
+    }
+    try {
+      global.dispatchEvent(new CustomEvent(FORCED_LOGOUT_EVENT, {
+        detail: Object.assign({
+          reason: 'firebase-session-invalid',
+          requireOnboarding: !!shouldRequireOnboarding,
+        }, detail || {}),
+      }));
+    } catch (_eventError) {}
+    if (!ensureFirebase() || typeof firebase.auth !== 'function') {
+      if (shouldRequireOnboarding) redirectToOnboardingIfNeeded();
+      forcedLogoutInProgress = false;
+      return Promise.resolve();
+    }
+    return firebase.auth().signOut()
+      .catch(function () {})
+      .then(function () {
+        if (shouldRequireOnboarding) {
+          redirectToOnboardingIfNeeded();
+          return null;
+        }
+        return firebase.auth().signInAnonymously().catch(function () {
+          return null;
+        });
+      })
+      .finally(function () {
+        forcedLogoutInProgress = false;
+      });
+  }
+
+  function handleAuthFailure(error, detail) {
+    var code = getErrorCode(error);
+    if (!isAuthSessionErrorCode(code)) return;
+    forceLogout(Object.assign({
+      code: code,
+      source: 'firebase-auth',
+      message: String((error && error.message) || ''),
+    }, detail || {}));
+  }
+
+  function monitorActiveSession(auth) {
+    if (authMonitorStarted || !auth) return;
+    authMonitorStarted = true;
+    auth.onIdTokenChanged(function (user) {
+      if (!user || forcedLogoutInProgress) return;
+      user.getIdToken(true).catch(function (error) {
+        handleAuthFailure(error, { source: 'id-token-change' });
+      });
+    });
+    tokenHealthTimer = global.setInterval(function () {
+      if (forcedLogoutInProgress) return;
+      var user = auth.currentUser;
+      if (!user) return;
+      user.getIdToken(true).catch(function (error) {
+        handleAuthFailure(error, { source: 'auth-health-poll' });
+      });
+    }, AUTH_POLL_MS);
   }
 
   function pushReplaceForScope(scope) {
@@ -127,6 +263,21 @@
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
         body: JSON.stringify(body),
+      }).then(function (res) {
+        if (res.ok) return res;
+        return res.json()
+          .catch(function () { return {}; })
+          .then(function (payload) {
+            if (isAuthApiFailure(res.status, payload)) {
+              return forceLogout({
+                source: 'sandbox-state-push',
+                code: extractApiErrorCode(payload),
+                message: String((payload && payload.error) || ''),
+                status: res.status,
+              });
+            }
+            return null;
+          });
       });
     });
   }
@@ -145,9 +296,24 @@
         headers: headers,
       })
         .then(function (res) {
-          return res.json();
+          return res.json().catch(function () { return {}; }).then(function (payload) {
+            return { status: res.status, ok: res.ok, payload: payload || {} };
+          });
         })
-        .then(function (data) {
+        .then(function (resp) {
+          if (!resp) return;
+          if (!resp.ok) {
+            if (isAuthApiFailure(resp.status, resp.payload)) {
+              return forceLogout({
+                source: 'sandbox-state-pull',
+                code: extractApiErrorCode(resp.payload),
+                message: String((resp.payload && resp.payload.error) || ''),
+                status: resp.status,
+              });
+            }
+            return;
+          }
+          var data = resp.payload;
           if (data && data.ok) applyKeys(data.keys || {});
         })
         .catch(function () {});
@@ -155,6 +321,7 @@
   }
 
   function schedulePush() {
+    if (forcedLogoutInProgress) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () {
       var scope = getScope();
@@ -164,6 +331,7 @@
   }
 
   function onGlobalSandboxChange() {
+    if (forcedLogoutInProgress) return;
     var next = getScope();
     var prev = lastKnownScopeId;
     var nextId = next && next.scopeType ? (next.scopeType + ':' + next.scopeId) : '';
@@ -190,8 +358,10 @@
     authStarted = true;
     if (!ensureFirebase()) return Promise.resolve(null);
     var auth = firebase.auth();
+    monitorActiveSession(auth);
     if (auth.currentUser) return Promise.resolve(auth.currentUser);
-    return auth.signInAnonymously().catch(function () {
+    return auth.signInAnonymously().catch(function (error) {
+      handleAuthFailure(error, { source: 'sign-in-anonymous' });
       return null;
     });
   }
