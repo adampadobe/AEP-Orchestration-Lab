@@ -1754,6 +1754,40 @@
   /** Sync 200 returned before GET payload was fully merged — blocks submit `finally` from re-enabling the button early. */
   let analyzeAwaitingDetailHydrate = false;
 
+  function focusScrapeCard(scrapeId, opts) {
+    opts = opts || {};
+    const allowFallbackActive = !!opts.allowFallbackActive;
+    if (!historyListEl) return false;
+    let target = scrapeId
+      ? historyListEl.querySelector('[data-scrape-id="' + scrapeId.replace(/"/g, '\\"') + '"]')
+      : null;
+    if (!target && allowFallbackActive) {
+      const cards = Array.from(historyListEl.querySelectorAll('[data-scrape-id]'));
+      target = cards.find(function (el) {
+        const id = el.getAttribute('data-scrape-id');
+        const row = historyItemsCache.find(function (x) { return x.scrapeId === id; });
+        return rowIndicatesActiveScrape(row);
+      }) || null;
+    }
+    if (!target) return false;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('is-selected');
+    setTimeout(function () { target.classList.remove('is-selected'); }, 1500);
+    return true;
+  }
+
+  async function fetchScrapeDetail(scrapeId) {
+    if (!scrapeId) return null;
+    try {
+      const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(() => null);
+      return data && typeof data === 'object' ? data : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+
   function stopScrapePoll() {
     if (scrapePollTimer) {
       clearTimeout(scrapePollTimer);
@@ -1784,41 +1818,54 @@
     const onPartial = opts.onPartial;
     const progressPhases = opts.progressPhases;
 
-    function scheduleNext() {
+    async function scheduleNext() {
       ticks += 1;
-      loadHistory({ quiet: true }).then(function () {
-        const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
-        const st = row && row.scrapeStatus;
-        const bp = row && row.buildPhase ? String(row.buildPhase) : '';
-        if (!row && ticks < 10) {
-          scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
-          return;
-        }
-        if (progressPhases) {
-          if (st === 'running' && !bp) {
-            setProgressPhaseBoth(progressPhases[0] || 'Crawling pages…');
-          } else if (bp === 'crawl') {
-            setProgressPhaseBoth('Crawl saved — generating brand core…');
-          } else if (bp === 'brand') {
-            setProgressPhaseBoth('Brand core saved — personas & campaigns…');
-          } else if (bp === 'audiences') {
-            setProgressPhaseBoth('Audiences saved — segments & industry…');
-          } else if (st === 'crawl_complete') {
-            setProgressPhaseBoth(progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…');
+      await loadHistory({ quiet: true });
+      let row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; }) || null;
+      if (!row) {
+        // Row can be briefly absent from list reads; probe detail endpoint before giving up.
+        const detail = await fetchScrapeDetail(expectedId);
+        if (detail && typeof detail === 'object') {
+          row = detail;
+          if (ticks <= 3 || ticks % 5 === 0) {
+            renderResults(Object.assign({}, detail, { crawl: detail.crawlSummary }));
           }
+        } else if (ticks <= 3 || ticks % 4 === 0) {
+          // Keep viewport anchored on history cards while we wait for row visibility.
+          focusScrapeCard(expectedId, { allowFallbackActive: true });
         }
-        const stillActive = rowIndicatesActiveScrape(row);
-        if (onPartial && row && stillActive && bp && bp !== lastBuildPhase && bp !== 'complete') {
-          lastBuildPhase = bp;
-          onPartial(row, bp);
+      }
+      const st = row && row.scrapeStatus;
+      const bp = row && row.buildPhase ? String(row.buildPhase) : '';
+      if (progressPhases) {
+        if (st === 'running' && !bp) {
+          setProgressPhaseBoth(progressPhases[0] || 'Crawling pages…');
+        } else if (bp === 'crawl') {
+          setProgressPhaseBoth('Crawl saved — generating brand core…');
+        } else if (bp === 'brand') {
+          setProgressPhaseBoth('Brand core saved — personas & campaigns…');
+        } else if (bp === 'audiences') {
+          setProgressPhaseBoth('Audiences saved — segments & industry…');
+        } else if (st === 'crawl_complete') {
+          setProgressPhaseBoth(progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…');
         }
-        if (row && stillActive && ticks < maxTicks) {
-          scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
-          return;
-        }
-        scrapePollTimer = null;
-        if (onTerminal) onTerminal(row, st, ticks >= maxTicks || !row);
-      });
+      }
+      const stillActive = rowIndicatesActiveScrape(row);
+      if (onPartial && row && stillActive && bp && bp !== lastBuildPhase && bp !== 'complete') {
+        lastBuildPhase = bp;
+        onPartial(row, bp);
+      }
+      if (stillActive && ticks < maxTicks) {
+        scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
+        return;
+      }
+      // If row is still missing, keep polling until timeout (don't fail early on transient list gaps).
+      if (!row && ticks < maxTicks) {
+        scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
+        return;
+      }
+      scrapePollTimer = null;
+      if (onTerminal) onTerminal(row, st, ticks >= maxTicks);
     }
     scrapePollTimer = setTimeout(scheduleNext, 900);
   }
@@ -2345,7 +2392,9 @@
             : 'Scrape accepted — crawl and analysis are running in the background. Watch the history row for status.',
           'info',
         );
-        loadHistory();
+        loadHistory().then(function () {
+          focusScrapeCard(pendingAsyncScrapeId, { allowFallbackActive: true });
+        });
         startScrapePoll(pendingAsyncScrapeId, {
           progressPhases: phases,
           onPartial: function (row) {
@@ -2360,10 +2409,17 @@
               .catch(function () { /* ignore */ });
           },
           onTerminal: function (row, st, timedOut) {
+            if (!row && !timedOut) {
+              loadHistory({ quiet: true }).then(function () {
+                focusScrapeCard(pendingAsyncScrapeId, { allowFallbackActive: true });
+              });
+              setStatus('Syncing scrape card… auto-scrolling to recent scrapes so you can watch progress.', 'info');
+              return;
+            }
             if (timedOut || !row) {
               pendingAsyncScrapeId = null;
               if (runBtn) runBtn.disabled = false;
-              setStatus('Stopped watching this scrape (timeout or row missing). Refresh the history list.', 'info');
+              setStatus('Stopped watching this scrape after the timeout window. Auto-refresh the history list and retry if it still looks stuck.', 'info');
               stopProgress();
               return;
             }
