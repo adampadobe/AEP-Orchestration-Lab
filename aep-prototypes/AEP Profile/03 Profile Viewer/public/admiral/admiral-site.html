@@ -52,7 +52,12 @@
       position: fixed; left: 0; top: 0; bottom: 0; z-index: 200;
       display: flex; flex-direction: column; overflow-y: auto;
     }
-    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; }
+    .sidebar-logo:hover { opacity: 0.75; }
+    .topbar-logo { cursor: pointer; transition: opacity 0.2s; }
+    .topbar-logo:hover { opacity: 0.75; }
+    .sidebar-footer { cursor: pointer; transition: background 0.2s; }
+    .sidebar-footer:hover { background: var(--surface-2); }
     .sidebar-nav {
       flex: 1; padding: 12px 10px;
       display: flex; flex-direction: column; gap: 2px;
@@ -957,6 +962,668 @@
     .cc-score-delta { font-size: 12px; font-weight: 700; color: var(--success); }
     .cc-badges { display: flex; gap: 6px; flex-wrap: wrap; }
 
+    /* ── Dashboard reward offer ──────────────────────────────── */
+    .offer-row {
+      position: relative; overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 0;
+      margin-top: 28px; margin-bottom: 8px;
+      background: var(--surface);
+      border: 1.5px solid var(--brand);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 18px rgba(35,80,160,0.08);
+    }
+    .offer-row::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #FFC72C 0%, #FF6900 100%);
+      z-index: 1;
+    }
+    .offer-highlight {
+      padding: 22px 24px;
+      border-right: 1px solid var(--border);
+    }
+    .offer-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--brand); color: #fff;
+      padding: 4px 10px; border-radius: 100px;
+      font-size: 10.5px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .offer-tag .material-symbols-outlined {
+      font-size: 13px; font-variation-settings: 'FILL' 1;
+    }
+    .offer-brands {
+      display: flex; gap: 6px; margin-top: 14px;
+    }
+    .offer-title {
+      font-size: 18px; font-weight: 800;
+      color: var(--text-primary); margin-top: 11px;
+      letter-spacing: -0.3px; line-height: 1.25;
+    }
+    .offer-desc {
+      font-size: 13.5px; color: var(--text-secondary);
+      margin-top: 6px; line-height: 1.5;
+    }
+    .offer-perks {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 14px;
+    }
+    .offer-perk {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-primary);
+    }
+    .offer-perk .material-symbols-outlined {
+      font-size: 17px; color: var(--success);
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
+    .offer-actions {
+      display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap;
+    }
+    .offer-claim {
+      padding: 10px 18px; background: var(--brand); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      font-size: 13.5px; font-weight: 700; cursor: pointer;
+      transition: var(--transition); font-family: var(--font);
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .offer-claim:hover { background: #1a3d80; }
+    .offer-claim .material-symbols-outlined { font-size: 16px; }
+    .offer-claim.claimed {
+      background: var(--success-light); color: var(--success); cursor: default;
+    }
+    .offer-claim.claimed:hover { background: var(--success-light); }
+    .offer-secondary {
+      padding: 10px 18px; background: transparent;
+      color: var(--text-secondary); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: var(--font); transition: var(--transition);
+    }
+    .offer-secondary:hover { background: var(--surface-2); color: var(--text-primary); border-color: #ccc; }
+
+    .offer-next {
+      background: var(--surface-2);
+      padding: 22px 22px;
+      display: flex; flex-direction: column;
+      position: relative;
+    }
+    .offer-next-label {
+      font-size: 10.5px; font-weight: 800;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.7px; margin-bottom: 10px;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .offer-next-label .material-symbols-outlined { font-size: 13px; }
+    .offer-next-progress {
+      display: flex; align-items: baseline; gap: 6px;
+      margin-bottom: 12px;
+    }
+    .offer-next-points {
+      font-size: 36px; font-weight: 900;
+      color: var(--brand); letter-spacing: -1.5px; line-height: 1;
+    }
+    .offer-next-meta {
+      font-size: 12.5px; color: var(--text-secondary); font-weight: 600;
+    }
+    .offer-next-title {
+      font-size: 14.5px; font-weight: 700;
+      color: var(--text-primary); line-height: 1.3;
+    }
+    .offer-next-sub {
+      font-size: 12px; color: var(--text-secondary);
+      margin-top: 4px; margin-bottom: 14px;
+    }
+    .offer-next-bar {
+      margin-top: auto; height: 6px;
+      background: #e0e3ea; border-radius: 100px; overflow: hidden;
+    }
+    .offer-next-bar-fill {
+      height: 100%; width: 0;
+      background: linear-gradient(90deg, var(--brand) 0%, var(--brand-mid) 100%);
+      border-radius: 100px;
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    @media (max-width: 720px) {
+      .offer-row { grid-template-columns: 1fr; }
+      .offer-highlight { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+
+    /* ── Generic page layout (Claims, Payments, Policies, Support, Profile) ──── */
+    .page-head { margin-bottom: 22px; }
+    .page-h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); }
+    .page-sub { font-size: 14px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; max-width: 600px; }
+
+    .pg-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .pg-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 14px;
+    }
+    .pg-card-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-secondary);
+    }
+    .pg-card-h2 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .pg-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .pg-grid-2 { grid-template-columns: 1fr; } }
+
+    /* Claims */
+    .empty-state {
+      text-align: center; padding: 40px 24px;
+    }
+    .empty-state-icon {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: var(--brand-light); color: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .empty-state-icon .material-symbols-outlined {
+      font-size: 34px; font-variation-settings: 'FILL' 1;
+    }
+    .empty-state h3 { font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; color: var(--text-secondary); max-width: 360px; margin: 0 auto 20px; line-height: 1.5; }
+    .pg-cta {
+      padding: 11px 22px; background: var(--brand); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 700; font-family: var(--font);
+      cursor: pointer; transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .pg-cta:hover { background: #1a3d80; }
+    .pg-cta.outlined {
+      background: var(--surface); color: var(--brand);
+      border: 1.5px solid var(--brand);
+    }
+    .pg-cta.outlined:hover { background: var(--brand-light); }
+
+    .claim-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto auto;
+      gap: 14px; align-items: center;
+      padding: 14px 16px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); margin-bottom: 8px;
+    }
+    .claim-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .claim-icon.closed { background: var(--success-light); color: var(--success); }
+    .claim-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .claim-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .claim-status {
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 100px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .claim-status.closed { background: var(--success-light); color: var(--success); }
+    .claim-amount { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+
+    /* Payments */
+    .pay-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 720px) { .pay-stat-grid { grid-template-columns: 1fr; } }
+    .pay-stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .pay-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin-bottom: 8px; }
+    .pay-stat-value { font-size: 24px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.8px; }
+    .pay-stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+    .pay-method {
+      display: grid; grid-template-columns: 56px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 14px 16px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .pay-method-card {
+      width: 56px; height: 36px; border-radius: 6px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #2350a0 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+    }
+    .pay-method-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .pay-method-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    .pay-history-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto auto;
+      gap: 14px; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .pay-history-row:last-child { border-bottom: none; }
+    .pay-history-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--success-light); color: var(--success);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pay-history-icon .material-symbols-outlined { font-size: 18px; font-variation-settings: 'FILL' 1; }
+    .pay-history-date { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .pay-history-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .pay-history-status { font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.4px; }
+    .pay-history-amount { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+
+    /* Policies */
+    .doc-row {
+      display: grid;
+      grid-template-columns: 40px 1fr auto auto;
+      gap: 14px; align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      transition: var(--transition);
+    }
+    .doc-row:hover { border-color: var(--brand-mid); background: #f5f8ff; }
+    .doc-icon {
+      width: 32px; height: 36px;
+      background: #DC2626; color: #fff;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800;
+    }
+    .doc-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .doc-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .doc-size { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .doc-download {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); font-family: var(--font);
+    }
+    .doc-download:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-light); }
+    .doc-download .material-symbols-outlined { font-size: 18px; }
+
+    .pol-dropzone {
+      background: linear-gradient(135deg, #2D6DF0 0%, #7C3AED 52%, #C026D3 100%);
+      border: none; border-radius: var(--radius);
+      padding: 28px 24px; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      color: #fff; cursor: pointer; transition: var(--transition);
+      box-shadow: 0 4px 18px rgba(124,58,237,0.15);
+    }
+    .pol-dropzone:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .pol-dropzone.ob-dropzone-active {
+      filter: brightness(1.1); transform: scale(1.01);
+      box-shadow: 0 8px 28px rgba(124,58,237,0.3),
+                  inset 0 0 0 3px rgba(255,255,255,0.6);
+    }
+    .pol-dropzone .material-symbols-outlined {
+      font-size: 32px;
+      font-variation-settings: 'FILL' 0, 'wght' 200;
+    }
+    .pol-dropzone-text strong { display: block; font-size: 15px; font-weight: 800; }
+    .pol-dropzone-text span { font-size: 13px; opacity: 0.85; }
+
+    /* Support */
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+    @media (max-width: 720px) { .support-grid { grid-template-columns: 1fr; } }
+    .support-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 20px;
+      text-align: center; cursor: pointer; transition: var(--transition);
+    }
+    .support-card:hover { border-color: var(--brand-mid); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .support-card-icon {
+      width: 50px; height: 50px; border-radius: 50%;
+      background: var(--brand-light); color: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+    .support-card-icon .material-symbols-outlined { font-size: 26px; font-variation-settings: 'FILL' 1; }
+    .support-card-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .support-card-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .support-card-cta { font-size: 13px; font-weight: 700; color: var(--brand); }
+
+    .faq-row {
+      padding: 16px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: var(--transition);
+    }
+    .faq-row:last-child { border-bottom: none; }
+    .faq-q {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; font-size: 14px; font-weight: 600; color: var(--text-primary);
+    }
+    .faq-q .material-symbols-outlined { color: var(--text-muted); transition: var(--transition); }
+    .faq-row.open .faq-q .material-symbols-outlined { transform: rotate(180deg); color: var(--brand); }
+    .faq-a {
+      max-height: 0; overflow: hidden; transition: max-height 0.3s, padding 0.3s;
+      font-size: 13.5px; color: var(--text-secondary); line-height: 1.55;
+    }
+    .faq-row.open .faq-a { max-height: 200px; padding-top: 10px; }
+
+    /* Profile */
+    .prof-hero {
+      display: flex; align-items: center; gap: 18px;
+      padding: 22px 24px;
+      background: linear-gradient(135deg, #0f2155 0%, #2350a0 60%, #3b6ec4 100%);
+      color: #fff; border-radius: var(--radius-lg);
+      margin-bottom: 18px; box-shadow: var(--shadow-lg);
+      position: relative; overflow: hidden;
+    }
+    .prof-hero::after {
+      content: ''; position: absolute; right: -50px; top: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: rgba(255,255,255,0.05); pointer-events: none;
+    }
+    .prof-avatar-lg {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: linear-gradient(135deg, #ffd86f 0%, #fb7e2f 100%);
+      color: #4a1b00; font-size: 24px; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; position: relative;
+    }
+    .prof-name { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; position: relative; }
+    .prof-meta { font-size: 13px; opacity: 0.85; margin-top: 4px; position: relative; }
+    .prof-tier { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: rgba(255,255,255,0.18); border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; position: relative; }
+    .prof-tier .material-symbols-outlined { font-size: 12px; font-variation-settings: 'FILL' 1; }
+
+    .prof-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .prof-row:last-child { border-bottom: none; }
+    .prof-row-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+    .prof-row-value { font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .prof-row-edit {
+      background: none; border: none; color: var(--brand);
+      font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font);
+      padding: 4px 6px;
+    }
+    .prof-row-edit:hover { text-decoration: underline; }
+
+    .prof-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; border-bottom: 1px solid var(--border); gap: 16px;
+    }
+    .prof-toggle:last-child { border-bottom: none; }
+    .prof-toggle-text { flex: 1; }
+    .prof-toggle-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .prof-toggle-desc { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+    .prof-switch {
+      position: relative; width: 42px; height: 24px;
+      background: var(--border); border-radius: 100px;
+      cursor: pointer; transition: var(--transition); flex-shrink: 0;
+    }
+    .prof-switch::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; transition: var(--transition);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .prof-switch.on { background: var(--brand); }
+    .prof-switch.on::after { left: 20px; }
+
+    /* ── Rewards page ───────────────────────────────────────── */
+    .rewards-header { margin-bottom: 22px; }
+    .rewards-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); }
+    .rewards-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; max-width: 600px; }
+
+    .rewards-tabs {
+      display: flex; gap: 6px; padding: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 100px; margin-bottom: 22px;
+      width: fit-content; max-width: 100%; overflow-x: auto;
+    }
+    .rewards-tab {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: 100px; border: none;
+      background: transparent; color: var(--text-secondary);
+      font-size: 13px; font-weight: 600; font-family: var(--font);
+      cursor: pointer; transition: var(--transition); white-space: nowrap;
+    }
+    .rewards-tab .material-symbols-outlined { font-size: 18px; }
+    .rewards-tab:hover:not(.active) { background: var(--surface-2); color: var(--text-primary); }
+    .rewards-tab.active { background: var(--brand); color: #fff; box-shadow: 0 2px 6px rgba(35,80,160,0.18); }
+
+    .rewards-progress-card {
+      display: flex; align-items: center; gap: 24px;
+      padding: 22px 26px;
+      background: linear-gradient(135deg, #0f2155 0%, #2350a0 60%, #3b6ec4 100%);
+      color: #fff; border-radius: var(--radius-lg);
+      margin-bottom: 28px; box-shadow: var(--shadow-lg);
+      position: relative; overflow: hidden;
+    }
+    .rewards-progress-card::after {
+      content: ''; position: absolute; right: -50px; top: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: rgba(255,255,255,0.05); pointer-events: none;
+    }
+    .rp-current { display: flex; align-items: center; gap: 16px; position: relative; }
+    .rp-ring { width: 78px; height: 78px; flex-shrink: 0; }
+    .rp-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.75; font-weight: 600; }
+    .rp-value { font-size: 30px; font-weight: 900; line-height: 1; margin-top: 4px; letter-spacing: -1px; }
+    .rp-value span { font-size: 15px; opacity: 0.55; font-weight: 600; margin-left: 1px; }
+    .rp-stats { display: flex; gap: 0; margin-left: auto; position: relative; }
+    .rp-stat { padding: 0 22px; text-align: center; border-left: 1px solid rgba(255,255,255,0.18); }
+    .rp-stat:first-child { border-left: none; }
+    .rp-stat-value { font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+    .rp-stat-label { font-size: 11px; opacity: 0.8; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+
+    /* Timeline */
+    .rewards-timeline { position: relative; padding-left: 0; }
+    .rewards-timeline::before {
+      content: ''; position: absolute;
+      left: 27px; top: 28px; bottom: 28px;
+      width: 2px; background: var(--border); z-index: 0;
+    }
+    .reward-item {
+      position: relative; display: flex; gap: 18px;
+      padding: 7px 0; align-items: stretch;
+    }
+    .reward-marker {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: var(--text-secondary);
+      flex-shrink: 0; position: relative; z-index: 1;
+      transition: var(--transition);
+    }
+    .reward-item.claimed .reward-marker {
+      background: var(--success); border-color: var(--success); color: #fff;
+    }
+    .reward-item.available .reward-marker {
+      background: var(--brand); border-color: var(--brand); color: #fff;
+      box-shadow: 0 0 0 5px var(--brand-light);
+    }
+    .reward-item.locked .reward-marker {
+      background: var(--surface-2); border-color: var(--border);
+      color: var(--text-muted); opacity: 0.7;
+    }
+    .reward-item.signature .reward-marker {
+      background: linear-gradient(135deg, #FFD86F 0%, #FB7E2F 100%);
+      border-color: #FFD86F; color: #4A1B00;
+      box-shadow: 0 0 0 5px rgba(255,170,0,0.2);
+      font-size: 13px;
+    }
+    .reward-item.youarehere .reward-marker::after {
+      content: 'YOU'; position: absolute; bottom: -22px; left: 50%;
+      transform: translateX(-50%); font-size: 9px; font-weight: 800;
+      letter-spacing: 0.6px; color: var(--brand);
+      background: var(--brand-light); padding: 2px 6px; border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    .reward-card {
+      flex: 1; display: flex; align-items: center; gap: 16px;
+      padding: 14px 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); transition: var(--transition);
+    }
+    .reward-item.available .reward-card {
+      border-color: rgba(35,80,160,0.4);
+      box-shadow: 0 2px 10px rgba(35,80,160,0.06);
+    }
+    .reward-item.locked .reward-card {
+      background: var(--surface-2); opacity: 0.65;
+    }
+    .reward-item.signature .reward-card {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #2350a0 100%);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 6px 24px rgba(15,33,85,0.25);
+    }
+
+    .reward-content { flex: 1; min-width: 0; }
+    .reward-title { font-size: 14.5px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+    .reward-desc { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.45; }
+    .reward-item.signature .reward-title { color: #fff; font-size: 16px; }
+    .reward-item.signature .reward-desc { color: rgba(255,255,255,0.78); }
+    .reward-brands { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+
+    .reward-btn {
+      padding: 9px 16px; border-radius: var(--radius-sm); border: none;
+      font-size: 13px; font-weight: 700; font-family: var(--font);
+      cursor: pointer; transition: var(--transition); white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    }
+    .reward-btn .material-symbols-outlined { font-size: 16px; }
+    .reward-btn.btn-available { background: var(--brand); color: #fff; }
+    .reward-btn.btn-available:hover { background: #1a3d80; }
+    .reward-btn.btn-claimed {
+      background: var(--success-light); color: var(--success); cursor: default;
+    }
+    .reward-btn.btn-locked {
+      background: transparent; color: var(--text-muted); cursor: not-allowed;
+      border: 1px solid var(--border);
+    }
+    .reward-btn.btn-locked .material-symbols-outlined { font-size: 14px; }
+    .reward-item.signature .reward-btn.btn-locked {
+      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    /* Brand chips — colored badges with brand name */
+    .brand-chip {
+      display: inline-flex; align-items: center;
+      padding: 3px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.4px;
+      text-transform: uppercase; line-height: 1.2;
+      white-space: nowrap;
+    }
+    .brand-chip.kwikfit  { background: #FFD500; color: #d62027; }
+    .brand-chip.rac      { background: #FF6900; color: #fff; }
+    .brand-chip.halfords { background: #ED2126; color: #fff; }
+    .brand-chip.aa       { background: #FFC72C; color: #000; }
+    .brand-chip.imo      { background: #003c7e; color: #fff; }
+    .brand-chip.nextbase { background: #1A1A1A; color: #fff; }
+    .brand-chip.holiday-extras { background: #1d3461; color: #fab60a; }
+    .brand-chip.admiral  { background: #fff; color: #0045A0; border: 1px solid #0045A0; }
+
+    /* Coming soon */
+    .rewards-coming-soon {
+      text-align: center; padding: 70px 24px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1.5px dashed var(--border);
+    }
+    .rewards-coming-soon-icon {
+      width: 78px; height: 78px; border-radius: 50%;
+      background: var(--brand-light); color: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .rewards-coming-soon-icon .material-symbols-outlined {
+      font-size: 38px;
+      font-variation-settings: 'FILL' 1, 'wght' 500;
+    }
+    .rewards-coming-soon h2 {
+      font-size: 22px; font-weight: 800; color: var(--text-primary);
+      margin-bottom: 8px; letter-spacing: -0.3px;
+    }
+    .rewards-coming-soon p {
+      font-size: 14px; color: var(--text-secondary);
+      max-width: 380px; margin: 0 auto; line-height: 1.55;
+    }
+    .rewards-coming-soon-pill {
+      display: inline-block; margin-top: 18px;
+      background: var(--brand-light); color: var(--brand);
+      padding: 6px 14px; border-radius: 100px;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Recommendations card — sits between unlocked and locked rewards */
+    .reward-item.recommend .reward-marker {
+      background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+      border-color: #FBBF24; color: #fff;
+      box-shadow: 0 0 0 5px rgba(251,191,36,0.18);
+    }
+    .reward-item.recommend .reward-marker .material-symbols-outlined {
+      font-size: 24px;
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
+    .reward-item.recommend .reward-card {
+      flex-direction: column; align-items: stretch; gap: 14px;
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+      border: 1.5px solid rgba(245,158,11,0.35);
+      padding: 18px 20px;
+    }
+    .recommend-header { display: flex; flex-direction: column; }
+    .recommend-title {
+      font-size: 15px; font-weight: 800;
+      color: #92400E; letter-spacing: -0.2px;
+    }
+    .recommend-sub {
+      font-size: 12.5px; color: #B45309;
+      margin-top: 3px; opacity: 0.92;
+    }
+    .recommend-tips {
+      display: flex; flex-direction: column; gap: 0;
+      background: rgba(255,255,255,0.55);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid rgba(245,158,11,0.18);
+    }
+    .recommend-tip {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 12px; align-items: center;
+      padding: 11px 13px;
+      border-bottom: 1px solid rgba(245,158,11,0.12);
+    }
+    .recommend-tip:last-child { border-bottom: none; }
+    .recommend-tip-icon {
+      width: 36px; height: 36px;
+      background: rgba(245,158,11,0.18);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .recommend-tip-icon .material-symbols-outlined {
+      font-size: 19px; color: #B45309;
+      font-variation-settings: 'FILL' 0, 'wght' 500;
+    }
+    .recommend-tip-text { min-width: 0; }
+    .recommend-tip-title {
+      font-size: 13px; font-weight: 700;
+      color: var(--text-primary); line-height: 1.3;
+    }
+    .recommend-tip-desc {
+      font-size: 11.5px; color: var(--text-secondary);
+      margin-top: 2px; line-height: 1.4;
+    }
+    .recommend-tip-delta {
+      font-size: 11.5px; font-weight: 800;
+      background: var(--success); color: #fff;
+      padding: 3px 9px; border-radius: 100px;
+      letter-spacing: 0.3px; white-space: nowrap;
+    }
+
+    @media (max-width: 720px) {
+      .rewards-progress-card { flex-direction: column; align-items: stretch; gap: 18px; }
+      .rp-stats { margin-left: 0; justify-content: space-around; }
+      .rp-stat:first-child { padding-left: 0; }
+      .reward-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .reward-btn { width: 100%; justify-content: center; }
+      .reward-item.recommend .reward-card { align-items: stretch; }
+    }
+
     /* ── Onboarding Interstitial ────────────────────────────── */
     .ob-overlay [hidden] { display: none !important; }
     .ob-overlay {
@@ -1562,6 +2229,41 @@
       margin-bottom: 22px; line-height: 1.5;
     }
     .ob-ring-wrap { display: flex; justify-content: center; }
+
+    /* Step 1 — score + Admiral message side by side */
+    .ob-score-message-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 22px;
+      align-items: center;
+      text-align: left;
+      margin-top: 6px;
+    }
+    .ob-score-message-row .ob-ring-wrap { justify-content: flex-start; }
+    .ob-admiral-message {
+      position: relative;
+      background: var(--brand-light);
+      border-left: 4px solid var(--brand);
+      border-radius: 6px var(--radius-sm) var(--radius-sm) 6px;
+      padding: 16px 18px 16px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-primary);
+    }
+    .ob-admiral-message p { margin-bottom: 8px; }
+    .ob-admiral-message p:last-child { margin-bottom: 0; }
+    .ob-admiral-message strong { color: var(--brand); font-weight: 700; }
+    .ob-admiral-message-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10.5px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--brand);
+      margin-bottom: 6px;
+    }
+    .ob-admiral-message-tag .material-symbols-outlined {
+      font-size: 14px;
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
     .ob-improve {
       display: inline-flex; align-items: center; gap: 5px;
       margin-top: 14px; font-size: 13px; font-style: italic;
@@ -1657,11 +2359,11 @@
   </div>
 
   <div class="ob-progress-track">
-    <div class="ob-progress-fill" id="obProgressFill" style="width:12.5%"></div>
+    <div class="ob-progress-fill" id="obProgressFill" style="width:16.67%"></div>
   </div>
   <div class="ob-step-row">
     <span class="ob-step-name">Getting started</span>
-    <span class="ob-step-count">Step 1 of 8</span>
+    <span class="ob-step-count">Step 1 of 6</span>
   </div>
 
   <div class="ob-pcw-row">
@@ -1676,25 +2378,38 @@
     <!-- ── STEP 1 ─────────────────────────────────────────── -->
     <div class="ob-step ob-active" data-step="1">
 
-      <!-- Hero (white, centered) -->
+      <!-- Hero (white, score + Admiral message side-by-side) -->
       <div class="ob-hero">
-        <h1 class="ob-hero-title">We protect the things you love.</h1>
+        <h1 class="ob-hero-title">We protect the things you care about.</h1>
         <p class="ob-hero-sub">Based on what we know about your home you score</p>
-        <div class="ob-ring-wrap">
-          <svg viewBox="0 0 140 140" width="140" height="140" aria-hidden="true">
-            <circle cx="70" cy="70" r="60" fill="none" stroke="#eef0f4" stroke-width="11"/>
-            <circle cx="70" cy="70" r="60" fill="none" stroke="#F5A623" stroke-width="11"
-              stroke-linecap="round"
-              stroke-dasharray="75.4 376.99"
-              transform="rotate(-90 70 70)"/>
-            <text x="70" y="68" text-anchor="middle" dominant-baseline="middle"
-              fill="#F5A623" font-size="38" font-weight="900" font-family="Inter,sans-serif">20</text>
-            <text x="70" y="91" text-anchor="middle"
-              fill="#999" font-size="11" font-family="Inter,sans-serif">/ 100</text>
-            <text x="70" y="106" text-anchor="middle"
-              fill="#bbb" font-size="9" font-weight="700" font-family="Inter,sans-serif" letter-spacing="0.5">HOME</text>
-          </svg>
+
+        <div class="ob-score-message-row">
+          <div class="ob-ring-wrap">
+            <svg viewBox="0 0 140 140" width="130" height="130" aria-hidden="true">
+              <circle cx="70" cy="70" r="60" fill="none" stroke="#eef0f4" stroke-width="11"/>
+              <circle cx="70" cy="70" r="60" fill="none" stroke="#F5A623" stroke-width="11"
+                stroke-linecap="round"
+                stroke-dasharray="75.4 376.99"
+                transform="rotate(-90 70 70)"/>
+              <text x="70" y="68" text-anchor="middle" dominant-baseline="middle"
+                fill="#F5A623" font-size="38" font-weight="900" font-family="Inter,sans-serif">20</text>
+              <text x="70" y="91" text-anchor="middle"
+                fill="#999" font-size="11" font-family="Inter,sans-serif">/ 100</text>
+              <text x="70" y="106" text-anchor="middle"
+                fill="#bbb" font-size="9" font-weight="700" font-family="Inter,sans-serif" letter-spacing="0.5">HOME</text>
+            </svg>
+          </div>
+
+          <div class="ob-admiral-message">
+            <span class="ob-admiral-message-tag">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              Why this matters
+            </span>
+            <p>Your <strong>Admiral Score</strong> starts low while we get to know what matters to you.</p>
+            <p>The more you share and protect the things you care about, the more <strong>rewards, discounts and personalised benefits</strong> you can unlock over time.</p>
+          </div>
         </div>
+
         <p class="ob-improve">
           <span class="material-symbols-outlined">south</span>
           Let's improve this...
@@ -1757,7 +2472,7 @@
     <div class="ob-step" data-step="2">
 
       <div class="ob-hero" style="padding: 28px 28px 24px">
-        <h1 class="ob-hero-title">Let's build protections around the things you love</h1>
+        <h1 class="ob-hero-title">Let's build protections around the things you care about</h1>
         <p class="ob-hero-sub" style="margin-bottom: 0">Tell us what you'd like us to protect and we'll score how well covered you are</p>
       </div>
 
@@ -2252,7 +2967,7 @@
 
   <!-- ── Sidebar ───────────────────────────────────────────── -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
+    <div class="sidebar-logo" onclick="navigateTo('dashboard')" role="button" tabindex="0">
       <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 74" width="100" height="31">
         <defs><style>.cls-1{fill:none;}.cls-2{fill:#c20060;fill-rule:evenodd;}.cls-3{fill:#0045a0;}</style></defs>
         <g id="Prime"><g id="Prime-Safe"><path class="cls-1" d="M229.22,1.59A14.79,14.79,0,0,0,214.43-13.2H6.77A14.79,14.79,0,0,0-8,1.59V66.91A14.79,14.79,0,0,0,6.77,81.7H214.43a14.79,14.79,0,0,0,14.79-14.79Z"/></g><g id="Orbit"><path class="cls-2" d="M68.14,53.33l.21-.29a.22.22,0,0,1,.17-.09H74.9a.21.21,0,0,1,.19.14,20.6,20.6,0,0,1,1.18,5.74.14.14,0,0,1,0,.07c-.61,1.75-2.54,7.81-10.82,12a28.54,28.54,0,0,1-14.5,2.73,47.72,47.72,0,0,1-18.58-5.26,63.81,63.81,0,0,1-17.46-13A58.58,58.58,0,0,1,3.67,38.89,40.14,40.14,0,0,1,.08,22.79C.08,1.56,19.91.1,24,.06c19-.19,29.72,11.27,29.72,11.27a.23.23,0,0,1,0,.29.21.21,0,0,1-.29,0S40.07-.69,21.84,1.84A19.47,19.47,0,0,0,10.67,7C6.9,10.67,5.42,15.8,6,21.47c.85,8.54,6.34,18.29,15.65,26.2S42,59.9,51.38,60.05c6.23.1,11.73-1.62,15.51-5.33a17.36,17.36,0,0,0,1.23-1.36Z"/></g><g id="Admiral"><path class="cls-3" d="M74.63,49.27,75,46.14a10.86,10.86,0,0,1-8.61,4c-3.53,0-6.12-1.26-7.75-3.77S56.48,40.3,57,35.74a22.85,22.85,0,0,1,2.44-8.19,13.48,13.48,0,0,1,4.7-5.2,11.74,11.74,0,0,1,6.39-1.78c3.12,0,5.42,1.1,6.92,3.29L79,11.39h9.6L84,49.27Zm112.09,0,.37-3a14.87,14.87,0,0,1-4.22,2.86,11.9,11.9,0,0,1-4.68.9c-2.9,0-5.09-.75-6.59-2.25a7.05,7.05,0,0,1-1.77-6.13A8.88,8.88,0,0,1,174,34.92q3.57-2.31,10.4-2.63l4.21-.21L188.7,31c.3-2.44-.74-3.66-3.1-3.66-2.2,0-3.56.92-4.11,2.76l-8.56-.69q2.5-8.8,13.92-8.81,6.3,0,9,2.81c1.78,1.88,2.44,4.74,2,8.6l-2.13,17.29ZM21.27,42.52,33.74,16a8.18,8.18,0,0,1,7.51-4.7H42c3.57,0,6.1,1.92,7,6C51.4,28,56.18,49.27,56.18,49.27H45.62L44.34,42H31.55l-2.49,6A38.54,38.54,0,0,1,21.27,42.52Zm178.92,6.75,4.65-37.88h9.6l-4.65,37.88Zm-65.3,0,3.42-27.85h9.6l-3.42,27.85Zm14.38,0,3.42-27.85H162l-.41,3.4a11,11,0,0,1,3.7-2.92,10.53,10.53,0,0,1,4.57-1,12.06,12.06,0,0,1,2.67.27l-2.07,8.22a10.75,10.75,0,0,0-2.93-.32,8,8,0,0,0-4.48,1.11c-1.36.93-2.17,2.52-2.45,4.78l-1.75,14.27Zm-28.49,0L123,31.6a3.48,3.48,0,0,0-.31-2.38,2.23,2.23,0,0,0-2-.75,4.09,4.09,0,0,0-2.83,1,4.45,4.45,0,0,0-1.42,2.92l-2.07,16.87h-9.61l2.17-17.67a3.48,3.48,0,0,0-.31-2.38,2.23,2.23,0,0,0-2-.75,4.09,4.09,0,0,0-2.83,1,4.45,4.45,0,0,0-1.42,2.92L98.35,49.27H88.74l3.42-27.85h9.34l-.4,3.24a10.35,10.35,0,0,1,8.3-4.09,7.9,7.9,0,0,1,4.35,1.12,5.85,5.85,0,0,1,2.44,3.23,13.19,13.19,0,0,1,4.2-3.29,11.24,11.24,0,0,1,4.87-1.06q4.24,0,6.13,2.55t1.29,7.42l-2.3,18.73Zm67.07-11.78-3.1.16a9.68,9.68,0,0,0-4.07.93,3,3,0,0,0-1.53,2.31c-.21,1.69.74,2.54,2.82,2.54a5.76,5.76,0,0,0,3.93-1.35,5.54,5.54,0,0,0,1.83-3.63ZM76.12,35c.3-2.4.14-4.14-.47-5.2a3.45,3.45,0,0,0-3.26-1.59q-4.71,0-5.59,7.11t3.8,7a4.48,4.48,0,0,0,3.72-1.75A9.33,9.33,0,0,0,76,35.79ZM40.57,20.84,35,33.89h7.8Zm98.07-2.5.85-6.95h9.71l-.85,7Z"/></g></g>
@@ -2267,29 +2982,29 @@
         <span class="material-symbols-outlined">verified_user</span>
         Your protections
       </button>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="claims" onclick="navigateTo('claims')">
         <span class="material-symbols-outlined">assignment</span>
         Claims
       </button>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="rewards" onclick="navigateTo('rewards')">
         <span class="material-symbols-outlined">loyalty</span>
         Rewards
       </button>
       <div class="sidebar-divider"></div>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="payments" onclick="navigateTo('payments')">
         <span class="material-symbols-outlined">payments</span>
         Payments
       </button>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="policies" onclick="navigateTo('policies')">
         <span class="material-symbols-outlined">description</span>
         Policies
       </button>
       <div class="sidebar-divider"></div>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="support" onclick="navigateTo('support')">
         <span class="material-symbols-outlined">help_outline</span>
         Support
       </button>
-      <button class="sidebar-item">
+      <button class="sidebar-item" data-page="profile" onclick="navigateTo('profile')">
         <span class="material-symbols-outlined">person</span>
         Profile
       </button>
@@ -2305,7 +3020,7 @@
       <span class="material-symbols-outlined agent-cta-arrow">chevron_right</span>
     </button>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" onclick="navigateTo('profile')" role="button" tabindex="0">
       <div class="sidebar-avatar">AT</div>
       <div>
         <div class="sidebar-user-name">Ava Thomas</div>
@@ -2319,7 +3034,7 @@
 
     <!-- Mobile top bar -->
     <header class="topbar">
-      <div class="topbar-logo">
+      <div class="topbar-logo" onclick="navigateTo('dashboard')" role="button" tabindex="0">
         <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 74" width="90" height="28">
           <defs><style>.cls-1m{fill:none;}.cls-2m{fill:#c20060;fill-rule:evenodd;}.cls-3m{fill:#0045a0;}</style></defs>
           <g><g><path class="cls-1m" d="M229.22,1.59A14.79,14.79,0,0,0,214.43-13.2H6.77A14.79,14.79,0,0,0-8,1.59V66.91A14.79,14.79,0,0,0,6.77,81.7H214.43a14.79,14.79,0,0,0,14.79-14.79Z"/></g><g><path class="cls-2m" d="M68.14,53.33l.21-.29a.22.22,0,0,1,.17-.09H74.9a.21.21,0,0,1,.19.14,20.6,20.6,0,0,1,1.18,5.74.14.14,0,0,1,0,.07c-.61,1.75-2.54,7.81-10.82,12a28.54,28.54,0,0,1-14.5,2.73,47.72,47.72,0,0,1-18.58-5.26,63.81,63.81,0,0,1-17.46-13A58.58,58.58,0,0,1,3.67,38.89,40.14,40.14,0,0,1,.08,22.79C.08,1.56,19.91.1,24,.06c19-.19,29.72,11.27,29.72,11.27a.23.23,0,0,1,0,.29.21.21,0,0,1-.29,0S40.07-.69,21.84,1.84A19.47,19.47,0,0,0,10.67,7C6.9,10.67,5.42,15.8,6,21.47c.85,8.54,6.34,18.29,15.65,26.2S42,59.9,51.38,60.05c6.23.1,11.73-1.62,15.51-5.33a17.36,17.36,0,0,0,1.23-1.36Z"/></g><g><path class="cls-3m" d="M74.63,49.27,75,46.14a10.86,10.86,0,0,1-8.61,4c-3.53,0-6.12-1.26-7.75-3.77S56.48,40.3,57,35.74a22.85,22.85,0,0,1,2.44-8.19,13.48,13.48,0,0,1,4.7-5.2,11.74,11.74,0,0,1,6.39-1.78c3.12,0,5.42,1.1,6.92,3.29L79,11.39h9.6L84,49.27Zm112.09,0,.37-3a14.87,14.87,0,0,1-4.22,2.86,11.9,11.9,0,0,1-4.68.9c-2.9,0-5.09-.75-6.59-2.25a7.05,7.05,0,0,1-1.77-6.13A8.88,8.88,0,0,1,174,34.92q3.57-2.31,10.4-2.63l4.21-.21L188.7,31c.3-2.44-.74-3.66-3.1-3.66-2.2,0-3.56.92-4.11,2.76l-8.56-.69q2.5-8.8,13.92-8.81,6.3,0,9,2.81c1.78,1.88,2.44,4.74,2,8.6l-2.13,17.29ZM21.27,42.52,33.74,16a8.18,8.18,0,0,1,7.51-4.7H42c3.57,0,6.1,1.92,7,6C51.4,28,56.18,49.27,56.18,49.27H45.62L44.34,42H31.55l-2.49,6A38.54,38.54,0,0,1,21.27,42.52Zm178.92,6.75,4.65-37.88h9.6l-4.65,37.88Zm-65.3,0,3.42-27.85h9.6l-3.42,27.85Zm14.38,0,3.42-27.85H162l-.41,3.4a11,11,0,0,1,3.7-2.92,10.53,10.53,0,0,1,4.57-1,12.06,12.06,0,0,1,2.67.27l-2.07,8.22a10.75,10.75,0,0,0-2.93-.32,8,8,0,0,0-4.48,1.11c-1.36.93-2.17,2.52-2.45,4.78l-1.75,14.27Zm-28.49,0L123,31.6a3.48,3.48,0,0,0-.31-2.38,2.23,2.23,0,0,0-2-.75,4.09,4.09,0,0,0-2.83,1,4.45,4.45,0,0,0-1.42,2.92l-2.07,16.87h-9.61l2.17-17.67a3.48,3.48,0,0,0-.31-2.38,2.23,2.23,0,0,0-2-.75,4.09,4.09,0,0,0-2.83,1,4.45,4.45,0,0,0-1.42,2.92L98.35,49.27H88.74l3.42-27.85h9.34l-.4,3.24a10.35,10.35,0,0,1,8.3-4.09,7.9,7.9,0,0,1,4.35,1.12,5.85,5.85,0,0,1,2.44,3.23,13.19,13.19,0,0,1,4.2-3.29,11.24,11.24,0,0,1,4.87-1.06q4.24,0,6.13,2.55t1.29,7.42l-2.3,18.73Zm67.07-11.78-3.1.16a9.68,9.68,0,0,0-4.07.93,3,3,0,0,0-1.53,2.31c-.21,1.69.74,2.54,2.82,2.54a5.76,5.76,0,0,0,3.93-1.35,5.54,5.54,0,0,0,1.83-3.63ZM76.12,35c.3-2.4.14-4.14-.47-5.2a3.45,3.45,0,0,0-3.26-1.59q-4.71,0-5.59,7.11t3.8,7a4.48,4.48,0,0,0,3.72-1.75A9.33,9.33,0,0,0,76,35.79ZM40.57,20.84,35,33.89h7.8Zm98.07-2.5.85-6.95h9.71l-.85,7Z"/></g></g>
@@ -2553,6 +3268,59 @@
 
     </div>
 
+    <!-- Featured offer + next milestone -->
+    <div class="offer-row" id="dashOfferRow">
+
+      <div class="offer-highlight" id="dashOfferCard">
+        <span class="offer-tag">
+          <span class="material-symbols-outlined">redeem</span>
+          Claim your rewards
+        </span>
+        <div class="offer-brands">
+          <span class="brand-chip aa">AA</span>
+          <span class="brand-chip rac">RAC</span>
+        </div>
+        <h3 class="offer-title">Discounted breakdown cover upgrade</h3>
+        <p class="offer-desc">Save up to <strong>£30</strong> on annual breakdown cover with the AA or RAC, included as part of your driving rewards.</p>
+        <div class="offer-perks">
+          <div class="offer-perk">
+            <span class="material-symbols-outlined">check_circle</span>
+            Nationwide recovery, home start &amp; onward travel
+          </div>
+          <div class="offer-perk">
+            <span class="material-symbols-outlined">check_circle</span>
+            Choose AA or RAC at checkout
+          </div>
+          <div class="offer-perk">
+            <span class="material-symbols-outlined">check_circle</span>
+            Bolts on to your existing Admiral cover — no admin
+          </div>
+        </div>
+        <div class="offer-actions">
+          <button class="offer-claim" id="dashOfferClaimBtn" onclick="dashClaimOffer()">
+            Claim now
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+          <button class="offer-secondary" onclick="navigateTo('rewards')">View all rewards</button>
+        </div>
+      </div>
+
+      <div class="offer-next">
+        <div class="offer-next-label">
+          <span class="material-symbols-outlined">flag</span>
+          Next milestone
+        </div>
+        <div class="offer-next-progress">
+          <span class="offer-next-points">+2</span>
+          <span class="offer-next-meta">points to go</span>
+        </div>
+        <div class="offer-next-title">Priority courtesy car access during claims</div>
+        <div class="offer-next-sub">Unlocks at driving score 82</div>
+        <div class="offer-next-bar"><div class="offer-next-bar-fill" id="dashNextBarFill"></div></div>
+      </div>
+
+    </div>
+
     <!-- Recommendations -->
     <div class="section-head" style="margin-top:40px;">
       <div class="section-title">Top ways to improve</div>
@@ -2760,10 +3528,10 @@
                   <div class="prot-insight-val pos">+14</div>
                 </div>
                 <div class="prot-insight prot-insight-neg">
-                  <div class="prot-insight-icon warn"><span class="material-symbols-outlined">phone_in_talk</span></div>
+                  <div class="prot-insight-icon warn"><span class="material-symbols-outlined">nightlight</span></div>
                   <div class="prot-insight-info">
-                    <div class="prot-insight-label">Phone usage</div>
-                    <div class="prot-insight-sub">Occasional detected usage</div>
+                    <div class="prot-insight-label">Late-night trips</div>
+                    <div class="prot-insight-sub">Frequent journeys after 11pm</div>
                   </div>
                   <div class="prot-insight-val neg">−11</div>
                 </div>
@@ -2802,9 +3570,9 @@
                 </div>
                 <div class="prot-activity-item">
                   <div class="prot-activity-dot flat"></div>
-                  <div class="prot-activity-text">Phone usage event detected — 3 instances this month</div>
+                  <div class="prot-activity-text">Multi-car policy available — add another household vehicle for a bundling boost</div>
                   <div class="prot-activity-date">Feb 2026</div>
-                  <div class="prot-activity-pts flat">±0</div>
+                  <div class="prot-activity-pts flat">+5</div>
                 </div>
               </div>
             </div>
@@ -2885,6 +3653,459 @@
         </div>
       </div>
 
+    </div>
+  </main>
+
+  <!-- ── Rewards page ───────────────────────────────────────── -->
+  <main class="main" id="page-rewards" style="display:none">
+
+    <div class="rewards-header">
+      <h1 class="rewards-title">Your rewards</h1>
+      <p class="rewards-subtitle">Unlock perks and partner benefits as you grow your protection score with Admiral. The more you protect, the more you earn.</p>
+    </div>
+
+    <div class="rewards-tabs" role="tablist">
+      <button class="rewards-tab active" data-cat="driving" onclick="rewardsTab('driving')">
+        <span class="material-symbols-outlined">directions_car</span> Driving
+      </button>
+      <button class="rewards-tab" data-cat="home" onclick="rewardsTab('home')">
+        <span class="material-symbols-outlined">home</span> Home
+      </button>
+      <button class="rewards-tab" data-cat="travel" onclick="rewardsTab('travel')">
+        <span class="material-symbols-outlined">flight</span> Travel
+      </button>
+      <button class="rewards-tab" data-cat="financial" onclick="rewardsTab('financial')">
+        <span class="material-symbols-outlined">savings</span> Financial
+      </button>
+    </div>
+
+    <!-- Driving panel -->
+    <div class="rewards-panel" id="rewards-panel-driving">
+      <div class="rewards-progress-card">
+        <div class="rp-current">
+          <svg class="rp-ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="9"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#2EAD67" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="211.12 263.89"
+              transform="rotate(-90 50 50)"/>
+            <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+              fill="#fff" font-size="26" font-weight="900" font-family="Inter,sans-serif">80</text>
+          </svg>
+          <div>
+            <div class="rp-label">Your driving score</div>
+            <div class="rp-value">80<span>/ 100</span></div>
+          </div>
+        </div>
+        <div class="rp-stats">
+          <div class="rp-stat">
+            <div class="rp-stat-value" id="rpUnlocked">11</div>
+            <div class="rp-stat-label">Unlocked</div>
+          </div>
+          <div class="rp-stat">
+            <div class="rp-stat-value" id="rpClaimed">3</div>
+            <div class="rp-stat-label">Claimed</div>
+          </div>
+          <div class="rp-stat">
+            <div class="rp-stat-value" id="rpToGo">8</div>
+            <div class="rp-stat-label">To unlock</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rewards-timeline" id="rewardsTimeline"></div>
+    </div>
+
+    <!-- Home panel -->
+    <div class="rewards-panel" id="rewards-panel-home" hidden>
+      <div class="rewards-coming-soon">
+        <div class="rewards-coming-soon-icon"><span class="material-symbols-outlined">home</span></div>
+        <h2>Home rewards coming soon</h2>
+        <p>We're crafting personalised home protection rewards — from local trades discounts to smart home perks. Check back soon.</p>
+        <span class="rewards-coming-soon-pill">In development</span>
+      </div>
+    </div>
+
+    <!-- Travel panel -->
+    <div class="rewards-panel" id="rewards-panel-travel" hidden>
+      <div class="rewards-coming-soon">
+        <div class="rewards-coming-soon-icon"><span class="material-symbols-outlined">flight</span></div>
+        <h2>Travel rewards coming soon</h2>
+        <p>Airport lounges, lost-luggage cover boosts, and partner offers across flights, hotels and car hire — all on the way.</p>
+        <span class="rewards-coming-soon-pill">In development</span>
+      </div>
+    </div>
+
+    <!-- Financial panel -->
+    <div class="rewards-panel" id="rewards-panel-financial" hidden>
+      <div class="rewards-coming-soon">
+        <div class="rewards-coming-soon-icon"><span class="material-symbols-outlined">savings</span></div>
+        <h2>Financial rewards coming soon</h2>
+        <p>Cashback on premium payments, savings boosters, and exclusive rates from our financial partners — coming next.</p>
+        <span class="rewards-coming-soon-pill">In development</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Claims page ────────────────────────────────────────── -->
+  <main class="main" id="page-claims" style="display:none">
+    <div class="page-head">
+      <h1 class="page-h1">Your claims</h1>
+      <p class="page-sub">Manage active claims and review your claim history with Admiral.</p>
+    </div>
+
+    <div class="pg-card">
+      <div class="empty-state">
+        <div class="empty-state-icon"><span class="material-symbols-outlined">verified_user</span></div>
+        <h3>No active claims</h3>
+        <p>You don't have any open claims at the moment. We hope it stays that way — but we're here 24/7 if anything happens.</p>
+        <button class="pg-cta" onclick="showToast('Claim flow — coming next')">
+          <span class="material-symbols-outlined">add</span>
+          Start a new claim
+        </button>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Claim history</div>
+        <span class="claim-status closed">2 closed</span>
+      </div>
+
+      <div class="claim-row">
+        <div class="claim-icon closed"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="claim-title">Windscreen chip repair</div>
+          <div class="claim-meta">Closed · Apr 2025 · Settled in 4 days</div>
+        </div>
+        <span class="claim-status closed">Closed</span>
+        <span class="claim-amount">£0 excess</span>
+      </div>
+
+      <div class="claim-row">
+        <div class="claim-icon closed"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="claim-title">Boiler breakdown — home emergency</div>
+          <div class="claim-meta">Closed · Jan 2024 · Settled in 1 day</div>
+        </div>
+        <span class="claim-status closed">Closed</span>
+        <span class="claim-amount">£75 excess</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Payments page ──────────────────────────────────────── -->
+  <main class="main" id="page-payments" style="display:none">
+    <div class="page-head">
+      <h1 class="page-h1">Payments</h1>
+      <p class="page-sub">View your upcoming payment, manage your method and review your payment history.</p>
+    </div>
+
+    <div class="pay-stat-grid">
+      <div class="pay-stat">
+        <div class="pay-stat-label">Next payment</div>
+        <div class="pay-stat-value">£31.83</div>
+        <div class="pay-stat-sub">Due 1 June 2026</div>
+      </div>
+      <div class="pay-stat">
+        <div class="pay-stat-label">Annual total</div>
+        <div class="pay-stat-value">£382.00</div>
+        <div class="pay-stat-sub">Across all policies</div>
+      </div>
+      <div class="pay-stat">
+        <div class="pay-stat-label">Saved this year</div>
+        <div class="pay-stat-value" style="color:var(--success)">£128</div>
+        <div class="pay-stat-sub">vs prior providers</div>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Payment method</div>
+        <button class="pg-cta outlined" onclick="showToast('Manage payment method')" style="font-size:12.5px;padding:7px 14px">Update</button>
+      </div>
+      <div class="pay-method">
+        <div class="pay-method-card">VISA</div>
+        <div>
+          <div class="pay-method-name">Visa ending 6411</div>
+          <div class="pay-method-meta">Expires 09/28 · Direct debit on the 1st</div>
+        </div>
+        <span class="material-symbols-outlined" style="color:var(--success); font-variation-settings:'FILL' 1">verified</span>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Payment history</div>
+      </div>
+      <div class="pay-history-row">
+        <div class="pay-history-icon"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="pay-history-date">1 May 2026</div>
+          <div class="pay-history-meta">Visa ending 6411 · Monthly premium</div>
+        </div>
+        <span class="pay-history-status">Paid</span>
+        <span class="pay-history-amount">£31.83</span>
+      </div>
+      <div class="pay-history-row">
+        <div class="pay-history-icon"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="pay-history-date">1 Apr 2026</div>
+          <div class="pay-history-meta">Visa ending 6411 · Monthly premium</div>
+        </div>
+        <span class="pay-history-status">Paid</span>
+        <span class="pay-history-amount">£31.83</span>
+      </div>
+      <div class="pay-history-row">
+        <div class="pay-history-icon"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="pay-history-date">1 Mar 2026</div>
+          <div class="pay-history-meta">Visa ending 6411 · Monthly premium</div>
+        </div>
+        <span class="pay-history-status">Paid</span>
+        <span class="pay-history-amount">£31.83</span>
+      </div>
+      <div class="pay-history-row">
+        <div class="pay-history-icon"><span class="material-symbols-outlined">check</span></div>
+        <div>
+          <div class="pay-history-date">1 Feb 2026</div>
+          <div class="pay-history-meta">Visa ending 6411 · Monthly premium</div>
+        </div>
+        <span class="pay-history-status">Paid</span>
+        <span class="pay-history-amount">£31.83</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Policies page ──────────────────────────────────────── -->
+  <main class="main" id="page-policies" style="display:none">
+    <div class="page-head">
+      <h1 class="page-h1">Your policies</h1>
+      <p class="page-sub">Download your active policy documents or add new ones to keep your protection score accurate.</p>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Active documents</div>
+        <span class="claim-status closed" style="background:var(--brand-light); color:var(--brand)">4 active</span>
+      </div>
+
+      <div class="doc-row">
+        <div class="doc-icon">PDF</div>
+        <div>
+          <div class="doc-name">Home insurance policy 2026</div>
+          <div class="doc-meta">Building + contents · Renewed Sep 2025</div>
+        </div>
+        <span class="doc-size">412 KB</span>
+        <button class="doc-download" onclick="showToast('Downloading…')" aria-label="Download">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+
+      <div class="doc-row">
+        <div class="doc-icon">PDF</div>
+        <div>
+          <div class="doc-name">Car insurance certificate</div>
+          <div class="doc-meta">Comprehensive · 1 driver · Apr 2026</div>
+        </div>
+        <span class="doc-size">218 KB</span>
+        <button class="doc-download" onclick="showToast('Downloading…')" aria-label="Download">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+
+      <div class="doc-row">
+        <div class="doc-icon">PDF</div>
+        <div>
+          <div class="doc-name">Home emergency cover schedule</div>
+          <div class="doc-meta">24/7 callout · Plumbing · Heating</div>
+        </div>
+        <span class="doc-size">186 KB</span>
+        <button class="doc-download" onclick="showToast('Downloading…')" aria-label="Download">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+
+      <div class="doc-row">
+        <div class="doc-icon">PDF</div>
+        <div>
+          <div class="doc-name">Flood protection schedule</div>
+          <div class="doc-meta">Added May 2026 · Zone B</div>
+        </div>
+        <span class="doc-size">94 KB</span>
+        <button class="doc-download" onclick="showToast('Downloading…')" aria-label="Download">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Add more documents</div>
+      </div>
+      <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px; line-height:1.5;">
+        Got a policy from another provider, a warranty, or a sub-policy you want us to know about? Drop it here and our Protection Agent will re-synthesise your coverage.
+      </p>
+      <input type="file" id="polFileInput" multiple hidden onchange="polHandleFiles(this.files); this.value='';"/>
+      <button class="pol-dropzone" id="polDropzone" type="button" onclick="document.getElementById('polFileInput').click()">
+        <span class="material-symbols-outlined">upload_file</span>
+        <div class="pol-dropzone-text">
+          <strong>Drag & drop or click to upload</strong>
+          <span>PDFs, images and screenshots accepted</span>
+        </div>
+      </button>
+      <div class="ob-files-list" id="polFilesList" hidden style="margin-top:14px;"></div>
+      <button class="pg-cta" id="polSynthBtn" disabled style="margin-top:14px; opacity:0.5; cursor:not-allowed;">
+        <span class="material-symbols-outlined">auto_awesome</span>
+        Re-synthesise my protections
+      </button>
+    </div>
+  </main>
+
+  <!-- ── Support page ───────────────────────────────────────── -->
+  <main class="main" id="page-support" style="display:none">
+    <div class="page-head">
+      <h1 class="page-h1">Support</h1>
+      <p class="page-sub">We're here to help, 24/7. Pick whichever way works best for you.</p>
+    </div>
+
+    <div class="support-grid">
+      <div class="support-card" onclick="openChat()">
+        <div class="support-card-icon"><span class="material-symbols-outlined">chat</span></div>
+        <div class="support-card-title">Live chat</div>
+        <div class="support-card-meta">Average wait &lt; 1 min</div>
+        <div class="support-card-cta">Start chat →</div>
+      </div>
+      <div class="support-card" onclick="showToast('Calling Admiral support…')">
+        <div class="support-card-icon"><span class="material-symbols-outlined">call</span></div>
+        <div class="support-card-title">Call us</div>
+        <div class="support-card-meta">0333 220 2000 · 24/7</div>
+        <div class="support-card-cta">Call now →</div>
+      </div>
+      <div class="support-card" onclick="showToast('Email composer opening…')">
+        <div class="support-card-icon"><span class="material-symbols-outlined">mail</span></div>
+        <div class="support-card-title">Email</div>
+        <div class="support-card-meta">Reply within 24 hrs</div>
+        <div class="support-card-cta">Send email →</div>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head">
+        <div class="pg-card-h2">Frequently asked</div>
+      </div>
+      <div class="faq-row" onclick="this.classList.toggle('open')">
+        <div class="faq-q">
+          How is my Admiral score calculated?
+          <span class="material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="faq-a">Your score combines telematics signals (speed, braking, journey patterns), claim history, and the breadth of cover you hold across home, family, mobility and finances. The more we know, the more accurate it becomes.</div>
+      </div>
+      <div class="faq-row" onclick="this.classList.toggle('open')">
+        <div class="faq-q">
+          When can I claim a reward?
+          <span class="material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="faq-a">Rewards unlock as your score reaches each milestone. Once unlocked, hit Claim from the Rewards page — most are sent to your email or app within minutes.</div>
+      </div>
+      <div class="faq-row" onclick="this.classList.toggle('open')">
+        <div class="faq-q">
+          How do I add a partner or named driver?
+          <span class="material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="faq-a">Head to Profile → Household, or open Live chat and ask to add someone. We'll re-quote and let you know if anything changes.</div>
+      </div>
+      <div class="faq-row" onclick="this.classList.toggle('open')">
+        <div class="faq-q">
+          Can I cancel anytime?
+          <span class="material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="faq-a">Yes — there's a 14-day cooling-off period from the start of your policy, and you can cancel any time after that. We'll just refund the unused portion.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Profile page ───────────────────────────────────────── -->
+  <main class="main" id="page-profile" style="display:none">
+    <div class="page-head">
+      <h1 class="page-h1">Profile</h1>
+      <p class="page-sub">Your details, contact info and notification preferences.</p>
+    </div>
+
+    <div class="prof-hero">
+      <div class="prof-avatar-lg">AT</div>
+      <div>
+        <div class="prof-name">Ava Thomas</div>
+        <div class="prof-meta">Admiral member since May 2026 · Score 65/100</div>
+        <div class="prof-tier">
+          <span class="material-symbols-outlined">star</span>
+          Silver tier
+        </div>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head"><div class="pg-card-h2">Personal details</div></div>
+      <div class="prof-row">
+        <span class="prof-row-label">Full name</span>
+        <span class="prof-row-value">Ava Thomas <button class="prof-row-edit">Edit</button></span>
+      </div>
+      <div class="prof-row">
+        <span class="prof-row-label">Date of birth</span>
+        <span class="prof-row-value">14 March 1991 <button class="prof-row-edit">Edit</button></span>
+      </div>
+      <div class="prof-row">
+        <span class="prof-row-label">Address</span>
+        <span class="prof-row-value">SW1A 1AA <button class="prof-row-edit">Edit</button></span>
+      </div>
+      <div class="prof-row">
+        <span class="prof-row-label">Property</span>
+        <span class="prof-row-value">House · 2 occupants <button class="prof-row-edit">Edit</button></span>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head"><div class="pg-card-h2">Contact</div></div>
+      <div class="prof-row">
+        <span class="prof-row-label">Email</span>
+        <span class="prof-row-value">ava.thomas@email.com <button class="prof-row-edit">Edit</button></span>
+      </div>
+      <div class="prof-row">
+        <span class="prof-row-label">Mobile</span>
+        <span class="prof-row-value">+44 7700 900123 <button class="prof-row-edit">Edit</button></span>
+      </div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-card-head"><div class="pg-card-h2">Notifications</div></div>
+      <div class="prof-toggle">
+        <div class="prof-toggle-text">
+          <div class="prof-toggle-title">Score updates</div>
+          <div class="prof-toggle-desc">Notify me when my Admiral score changes by 3+ points.</div>
+        </div>
+        <div class="prof-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="prof-toggle">
+        <div class="prof-toggle-text">
+          <div class="prof-toggle-title">Reward unlocks</div>
+          <div class="prof-toggle-desc">Email me when a new reward becomes available to claim.</div>
+        </div>
+        <div class="prof-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="prof-toggle">
+        <div class="prof-toggle-text">
+          <div class="prof-toggle-title">Renewal reminders</div>
+          <div class="prof-toggle-desc">30, 14 and 7 days before each policy renewal.</div>
+        </div>
+        <div class="prof-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="prof-toggle">
+        <div class="prof-toggle-text">
+          <div class="prof-toggle-title">Marketing updates</div>
+          <div class="prof-toggle-desc">Occasional product news and partner offers.</div>
+        </div>
+        <div class="prof-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
     </div>
   </main>
 
@@ -3433,11 +4654,245 @@
     document.querySelectorAll('.sidebar-item[data-page]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.page === page);
     });
-    document.getElementById('page-dashboard').style.display   = page === 'dashboard'   ? '' : 'none';
-    document.getElementById('page-protections').style.display = page === 'protections' ? '' : 'none';
+    const pages = ['dashboard', 'protections', 'rewards', 'claims', 'payments', 'policies', 'support', 'profile'];
+    pages.forEach(p => {
+      const el = document.getElementById(`page-${p}`);
+      if (el) el.style.display = (p === page) ? '' : 'none';
+    });
     if (page === 'protections') renderDrivingChart();
+    if (page === 'rewards') renderRewards();
+    if (page === 'policies') polSetupDropzone();
     closeSidebar();
     window.scrollTo(0, 0);
+  }
+
+  /* ── Dashboard featured offer ─────────────────────────────── */
+  function dashClaimOffer() {
+    if (typeof claimReward === 'function') claimReward(72);
+    else REWARDS_CLAIMED?.add(72);
+    const btn = document.getElementById('dashOfferClaimBtn');
+    if (btn) {
+      btn.classList.add('claimed');
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-variation-settings:\'FILL\' 1">check_circle</span> Claimed';
+      btn.onclick = null;
+    }
+    if (typeof showToast === 'function') showToast('Reward claimed — check your inbox for next steps.');
+  }
+
+  // Animate the "next milestone" progress bar in when the dashboard mounts.
+  function dashAnimateNextBar() {
+    const fill = document.getElementById('dashNextBarFill');
+    if (!fill) return;
+    fill.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { fill.style.width = '85%'; });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', dashAnimateNextBar);
+
+  /* ── Policies page dropzone ───────────────────────────────── */
+  const polUploadedFiles = [];
+  function polFmtBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
+    return (b / 1024 / 1024).toFixed(1) + ' MB';
+  }
+  function polFileExt(name) {
+    const dot = name.lastIndexOf('.');
+    if (dot < 0) return 'FILE';
+    const ext = name.slice(dot + 1).toUpperCase();
+    return ext.length <= 4 ? ext : 'FILE';
+  }
+  function polRender() {
+    const list = document.getElementById('polFilesList');
+    if (!list) return;
+    list.innerHTML = polUploadedFiles.map(f => `
+      <div class="ob-file-chip">
+        <div class="ob-file-icon">${f.ext}</div>
+        <div>
+          <div class="ob-file-name">${f.name}</div>
+          <div class="ob-file-size">${f.size}</div>
+        </div>
+        <span class="material-symbols-outlined ob-file-status">check_circle</span>
+      </div>
+    `).join('');
+    list.hidden = polUploadedFiles.length === 0;
+    const btn = document.getElementById('polSynthBtn');
+    if (btn) {
+      btn.disabled = polUploadedFiles.length === 0;
+      btn.style.opacity = polUploadedFiles.length === 0 ? '0.5' : '1';
+      btn.style.cursor  = polUploadedFiles.length === 0 ? 'not-allowed' : 'pointer';
+    }
+  }
+  function polHandleFiles(files) {
+    if (!files || !files.length) return;
+    for (const f of files) {
+      polUploadedFiles.push({ name: f.name, size: polFmtBytes(f.size), ext: polFileExt(f.name) });
+    }
+    polRender();
+  }
+  function polSetupDropzone() {
+    const dz = document.getElementById('polDropzone');
+    if (!dz || dz.dataset.dropSetup) return;
+    dz.dataset.dropSetup = '1';
+    ['dragenter','dragover'].forEach(ev =>
+      dz.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        dz.classList.add('ob-dropzone-active');
+      })
+    );
+    ['dragleave','dragend'].forEach(ev =>
+      dz.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        dz.classList.remove('ob-dropzone-active');
+      })
+    );
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      dz.classList.remove('ob-dropzone-active');
+      polHandleFiles(e.dataTransfer.files);
+    });
+  }
+
+  /* ── Rewards page ─────────────────────────────────────────── */
+  const REWARDS_DRIVING_SCORE = 80;
+  const REWARDS_CLAIMED = new Set([50]);
+  const REWARDS_DATA = [
+    { score: 50, title: '£10 hand car wash voucher', desc: '', brands: ['imo'] },
+    { score: 55, title: 'Free seasonal safety check', desc: 'Mobile mechanic visit at your home', brands: ['rac'] },
+    { score: 60, title: 'Free tyre health check', desc: '', brands: ['kwikfit'] },
+    { score: 65, title: 'Free brake, battery & windscreen chip inspection', desc: '', brands: ['kwikfit'] },
+    { score: 70, title: '£25 MOT voucher', desc: '', brands: ['halfords'] },
+    { score: 72, title: 'Discounted breakdown cover upgrade', desc: 'Choose your preferred provider', brands: ['aa', 'rac'] },
+    { score: 75, title: '5% reduction on your next Admiral renewal', desc: '', brands: ['admiral'] },
+    { score: 78, title: 'Reduced policy excess reward', desc: 'Lower your excess on future claims' },
+    { score: 80, title: 'Free premium car valet experience', desc: 'Full interior + exterior detail' },
+    { score: 82, title: 'Priority courtesy car access during claims', desc: '' },
+    { score: 85, title: '£50 contribution towards your annual vehicle service', desc: '' },
+    { score: 87, title: 'Free Nextbase dash cam', desc: '', brands: ['nextbase'] },
+    { score: 90, title: '10% renewal discount', desc: '', brands: ['admiral'] },
+    { score: 92, title: 'Complimentary excess protection add-on', desc: '' },
+    { score: 95, title: 'Free premium MOT & service package', desc: 'Full service at Halfords Autocentre', brands: ['halfords'] },
+    { score: 97, title: 'Airport parking & travel rewards', desc: '', brands: ['holiday-extras'] },
+    { score: 100, title: 'Admiral Signature Status', desc: 'Best-available renewal pricing, VIP claims handling, exclusive partner experiences and annual vehicle service rewards.', brands: ['admiral'], signature: true }
+  ];
+  const BRAND_LABELS = {
+    kwikfit: 'Kwik Fit',
+    rac: 'RAC',
+    halfords: 'Halfords',
+    aa: 'AA',
+    imo: 'IMO Car Wash',
+    nextbase: 'Nextbase',
+    'holiday-extras': 'Holiday Extras',
+    admiral: 'Admiral'
+  };
+
+  function rewardsTab(cat) {
+    document.querySelectorAll('.rewards-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    ['driving','home','travel','financial'].forEach(c => {
+      document.getElementById(`rewards-panel-${c}`).hidden = (c !== cat);
+    });
+  }
+
+  function claimReward(score) {
+    REWARDS_CLAIMED.add(score);
+    renderRewards();
+    showToast('Reward claimed!');
+  }
+
+  const REWARDS_TIPS = [
+    { icon: 'speed',         title: 'Stick to speed limits',     desc: '30+ mph zones impact your score the most.', delta: '+3' },
+    { icon: 'pan_tool',      title: 'Smoother braking',          desc: 'Anticipate stops earlier and ease into them.', delta: '+2' },
+    { icon: 'nightlight',    title: 'Avoid late-night trips',    desc: 'Drives between 11pm and 5am count toward risk.', delta: '+2' },
+    { icon: 'directions_car', title: 'Add a multi-car policy',   desc: 'Insure another household vehicle for a bundling discount.', delta: '+5' }
+  ];
+
+  function renderRecommendCard(nextScore) {
+    const tipsHtml = REWARDS_TIPS.map(t => `
+      <div class="recommend-tip">
+        <div class="recommend-tip-icon"><span class="material-symbols-outlined">${t.icon}</span></div>
+        <div class="recommend-tip-text">
+          <div class="recommend-tip-title">${t.title}</div>
+          <div class="recommend-tip-desc">${t.desc}</div>
+        </div>
+        <span class="recommend-tip-delta">${t.delta}</span>
+      </div>
+    `).join('');
+    return `
+      <div class="reward-item recommend">
+        <div class="reward-marker"><span class="material-symbols-outlined">tips_and_updates</span></div>
+        <div class="reward-card">
+          <div class="recommend-header">
+            <div class="recommend-title">How to reach ${nextScore}+ and unlock more</div>
+            <div class="recommend-sub">Small habits add up. Try these to boost your driving score:</div>
+          </div>
+          <div class="recommend-tips">${tipsHtml}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderRewards() {
+    const container = document.getElementById('rewardsTimeline');
+    if (!container) return;
+    const score = REWARDS_DRIVING_SCORE;
+    let unlocked = 0, claimed = 0;
+    let youAreHereScore = REWARDS_DATA.filter(r => r.score <= score).slice(-1)[0]?.score;
+    const firstLockedIdx = REWARDS_DATA.findIndex(r => r.score > score);
+    const nextMilestone = firstLockedIdx >= 0 ? REWARDS_DATA[firstLockedIdx].score : null;
+
+    container.innerHTML = REWARDS_DATA.map((r, i) => {
+      const isClaimed   = REWARDS_CLAIMED.has(r.score);
+      const isAvailable = r.score <= score && !isClaimed;
+      const isLocked    = r.score > score;
+      const isYouHere   = r.score === youAreHereScore;
+      if (!isLocked) unlocked++;
+      if (isClaimed) claimed++;
+
+      const stateClass = r.signature ? 'signature' : (isClaimed ? 'claimed' : isAvailable ? 'available' : 'locked');
+      const youClass   = isYouHere && !r.signature ? ' youarehere' : '';
+      const markerInner = isClaimed
+        ? '<span class="material-symbols-outlined" style="font-size:22px;font-variation-settings:\'FILL\' 1,\'wght\' 700">check</span>'
+        : (r.signature ? '★' : r.score);
+
+      const brandsHtml = r.brands && r.brands.length
+        ? `<div class="reward-brands">${r.brands.map(b => `<span class="brand-chip ${b}">${BRAND_LABELS[b]}</span>`).join('')}</div>`
+        : '';
+
+      let btn;
+      if (isClaimed) {
+        btn = `<button class="reward-btn btn-claimed" disabled>
+                 <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">check_circle</span> Claimed
+               </button>`;
+      } else if (isAvailable) {
+        btn = `<button class="reward-btn btn-available" onclick="claimReward(${r.score})">
+                 Claim
+               </button>`;
+      } else {
+        btn = `<button class="reward-btn btn-locked" disabled>
+                 <span class="material-symbols-outlined">lock</span> ${r.score}+ to unlock
+               </button>`;
+      }
+
+      const itemHtml = `
+        <div class="reward-item ${stateClass}${youClass}">
+          <div class="reward-marker">${markerInner}</div>
+          <div class="reward-card">
+            <div class="reward-content">
+              <div class="reward-title">${r.title}</div>
+              ${r.desc ? `<div class="reward-desc">${r.desc}</div>` : ''}
+              ${brandsHtml}
+            </div>
+            ${btn}
+          </div>
+        </div>`;
+
+      const prefix = (i === firstLockedIdx) ? renderRecommendCard(nextMilestone) : '';
+      return prefix + itemHtml;
+    }).join('');
+
+    document.getElementById('rpUnlocked').textContent = unlocked;
+    document.getElementById('rpClaimed').textContent = claimed;
+    document.getElementById('rpToGo').textContent = REWARDS_DATA.length - unlocked;
   }
 
   /* ── Driving accordion ────────────────────────────────────── */
