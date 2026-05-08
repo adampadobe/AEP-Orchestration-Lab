@@ -491,6 +491,11 @@ function looksHardBlocked(crawl) {
   return hard > 0;
 }
 
+function looksHttp2ProtocolIssue(crawl) {
+  if (!crawl || !Array.isArray(crawl.failures)) return false;
+  return crawl.failures.some((f) => /ERR_HTTP2_PROTOCOL_ERROR/i.test(String((f && f.error) || '')));
+}
+
 /**
  * Re-run crawl when zero pages come back (403 / rate-limit / flaky edge) or the engine throws.
  * Strategy:
@@ -528,6 +533,9 @@ async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAtt
           // Repeated hard blocks (403/429/captcha) on this engine+seed rarely
           // recover within the same loop. Cut over sooner to alternate seed/engine.
           if (looksHardBlocked(lastCrawl) && i >= 2) break;
+          // Some sites intermittently reject Chromium navigation with HTTP/2
+          // protocol errors. Switch to the fetch crawler early in that case.
+          if (engine === 'js' && looksHttp2ProtocolIssue(lastCrawl) && i >= 1) break;
         } catch (e) {
           lastErr = e;
           lastCrawl = null;
@@ -552,7 +560,10 @@ function summariseFailures(failures) {
   if (!failures || !failures.length) return null;
   const byReason = {};
   for (const f of failures) {
-    const key = f.reason === 'http_error' ? `http_${f.status}` : f.reason;
+    const isHttp2 = f && f.reason === 'network' && /ERR_HTTP2_PROTOCOL_ERROR/i.test(String(f.error || ''));
+    const key = f.reason === 'http_error'
+      ? `http_${f.status}`
+      : (isHttp2 ? 'http2_protocol' : f.reason);
     byReason[key] = (byReason[key] || 0) + 1;
   }
   return {
@@ -566,6 +577,7 @@ function friendlyFailureMessage(url, failures) {
   const summary = summariseFailures(failures);
   if (!summary) return `Could not fetch any pages from ${url}`;
   const first = summary.firstFailure || {};
+  const firstErr = String(first.error || '');
   const bits = [`Could not fetch any pages from ${url}`];
   if (first.reason === 'http_error') {
     if (first.status === 403) bits.push(`— site returned HTTP 403 (access denied / bot-protection)`);
@@ -578,7 +590,14 @@ function friendlyFailureMessage(url, failures) {
   } else if (first.reason === 'timeout') {
     bits.push(`— request timed out (${first.error || ''})`);
   } else if (first.reason === 'network') {
-    bits.push(`— network error: ${first.error || 'unknown'}`);
+    if (/ERR_HTTP2_PROTOCOL_ERROR/i.test(firstErr)) {
+      bits.push('— transport error (ERR_HTTP2_PROTOCOL_ERROR). Some sites intermittently reject browser-style HTTP/2 sessions; retrying with fetch/crawl fallback is recommended.');
+    } else {
+      const brief = firstErr
+        ? firstErr.split(/\n\s*Call log:/i)[0].slice(0, 260)
+        : 'unknown';
+      bits.push(`— network error: ${brief}`);
+    }
   } else if (first.reason === 'empty_body') {
     bits.push('— site returned an empty response.');
   } else if (first.reason === 'non_html') {
