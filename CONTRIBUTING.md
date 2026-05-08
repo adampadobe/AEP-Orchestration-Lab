@@ -817,6 +817,7 @@ private `vaneeghemk/eds-quickstart` Adobe I/O App Builder project.
 - **Built static output** (committed): `web/profile-viewer/eds-quickstart/{index.html,static/js/main.<hash>.js}`.
 - **Wrapper page**: [`web/profile-viewer/eds-quickstart.html`](web/profile-viewer/eds-quickstart.html) — iframes the SPA inside the lab dashboard shell.
 - **Build**: `npm run build:eds-quickstart` (initialises submodule on first run, runs the fork's webpack 5 standalone config, rsyncs `dist/` → `web/profile-viewer/eds-quickstart/`).
+- **GitHub PAT (Repository cleanup)**: deleting a repo via the app’s GitHub API requires a **classic** token that includes **`delete_repo`** as well as **`repo`** (see in-app Settings / Repository cleanup guidance).
 - **Upstream-promotion workflow**: read [`docs/EDS_QUICKSTART_INTEGRATION.md`](docs/EDS_QUICKSTART_INTEGRATION.md) before merging upstream changes from `vaneeghemk` into our fork.
 
 The fork adds an extra wizard step that injects Adobe Launch (Tags) and/or
