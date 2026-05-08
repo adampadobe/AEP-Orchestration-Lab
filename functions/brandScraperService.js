@@ -1831,8 +1831,13 @@ async function handleScrapes(req, res) {
   const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
   let scrapeId = '';
   let isExtend = false;
+  let isCancel = false;
   const mExt = /\/scrapes\/([^/]+)\/extend$/.exec(path);
-  if (mExt) {
+  const mCancel = /\/scrapes\/([^/]+)\/cancel$/.exec(path);
+  if (mCancel) {
+    scrapeId = decodeURIComponent(mCancel[1]);
+    isCancel = true;
+  } else if (mExt) {
     scrapeId = decodeURIComponent(mExt[1]);
     isExtend = true;
   } else {
@@ -1843,7 +1848,10 @@ async function handleScrapes(req, res) {
       const segs = path.split('/').filter(Boolean);
       const last = segs.length ? segs[segs.length - 1] : '';
       const prev = segs.length > 1 ? segs[segs.length - 2] : '';
-      if (last === 'extend' && prev && /^[a-z0-9]{10,24}$/i.test(prev)) {
+      if (last === 'cancel' && prev && /^[a-z0-9]{10,24}$/i.test(prev)) {
+        scrapeId = prev;
+        isCancel = true;
+      } else if (last === 'extend' && prev && /^[a-z0-9]{10,24}$/i.test(prev)) {
         scrapeId = prev;
         isExtend = true;
       } else if (last && last !== 'scrapes' && /^[a-z0-9]{10,24}$/i.test(last)) {
@@ -1853,6 +1861,21 @@ async function handleScrapes(req, res) {
   }
 
   try {
+    if (req.method === 'POST' && scrapeId && isCancel) {
+      let body = {};
+      try {
+        body = (req.body && typeof req.body === 'object') ? req.body : JSON.parse((req.rawBody && req.rawBody.toString()) || '{}');
+      } catch (_e) {
+        body = {};
+      }
+      const out = await brandScrapeStore.cancelScrapeRun(sandbox, scrapeId, {
+        reason: body.reason || 'Cancelled by user',
+      });
+      if (!out.ok && out.status === 'not_found') { res.status(404).json({ error: 'not found' }); return; }
+      if (!out.ok) { res.status(409).json({ error: 'scrape is not active', status: out.status }); return; }
+      res.status(200).json({ ok: true, scrapeId, status: out.status });
+      return;
+    }
     if (req.method === 'POST' && scrapeId && isExtend) {
       let body = {};
       try {

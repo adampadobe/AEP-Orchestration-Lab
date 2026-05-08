@@ -418,6 +418,27 @@
   let progressHandle = null;
   /** When true, bottom dock mirrors Analyse progress; classify/export keep in-card only. */
   let progressBottomDockEnabled = false;
+  const RUN_STALE_WARN_MS = 35 * 60 * 1000;
+
+  function parseTimestampMs(v) {
+    if (!v) return null;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const d = Date.parse(v);
+      return Number.isFinite(d) ? d : null;
+    }
+    if (typeof v === 'object') {
+      if (typeof v.toMillis === 'function') return v.toMillis();
+      if (typeof v.toDate === 'function') {
+        const dt = v.toDate();
+        return Number.isFinite(dt && dt.getTime && dt.getTime()) ? dt.getTime() : null;
+      }
+      const sec = Number(v._seconds != null ? v._seconds : v.seconds);
+      const nsec = Number(v._nanoseconds != null ? v._nanoseconds : v.nanoseconds);
+      if (Number.isFinite(sec)) return sec * 1000 + (Number.isFinite(nsec) ? Math.floor(nsec / 1e6) : 0);
+    }
+    return null;
+  }
 
   function rowIndicatesActiveScrape(row) {
     if (!row || typeof row !== 'object') return false;
@@ -763,9 +784,22 @@
 
   function fmtDate(iso) {
     if (!iso) return '';
-    const d = new Date(iso);
+    const ms = parseTimestampMs(iso);
+    if (ms == null) return esc(iso);
+    const d = new Date(ms);
     if (isNaN(d)) return esc(iso);
     return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function fmtDuration(ms) {
+    const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+    if (s < 60) return s + 's';
+    const mins = Math.floor(s / 60);
+    const rem = s % 60;
+    if (mins < 60) return mins + 'm' + (rem ? ' ' + rem + 's' : '');
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return hrs + 'h' + (m ? ' ' + m + 'm' : '');
   }
 
   function renderList(items, fmt) {
@@ -1568,6 +1602,10 @@
         '</details>'
       )
       : '';
+    const runStartedMs = parseTimestampMs(it.runStartedAt);
+    const runAgeMs = runStartedMs != null ? Math.max(0, Date.now() - runStartedMs) : null;
+    const runAgeMeta = (activeRow && runAgeMs != null) ? (' · running ' + fmtDuration(runAgeMs)) : '';
+    const staleMeta = (activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS) ? ' · likely stuck' : '';
     const viewDisabled = runState === 'running';
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
@@ -1591,12 +1629,19 @@
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
+            runAgeMeta +
+            staleMeta +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
+          ((activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS)
+            ? '<p class="brand-scraper-result-warn">This run has been active for ' + esc(fmtDuration(runAgeMs)) + '. It may be stuck — cancel and retry.</p>'
+            : '') +
           failDetails +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
           '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
+          (activeRow ? '<button type="button" class="dashboard-btn-outline" data-action="cancel">Cancel</button>' : '') +
+          (activeRow || runState === 'failed' ? '<button type="button" class="dashboard-btn-outline" data-action="retry">Try again</button>' : '') +
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
       '</article>'
@@ -1829,6 +1874,80 @@
     }
   }
 
+  async function cancelScrape(scrapeId, opts) {
+    opts = opts || {};
+    const quiet = !!opts.quiet;
+    try {
+      const resp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + '/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Cancelled by user from history card' }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok && resp.status !== 409) {
+        if (!quiet) setStatus('Cancel failed: ' + (data.error || resp.statusText), 'error');
+        return false;
+      }
+      if (!quiet) setStatus('Cancelled scrape run. You can retry now.', 'info');
+      await loadHistory();
+      return true;
+    } catch (e) {
+      if (!quiet) setStatus('Network error cancelling scrape: ' + (e && e.message || e), 'error');
+      return false;
+    }
+  }
+
+  async function retryScrape(scrapeId) {
+    const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
+    if (row && rowIndicatesActiveScrape(row)) {
+      const okCancel = await cancelScrape(scrapeId, { quiet: true });
+      if (!okCancel) return;
+    }
+    try {
+      const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
+      const detail = await detailResp.json().catch(() => ({}));
+      if (!detailResp.ok) {
+        setStatus('Retry failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
+        return;
+      }
+      const include = (function () {
+        if (detail && typeof detail.includeSummary === 'string' && detail.includeSummary.trim()) {
+          try {
+            const parsed = JSON.parse(detail.includeSummary);
+            if (parsed && typeof parsed === 'object') return parsed;
+          } catch (_e) {}
+        }
+        return { ...runOptions };
+      })();
+      const retryResp = await scopedFetch(ANALYZE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: detail.url || detail.baseUrl,
+          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
+          country: detail.country || (countrySel && countrySel.value) || '',
+          maxPages: pagesInput ? clampPages(pagesInput.value) : 3,
+          crawler: detail.crawlEngine || ((crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch'),
+          include: include,
+          mode: 'new',
+        }),
+      });
+      const data = await retryResp.json().catch(() => ({}));
+      const sid = data.scrapeId || retryResp.headers.get('x-brand-scrape-id');
+      if (!retryResp.ok && retryResp.status !== 202) {
+        setStatus('Retry failed: ' + (data.error || retryResp.statusText), 'error');
+        return;
+      }
+      setStatus('Retry started in background. Watching progress…', 'info');
+      await loadHistory();
+      if (sid) {
+        startScrapePoll(String(sid), {});
+      }
+    } catch (e) {
+      setStatus('Network error retrying scrape: ' + (e && e.message || e), 'error');
+    }
+  }
+
   async function extendRetentionForScrapeId(scrapeId) {
     const scope = getScope();
     if (!scope.scopeId || !scrapeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
@@ -1882,6 +2001,8 @@
       const id = card && card.getAttribute('data-scrape-id');
       if (!id) return;
       if (btn.dataset.action === 'view') viewScrape(id);
+      else if (btn.dataset.action === 'cancel') cancelScrape(id);
+      else if (btn.dataset.action === 'retry') retryScrape(id);
       else if (btn.dataset.action === 'delete') deleteScrape(id);
       else if (btn.dataset.action === 'extend-from-card') extendRetentionForScrapeId(id);
     });

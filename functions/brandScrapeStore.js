@@ -96,16 +96,29 @@ function genId() {
 function serializeTimestamp(v) {
   if (!v) return null;
   if (typeof v.toDate === 'function') return v.toDate().toISOString();
+  const ms = firestoreTimestampToMs(v);
+  if (ms != null) return new Date(ms).toISOString();
   return v;
 }
 
 function firestoreTimestampToMs(ts) {
   if (!ts) return null;
   if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (typeof ts.toDate === 'function') {
+    const dt = ts.toDate();
+    return Number.isFinite(dt && dt.getTime && dt.getTime()) ? dt.getTime() : null;
+  }
   if (typeof ts === 'number' && Number.isFinite(ts)) return ts;
   if (typeof ts === 'string') {
     const d = Date.parse(ts);
     return Number.isFinite(d) ? d : null;
+  }
+  if (typeof ts === 'object') {
+    const sec = Number(ts._seconds != null ? ts._seconds : ts.seconds);
+    const nsec = Number(ts._nanoseconds != null ? ts._nanoseconds : ts.nanoseconds);
+    if (Number.isFinite(sec)) {
+      return sec * 1000 + (Number.isFinite(nsec) ? Math.floor(nsec / 1e6) : 0);
+    }
   }
   return null;
 }
@@ -341,6 +354,48 @@ async function markScrapeFailed(sandbox, scrapeId, { error, steps } = {}) {
     runSteps: normalized && normalized.length ? normalized : admin.firestore.FieldValue.delete(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
+}
+
+/**
+ * User-initiated cancel for a stuck scrape.
+ * This flips the index row to a terminal state immediately. The running worker
+ * cannot be hard-killed here, but UI/history no longer stays "Running…".
+ */
+async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid) return { ok: false, status: 'bad_request' };
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  let out = { ok: false, status: 'not_found' };
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      out = { ok: false, status: 'not_found' };
+      return;
+    }
+    const data = snap.data() || {};
+    const status = String(data.scrapeStatus || '');
+    const active = status === 'running' || status === 'crawl_complete' || data.analysisPending === true
+      || (data.buildPhase && data.buildPhase !== 'complete');
+    if (!active) {
+      out = { ok: false, status: status || 'complete' };
+      return;
+    }
+    tx.set(ref, {
+      scrapeStatus: 'failed',
+      scrapeError: 'Run cancelled by user. You can retry this scrape from the card.',
+      buildPhase: 'cancelled',
+      runSteps: [{
+        id: 'cancelled',
+        label: 'Run cancelled',
+        status: 'failed',
+        detail: String(reason || 'Cancelled from history card').slice(0, 500),
+      }],
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    out = { ok: true, status: 'cancelled' };
+  });
+  return out;
 }
 
 /**
@@ -648,7 +703,7 @@ async function getScrape(sandbox, id, opts = {}) {
     : null;
 }
 
-const STALE_RUNNING_SCRAPE_MS = 95 * 60 * 1000;
+const STALE_RUNNING_SCRAPE_MS = 35 * 60 * 1000;
 
 async function refreshGcsPayloadCustomTime(sandbox, scrapeId) {
   const prefix = `scrapes/${safeSlug(sandbox)}/${safeSlug(scrapeId)}/`;
@@ -762,22 +817,25 @@ async function runBrandScrapeStaleMaintenance() {
     console.warn('[brandScrapeStore] backfillGcsCustomTimeForRecordObjects', String((e && e.message) || e));
   }
 
-  const runSnap = await db.collection(COLLECTION).where('scrapeStatus', '==', 'running').limit(300).get();
-  for (const doc of runSnap.docs) {
-    const d = doc.data() || {};
-    const rs = d.runStartedAt;
-    const t = rs && typeof rs.toMillis === 'function' ? rs.toMillis() : 0;
-    if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
-      await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
-        error: 'Run timed out (stale). The tab or worker may have been interrupted; delete and retry.',
-        steps: [{
-          id: 'runtime',
-          label: 'Run did not finish',
-          status: 'failed',
-          detail: 'Status stayed "running" past the timeout window (worker disconnect or crash).',
-        }],
-      });
-      failedStaleRunning += 1;
+  const staleStatuses = ['running', 'crawl_complete'];
+  for (const status of staleStatuses) {
+    const runSnap = await db.collection(COLLECTION).where('scrapeStatus', '==', status).limit(300).get();
+    for (const doc of runSnap.docs) {
+      const d = doc.data() || {};
+      const rs = d.runStartedAt;
+      const t = firestoreTimestampToMs(rs) || 0;
+      if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
+        await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
+          error: 'Run timed out (stale). The worker did not finish within 35 minutes; cancel/retry from the card.',
+          steps: [{
+            id: 'runtime',
+            label: 'Run did not finish',
+            status: 'failed',
+            detail: `Status "${status}" stayed active past the timeout window (worker disconnect, long API stall, or crash).`,
+          }],
+        });
+        failedStaleRunning += 1;
+      }
     }
   }
 
@@ -822,6 +880,7 @@ module.exports = {
   genId,
   markScrapeRunning,
   markScrapeFailed,
+  cancelScrapeRun,
   runBrandScrapeStaleMaintenance,
   extendScrapeRetention,
   hasRealPayload,
