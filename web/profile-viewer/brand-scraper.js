@@ -433,9 +433,21 @@
         const dt = v.toDate();
         return Number.isFinite(dt && dt.getTime && dt.getTime()) ? dt.getTime() : null;
       }
-      const sec = Number(v._seconds != null ? v._seconds : v.seconds);
-      const nsec = Number(v._nanoseconds != null ? v._nanoseconds : v.nanoseconds);
+      // Firestore / protobuf timestamp object shapes
+      const rawSec = (v._seconds != null ? v._seconds : (v.seconds != null ? v.seconds : v.sec));
+      const rawNsec = (v._nanoseconds != null ? v._nanoseconds : (v.nanoseconds != null ? v.nanoseconds : v.nanos));
+      const sec = Number(typeof rawSec === 'object' && rawSec && rawSec.low != null ? rawSec.low : rawSec);
+      const nsec = Number(typeof rawNsec === 'object' && rawNsec && rawNsec.low != null ? rawNsec.low : rawNsec);
       if (Number.isFinite(sec)) return sec * 1000 + (Number.isFinite(nsec) ? Math.floor(nsec / 1e6) : 0);
+      // Some SDK payloads serialize as {_date: "..."} or {iso: "..."} wrappers.
+      if (typeof v._date === 'string') {
+        const d = Date.parse(v._date);
+        if (Number.isFinite(d)) return d;
+      }
+      if (typeof v.iso === 'string') {
+        const d = Date.parse(v.iso);
+        if (Number.isFinite(d)) return d;
+      }
     }
     return null;
   }
@@ -813,9 +825,9 @@
   function fmtDate(iso) {
     if (!iso) return '';
     const ms = parseTimestampMs(iso);
-    if (ms == null) return esc(iso);
+    if (ms == null) return '';
     const d = new Date(ms);
-    if (isNaN(d)) return esc(iso);
+    if (isNaN(d)) return '';
     return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
