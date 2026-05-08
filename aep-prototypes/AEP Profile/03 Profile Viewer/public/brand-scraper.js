@@ -451,6 +451,34 @@
     return false;
   }
 
+  function cardProgressPercent(row) {
+    if (!row || typeof row !== 'object') return 0;
+    const st = String(row.scrapeStatus || '');
+    const phase = String(row.buildPhase || '');
+    if (st === 'failed') return 100;
+    if (!rowIndicatesActiveScrape(row)) return 100;
+    if (st === 'running' && !phase) return 14;
+    if (phase === 'crawl') return 38;
+    if (phase === 'brand') return 68;
+    if (phase === 'audiences') return 88;
+    if (st === 'crawl_complete') return 94;
+    return 96;
+  }
+
+  function cardProgressLabel(row) {
+    if (!row || typeof row !== 'object') return '';
+    const st = String(row.scrapeStatus || '');
+    const phase = String(row.buildPhase || '');
+    if (st === 'failed') return 'Failed';
+    if (!rowIndicatesActiveScrape(row)) return 'Complete';
+    if (st === 'running' && !phase) return 'Crawling pages';
+    if (phase === 'crawl') return 'Building brand guidelines';
+    if (phase === 'brand') return 'Generating audiences';
+    if (phase === 'audiences') return 'Finishing segments';
+    if (st === 'crawl_complete') return 'Finalizing';
+    return 'Running';
+  }
+
   function detailIndicatesInProgress(data) {
     if (!data || typeof data !== 'object') return false;
     const st = data.scrapeStatus;
@@ -1607,6 +1635,8 @@
     const runAgeMeta = (activeRow && runAgeMs != null) ? (' · running ' + fmtDuration(runAgeMs)) : '';
     const staleMeta = (activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS) ? ' · likely stuck' : '';
     const viewDisabled = runState === 'running';
+    const progressPct = cardProgressPercent(it);
+    const progressLabel = cardProgressLabel(it);
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
         (selectMode ? (
@@ -1633,6 +1663,14 @@
             staleMeta +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
+          (activeRow ? (
+            '<div class="brand-scraper-history-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progressPct + '">' +
+              '<div class="brand-scraper-history-progress-track">' +
+                '<div class="brand-scraper-history-progress-fill" style="width:' + progressPct + '%"></div>' +
+              '</div>' +
+              '<div class="brand-scraper-history-progress-meta">' + esc(progressLabel) + (runAgeMs != null ? ' · ' + esc(fmtDuration(runAgeMs)) : '') + '</div>' +
+            '</div>'
+          ) : '') +
           ((activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS)
             ? '<p class="brand-scraper-result-warn">This run has been active for ' + esc(fmtDuration(runAgeMs)) + '. It may be stuck — cancel and retry.</p>'
             : '') +
@@ -1748,7 +1786,7 @@
 
     function scheduleNext() {
       ticks += 1;
-      loadHistory().then(function () {
+      loadHistory({ quiet: true }).then(function () {
         const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
         const st = row && row.scrapeStatus;
         const bp = row && row.buildPhase ? String(row.buildPhase) : '';
@@ -1785,25 +1823,29 @@
     scrapePollTimer = setTimeout(scheduleNext, 900);
   }
 
-  async function loadHistory() {
+  async function loadHistory(opts) {
+    opts = opts || {};
+    const quiet = !!opts.quiet;
     const scope = getScope();
     if (historySandboxEl) historySandboxEl.textContent = getScopeLabel(scope);
     if (!scope.scopeId) { historyItemsCache = []; renderHistory([]); return; }
-    historyEmptyEl.hidden = false;
-    historyEmptyEl.textContent = 'Loading…';
-    historyListEl.hidden = true;
+    if (!quiet) {
+      historyEmptyEl.hidden = false;
+      historyEmptyEl.textContent = 'Loading…';
+      historyListEl.hidden = true;
+    }
     try {
       const resp = await scopedFetch('/api/brand-scraper/scrapes');
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        historyEmptyEl.textContent = 'Failed to load scrapes: ' + (data.error || resp.statusText);
+        if (!quiet) historyEmptyEl.textContent = 'Failed to load scrapes: ' + (data.error || resp.statusText);
         historyItemsCache = [];
         return;
       }
       historyItemsCache = Array.isArray(data.items) ? data.items : [];
       renderHistory(historyItemsCache);
     } catch (e) {
-      historyEmptyEl.textContent = 'Network error: ' + (e && e.message || e);
+      if (!quiet) historyEmptyEl.textContent = 'Network error: ' + (e && e.message || e);
       historyItemsCache = [];
     }
   }
@@ -1929,7 +1971,8 @@
           maxPages: pagesInput ? clampPages(pagesInput.value) : 3,
           crawler: detail.crawlEngine || ((crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch'),
           include: include,
-          mode: 'new',
+          mode: 'append',
+          existingScrapeId: scrapeId,
         }),
       });
       const data = await retryResp.json().catch(() => ({}));
