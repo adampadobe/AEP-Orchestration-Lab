@@ -231,6 +231,80 @@ The wizard auto-fills the **IMS Org** field from the lab's Global values
 `/profile-viewer/eds-quickstart.html`. The user can override before
 submitting.
 
+## SharePoint and Google Drive base documents
+
+This section is for **document-based** authoring (SharePoint or Google Drive)
+after you run **Create project** in the EDS Demo Creator.
+
+### What the wizard actually provisions
+
+The SPA runs entirely in the browser. For a new site it:
+
+1. **Creates a private GitHub repository** from a template via GitHub's
+   template API (`POST .../generate`):
+   - **AEM Boilerplate (Enhanced)** and **(Vanilla)** →
+     [`vaneeghemk/aem-boilerplate-xwalk`](https://github.com/vaneeghemk/aem-boilerplate-xwalk)
+     (same family as Adobe's public
+     [`adobe-rnd/aem-boilerplate-xwalk`](https://github.com/adobe-rnd/aem-boilerplate-xwalk)).
+   - **Reference Demos 2.0** → `AEMXSC/RefDemoEDS` (AEM-based flow; different
+     checklist in the UI).
+2. **Commits Git-side changes** through the GitHub Contents API, for example
+   `fstab.yaml` (mounts your SharePoint folder URL or Google Drive folder URL),
+   `README.md`, `styles/styles.css` (branding), and optionally `head.html`
+   (AEP Launch / Web SDK when enabled in the lab iframe).
+
+It does **not** call Microsoft Graph, Google Drive file APIs, or any other
+backend to **create, copy, or upload Word/Google documents** into your
+content folder. **Auto-upload of starter `.docx` / Google Docs into SharePoint
+is out of scope** for this lab tool today.
+
+### Official guidance (document repositories)
+
+Adobe documents how to point a project at SharePoint or Drive and how
+authors work with documents:
+
+- [Set up a content repository for Edge Delivery Services](https://experienceleague.adobe.com/en/docs/experience-manager-learn/sites/edge-delivery-services/developing/content-repository)
+  (Experience League — SharePoint and Google Drive tabs, including the
+  recommendation to start from **index**, **nav**, and **footer** style pages
+  when copying sample patterns into your own folder).
+- [Where to author your site](https://www.aem.live/docs/authoring-guide) and
+  linked setup guides (for example SharePoint customer setup under
+  [aem.live docs](https://www.aem.live/docs/authoring)).
+
+Boilerplate **GitHub** templates ship **site code** (blocks, styles, scripts,
+`fstab.yaml`). They are **not** a zip of production Word files for your tenant.
+Your **SharePoint** or **Drive** folder — the URL you paste into the wizard —
+starts empty unless your org already placed files there.
+
+### Practical workflow (manual)
+
+1. Complete the wizard through **Create project** and **Step 2** (install
+   **AEM Code Sync** on the new repo) so `*.aem.page` / `*.aem.live` can read
+   Git + your mount.
+2. In **SharePoint** (or **Drive**), open the **same folder URL** you put in
+   **Document Source URL** and add baseline documents authors will preview and
+   publish with **Sidekick** (for example pages named **`index`**, **`nav`**,
+   and **`footer`** — exact naming follows your project's content conventions
+   and Adobe's document-authoring guides).
+3. Use Adobe's tutorials as the source of truth for structure (sections,
+   blocks in tables, etc.). If you are mirroring the Experience League pattern
+   for Google Drive (copy sample **index** / **nav** / **footer** into your own
+   folder), do the equivalent in SharePoint: create Word documents with the
+   same roles in **your** library, grant the Edge Delivery technical user
+   access per your IT policy (see the SharePoint tab in the content-repository
+   tutorial above), then **Preview** and **Publish** from Sidekick.
+
+### "Starter content pack (template repo)" in the UI
+
+After a successful run, **Step N — Author and publish content** includes a
+button labelled **Starter content pack (template repo)**. It opens
+[`https://github.com/vaneeghemk/aem-boilerplate-xwalk`](https://github.com/vaneeghemk/aem-boilerplate-xwalk),
+i.e. the **same GitHub template** the tool uses for **code** generation — so
+you can browse **blocks**, **styles**, **scripts**, `fstab.yaml` defaults, etc.
+There is **no** `index.docx` (or similar) in that repo to drag into SharePoint;
+use it as a **code** reference and rely on Adobe's document-authoring docs for
+**page** documents in your folder.
+
 ## Known gotchas
 
 - **GitHub PAT scope.** The wizard requires a Classic Personal Access Token
