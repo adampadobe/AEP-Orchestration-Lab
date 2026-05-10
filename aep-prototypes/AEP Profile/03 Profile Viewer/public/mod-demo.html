@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="mod-demo.css?v=20260211-ask-overlay">
+  <link rel="stylesheet" href="mod-demo.css?v=20260507-bc-ask-opens-bc">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -229,7 +229,7 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
   <script src="demo-tags-injection.js?v=20260507-standard"></script>
-  <script src="mod-demo.js"></script>
+  <script src="mod-demo.js?v=20260507-bc-ask-opens-panel"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>
@@ -261,7 +261,7 @@
     class="mod-demo-ask-float"
     aria-haspopup="dialog"
     aria-expanded="false"
-    aria-controls="modDemoAskDialog"
+    aria-controls="brand-concierge-mount-host"
   >
     <span class="mod-demo-ask-float__sparkles" aria-hidden="true">
       <svg class="mod-demo-ask-float__sparkles-svg" viewBox="0 0 40 40" width="36" height="36" focusable="false">
@@ -286,131 +286,6 @@
     </span>
     <span class="mod-demo-ask-float__label">Ask a question</span>
   </button>
-
-  <div
-    id="modDemoAskDialog"
-    class="mod-demo-ask-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="modDemoAskDialogTitle"
-    hidden
-  >
-    <div class="mod-demo-ask-overlay__backdrop" tabindex="-1" data-mod-demo-ask-close></div>
-    <div class="mod-demo-ask-overlay__panel">
-      <header class="mod-demo-ask-overlay__header">
-        <div class="mod-demo-ask-overlay__brand">
-          <span class="mod-demo-ask-overlay__brand-sparkles" aria-hidden="true">
-            <svg class="mod-demo-ask-overlay__brand-svg" viewBox="0 0 32 32" width="28" height="28" focusable="false">
-              <defs>
-                <linearGradient id="modDemoAskPanelSparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" class="mod-demo-ask-overlay__grad-stop-a" />
-                  <stop offset="100%" class="mod-demo-ask-overlay__grad-stop-b" />
-                </linearGradient>
-              </defs>
-              <path
-                fill="none"
-                stroke="url(#modDemoAskPanelSparkleGrad)"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18 5l1 3.6L23 10l-4 1.2L18 15l-1-3.8L13 10l4-1.4L18 5z"
-              />
-              <path class="mod-demo-ask-overlay__mini-dot" d="M8 22l0.5 1.6 1.6 0.5-1.6 0.5L8 26l-0.5-1.6-1.6-0.5 1.6-0.5L8 22z" />
-            </svg>
-          </span>
-          <span class="mod-demo-ask-overlay__ask-word">Ask</span>
-          <span class="mod-demo-ask-overlay__beta">BETA</span>
-        </div>
-        <button type="button" class="mod-demo-ask-overlay__collapse" aria-label="Minimize" data-mod-demo-ask-close>
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-            <path
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 9l6 6 6-6"
-            />
-          </svg>
-        </button>
-      </header>
-
-      <h2 id="modDemoAskDialogTitle" class="mod-demo-ask-overlay__title">
-        Find the right capability to bring your customer experiences to life.
-      </h2>
-      <p class="mod-demo-ask-overlay__subtitle">Choose a suggestion or type your own question — we’ll open Brand Concierge with your message.</p>
-
-      <ul class="mod-demo-ask-overlay__suggestions">
-        <li>
-          <button type="button" class="mod-demo-ask-overlay__suggestion" data-mod-demo-ask-suggestion>
-            How do I look up a customer profile in this lab?
-          </button>
-        </li>
-        <li>
-          <button type="button" class="mod-demo-ask-overlay__suggestion" data-mod-demo-ask-suggestion>
-            What identity namespaces can I use in the demo?
-          </button>
-        </li>
-        <li>
-          <button type="button" class="mod-demo-ask-overlay__suggestion" data-mod-demo-ask-suggestion>
-            How does the Event Generator connect to Edge or DCS?
-          </button>
-        </li>
-        <li>
-          <button type="button" class="mod-demo-ask-overlay__suggestion" data-mod-demo-ask-suggestion>
-            What is Brand Concierge on this page?
-          </button>
-        </li>
-      </ul>
-
-      <div class="mod-demo-ask-overlay__input-wrap">
-        <div class="mod-demo-ask-overlay__input-row">
-          <span class="mod-demo-ask-overlay__input-sparkles" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="32" height="32" focusable="false">
-              <defs>
-                <linearGradient id="modDemoAskFooterSparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" class="mod-demo-ask-overlay__grad-stop-a" />
-                  <stop offset="100%" class="mod-demo-ask-overlay__grad-stop-b" />
-                </linearGradient>
-              </defs>
-              <path
-                fill="none"
-                stroke="url(#modDemoAskFooterSparkleGrad)"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z"
-              />
-            </svg>
-          </span>
-          <input
-            type="text"
-            id="modDemoAskInput"
-            class="mod-demo-ask-overlay__input"
-            placeholder="Ask a question"
-            autocomplete="off"
-            spellcheck="false"
-            aria-label="Ask a question"
-          />
-          <button type="button" id="modDemoAskSend" class="mod-demo-ask-overlay__send" aria-label="Send question">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 12l16-6-6 16-2-7-8-3z"
-              />
-            </svg>
-          </button>
-        </div>
-        <p class="mod-demo-ask-overlay__legal">
-          AI responses may be inaccurate. Verify important information. This lab demo forwards your question to Brand Concierge.
-        </p>
-      </div>
-    </div>
-  </div>
 
   <button type="button" id="aepBcReopenBtn" class="aep-bc-reopen-btn" hidden aria-label="Open Brand Concierge">
     <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
