@@ -222,9 +222,7 @@ DemoProfileDrawer.init({
 });
 
 /**
- * “Ask a question” launches Brand Concierge only after click (deferred bootstrap in
- * brand-concierge-deferred-bootstrap.js). Army recruitment visuals come from
- * styleConfigurations-mod-demo-army.js via window.styleConfiguration at bootstrap time.
+ * “Ask a question” / FAB reopen: show Brand Concierge host (inline Alloy + bootstrap in mod-demo.html).
  */
 (function setupModDemoAskOpensBrandConcierge() {
   var floatBtn = document.getElementById('modDemoAskFloat');
@@ -239,12 +237,9 @@ DemoProfileDrawer.init({
   }
 
   floatBtn.addEventListener('click', function () {
-    if (typeof window.aepBcBootstrapWhenReady !== 'function') return;
-    window.aepBcBootstrapWhenReady(function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
-      syncBrandConciergeChrome();
-      floatBtn.setAttribute('aria-expanded', 'true');
-    });
+    document.body.classList.remove('aep-bc-panel-dismissed');
+    syncBrandConciergeChrome();
+    floatBtn.setAttribute('aria-expanded', 'true');
   });
 
   document.body.addEventListener(

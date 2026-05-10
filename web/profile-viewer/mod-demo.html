@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="mod-demo.css?v=20260507-bc-ask-opens-bc">
+  <link rel="stylesheet" href="mod-demo.css?v=20260508-bc-inline-alloy">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -229,31 +229,59 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
   <script src="demo-tags-injection.js?v=20260507-standard"></script>
-  <script src="mod-demo.js?v=20260507-bc-ask-opens-panel"></script>
+  <script src="mod-demo.js?v=20260508-bc-inline-alloy"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>
 
-  <script src="styleConfigurations-mod-demo-army.js?v=20260506-army-recruitment"></script>
-  <script src="brand-concierge-deferred-bootstrap.js?v=20260425-bc-defer"></script>
-
+  <!-- Brand Concierge: inline Alloy + bootstrap (MOD demo — dedicated datastream / org per integration spec) -->
+  <script src="styleConfigurations.js?v=bc-4-hide-ai-chat-icon"></script>
+  <script>
+    !(function (n, o) {
+      o.forEach(function (o) {
+        n[o] ||
+          ((n.__alloyNS = n.__alloyNS || []).push(o),
+          (n[o] = function () {
+            var u = arguments;
+            return new Promise(function (i, l) {
+              n[o].q.push([i, l, u]);
+            });
+          }),
+          (n[o].q = []));
+      });
+    })(window, ['alloy']);
+  </script>
   <style>
     .bc-card__image {
       background-size: contain !important;
       background-repeat: no-repeat !important;
     }
-
     #brand-concierge-mount-host {
       width: min(420px, calc(100vw - 32px));
       max-height: min(720px, calc(100vh - 32px));
       pointer-events: auto;
       background: transparent;
     }
-
-    html[data-aep-theme="dark"] #brand-concierge-mount-host {
+    html[data-aep-theme='dark'] #brand-concierge-mount-host {
       color-scheme: dark;
     }
   </style>
+  <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
+  <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
+  <script>
+    alloy('configure', {
+      defaultConsent: 'in',
+      edgeDomain: 'edge-int.adobedc.net',
+      edgeBasePath: 'ee',
+      datastreamId: '6867d16a-713c-4619-8c1f-8f99d6062c90',
+      orgId: '079D1DB561F9460C0A495FFB@AdobeOrg',
+      debugEnabled: true,
+      idMigrationEnabled: false,
+      thirdPartyCookiesEnabled: false,
+      prehidingStyle: '.personalization-container { opacity: 0 !important }',
+    });
+    alloy('sendEvent', {});
+  </script>
 
   <button
     type="button"
@@ -298,6 +326,37 @@
     <div id="brand-concierge-mount"></div>
   </div>
 
+  <script>
+    (function bootBrandConciergeModDemo() {
+      var attempts = 0;
+      var maxAttempts = 200;
+      function tick() {
+        if (
+          window.adobe &&
+          window.adobe.concierge &&
+          typeof window.adobe.concierge.bootstrap === 'function'
+        ) {
+          try {
+            window.adobe.concierge.bootstrap({
+              instanceName: 'alloy',
+              stylingConfigurations: window.styleConfiguration,
+              selector: '#brand-concierge-mount',
+              stickySession: false,
+            });
+          } catch (e) {
+            console.warn('Brand Concierge bootstrap failed:', e);
+          }
+          return;
+        }
+        if (++attempts >= maxAttempts) {
+          console.warn('Brand Concierge: adobe.concierge.bootstrap not available after wait');
+          return;
+        }
+        setTimeout(tick, 50);
+      }
+      tick();
+    })();
+  </script>
   <script src="brand-concierge-controls.js?v=20260427-corner"></script>
 </body>
 </html>
