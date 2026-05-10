@@ -222,34 +222,51 @@ DemoProfileDrawer.init({
 });
 
 /**
- * “Ask a question” / FAB reopen: show Brand Concierge host (inline Alloy + bootstrap in mod-demo.html).
+ * “Ask a question” / FAB: show Brand Concierge host. This script runs before #modDemoAskFloat
+ * exists in the DOM — bind after DOMContentLoaded so the click handler is actually attached.
  */
 (function setupModDemoAskOpensBrandConcierge() {
-  var floatBtn = document.getElementById('modDemoAskFloat');
-  if (!floatBtn) return;
+  function bind() {
+    var floatBtn = document.getElementById('modDemoAskFloat');
+    if (!floatBtn) return;
 
-  function syncBrandConciergeChrome() {
-    var dismissed = document.body.classList.contains('aep-bc-panel-dismissed');
-    var reopenBtn = document.getElementById('aepBcReopenBtn');
-    var dismissBtn = document.getElementById('aepBcDismissBtn');
-    if (reopenBtn) reopenBtn.hidden = !dismissed;
-    if (dismissBtn) dismissBtn.hidden = dismissed;
+    function syncBrandConciergeChrome() {
+      var dismissed = document.body.classList.contains('aep-bc-panel-dismissed');
+      var reopenBtn = document.getElementById('aepBcReopenBtn');
+      var dismissBtn = document.getElementById('aepBcDismissBtn');
+      if (reopenBtn) reopenBtn.hidden = !dismissed;
+      if (dismissBtn) dismissBtn.hidden = dismissed;
+    }
+
+    floatBtn.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+      syncBrandConciergeChrome();
+      floatBtn.setAttribute('aria-expanded', 'true');
+      var host = document.getElementById('brand-concierge-mount-host');
+      if (host && typeof host.focus === 'function') {
+        try {
+          host.focus({ preventScroll: false });
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    });
+
+    document.body.addEventListener(
+      'click',
+      function (ev) {
+        var t = ev.target;
+        if (t && (t.id === 'aepBcDismissBtn' || (t.closest && t.closest('#aepBcDismissBtn')))) {
+          floatBtn.setAttribute('aria-expanded', 'false');
+        }
+      },
+      true,
+    );
   }
 
-  floatBtn.addEventListener('click', function () {
-    document.body.classList.remove('aep-bc-panel-dismissed');
-    syncBrandConciergeChrome();
-    floatBtn.setAttribute('aria-expanded', 'true');
-  });
-
-  document.body.addEventListener(
-    'click',
-    function (ev) {
-      var t = ev.target;
-      if (t && (t.id === 'aepBcDismissBtn' || t.closest && t.closest('#aepBcDismissBtn'))) {
-        floatBtn.setAttribute('aria-expanded', 'false');
-      }
-    },
-    true,
-  );
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
 })();
