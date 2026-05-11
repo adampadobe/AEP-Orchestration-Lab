@@ -215,6 +215,19 @@ function getSelectedGeneratorTarget() {
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
 }
 
+function augmentOmGeneratorPostBody(body) {
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody) {
+    return window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body);
+  }
+  const src = body && typeof body === 'object' ? body : {};
+  const b = { ...src };
+  if (!b.sandbox && typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    const s = String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+    if (s) b.sandbox = s;
+  }
+  return b;
+}
+
 /**
  * ECID for generator calls: **session visitor ECID first** (Web SDK or demo mint).
  * Matches Edge device identity for stitching with email on login.
@@ -560,7 +573,7 @@ async function sendApplicationLoginExperienceEvent(email) {
   const res = await fetch('/api/events/generator', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(augmentOmGeneratorPostBody(body)),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -573,6 +586,12 @@ const OM_PREFERRED_GENERATOR_TARGET_ID = 'edge-a7f9-default';
 
 async function loadGeneratorTargets() {
   if (!generatorTargetSelect) return;
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {
+      preferredId: OM_PREFERRED_GENERATOR_TARGET_ID,
+    });
+    return;
+  }
   try {
     const res = await fetch('/api/events/generator-targets');
     const data = await res.json().catch(() => ({}));
@@ -745,7 +764,7 @@ async function sendRaceEvent(eventTypeName, includeEventRegistration) {
       const res = await fetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(augmentOmGeneratorPostBody(body)),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -837,7 +856,7 @@ async function sendOmWebPageViewEvent(opts) {
     const res = await fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(augmentOmGeneratorPostBody(body)),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -915,7 +934,7 @@ async function sendFnbAccountApplicationCompleteEvent(product) {
     const res = await fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(augmentOmGeneratorPostBody(body)),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -1166,7 +1185,12 @@ abandonedBasketBtn &&
     await sendRaceEvent('form.abandon', true);
   });
 
-loadGeneratorTargets();
+void loadGeneratorTargets();
+if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+  window.AepDemoGeneratorTargets.onSandboxChange(function () {
+    void loadGeneratorTargets();
+  });
+}
 
 const omLogoutBtn = document.getElementById('omLogoutBtn');
 

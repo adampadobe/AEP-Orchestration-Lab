@@ -35,6 +35,10 @@ function getSelectedGeneratorTarget() {
 
 async function loadGeneratorTargets() {
   if (!generatorTargetSelect) return;
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    return;
+  }
   try {
     const res = await fetch('/api/events/generator-targets');
     const data = await res.json().catch(() => ({}));
@@ -182,10 +186,14 @@ if (sendEdgeBtn && edgeMessage) {
       if (pub && industryVal === 'public') {
         body.public = pub;
       }
+      const postBody =
+        typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+          ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+          : body;
       const res = await fetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(postBody),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -252,7 +260,12 @@ async function loadEventTypesFromSchema() {
 
 function initEventGeneratorPage() {
   loadEventTypesFromSchema();
-  loadGeneratorTargets();
+  void loadGeneratorTargets();
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+    window.AepDemoGeneratorTargets.onSandboxChange(function () {
+      void loadGeneratorTargets();
+    });
+  }
 }
 
 if (document.readyState === 'loading') {

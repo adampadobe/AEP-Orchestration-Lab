@@ -277,6 +277,19 @@
   /** @type {Array<{ id: string, label: string }>} */
   let generatorTargets = [];
 
+  function augmentCcGeneratorPostBody(body) {
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody) {
+      return window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body);
+    }
+    const src = body && typeof body === 'object' ? body : {};
+    const b = { ...src };
+    if (!b.sandbox && typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      const s = String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+      if (s) b.sandbox = s;
+    }
+    return b;
+  }
+
   let currentIndustryId = 'adobe';
 
   /** @type {number|null} */
@@ -631,7 +644,7 @@
     const res = await fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(augmentCcGeneratorPostBody(body)),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -642,6 +655,10 @@
 
   async function loadGeneratorTargets() {
     if (!generatorTargetSelect) return;
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+      generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+      return;
+    }
     try {
       const res = await fetch('/api/events/generator-targets');
       const data = await res.json().catch(() => ({}));
@@ -776,5 +793,10 @@
   });
 
   initIndustryUi();
-  loadGeneratorTargets();
+  void loadGeneratorTargets();
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+    window.AepDemoGeneratorTargets.onSandboxChange(function () {
+      void loadGeneratorTargets();
+    });
+  }
 })();

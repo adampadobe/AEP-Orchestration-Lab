@@ -85,6 +85,10 @@ function getSelectedGeneratorTarget() {
 
 async function loadGeneratorTargets() {
   if (!generatorTargetSelect) return;
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    return;
+  }
   try {
     const res = await fetch('/api/events/generator-targets');
     const data = await res.json().catch(() => ({}));
@@ -182,10 +186,14 @@ async function sendRaceEvent(eventTypeName, includeEventRegistration) {
       };
       if (ecid) body.ecid = ecid;
 
+      const postBody =
+        typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+          ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+          : body;
       const res = await fetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(postBody),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -225,7 +233,12 @@ abandonedBasketBtn &&
     await sendRaceEvent('form.abandon', true);
   });
 
-loadGeneratorTargets();
+void loadGeneratorTargets();
+if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+  window.AepDemoGeneratorTargets.onSandboxChange(function () {
+    void loadGeneratorTargets();
+  });
+}
 
 (function initRacePageFlyoutSidebar() {
   const body = document.body;

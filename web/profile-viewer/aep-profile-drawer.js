@@ -847,6 +847,18 @@ async function fetchProfileEventsList(email, namespaceOverride) {
   }
 }
 
+function augmentGeneratorRequestBody(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  if (typeof global.AepDemoGeneratorTargets !== 'undefined' && global.AepDemoGeneratorTargets.augmentGeneratorPostBody) {
+    return global.AepDemoGeneratorTargets.augmentGeneratorPostBody(b);
+  }
+  if (!b.sandbox && typeof global.AepGlobalSandbox !== 'undefined' && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+    const s = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+    if (s) b.sandbox = s;
+  }
+  return b;
+}
+
 function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) {
   const ecidEl = document.getElementById('infoEcid');
   const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
@@ -862,10 +874,11 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
     channel: 'Web',
   };
   if (ecid) body.ecid = ecid;
+  const postBody = augmentGeneratorRequestBody(body);
   return fetch('/api/events/generator', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(postBody),
   }).then((res) => {
     return res
       .json()

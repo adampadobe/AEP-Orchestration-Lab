@@ -53,6 +53,10 @@ function getSelectedGeneratorTarget() {
 
 async function loadGeneratorTargets() {
   if (!generatorTargetSelect) return;
+  if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    return;
+  }
   try {
     const res = await fetch('/api/events/generator-targets');
     const data = await res.json().catch(() => ({}));
@@ -98,7 +102,12 @@ queryProfileBtn &&
     if (stitched) setModMessage('Profile loaded and email linked to ECID for stitching.', 'success');
   });
 
-loadGeneratorTargets();
+void loadGeneratorTargets();
+if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+  window.AepDemoGeneratorTargets.onSandboxChange(function () {
+    void loadGeneratorTargets();
+  });
+}
 
 (function initModDemoSandboxAndEnvBar() {
   const sandboxSelect = document.getElementById('sandboxSelect');

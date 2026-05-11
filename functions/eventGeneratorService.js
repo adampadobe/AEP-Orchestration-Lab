@@ -310,9 +310,62 @@ function buildEventGeneratorXdm(reqBody, options) {
 
 const RESOLVED_GENERATOR_SCHEMA_ID = process.env.AEP_EVENT_GENERATOR_SCHEMA_ID || EVENT_SCHEMA_ID;
 
+/** Stable id for Event tool Firestore Edge config (per-sandbox). */
+const LAB_EVENT_TOOL_TARGET_ID = 'lab-event-tool-edge';
+/** Stable id for Decisioning lab Firestore Edge datastream (per-sandbox). */
+const LAB_DECISION_LAB_TARGET_ID = 'lab-decision-lab-edge';
+
+function shortHexLabel(datastreamId) {
+  const s = String(datastreamId || '').replace(/-/g, '');
+  if (!s) return '—';
+  return s.length > 8 ? `${s.slice(0, 8)}…` : s;
+}
+
+/**
+ * Virtual generator presets from Firestore (Event tool + Decision lab), merged ahead of static JSON.
+ * @param {string} sandbox
+ * @param {Record<string, unknown>|null|undefined} eventRec from getEffectiveEventConfig
+ * @param {Record<string, unknown>|null|undefined} decisionRec from getEffectiveDecisionLabConfig
+ * @returns {Array<Record<string, unknown>>}
+ */
+function buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec) {
+  const sb = String(sandbox || '').trim() || 'default';
+  /** @type {Array<Record<string, unknown>>} */
+  const out = [];
+  const dsEt = eventRec && String(eventRec.datastreamId || '').trim();
+  if (dsEt) {
+    const title = String(eventRec.datastreamTitle || '').trim() || 'Event tool';
+    out.push({
+      id: LAB_EVENT_TOOL_TARGET_ID,
+      label: `Edge — ${shortHexLabel(dsEt)} (${title}) · ${sb}`,
+      transport: 'edge',
+      dataStreamId: dsEt,
+      edgeInteractBase: 'https://server.adobedc.net/ee/v2/interact',
+      xdmStyle: 'full',
+      source: 'eventConfig',
+    });
+  }
+  const dsDl = decisionRec && String(decisionRec.datastreamId || '').trim();
+  if (dsDl) {
+    out.push({
+      id: LAB_DECISION_LAB_TARGET_ID,
+      label: `Edge — ${shortHexLabel(dsDl)} (Decisioning lab) · ${sb}`,
+      transport: 'edge',
+      dataStreamId: dsDl,
+      edgeInteractBase: 'https://server.adobedc.net/ee/v2/interact',
+      xdmStyle: 'full',
+      source: 'decisionLab',
+    });
+  }
+  return out;
+}
+
 module.exports = {
   loadEventGeneratorTargets,
   buildEventGeneratorXdm,
+  buildLabFirestoreGeneratorPresets,
+  LAB_EVENT_TOOL_TARGET_ID,
+  LAB_DECISION_LAB_TARGET_ID,
   EVENT_GENERATOR_STREAMING_URL,
   EVENT_GENERATOR_SCHEMA_ID: RESOLVED_GENERATOR_SCHEMA_ID,
   EVENT_DATASET_ID,

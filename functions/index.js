@@ -2729,7 +2729,7 @@ exports.eventEdgeProxy = onRequest(
   },
 );
 
-/** GET /api/events/generator-targets — Edge / DCS presets (event-generator-targets.json). */
+/** GET /api/events/generator-targets — static presets + per-sandbox Firestore (Event tool / Decision lab). */
 exports.eventGeneratorTargetsProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res, 'GET, OPTIONS');
   if (req.method === 'OPTIONS') {
@@ -2741,15 +2741,32 @@ exports.eventGeneratorTargetsProxy = onRequest(profileFnOpts, async (req, res) =
     return;
   }
   try {
-    const targets = eventGeneratorService.loadEventGeneratorTargets().map((t) => ({
+    const sandbox = resolveSandboxFromQuery(req);
+    const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+    const staticTargets = eventGeneratorService.loadEventGeneratorTargets();
+    let eventRec;
+    let decisionRec;
+    try {
+      [eventRec, decisionRec] = await Promise.all([
+        eventConfigStore.getEffectiveEventConfig(sandbox, uid),
+        decisionLabConfigStore.getEffectiveDecisionLabConfig(sandbox, uid),
+      ]);
+    } catch (e) {
+      eventRec = null;
+      decisionRec = null;
+    }
+    const virtual = eventGeneratorService.buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec);
+    const merged = [...virtual, ...staticTargets];
+    const targets = merged.map((t) => ({
       id: t.id,
       label: t.label,
       transport: t.transport,
       dataStreamId: t.dataStreamId || null,
       xdmStyle: t.xdmStyle || 'full',
       streamingUrl: t.streamingUrl || null,
+      source: t.source || 'preset',
     }));
-    res.status(200).json({ targets });
+    res.status(200).json({ sandbox, targets });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
   }
@@ -2772,10 +2789,25 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(400).json({ error: 'Missing email. Enter a customer identifier in the lab strip first.' });
     return;
   }
-  const targets = eventGeneratorService.loadEventGeneratorTargets();
+  const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  const staticTargets = eventGeneratorService.loadEventGeneratorTargets();
+  let eventRec;
+  let decisionRec;
+  try {
+    [eventRec, decisionRec] = await Promise.all([
+      eventConfigStore.getEffectiveEventConfig(sandbox, uid),
+      decisionLabConfigStore.getEffectiveDecisionLabConfig(sandbox, uid),
+    ]);
+  } catch (e) {
+    eventRec = null;
+    decisionRec = null;
+  }
+  const virtual = eventGeneratorService.buildLabFirestoreGeneratorPresets(sandbox, eventRec, decisionRec);
+  const allTargets = [...virtual, ...staticTargets];
   const wantId = (body.targetId || '').trim();
-  let preset = targets.find((t) => t && typeof t === 'object' && t.id === wantId);
-  if (!preset && targets.length) preset = targets[0];
+  let preset = allTargets.find((t) => t && typeof t === 'object' && t.id === wantId);
+  if (!preset && allTargets.length) preset = allTargets[0];
   if (!preset) {
     res.status(500).json({ error: 'No event-generator-targets.json presets found in functions copy.' });
     return;
