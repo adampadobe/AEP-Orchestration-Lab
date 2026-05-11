@@ -180,7 +180,9 @@ async function handleProfileGenerate(req, res, ctx) {
     body.testProfile === 'false' ||
     body.omitTestProfile === true ||
     body.omitTestProfile === 'true';
-  if (industryKey === 'generic' && !testProfileOptOut) {
+  const attrsSayNoTestProfile =
+    filteredAttrs['xdm:testProfile'] === false || filteredAttrs['xdm:testProfile'] === 'false';
+  if (industryKey === 'generic' && !testProfileOptOut && !attrsSayNoTestProfile) {
     rootExtras['xdm:testProfile'] = true;
   }
 

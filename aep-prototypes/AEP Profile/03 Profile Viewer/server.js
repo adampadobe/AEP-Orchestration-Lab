@@ -4589,7 +4589,9 @@ app.post('/api/profile/generate', async (req, res) => {
       req.body?.testProfile === 'false' ||
       req.body?.omitTestProfile === true ||
       req.body?.omitTestProfile === 'true';
-    if (!testProfileOptOut) {
+    const attrsSayNoTestProfile =
+      filteredAttrs['xdm:testProfile'] === false || filteredAttrs['xdm:testProfile'] === 'false';
+    if (!testProfileOptOut && !attrsSayNoTestProfile) {
       rootExtras['xdm:testProfile'] = true;
     }
 
