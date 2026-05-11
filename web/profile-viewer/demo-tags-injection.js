@@ -1,5 +1,7 @@
 /* Shared Tags/Launch injection flow for demo pages.
  * One-time per-sandbox config, reload-based injection with cache busting, and ECID/email stitching helpers.
+ *
+ * Anonymous Edge + _demoemea: see docs/ANONYMOUS_EDGE_DEMO_PATTERN.md (core.ecid + getIdentity + single sendEvent).
  */
 (function attachDemoTagsInjection(global) {
   function byId(id) {

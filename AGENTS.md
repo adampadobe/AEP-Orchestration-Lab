@@ -24,6 +24,7 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 - **Human policy:** [CONTRIBUTING.md](CONTRIBUTING.md) — especially [Preserved Decisioning Profile Viewer routes](CONTRIBUTING.md#preserved-decisioning-profile-viewer-routes) and [Change workflow](CONTRIBUTING.md#change-workflow-mandatory).
 - After edits under **`web/profile-viewer/`:** run **`npm run verify:profile-viewer-routes`** before PR; run **`npm run sync-profile-viewer-ui`** when the Express mirror must stay aligned (see CONTRIBUTING).
 - **New lab demos** (Tags + generator): use the canonical strip documented in [CONTRIBUTING.md](CONTRIBUTING.md) (section *Profile Viewer lab demos — environment strip*) and the Cursor skill **`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`**.
+- **Anonymous Web SDK + `_demoemea` (Edge → profile):** [docs/ANONYMOUS_EDGE_DEMO_PATTERN.md](docs/ANONYMOUS_EDGE_DEMO_PATTERN.md) — `getIdentity`, then `sendEvent` with `_demoemea.identification.core.ecid`; validate with **`GET /api/profile/table?namespace=ecid&identifier=…`**.
 - Rebuild vendored sub-apps when their sources change (e.g. **`npm run build:edp`**, **`npm run build:eds-quickstart`**) before deploy — see ship rule.
 
 ## Secrets and credentials
