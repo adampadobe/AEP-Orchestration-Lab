@@ -4504,7 +4504,7 @@ function generateEcid() {
   return s;
 }
 
-/** POST /api/profile/generate – stream a profile record to AEP. Body: { email, industry?, profileIndex?, sandbox?, attributes?, appendIfExisting? }. */
+/** POST /api/profile/generate – stream a profile record to AEP. Body: { email, industry?, profileIndex?, sandbox?, attributes?, appendIfExisting?, testProfile?, omitTestProfile? }. Root `xdm:testProfile` defaults true unless testProfile:false or omitTestProfile:true. */
 app.post('/api/profile/generate', async (req, res) => {
   const email = (req.body?.email ?? '').trim();
   const industry = (req.body?.industry ?? '').trim().toLowerCase();
@@ -4583,6 +4583,15 @@ app.post('/api/profile/generate', async (req, res) => {
     const rootExtras = {};
     profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
     profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
+
+    const testProfileOptOut =
+      req.body?.testProfile === false ||
+      req.body?.testProfile === 'false' ||
+      req.body?.omitTestProfile === true ||
+      req.body?.omitTestProfile === 'true';
+    if (!testProfileOptOut) {
+      rootExtras['xdm:testProfile'] = true;
+    }
 
     const { payload, format: payloadFormat } = buildProfileStreamPayload(
       demoemea,

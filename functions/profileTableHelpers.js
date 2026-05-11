@@ -352,12 +352,26 @@ function buildProfileTablePayload(email, response) {
 
 const UPS_ENTITIES = 'https://platform.adobe.io/data/core/ups/access/entities';
 
-/** Optional; same env as profile events — steers UPS merge when org default is unset. */
+/**
+ * Merge policy on Profile Access reads is **opt-in**. By default we omit
+ * `mergePolicyId` so Adobe uses the org/sandbox default merged profile view.
+ *
+ * To attach a policy: set `AEP_PROFILE_ACCESS_ATTACH_MERGE_POLICY` to `1`/`true`/`yes`
+ * and set `AEP_PROFILE_ACCESS_MERGE_POLICY_ID` or `AEP_PROFILE_EVENTS_MERGE_POLICY_ID`.
+ */
 function profileAccessMergePolicyId() {
+  const enable = String(process.env.AEP_PROFILE_ACCESS_ATTACH_MERGE_POLICY || '').toLowerCase();
+  if (enable !== '1' && enable !== 'true' && enable !== 'yes') return null;
   const id = String(
     process.env.AEP_PROFILE_ACCESS_MERGE_POLICY_ID || process.env.AEP_PROFILE_EVENTS_MERGE_POLICY_ID || '',
   ).trim();
   return id || null;
+}
+
+/** Appends mergePolicyId to a UPS `URLSearchParams` when opt-in env is set. */
+function appendProfileAccessMergePolicyIfConfigured(searchParams) {
+  const mp = profileAccessMergePolicyId();
+  if (mp) searchParams.set('mergePolicyId', mp);
 }
 
 /**
@@ -397,8 +411,7 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
       entityId: identityValue,
       entityIdNS,
     });
-    const mp = profileAccessMergePolicyId();
-    if (mp) qs.set('mergePolicyId', mp);
+    appendProfileAccessMergePolicyIfConfigured(qs);
     const url = `${UPS_ENTITIES}?${qs}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json().catch(() => ({}));
@@ -668,6 +681,7 @@ module.exports = {
   buildIndustryWritabilityMap,
   enrichProfileTablePayloadWithWritability,
   resolveConnectionGetter,
+  appendProfileAccessMergePolicyIfConfigured,
   INDUSTRY_DISPLAY_NAMES,
   WRITABLE_FALSE_REASON,
   RESOLUTION_REASON,

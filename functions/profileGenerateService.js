@@ -173,6 +173,17 @@ async function handleProfileGenerate(req, res, ctx) {
   profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
   profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
 
+  // Generic generates: one DCS envelope with OOTB test profile flag on the XDM root (AJO / lab
+  // sandboxes). Opt out with body.testProfile === false or body.omitTestProfile === true.
+  const testProfileOptOut =
+    body.testProfile === false ||
+    body.testProfile === 'false' ||
+    body.omitTestProfile === true ||
+    body.omitTestProfile === 'true';
+  if (industryKey === 'generic' && !testProfileOptOut) {
+    rootExtras['xdm:testProfile'] = true;
+  }
+
   const isAdobeDcsCollection = streamUrl ? /dcs\.adobedc\.net/i.test(streamUrl) : false;
   const hasDatasetAndSchema = Boolean(datasetId && schemaId);
   let useEnvelope =

@@ -6,24 +6,12 @@ const {
   get,
   toEcidString,
   getProfileEcid,
+  appendProfileAccessMergePolicyIfConfigured,
 } = require('./profileTableHelpers');
 
 const QUERY_SERVICE_BASE = 'https://platform.adobe.io/data/foundation/query';
 const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 const ACCESS_ENTITIES_ENDPOINT = 'https://platform.adobe.io/data/core/ups/access/entities';
-
-/** Optional; improves Profile Access consistency when org default merge policy is unset. */
-function profileAccessMergePolicyId() {
-  const id = String(
-    process.env.AEP_PROFILE_EVENTS_MERGE_POLICY_ID || process.env.AEP_PROFILE_ACCESS_MERGE_POLICY_ID || '',
-  ).trim();
-  return id || null;
-}
-
-function appendMergePolicy(params) {
-  const mp = profileAccessMergePolicyId();
-  if (mp) params.set('mergePolicyId', mp);
-}
 
 const DATASET_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const datasetTableNameCache = new Map();
@@ -226,7 +214,7 @@ async function getProfileWithExperienceEvents(identityValue, limit, sandboxName,
       relatedEntities: 'experienceEvents',
       limit: String(limit),
     });
-    appendMergePolicy(params);
+    appendProfileAccessMergePolicyIfConfigured(params);
     const url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json().catch(() => ({}));
@@ -274,7 +262,7 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
         orderby: '-timestamp',
         limit: String(PAGE_SIZE),
       });
-      appendMergePolicy(params);
+      appendProfileAccessMergePolicyIfConfigured(params);
       url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
     } else {
       url = nextUrl;
