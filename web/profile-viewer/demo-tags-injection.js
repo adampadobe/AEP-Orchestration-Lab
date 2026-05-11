@@ -506,6 +506,10 @@
     /**
      * Edge / Demo Website datasets often require a root `_demoemea` object (DCVS-1106 if missing).
      * Navigator lab CTAs use `_demosystem5` via the Event generator only; Web SDK hits use this tenant.
+     *
+     * Keep `identification.core` empty here: Alloy attaches ECID via `identityMap`. Also sending
+     * `core.ecid` caused UPINGT-030075 ("multiple identities with highest namespace priority") for
+     * the same hit — duplicate ECID pathways vs the SDK-enriched identity block.
      */
     function xdmDemoemeaShellForEdge() {
       return {
@@ -537,32 +541,6 @@
         dtLog('syncEcidFromAlloy: priming sendEvent (page view + _demoemea shell) completed');
       } catch (e) {
         dtLog('syncEcidFromAlloy: priming sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
-      }
-    }
-
-    async function sendAlloyDemoemeaVisitorPageViewWithEcid(alloyFn, ecid) {
-      const id = String(ecid || '').trim();
-      if (!id) return;
-      try {
-        await alloyFn('sendEvent', {
-          xdm: {
-            eventType: 'web.webPageDetails.pageViews',
-            web: {
-              webPageDetails: {
-                name: (global.document && global.document.title) || 'AEP lab demo',
-                URL: (global.location && global.location.href) || '',
-              },
-            },
-            _demoemea: {
-              identification: {
-                core: { ecid: id },
-              },
-            },
-          },
-        });
-        dtLog('syncEcidFromAlloy: sendEvent with _demoemea.identification.core.ecid completed');
-      } catch (e) {
-        dtLog('syncEcidFromAlloy: demoemea ECID sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
       }
     }
 
@@ -610,7 +588,6 @@
           return '';
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
-        await sendAlloyDemoemeaVisitorPageViewWithEcid(alloyFn, ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,
