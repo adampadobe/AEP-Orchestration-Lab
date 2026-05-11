@@ -240,6 +240,7 @@ function buildOmTagsInjectionConfig() {
     configSummaryId: 'omSdkConfigSummary',
     configSummaryTextId: 'omSdkConfigSummaryText',
     changeConfigButtonId: 'omChangeSdkConfigBtn',
+    /** Parent shell only — see `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md` (no Launch in embedded iframes). */
     iframeIds: [],
   };
 }

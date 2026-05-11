@@ -620,6 +620,12 @@
           typeof global.DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function'
         ) {
           void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+          global.setTimeout(function () {
+            void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+          }, 2500);
+          global.setTimeout(function () {
+            void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+          }, 8000);
         }
         if (typeof cfg.onEcidResolved === 'function') cfg.onEcidResolved(ecid);
         setMessage('ECID resolved from Web SDK and linked to drawer context.', 'success');

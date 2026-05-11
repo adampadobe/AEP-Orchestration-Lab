@@ -45,6 +45,10 @@ const donateTagsInjection =
         configSummaryId: 'donateSdkConfigSummary',
         configSummaryTextId: 'donateSdkConfigSummaryText',
         changeConfigButtonId: 'donateChangeSdkConfigBtn',
+        /**
+         * Parent shell only (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`) — Launch + #infoEcid stay on one document with generator ECID.
+         */
+        iframeIds: [],
       })
     : null;
 

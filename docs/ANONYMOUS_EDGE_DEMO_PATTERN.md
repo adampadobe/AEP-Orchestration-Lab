@@ -27,6 +27,8 @@ Canonical logic lives in **`web/profile-viewer/demo-tags-injection.js`** (shared
    - standard **`web.webPageDetails`** (name + URL),
    - **`_demoemea.identification.core.ecid`** set to the **same** normalized ECID string returned by `getIdentity`.
 
+4. **Profile drawer “Last 5 events”:** after a successful sync, `DemoTagsInjection` also schedules **`DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid')`** at **2.5s** and **8s** so UPS lag does not leave the drawer empty.
+
 Optional: use a distinct **`webPageDetails.name`** suffix (e.g. `· AEP lab (anonymous ECID)`) so Data Explorer / queries can spot lab traffic.
 
 ## Demos with an iframe “site” + parent shell
