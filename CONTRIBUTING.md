@@ -385,6 +385,18 @@ tokens). If you work on anything in `web/profile-viewer/`, follow the
 10. **If the page calls an API**, add the rewrite to `firebase.json` and
     the function export to `functions/index.js`.
 
+### Profile Viewer lab demos — environment strip (Sandbox, Tags, event destination)
+
+Embedded demos and **site-clone** pages (e.g. Old Mutual, MOD, Race for Life) that use **Adobe Tags injection** and **`POST /api/events/generator`** must share one **canonical strip**:
+
+- **Environment:** `#sandboxSelect`, Tags fields inside a **single** `#…SdkConfigFields` wrapper (company, property, environment, inject), **`#generatorTarget` (Event destination) as a sibling** of that wrapper (not inside it — so it remains visible after inject), SDK summary + “Change SDK config”, then **`AepDemoEnvBar`** compact row (`#aepDemoEnvCompact`, `#aepDemoEnvExpandBtn`).
+- **Profile lookup:** `#aepDemoProfileSection` with namespace + identifier + actions.
+- **Stable ids:** `aepDemoEnvSection`, `aepDemoEnvEditor`, `aepDemoEnvConfigGrid` (see `web/profile-viewer/mod-demo.html` or `oldmutual-demo.html`).
+
+**Scripts:** include `demo-tags-injection.js`, **`aep-demo-env-bar.js`** (`AepDemoEnvStrip.initStandardEnvBar`), and **`aep-demo-generator-targets.js`**; Firebase compat + `firebase-database-config.js` when using Tags. **CSS:** `aep-demo-env-bar.css`. If the page does not load `home.css`, map `--dash-*` fallbacks on a local wrapper (see `oldmutual-demo.css` → `.om-aep-controls--lab-strip`).
+
+**Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — follow when adding or migrating a demo with this strip.
+
 ### Feature-specific CSS
 
 Create a separate `.css` file (e.g. `my-feature.css`) for your page. Do not

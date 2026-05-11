@@ -41,13 +41,6 @@ body.oldmutual-demo-page {
   white-space: nowrap;
 }
 
-#generatorTarget {
-  opacity: 0;
-  pointer-events: none;
-  width: 1px;
-  height: 1px;
-}
-
 .race-message {
   position: fixed;
   left: 50%;
@@ -128,6 +121,109 @@ body.oldmutual-demo-page {
   gap: 0.5rem 0.75rem;
 }
 
+.om-selected-script-preview {
+  max-width: var(--om-max);
+  margin: 0.35rem auto 0;
+  padding: 0 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.om-selected-script-preview code {
+  color: #fff;
+  word-break: break-all;
+}
+
+/* Canonical lab strip: token fallbacks when `home.css` is not loaded */
+.oldmutual-demo-page .om-aep-controls--lab-strip {
+  --dash-muted: rgba(255, 255, 255, 0.72);
+  --dash-text-secondary: rgba(255, 255, 255, 0.88);
+  --dash-border: rgba(255, 255, 255, 0.22);
+  --dash-surface-alt: rgba(255, 255, 255, 0.08);
+  --dash-text: #fff;
+  --dash-radius-sm: 10px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .aep-demo-env-section {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.oldmutual-demo-page .om-aep-inner .om-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.55rem 0.85rem;
+}
+
+.om-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.85rem;
+}
+
+.oldmutual-demo-page .om-aep-tags-actions,
+.oldmutual-demo-page .om-aep-profile-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .sandbox-select,
+.oldmutual-demo-page .om-aep-controls--lab-strip input[type='text'] {
+  color: #1a2e28;
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .btn-lookup {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: var(--om-accent);
+  color: #fff;
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .btn-lookup:hover {
+  filter: brightness(1.06);
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .om-logout-outline {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .om-logout-outline:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .om-reset-ecid-btn {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  padding: 0.4rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
+.oldmutual-demo-page .om-aep-controls--lab-strip .om-reset-ecid-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .om-aep-controls label {
   font-size: 0.78rem;
   opacity: 0.9;
@@ -136,8 +232,9 @@ body.oldmutual-demo-page {
 .oldmutual-demo-page .om-aep-controls input[type='email'],
 .oldmutual-business-page .om-aep-controls input[type='email'],
 .oldmutual-business-quote-thank-you-page .om-aep-controls input[type='email'],
-.oldmutual-wealth-page .om-aep-controls input[type='email'] {
-  /* Override global style.css input[type=email] flex */
+.oldmutual-wealth-page .om-aep-controls input[type='email'],
+.oldmutual-demo-page .om-aep-controls--lab-strip .aep-demo-profile-section-grid input[type='text'] {
+  /* Override global style.css input flex */
   flex: 0 1 200px;
   min-width: 0;
   max-width: 260px;

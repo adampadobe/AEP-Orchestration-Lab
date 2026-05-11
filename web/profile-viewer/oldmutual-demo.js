@@ -64,6 +64,7 @@ function fnbNavigatePreserveSim(urlOrPath) {
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'omNs');
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
@@ -209,6 +210,44 @@ if (raceMessageRevealZone && raceMessage) {
     scheduleRaceMessageClose();
   });
 }
+
+function buildOmTagsInjectionConfig() {
+  const body = document.body;
+  let storagePrefix = 'oldMutualPersonal';
+  let identityEventType = 'oldmutual.identity.stitch';
+  if (body && body.classList.contains('oldmutual-wealth-page')) {
+    storagePrefix = 'oldMutualWealth';
+    identityEventType = 'oldmutual.wealth.identity.stitch';
+  } else if (
+    body &&
+    (body.classList.contains('oldmutual-business-page') || body.classList.contains('oldmutual-business-quote-thank-you-page'))
+  ) {
+    storagePrefix = 'oldMutualBusiness';
+    identityEventType = 'oldmutual.business.identity.stitch';
+  }
+  return {
+    storagePrefix,
+    identityEventType,
+    messageSetter: setRaceMessage,
+    infoEcidId: 'infoEcid',
+    tagsCompanyId: 'omTagsCompany',
+    tagsPropertyInputId: 'omTagsProperty',
+    tagsPropertyListId: 'omTagsPropertyList',
+    tagsEnvironmentId: 'omTagsEnvironment',
+    injectButtonId: 'omInjectSdkBtn',
+    selectedScriptId: 'omSelectedScript',
+    configFieldsId: 'omSdkConfigFields',
+    configSummaryId: 'omSdkConfigSummary',
+    configSummaryTextId: 'omSdkConfigSummaryText',
+    changeConfigButtonId: 'omChangeSdkConfigBtn',
+    iframeIds: [],
+  };
+}
+
+const omTagsInjection =
+  typeof window.DemoTagsInjection !== 'undefined' && document.getElementById('omSdkConfigFields')
+    ? window.DemoTagsInjection.init(buildOmTagsInjectionConfig())
+    : null;
 
 function getSelectedGeneratorTarget() {
   const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
@@ -627,7 +666,7 @@ queryProfileBtn &&
     clearAbandonBasketTimer();
     const email = getEmail().trim();
     if (!email) {
-      setRaceMessage('Enter a customer email first.', 'error');
+      setRaceMessage('Enter a customer identifier first.', 'error');
       return;
     }
     if (!window.AepProfileDrawer) {
@@ -672,7 +711,7 @@ queryProfileBtn &&
             void window.AepProfileDrawer.loadProfileDataForDrawer(email, silent);
           }, 2500);
         }
-      } catch (loginErr) {
+        } catch (loginErr) {
         setRaceMessage(
           (result.found ? 'Profile found. ' : 'No profile in store. ') +
             demoApplicationLoginEventType() +
@@ -680,6 +719,14 @@ queryProfileBtn &&
             (loginErr && loginErr.message ? loginErr.message : String(loginErr)),
           'error',
         );
+      }
+
+      if (omTagsInjection && typeof omTagsInjection.stitchAfterProfileLookup === 'function') {
+        const profile =
+          window.AepProfileDrawer && typeof window.AepProfileDrawer.getLastLookedUpProfile === 'function'
+            ? window.AepProfileDrawer.getLastLookedUpProfile()
+            : null;
+        await omTagsInjection.stitchAfterProfileLookup(profile, email);
       }
 
       scheduleAutoAbandonAfterLookup();
@@ -1189,6 +1236,25 @@ void loadGeneratorTargets();
 if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
   window.AepDemoGeneratorTargets.onSandboxChange(function () {
     void loadGeneratorTargets();
+  });
+}
+
+(function initOmDemoEnvStrip() {
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  if (!document.getElementById('aepDemoEnvSection')) return;
+  AepDemoEnvStrip.initStandardEnvBar({
+    summaryId: 'omSdkConfigSummary',
+    fieldsId: 'omSdkConfigFields',
+    selectedScriptCodeId: 'omSelectedScript',
+  });
+})();
+
+if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.init === 'function') {
+  DemoProfileDrawer.init({
+    emailInputId: 'customerEmail',
+    messageSetter: setRaceMessage,
+    getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+    fetchBrowserEcidOnInit: true,
   });
 }
 

@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="oldmutual-demo.css">
-  <link rel="stylesheet" href="aep-profile-drawer.css">
+  <link rel="stylesheet" href="oldmutual-demo.css?v=20260508-om-lab-strip">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-strip">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260508-gen-dest">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
   <!-- Optional: embed Adobe Experience Platform Tags (Launch) before oldmutual-demo.js so window.alloy is available for ECID. -->
@@ -35,16 +36,86 @@
         >
         Old Mutual
       </a>
-      <div class="om-aep-controls">
-        <label for="customerEmail">Profile login email</label>
-        <input type="email" id="customerEmail" placeholder="name@example.com" autocomplete="email" spellcheck="false">
-        <button type="button" id="queryProfileBtn">Login</button>
-        <button type="button" id="omLogoutBtn">Log out</button>
-        <span class="om-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
-        <button type="button" id="omResetVisitorEcidBtn" class="om-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
-        <select id="generatorTarget" aria-label="Generator target"></select>
+      <div class="om-aep-controls om-aep-controls--lab-strip">
+        <section class="aep-demo-env-section om-aep-lab-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid om-aep-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div class="om-sdk-config-fields mod-sdk-config-fields" id="omSdkConfigFields">
+                  <div class="form-row">
+                    <label for="omTagsCompany">Tags company</label>
+                    <select id="omTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="omTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="omTagsProperty"
+                      list="omTagsPropertyList"
+                      placeholder="Type to filter properties"
+                      autocomplete="off"
+                    >
+                    <datalist id="omTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="omTagsEnvironment">Tags environment</label>
+                    <select id="omTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="om-aep-tags-actions">
+                    <button type="button" id="omInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div id="omSdkConfigSummary" class="om-sdk-summary mod-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="omSdkConfigSummaryText"></span>
+                <button type="button" id="omChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+            </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section om-aep-lab-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid om-aep-profile-grid">
+            <div class="form-row">
+              <label for="omNs">Namespace</label>
+              <select id="omNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="om-aep-profile-row">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Login</button>
+              <button type="button" id="omLogoutBtn" class="btn-lookup om-logout-outline">Log out</button>
+              <span class="om-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
+              <button type="button" id="omResetVisitorEcidBtn" class="om-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
+    <p class="om-selected-script-preview" role="status">Selected script: <code id="omSelectedScript">None</code></p>
   </header>
 
   <main class="om-site-frame" aria-label="Old Mutual homepage inspired layout">
@@ -564,12 +635,19 @@
       if (!isCorrect) document.getElementById('serverWarning').hidden = false;
     })();
   </script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="identity-picker.js"></script>
   <script src="aep-profile-drawer.js?v=20260508-gen-dest"></script>
-  <script src="oldmutual-demo.js?v=20260508-gen-dest"></script>
+  <script src="demo-tags-injection.js?v=20260508-tags-inject-log"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="oldmutual-demo.js?v=20260508-om-lab-strip"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

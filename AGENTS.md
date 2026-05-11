@@ -23,6 +23,7 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 - **Git + deploy ritual:** `.cursor/rules/ship-git-and-firebase.mdc` and `.cursor/rules/sync-origin-main.mdc` (always-on). Do not deploy hosting while behind `origin/main`.
 - **Human policy:** [CONTRIBUTING.md](CONTRIBUTING.md) — especially [Preserved Decisioning Profile Viewer routes](CONTRIBUTING.md#preserved-decisioning-profile-viewer-routes) and [Change workflow](CONTRIBUTING.md#change-workflow-mandatory).
 - After edits under **`web/profile-viewer/`:** run **`npm run verify:profile-viewer-routes`** before PR; run **`npm run sync-profile-viewer-ui`** when the Express mirror must stay aligned (see CONTRIBUTING).
+- **New lab demos** (Tags + generator): use the canonical strip documented in [CONTRIBUTING.md](CONTRIBUTING.md) (section *Profile Viewer lab demos — environment strip*) and the Cursor skill **`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`**.
 - Rebuild vendored sub-apps when their sources change (e.g. **`npm run build:edp`**, **`npm run build:eds-quickstart`**) before deploy — see ship rule.
 
 ## Secrets and credentials
