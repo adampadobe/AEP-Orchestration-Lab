@@ -8,6 +8,10 @@ if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEm
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const admiralMessage = document.getElementById('admiralMessage');
+const generatorTargetSelect = document.getElementById('generatorTarget');
+
+/** @type {Array<{ id: string, label: string, transport: string }>} */
+let generatorTargets = [];
 
 const admiralTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -40,6 +44,54 @@ function setAdmiralMessage(text, type) {
   admiralMessage.className =
     'admiral-demo-message' + (type ? ' admiral-demo-message--' + String(type).replace(/\s+/g, '-') : '');
   admiralMessage.hidden = !text;
+}
+
+function getSelectedGeneratorTarget() {
+  const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+  return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
+}
+
+async function loadGeneratorTargets() {
+  if (!generatorTargetSelect) return;
+  if (
+    typeof window.AepDemoGeneratorTargets !== 'undefined' &&
+    window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
+  ) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    return;
+  }
+  try {
+    const res = await fetch('/api/events/generator-targets');
+    const data = await res.json().catch(() => ({}));
+    generatorTargets = Array.isArray(data.targets) ? data.targets : [];
+    generatorTargetSelect.innerHTML = '';
+    if (generatorTargets.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No targets (check event-generator-targets.json)';
+      generatorTargetSelect.appendChild(opt);
+      return;
+    }
+    generatorTargets.forEach((t) => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.label || t.id;
+      generatorTargetSelect.appendChild(opt);
+    });
+  } catch {
+    generatorTargetSelect.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'Failed to load targets';
+    generatorTargetSelect.appendChild(opt);
+  }
+}
+
+void loadGeneratorTargets();
+if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+  window.AepDemoGeneratorTargets.onSandboxChange(function () {
+    void loadGeneratorTargets();
+  });
 }
 
 queryProfileBtn &&
@@ -135,6 +187,7 @@ DemoProfileDrawer.init({
   viewName: 'Admiral demo',
   emailGetter: getEmail,
   messageSetter: setAdmiralMessage,
+  getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
 
