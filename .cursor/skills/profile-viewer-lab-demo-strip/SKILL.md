@@ -43,7 +43,7 @@ AepDemoEnvStrip.initStandardEnvBar({
   selectedScriptCodeId: '…SelectedScript',
 });
 
-DemoTagsInjection.init({ … configFieldsId, configSummaryId, … iframeIds: ['…'] or [] });
+DemoTagsInjection.init({ … configFieldsId, configSummaryId, … iframeIds: [] }); // parent shell only — see docs/ANONYMOUS_EDGE_DEMO_PATTERN.md
 
 DemoProfileDrawer.init({
   emailInputId: 'customerEmail',
