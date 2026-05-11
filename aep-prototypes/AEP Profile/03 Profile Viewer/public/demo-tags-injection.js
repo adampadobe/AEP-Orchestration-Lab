@@ -260,6 +260,18 @@
       writeStorageMap(configuredStorageKey, map);
     }
 
+    /** When Tags lists reload, keep showing the persisted Launch URL if this sandbox is already SDK-configured (avoids “Selected script: None” after inject + properties load). */
+    function syncSelectedScriptDisplayAfterTagsStructureChange() {
+      if (isSdkConfiguredForSandbox()) {
+        const persisted = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+        if (persisted) {
+          renderSelectedScript(persisted);
+          return;
+        }
+      }
+      renderSelectedScript('');
+    }
+
     function setSdkConfigExpanded(expanded) {
       if (sdkConfigFields) sdkConfigFields.hidden = !expanded;
       if (sdkConfigSummary) sdkConfigSummary.hidden = expanded;
@@ -396,7 +408,7 @@
         if (tagsPropertyInput) tagsPropertyInput.value = '';
         renderPropertySuggestions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
 
         if (Array.isArray(items) && items.length === 1) {
           const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
@@ -423,7 +435,7 @@
         tagsPropertyInput.value = '';
         renderPropertySuggestions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
       try {
@@ -434,7 +446,7 @@
         tagsPropertyInput.value = '';
         renderPropertySuggestions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         setMessage('Properties loaded.', 'success');
       } catch (err) {
         setMessage(err.message || 'Failed to load properties.', 'error');
@@ -445,7 +457,7 @@
       if (!tagsEnvironmentSelect) return;
       if (!propertyId) {
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
       try {
@@ -463,7 +475,7 @@
           (env) => encodeURIComponent(String(env && env.scriptUrl ? env.scriptUrl : '')),
           'Select environment'
         );
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         setMessage('Environments loaded.', 'success');
       } catch (err) {
         setMessage(err.message || 'Failed to load environments.', 'error');
@@ -475,14 +487,14 @@
       if (!raw) {
         selectedPropertyId = '';
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
       const hit = findPropertyByLabel(raw);
       if (!hit || !hit.id) {
         selectedPropertyId = '';
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        renderSelectedScript('');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
       const nextPropertyId = String(hit.id);
