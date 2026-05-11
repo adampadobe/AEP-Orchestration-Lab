@@ -542,6 +542,42 @@ async function buildIndustryWritabilityMap({ statusAllPayload, connectionStores,
  * @param {object} payload   - output of buildProfileTablePayload
  * @param {object} writability - output of buildIndustryWritabilityMap
  */
+/**
+ * For Generate Profiles "merge into existing": resolve ECID from Profile Access by email.
+ * @returns {{ ecid: string|null, diagnostics: object }}
+ */
+async function resolveExistingEcidForProfileMerge(email, sandbox, token, clientId, orgId) {
+  const rawNs = String(process.env.AEP_PROFILE_MERGE_ENTITY_ID_NS || '').trim();
+  const namespaces = rawNs ? rawNs.split(',').map((s) => s.trim()).filter(Boolean) : ['Email', 'email'];
+  const trimmed = String(email || '').trim();
+  const emailVariants = [...new Set([trimmed, trimmed.toLowerCase()].filter(Boolean))];
+  const diagnostics = { namespacesAttempted: namespaces, entityIdsAttempted: emailVariants, attempts: [] };
+  for (const entityId of emailVariants) {
+    for (const entityIdNS of namespaces) {
+      try {
+        const data = await fetchUpsProfileEntities(entityId, sandbox, token, clientId, orgId, entityIdNS);
+        const payload = buildProfileTablePayload(entityId, data);
+        const ecid = payload.ecid && String(payload.ecid).length >= 10 ? String(payload.ecid) : null;
+        diagnostics.attempts.push({ entityId, entityIdNS, foundEcid: Boolean(ecid) });
+        if (ecid) {
+          diagnostics.usedNamespace = entityIdNS;
+          diagnostics.usedEntityId = entityId;
+          return { ecid: ensureSingleEcid(ecid), diagnostics };
+        }
+      } catch (e) {
+        diagnostics.attempts.push({
+          entityId,
+          entityIdNS,
+          error: String(e && e.message ? e.message : e).slice(0, 240),
+        });
+      }
+    }
+  }
+  diagnostics.message =
+    'Profile Access returned no ECID. Set AEP_PROFILE_MERGE_ENTITY_ID_NS (comma-separated) if your email namespace code differs.';
+  return { ecid: null, diagnostics };
+}
+
 function enrichProfileTablePayloadWithWritability(payload, writability) {
   if (!payload || typeof payload !== 'object') return payload;
   const map = writability && typeof writability === 'object' ? writability : {};
@@ -583,6 +619,7 @@ function enrichProfileTablePayloadWithWritability(payload, writability) {
 
 module.exports = {
   buildProfileTablePayload,
+  resolveExistingEcidForProfileMerge,
   fetchUpsProfileEntities,
   flattenEntityToTableRows,
   get,

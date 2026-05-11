@@ -140,6 +140,30 @@ function setByPath(obj, path, value) {
   cur[lastKey] = value;
 }
 
+/**
+ * Merge dotted-path attributes from the Generate Profiles UI into the tenant
+ * object vs root/stream extras (OOTB root mixins use PROFILE_STREAM_ROOT_PATH_PREFIXES).
+ */
+function assignProfileStreamingAttributes(demoemeaTenant, rootExtras, filteredAttrs) {
+  const attrs =
+    filteredAttrs && typeof filteredAttrs === 'object' && !Array.isArray(filteredAttrs) ? filteredAttrs : {};
+  for (const [path, val] of Object.entries(attrs)) {
+    const cleanPath = String(path || '')
+      .replace(/^(_demoemea\.|xdm:demoss\.)/i, '')
+      .replace(/^demoemea\./i, '')
+      .trim();
+    if (!cleanPath) continue;
+    const out = val !== undefined && val !== null ? val : '';
+    const top = cleanPath.split('.')[0];
+    const target = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top) ? rootExtras : demoemeaTenant;
+    if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) {
+      setByPath(target, cleanPath, parseInt(out, 10));
+    } else {
+      setByPath(target, cleanPath, out);
+    }
+  }
+}
+
 function normalizeProfileUpdateDateString(relativePath, val) {
   if (val == null || typeof val !== 'string') return val;
   const p = String(relativePath).toLowerCase();
@@ -579,6 +603,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
 module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   mirrorPreferredLanguageDemoSchema,
+  assignProfileStreamingAttributes,
   setByPath,
   normalizeProfileUpdateDateString,
   buildConsentXdm,

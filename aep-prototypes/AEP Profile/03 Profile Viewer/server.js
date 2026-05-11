@@ -114,22 +114,6 @@ function normalizeProfileUpdateDateString(relativePath, val) {
   return `${y}-${a}-${b}`;
 }
 
-/** Merge dotted-path attributes into tenant object vs root extras for streaming. */
-function assignProfileStreamingAttributes(demoemeaTenant, rootExtras, filteredAttrs) {
-  for (const [path, val] of Object.entries(filteredAttrs)) {
-    const cleanPath = (path || '')
-      .replace(/^(_demoemea\.|xdm:demoss\.)/i, '')
-      .replace(/^demoemea\./i, '')
-      .trim();
-    if (!cleanPath) continue;
-    const out = val !== undefined && val !== null ? val : '';
-    const top = cleanPath.split('.')[0];
-    const target = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top) ? rootExtras : demoemeaTenant;
-    if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) setByPath(target, cleanPath, parseInt(out, 10));
-    else setByPath(target, cleanPath, out);
-  }
-}
-
 /**
  * DCS / HTTP streaming: status can be 2xx while the JSON body reports failed ingestion or RFC7807 errors.
  */
@@ -4597,9 +4581,8 @@ app.post('/api/profile/generate', async (req, res) => {
 
     const filteredAttrs = stripEmpty(attributes);
     const rootExtras = {};
-    assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
+    profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
     profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
-    demoemea.testProfile = true;
 
     const { payload, format: payloadFormat } = buildProfileStreamPayload(
       demoemea,

@@ -93,6 +93,7 @@ const eventInfraService = lazyRequireMod('./eventInfraService');
 const tagsReactorService = lazyRequireMod('./tagsReactorService');
 const edgeLaunchRuleService = lazyRequireMod('./edgeLaunchRuleService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
+const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
@@ -1988,6 +1989,19 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
     industry: industryKey,
     ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
+  });
+});
+
+/**
+ * POST /api/profile/generate — stream a sample profile (Generate Profiles page). Same body as local Express.
+ */
+exports.profileGenerateProxy = onRequest(profileFnOpts, async (req, res) => {
+  return profileGenerateService.handleProfileGenerate(req, res, {
+    setCors,
+    resolveSandboxForProfileBody,
+    getAdobeAccessToken,
+    clientId: ADOBE_CLIENT_ID.value(),
+    orgId: ADOBE_IMS_ORG.value(),
   });
 });
 

@@ -574,6 +574,13 @@
         }
       },
       {
+        "source": "/api/profile/generate",
+        "function": {
+          "functionId": "profileGenerateProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/consent/legacy-update",
         "function": {
           "functionId": "consentManagerLegacyUpdate",
