@@ -1,7 +1,8 @@
 /**
  * Event Infrastructure — create XDM ExperienceEvent schema + dataset in a sandbox.
- * Optionally attaches tenant **Profile Core v2** + ECID/Email identity descriptors so the schema
- * can be Profile-enabled in the UI with **alternate primary identity** (`identityMap` per event).
+ * Optionally attaches **Experience Event Core v2.1** (ExperienceEvent-class field group) + ECID/Email
+ * identity descriptors on `_{tenant}.identification.core.*` so the schema can be Profile-enabled in
+ * the UI with **alternate primary identity** (`identityMap` per event).
  */
 
 const SCHEMA_REGISTRY = 'https://platform.adobe.io/data/foundation/schemaregistry';
@@ -97,7 +98,7 @@ async function createEventSchema(token, clientId, orgId, sandbox, schemaTitle) {
   throw new Error(`Create schema failed: ${lastErr}`);
 }
 
-/* ── Profile Core v2 + identity descriptors (ExperienceEvent, alternate primary via identityMap) ── */
+/* ── Experience Event Core v2.1 + identity descriptors (ExperienceEvent, alternate primary via identityMap) ── */
 
 function parseTenantFromUri(uri) {
   const m = String(uri || '').match(/^https:\/\/ns\.adobe\.com\/([^/]+)\//);
@@ -126,7 +127,7 @@ async function discoverTenantContextForEventTool(token, clientId, orgId, sandbox
     }
   }
   throw new Error(
-    'No tenant XDM id found (expected a schema under https://ns.adobe.com/{tenant}/…). Create any tenant resource in this sandbox first, or import Profile Core v2.'
+    'No tenant XDM id found (expected a schema under https://ns.adobe.com/{tenant}/…). Create any tenant schema in this sandbox first, or import Experience Event Core v2.1.'
   );
 }
 
@@ -152,11 +153,41 @@ async function listTenantFieldgroupsLike(token, clientId, orgId, sandbox) {
   throw new Error(`Tenant field groups list failed: ${lastErr}`);
 }
 
-function findProfileCoreV2Mixin(rows) {
-  return rows.find((m) => {
+function mixinExtendsExperienceEventClass(m) {
+  const ex = m && m['meta:intendedToExtend'];
+  if (Array.isArray(ex)) {
+    return ex.some((u) => String(u).toLowerCase().includes('experienceevent'));
+  }
+  if (typeof ex === 'string') {
+    return ex.toLowerCase().includes('experienceevent');
+  }
+  return false;
+}
+
+/**
+ * OOTB ExperienceEvent field group (not Profile Core v2 — that class is Profile).
+ * Title in UI is typically "Experience Event Core v2.1".
+ */
+function findExperienceEventCoreV21Mixin(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const notProfile = list.filter((m) => {
     const t = String(m.title || '').toLowerCase();
-    return t === 'profile core v2' || t.includes('profile core v2');
+    return !t.includes('profile core');
   });
+
+  let hit = notProfile.find((m) => {
+    const t = String(m.title || '').toLowerCase().replace(/\s+/g, ' ');
+    const hasEE = /experience\s*event\s*core|experienceevent\s*core/.test(t);
+    const has21 = t.includes('2.1');
+    return hasEE && has21;
+  });
+  if (hit) return hit;
+
+  hit = notProfile.find((m) => {
+    const t = String(m.title || '').toLowerCase();
+    return mixinExtendsExperienceEventClass(m) && t.includes('core') && t.includes('2.1');
+  });
+  return hit || null;
 }
 
 function collectSchemaRefUris(schema) {
@@ -269,14 +300,24 @@ async function postIdentityDescriptor(
 }
 
 /**
- * Attach Profile Core v2 + non-primary ECID/Email descriptors on tenant identification.core.*
+ * Attach Experience Event Core v2.1 + non-primary ECID/Email descriptors on tenant identification.core.*
  * so Profile UI can map namespaces; primary per event should come from identityMap (user enables alternate primary).
  */
-async function attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId, sandbox, schemaRow) {
+async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, schemaRow) {
+  const empty = {
+    experienceEventCoreV21Attached: false,
+    profileCoreAttached: false,
+    identityDescriptors: 0,
+    warn: null,
+    tenantXdmKey: null,
+  };
   const metaAltId = schemaRow['meta:altId'];
   const schemaId = schemaRow.$id;
   if (!metaAltId || !schemaId) {
-    return { profileCoreAttached: false, identityDescriptors: 0, warn: 'Missing meta:altId on new schema; skip Profile Core attach.' };
+    return {
+      ...empty,
+      warn: 'Missing meta:altId on new schema; skip Experience Event Core v2.1 attach.',
+    };
   }
 
   let tenantCtx;
@@ -284,8 +325,7 @@ async function attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId,
     tenantCtx = await discoverTenantContextForEventTool(token, clientId, orgId, sandbox);
   } catch (e) {
     return {
-      profileCoreAttached: false,
-      identityDescriptors: 0,
+      ...empty,
       warn: String(e.message || e),
     };
   }
@@ -294,37 +334,41 @@ async function attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId,
   try {
     mixins = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
   } catch (e) {
-    return { profileCoreAttached: false, identityDescriptors: 0, warn: String(e.message || e) };
+    return {
+      ...empty,
+      warn: String(e.message || e),
+    };
   }
 
-  const profileCore = findProfileCoreV2Mixin(mixins);
-  if (!profileCore || !profileCore.$id) {
+  const eeCore = findExperienceEventCoreV21Mixin(mixins);
+  if (!eeCore || !eeCore.$id) {
     return {
-      profileCoreAttached: false,
-      identityDescriptors: 0,
-      warn: 'Profile Core v2 field group not found in this sandbox. Import it in AEP (Schemas → Browse), then run "Create schema" again with a new title or add the field group manually.',
+      ...empty,
+      tenantXdmKey: tenantCtx.xdmKey,
+      warn:
+        'Experience Event Core v2.1 field group not found in this sandbox. In AEP: Schemas → Browse → import the standard Experience Event Core v2.1 field group, then run "Create schema" again with a new title or add the field group manually.',
     };
   }
 
   let full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
-  const ops = buildAddFieldGroupPatchOps(full, profileCore.$id);
-  let profileCoreAttached = false;
+  const ops = buildAddFieldGroupPatchOps(full, eeCore.$id);
+  let experienceEventCoreV21Attached = false;
   if (ops.length) {
     try {
       await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
-      profileCoreAttached = true;
+      experienceEventCoreV21Attached = true;
     } catch (e) {
       const msg = String(e.message || e);
-      log(sandbox, 'eventInfra.profileCore.patchFail', { err: msg.slice(0, 220) });
+      log(sandbox, 'eventInfra.experienceEventCore.patchFail', { err: msg.slice(0, 220) });
       return {
-        profileCoreAttached: false,
-        identityDescriptors: 0,
-        warn: `Could not attach Profile Core v2 automatically (${msg.slice(0, 180)}). Add the field group in the Schema Editor if your org restricts ExperienceEvent + Profile Core v2.`,
+        ...empty,
+        tenantXdmKey: tenantCtx.xdmKey,
+        warn: `Could not attach Experience Event Core v2.1 automatically (${msg.slice(0, 180)}). Add the field group in the Schema Editor if your org restricts this mixin on ExperienceEvent schemas.`,
       };
     }
     full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
   } else {
-    profileCoreAttached = true;
+    experienceEventCoreV21Attached = true;
   }
 
   const ver = Number(full.version) || 1;
@@ -345,7 +389,14 @@ async function attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId,
     }
   }
 
-  return { profileCoreAttached, identityDescriptors, warn: null, tenantXdmKey: tenantCtx.xdmKey };
+  return {
+    experienceEventCoreV21Attached,
+    /** @deprecated Same as experienceEventCoreV21Attached; kept for API consumers that still read this key. */
+    profileCoreAttached: experienceEventCoreV21Attached,
+    identityDescriptors,
+    warn: null,
+    tenantXdmKey: tenantCtx.xdmKey,
+  };
 }
 
 /* ── Dataset operations ── */
@@ -446,9 +497,9 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       };
     }
     const created = await createEventSchema(token, clientId, orgId, sandbox, title);
-    const attach = await attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
+    const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
     const parts = [`Schema "${title}" created (ExperienceEvent class).`];
-    if (attach.profileCoreAttached) parts.push('Profile Core v2 field group attached.');
+    if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 field group attached.');
     if (attach.identityDescriptors > 0) {
       parts.push(
         `Identity descriptors on ${attach.tenantXdmKey || 'tenant'}.identification.core.ecid / .email (not schema primary — use identityMap per event).`
@@ -463,8 +514,10 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaCreated: true,
       schemaId: created.$id,
       schemaMetaAltId: created['meta:altId'],
+      experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
       profileCoreAttached: !!attach.profileCoreAttached,
       identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
+      experienceEventCoreWarning: attach.warn || null,
       profileCoreWarning: attach.warn || null,
       tenantXdmKey: attach.tenantXdmKey || null,
       identityMapHint: EVENT_TOOL_IDENTITY_MAP_HINT,
