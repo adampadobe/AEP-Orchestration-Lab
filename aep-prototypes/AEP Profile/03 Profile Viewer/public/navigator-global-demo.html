@@ -11,7 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="mod-demo.css?v=20260508-demo-env-bar">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-bar">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -22,62 +23,78 @@
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner">
-        <div class="form-row">
-          <label for="modNs">Namespace</label>
-          <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-            <option value="email">Email</option>
-            <option value="ecid">ECID</option>
-            <option value="crmId">CRM ID</option>
-            <option value="loyaltyId">Loyalty ID</option>
-            <option value="phone">Phone</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <label for="sandboxSelect">Sandbox</label>
-          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-            <option value="">Loading sandboxes…</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <label for="customerEmail">Identifier value</label>
-          <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="mod-demo-id-actions">
-          <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-          <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-        </div>
-        <div class="form-row">
-          <label for="generatorTarget">Event destination</label>
-          <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-        </div>
-        <div class="mod-sdk-config-fields" id="navigatorSdkConfigFields">
-          <div class="form-row">
-            <label for="navigatorTagsCompany">Tags company</label>
-            <select id="navigatorTagsCompany" aria-label="Tags company"></select>
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <span class="aep-demo-env-kicker">Environment</span>
+            <div class="aep-demo-env-editor-grid">
+              <div class="form-row">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+              <div class="mod-sdk-config-fields" id="navigatorSdkConfigFields">
+                <div class="form-row">
+                  <label for="navigatorTagsCompany">Tags company</label>
+                  <select id="navigatorTagsCompany" aria-label="Tags company"></select>
+                </div>
+                <div class="form-row">
+                  <label for="navigatorTagsProperty">Tags property</label>
+                  <input
+                    id="navigatorTagsProperty"
+                    type="text"
+                    list="navigatorTagsPropertyList"
+                    placeholder="Type to filter properties"
+                    autocomplete="off"
+                  >
+                  <datalist id="navigatorTagsPropertyList"></datalist>
+                </div>
+                <div class="form-row">
+                  <label for="navigatorTagsEnvironment">Tags environment</label>
+                  <select id="navigatorTagsEnvironment" aria-label="Tags environment"></select>
+                </div>
+                <div class="mod-demo-id-actions">
+                  <button type="button" id="navigatorInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                </div>
+              </div>
+            </div>
+            <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="navigatorSdkConfigSummary" hidden>
+              <span id="navigatorSdkConfigSummaryText"></span>
+              <button type="button" id="navigatorChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+            </div>
           </div>
-          <div class="form-row">
-            <label for="navigatorTagsProperty">Tags property</label>
-            <input
-              id="navigatorTagsProperty"
-              type="text"
-              list="navigatorTagsPropertyList"
-              placeholder="Type to filter properties"
-              autocomplete="off"
-            >
-            <datalist id="navigatorTagsPropertyList"></datalist>
+          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
           </div>
-          <div class="form-row">
-            <label for="navigatorTagsEnvironment">Tags environment</label>
-            <select id="navigatorTagsEnvironment" aria-label="Tags environment"></select>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="modNs">Namespace</label>
+              <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="mod-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+            <div class="form-row">
+              <label for="generatorTarget">Event destination</label>
+              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+            </div>
           </div>
-          <div class="mod-demo-id-actions">
-            <button type="button" id="navigatorInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-          </div>
-        </div>
-        <div class="mod-sdk-summary" id="navigatorSdkConfigSummary" hidden>
-          <span id="navigatorSdkConfigSummaryText"></span>
-          <button type="button" id="navigatorChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-        </div>
+        </section>
       </div>
       <p class="mod-demo-script-preview">Selected script: <code id="navigatorSelectedScript">None</code></p>
       <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
@@ -243,8 +260,9 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
-  <script src="demo-tags-injection.js?v=20260507-standard"></script>
-  <script src="navigator-global-demo.js?v=20260427-sandbox-select"></script>
+  <script src="demo-tags-injection.js?v=20260508-demo-env-bar"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-demo-env-bar"></script>
+  <script src="navigator-global-demo.js?v=20260508-demo-env-bar"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>

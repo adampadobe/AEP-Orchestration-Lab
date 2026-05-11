@@ -138,6 +138,21 @@ queryProfileBtn &&
 loadGeneratorTargets();
 initNavigatorSandboxSelect();
 
+(function initNavigatorDemoEnvBar() {
+  if (typeof AepDemoEnvBar === 'undefined' || typeof AepDemoEnvBar.init !== 'function') return;
+  AepDemoEnvBar.init({
+    envSectionId: 'aepDemoEnvSection',
+    envEditorId: 'aepDemoEnvEditor',
+    envCompactId: 'aepDemoEnvCompact',
+    envCompactTextId: 'aepDemoEnvCompactText',
+    envExpandBtnId: 'aepDemoEnvExpandBtn',
+    summaryId: 'navigatorSdkConfigSummary',
+    fieldsId: 'navigatorSdkConfigFields',
+    sandboxSelectId: 'sandboxSelect',
+    selectedScriptCodeId: 'navigatorSelectedScript',
+  });
+})();
+
 (function initNavigatorGlobalDemoFlyoutSidebar() {
   const body = document.body;
   if (!body.classList.contains('navigator-global-demo-page')) return;

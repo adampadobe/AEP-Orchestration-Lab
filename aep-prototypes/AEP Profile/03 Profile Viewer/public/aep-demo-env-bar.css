@@ -1,0 +1,103 @@
+/* Shared: Sandbox + Tags environment block vs profile lookup (MOD / Navigator / Admiral demos). */
+
+.aep-demo-env-section {
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--dash-border);
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.1rem;
+}
+
+.aep-demo-env-kicker {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  margin-bottom: 0.35rem;
+}
+
+.aep-demo-env-editor-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.aep-demo-env-editor-grid .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.aep-demo-env-editor-grid label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aep-demo-env-editor-grid .sandbox-select,
+.aep-demo-env-editor-grid input[type='text'] {
+  min-width: 12rem;
+}
+
+.aep-demo-env-compact {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  background: color-mix(in srgb, var(--dash-surface-alt) 88%, var(--dash-muted));
+  border: 1px solid var(--dash-border);
+}
+
+.aep-demo-env-section--collapsed .aep-demo-env-compact {
+  display: flex;
+}
+
+.aep-demo-env-compact-text {
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  min-width: 0;
+  flex: 1;
+  line-height: 1.35;
+}
+
+.aep-demo-profile-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 0.45rem;
+}
+
+.aep-demo-profile-section-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.aep-demo-profile-section-grid .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.aep-demo-profile-section-grid label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aep-demo-profile-section-grid .sandbox-select,
+.aep-demo-profile-section-grid input[type='text'] {
+  min-width: 12rem;
+}

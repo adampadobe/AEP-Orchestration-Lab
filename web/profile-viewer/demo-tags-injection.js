@@ -213,6 +213,13 @@
         const script = selectedScriptUrl || 'no script selected';
         sdkConfigSummaryText.textContent = 'SDK configured for ' + sb + ' (' + script + ').';
       }
+      try {
+        global.dispatchEvent(
+          new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: !!expanded } })
+        );
+      } catch (e) {
+        /* noop */
+      }
     }
 
     function markPendingLaunchInject(url) {
