@@ -177,6 +177,11 @@
   color: #1a1a1a;
 }
 
+.donate-email-bar select#generatorTarget {
+  max-width: min(100%, 32rem);
+  width: 100%;
+}
+
 .donate-email-actions {
   display: flex;
   flex-wrap: wrap;
@@ -223,9 +228,8 @@
   background: rgba(10, 47, 115, 0.06);
 }
 
-/* Keep #infoEcid / #generatorTarget in DOM for JS; hide from layout (screen-reader accessible). */
-.donate-ecid-hint,
-.donate-advanced {
+/* Keep #infoEcid in DOM for JS; off-canvas in this bar layout. Event destination is in Tags SDK panel. */
+.donate-ecid-hint {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -236,31 +240,12 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-.donate-ecid-hint {
   font-size: 0.8125rem;
   color: #4a5568;
 }
 
 .donate-ecid-hint strong {
   color: #0a2f73;
-}
-
-.donate-advanced label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  margin-bottom: 0.25rem;
-}
-
-.donate-advanced select {
-  min-width: 200px;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid rgba(10, 47, 115, 0.2);
-  font-size: 0.8125rem;
 }
 
 /* Hero — trampoline photo + white two-column panel (matches CRUK donate layout) */

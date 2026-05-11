@@ -103,6 +103,11 @@
   gap: 0.65rem 1rem;
 }
 
+.mod-demo-id-inner .mod-sdk-config-fields select#generatorTarget {
+  min-width: min(100%, 28rem);
+  max-width: 100%;
+}
+
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
   width: 100%;
   margin-top: 0.35rem;

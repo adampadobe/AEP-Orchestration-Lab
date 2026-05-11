@@ -163,6 +163,11 @@
   font-size: 1rem;
 }
 
+.race-email-inner select#generatorTarget {
+  max-width: min(100%, 32rem);
+  width: 100%;
+}
+
 .race-email-actions {
   display: flex;
   align-items: center;
@@ -208,8 +213,8 @@
   background: #eef2f7;
 }
 
-.race-ecid-hint,
-.race-advanced {
+/* ECID hint kept off-canvas in this layout; event destination moved into Tags SDK panel. */
+.race-ecid-hint {
   position: absolute;
   width: 1px;
   height: 1px;
