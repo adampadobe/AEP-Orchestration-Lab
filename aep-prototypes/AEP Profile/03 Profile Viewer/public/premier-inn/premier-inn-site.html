@@ -846,9 +846,12 @@
         <strong>Lab demo only</strong> — not affiliated with Whitbread PLC. Official site:
         <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a>.
         Asset origin: <code>localStorage.piPremierInnDemoAssetBase</code> or premierinn.com.
+        <strong style="display:block;margin-top:10px">AEP journey</strong>
+        Search sends a generic <code>hotel.search</code> event to the parent shell, then opens a lab booking + payment flow (midweek London is a good default) for abandon-recovery demos.
       </div>
     </div>
   </footer>
+  <script src="premier-inn-events.js"></script>
   <script>
     (function () {
       var STORAGE_KEY = 'piDemoSearchState_v1';
@@ -1012,29 +1015,56 @@
           var ad = adultsEl ? adultsEl.value : '1';
           var rm = roomsEl ? roomsEl.value : '1';
           var nights = Math.round((parseYmd(co) - parseYmd(ci)) / 86400000);
-          var adultWord = ad === '1' ? 'adult' : 'adults';
-          var roomWord = rm === '1' ? 'room' : 'rooms';
-          showFeedback(
-            'Demo search: ' +
-              place +
-              ' · ' +
-              fmtRange() +
-              ' · ' +
-              nights +
-              ' night' +
-              (nights === 1 ? '' : 's') +
-              ' · ' +
-              ad +
-              ' ' +
-              adultWord +
-              ', ' +
-              rm +
-              ' ' +
-              roomWord +
-              '.',
-            false
-          );
+          function weekdaySeg() {
+            var a = parseYmd(ci);
+            var b = parseYmd(co);
+            if (!a || !b) return 'unknown';
+            var mid = 0;
+            var oth = 0;
+            var d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+            var end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+            while (d < end) {
+              var w = d.getDay();
+              if (w >= 1 && w <= 4) mid++;
+              else oth++;
+              d.setDate(d.getDate() + 1);
+            }
+            if (mid > 0 && oth === 0) return 'midweek';
+            if (oth > 0 && mid === 0) return 'weekend';
+            return 'mixed';
+          }
+          var itin =
+            'piit_' + Math.random().toString(36).slice(2, 12) + '_' + Date.now().toString(36);
+          try {
+            sessionStorage.setItem('piPremierInnItineraryId', itin);
+          } catch (eIt) {}
+          if (window.PremierInnLabEvents && typeof window.PremierInnLabEvents.emit === 'function') {
+            window.PremierInnLabEvents.emit(
+              'hotel.search',
+              {
+                itineraryId: itin,
+                hotelDestination: place,
+                hotelCheckIn: ci,
+                hotelCheckOut: co,
+                hotelNights: nights,
+                hotelAdults: Number(ad) || 1,
+                hotelRooms: Number(rm) || 1,
+                hotelWeekdaySegment: weekdaySeg(),
+                hotelFunnelStep: 'search_submitted',
+              },
+              'Hospitality lab — search',
+              window.location.href
+            );
+          }
           persist();
+          var next = new URLSearchParams();
+          next.set('where', place);
+          next.set('checkin', ci);
+          next.set('checkout', co);
+          next.set('adults', ad);
+          next.set('rooms', rm);
+          next.set('itinerary', itin);
+          window.location.href = 'premier-inn-booking-flow.html?' + next.toString();
         });
       }
 

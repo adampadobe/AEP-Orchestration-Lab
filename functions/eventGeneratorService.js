@@ -120,6 +120,19 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
   if (dd != null && String(dd).trim() !== '') dest.donationDate = String(dd).trim();
   if (pubIn.linkUrl != null && String(pubIn.linkUrl).trim() !== '') dest.linkUrl = String(pubIn.linkUrl).trim();
   if (pubIn.ctaLabel != null && String(pubIn.ctaLabel).trim() !== '') dest.ctaLabel = String(pubIn.ctaLabel).trim();
+  const itineraryRaw = pubIn.itineraryId;
+  if (itineraryRaw != null && String(itineraryRaw).trim() !== '') {
+    dest.hotelItineraryId = String(itineraryRaw).trim();
+  }
+  for (const hk of Object.keys(pubIn)) {
+    if (hk === 'itineraryId') continue;
+    if (!/^hotel/i.test(hk)) continue;
+    const hv = pubIn[hk];
+    if (hv == null || hv === '') continue;
+    if (typeof hv === 'string' || typeof hv === 'number' || typeof hv === 'boolean') {
+      dest[hk] = typeof hv === 'string' ? hv.trim() : hv;
+    }
+  }
   if (Object.keys(dest).length > 0) tenant.public = dest;
 
   if (donationAmountNumber != null && Number.isFinite(donationAmountNumber)) {

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Book your stay — lab journey</title>
+  <meta name="description" content="Lab-only booking flow for midweek search → payment abandon; emits generic hotel.* experience events to the parent AEP shell."/>
+  <script src="premier-inn-events.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; background: #f4f0f7; }
+    a { color: #511e62; font-weight: 600; }
+    .pi-lab-header {
+      background: #511e62;
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .pi-lab-header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .pi-lab-steps { font-size: 13px; opacity: 0.95; }
+    .pi-wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+    .pi-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 22px;
+      margin-bottom: 18px;
+      border: 1px solid #e6dde8;
+      box-shadow: 0 2px 12px rgba(81, 30, 98, 0.06);
+    }
+    .pi-card h2 { margin: 0 0 10px; font-size: 1.15rem; color: #511e62; }
+    .pi-muted { color: #555; font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+    .pi-kv { font-size: 14px; margin: 6px 0; }
+    .pi-kv strong { color: #333; }
+    .pi-rate-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .pi-rate-row:last-child { border-bottom: none; }
+    .pi-price { font-weight: 800; color: #511e62; font-size: 1.1rem; }
+    button.pi-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      background: #511e62;
+      color: #fff;
+    }
+    button.pi-btn:hover { filter: brightness(1.05); }
+    button.pi-btn-secondary {
+      background: #fff;
+      color: #511e62;
+      border: 2px solid #511e62;
+    }
+    .pi-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .pi-lab-scenario {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.55;
+      background: #faf7fc;
+      border-left: 4px solid #511e62;
+      padding: 12px 14px;
+      margin-top: 20px;
+    }
+    .pi-pay-fields label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; }
+    .pi-pay-fields input {
+      width: 100%;
+      max-width: 360px;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="pi-lab-header">
+    <h1>Book your stay <span style="font-weight:400;opacity:.85">(lab)</span></h1>
+    <div class="pi-lab-steps" id="piStepLabel" aria-live="polite">Step 1 of 3 · Results</div>
+  </header>
+  <div class="pi-wrap">
+    <section id="piStepResults" class="pi-card">
+      <h2>Available rates</h2>
+      <p class="pi-muted" id="piResultsIntro"></p>
+      <div id="piRateList"></div>
+      <p class="pi-muted" style="font-size:13px;margin-top:12px;margin-bottom:0">
+        Rates are illustrative. In production, availability and price feed your demand and abandon rules.
+      </p>
+    </section>
+
+    <section id="piStepCheckout" class="pi-card" hidden>
+      <h2>Your booking</h2>
+      <p class="pi-muted" id="piCheckoutIntro"></p>
+      <div class="pi-kv"><strong>Hotel</strong> <span id="piSelHotel"></span></div>
+      <div class="pi-kv"><strong>Itinerary</strong> <code id="piItinDisplay"></code></div>
+      <div class="pi-actions">
+        <button type="button" class="pi-btn" id="piBtnToPayment">Continue to payment</button>
+        <a href="premier-inn-site.html" id="piBackHome">Back to search</a>
+      </div>
+    </section>
+
+    <section id="piStepPayment" class="pi-card" hidden>
+      <h2>Payment</h2>
+      <p class="pi-muted">Lab-only form — do not enter real card data. Use <strong>Abandon at payment</strong> to mimic checkout exit for recovery journeys.</p>
+      <div class="pi-pay-fields">
+        <label for="piCardName">Name on card</label>
+        <input id="piCardName" type="text" autocomplete="off" placeholder="As shown on card"/>
+        <label for="piCardLast4">Last 4 digits (mock)</label>
+        <input id="piCardLast4" type="text" maxlength="4" inputmode="numeric" placeholder="4242"/>
+      </div>
+      <div class="pi-actions">
+        <button type="button" class="pi-btn" id="piBtnPayMock">Complete payment (mock)</button>
+        <button type="button" class="pi-btn pi-btn-secondary" id="piBtnAbandon">Abandon at payment</button>
+      </div>
+    </section>
+
+    <div class="pi-lab-scenario" id="piScenarioNote">
+      <strong>Scenario (orchestration / paid media).</strong>
+      A guest searches midweek London, reaches this payment step, then exits. Downstream you can qualify abandon recovery
+      only when <em>hotelDemandForecastScore</em> is below threshold (no incentive if the night will sell anyway) and suppress
+      follow-on when <em>hotelInventoryAvailable</em> is false. Paid and social can deep-link back to a saved itinerary
+      (see <em>hotelResumeUrl</em> on abandon) so the guest can finish in web or app.
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var where = (params.get('where') || 'London').trim();
+      var checkIn = params.get('checkin') || '';
+      var checkOut = params.get('checkout') || '';
+      var adults = params.get('adults') || '1';
+      var rooms = params.get('rooms') || '1';
+      var itineraryId = (params.get('itinerary') || '').trim() || (function () {
+        try {
+          return sessionStorage.getItem('piPremierInnItineraryId') || '';
+        } catch (e) {
+          return '';
+        }
+      })();
+
+      function emit(t, pub, viewName) {
+        if (!window.PremierInnLabEvents || typeof window.PremierInnLabEvents.emit !== 'function') return;
+        var base = Object.assign(
+          {
+            itineraryId: itineraryId,
+            hotelDestination: where,
+            hotelCheckIn: checkIn,
+            hotelCheckOut: checkOut,
+            hotelAdults: Number(adults) || 1,
+            hotelRooms: Number(rooms) || 1,
+          },
+          pub || {}
+        );
+        window.PremierInnLabEvents.emit(t, base, viewName || 'Hospitality lab — booking', window.location.href);
+      }
+
+      function nightsBetween(a, b) {
+        var da = new Date(a + 'T12:00:00');
+        var db = new Date(b + 'T12:00:00');
+        if (isNaN(da) || isNaN(db)) return 0;
+        return Math.max(0, Math.round((db - da) / 86400000));
+      }
+      var nights = nightsBetween(checkIn, checkOut);
+
+      function weekdaySegment() {
+        if (!checkIn || !checkOut) return 'unknown';
+        var mid = 0;
+        var oth = 0;
+        var d = new Date(checkIn + 'T12:00:00');
+        var end = new Date(checkOut + 'T12:00:00');
+        while (d < end) {
+          var w = d.getDay();
+          if (w >= 1 && w <= 4) mid++;
+          else oth++;
+          d.setDate(d.getDate() + 1);
+        }
+        if (mid > 0 && oth === 0) return 'midweek';
+        if (oth > 0 && mid === 0) return 'weekend';
+        return 'mixed';
+      }
+
+      emit('hotel.availability.view', {
+        hotelNights: nights,
+        hotelWeekdaySegment: weekdaySegment(),
+        hotelFunnelStep: 'results_view',
+        hotelPropertyCount: 2,
+      }, 'Hospitality lab — availability');
+
+      document.getElementById('piResultsIntro').textContent =
+        where +
+        ' · ' +
+        checkIn +
+        ' → ' +
+        checkOut +
+        ' · ' +
+        nights +
+        ' night(s) · ' +
+        adults +
+        ' adult(s), ' +
+        rooms +
+        ' room(s).';
+
+      var hotels = [
+        {
+          id: 'LAB-LON-CITY-01',
+          name: 'City hub hotel (London)',
+          rate: nights ? Math.round(89 + nights * 6) : 95,
+        },
+        {
+          id: 'LAB-LON-WEST-02',
+          name: 'West End rooms (London)',
+          rate: nights ? Math.round(104 + nights * 8) : 112,
+        },
+      ];
+
+      var listEl = document.getElementById('piRateList');
+      var selectedHotel = null;
+
+      hotels.forEach(function (h, idx) {
+        var row = document.createElement('div');
+        row.className = 'pi-rate-row';
+        row.innerHTML =
+          '<div><strong>' +
+          h.name +
+          '</strong><br><span style="font-size:12px;color:#666">' +
+          h.id +
+          '</span></div>' +
+          '<div class="pi-price">£' +
+          h.rate +
+          '</div>' +
+          '<button type="button" class="pi-btn" data-hotel-idx="' +
+          idx +
+          '">Select</button>';
+        listEl.appendChild(row);
+      });
+
+      listEl.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('button[data-hotel-idx]');
+        if (!btn) return;
+        var idx = Number(btn.getAttribute('data-hotel-idx'));
+        var h = hotels[idx];
+        if (!h) return;
+        selectedHotel = { id: h.id, name: h.name, rate: h.rate };
+        emit('hotel.room.select', {
+          hotelPropertyId: selectedHotel.id,
+          hotelPropertyName: selectedHotel.name,
+          hotelQuotedTotal: selectedHotel.rate,
+          hotelCurrency: 'GBP',
+          hotelFunnelStep: 'room_selected',
+        }, 'Hospitality lab — room');
+        document.getElementById('piStepResults').hidden = true;
+        document.getElementById('piStepCheckout').hidden = false;
+        document.getElementById('piStepLabel').textContent = 'Step 2 of 3 · Booking summary';
+        document.getElementById('piSelHotel').textContent = selectedHotel.name + ' — £' + selectedHotel.rate + ' total (illustrative)';
+        document.getElementById('piItinDisplay').textContent = itineraryId || '(no itinerary id — run search from home)';
+        document.getElementById('piCheckoutIntro').textContent =
+          'Review your stay before payment. Deep links in production would reopen this itinerary in web or app.';
+      });
+
+      document.getElementById('piBtnToPayment').addEventListener('click', function () {
+        if (!selectedHotel) return;
+        emit('hotel.booking.start', {
+          hotelPropertyId: selectedHotel.id,
+          hotelPropertyName: selectedHotel.name,
+          hotelQuotedTotal: selectedHotel.rate,
+          hotelCurrency: 'GBP',
+          hotelFunnelStep: 'checkout_continue',
+        }, 'Hospitality lab — checkout');
+        document.getElementById('piStepCheckout').hidden = true;
+        document.getElementById('piStepPayment').hidden = false;
+        document.getElementById('piStepLabel').textContent = 'Step 3 of 3 · Payment';
+        emit('hotel.payment.expose', {
+          hotelPropertyId: selectedHotel.id,
+          hotelPropertyName: selectedHotel.name,
+          hotelQuotedTotal: selectedHotel.rate,
+          hotelCurrency: 'GBP',
+          hotelFunnelStep: 'payment_view',
+        }, 'Hospitality lab — payment');
+      });
+
+      document.getElementById('piBtnAbandon').addEventListener('click', function () {
+        if (!selectedHotel) return;
+        var resume =
+          window.location.origin +
+          window.location.pathname +
+          '?where=' +
+          encodeURIComponent(where) +
+          '&checkin=' +
+          encodeURIComponent(checkIn) +
+          '&checkout=' +
+          encodeURIComponent(checkOut) +
+          '&adults=' +
+          encodeURIComponent(adults) +
+          '&rooms=' +
+          encodeURIComponent(rooms) +
+          '&itinerary=' +
+          encodeURIComponent(itineraryId) +
+          '#resume';
+        emit('hotel.checkout.abandon', {
+          hotelPropertyId: selectedHotel.id,
+          hotelPropertyName: selectedHotel.name,
+          hotelQuotedTotal: selectedHotel.rate,
+          hotelCurrency: 'GBP',
+          hotelFunnelStep: 'payment_abandon',
+          hotelAbandonReason: 'user_exit_payment',
+          hotelDemandForecastScore: 0.37,
+          hotelInventoryAvailable: true,
+          hotelResumeUrl: resume,
+          linkUrl: resume,
+          ctaLabel: 'resume_booking',
+        }, 'Hospitality lab — abandon');
+        alert('Sent hotel.checkout.abandon with sample demand/inventory flags. Check the parent shell message and AEP.');
+      });
+
+      document.getElementById('piBtnPayMock').addEventListener('click', function () {
+        if (!selectedHotel) return;
+        emit('hotel.booking.complete', {
+          hotelPropertyId: selectedHotel.id,
+          hotelPropertyName: selectedHotel.name,
+          hotelQuotedTotal: selectedHotel.rate,
+          hotelCurrency: 'GBP',
+          hotelFunnelStep: 'payment_complete_mock',
+        }, 'Hospitality lab — complete (mock)');
+        alert('Sent hotel.booking.complete (mock). Use Abandon for recovery use cases.');
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 /**
  * Premier Inn demo — profile lookup + Tags injection (shared DemoTagsInjection) + flyout lab nav.
+ * Iframe journey emits generic hospitality events (hotel.*) via postMessage; parent POSTs /api/events/generator.
  */
 
 const customerEmail = document.getElementById('customerEmail');
@@ -12,6 +13,8 @@ const generatorTargetSelect = document.getElementById('generatorTarget');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+
+const premierInnSiteFrame = document.getElementById('premierInnSiteFrame');
 
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -50,6 +53,76 @@ function getSelectedGeneratorTarget() {
   const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
 }
+
+/**
+ * @param {{ eventType?: string, viewName?: string, viewUrl?: string, public?: Record<string, unknown> }} payload
+ */
+async function sendPremierInnHotelExperienceEvent(payload) {
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const ecidEl = document.getElementById('infoEcid');
+  const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+  const ecid =
+    ecidText && ecidText !== '-' && ecidText !== '\u2014' && /^\d+$/.test(ecidText) && ecidText.length >= 10
+      ? ecidText
+      : null;
+  const emailForEvent = getEmail().trim();
+  const target = getSelectedGeneratorTarget();
+  const body = {
+    targetId: target ? target.id : undefined,
+    eventType: String(p.eventType || 'hotel.search').trim(),
+    viewName: String(p.viewName || 'Premier Inn lab').trim(),
+    viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
+    channel: 'Web',
+    public: p.public && typeof p.public === 'object' ? p.public : {},
+  };
+  if (emailForEvent) body.email = emailForEvent;
+  if (ecid) body.ecid = ecid;
+  const postBody =
+    typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+      ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+      : body;
+  try {
+    const res = await fetch('/api/events/generator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(postBody),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errMsg = data.error || data.message || 'Request failed.';
+      let extra = '';
+      if (data.streamingResponse) extra = ' \u2014 ' + JSON.stringify(data.streamingResponse).replace(/\s+/g, ' ').slice(0, 160);
+      else if (data.edgeBody) extra = ' \u2014 ' + String(data.edgeBody).replace(/\s+/g, ' ').slice(0, 160);
+      setPremierInnMessage(errMsg + extra, 'error');
+      return false;
+    }
+    let idPart = '';
+    if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
+    else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
+    setPremierInnMessage((data.message || 'Hotel journey event sent to AEP.') + idPart, 'success');
+    if (ecid && typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+      void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      window.setTimeout(function () {
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      }, 2500);
+      window.setTimeout(function () {
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      }, 8000);
+    }
+    return true;
+  } catch (err) {
+    setPremierInnMessage(err.message || 'Network error', 'error');
+    return false;
+  }
+}
+
+window.addEventListener('message', function (ev) {
+  if (!premierInnSiteFrame || !premierInnSiteFrame.contentWindow || ev.source !== premierInnSiteFrame.contentWindow) {
+    return;
+  }
+  if (!ev.data || ev.data.source !== 'premier-inn-lab' || ev.data.type !== 'hotel-experience-event') return;
+  void sendPremierInnHotelExperienceEvent(ev.data.payload);
+});
 
 async function loadGeneratorTargets() {
   if (!generatorTargetSelect) return;
