@@ -503,7 +503,46 @@
       await loadTagsEnvironments(selectedPropertyId);
     }
 
+    /**
+     * Edge / Demo Website datasets often require a root `_demoemea` object (DCVS-1106 if missing).
+     * Navigator lab CTAs use `_demosystem5` via the Event generator only; Web SDK hits use this tenant.
+     */
+    function xdmDemoemeaShellForEdge() {
+      return {
+        _demoemea: {
+          identification: {
+            core: {},
+          },
+        },
+      };
+    }
+
     async function primeAlloyIdentityOnEdge(alloyFn) {
+      try {
+        const shell = xdmDemoemeaShellForEdge();
+        await alloyFn('sendEvent', {
+          xdm: Object.assign(
+            {
+              eventType: 'web.webPageDetails.pageViews',
+              web: {
+                webPageDetails: {
+                  name: (global.document && global.document.title) || 'AEP lab demo',
+                  URL: (global.location && global.location.href) || '',
+                },
+              },
+            },
+            shell
+          ),
+        });
+        dtLog('syncEcidFromAlloy: priming sendEvent (page view + _demoemea shell) completed');
+      } catch (e) {
+        dtLog('syncEcidFromAlloy: priming sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
+      }
+    }
+
+    async function sendAlloyDemoemeaVisitorPageViewWithEcid(alloyFn, ecid) {
+      const id = String(ecid || '').trim();
+      if (!id) return;
       try {
         await alloyFn('sendEvent', {
           xdm: {
@@ -514,11 +553,16 @@
                 URL: (global.location && global.location.href) || '',
               },
             },
+            _demoemea: {
+              identification: {
+                core: { ecid: id },
+              },
+            },
           },
         });
-        dtLog('syncEcidFromAlloy: priming sendEvent (page view) completed');
+        dtLog('syncEcidFromAlloy: sendEvent with _demoemea.identification.core.ecid completed');
       } catch (e) {
-        dtLog('syncEcidFromAlloy: priming sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
+        dtLog('syncEcidFromAlloy: demoemea ECID sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
       }
     }
 
@@ -566,6 +610,7 @@
           return '';
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
+        await sendAlloyDemoemeaVisitorPageViewWithEcid(alloyFn, ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,

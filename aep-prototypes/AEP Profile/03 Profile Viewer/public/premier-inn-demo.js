@@ -15,6 +15,8 @@ const generatorTargetSelect = document.getElementById('generatorTarget');
 let generatorTargets = [];
 
 const premierInnSiteFrame = document.getElementById('premierInnSiteFrame');
+/** Match Demo Website / global v1.1 style datasets (see Navigator `_demosystem5` for generator-only CTAs). */
+const PREMIER_INN_XDM_TENANT_KEY = '_demoemea';
 
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -74,6 +76,8 @@ async function sendPremierInnHotelExperienceEvent(payload) {
     viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
     channel: 'Web',
     public: p.public && typeof p.public === 'object' ? p.public : {},
+    xdmTenantKey: PREMIER_INN_XDM_TENANT_KEY,
+    identityMapEcidKey: 'ECID',
   };
   if (emailForEvent) body.email = emailForEvent;
   if (ecid) body.ecid = ecid;
