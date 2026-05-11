@@ -2785,8 +2785,13 @@ exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const email = (body.email || '').trim();
-  if (!email) {
-    res.status(400).json({ error: 'Missing email. Enter a customer identifier in the lab strip first.' });
+  const ecidRaw = body.ecid != null ? String(body.ecid).trim() : '';
+  const ecidOk = /^\d{10,}$/.test(ecidRaw);
+  if (!email && !ecidOk) {
+    res.status(400).json({
+      error:
+        'Missing identity. Enter an email in the lab strip, or ensure a browser ECID is present (inject Web SDK and wait for the ECID in the strip) before sending events.',
+    });
     return;
   }
   const sandbox = String(body.sandbox || '').trim() || resolveSandboxFromQuery(req);
