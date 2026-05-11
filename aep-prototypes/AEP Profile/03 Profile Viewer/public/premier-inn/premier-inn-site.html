@@ -7,10 +7,8 @@
   <meta name="description" content="From booking to bed, we’re here to help you rest easy. Whether it’s our choice of rooms across 800+ hotels, beds you won’t want to leave, our super tasty food, flexible rates or our friendly team members, these are just some of the reasons we’re one of the most-loved hotels in the UK and beyond."/>
   <link rel="icon" type="image/x-icon" href="https://www.premierinn.com/content/dam/pi/websites/desktop/icons/favicons/favicon.ico"/>
   <!--
-    Static lab mimic of https://www.premierinn.com/gb/en/home.html (structure + copy from page / header JSON, May 2026).
-    Default images load from premierinn.com. To use mirrored files on apalmer contenthosting, set localStorage key
-    piPremierInnDemoAssetBase to "https://contenthosting.web.app/LiveDemo/premier-inn" and mirror paths under that origin
-    (e.g. …/LiveDemo/premier-inn/content/dam/pi/websites/… for each asset).
+    Visual mimic of https://www.premierinn.com/gb/en/home.html (May 2026) — layout/colours/copy aligned to production HTML dumps.
+    Images: default origin premierinn.com; optional localStorage piPremierInnDemoAssetBase → e.g. https://contenthosting.web.app/LiveDemo/premier-inn
   -->
   <script>
     (function () {
@@ -29,238 +27,651 @@
       document.querySelectorAll('[data-pi-src]').forEach(function (el) {
         el.setAttribute('src', piAsset(el.getAttribute('data-pi-src')));
       });
-      document.querySelectorAll('[data-pi-href]').forEach(function (el) {
-        el.setAttribute('href', piAsset(el.getAttribute('data-pi-href')));
-      });
-      var hero = document.querySelector('.pi-demo-hero');
-      if (hero) {
-        var hp = hero.getAttribute('data-pi-hero');
-        if (hp) hero.style.backgroundImage = "url('" + piAsset(hp).replace(/'/g, '%27') + "')";
-      }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
     else piApplyAssets();
   </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body.pi-demo { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #333; background: #fff; }
-    .pi-demo a { color: #552462; text-decoration: none; }
+    .pi-demo { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #333; background: #511e62; }
+    .pi-demo a { color: inherit; text-decoration: none; }
     .pi-demo a:hover { text-decoration: underline; }
-    .pi-demo-topbar {
-      background: #552462;
+
+    /* —— Purple stage (header + headline + search) —— */
+    .pi-stage {
+      background: linear-gradient(180deg, #3d1450 0%, #5a2868 45%, #6c3072 100%);
+      padding: 0 16px 56px;
       color: #fff;
-      font-size: 13px;
-      padding: 6px 16px;
-      display: flex;
-      justify-content: flex-end;
-      gap: 20px;
-      flex-wrap: wrap;
     }
-    .pi-demo-topbar a { color: #fff; }
-    .pi-demo-header {
+    .pi-top-header {
+      max-width: 1240px;
+      margin: 0 auto;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      padding: 12px 20px;
-      border-bottom: 1px solid #e8e4ec;
-      gap: 12px;
+      gap: 16px;
+      padding: 16px 0 8px;
     }
-    .pi-demo-logo img { height: 44px; width: auto; display: block; }
-    .pi-demo-nav {
+    .pi-logo-link { display: flex; align-items: center; }
+    .pi-logo-link img {
+      height: 40px;
+      width: auto;
+      display: block;
+      filter: brightness(0) invert(1);
+    }
+    @media (min-width: 900px) {
+      .pi-logo-link img { height: 48px; }
+    }
+    .pi-top-nav {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 18px;
+      align-items: center;
+      gap: 12px 22px;
       font-size: 15px;
       font-weight: 600;
     }
-    .pi-demo-nav a { color: #511E62; }
-    .pi-demo-hero {
-      min-height: 280px;
-      background-color: #4a1a5c;
-      background-size: cover;
-      background-position: center;
+    .pi-top-nav a { color: #fff; opacity: 0.95; }
+    .pi-top-nav a:hover { opacity: 1; text-decoration: underline; }
+    .pi-top-actions {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 32px 20px;
+      gap: 10px 14px;
     }
-    @media (min-width: 768px) {
-      .pi-demo-hero { min-height: 380px; }
+    .pi-flag {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
     }
-    .pi-demo-hero-inner { max-width: 720px; }
-    .pi-demo-hero h1 {
-      margin: 0 0 12px;
-      font-size: clamp(1.75rem, 4vw, 2.5rem);
-      font-weight: 700;
-      color: #d7c3ff;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.35);
-    }
-    .pi-demo-hero p {
-      margin: 0;
-      font-size: 1.1rem;
-      color: #d7c3ff;
-      font-weight: 500;
-    }
-    .pi-demo-book {
-      max-width: 1100px;
-      margin: -40px auto 0;
-      padding: 0 16px 40px;
-      position: relative;
-      z-index: 2;
-    }
-    .pi-demo-book-card {
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 4px 24px rgba(81, 30, 98, 0.15);
-      padding: 20px 24px;
-      border: 1px solid #e8e4ec;
-    }
-    .pi-demo-book-card h2 { margin: 0 0 16px; font-size: 1.25rem; color: #511E62; }
-    .pi-demo-book-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-    .pi-demo-field { flex: 1 1 200px; }
-    .pi-demo-field label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px; }
-    .pi-demo-field input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ccc;
-      border-radius: 2px;
-      font-size: 15px;
-    }
-    .pi-demo-btn {
-      background: #552462;
+    .pi-btn-outline {
+      border: 2px solid #fff;
       color: #fff;
-      border: none;
-      padding: 12px 28px;
-      font-size: 16px;
+      background: transparent;
+      padding: 8px 22px;
+      border-radius: 999px;
+      font-size: 15px;
       font-weight: 700;
-      border-radius: 2px;
       cursor: default;
     }
-    .pi-demo-heading-block {
+    .pi-btn-solid-light {
+      border: 2px solid #fff;
+      background: #fff;
+      color: #511e62;
+      padding: 8px 22px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: default;
+    }
+
+    .pi-hero-title-wrap {
+      max-width: 1240px;
+      margin: 0 auto;
       text-align: center;
-      padding: 48px 20px 24px;
-      max-width: 960px;
+      padding: 28px 8px 20px;
+    }
+    .pi-hero-title-wrap h1 {
+      margin: 0;
+      font-size: clamp(1.85rem, 4.5vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      line-height: 1.15;
+    }
+
+    /* Teal search strip */
+    .pi-search-outer {
+      max-width: 1240px;
       margin: 0 auto;
     }
-    .pi-demo-heading-block h2 {
+    .pi-search-bar {
+      background: #00798e;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .pi-search-field {
+      flex: 1 1 180px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-height: 48px;
+    }
+    .pi-search-field svg { flex-shrink: 0; opacity: 0.55; }
+    .pi-search-field input {
+      border: none;
+      outline: none;
+      font-size: 15px;
+      width: 100%;
+      color: #333;
+      background: transparent;
+    }
+    .pi-search-field input::placeholder { color: #777; }
+    .pi-search-submit {
+      flex: 0 0 auto;
+      background: #006878;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: default;
+      min-height: 48px;
+    }
+    .pi-search-locate {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #fff;
+      opacity: 0.95;
+    }
+    .pi-search-locate:hover { text-decoration: underline; }
+
+    /* White main canvas */
+    .pi-canvas {
+      max-width: 1240px;
+      margin: -36px auto 0;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
+      position: relative;
+      z-index: 2;
+      padding: 40px 20px 48px;
+    }
+    @media (min-width: 768px) {
+      .pi-canvas { padding: 48px 32px 56px; }
+    }
+
+    .pi-intro {
+      text-align: center;
+      max-width: 920px;
+      margin: 0 auto 40px;
+    }
+    .pi-intro h2 {
       margin: 0;
-      font-size: clamp(1.35rem, 3vw, 1.85rem);
-      color: #511E62;
-      font-weight: 700;
-      line-height: 1.25;
-      border-bottom: 3px solid #511E62;
+      font-size: clamp(1.25rem, 2.8vw, 1.65rem);
+      color: #511e62;
+      font-weight: 800;
+      line-height: 1.3;
+      border-bottom: 3px solid #511e62;
+      display: inline-block;
+      padding-bottom: 10px;
+    }
+    .pi-intro p {
+      margin: 20px 0 0;
+      font-size: 1.05rem;
+      color: #444;
+      line-height: 1.55;
+    }
+
+    .pi-section-title {
+      margin: 48px 0 20px;
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      color: #511e62;
+      font-weight: 800;
+      border-bottom: 3px solid #511e62;
       display: inline-block;
       padding-bottom: 8px;
     }
-    .pi-demo-heading-block .pi-demo-lead {
-      margin: 20px auto 0;
-      font-size: 1.05rem;
-      color: #444;
-      line-height: 1.5;
-    }
-    .pi-demo-editorial {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 16px 64px;
+    .pi-section-title:first-of-type { margin-top: 8px; }
+
+    .pi-grid-2 {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 32px;
+      gap: 28px;
+      margin-bottom: 36px;
     }
     @media (min-width: 768px) {
-      .pi-demo-editorial { grid-template-columns: 1fr 1fr; }
+      .pi-grid-2 { grid-template-columns: 1fr 1fr; }
     }
-    .pi-demo-card figure { margin: 0 0 12px; }
-    .pi-demo-card img { width: 100%; height: auto; display: block; border-radius: 2px; }
-    .pi-demo-card h3 { margin: 0 0 8px; color: #511E62; font-size: 1.15rem; }
-    .pi-demo-card p { margin: 0; color: #555; line-height: 1.5; font-size: 0.95rem; }
-    .pi-demo-card a.main { font-weight: 700; display: inline-block; margin-top: 12px; }
-    .pi-demo-footer {
-      background: #f5f2f7;
-      padding: 32px 20px;
-      font-size: 13px;
+    .pi-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-bottom: 8px;
+    }
+    @media (min-width: 768px) {
+      .pi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    }
+    .pi-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    @media (min-width: 900px) {
+      .pi-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .pi-card figure { margin: 0 0 14px; }
+    .pi-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+    .pi-card h3 {
+      margin: 0 0 10px;
+      color: #511e62;
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+    .pi-card p {
+      margin: 0;
       color: #555;
-      text-align: center;
-      border-top: 1px solid #e8e4ec;
+      line-height: 1.5;
+      font-size: 0.95rem;
     }
-    .pi-demo-footer p { margin: 0.5rem 0; }
+    .pi-btn-purple {
+      display: inline-block;
+      margin-top: 14px;
+      background: #511e62;
+      color: #fff !important;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: default;
+      text-decoration: none !important;
+    }
+    .pi-btn-purple:hover { filter: brightness(1.08); text-decoration: none !important; }
+
+    .pi-getaway .pi-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .pi-getaway .pi-card .pi-gw-body {
+      padding: 12px 14px 16px;
+    }
+    .pi-btn-ghost {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #511e62 !important;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: default;
+      text-decoration: none !important;
+    }
+    .pi-btn-ghost:hover { background: #f7f7f7; text-decoration: none !important; }
+
+    .pi-brand-hub a.pi-btn-brand { background: #bdd600; color: #333 !important; }
+    .pi-brand-zip a.pi-btn-brand { background: #fc0f42; color: #fff !important; }
+    .pi-btn-brand {
+      display: inline-block;
+      margin-top: 14px;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: default;
+      text-decoration: none !important;
+    }
+    .pi-btn-brand:hover { filter: brightness(1.05); text-decoration: none !important; }
+
+    /* Footer */
+    .pi-footer {
+      background: #f4f1f6;
+      padding: 32px 16px 24px;
+      border-top: 1px solid #e0d8e5;
+    }
+    .pi-footer-inner { max-width: 1240px; margin: 0 auto; }
+    .pi-footer-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .pi-footer-tabs button {
+      border: none;
+      background: #e8e0ec;
+      color: #511e62;
+      padding: 10px 16px;
+      border-radius: 8px 8px 0 0;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: default;
+    }
+    .pi-footer-tabs button.pi-tab-active {
+      background: #511e62;
+      color: #fff;
+    }
+    .pi-footer-intro {
+      font-size: 15px;
+      line-height: 1.55;
+      color: #444;
+      margin-bottom: 28px;
+      max-width: 900px;
+    }
+    .pi-footer-cols {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 32px;
+      font-size: 14px;
+    }
+    @media (min-width: 900px) {
+      .pi-footer-cols { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 1100px) {
+      .pi-footer-cols { grid-template-columns: repeat(6, 1fr); }
+    }
+    .pi-footer-cols strong {
+      display: block;
+      color: #511e62;
+      margin-bottom: 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pi-footer-cols ul { margin: 0; padding: 0; list-style: none; }
+    .pi-footer-cols li { margin: 0 0 8px; }
+    .pi-footer-cols a { color: #333; }
+    .pi-footer-newsletter {
+      margin-top: 32px;
+      text-align: center;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #e0d8e5;
+    }
+    .pi-footer-newsletter input {
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: min(100%, 280px);
+      margin-right: 8px;
+      font-size: 15px;
+    }
+    .pi-footer-newsletter .pi-btn-purple { margin-top: 12px; }
+    .pi-lab-note {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+    .pi-lab-note a { color: #511e62; font-weight: 700; }
   </style>
 </head>
 <body class="pi-demo">
-  <div class="pi-demo-topbar" aria-label="Utility links">
-    <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Find booking</a>
-    <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Log in</a>
-    <span>English</span>
-  </div>
-  <header class="pi-demo-header">
-    <a class="pi-demo-logo" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">
-      <img data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-purple-2026.png" alt="Premier Inn" width="200" height="44"/>
-    </a>
-    <nav class="pi-demo-nav" aria-label="Primary">
-      <a href="https://www.premierinn.com/gb/en/hotels.html" target="_blank" rel="noopener">Hotels &amp; booking</a>
-      <a href="https://www.premierinn.com/gb/en/sleep/our-rooms.html" target="_blank" rel="noopener">Sleep</a>
-      <a href="https://www.premierinn.com/gb/en/why/food.html" target="_blank" rel="noopener">Eat</a>
-      <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Business</a>
-      <a href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">Offers</a>
-    </nav>
-  </header>
+  <div class="pi-stage">
+    <header class="pi-top-header">
+      <a class="pi-logo-link" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">
+        <img data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-purple-2026.png" alt="Premier Inn" width="220" height="48"/>
+      </a>
+      <nav class="pi-top-nav" aria-label="Primary">
+        <a href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">Discover Premier Inn</a>
+        <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Business</a>
+        <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Manage booking</a>
+      </nav>
+      <div class="pi-top-actions">
+        <img class="pi-flag" data-pi-src="/etc/clientlibs/pi-header/resources/images/british-round.svg" alt="" width="28" height="28"/>
+        <button type="button" class="pi-btn-outline">Log in</button>
+        <button type="button" class="pi-btn-solid-light">Sign up</button>
+      </div>
+    </header>
 
-  <section class="pi-demo-hero" data-pi-hero="/content/dam/pi/websites/desktop/homepage/reframe-homepge-hero.jpg" aria-label="Promotional hero">
-    <div class="pi-demo-hero-inner">
+    <div class="pi-hero-title-wrap">
       <h1>Get a great night&apos;s sleep</h1>
-      <p>Rest easy with our super-comfy beds and flexible rates.</p>
     </div>
-  </section>
 
-  <div class="pi-demo-book">
-    <div class="pi-demo-book-card">
-      <h2>Search for a hotel</h2>
-      <div class="pi-demo-book-row">
-        <div class="pi-demo-field">
-          <label for="pi-where">Where</label>
-          <input id="pi-where" type="text" placeholder="Enter place, postcode or hotel" autocomplete="off" readonly/>
+    <div class="pi-search-outer">
+      <div class="pi-search-bar" role="search" aria-label="Hotel search">
+        <label class="pi-search-field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z" stroke="currentColor" stroke-width="1.6"/><path d="M19 19c-2-3-4.5-5-7-5s-5 2-7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" readonly placeholder="Enter a city, postcode or hotel" autocomplete="off"/>
+        </label>
+        <label class="pi-search-field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" readonly placeholder="Dates / 1 night" autocomplete="off"/>
+        </label>
+        <label class="pi-search-field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" readonly placeholder="1 room, 2 adults" autocomplete="off"/>
+        </label>
+        <button type="button" class="pi-search-submit">Search</button>
+      </div>
+      <a class="pi-search-locate" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">Use my current location</a>
+    </div>
+  </div>
+
+  <main class="pi-canvas">
+    <section class="pi-intro" aria-labelledby="pi-intro-heading">
+      <h2 id="pi-intro-heading">From a comfy bed to a great night&apos;s sleep, you know what you&apos;re getting with us</h2>
+      <p>Our Premier Inn hotels offer comfort you can count on thanks to our flexible rates, unlimited breakfast and super-comfy beds - what&apos;s not to love?</p>
+    </section>
+
+    <div class="pi-grid-2">
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-rooms/premier-plus/id5-premier-plus-1000-640.jpg" alt="Premier Plus rooms" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Premier Plus rooms</h3>
+        <p>More comfort. More convenience. More connectivity. That’s our Premier Plus rooms. Just perfect if you fancy a little more from your stay. Go on, treat yourself.</p>
+        <a class="pi-btn-purple" href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">Premier Plus rooms</a>
+      </article>
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/why/food.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/global/restaurants/THY/2025-AW/1000x640/PIFB_Project%20Europe_Starters%20Group%201_121479_RT.jpg" alt="Food &amp; drink" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Food &amp; drink</h3>
+        <p>People rave about our tempting Premier Inn Breakfast. And in the evenings, you can sit down to a mouth-watering menu of delicious dishes from our restaurant.</p>
+        <a class="pi-btn-purple" href="https://www.premierinn.com/gb/en/why/food.html" target="_blank" rel="noopener">Ready to tuck in?</a>
+      </article>
+    </div>
+
+    <div class="pi-grid-3">
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/why/family.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/homepage/refresh/2022/family-500x320.jpg" alt="Family friendly" width="500" height="320" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Family friendly</h3>
+        <p>Our family rooms have a super comfy kingsize* bed for the grown-ups, and two pull-out or sofa beds for the kids. Travelling with a baby? We’ll get you a cot too.</p>
+        <a class="pi-btn-purple" href="https://www.premierinn.com/gb/en/why/family.html" target="_blank" rel="noopener">Family friendly</a>
+      </article>
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinnathome.com/?utm_source=premierinn.com&amp;utm_medium=referral&amp;utm_campaign=Homepage+BF" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-bed/premier-inn-bed-for-you-home-1000-640.jpg" alt="A Premier Inn Bed for your home" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>A Premier Inn Bed for your home</h3>
+        <p>Check out the exact mattress, pillows, and duvets used in our Premier Inn hotels – all available to buy for your own home.</p>
+        <a class="pi-btn-purple" href="https://www.premierinnathome.com/?utm_source=premierinn.com&amp;utm_medium=referral&amp;utm_campaign=Homepage+BF" target="_blank" rel="noopener">Shop mattresses &amp; beds</a>
+      </article>
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/Business/businesslandingpage/spotlights/PI_B2B_05.0_BusinessWeb_Homepage_Spotlight_BB_1000x640px_V2.jpg" alt="Premier Inn Business" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Premier Inn Business</h3>
+        <p>Our free online booking tool gives businesses of all sizes access to a guaranteed 5% and up to 15% discount* off our Flex rate.</p>
+        <a class="pi-btn-purple" href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Premier Inn Business</a>
+      </article>
+    </div>
+
+    <h2 class="pi-section-title">Plan your next getaway</h2>
+    <div class="pi-grid-4 pi-getaway">
+      <article class="pi-card">
+        <figure><a href="https://www.premierinn.com/gb/en/short-breaks/hiking-guide.html" target="_blank" rel="noopener"><img data-pi-src="/content/dam/pi/websites/desktop/short-breaks/hiking-in-the-uk/photos/helvellyn-hiking-guide-500x320.jpg" alt="" width="500" height="320" loading="lazy"/></a></figure>
+        <div class="pi-gw-body"><a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/short-breaks/hiking-guide.html" target="_blank" rel="noopener">Hiking Guide</a></div>
+      </article>
+      <article class="pi-card">
+        <figure><a href="https://www.premierinn.com/gb/en/short-breaks/cycling-trails.html" target="_blank" rel="noopener"><img data-pi-src="/content/dam/pi/websites/desktop/guides/harrogate/harrogate-cycling-stock-01-500x320.jpg" alt="" width="500" height="320" loading="lazy"/></a></figure>
+        <div class="pi-gw-body"><a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/short-breaks/cycling-trails.html" target="_blank" rel="noopener">Biking Guide</a></div>
+      </article>
+      <article class="pi-card">
+        <figure><a href="https://www.premierinn.com/gb/en/hotels/germany.html" target="_blank" rel="noopener"><img data-pi-src="/content/dam/pi/websites/desktop/homepage/brand-promos/germany-transformed.webp" alt="" width="500" height="320" loading="lazy"/></a></figure>
+        <div class="pi-gw-body"><a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/hotels/germany.html" target="_blank" rel="noopener">Premier Inn Germany</a></div>
+      </article>
+      <article class="pi-card">
+        <figure><a href="https://www.premierinn.com/gb/en/hotels/middle-east.html" target="_blank" rel="noopener"><img data-pi-src="/content/dam/pi/websites/desktop/international/middle-east/homepage-middle-east-hotels-630x404.jpg" alt="" width="630" height="404" loading="lazy"/></a></figure>
+        <div class="pi-gw-body"><a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/hotels/middle-east.html" target="_blank" rel="noopener">Hotels in the Middle East</a></div>
+      </article>
+    </div>
+
+    <h2 class="pi-section-title">Discover our hotels</h2>
+    <div class="pi-grid-3">
+      <article class="pi-card pi-brand-pi">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-rooms/id5-standard-double-1000-640.jpg" alt="Premier Inn" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Premier Inn</h3>
+        <p>With over 800 hotels across the UK and beyond, we really are everywhere. Sleep in a super comfy bed, enjoy Freeview TV, an en-suite bathroom with power shower and so much more.</p>
+        <a class="pi-btn-brand" style="background:#511e62;color:#fff!important;" href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">Discover Premier Inn</a>
+      </article>
+      <article class="pi-card pi-brand-hub">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/hub.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/homepage/hub-standard-lightbox.jpg" alt="hub by Premier Inn" width="1000" height="640" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>hub by Premier Inn</h3>
+        <p>Smart, stylish rooms across London and Edinburgh at great prices. Clever touchscreen room controls, free Wi-Fi, 40&quot; Freeview TVs, high-powered monsoon showers and super-comfy beds.</p>
+        <a class="pi-btn-brand" href="https://www.premierinn.com/gb/en/hub.html" target="_blank" rel="noopener">Discover hub</a>
+      </article>
+      <article class="pi-card pi-brand-zip">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/zip.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/homepage/refresh/2022/zip-bedroom-500x320.jpg" alt="ZIP by Premier Inn" width="500" height="320" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>ZIP by Premier Inn</h3>
+        <p>Our idea is simple. Do the essentials brilliantly, then take away everything else. You get a small room, a simple stay and best of all, a price to match – from £25 a night. Now open in Cardiff.</p>
+        <a class="pi-btn-brand" href="https://www.premierinn.com/gb/en/zip.html" target="_blank" rel="noopener">Discover ZIP</a>
+      </article>
+    </div>
+
+    <h2 class="pi-section-title">Premier Inn information, news and features</h2>
+    <div class="pi-grid-3">
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/news.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/de/Germany_New_Image_Sizes/Brand/Housekeeping_Premier_Inn_500x320.jpg" alt="Premier Inn news" width="500" height="320" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Premier Inn news</h3>
+        <p>Want to hear all the latest updates from Premier Inn, hub and ZIP? Visit our news page to stay up to date with competitions, travel tips and more.</p>
+        <a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/news.html" target="_blank" rel="noopener">Premier Inn news</a>
+      </article>
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/why/locations/new-hotels.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/why/premier-everywhere/premier-everywhere/premier-inn-location-500x320.jpg" alt="New hotels" width="500" height="320" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>New hotels</h3>
+        <p>From city centres to seafronts and beyond, we’ll be opening new hotels in great locations throughout the year. Check out our list of latest openings!</p>
+        <a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/why/locations/new-hotels.html" target="_blank" rel="noopener">New hotels</a>
+      </article>
+      <article class="pi-card">
+        <figure>
+          <a href="https://www.premierinn.com/gb/en/why/cleanliness.html" target="_blank" rel="noopener">
+            <img data-pi-src="/content/dam/pi/websites/desktop/why/book-stay-confidence/cleanprotect-kisok-cleaning-500x320.jpg" alt="Committed to cleanliness" width="500" height="320" loading="lazy"/>
+          </a>
+        </figure>
+        <h3>Committed to cleanliness</h3>
+        <p>To make sure we keep everyone safe, we have a rigorous, daily cleaning regime - an enhanced hygiene promise we call Premier Inn CleanProtect™.</p>
+        <a class="pi-btn-ghost" href="https://www.premierinn.com/gb/en/why/cleanliness.html" target="_blank" rel="noopener">Premier Inn CleanProtect™</a>
+      </article>
+    </div>
+  </main>
+
+  <footer class="pi-footer">
+    <div class="pi-footer-inner">
+      <div class="pi-footer-tabs" role="tablist" aria-label="Footer topics">
+        <button type="button" class="pi-tab-active">About us</button>
+        <button type="button">City breaks</button>
+        <button type="button">Summer breaks</button>
+        <button type="button">Winter breaks</button>
+        <button type="button">Business</button>
+      </div>
+      <p class="pi-footer-intro">Is it our comfy beds, our seriously tasty food, our great value hotels or our amazing teams that guests love so much? We reckon it’s a bit of everything. Take a look around to find out why we’re a much-loved, award-winning hotel chain, and rest easy knowing our range of rates give you both choice and flexibility.</p>
+      <div class="pi-footer-cols">
+        <div>
+          <strong>Get in touch</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/contact-us.html" target="_blank" rel="noopener">Contact us</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/faq.html" target="_blank" rel="noopener">FAQs</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/why/groups.html" target="_blank" rel="noopener">Group bookings</a></li>
+          </ul>
         </div>
-        <div class="pi-demo-field">
-          <label for="pi-when">Dates</label>
-          <input id="pi-when" type="text" placeholder="Select dates" autocomplete="off" readonly/>
+        <div>
+          <strong>Legal</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/terms/booking-terms-and-conditions.html" target="_blank" rel="noopener">Terms and conditions</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/terms/privacy-policy.html" target="_blank" rel="noopener">Privacy policy</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/terms/how-we-use-cookies.html" target="_blank" rel="noopener">Cookies notice</a></li>
+          </ul>
         </div>
-        <button type="button" class="pi-demo-btn">Search</button>
+        <div>
+          <strong>Locations</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/hotels.html" target="_blank" rel="noopener">Hotel directory</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/why/locations/new-hotels.html" target="_blank" rel="noopener">New hotels</a></li>
+          </ul>
+        </div>
+        <div>
+          <strong>Our brands</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">Discover Premier Inn</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/hub.html" target="_blank" rel="noopener">hub by Premier Inn</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/zip.html" target="_blank" rel="noopener">ZIP by Premier Inn</a></li>
+          </ul>
+        </div>
+        <div>
+          <strong>Find out more</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/why/food.html" target="_blank" rel="noopener">Food &amp; drink</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/sleep/our-rooms.html" target="_blank" rel="noopener">Our rooms</a></li>
+          </ul>
+        </div>
+        <div>
+          <strong>Everything else</strong>
+          <ul>
+            <li><a href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">Offers</a></li>
+            <li><a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Manage booking</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pi-footer-newsletter">
+        <p style="margin:0 0 12px;font-weight:700;color:#511e62;">Signing up is easy</p>
+        <input type="email" readonly placeholder="Email address" aria-label="Email"/>
+        <button type="button" class="pi-btn-purple">Sign up</button>
+      </div>
+      <div class="pi-lab-note">
+        <strong>Lab demo only</strong> — not affiliated with Whitbread PLC. Official site:
+        <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a>.
+        Asset origin: <code>localStorage.piPremierInnDemoAssetBase</code> or premierinn.com.
       </div>
     </div>
-  </div>
-
-  <section class="pi-demo-heading-block" aria-labelledby="pi-heading-main">
-    <h2 id="pi-heading-main">From a comfy bed to a great night&apos;s sleep, you know what you&apos;re getting with us</h2>
-    <p class="pi-demo-lead">Our Premier Inn hotels offer comfort you can count on thanks to our flexible rates, unlimited breakfast and super-comfy beds - what&apos;s not to love?</p>
-  </section>
-
-  <div class="pi-demo-editorial">
-    <article class="pi-demo-card">
-      <figure>
-        <a href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">
-          <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-rooms/premier-plus/id5-premier-plus-1000-640.jpg" alt="Premier Plus rooms" width="1000" height="640" loading="lazy"/>
-        </a>
-      </figure>
-      <h3>Premier Plus rooms</h3>
-      <p>More comfort. More convenience. More connectivity. That’s our Premier Plus rooms. Just perfect if you fancy a little more from your stay. Go on, treat yourself.</p>
-      <a class="main" href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">Discover Premier Plus</a>
-    </article>
-    <article class="pi-demo-card">
-      <figure>
-        <a href="https://www.premierinn.com/gb/en/sleep/our-bed.html" target="_blank" rel="noopener">
-          <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-bed/premier-inn-bed-for-you-home-1000-640.jpg" alt="Our beds" width="1000" height="640" loading="lazy"/>
-        </a>
-      </figure>
-      <h3>Our beds</h3>
-      <p>Every Premier Inn bed is designed to help you drift off. We’re so confident you’ll sleep well, we’ve made our beds available to buy for your own home.</p>
-      <a class="main" href="https://www.premierinn.com/gb/en/sleep/our-bed.html" target="_blank" rel="noopener">Why our beds matter</a>
-    </article>
-  </div>
-
-  <footer class="pi-demo-footer">
-    <p><strong>Lab demo only</strong> — not affiliated with Whitbread PLC. Official site: <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a></p>
-    <p>Visuals default to premierinn.com assets; override with <code>localStorage.piPremierInnDemoAssetBase</code> for mirrored hosting.</p>
   </footer>
 </body>
 </html>
