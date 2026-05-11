@@ -173,8 +173,9 @@ async function handleProfileGenerate(req, res, ctx) {
   profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
   profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
 
-  // Generic generates: one DCS envelope with OOTB test profile flag on the XDM root (AJO / lab
-  // sandboxes). Opt out with body.testProfile === false or body.omitTestProfile === true.
+  // All industry generates: one DCS envelope with OOTB `xdm:testProfile` on the XDM root (AJO /
+  // lab sandboxes). Opt out with body.testProfile === false, body.omitTestProfile === true, or
+  // attributes['xdm:testProfile'] === false.
   const testProfileOptOut =
     body.testProfile === false ||
     body.testProfile === 'false' ||
@@ -182,7 +183,7 @@ async function handleProfileGenerate(req, res, ctx) {
     body.omitTestProfile === 'true';
   const attrsSayNoTestProfile =
     filteredAttrs['xdm:testProfile'] === false || filteredAttrs['xdm:testProfile'] === 'false';
-  if (industryKey === 'generic' && !testProfileOptOut && !attrsSayNoTestProfile) {
+  if (!testProfileOptOut && !attrsSayNoTestProfile) {
     rootExtras['xdm:testProfile'] = true;
   }
 
