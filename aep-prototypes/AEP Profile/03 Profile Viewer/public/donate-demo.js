@@ -45,6 +45,7 @@ const donateTagsInjection =
         configSummaryId: 'donateSdkConfigSummary',
         configSummaryTextId: 'donateSdkConfigSummaryText',
         changeConfigButtonId: 'donateChangeSdkConfigBtn',
+        getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         /**
          * Parent shell only (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`) — Launch + #infoEcid stay on one document with generator ECID.
          */

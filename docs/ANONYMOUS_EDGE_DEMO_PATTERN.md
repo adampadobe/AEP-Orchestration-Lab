@@ -29,6 +29,8 @@ Canonical logic lives in **`web/profile-viewer/demo-tags-injection.js`** (shared
 
 4. **Profile drawer “Last 5 events”:** after a successful sync, `DemoTagsInjection` also schedules **`DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid')`** at **2.5s** and **8s** so UPS lag does not leave the drawer empty.
 
+5. **Generator mirror (optional but recommended on Tag demos):** if `DemoTagsInjection.init` receives **`getSelectedGeneratorTarget`**, the lab sends the same **`web.webPageDetails.pageViews`** identity through **`POST /api/events/generator`** right after the Edge `sendEvent`. The drawer’s **`GET /api/profile/events`** path often reflects generator traffic sooner than Edge-only ingestion, so the timeline is not blank while you demo.
+
 Optional: use a distinct **`webPageDetails.name`** suffix (e.g. `· AEP lab (anonymous ECID)`) so Data Explorer / queries can spot lab traffic.
 
 ## Demos with an iframe “site” + parent shell

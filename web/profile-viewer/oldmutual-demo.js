@@ -240,6 +240,10 @@ function buildOmTagsInjectionConfig() {
     configSummaryId: 'omSdkConfigSummary',
     configSummaryTextId: 'omSdkConfigSummaryText',
     changeConfigButtonId: 'omChangeSdkConfigBtn',
+    getSelectedGeneratorTarget: () => {
+      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
+    },
     /** Parent shell only — see `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md` (no Launch in embedded iframes). */
     iframeIds: [],
   };

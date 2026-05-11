@@ -204,6 +204,8 @@
     const iframes = iframeIds.map(byId).filter(Boolean);
 
     const setMessage = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+    const getSelectedGeneratorTarget =
+      typeof cfg.getSelectedGeneratorTarget === 'function' ? cfg.getSelectedGeneratorTarget : null;
 
     var DT_LOG = '[DemoTagsInjection:' + storagePrefix + ']';
     function dtLog() {
@@ -561,6 +563,67 @@
       }
     }
 
+    /**
+     * Drawer "Last 5 events" uses GET /api/profile/events (UPS), which often lags Edge sendEvent.
+     * Mirror the same anonymous page view through the lab generator so the timeline populates like
+     * Premier Inn hotel.* / post-lookup application.login traffic.
+     */
+    async function mirrorAnonymousPageViewToGeneratorIfConfigured(ecidDigits) {
+      if (!getSelectedGeneratorTarget) {
+        dtLog('mirrorPageViewGenerator: skip — no getSelectedGeneratorTarget in DemoTagsInjection.init');
+        return;
+      }
+      const target = getSelectedGeneratorTarget();
+      if (!target || !target.id) {
+        dtLog('mirrorPageViewGenerator: skip — no generator target (pick Event destination)');
+        return;
+      }
+      const id = normaliseEcidDigits(ecidDigits);
+      if (!id) return;
+      const baseTitle = (global.document && global.document.title) || 'AEP lab demo';
+      const body = {
+        targetId: target.id,
+        eventType: 'web.webPageDetails.pageViews',
+        viewName: baseTitle + ' · Lab (generator mirror)',
+        viewUrl: (global.location && global.location.href ? global.location.href.split('?')[0] : '') || '',
+        channel: 'Web',
+        ecid: id,
+        xdmTenantKey: '_demoemea',
+        identityMapEcidKey: 'ECID',
+      };
+      let postBody = body;
+      if (global.AepDemoGeneratorTargets && typeof global.AepDemoGeneratorTargets.augmentGeneratorPostBody === 'function') {
+        postBody = global.AepDemoGeneratorTargets.augmentGeneratorPostBody(body);
+      }
+      try {
+        const res = await fetch('/api/events/generator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postBody),
+        });
+        const data = await res.json().catch(() => ({}));
+        dtLog('mirrorPageViewGenerator: POST /api/events/generator', {
+          ok: res.ok,
+          status: res.status,
+          targetId: target.id,
+        });
+        if (!res.ok) {
+          dtLog(
+            'mirrorPageViewGenerator: error',
+            data && (data.error || data.message) ? String(data.error || data.message) : '',
+          );
+          return;
+        }
+        if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+          global.setTimeout(function () {
+            void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(id, 'ecid');
+          }, 1200);
+        }
+      } catch (e) {
+        dtLog('mirrorPageViewGenerator: fetch failed', e && e.message ? e.message : String(e));
+      }
+    }
+
     async function syncEcidFromAlloy() {
       dtLog('syncEcidFromAlloy: waiting for window.alloy (up to 12s)');
       const alloyFn = await waitForAlloy(12000);
@@ -609,6 +672,7 @@
           ecid: ecid,
           pageNameSuffix: ' · AEP lab (anonymous ECID)',
         });
+        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,
