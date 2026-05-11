@@ -116,6 +116,7 @@ loadGeneratorTargets();
     AepDemoEnvBar.init({
       envSectionId: 'aepDemoEnvSection',
       envEditorId: 'aepDemoEnvEditor',
+      envCollapsibleGridId: 'aepDemoEnvConfigGrid',
       envCompactId: 'aepDemoEnvCompact',
       envCompactTextId: 'aepDemoEnvCompactText',
       envExpandBtnId: 'aepDemoEnvExpandBtn',

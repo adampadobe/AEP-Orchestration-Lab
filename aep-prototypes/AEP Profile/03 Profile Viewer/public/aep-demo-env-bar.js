@@ -13,6 +13,7 @@
     var c = cfg || {};
     var sec = byId(c.envSectionId);
     var editor = byId(c.envEditorId);
+    var collapseEl = byId(c.envCollapsibleGridId) || editor;
     var compact = byId(c.envCompactId);
     var compactText = byId(c.envCompactTextId);
     var expandBtn = byId(c.envExpandBtnId);
@@ -20,7 +21,7 @@
     var fieldsEl = byId(c.fieldsId);
     var sandboxSelect = byId(c.sandboxSelectId);
     var scriptCodeEl = byId(c.selectedScriptCodeId);
-    if (!sec || !editor || !compact) return;
+    if (!sec || !editor || !collapseEl || !compact) return;
 
     var PINNED = 'aep-demo-env-section--pinned-open';
 
@@ -57,14 +58,14 @@
       var showFullEditor = configuring || pinned;
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
-        editor.setAttribute('hidden', '');
+        collapseEl.setAttribute('hidden', '');
         compact.removeAttribute('hidden');
         if (compactText) {
           compactText.textContent = 'Sandbox: ' + sandboxLabel() + ' \u00b7 Tags: ' + scriptShort();
         }
       } else {
         sec.classList.remove('aep-demo-env-section--collapsed');
-        editor.removeAttribute('hidden');
+        collapseEl.removeAttribute('hidden');
         compact.setAttribute('hidden', '');
       }
     }

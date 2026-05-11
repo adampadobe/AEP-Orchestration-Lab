@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="admiral-demo.css?v=20260508-demo-env-bar">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-bar">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-env-collapse-grid">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -19,49 +19,51 @@
       <div class="admiral-demo-id-inner">
         <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
           <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <span class="aep-demo-env-kicker">Environment</span>
-            <div class="aep-demo-env-editor-grid">
-              <div class="form-row">
-                <label for="sandboxSelect">Sandbox</label>
-                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                  <option value="">Loading sandboxes…</option>
-                </select>
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="admiralSdkConfigFields" class="admiral-sdk-config-fields mod-sdk-config-fields">
+                  <div class="form-row">
+                    <label for="admiralTagsCompany">Tags company</label>
+                    <select id="admiralTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="admiralTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="admiralTagsProperty"
+                      aria-label="Tags property"
+                      placeholder="Select property"
+                      list="admiralTagsPropertyList"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <datalist id="admiralTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="admiralTagsEnvironment">Tags environment</label>
+                    <select id="admiralTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="admiral-demo-id-actions">
+                    <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                </div>
               </div>
-              <div id="admiralSdkConfigFields" class="admiral-sdk-config-fields mod-sdk-config-fields">
-                <div class="form-row">
-                  <label for="admiralTagsCompany">Tags company</label>
-                  <select id="admiralTagsCompany" aria-label="Tags company"></select>
-                </div>
-                <div class="form-row">
-                  <label for="admiralTagsProperty">Tags property</label>
-                  <input
-                    type="text"
-                    id="admiralTagsProperty"
-                    aria-label="Tags property"
-                    placeholder="Select property"
-                    list="admiralTagsPropertyList"
-                    autocomplete="off"
-                    spellcheck="false"
-                  >
-                  <datalist id="admiralTagsPropertyList"></datalist>
-                </div>
-                <div class="form-row">
-                  <label for="admiralTagsEnvironment">Tags environment</label>
-                  <select id="admiralTagsEnvironment" aria-label="Tags environment"></select>
-                </div>
-                <div class="admiral-demo-id-actions">
-                  <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
-                </div>
+              <div id="admiralSdkConfigSummary" class="admiral-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="admiralSdkConfigSummaryText"></span>
+                <button type="button" id="admiralChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
               </div>
             </div>
-            <div id="admiralSdkConfigSummary" class="admiral-sdk-summary mod-sdk-summary--below-env-grid" hidden>
-              <span id="admiralSdkConfigSummaryText"></span>
-              <button type="button" id="admiralChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-            </div>
-          </div>
           <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
             <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
             <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
           </div>
         </section>
         <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
@@ -189,8 +191,8 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
   <script src="demo-tags-injection.js?v=20260508-demo-env-bar"></script>
-  <script src="aep-demo-env-bar.js?v=20260508-demo-env-bar"></script>
-  <script src="admiral-demo.js?v=20260508-demo-env-bar"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-env-collapse-grid"></script>
+  <script src="admiral-demo.js?v=20260508-env-collapse-grid"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="mod-demo.css?v=20260508-demo-env-bar">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-bar">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-env-collapse-grid">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -24,47 +24,49 @@
       <div class="mod-demo-id-inner">
         <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
           <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <span class="aep-demo-env-kicker">Environment</span>
-            <div class="aep-demo-env-editor-grid">
-              <div class="form-row">
-                <label for="sandboxSelect">Sandbox</label>
-                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                  <option value="">Loading sandboxes…</option>
-                </select>
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div class="mod-sdk-config-fields" id="modSdkConfigFields">
+                  <div class="form-row">
+                    <label for="modTagsCompany">Tags company</label>
+                    <select id="modTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="modTagsProperty">Tags property</label>
+                    <input
+                      id="modTagsProperty"
+                      type="text"
+                      list="modTagsPropertyList"
+                      placeholder="Type to filter properties"
+                      autocomplete="off"
+                    >
+                    <datalist id="modTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="modTagsEnvironment">Tags environment</label>
+                    <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="mod-demo-id-actions">
+                    <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                </div>
               </div>
-              <div class="mod-sdk-config-fields" id="modSdkConfigFields">
-                <div class="form-row">
-                  <label for="modTagsCompany">Tags company</label>
-                  <select id="modTagsCompany" aria-label="Tags company"></select>
-                </div>
-                <div class="form-row">
-                  <label for="modTagsProperty">Tags property</label>
-                  <input
-                    id="modTagsProperty"
-                    type="text"
-                    list="modTagsPropertyList"
-                    placeholder="Type to filter properties"
-                    autocomplete="off"
-                  >
-                  <datalist id="modTagsPropertyList"></datalist>
-                </div>
-                <div class="form-row">
-                  <label for="modTagsEnvironment">Tags environment</label>
-                  <select id="modTagsEnvironment" aria-label="Tags environment"></select>
-                </div>
-                <div class="mod-demo-id-actions">
-                  <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-                </div>
+              <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
+                <span id="modSdkConfigSummaryText"></span>
+                <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
               </div>
             </div>
-            <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
-              <span id="modSdkConfigSummaryText"></span>
-              <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-            </div>
-          </div>
           <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
             <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
             <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
           </div>
         </section>
         <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
@@ -252,8 +254,8 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
   <script src="demo-tags-injection.js?v=20260508-demo-env-bar"></script>
-  <script src="aep-demo-env-bar.js?v=20260508-demo-env-bar"></script>
-  <script src="mod-demo.js?v=20260508-demo-env-bar"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-env-collapse-grid"></script>
+  <script src="mod-demo.js?v=20260508-env-collapse-grid"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>

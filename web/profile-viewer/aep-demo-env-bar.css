@@ -8,6 +8,11 @@
   margin-bottom: 0.1rem;
 }
 
+.aep-demo-env-collapsible {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .aep-demo-env-kicker {
   display: block;
   font-size: 0.68rem;
