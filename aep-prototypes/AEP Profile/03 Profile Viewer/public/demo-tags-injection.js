@@ -105,16 +105,50 @@
     });
   }
 
+  /** ECID from Web SDK responses is digits-only; strip non-digits for safety. */
+  function normaliseEcidDigits(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length >= 10 ? digits : '';
+  }
+
+  /**
+   * Parse `alloy('getIdentity', …)` result — shape varies by SDK version (ECID string, object, array).
+   * Matches the resilient path in `aep-profile-drawer.js` / Old Mutual demos.
+   */
   function extractEcid(result) {
     if (!result || typeof result !== 'object') return '';
-    const identity = result.identity || {};
-    if (identity.ECID && Array.isArray(identity.ECID) && identity.ECID[0] && identity.ECID[0].id) {
-      return String(identity.ECID[0].id);
+    const id = result.identity;
+    if (id && typeof id === 'object') {
+      const raw = id.ECID != null ? id.ECID : id.ecid;
+      if (typeof raw === 'string') {
+        const n = normaliseEcidDigits(raw);
+        if (n) return n;
+      }
+      if (raw && typeof raw === 'object' && raw.id != null) {
+        const n = normaliseEcidDigits(raw.id);
+        if (n) return n;
+      }
+      if (Array.isArray(raw)) {
+        for (let i = 0; i < raw.length; i++) {
+          const item = raw[i];
+          if (item && item.id != null) {
+            const n = normaliseEcidDigits(item.id);
+            if (n) return n;
+          }
+          if (typeof item === 'string') {
+            const n = normaliseEcidDigits(item);
+            if (n) return n;
+          }
+        }
+      }
+      if (Array.isArray(id.ECID) && id.ECID[0] && id.ECID[0].id) {
+        return normaliseEcidDigits(id.ECID[0].id);
+      }
+      if (Array.isArray(id.ecid) && id.ecid[0] && id.ecid[0].id) {
+        return normaliseEcidDigits(id.ecid[0].id);
+      }
     }
-    if (identity.ecid && Array.isArray(identity.ecid) && identity.ecid[0] && identity.ecid[0].id) {
-      return String(identity.ecid[0].id);
-    }
-    if (result.id) return String(result.id);
+    if (result.id != null) return normaliseEcidDigits(result.id);
     return '';
   }
 
@@ -330,6 +364,18 @@
       return allPropertyOptions.find((p) => propertyLabelFromItem(p).toLowerCase() === target) || null;
     }
 
+    function tagsCompanyRowEl() {
+      if (!tagsCompanySelect || typeof tagsCompanySelect.closest !== 'function') return null;
+      return tagsCompanySelect.closest('.form-row');
+    }
+
+    function setTagsCompanyRowVisible(visible) {
+      const row = tagsCompanyRowEl();
+      if (!row) return;
+      if (visible) row.removeAttribute('hidden');
+      else row.setAttribute('hidden', '');
+    }
+
     async function loadTagsCompanies() {
       if (!tagsCompanySelect) return;
       try {
@@ -351,8 +397,20 @@
         renderPropertySuggestions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         renderSelectedScript('');
+
+        if (Array.isArray(items) && items.length === 1) {
+          const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
+          if (onlyId) {
+            tagsCompanySelect.value = onlyId;
+            setTagsCompanyRowVisible(false);
+            await loadTagsProperties(onlyId);
+            return;
+          }
+        }
+        setTagsCompanyRowVisible(true);
         setMessage('Tags companies loaded.', 'success');
       } catch (err) {
+        setTagsCompanyRowVisible(true);
         setMessage(err.message || 'Failed to load Tags companies.', 'error');
       }
     }
@@ -433,6 +491,25 @@
       await loadTagsEnvironments(selectedPropertyId);
     }
 
+    async function primeAlloyIdentityOnEdge(alloyFn) {
+      try {
+        await alloyFn('sendEvent', {
+          xdm: {
+            eventType: 'web.webPageDetails.pageViews',
+            web: {
+              webPageDetails: {
+                name: (global.document && global.document.title) || 'AEP lab demo',
+                URL: (global.location && global.location.href) || '',
+              },
+            },
+          },
+        });
+        dtLog('syncEcidFromAlloy: priming sendEvent (page view) completed');
+      } catch (e) {
+        dtLog('syncEcidFromAlloy: priming sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
+      }
+    }
+
     async function syncEcidFromAlloy() {
       dtLog('syncEcidFromAlloy: waiting for window.alloy (up to 12s)');
       const alloyFn = await waitForAlloy(12000);
@@ -441,12 +518,28 @@
         setMessage('Launch script loaded, but alloy is not available yet.', 'error');
         return '';
       }
-      dtLog('syncEcidFromAlloy: alloy available, polling getIdentity');
+      dtLog('syncEcidFromAlloy: alloy available — prime edge then poll getIdentity');
       try {
+        await primeAlloyIdentityOnEdge(alloyFn);
+        await delay(400);
         let ecid = '';
         for (let i = 0; i < 7; i++) {
-          const result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+          let result = null;
+          try {
+            result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+          } catch (e1) {
+            dtLog('syncEcidFromAlloy: namespaced getIdentity error', e1 && e1.message ? e1.message : String(e1));
+          }
           ecid = extractEcid(result);
+          if (!ecid) {
+            try {
+              result = await alloyFn('getIdentity');
+            } catch (e2) {
+              dtLog('syncEcidFromAlloy: plain getIdentity error', e2 && e2.message ? e2.message : String(e2));
+              result = null;
+            }
+            ecid = extractEcid(result);
+          }
           dtLog('syncEcidFromAlloy: getIdentity attempt', {
             attempt: i + 1,
             ecidFound: !!ecid,
@@ -521,6 +614,8 @@
           }
         }
 
+        renderSelectedScript(scriptUrl);
+        persistSelectedScriptUrl(scriptUrl);
         await syncEcidFromAlloy();
         markSdkConfiguredForSandbox(true);
         setSdkConfigExpanded(false);
@@ -672,12 +767,15 @@
     if (pendingScriptInject) {
       dtLog('init: post-reload pending inject branch', { preview: dtPreview(pendingScriptInject) });
       renderSelectedScript(pendingScriptInject);
-      void injectSelectedScriptNow(pendingScriptInject);
+      persistSelectedScriptUrl(pendingScriptInject);
+      void injectSelectedScriptNow(pendingScriptInject).finally(function () {
+        void loadTagsCompanies();
+      });
     } else {
       dtLog('init: no pending inject — applySandboxConfigState');
       applySandboxConfigState();
+      void loadTagsCompanies();
     }
-    void loadTagsCompanies();
 
     return {
       stitchAfterProfileLookup,
