@@ -636,8 +636,67 @@ function formatEventTimelineDate(value) {
   });
 }
 
-function eventThumbForName(eventName) {
-  const key = String(eventName || '').toLowerCase().replace(/\s+/g, '');
+/** Inline SVG snippets for timeline thumbs (hospitality / hotel journey lab). */
+const AEP_EVENT_THUMB_SVG = {
+  hotelSearch:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  hotelAvailability:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/></svg>',
+  hotelRoom:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 7v11M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11M3 15h18M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  hotelCheckout:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="9" cy="21" r="1" fill="currentColor"/><circle cx="20" cy="21" r="1" fill="currentColor"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  hotelPayment:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  hotelComplete:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 4 12 14.01l-3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  hotelAbandon:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 9-6 6M9 9l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  hotelGeneric:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-4h6v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+function hotelEventThumbFromBlob(blob) {
+  const b = blob.toLowerCase();
+  if (b.includes('room') && (b.includes('select') || b.includes('choose') || b.includes('picker'))) {
+    return { variant: 'hotel-room', svg: AEP_EVENT_THUMB_SVG.hotelRoom };
+  }
+  if (b.includes('availability') || b.includes('rateslider') || b.includes('rate-plan')) {
+    return { variant: 'hotel-availability', svg: AEP_EVENT_THUMB_SVG.hotelAvailability };
+  }
+  if (b.includes('search')) {
+    return { variant: 'hotel-search', svg: AEP_EVENT_THUMB_SVG.hotelSearch };
+  }
+  if (b.includes('abandon') || b.includes('dropoff')) {
+    return { variant: 'hotel-abandon', svg: AEP_EVENT_THUMB_SVG.hotelAbandon };
+  }
+  if (b.includes('complete') || b.includes('confirmation') || b.includes('confirmed') || b.includes('booking.success')) {
+    return { variant: 'hotel-complete', svg: AEP_EVENT_THUMB_SVG.hotelComplete };
+  }
+  if (b.includes('payment') || b.includes('pay.') || b.includes('.pay')) {
+    return { variant: 'hotel-payment', svg: AEP_EVENT_THUMB_SVG.hotelPayment };
+  }
+  if (b.includes('checkout') || b.includes('booking.start') || b.includes('basket') || b.includes('cart')) {
+    return { variant: 'hotel-checkout', svg: AEP_EVENT_THUMB_SVG.hotelCheckout };
+  }
+  return { variant: 'hotel-generic', svg: AEP_EVENT_THUMB_SVG.hotelGeneric };
+}
+
+/**
+ * @param {{ eventType?: string, eventName?: string } | null | undefined} ev
+ * @returns {{ url?: string, variant?: string, svg?: string }}
+ */
+function eventThumbForEvent(ev) {
+  const eventType = String((ev && ev.eventType) || '').trim();
+  const eventName = String((ev && ev.eventName) || '').trim();
+  const primary = eventType || eventName;
+  const key = primary.toLowerCase().replace(/\s+/g, '');
+  const blob = `${eventType} ${eventName}`.toLowerCase();
+
+  if (blob.includes('hotel') || key.includes('hotel')) {
+    return hotelEventThumbFromBlob(blob);
+  }
+
   if (key.includes('message.feedback') || key === 'messagefeedback') {
     return { url: aepProfileImageCssUrl('message-feedback-icon.png'), variant: 'message-feedback' };
   }
@@ -654,14 +713,14 @@ function eventThumbForName(eventName) {
   if (key.includes('login')) {
     return { url: aepProfileImageCssUrl('event-login-icon.png'), variant: 'event-login' };
   }
-  const typePrefix = String(eventName || '').trim().toLowerCase();
+  const typePrefix = primary.trim().toLowerCase();
   if (typePrefix.startsWith('web')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
   if (typePrefix.startsWith('mobile')) {
     return { url: aepProfileImageCssUrl('event-mobile-icon.png'), variant: 'event-mobile' };
   }
-  const keyLoose = String(eventName || '').toLowerCase();
+  const keyLoose = primary.toLowerCase();
   if (keyLoose.includes('navigator.global')) {
     return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
   }
@@ -732,8 +791,17 @@ function renderEventTimeline(events) {
 
     const thumb = document.createElement('div');
     thumb.className = 'aep-profile-drawer-event-thumb';
-    const thumbSpec = eventThumbForName((ev && ev.eventType) || (ev && ev.eventName) || '');
-    thumb.style.backgroundImage = thumbSpec.url;
+    const thumbSpec = eventThumbForEvent(ev);
+    if (thumbSpec.svg) {
+      thumb.classList.add('aep-profile-drawer-event-thumb--svg-inline');
+      if (thumbSpec.variant) {
+        thumb.classList.add(`aep-profile-drawer-event-thumb--${thumbSpec.variant}`);
+      }
+      thumb.innerHTML = thumbSpec.svg;
+      thumb.style.backgroundImage = 'none';
+    } else {
+      thumb.style.backgroundImage = thumbSpec.url || 'none';
+    }
     if (thumbSpec.variant === 'message-feedback') {
       thumb.classList.add('aep-profile-drawer-event-thumb--message-feedback');
     }

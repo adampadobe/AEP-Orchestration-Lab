@@ -450,6 +450,23 @@ body.race-page--profile-open .aep-profile-drawer,
   background-position: center;
 }
 
+/* Hotel / hospitality lab — inline SVG (see eventThumbForEvent in aep-profile-drawer.js) */
+.aep-profile-drawer-event-thumb--svg-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: none !important;
+  background-color: #f3f4f6;
+  background-size: auto;
+}
+
+.aep-profile-drawer-event-thumb--svg-inline svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: #2d3748;
+}
+
 .aep-profile-drawer-event-time {
   display: block;
   color: #bfc3c9;
