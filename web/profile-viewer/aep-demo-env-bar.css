@@ -1,4 +1,4 @@
-/* Shared: Sandbox + Tags environment block vs profile lookup (MOD / Navigator / Admiral demos). */
+/* Shared lab strip: Environment (Sandbox, Tags, Event destination) + Profile lookup — MOD, Navigator, Admiral, Premier Inn, Race, Donate. */
 
 .aep-demo-env-section {
   width: 100%;
@@ -48,6 +48,11 @@
 .aep-demo-env-editor-grid .sandbox-select,
 .aep-demo-env-editor-grid input[type='text'] {
   min-width: 12rem;
+}
+
+.aep-demo-env-editor-grid select#generatorTarget {
+  min-width: min(100%, 28rem);
+  max-width: 100%;
 }
 
 .aep-demo-env-compact {

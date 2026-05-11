@@ -10,7 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="donate-demo.css?v=20260508-event-dest-visible">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-strip">
+  <link rel="stylesheet" href="donate-demo.css?v=20260508-demo-env-strip">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -62,58 +63,82 @@
           </nav>
         </header>
 
-        <section class="donate-email-bar" aria-label="Customer identity">
+        <section class="donate-email-bar" aria-label="AEP lab environment and customer identity">
           <div class="donate-email-bar-inner">
-            <div class="form-row">
-              <label for="donateNs">Namespace</label>
-              <select id="donateNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="donate-email-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="donate-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-            </div>
-            <div class="donate-sdk-config-fields" id="donateSdkConfigFields">
-              <div class="form-row">
-                <label for="donateTagsCompany">Tags company</label>
-                <select id="donateTagsCompany" aria-label="Tags company"></select>
+            <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+              <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+                <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+                  <span class="aep-demo-env-kicker">Environment</span>
+                  <div class="aep-demo-env-editor-grid">
+                    <div class="form-row">
+                      <label for="sandboxSelect">Sandbox</label>
+                      <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                        <option value="">Loading sandboxes…</option>
+                      </select>
+                    </div>
+                    <div class="donate-sdk-config-fields mod-sdk-config-fields" id="donateSdkConfigFields">
+                      <div class="form-row">
+                        <label for="donateTagsCompany">Tags company</label>
+                        <select id="donateTagsCompany" aria-label="Tags company"></select>
+                      </div>
+                      <div class="form-row">
+                        <label for="donateTagsProperty">Tags property</label>
+                        <input
+                          id="donateTagsProperty"
+                          type="text"
+                          list="donateTagsPropertyList"
+                          placeholder="Type to filter properties"
+                          autocomplete="off"
+                        />
+                        <datalist id="donateTagsPropertyList"></datalist>
+                      </div>
+                      <div class="form-row">
+                        <label for="donateTagsEnvironment">Tags environment</label>
+                        <select id="donateTagsEnvironment" aria-label="Tags environment"></select>
+                      </div>
+                      <div class="donate-email-actions">
+                        <button type="button" id="donateInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <label for="generatorTarget">Event destination</label>
+                      <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                    </div>
+                  </div>
+                  <div class="donate-sdk-summary mod-sdk-summary mod-sdk-summary--below-env-grid" id="donateSdkConfigSummary" hidden>
+                    <span id="donateSdkConfigSummaryText"></span>
+                    <button type="button" id="donateChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+                  </div>
+                </div>
+                <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+                  <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+                  <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+                </div>
               </div>
-              <div class="form-row">
-                <label for="donateTagsProperty">Tags property</label>
-                <input
-                  id="donateTagsProperty"
-                  type="text"
-                  list="donateTagsPropertyList"
-                  placeholder="Type to filter properties"
-                  autocomplete="off"
-                />
-                <datalist id="donateTagsPropertyList"></datalist>
+            </section>
+            <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+              <span class="aep-demo-env-kicker">Profile lookup</span>
+              <div class="aep-demo-profile-section-grid">
+                <div class="form-row">
+                  <label for="donateNs">Namespace</label>
+                  <select id="donateNs" class="sandbox-select" aria-label="Identity namespace">
+                    <option value="email">Email</option>
+                    <option value="ecid">ECID</option>
+                    <option value="crmId">CRM ID</option>
+                    <option value="loyaltyId">Loyalty ID</option>
+                    <option value="phone">Phone</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="customerEmail">Identifier value</label>
+                  <input type="text" id="customerEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="donate-email-actions">
+                  <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+                  <span class="donate-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+                </div>
               </div>
-              <div class="form-row">
-                <label for="donateTagsEnvironment">Tags environment</label>
-                <select id="donateTagsEnvironment" aria-label="Tags environment"></select>
-              </div>
-              <div class="donate-email-actions">
-                <button type="button" id="donateInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-              </div>
-            </div>
-            <div class="form-row">
-              <label for="generatorTarget">Event destination</label>
-              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-            </div>
-            <div class="donate-sdk-summary" id="donateSdkConfigSummary" hidden>
-              <span id="donateSdkConfigSummaryText"></span>
-              <button type="button" id="donateChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-            </div>
+            </section>
           </div>
           <p class="donate-script-preview">Selected script: <code id="donateSelectedScript">None</code></p>
         </section>
@@ -372,8 +397,9 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260508-gen-dest"></script>
   <script src="demo-tags-injection.js?v=20260508-tags-inject-log"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="donate-demo.js?v=20260508-gen-dest"></script>
+  <script src="donate-demo.js?v=20260508-demo-env-strip"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>

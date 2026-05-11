@@ -1,6 +1,18 @@
 /**
- * Shared demo top-banner: collapses Sandbox + Tags block once Tags SDK is configured
- * (summary row hidden / fields closed), with a compact strip above profile lookup.
+ * Lab standard demo chrome (see AepDemoEnvStrip below):
+ * - Section **Environment**: Sandbox, Tags (company / property / environment + inject),
+ *   **Event destination** (`#generatorTarget` as sibling of Tags fields, not inside them,
+ *   so it stays visible after inject), optional SDK summary + “Change SDK config”.
+ * - Section **Profile lookup**: namespace, identifier, look up.
+ * - Collapse: after Tags SDK is configured, `AepDemoEnvBar` hides the full grid and shows
+ *   a compact “Sandbox · Tags” line with “Change environment”.
+ *
+ * **Reference pages:** `mod-demo.html`, `navigator-global-demo.html`, `admiral-demo.html`,
+ * `premier-inn-demo.html`, `race-for-life-demo.html`, `donate-demo.html`.
+ *
+ * **Site-clone demos** (FNB, Old Mutual, Call center, thank-you pages) keep their own
+ * chrome but should still load `aep-demo-generator-targets.js` and expose
+ * `#generatorTarget` where `/api/events/generator` is used.
  */
 (function (global) {
   'use strict';
@@ -110,5 +122,60 @@
 
   global.AepDemoEnvBar = {
     init: init,
+  };
+})(typeof window !== 'undefined' ? window : this);
+
+(function (global) {
+  'use strict';
+
+  function byId(id) {
+    return id ? document.getElementById(id) : null;
+  }
+
+  function initSandboxSelect(selectEl) {
+    if (!selectEl || typeof global.AepGlobalSandbox === 'undefined') return;
+    if (typeof global.AepGlobalSandbox.onSandboxSelectChange === 'function') {
+      global.AepGlobalSandbox.onSandboxSelectChange(selectEl);
+    }
+    if (typeof global.AepGlobalSandbox.attachStorageSync === 'function') {
+      global.AepGlobalSandbox.attachStorageSync(selectEl);
+    }
+    if (typeof global.AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
+      void global.AepGlobalSandbox.loadSandboxesIntoSelect(selectEl);
+    }
+  }
+
+  function initEnvBar(cfg) {
+    if (!global.AepDemoEnvBar || typeof global.AepDemoEnvBar.init !== 'function') return;
+    global.AepDemoEnvBar.init(cfg || {});
+  }
+
+  /**
+   * One call for iframe-style and in-dashboard demos that share the canonical DOM ids
+   * (`aepDemoEnvSection`, `sandboxSelect`, compact row, etc.) and demo-specific summary/fields/script ids.
+   * @param {{ summaryId: string, fieldsId: string, selectedScriptCodeId: string, sandboxSelectId?: string, envSectionId?: string, envEditorId?: string, envCollapsibleGridId?: string, envCompactId?: string, envCompactTextId?: string, envExpandBtnId?: string }} c
+   */
+  function initStandardEnvBar(c) {
+    var cfg = c || {};
+    var sandboxId = cfg.sandboxSelectId || 'sandboxSelect';
+    initSandboxSelect(byId(sandboxId));
+    initEnvBar({
+      envSectionId: cfg.envSectionId || 'aepDemoEnvSection',
+      envEditorId: cfg.envEditorId || 'aepDemoEnvEditor',
+      envCollapsibleGridId: cfg.envCollapsibleGridId || 'aepDemoEnvConfigGrid',
+      envCompactId: cfg.envCompactId || 'aepDemoEnvCompact',
+      envCompactTextId: cfg.envCompactTextId || 'aepDemoEnvCompactText',
+      envExpandBtnId: cfg.envExpandBtnId || 'aepDemoEnvExpandBtn',
+      summaryId: cfg.summaryId,
+      fieldsId: cfg.fieldsId,
+      sandboxSelectId: sandboxId,
+      selectedScriptCodeId: cfg.selectedScriptCodeId,
+    });
+  }
+
+  global.AepDemoEnvStrip = {
+    initSandboxSelect: initSandboxSelect,
+    initEnvBar: initEnvBar,
+    initStandardEnvBar: initStandardEnvBar,
   };
 })(typeof window !== 'undefined' ? window : this);

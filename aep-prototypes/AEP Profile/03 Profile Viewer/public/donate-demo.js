@@ -267,6 +267,16 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
     void loadGeneratorTargets();
   });
 }
+
+(function initDonateDemoSandboxAndEnvBar() {
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  AepDemoEnvStrip.initStandardEnvBar({
+    summaryId: 'donateSdkConfigSummary',
+    fieldsId: 'donateSdkConfigFields',
+    selectedScriptCodeId: 'donateSelectedScript',
+  });
+})();
+
 syncPresetPanels();
 
 (function initDonatePageFlyoutSidebar() {

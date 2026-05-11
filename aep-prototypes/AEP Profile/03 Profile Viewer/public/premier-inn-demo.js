@@ -8,6 +8,10 @@ if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEm
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const premierInnMessage = document.getElementById('premierInnMessage');
+const generatorTargetSelect = document.getElementById('generatorTarget');
+
+/** @type {Array<{ id: string, label: string, transport: string }>} */
+let generatorTargets = [];
 
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -40,6 +44,54 @@ function setPremierInnMessage(text, type) {
   premierInnMessage.className =
     'premier-inn-demo-message' + (type ? ' premier-inn-demo-message--' + String(type).replace(/\s+/g, '-') : '');
   premierInnMessage.hidden = !text;
+}
+
+function getSelectedGeneratorTarget() {
+  const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+  return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
+}
+
+async function loadGeneratorTargets() {
+  if (!generatorTargetSelect) return;
+  if (
+    typeof window.AepDemoGeneratorTargets !== 'undefined' &&
+    window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
+  ) {
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    return;
+  }
+  try {
+    const res = await fetch('/api/events/generator-targets');
+    const data = await res.json().catch(() => ({}));
+    generatorTargets = Array.isArray(data.targets) ? data.targets : [];
+    generatorTargetSelect.innerHTML = '';
+    if (generatorTargets.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No targets (check event-generator-targets.json)';
+      generatorTargetSelect.appendChild(opt);
+      return;
+    }
+    generatorTargets.forEach((t) => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.label || t.id;
+      generatorTargetSelect.appendChild(opt);
+    });
+  } catch {
+    generatorTargetSelect.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'Failed to load targets';
+    generatorTargetSelect.appendChild(opt);
+  }
+}
+
+void loadGeneratorTargets();
+if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+  window.AepDemoGeneratorTargets.onSandboxChange(function () {
+    void loadGeneratorTargets();
+  });
 }
 
 queryProfileBtn &&
@@ -135,33 +187,15 @@ DemoProfileDrawer.init({
   viewName: 'Premier Inn demo',
   emailGetter: getEmail,
   messageSetter: setPremierInnMessage,
+  getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
 
 (function initPremierInnSandboxAndEnvBar() {
-  const sandboxSelect = document.getElementById('sandboxSelect');
-  if (!sandboxSelect || typeof AepGlobalSandbox === 'undefined') return;
-  if (typeof AepGlobalSandbox.onSandboxSelectChange === 'function') {
-    AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.attachStorageSync === 'function') {
-    AepGlobalSandbox.attachStorageSync(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
-    void AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
-  }
-  if (typeof AepDemoEnvBar !== 'undefined' && typeof AepDemoEnvBar.init === 'function') {
-    AepDemoEnvBar.init({
-      envSectionId: 'aepDemoEnvSection',
-      envEditorId: 'aepDemoEnvEditor',
-      envCollapsibleGridId: 'aepDemoEnvConfigGrid',
-      envCompactId: 'aepDemoEnvCompact',
-      envCompactTextId: 'aepDemoEnvCompactText',
-      envExpandBtnId: 'aepDemoEnvExpandBtn',
-      summaryId: 'premierInnSdkConfigSummary',
-      fieldsId: 'premierInnSdkConfigFields',
-      sandboxSelectId: 'sandboxSelect',
-      selectedScriptCodeId: 'premierInnSelectedScript',
-    });
-  }
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  AepDemoEnvStrip.initStandardEnvBar({
+    summaryId: 'premierInnSdkConfigSummary',
+    fieldsId: 'premierInnSdkConfigFields',
+    selectedScriptCodeId: 'premierInnSelectedScript',
+  });
 })();

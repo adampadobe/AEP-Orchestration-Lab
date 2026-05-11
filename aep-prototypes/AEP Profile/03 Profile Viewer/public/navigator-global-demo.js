@@ -28,7 +28,6 @@ const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
 const generatorTargetSelect = document.getElementById('generatorTarget');
 const modMessage = document.getElementById('modMessage');
-const sandboxSelect = document.getElementById('sandboxSelect');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
@@ -68,20 +67,6 @@ function setModMessage(text, type) {
 function getSelectedGeneratorTarget() {
   const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
-}
-
-function initNavigatorSandboxSelect() {
-  if (!sandboxSelect) return;
-  if (typeof AepGlobalSandbox === 'undefined') return;
-  if (typeof AepGlobalSandbox.onSandboxSelectChange === 'function') {
-    AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.attachStorageSync === 'function') {
-    AepGlobalSandbox.attachStorageSync(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
-    void AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
-  }
 }
 
 async function loadGeneratorTargets() {
@@ -147,20 +132,12 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
     void loadGeneratorTargets();
   });
 }
-initNavigatorSandboxSelect();
 
-(function initNavigatorDemoEnvBar() {
-  if (typeof AepDemoEnvBar === 'undefined' || typeof AepDemoEnvBar.init !== 'function') return;
-  AepDemoEnvBar.init({
-    envSectionId: 'aepDemoEnvSection',
-    envEditorId: 'aepDemoEnvEditor',
-    envCollapsibleGridId: 'aepDemoEnvConfigGrid',
-    envCompactId: 'aepDemoEnvCompact',
-    envCompactTextId: 'aepDemoEnvCompactText',
-    envExpandBtnId: 'aepDemoEnvExpandBtn',
+(function initNavigatorDemoEnvStrip() {
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  AepDemoEnvStrip.initStandardEnvBar({
     summaryId: 'navigatorSdkConfigSummary',
     fieldsId: 'navigatorSdkConfigFields',
-    sandboxSelectId: 'sandboxSelect',
     selectedScriptCodeId: 'navigatorSelectedScript',
   });
 })();

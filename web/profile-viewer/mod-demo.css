@@ -103,12 +103,6 @@
   gap: 0.65rem 1rem;
 }
 
-/* Outside #modSdkConfigFields so it stays visible when Tags row is collapsed after inject. */
-.mod-demo-id-inner .aep-demo-env-editor-grid select#generatorTarget {
-  min-width: min(100%, 28rem);
-  max-width: 100%;
-}
-
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
   width: 100%;
   margin-top: 0.35rem;

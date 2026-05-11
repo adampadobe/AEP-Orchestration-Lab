@@ -123,22 +123,26 @@
   max-width: var(--race-content-max);
   margin: 0 auto;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 1rem 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
 }
 
-.race-email-inner .form-row {
+.race-email-inner .aep-demo-profile-section-grid .form-row {
   flex: 1 1 260px;
   margin: 0;
 }
 
-.race-email-inner label {
+.race-email-inner .aep-demo-profile-section-grid label {
   display: block;
   color: #334155;
   margin-bottom: 0.35rem;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.race-email-inner .aep-demo-env-editor-grid select.sandbox-select {
+  max-width: min(100%, 28rem);
 }
 
 .race-email-inner input[type='email'],
@@ -163,9 +167,11 @@
   font-size: 1rem;
 }
 
-.race-email-inner select#generatorTarget {
-  max-width: min(100%, 32rem);
-  width: 100%;
+.race-email-inner .race-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
 }
 
 .race-email-actions {
@@ -174,9 +180,6 @@
   gap: 0.75rem;
 }
 
-.race-sdk-config-fields {
-  display: contents;
-}
 
 .race-sdk-summary {
   display: flex;

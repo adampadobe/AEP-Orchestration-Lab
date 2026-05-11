@@ -240,6 +240,15 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
+(function initRaceDemoSandboxAndEnvBar() {
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  AepDemoEnvStrip.initStandardEnvBar({
+    summaryId: 'raceSdkConfigSummary',
+    fieldsId: 'raceSdkConfigFields',
+    selectedScriptCodeId: 'raceSelectedScript',
+  });
+})();
+
 (function initRacePageFlyoutSidebar() {
   const body = document.body;
   if (!body.classList.contains('race-page')) return;

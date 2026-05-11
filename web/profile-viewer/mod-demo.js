@@ -110,31 +110,12 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
 }
 
 (function initModDemoSandboxAndEnvBar() {
-  const sandboxSelect = document.getElementById('sandboxSelect');
-  if (!sandboxSelect || typeof AepGlobalSandbox === 'undefined') return;
-  if (typeof AepGlobalSandbox.onSandboxSelectChange === 'function') {
-    AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.attachStorageSync === 'function') {
-    AepGlobalSandbox.attachStorageSync(sandboxSelect);
-  }
-  if (typeof AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
-    void AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
-  }
-  if (typeof AepDemoEnvBar !== 'undefined' && typeof AepDemoEnvBar.init === 'function') {
-    AepDemoEnvBar.init({
-      envSectionId: 'aepDemoEnvSection',
-      envEditorId: 'aepDemoEnvEditor',
-      envCollapsibleGridId: 'aepDemoEnvConfigGrid',
-      envCompactId: 'aepDemoEnvCompact',
-      envCompactTextId: 'aepDemoEnvCompactText',
-      envExpandBtnId: 'aepDemoEnvExpandBtn',
-      summaryId: 'modSdkConfigSummary',
-      fieldsId: 'modSdkConfigFields',
-      sandboxSelectId: 'sandboxSelect',
-      selectedScriptCodeId: 'modSelectedScript',
-    });
-  }
+  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
+  AepDemoEnvStrip.initStandardEnvBar({
+    summaryId: 'modSdkConfigSummary',
+    fieldsId: 'modSdkConfigFields',
+    selectedScriptCodeId: 'modSelectedScript',
+  });
 })();
 
 (function normalizeSnapshotFrame() {

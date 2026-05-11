@@ -7,8 +7,8 @@
   <title>Premier Inn (demo) - AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="premier-inn-demo.css?v=20260511-pi-demo">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-env-collapse-grid">
+  <link rel="stylesheet" href="premier-inn-demo.css?v=20260508-demo-env-strip">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-strip">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -53,6 +53,10 @@
                   <div class="premier-inn-demo-id-actions">
                     <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
                   </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
                 </div>
               </div>
               <div id="premierInnSdkConfigSummary" class="premier-inn-sdk-summary mod-sdk-summary--below-env-grid" hidden>
@@ -189,10 +193,11 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
-  <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
+  <script src="aep-profile-drawer.js?v=20260508-gen-dest"></script>
   <script src="demo-tags-injection.js?v=20260508-tags-inject-log"></script>
-  <script src="aep-demo-env-bar.js?v=20260508-env-collapse-grid"></script>
-  <script src="premier-inn-demo.js?v=20260511-pi-demo"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="premier-inn-demo.js?v=20260508-demo-env-strip"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>
