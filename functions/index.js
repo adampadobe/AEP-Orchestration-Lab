@@ -1,6 +1,7 @@
 /**
  * Standalone Firebase project for AEP Decisioning lab.
- * Mirrors proxy_server.py: POST /api/aep → platform.adobe.io, GET webhook index (allowlisted).
+ * Mirrors proxy_server.py: POST /api/aep → platform.adobe.io (or optional regional
+ * `platform_base_url` such as https://platform-nld2.adobe.io), GET webhook index (allowlisted).
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -240,6 +241,29 @@ function aepHeaders(accessToken, extra) {
   return headers;
 }
 
+/** Default Platform API host; optional regional hosts for lake/export (e.g. platform-nld2.adobe.io). */
+const DEFAULT_PLATFORM_BASE_URL = 'https://platform.adobe.io';
+
+/**
+ * @param {unknown} raw
+ * @returns {string} HTTPS origin only, no trailing slash
+ */
+function resolvePlatformBaseUrl(raw) {
+  if (raw == null || String(raw).trim() === '') return DEFAULT_PLATFORM_BASE_URL;
+  const s = String(raw).trim().replace(/\/+$/, '');
+  let hostname = '';
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'https:') return DEFAULT_PLATFORM_BASE_URL;
+    hostname = u.hostname.toLowerCase();
+  } catch {
+    return DEFAULT_PLATFORM_BASE_URL;
+  }
+  if (hostname === 'platform.adobe.io') return s;
+  if (/^platform-[a-z0-9]+\.adobe\.io$/i.test(hostname)) return s;
+  return DEFAULT_PLATFORM_BASE_URL;
+}
+
 exports.aepProxy = onRequest(
   {
     region: REGION,
@@ -273,6 +297,7 @@ exports.aepProxy = onRequest(
     const params = body.params || {};
     const jsonBody = body.json;
     const platformHeaders = body.platform_headers;
+    const platformBase = resolvePlatformBaseUrl(body.platform_base_url);
 
     if (typeof path !== 'string' || !path.startsWith('/')) {
       res.status(400).json({ error: 'path must be a string starting with /' });
@@ -299,7 +324,7 @@ exports.aepProxy = onRequest(
         else qs.append(k, String(v));
       }
     }
-    let url = `${BASE_PLATFORM.replace(/\/$/, '')}${path}`;
+    let url = `${platformBase}${path}`;
     const q = qs.toString();
     if (q) url += (url.includes('?') ? '&' : '?') + q;
 
@@ -327,23 +352,49 @@ exports.aepProxy = onRequest(
       return;
     }
 
-    const ct = upstream.headers.get('Content-Type') || '';
+    const ctRaw = upstream.headers.get('Content-Type') || '';
+    const ct = ctRaw.toLowerCase();
+    const maxText = Math.min(Math.max(Number(body.max_response_text_chars) || 250000, 5000), 500000);
     let platformResponse;
-    if (ct.toLowerCase().includes('json')) {
+    if (ct.includes('ndjson') || ct.includes('x-ndjson')) {
+      const text = await upstream.text();
+      const truncatedTotal = text.length > maxText;
+      const work = truncatedTotal ? text.slice(0, maxText) : text;
+      const maxLines = 200;
+      const records = [];
+      for (const line of work.split('\n')) {
+        const t = line.trim();
+        if (!t) continue;
+        try {
+          records.push(JSON.parse(t));
+        } catch {
+          records.push({ _unparsed_line: t.slice(0, 800) });
+        }
+        if (records.length >= maxLines) break;
+      }
+      platformResponse = {
+        format: 'ndjson',
+        content_type: ctRaw,
+        upstream_text_length: text.length,
+        truncated: truncatedTotal || records.length >= maxLines,
+        records,
+      };
+    } else if (ct.includes('json')) {
       try {
         platformResponse = await upstream.json();
       } catch {
-        platformResponse = { raw: await upstream.text() };
+        platformResponse = { raw: (await upstream.text()).slice(0, maxText) };
       }
     } else {
       const text = await upstream.text();
-      platformResponse = { raw: text.slice(0, 50000) };
+      platformResponse = { raw: text.slice(0, maxText), truncated: text.length > maxText };
     }
 
     res.status(upstream.status).json({
       status: upstream.status,
       platform_response: platformResponse,
       request_url: url,
+      platform_base_url: platformBase,
     });
   }
 );
