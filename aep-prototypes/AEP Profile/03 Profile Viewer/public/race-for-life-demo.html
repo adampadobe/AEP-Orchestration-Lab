@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="race-for-life-demo.css?v=20260508-event-dest-in-tags">
+  <link rel="stylesheet" href="race-for-life-demo.css?v=20260508-event-dest-visible">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -98,13 +98,13 @@
                 <label for="raceTagsEnvironment">Tags environment</label>
                 <select id="raceTagsEnvironment" aria-label="Tags environment"></select>
               </div>
-              <div class="form-row">
-                <label for="generatorTarget">Event destination</label>
-                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-              </div>
               <div class="race-email-actions">
                 <button type="button" id="raceInjectSdkBtn" class="btn-lookup">Inject selected script</button>
               </div>
+            </div>
+            <div class="form-row">
+              <label for="generatorTarget">Event destination</label>
+              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
             </div>
             <div class="race-sdk-summary" id="raceSdkConfigSummary" hidden>
               <span id="raceSdkConfigSummaryText"></span>
