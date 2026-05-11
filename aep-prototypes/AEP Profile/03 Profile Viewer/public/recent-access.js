@@ -22,6 +22,7 @@
     'donate-demo.html': { name: 'Donate (demo)' },
     'call-center-demo.html': { name: 'Contact center (demo)' },
     'race-for-life-demo.html': { name: 'Race for Life (demo)' },
+    'premier-inn-demo.html': { name: 'Premier Inn (demo)' },
     'oldmutual-demo.html': { name: 'Old Mutual (demo)' },
     'oldmutual-wealth.html': { name: 'Old Mutual Wealth (demo)' },
     'events-trigger.html': { name: 'Events trigger' },
@@ -101,6 +102,11 @@
       label: 'Race for Life (demo)',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+    },
+    'premier-inn-demo.html': {
+      label: 'Premier Inn (demo)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10h16v10H4z"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M4 14h16"/></svg>',
     },
     'oldmutual-demo.html': {
       label: 'Old Mutual (demo)',

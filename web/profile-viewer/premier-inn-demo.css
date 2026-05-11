@@ -1,0 +1,211 @@
+.premier-inn-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+.premier-inn-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.premier-inn-demo-page .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.premier-inn-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+.premier-inn-demo-page .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.premier-inn-demo-page .dashboard-main.premier-inn-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.premier-inn-demo-top-anchor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.premier-inn-demo-top-anchor::before {
+  content: "";
+  display: block;
+  height: 14px;
+  pointer-events: auto;
+}
+
+.premier-inn-demo-id-banner {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% - 14px));
+  transition: transform 0.2s ease;
+}
+
+.premier-inn-demo-top-anchor:hover .premier-inn-demo-id-banner,
+.premier-inn-demo-top-anchor:focus-within .premier-inn-demo-id-banner {
+  transform: translateY(0);
+}
+
+.premier-inn-demo-id-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.65rem 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.premier-inn-demo-id-inner .premier-inn-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.premier-inn-demo-id-inner .mod-sdk-summary--below-env-grid {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.premier-inn-demo-id-inner .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.premier-inn-demo-id-inner label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.premier-inn-demo-id-inner .sandbox-select,
+.premier-inn-demo-id-inner input[type="text"],
+.premier-inn-demo-id-inner select {
+  min-width: 10rem;
+}
+
+.premier-inn-demo-id-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.premier-inn-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.premier-inn-sdk-summary .btn-lookup {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.premier-inn-demo-ecid-hint {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.premier-inn-demo-script-preview {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.25rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.premier-inn-demo-script-preview code {
+  color: var(--dash-text);
+}
+
+.premier-inn-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.premier-inn-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.premier-inn-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+@media (min-width: 769px) {
+  body.premier-inn-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.premier-inn-demo-page--nav-open .dashboard-sidebar,
+  body.premier-inn-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+}
+
+@media (max-width: 768px) {
+  body.premier-inn-demo-page .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+
+  body.premier-inn-demo-page--nav-open .dashboard-sidebar {
+    transform: none;
+  }
+
+  .premier-inn-demo-id-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

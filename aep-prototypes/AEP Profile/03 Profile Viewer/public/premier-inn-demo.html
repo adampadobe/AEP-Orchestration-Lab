@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premier Inn (demo) - AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="premier-inn-demo.css?v=20260511-pi-demo">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-env-collapse-grid">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="premier-inn-demo-page home-dashboard-concierge">
+  <div class="premier-inn-demo-top-anchor" id="premierInnDemoTopAnchor">
+    <section class="premier-inn-demo-id-banner" aria-label="Premier Inn demo identity controls">
+      <div class="premier-inn-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="premierInnSdkConfigFields" class="premier-inn-sdk-config-fields mod-sdk-config-fields">
+                  <div class="form-row">
+                    <label for="premierInnTagsCompany">Tags company</label>
+                    <select id="premierInnTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="premierInnTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="premierInnTagsProperty"
+                      aria-label="Tags property"
+                      placeholder="Select property"
+                      list="premierInnTagsPropertyList"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <datalist id="premierInnTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="premierInnTagsEnvironment">Tags environment</label>
+                    <select id="premierInnTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="premier-inn-demo-id-actions">
+                    <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                </div>
+              </div>
+              <div id="premierInnSdkConfigSummary" class="premier-inn-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="premierInnSdkConfigSummaryText"></span>
+                <button type="button" id="premierInnChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="premierInnNs">Namespace</label>
+              <select id="premierInnNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="premier-inn-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="premier-inn-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">-</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="premier-inn-demo-script-preview">Selected script: <code id="premierInnSelectedScript">None</code></p>
+      <p id="premierInnMessage" class="premier-inn-demo-message" role="status" aria-live="polite" hidden></p>
+    </section>
+  </div>
+
+  <iframe
+    id="premierInnSiteFrame"
+    class="premier-inn-demo-site-frame"
+    title="Premier Inn customer journey mockup"
+    src="premier-inn/premier-inn-site.html?v=20260511-pi-home"
+    loading="eager"
+  ></iframe>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page premier-inn-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">-</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">-</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">-</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">-</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">-</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">-</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">-</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">-</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">-</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+            <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
+  <script src="demo-tags-injection.js?v=20260508-tags-inject-log"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-env-collapse-grid"></script>
+  <script src="premier-inn-demo.js?v=20260511-pi-demo"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>
+</body>
+</html>

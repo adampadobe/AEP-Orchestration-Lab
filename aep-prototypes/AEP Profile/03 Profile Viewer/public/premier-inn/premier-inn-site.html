@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Premier Inn hotels | Book direct</title>
+  <meta name="description" content="From booking to bed, we’re here to help you rest easy. Whether it’s our choice of rooms across 800+ hotels, beds you won’t want to leave, our super tasty food, flexible rates or our friendly team members, these are just some of the reasons we’re one of the most-loved hotels in the UK and beyond."/>
+  <link rel="icon" type="image/x-icon" href="https://www.premierinn.com/content/dam/pi/websites/desktop/icons/favicons/favicon.ico"/>
+  <!--
+    Static lab mimic of https://www.premierinn.com/gb/en/home.html (structure + copy from page / header JSON, May 2026).
+    Default images load from premierinn.com. To use mirrored files on apalmer contenthosting, set localStorage key
+    piPremierInnDemoAssetBase to "https://contenthosting.web.app/LiveDemo/premier-inn" and mirror paths under that origin
+    (e.g. …/LiveDemo/premier-inn/content/dam/pi/websites/… for each asset).
+  -->
+  <script>
+    (function () {
+      try {
+        var u = localStorage.getItem('piPremierInnDemoAssetBase');
+        if (u && typeof u === 'string') window.__PI_ASSET_ORIGIN = u.replace(/\/*$/, '');
+      } catch (e) {}
+      if (!window.__PI_ASSET_ORIGIN) window.__PI_ASSET_ORIGIN = 'https://www.premierinn.com';
+    })();
+    function piAsset(path) {
+      var o = window.__PI_ASSET_ORIGIN || 'https://www.premierinn.com';
+      if (path.charAt(0) !== '/') path = '/' + path;
+      return o.replace(/\/*$/, '') + path;
+    }
+    function piApplyAssets() {
+      document.querySelectorAll('[data-pi-src]').forEach(function (el) {
+        el.setAttribute('src', piAsset(el.getAttribute('data-pi-src')));
+      });
+      document.querySelectorAll('[data-pi-href]').forEach(function (el) {
+        el.setAttribute('href', piAsset(el.getAttribute('data-pi-href')));
+      });
+      var hero = document.querySelector('.pi-demo-hero');
+      if (hero) {
+        var hp = hero.getAttribute('data-pi-hero');
+        if (hp) hero.style.backgroundImage = "url('" + piAsset(hp).replace(/'/g, '%27') + "')";
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
+    else piApplyAssets();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body.pi-demo { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #333; background: #fff; }
+    .pi-demo a { color: #552462; text-decoration: none; }
+    .pi-demo a:hover { text-decoration: underline; }
+    .pi-demo-topbar {
+      background: #552462;
+      color: #fff;
+      font-size: 13px;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .pi-demo-topbar a { color: #fff; }
+    .pi-demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      padding: 12px 20px;
+      border-bottom: 1px solid #e8e4ec;
+      gap: 12px;
+    }
+    .pi-demo-logo img { height: 44px; width: auto; display: block; }
+    .pi-demo-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .pi-demo-nav a { color: #511E62; }
+    .pi-demo-hero {
+      min-height: 280px;
+      background-color: #4a1a5c;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px 20px;
+    }
+    @media (min-width: 768px) {
+      .pi-demo-hero { min-height: 380px; }
+    }
+    .pi-demo-hero-inner { max-width: 720px; }
+    .pi-demo-hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: #d7c3ff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    }
+    .pi-demo-hero p {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #d7c3ff;
+      font-weight: 500;
+    }
+    .pi-demo-book {
+      max-width: 1100px;
+      margin: -40px auto 0;
+      padding: 0 16px 40px;
+      position: relative;
+      z-index: 2;
+    }
+    .pi-demo-book-card {
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 24px rgba(81, 30, 98, 0.15);
+      padding: 20px 24px;
+      border: 1px solid #e8e4ec;
+    }
+    .pi-demo-book-card h2 { margin: 0 0 16px; font-size: 1.25rem; color: #511E62; }
+    .pi-demo-book-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .pi-demo-field { flex: 1 1 200px; }
+    .pi-demo-field label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px; }
+    .pi-demo-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 2px;
+      font-size: 15px;
+    }
+    .pi-demo-btn {
+      background: #552462;
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 2px;
+      cursor: default;
+    }
+    .pi-demo-heading-block {
+      text-align: center;
+      padding: 48px 20px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .pi-demo-heading-block h2 {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 1.85rem);
+      color: #511E62;
+      font-weight: 700;
+      line-height: 1.25;
+      border-bottom: 3px solid #511E62;
+      display: inline-block;
+      padding-bottom: 8px;
+    }
+    .pi-demo-heading-block .pi-demo-lead {
+      margin: 20px auto 0;
+      font-size: 1.05rem;
+      color: #444;
+      line-height: 1.5;
+    }
+    .pi-demo-editorial {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    @media (min-width: 768px) {
+      .pi-demo-editorial { grid-template-columns: 1fr 1fr; }
+    }
+    .pi-demo-card figure { margin: 0 0 12px; }
+    .pi-demo-card img { width: 100%; height: auto; display: block; border-radius: 2px; }
+    .pi-demo-card h3 { margin: 0 0 8px; color: #511E62; font-size: 1.15rem; }
+    .pi-demo-card p { margin: 0; color: #555; line-height: 1.5; font-size: 0.95rem; }
+    .pi-demo-card a.main { font-weight: 700; display: inline-block; margin-top: 12px; }
+    .pi-demo-footer {
+      background: #f5f2f7;
+      padding: 32px 20px;
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      border-top: 1px solid #e8e4ec;
+    }
+    .pi-demo-footer p { margin: 0.5rem 0; }
+  </style>
+</head>
+<body class="pi-demo">
+  <div class="pi-demo-topbar" aria-label="Utility links">
+    <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Find booking</a>
+    <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Log in</a>
+    <span>English</span>
+  </div>
+  <header class="pi-demo-header">
+    <a class="pi-demo-logo" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">
+      <img data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-purple-2026.png" alt="Premier Inn" width="200" height="44"/>
+    </a>
+    <nav class="pi-demo-nav" aria-label="Primary">
+      <a href="https://www.premierinn.com/gb/en/hotels.html" target="_blank" rel="noopener">Hotels &amp; booking</a>
+      <a href="https://www.premierinn.com/gb/en/sleep/our-rooms.html" target="_blank" rel="noopener">Sleep</a>
+      <a href="https://www.premierinn.com/gb/en/why/food.html" target="_blank" rel="noopener">Eat</a>
+      <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Business</a>
+      <a href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">Offers</a>
+    </nav>
+  </header>
+
+  <section class="pi-demo-hero" data-pi-hero="/content/dam/pi/websites/desktop/homepage/reframe-homepge-hero.jpg" aria-label="Promotional hero">
+    <div class="pi-demo-hero-inner">
+      <h1>Get a great night&apos;s sleep</h1>
+      <p>Rest easy with our super-comfy beds and flexible rates.</p>
+    </div>
+  </section>
+
+  <div class="pi-demo-book">
+    <div class="pi-demo-book-card">
+      <h2>Search for a hotel</h2>
+      <div class="pi-demo-book-row">
+        <div class="pi-demo-field">
+          <label for="pi-where">Where</label>
+          <input id="pi-where" type="text" placeholder="Enter place, postcode or hotel" autocomplete="off" readonly/>
+        </div>
+        <div class="pi-demo-field">
+          <label for="pi-when">Dates</label>
+          <input id="pi-when" type="text" placeholder="Select dates" autocomplete="off" readonly/>
+        </div>
+        <button type="button" class="pi-demo-btn">Search</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="pi-demo-heading-block" aria-labelledby="pi-heading-main">
+    <h2 id="pi-heading-main">From a comfy bed to a great night&apos;s sleep, you know what you&apos;re getting with us</h2>
+    <p class="pi-demo-lead">Our Premier Inn hotels offer comfort you can count on thanks to our flexible rates, unlimited breakfast and super-comfy beds - what&apos;s not to love?</p>
+  </section>
+
+  <div class="pi-demo-editorial">
+    <article class="pi-demo-card">
+      <figure>
+        <a href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">
+          <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-rooms/premier-plus/id5-premier-plus-1000-640.jpg" alt="Premier Plus rooms" width="1000" height="640" loading="lazy"/>
+        </a>
+      </figure>
+      <h3>Premier Plus rooms</h3>
+      <p>More comfort. More convenience. More connectivity. That’s our Premier Plus rooms. Just perfect if you fancy a little more from your stay. Go on, treat yourself.</p>
+      <a class="main" href="https://www.premierinn.com/gb/en/sleep/premier-plus.html" target="_blank" rel="noopener">Discover Premier Plus</a>
+    </article>
+    <article class="pi-demo-card">
+      <figure>
+        <a href="https://www.premierinn.com/gb/en/sleep/our-bed.html" target="_blank" rel="noopener">
+          <img data-pi-src="/content/dam/pi/websites/desktop/why/sleep/our-bed/premier-inn-bed-for-you-home-1000-640.jpg" alt="Our beds" width="1000" height="640" loading="lazy"/>
+        </a>
+      </figure>
+      <h3>Our beds</h3>
+      <p>Every Premier Inn bed is designed to help you drift off. We’re so confident you’ll sleep well, we’ve made our beds available to buy for your own home.</p>
+      <a class="main" href="https://www.premierinn.com/gb/en/sleep/our-bed.html" target="_blank" rel="noopener">Why our beds matter</a>
+    </article>
+  </div>
+
+  <footer class="pi-demo-footer">
+    <p><strong>Lab demo only</strong> — not affiliated with Whitbread PLC. Official site: <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a></p>
+    <p>Visuals default to premierinn.com assets; override with <code>localStorage.piPremierInnDemoAssetBase</code> for mirrored hosting.</p>
+  </footer>
+</body>
+</html>

@@ -294,6 +294,14 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3.5L19.2 7.2V16.8L12 20.5L4.8 16.8V7.2L12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.8 7.2L12 11L19.2 7.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         },
+        {
+          label: 'Premier Inn (in development)',
+          href: 'premier-inn-demo.html',
+          inDevelopment: true,
+          navHideKey: 'premierInnDemo',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+        },
       ],
     },
   ];
