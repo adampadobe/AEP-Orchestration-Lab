@@ -297,6 +297,52 @@ details.sf-gen-card > .sf-gen-connection-body {
   font-size: 0.85rem;
 }
 
+.sf-gen-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.sf-gen-form input[type="range"] {
+  flex: 1;
+  min-width: 8rem;
+  width: auto;
+  max-width: 100%;
+  padding: 6px 0;
+  accent-color: var(--dash-blue);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.sf-gen-slider-value {
+  min-width: 2.75ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+
+.sf-gen-batch-history {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.sf-gen-batch-history-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.sf-gen-batch-history-row select {
+  flex: 1;
+  min-width: 12rem;
+}
+
 .profile-generation-snowflake-page .visually-hidden {
   position: absolute;
   width: 1px;

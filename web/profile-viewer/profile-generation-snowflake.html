@@ -234,16 +234,19 @@
             <header class="sf-gen-card-header">
               <h3 id="sfGenerateHeading" class="sf-gen-card-title">Generate base profiles <span class="sf-gen-pill">Phase 2 · minimal</span></h3>
               <p class="sf-gen-card-subtitle">
-                Minimal port of <code>data_generator.py → generate_base_profiles</code> from the AgenticAI Demo. Idempotently <code>CREATE TABLE IF NOT EXISTS</code> on the target table, then bulk INSERTs Faker-generated profiles using the connection saved above. Industry selector is informational for now — Phase 3 will branch generators by industry.
+                Port of <code>data_generator.py → generate_base_profiles</code> from the AgenticAI Demo: same name pools, UK-style addresses, <code>adamp.adobedemo+DDMMYYYY+N@gmail.com</code> emails (daily counter from Snowflake), and 60% loyalty enrollment. Idempotently <code>CREATE TABLE IF NOT EXISTS</code>, then bulk INSERT. Industry selector is informational until Phase 3 branches generators by industry.
               </p>
             </header>
 
             <div class="sf-gen-form sf-gen-generate-form" id="sfGenerateForm" aria-busy="false">
               <div class="form-row form-row--inline">
                 <div class="form-group">
-                  <label for="sfGenCount">Profiles to generate</label>
-                  <input type="number" id="sfGenCount" min="1" max="1000" step="1" value="10">
-                  <p class="field-hint">Maximum 1000 per run. Defaults to 10 for safe smoke tests.</p>
+                  <label for="sfGenCount">Number of profiles (1–1000)</label>
+                  <div class="sf-gen-slider-row">
+                    <input type="range" id="sfGenCount" min="1" max="1000" step="1" value="10" />
+                    <span id="sfGenCountDisplay" class="sf-gen-slider-value" aria-live="polite">10</span>
+                  </div>
+                  <p class="field-hint">Same control pattern as AgenticAI <code>index_enhanced.html</code>. Maximum 1000 per run.</p>
                 </div>
                 <div class="form-group">
                   <label for="sfGenTable">Target table</label>
@@ -275,6 +278,17 @@
 
               <div class="form-row form-row--actions sf-gen-actions">
                 <button type="button" id="sfGenerateBtn" class="btn btn-primary">Generate profiles</button>
+              </div>
+
+              <div class="sf-gen-batch-history" aria-label="Base profile batch history">
+                <label for="sfGenBatchHistorySelect" class="field-hint sf-gen-label-block">Batch history</label>
+                <div class="sf-gen-batch-history-row">
+                  <select id="sfGenBatchHistorySelect">
+                    <option value="">No saved batches yet</option>
+                  </select>
+                  <button type="button" id="sfGenBatchLoadBtn" class="btn btn-secondary">Load batch</button>
+                  <button type="button" id="sfGenBatchClearBtn" class="btn btn-secondary">Clear</button>
+                </div>
               </div>
 
               <div id="sfGenerateMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>

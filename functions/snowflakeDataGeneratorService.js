@@ -7,7 +7,9 @@
  *   (TravelDataGenerator.generate_base_profiles + insert_base_profiles).
  *
  * Phase 2 scope:
- *   - Generate N base profiles with realistic identities (Faker-powered).
+ *   - Generate N base profiles matching AgenticAI `TravelDataGenerator.generate_base_profiles`
+ *     (fixed name pools, UK-style addresses, `adamp.adobedemo+DDMMYYYY+N@gmail.com` emails,
+ *     daily email counter + next CRM index read from Snowflake when not overridden).
  *   - Idempotently CREATE TABLE IF NOT EXISTS for the target table using the
  *     same 38-column shape AgenticAI's BASE_PROFILE table uses, so a fresh
  *     Snowflake target works on first run.
@@ -22,7 +24,7 @@
 
 'use strict';
 
-const { faker } = require('@faker-js/faker');
+const { randomUUID } = require('crypto');
 const store = require('./snowflakeConnectionStore');
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 
@@ -46,6 +48,24 @@ const COURTESY_TITLES_FEMALE = [
 ];
 const NAME_SUFFIXES = ['Jr', 'Sr', 'III', 'IV', 'PhD', 'MD'];
 const STATE_PROVINCES = ['England', 'Scotland', 'Wales', 'California', 'Ontario'];
+
+/** Mirrors `data_generator.py` name / geography pools. */
+const FIRST_NAMES_MALE = [
+  'James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Christopher',
+  'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Andrew', 'Paul', 'Joshua', 'Kenneth',
+];
+const FIRST_NAMES_FEMALE = [
+  'Mary', 'Patricia', 'Jennifer', 'Linda', 'Barbara', 'Elizabeth', 'Susan', 'Jessica', 'Sarah', 'Karen',
+  'Lisa', 'Nancy', 'Betty', 'Margaret', 'Sandra', 'Ashley', 'Kimberly', 'Emily', 'Donna', 'Michelle',
+];
+const LAST_NAMES = [
+  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+  'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin',
+];
+const CITIES = ['London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Liverpool', 'Edinburgh', 'Bristol'];
+const COUNTRIES = ['United Kingdom', 'United States', 'Canada', 'Australia', 'Germany', 'France', 'Spain', 'Italy'];
+
+const AGENTIC_MOBILE = '+447425627462';
 
 const COLUMNS = [
   'CRMID', 'ECID', 'EMAIL', 'EMAILIDSHA256', 'GAID', 'LOYALTYID', 'PASSPORTID',
@@ -117,12 +137,43 @@ function fullyQualified(database, schema, table) {
   return parts.filter(Boolean).join('.');
 }
 
-/** Build one base profile row (array order matches COLUMNS exactly). */
-function generateBaseProfileRow(idx, runStamp) {
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Same as Python `datetime.now().strftime("%d%m%Y")` (runtime local date). */
+function formatDdMmYyyy(now = new Date()) {
+  const d = String(now.getDate()).padStart(2, '0');
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const y = String(now.getFullYear());
+  return `${d}${m}${y}`;
+}
+
+/** Same as `TravelDataGenerator.generate_email`. */
+function generateAgenticEmail(emailCounter) {
+  const dateStr = formatDdMmYyyy();
+  return `adamp.adobedemo+${dateStr}+${emailCounter}@gmail.com`;
+}
+
+/**
+ * Mirrors `customer_journey_probabilities.CustomerJourneyConfig.get_customer_profile_flags`
+ * for the one field we persist on base rows: `has_loyalty` (60 % enrollment).
+ */
+function getCustomerProfileFlags() {
+  return { has_loyalty: Math.random() < 0.6 };
+}
+
+/**
+ * Build one base profile row (array order matches COLUMNS exactly).
+ * @param {number} idx — numeric CRM suffix (`CRM${idx}`).
+ * @param {string} runStamp — ISO timestamp for record columns.
+ * @param {number} emailCounter — daily email sequence (see `getDailyEmailCounterFromTable`).
+ */
+function generateBaseProfileRow(idx, runStamp, emailCounter = 1) {
   const isMale = Math.random() < 0.5;
   const gender = isMale ? 'male' : 'female';
-  const firstName = isMale ? faker.person.firstName('male') : faker.person.firstName('female');
-  const lastName = faker.person.lastName();
+  const firstName = isMale ? pickRandom(FIRST_NAMES_MALE) : pickRandom(FIRST_NAMES_FEMALE);
+  const lastName = pickRandom(LAST_NAMES);
   const courtesyTitle = pickWeighted(isMale ? COURTESY_TITLES_MALE : COURTESY_TITLES_FEMALE);
   const suffix = Math.random() < 0.07
     ? NAME_SUFFIXES[Math.floor(Math.random() * NAME_SUFFIXES.length)]
@@ -130,32 +181,33 @@ function generateBaseProfileRow(idx, runStamp) {
   const fullName = suffix ? `${firstName} ${lastName} ${suffix}` : `${firstName} ${lastName}`;
 
   const ageYears = 21 + Math.floor(Math.random() * 55);
-  const birth = new Date(Date.now() - (ageYears * 365 + Math.floor(Math.random() * 365)) * 86400000);
-  const birthDay = birth.getUTCDate();
-  const birthMonth = birth.getUTCMonth() + 1;
-  const birthYear = birth.getUTCFullYear();
+  const jitterDays = Math.floor(Math.random() * 366);
+  const birth = new Date(Date.now() - (ageYears * 365 + jitterDays) * 86400000);
+  const birthDay = birth.getDate();
+  const birthMonth = birth.getMonth() + 1;
+  const birthYear = birth.getFullYear();
   const birthYmd = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
   const birthDayMonth = `${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
 
-  const email = faker.internet.email({ firstName, lastName, provider: 'lab.aep.demo' }).toLowerCase();
-  const city = faker.location.city();
-  const country = faker.location.country();
-  const postalCode = faker.location.zipCode().slice(0, 20);
-  const street = `${faker.location.buildingNumber()} ${faker.location.street()}`.slice(0, 200);
-  const stateProvince = STATE_PROVINCES[Math.floor(Math.random() * STATE_PROVINCES.length)];
+  const email = generateAgenticEmail(emailCounter);
+  const city = pickRandom(CITIES);
+  const country = pickRandom(COUNTRIES);
+  const postalCode = `SW${idx % 10}A 1AA`;
+  const street = `${idx} High Street`.slice(0, 200);
+  const stateProvince = pickRandom(STATE_PROVINCES);
 
-  // ~95 % carry a loyalty ID, matching the original journey-flag distribution.
-  const loyaltyId = Math.random() < 0.95 ? `LOYALTY${idx + 2000}` : null;
+  const journey = getCustomerProfileFlags();
+  const loyaltyId = journey.has_loyalty ? `LOYALTY${idx + 2000}` : null;
 
   return [
     `CRM${idx}`,                                       // CRMID
-    faker.string.uuid(),                               // ECID
+    randomUUID(),                                      // ECID
     email,                                             // EMAIL
     `sha256_${idx}`,                                   // EMAILIDSHA256
     `GAID${idx}`,                                      // GAID
     loyaltyId,                                         // LOYALTYID
     `PASS${idx}`,                                      // PASSPORTID
-    faker.phone.number(),                              // PHONENUMBER
+    AGENTIC_MOBILE,                                    // PHONENUMBER (`generate_phone`)
     null,                                              // PUSHTOKENS (array)
     `STACK${idx}`,                                     // STACKCHATID
     firstName,                                         // FIRSTNAME
@@ -173,7 +225,7 @@ function generateBaseProfileRow(idx, runStamp) {
     'Active',                                          // PERSONALEMAIL_STATUS
     'Verified',                                        // PERSONALEMAIL_STATUSREASON
     'Personal',                                        // PERSONALEMAIL_TYPE
-    '+447425627462',                                   // MOBILEPHONE_NUMBER (matches AgenticAI default)
+    AGENTIC_MOBILE,                                    // MOBILEPHONE_NUMBER
     'Active',                                          // MOBILEPHONE_STATUS
     true,                                              // MOBILEPHONE_PRIMARY
     true,                                              // TESTPROFILE
@@ -219,6 +271,54 @@ function destroyAsync(conn) {
   return new Promise((resolve) => {
     try { conn.destroy(() => resolve()); } catch (_) { resolve(); }
   });
+}
+
+/**
+ * Next email index for today, scanning existing rows in `fqTable` (Python
+ * `get_daily_email_counter` on matching `+DDMMYYYY+` pattern).
+ */
+async function getDailyEmailCounterFromTable(conn, fqTable) {
+  const today = formatDdMmYyyy();
+  const pattern = `%+${today}+%`;
+  try {
+    const rows = await execAsync(conn, {
+      sqlText: `SELECT EMAIL FROM ${fqTable} WHERE EMAIL LIKE ?`,
+      binds: [pattern],
+    });
+    let maxCounter = 0;
+    for (const row of rows) {
+      const email = row[0];
+      if (typeof email !== 'string') continue;
+      const parts = email.split('+');
+      if (parts.length >= 3) {
+        try {
+          const tail = parts[2].split('@')[0];
+          const counter = parseInt(tail, 10);
+          if (Number.isFinite(counter)) maxCounter = Math.max(maxCounter, counter);
+        } catch (_) {
+          /* ignore malformed */
+        }
+      }
+    }
+    return maxCounter + 1;
+  } catch (e) {
+    console.warn('[snowflakeDataGenerator] getDailyEmailCounterFromTable:', String(e && e.message || e));
+    return 1;
+  }
+}
+
+/** Next CRM numeric suffix after MAX(SUBSTRING(CRMID,4))) or 1000 if empty (Python `get_next_customer_id`). */
+async function getNextCrmStartIndex(conn, fqTable) {
+  try {
+    const rows = await execAsync(conn, {
+      sqlText: `SELECT MAX(TRY_CAST(SUBSTRING(CRMID, 4) AS INTEGER)) AS MX FROM ${fqTable}`,
+    });
+    const mx = rows[0] && rows[0][0];
+    if (mx == null || !Number.isFinite(Number(mx))) return 1000;
+    return Number(mx) + 1;
+  } catch (_) {
+    return 1000;
+  }
 }
 
 /**
@@ -275,18 +375,7 @@ async function handleGenerateBaseProfiles(input) {
   const cfg = resolved.config;
   const fqTable = fullyQualified(cfg.database, cfg.schema, tableName);
 
-  const startIndex = Number.isFinite(input.startIndex) && input.startIndex > 0
-    ? Math.floor(input.startIndex)
-    : Math.floor(Date.now() / 1000) % 1000000000;
-
   const runStamp = new Date().toISOString();
-
-  const rows = [];
-  for (let i = 0; i < count; i++) {
-    rows.push(generateBaseProfileRow(startIndex + i, runStamp));
-  }
-
-  const sample = rows.slice(0, SAMPLE_SIZE).map(rowToObject);
 
   let conn;
   let warehouseUsed = cfg.warehouse || null;
@@ -313,6 +402,24 @@ async function handleGenerateBaseProfiles(input) {
       `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)`;
     await execAsync(conn, { sqlText: createSql });
 
+    let startIndex;
+    if (Number.isFinite(input.startIndex) && input.startIndex > 0) {
+      startIndex = Math.floor(input.startIndex);
+    } else {
+      startIndex = await getNextCrmStartIndex(conn, fqTable);
+    }
+
+    const emailStartCounter = await getDailyEmailCounterFromTable(conn, fqTable);
+
+    const rows = [];
+    for (let i = 0; i < count; i++) {
+      rows.push(
+        generateBaseProfileRow(startIndex + i, runStamp, emailStartCounter + i)
+      );
+    }
+
+    const sample = rows.slice(0, SAMPLE_SIZE).map(rowToObject);
+
     const placeholders = COLUMNS.map(() => '?').join(', ');
     const insertSql = `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) VALUES (${placeholders})`;
 
@@ -329,6 +436,8 @@ async function handleGenerateBaseProfiles(input) {
       rowcount: inserted,
       batchSize,
       startIndex,
+      emailStartCounter,
+      emailEndCounter: emailStartCounter + count - 1,
       runStamp,
       warehouse: warehouseUsed,
       sample,
@@ -347,6 +456,8 @@ module.exports = {
   DEFAULT_COUNT,
   MAX_COUNT,
   generateBaseProfileRow,
+  generateAgenticEmail,
+  formatDdMmYyyy,
   rowToObject,
   safeIdentifier,
   fullyQualified,

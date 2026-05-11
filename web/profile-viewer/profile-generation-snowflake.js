@@ -18,6 +18,9 @@
   'use strict';
 
   var LS_SANDBOX = 'aepGlobalSandboxName';
+  /** Base-profile generate runs only (separate from Agentic full-gen batches). */
+  var LS_SF_BASE_GEN_BATCHES = 'aepLabSnowflakeBaseProfileBatchesV1';
+  var MAX_SF_BASE_BATCH_HISTORY = 20;
   var STATIC_EGRESS_IP = '34.58.81.28';
   /** Max PEM / PKCS#8 file size read in the browser before Save. */
   var KEY_FILE_MAX_BYTES = 256 * 1024;
@@ -53,6 +56,99 @@
     } catch (_) {
       return '';
     }
+  }
+
+  function formatBatchLabelFromIso(isoString) {
+    var date = isoString ? new Date(isoString) : new Date();
+    if (Number.isNaN(date.getTime())) return 'Unknown batch';
+    var dd = String(date.getDate()).padStart(2, '0');
+    var mm = String(date.getMonth() + 1).padStart(2, '0');
+    var hh = String(date.getHours()).padStart(2, '0');
+    var min = String(date.getMinutes()).padStart(2, '0');
+    return dd + '-' + mm + ' - ' + hh + ':' + min;
+  }
+
+  function safeGetBaseBatchHistory() {
+    try {
+      var raw = localStorage.getItem(LS_SF_BASE_GEN_BATCHES);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveBaseBatchHistory(history) {
+    try {
+      localStorage.setItem(LS_SF_BASE_GEN_BATCHES, JSON.stringify(history.slice(0, MAX_SF_BASE_BATCH_HISTORY)));
+    } catch (_) {
+      /* quota / private mode */
+    }
+  }
+
+  function renderBaseBatchHistorySelect(selectedBatchId) {
+    var select = els.genBatchHistorySelect;
+    if (!select) return;
+    var history = safeGetBaseBatchHistory();
+    select.textContent = '';
+    if (!history.length) {
+      var opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = 'No saved batches yet';
+      select.appendChild(opt0);
+      select.value = '';
+      return;
+    }
+    for (var i = 0; i < history.length; i++) {
+      var b = history[i];
+      var opt = document.createElement('option');
+      opt.value = String(b.id || '');
+      opt.textContent = String(b.label || b.id || 'batch');
+      select.appendChild(opt);
+    }
+    if (selectedBatchId && history.some(function (x) { return String(x.id) === String(selectedBatchId); })) {
+      select.value = String(selectedBatchId);
+    } else {
+      select.value = String(history[0].id || '');
+    }
+  }
+
+  function appendBaseBatchHistory(result) {
+    var createdAt = new Date().toISOString();
+    var batch = {
+      id: String(Date.now()) + '_' + Math.random().toString(36).slice(2, 8),
+      createdAt: createdAt,
+      label: formatBatchLabelFromIso(createdAt),
+      result: result,
+    };
+    var history = safeGetBaseBatchHistory();
+    history.unshift(batch);
+    saveBaseBatchHistory(history);
+    renderBaseBatchHistorySelect(batch.id);
+    return batch;
+  }
+
+  function getBaseBatchById(batchId) {
+    if (!batchId) return null;
+    var history = safeGetBaseBatchHistory();
+    for (var i = 0; i < history.length; i++) {
+      if (String(history[i].id) === String(batchId)) return history[i];
+    }
+    return null;
+  }
+
+  function loadBaseBatchIntoResult(batchId) {
+    var batch = getBaseBatchById(batchId);
+    if (!batch || !batch.result) return;
+    showGenerateResult(batch.result);
+    setGenerateMessage('Loaded saved batch ' + (batch.label || batch.id) + '.', 'info');
+    if (els.genResult) els.genResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function syncSfGenCountDisplay() {
+    if (!els.genCount || !els.genCountDisplay) return;
+    els.genCountDisplay.textContent = String(els.genCount.value);
   }
 
   /** True when Global values sandbox is Adam's dev sandbox (technical name contains `apalmer`). */
@@ -605,6 +701,8 @@
   function setGenerateBusy(busy) {
     if (els.genForm) els.genForm.setAttribute('aria-busy', busy ? 'true' : 'false');
     if (els.generateBtn) els.generateBtn.disabled = !!busy;
+    if (els.genBatchLoadBtn) els.genBatchLoadBtn.disabled = !!busy;
+    if (els.genBatchClearBtn) els.genBatchClearBtn.disabled = !!busy;
   }
 
   function showGenerateResult(result) {
@@ -986,6 +1084,7 @@
           setGenerateDebug('POST ' + url, payload, res.status, data);
           var result = data && data.result;
           if (res.ok && result && result.ok) {
+            appendBaseBatchHistory(result);
             setGenerateMessage(
               'Inserted ' + result.rowcount + ' base profile' + (result.rowcount === 1 ? '' : 's') +
                 ' into ' + result.table + '.',
@@ -1041,6 +1140,10 @@
 
     els.genForm = $('sfGenerateForm');
     els.genCount = $('sfGenCount');
+    els.genCountDisplay = $('sfGenCountDisplay');
+    els.genBatchHistorySelect = $('sfGenBatchHistorySelect');
+    els.genBatchLoadBtn = $('sfGenBatchLoadBtn');
+    els.genBatchClearBtn = $('sfGenBatchClearBtn');
     els.genTable = $('sfGenTable');
     els.genIndustry = $('sfGenIndustry');
     els.genBatchSize = $('sfGenBatchSize');
@@ -1087,6 +1190,33 @@
       });
     }
     if (els.generateBtn) els.generateBtn.addEventListener('click', generateProfiles);
+    if (els.genCount && els.genCountDisplay) {
+      els.genCount.addEventListener('input', syncSfGenCountDisplay);
+      syncSfGenCountDisplay();
+    }
+    if (els.genBatchLoadBtn) {
+      els.genBatchLoadBtn.addEventListener('click', function () {
+        var sel = els.genBatchHistorySelect;
+        var id = sel && sel.value;
+        if (!id) return;
+        loadBaseBatchIntoResult(id);
+      });
+    }
+    if (els.genBatchClearBtn) {
+      els.genBatchClearBtn.addEventListener('click', function () {
+        try {
+          localStorage.removeItem(LS_SF_BASE_GEN_BATCHES);
+        } catch (_) {}
+        renderBaseBatchHistorySelect();
+        setGenerateMessage('Batch history cleared.', 'info');
+      });
+    }
+    renderBaseBatchHistorySelect();
+    (function initBaseBatchViewport() {
+      var sel = els.genBatchHistorySelect;
+      var firstId = sel && sel.value;
+      if (firstId) loadBaseBatchIntoResult(firstId);
+    })();
 
     els.updaterForm = $('sfUpdaterForm');
     els.filterType = $('sfFilterType');
