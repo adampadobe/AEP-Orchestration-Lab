@@ -521,7 +521,15 @@
       };
     }
 
-    async function primeAlloyIdentityOnEdge(alloyFn) {
+    /**
+     * @param {{ phase?: string, pageNameSuffix?: string }} [opts]
+     */
+    async function sendDemoemeaWebPageViewToEdge(alloyFn, opts) {
+      const o = opts || {};
+      const phase = String(o.phase || 'prime');
+      const suffix = String(o.pageNameSuffix || '').trim();
+      const baseTitle = (global.document && global.document.title) || 'AEP lab demo';
+      const pageName = suffix ? baseTitle + suffix : baseTitle;
       try {
         const shell = xdmDemoemeaShellForEdge();
         await alloyFn('sendEvent', {
@@ -530,7 +538,7 @@
               eventType: 'web.webPageDetails.pageViews',
               web: {
                 webPageDetails: {
-                  name: (global.document && global.document.title) || 'AEP lab demo',
+                  name: pageName,
                   URL: (global.location && global.location.href) || '',
                 },
               },
@@ -538,10 +546,17 @@
             shell
           ),
         });
-        dtLog('syncEcidFromAlloy: priming sendEvent (page view + _demoemea shell) completed');
+        dtLog('syncEcidFromAlloy: sendEvent (page view + _demoemea shell) completed', { phase });
       } catch (e) {
-        dtLog('syncEcidFromAlloy: priming sendEvent failed (non-fatal)', e && e.message ? e.message : String(e));
+        dtLog('syncEcidFromAlloy: sendEvent failed (non-fatal)', {
+          phase,
+          err: e && e.message ? e.message : String(e),
+        });
       }
+    }
+
+    async function primeAlloyIdentityOnEdge(alloyFn) {
+      await sendDemoemeaWebPageViewToEdge(alloyFn, { phase: 'prime' });
     }
 
     async function syncEcidFromAlloy() {
@@ -588,6 +603,11 @@
           return '';
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
+        /* Second hit after ECID is known: Alloy attaches ECID in identityMap without duplicating _demoemea.core.ecid (UPINGT-030075). Improves anonymous profile / dataset correlation vs a single pre-identity priming hit. */
+        await sendDemoemeaWebPageViewToEdge(alloyFn, {
+          phase: 'post-ecid-anonymous',
+          pageNameSuffix: ' · AEP lab (anonymous ECID)',
+        });
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,
