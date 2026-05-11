@@ -250,6 +250,39 @@ function getProfileEmail(entity) {
 }
 
 /**
+ * Lightweight diagnostics for operators tracing OOTB `xdm:testProfile` (Profile
+ * test details). Does not echo the full UPS entity — only merge-policy id (when
+ * UPS returns it) and whether the test flag appears on the merged root / in rows.
+ *
+ * @param {object|null|undefined} entityPayload - UPS wrapper `{ entity, mergePolicy?, … }`
+ * @param {object|null|undefined} entity - merged XDM object passed to flatten
+ * @param {object[]} rows - flattened table rows
+ */
+function buildProfileAccessHints(entityPayload, entity, rows) {
+  const mp = entityPayload && typeof entityPayload === 'object' ? entityPayload.mergePolicy : null;
+  const mergePolicyFromUps =
+    mp && typeof mp === 'object' && mp.id != null ? String(mp.id).trim() || null : null;
+  const upsRootHasXdmTestProfileKey =
+    entity &&
+    typeof entity === 'object' &&
+    !Array.isArray(entity) &&
+    Object.prototype.hasOwnProperty.call(entity, 'xdm:testProfile');
+  const profileTableHasXdmTestProfileRow = Array.isArray(rows)
+    ? rows.some(
+        (r) =>
+          r &&
+          typeof r.path === 'string' &&
+          (r.path === 'xdm:testProfile' || r.path.endsWith('.xdm:testProfile')),
+      )
+    : false;
+  return {
+    mergePolicyFromUps,
+    upsRootHasXdmTestProfileKey,
+    profileTableHasXdmTestProfileRow,
+  };
+}
+
+/**
  * @param {string} email
  * @param {object} response - UPS Profile Access API JSON
  */
@@ -270,6 +303,7 @@ function buildProfileTablePayload(email, response) {
       ecid: null,
       entityId: entityId || null,
       lastModified: null,
+      profileAccessHints: buildProfileAccessHints(entityPayload, entity, []),
     };
   }
   const rows = flattenEntityToTableRows(entity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
@@ -312,6 +346,7 @@ function buildProfileTablePayload(email, response) {
     ecid: ecid && ecid.length >= 10 ? ecid : null,
     entityId: entityId || null,
     lastModified: lastModifiedAt ?? null,
+    profileAccessHints: buildProfileAccessHints(entityPayload, entity, rows),
   };
 }
 
