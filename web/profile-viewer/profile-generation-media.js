@@ -209,6 +209,7 @@
       updateProfileBtn: 'mediaUpdateProfileBtn',
       generateBtn: 'mediaGenerateBtn',
       dryRun: 'mediaDryRun',
+      markTestProfile: 'mediaMarkTestProfile',
       profileMessage: 'mediaProfileMessage',
       firstName: 'mediaFirstName',
       lastName: 'mediaLastName',

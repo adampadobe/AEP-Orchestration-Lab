@@ -9,6 +9,14 @@ const profileIndexInput = document.getElementById('profileIndex');
 const emailDisplay = document.getElementById('emailDisplay');
 const generateBtn = document.getElementById('generateBtn');
 const generateMessage = document.getElementById('generateMessage');
+const legacyMarkTestProfileEl = document.getElementById('profileGenLegacyMarkTestProfile');
+
+function syncLegacyMarkTestProfileCheckbox() {
+  const Shared = window.AepProfileGenShared;
+  if (!legacyMarkTestProfileEl || !Shared || typeof Shared.readMarkTestProfilePreference !== 'function') return;
+  const ind = (industrySelect?.value || '').trim().toLowerCase() || 'generic';
+  legacyMarkTestProfileEl.checked = Shared.readMarkTestProfilePreference(ind);
+}
 
 const INDUSTRY_GROUPS = {
   retail: 'industryRetail',
@@ -846,6 +854,14 @@ if (industrySelect) {
     showIndustryFields(industrySelect.value?.trim().toLowerCase() || '');
     syncEmailFieldEditability();
     updateEmailDisplay();
+    syncLegacyMarkTestProfileCheckbox();
+  });
+}
+
+if (legacyMarkTestProfileEl && window.AepProfileGenShared) {
+  legacyMarkTestProfileEl.addEventListener('change', () => {
+    const ind = (industrySelect?.value || '').trim().toLowerCase() || 'generic';
+    window.AepProfileGenShared.writeMarkTestProfilePreference(ind, legacyMarkTestProfileEl.checked);
   });
 }
 
@@ -920,7 +936,13 @@ if (generateBtn && generateMessage) {
     setInput('loyaltyID', `LYL-${randomInt(100000, 999999)}`);
     Object.assign(attributes, getLoyaltyAttributes());
 
-    attributes.testProfile = true;
+    const markTestProfile =
+      legacyMarkTestProfileEl != null
+        ? legacyMarkTestProfileEl.checked
+        : window.AepProfileGenShared && typeof window.AepProfileGenShared.readMarkTestProfilePreference === 'function'
+          ? window.AepProfileGenShared.readMarkTestProfilePreference(industry || 'generic')
+          : true;
+    if (markTestProfile) attributes['xdm:testProfile'] = true;
 
     generateBtn.disabled = true;
     setMessage(generateMessage, 'Generating profile…', '');
@@ -969,7 +991,7 @@ if (generateBtn && generateMessage) {
             ecidSource: data.ecidSource,
             appendIfExisting: data.appendIfExisting,
             testProfileNote:
-              'In sentToAep, envelope uses body.xdmEntity._demoemea.testProfile; bare mode uses _demoemea.testProfile. If Profile does not show the field, add Data Prep mapping for that path on your HTTP dataflow.',
+              'When enabled, attributes include root xdm:testProfile (Profile test details field group). Legacy _demoemea.testProfile is no longer used here.',
             streamingResponse: data.streamingResponse,
           },
           null,
@@ -1020,3 +1042,4 @@ if (sandboxSelect) loadSandboxes();
 showIndustryFields(industrySelect?.value?.trim().toLowerCase() || '');
 syncEmailFieldEditability();
 updateEmailDisplay();
+syncLegacyMarkTestProfileCheckbox();

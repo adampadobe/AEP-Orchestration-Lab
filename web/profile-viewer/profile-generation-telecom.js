@@ -248,6 +248,7 @@
       updateProfileBtn: 'telecomUpdateProfileBtn',
       generateBtn: 'telecomGenerateBtn',
       dryRun: 'telecomDryRun',
+      markTestProfile: 'telecomMarkTestProfile',
       profileMessage: 'telecomProfileMessage',
       firstName: 'telecomFirstName',
       lastName: 'telecomLastName',

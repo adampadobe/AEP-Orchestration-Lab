@@ -21,7 +21,7 @@
  *     panelShownEvent: 'aep-fsi-panel-shown',
  *     apiPathPrefix: 'fsi-profile',
  *     defaultFlowName: 'AEP Lab - FSI Profile - Dataflow',
- *     ids: { ...all DOM ids the runtime needs... },
+ *     ids: { ...all DOM ids the runtime needs..., markTestProfile?: string },
  *     industry: {
  *       fields: [...],                  // industry attribute element IDs
  *       toggles: [{ checkboxId, fieldsId }],
@@ -454,6 +454,7 @@
     const updateProfileBtn = $(ids.updateProfileBtn);
     const generateBtn = $(ids.generateBtn);
     const dryRunEl = $(ids.dryRun);
+    const markTestProfileEl = ids.markTestProfile ? $(ids.markTestProfile) : null;
     const messageEl = $(ids.profileMessage);
 
     const firstNameEl = $(ids.firstName);
@@ -493,6 +494,13 @@
     if (!baseEmailEl || !counterEl || !emailPreviewEl) {
       warn('Skipping bind — required base elements not in DOM (panel may not be on this page).');
       return;
+    }
+
+    if (markTestProfileEl) {
+      markTestProfileEl.checked = Shared.readMarkTestProfilePreference(industryKey);
+      markTestProfileEl.addEventListener('change', () => {
+        Shared.writeMarkTestProfilePreference(industryKey, markTestProfileEl.checked);
+      });
     }
 
     // ---- Industry-extension hooks ----
@@ -1458,6 +1466,10 @@
         industryHooks.buildUpdates({ push, trimVal });
       } catch (e) {
         warn('industry buildUpdates threw:', e && e.message);
+      }
+
+      if (markTestProfileEl && markTestProfileEl.checked) {
+        updates.push({ path: 'xdm:testProfile', value: true, valueType: 'boolean' });
       }
 
       return updates;

@@ -73,6 +73,7 @@
   const updateProfileBtn = document.getElementById('travelUpdateProfileBtn');
   const generateBtn = document.getElementById('travelGenerateBtn');
   const dryRunEl = document.getElementById('travelDryRun');
+  const markTestProfileEl = document.getElementById('travelMarkTestProfile');
   const messageEl = document.getElementById('travelProfileMessage');
 
   // Identity
@@ -1800,6 +1801,10 @@
       if (prefWheelchairEl) push(`${prefs}.wheelchairAccessible`, cb(prefWheelchairEl));
     }
 
+    if (markTestProfileEl && markTestProfileEl.checked) {
+      updates.push({ path: 'xdm:testProfile', value: true, valueType: 'boolean' });
+    }
+
     return updates;
   }
 
@@ -2539,6 +2544,12 @@
   }
 
   if (loyaltyEnabledEl) loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
+  if (markTestProfileEl && Shared) {
+    markTestProfileEl.checked = Shared.readMarkTestProfilePreference('travel');
+    markTestProfileEl.addEventListener('change', () => {
+      Shared.writeMarkTestProfilePreference('travel', markTestProfileEl.checked);
+    });
+  }
   if (recentStayEnabledEl) recentStayEnabledEl.addEventListener('change', applyRecentStayToggleVisibility);
   if (reservationsEnabledEl) reservationsEnabledEl.addEventListener('change', applyReservationsToggleVisibility);
   if (travelPrefsEnabledEl) travelPrefsEnabledEl.addEventListener('change', applyTravelPrefsToggleVisibility);

@@ -356,6 +356,7 @@
       updateProfileBtn: 'fsiUpdateProfileBtn',
       generateBtn: 'fsiGenerateBtn',
       dryRun: 'fsiDryRun',
+      markTestProfile: 'fsiMarkTestProfile',
       profileMessage: 'fsiProfileMessage',
 
       firstName: 'fsiFirstName',

@@ -81,6 +81,7 @@
   const updateProfileBtn = document.getElementById('genUpdateProfileBtn');
   const generateBtn = document.getElementById('genGenerateBtn');
   const dryRunEl = document.getElementById('genDryRun');
+  const markTestProfileEl = document.getElementById('genMarkTestProfile');
   const messageEl = document.getElementById('genericProfileMessage');
 
   // Identity (added when Generic became an industry option — basic profile fields)
@@ -1263,6 +1264,10 @@
       }
     }
 
+    if (markTestProfileEl && markTestProfileEl.checked) {
+      updates.push({ path: 'xdm:testProfile', value: true, valueType: 'boolean' });
+    }
+
     return updates;
   }
 
@@ -1963,6 +1968,13 @@
   // Loyalty toggle wiring
   if (loyaltyEnabledEl) {
     loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
+  }
+
+  if (markTestProfileEl) {
+    markTestProfileEl.checked = Shared.readMarkTestProfilePreference('generic');
+    markTestProfileEl.addEventListener('change', () => {
+      Shared.writeMarkTestProfilePreference('generic', markTestProfileEl.checked);
+    });
   }
 
   // Recently-generated picker wiring

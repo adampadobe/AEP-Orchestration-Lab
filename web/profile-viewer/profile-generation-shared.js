@@ -20,6 +20,7 @@
  *   profileGenLastStreamed:<sandbox>:<baseLower>:<DDMMYYYY>
  *   profileGenRecent:<sandbox>:<baseLower>:<DDMMYYYY>
  *   profileGenMigrationDone:v1
+ *   profileGenMarkTestProfile:<industryKey>   — '1' / '0' for "Mark as AEP test profile" (default ON when unset)
  *
  * Pre-shared release the Generic generator wrote keys under the
  * `genericProfile` prefix. The first time this module loads we copy any
@@ -143,6 +144,22 @@
     return `${PREFIX_NEW}Recent:${normSandbox(sandbox)}:${normBaseEmail(baseEmail)}:${todayYmd(date)}`;
   }
 
+  function markTestProfilePreferenceKey(industryKey) {
+    const k = String(industryKey || 'generic').trim().toLowerCase() || 'generic';
+    return `${PREFIX_NEW}MarkTestProfile:${k}`;
+  }
+
+  /** @returns {boolean} Default true when key missing (lab test data). */
+  function readMarkTestProfilePreference(industryKey) {
+    const v = safeGet(markTestProfilePreferenceKey(industryKey));
+    if (v === '0' || v === 'false' || v === 'off') return false;
+    return true;
+  }
+
+  function writeMarkTestProfilePreference(industryKey, enabled) {
+    safeSet(markTestProfilePreferenceKey(industryKey), enabled ? '1' : '0');
+  }
+
   // ---------- Base email persistence ----------
 
   function readBaseEmail(sandbox) {
@@ -248,5 +265,8 @@
     readRecent,
     writeRecent,
     pushRecent,
+    markTestProfilePreferenceKey,
+    readMarkTestProfilePreference,
+    writeMarkTestProfilePreference,
   };
 })();

@@ -18,6 +18,9 @@ const OPTINOUT_CHANNELS = [
 ];
 
 const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
+  // OOTB Profile test details FG (https://ns.adobe.com/xdm/context/profile-test-profile)
+  // — boolean `xdm:testProfile` lives at the XDM root, not under `_<tenant>`.
+  'xdm:testProfile',
   'telecomSubscription',
   'person',
   'personID',

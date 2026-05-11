@@ -189,6 +189,7 @@
       updateProfileBtn: 'sportsUpdateProfileBtn',
       generateBtn: 'sportsGenerateBtn',
       dryRun: 'sportsDryRun',
+      markTestProfile: 'sportsMarkTestProfile',
       profileMessage: 'sportsProfileMessage',
       firstName: 'sportsFirstName',
       lastName: 'sportsLastName',

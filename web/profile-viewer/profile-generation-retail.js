@@ -315,6 +315,7 @@
       updateProfileBtn: 'retailUpdateProfileBtn',
       generateBtn: 'retailGenerateBtn',
       dryRun: 'retailDryRun',
+      markTestProfile: 'retailMarkTestProfile',
       profileMessage: 'retailProfileMessage',
       firstName: 'retailFirstName',
       lastName: 'retailLastName',

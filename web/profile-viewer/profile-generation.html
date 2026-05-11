@@ -79,6 +79,12 @@
             <span>Merge into existing profile when this email already exists (reuse ECID so the stream updates that profile instead of starting only a new identity).</span>
           </label>
         </div>
+        <div class="form-row profile-gen-merge-row">
+          <label class="profile-gen-merge-label">
+            <input type="checkbox" id="profileGenLegacyMarkTestProfile" checked>
+            <span>Mark as AEP test profile (<code>xdm:testProfile</code>) when using Generate profile below — saved per industry selection.</span>
+          </label>
+        </div>
       </div>
       <div id="generateMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
       <details id="generateDebug" class="generate-debug" hidden>
@@ -1221,6 +1227,9 @@
             <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
             <label class="generic-dryrun-label">
+              <input type="checkbox" id="genMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
+            <label class="generic-dryrun-label">
               <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
           </div>
@@ -1630,6 +1639,9 @@
           <div class="generic-actions button-row">
             <button type="button" id="travelUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="travelGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="travelMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
             <label class="generic-dryrun-label">
               <input type="checkbox" id="travelDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
@@ -2452,6 +2464,9 @@
             <button type="button" id="fsiUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="fsiGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
             <label class="generic-dryrun-label">
+              <input type="checkbox" id="fsiMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
+            <label class="generic-dryrun-label">
               <input type="checkbox" id="fsiDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
           </div>
@@ -2978,6 +2993,9 @@
             <button type="button" id="sportsUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="sportsGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
             <label class="generic-dryrun-label">
+              <input type="checkbox" id="sportsMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
+            <label class="generic-dryrun-label">
               <input type="checkbox" id="sportsDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
           </div>
@@ -3446,6 +3464,9 @@
           <div class="generic-actions button-row">
             <button type="button" id="mediaUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="mediaGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="mediaMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
             <label class="generic-dryrun-label">
               <input type="checkbox" id="mediaDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
@@ -4035,6 +4056,9 @@
           <div class="generic-actions button-row">
             <button type="button" id="retailUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="retailGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="retailMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
             <label class="generic-dryrun-label">
               <input type="checkbox" id="retailDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
@@ -4701,6 +4725,9 @@
             <button type="button" id="telecomUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
             <button type="button" id="telecomGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
             <label class="generic-dryrun-label">
+              <input type="checkbox" id="telecomMarkTestProfile" checked> <span>Mark as AEP test profile (<code>xdm:testProfile</code>)</span>
+            </label>
+            <label class="generic-dryrun-label">
               <input type="checkbox" id="telecomDryRun"> <span>Dry run (preview payload, do not stream)</span>
             </label>
           </div>
@@ -5117,19 +5144,19 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260504d"></script>
-  <script src="profile-generation.js?v=20260504d"></script>
-  <script src="profile-generation-generic.js?v=20260506b"></script>
-  <script src="profile-generation-travel.js?v=20260504d"></script>
+  <script src="profile-generation-shared.js?v=20260511a"></script>
+  <script src="profile-generation.js?v=20260511a"></script>
+  <script src="profile-generation-generic.js?v=20260511a"></script>
+  <script src="profile-generation-travel.js?v=20260511a"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260506b"></script>
-  <script src="profile-generation-fsi.js?v=20260504d"></script>
-  <script src="profile-generation-telecom.js?v=20260504d"></script>
-  <script src="profile-generation-retail.js?v=20260504d"></script>
-  <script src="profile-generation-media.js?v=20260504d"></script>
-  <script src="profile-generation-sports.js?v=20260504d"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260511a"></script>
+  <script src="profile-generation-fsi.js?v=20260511a"></script>
+  <script src="profile-generation-telecom.js?v=20260511a"></script>
+  <script src="profile-generation-retail.js?v=20260511a"></script>
+  <script src="profile-generation-media.js?v=20260511a"></script>
+  <script src="profile-generation-sports.js?v=20260511a"></script>
   <!-- At-a-glance Profile-enabled status indicators (May 2026). Hits the
        aggregate /api/profile-infra/status-all endpoint once per sandbox
        and renders glyphs in the #industry dropdown + per-panel badges so

@@ -26,7 +26,7 @@
  * ----------------------------
  * Every Profile schema MUST carry the Generic base set (Profile Core v2 +
  * Demographic Details + Personal Contact Details + Loyalty Details + Consent
- * and Preference Details + Preference Details). On top of that base, each
+ * and Preference Details + Preference Details + Profile test details). On top of that base, each
  * industry config supplies an `industryFieldGroups` array of additional
  * resolution candidates:
  *
@@ -128,6 +128,8 @@ const BASE_PROFILE_FIELD_GROUP_REFS = [
   'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
   'https://ns.adobe.com/xdm/mixins/profile-consents',
   'https://ns.adobe.com/xdm/context/profile-preferences-details',
+  /** OOTB "Profile test details" — `xdm:testProfile` on the Profile union record (adobe/xdm profile-test-profile.schema.json). */
+  'https://ns.adobe.com/xdm/context/profile-test-profile',
 ];
 
 /** Human-readable labels for the success message (order matches BASE_PROFILE_FIELD_GROUP_REFS plus Profile Core v2 prepended). */
@@ -138,6 +140,7 @@ const BASE_PROFILE_FIELD_GROUP_LABELS = [
   'Loyalty Details',
   'Consent and Preference Details',
   'Preference Details',
+  'Profile test details',
 ];
 
 const STEP_NAMES = Object.freeze(['createSchema', 'attachFieldGroups', 'createDataset', 'httpFlow']);
