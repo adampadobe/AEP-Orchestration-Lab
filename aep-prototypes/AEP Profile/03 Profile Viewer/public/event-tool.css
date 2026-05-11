@@ -325,3 +325,48 @@
   color: var(--dash-text-secondary, #aaa);
 }
 [data-aep-theme="dark"] .et-my-triggers-delete:hover { background: #3a2020; color: #e74c3c; }
+
+/* ── IdentityMap / Profile hint (Step 1 follow-up) ── */
+.et-identity-map-hint {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+.et-identity-map-hint__summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dash-text);
+  list-style: none;
+}
+.et-identity-map-hint__summary::-webkit-details-marker { display: none; }
+.et-identity-map-hint__body {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--dash-border);
+}
+.et-identity-map-hint__list {
+  margin: 0.35rem 0 0.35rem 1.15rem;
+  padding: 0;
+  color: var(--dash-text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.et-identity-map-hint__list li { margin: 0.4rem 0; }
+.et-identity-map-hint__doc { margin-bottom: 0; }
+.et-code-inline {
+  font-size: 0.88em;
+  padding: 0.08rem 0.3rem;
+  border-radius: 6px;
+  background: var(--dash-hover);
+  color: var(--dash-text);
+  word-break: break-word;
+}
+[data-aep-theme="dark"] .et-identity-map-hint {
+  border-color: var(--dash-input-border);
+  background: var(--dash-surface-alt);
+}
+[data-aep-theme="dark"] .et-code-inline {
+  background: var(--dash-surface);
+}

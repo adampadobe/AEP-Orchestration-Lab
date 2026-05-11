@@ -53,6 +53,10 @@ Omit `sandbox` to use the function default (`ADOBE_SANDBOX_NAME` at deploy, ofte
 
 **Example (validated in lab):** ECID **`03976612467829823963241934423837679452`** returned **`found: true`**, with `entityId` and `lastModified` populated — anonymous profile materialized from Edge + `_demoemea` traffic.
 
+## Event Tool (`event-tool.html`) automated schema
+
+The Profile Viewer **Event Tool** “Create schema” action (Cloud Function `eventInfraService`) creates an **ExperienceEvent** schema, attaches **Profile Core v2** when that field group exists in the sandbox, and adds **non-primary** identity descriptors for **ECID** and **Email** on **`_{tenant}.identification.core.*`**. You still enable **Profile** in the AEP UI with **alternate primary identity** and send **`identityMap`** on each Edge payload (this doc).
+
 ## Related
 
 - **Event generator** demos (Navigator CTAs) use a **different** tenant key (e.g. **`_demosystem5`**) via **`POST /api/events/generator`** — same “anonymous if only ECID” idea, different transport than Web SDK `sendEvent`.

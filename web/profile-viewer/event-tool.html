@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260413b">
+  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-profile">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -101,7 +101,10 @@
                 <!-- Step 1 — Schema -->
                 <div class="et-config-step">
                   <h4 class="et-config-step-title">Step 1 — Create an XDM ExperienceEvent schema</h4>
-                  <p class="field-hint">Creates a minimal ExperienceEvent schema (not Profile-enabled) in the selected sandbox.</p>
+                  <p class="field-hint">
+                    Creates an <strong>ExperienceEvent</strong> schema, attaches <strong>Profile Core v2</strong> when that field group exists in the sandbox, and registers <strong>ECID</strong> + <strong>Email</strong> on
+                    <code class="et-code-inline">_{tenant}.identification.core.*</code> as <strong>secondary</strong> identity descriptors (not the schema primary).
+                  </p>
                   <div class="et-config-step-row">
                     <div class="form-row et-schema-name-row">
                       <label for="etSchemaTitle">Schema name</label>
@@ -114,10 +117,28 @@
                   <div id="etSchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                 </div>
 
+                <details class="et-identity-map-hint">
+                  <summary class="et-identity-map-hint__summary">Profile + identityMap (read this after Step 1)</summary>
+                  <div class="et-identity-map-hint__body">
+                    <p class="field-hint">
+                      In <strong>AEP → Schemas</strong>, open the new schema → <strong>Enable for Real-Time Customer Profile</strong> → enable
+                      <strong>Use alternate primary identity</strong> so the <strong>primary ID is taken from each event’s <code class="et-code-inline">identityMap</code></strong>, not from a single fixed schema field.
+                    </p>
+                    <ol class="et-identity-map-hint__list">
+                      <li><strong>Anonymous / retargeting:</strong> send <code class="et-code-inline">identityMap.ECID</code> with <code class="et-code-inline">primary: true</code> (and optional <code class="et-code-inline">_&lt;tenant&gt;.identification.core.ecid</code> if your field group requires it for validation).</li>
+                      <li><strong>Known customer:</strong> add <code class="et-code-inline">identityMap.Email</code>; keep <strong>exactly one</strong> <code class="et-code-inline">primary: true</code> namespace per event (usually ECID primary, email secondary, or the reverse for a specific journey — never two primaries).</li>
+                      <li><strong>Event Tool sends Edge payloads</strong> with <code class="et-code-inline">identityMap</code> from the generator — same pattern as Web SDK <code class="et-code-inline">sendEvent</code>.</li>
+                    </ol>
+                    <p class="field-hint et-identity-map-hint__doc">
+                      Lab reference: <code class="et-code-inline">docs/ANONYMOUS_EDGE_DEMO_PATTERN.md</code> in this repository (anonymous Edge + <code class="et-code-inline">_demoemea</code> / tenant core <code class="et-code-inline">ecid</code>).
+                    </p>
+                  </div>
+                </details>
+
                 <!-- Step 2 — Dataset -->
                 <div class="et-config-step">
                   <h4 class="et-config-step-title">Step 2 — Create a dataset</h4>
-                  <p class="field-hint">Creates a dataset linked to the schema above. Not Profile-enabled.</p>
+                  <p class="field-hint">Creates a dataset linked to the schema. In AEP, enable it for Profile when the schema uses <strong>identityMap</strong> alternate primary (same toggle as above).</p>
                   <div class="et-config-step-row">
                     <div class="form-row et-dataset-name-row">
                       <label for="etDatasetName">Dataset name</label>

@@ -1,7 +1,7 @@
 /**
  * Event Infrastructure — create XDM ExperienceEvent schema + dataset in a sandbox.
- * NOT enabled for Real-Time Customer Profile (no union tag).
- * Follows the same pattern as consentInfraService.js but uses the ExperienceEvent class.
+ * Optionally attaches tenant **Profile Core v2** + ECID/Email identity descriptors so the schema
+ * can be Profile-enabled in the UI with **alternate primary identity** (`identityMap` per event).
  */
 
 const SCHEMA_REGISTRY = 'https://platform.adobe.io/data/foundation/schemaregistry';
@@ -9,8 +9,16 @@ const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 
 const XDM_EXPERIENCE_EVENT_CLASS = 'https://ns.adobe.com/xdm/context/experienceevent';
 
+const ACCEPT_JSON = 'application/json';
+const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
+const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
+
 const eventEdgeService = require('./eventEdgeService');
 const tagsReactorService = require('./tagsReactorService');
+
+/** Shown after successful schema/dataset create (UI + API consumers). */
+const EVENT_TOOL_IDENTITY_MAP_HINT =
+  'Enable the schema for Profile in AEP: check "Use alternate primary identity" so the primary ID comes from each event\'s identityMap (anonymous: ECID primary only; known user: add Email with exactly one primary:true per event). This Event Tool sends identityMap on Edge — see ANONYMOUS_EDGE_DEMO_PATTERN.md in the repo docs folder.';
 
 function log(sandbox, phase, detail = {}) {
   try { console.log('[eventInfra]', JSON.stringify({ sandbox, phase, ...detail })); }
@@ -52,7 +60,9 @@ async function createEventSchema(token, clientId, orgId, sandbox, schemaTitle) {
   const body = {
     title: schemaTitle,
     type: 'object',
-    description: `XDM ExperienceEvent schema for Edge event streaming. Created by AEP Profile Viewer Event Tool. Do NOT enable for Real-Time Customer Profile.`,
+    description:
+      'XDM ExperienceEvent schema for Edge event streaming. Created by AEP Profile Viewer Event Tool. ' +
+      'After creation, enable for Real-Time Customer Profile in the AEP UI (recommended: alternate primary identity from identityMap on each payload).',
     allOf: [{ $ref: XDM_EXPERIENCE_EVENT_CLASS }],
     'meta:class': XDM_EXPERIENCE_EVENT_CLASS,
   };
@@ -87,6 +97,257 @@ async function createEventSchema(token, clientId, orgId, sandbox, schemaTitle) {
   throw new Error(`Create schema failed: ${lastErr}`);
 }
 
+/* ── Profile Core v2 + identity descriptors (ExperienceEvent, alternate primary via identityMap) ── */
+
+function parseTenantFromUri(uri) {
+  const m = String(uri || '').match(/^https:\/\/ns\.adobe\.com\/([^/]+)\//);
+  return m ? m[1] : null;
+}
+
+function xdmKeyFromTenantId(tenantId) {
+  return tenantId ? `_${tenantId}` : '_demoemea';
+}
+
+async function discoverTenantContextForEventTool(token, clientId, orgId, sandbox) {
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas?limit=10&properties=title,$id,meta:altId`;
+  const { res, data } = await fetchJson(url, {
+    method: 'GET',
+    headers: headers(token, clientId, orgId, sandbox, { Accept: 'application/vnd.adobe.xed-id+json' }),
+  });
+  if (!res.ok) {
+    const msg = data.message || data.title || res.statusText;
+    throw new Error(`Schema list failed: ${msg}`);
+  }
+  const results = data.results || [];
+  for (const s of results) {
+    const tid = parseTenantFromUri(s.$id);
+    if (tid) {
+      return { tenantId: tid, xdmKey: xdmKeyFromTenantId(tid), sampleSchemaId: s.$id };
+    }
+  }
+  throw new Error(
+    'No tenant XDM id found (expected a schema under https://ns.adobe.com/{tenant}/…). Create any tenant resource in this sandbox first, or import Profile Core v2.'
+  );
+}
+
+async function listTenantFieldgroupsLike(token, clientId, orgId, sandbox) {
+  const base = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+  };
+  const paths = ['/tenant/fieldgroups?limit=200', '/tenant/mixins?limit=200'];
+  const accepts = ['application/vnd.adobe.xed-id+json', 'application/vnd.adobe.xed+json', ACCEPT_XED, ACCEPT_JSON];
+  let lastErr = '';
+  for (const pathSuffix of paths) {
+    const url = `${SCHEMA_REGISTRY}${pathSuffix}`;
+    for (const accept of accepts) {
+      const { res, data } = await fetchJson(url, { method: 'GET', headers: { ...base, Accept: accept } });
+      if (res.ok) return Array.isArray(data.results) ? data.results : [];
+      lastErr = data.message || data.title || res.statusText || String(res.status);
+      if (!/accept header/i.test(String(lastErr))) break;
+    }
+  }
+  throw new Error(`Tenant field groups list failed: ${lastErr}`);
+}
+
+function findProfileCoreV2Mixin(rows) {
+  return rows.find((m) => {
+    const t = String(m.title || '').toLowerCase();
+    return t === 'profile core v2' || t.includes('profile core v2');
+  });
+}
+
+function collectSchemaRefUris(schema) {
+  const set = new Set();
+  for (const x of schema.allOf || []) {
+    if (x && typeof x.$ref === 'string') set.add(x.$ref);
+  }
+  for (const u of schema['meta:extends'] || []) {
+    if (typeof u === 'string') set.add(u);
+  }
+  return set;
+}
+
+function buildAddFieldGroupPatchOps(fullSchema, mixinId) {
+  const existing = collectSchemaRefUris(fullSchema);
+  const ref = String(mixinId);
+  if (existing.has(ref)) return [];
+  return [
+    { op: 'add', path: '/meta:extends/-', value: ref },
+    { op: 'add', path: '/allOf/-', value: { $ref: ref } },
+  ];
+}
+
+async function getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId) {
+  const enc = encodeURIComponent(metaAltId);
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
+  const { res, data } = await fetchJson(url, {
+    method: 'GET',
+    headers: headers(token, clientId, orgId, sandbox, { Accept: ACCEPT_XED }),
+  });
+  if (!res.ok) return null;
+  return data;
+}
+
+async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, operations) {
+  if (!operations || operations.length === 0) return null;
+  const enc = encodeURIComponent(metaAltId);
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
+  let ifMatch = '1';
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const full = await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId);
+    if (full && full.version != null) ifMatch = String(full.version);
+    const { res, data } = await fetchJson(url, {
+      method: 'PATCH',
+      headers: {
+        ...headers(token, clientId, orgId, sandbox),
+        Accept: ACCEPT_JSON,
+        'Content-Type': ACCEPT_JSON,
+        'If-Match': ifMatch,
+      },
+      body: JSON.stringify(operations),
+    });
+    if (res.ok) return data;
+    if (res.status === 412 || res.status === 428) {
+      log(sandbox, 'eventInfra.patch.retry', { attempt, status: res.status });
+      continue;
+    }
+    const msg = data.message || data.title || data.detail || res.statusText;
+    throw new Error(`Schema PATCH failed: ${msg}`);
+  }
+  throw new Error('Schema PATCH failed: version conflict after retries');
+}
+
+async function postIdentityDescriptor(
+  token,
+  clientId,
+  orgId,
+  sandbox,
+  schemaId,
+  sourceVersion,
+  sourceProperty,
+  namespace,
+  isPrimary
+) {
+  const body = {
+    '@type': 'xdm:descriptorIdentity',
+    'xdm:sourceSchema': schemaId,
+    'xdm:sourceVersion': sourceVersion,
+    'xdm:sourceProperty': sourceProperty,
+    'xdm:namespace': namespace,
+    'xdm:property': 'xdm:code',
+    'xdm:isPrimary': !!isPrimary,
+  };
+  const url = `${SCHEMA_REGISTRY}/tenant/descriptors`;
+  const base = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+  };
+  const attempts = [
+    { 'Content-Type': ACCEPT_JSON, Accept: ACCEPT_XDM },
+    { 'Content-Type': ACCEPT_JSON, Accept: ACCEPT_XED },
+  ];
+  let lastErr = '';
+  for (const h of attempts) {
+    const { res, data } = await fetchJson(url, {
+      method: 'POST',
+      headers: { ...base, ...h },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return data;
+    lastErr = data.message || data.title || data.detail || res.statusText;
+    if (res.status === 409 || /already exists|duplicate/i.test(String(lastErr))) return { skipped: true, duplicate: true };
+    if (res.status !== 415 && !/unsupported media type/i.test(String(lastErr))) {
+      throw new Error(`Create identity descriptor failed: ${lastErr}`);
+    }
+  }
+  throw new Error(`Create identity descriptor failed: ${lastErr}`);
+}
+
+/**
+ * Attach Profile Core v2 + non-primary ECID/Email descriptors on tenant identification.core.*
+ * so Profile UI can map namespaces; primary per event should come from identityMap (user enables alternate primary).
+ */
+async function attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId, sandbox, schemaRow) {
+  const metaAltId = schemaRow['meta:altId'];
+  const schemaId = schemaRow.$id;
+  if (!metaAltId || !schemaId) {
+    return { profileCoreAttached: false, identityDescriptors: 0, warn: 'Missing meta:altId on new schema; skip Profile Core attach.' };
+  }
+
+  let tenantCtx;
+  try {
+    tenantCtx = await discoverTenantContextForEventTool(token, clientId, orgId, sandbox);
+  } catch (e) {
+    return {
+      profileCoreAttached: false,
+      identityDescriptors: 0,
+      warn: String(e.message || e),
+    };
+  }
+
+  let mixins;
+  try {
+    mixins = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+  } catch (e) {
+    return { profileCoreAttached: false, identityDescriptors: 0, warn: String(e.message || e) };
+  }
+
+  const profileCore = findProfileCoreV2Mixin(mixins);
+  if (!profileCore || !profileCore.$id) {
+    return {
+      profileCoreAttached: false,
+      identityDescriptors: 0,
+      warn: 'Profile Core v2 field group not found in this sandbox. Import it in AEP (Schemas → Browse), then run "Create schema" again with a new title or add the field group manually.',
+    };
+  }
+
+  let full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
+  const ops = buildAddFieldGroupPatchOps(full, profileCore.$id);
+  let profileCoreAttached = false;
+  if (ops.length) {
+    try {
+      await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
+      profileCoreAttached = true;
+    } catch (e) {
+      const msg = String(e.message || e);
+      log(sandbox, 'eventInfra.profileCore.patchFail', { err: msg.slice(0, 220) });
+      return {
+        profileCoreAttached: false,
+        identityDescriptors: 0,
+        warn: `Could not attach Profile Core v2 automatically (${msg.slice(0, 180)}). Add the field group in the Schema Editor if your org restricts ExperienceEvent + Profile Core v2.`,
+      };
+    }
+    full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
+  } else {
+    profileCoreAttached = true;
+  }
+
+  const ver = Number(full.version) || 1;
+  const tenant = String(tenantCtx.xdmKey || '_demoemea').replace(/^_/, '');
+  const ecidPath = `/_${tenant}/identification/core/ecid`;
+  const emailPath = `/_${tenant}/identification/core/email`;
+  let identityDescriptors = 0;
+  const pairs = [
+    { path: ecidPath, ns: 'ECID', label: 'ecid' },
+    { path: emailPath, ns: 'Email', label: 'email' },
+  ];
+  for (const p of pairs) {
+    try {
+      const r = await postIdentityDescriptor(token, clientId, orgId, sandbox, schemaId, ver, p.path, p.ns, false);
+      if (r && (r.duplicate || r['@id'] || r['meta:altId'])) identityDescriptors += 1;
+    } catch (e) {
+      log(sandbox, 'eventInfra.descriptor.warn', { label: p.label, err: String(e.message || e).slice(0, 160) });
+    }
+  }
+
+  return { profileCoreAttached, identityDescriptors, warn: null, tenantXdmKey: tenantCtx.xdmKey };
+}
+
 /* ── Dataset operations ── */
 
 function flattenDatasets(pages) {
@@ -117,7 +378,8 @@ async function findDatasetByName(token, clientId, orgId, sandbox, name) {
 async function createDataset(token, clientId, orgId, sandbox, schemaId, name) {
   const body = {
     name,
-    description: 'XDM ExperienceEvent dataset for Edge event streaming. Created by AEP Profile Viewer Event Tool. Do not enable for Real-Time Customer Profile.',
+    description:
+      'XDM ExperienceEvent dataset for Edge (AEP Event Tool). In AEP: enable for Profile when the schema uses identityMap as alternate primary; send identityMap on each event (ECID for anonymous; one primary:true per event).',
     schemaRef: {
       id: schemaId,
       contentType: 'application/vnd.adobe.xed+json;version=1',
@@ -184,11 +446,29 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       };
     }
     const created = await createEventSchema(token, clientId, orgId, sandbox, title);
+    const attach = await attachProfileCoreV2AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
+    const parts = [`Schema "${title}" created (ExperienceEvent class).`];
+    if (attach.profileCoreAttached) parts.push('Profile Core v2 field group attached.');
+    if (attach.identityDescriptors > 0) {
+      parts.push(
+        `Identity descriptors on ${attach.tenantXdmKey || 'tenant'}.identification.core.ecid / .email (not schema primary — use identityMap per event).`
+      );
+    }
+    if (attach.warn) parts.push(`Note: ${attach.warn}`);
+    parts.push(EVENT_TOOL_IDENTITY_MAP_HINT);
     return {
-      ok: true, sandbox, step, schemaCreated: true,
+      ok: true,
+      sandbox,
+      step,
+      schemaCreated: true,
       schemaId: created.$id,
       schemaMetaAltId: created['meta:altId'],
-      message: `Schema "${title}" created (ExperienceEvent class, not Profile-enabled).`,
+      profileCoreAttached: !!attach.profileCoreAttached,
+      identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
+      profileCoreWarning: attach.warn || null,
+      tenantXdmKey: attach.tenantXdmKey || null,
+      identityMapHint: EVENT_TOOL_IDENTITY_MAP_HINT,
+      message: parts.join(' '),
     };
   }
 
@@ -215,10 +495,16 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
     const dsRes = await createDataset(token, clientId, orgId, sandbox, schema.$id, datasetName);
     return {
-      ok: true, sandbox, step, datasetCreated: true,
+      ok: true,
+      sandbox,
+      step,
+      datasetCreated: true,
       schemaId: schema.$id,
       datasetId: dsRes.id,
-      message: `Dataset "${datasetName}" created (not Profile-enabled). You can create a datastream via the button below or in AEP Data Collection.`,
+      identityMapHint: EVENT_TOOL_IDENTITY_MAP_HINT,
+      message:
+        `Dataset "${datasetName}" created. Enable for Profile in AEP when the linked schema is Profile-enabled (alternate primary from identityMap). ` +
+        `Then create a datastream below or in Data Collection. ${EVENT_TOOL_IDENTITY_MAP_HINT}`,
     };
   }
 
