@@ -147,6 +147,90 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .pi-search-input {
+      border: none;
+      outline: none;
+      font-size: 15px;
+      width: 100%;
+      min-width: 0;
+      background: transparent;
+      color: #222;
+      font-family: inherit;
+    }
+    .pi-search-input::placeholder {
+      color: #666;
+    }
+    .pi-date-fields {
+      display: flex;
+      align-items: center;
+      gap: 4px 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+      flex: 1;
+    }
+    .pi-date-fields input[type="date"] {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      color: #222;
+      font-family: inherit;
+      flex: 1 1 42%;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .pi-date-sep {
+      color: #aaa;
+      font-weight: 600;
+      user-select: none;
+    }
+    .pi-guest-fields {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px 12px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .pi-guest-fields label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .pi-guest-fields select {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #222;
+      background: #fafafa;
+      font-family: inherit;
+      min-width: 4.5rem;
+    }
+    .pi-search-feedback {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .pi-search-feedback[hidden] {
+      display: none !important;
+    }
+    .pi-search-feedback.pi-search-feedback--show {
+      display: block !important;
+    }
+    .pi-search-feedback--error {
+      background: rgba(180, 40, 60, 0.35);
+    }
     .pi-search-divider {
       width: 1px;
       flex-shrink: 0;
@@ -163,7 +247,7 @@
       padding: 0 min(7vw, 36px);
       font-size: 16px;
       font-weight: 800;
-      cursor: default;
+      cursor: pointer;
       border-radius: 0 999px 999px 0;
     }
     .pi-search-go:hover { filter: brightness(1.05); }
@@ -183,11 +267,37 @@
         padding: 14px;
       }
     }
+    .pi-search-subrow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 14px;
+      margin-top: 14px;
+    }
+    .pi-search-subsep {
+      color: rgba(255, 255, 255, 0.55);
+      font-weight: 700;
+    }
+    .pi-use-location {
+      border: none;
+      background: none;
+      padding: 0;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+    .pi-use-location:hover {
+      opacity: 0.92;
+    }
     .pi-explore-prices {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      margin-top: 14px;
+      margin-top: 0;
       font-size: 14px;
       font-weight: 600;
       color: #fff;
@@ -458,24 +568,64 @@
       <div class="pi-search-pill" role="search" aria-label="Hotel search">
         <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z" stroke="currentColor" stroke-width="1.6"/><path d="M19 19c-2-3-4.5-5-7-5s-5 2-7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <span class="pi-ph">Enter place, postcode or hotel</span>
+          <input
+            type="search"
+            id="piWhere"
+            class="pi-search-input"
+            list="piLocationHints"
+            placeholder="Enter place, postcode or hotel"
+            autocomplete="street-address"
+            maxlength="160"
+          />
         </div>
         <div class="pi-search-divider" aria-hidden="true"></div>
         <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <span class="pi-ph">Today | Tomorrow</span>
+          <div class="pi-date-fields">
+            <input type="date" id="piCheckin" aria-label="Check-in date"/>
+            <span class="pi-date-sep" aria-hidden="true">|</span>
+            <input type="date" id="piCheckout" aria-label="Check-out date"/>
+          </div>
         </div>
         <div class="pi-search-divider" aria-hidden="true"></div>
         <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <span class="pi-ph">1 adult, 1 room</span>
+          <div class="pi-guest-fields">
+            <label for="piAdults">Adults
+              <select id="piAdults" aria-label="Number of adults"></select>
+            </label>
+            <label for="piRooms">Rooms
+              <select id="piRooms" aria-label="Number of rooms"></select>
+            </label>
+          </div>
         </div>
-        <button type="button" class="pi-search-go">Search</button>
+        <button type="button" id="piSearchBtn" class="pi-search-go">Search</button>
       </div>
-      <a class="pi-explore-prices" href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Explore our best prices
-      </a>
+      <datalist id="piLocationHints">
+        <option value="London"></option>
+        <option value="Manchester"></option>
+        <option value="Birmingham"></option>
+        <option value="Leeds"></option>
+        <option value="Glasgow"></option>
+        <option value="Edinburgh"></option>
+        <option value="Cardiff"></option>
+        <option value="Bristol"></option>
+        <option value="Liverpool"></option>
+        <option value="Newcastle"></option>
+        <option value="Heathrow Airport"></option>
+        <option value="Gatwick Airport"></option>
+        <option value="SW1A 1AA"></option>
+        <option value="M1 1AE"></option>
+      </datalist>
+      <div id="piSearchFeedback" class="pi-search-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="pi-search-subrow">
+        <a class="pi-explore-prices" href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Explore our best prices
+        </a>
+        <span class="pi-search-subsep" aria-hidden="true">·</span>
+        <button type="button" class="pi-use-location" id="piUseLocation">Use my location</button>
+      </div>
     </div>
   </div>
 
@@ -699,5 +849,218 @@
       </div>
     </div>
   </footer>
+  <script>
+    (function () {
+      var STORAGE_KEY = 'piDemoSearchState_v1';
+      var whereEl = document.getElementById('piWhere');
+      var ciEl = document.getElementById('piCheckin');
+      var coEl = document.getElementById('piCheckout');
+      var adultsEl = document.getElementById('piAdults');
+      var roomsEl = document.getElementById('piRooms');
+      var searchBtn = document.getElementById('piSearchBtn');
+      var useLocBtn = document.getElementById('piUseLocation');
+      var fbEl = document.getElementById('piSearchFeedback');
+
+      function pad2(n) {
+        return String(n).length < 2 ? '0' + n : String(n);
+      }
+      function toYmd(d) {
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+      }
+      function addDays(d, n) {
+        var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setDate(x.getDate() + n);
+        return x;
+      }
+      function parseYmd(s) {
+        if (!s || typeof s !== 'string') return null;
+        var p = s.split('-');
+        if (p.length !== 3) return null;
+        var y = parseInt(p[0], 10);
+        var m = parseInt(p[1], 10) - 1;
+        var day = parseInt(p[2], 10);
+        if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(day)) return null;
+        return new Date(y, m, day);
+      }
+      function fillSelect(el, from, to) {
+        if (!el) return;
+        el.innerHTML = '';
+        for (var i = from; i <= to; i += 1) {
+          var o = document.createElement('option');
+          o.value = String(i);
+          o.textContent = String(i);
+          el.appendChild(o);
+        }
+      }
+      function persist() {
+        try {
+          sessionStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              where: whereEl ? whereEl.value.trim() : '',
+              checkin: ciEl ? ciEl.value : '',
+              checkout: coEl ? coEl.value : '',
+              adults: adultsEl ? adultsEl.value : '1',
+              rooms: roomsEl ? roomsEl.value : '1',
+            })
+          );
+        } catch (e) {}
+      }
+      function loadState() {
+        try {
+          var raw = sessionStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      function showFeedback(message, isError) {
+        if (!fbEl) return;
+        fbEl.textContent = message || '';
+        fbEl.classList.toggle('pi-search-feedback--error', !!isError);
+        if (!message) {
+          fbEl.setAttribute('hidden', '');
+          fbEl.classList.remove('pi-search-feedback--show');
+        } else {
+          fbEl.removeAttribute('hidden');
+          fbEl.classList.add('pi-search-feedback--show');
+        }
+      }
+      function syncCheckoutMin() {
+        if (!ciEl || !coEl) return;
+        var ci = ciEl.value;
+        if (!ci) return;
+        var d = parseYmd(ci);
+        if (!d) return;
+        var next = toYmd(addDays(d, 1));
+        coEl.min = next;
+        if (coEl.value && coEl.value <= ci) {
+          coEl.value = next;
+        }
+      }
+      function syncCheckinMax() {
+        if (!ciEl || !coEl || !coEl.value) return;
+        ciEl.max = coEl.value;
+      }
+
+      fillSelect(adultsEl, 1, 6);
+      fillSelect(roomsEl, 1, 4);
+
+      var today = new Date();
+      today.setHours(12, 0, 0, 0);
+      var todayStr = toYmd(today);
+      var tomorrowStr = toYmd(addDays(today, 1));
+
+      var saved = loadState();
+      if (whereEl) whereEl.value = saved && saved.where ? saved.where : '';
+      if (ciEl) ciEl.value = saved && saved.checkin ? saved.checkin : todayStr;
+      if (coEl) coEl.value = saved && saved.checkout ? saved.checkout : tomorrowStr;
+      if (adultsEl) adultsEl.value = saved && saved.adults ? saved.adults : '1';
+      if (roomsEl) roomsEl.value = saved && saved.rooms ? saved.rooms : '1';
+
+      if (ciEl) ciEl.min = todayStr;
+      syncCheckoutMin();
+      syncCheckinMax();
+
+      ['input', 'change'].forEach(function (ev) {
+        if (whereEl) whereEl.addEventListener(ev, persist);
+        if (ciEl) ciEl.addEventListener(ev, persist);
+        if (coEl) coEl.addEventListener(ev, persist);
+        if (adultsEl) adultsEl.addEventListener(ev, persist);
+        if (roomsEl) roomsEl.addEventListener(ev, persist);
+      });
+      if (ciEl) {
+        ciEl.addEventListener('change', function () {
+          syncCheckoutMin();
+          syncCheckinMax();
+          persist();
+        });
+      }
+      if (coEl) {
+        coEl.addEventListener('change', function () {
+          syncCheckinMax();
+          persist();
+        });
+      }
+
+      function fmtRange() {
+        var df = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        var a = parseYmd(ciEl.value);
+        var b = parseYmd(coEl.value);
+        if (!a || !b) return '';
+        return df.format(a) + ' → ' + df.format(b);
+      }
+
+      if (searchBtn) {
+        searchBtn.addEventListener('click', function () {
+          var place = whereEl ? whereEl.value.trim() : '';
+          if (!place) {
+            showFeedback('Enter a place, postcode or hotel to search.', true);
+            if (whereEl) whereEl.focus();
+            return;
+          }
+          var ci = ciEl ? ciEl.value : '';
+          var co = coEl ? coEl.value : '';
+          if (!ci || !co) {
+            showFeedback('Choose both check-in and check-out dates.', true);
+            return;
+          }
+          if (co <= ci) {
+            showFeedback('Check-out must be after check-in.', true);
+            return;
+          }
+          var ad = adultsEl ? adultsEl.value : '1';
+          var rm = roomsEl ? roomsEl.value : '1';
+          var nights = Math.round((parseYmd(co) - parseYmd(ci)) / 86400000);
+          var adultWord = ad === '1' ? 'adult' : 'adults';
+          var roomWord = rm === '1' ? 'room' : 'rooms';
+          showFeedback(
+            'Demo search: ' +
+              place +
+              ' · ' +
+              fmtRange() +
+              ' · ' +
+              nights +
+              ' night' +
+              (nights === 1 ? '' : 's') +
+              ' · ' +
+              ad +
+              ' ' +
+              adultWord +
+              ', ' +
+              rm +
+              ' ' +
+              roomWord +
+              '.',
+            false
+          );
+          persist();
+        });
+      }
+
+      if (useLocBtn && whereEl) {
+        useLocBtn.addEventListener('click', function () {
+          if (!navigator.geolocation) {
+            showFeedback('Geolocation is not available in this browser.', true);
+            return;
+          }
+          showFeedback('Requesting your location…', false);
+          navigator.geolocation.getCurrentPosition(
+            function (pos) {
+              var lat = pos.coords.latitude.toFixed(4);
+              var lng = pos.coords.longitude.toFixed(4);
+              whereEl.value = 'Near ' + lat + ', ' + lng;
+              showFeedback('Location filled from device. Adjust the text or pick a city from suggestions if you prefer.', false);
+              persist();
+            },
+            function () {
+              showFeedback('Could not read your location (permission denied or unavailable).', true);
+            },
+            { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 }
+          );
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
