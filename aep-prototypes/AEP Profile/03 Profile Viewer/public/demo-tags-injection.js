@@ -165,12 +165,15 @@
   }
 
   function resolveKnownEcid(profile, infoEcidEl) {
+    const ui = infoEcidEl ? String(infoEcidEl.textContent || '').trim() : '';
+    if (ui && ui !== '—' && ui !== '-' && /^\d+$/.test(ui) && ui.length >= 10) {
+      return ui;
+    }
     if (profile && profile.ecid) return String(profile.ecid).trim();
     if (profile && Array.isArray(profile.identities)) {
       const found = profile.identities.find((id) => String(id.namespace || '').toLowerCase() === 'ecid');
       if (found && found.value) return String(found.value).trim();
     }
-    const ui = infoEcidEl ? String(infoEcidEl.textContent || '').trim() : '';
     return ui && ui !== '-' ? ui : '';
   }
 

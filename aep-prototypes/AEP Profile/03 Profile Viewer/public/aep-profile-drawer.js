@@ -278,13 +278,31 @@ function identityGraphLabel(ns) {
   return s.length > 11 ? `${s.slice(0, 9)}…` : s || 'ID';
 }
 
-function mergeIdentitiesFromConsent(data, ecidVal, canonicalEmail) {
+function identityListHasEcidDigits(list, digits) {
+  if (!digits || String(digits).length < 10) return false;
+  return list.some((x) => {
+    if (!/ecid/i.test(String(x.namespace || ''))) return false;
+    return String(x.value || '').replace(/\D/g, '') === digits;
+  });
+}
+
+/**
+ * @param {string} [appendSessionEcid] When set (e.g. browser anonymous ECID on email lookup), adds a second ECID node if not already present so the graph shows stitching targets.
+ */
+function mergeIdentitiesFromConsent(data, ecidVal, canonicalEmail, appendSessionEcid) {
   const list = Array.isArray(data.identities) ? data.identities.slice() : [];
   function hasMatch(re) {
     return list.some((x) => re.test(String(x.namespace || '')));
   }
-  const ecidStr = ecidVal && String(ecidVal).length >= 10 ? String(ecidVal) : '';
-  if (ecidStr && !hasMatch(/ecid/i)) list.push({ namespace: 'ECID', value: ecidStr });
+  function pushEcidIfNew(raw) {
+    const ecidStr = raw && String(raw).length >= 10 ? String(raw).trim() : '';
+    const dig = ecidStr.replace(/\D/g, '');
+    if (!ecidStr || dig.length < 10) return;
+    if (identityListHasEcidDigits(list, dig)) return;
+    list.push({ namespace: 'ECID', value: ecidStr });
+  }
+  pushEcidIfNew(ecidVal);
+  pushEcidIfNew(appendSessionEcid);
   const em = String(canonicalEmail || '').trim();
   if (em && !hasMatch(/email/i)) list.push({ namespace: 'Email', value: em });
   return list.slice(0, 40);
@@ -1007,17 +1025,37 @@ async function loadProfileDataForDrawer(email, options) {
     const ecidVal =
       data.ecid == null ? '' : Array.isArray(data.ecid) ? (data.ecid[0] != null ? String(data.ecid[0]) : '') : String(data.ecid);
     const incomingEcid = ecidVal && ecidVal.length >= 10 ? ecidVal : '';
+    const digitsOnly = (s) => String(s || '').replace(/\D/g, '');
+    const prevHintForSession = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+    const sessionEcidValid =
+      prevHintForSession &&
+      prevHintForSession !== '—' &&
+      prevHintForSession !== '-' &&
+      /^\d+$/.test(prevHintForSession) &&
+      prevHintForSession.length >= 10;
+    const sessionEcid = sessionEcidValid ? prevHintForSession : '';
+    const lookupIsEcidNs = ns === 'ecid' && digitsOnly(emailTrim).length >= 10;
+    const lookupByEmail = !lookupIsEcidNs;
+
     if (infoEcid) {
-      const prevHint = String(infoEcid.textContent || '').trim();
-      const digitsOnly = (s) => String(s || '').replace(/\D/g, '');
-      const lookupIsEcidNs = ns === 'ecid' && digitsOnly(emailTrim).length >= 10;
+      const prevHint = prevHintForSession;
       const sameBrowserEcid =
         lookupIsEcidNs && digitsOnly(emailTrim) === digitsOnly(prevHint) && prevHint !== '—' && prevHint !== '-';
-      if (incomingEcid) infoEcid.textContent = incomingEcid;
-      else if (sameBrowserEcid && !data.found) infoEcid.textContent = prevHint;
-      else if (!incomingEcid && !data.found && prevHint && /^\d+$/.test(prevHint) && prevHint.length >= 10)
+      if (incomingEcid) {
+        if (lookupByEmail && sessionEcidValid && digitsOnly(incomingEcid) !== digitsOnly(prevHint)) {
+          infoEcid.textContent = prevHint;
+        } else {
+          infoEcid.textContent = incomingEcid;
+        }
+      } else if (sameBrowserEcid && !data.found) {
         infoEcid.textContent = prevHint;
-      else if (!incomingEcid) infoEcid.textContent = '—';
+      } else if (!incomingEcid && !data.found && sessionEcidValid) {
+        infoEcid.textContent = prevHint;
+      } else if (lookupByEmail && data.found && sessionEcidValid) {
+        infoEcid.textContent = prevHint;
+      } else if (!incomingEcid) {
+        infoEcid.textContent = '—';
+      }
     }
 
     const [audiences, eventsAll] = await Promise.all([
@@ -1050,10 +1088,15 @@ async function loadProfileDataForDrawer(email, options) {
     const ecidMerged =
       incomingEcid ||
       (ecidVal && String(ecidVal).length >= 10 ? String(ecidVal) : '') ||
+      (lookupByEmail && sessionEcid ? sessionEcid : '') ||
       (prev.ecid != null && String(prev.ecid).length >= 10 ? String(prev.ecid) : '') ||
       null;
     const ecidForGraph = ecidMerged || '';
-    const identities = mergeIdentitiesFromConsent(data, ecidForGraph, profileEmailForGraph);
+    const appendSessionEcid =
+      lookupByEmail && sessionEcid && (!incomingEcid || digitsOnly(sessionEcid) !== digitsOnly(incomingEcid))
+        ? sessionEcid
+        : '';
+    const identities = mergeIdentitiesFromConsent(data, ecidForGraph, profileEmailForGraph, appendSessionEcid);
 
     lastLookedUpProfile = {
       ...prev,
