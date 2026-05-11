@@ -9,14 +9,6 @@ const profileIndexInput = document.getElementById('profileIndex');
 const emailDisplay = document.getElementById('emailDisplay');
 const generateBtn = document.getElementById('generateBtn');
 const generateMessage = document.getElementById('generateMessage');
-const legacyMarkTestProfileEl = document.getElementById('profileGenLegacyMarkTestProfile');
-
-function syncLegacyMarkTestProfileCheckbox() {
-  const Shared = window.AepProfileGenShared;
-  if (!legacyMarkTestProfileEl || !Shared || typeof Shared.readMarkTestProfilePreference !== 'function') return;
-  const ind = (industrySelect?.value || '').trim().toLowerCase() || 'generic';
-  legacyMarkTestProfileEl.checked = Shared.readMarkTestProfilePreference(ind);
-}
 
 const INDUSTRY_GROUPS = {
   retail: 'industryRetail',
@@ -854,14 +846,6 @@ if (industrySelect) {
     showIndustryFields(industrySelect.value?.trim().toLowerCase() || '');
     syncEmailFieldEditability();
     updateEmailDisplay();
-    syncLegacyMarkTestProfileCheckbox();
-  });
-}
-
-if (legacyMarkTestProfileEl && window.AepProfileGenShared) {
-  legacyMarkTestProfileEl.addEventListener('change', () => {
-    const ind = (industrySelect?.value || '').trim().toLowerCase() || 'generic';
-    window.AepProfileGenShared.writeMarkTestProfilePreference(ind, legacyMarkTestProfileEl.checked);
   });
 }
 
@@ -936,12 +920,11 @@ if (generateBtn && generateMessage) {
     setInput('loyaltyID', `LYL-${randomInt(100000, 999999)}`);
     Object.assign(attributes, getLoyaltyAttributes());
 
+    const SharedMark = window.AepProfileGenShared;
     const markTestProfile =
-      legacyMarkTestProfileEl != null
-        ? legacyMarkTestProfileEl.checked
-        : window.AepProfileGenShared && typeof window.AepProfileGenShared.readMarkTestProfilePreference === 'function'
-          ? window.AepProfileGenShared.readMarkTestProfilePreference(industry || 'generic')
-          : true;
+      SharedMark && typeof SharedMark.readMarkTestProfilePreference === 'function'
+        ? SharedMark.readMarkTestProfilePreference(industry || 'generic')
+        : true;
     if (markTestProfile) attributes['xdm:testProfile'] = true;
 
     generateBtn.disabled = true;
@@ -1042,4 +1025,3 @@ if (sandboxSelect) loadSandboxes();
 showIndustryFields(industrySelect?.value?.trim().toLowerCase() || '');
 syncEmailFieldEditability();
 updateEmailDisplay();
-syncLegacyMarkTestProfileCheckbox();
