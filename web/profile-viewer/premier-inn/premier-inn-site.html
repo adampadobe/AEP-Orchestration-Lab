@@ -7,8 +7,9 @@
   <meta name="description" content="From booking to bed, we’re here to help you rest easy. Whether it’s our choice of rooms across 800+ hotels, beds you won’t want to leave, our super tasty food, flexible rates or our friendly team members, these are just some of the reasons we’re one of the most-loved hotels in the UK and beyond."/>
   <link rel="icon" type="image/x-icon" href="https://www.premierinn.com/content/dam/pi/websites/desktop/icons/favicons/favicon.ico"/>
   <!--
-    Visual mimic of https://www.premierinn.com/gb/en/home.html (May 2026) — layout/colours/copy aligned to production HTML dumps.
-    Images: default origin premierinn.com; optional localStorage piPremierInnDemoAssetBase → e.g. https://contenthosting.web.app/LiveDemo/premier-inn
+    Visual mimic of https://www.premierinn.com/gb/en/home.html (May 2026).
+    Header uses premier-inn-master-logo-white-2026.png (not inverted purple art). Search UI: single white pill + integrated teal Search.
+    Images: default origin premierinn.com; optional localStorage piPremierInnDemoAssetBase (mirror same /content/dam/… paths).
   -->
   <script>
     (function () {
@@ -39,7 +40,7 @@
 
     /* —— Purple stage (header + headline + search) —— */
     .pi-stage {
-      background: linear-gradient(180deg, #3d1450 0%, #5a2868 45%, #6c3072 100%);
+      background: #4b1d5c;
       padding: 0 16px 56px;
       color: #fff;
     }
@@ -54,57 +55,48 @@
       padding: 16px 0 8px;
     }
     .pi-logo-link { display: flex; align-items: center; }
+    /* Production white wordmark — do not invert the purple PNG (breaks in iframe as blank box). */
     .pi-logo-link img {
       height: 40px;
       width: auto;
       display: block;
-      filter: brightness(0) invert(1);
     }
     @media (min-width: 900px) {
       .pi-logo-link img { height: 48px; }
+    }
+    .pi-top-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px 22px;
     }
     .pi-top-nav {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 12px 22px;
+      gap: 12px 20px;
       font-size: 15px;
       font-weight: 600;
     }
     .pi-top-nav a { color: #fff; opacity: 0.95; }
     .pi-top-nav a:hover { opacity: 1; text-decoration: underline; }
-    .pi-top-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px 14px;
-    }
     .pi-flag {
       width: 28px;
       height: 28px;
       border-radius: 50%;
       object-fit: cover;
     }
-    .pi-btn-outline {
-      border: 2px solid #fff;
-      color: #fff;
-      background: transparent;
-      padding: 8px 22px;
-      border-radius: 999px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: default;
-    }
-    .pi-btn-solid-light {
-      border: 2px solid #fff;
+    .pi-btn-pill {
+      border: none;
       background: #fff;
       color: #511e62;
-      padding: 8px 22px;
+      padding: 9px 22px;
       border-radius: 999px;
       font-size: 15px;
       font-weight: 700;
       cursor: default;
     }
+    .pi-btn-pill:hover { filter: brightness(0.97); }
 
     .pi-hero-title-wrap {
       max-width: 1240px;
@@ -121,59 +113,88 @@
       line-height: 1.15;
     }
 
-    /* Teal search strip */
+    /* Single white search “pill” (matches live header widget, not teal tray). */
     .pi-search-outer {
-      max-width: 1240px;
+      max-width: 960px;
       margin: 0 auto;
     }
-    .pi-search-bar {
-      background: #00798e;
-      border-radius: 12px;
-      padding: 14px 16px;
+    .pi-search-pill {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: stretch;
-      gap: 10px;
+      background: #fff;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.18);
     }
-    .pi-search-field {
-      flex: 1 1 180px;
+    .pi-search-seg {
+      flex: 1 1 0;
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #fff;
-      border-radius: 8px;
-      padding: 10px 14px;
-      min-height: 48px;
-    }
-    .pi-search-field svg { flex-shrink: 0; opacity: 0.55; }
-    .pi-search-field input {
-      border: none;
-      outline: none;
+      padding: 14px 16px 14px 20px;
       font-size: 15px;
-      width: 100%;
       color: #333;
-      background: transparent;
     }
-    .pi-search-field input::placeholder { color: #777; }
-    .pi-search-submit {
+    .pi-search-seg svg {
+      flex-shrink: 0;
+      color: #888;
+    }
+    .pi-search-seg .pi-ph {
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pi-search-divider {
+      width: 1px;
+      flex-shrink: 0;
+      background: #d8d8d8;
+      align-self: stretch;
+      margin: 10px 0;
+    }
+    .pi-search-go {
       flex: 0 0 auto;
-      background: #006878;
+      align-self: stretch;
+      background: #00798e;
       color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 12px 32px;
+      padding: 0 min(7vw, 36px);
       font-size: 16px;
       font-weight: 800;
       cursor: default;
-      min-height: 48px;
+      border-radius: 0 999px 999px 0;
     }
-    .pi-search-locate {
-      margin-top: 10px;
+    .pi-search-go:hover { filter: brightness(1.05); }
+    @media (max-width: 720px) {
+      .pi-search-pill {
+        flex-wrap: wrap;
+        border-radius: 16px;
+      }
+      .pi-search-divider { display: none; }
+      .pi-search-seg {
+        flex: 1 1 100%;
+        border-bottom: 1px solid #eee;
+      }
+      .pi-search-go {
+        flex: 1 1 100%;
+        border-radius: 0 0 12px 12px;
+        padding: 14px;
+      }
+    }
+    .pi-explore-prices {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
       font-size: 14px;
+      font-weight: 600;
       color: #fff;
-      opacity: 0.95;
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
-    .pi-search-locate:hover { text-decoration: underline; }
+    .pi-explore-prices svg { flex-shrink: 0; opacity: 0.9; }
 
     /* White main canvas */
     .pi-canvas {
@@ -415,17 +436,17 @@
   <div class="pi-stage">
     <header class="pi-top-header">
       <a class="pi-logo-link" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">
-        <img data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-purple-2026.png" alt="Premier Inn" width="220" height="48"/>
+        <img data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-white-2026.png" alt="Premier Inn" width="220" height="48"/>
       </a>
-      <nav class="pi-top-nav" aria-label="Primary">
-        <a href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">Discover Premier Inn</a>
-        <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Business</a>
-        <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Manage booking</a>
-      </nav>
-      <div class="pi-top-actions">
+      <div class="pi-top-right">
         <img class="pi-flag" data-pi-src="/etc/clientlibs/pi-header/resources/images/british-round.svg" alt="" width="28" height="28"/>
-        <button type="button" class="pi-btn-outline">Log in</button>
-        <button type="button" class="pi-btn-solid-light">Sign up</button>
+        <nav class="pi-top-nav" aria-label="Primary">
+          <a href="https://www.premierinn.com/gb/en/why.html" target="_blank" rel="noopener">Discover Premier Inn</a>
+          <a href="https://www.premierinn.com/gb/en/business.html" target="_blank" rel="noopener">Business</a>
+          <a href="https://www.premierinn.com/gb/en/guest-account.html" target="_blank" rel="noopener">Manage booking</a>
+        </nav>
+        <button type="button" class="pi-btn-pill">Log in</button>
+        <button type="button" class="pi-btn-pill">Sign up</button>
       </div>
     </header>
 
@@ -434,22 +455,27 @@
     </div>
 
     <div class="pi-search-outer">
-      <div class="pi-search-bar" role="search" aria-label="Hotel search">
-        <label class="pi-search-field">
+      <div class="pi-search-pill" role="search" aria-label="Hotel search">
+        <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z" stroke="currentColor" stroke-width="1.6"/><path d="M19 19c-2-3-4.5-5-7-5s-5 2-7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <input type="text" readonly placeholder="Enter a city, postcode or hotel" autocomplete="off"/>
-        </label>
-        <label class="pi-search-field">
+          <span class="pi-ph">Enter place, postcode or hotel</span>
+        </div>
+        <div class="pi-search-divider" aria-hidden="true"></div>
+        <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <input type="text" readonly placeholder="Dates / 1 night" autocomplete="off"/>
-        </label>
-        <label class="pi-search-field">
+          <span class="pi-ph">Today | Tomorrow</span>
+        </div>
+        <div class="pi-search-divider" aria-hidden="true"></div>
+        <div class="pi-search-seg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <input type="text" readonly placeholder="1 room, 2 adults" autocomplete="off"/>
-        </label>
-        <button type="button" class="pi-search-submit">Search</button>
+          <span class="pi-ph">1 adult, 1 room</span>
+        </div>
+        <button type="button" class="pi-search-go">Search</button>
       </div>
-      <a class="pi-search-locate" href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">Use my current location</a>
+      <a class="pi-explore-prices" href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Explore our best prices
+      </a>
     </div>
   </div>
 
