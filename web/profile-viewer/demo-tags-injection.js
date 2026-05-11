@@ -169,14 +169,35 @@
 
     const setMessage = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
 
+    var DT_LOG = '[DemoTagsInjection:' + storagePrefix + ']';
+    function dtLog() {
+      if (typeof global.console === 'undefined' || !global.console.log) return;
+      try {
+        var a = [DT_LOG].concat(Array.prototype.slice.call(arguments));
+        global.console.log.apply(global.console, a);
+      } catch (_e) {
+        /* noop */
+      }
+    }
+    function dtPreview(u) {
+      var s = String(u || '');
+      if (!s) return '(empty)';
+      if (s.length > 140) return s.slice(0, 140) + '\u2026(len=' + s.length + ')';
+      return s;
+    }
+
     let selectedScriptUrl = '';
     let allPropertyOptions = [];
     let selectedPropertyId = '';
 
     function renderSelectedScript(url) {
+      const prev = selectedScriptUrl;
       selectedScriptUrl = url || '';
       if (!selectedScriptEl) return;
       selectedScriptEl.textContent = selectedScriptUrl || 'None';
+      if (prev !== selectedScriptUrl) {
+        dtLog('selectedScriptUrl updated', { sandboxKey: getSandboxKey(), preview: dtPreview(selectedScriptUrl) });
+      }
     }
 
     function persistSelectedScriptUrl(url) {
@@ -225,8 +246,9 @@
     function markPendingLaunchInject(url) {
       try {
         sessionStorage.setItem(pendingSessionKey, String(url || '').trim());
-      } catch {
-        /* noop */
+        dtLog('sessionStorage pending set', { key: pendingSessionKey, preview: dtPreview(url) });
+      } catch (e) {
+        dtLog('sessionStorage pending set FAILED', e && e.message ? e.message : String(e));
       }
     }
 
@@ -234,8 +256,10 @@
       try {
         const v = String(sessionStorage.getItem(pendingSessionKey) || '').trim();
         sessionStorage.removeItem(pendingSessionKey);
+        dtLog('sessionStorage pending consumed', { key: pendingSessionKey, hadValue: !!v, preview: dtPreview(v) });
         return v;
-      } catch {
+      } catch (e) {
+        dtLog('sessionStorage pending consume FAILED', e && e.message ? e.message : String(e));
         return '';
       }
     }
@@ -243,9 +267,12 @@
     function reloadPageForLaunchInjection() {
       try {
         const u = new URL(global.location.href);
-        u.searchParams.set(storagePrefix + 'LaunchReload', String(Date.now()));
+        const p = storagePrefix + 'LaunchReload';
+        u.searchParams.set(p, String(Date.now()));
+        dtLog('navigation: location.replace for inject reload', { param: p, href: u.toString() });
         global.location.replace(u.toString());
-      } catch {
+      } catch (e) {
+        dtLog('navigation: location.replace failed, falling back to reload', e && e.message ? e.message : String(e));
         global.location.reload();
       }
     }
@@ -407,20 +434,29 @@
     }
 
     async function syncEcidFromAlloy() {
+      dtLog('syncEcidFromAlloy: waiting for window.alloy (up to 12s)');
       const alloyFn = await waitForAlloy(12000);
       if (!alloyFn) {
+        dtLog('syncEcidFromAlloy: alloy still missing after timeout');
         setMessage('Launch script loaded, but alloy is not available yet.', 'error');
         return '';
       }
+      dtLog('syncEcidFromAlloy: alloy available, polling getIdentity');
       try {
         let ecid = '';
         for (let i = 0; i < 7; i++) {
           const result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
           ecid = extractEcid(result);
+          dtLog('syncEcidFromAlloy: getIdentity attempt', {
+            attempt: i + 1,
+            ecidFound: !!ecid,
+            resultKeys: result && typeof result === 'object' ? Object.keys(result).slice(0, 12) : typeof result,
+          });
           if (ecid) break;
           await delay(500);
         }
         if (!ecid) {
+          dtLog('syncEcidFromAlloy: no ECID after retries (Launch may not configure Alloy on this document)');
           setMessage('No ECID returned yet from alloy.getIdentity after retry.', 'error');
           return '';
         }
@@ -447,33 +483,51 @@
     }
 
     async function injectSelectedScriptNow(scriptOverride) {
-      const scriptUrl = sanitiseLaunchScriptUrl(scriptOverride || selectedScriptUrl);
+      const rawOverride = scriptOverride || selectedScriptUrl;
+      const scriptUrl = sanitiseLaunchScriptUrl(rawOverride);
+      dtLog('injectSelectedScriptNow: start', {
+        sandboxKey: getSandboxKey(),
+        rawPreview: dtPreview(rawOverride),
+        sanitisedOk: !!scriptUrl,
+        sanitisedPreview: dtPreview(scriptUrl),
+      });
       if (!scriptUrl) return false;
 
       if (injectSdkBtn) injectSdkBtn.disabled = true;
       try {
         setMessage('Injecting selected Launch script...', '');
-        await injectScriptIntoDocument(document, withCacheBust(scriptUrl), storagePrefix + 'LaunchScript');
+        const mainId = storagePrefix + 'LaunchScript';
+        const busted = withCacheBust(scriptUrl);
+        dtLog('injectSelectedScriptNow: injecting into parent document', { scriptId: mainId, url: dtPreview(busted) });
+        await injectScriptIntoDocument(document, busted, mainId);
+        dtLog('injectSelectedScriptNow: parent document script onload OK');
 
         for (let i = 0; i < iframes.length; i++) {
           const frame = iframes[i];
-          if (!frame || !frame.contentDocument || !frame.contentDocument.head) continue;
+          if (!frame || !frame.contentDocument || !frame.contentDocument.head) {
+            dtLog('injectSelectedScriptNow: skip iframe (no document/head)', { index: i, frameId: frame && frame.id });
+            continue;
+          }
           try {
-            await injectScriptIntoDocument(
-              frame.contentDocument,
-              withCacheBust(scriptUrl),
-              storagePrefix + 'LaunchScriptFrame' + i
-            );
-          } catch {
-            /* Do not fail main flow on iframe injection misses */
+            const fid = storagePrefix + 'LaunchScriptFrame' + i;
+            dtLog('injectSelectedScriptNow: injecting into iframe', { index: i, frameId: frame.id, scriptId: fid });
+            await injectScriptIntoDocument(frame.contentDocument, withCacheBust(scriptUrl), fid);
+            dtLog('injectSelectedScriptNow: iframe script onload OK', { index: i });
+          } catch (iframeErr) {
+            dtLog('injectSelectedScriptNow: iframe inject failed (non-fatal)', {
+              index: i,
+              message: iframeErr && iframeErr.message ? iframeErr.message : String(iframeErr),
+            });
           }
         }
 
         await syncEcidFromAlloy();
         markSdkConfiguredForSandbox(true);
         setSdkConfigExpanded(false);
+        dtLog('injectSelectedScriptNow: complete (configured + summary mode)');
         return true;
       } catch (err) {
+        dtLog('injectSelectedScriptNow: FAILED', err && err.message ? err.message : String(err));
         setMessage(err.message || 'Script injection failed.', 'error');
         return false;
       } finally {
@@ -482,8 +536,16 @@
     }
 
     function injectSelectedScript() {
-      const scriptUrl = sanitiseLaunchScriptUrl(selectedScriptUrl);
+      const raw = selectedScriptUrl;
+      const scriptUrl = sanitiseLaunchScriptUrl(raw);
+      dtLog('injectSelectedScript (reload path): click', {
+        sandboxKey: getSandboxKey(),
+        rawSelectedPreview: dtPreview(raw),
+        sanitisedOk: !!scriptUrl,
+        sanitisedPreview: dtPreview(scriptUrl),
+      });
       if (!scriptUrl) {
+        dtLog('injectSelectedScript: abort — sanitise returned empty (pick a Tags environment with a valid assets.adobedtm.com URL)');
         setMessage('Select a valid Tags environment script first.', 'error');
         return;
       }
@@ -565,6 +627,16 @@
           decoded = raw;
         }
         const clean = sanitiseLaunchScriptUrl(decoded);
+        dtLog('tagsEnvironmentSelect: change', {
+          optionLabel:
+            tagsEnvironmentSelect.selectedIndex >= 0
+              ? String(tagsEnvironmentSelect.options[tagsEnvironmentSelect.selectedIndex].textContent || '').trim()
+              : '',
+          rawValueLen: raw.length,
+          decodedPreview: dtPreview(decoded),
+          sanitisedOk: !!clean,
+          sanitisedPreview: dtPreview(clean),
+        });
         renderSelectedScript(clean);
         persistSelectedScriptUrl(clean);
       });
@@ -572,6 +644,7 @@
 
     if (injectSdkBtn) {
       injectSdkBtn.addEventListener('click', function () {
+        dtLog('injectSdkBtn: click', { buttonId: cfg.injectButtonId });
         injectSelectedScript();
       });
     }
@@ -589,11 +662,19 @@
       void loadTagsCompanies();
     });
 
+    dtLog('init: boot', {
+      sandboxKey: getSandboxKey(),
+      iframeCount: iframes.length,
+      injectButtonId: cfg.injectButtonId,
+      pendingSessionKey: pendingSessionKey,
+    });
     const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
     if (pendingScriptInject) {
+      dtLog('init: post-reload pending inject branch', { preview: dtPreview(pendingScriptInject) });
       renderSelectedScript(pendingScriptInject);
       void injectSelectedScriptNow(pendingScriptInject);
     } else {
+      dtLog('init: no pending inject — applySandboxConfigState');
       applySandboxConfigState();
     }
     void loadTagsCompanies();
