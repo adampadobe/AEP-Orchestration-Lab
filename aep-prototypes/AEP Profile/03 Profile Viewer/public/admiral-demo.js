@@ -30,7 +30,26 @@ const admiralTagsInjection =
         configSummaryId: 'admiralSdkConfigSummary',
         configSummaryTextId: 'admiralSdkConfigSummaryText',
         changeConfigButtonId: 'admiralChangeSdkConfigBtn',
-        iframeIds: ['admiralSiteFrame'],
+        /**
+         * Parent shell only — same pattern as Premier Inn (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
+         * Injecting Launch into the iframe mints a different ECID / kndctr context than parent
+         * `syncEcidFromAlloy` + `_demoemea` sendEvent, so UPS and #infoEcid no longer line up.
+         */
+        iframeIds: [],
+        onEcidResolved: function (ecid) {
+          if (
+            typeof DemoProfileDrawer === 'undefined' ||
+            typeof DemoProfileDrawer.refreshDrawerEventsForIdentity !== 'function'
+          ) {
+            return;
+          }
+          window.setTimeout(function () {
+            void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+          }, 2500);
+          window.setTimeout(function () {
+            void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+          }, 8000);
+        },
       })
     : null;
 
