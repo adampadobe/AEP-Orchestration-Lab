@@ -504,34 +504,38 @@
     }
 
     /**
-     * Edge / Demo Website datasets often require a root `_demoemea` object (DCVS-1106 if missing).
-     * Navigator lab CTAs use `_demosystem5` via the Event generator only; Web SDK hits use this tenant.
-     *
-     * Keep `identification.core` empty here: Alloy attaches ECID via `identityMap`. Also sending
-     * `core.ecid` caused UPINGT-030075 ("multiple identities with highest namespace priority") for
-     * the same hit — duplicate ECID pathways vs the SDK-enriched identity block.
+     * Demo Website–style datasets require `_demoemea` with `identification.core.ecid` (DCVS-1106 if
+     * missing). Failed-batch export for dataset 655cc… shows: required key [ecid] not found under
+     * `core` when we sent empty `core: {}`. Alloy still attaches ECID in `identityMap`; `core.ecid`
+     * must mirror the same digits for this schema. (Prior UPINGT-030075 was addressed separately;
+     * if it recurs with core.ecid restored, use Identity settings / Launch rules — same ECID value.)
      */
-    function xdmDemoemeaShellForEdge() {
+    function xdmDemoemeaTenantForEdge(ecidDigits) {
+      const id = normaliseEcidDigits(ecidDigits);
       return {
         _demoemea: {
           identification: {
-            core: {},
+            core: id ? { ecid: id } : {},
           },
         },
       };
     }
 
     /**
-     * @param {{ phase?: string, pageNameSuffix?: string }} [opts]
+     * @param {{ phase?: string, pageNameSuffix?: string, ecid?: string }} [opts]
      */
     async function sendDemoemeaWebPageViewToEdge(alloyFn, opts) {
       const o = opts || {};
-      const phase = String(o.phase || 'prime');
+      const phase = String(o.phase || 'send');
       const suffix = String(o.pageNameSuffix || '').trim();
       const baseTitle = (global.document && global.document.title) || 'AEP lab demo';
       const pageName = suffix ? baseTitle + suffix : baseTitle;
+      const tenant = xdmDemoemeaTenantForEdge(o.ecid);
+      if (!tenant._demoemea.identification.core.ecid) {
+        dtLog('syncEcidFromAlloy: skip sendEvent — no ECID for _demoemea.identification.core (schema requires ecid)');
+        return;
+      }
       try {
-        const shell = xdmDemoemeaShellForEdge();
         await alloyFn('sendEvent', {
           xdm: Object.assign(
             {
@@ -543,20 +547,16 @@
                 },
               },
             },
-            shell
+            tenant
           ),
         });
-        dtLog('syncEcidFromAlloy: sendEvent (page view + _demoemea shell) completed', { phase });
+        dtLog('syncEcidFromAlloy: sendEvent (page view + _demoemea.core.ecid) completed', { phase });
       } catch (e) {
         dtLog('syncEcidFromAlloy: sendEvent failed (non-fatal)', {
           phase,
           err: e && e.message ? e.message : String(e),
         });
       }
-    }
-
-    async function primeAlloyIdentityOnEdge(alloyFn) {
-      await sendDemoemeaWebPageViewToEdge(alloyFn, { phase: 'prime' });
     }
 
     async function syncEcidFromAlloy() {
@@ -567,10 +567,9 @@
         setMessage('Launch script loaded, but alloy is not available yet.', 'error');
         return '';
       }
-      dtLog('syncEcidFromAlloy: alloy available — prime edge then poll getIdentity');
+      dtLog('syncEcidFromAlloy: alloy available — poll getIdentity (no pre-hit; empty _demoemea.core fails DCVS-1106 on this dataset)');
       try {
-        await primeAlloyIdentityOnEdge(alloyFn);
-        await delay(400);
+        await delay(200);
         let ecid = '';
         for (let i = 0; i < 7; i++) {
           let result = null;
@@ -603,9 +602,9 @@
           return '';
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
-        /* Second hit after ECID is known: Alloy attaches ECID in identityMap without duplicating _demoemea.core.ecid (UPINGT-030075). Improves anonymous profile / dataset correlation vs a single pre-identity priming hit. */
         await sendDemoemeaWebPageViewToEdge(alloyFn, {
           phase: 'post-ecid-anonymous',
+          ecid: ecid,
           pageNameSuffix: ' · AEP lab (anonymous ECID)',
         });
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
