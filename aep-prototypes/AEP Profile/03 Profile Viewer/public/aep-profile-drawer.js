@@ -672,6 +672,25 @@ const AEP_EVENT_THUMB_SVG = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 9-6 6M9 9l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   hotelGeneric:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-4h6v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  /** Neutral default when no lab-specific artwork matches */
+  experienceGeneric:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 19V5M4 19h16M4 19l4-6 4 3 4-8 4 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  insuranceForm:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="9" y="3" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  insurancePolicy:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  insuranceDashboard:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="12" width="7" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="16" width="7" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  insuranceBank:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 21h18M5 21V10.5M19 21V10.5M12 3 3 10h18L12 3zM9 14h2M13 14h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  insuranceShield:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  insuranceMerge:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="7" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="17" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9l1.5 1.5M15 9l-1.5 1.5M12 13v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  insuranceOnboarding:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  commerceCart:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="9" cy="21" r="1" fill="currentColor"/><circle cx="20" cy="21" r="1" fill="currentColor"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 function hotelEventThumbFromBlob(blob) {
@@ -700,6 +719,36 @@ function hotelEventThumbFromBlob(blob) {
   return { variant: 'hotel-generic', svg: AEP_EVENT_THUMB_SVG.hotelGeneric };
 }
 
+/** Insurance / FS protection lab — brand-agnostic `insurance.*` event types + related blobs */
+function insuranceEventThumbFromBlob(blob) {
+  const b = blob.toLowerCase();
+  if (b.includes('onboarding') || b.includes('skiptoquote')) {
+    return { variant: 'insurance-onboarding', svg: AEP_EVENT_THUMB_SVG.insuranceOnboarding };
+  }
+  if (b.includes('policyinfo') || b.includes('step4complete') || b.includes('policyinfo.upload')) {
+    return { variant: 'insurance-policy', svg: AEP_EVENT_THUMB_SVG.insurancePolicy };
+  }
+  if (b.includes('dashboard')) {
+    return { variant: 'insurance-dashboard', svg: AEP_EVENT_THUMB_SVG.insuranceDashboard };
+  }
+  if (b.includes('banksubscribtion') || b.includes('banksubscription')) {
+    return { variant: 'insurance-bank', svg: AEP_EVENT_THUMB_SVG.insuranceBank };
+  }
+  if (b.includes('protectionconsolidation') || b.includes('gadgetcover')) {
+    return { variant: 'insurance-merge', svg: AEP_EVENT_THUMB_SVG.insuranceMerge };
+  }
+  if (b.includes('protectionaddon') || b.includes('homerebuild') || b.includes('homeflood')) {
+    return { variant: 'insurance-shield', svg: AEP_EVENT_THUMB_SVG.insuranceShield };
+  }
+  if (b.includes('completedsignup') || b.includes('step5complete') || b.includes('step1complete') || b.includes('step2complete') || b.includes('step3complete')) {
+    return { variant: 'insurance-milestone', svg: AEP_EVENT_THUMB_SVG.hotelComplete };
+  }
+  if (b.includes('quoteform') || b.includes('showhow')) {
+    return { variant: 'insurance-quote', svg: AEP_EVENT_THUMB_SVG.insuranceForm };
+  }
+  return { variant: 'insurance-generic', svg: AEP_EVENT_THUMB_SVG.insuranceShield };
+}
+
 /**
  * @param {{ eventType?: string, eventName?: string } | null | undefined} ev
  * @returns {{ url?: string, variant?: string, svg?: string }}
@@ -713,6 +762,10 @@ function eventThumbForEvent(ev) {
 
   if (blob.includes('hotel') || key.includes('hotel')) {
     return hotelEventThumbFromBlob(blob);
+  }
+
+  if (blob.includes('insurance') || key.startsWith('insurance')) {
+    return insuranceEventThumbFromBlob(blob);
   }
 
   if (key.includes('message.feedback') || key === 'messagefeedback') {
@@ -754,7 +807,13 @@ function eventThumbForEvent(ev) {
   if (keyLoose.includes('abandon')) {
     return { url: "url('https://images.ctfassets.net/u7vsjnoopqo5/3vMd1m9QJUdgZ1jMpzgmoU/657e350658a59d5f37a8a8a6ab3e47e1/Icon_microscope_navy.png?w=200&q=75')" };
   }
-  return { url: "url('https://www.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fdownloads.ctfassets.net%2Fu7vsjnoopqo5%2FrvcPK0YbxqEl9Gt41Azzq%2Fac926460962e2c75c0a0038ca8bfa45c%2F230613_CR_Trampoline187.jpg&w=200&q=65')" };
+  if (keyLoose.includes('commerce') || keyLoose.includes('productlist') || keyLoose.includes('cart')) {
+    return { variant: 'commerce-cart', svg: AEP_EVENT_THUMB_SVG.commerceCart };
+  }
+  if (keyLoose.includes('transaction') && !keyLoose.includes('subscription')) {
+    return { variant: 'commerce-cart', svg: AEP_EVENT_THUMB_SVG.commerceCart };
+  }
+  return { variant: 'experience-generic', svg: AEP_EVENT_THUMB_SVG.experienceGeneric };
 }
 
 /**
@@ -860,6 +919,8 @@ function renderEventTimeline(events) {
           ? 'push'
           : typeRaw.startsWith('mobile')
             ? 'MOBILE'
+            : typeRaw.startsWith('insurance')
+              ? 'INSURANCE'
             : typeRaw.startsWith('web')
               ? 'WEB'
               : 'WEB';
