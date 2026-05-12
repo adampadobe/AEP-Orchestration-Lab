@@ -1,0 +1,211 @@
+.etihad-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+.etihad-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.etihad-demo-page .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.etihad-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+.etihad-demo-page .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.etihad-demo-page .dashboard-main.etihad-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.etihad-demo-top-anchor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.etihad-demo-top-anchor::before {
+  content: "";
+  display: block;
+  height: 14px;
+  pointer-events: auto;
+}
+
+.etihad-demo-id-banner {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% - 14px));
+  transition: transform 0.2s ease;
+}
+
+.etihad-demo-top-anchor:hover .etihad-demo-id-banner,
+.etihad-demo-top-anchor:focus-within .etihad-demo-id-banner {
+  transform: translateY(0);
+}
+
+.etihad-demo-id-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.65rem 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.etihad-demo-id-inner .etihad-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.etihad-demo-id-inner .mod-sdk-summary--below-env-grid {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.etihad-demo-id-inner .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.etihad-demo-id-inner label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.etihad-demo-id-inner .sandbox-select,
+.etihad-demo-id-inner input[type="text"],
+.etihad-demo-id-inner select {
+  min-width: 10rem;
+}
+
+.etihad-demo-id-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.etihad-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.etihad-sdk-summary .btn-lookup {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.etihad-demo-ecid-hint {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.etihad-demo-script-preview {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.25rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.8rem;
+}
+
+.etihad-demo-script-preview code {
+  color: var(--dash-text);
+}
+
+.etihad-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.etihad-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.etihad-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+@media (min-width: 769px) {
+  body.etihad-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.etihad-demo-page--nav-open .dashboard-sidebar,
+  body.etihad-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: var(--dash-shadow-hover);
+  }
+}
+
+@media (max-width: 768px) {
+  body.etihad-demo-page .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+
+  body.etihad-demo-page--nav-open .dashboard-sidebar {
+    transform: none;
+  }
+
+  .etihad-demo-id-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

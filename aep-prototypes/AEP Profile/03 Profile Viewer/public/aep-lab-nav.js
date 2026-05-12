@@ -310,6 +310,14 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
         },
+        {
+          label: 'Etihad-style airline (in development)',
+          href: 'etihad-demo.html',
+          inDevelopment: true,
+          navHideKey: 'etihadAirlineDemo',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+        },
       ],
     },
   ];
