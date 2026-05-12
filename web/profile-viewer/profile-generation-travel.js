@@ -1803,6 +1803,7 @@
 
     if (markTestProfileEl && markTestProfileEl.checked) {
       updates.push({ path: 'xdm:testProfile', value: true, valueType: 'boolean' });
+      updates.push({ path: 'testProfile', value: true, valueType: 'boolean' });
     }
 
     return updates;

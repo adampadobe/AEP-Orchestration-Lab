@@ -925,7 +925,10 @@ if (generateBtn && generateMessage) {
       SharedMark && typeof SharedMark.readMarkTestProfilePreference === 'function'
         ? SharedMark.readMarkTestProfilePreference(industry || 'generic')
         : true;
-    if (markTestProfile) attributes['xdm:testProfile'] = true;
+    if (markTestProfile) {
+      attributes['xdm:testProfile'] = true;
+      attributes.testProfile = true;
+    }
 
     generateBtn.disabled = true;
     setMessage(generateMessage, 'Generating profile…', '');
@@ -974,7 +977,7 @@ if (generateBtn && generateMessage) {
             ecidSource: data.ecidSource,
             appendIfExisting: data.appendIfExisting,
             testProfileNote:
-              'When enabled, attributes include root xdm:testProfile (Profile test details field group). Legacy _demoemea.testProfile is no longer used here.',
+              'When enabled, attributes include root xdm:testProfile and testProfile (Data Prep / XDM parity). Legacy _demoemea.testProfile is not used here.',
             streamingResponse: data.streamingResponse,
           },
           null,
