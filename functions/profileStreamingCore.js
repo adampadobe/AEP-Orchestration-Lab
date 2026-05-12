@@ -299,6 +299,25 @@ function resolveStreamingConsentsOptInOut(tenantPayload, email) {
   return defaults;
 }
 
+/**
+ * AEP Lab generic HTTP samples use bare `testProfile` on the streaming root; OOTB Profile test
+ * details use `xdm:testProfile`. When only one key is present, mirror the same boolean so Data
+ * Prep / dataset mappings that expect either shape still receive the flag (covers `/api/profile/update`
+ * paths that only send `xdm:testProfile` from `updates[]`).
+ *
+ * @param {Record<string, unknown>} target - `xdmEntity` root or bare DCS body root
+ */
+function mirrorRootTestProfileFields(target) {
+  if (!target || typeof target !== 'object' || Array.isArray(target)) return;
+  const hasXdm = Object.prototype.hasOwnProperty.call(target, 'xdm:testProfile');
+  const hasBare = Object.prototype.hasOwnProperty.call(target, 'testProfile');
+  if (hasXdm && !hasBare) {
+    target.testProfile = target['xdm:testProfile'];
+  } else if (hasBare && !hasXdm) {
+    target['xdm:testProfile'] = target.testProfile;
+  }
+}
+
 function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, rootProfileFields) {
   const key = (xdmKey && String(xdmKey).trim()) || '_demoemea';
   const { consents, optInOut } = resolveStreamingConsentsOptInOut(tenantPayload, email);
@@ -319,6 +338,7 @@ function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, root
   if (key === '_demoemea') {
     entity.demoemea = tenantPayload;
   }
+  mirrorRootTestProfileFields(entity);
   return entity;
 }
 
@@ -369,17 +389,19 @@ function buildProfileStreamPayload(
     const k = (xdmKey && String(xdmKey).trim()) || '_demoemea';
     const { consents, optInOut } = resolveStreamingConsentsOptInOut(demoemeaTenantObject, email);
     const hasEcid = ecid != null && String(ecid).trim().length >= 10;
-    return {
-      payload: {
-        identityMap: {
-          Email: [{ id: email, primary: true }],
-          ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
-        },
-        [k]: demoemeaTenantObject,
-        consents,
-        optInOut,
-        ...(hasRoots ? roots : {}),
+    const payload = {
+      identityMap: {
+        Email: [{ id: email, primary: true }],
+        ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
       },
+      [k]: demoemeaTenantObject,
+      consents,
+      optInOut,
+      ...(hasRoots ? roots : {}),
+    };
+    mirrorRootTestProfileFields(payload);
+    return {
+      payload,
       format: 'bare',
     };
   }
