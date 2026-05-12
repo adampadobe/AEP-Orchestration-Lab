@@ -19,6 +19,10 @@
   var LS_NAV_HIDE_PREFIX = 'aepNavHideInDev_';
   /** Master switch per sandbox: aepShowInDevCapabilities_<slug> === '1' shows all in-development nav (subject to per-item hides). Missing key = off. */
   var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
+  /** Demos sidebar: GitHub-style handle (lowercase). Unset key defaults to apalmer for first-time browsers; explicit empty string narrows Mine to no owner match. */
+  var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
+  /** Demos sidebar: mine | mine_sandbox | all */
+  var LS_DEMO_NAV_VISIBILITY = 'aepDemoNavVisibility';
 
   function sandboxSlugForInDev() {
     try {
@@ -56,12 +60,82 @@
     return false;
   }
 
+  function getDemoNavVisibility() {
+    try {
+      var v = String(localStorage.getItem(LS_DEMO_NAV_VISIBILITY) || '').trim().toLowerCase();
+      if (v === 'mine' || v === 'mine_sandbox' || v === 'all') return v;
+    } catch (e) {}
+    return 'mine';
+  }
+
+  /**
+   * Unset localStorage key defaults to apalmer (primary lab owner). Explicit empty string = no handle (Mine shows no owned demos).
+   */
+  function getDemoNavOwnerHandle() {
+    try {
+      if (localStorage.getItem(LS_DEMO_NAV_OWNER_HANDLE) === null) return 'apalmer';
+      return String(localStorage.getItem(LS_DEMO_NAV_OWNER_HANDLE) || '').trim().toLowerCase();
+    } catch (e2) {
+      return 'apalmer';
+    }
+  }
+
+  function getCurrentSandboxNameForDemoNav() {
+    try {
+      if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+        return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (e) {}
+    try {
+      return String(localStorage.getItem(LS_SANDBOX) || '').trim();
+    } catch (e2) {
+      return '';
+    }
+  }
+
+  function demoSandboxListMatches(meta, sandboxName) {
+    if (!meta || !meta.sandboxes || !meta.sandboxes.length) return true;
+    var cur = String(sandboxName || '').trim();
+    if (!cur) return false;
+    return meta.sandboxes.some(function (s) {
+      return String(s || '').trim() === cur;
+    });
+  }
+
+  function demoItemMatchesMineRule(item, handle, sandboxName) {
+    var meta = item.demoMeta;
+    if (!meta || !Array.isArray(meta.owners)) return true;
+    var h = String(handle || '').trim().toLowerCase();
+    var owners = meta.owners.map(function (o) { return String(o || '').trim().toLowerCase(); });
+    if (!owners.length || !h || !owners.includes(h)) return false;
+    return demoSandboxListMatches(meta, sandboxName);
+  }
+
+  function demoItemMatchesMineSandboxRule(item, handle, sandboxName) {
+    if (demoItemMatchesMineRule(item, handle, sandboxName)) return true;
+    var meta = item.demoMeta;
+    if (!meta || !meta.sandboxes || !meta.sandboxes.length) return false;
+    return demoSandboxListMatches(meta, sandboxName);
+  }
+
+  function shouldShowDemoNavItem(item) {
+    if (!item || !item.demoMeta) return true;
+    var vis = getDemoNavVisibility();
+    if (vis === 'all') return true;
+    var handle = getDemoNavOwnerHandle();
+    var sb = getCurrentSandboxNameForDemoNav();
+    if (vis === 'mine') return demoItemMatchesMineRule(item, handle, sb);
+    if (vis === 'mine_sandbox') return demoItemMatchesMineSandboxRule(item, handle, sb);
+    return true;
+  }
+
   /** Sidebar: respect per-item hide (Global values); in-development items also need the per-sandbox master toggle */
   function shouldShowNavItem(item) {
     if (!isAccessModeAllowedForNavItem(item)) return false;
     if (!isSandboxAllowedForNavItem(item)) return false;
     var hideKey = navHideKeyForItem(item);
     if (hideKey && isNavInDevHidden(hideKey)) return false;
+    if (item.demoMeta && !shouldShowDemoNavItem(item)) return false;
     if (isWorkspaceMode()) return true;
     if (!item.inDevelopment) return true;
     if (!isInDevCapabilitiesEnabled()) return false;
@@ -118,7 +192,7 @@
 
   var NAV = [
     { label: 'Home', href: 'home.html', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
-    { label: 'Global values', href: 'global-settings.html?v=20260507b', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
+    { label: 'Global values', href: 'global-settings.html?v=20260512-demo-nav', allowWorkspace: true, ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
     {
       group: 'Profiles', id: 'profiles',
       items: [
@@ -252,17 +326,19 @@
     {
       group: 'Demos', id: 'demos',
       items: [
-        { label: 'Donate (demo)', href: 'donate-demo.html', ico: '\uD83D\uDC9D' },
-        { label: 'Race for Life (demo)', href: 'race-for-life-demo.html', ico: '\uD83C\uDFC3' },
+        { label: 'Donate (demo)', href: 'donate-demo.html', ico: '\uD83D\uDC9D', demoMeta: { owners: ['kirkham'] } },
+        { label: 'Race for Life (demo)', href: 'race-for-life-demo.html', ico: '\uD83C\uDFC3', demoMeta: { owners: ['kirkham'] } },
         {
           label: 'British Army (demo)',
           href: 'mod-demo.html',
+          demoMeta: { owners: ['kirkham'] },
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 3l2 4 4.5.5-3 3 1 5L12 14l-4.5 3 1-5-3-3L10 7l2-4z"/><path stroke="currentColor" stroke-width="1.5" d="M6 21h12" opacity="0.6"/></svg>',
         },
         {
           label: 'Navigator Global (demo)',
           href: 'navigator-global-demo.html',
+          demoMeta: { owners: ['kirkham'] },
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 2a7 7 0 015.196 11.607l2.804 2.804a1 1 0 01-1.414 1.414l-2.804-2.804A7 7 0 1112 2z"/><circle cx="12" cy="11" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
         },
@@ -271,6 +347,7 @@
           href: 'call-center-demo.html',
           inDevelopment: true,
           navHideKey: 'callCenterDemo',
+          demoMeta: { owners: ['kirkham'] },
           ico: '☎️',
         },
         {
@@ -278,6 +355,7 @@
           href: 'mobile-demo.html',
           inDevelopment: true,
           navHideKey: 'mobileDemo',
+          demoMeta: { owners: ['kirkham'] },
           ico: '📱',
         },
         {
@@ -285,6 +363,7 @@
           href: 'fnb-demo.html',
           inDevelopment: true,
           navHideKey: 'fnbDemo',
+          demoMeta: { owners: ['kirkham'] },
           ico: '🏦',
         },
         {
@@ -292,6 +371,7 @@
           href: 'oldmutual-demo.html',
           inDevelopment: true,
           navHideKey: 'oldMutualDemo',
+          demoMeta: { owners: ['kirkham'] },
           ico: '🧭',
         },
         {
@@ -299,6 +379,7 @@
           href: 'admiral-demo.html',
           inDevelopment: true,
           navHideKey: 'admiralDemo',
+          demoMeta: { owners: ['sburch'] },
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3.5L19.2 7.2V16.8L12 20.5L4.8 16.8V7.2L12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.8 7.2L12 11L19.2 7.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         },
@@ -307,6 +388,7 @@
           href: 'premier-inn-demo.html',
           inDevelopment: true,
           navHideKey: 'premierInnDemo',
+          demoMeta: { owners: ['apalmer'] },
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
         },
@@ -315,6 +397,7 @@
           href: 'etihad-demo.html',
           inDevelopment: true,
           navHideKey: 'etihadAirlineDemo',
+          demoMeta: { owners: ['apalmer'] },
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
         },
@@ -740,6 +823,10 @@
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
 
+  window.addEventListener('aep-demo-nav-filter-change', function () {
+    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+  });
+
   try {
     window.addEventListener('storage', function (e) {
       if (!e.key) return;
@@ -748,7 +835,9 @@
         e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
         e.key === LS_HIDE_EDP ||
         e.key === LS_SANDBOX ||
-        e.key === LS_ACCESS_MODE
+        e.key === LS_ACCESS_MODE ||
+        e.key === LS_DEMO_NAV_OWNER_HANDLE ||
+        e.key === LS_DEMO_NAV_VISIBILITY
       ) {
         document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
       }
@@ -760,10 +849,14 @@
       LS_PREFIX: LS_NAV_HIDE_PREFIX,
       LEGACY_EDP: LS_HIDE_EDP,
       LS_SHOW_INDEV_PREFIX: LS_SHOW_INDEV_PREFIX,
+      LS_DEMO_NAV_OWNER_HANDLE: LS_DEMO_NAV_OWNER_HANDLE,
+      LS_DEMO_NAV_VISIBILITY: LS_DEMO_NAV_VISIBILITY,
       sandboxSlugForInDev: sandboxSlugForInDev,
       showInDevCapabilitiesStorageKey: showInDevCapabilitiesStorageKey,
       isInDevCapabilitiesEnabled: isInDevCapabilitiesEnabled,
       isNavInDevHidden: isNavInDevHidden,
+      getDemoNavOwnerHandle: getDemoNavOwnerHandle,
+      getDemoNavVisibility: getDemoNavVisibility,
       /** True if this in-development link should appear in the sidebar / home quick paths */
       shouldShowMenuItem: function (navHideKey) {
         if (!navHideKey) return true;
@@ -774,6 +867,7 @@
       shouldShowDemosMenu: function () {
         return isDemosNavVisible();
       },
+      shouldShowDemoNavItem: shouldShowDemoNavItem,
       /** Global values helper: all nav items that support independent hide/show */
       getMenuVisibilityOptions: getMenuVisibilityOptions,
     };

@@ -100,6 +100,38 @@
                 Saved per sandbox (local keys <code>aepMenuPalette</code> / <code>aepBgPreset</code>) and synced to Firebase after anonymous sign-in.
               </p>
             </div>
+            <div id="aepDemoNavFilterSection" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dash-border);">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Demos sidebar</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
+                Filter the <strong>Demos</strong> group in the sidebar. Owner lists are defined on each demo in <code>aep-lab-nav.js</code> (<code>demoMeta.owners</code>). Optional <code>demoMeta.sandboxes</code> uses the same technical sandbox name as Global values / the env strip (<code>aepGlobalSandboxName</code>, exact match).
+              </p>
+              <label for="aepDemoNavHandlePreset" class="schema-aep-sandbox-label" style="display:block;margin-bottom:6px;font-weight:600;">Lab owner handle</label>
+              <select id="aepDemoNavHandlePreset" class="sandbox-select schema-aep-sandbox-select" style="max-width:100%;width:100%;margin-bottom:8px;" aria-label="Lab owner handle preset">
+                <option value="apalmer">apalmer</option>
+                <option value="sburch">sburch</option>
+                <option value="kirkham">kirkham</option>
+                <option value="__custom__">Custom…</option>
+              </select>
+              <input type="text" id="aepDemoNavHandleCustom" maxlength="64" placeholder="e.g. your-github-handle" style="display:none;width:100%;max-width:100%;padding:10px 12px;border:1px solid var(--dash-input-border);border-radius:10px;background:var(--dash-input-bg);color:var(--dash-text);margin-bottom:12px;" autocomplete="username" aria-label="Custom lab owner handle" />
+              <fieldset style="border:none;padding:0;margin:0;">
+                <legend class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Demos visibility</legend>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;line-height:1.45;">
+                    <input type="radio" name="aepDemoNavVisibility" value="mine" style="margin-top:3px;" />
+                    <span><strong>Mine</strong> — only demos listing your handle as an owner (and matching <code>sandboxes</code> when set on that demo).</span>
+                  </label>
+                  <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;line-height:1.45;">
+                    <input type="radio" name="aepDemoNavVisibility" value="mine_sandbox" style="margin-top:3px;" />
+                    <span><strong>Mine + same sandbox</strong> — same as Mine, plus any demo whose <code>sandboxes</code> includes the active sandbox.</span>
+                  </label>
+                  <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;line-height:1.45;">
+                    <input type="radio" name="aepDemoNavVisibility" value="all" style="margin-top:3px;" />
+                    <span><strong>All lab demos</strong> — show every demo link (per-item hide toggles still apply).</span>
+                  </label>
+                </div>
+              </fieldset>
+              <p id="aepDemoNavFilterHint" class="dashboard-hero-subtitle" style="margin: 12px 0 0; font-size: 12px; color: var(--dash-text-secondary);"></p>
+            </div>
             <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);">
               <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">In-development capabilities</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
@@ -242,6 +274,8 @@
       var LS_HIDE_EDP_LEGACY = 'aepHideDataViewerDecisioningPlayground';
       var LS_SANDBOX = 'aepGlobalSandboxName';
       var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
+      var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
+      var LS_DEMO_NAV_VISIBILITY = 'aepDemoNavVisibility';
 
       function getSandboxSlugForInDev() {
         try {
@@ -491,7 +525,9 @@
             e.key === LS_SANDBOX ||
             e.key.indexOf(LS_PREFIX) === 0 ||
             e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
-            e.key === LS_HIDE_EDP_LEGACY
+            e.key === LS_HIDE_EDP_LEGACY ||
+            e.key === LS_DEMO_NAV_OWNER_HANDLE ||
+            e.key === LS_DEMO_NAV_VISIBILITY
           ) {
             renderNavVisibilityChecklists();
             syncMasterToggle();
@@ -507,8 +543,140 @@
       }
     })();
   </script>
+  <script>
+    (function () {
+      var LS_DEMO_NAV_OWNER_HANDLE = 'aepDemoNavOwnerHandle';
+      var LS_DEMO_NAV_VISIBILITY = 'aepDemoNavVisibility';
+      var PRESETS = ['apalmer', 'sburch', 'kirkham'];
+
+      function dispatchDemoNavChange() {
+        try {
+          window.dispatchEvent(new CustomEvent('aep-demo-nav-filter-change'));
+        } catch (e) {}
+      }
+
+      function readVisibility() {
+        try {
+          var v = String(localStorage.getItem(LS_DEMO_NAV_VISIBILITY) || '').trim().toLowerCase();
+          if (v === 'mine' || v === 'mine_sandbox' || v === 'all') return v;
+        } catch (e) {}
+        return 'mine';
+      }
+
+      function readHandleRaw() {
+        try {
+          if (localStorage.getItem(LS_DEMO_NAV_OWNER_HANDLE) === null) return 'apalmer';
+          return String(localStorage.getItem(LS_DEMO_NAV_OWNER_HANDLE) || '').trim().toLowerCase();
+        } catch (e2) {
+          return 'apalmer';
+        }
+      }
+
+      function persistVisibility(v) {
+        try {
+          localStorage.setItem(LS_DEMO_NAV_VISIBILITY, v);
+        } catch (e) {}
+        dispatchDemoNavChange();
+      }
+
+      function persistHandle(h) {
+        try {
+          localStorage.setItem(LS_DEMO_NAV_OWNER_HANDLE, h);
+        } catch (e) {}
+        dispatchDemoNavChange();
+      }
+
+      function syncHint(hintEl) {
+        if (!hintEl) return;
+        var vis = readVisibility();
+        try {
+          if (localStorage.getItem(LS_DEMO_NAV_OWNER_HANDLE) === '' && vis === 'mine') {
+            hintEl.textContent = 'Lab owner handle is empty — Mine will not match any demo until you choose a handle or switch visibility.';
+            return;
+          }
+        } catch (e) {}
+        hintEl.textContent = '';
+      }
+
+      function syncHandleUi(presetEl, customEl) {
+        var h = readHandleRaw();
+        if (PRESETS.indexOf(h) !== -1) {
+          presetEl.value = h;
+          customEl.style.display = 'none';
+          customEl.value = '';
+        } else {
+          presetEl.value = '__custom__';
+          customEl.style.display = 'block';
+          customEl.value = h;
+        }
+      }
+
+      function syncVisibilityRadios() {
+        var vis = readVisibility();
+        document.querySelectorAll('input[name="aepDemoNavVisibility"]').forEach(function (r) {
+          r.checked = r.value === vis;
+        });
+      }
+
+      function initDemoNavFilterUi() {
+        var presetEl = document.getElementById('aepDemoNavHandlePreset');
+        var customEl = document.getElementById('aepDemoNavHandleCustom');
+        var hintEl = document.getElementById('aepDemoNavFilterHint');
+        if (!presetEl || !customEl) return;
+
+        syncHandleUi(presetEl, customEl);
+        syncVisibilityRadios();
+        syncHint(hintEl);
+
+        presetEl.addEventListener('change', function () {
+          if (presetEl.value === '__custom__') {
+            customEl.style.display = 'block';
+            var existing = readHandleRaw();
+            if (PRESETS.indexOf(existing) !== -1) customEl.value = '';
+            else customEl.value = existing;
+            customEl.focus();
+          } else {
+            customEl.style.display = 'none';
+            persistHandle(presetEl.value);
+          }
+          syncHint(hintEl);
+        });
+
+        function onCustomCommit() {
+          if (presetEl.value !== '__custom__') return;
+          var t = String(customEl.value || '').trim().toLowerCase();
+          persistHandle(t);
+          syncHint(hintEl);
+        }
+        customEl.addEventListener('change', onCustomCommit);
+        customEl.addEventListener('blur', onCustomCommit);
+
+        document.querySelectorAll('input[name="aepDemoNavVisibility"]').forEach(function (r) {
+          r.addEventListener('change', function () {
+            if (!r.checked) return;
+            persistVisibility(r.value);
+            syncHint(hintEl);
+          });
+        });
+
+        window.addEventListener('storage', function (e) {
+          if (e.key === LS_DEMO_NAV_OWNER_HANDLE || e.key === LS_DEMO_NAV_VISIBILITY) {
+            syncHandleUi(presetEl, customEl);
+            syncVisibilityRadios();
+            syncHint(hintEl);
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDemoNavFilterUi);
+      } else {
+        initDemoNavFilterUi();
+      }
+    })();
+  </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>
+  <script defer src="aep-lab-nav.js?v=20260512-demo-nav-filter"></script>
 </body>
 </html>
