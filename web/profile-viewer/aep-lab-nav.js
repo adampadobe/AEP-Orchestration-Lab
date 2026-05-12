@@ -411,7 +411,7 @@
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
         },
         {
-          label: 'Etihad-style airline (in development)',
+          label: 'Etihad (in development)',
           href: 'etihad-demo.html',
           inDevelopment: true,
           navHideKey: 'etihadAirlineDemo',

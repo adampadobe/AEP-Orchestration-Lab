@@ -2268,3 +2268,10 @@ body.search-tool-page.home-dashboard-concierge .search-legacy-inner .results,
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner .lookup {
   color: #2c2c2c;
 }
+
+/* Global values — in-development Demos hide checklist: indent under “Demos group” row */
+.aep-global-nav-hide-item--demos-child {
+  padding-left: 1.5rem;
+  margin-left: 0;
+  border-left: 2px solid var(--dash-border);
+}

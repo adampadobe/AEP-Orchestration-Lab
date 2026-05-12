@@ -384,7 +384,18 @@
           heading.textContent = group;
           root.appendChild(heading);
 
-          byGroup[group].forEach(function (item) {
+          var rows = byGroup[group].slice();
+          if (group === 'Demos' && includeInDevTag) {
+            rows.sort(function (a, b) {
+              var ap = a.navHideKey === 'demos' ? 0 : 1;
+              var bp = b.navHideKey === 'demos' ? 0 : 1;
+              return ap - bp;
+            });
+          }
+
+          var omitSectionSuffix = includeInDevTag && group === 'Demos';
+
+          rows.forEach(function (item) {
             var row = document.createElement('label');
             row.style.display = 'flex';
             row.style.gap = '10px';
@@ -392,6 +403,9 @@
             row.style.cursor = 'pointer';
             row.style.fontSize = '14px';
             row.style.lineHeight = '1.4';
+            if (group === 'Demos' && item.navHideKey !== 'demos') {
+              row.className = 'aep-global-nav-hide-item--demos-child';
+            }
 
             var cb = document.createElement('input');
             cb.type = 'checkbox';
@@ -408,7 +422,9 @@
             if (includeInDevTag && item.inDevelopment) {
               txt.appendChild(document.createTextNode(' (in development)'));
             }
-            txt.appendChild(document.createTextNode(' (' + group + ')'));
+            if (!omitSectionSuffix) {
+              txt.appendChild(document.createTextNode(' (' + group + ')'));
+            }
             row.appendChild(txt);
 
             root.appendChild(row);

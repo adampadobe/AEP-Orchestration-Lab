@@ -1,5 +1,5 @@
 /**
- * Etihad-style airline demo — profile lookup + Tags injection (shared DemoTagsInjection) + flyout lab nav.
+ * Etihad demo — profile lookup + Tags injection (shared DemoTagsInjection) + flyout lab nav.
  * Iframe journey emits generic travel.* events via postMessage; parent POSTs /api/events/generator.
  */
 
@@ -73,7 +73,7 @@ async function sendEtihadAirlineExperienceEvent(payload) {
   const body = {
     targetId: target ? target.id : undefined,
     eventType: String(p.eventType || 'travel.flight.search').trim(),
-    viewName: String(p.viewName || 'Etihad-style airline lab').trim(),
+    viewName: String(p.viewName || 'Etihad lab').trim(),
     viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
     channel: 'Web',
     public: p.public && typeof p.public === 'object' ? p.public : {},
@@ -262,7 +262,7 @@ queryProfileBtn &&
 DemoProfileDrawer.init({
   emailInputId: 'customerEmail',
   profileOpenClass: 'etihad-demo-page--profile-open',
-  viewName: 'Etihad-style airline demo',
+  viewName: 'Etihad demo',
   emailGetter: getEmail,
   messageSetter: setEtihadMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
