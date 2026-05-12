@@ -4504,7 +4504,7 @@ function generateEcid() {
   return s;
 }
 
-/** POST /api/profile/generate – stream a profile record to AEP. Body: { email, industry?, profileIndex?, sandbox?, attributes?, appendIfExisting?, testProfile?, omitTestProfile? }. Root `xdm:testProfile` defaults true unless testProfile:false or omitTestProfile:true. */
+/** POST /api/profile/generate – stream a profile record to AEP. Body: { email, industry?, profileIndex?, sandbox?, attributes?, appendIfExisting?, testProfile?, omitTestProfile? }. Default marks root `testProfile` (+ mirrored `xdm:testProfile`); opt out with testProfile:false or omitTestProfile:true. */
 app.post('/api/profile/generate', async (req, res) => {
   const email = (req.body?.email ?? '').trim();
   const industry = (req.body?.industry ?? '').trim().toLowerCase();
@@ -4595,7 +4595,6 @@ app.post('/api/profile/generate', async (req, res) => {
       filteredAttrs.testProfile === false ||
       filteredAttrs.testProfile === 'false';
     if (!testProfileOptOut && !attrsSayNoTestProfile) {
-      rootExtras['xdm:testProfile'] = true;
       rootExtras.testProfile = true;
     }
 

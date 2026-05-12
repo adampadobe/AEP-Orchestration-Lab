@@ -300,10 +300,10 @@ function resolveStreamingConsentsOptInOut(tenantPayload, email) {
 }
 
 /**
- * AEP Lab generic HTTP samples use bare `testProfile` on the streaming root; OOTB Profile test
- * details use `xdm:testProfile`. When only one key is present, mirror the same boolean so Data
- * Prep / dataset mappings that expect either shape still receive the flag (covers `/api/profile/update`
- * paths that only send `xdm:testProfile` from `updates[]`).
+ * AEP Lab generic HTTP / Data Prep samples use bare `testProfile` on the streaming root; the
+ * OOTB Profile test-details mixin serializes as `xdm:testProfile`. When exactly one is present,
+ * copy the same boolean to the other (~15 bytes JSON — avoids choosing the wrong key per org).
+ * Call sites: envelope `xdmEntity` and bare DCS root (`buildProfileStreamPayload`).
  *
  * @param {Record<string, unknown>} target - `xdmEntity` root or bare DCS body root
  */
