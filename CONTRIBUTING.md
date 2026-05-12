@@ -58,6 +58,18 @@ Someone else may have merged while you were working, so the local branch you are
 
 If **`git push` is rejected**, do **not** force-push to **`main`**. Pull or rebase from `origin`, fix conflicts, then push. For other repositories, the **github-git-workflow** Cursor skill describes the same habits.
 
+### Push authentication when `origin` is HTTPS
+
+If **`git push`** fails with **`fatal: could not read Username for 'https://github.com': Device not configured`**, Git has no stored credentials for the HTTPS remote. Use one of these (pick one and stick with it):
+
+1. **GitHub CLI** — install [GitHub CLI](https://cli.github.com/), run **`gh auth login`**, complete the browser or device flow. After that, `git` uses the CLI credential helper for `https://github.com/...` pushes.
+2. **SSH remote** — no HTTPS password prompts once keys work:  
+   **`git remote set-url origin git@github.com:adampadobe/AEP-Orchestration-Lab.git`**  
+   Add your SSH public key under GitHub **Settings → SSH and GPG keys**. Test with **`ssh -T git@github.com`** (expect a “successfully authenticated” message).
+3. **HTTPS + Personal Access Token** — GitHub **Settings → Developer settings → Personal access tokens**; when Git asks for a password, paste the **token** (not your GitHub account password). On macOS, allow the **Keychain** helper so you are not prompted every push.
+
+Confirm your remote with **`git remote -v`**. The default clone for this repo is **`https://github.com/adampadobe/AEP-Orchestration-Lab.git`**.
+
 ### Phase C — immediately before `firebase deploy`
 
 This is the most often forgotten phase and the most dangerous. Even if your `git push` succeeded a minute ago, a teammate may have pushed in the meantime — and `firebase deploy --only hosting` does not consult Git, it just ships whatever is on your local disk under `web/`.
