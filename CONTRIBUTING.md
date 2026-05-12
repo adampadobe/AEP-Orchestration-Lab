@@ -115,6 +115,7 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 |-----------------|-------------------|
 | `/profile-viewer/journey-arbitration.html` | `journey-arbitration.html` only — **redirect stub** to `journey-arbitration-v2.html` (legacy `.js` / `.css` removed) |
 | `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
+| `/profile-viewer/journey-arbitration-v3.html` | `journey-arbitration-v3.html`, `journey-arbitration-v3.css`, `journey-arbitration-v3.js`, shared `journey-arbitration-v2-iframe-bridge.css` (token bridge inside iframe), `the-anatomy-of-a-decision-v19-1.html` (iframe embed) |
 
 **Hard-deleted (do not restore):**
 
@@ -159,7 +160,7 @@ Prefer **additive** changes (new path, new nav line behind `inDevelopment`, new 
 | `web/profile-viewer/global-settings.html` | Hide keys must stay aligned with `navHideKey` in nav. |
 | `firebase.json` + `functions/index.js` | Rewrites and exports must stay paired and region-correct. |
 
-Use **small PRs** for shared surfaces so CI runs and reviewers see diffs. **Rebase or merge `origin/main` often** on long branches, not only at push time.
+Use **small PRs** for shared surfaces so CI runs and reviewers see diffs. **Rebase or merge `origin/main` often** on long branches, not only at push time. **New in-development embeds** (for example a second Journey arbitration shell) should follow the same pattern as v2: lab page under `web/profile-viewer/`, `navHideKey`, `npm run verify:profile-viewer-routes`, and Phase C before Hosting deploy — do not ship Hosting-only copies that bypass Git.
 
 ### Restarting your clone after long drift
 
@@ -595,7 +596,7 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 1. **Phase A sync** | `git fetch origin && git status` — pull if behind | Don't build on stale `main` (see [Phase A](#phase-a--start-of-session-before-substantive-edits)) |
 | 2. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
 | 3. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
-| 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
+| 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2 / v3** (and embeds), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 5. **Commit** | `git add` (focused scope) → `git commit -m "[<github-handle>] …"` (see [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)) | Atomic, reviewable units; handle prefix makes ownership obvious in history |
 | 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
 | 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
@@ -851,7 +852,7 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
 | **Don't delete or rename `home-dashboard-concierge`** | This body class gates the entire token system. |
 | **Don't add `<body>` without the dashboard shell** (sidebar + main wrap) | The sidebar nav and theme toggle won't render. |
-| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL) or `/profile-viewer/journey-arbitration-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
+| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v3.*`, `the-anatomy-of-a-decision-v19-1.html`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL) or `/profile-viewer/journey-arbitration-v2.html` / `journey-arbitration-v3.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
 | **Don't resurrect `decisioning-overview-v2.html`** (file, nav entry, or `decisioningOverviewV2` Global values hide-key) | The page was hard-deleted on Apr 28, 2026 by explicit product decision. The route verifier (`npm run verify:profile-viewer-routes`) asserts it stays gone and CI fails if it is reintroduced. |
 
 ---

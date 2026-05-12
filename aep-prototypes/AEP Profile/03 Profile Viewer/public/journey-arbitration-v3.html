@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journey arbitration v3 – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="journey-arbitration-v3.css?v=20260509">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge journey-arbitration-v3-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="AEP sandbox APIs">AEP</span>
+          <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-orchestration/decision-management/decision-management.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Decision management</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="decisioning-visualiser.html" class="dashboard-topbar-icon" title="Decisioning visualiser">◇</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingJaV3">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingJaV3" class="dashboard-hero-title">Journey arbitration v3</h2>
+              <p class="dashboard-hero-subtitle">
+                AJO decisioning pipeline (v19.1): profile through message with stage tabs inside the embed. Source <code>the-anatomy-of-a-decision-v19-1.html</code>; lab chrome uses <code>--dash-*</code> tokens and the shared iframe bridge so light/dark matches the rest of Profile Viewer.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="jaV3Blocked" class="edp-blocked" hidden>
+          <p>
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Journey arbitration v3”).
+          </p>
+        </div>
+
+        <section class="ja-v3-embed-wrap" id="jaV3Mount" aria-label="Journey arbitration v3 embed">
+          <div class="ja-v3-fullscreen-toolbar" aria-label="Embed display">
+            <button
+              type="button"
+              id="ja-v3-fullscreen-btn"
+              class="ja-v3-fullscreen-btn aep-fullscreen-btn"
+              aria-pressed="false"
+              aria-label="Enter full screen"
+              title="Fill the screen with the pipeline. Press Esc to exit."
+            ></button>
+          </div>
+          <iframe
+            id="jaV3Iframe"
+            class="ja-v3-iframe"
+            title="The anatomy of a decision — AJO pipeline (v19.1)"
+            src="the-anatomy-of-a-decision-v19-1.html?v=20260509"
+            referrerpolicy="no-referrer-when-downgrade"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            loading="lazy"
+          ></iframe>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="journey-arbitration-v3.js?v=20260509"></script>
+  <script defer src="aep-lab-nav.js?v=20260505-cja-nav"></script>
+</body>
+</html>

@@ -16,6 +16,10 @@ const REQUIRED_FILES = [
   'web/profile-viewer/journey-arbitration-v2.css',
   'web/profile-viewer/journey-arbitration-v2.js',
   'web/profile-viewer/journey-arbitration-v2-iframe-bridge.css',
+  'web/profile-viewer/journey-arbitration-v3.html',
+  'web/profile-viewer/journey-arbitration-v3.css',
+  'web/profile-viewer/journey-arbitration-v3.js',
+  'web/profile-viewer/the-anatomy-of-a-decision-v19-1.html',
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
   'web/profile-viewer/ajo-pipeline-industry-labels.js',
   'web/profile-viewer/ajo-pipeline-industry-apply.js',
@@ -116,6 +120,14 @@ if (!nav.includes("navHideKey: 'journeyArbitrationV2'")) {
   console.error("aep-lab-nav.js must include navHideKey 'journeyArbitrationV2'");
   failed = true;
 }
+if (!nav.includes('journey-arbitration-v3.html')) {
+  console.error('aep-lab-nav.js must include href journey-arbitration-v3.html');
+  failed = true;
+}
+if (!nav.includes("navHideKey: 'journeyArbitrationV3'")) {
+  console.error("aep-lab-nav.js must include navHideKey 'journeyArbitrationV3'");
+  failed = true;
+}
 if (!nav.includes("navHideKey: 'edsQuickstart'")) {
   console.error("aep-lab-nav.js must include navHideKey 'edsQuickstart' (per-item toggle for EDS Demo Creator)");
   failed = true;
@@ -132,4 +144,4 @@ if (!gs.includes('getMenuVisibilityOptions')) {
 if (failed) {
   process.exit(1);
 }
-console.log('OK: profile-viewer routes (journey-arbitration redirect, journey-arbitration-v2, eds-quickstart) verified');
+console.log('OK: profile-viewer routes (journey-arbitration redirect, journey-arbitration-v2/v3, eds-quickstart) verified');

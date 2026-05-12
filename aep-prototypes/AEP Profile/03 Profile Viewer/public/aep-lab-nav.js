@@ -174,6 +174,14 @@
           navHideKey: 'journeyArbitrationV2',
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h8v4H4z"/><circle cx="15" cy="14" r="2"/><path d="M16 4v2h2"/></svg>',
         },
+        {
+          label: 'Journey arbitration v3 (in development)',
+          href: 'journey-arbitration-v3.html',
+          allowWorkspace: true,
+          inDevelopment: true,
+          navHideKey: 'journeyArbitrationV3',
+          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h12v4H4z"/><path d="M16 8v4"/></svg>',
+        },
       ],
     },
     {
