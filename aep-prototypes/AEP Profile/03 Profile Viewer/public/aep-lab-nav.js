@@ -491,6 +491,11 @@
     return normalizeNavLabelText(s).replace(/\s+\(in development\)\s*$/i, '').trim();
   }
 
+  /** Global values checklist: legacy nav used “(demo)” before in-development tagging */
+  function stripDemoSuffix(s) {
+    return normalizeNavLabelText(s).replace(/\s+\(demo\)\s*$/i, '').trim();
+  }
+
   function generatedNavHideKeyFromHref(href) {
     var base = String(href || '').split('#')[0].trim();
     if (!base || /^https?:\/\//i.test(base) || !/\.html$/i.test(base)) return '';
@@ -520,8 +525,8 @@
       out.push({
         navHideKey: key,
         group: groupName || 'General',
-        label: stripInDevelopmentSuffix(item.label || key),
-        inDevelopment: !!item.inDevelopment,
+        label: stripDemoSuffix(stripInDevelopmentSuffix(item.label || key)) || key,
+        inDevelopment: item.inDevelopment === true,
         href: item.href || '',
       });
     }
