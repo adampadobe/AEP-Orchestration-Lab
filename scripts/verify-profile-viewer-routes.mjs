@@ -25,6 +25,7 @@ const REQUIRED_FILES = [
   'web/profile-viewer/ajo-pipeline-industry-apply.js',
   'web/profile-viewer/eds-quickstart.html',
   'web/profile-viewer/eds-quickstart/index.html',
+  'web/profile-viewer/assets/eds-doc-starter.zip',
 ];
 
 // Files that were intentionally hard-deleted and must NOT come back via copy-paste,

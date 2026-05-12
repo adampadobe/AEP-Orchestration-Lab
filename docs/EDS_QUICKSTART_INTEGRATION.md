@@ -271,6 +271,11 @@ authors work with documents:
   linked setup guides (for example SharePoint customer setup under
   [aem.live docs](https://www.aem.live/docs/authoring)).
 
+Adobe does **not** publish a single stable “official starter Word zip” for every
+tenant; authors follow the tutorials above and build documents in their own
+SharePoint or Drive folder. The lab therefore ships a **small stub ZIP** (not an
+Adobe template) you can copy quickly, described below.
+
 Boilerplate **GitHub** templates ship **site code** (blocks, styles, scripts,
 `fstab.yaml`). They are **not** a zip of production Word files for your tenant.
 Your **SharePoint** or **Drive** folder — the URL you paste into the wizard —
@@ -294,16 +299,38 @@ starts empty unless your org already placed files there.
    access per your IT policy (see the SharePoint tab in the content-repository
    tutorial above), then **Preview** and **Publish** from Sidekick.
 
-### "Starter content pack (template repo)" in the UI
+### Download starter documents (ZIP) in the UI
 
 After a successful run, **Step N — Author and publish content** includes a
-button labelled **Starter content pack (template repo)**. It opens
+primary button **Download starter documents (ZIP)**. It downloads (same origin
+as the Profile Viewer):
+
+`/profile-viewer/assets/eds-doc-starter.zip`
+
+The archive contains **minimal lab-authored stubs** (not Adobe copyrighted
+templates):
+
+- `README.md` — links to Experience League / aem.live and explains replacement
+  with real patterns
+- `index.docx`, `nav.docx`, `footer.docx` — tiny valid OOXML files with stub body
+  text so you can upload or copy into SharePoint / Drive under the usual EDS
+  document names, then **replace** structure and content using Adobe’s guides.
+
+To regenerate the ZIP from source in this repo:
+
+`python3 scripts/build_eds_doc_starter_zip.py`
+
+### "Starter content pack (template repo)" in the UI
+
+The same step includes a secondary button **Starter content pack (template repo)**.
+It opens
 [`https://github.com/vaneeghemk/aem-boilerplate-xwalk`](https://github.com/vaneeghemk/aem-boilerplate-xwalk),
 i.e. the **same GitHub template** the tool uses for **code** generation — so
 you can browse **blocks**, **styles**, **scripts**, `fstab.yaml` defaults, etc.
 There is **no** `index.docx` (or similar) in that repo to drag into SharePoint;
 use it as a **code** reference and rely on Adobe's document-authoring docs for
-**page** documents in your folder.
+**page** documents in your folder (or start from the lab stub ZIP above, then
+replace with Adobe-guided content).
 
 ## Known gotchas
 
