@@ -11,20 +11,21 @@ Read this fully before making your first change.
 ## Table of contents
 
 1. [Collaboration, Git, and environment](#collaboration-git-and-environment)
-2. [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)
-3. [Architecture overview](#architecture-overview)
-4. [Directory map](#directory-map)
-5. [Light / dark theming system (critical)](#light--dark-theming-system)
-6. [Adding a new page](#adding-a-new-page)
-7. [CSS rules and conventions](#css-rules-and-conventions)
-8. [Cloud Functions patterns](#cloud-functions-patterns)
-9. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
-10. [Change workflow (mandatory)](#change-workflow-mandatory)
-11. [Deployment](#deployment)
-12. [Hosting vs Git branch (avoid accidental “rollback”)](#hosting-vs-git-branch-avoid-accidental-rollback)
-13. [Profile Viewer cache busting and verification](#profile-viewer-cache-busting-and-verification)
-14. [Version control and rollback](#version-control-and-rollback)
-15. [Things you must never do](#things-you-must-never-do)
+2. [Multi-contributor norms and breaking-change hygiene](#multi-contributor-norms-and-breaking-change-hygiene)
+3. [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)
+4. [Architecture overview](#architecture-overview)
+5. [Directory map](#directory-map)
+6. [Light / dark theming system (critical)](#light--dark-theming-system)
+7. [Adding a new page](#adding-a-new-page)
+8. [CSS rules and conventions](#css-rules-and-conventions)
+9. [Cloud Functions patterns](#cloud-functions-patterns)
+10. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
+11. [Change workflow (mandatory)](#change-workflow-mandatory)
+12. [Deployment](#deployment)
+13. [Hosting vs Git branch (avoid accidental “rollback”)](#hosting-vs-git-branch-avoid-accidental-rollback)
+14. [Profile Viewer cache busting and verification](#profile-viewer-cache-busting-and-verification)
+15. [Version control and rollback](#version-control-and-rollback)
+16. [Things you must never do](#things-you-must-never-do)
 
 ---
 
@@ -114,6 +115,50 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 The interactive SVG diagram uses **`data/architecture-logos.json`** for the icon/logo picker. Optional **`tags`** on each entry are validated against **`data/martech-taxonomy-reference.json`** (`npm run validate:architecture-logos-tags`, also in CI). Ecosystem vendor SVGs live under **`web/profile-viewer/images/ecosystem-vendor-logos/`**; **`vendorIndex`** in the taxonomy file must match those files (`npm run validate:ecosystem-vendor-index`). Regenerate tags after bulk catalog edits with **`python3 scripts/tag-architecture-logos.py`**.
 
 **Interop:** Full layout round-trip uses **Download JSON** / **Import JSON**. The smaller **stack summary** format is defined in **`data/diagram-interop.json`** and implemented in **`web/profile-viewer/diagram/interop.js`** (export includes **`catalogTags`** when asset paths match the logo catalog). **Import stack summary** adds vendor/icon boxes only; it does not restore connectors or canonical node positions.
+
+---
+
+## Multi-contributor norms and breaking-change hygiene
+
+Several people (and sometimes parallel agents) touch the same repo. Most “someone reverted my work” or “the live site is wrong” incidents are **not mysterious Git bugs** — they are **diverged clones**, **deploy without Phase C**, or **merge conflicts in shared files**. The three phases in [Collaboration, Git, and environment](#collaboration-git-and-environment) are the primary defense; the norms below reduce **breaking changes** for teammates.
+
+### Ship order: commit → push → deploy
+
+1. **`git push origin main`** (or your feature branch, then merge to `main`) so GitHub is the audit trail **before** you rely on Hosting.
+2. **`firebase deploy`** only from a tree that **`git fetch` + `git status`** shows as **up to date with `origin/main`** (Phase C). The predeploy script may still allow deploy when ahead but unpushed — treat that as a warning, not a green light to skip push.
+
+Never deploy uncommitted work you care about keeping; see [Change workflow (mandatory)](#change-workflow-mandatory).
+
+### What counts as a breaking change for others
+
+Treat as **breaking** unless the team agreed in an issue/PR or product note in this repo:
+
+- **Removing, renaming, or orphaning** preserved Profile Viewer routes, nav entries, or Global values keys (see table above and `npm run verify:profile-viewer-routes`).
+- **Changing `/api/*` contracts** without updating every caller under `web/` and `firebase.json`.
+- **Large destructive edits** to high-churn shared files in one go: `aep-lab-nav.js`, `global-settings.html`, `home.css` / `aep-theme.css`, `firebase.json`, `functions/index.js`.
+
+Prefer **additive** changes (new path, new nav line behind `inDevelopment`, new function + rewrite entry) and **cache-bust query strings** on asset URLs when you change referenced JS/CSS/HTML ([Profile Viewer cache busting and verification](#profile-viewer-cache-busting-and-verification)).
+
+### Coordinate before wide refactors
+
+| Area | Why |
+|------|-----|
+| `web/profile-viewer/aep-lab-nav.js` | Merge conflicts can drop nav items silently. |
+| `web/profile-viewer/global-settings.html` | Hide keys must stay aligned with `navHideKey` in nav. |
+| `firebase.json` + `functions/index.js` | Rewrites and exports must stay paired and region-correct. |
+
+Use **small PRs** for shared surfaces so CI runs and reviewers see diffs. **Rebase or merge `origin/main` often** on long branches, not only at push time.
+
+### Restarting your clone after long drift
+
+If local `main` is **ahead/behind** or **diverged** from `origin/main` and you want a clean match to GitHub:
+
+1. **`git fetch origin`**
+2. **Optional — keep local-only commits:** `git branch backup/my-wip-$(date +%Y%m%d) HEAD`
+3. **`git checkout main`** then **`git reset --hard origin/main`**
+4. Confirm **`git status`** shows **up to date with `origin/main`**
+
+`reset --hard` does not remove untracked files. Cherry-pick from `backup/…` if you still need old commits.
 
 ---
 
