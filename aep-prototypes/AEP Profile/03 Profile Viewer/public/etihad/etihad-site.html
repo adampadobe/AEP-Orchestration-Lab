@@ -15,299 +15,1225 @@
       margin: 0;
       min-height: 100vh;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --eh-panel-light: var(--dash-surface);
+      --eh-panel-light-fg: var(--dash-text);
+      --eh-panel-light-muted: var(--dash-muted);
+      --eh-panel-field-bg: var(--dash-surface-alt);
+      --eh-panel-field-border: var(--dash-border);
+      --eh-hero-overlay: color-mix(in srgb, var(--dash-bg) 45%, transparent);
     }
-    .eh-wrap {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 1rem clamp(0.75rem, 2.5vw, 1.5rem) 2.5rem;
+    html[data-aep-theme='dark'] body.etihad-airline-lab-site {
+      --eh-panel-light: color-mix(in srgb, var(--dash-text) 94%, var(--dash-bg));
+      --eh-panel-light-fg: color-mix(in srgb, var(--dash-bg) 78%, var(--dash-text));
+      --eh-panel-light-muted: color-mix(in srgb, var(--dash-bg) 42%, var(--dash-text-secondary));
+      --eh-panel-field-bg: color-mix(in srgb, var(--dash-text) 88%, var(--dash-bg));
+      --eh-panel-field-border: color-mix(in srgb, var(--eh-panel-light-fg) 18%, var(--eh-panel-light));
+      --eh-hero-overlay: color-mix(in srgb, var(--dash-bg) 50%, transparent);
+    }
+    .eh-app {
+      display: flex;
+      min-height: 100vh;
+      background: var(--dash-bg);
+      color: var(--dash-text);
+    }
+    .eh-rail {
+      width: 4.5rem;
+      flex-shrink: 0;
+      background: var(--dash-sidebar);
+      border-right: 1px solid var(--dash-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.65rem 0 1rem;
+      gap: 0.15rem;
+    }
+    .eh-rail-toggle {
+      align-self: flex-end;
+      margin-right: 0.35rem;
+      margin-bottom: 0.35rem;
+      border: none;
+      background: transparent;
+      color: var(--dash-muted);
+      cursor: pointer;
+      padding: 0.2rem;
+      border-radius: var(--dash-radius-sm);
+    }
+    .eh-rail-toggle:hover {
+      color: var(--dash-text);
+      background: var(--dash-hover);
+    }
+    .eh-rail-toggle:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 2px;
+    }
+    .eh-rail-nav {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      width: 100%;
+    }
+    .eh-rail-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      width: 100%;
+      padding: 0.45rem 0.15rem;
+      border: none;
+      background: transparent;
+      color: var(--dash-text-secondary);
+      font-size: 0.58rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      border-radius: var(--dash-radius-sm);
+      line-height: 1.15;
+    }
+    .eh-rail-btn:hover,
+    .eh-rail-btn:focus-visible {
+      color: var(--dash-text);
+      background: var(--dash-hover);
+    }
+    .eh-rail-btn:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 0;
+    }
+    .eh-rail-btn svg {
+      width: 1.15rem;
+      height: 1.15rem;
+      opacity: 0.92;
+    }
+    .eh-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .eh-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.65rem clamp(0.75rem, 2vw, 1.5rem);
+      border-bottom: 1px solid var(--dash-border);
+      background: color-mix(in srgb, var(--dash-bg) 88%, var(--dash-surface));
+    }
+    .eh-wordmark {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: 0.28em;
+      color: var(--dash-text);
+    }
+    .eh-topbar-tools {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .eh-top-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface-alt);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--dash-text-secondary);
+    }
+    .eh-icon-btn {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 999px;
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface-alt);
+      color: var(--dash-text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .eh-icon-btn:hover {
+      color: var(--dash-text);
+      border-color: color-mix(in srgb, var(--dash-border) 70%, var(--dash-warning-border));
+    }
+    .eh-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
     .eh-lab-ribbon {
+      margin: 0.65rem clamp(0.75rem, 2vw, 1.5rem) 0;
       background: var(--dash-info-bg);
       border: 1px solid var(--dash-info-border);
       color: var(--dash-info-text);
       border-radius: var(--dash-radius-sm);
-      padding: 0.65rem 1rem;
-      font-size: 0.85rem;
-      line-height: 1.45;
-      margin-bottom: 1.25rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.72rem;
+      line-height: 1.4;
     }
     .eh-lab-ribbon strong {
       color: var(--dash-text);
     }
-    .eh-header {
+    .eh-hero-block {
+      position: relative;
+      margin: 0.85rem clamp(0.75rem, 2vw, 1.5rem) 0;
+      border-radius: var(--dash-radius);
+      overflow: hidden;
+      min-height: clamp(220px, 38vw, 340px);
+      background: var(--dash-surface-alt);
+      border: 1px solid var(--dash-border);
+      box-shadow: var(--dash-shadow);
+    }
+    .eh-hero-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(105deg, var(--eh-hero-overlay) 0%, color-mix(in srgb, var(--eh-hero-overlay) 65%, transparent) 45%, transparent 78%),
+        url('etihad-reference-hero.png');
+      background-size: cover;
+      background-position: center 35%;
+    }
+    .eh-hero-copy {
+      position: relative;
+      z-index: 1;
+      padding: clamp(1.25rem, 3vw, 2rem);
+      max-width: 26rem;
+    }
+    .eh-hero-kicker-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.45rem;
+    }
+    .eh-badge-now {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.2rem 0.45rem;
+      border-radius: var(--dash-radius-sm);
+      background: var(--dash-warning-bg);
+      border: 1px solid var(--dash-warning-border);
+      color: var(--dash-warning-text);
+    }
+    .eh-hero-copy h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.65rem, 4.2vw, 2.35rem);
+      font-weight: 700;
+      color: var(--dash-text);
+      line-height: 1.1;
+      text-shadow: 0 1px 2px color-mix(in srgb, var(--dash-bg) 35%, transparent);
+    }
+    .eh-hero-copy p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--dash-text-secondary);
+      line-height: 1.45;
+    }
+    .eh-hero-copy a {
+      color: var(--dash-warning-text);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid var(--dash-warning-border);
+    }
+    .eh-hero-copy a:hover {
+      color: var(--dash-text);
+    }
+    .eh-hero-controls {
+      position: absolute;
+      z-index: 2;
+      right: 0.85rem;
+      bottom: 5.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    @media (max-width: 720px) {
+      .eh-hero-controls {
+        bottom: 4.5rem;
+      }
+    }
+    .eh-hero-dot-row {
+      display: flex;
+      gap: 0.28rem;
+    }
+    .eh-hero-dot {
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 999px;
+      border: none;
+      padding: 0;
+      background: color-mix(in srgb, var(--dash-text) 35%, transparent);
+      cursor: pointer;
+    }
+    .eh-hero-dot.is-active {
+      background: var(--dash-warning-border);
+    }
+    .eh-hero-arrow {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      border: 1px solid var(--dash-border);
+      background: color-mix(in srgb, var(--dash-surface) 55%, transparent);
+      color: var(--dash-text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .eh-hero-arrow:hover {
+      background: var(--dash-surface);
+    }
+    .eh-book-wrap {
+      position: relative;
+      z-index: 3;
+      margin: -4.25rem clamp(0.75rem, 2vw, 1.5rem) 0;
+      padding-bottom: 0.25rem;
+    }
+    @media (max-width: 720px) {
+      .eh-book-wrap {
+        margin-top: -2.5rem;
+      }
+    }
+    .eh-book-panel {
+      background: var(--eh-panel-light);
+      color: var(--eh-panel-light-fg);
+      border-radius: var(--dash-radius);
+      border: 1px solid var(--eh-panel-field-border);
+      box-shadow: var(--dash-shadow-hover);
+      padding: 1rem clamp(0.75rem, 1.8vw, 1.25rem) 1.1rem;
+    }
+    .eh-book-head {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      padding: 0.75rem 0 1.25rem;
-      border-bottom: 1px solid var(--dash-border);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
-    .eh-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-    .eh-brand-mark {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: var(--dash-radius-sm);
-      background: var(--dash-surface-alt);
-      border: 1px solid var(--dash-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--dash-blue);
-    }
-    .eh-brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-    }
-    .eh-brand-title {
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--dash-text);
-      letter-spacing: 0.02em;
-    }
-    .eh-brand-sub {
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--dash-muted);
-    }
-    .eh-top-links {
+    .eh-tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem 1.25rem;
-      font-size: 0.88rem;
-      font-weight: 600;
+      gap: 0.35rem;
     }
-    .eh-top-links a {
-      color: var(--dash-text-secondary);
-      text-decoration: none;
-    }
-    .eh-top-links a:hover {
-      color: var(--dash-blue);
-      text-decoration: underline;
-    }
-    .eh-hero {
-      margin-top: 1.75rem;
-      padding: 1.75rem 1.25rem;
-      border-radius: var(--dash-radius);
-      background: var(--dash-hero-grad);
-      border: 1px solid var(--dash-border);
-      box-shadow: var(--dash-shadow);
-    }
-    .eh-hero h1 {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.45rem, 4vw, 2.1rem);
-      font-weight: 700;
-      color: var(--dash-text);
-      line-height: 1.2;
-    }
-    .eh-hero p {
-      margin: 0 0 1.25rem;
-      color: var(--dash-text-secondary);
-      font-size: 0.95rem;
-      max-width: 42rem;
-      line-height: 1.5;
-    }
-    .eh-hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-      align-items: center;
-    }
-    .eh-btn {
-      border-radius: var(--dash-radius-sm);
+    .eh-tab {
+      border: none;
+      background: transparent;
+      color: var(--eh-panel-light-muted);
       font-family: inherit;
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 600;
-      padding: 0.55rem 1.1rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
       cursor: pointer;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface);
-      color: var(--dash-text);
     }
-    .eh-btn:hover {
-      background: var(--dash-hover);
+    .eh-tab[aria-selected='true'] {
+      background: var(--eh-panel-light-fg);
+      color: var(--eh-panel-light);
     }
-    .eh-btn:focus-visible {
+    .eh-tab:focus-visible {
       outline: 2px solid var(--dash-blue);
       outline-offset: 2px;
     }
-    .eh-btn--primary {
-      background: var(--dash-blue);
-      border-color: var(--dash-blue);
-      color: var(--menu-nav-active-fg);
+    .eh-miles-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--eh-panel-light-muted);
     }
-    .eh-btn--primary:hover {
-      filter: brightness(1.05);
-      background: var(--dash-blue);
+    .eh-switch {
+      position: relative;
+      width: 2.35rem;
+      height: 1.2rem;
+      border-radius: 999px;
+      border: 1px solid var(--eh-panel-field-border);
+      background: var(--eh-panel-field-bg);
+      cursor: pointer;
+      padding: 0;
     }
-    .eh-btn--ghost {
+    .eh-switch::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0.15rem;
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 999px;
+      background: var(--eh-panel-light-muted);
+      transform: translate(0, -50%);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+    .eh-switch[aria-checked='true'] {
+      background: color-mix(in srgb, var(--dash-warning-bg) 80%, var(--eh-panel-field-bg));
+      border-color: var(--dash-warning-border);
+    }
+    .eh-switch[aria-checked='true']::after {
+      transform: translate(1.05rem, -50%);
+      background: var(--dash-warning-border);
+    }
+    .eh-switch:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 2px;
+    }
+    .eh-book-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+      gap: 0.65rem;
+      align-items: end;
+    }
+    @media (max-width: 960px) {
+      .eh-book-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .eh-book-grid .eh-book-search-cell {
+        grid-column: 1 / -1;
+      }
+    }
+    @media (max-width: 520px) {
+      .eh-book-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-field label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--eh-panel-light-muted);
+      margin-bottom: 0.28rem;
+    }
+    .eh-field input {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: var(--dash-radius-sm);
+      border: 1px solid var(--eh-panel-field-border);
+      background: var(--eh-panel-field-bg);
+      color: var(--eh-panel-light-fg);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.55rem 0.65rem;
+    }
+    .eh-field input:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 1px;
+    }
+    .eh-book-search-cell {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .eh-btn-gold {
+      border-radius: var(--dash-radius-sm);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.65rem 1.35rem;
+      cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--dash-warning-border) 75%, var(--eh-panel-light-fg));
+      background: linear-gradient(180deg, var(--dash-warning-text), var(--dash-warning-border));
+      color: var(--menu-nav-active-fg, var(--dash-surface));
+      min-height: 2.75rem;
+      white-space: nowrap;
+    }
+    .eh-btn-gold:hover {
+      filter: brightness(1.06);
+    }
+    .eh-btn-gold:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 2px;
+    }
+    .eh-btn-ghost {
+      border-radius: var(--dash-radius-sm);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      cursor: pointer;
+      border: 1px solid var(--dash-border);
       background: transparent;
+      color: var(--dash-text-secondary);
     }
-    .eh-section-title {
-      margin: 2rem 0 0.75rem;
-      font-size: 1.1rem;
+    .eh-btn-ghost:hover {
+      background: var(--dash-hover);
+      color: var(--dash-text);
+    }
+    .eh-section {
+      margin: 2.25rem clamp(0.75rem, 2vw, 1.5rem) 0;
+      position: relative;
+    }
+    .eh-section::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -1.25rem;
+      height: 5rem;
+      pointer-events: none;
+      opacity: 0.45;
+      background: repeating-linear-gradient(
+        -18deg,
+        transparent 0 14px,
+        color-mix(in srgb, var(--dash-border) 40%, transparent) 14px 15px
+      );
+    }
+    .eh-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+    .eh-section-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
       font-weight: 700;
       color: var(--dash-text);
     }
-    .eh-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
+    .eh-accent-word {
+      border-bottom: 2px solid var(--dash-warning-border);
+      padding-bottom: 0.08rem;
     }
-    .eh-card {
-      background: var(--dash-surface);
-      border: 1px solid var(--dash-border);
+    .eh-link-quiet {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--dash-warning-text);
+      text-decoration: none;
+    }
+    .eh-link-quiet:hover {
+      text-decoration: underline;
+    }
+    .eh-carousel {
+      position: relative;
+    }
+    .eh-carousel-viewport {
+      overflow: hidden;
       border-radius: var(--dash-radius);
-      padding: 1.1rem 1.15rem;
+      margin: 0 -0.25rem;
+    }
+    .eh-carousel-track {
+      display: flex;
+      align-items: stretch;
+      gap: 0.65rem;
+      padding: 0.5rem 0.25rem 0.75rem;
+      transition: transform 0.35s ease;
+    }
+    .eh-dest-card {
+      flex: 0 0 26%;
+      min-width: 140px;
+      max-width: 200px;
+      border-radius: var(--dash-radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface);
       box-shadow: var(--dash-shadow);
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
-    .eh-card-route {
+    .eh-dest-card.is-center {
+      flex-basis: 30%;
+      max-width: 240px;
+      transform: scale(1.06);
+      z-index: 1;
+      box-shadow: var(--dash-shadow-hover);
+      border-color: color-mix(in srgb, var(--dash-warning-border) 45%, var(--dash-border));
+    }
+    .eh-dest-visual {
+      height: 7.5rem;
+      background: var(--dash-hero-grad);
+      position: relative;
+    }
+    .eh-dest-body {
+      padding: 0.65rem 0.7rem 0.75rem;
+    }
+    .eh-dest-name {
       font-weight: 700;
+      font-size: 0.95rem;
+      margin: 0 0 0.25rem;
+      color: var(--dash-text);
+    }
+    .eh-dest-meta {
+      margin: 0;
+      font-size: 0.72rem;
+      color: var(--dash-muted);
+      line-height: 1.35;
+    }
+    .eh-carousel-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+    }
+    .eh-carousel-dot-row {
+      display: flex;
+      gap: 0.35rem;
+    }
+    .eh-carousel-dot {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 999px;
+      border: none;
+      padding: 0;
+      background: var(--dash-border);
+      cursor: pointer;
+    }
+    .eh-carousel-dot.is-active {
+      background: var(--dash-warning-border);
+      width: 1.1rem;
+      border-radius: 999px;
+    }
+    .eh-row-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+    @media (max-width: 800px) {
+      .eh-row-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-story-card {
+      border-radius: var(--dash-radius);
+      overflow: hidden;
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      box-shadow: var(--dash-shadow);
+    }
+    .eh-story-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        color-mix(in srgb, var(--dash-bg) 82%, transparent) 0%,
+        transparent 62%
+      );
+      z-index: 0;
+    }
+    .eh-story-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--dash-hero-grad);
+      opacity: 0.35;
+      z-index: -1;
+    }
+    .eh-story-inner {
+      position: relative;
+      z-index: 1;
+      padding: 1rem 1rem 1.1rem;
+    }
+    .eh-story-inner h3 {
+      margin: 0 0 0.35rem;
       font-size: 1rem;
       color: var(--dash-text);
     }
-    .eh-card-meta {
+    .eh-story-inner a {
       font-size: 0.82rem;
-      color: var(--dash-muted);
-      line-height: 1.4;
+      font-weight: 600;
+      color: var(--dash-warning-text);
+      text-decoration: none;
     }
-    .eh-pill {
-      display: inline-block;
+    .eh-story-inner a:hover {
+      text-decoration: underline;
+    }
+    .eh-xp {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .eh-xp {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-xp-copy {
+      padding-right: 0.5rem;
+    }
+    .eh-xp-copy p {
+      margin: 0.65rem 0 0;
+      font-size: 0.88rem;
+      color: var(--dash-text-secondary);
+      line-height: 1.55;
+    }
+    .eh-xp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 520px) {
+      .eh-xp-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-xp-card {
+      border-radius: var(--dash-radius);
+      border: 1px solid var(--dash-border);
+      min-height: 140px;
+      padding: 1rem;
+      background: var(--dash-surface-alt);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--dash-shadow);
+    }
+    .eh-xp-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        128deg,
+        transparent 0 18px,
+        color-mix(in srgb, var(--dash-border) 28%, transparent) 18px 19px
+      );
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .eh-xp-card strong {
+      position: relative;
+      z-index: 1;
+      font-size: 0.95rem;
+      color: var(--dash-text);
+    }
+    .eh-xp-card a {
+      position: relative;
+      z-index: 1;
+      margin-top: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--dash-warning-text);
+      text-decoration: none;
+    }
+    .eh-footer {
+      margin-top: 2.75rem;
+      padding: 2rem clamp(0.75rem, 2vw, 1.5rem) 0;
+      border-top: 1px solid var(--dash-border);
+      background: color-mix(in srgb, var(--dash-sidebar) 35%, var(--dash-bg));
+    }
+    .eh-footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1.25rem;
+      padding-bottom: 1.75rem;
+    }
+    @media (max-width: 800px) {
+      .eh-footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 480px) {
+      .eh-footer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-footer-col h3 {
+      margin: 0 0 0.5rem;
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      background: var(--dash-warning-bg);
-      border: 1px solid var(--dash-warning-border);
+      color: var(--dash-muted);
+    }
+    .eh-footer-col ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .eh-footer-col a {
+      display: block;
+      padding: 0.2rem 0;
+      font-size: 0.82rem;
+      color: var(--dash-text-secondary);
+      text-decoration: none;
+    }
+    .eh-footer-col a:hover {
       color: var(--dash-warning-text);
-      width: fit-content;
+    }
+    .eh-awards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      justify-content: center;
+      padding: 1rem 0;
+      border-top: 1px solid var(--dash-border);
+    }
+    .eh-award {
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 999px;
+      border: 1px dashed var(--dash-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--dash-muted);
+      line-height: 1.2;
+    }
+    .eh-footer-cta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      padding: 1.25rem 0;
+      border-top: 1px solid var(--dash-border);
+    }
+    @media (max-width: 900px) {
+      .eh-footer-cta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 480px) {
+      .eh-footer-cta {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eh-cta-block {
+      border-radius: var(--dash-radius-sm);
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface-alt);
+      padding: 0.85rem 1rem;
+    }
+    .eh-cta-block p {
+      margin: 0 0 0.5rem;
+      font-size: 0.8rem;
+      color: var(--dash-text-secondary);
+      line-height: 1.4;
+    }
+    .eh-pill-btn {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid var(--dash-warning-border);
+      background: color-mix(in srgb, var(--dash-warning-bg) 55%, var(--dash-surface-alt));
+      color: var(--dash-warning-text);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .eh-pill-btn:hover {
+      filter: brightness(1.05);
+    }
+    .eh-social {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.35rem;
+    }
+    .eh-social button {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      border: 1px solid var(--dash-border);
+      background: var(--dash-surface);
+      color: var(--dash-muted);
+      cursor: pointer;
+      font-size: 0.65rem;
+      font-weight: 700;
+    }
+    .eh-legal {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0 1.25rem;
+      border-top: 1px solid var(--dash-border);
+      font-size: 0.72rem;
+      color: var(--dash-muted);
+    }
+    .eh-legal a {
+      color: var(--dash-text-secondary);
+      text-decoration: none;
+      margin-right: 0.65rem;
+    }
+    .eh-legal a:hover {
+      color: var(--dash-warning-text);
     }
     .eh-abandon {
-      margin-top: 2rem;
-      padding: 1.25rem 1.15rem;
+      margin: 2rem clamp(0.75rem, 2vw, 1.5rem) 2.5rem;
+      padding: 1.1rem 1rem;
       border-radius: var(--dash-radius);
       background: var(--dash-surface-alt);
       border: 1px dashed var(--dash-warning-border);
     }
     .eh-abandon h2 {
-      margin: 0 0 0.5rem;
-      font-size: 1rem;
+      margin: 0 0 0.4rem;
+      font-size: 0.95rem;
       color: var(--dash-text);
     }
     .eh-abandon p {
-      margin: 0 0 1rem;
-      font-size: 0.88rem;
+      margin: 0 0 0.85rem;
+      font-size: 0.82rem;
       color: var(--dash-text-secondary);
-      line-height: 1.5;
-    }
-    .eh-foot {
-      margin-top: 2rem;
-      font-size: 0.78rem;
-      color: var(--dash-muted);
       line-height: 1.45;
     }
     .eh-code {
       font-size: 0.85em;
       color: var(--dash-text);
     }
+    .eh-foot-note {
+      padding: 0 1rem 1.25rem;
+      font-size: 0.7rem;
+      color: var(--dash-muted);
+      text-align: center;
+      line-height: 1.45;
+    }
+    .eh-book-foot {
+      margin: 0.75rem 0 0;
+      text-align: right;
+    }
+    .eh-dest-select {
+      margin-top: 0.45rem;
+      width: 100%;
+    }
+    .eh-section-head--flush {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body class="etihad-airline-lab-site home-dashboard-concierge">
-  <div class="eh-wrap">
-    <div class="eh-lab-ribbon" role="note">
-      <strong>Lab scenario:</strong> anonymous visitor explores long-haul international routes in Business,
-      shows high booking intent, then <strong>abandons</strong> before pay — ideal for propensity / win-back journeys.
-      This page is a generic airline-booking mimic (not affiliated with any carrier); events post to the parent lab shell.
-    </div>
-
-    <header class="eh-header">
-      <div class="eh-brand">
-        <div class="eh-brand-mark" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 17h3l8-11v11h2V6h-3L5 17z" fill="currentColor" opacity="0.9"/>
-            <path d="M17 10l4 2-4 2v-4z" fill="currentColor" opacity="0.55"/>
-          </svg>
-        </div>
-        <div class="eh-brand-text">
-          <span class="eh-brand-title">Etihad-inspired routes</span>
-          <span class="eh-brand-sub">Lab booking surface</span>
-        </div>
-      </div>
-      <nav class="eh-top-links" aria-label="Demo navigation">
-        <a href="#" id="ehNavFlights">Flights</a>
-        <a href="#" id="ehNavManage">Manage</a>
-        <a href="#" id="ehNavOffers">Offers</a>
-      </nav>
-    </header>
-
-    <section class="eh-hero" aria-labelledby="ehHeroTitle">
-      <h1 id="ehHeroTitle">Where will you fly next?</h1>
-      <p>
-        Browse intercontinental Business fares from London — anonymous session, no log-in.
-        Use the parent strip to inject Tags and choose an event destination, then interact here to send
-        <code class="eh-code">travel.*</code> experience events tied to the browser ECID.
-      </p>
-      <div class="eh-hero-actions">
-        <button type="button" class="eh-btn eh-btn--primary" id="ehBtnSearch">
-          Search international — Business
-        </button>
-        <button type="button" class="eh-btn eh-btn--ghost" id="ehBtnExplore">
-          Mark explore intent only
-        </button>
-      </div>
-    </section>
-
-    <h2 class="eh-section-title">Featured long-haul routes</h2>
-    <div class="eh-grid">
-      <article class="eh-card">
-        <span class="eh-pill">High intent</span>
-        <div class="eh-card-route">London (LHR) → Abu Dhabi (AUH)</div>
-        <p class="eh-card-meta">Return · Business · wide-body · evening departure</p>
-        <button type="button" class="eh-btn" data-eh-route="LHR-AUH">View fare &amp; dates</button>
-      </article>
-      <article class="eh-card">
-        <span class="eh-pill">High intent</span>
-        <div class="eh-card-route">Abu Dhabi (AUH) → Singapore (SIN)</div>
-        <p class="eh-card-meta">Connecting Asia · long segment · premium cabin interest</p>
-        <button type="button" class="eh-btn" data-eh-route="AUH-SIN">View fare &amp; dates</button>
-      </article>
-      <article class="eh-card">
-        <div class="eh-card-route">London (LHR) → Mumbai (BOM)</div>
-        <p class="eh-card-meta">Popular visiting-friends-and-relatives corridor</p>
-        <button type="button" class="eh-btn" data-eh-route="LHR-BOM">View fare &amp; dates</button>
-      </article>
-    </div>
-
-    <section class="eh-abandon" aria-labelledby="ehAbandonTitle">
-      <h2 id="ehAbandonTitle">Abandonment (demo CTA)</h2>
-      <p>
-        Tap below to simulate closing the tab after selecting a high-value itinerary — sends a
-        <code class="eh-code">travel.booking.abandon</code> signal for orchestration demos.
-      </p>
-      <button type="button" class="eh-btn eh-btn--primary" id="ehBtnAbandon">
-        Abandon checkout — send lab event
+  <div class="eh-app">
+    <aside class="eh-rail" aria-label="Primary navigation (lab mimic)">
+      <button type="button" class="eh-rail-toggle" aria-label="Rail hint" title="Lab mimic — decorative">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-    </section>
+      <nav class="eh-rail-nav">
+        <button type="button" class="eh-rail-btn" id="ehNavFlights" title="Book">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" fill="currentColor" opacity="0.85"/></svg>
+          Book
+        </button>
+        <button type="button" class="eh-rail-btn" id="ehNavManage" title="Manage">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z" fill="currentColor"/></svg>
+          Manage
+        </button>
+        <button type="button" class="eh-rail-btn" data-eh-nav="checkin" title="Check-in">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14v11z" fill="currentColor"/></svg>
+          Check-in
+        </button>
+        <button type="button" class="eh-rail-btn" data-eh-nav="flight_status" title="Flight status">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" fill="currentColor"/></svg>
+          Status
+        </button>
+        <button type="button" class="eh-rail-btn" data-eh-nav="plan" title="Plan">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z" fill="currentColor"/></svg>
+          Plan
+        </button>
+        <button type="button" class="eh-rail-btn" id="ehNavOffers" title="Offers">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 3.9 4.3.6-3.1 3 0.7 4.3L12 13.4 8.2 14.8l0.7-4.3-3.1-3 4.3-.6L12 3z" fill="currentColor"/></svg>
+          Offers
+        </button>
+        <button type="button" class="eh-rail-btn" data-eh-nav="loyalty" title="Loyalty">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+          Loyalty
+        </button>
+        <button type="button" class="eh-rail-btn" data-eh-nav="help" title="Help">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="currentColor"/></svg>
+          Help
+        </button>
+      </nav>
+    </aside>
+    <div class="eh-main">
+      <header class="eh-topbar">
+        <span class="eh-wordmark" aria-label="Lab wordmark">ETIHAD</span>
+        <div class="eh-topbar-tools">
+          <span class="eh-top-pill">EN · UK</span>
+          <button type="button" class="eh-icon-btn" aria-label="Search (decorative)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button type="button" class="eh-icon-btn" aria-label="Profile (decorative)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M6 19c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="eh-scroll">
+        <div class="eh-lab-ribbon" role="note">
+          <strong>Lab:</strong> generic airline mimic — <code class="eh-code">travel.*</code> events post to the parent shell. Not affiliated with any carrier.
+        </div>
 
-    <p class="eh-foot">
-      Placeholder visuals only — no carrier artwork. Palette follows Profile Viewer <code>--dash-*</code> tokens
-      (light / dark via parent theme storage).
-    </p>
+        <section class="eh-hero-block" aria-labelledby="ehHeroSaleTitle">
+          <div class="eh-hero-bg" aria-hidden="true"></div>
+          <div class="eh-hero-copy">
+            <div class="eh-hero-kicker-row">
+              <span class="eh-badge-now">Now on</span>
+            </div>
+            <h1 id="ehHeroSaleTitle">Global Sale</h1>
+            <p>Up to 30% off selected routes — book before 14 May. <a href="#" id="ehHeroBookLink">Book now</a></p>
+          </div>
+          <div class="eh-hero-controls">
+            <button type="button" class="eh-hero-arrow" id="ehHeroPrev" aria-label="Previous hero slide">&#8249;</button>
+            <div class="eh-hero-dot-row" role="tablist" aria-label="Hero slides">
+              <button type="button" class="eh-hero-dot is-active" aria-label="Slide 1"></button>
+              <button type="button" class="eh-hero-dot" aria-label="Slide 2"></button>
+              <button type="button" class="eh-hero-dot" aria-label="Slide 3"></button>
+            </div>
+            <button type="button" class="eh-hero-arrow" id="ehHeroNext" aria-label="Next hero slide">&#8250;</button>
+          </div>
+        </section>
+
+        <div class="eh-book-wrap">
+          <div class="eh-book-panel">
+            <div class="eh-book-head">
+              <div class="eh-tabs" role="tablist" aria-label="Trip type">
+                <button type="button" class="eh-tab" role="tab" aria-selected="true" id="ehTabRound">Round trip</button>
+                <button type="button" class="eh-tab" role="tab" aria-selected="false" id="ehTabOne">One-way</button>
+                <button type="button" class="eh-tab" role="tab" aria-selected="false" id="ehTabMulti">Multi-city</button>
+              </div>
+              <div class="eh-miles-row">
+                <span>Book with miles</span>
+                <button type="button" class="eh-switch" id="ehMilesToggle" role="switch" aria-checked="false" aria-label="Toggle miles booking"></button>
+              </div>
+            </div>
+            <div class="eh-book-grid">
+              <div class="eh-field">
+                <label for="ehFrom"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg> From</label>
+                <input id="ehFrom" type="text" readonly value="London (LHR)"/>
+              </div>
+              <div class="eh-field">
+                <label for="ehTo"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg> To</label>
+                <input id="ehTo" type="text" placeholder="Destination" autocomplete="off"/>
+              </div>
+              <div class="eh-field">
+                <label for="ehGuests"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> Guests</label>
+                <input id="ehGuests" type="text" readonly value="1 adult · Business"/>
+              </div>
+              <div class="eh-field">
+                <label for="ehWhen"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11z"/></svg> Dates</label>
+                <input id="ehWhen" type="text" readonly value="Select dates"/>
+              </div>
+              <div class="eh-book-search-cell">
+                <button type="button" class="eh-btn-gold" id="ehBtnSearch">Search</button>
+              </div>
+            </div>
+            <p class="eh-book-foot">
+              <button type="button" class="eh-btn-ghost" id="ehBtnExplore">Explore intent only</button>
+            </p>
+          </div>
+        </div>
+
+        <section class="eh-section" aria-labelledby="ehDestHeading">
+          <div class="eh-section-head">
+            <h2 id="ehDestHeading">Flights from <span class="eh-accent-word">London</span></h2>
+            <a href="#" class="eh-link-quiet" id="ehViewAllDest">View all</a>
+          </div>
+          <div class="eh-carousel" id="ehDestCarousel">
+            <div class="eh-carousel-viewport">
+              <div class="eh-carousel-track" id="ehDestTrack">
+                <article class="eh-dest-card" data-idx="0">
+                  <div class="eh-dest-visual" aria-hidden="true"></div>
+                  <div class="eh-dest-body">
+                    <h3 class="eh-dest-name">Zanzibar</h3>
+                    <p class="eh-dest-meta">from GBP 512* or 19,800 miles</p>
+                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-ZNZ">Select</button>
+                  </div>
+                </article>
+                <article class="eh-dest-card" data-idx="1">
+                  <div class="eh-dest-visual" aria-hidden="true"></div>
+                  <div class="eh-dest-body">
+                    <h3 class="eh-dest-name">Melbourne</h3>
+                    <p class="eh-dest-meta">from GBP 890* or 34,200 miles</p>
+                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-MEL">Select</button>
+                  </div>
+                </article>
+                <article class="eh-dest-card is-center" data-idx="2">
+                  <div class="eh-dest-visual" aria-hidden="true"></div>
+                  <div class="eh-dest-body">
+                    <h3 class="eh-dest-name">Tokyo</h3>
+                    <p class="eh-dest-meta">from GBP 721* or 27,500 miles</p>
+                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-NRT">Select</button>
+                  </div>
+                </article>
+                <article class="eh-dest-card" data-idx="3">
+                  <div class="eh-dest-visual" aria-hidden="true"></div>
+                  <div class="eh-dest-body">
+                    <h3 class="eh-dest-name">Hanoi</h3>
+                    <p class="eh-dest-meta">from GBP 540* or 20,400 miles</p>
+                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-HAN">Select</button>
+                  </div>
+                </article>
+                <article class="eh-dest-card" data-idx="4">
+                  <div class="eh-dest-visual" aria-hidden="true"></div>
+                  <div class="eh-dest-body">
+                    <h3 class="eh-dest-name">Sydney</h3>
+                    <p class="eh-dest-meta">from GBP 912* or 35,000 miles</p>
+                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-SYD">Select</button>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="eh-carousel-bar">
+              <button type="button" class="eh-hero-arrow" id="ehDestPrev" aria-label="Previous destinations">&#8249;</button>
+              <div class="eh-carousel-dot-row" aria-label="Carousel position">
+                <button type="button" class="eh-carousel-dot is-active" aria-label="Page 1"></button>
+                <button type="button" class="eh-carousel-dot" aria-label="Page 2"></button>
+                <button type="button" class="eh-carousel-dot" aria-label="Page 3"></button>
+              </div>
+              <button type="button" class="eh-hero-arrow" id="ehDestNext" aria-label="Next destinations">&#8250;</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="eh-section" aria-labelledby="ehGuestLifeHeading">
+          <div class="eh-section-head">
+            <h2 id="ehGuestLifeHeading">Life’s better as a <span class="eh-accent-word">Guest</span></h2>
+            <a href="#" class="eh-link-quiet">Join now</a>
+          </div>
+          <div class="eh-row-cards">
+            <article class="eh-story-card">
+              <div class="eh-story-inner">
+                <h3>Personalised benefits</h3>
+                <a href="#">Explore</a>
+              </div>
+            </article>
+            <article class="eh-story-card">
+              <div class="eh-story-inner">
+                <h3>Earn on every trip</h3>
+                <a href="#">Explore</a>
+              </div>
+            </article>
+            <article class="eh-story-card">
+              <div class="eh-story-inner">
+                <h3>Lounge access</h3>
+                <a href="#">Explore</a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="eh-section" aria-labelledby="ehXpHeading">
+          <div class="eh-xp">
+            <div class="eh-xp-copy">
+              <div class="eh-section-head eh-section-head--flush">
+                <h2 id="ehXpHeading">Experience <span class="eh-accent-word">Etihad</span></h2>
+              </div>
+              <p>
+                From hub connections to on-board service, this lab page mirrors a typical international booking journey:
+                search, destination interest, and optional abandonment — all as structured <code class="eh-code">travel.*</code> signals.
+              </p>
+            </div>
+            <div class="eh-xp-grid">
+              <div class="eh-xp-card">
+                <strong>International airport</strong>
+                <a href="#">Discover</a>
+              </div>
+              <div class="eh-xp-card">
+                <strong>Serene lounges</strong>
+                <a href="#">Discover</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="eh-footer">
+          <div class="eh-footer-grid">
+            <div class="eh-footer-col">
+              <h3>About</h3>
+              <ul>
+                <li><a href="#">Our story</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Media</a></li>
+              </ul>
+            </div>
+            <div class="eh-footer-col">
+              <h3>Flights &amp; travel</h3>
+              <ul>
+                <li><a href="#">Destinations</a></li>
+                <li><a href="#">Baggage</a></li>
+                <li><a href="#">Travel requirements</a></li>
+              </ul>
+            </div>
+            <div class="eh-footer-col">
+              <h3>Loyalty</h3>
+              <ul>
+                <li><a href="#">Programme overview</a></li>
+                <li><a href="#">Miles calculator</a></li>
+                <li><a href="#">Partners</a></li>
+              </ul>
+            </div>
+            <div class="eh-footer-col">
+              <h3>Top routes</h3>
+              <ul>
+                <li><a href="#">London — Middle East</a></li>
+                <li><a href="#">London — Asia Pacific</a></li>
+                <li><a href="#">London — Indian Ocean</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="eh-awards" aria-label="Placeholder awards">
+            <span class="eh-award">Award<br/>A</span>
+            <span class="eh-award">Award<br/>B</span>
+            <span class="eh-award">Award<br/>C</span>
+            <span class="eh-award">Award<br/>D</span>
+            <span class="eh-award">Award<br/>E</span>
+          </div>
+          <div class="eh-footer-cta">
+            <div class="eh-cta-block">
+              <p>Need help?</p>
+              <button type="button" class="eh-pill-btn">Contact us</button>
+            </div>
+            <div class="eh-cta-block">
+              <p>Subscribe to offers</p>
+              <button type="button" class="eh-pill-btn">Subscribe</button>
+            </div>
+            <div class="eh-cta-block">
+              <p>We love feedback</p>
+              <button type="button" class="eh-pill-btn">Give feedback</button>
+            </div>
+            <div class="eh-cta-block">
+              <p>Connect</p>
+              <div class="eh-social">
+                <button type="button" aria-label="Social in">in</button>
+                <button type="button" aria-label="Social f">f</button>
+                <button type="button" aria-label="Social camera">&#9675;</button>
+                <button type="button" aria-label="Social x">x</button>
+                <button type="button" aria-label="Social play">&#9654;</button>
+              </div>
+            </div>
+          </div>
+          <div class="eh-legal">
+            <span>
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Cookies</a>
+            </span>
+            <span>Lab mimic — not a real airline site.</span>
+          </div>
+        </footer>
+
+        <section class="eh-abandon" aria-labelledby="ehAbandonTitle">
+          <h2 id="ehAbandonTitle">Abandonment (demo)</h2>
+          <p>
+            Simulate leaving before pay — sends <code class="eh-code">travel.booking.abandon</code> for orchestration demos.
+          </p>
+          <button type="button" class="eh-btn-gold" id="ehBtnAbandon">Abandon checkout — send lab event</button>
+        </section>
+
+        <p class="eh-foot-note">Palette: <code class="eh-code">--dash-*</code> tokens only · hero uses bundled reference still for mood.</p>
+      </div>
+    </div>
   </div>
 
-  <script src="etihad-events.js?v=20260512-etihad-lab"></script>
+  <script src="etihad-events.js?v=20260512-etihad-lab-v2"></script>
   <script>
     (function () {
       function emit(t, pub) {
@@ -332,13 +1258,67 @@
         }
         return { travel: o };
       }
+
+      var destTrack = document.getElementById('ehDestTrack');
+      var destCards = destTrack ? destTrack.querySelectorAll('.eh-dest-card') : [];
+      var destIndex = 2;
+      var milesToggle = document.getElementById('ehMilesToggle');
+
+      function setCenterCard() {
+        destCards.forEach(function (c, i) {
+          c.classList.toggle('is-center', i === destIndex);
+        });
+      }
+
+      function shiftDest(delta) {
+        destIndex = (destIndex + delta + destCards.length) % destCards.length;
+        setCenterCard();
+        emit('travel.flight.explore', baseTravel({ journeyPhase: 'browse', carouselFocusIndex: destIndex }));
+      }
+
+      setCenterCard();
+
+      document.getElementById('ehDestPrev') && document.getElementById('ehDestPrev').addEventListener('click', function () { shiftDest(-1); });
+      document.getElementById('ehDestNext') && document.getElementById('ehDestNext').addEventListener('click', function () { shiftDest(1); });
+
+      var tabRound = document.getElementById('ehTabRound');
+      var tabOne = document.getElementById('ehTabOne');
+      var tabMulti = document.getElementById('ehTabMulti');
+      function selectTab(active) {
+        [tabRound, tabOne, tabMulti].forEach(function (t) {
+          if (!t) return;
+          t.setAttribute('aria-selected', t === active ? 'true' : 'false');
+        });
+        var tt = 'return';
+        if (active === tabOne) tt = 'oneway';
+        if (active === tabMulti) tt = 'multicity';
+        emit('travel.site.navigation', baseTravel({ navItem: 'trip_type', tripTypeTab: tt }));
+      }
+      tabRound && tabRound.addEventListener('click', function () { selectTab(tabRound); });
+      tabOne && tabOne.addEventListener('click', function () { selectTab(tabOne); });
+      tabMulti && tabMulti.addEventListener('click', function () { selectTab(tabMulti); });
+
+      milesToggle && milesToggle.addEventListener('click', function () {
+        var on = milesToggle.getAttribute('aria-checked') === 'true';
+        milesToggle.setAttribute('aria-checked', on ? 'false' : 'true');
+        emit('travel.site.navigation', baseTravel({ navItem: 'miles_toggle', milesBooking: !on }));
+      });
+
       document.getElementById('ehBtnSearch').addEventListener('click', function () {
+        var toEl = document.getElementById('ehTo');
+        var toVal = toEl && toEl.value ? String(toEl.value).trim() : '';
+        var milesOn = milesToggle && milesToggle.getAttribute('aria-checked') === 'true';
+        if (milesOn) {
+          emit('travel.site.navigation', baseTravel({ navItem: 'search_with_miles', milesBooking: true }));
+        }
         emit(
           'travel.flight.search',
           baseTravel({
             originAirport: 'LHR',
-            destinationAirport: 'AUH',
+            destinationAirport: toVal ? 'OPEN' : 'AUH',
+            destinationQuery: toVal || undefined,
             searchFilters: 'international,business,longhaul',
+            milesBooking: milesOn,
           })
         );
       });
@@ -374,10 +1354,26 @@
       ['ehNavFlights', 'ehNavManage', 'ehNavOffers'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        el.addEventListener('click', function (e) {
-          e.preventDefault();
+        el.addEventListener('click', function () {
           emit('travel.site.navigation', baseTravel({ navItem: id.replace('ehNav', '').toLowerCase() }));
         });
+      });
+      document.querySelectorAll('[data-eh-nav]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var key = el.getAttribute('data-eh-nav') || '';
+          emit('travel.site.navigation', baseTravel({ navItem: key }));
+        });
+      });
+
+      var heroBook = document.getElementById('ehHeroBookLink');
+      heroBook && heroBook.addEventListener('click', function (e) {
+        e.preventDefault();
+        emit('travel.flight.explore', baseTravel({ journeyPhase: 'browse', promo: 'global_sale' }));
+      });
+      var viewAll = document.getElementById('ehViewAllDest');
+      viewAll && viewAll.addEventListener('click', function (e) {
+        e.preventDefault();
+        emit('travel.site.navigation', baseTravel({ navItem: 'view_all_destinations' }));
       });
     })();
   </script>
