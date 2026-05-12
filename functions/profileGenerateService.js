@@ -173,18 +173,23 @@ async function handleProfileGenerate(req, res, ctx) {
   profileStreamingCore.assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
   profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
 
-  // All industry generates: one DCS envelope with OOTB `xdm:testProfile` on the XDM root (AJO /
-  // lab sandboxes). Opt out with body.testProfile === false, body.omitTestProfile === true, or
-  // attributes['xdm:testProfile'] === false.
+  // All industry generates: dual-write test flags on the streaming `xdmEntity` root so both
+  // OOTB XDM (`xdm:testProfile`) and generic dataflow / Postman bodies (`testProfile`, see AEP
+  // Lab generic DCS samples) are satisfied. Opt out with body.testProfile === false,
+  // body.omitTestProfile === true, or explicit false on either attribute key.
   const testProfileOptOut =
     body.testProfile === false ||
     body.testProfile === 'false' ||
     body.omitTestProfile === true ||
     body.omitTestProfile === 'true';
   const attrsSayNoTestProfile =
-    filteredAttrs['xdm:testProfile'] === false || filteredAttrs['xdm:testProfile'] === 'false';
+    filteredAttrs['xdm:testProfile'] === false ||
+    filteredAttrs['xdm:testProfile'] === 'false' ||
+    filteredAttrs.testProfile === false ||
+    filteredAttrs.testProfile === 'false';
   if (!testProfileOptOut && !attrsSayNoTestProfile) {
     rootExtras['xdm:testProfile'] = true;
+    rootExtras.testProfile = true;
   }
 
   const isAdobeDcsCollection = streamUrl ? /dcs\.adobedc\.net/i.test(streamUrl) : false;

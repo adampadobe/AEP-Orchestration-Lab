@@ -4590,9 +4590,13 @@ app.post('/api/profile/generate', async (req, res) => {
       req.body?.omitTestProfile === true ||
       req.body?.omitTestProfile === 'true';
     const attrsSayNoTestProfile =
-      filteredAttrs['xdm:testProfile'] === false || filteredAttrs['xdm:testProfile'] === 'false';
+      filteredAttrs['xdm:testProfile'] === false ||
+      filteredAttrs['xdm:testProfile'] === 'false' ||
+      filteredAttrs.testProfile === false ||
+      filteredAttrs.testProfile === 'false';
     if (!testProfileOptOut && !attrsSayNoTestProfile) {
       rootExtras['xdm:testProfile'] = true;
+      rootExtras.testProfile = true;
     }
 
     const { payload, format: payloadFormat } = buildProfileStreamPayload(

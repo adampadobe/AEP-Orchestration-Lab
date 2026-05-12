@@ -267,6 +267,11 @@ function buildProfileAccessHints(entityPayload, entity, rows) {
     typeof entity === 'object' &&
     !Array.isArray(entity) &&
     Object.prototype.hasOwnProperty.call(entity, 'xdm:testProfile');
+  const upsRootHasBareTestProfileKey =
+    entity &&
+    typeof entity === 'object' &&
+    !Array.isArray(entity) &&
+    Object.prototype.hasOwnProperty.call(entity, 'testProfile');
   const profileTableHasXdmTestProfileRow = Array.isArray(rows)
     ? rows.some(
         (r) =>
@@ -275,10 +280,20 @@ function buildProfileAccessHints(entityPayload, entity, rows) {
           (r.path === 'xdm:testProfile' || r.path.endsWith('.xdm:testProfile')),
       )
     : false;
+  const profileTableHasBareTestProfileRow = Array.isArray(rows)
+    ? rows.some(
+        (r) =>
+          r &&
+          typeof r.path === 'string' &&
+          (r.path === 'testProfile' || r.path.endsWith('.testProfile')),
+      )
+    : false;
   return {
     mergePolicyFromUps,
     upsRootHasXdmTestProfileKey,
+    upsRootHasBareTestProfileKey,
     profileTableHasXdmTestProfileRow,
+    profileTableHasBareTestProfileRow,
   };
 }
 

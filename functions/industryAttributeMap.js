@@ -223,6 +223,7 @@ const RAW_PATH_OWNERSHIP = [
       'demoEnvironment.',
       'metadata.',
       'xdm:testProfile',
+      'testProfile',
       '_id',
       '_repo.',
       '<TENANT>identification.',
