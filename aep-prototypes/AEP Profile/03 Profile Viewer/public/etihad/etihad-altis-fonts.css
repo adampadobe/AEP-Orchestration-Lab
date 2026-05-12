@@ -1,0 +1,45 @@
+/**
+ * Etihad Altis — .ttf files supplied for internal AEP Orchestration Lab demos only.
+ * Do not redistribute, embed in public products, or use beyond lab scope unless your
+ * team holds a separate license from the typeface rights holder (Etihad / vendor).
+ */
+
+@font-face {
+  font-family: 'Etihad Altis';
+  src: url('fonts/Etihad Altis Light-normal-250-100.ttf') format('truetype');
+  font-weight: 250;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Etihad Altis';
+  src: url('fonts/Etihad Altis-normal-350-100.ttf') format('truetype');
+  font-weight: 350;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Etihad Altis';
+  src: url('fonts/Etihad Altis Text-normal-400-100.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Etihad Altis';
+  src: url('fonts/Etihad Altis-normal-500-100.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Etihad Altis';
+  src: url('fonts/Etihad Altis-normal-700-100.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
