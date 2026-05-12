@@ -6,17 +6,18 @@
 (function () {
   'use strict';
 
-  var MSG_SOURCE = 'admiral-insurance-lab';
+  /** postMessage discriminator only (not sent as AEP eventType). */
+  var MSG_SOURCE = 'aep-lab-insurance-journey';
 
   /**
-   * @param {string} eventType - e.g. admiral.quoteForm.step1complete
+   * @param {string} eventType - e.g. insurance.quoteForm.step1complete (brand-agnostic)
    * @param {Record<string, unknown>} [publicObj] - merged into XDM _demoemea.public
    * @param {string} [viewName]
    * @param {string} [viewUrl]
    */
   function emit(eventType, publicObj, viewName, viewUrl) {
     var payload = {
-      eventType: String(eventType || 'admiral.insurance.interaction').trim(),
+      eventType: String(eventType || 'insurance.interaction').trim(),
       public: publicObj && typeof publicObj === 'object' ? publicObj : {},
       viewName: viewName || 'Admiral insurance demo',
       viewUrl: viewUrl || (typeof location !== 'undefined' ? location.href.split('#')[0] : ''),
@@ -24,7 +25,7 @@
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(
-          { source: MSG_SOURCE, type: 'admiral-insurance-experience-event', payload: payload },
+          { source: MSG_SOURCE, type: 'insurance-journey-experience-event', payload: payload },
           '*',
         );
       }

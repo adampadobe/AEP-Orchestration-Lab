@@ -75,7 +75,7 @@ async function sendAdmiralInsuranceExperienceEvent(payload) {
   const target = getSelectedGeneratorTarget();
   const body = {
     targetId: target ? target.id : undefined,
-    eventType: String(p.eventType || 'admiral.insurance.interaction').trim(),
+    eventType: String(p.eventType || 'insurance.interaction').trim(),
     viewName: String(p.viewName || 'Admiral insurance demo').trim(),
     viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
     channel: 'Web',
@@ -128,7 +128,7 @@ window.addEventListener('message', function (ev) {
   if (!admiralSiteFrame || !admiralSiteFrame.contentWindow || ev.source !== admiralSiteFrame.contentWindow) {
     return;
   }
-  if (!ev.data || ev.data.source !== 'admiral-insurance-lab' || ev.data.type !== 'admiral-insurance-experience-event') {
+  if (!ev.data || ev.data.source !== 'aep-lab-insurance-journey' || ev.data.type !== 'insurance-journey-experience-event') {
     return;
   }
   void sendAdmiralInsuranceExperienceEvent(ev.data.payload);

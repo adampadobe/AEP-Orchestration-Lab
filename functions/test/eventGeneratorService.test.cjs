@@ -36,10 +36,10 @@ test('buildLabFirestoreGeneratorPresets includes decision lab when both configur
   assert.equal(out[1].dataStreamId, '22222222-2222-2222-2222-222222222222');
 });
 
-test('buildEventGeneratorXdm merges Admiral quoteForm into _demoemea.public', () => {
+test('buildEventGeneratorXdm merges insurance quoteForm into _demoemea.public', () => {
   const ecid = '03976612467829823963241934423837679452';
   const xdm = buildEventGeneratorXdm({
-    eventType: 'admiral.quoteForm.step1complete',
+    eventType: 'insurance.quoteForm.step1complete',
     ecid,
     public: {
       quoteForm: { fullname: 'Ava Thomas', postcode: 'SW1A 1AA', step1complete: true },
@@ -50,5 +50,5 @@ test('buildEventGeneratorXdm merges Admiral quoteForm into _demoemea.public', ()
   assert.equal(xdm._demoemea.public.quoteForm.fullname, 'Ava Thomas');
   assert.equal(xdm._demoemea.public.quoteForm.postcode, 'SW1A 1AA');
   assert.equal(xdm._demoemea.public.bankSubscribtion.yes, true);
-  assert.equal(xdm.eventType, 'admiral.quoteForm.step1complete');
+  assert.equal(xdm.eventType, 'insurance.quoteForm.step1complete');
 });
