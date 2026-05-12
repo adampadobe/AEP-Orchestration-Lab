@@ -133,6 +133,33 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
       dest[hk] = typeof hv === 'string' ? hv.trim() : hv;
     }
   }
+
+  /** Admiral / insurance lab demos — merge structured objects into tenant.public (Experience Event). */
+  const extraPublicKeys = [
+    'quoteForm',
+    'bankSubscription',
+    'bankSubscribtion',
+    'protectionAddon',
+    'protectionConsolidation',
+    'policyInfo',
+    'dashboard',
+  ];
+  for (const ek of extraPublicKeys) {
+    if (!Object.prototype.hasOwnProperty.call(pubIn, ek)) continue;
+    const ev = pubIn[ek];
+    if (ev == null) continue;
+    if (typeof ev === 'object' && !Array.isArray(ev)) {
+      dest[ek] = { ...ev };
+    } else if (Array.isArray(ev)) {
+      dest[ek] = ev;
+    } else if (typeof ev === 'string') {
+      const s = ev.trim();
+      if (s) dest[ek] = s;
+    } else if (typeof ev === 'number' || typeof ev === 'boolean') {
+      dest[ek] = ev;
+    }
+  }
+
   if (Object.keys(dest).length > 0) tenant.public = dest;
 
   if (donationAmountNumber != null && Number.isFinite(donationAmountNumber)) {

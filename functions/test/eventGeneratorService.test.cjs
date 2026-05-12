@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  buildEventGeneratorXdm,
   buildLabFirestoreGeneratorPresets,
   LAB_EVENT_TOOL_TARGET_ID,
   LAB_DECISION_LAB_TARGET_ID,
@@ -33,4 +34,21 @@ test('buildLabFirestoreGeneratorPresets includes decision lab when both configur
   assert.equal(out[0].id, LAB_EVENT_TOOL_TARGET_ID);
   assert.equal(out[1].id, LAB_DECISION_LAB_TARGET_ID);
   assert.equal(out[1].dataStreamId, '22222222-2222-2222-2222-222222222222');
+});
+
+test('buildEventGeneratorXdm merges Admiral quoteForm into _demoemea.public', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'admiral.quoteForm.step1complete',
+    ecid,
+    public: {
+      quoteForm: { fullname: 'Ava Thomas', postcode: 'SW1A 1AA', step1complete: true },
+      bankSubscribtion: { yes: true },
+    },
+  });
+  assert.ok(xdm._demoemea && xdm._demoemea.public);
+  assert.equal(xdm._demoemea.public.quoteForm.fullname, 'Ava Thomas');
+  assert.equal(xdm._demoemea.public.quoteForm.postcode, 'SW1A 1AA');
+  assert.equal(xdm._demoemea.public.bankSubscribtion.yes, true);
+  assert.equal(xdm.eventType, 'admiral.quoteForm.step1complete');
 });

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admiral · Your Protection</title>
+  <script src="admiral-lab-events.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <style>
     /* ── Reset & Tokens ─────────────────────────────────────── */
@@ -2571,7 +2572,7 @@
           </div>
         </div>
 
-        <button class="ob-cta" onclick="obNextStep()">
+        <button class="ob-cta" onclick="obEmitStep1AndContinue()">
           Continue
           <span class="material-symbols-outlined">arrow_forward</span>
         </button>
@@ -2631,7 +2632,7 @@
 
         </div>
 
-        <button class="ob-cta" onclick="obNextStep()">
+        <button class="ob-cta" onclick="obEmitStep2AndContinue()">
           Continue
           <span class="material-symbols-outlined">arrow_forward</span>
         </button>
@@ -2731,7 +2732,7 @@
           </div>
         </div>
 
-        <button class="ob-cta" onclick="obNextStep()">
+        <button class="ob-cta" onclick="obEmitStep3AndContinue()">
           Continue
           <span class="material-symbols-outlined">arrow_forward</span>
         </button>
@@ -2964,7 +2965,7 @@
             Add all
             <span class="material-symbols-outlined">arrow_forward</span>
           </button>
-          <button class="ob-cta-secondary" onclick="obNextStep()">
+          <button class="ob-cta-secondary" onclick="obEmitStep5Continue()">
             Continue without changes
           </button>
         </div>
@@ -4241,6 +4242,20 @@
 </div>
 
 <script>
+  /** AEP lab — stream demo clicks to parent shell (Edge generator + ECID). */
+  function admiralTrack(eventType, pub) {
+    try {
+      if (window.AdmiralLabEvents && typeof window.AdmiralLabEvents.emit === 'function') {
+        window.AdmiralLabEvents.emit(
+          eventType,
+          pub && typeof pub === 'object' ? pub : {},
+          'Admiral insurance demo',
+          typeof location !== 'undefined' ? location.href.split('#')[0] : '',
+        );
+      }
+    } catch (e) {}
+  }
+
   /* ── Sidebar drawer (mobile) ─────────────────────────────── */
   function openSidebar() {
     document.getElementById('sidebar').classList.add('open');
@@ -4316,6 +4331,10 @@
   };
 
   function simulateAction(key, btn) {
+    admiralTrack('admiral.dashboard.recommendationCta', {
+      dashboard: { simulateAction: key },
+      quoteForm: { dashboardRecommendation: key },
+    });
     const card = btn.closest('.rec-card');
     if (card.classList.contains('done')) return;
     card.classList.add('done');
@@ -4329,6 +4348,7 @@
 
   /* ── Driver flow — stub (full impl in chat script block) ─── */
   function openChatDriverFlow() {
+    admiralTrack('admiral.dashboard.addDriverChat', { dashboard: { addDriverFlow: true } });
     if (typeof startDriverFlow === 'function') {
       const alreadyOpen = chatReady;
       openChat();
@@ -4403,6 +4423,8 @@
 
     // Toggle closed if same card tapped again
     if (activeCardKey === key) { closeCardDetail(); return; }
+
+    admiralTrack('admiral.dashboard.expandProtection', { dashboard: { protectionArea: key } });
 
     // Reset all card active states
     document.querySelectorAll('.cat-card').forEach(c => {
@@ -4542,6 +4564,7 @@
   let chatReady = false;
 
   function openChat() {
+    admiralTrack('admiral.dashboard.openChat', { dashboard: { chatOpened: true } });
     document.getElementById('chatPanel').classList.add('open');
     closeSidebar();
     if (!chatReady) {
@@ -4772,6 +4795,7 @@
 <script>
   /* ── Page navigation ──────────────────────────────────────── */
   function navigateTo(page) {
+    admiralTrack('admiral.dashboard.navigate', { dashboard: { page: page } });
     document.querySelectorAll('.sidebar-item[data-page]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.page === page);
     });
@@ -4789,6 +4813,7 @@
 
   /* ── Dashboard featured offer ─────────────────────────────── */
   function dashClaimOffer() {
+    admiralTrack('admiral.dashboard.claimBreakdownOffer', { dashboard: { offerId: 'breakdownUpgrade', action: 'claimNow' } });
     if (typeof claimReward === 'function') claimReward(72);
     else REWARDS_CLAIMED?.add(72);
     const btn = document.getElementById('dashOfferClaimBtn');
@@ -4849,6 +4874,9 @@
     if (!files || !files.length) return;
     for (const f of files) {
       polUploadedFiles.push({ name: f.name, size: polFmtBytes(f.size), ext: polFileExt(f.name) });
+      admiralTrack('admiral.policyInfo.upload', {
+        policyInfo: { filename: f.name, document: 'policyInfo.pdf' },
+      });
     }
     polRender();
   }
@@ -5202,6 +5230,7 @@
 
 <script>
   function openGutterModal() {
+    admiralTrack('admiral.dashboard.gutterEvidence', { dashboard: { scoreActivity: 'gutterEvidenceModal' } });
     document.getElementById('gutterOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -5235,6 +5264,9 @@
     6: 'Final step'
   };
   const obProtections = { home: false, health: false, mobility: false, finances: false };
+  /** Maps Step 2 card keys → quoteForm.* profile field names from the demo script. */
+  const OB_PROT_QUOTE_KEY = { home: 'homeProtection', health: 'healthProtection', mobility: 'yourMobility', finances: 'yourFinances' };
+  let obStep5CompleteFromAddAll = false;
 
   const OB_STORAGE_KEY = 'admiralOnboardingDone';
 
@@ -5267,6 +5299,7 @@
 
   // Roll back every step's interactive state so a replay starts clean.
   function obResetAllInteractive() {
+    obStep5CompleteFromAddAll = false;
     // Step 2 — protection categories
     document.querySelectorAll('.ob-prot-card').forEach(c => c.classList.remove('selected'));
     if (typeof obProtections === 'object') {
@@ -5353,29 +5386,41 @@
   }
 
   function skipToQuote() {
+    admiralTrack('admiral.onboarding.skipToQuote', { quoteForm: { skipToQuote: true } });
     dismissOnboarding();
   }
 
   function obChangeOccupants(delta) {
     obOccupants = Math.max(1, Math.min(10, obOccupants + delta));
     document.getElementById('obOccupantsVal').textContent = obOccupants;
+    admiralTrack('admiral.quoteForm.occupants', { quoteForm: { occupants: obOccupants } });
   }
 
   function obSelectProp(btn) {
     document.querySelectorAll('.ob-prop-opt').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+    admiralTrack('admiral.quoteForm.propertyType', { quoteForm: { propertyType: btn.dataset.val || '' } });
   }
 
   function obToggleProt(btn) {
     const key = btn.dataset.prot;
     obProtections[key] = !obProtections[key];
     btn.classList.toggle('selected');
+    const qk = OB_PROT_QUOTE_KEY[key];
+    if (qk) {
+      admiralTrack('admiral.quoteForm.' + qk, { quoteForm: { [qk]: obProtections[key] } });
+    }
   }
 
   function obAnswerBankPremium(val) {
     document.querySelectorAll('.ob-yn-btn').forEach(b => b.classList.remove('selected'));
     document.querySelector(`.ob-yn-btn[data-val="${val}"]`).classList.add('selected');
     document.getElementById('obBankPicker').hidden = (val !== 'yes');
+    if (val === 'yes') {
+      admiralTrack('admiral.bankSubscribtion.yes', { bankSubscribtion: { yes: true } });
+    } else {
+      admiralTrack('admiral.bankSubscribtion.no', { bankSubscribtion: { no: true } });
+    }
     if (val !== 'yes') {
       document.getElementById('obMonzoCompare').hidden = true;
       document.querySelectorAll('.ob-bank-opt').forEach(b => b.classList.remove('selected'));
@@ -5386,6 +5431,65 @@
     document.querySelectorAll('.ob-bank-opt').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     document.getElementById('obMonzoCompare').hidden = (key !== 'monzo');
+    admiralTrack('admiral.bankSubscription.' + key, {
+      bankSubscription: key === 'monzo' ? { monzoPremium: true, selectedBank: key } : { selectedBank: key },
+    });
+  }
+
+  function obEmitStep1AndContinue() {
+    const nameEl = document.getElementById('obName');
+    const pcEl = document.getElementById('obPostcode');
+    const propBtn = document.querySelector('.ob-prop-opt.selected');
+    const propertyType = propBtn ? propBtn.dataset.val : '';
+    admiralTrack('admiral.quoteForm.step1complete', {
+      quoteForm: {
+        fullname: (nameEl && nameEl.value) || '',
+        postcode: (pcEl && pcEl.value) || '',
+        occupants: obOccupants,
+        propertyType: propertyType || '',
+        step1complete: true,
+      },
+    });
+    obNextStep();
+  }
+
+  function obEmitStep2AndContinue() {
+    admiralTrack('admiral.quoteForm.step2complete', {
+      quoteForm: {
+        homeProtection: !!obProtections.home,
+        healthProtection: !!obProtections.health,
+        yourMobility: !!obProtections.mobility,
+        yourFinances: !!obProtections.finances,
+        step2complete: true,
+      },
+    });
+    obNextStep();
+  }
+
+  function obEmitStep3AndContinue() {
+    const ynYes = document.querySelector('.ob-yn-btn[data-val="yes"].selected');
+    const ynNo = document.querySelector('.ob-yn-btn[data-val="no"].selected');
+    const bankSubscribtion = ynYes ? { yes: true } : ynNo ? { no: true } : {};
+    const bankBtn = document.querySelector('.ob-bank-opt.selected');
+    const bKey = bankBtn && bankBtn.dataset.bank;
+    const bankSubscription =
+      bKey === 'monzo' ? { monzoPremium: true, selectedBank: 'monzo' } : bKey ? { selectedBank: bKey } : {};
+    admiralTrack('admiral.quoteForm.step3complete', {
+      bankSubscribtion,
+      bankSubscription,
+      quoteForm: { step3complete: true },
+    });
+    obNextStep();
+  }
+
+  function obEmitStep5Continue() {
+    if (!obStep5CompleteFromAddAll) {
+      admiralTrack('admiral.quoteForm.step5complete', {
+        quoteForm: { step5complete: true, step5Path: 'continueWithoutChanges' },
+      });
+    }
+    obStep5CompleteFromAddAll = false;
+    obNextStep();
   }
 
   /* Step 4 — document synthesis */
@@ -5436,6 +5540,9 @@
     if (!files || !files.length) return;
     for (const f of files) {
       obUploadedFiles.push({ name: f.name, size: obFmtBytes(f.size), ext: obFileExt(f.name) });
+      admiralTrack('admiral.policyInfo.upload', {
+        policyInfo: { document: 'policyInfo.pdf', filename: f.name },
+      });
     }
     obRenderFiles();
   }
@@ -5444,6 +5551,9 @@
   function obSimulateUpload() {
     obDemoLoadStarted = true;
     obUploadedFiles = OB_DEMO_FILES.map(f => ({ ...f, ext: 'PDF' }));
+    OB_DEMO_FILES.forEach(f => {
+      admiralTrack('admiral.policyInfo.upload', { policyInfo: { document: 'policyInfo.pdf', displayName: f.name } });
+    });
     obRenderFiles();
   }
 
@@ -5454,6 +5564,9 @@
     OB_DEMO_FILES.forEach((f, i) => {
       setTimeout(() => {
         obUploadedFiles.push({ ...f, ext: 'PDF' });
+        admiralTrack('admiral.policyInfo.upload', {
+          policyInfo: { document: 'policyInfo.pdf', displayName: f.name },
+        });
         obRenderFiles();
       }, 220 + i * 380);
     });
@@ -5499,6 +5612,9 @@
     document.getElementById('obRevealWhy').hidden  = view !== 'why';
     document.getElementById('obRevealHow').hidden  = view !== 'how';
     document.getElementById('obOverlay').scrollTo(0, 0);
+    if (view === 'how') {
+      admiralTrack('admiral.quoteForm.showHow', { quoteForm: { showHow: true } });
+    }
     if (view === 'main') {
       requestAnimationFrame(() => obAnimateRevealScores());
     }
@@ -5548,6 +5664,16 @@
   function obAddGap(idx) {
     const row = document.querySelector(`.ob-gap-row[data-gap="${idx}"]`);
     if (!row) return;
+    const btn0 = row.querySelector('.ob-gap-action');
+    if (btn0 && btn0.disabled) return;
+    const i = String(idx);
+    if (i === '0') {
+      admiralTrack('admiral.protectionAddon.homeRebuildValue', { protectionAddon: { homeRebuildValue: true } });
+    } else if (i === '1') {
+      admiralTrack('admiral.protectionAddon.homeFloodRisk', { protectionAddon: { homeFloodRisk: true } });
+    } else if (i === '2') {
+      admiralTrack('admiral.protectionConsolidation.gadgetCover', { protectionConsolidation: { gadgetCover: true } });
+    }
     row.classList.add('added');
     const btn = row.querySelector('.ob-gap-action');
     btn.classList.add('added');
@@ -5561,14 +5687,34 @@
       const idx = row.dataset.gap;
       obAddGap(idx);
     });
+    obStep5CompleteFromAddAll = true;
+    admiralTrack('admiral.quoteForm.step5complete', {
+      quoteForm: { step5complete: true, step5Path: 'addAll' },
+      protectionAddon: { homeRebuildValue: true, homeFloodRisk: true },
+      protectionConsolidation: { gadgetCover: true },
+    });
     setTimeout(() => obNextStep(), 900);
   }
 
   function obCompleteSignup() {
+    const emailEl = document.getElementById('obEmail');
+    const agreeEl = document.getElementById('obAgree');
+    admiralTrack('admiral.quoteForm.completedSignup', {
+      quoteForm: {
+        email: (emailEl && emailEl.value) || '',
+        termsAgreed: !!(agreeEl && agreeEl.checked),
+        completedSignup: true,
+      },
+    });
     dismissOnboarding();
   }
 
   function obStartSynthesis() {
+    const snapshot = obUploadedFiles.map(f => ({ label: f.name, document: 'policyInfo.pdf' }));
+    admiralTrack('admiral.quoteForm.step4complete', {
+      quoteForm: { step4complete: true, policyDocumentCount: obUploadedFiles.length },
+      policyInfo: { documents: snapshot },
+    });
     const hero = document.getElementById('obStep4Hero');
     hero.classList.remove('ob-hero-left');
     hero.classList.add('ob-hero-synth');
