@@ -1,1382 +1,2496 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>International flights (lab mimic)</title>
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');}catch(e){}})();</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="etihad-altis-fonts.css?v=20260512"/>
-  <link rel="stylesheet" href="../home.css?v=20260423b"/>
-  <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etihad Airways – Book flights, manage and check-in online</title>
   <style>
-    body.etihad-airline-lab-site {
-      margin: 0;
+    /* ─── FONTS ─────────────────────────────────────────────── */
+    @font-face {
+      font-family: 'Etihad Altis';
+      src: url('fonts/Etihad Altis Light-normal-250-100.ttf') format('truetype');
+      font-weight: 250;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Etihad Altis';
+      src: url('fonts/Etihad Altis-normal-350-100.ttf') format('truetype');
+      font-weight: 350;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Etihad Altis';
+      src: url('fonts/Etihad Altis Text-normal-400-100.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Etihad Altis';
+      src: url('fonts/Etihad Altis-normal-500-100.ttf') format('truetype');
+      font-weight: 500;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Etihad Altis';
+      src: url('fonts/Etihad Altis-normal-700-100.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    /* ─── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --color-bg:            #1b2d3e;
+      --color-footer:        #132030;
+      --color-white:         #ffffff;
+      --color-text-secondary:#e5e7eb;
+      --color-gold-text:     #dec39b;
+      --color-gold-line:     #b08747;
+      --color-gold-btn:      #c9973a;
+      --color-badge-red:     #e8453c;
+      --color-border:        rgba(255,255,255,0.12);
+      --color-field-border:  #e2e8f0;
+      --sidebar-width:       178px;
+      --sidebar-collapsed:   64px;
+      --inner-width:         1076px;
+      --font:                'Etihad Altis', Arial, sans-serif;
+      --radius-card:         16px;
+      --radius-pill:         24px;
+    }
+
+    /* ─── RESET ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    a { text-decoration: none; color: inherit; }
+    img { display: block; max-width: 100%; }
+
+    body {
+      font-family: var(--font);
+      background: var(--color-bg);
+      color: var(--color-white);
       min-height: 100vh;
-      font-family: 'Etihad Altis', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --eh-panel-light: var(--dash-surface);
-      --eh-panel-light-fg: var(--dash-text);
-      --eh-panel-light-muted: var(--dash-muted);
-      --eh-panel-field-bg: var(--dash-surface-alt);
-      --eh-panel-field-border: var(--dash-border);
-      --eh-hero-overlay: color-mix(in srgb, var(--dash-bg) 45%, transparent);
     }
-    html[data-aep-theme='dark'] body.etihad-airline-lab-site {
-      --eh-panel-light: color-mix(in srgb, var(--dash-text) 94%, var(--dash-bg));
-      --eh-panel-light-fg: color-mix(in srgb, var(--dash-bg) 78%, var(--dash-text));
-      --eh-panel-light-muted: color-mix(in srgb, var(--dash-bg) 42%, var(--dash-text-secondary));
-      --eh-panel-field-bg: color-mix(in srgb, var(--dash-text) 88%, var(--dash-bg));
-      --eh-panel-field-border: color-mix(in srgb, var(--eh-panel-light-fg) 18%, var(--eh-panel-light));
-      --eh-hero-overlay: color-mix(in srgb, var(--dash-bg) 50%, transparent);
-    }
-    .eh-app {
+
+    /* ─── SIDEBAR ────────────────────────────────────────────── */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: #0f1e2b;
+      z-index: 100;
       display: flex;
-      min-height: 100vh;
-      background: var(--dash-bg);
-      color: var(--dash-text);
+      flex-direction: column;
+      transition: width 200ms ease;
+      overflow: visible;        /* allow collapse tab to protrude past right edge */
     }
-    .eh-rail {
-      width: 4.5rem;
+    #sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 81px;
+      display: flex;
+      align-items: center;
+      padding: 0 43px;
       flex-shrink: 0;
-      background: var(--dash-sidebar);
-      border-right: 1px solid var(--dash-border);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0.65rem 0 1rem;
-      gap: 0.15rem;
-    }
-    .eh-rail-toggle {
-      align-self: flex-end;
-      margin-right: 0.35rem;
-      margin-bottom: 0.35rem;
-      border: none;
-      background: transparent;
-      color: var(--dash-muted);
-      cursor: pointer;
-      padding: 0.2rem;
-      border-radius: var(--dash-radius-sm);
-    }
-    .eh-rail-toggle:hover {
-      color: var(--dash-text);
-      background: var(--dash-hover);
-    }
-    .eh-rail-toggle:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 2px;
-    }
-    .eh-rail-nav {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.15rem;
-      width: 100%;
-    }
-    .eh-rail-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.2rem;
-      width: 100%;
-      padding: 0.45rem 0.15rem;
-      border: none;
-      background: transparent;
-      color: var(--dash-text-secondary);
-      font-size: 0.58rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      border-radius: var(--dash-radius-sm);
-      line-height: 1.15;
-    }
-    .eh-rail-btn:hover,
-    .eh-rail-btn:focus-visible {
-      color: var(--dash-text);
-      background: var(--dash-hover);
-    }
-    .eh-rail-btn:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 0;
-    }
-    .eh-rail-btn svg {
-      width: 1.15rem;
-      height: 1.15rem;
-      opacity: 0.92;
-    }
-    .eh-main {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .eh-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.65rem clamp(0.75rem, 2vw, 1.5rem);
-      border-bottom: 1px solid var(--dash-border);
-      background: color-mix(in srgb, var(--dash-bg) 88%, var(--dash-surface));
-    }
-    .eh-wordmark {
-      font-weight: 700;
-      font-size: 1.15rem;
-      letter-spacing: 0.28em;
-      color: var(--dash-text);
-    }
-    .eh-topbar-tools {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-    }
-    .eh-top-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.35rem 0.55rem;
-      border-radius: 999px;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface-alt);
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--dash-text-secondary);
-    }
-    .eh-icon-btn {
-      width: 2.25rem;
-      height: 2.25rem;
-      border-radius: 999px;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface-alt);
-      color: var(--dash-text-secondary);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .eh-icon-btn:hover {
-      color: var(--dash-text);
-      border-color: color-mix(in srgb, var(--dash-border) 70%, var(--dash-warning-border));
-    }
-    .eh-scroll {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-    .eh-lab-ribbon {
-      margin: 0.65rem clamp(0.75rem, 2vw, 1.5rem) 0;
-      background: var(--dash-info-bg);
-      border: 1px solid var(--dash-info-border);
-      color: var(--dash-info-text);
-      border-radius: var(--dash-radius-sm);
-      padding: 0.5rem 0.75rem;
-      font-size: 0.72rem;
-      line-height: 1.4;
-    }
-    .eh-lab-ribbon strong {
-      color: var(--dash-text);
-    }
-    .eh-hero-block {
-      position: relative;
-      margin: 0.85rem clamp(0.75rem, 2vw, 1.5rem) 0;
-      border-radius: var(--dash-radius);
       overflow: hidden;
-      min-height: clamp(220px, 38vw, 340px);
-      background: var(--dash-surface-alt);
-      border: 1px solid var(--dash-border);
-      box-shadow: var(--dash-shadow);
     }
-    .eh-hero-bg {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(105deg, var(--eh-hero-overlay) 0%, color-mix(in srgb, var(--eh-hero-overlay) 65%, transparent) 45%, transparent 78%),
-        url('etihad-reference-hero.png');
-      background-size: cover;
-      background-position: center 35%;
+    .sidebar-logo img { width: 92px; height: auto; }
+    .sidebar-logo .logo-icon { display: none; width: 28px; }
+    #sidebar.collapsed .sidebar-logo { padding: 0; justify-content: center; }
+    #sidebar.collapsed .sidebar-logo .logo-full { display: none; }
+    #sidebar.collapsed .sidebar-logo .logo-icon { display: block; }
+
+    .sidebar-divider {
+      width: 134px;
+      height: 1px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      margin: 0 22px;
+      flex-shrink: 0;
     }
-    .eh-hero-copy {
-      position: relative;
-      z-index: 1;
-      padding: clamp(1.25rem, 3vw, 2rem);
-      max-width: 26rem;
+    #sidebar.collapsed .sidebar-divider { width: 40px; margin: 0 12px; }
+
+    .sidebar-nav {
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;         /* clip nav labels when sidebar collapses */
     }
-    .eh-hero-kicker-row {
+
+    .nav-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.45rem;
-    }
-    .eh-badge-now {
-      font-size: 0.62rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0.2rem 0.45rem;
-      border-radius: var(--dash-radius-sm);
-      background: var(--dash-warning-bg);
-      border: 1px solid var(--dash-warning-border);
-      color: var(--dash-warning-text);
-    }
-    .eh-hero-copy h1 {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.65rem, 4.2vw, 2.35rem);
-      font-weight: 700;
-      color: var(--dash-text);
-      line-height: 1.1;
-      text-shadow: 0 1px 2px color-mix(in srgb, var(--dash-bg) 35%, transparent);
-    }
-    .eh-hero-copy p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--dash-text-secondary);
-      line-height: 1.45;
-    }
-    .eh-hero-copy a {
-      color: var(--dash-warning-text);
-      font-weight: 600;
+      gap: 12px;
+      width: 146px;
+      height: 40px;
+      margin: 0 16px 8px;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background 150ms, color 150ms;
+      white-space: nowrap;
       text-decoration: none;
-      border-bottom: 1px solid var(--dash-warning-border);
-    }
-    .eh-hero-copy a:hover {
-      color: var(--dash-text);
-    }
-    .eh-hero-controls {
-      position: absolute;
-      z-index: 2;
-      right: 0.85rem;
-      bottom: 5.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    @media (max-width: 720px) {
-      .eh-hero-controls {
-        bottom: 4.5rem;
-      }
-    }
-    .eh-hero-dot-row {
-      display: flex;
-      gap: 0.28rem;
-    }
-    .eh-hero-dot {
-      width: 0.45rem;
-      height: 0.45rem;
-      border-radius: 999px;
-      border: none;
-      padding: 0;
-      background: color-mix(in srgb, var(--dash-text) 35%, transparent);
-      cursor: pointer;
-    }
-    .eh-hero-dot.is-active {
-      background: var(--dash-warning-border);
-    }
-    .eh-hero-arrow {
-      width: 2rem;
-      height: 2rem;
-      border-radius: 999px;
-      border: 1px solid var(--dash-border);
-      background: color-mix(in srgb, var(--dash-surface) 55%, transparent);
-      color: var(--dash-text);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .eh-hero-arrow:hover {
-      background: var(--dash-surface);
-    }
-    .eh-book-wrap {
       position: relative;
-      z-index: 3;
-      margin: -4.25rem clamp(0.75rem, 2vw, 1.5rem) 0;
-      padding-bottom: 0.25rem;
     }
-    @media (max-width: 720px) {
-      .eh-book-wrap {
-        margin-top: -2.5rem;
-      }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--color-white); }
+    .nav-item.active { color: var(--color-white); border-left: 2px solid var(--color-gold-line); padding-left: 10px; }
+    .nav-item img { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+    .nav-icon-filled { display: none; }
+    .nav-item.active .nav-icon-plain  { display: none; }
+    .nav-item.active .nav-icon-filled { display: block; }
+    .nav-item span { transition: opacity 150ms; }
+    #sidebar.collapsed .nav-item { width: 40px; margin: 0 12px 8px; padding: 0; justify-content: center; }
+    #sidebar.collapsed .nav-item.active { border-left: none; padding-left: 0; }
+    #sidebar.collapsed .nav-item span { opacity: 0; width: 0; overflow: hidden; }
+
+    /* ─── NAV FLYOUT ─────────────────────────────────────────── */
+    .nav-flyout {
+      position: fixed;
+      top: 0;
+      left: 178px;
+      width: 210px;
+      background: #112030;
+      border-radius: 0 14px 14px 0;
+      padding: 8px 0 12px;
+      z-index: 600;
+      box-shadow: 6px 0 28px rgba(0,0,0,0.55);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-6px);
+      transition: opacity 160ms ease, transform 160ms ease;
     }
-    .eh-book-panel {
-      background: var(--eh-panel-light);
-      color: var(--eh-panel-light-fg);
-      border-radius: var(--dash-radius);
-      border: 1px solid var(--eh-panel-field-border);
-      box-shadow: var(--dash-shadow-hover);
-      padding: 1rem clamp(0.75rem, 1.8vw, 1.25rem) 1.1rem;
+    .nav-flyout.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(0);
     }
-    .eh-book-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-    .eh-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-    }
-    .eh-tab {
-      border: none;
-      background: transparent;
-      color: var(--eh-panel-light-muted);
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 0.4rem 0.75rem;
-      border-radius: 999px;
-      cursor: pointer;
-    }
-    .eh-tab[aria-selected='true'] {
-      background: var(--eh-panel-light-fg);
-      color: var(--eh-panel-light);
-    }
-    .eh-tab:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 2px;
-    }
-    .eh-miles-row {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--eh-panel-light-muted);
-    }
-    .eh-switch {
-      position: relative;
-      width: 2.35rem;
-      height: 1.2rem;
-      border-radius: 999px;
-      border: 1px solid var(--eh-panel-field-border);
-      background: var(--eh-panel-field-bg);
-      cursor: pointer;
-      padding: 0;
-    }
-    .eh-switch::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0.15rem;
-      width: 0.85rem;
-      height: 0.85rem;
-      border-radius: 999px;
-      background: var(--eh-panel-light-muted);
-      transform: translate(0, -50%);
-      transition: transform 0.18s ease, background 0.18s ease;
-    }
-    .eh-switch[aria-checked='true'] {
-      background: color-mix(in srgb, var(--dash-warning-bg) 80%, var(--eh-panel-field-bg));
-      border-color: var(--dash-warning-border);
-    }
-    .eh-switch[aria-checked='true']::after {
-      transform: translate(1.05rem, -50%);
-      background: var(--dash-warning-border);
-    }
-    .eh-switch:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 2px;
-    }
-    .eh-book-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-      gap: 0.65rem;
-      align-items: end;
-    }
-    @media (max-width: 960px) {
-      .eh-book-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .eh-book-grid .eh-book-search-cell {
-        grid-column: 1 / -1;
-      }
-    }
-    @media (max-width: 520px) {
-      .eh-book-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-field label {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.68rem;
+    .nav-flyout-title {
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--eh-panel-light-muted);
-      margin-bottom: 0.28rem;
+      letter-spacing: 0.1em;
+      color: var(--color-gold-text);
+      padding: 10px 18px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 4px;
     }
-    .eh-field input {
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: var(--dash-radius-sm);
-      border: 1px solid var(--eh-panel-field-border);
-      background: var(--eh-panel-field-bg);
-      color: var(--eh-panel-light-fg);
-      font-family: inherit;
-      font-size: 0.88rem;
-      font-weight: 600;
-      padding: 0.55rem 0.65rem;
-    }
-    .eh-field input:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 1px;
-    }
-    .eh-book-search-cell {
-      display: flex;
-      justify-content: flex-end;
-    }
-    .eh-btn-gold {
-      border-radius: var(--dash-radius-sm);
-      font-family: inherit;
-      font-size: 0.88rem;
-      font-weight: 700;
-      padding: 0.65rem 1.35rem;
-      cursor: pointer;
-      border: 1px solid color-mix(in srgb, var(--dash-warning-border) 75%, var(--eh-panel-light-fg));
-      background: linear-gradient(180deg, var(--dash-warning-text), var(--dash-warning-border));
-      color: var(--menu-nav-active-fg, var(--dash-surface));
-      min-height: 2.75rem;
+    .nav-flyout a {
+      display: block;
+      padding: 8px 18px;
+      color: rgba(255,255,255,0.72);
+      font-size: 13px;
+      font-weight: 400;
+      text-decoration: none;
+      transition: color 100ms, background 100ms;
       white-space: nowrap;
     }
-    .eh-btn-gold:hover {
-      filter: brightness(1.06);
+    .nav-flyout a:hover {
+      color: white;
+      background: rgba(255,255,255,0.07);
     }
-    .eh-btn-gold:focus-visible {
-      outline: 2px solid var(--dash-blue);
-      outline-offset: 2px;
-    }
-    .eh-btn-ghost {
-      border-radius: var(--dash-radius-sm);
-      font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 0.45rem 0.85rem;
-      cursor: pointer;
-      border: 1px solid var(--dash-border);
-      background: transparent;
-      color: var(--dash-text-secondary);
-    }
-    .eh-btn-ghost:hover {
-      background: var(--dash-hover);
-      color: var(--dash-text);
-    }
-    .eh-section {
-      margin: 2.25rem clamp(0.75rem, 2vw, 1.5rem) 0;
-      position: relative;
-    }
-    .eh-section::before {
-      content: '';
+
+    /* Sidebar collapse tab — pill protruding from the right edge */
+    .sidebar-collapse-btn {
       position: absolute;
-      left: 0;
-      right: 0;
-      top: -1.25rem;
-      height: 5rem;
-      pointer-events: none;
-      opacity: 0.45;
-      background: repeating-linear-gradient(
-        -18deg,
-        transparent 0 14px,
-        color-mix(in srgb, var(--dash-border) 40%, transparent) 14px 15px
-      );
-    }
-    .eh-section-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      position: relative;
-      z-index: 1;
-    }
-    .eh-section-head h2 {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--dash-text);
-    }
-    .eh-accent-word {
-      border-bottom: 2px solid var(--dash-warning-border);
-      padding-bottom: 0.08rem;
-    }
-    .eh-link-quiet {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--dash-warning-text);
-      text-decoration: none;
-    }
-    .eh-link-quiet:hover {
-      text-decoration: underline;
-    }
-    .eh-carousel {
-      position: relative;
-    }
-    .eh-carousel-viewport {
-      overflow: hidden;
-      border-radius: var(--dash-radius);
-      margin: 0 -0.25rem;
-    }
-    .eh-carousel-track {
-      display: flex;
-      align-items: stretch;
-      gap: 0.65rem;
-      padding: 0.5rem 0.25rem 0.75rem;
-      transition: transform 0.35s ease;
-    }
-    .eh-dest-card {
-      flex: 0 0 26%;
-      min-width: 140px;
-      max-width: 200px;
-      border-radius: var(--dash-radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface);
-      box-shadow: var(--dash-shadow);
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-    .eh-dest-card.is-center {
-      flex-basis: 30%;
-      max-width: 240px;
-      transform: scale(1.06);
-      z-index: 1;
-      box-shadow: var(--dash-shadow-hover);
-      border-color: color-mix(in srgb, var(--dash-warning-border) 45%, var(--dash-border));
-    }
-    .eh-dest-visual {
-      height: 7.5rem;
-      background: var(--dash-hero-grad);
-      position: relative;
-    }
-    .eh-dest-body {
-      padding: 0.65rem 0.7rem 0.75rem;
-    }
-    .eh-dest-name {
-      font-weight: 700;
-      font-size: 0.95rem;
-      margin: 0 0 0.25rem;
-      color: var(--dash-text);
-    }
-    .eh-dest-meta {
-      margin: 0;
-      font-size: 0.72rem;
-      color: var(--dash-muted);
-      line-height: 1.35;
-    }
-    .eh-carousel-bar {
+      top: 68px;
+      right: -20px;          /* protrude 20px past sidebar into main content */
+      width: 20px;
+      height: 48px;
+      background: #1d3449;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-left: none;
+      border-radius: 0 10px 10px 0;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.75rem;
-      margin-top: 0.35rem;
+      z-index: 200;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.4);
+      transition: background 150ms, width 150ms, box-shadow 150ms;
     }
-    .eh-carousel-dot-row {
-      display: flex;
-      gap: 0.35rem;
+    .sidebar-collapse-btn:hover {
+      background: #2a4d6e;
+      width: 24px;
+      box-shadow: 3px 0 12px rgba(0,0,0,0.5);
     }
-    .eh-carousel-dot {
-      width: 0.4rem;
-      height: 0.4rem;
-      border-radius: 999px;
-      border: none;
-      padding: 0;
-      background: var(--dash-border);
-      cursor: pointer;
+    .sidebar-collapse-btn svg {
+      transition: transform 200ms ease;
+      flex-shrink: 0;
     }
-    .eh-carousel-dot.is-active {
-      background: var(--dash-warning-border);
-      width: 1.1rem;
-      border-radius: 999px;
+    #sidebar.collapsed .sidebar-collapse-btn svg { transform: rotate(180deg); }
+
+    /* ─── MAIN CONTENT ───────────────────────────────────────── */
+    #main-content {
+      margin-left: var(--sidebar-width);
+      transition: margin-left 200ms ease;
+      min-width: 0;
     }
-    .eh-row-cards {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.85rem;
+    #sidebar.collapsed ~ #main-content { margin-left: var(--sidebar-collapsed); }
+
+    /* Inner width centering helper */
+    .inner {
+      width: var(--inner-width);
+      margin: 0 auto;
     }
-    @media (max-width: 800px) {
-      .eh-row-cards {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-story-card {
-      border-radius: var(--dash-radius);
-      overflow: hidden;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface);
-      min-height: 200px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
+
+    /* ─── HERO BANNER SLIDER ─────────────────────────────────── */
+    .hero {
       position: relative;
-      box-shadow: var(--dash-shadow);
+      height: 430px;
+      overflow: hidden;
     }
-    .eh-story-card::before {
+
+    /* Slides stack — each is full-size, cross-fade in/out */
+    .hero-slides {
+      position: absolute;
+      inset: 0;
+    }
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      opacity: 0;
+      transition: opacity 800ms ease;
+    }
+    .hero-slide.active { opacity: 1; }
+    /* Directional gradient overlay on every slide */
+    .hero-slide::after {
       content: '';
       position: absolute;
       inset: 0;
       background: linear-gradient(
-        to top,
-        color-mix(in srgb, var(--dash-bg) 82%, transparent) 0%,
-        transparent 62%
+        to right,
+        rgba(10,20,32,0.78) 0%,
+        rgba(10,20,32,0.45) 50%,
+        rgba(10,20,32,0.08) 100%
       );
-      z-index: 0;
     }
-    .eh-story-card::after {
-      content: '';
+
+    /* Per-slide text blocks — cross-fade like the images */
+    .hero-text-slides {
       position: absolute;
-      inset: 0;
-      background: var(--dash-hero-grad);
-      opacity: 0.35;
-      z-index: -1;
+      left: 333px;
+      top: 152px;
+      width: 600px;
+      z-index: 2;
     }
-    .eh-story-inner {
-      position: relative;
-      z-index: 1;
-      padding: 1rem 1rem 1.1rem;
-    }
-    .eh-story-inner h3 {
-      margin: 0 0 0.35rem;
-      font-size: 1rem;
-      color: var(--dash-text);
-    }
-    .eh-story-inner a {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--dash-warning-text);
-      text-decoration: none;
-    }
-    .eh-story-inner a:hover {
-      text-decoration: underline;
-    }
-    .eh-xp {
-      display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      gap: 1.25rem;
-      align-items: start;
-    }
-    @media (max-width: 800px) {
-      .eh-xp {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-xp-copy {
-      padding-right: 0.5rem;
-    }
-    .eh-xp-copy p {
-      margin: 0.65rem 0 0;
-      font-size: 0.88rem;
-      color: var(--dash-text-secondary);
-      line-height: 1.55;
-    }
-    .eh-xp-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-    }
-    @media (max-width: 520px) {
-      .eh-xp-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-xp-card {
-      border-radius: var(--dash-radius);
-      border: 1px solid var(--dash-border);
-      min-height: 140px;
-      padding: 1rem;
-      background: var(--dash-surface-alt);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--dash-shadow);
-    }
-    .eh-xp-card::before {
-      content: '';
+    .hero-text-slide {
       position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        128deg,
-        transparent 0 18px,
-        color-mix(in srgb, var(--dash-border) 28%, transparent) 18px 19px
-      );
-      opacity: 0.7;
+      top: 0; left: 0;
+      opacity: 0;
+      transition: opacity 800ms ease;
       pointer-events: none;
     }
-    .eh-xp-card strong {
-      position: relative;
-      z-index: 1;
-      font-size: 0.95rem;
-      color: var(--dash-text);
+    .hero-text-slide.active {
+      opacity: 1;
+      pointer-events: auto;
     }
-    .eh-xp-card a {
-      position: relative;
-      z-index: 1;
-      margin-top: 0.35rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--dash-warning-text);
-      text-decoration: none;
-    }
-    .eh-footer {
-      margin-top: 2.75rem;
-      padding: 2rem clamp(0.75rem, 2vw, 1.5rem) 0;
-      border-top: 1px solid var(--dash-border);
-      background: color-mix(in srgb, var(--dash-sidebar) 35%, var(--dash-bg));
-    }
-    .eh-footer-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1.25rem;
-      padding-bottom: 1.75rem;
-    }
-    @media (max-width: 800px) {
-      .eh-footer-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    @media (max-width: 480px) {
-      .eh-footer-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-footer-col h3 {
-      margin: 0 0 0.5rem;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--dash-muted);
-    }
-    .eh-footer-col ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .eh-footer-col a {
-      display: block;
-      padding: 0.2rem 0;
-      font-size: 0.82rem;
-      color: var(--dash-text-secondary);
-      text-decoration: none;
-    }
-    .eh-footer-col a:hover {
-      color: var(--dash-warning-text);
-    }
-    .eh-awards {
+
+    /* Top-right utility bar */
+    .hero-utils {
+      position: absolute;
+      top: 16px;
+      right: 24px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-      justify-content: center;
-      padding: 1rem 0;
-      border-top: 1px solid var(--dash-border);
+      align-items: center;
+      gap: 16px;
+      z-index: 2;
     }
-    .eh-award {
-      width: 3.25rem;
-      height: 3.25rem;
-      border-radius: 999px;
-      border: 1px dashed var(--dash-border);
+    .hero-utils .flag-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-white);
+      cursor: pointer;
+    }
+    .hero-utils .flag-btn img { width: 20px; height: 20px; border-radius: 50%; }
+    .hero-utils .separator { color: rgba(255,255,255,0.4); font-size: 18px; line-height: 1; }
+    .hero-utils .icon-btn {
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.55rem;
-      font-weight: 700;
-      text-align: center;
-      color: var(--dash-muted);
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .hero-utils .icon-btn img { width: 20px; height: 20px; object-fit: contain; }
+    .login-btn {
+      background: rgba(15,30,43,0.8);
+      border: 1px solid rgba(255,255,255,0.45);
+      color: var(--color-white);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 400;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .login-btn:hover { background: rgba(255,255,255,0.15); }
+
+    /* Hero text block */
+    .hero-text {
+      position: absolute;
+      left: 333px;
+      top: 152px;
+      width: 600px;
+      z-index: 2;
+    }
+    .hero-h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 56px;
+      font-weight: 400;
+      line-height: 64px;
+      letter-spacing: -0.62px;
+      color: var(--color-white);
+      margin-bottom: 8px;
+    }
+    .badge-now-on {
+      display: inline-flex;
+      align-items: center;
+      background: var(--color-badge-red);
+      color: var(--color-white);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      vertical-align: middle;
+      position: relative;
+      top: -4px;
+    }
+    .hero-subtitle {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      line-height: 24px;
+      margin-bottom: 12px;
+    }
+    .cta-underline {
+      display: inline-block;
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--color-white);
+      padding-bottom: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+    .cta-underline::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--color-gold-line);
+    }
+
+    /* ─── HERO BANNER CONTROLS (bottom-right) ───────────────── */
+    .hero-controls {
+      position: absolute;
+      bottom: 112px;   /* Figma: y=294 in 430px hero → bottom=430-294-24=112 */
+      right: 40px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 4;
+    }
+
+    /* Prev / Next arrow buttons */
+    .hero-ctrl-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(4px);
+      color: white;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 150ms, border-color 150ms;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .hero-ctrl-btn:hover { background: rgba(255,255,255,0.2); border-color: white; }
+
+    /* Indicator dots row */
+    .hero-indicators {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Inactive dot */
+    .hero-ind {
+      width: 8px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.45);
+      cursor: pointer;
+      transition: background 200ms, width 200ms;
+      flex-shrink: 0;
+    }
+    .hero-ind:hover { background: rgba(255,255,255,0.7); }
+
+    /* Active indicator = dot wrapped in a circular SVG timer ring */
+    .hero-ind-active {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    /* Inner dot inside the ring */
+    .hero-ind-active::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-gold-text);
+    }
+    .hero-timer-svg {
+      position: absolute;
+      inset: 0;
+      width: 24px;
+      height: 24px;
+      transform: rotate(-90deg); /* start arc from top */
+    }
+    .hero-timer-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.2);
+      stroke-width: 1.5;
+    }
+    .hero-timer-arc {
+      fill: none;
+      stroke: var(--color-gold-text);
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      /* r=10 → circumference = 2π×10 = 62.83 */
+      stroke-dasharray: 62.83;
+      stroke-dashoffset: 62.83; /* fully empty to start */
+      transition: stroke-dashoffset 200ms linear; /* smooth per-tick update */
+    }
+
+    /* ─── BOOKING WIDGET ─────────────────────────────────────── */
+    .booking-widget-wrap {
+      position: relative;
+      margin-top: -68px;
+      padding: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .booking-tabs-row {
+      width: 1044px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding: 0 16px;
+    }
+    .booking-tabs {
+      display: flex;
+      gap: 4px;
+      background: transparent;
+    }
+    .booking-tab {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 400;
+      padding: 8px 24px;
+      border-radius: 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.75);
+      transition: background 150ms, color 150ms;
+    }
+    .booking-tab.active {
+      background: #0d1a26;        /* darker than hero bg so pill is clearly visible */
+      color: var(--color-white);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+    }
+    .booking-tab:not(.active):hover { color: white; }
+    .miles-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+    }
+    .toggle-switch {
+      width: 32px;
+      height: 18px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 9px;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: left 150ms;
+    }
+    .toggle-switch.on { background: var(--color-gold-btn); }
+    .toggle-switch.on::after { left: 16px; }
+
+    .booking-card {
+      width: 1044px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      overflow: visible;   /* allow popups to extend below card */
+    }
+    .booking-fields {
+      display: flex;
+      align-items: stretch;
+      height: 68px;
+      border-radius: 12px;
+      overflow: visible;   /* must not clip the dropdowns */
+    }
+    /* Round the edge fields so hover bg doesn't bleed past card corners */
+    .booking-field:first-child { border-radius: 12px 0 0 12px; }
+    .booking-field:last-of-type { border-radius: 0; }
+    .booking-field {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px 0 14px;
+      border-right: 1px solid var(--color-field-border);
+      cursor: pointer;
+      transition: background 100ms;
+    }
+    .booking-field:last-of-type { border-right: none; }
+    .booking-field:hover { background: #f8fafc; }
+    .field-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #efefef;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .field-icon--gold { background: #c9973a; }
+    .field-text { display: flex; flex-direction: column; gap: 1px; }
+    .field-label { font-size: 12px; font-weight: 400; color: #94a3b8; font-family: var(--font); }
+    .field-value { font-size: 15px; font-weight: 500; color: #1e293b; font-family: var(--font); }
+    .field-placeholder { font-size: 15px; font-weight: 400; color: #94a3b8; font-family: var(--font); }
+    .search-btn {
+      width: 109px;
+      margin: 10px;
+      background: var(--color-gold-btn);
+      color: white;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 150ms;
+    }
+    .search-btn:hover { background: #b8872e; }
+
+    /* ─── STOPOVER MODAL ─────────────────────────────────────── */
+    .so-backdrop {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(10,20,32,0.72);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+    .so-backdrop.open { opacity: 1; pointer-events: all; }
+    .so-card {
+      background: #fff; border-radius: 16px;
+      max-width: 900px; width: 100%;
+      display: flex; overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      transform: translateY(16px);
+      transition: transform 220ms ease;
+    }
+    .so-backdrop.open .so-card { transform: translateY(0); }
+    .so-img {
+      width: 38%; flex-shrink: 0;
+      position: relative; overflow: hidden;
+    }
+    .so-img img { width: 100%; height: 100%; object-fit: cover; }
+    .so-body {
+      flex: 1; padding: 36px 40px 32px;
+      display: flex; flex-direction: column; gap: 0;
+      color: #1e293b;
+    }
+    .so-title {
+      font-size: 22px; font-weight: 700; color: #1e293b;
+      line-height: 1.25; margin-bottom: 12px;
+      font-family: var(--font);
+    }
+    .so-desc {
+      font-size: 14px; line-height: 1.6; color: #475569;
+      font-family: var(--font); margin-bottom: 14px;
+    }
+    .so-exclusive {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #64748b; font-family: var(--font);
+      margin-bottom: 28px;
+    }
+    .so-divider { height: 1px; background: #f1f5f9; margin-bottom: 24px; }
+    .so-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; align-items: start; }
+    .so-section-label {
+      font-size: 14px; font-weight: 600; color: #1e293b;
+      font-family: var(--font); margin-bottom: 14px;
+    }
+    /* Nights counter */
+    .so-nights-row { display: flex; align-items: center; gap: 14px; }
+    .so-please-select { font-size: 13px; color: #94a3b8; font-family: var(--font); }
+    .so-counter {
+      display: flex; align-items: center; gap: 0;
+      border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden;
+    }
+    .so-counter-btn {
+      width: 36px; height: 36px; border: none; background: #f8fafc;
+      font-size: 20px; cursor: pointer; color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 100ms;
+    }
+    .so-counter-btn:hover { background: #f1f5f9; }
+    .so-counter-val {
+      width: 44px; height: 36px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; color: #1e293b; font-family: var(--font);
+      border-left: 1.5px solid #e2e8f0; border-right: 1.5px solid #e2e8f0;
+    }
+    .so-promo {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #e8453c; color: white;
+      font-size: 12px; font-weight: 600; font-family: var(--font);
+      padding: 5px 10px; border-radius: 6px; margin-top: 12px;
+    }
+    /* Plan your stay radios */
+    .so-radio-list { display: flex; flex-direction: column; gap: 0; }
+    .so-radio-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+    }
+    .so-radio-row:first-child { border-top: 1px solid #f1f5f9; }
+    .so-radio-label { font-size: 14px; color: #1e293b; font-family: var(--font); }
+    .so-radio-input {
+      width: 20px; height: 20px; accent-color: #1b2d3e; cursor: pointer; flex-shrink: 0;
+    }
+    /* Footer buttons */
+    .so-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: auto; padding-top: 8px; }
+    .so-skip {
+      padding: 11px 28px; border: 1.5px solid #cbd5e1; border-radius: 100px;
+      background: white; font-family: var(--font); font-size: 15px; font-weight: 500;
+      color: #1e293b; cursor: pointer; transition: border-color 150ms;
+    }
+    .so-skip:hover { border-color: #94a3b8; }
+    .so-add {
+      padding: 11px 32px; border: none; border-radius: 100px;
+      background: #c9973a; font-family: var(--font); font-size: 15px; font-weight: 600;
+      color: white; cursor: pointer; transition: background 150ms;
+    }
+    .so-add:hover { background: #b8872e; }
+
+    /* ─── BOOKING POPUPS ─────────────────────────────────────── */
+    .booking-field { position: relative; }
+    .field-popup {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+      z-index: 600;
+      display: none;
+      color: #1e293b;
+    }
+    .field-popup.open { display: block; animation: bwFadeIn 120ms ease; }
+    @keyframes bwFadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+    /* City search popup */
+    .city-popup { width: 400px; overflow: hidden; }
+    .popup-search-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .popup-search-input {
+      border: none; outline: none;
+      font-family: var(--font); font-size: 14px; color: #1e293b;
+      width: 100%; background: transparent;
+    }
+    .popup-search-input::placeholder { color: #94a3b8; }
+    .city-list { max-height: 340px; overflow-y: auto; }
+    .city-list::-webkit-scrollbar { width: 4px; }
+    .city-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+    .city-section-label {
+      font-size: 12px; font-weight: 600; color: #94a3b8; letter-spacing: 0.04em;
+      text-transform: uppercase; padding: 12px 16px 6px; background: #fff;
+    }
+    .city-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; cursor: pointer; transition: background 100ms;
+      border-bottom: 1px solid #f8fafc;
+    }
+    .city-item:last-child { border-bottom: none; }
+    .city-item:hover { background: #f8fafc; }
+    .city-item.active-city { background: #fef3e2; }
+    .city-item-icon { width: 20px; height: 20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .city-item-icon img { width: 18px; height: 18px; object-fit: contain; }
+    .city-item-body { flex: 1; min-width: 0; }
+    .city-item-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .city-item-name span { font-weight: 400; }
+    .city-item-sub  { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+    .city-item-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .city-item-code {
+      font-size: 11px; font-weight: 600; color: #64748b;
+      background: #f1f5f9; padding: 2px 7px; border-radius: 4px;
+    }
+    .city-item-new {
+      font-size: 11px; font-weight: 700; color: white;
+      background: #0891b2; padding: 2px 7px; border-radius: 4px;
+    }
+
+    /* Guests popup */
+    .guests-popup { width: 296px; padding: 4px 20px 16px; }
+    .counter-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .counter-row:last-of-type { border-bottom: none; }
+    .counter-label-main { font-size: 14px; font-weight: 500; color: #1e293b; }
+    .counter-label-sub  { font-size: 11px; color: #94a3b8; }
+    .counter-controls   { display: flex; align-items: center; gap: 12px; }
+    .counter-btn {
+      width: 28px; height: 28px; border: 1.5px solid #e2e8f0; border-radius: 50%;
+      background: white; color: #64748b; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; line-height: 1; padding-bottom: 1px;
+      transition: border-color 150ms, color 150ms;
+    }
+    .counter-btn:hover:not(:disabled) { border-color: #c9973a; color: #c9973a; }
+    .counter-btn:disabled { opacity: 0.3; cursor: default; }
+    .counter-val { width: 20px; text-align: center; font-size: 15px; font-weight: 500; color: #1e293b; }
+    .cabin-section { margin-top: 14px; }
+    .cabin-label   { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+    .cabin-options { display: flex; gap: 6px; }
+    .cabin-btn {
+      flex: 1; padding: 7px 4px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      background: white; font-family: var(--font); font-size: 12px; font-weight: 500;
+      color: #64748b; cursor: pointer; text-align: center;
+      transition: border-color 150ms, color 150ms, background 150ms;
+    }
+    .cabin-btn.active { border-color: #c9973a; background: #fef8ee; color: #c9973a; }
+    .guests-done-btn {
+      width: 100%; margin-top: 12px; padding: 10px;
+      background: #c9973a; color: white; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .guests-done-btn:hover { background: #b8872e; }
+
+    /* Date picker popup */
+    .date-popup { width: 620px; right: 0; left: auto; padding: 20px; }
+    .date-popup-hint { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 14px; min-height: 16px; }
+    .date-popup-nav {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .date-nav-btn {
+      width: 32px; height: 32px; border: 1px solid #e2e8f0; border-radius: 50%;
+      background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .date-nav-btn:hover:not(:disabled) { background: #f8fafc; }
+    .date-nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .calendars { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .cal-month-label { font-size: 13px; font-weight: 600; color: #1e293b; text-align: center; margin-bottom: 10px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .cal-dow  { font-size: 11px; color: #94a3b8; text-align: center; padding: 4px 0 8px; }
+    .cal-day  {
+      height: 34px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; cursor: pointer; border-radius: 6px;
+      transition: background 80ms; position: relative;
+    }
+    .cal-day:hover:not(.cal-empty):not(.cal-past) { background: #f1f5f9; }
+    .cal-empty { pointer-events: none; }
+    .cal-past  { color: #cbd5e1; cursor: default; pointer-events: none; }
+    .cal-today:not(.cal-depart):not(.cal-return)::after {
+      content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%; background: #c9973a;
+    }
+    .cal-depart { background: #c9973a !important; color: white; border-radius: 6px 0 0 6px; }
+    .cal-return { background: #c9973a !important; color: white; border-radius: 0 6px 6px 0; }
+    .cal-depart.cal-return { border-radius: 6px !important; }
+    .cal-in-range { background: #fef3e2; border-radius: 0; }
+    .date-popup-footer { display: flex; justify-content: flex-end; margin-top: 14px; }
+    .date-clear-btn { font-size: 13px; color: #94a3b8; cursor: pointer; background: none; border: none; font-family: var(--font); }
+    .date-clear-btn:hover { color: #64748b; }
+
+    /* ─── SECTION SHARED ─────────────────────────────────────── */
+    .section {
+      padding: 92px 0 60px;
+    }
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: 48px;
+      font-weight: 350;
+      line-height: 1.15;
+      letter-spacing: -0.62px;
+      color: var(--color-white);
+    }
+    .section-title .gold { color: var(--color-gold-text); }
+    .section-title .gold-ul {
+      color: var(--color-gold-text);
+      position: relative;
+      display: inline-block;
+    }
+    .section-title .gold-ul::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 1px;
+      background: var(--color-gold-line);
+    }
+    .section-subtitle {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      line-height: 24px;
+      margin-bottom: 32px;
+    }
+    .view-all-link {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-white);
+      padding-bottom: 3px;
+      border-bottom: 1px solid var(--color-gold-line);
+      white-space: nowrap;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .join-now-link {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--color-white);
+      padding-bottom: 3px;
+      border-bottom: 1px solid var(--color-gold-line);
+      white-space: nowrap;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    /* Carousel nav buttons */
+    .carousel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .carousel-arrow {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 22px;
+      transition: color 150ms;
+      flex-shrink: 0;
+      padding: 8px;
+    }
+    .carousel-arrow:hover { color: white; }
+    .carousel-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+      cursor: pointer;
+      transition: all 200ms ease;
+      flex-shrink: 0;
+    }
+    .carousel-dot.active {
+      width: 16px;
+      height: 16px;
+      background: var(--color-gold-text);
+      opacity: 1;
+    }
+
+    /* ─── IMAGE CARD (shared pattern) ───────────────────────── */
+    .img-card {
+      position: relative;
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .img-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 350ms ease;
+    }
+    .img-card:hover img { transform: scale(1.03); }
+    .img-card-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 50%,
+        rgba(0,0,0,0.5) 72.5%,
+        rgba(0,0,0,0.9) 100%
+      );
+      border-radius: var(--radius-card);
+    }
+    .img-card-body {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .img-card-title {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--color-white);
+      line-height: 24px;
+    }
+    .img-card-cta {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--color-white);
+      padding-bottom: 3px;
+      position: relative;
+      display: inline-block;
+    }
+    .img-card-cta::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--color-gold-line);
+    }
+
+    .section-dest { overflow-x: clip; }
+
+    /* ─── SECTION 4: FLIGHTS FROM — coverflow carousel ───────── */
+    .dest-carousel-wrap {
+      overflow: visible;
+      position: relative;
+      height: 400px;
+    }
+    .dest-carousel-track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      /* Edge-fade mask so side cards dissolve toward viewport edges */
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+    }
+    .dest-card {
+      position: absolute;
+      border-radius: 28px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: left 440ms cubic-bezier(0.4,0,0.2,1),
+                  top  440ms cubic-bezier(0.4,0,0.2,1),
+                  width  440ms cubic-bezier(0.4,0,0.2,1),
+                  height 440ms cubic-bezier(0.4,0,0.2,1),
+                  opacity 300ms ease,
+                  z-index 0ms 220ms;
+    }
+    .dest-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .dest-card-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(20,40,60,0.75);
+      backdrop-filter: blur(4px);
+      color: white;
+      font-size: 11px;
+      font-weight: 400;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .dest-card-body {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+    }
+    .dest-card-city {
+      font-size: 20px;
+      font-weight: 500;
+      color: white;
       line-height: 1.2;
+      margin-bottom: 4px;
     }
-    .eh-footer-cta {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.75rem;
-      padding: 1.25rem 0;
-      border-top: 1px solid var(--dash-border);
-    }
-    @media (max-width: 900px) {
-      .eh-footer-cta {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    @media (max-width: 480px) {
-      .eh-footer-cta {
-        grid-template-columns: 1fr;
-      }
-    }
-    .eh-cta-block {
-      border-radius: var(--dash-radius-sm);
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface-alt);
-      padding: 0.85rem 1rem;
-    }
-    .eh-cta-block p {
-      margin: 0 0 0.5rem;
-      font-size: 0.8rem;
-      color: var(--dash-text-secondary);
+    .dest-card.side .dest-card-city,
+    .dest-card.far .dest-card-city { font-size: 16px; }
+    .dest-card-price {
+      font-size: 13px;
+      color: rgba(255,255,255,0.85);
       line-height: 1.4;
     }
-    .eh-pill-btn {
+    .dest-card-price strong { color: white; font-weight: 500; }
+
+    /* ─── SECTION 5: ETIHAD GUEST ────────────────────────────── */
+    .guest-cards {
+      display: flex;
+      gap: 24px;
+    }
+    .guest-card {
+      flex: 1;
+      height: 331px;
+    }
+
+    /* ─── SECTION 6: EXPERIENCE ETIHAD ──────────────────────── */
+    .experience-layout {
+      display: flex;
+      gap: 48px;
+      align-items: flex-start;
+    }
+    .experience-text {
+      width: 290px;
+      flex-shrink: 0;
+      padding-top: 8px;
+    }
+    .experience-title {
+      font-size: 30px;
+      font-weight: 350;
+      line-height: 40px;
+      letter-spacing: -0.4px;
+      color: var(--color-white);
+      margin-bottom: 16px;
+    }
+    .experience-title .gold { color: var(--color-gold-text); }
+    .experience-body {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+    }
+    .experience-cards {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+    }
+    .experience-card {
+      flex: 1;
+      height: 380px;
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      background: var(--color-footer);
+      padding: 48px 0 0;
+    }
+
+    .footer-links-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .footer-col-heading {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-white);
+      margin-bottom: 16px;
+    }
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .footer-links li a {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      line-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 150ms;
+    }
+    .footer-links li a:hover { color: var(--color-white); }
+    .ext-icon { font-size: 11px; opacity: 0.6; }
+
+    .footer-awards {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .footer-awards-heading { font-size: 16px; font-weight: 600; color: var(--color-white); margin-bottom: 6px; }
+    .footer-awards-sub { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 20px; }
+    .awards-row {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    .award-badge { height: 56px; width: auto; object-fit: contain; }
+
+    .footer-bottom-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      padding: 32px 0 40px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .footer-bottom-col-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-white);
+      margin-bottom: 8px;
+    }
+    .footer-bottom-col-body {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .footer-btn {
       display: inline-block;
-      border-radius: 999px;
-      border: 1px solid var(--dash-warning-border);
-      background: color-mix(in srgb, var(--dash-warning-bg) 55%, var(--dash-surface-alt));
-      color: var(--dash-warning-text);
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.35rem 0.75rem;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-white);
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 24px;
+      padding: 9px 24px;
       cursor: pointer;
-      font-family: inherit;
+      background: transparent;
+      transition: background 150ms;
     }
-    .eh-pill-btn:hover {
-      filter: brightness(1.05);
-    }
-    .eh-social {
+    .footer-btn:hover { background: rgba(255,255,255,0.1); }
+
+    .social-row {
       display: flex;
+      gap: 10px;
       flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-top: 0.35rem;
     }
-    .eh-social button {
-      width: 2rem;
-      height: 2rem;
-      border-radius: 999px;
-      border: 1px solid var(--dash-border);
-      background: var(--dash-surface);
-      color: var(--dash-muted);
+    .social-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      font-size: 0.65rem;
-      font-weight: 700;
+      transition: background 150ms;
     }
-    .eh-legal {
+    .social-icon:hover { background: rgba(255,255,255,0.12); }
+    .social-icon img { width: 16px; height: 16px; object-fit: contain; }
+
+    .footer-legal {
+      padding: 16px 0 24px;
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.85rem 0 1.25rem;
-      border-top: 1px solid var(--dash-border);
-      font-size: 0.72rem;
-      color: var(--dash-muted);
     }
-    .eh-legal a {
-      color: var(--dash-text-secondary);
-      text-decoration: none;
-      margin-right: 0.65rem;
+    .footer-legal-links {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
     }
-    .eh-legal a:hover {
-      color: var(--dash-warning-text);
+    .footer-legal-links a,
+    .footer-copyright {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 400;
+      transition: color 150ms;
     }
-    .eh-abandon {
-      margin: 2rem clamp(0.75rem, 2vw, 1.5rem) 2.5rem;
-      padding: 1.1rem 1rem;
-      border-radius: var(--dash-radius);
-      background: var(--dash-surface-alt);
-      border: 1px dashed var(--dash-warning-border);
-    }
-    .eh-abandon h2 {
-      margin: 0 0 0.4rem;
-      font-size: 0.95rem;
-      color: var(--dash-text);
-    }
-    .eh-abandon p {
-      margin: 0 0 0.85rem;
-      font-size: 0.82rem;
-      color: var(--dash-text-secondary);
-      line-height: 1.45;
-    }
-    .eh-code {
-      font-size: 0.85em;
-      color: var(--dash-text);
-    }
-    .eh-foot-note {
-      padding: 0 1rem 1.25rem;
-      font-size: 0.7rem;
-      color: var(--dash-muted);
-      text-align: center;
-      line-height: 1.45;
-    }
-    .eh-book-foot {
-      margin: 0.75rem 0 0;
-      text-align: right;
-    }
-    .eh-dest-select {
-      margin-top: 0.45rem;
-      width: 100%;
-    }
-    .eh-section-head--flush {
-      margin-bottom: 0;
-    }
+    .footer-legal-links a:hover { color: rgba(255,255,255,0.8); }
+
+    /* ─── SECTION PADDING VARIANTS ───────────────────────────── */
+    .section-guest { padding-top: 100px; padding-bottom: 60px; }
+    .section-experience { padding-top: 100px; padding-bottom: 80px; }
   </style>
 </head>
-<body class="etihad-airline-lab-site home-dashboard-concierge">
-  <div class="eh-app">
-    <aside class="eh-rail" aria-label="Primary navigation (lab mimic)">
-      <button type="button" class="eh-rail-toggle" aria-label="Rail hint" title="Lab mimic — decorative">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      <nav class="eh-rail-nav">
-        <button type="button" class="eh-rail-btn" id="ehNavFlights" title="Book">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" fill="currentColor" opacity="0.85"/></svg>
-          Book
-        </button>
-        <button type="button" class="eh-rail-btn" id="ehNavManage" title="Manage">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z" fill="currentColor"/></svg>
-          Manage
-        </button>
-        <button type="button" class="eh-rail-btn" data-eh-nav="checkin" title="Check-in">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14v11z" fill="currentColor"/></svg>
-          Check-in
-        </button>
-        <button type="button" class="eh-rail-btn" data-eh-nav="flight_status" title="Flight status">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" fill="currentColor"/></svg>
-          Status
-        </button>
-        <button type="button" class="eh-rail-btn" data-eh-nav="plan" title="Plan">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z" fill="currentColor"/></svg>
-          Plan
-        </button>
-        <button type="button" class="eh-rail-btn" id="ehNavOffers" title="Offers">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 3.9 4.3.6-3.1 3 0.7 4.3L12 13.4 8.2 14.8l0.7-4.3-3.1-3 4.3-.6L12 3z" fill="currentColor"/></svg>
-          Offers
-        </button>
-        <button type="button" class="eh-rail-btn" data-eh-nav="loyalty" title="Loyalty">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
-          Loyalty
-        </button>
-        <button type="button" class="eh-rail-btn" data-eh-nav="help" title="Help">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="currentColor"/></svg>
-          Help
-        </button>
-      </nav>
-    </aside>
-    <div class="eh-main">
-      <header class="eh-topbar">
-        <span class="eh-wordmark" aria-label="Lab wordmark">ETIHAD</span>
-        <div class="eh-topbar-tools">
-          <span class="eh-top-pill">EN · UK</span>
-          <button type="button" class="eh-icon-btn" aria-label="Search (decorative)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-          <button type="button" class="eh-icon-btn" aria-label="Profile (decorative)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M6 19c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════ -->
+  <aside id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <img class="logo-full" src="images/etihad-logo.svg" alt="Etihad Airways">
+      <img class="logo-icon" src="images/ey-logo-nav-collapse.svg" alt="Etihad">
+    </div>
+    <hr class="sidebar-divider">
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav" id="sidebarNav">
+      <a class="nav-item active" href="#" data-menu="book">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_4_plane 2.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_5_plane 2-filled.png" alt="">
+        <span>Book</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="manage">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_7_plane in ticket.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_8_plane in ticket-filled.png" alt="">
+        <span>Manage</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="checkin">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_9_Check-in.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_10_Check-in-filled.png" alt="">
+        <span>Check-in</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="flightstatus">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_11_flight-status-icon-plain.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_12_flight-status-icon-filled.png" alt="">
+        <span>Flight status</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="plan">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_15_Destination.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_16_Destination-filled.png" alt="">
+        <span>Plan</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="offers">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_13_plane-detail.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_14_plane-detail-filled.png" alt="">
+        <span>Offers</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="loyalty">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_17_loyalty.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_18_loyalty-filled.png" alt="">
+        <span>Loyalty</span>
+      </a>
+      <a class="nav-item" href="#" data-menu="help">
+        <img class="nav-icon nav-icon-plain"  src="images/imgi_19_Help2-icon-new.png" alt="">
+        <img class="nav-icon nav-icon-filled" src="images/imgi_20_help-filled.png" alt="">
+        <span>Help</span>
+      </a>
+    </nav>
+
+    <!-- Collapse toggle -->
+    <button class="sidebar-collapse-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+        <path d="M6 1L2 7L6 13" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════════ -->
+  <main id="main-content">
+
+    <!-- ─── HERO BANNER SLIDER ──────────────────────────────── -->
+    <section class="hero" id="heroBanner">
+
+      <!-- Slides (cross-fade stack) -->
+      <div class="hero-slides">
+        <div class="hero-slide active" style="background-image:url('images/banner-1.jpg')"></div>
+        <div class="hero-slide"        style="background-image:url('images/banner-2.jpg')"></div>
+        <div class="hero-slide"        style="background-image:url('images/banner-3.jpg')"></div>
+        <div class="hero-slide"        style="background-image:url('images/banner-4.jpg')"></div>
+      </div>
+
+      <!-- Top-right utils (static, above all slides) -->
+      <div class="hero-utils">
+        <div class="flag-btn">
+          <img src="images/imgi_22_GB.png" alt="GB">
+          <span>GB</span>
+          <img src="images/imgi_6_icon-down-white.png" alt="" style="width:12px;height:12px;opacity:0.7;">
         </div>
-      </header>
-      <div class="eh-scroll">
-        <div class="eh-lab-ribbon" role="note">
-          <strong>Lab:</strong> generic airline mimic — <code class="eh-code">travel.*</code> events post to the parent shell. Not affiliated with any carrier.
+        <span class="separator">|</span>
+        <div class="icon-btn">
+          <img src="images/imgi_23_icon-search-header.png" alt="Search">
+        </div>
+        <div class="icon-btn">
+          <img src="images/imgi_24_default.png" alt="Account">
+        </div>
+        <button class="login-btn">Login or Sign up</button>
+      </div>
+
+      <!-- Per-slide text blocks (cross-fade in sync with slides) -->
+      <div class="hero-text-slides">
+        <div class="hero-text-slide active">
+          <h1 class="hero-h1">Global Sale <span class="badge-now-on">Now On</span></h1>
+          <p class="hero-subtitle">Up to 30% off Tokyo. Book before 14 May</p>
+          <a class="cta-underline" href="#">Book now</a>
+        </div>
+        <div class="hero-text-slide">
+          <h1 class="hero-h1">Business Class</h1>
+          <p class="hero-subtitle">Award-winning cabins. Unmatched hospitality.</p>
+          <a class="cta-underline" href="#">Explore cabins</a>
+        </div>
+        <div class="hero-text-slide">
+          <h1 class="hero-h1">The Maldives <span class="badge-now-on">Fly direct</span></h1>
+          <p class="hero-subtitle">Non-stop from Abu Dhabi. Fares from USD 699.</p>
+          <a class="cta-underline" href="#">View flights</a>
+        </div>
+        <div class="hero-text-slide">
+          <h1 class="hero-h1">Abu Dhabi Stopover</h1>
+          <p class="hero-subtitle">Turn your layover into an adventure.</p>
+          <a class="cta-underline" href="#">Learn more</a>
+        </div>
+      </div>
+
+      <!-- Controls — bottom-right, matching Figma layout -->
+      <div class="hero-controls" id="heroControls">
+        <button class="hero-ctrl-btn" id="heroPrevBtn" aria-label="Previous slide">&#8249;</button>
+
+        <div class="hero-indicators" id="heroIndicators">
+          <!-- Rendered by JS -->
         </div>
 
-        <section class="eh-hero-block" aria-labelledby="ehHeroSaleTitle">
-          <div class="eh-hero-bg" aria-hidden="true"></div>
-          <div class="eh-hero-copy">
-            <div class="eh-hero-kicker-row">
-              <span class="eh-badge-now">Now on</span>
-            </div>
-            <h1 id="ehHeroSaleTitle">Global Sale</h1>
-            <p>Up to 30% off selected routes — book before 14 May. <a href="#" id="ehHeroBookLink">Book now</a></p>
-          </div>
-          <div class="eh-hero-controls">
-            <button type="button" class="eh-hero-arrow" id="ehHeroPrev" aria-label="Previous hero slide">&#8249;</button>
-            <div class="eh-hero-dot-row" role="tablist" aria-label="Hero slides">
-              <button type="button" class="eh-hero-dot is-active" aria-label="Slide 1"></button>
-              <button type="button" class="eh-hero-dot" aria-label="Slide 2"></button>
-              <button type="button" class="eh-hero-dot" aria-label="Slide 3"></button>
-            </div>
-            <button type="button" class="eh-hero-arrow" id="ehHeroNext" aria-label="Next hero slide">&#8250;</button>
-          </div>
-        </section>
+        <button class="hero-ctrl-btn" id="heroNextBtn" aria-label="Next slide">&#8250;</button>
+      </div>
+    </section>
 
-        <div class="eh-book-wrap">
-          <div class="eh-book-panel">
-            <div class="eh-book-head">
-              <div class="eh-tabs" role="tablist" aria-label="Trip type">
-                <button type="button" class="eh-tab" role="tab" aria-selected="true" id="ehTabRound">Round trip</button>
-                <button type="button" class="eh-tab" role="tab" aria-selected="false" id="ehTabOne">One-way</button>
-                <button type="button" class="eh-tab" role="tab" aria-selected="false" id="ehTabMulti">Multi-city</button>
+    <!-- ─── BOOKING WIDGET ───────────────────────────────────── -->
+    <div class="booking-widget-wrap">
+      <!-- Tab bar + miles toggle -->
+      <div class="booking-tabs-row">
+        <div class="booking-tabs">
+          <button class="booking-tab active" onclick="selectTab(this)">Round trip</button>
+          <button class="booking-tab" onclick="selectTab(this)">One-way</button>
+          <button class="booking-tab" onclick="selectTab(this)">Multi-city</button>
+        </div>
+        <div class="miles-toggle">
+          <span>Book with Etihad Guest Miles</span>
+          <div class="toggle-switch" id="milesToggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <!-- White card -->
+      <div class="booking-card">
+        <div class="booking-fields">
+
+          <!-- FROM -->
+          <div class="booking-field" onclick="bwOpen('popup-from',event)">
+            <div class="field-icon field-icon--gold">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+            </div>
+            <div class="field-text">
+              <span class="field-label">From</span>
+              <span class="field-value" id="bw-from-val">New York, JFK</span>
+            </div>
+            <!-- From city popup -->
+            <div class="field-popup city-popup" id="popup-from" onclick="event.stopPropagation()">
+              <div class="popup-search-row">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input class="popup-search-input" id="bw-from-search" placeholder="Search city or airport…" oninput="bwFilterCities('from')" autocomplete="off">
               </div>
-              <div class="eh-miles-row">
-                <span>Book with miles</span>
-                <button type="button" class="eh-switch" id="ehMilesToggle" role="switch" aria-checked="false" aria-label="Toggle miles booking"></button>
+              <div class="city-list" id="bw-from-list"></div>
+            </div>
+          </div>
+
+          <!-- TO -->
+          <div class="booking-field" onclick="bwOpen('popup-to',event)">
+            <div class="field-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#64748b"><path d="M2.5 19h19v2h-19v-2zm16.84-3.18c.3.8 1.17 1.24 2 .93l.36-.13c.8-.3 1.21-1.18.91-1.98L19 8l-2 .67 1 4-5.5 1.67L10 7 7.93 7.67l2.76 7.31 3.39 1.22 5.26-1.38z"/></svg>
+            </div>
+            <div class="field-text">
+              <span class="field-label">To</span>
+              <span class="field-placeholder" id="bw-to-val">Destination</span>
+            </div>
+            <!-- To city popup -->
+            <div class="field-popup city-popup" id="popup-to" onclick="event.stopPropagation()">
+              <div class="popup-search-row">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input class="popup-search-input" id="bw-to-search" placeholder="Search city or airport…" oninput="bwFilterCities('to')" autocomplete="off">
+              </div>
+              <div class="city-list" id="bw-to-list"></div>
+            </div>
+          </div>
+
+          <!-- GUESTS -->
+          <div class="booking-field" onclick="bwOpen('popup-guests',event)">
+            <div class="field-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#64748b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="field-text">
+              <span class="field-label">Guests and Cabin</span>
+              <span class="field-value" id="bw-guests-val">1 Adult, Economy</span>
+            </div>
+            <!-- Guests & cabin popup -->
+            <div class="field-popup guests-popup" id="popup-guests" onclick="event.stopPropagation()">
+              <div class="counter-row">
+                <div><div class="counter-label-main">Adults</div><div class="counter-label-sub">Age 12+</div></div>
+                <div class="counter-controls">
+                  <button class="counter-btn" id="dec-adults" onclick="bwCount('adults',-1)" disabled>−</button>
+                  <span class="counter-val" id="cnt-adults">1</span>
+                  <button class="counter-btn" id="inc-adults" onclick="bwCount('adults',1)">+</button>
+                </div>
+              </div>
+              <div class="counter-row">
+                <div><div class="counter-label-main">Children</div><div class="counter-label-sub">Age 2–11</div></div>
+                <div class="counter-controls">
+                  <button class="counter-btn" id="dec-children" onclick="bwCount('children',-1)" disabled>−</button>
+                  <span class="counter-val" id="cnt-children">0</span>
+                  <button class="counter-btn" id="inc-children" onclick="bwCount('children',1)">+</button>
+                </div>
+              </div>
+              <div class="counter-row">
+                <div><div class="counter-label-main">Infants</div><div class="counter-label-sub">Under 2</div></div>
+                <div class="counter-controls">
+                  <button class="counter-btn" id="dec-infants" onclick="bwCount('infants',-1)" disabled>−</button>
+                  <span class="counter-val" id="cnt-infants">0</span>
+                  <button class="counter-btn" id="inc-infants" onclick="bwCount('infants',1)">+</button>
+                </div>
+              </div>
+              <div class="cabin-section">
+                <div class="cabin-label">Cabin class</div>
+                <div class="cabin-options">
+                  <button class="cabin-btn active" data-cabin="Economy"  onclick="bwCabin('Economy')">Economy</button>
+                  <button class="cabin-btn"        data-cabin="Business" onclick="bwCabin('Business')">Business</button>
+                  <button class="cabin-btn"        data-cabin="First"    onclick="bwCabin('First')">First</button>
+                </div>
+              </div>
+              <button class="guests-done-btn" onclick="bwCloseAll()">Done</button>
+            </div>
+          </div>
+
+          <!-- DATES -->
+          <div class="booking-field" onclick="bwOpen('popup-dates',event)">
+            <div class="field-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#64748b"><path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13zM8 10H6v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H6v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+            </div>
+            <div class="field-text">
+              <span class="field-label">Travelling when?</span>
+              <span class="field-placeholder" id="bw-dates-val">Add dates</span>
+            </div>
+            <!-- Date picker popup -->
+            <div class="field-popup date-popup" id="popup-dates" onclick="event.stopPropagation()">
+              <div class="date-popup-hint" id="bw-cal-hint">Select departure date</div>
+              <div class="date-popup-nav">
+                <button class="date-nav-btn" id="bw-cal-prev" onclick="bwCalNav(-1)" disabled>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L5 7l4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <span></span>
+                <button class="date-nav-btn" onclick="bwCalNav(1)">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2l4 5-4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <div class="calendars" id="bw-calendars"></div>
+              <div class="date-popup-footer">
+                <button class="date-clear-btn" onclick="bwClearDates()">Clear dates</button>
               </div>
             </div>
-            <div class="eh-book-grid">
-              <div class="eh-field">
-                <label for="ehFrom"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg> From</label>
-                <input id="ehFrom" type="text" readonly value="London (LHR)"/>
-              </div>
-              <div class="eh-field">
-                <label for="ehTo"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg> To</label>
-                <input id="ehTo" type="text" placeholder="Destination" autocomplete="off"/>
-              </div>
-              <div class="eh-field">
-                <label for="ehGuests"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> Guests</label>
-                <input id="ehGuests" type="text" readonly value="1 adult · Business"/>
-              </div>
-              <div class="eh-field">
-                <label for="ehWhen"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V8h14v11z"/></svg> Dates</label>
-                <input id="ehWhen" type="text" readonly value="Select dates"/>
-              </div>
-              <div class="eh-book-search-cell">
-                <button type="button" class="eh-btn-gold" id="ehBtnSearch">Search</button>
+          </div>
+
+          <button class="search-btn" onclick="soOpen()">Search</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SECTION: FLIGHTS FROM NEW YORK ──────────────────── -->
+    <section class="section section-dest">
+      <div class="inner">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">
+              Flights from <span class="gold-ul" id="flights-from-city">New York</span>
+            </h2>
+            <p class="section-subtitle">Let us inspire your next trip</p>
+          </div>
+          <a class="view-all-link" href="#">View all</a>
+        </div>
+      </div>
+
+      <div class="dest-carousel-wrap">
+        <div class="dest-carousel-track" id="destTrack">
+            <!-- Card 1: Tokyo -->
+            <div class="dest-card" data-index="0">
+              <img src="images/imgi_62_NRT-V1.jpg" alt="Tokyo">
+              <div class="img-card-gradient"></div>
+              <div class="dest-card-tag">Round trip · Economy</div>
+              <div class="dest-card-body">
+                <div class="dest-card-city">Tokyo</div>
+                <div class="dest-card-price">From <strong>USD 712*</strong> or 76,000 miles</div>
               </div>
             </div>
-            <p class="eh-book-foot">
-              <button type="button" class="eh-btn-ghost" id="ehBtnExplore">Explore intent only</button>
+            <!-- Card 2: Phnom Penh -->
+            <div class="dest-card" data-index="1">
+              <img src="images/imgi_63_PNH-1.jpg" alt="Phnom Penh">
+              <div class="img-card-gradient"></div>
+              <div class="dest-card-tag">Round trip · Economy</div>
+              <div class="dest-card-body">
+                <div class="dest-card-city">Phnom Penh</div>
+                <div class="dest-card-price">From <strong>USD 849*</strong> or 92,000 miles</div>
+              </div>
+            </div>
+            <!-- Card 3: Salalah (active/centre) -->
+            <div class="dest-card" data-index="2">
+              <img src="images/imgi_64_Salalah.jpg" alt="Salalah">
+              <div class="img-card-gradient"></div>
+              <div class="dest-card-tag">Round trip · Economy</div>
+              <div class="dest-card-body">
+                <div class="dest-card-city">Salalah</div>
+                <div class="dest-card-price">From <strong>USD 912*</strong> or 113,967 miles</div>
+              </div>
+            </div>
+            <!-- Card 4: Maldives -->
+            <div class="dest-card" data-index="3">
+              <img src="images/imgi_65_maldives-beach-d.jpg" alt="Maldives">
+              <div class="img-card-gradient"></div>
+              <div class="dest-card-tag">Round trip · Economy</div>
+              <div class="dest-card-body">
+                <div class="dest-card-city">Maldives</div>
+                <div class="dest-card-price">From <strong>USD 1,044*</strong> or 130,517 miles</div>
+              </div>
+            </div>
+            <!-- Card 5: Sri Lanka -->
+            <div class="dest-card" data-index="4">
+              <img src="images/imgi_66_sri-lanka-elephant-d-1.jpg" alt="Sri Lanka">
+              <div class="img-card-gradient"></div>
+              <div class="dest-card-tag">Round trip · Economy</div>
+              <div class="dest-card-body">
+                <div class="dest-card-city">Sri Lanka</div>
+                <div class="dest-card-price">From <strong>USD 740*</strong> or 92,537 miles</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="inner">
+        <div class="carousel-controls" id="destControls">
+          <button class="carousel-arrow" onclick="destPrev()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="carousel-dot active" onclick="destGoTo(0)"></div>
+          <div class="carousel-dot" onclick="destGoTo(1)"></div>
+          <div class="carousel-dot" onclick="destGoTo(2)"></div>
+          <div class="carousel-dot" onclick="destGoTo(3)"></div>
+          <div class="carousel-dot" onclick="destGoTo(4)"></div>
+          <button class="carousel-arrow" onclick="destNext()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── SECTION: LIFE'S BETTER AS A GUEST ───────────────── -->
+    <section class="section section-guest">
+      <div class="inner">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title" style="font-size:30px; letter-spacing:-0.4px;">
+              Life's better as a <span class="gold">Guest</span>
+            </h2>
+            <p class="section-subtitle" style="margin-bottom:0;">Discover the benefits of Etihad Guest</p>
+          </div>
+          <a class="join-now-link" href="#">Join now</a>
+        </div>
+
+        <div class="guest-cards" style="margin-top:24px;">
+          <!-- Card 1: Personalised benefits -->
+          <div class="img-card guest-card">
+            <img src="images/imgi_33_homepage-eyg-personalised-benefits.jpg" alt="Personalised benefits">
+            <div class="img-card-gradient"></div>
+            <div class="img-card-body">
+              <div class="img-card-title">Personalised benefits</div>
+              <a class="img-card-cta" href="#">Explore</a>
+            </div>
+          </div>
+          <!-- Card 2: Reduced Tier criteria -->
+          <div class="img-card guest-card">
+            <img src="images/imgi_34_a380-cabin-business-male-guests-business.jpg" alt="Reduced Tier criteria">
+            <div class="img-card-gradient"></div>
+            <div class="img-card-body">
+              <div class="img-card-title">Reduced Tier criteria</div>
+              <a class="img-card-cta" href="#">Learn more</a>
+            </div>
+          </div>
+          <!-- Card 3: Earn exclusive rewards -->
+          <div class="img-card guest-card">
+            <img src="images/imgi_35_home-be-our-guest-earn-miles.jpg" alt="Earn exclusive rewards">
+            <div class="img-card-gradient"></div>
+            <div class="img-card-body">
+              <div class="img-card-title">Earn exclusive rewards</div>
+              <a class="img-card-cta" href="#">Learn more</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="carousel-controls right" style="margin-top:16px;">
+          <button class="carousel-arrow dimmed">&#8249;</button>
+          <button class="carousel-arrow">&#8250;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── SECTION: EXPERIENCE ETIHAD ──────────────────────── -->
+    <section class="section section-experience">
+      <div class="inner">
+        <div class="experience-layout">
+          <!-- Left text -->
+          <div class="experience-text">
+            <h2 class="experience-title">
+              Experience <span class="gold">Etihad</span>
+            </h2>
+            <p class="experience-body">
+              Your journey with us marks the beginning of something
+              extraordinary. From our hub at Zayed International Airport,
+              we extend our renowned hospitality to ensure every step of
+              your journey is simply unforgettable.
             </p>
           </div>
+          <!-- Right cards -->
+          <div class="experience-cards">
+            <div class="img-card experience-card">
+              <img src="images/imgi_37_home-experience-etihad-zayed-int-airport.jpg" alt="Zayed International Airport">
+              <div class="img-card-gradient"></div>
+              <div class="img-card-body">
+                <div class="img-card-title">Zayed International Airport</div>
+                <a class="img-card-cta" href="#">Explore</a>
+              </div>
+            </div>
+            <div class="img-card experience-card">
+              <img src="images/imgi_38_home-experience-etihad-in-the-lounge.jpg" alt="Serene lounges">
+              <div class="img-card-gradient"></div>
+              <div class="img-card-body">
+                <div class="img-card-title">Serene lounges</div>
+                <a class="img-card-cta" href="#">Discover</a>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <section class="eh-section" aria-labelledby="ehDestHeading">
-          <div class="eh-section-head">
-            <h2 id="ehDestHeading">Flights from <span class="eh-accent-word">London</span></h2>
-            <a href="#" class="eh-link-quiet" id="ehViewAllDest">View all</a>
-          </div>
-          <div class="eh-carousel" id="ehDestCarousel">
-            <div class="eh-carousel-viewport">
-              <div class="eh-carousel-track" id="ehDestTrack">
-                <article class="eh-dest-card" data-idx="0">
-                  <div class="eh-dest-visual" aria-hidden="true"></div>
-                  <div class="eh-dest-body">
-                    <h3 class="eh-dest-name">Zanzibar</h3>
-                    <p class="eh-dest-meta">from GBP 512* or 19,800 miles</p>
-                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-ZNZ">Select</button>
-                  </div>
-                </article>
-                <article class="eh-dest-card" data-idx="1">
-                  <div class="eh-dest-visual" aria-hidden="true"></div>
-                  <div class="eh-dest-body">
-                    <h3 class="eh-dest-name">Melbourne</h3>
-                    <p class="eh-dest-meta">from GBP 890* or 34,200 miles</p>
-                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-MEL">Select</button>
-                  </div>
-                </article>
-                <article class="eh-dest-card is-center" data-idx="2">
-                  <div class="eh-dest-visual" aria-hidden="true"></div>
-                  <div class="eh-dest-body">
-                    <h3 class="eh-dest-name">Tokyo</h3>
-                    <p class="eh-dest-meta">from GBP 721* or 27,500 miles</p>
-                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-NRT">Select</button>
-                  </div>
-                </article>
-                <article class="eh-dest-card" data-idx="3">
-                  <div class="eh-dest-visual" aria-hidden="true"></div>
-                  <div class="eh-dest-body">
-                    <h3 class="eh-dest-name">Hanoi</h3>
-                    <p class="eh-dest-meta">from GBP 540* or 20,400 miles</p>
-                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-HAN">Select</button>
-                  </div>
-                </article>
-                <article class="eh-dest-card" data-idx="4">
-                  <div class="eh-dest-visual" aria-hidden="true"></div>
-                  <div class="eh-dest-body">
-                    <h3 class="eh-dest-name">Sydney</h3>
-                    <p class="eh-dest-meta">from GBP 912* or 35,000 miles</p>
-                    <button type="button" class="eh-btn-ghost eh-dest-select" data-eh-route="LHR-SYD">Select</button>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <div class="eh-carousel-bar">
-              <button type="button" class="eh-hero-arrow" id="ehDestPrev" aria-label="Previous destinations">&#8249;</button>
-              <div class="eh-carousel-dot-row" aria-label="Carousel position">
-                <button type="button" class="eh-carousel-dot is-active" aria-label="Page 1"></button>
-                <button type="button" class="eh-carousel-dot" aria-label="Page 2"></button>
-                <button type="button" class="eh-carousel-dot" aria-label="Page 3"></button>
-              </div>
-              <button type="button" class="eh-hero-arrow" id="ehDestNext" aria-label="Next destinations">&#8250;</button>
-            </div>
-          </div>
-        </section>
+        <div class="carousel-controls right" style="margin-top:16px;">
+          <button class="carousel-arrow dimmed">&#8249;</button>
+          <button class="carousel-arrow">&#8250;</button>
+        </div>
+      </div>
+    </section>
 
-        <section class="eh-section" aria-labelledby="ehGuestLifeHeading">
-          <div class="eh-section-head">
-            <h2 id="ehGuestLifeHeading">Life’s better as a <span class="eh-accent-word">Guest</span></h2>
-            <a href="#" class="eh-link-quiet">Join now</a>
-          </div>
-          <div class="eh-row-cards">
-            <article class="eh-story-card">
-              <div class="eh-story-inner">
-                <h3>Personalised benefits</h3>
-                <a href="#">Explore</a>
-              </div>
-            </article>
-            <article class="eh-story-card">
-              <div class="eh-story-inner">
-                <h3>Earn on every trip</h3>
-                <a href="#">Explore</a>
-              </div>
-            </article>
-            <article class="eh-story-card">
-              <div class="eh-story-inner">
-                <h3>Lounge access</h3>
-                <a href="#">Explore</a>
-              </div>
-            </article>
-          </div>
-        </section>
+    <!-- ─── FOOTER ───────────────────────────────────────────── -->
+    <footer>
+      <div class="inner">
 
-        <section class="eh-section" aria-labelledby="ehXpHeading">
-          <div class="eh-xp">
-            <div class="eh-xp-copy">
-              <div class="eh-section-head eh-section-head--flush">
-                <h2 id="ehXpHeading">Experience <span class="eh-accent-word">Etihad</span></h2>
-              </div>
-              <p>
-                From hub connections to on-board service, this lab page mirrors a typical international booking journey:
-                search, destination interest, and optional abandonment — all as structured <code class="eh-code">travel.*</code> signals.
-              </p>
-            </div>
-            <div class="eh-xp-grid">
-              <div class="eh-xp-card">
-                <strong>International airport</strong>
-                <a href="#">Discover</a>
-              </div>
-              <div class="eh-xp-card">
-                <strong>Serene lounges</strong>
-                <a href="#">Discover</a>
-              </div>
-            </div>
+        <!-- Link columns -->
+        <div class="footer-links-grid">
+          <div>
+            <div class="footer-col-heading">About Us</div>
+            <ul class="footer-links">
+              <li><a href="#">Corporate profile</a></li>
+              <li><a href="#">News</a></li>
+              <li><a href="#">Our sponsorships</a></li>
+              <li><a href="#">Our codeshare partners</a></li>
+              <li><a href="#">Our responsibility</a></li>
+              <li><a href="#">Careers <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Ethics and compliance</a></li>
+              <li><a href="#">Accessibility statement</a></li>
+            </ul>
           </div>
-        </section>
+          <div>
+            <div class="footer-col-heading">Flights &amp; Travel</div>
+            <ul class="footer-links">
+              <li><a href="#">Travel Requirements</a></li>
+              <li><a href="#">Fly with Etihad</a></li>
+              <li><a href="#">Book flights</a></li>
+              <li><a href="#">International flight deals</a></li>
+              <li><a href="#">Flight status</a></li>
+              <li><a href="#">Experience Abu Dhabi</a></li>
+              <li><a href="#">Abu Dhabi Stopover</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="footer-col-heading">Etihad Guest</div>
+            <ul class="footer-links">
+              <li><a href="#">Our partners</a></li>
+              <li><a href="#">Fly with miles</a></li>
+              <li><a href="#">Miles Calculator</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="footer-col-heading">Top Flight Destinations</div>
+            <ul class="footer-links">
+              <li><a href="#">Flights to Bangkok <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Tokyo <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Singapore <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Sydney <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Abu Dhabi <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Maldives <span class="ext-icon">↗</span></a></li>
+              <li><a href="#">Flights to Manila <span class="ext-icon">↗</span></a></li>
+            </ul>
+          </div>
+        </div>
 
-        <footer class="eh-footer">
-          <div class="eh-footer-grid">
-            <div class="eh-footer-col">
-              <h3>About</h3>
-              <ul>
-                <li><a href="#">Our story</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">Media</a></li>
-              </ul>
-            </div>
-            <div class="eh-footer-col">
-              <h3>Flights &amp; travel</h3>
-              <ul>
-                <li><a href="#">Destinations</a></li>
-                <li><a href="#">Baggage</a></li>
-                <li><a href="#">Travel requirements</a></li>
-              </ul>
-            </div>
-            <div class="eh-footer-col">
-              <h3>Loyalty</h3>
-              <ul>
-                <li><a href="#">Programme overview</a></li>
-                <li><a href="#">Miles calculator</a></li>
-                <li><a href="#">Partners</a></li>
-              </ul>
-            </div>
-            <div class="eh-footer-col">
-              <h3>Top routes</h3>
-              <ul>
-                <li><a href="#">London — Middle East</a></li>
-                <li><a href="#">London — Asia Pacific</a></li>
-                <li><a href="#">London — Indian Ocean</a></li>
-              </ul>
+        <!-- Awards -->
+        <div class="footer-awards">
+          <div class="footer-awards-heading">Awards &amp; recognition</div>
+          <div class="footer-awards-sub">Award-winning airline, year after year.</div>
+          <div class="awards-row">
+            <img class="award-badge" src="images/imgi_39_safest-full-service-airline-award.png" alt="World's Safest Full Service Airline">
+            <img class="award-badge" src="images/imgi_40_worlds-leading-biz-class-award.png" alt="World's Leading Airline Business Class">
+            <img class="award-badge" src="images/imgi_41_worlds-leading-eco-class-award.png" alt="World's Leading Airline Economy Class">
+            <img class="award-badge" src="images/imgi_42_worlds-leading-customer-xp-award.png" alt="World's Leading Airline Customer Experience">
+            <img class="award-badge" src="images/imgi_43_five-star-global-airline-award.png" alt="Five Star Global Airline">
+          </div>
+        </div>
+
+        <!-- Bottom CTA row -->
+        <div class="footer-bottom-row">
+          <div>
+            <div class="footer-bottom-col-title">Need help? Get in touch</div>
+            <p class="footer-bottom-col-body">
+              If you need some assistance and you need to contact us, you can do so here.
+            </p>
+            <button class="footer-btn">Contact us</button>
+          </div>
+          <div>
+            <div class="footer-bottom-col-title">Subscribe to our offers</div>
+            <p class="footer-bottom-col-body">
+              Subscribe now for exclusive flight deals delivered straight to your inbox.
+            </p>
+            <button class="footer-btn">Subscribe</button>
+          </div>
+          <div>
+            <div class="footer-bottom-col-title">We love hearing from you</div>
+            <p class="footer-bottom-col-body">
+              Your feedback is really important, and we love hearing what you think.
+            </p>
+            <button class="footer-btn">Give feedback</button>
+          </div>
+          <div>
+            <div class="footer-bottom-col-title">Connect with us</div>
+            <p class="footer-bottom-col-body">
+              Follow us on social media and keep up with the latest news and updates.
+            </p>
+            <div class="social-row">
+              <div class="social-icon"><img src="images/imgi_44_footer-linkedin.png" alt="LinkedIn"></div>
+              <div class="social-icon"><img src="images/imgi_45_footer-fb.png" alt="Facebook"></div>
+              <div class="social-icon"><img src="images/imgi_46_footer-insta.png" alt="Instagram"></div>
+              <div class="social-icon"><img src="images/imgi_47_footer-twitter.png" alt="X (Twitter)"></div>
+              <div class="social-icon"><img src="images/imgi_48_footer-youtube.png" alt="YouTube"></div>
             </div>
           </div>
-          <div class="eh-awards" aria-label="Placeholder awards">
-            <span class="eh-award">Award<br/>A</span>
-            <span class="eh-award">Award<br/>B</span>
-            <span class="eh-award">Award<br/>C</span>
-            <span class="eh-award">Award<br/>D</span>
-            <span class="eh-award">Award<br/>E</span>
+        </div>
+
+        <!-- Legal bar -->
+        <div class="footer-legal">
+          <div class="footer-legal-links">
+            <a href="#">Terms and Conditions</a>
+            <a href="#">Privacy policy</a>
+            <a href="#">Cookie policy</a>
+            <a href="#">Rules and notices</a>
+            <a href="#">Tax Refund</a>
           </div>
-          <div class="eh-footer-cta">
-            <div class="eh-cta-block">
-              <p>Need help?</p>
-              <button type="button" class="eh-pill-btn">Contact us</button>
-            </div>
-            <div class="eh-cta-block">
-              <p>Subscribe to offers</p>
-              <button type="button" class="eh-pill-btn">Subscribe</button>
-            </div>
-            <div class="eh-cta-block">
-              <p>We love feedback</p>
-              <button type="button" class="eh-pill-btn">Give feedback</button>
-            </div>
-            <div class="eh-cta-block">
-              <p>Connect</p>
-              <div class="eh-social">
-                <button type="button" aria-label="Social in">in</button>
-                <button type="button" aria-label="Social f">f</button>
-                <button type="button" aria-label="Social camera">&#9675;</button>
-                <button type="button" aria-label="Social x">x</button>
-                <button type="button" aria-label="Social play">&#9654;</button>
+          <div class="footer-copyright">Copyright 2026 Etihad Airways. All rights reserved.</div>
+        </div>
+
+      </div>
+    </footer>
+  </main>
+
+  <!-- ── Nav flyout panel (shared, repositioned by JS) ──────── -->
+  <div id="navFlyout" class="nav-flyout" role="menu">
+    <div class="nav-flyout-title" id="navFlyoutTitle"></div>
+    <div id="navFlyoutItems"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       JAVASCRIPT
+  ═══════════════════════════════════════════════ -->
+  <script>
+    // ── Sidebar collapse ─────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const STORAGE_KEY = 'etihadSidebarCollapsed';
+
+    sidebar.classList.toggle('collapsed', localStorage.getItem(STORAGE_KEY) === '1');
+    sidebarToggle.addEventListener('click', () => {
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      localStorage.setItem(STORAGE_KEY, isCollapsed ? '1' : '0');
+      navHideFlyoutNow(); // close any open flyout on sidebar toggle
+    });
+
+    // ── Nav flyout ────────────────────────────────────────────
+    const NAV_MENUS = {
+      book:        { label: 'Book',         items: ['Flights', 'Holidays', 'Hotels', 'Cars', 'Experiences', 'Book with miles', 'Multi-city'] },
+      manage:      { label: 'Manage',       items: ['My trips', 'Seat selection', 'Meal selection', 'Add baggage', 'Upgrade my seat', 'Travel extras', 'Request a refund'] },
+      checkin:     { label: 'Check-in',     items: ['Online check-in', 'Airport check-in', 'Check-in requirements', 'Baggage allowance', 'Boarding pass'] },
+      flightstatus:{ label: 'Flight status',items: ['Check flight status', 'Flight schedule', 'Arrivals & departures'] },
+      plan:        { label: 'Plan',         items: ['Baggage information', 'Visa requirements', 'Travel insurance', 'Airport guides', 'In-flight experience', 'Special assistance', 'Travelling with children'] },
+      offers:      { label: 'Offers',       items: ['Latest deals', 'Fare deals', 'Holiday packages', 'Miles deals', 'Partner offers', 'Student offers'] },
+      loyalty:     { label: 'Loyalty',      items: ['Etihad Guest overview', 'Join Etihad Guest', 'Earn miles', 'Spend miles', 'Tier benefits', 'Partner earn & spend', 'Family programme'] },
+      help:        { label: 'Help',         items: ['Contact us', 'FAQs', 'Baggage help', 'Refunds & compensation', 'Special assistance', 'Lost and found', 'Feedback'] },
+    };
+
+    const navFlyout      = document.getElementById('navFlyout');
+    const navFlyoutTitle = document.getElementById('navFlyoutTitle');
+    const navFlyoutItems = document.getElementById('navFlyoutItems');
+    let   flyoutHideTimer = null;
+    let   flyoutCurrentKey = null;
+
+    function navShowFlyout(navItem) {
+      clearTimeout(flyoutHideTimer);
+      const key  = navItem.dataset.menu;
+      const menu = NAV_MENUS[key];
+      if (!menu) return;
+      flyoutCurrentKey = key;
+
+      // Populate
+      navFlyoutTitle.textContent = menu.label;
+      navFlyoutItems.innerHTML   = menu.items.map(i => `<a href="#" onclick="return false">${i}</a>`).join('');
+
+      // Position: anchor to sidebar right edge and item vertical centre
+      const sbW  = sidebar.classList.contains('collapsed') ? 64 : 178;
+      const rect = navItem.getBoundingClientRect();
+      const flyH = 40 + menu.items.length * 36; // estimated height
+      const maxTop = window.innerHeight - flyH - 12;
+      const top  = Math.min(rect.top, maxTop);
+
+      navFlyout.style.left = sbW + 'px';
+      navFlyout.style.top  = top + 'px';
+      navFlyout.classList.add('open');
+    }
+
+    function navHideFlyout() {
+      flyoutHideTimer = setTimeout(() => {
+        navFlyout.classList.remove('open');
+        flyoutCurrentKey = null;
+      }, 130);
+    }
+
+    function navHideFlyoutNow() {
+      clearTimeout(flyoutHideTimer);
+      navFlyout.classList.remove('open');
+      flyoutCurrentKey = null;
+    }
+
+    // Attach hover to all nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('mouseenter', () => navShowFlyout(item));
+      item.addEventListener('mouseleave', navHideFlyout);
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        navHideFlyoutNow();
+      });
+    });
+
+    // Keep flyout open when mouse is over it
+    navFlyout.addEventListener('mouseenter', () => clearTimeout(flyoutHideTimer));
+    navFlyout.addEventListener('mouseleave', navHideFlyout);
+
+    // ── Hero banner slider ────────────────────────────────────
+    const BANNER_DURATION = 30000; // 30 seconds per slide
+    const TIMER_CIRC      = 62.83; // 2π × r10
+    const TICK_MS         = 50;    // timer update interval
+
+    const heroSlides     = document.querySelectorAll('.hero-slide');
+    const heroTextSlides = document.querySelectorAll('.hero-text-slide');
+    const heroIndicators = document.getElementById('heroIndicators');
+    const heroPrevBtn    = document.getElementById('heroPrevBtn');
+    const heroNextBtn    = document.getElementById('heroNextBtn');
+
+    let bannerCurrent  = 0;
+    let bannerElapsed  = 0;   // ms elapsed on current slide
+    let bannerTimer    = null;
+    let timerArcEl     = null; // the active SVG arc element
+
+    const TOTAL = heroSlides.length;
+
+    // Build indicator dots HTML
+    function buildIndicators() {
+      heroIndicators.innerHTML = '';
+      for (let i = 0; i < TOTAL; i++) {
+        if (i === bannerCurrent) {
+          // Active: circular SVG timer ring + inner dot
+          const wrap = document.createElement('div');
+          wrap.className = 'hero-ind-active';
+          wrap.setAttribute('data-i', i);
+          wrap.innerHTML = `
+            <svg class="hero-timer-svg" viewBox="0 0 24 24">
+              <circle class="hero-timer-track" cx="12" cy="12" r="10"/>
+              <circle class="hero-timer-arc"   cx="12" cy="12" r="10"/>
+            </svg>`;
+          wrap.addEventListener('click', () => bannerGoTo(i));
+          heroIndicators.appendChild(wrap);
+          timerArcEl = wrap.querySelector('.hero-timer-arc');
+          updateArc(); // paint immediately
+        } else {
+          const dot = document.createElement('div');
+          dot.className = 'hero-ind';
+          dot.setAttribute('data-i', i);
+          dot.addEventListener('click', () => bannerGoTo(i));
+          heroIndicators.appendChild(dot);
+        }
+      }
+    }
+
+    // Update SVG arc stroke-dashoffset to reflect elapsed time
+    function updateArc() {
+      if (!timerArcEl) return;
+      const progress = bannerElapsed / BANNER_DURATION; // 0 → 1
+      const offset   = TIMER_CIRC * (1 - progress);    // full → 0
+      timerArcEl.style.strokeDashoffset = offset;
+    }
+
+    // Activate a specific slide
+    function bannerActivate(index) {
+      heroSlides.forEach((s, i)     => s.classList.toggle('active', i === index));
+      heroTextSlides.forEach((s, i) => s.classList.toggle('active', i === index));
+      bannerCurrent = index;
+      bannerElapsed = 0;
+      buildIndicators();
+    }
+
+    // Advance automatically
+    function bannerNext() {
+      bannerActivate((bannerCurrent + 1) % TOTAL);
+    }
+    function bannerPrev() {
+      bannerActivate((bannerCurrent - 1 + TOTAL) % TOTAL);
+    }
+    function bannerGoTo(i) {
+      bannerActivate(i);
+    }
+
+    // Wire buttons
+    heroPrevBtn.addEventListener('click', bannerPrev);
+    heroNextBtn.addEventListener('click', bannerNext);
+
+    // Tick loop — updates arc every TICK_MS ms, advances when full
+    function startTimer() {
+      clearInterval(bannerTimer);
+      bannerTimer = setInterval(() => {
+        bannerElapsed += TICK_MS;
+        updateArc();
+        if (bannerElapsed >= BANNER_DURATION) {
+          bannerNext();
+        }
+      }, TICK_MS);
+    }
+
+    // Init
+    buildIndicators();
+    startTimer();
+
+    // ── Booking tabs ─────────────────────────────────────────
+    function selectTab(el) {
+      document.querySelectorAll('.booking-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      BS.tripType = el.textContent.trim().toLowerCase().startsWith('round') ? 'roundtrip'
+                  : el.textContent.trim().toLowerCase().startsWith('one')   ? 'oneway'
+                  : 'multicity';
+      if (BS.tripType !== 'roundtrip') { BS.ret = null; BS.pickingReturn = false; bwUpdateDateDisplay(); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  BOOKING WIDGET — interactive search
+    // ══════════════════════════════════════════════════════════
+    const ETIHAD_CITIES = [
+      { code:'AUH', name:'Abu Dhabi',        country:'UAE'                              },
+      { code:'LHR', name:'London',            country:'UK',          airport:'Heathrow'  },
+      { code:'MAN', name:'Manchester',        country:'UK'                               },
+      { code:'JFK', name:'New York',          country:'USA',         airport:'JFK'       },
+      { code:'LAX', name:'Los Angeles',       country:'USA'                              },
+      { code:'ORD', name:'Chicago',           country:'USA'                              },
+      { code:'IAD', name:'Washington DC',     country:'USA',         airport:'Dulles'    },
+      { code:'YYZ', name:'Toronto',           country:'Canada'                           },
+      { code:'SYD', name:'Sydney',            country:'Australia'                        },
+      { code:'MEL', name:'Melbourne',         country:'Australia'                        },
+      { code:'BNE', name:'Brisbane',          country:'Australia'                        },
+      { code:'PER', name:'Perth',             country:'Australia'                        },
+      { code:'NRT', name:'Tokyo',             country:'Japan',       airport:'Narita'    },
+      { code:'SIN', name:'Singapore',         country:'Singapore'                        },
+      { code:'BKK', name:'Bangkok',           country:'Thailand'                         },
+      { code:'HKT', name:'Phuket',            country:'Thailand'                         },
+      { code:'KUL', name:'Kuala Lumpur',      country:'Malaysia'                         },
+      { code:'CGK', name:'Jakarta',           country:'Indonesia'                        },
+      { code:'SGN', name:'Ho Chi Minh City',  country:'Vietnam'                          },
+      { code:'PNH', name:'Phnom Penh',        country:'Cambodia'                         },
+      { code:'MLE', name:'Malé',              country:'Maldives'                         },
+      { code:'CMB', name:'Colombo',           country:'Sri Lanka'                        },
+      { code:'BOM', name:'Mumbai',            country:'India'                            },
+      { code:'DEL', name:'New Delhi',         country:'India'                            },
+      { code:'BLR', name:'Bengaluru',         country:'India'                            },
+      { code:'HYD', name:'Hyderabad',         country:'India'                            },
+      { code:'MAA', name:'Chennai',           country:'India'                            },
+      { code:'CCU', name:'Kolkata',           country:'India'                            },
+      { code:'CDG', name:'Paris',             country:'France',      airport:'CDG'       },
+      { code:'FRA', name:'Frankfurt',         country:'Germany'                          },
+      { code:'AMS', name:'Amsterdam',         country:'Netherlands'                      },
+      { code:'ZRH', name:'Zurich',            country:'Switzerland'                      },
+      { code:'MAD', name:'Madrid',            country:'Spain'                            },
+      { code:'BCN', name:'Barcelona',         country:'Spain'                            },
+      { code:'MXP', name:'Milan',             country:'Italy',       airport:'Malpensa'  },
+      { code:'FCO', name:'Rome',              country:'Italy'                            },
+      { code:'BRU', name:'Brussels',          country:'Belgium'                          },
+      { code:'IST', name:'Istanbul',          country:'Turkey'                           },
+      { code:'CAI', name:'Cairo',             country:'Egypt'                            },
+      { code:'DXB', name:'Dubai',             country:'UAE'                              },
+      { code:'DOH', name:'Doha',              country:'Qatar'                            },
+      { code:'RUH', name:'Riyadh',            country:'Saudi Arabia'                     },
+      { code:'JED', name:'Jeddah',            country:'Saudi Arabia'                     },
+      { code:'KWI', name:'Kuwait City',       country:'Kuwait'                           },
+      { code:'MCT', name:'Muscat',            country:'Oman'                             },
+      { code:'SLL', name:'Salalah',           country:'Oman'                             },
+      { code:'AMM', name:'Amman',             country:'Jordan'                           },
+      { code:'BEY', name:'Beirut',            country:'Lebanon'                          },
+      { code:'NBO', name:'Nairobi',           country:'Kenya'                            },
+      { code:'ADD', name:'Addis Ababa',       country:'Ethiopia'                         },
+    ];
+
+    // ── State ─────────────────────────────────────────────────
+    const BS = {
+      from:         ETIHAD_CITIES.find(c => c.code === 'JFK'),
+      to:           null,
+      depart:       null,
+      ret:          null,
+      adults:       1,
+      children:     0,
+      infants:      0,
+      cabin:        'Economy',
+      tripType:     'roundtrip',
+      pickingReturn:false,
+      calOffset:    0,
+    };
+
+    // ── Popup management ──────────────────────────────────────
+    function bwOpen(id, e) {
+      if (e) e.stopPropagation();
+      const alreadyOpen = document.getElementById(id)?.classList.contains('open');
+      bwCloseAll();
+      if (!alreadyOpen) {
+        document.getElementById(id)?.classList.add('open');
+        if (id === 'popup-from')   { bwRenderCityList('from',''); document.getElementById('bw-from-search')?.focus(); }
+        if (id === 'popup-to')     { bwRenderCityList('to','');   document.getElementById('bw-to-search')?.focus(); }
+        if (id === 'popup-dates')  { bwRenderCalendar(); }
+      }
+    }
+    function bwCloseAll() {
+      document.querySelectorAll('.field-popup').forEach(p => p.classList.remove('open'));
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.booking-field')) bwCloseAll();
+    });
+
+    // ── City search ───────────────────────────────────────────
+    const POPULAR_TO = ['LHR','SYD','BKK','NRT','AUH','SIN','MLE','CDG'];
+
+    function bwCityItemHTML(field, c, selected) {
+      const planeSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#94a3b8"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>`;
+      const airport = c.airport ? `<div class="city-item-sub">${c.airport} Airport</div>` : '';
+      return `
+        <div class="city-item${selected?.code===c.code?' active-city':''}"
+             onclick="bwSelectCity('${field}','${c.code}');event.stopPropagation()">
+          <div class="city-item-icon">${planeSVG}</div>
+          <div class="city-item-body">
+            <div class="city-item-name">${c.name} <span>${c.country}</span></div>
+            ${airport}
+          </div>
+          <div class="city-item-right">
+            <span class="city-item-code">${c.code}</span>
+          </div>
+        </div>`;
+    }
+
+    function bwRenderCityList(field, query) {
+      const listId = field === 'from' ? 'bw-from-list' : 'bw-to-list';
+      const list   = document.getElementById(listId);
+      if (!list) return;
+      const q  = query.toLowerCase().trim();
+      const selected = field === 'from' ? BS.from : BS.to;
+
+      if (q) {
+        const cities = ETIHAD_CITIES.filter(c =>
+          c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) ||
+          c.country.toLowerCase().includes(q) || (c.airport||'').toLowerCase().includes(q));
+        list.innerHTML = cities.map(c => bwCityItemHTML(field, c, selected)).join('')
+          || '<div style="padding:16px;color:#94a3b8;font-size:13px;text-align:center">No results</div>';
+        return;
+      }
+
+      if (field === 'to') {
+        const popularCities = POPULAR_TO.map(code => ETIHAD_CITIES.find(c => c.code === code)).filter(Boolean);
+        const popularHTML = `<div class="city-section-label">Popular destinations</div>`
+          + popularCities.map(c => bwCityItemHTML(field, c, selected)).join('');
+        const allHTML = `<div class="city-section-label">All destinations</div>`
+          + ETIHAD_CITIES.map(c => bwCityItemHTML(field, c, selected)).join('');
+        list.innerHTML = popularHTML + allHTML;
+      } else {
+        list.innerHTML = ETIHAD_CITIES.map(c => bwCityItemHTML(field, c, selected)).join('');
+      }
+    }
+    function bwFilterCities(field) {
+      const q = document.getElementById(field==='from'?'bw-from-search':'bw-to-search')?.value || '';
+      bwRenderCityList(field, q);
+    }
+    function bwSelectCity(field, code) {
+      const city = ETIHAD_CITIES.find(c => c.code === code);
+      if (!city) return;
+      const display = `${city.name}, ${city.code}`;
+      if (field === 'from') {
+        BS.from = city;
+        const el = document.getElementById('bw-from-val');
+        el.textContent = display;
+        el.className = 'field-value';
+        // Update "Flights from [City]" heading
+        const lbl = document.getElementById('flights-from-city');
+        if (lbl) lbl.textContent = city.name;
+        bwCloseAll();
+      } else {
+        BS.to = city;
+        const el = document.getElementById('bw-to-val');
+        el.textContent = display;
+        el.className = 'field-value';
+        bwCloseAll();
+      }
+    }
+
+    // ── Guests & cabin ────────────────────────────────────────
+    function bwUpdateGuestsDisplay() {
+      const parts = [`${BS.adults} Adult${BS.adults>1?'s':''}`];
+      if (BS.children) parts.push(`${BS.children} Child${BS.children>1?'ren':''}`);
+      if (BS.infants)  parts.push(`${BS.infants} Infant${BS.infants>1?'s':''}`);
+      parts.push(BS.cabin);
+      document.getElementById('bw-guests-val').textContent = parts.join(', ');
+    }
+    function bwCount(type, delta) {
+      if (type==='adults')   BS.adults   = Math.max(1, Math.min(9, BS.adults   + delta));
+      if (type==='children') BS.children = Math.max(0, Math.min(8, BS.children + delta));
+      if (type==='infants')  BS.infants  = Math.max(0, Math.min(BS.adults, BS.infants + delta));
+      if (type==='adults')   BS.infants  = Math.min(BS.infants, BS.adults);
+      document.getElementById('cnt-adults').textContent   = BS.adults;
+      document.getElementById('cnt-children').textContent = BS.children;
+      document.getElementById('cnt-infants').textContent  = BS.infants;
+      document.getElementById('dec-adults').disabled   = BS.adults   <= 1;
+      document.getElementById('inc-adults').disabled   = BS.adults   >= 9;
+      document.getElementById('dec-children').disabled = BS.children <= 0;
+      document.getElementById('inc-children').disabled = BS.children >= 8;
+      document.getElementById('dec-infants').disabled  = BS.infants  <= 0;
+      document.getElementById('inc-infants').disabled  = BS.infants  >= BS.adults;
+      bwUpdateGuestsDisplay();
+    }
+    function bwCabin(cabin) {
+      BS.cabin = cabin;
+      document.querySelectorAll('.cabin-btn').forEach(b => b.classList.toggle('active', b.dataset.cabin===cabin));
+      bwUpdateGuestsDisplay();
+    }
+
+    // ── Date picker ───────────────────────────────────────────
+    const BW_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const BW_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+    function bwRenderCalendar() {
+      const cal  = document.getElementById('bw-calendars');
+      const hint = document.getElementById('bw-cal-hint');
+      const prev = document.getElementById('bw-cal-prev');
+      if (!cal) return;
+      const today = new Date(); today.setHours(0,0,0,0);
+      if (prev) prev.disabled = BS.calOffset <= 0;
+      if (hint) hint.textContent = !BS.depart ? 'Select departure date'
+                                  : (BS.tripType==='roundtrip' && !BS.ret) ? 'Now select your return date' : '';
+      cal.innerHTML = [0,1].map(delta => {
+        const base = new Date(today.getFullYear(), today.getMonth() + BS.calOffset + delta, 1);
+        const yr = base.getFullYear(), mo = base.getMonth();
+        const firstDow   = new Date(yr, mo, 1).getDay();
+        const daysInMonth= new Date(yr, mo+1, 0).getDate();
+        const emptyCells = Array(firstDow).fill('<div class="cal-empty"></div>').join('');
+        const dayCells   = Array.from({length: daysInMonth}, (_,i) => {
+          const d    = new Date(yr, mo, i+1);
+          const past = d < today;
+          const cls  = ['cal-day',
+            past                                          ? 'cal-past'    : '',
+            d.getTime()===today.getTime()                 ? 'cal-today'   : '',
+            BS.depart && d.getTime()===BS.depart.getTime()? 'cal-depart'  : '',
+            BS.ret    && d.getTime()===BS.ret.getTime()   ? 'cal-return'  : '',
+            BS.depart && BS.ret && d>BS.depart && d<BS.ret? 'cal-in-range': '',
+          ].filter(Boolean).join(' ');
+          return `<div class="${cls}"${past?'':` onclick="bwPickDate(${d.getTime()})"`}>${i+1}</div>`;
+        }).join('');
+        return `<div class="calendar">
+          <div class="cal-month-label">${BW_MONTHS[mo]} ${yr}</div>
+          <div class="cal-grid">
+            ${BW_DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+            ${emptyCells}${dayCells}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function bwPickDate(ts) {
+      const clicked = new Date(ts);
+      if (!BS.depart || (BS.tripType==='roundtrip' && BS.depart && BS.ret)) {
+        BS.depart = clicked; BS.ret = null;
+        BS.pickingReturn = BS.tripType==='roundtrip';
+      } else if (BS.tripType==='roundtrip' && BS.pickingReturn) {
+        if (clicked <= BS.depart) { BS.depart = clicked; BS.ret = null; }
+        else { BS.ret = clicked; BS.pickingReturn = false; bwUpdateDateDisplay(); setTimeout(bwCloseAll, 350); }
+      } else {
+        BS.depart = clicked; BS.ret = null; bwUpdateDateDisplay();
+        if (BS.tripType!=='roundtrip') setTimeout(bwCloseAll, 200);
+      }
+      bwUpdateDateDisplay();
+      bwRenderCalendar();
+    }
+    function bwCalNav(dir) {
+      BS.calOffset = Math.max(0, BS.calOffset + dir);
+      bwRenderCalendar();
+    }
+    function bwClearDates() {
+      BS.depart = null; BS.ret = null; BS.pickingReturn = false;
+      bwUpdateDateDisplay(); bwRenderCalendar();
+    }
+    function bwUpdateDateDisplay() {
+      const el = document.getElementById('bw-dates-val');
+      if (!el) return;
+      const fmt = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+      if (!BS.depart) { el.textContent = 'Add dates'; el.className = 'field-placeholder'; }
+      else if (BS.tripType==='roundtrip' && BS.ret) { el.textContent = `${fmt(BS.depart)} – ${fmt(BS.ret)}`; el.className = 'field-value'; }
+      else { el.textContent = fmt(BS.depart); el.className = 'field-value'; }
+    }
+
+    // Init guests display
+    bwUpdateGuestsDisplay();
+
+    // ── Destinations carousel (coverflow) ────────────────────
+    let destActive = 2;
+    const destTrack   = document.getElementById('destTrack');
+    const destDots    = document.querySelectorAll('#destControls .carousel-dot');
+    const CLONE_COUNT = 2;
+
+    let destN        = 0;
+    let destVirtual  = 0;
+    let destSnapping = false;
+
+    function destGetCards() { return [...destTrack.querySelectorAll('.dest-card')]; }
+
+    function destComputePositions() {
+      const W = destTrack.offsetWidth;
+      const H = destTrack.offsetHeight;
+      const cx = W / 2;
+
+      const AW = Math.round(W * 0.52), AH = H;
+      const SW = Math.round(W * 0.38), SH = Math.round(H * 0.83);
+      const FW = Math.round(W * 0.28), FH = Math.round(H * 0.67);
+
+      // Horizontal offsets of card centres from container centre
+      const SO = Math.round(W * 0.19);
+      const FO = Math.round(W * 0.33);
+
+      return [
+        // diff -3+ : off-screen left
+        { l: -FW - 40, t: Math.round((H - FH) / 2), w: FW, h: FH, z: 0, op: 0 },
+        // diff -2 : far left
+        { l: Math.round(cx - FO - FW / 2), t: Math.round((H - FH) / 2), w: FW, h: FH, z: 2, op: 1 },
+        // diff -1 : side left
+        { l: Math.round(cx - SO - SW / 2), t: Math.round((H - SH) / 2), w: SW, h: SH, z: 5, op: 1 },
+        // diff  0 : active
+        { l: Math.round(cx - AW / 2),      t: 0,                         w: AW, h: AH, z: 10, op: 1 },
+        // diff +1 : side right
+        { l: Math.round(cx + SO - SW / 2), t: Math.round((H - SH) / 2), w: SW, h: SH, z: 5, op: 1 },
+        // diff +2 : far right
+        { l: Math.round(cx + FO - FW / 2), t: Math.round((H - FH) / 2), w: FW, h: FH, z: 2, op: 1 },
+        // diff +3+ : off-screen right
+        { l: W + 40, t: Math.round((H - FH) / 2), w: FW, h: FH, z: 0, op: 0 },
+      ];
+    }
+
+    function destUpdate() {
+      const cards = destGetCards();
+      const pos   = destComputePositions();
+
+      cards.forEach((card, i) => {
+        const diff  = i - destVirtual;
+        const clamped = Math.max(-3, Math.min(3, diff));
+        const p = pos[clamped + 3]; // index 0-6
+
+        card.style.left    = p.l + 'px';
+        card.style.top     = p.t + 'px';
+        card.style.width   = p.w + 'px';
+        card.style.height  = p.h + 'px';
+        card.style.zIndex  = p.z;
+        card.style.opacity = p.op;
+        card.className = 'dest-card' + (diff === 0 ? ' active' : '');
+      });
+
+      const realIdx = ((destVirtual - CLONE_COUNT) % destN + destN) % destN;
+      destDots.forEach((dot, i) => dot.classList.toggle('active', i === realIdx));
+    }
+
+    function destDisableTransitions() {
+      destGetCards().forEach(c => c.style.transition = 'none');
+    }
+    function destEnableTransitions() {
+      destGetCards().forEach(c => c.style.transition = '');
+    }
+
+    function destSnapIfNeeded() {
+      const inRight = destVirtual >= CLONE_COUNT + destN;
+      const inLeft  = destVirtual <  CLONE_COUNT;
+      if (!inRight && !inLeft) { destSnapping = false; return; }
+      destSnapping = true;
+      setTimeout(() => {
+        destDisableTransitions();
+        destVirtual = inRight ? destVirtual - destN : destVirtual + destN;
+        destUpdate();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          destEnableTransitions();
+          destSnapping = false;
+        }));
+      }, 450);
+    }
+
+    function destNext() {
+      if (destSnapping) return;
+      destVirtual++;
+      destUpdate();
+      destSnapIfNeeded();
+    }
+    function destPrev() {
+      if (destSnapping) return;
+      destVirtual--;
+      destUpdate();
+      destSnapIfNeeded();
+    }
+    function destGoTo(i) {
+      destVirtual = CLONE_COUNT + i;
+      destUpdate();
+    }
+
+    function destInit() {
+      const orig = [...destTrack.querySelectorAll('.dest-card')];
+      destN = orig.length;
+      for (let i = destN - CLONE_COUNT; i < destN; i++)
+        destTrack.insertBefore(orig[i].cloneNode(true), orig[0]);
+      for (let i = 0; i < CLONE_COUNT; i++)
+        destTrack.appendChild(orig[i].cloneNode(true));
+      destVirtual = CLONE_COUNT;
+      destDisableTransitions();
+      destUpdate();
+      requestAnimationFrame(() => requestAnimationFrame(destEnableTransitions));
+    }
+
+    window.addEventListener('load', () => {
+      destInit();
+      window.addEventListener('resize', () => { destDisableTransitions(); destUpdate(); requestAnimationFrame(() => requestAnimationFrame(destEnableTransitions)); });
+    });
+  // ── Stopover modal ────────────────────────────────────────────
+    let soNights = 2;
+
+    function soOpen() {
+      document.getElementById('so-modal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function soClose() {
+      document.getElementById('so-modal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function soAdd() {
+      // Could wire up to booking state; for now just close
+      soClose();
+    }
+    function soChangeNights(delta) {
+      soNights = Math.max(1, Math.min(5, soNights + delta));
+      document.getElementById('so-nights-val').textContent = soNights;
+      document.getElementById('so-promo-label').textContent =
+        soNights <= 2 ? 'Free hotel up to 2 nights' : `${soNights} nights selected`;
+    }
+    // Close on backdrop click
+    document.getElementById('so-modal').addEventListener('click', function(e) {
+      if (e.target === this) soClose();
+    });
+  </script>
+
+  <!-- ══ STOPOVER MODAL ══════════════════════════════════════════ -->
+  <div class="so-backdrop" id="so-modal">
+    <div class="so-card">
+      <!-- Left image -->
+      <div class="so-img">
+        <img src="images/imgi_37_home-experience-etihad-zayed-int-airport.jpg" alt="Abu Dhabi stopover">
+      </div>
+
+      <!-- Right content -->
+      <div class="so-body">
+        <h2 class="so-title">Stop, Stay, and Experience More</h2>
+        <p class="so-desc">Break up a long flight with a free Stopover in Abu Dhabi. Turn one holiday into two and stay for free up to 2 nights at your choice of hotel in the bustling capital of the UAE.</p>
+        <div class="so-exclusive">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="#94a3b8" stroke="none"/></svg>
+          Exclusive deals on top hotels
+        </div>
+
+        <div class="so-divider"></div>
+
+        <div class="so-mid">
+          <!-- Nights counter -->
+          <div>
+            <div class="so-section-label">How many nights would you like to stay?</div>
+            <div class="so-nights-row">
+              <span class="so-please-select">Please select</span>
+              <div class="so-counter">
+                <button class="so-counter-btn" onclick="soChangeNights(-1)">−</button>
+                <div class="so-counter-val" id="so-nights-val">2</div>
+                <button class="so-counter-btn" onclick="soChangeNights(1)">+</button>
               </div>
             </div>
+            <div class="so-promo">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+              <span id="so-promo-label">Free hotel up to 2 nights</span>
+            </div>
           </div>
-          <div class="eh-legal">
-            <span>
-              <a href="#">Privacy</a>
-              <a href="#">Terms</a>
-              <a href="#">Cookies</a>
-            </span>
-            <span>Lab mimic — not a real airline site.</span>
+
+          <!-- Plan your stay -->
+          <div>
+            <div class="so-section-label">Plan your stay</div>
+            <div class="so-radio-list">
+              <label class="so-radio-row">
+                <span class="so-radio-label">Departure</span>
+                <input class="so-radio-input" type="radio" name="so-plan" value="departure" checked>
+              </label>
+              <label class="so-radio-row">
+                <span class="so-radio-label">Return</span>
+                <input class="so-radio-input" type="radio" name="so-plan" value="return">
+              </label>
+            </div>
           </div>
-        </footer>
+        </div>
 
-        <section class="eh-abandon" aria-labelledby="ehAbandonTitle">
-          <h2 id="ehAbandonTitle">Abandonment (demo)</h2>
-          <p>
-            Simulate leaving before pay — sends <code class="eh-code">travel.booking.abandon</code> for orchestration demos.
-          </p>
-          <button type="button" class="eh-btn-gold" id="ehBtnAbandon">Abandon checkout — send lab event</button>
-        </section>
-
-        <p class="eh-foot-note">Palette: <code class="eh-code">--dash-*</code> tokens only · hero uses bundled reference still for mood.</p>
+        <div class="so-footer">
+          <button class="so-skip" onclick="soClose()">Skip</button>
+          <button class="so-add" onclick="soAdd()">Add</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script src="etihad-events.js?v=20260512-etihad-lab-v2"></script>
-  <script>
-    (function () {
-      function emit(t, pub) {
-        if (window.EtihadAirlineLabEvents && typeof window.EtihadAirlineLabEvents.emit === 'function') {
-          window.EtihadAirlineLabEvents.emit(t, pub, 'Etihad-style airline lab');
-        }
-      }
-      function baseTravel(extra) {
-        var o = {
-          journeyPhase: 'explore',
-          cabin: 'business',
-          tripType: 'return',
-          channel: 'web',
-          anonymousHighValueGuest: true,
-          currency: 'GBP',
-          estimatedFareBand: 'high',
-        };
-        if (extra && typeof extra === 'object') {
-          for (var k in extra) {
-            if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k];
-          }
-        }
-        return { travel: o };
-      }
 
-      var destTrack = document.getElementById('ehDestTrack');
-      var destCards = destTrack ? destTrack.querySelectorAll('.eh-dest-card') : [];
-      var destIndex = 2;
-      var milesToggle = document.getElementById('ehMilesToggle');
-
-      function setCenterCard() {
-        destCards.forEach(function (c, i) {
-          c.classList.toggle('is-center', i === destIndex);
-        });
-      }
-
-      function shiftDest(delta) {
-        destIndex = (destIndex + delta + destCards.length) % destCards.length;
-        setCenterCard();
-        emit('travel.flight.explore', baseTravel({ journeyPhase: 'browse', carouselFocusIndex: destIndex }));
-      }
-
-      setCenterCard();
-
-      document.getElementById('ehDestPrev') && document.getElementById('ehDestPrev').addEventListener('click', function () { shiftDest(-1); });
-      document.getElementById('ehDestNext') && document.getElementById('ehDestNext').addEventListener('click', function () { shiftDest(1); });
-
-      var tabRound = document.getElementById('ehTabRound');
-      var tabOne = document.getElementById('ehTabOne');
-      var tabMulti = document.getElementById('ehTabMulti');
-      function selectTab(active) {
-        [tabRound, tabOne, tabMulti].forEach(function (t) {
-          if (!t) return;
-          t.setAttribute('aria-selected', t === active ? 'true' : 'false');
-        });
-        var tt = 'return';
-        if (active === tabOne) tt = 'oneway';
-        if (active === tabMulti) tt = 'multicity';
-        emit('travel.site.navigation', baseTravel({ navItem: 'trip_type', tripTypeTab: tt }));
-      }
-      tabRound && tabRound.addEventListener('click', function () { selectTab(tabRound); });
-      tabOne && tabOne.addEventListener('click', function () { selectTab(tabOne); });
-      tabMulti && tabMulti.addEventListener('click', function () { selectTab(tabMulti); });
-
-      milesToggle && milesToggle.addEventListener('click', function () {
-        var on = milesToggle.getAttribute('aria-checked') === 'true';
-        milesToggle.setAttribute('aria-checked', on ? 'false' : 'true');
-        emit('travel.site.navigation', baseTravel({ navItem: 'miles_toggle', milesBooking: !on }));
-      });
-
-      document.getElementById('ehBtnSearch').addEventListener('click', function () {
-        var toEl = document.getElementById('ehTo');
-        var toVal = toEl && toEl.value ? String(toEl.value).trim() : '';
-        var milesOn = milesToggle && milesToggle.getAttribute('aria-checked') === 'true';
-        if (milesOn) {
-          emit('travel.site.navigation', baseTravel({ navItem: 'search_with_miles', milesBooking: true }));
-        }
-        emit(
-          'travel.flight.search',
-          baseTravel({
-            originAirport: 'LHR',
-            destinationAirport: toVal ? 'OPEN' : 'AUH',
-            destinationQuery: toVal || undefined,
-            searchFilters: 'international,business,longhaul',
-            milesBooking: milesOn,
-          })
-        );
-      });
-      document.getElementById('ehBtnExplore').addEventListener('click', function () {
-        emit('travel.flight.explore', baseTravel({ journeyPhase: 'browse', destinationRegion: 'middle_east' }));
-      });
-      document.querySelectorAll('[data-eh-route]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var code = btn.getAttribute('data-eh-route') || '';
-          var parts = code.split('-');
-          emit(
-            'travel.flight.routeView',
-            baseTravel({
-              journeyPhase: 'consideration',
-              routeCode: code,
-              originAirport: parts[0] || '',
-              destinationAirport: parts[1] || '',
-            })
-          );
-        });
-      });
-      document.getElementById('ehBtnAbandon').addEventListener('click', function () {
-        emit(
-          'travel.booking.abandon',
-          baseTravel({
-            journeyPhase: 'abandon',
-            abandonedStep: 'review_pay',
-            lastRouteCode: 'LHR-AUH',
-            minutesInFunnel: 9,
-          })
-        );
-      });
-      ['ehNavFlights', 'ehNavManage', 'ehNavOffers'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('click', function () {
-          emit('travel.site.navigation', baseTravel({ navItem: id.replace('ehNav', '').toLowerCase() }));
-        });
-      });
-      document.querySelectorAll('[data-eh-nav]').forEach(function (el) {
-        el.addEventListener('click', function () {
-          var key = el.getAttribute('data-eh-nav') || '';
-          emit('travel.site.navigation', baseTravel({ navItem: key }));
-        });
-      });
-
-      var heroBook = document.getElementById('ehHeroBookLink');
-      heroBook && heroBook.addEventListener('click', function (e) {
-        e.preventDefault();
-        emit('travel.flight.explore', baseTravel({ journeyPhase: 'browse', promo: 'global_sale' }));
-      });
-      var viewAll = document.getElementById('ehViewAllDest');
-      viewAll && viewAll.addEventListener('click', function (e) {
-        e.preventDefault();
-        emit('travel.site.navigation', baseTravel({ navItem: 'view_all_destinations' }));
-      });
-    })();
-  </script>
 </body>
 </html>
