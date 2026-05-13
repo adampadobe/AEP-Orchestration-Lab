@@ -360,8 +360,8 @@
                   ico: '\uD83D\uDCF1',
                 },
                 {
-                  label: 'iPad (to be built) (in development)',
-                  navPlaceholder: true,
+                  label: 'iPad gate agent (in development)',
+                  href: 'etihad-ipad.html',
                   inDevelopment: true,
                   navHideKey: 'mobileDemoApalmerIpad',
                   demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },

@@ -1,0 +1,709 @@
+/**
+ * Etihad iPad gate-agent lab — bezel colour presets, stage layout, gate-agent UI.
+ * Reuses mobile-demo.css bezel / viewport classes. Hardware chrome: decorative only.
+ */
+.etihad-ipad-main {
+  position: relative;
+}
+
+/* ── Stage ───────────────────────────────────────────────────────────────── */
+.ipad-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.ipad-bezel-scaler-wrap {
+  width: var(--ipad-wrap-w, 870px);
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  min-height: calc(var(--ipad-outer-h, 1242px) * var(--ipad-scale, 0.75));
+}
+
+.ipad-bezel-scaler {
+  transform: scale(var(--ipad-scale, 0.75));
+  transform-origin: top center;
+}
+
+.ipad-bezel-scaler .mobile-demo-frame-outer {
+  display: flex;
+  justify-content: center;
+}
+
+.ipad-bezel-scaler .mobile-demo-bezel {
+  position: relative;
+}
+
+/* ── Bezel colour presets (device hardware — gradient mid-tones) ─────────── */
+.mobile-demo-bezel--ipad.ipad-bezel--space-black {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--dash-text) 35%, var(--dash-border)) 0%,
+    #1a1d24 40%,
+    #0a0c10 100%
+  );
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--silver {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--dash-text) 8%, var(--dash-surface)) 0%,
+    #b0b5bf 40%,
+    #8a8e96 100%
+  );
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--silver .mobile-demo-viewport {
+  box-shadow: inset 0 0 0 2px #9aa0aa, inset 0 0 0 6px #c8cbd0;
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--natural-titanium {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--dash-text) 12%, #9e9690) 0%,
+    #8a8680 40%,
+    #6e6a66 100%
+  );
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--natural-titanium .mobile-demo-viewport {
+  box-shadow: inset 0 0 0 2px #9a9590, inset 0 0 0 6px #7a7672;
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--blue-titanium {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--dash-blue) 22%, var(--dash-text)) 0%,
+    #4f6372 40%,
+    #38505e 100%
+  );
+}
+
+.mobile-demo-bezel--ipad.ipad-bezel--blue-titanium .mobile-demo-viewport {
+  box-shadow: inset 0 0 0 2px #5a7282, inset 0 0 0 6px #3a5060;
+}
+
+/* Swatch previews (no inline hex in HTML) */
+.ipad-colour-swatch--space-black {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--dash-text) 30%, var(--dash-border)), #1a1d24);
+}
+.ipad-colour-swatch--silver {
+  background: linear-gradient(145deg, #d8dce4, #9aa0aa);
+}
+.ipad-colour-swatch--natural-titanium {
+  background: linear-gradient(145deg, #c4bcb4, #7a7670);
+}
+.ipad-colour-swatch--blue-titanium {
+  background: linear-gradient(145deg, #6b8aa0, #3a5060);
+}
+
+/* ── Controls bar ─────────────────────────────────────────────────────────── */
+.ipad-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  max-width: 56rem;
+}
+
+.ipad-ctrl-group {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--dash-surface-alt);
+  padding: 0.2rem;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+}
+
+.ipad-ctrl-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ipad-ctrl-btn--active {
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  box-shadow: 0 1px 3px var(--dash-shadow);
+}
+
+.ipad-colour-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  padding: 0;
+}
+
+.ipad-colour-swatch--active,
+.ipad-colour-swatch:focus-visible {
+  border-color: var(--dash-blue);
+  outline: none;
+}
+
+.ipad-sandbox-label {
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  margin-left: auto;
+}
+
+/* ── Screen stack ───────────────────────────────────────────────────────── */
+.ipad-screen-stack {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--dash-bg);
+  overflow: hidden;
+}
+
+.ipad-ios-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 1.25rem;
+  background: var(--dash-bg);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ipad-ios-time {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ipad-ios-faceid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dash-bg) 60%, var(--dash-muted));
+  border: 1.5px solid color-mix(in srgb, var(--dash-border) 60%, transparent);
+}
+
+.ipad-ios-indicators {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dash-text);
+}
+
+.ipad-ios-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+
+.ipad-ios-signal span {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--dash-text);
+}
+
+.ipad-ios-wifi {
+  color: var(--dash-text);
+}
+
+.ipad-ios-battery {
+  position: relative;
+  width: 26px;
+  height: 13px;
+  border: 1.5px solid var(--dash-text);
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.ipad-ios-battery-fill {
+  height: 100%;
+  background: var(--dash-text);
+  border-radius: 1.5px;
+}
+
+.ipad-ios-battery-tip {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 7px;
+  background: var(--dash-text);
+  border-radius: 0 2px 2px 0;
+}
+
+.ipad-home-indicator {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dash-bg);
+  flex-shrink: 0;
+}
+
+.ipad-home-indicator::after {
+  content: '';
+  display: block;
+  width: 130px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--dash-text);
+  opacity: 0.2;
+}
+
+/* ── Decorative hardware chrome ─────────────────────────────────────────── */
+.ipad-faceid-pill {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dash-bg) 88%, var(--dash-text));
+  border: 1.5px solid color-mix(in srgb, var(--dash-surface) 40%, transparent);
+  z-index: 4;
+}
+
+.ipad-hw-btns--left {
+  position: absolute;
+  left: -4px;
+  top: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+}
+
+.ipad-hw-btns--right {
+  position: absolute;
+  right: -4px;
+  top: 120px;
+  z-index: 2;
+}
+
+.ipad-hw-btn {
+  width: 4px;
+  height: 38px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--dash-surface) 35%, transparent) 0%,
+    color-mix(in srgb, var(--dash-bg) 55%, transparent) 100%
+  );
+  box-shadow: -1px 0 2px color-mix(in srgb, var(--dash-text) 35%, transparent);
+}
+
+.ipad-hw-btns--right .ipad-hw-btn {
+  height: 52px;
+  background: linear-gradient(
+    270deg,
+    color-mix(in srgb, var(--dash-surface) 35%, transparent) 0%,
+    color-mix(in srgb, var(--dash-bg) 55%, transparent) 100%
+  );
+  box-shadow: 1px 0 2px color-mix(in srgb, var(--dash-text) 35%, transparent);
+}
+
+.ipad-smart-connector {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.ipad-smart-connector span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dash-surface) 25%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--dash-text) 45%, transparent);
+}
+
+.ipad-speakers {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 180px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ipad-speakers--top {
+  top: 10px;
+}
+
+.ipad-speakers--bottom {
+  bottom: 10px;
+}
+
+.ipad-speaker-grille {
+  width: 28px;
+  height: 8px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--dash-text) 55%, var(--dash-bg)) 0 2px,
+    color-mix(in srgb, var(--dash-surface) 20%, var(--dash-border)) 2px 4px
+  );
+}
+
+.ipad-pencil-rail {
+  position: absolute;
+  right: 6px;
+  top: 30%;
+  width: 3px;
+  height: 22%;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--dash-surface) 12%, transparent) 0%,
+    color-mix(in srgb, var(--dash-surface) 22%, transparent) 50%,
+    color-mix(in srgb, var(--dash-surface) 12%, transparent) 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Gate-agent app ─────────────────────────────────────────────────────── */
+.ga-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  flex-shrink: 0;
+}
+
+.ga-airline-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.ga-agent-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+}
+
+.ga-agent-accent {
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border-left: 4px solid var(--dash-blue);
+}
+
+.ga-agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ga-agent-name {
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.ga-app-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ga-search-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.ga-search-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ga-search-input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+}
+
+.ga-search-btn {
+  padding: 0.6rem 1.1rem;
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  border: none;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ga-search-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ga-search-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dash-error, #c62828);
+}
+
+.ga-passenger-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 1rem;
+}
+
+.ga-passenger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+
+.ga-passenger-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.ga-loyalty-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+}
+
+.ga-detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  margin: 0 0 1rem;
+}
+
+.ga-detail-grid dt {
+  color: var(--dash-text-secondary);
+  font-weight: 500;
+}
+
+.ga-detail-grid dd {
+  color: var(--dash-text);
+  margin: 0;
+}
+
+.ga-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ga-btn {
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ga-btn--primary {
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+}
+
+.ga-btn--secondary {
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+}
+
+/* Modal + seat map */
+.ga-modal {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--dash-text) 42%, transparent);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.ga-modal[hidden] {
+  display: none;
+}
+
+.ga-modal-inner {
+  background: var(--dash-surface);
+  border-radius: var(--dash-radius) var(--dash-radius) 0 0;
+  padding: 1.25rem;
+  width: 100%;
+  max-height: 70%;
+  overflow-y: auto;
+}
+
+.ga-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.ga-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--dash-text-secondary);
+}
+
+.ga-seat-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ga-seat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.ga-seat-row-num {
+  width: 1.25rem;
+  font-size: 0.7rem;
+  color: var(--dash-muted);
+  text-align: right;
+}
+
+.ga-seat-aisle {
+  width: 14px;
+}
+
+.ga-seat {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid var(--dash-border);
+  cursor: pointer;
+  transition: transform 0.1s;
+  padding: 0;
+  font-size: 0;
+}
+
+.ga-seat--available {
+  background: var(--dash-surface-alt);
+}
+
+.ga-seat--occupied {
+  background: var(--dash-border);
+  cursor: not-allowed;
+}
+
+.ga-seat--selected {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+}
+
+.ga-seat--premium {
+  background: color-mix(in srgb, var(--dash-blue) 20%, var(--dash-surface-alt));
+}
+
+.ga-confirm-btn {
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.ga-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--dash-text);
+  box-shadow: 0 4px 14px var(--dash-shadow);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 200;
+}
+
+.ga-toast--visible {
+  opacity: 1;
+}
+
+.ga-seat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.etihad-ipad-page .mobile-demo-bezel--ipad .mobile-demo-viewport {
+  resize: none;
+  background: var(--dash-bg);
+  max-width: none;
+}
+
+.etihad-ipad-page .ipad-ios-faceid .ipad-ios-camera {
+  display: none;
+}
