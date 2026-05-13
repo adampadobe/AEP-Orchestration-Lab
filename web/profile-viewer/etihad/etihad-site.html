@@ -1586,28 +1586,53 @@
     }
     .eh-res-header { background: #0d2340; color: #fff; flex-shrink: 0; }
     .eh-res-header-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 0.5rem; padding: 0.85rem clamp(1rem, 3vw, 2rem);
-    }
-    .eh-res-route { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; flex-wrap: wrap; }
-    .eh-res-sep { opacity: 0.4; }
-    .eh-res-modify { color: #fff; text-decoration: underline; font-weight: 600; opacity: 0.85; }
-    .eh-res-header-right { display: flex; align-items: center; gap: 1rem; }
-    .eh-res-miles-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; opacity: 0.9; }
-    .eh-res-steps {
       display: flex; align-items: center;
-      padding: 0.6rem clamp(1rem, 3vw, 2rem);
-      border-top: 1px solid rgba(255,255,255,0.1); overflow-x: auto;
+      padding: 0.7rem clamp(1rem, 3vw, 2rem); gap: 1rem;
     }
+    .eh-res-logo { height: 34px; width: auto; flex-shrink: 0; }
+    .eh-res-route {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      gap: 0.45rem; font-size: 0.85rem; font-weight: 400; flex-wrap: wrap; color: rgba(255,255,255,0.9);
+    }
+    .eh-res-route-arrow { opacity: 0.7; font-size: 1rem; }
+    .eh-res-sep { opacity: 0.35; }
+    .eh-res-modify { color: #fff; font-weight: 700; text-decoration: underline; cursor: pointer; }
+    .eh-res-header-right { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+    .eh-res-miles-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; opacity: 0.9; white-space: nowrap; }
+    .eh-res-user-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.5);
+      background: transparent; color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .eh-res-user-btn:hover { background: rgba(255,255,255,0.1); }
+    .eh-res-steps {
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 0.55rem clamp(1rem, 3vw, 2rem) 0.65rem;
+      border-top: 1px solid rgba(255,255,255,0.1); overflow-x: auto; scrollbar-width: none; gap: 0;
+    }
+    .eh-res-steps::-webkit-scrollbar { display: none; }
     .eh-res-step {
-      display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem;
-      font-weight: 600; color: rgba(255,255,255,0.45); white-space: nowrap;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.2rem; font-size: 0.68rem; font-weight: 500;
+      color: rgba(255,255,255,0.45); white-space: nowrap; min-width: 52px;
     }
     .eh-res-step.is-active { color: #fff; }
-    .eh-res-step-dot { width: 28px; height: 1px; background: rgba(255,255,255,0.2); margin: 0 6px; flex-shrink: 0; }
-    @media (max-width: 600px) {
+    .eh-res-step-icon {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      margin-bottom: 3px;
+    }
+    .eh-res-step.is-active .eh-res-step-icon { background: #b08747; border-color: #b08747; }
+    .eh-res-step-line {
+      width: 36px; height: 1px; flex-shrink: 0;
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 4px, transparent 4px, transparent 8px);
+      margin-top: 14px; /* vertically centre with 28px icon circles */
+    }
+    @media (max-width: 700px) {
+      .eh-res-logo { display: none; }
       .eh-res-step:not(.is-active) { display: none; }
-      .eh-res-step-dot { display: none; }
+      .eh-res-step-line { display: none; }
     }
     .eh-res-date-bar { display: flex; align-items: stretch; background: #fff; border-bottom: 1px solid #e0e0e0; flex-shrink: 0; }
     .eh-res-date-arrow {
@@ -2398,12 +2423,13 @@
   <div id="ehResultsOverlay" class="eh-results-overlay" hidden>
     <div class="eh-res-header">
       <div class="eh-res-header-inner">
+        <img src="images/etihad-logo.svg" class="eh-res-logo" alt="Etihad Airways">
         <div class="eh-res-route">
           <span id="ehResFromCity">London</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="opacity:0.6"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="eh-res-route-arrow">&#8651;</span>
           <span id="ehResToCity">Abu Dhabi</span>
           <span class="eh-res-sep">|</span>
-          <span id="ehResDates">Wed, 17 Jun – Thu, 09 Jul</span>
+          <span id="ehResDates">Wed, 17 Jun &ndash; Thu, 09 Jul</span>
           <span class="eh-res-sep">|</span>
           <span id="ehResGuests">Guests: 1</span>
           <span class="eh-res-sep">|</span>
@@ -2414,18 +2440,60 @@
             <input type="checkbox" id="ehResMilesCheck" style="accent-color:#b08747;">
             Book with Etihad Guest Miles
           </label>
+          <button type="button" class="eh-res-user-btn" aria-label="Account">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </button>
         </div>
       </div>
       <div class="eh-res-steps">
         <div class="eh-res-step is-active">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 17h3l2-6 4 10 3-7 2 3h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
           Flights
         </div>
-        <div class="eh-res-step-dot"></div><div class="eh-res-step">Guests</div>
-        <div class="eh-res-step-dot"></div><div class="eh-res-step">Seats</div>
-        <div class="eh-res-step-dot"></div><div class="eh-res-step">Bags</div>
-        <div class="eh-res-step-dot"></div><div class="eh-res-step">Extras</div>
-        <div class="eh-res-step-dot"></div><div class="eh-res-step">Payment</div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          Stopover
+        </div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          Guests
+        </div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          Seats
+        </div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          </div>
+          Bags
+        </div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          Extras
+        </div>
+        <div class="eh-res-step-line"></div>
+        <div class="eh-res-step">
+          <div class="eh-res-step-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          Payment
+        </div>
       </div>
     </div>
     <div class="eh-res-date-bar">
