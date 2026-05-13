@@ -1247,10 +1247,170 @@
     /* ─── SECTION PADDING VARIANTS ───────────────────────────── */
     .section-guest { padding-top: 100px; padding-bottom: 60px; }
     .section-experience { padding-top: 100px; padding-bottom: 80px; }
+
+    /* ── Profile-conditional Gold personalisation ── */
+    #ehGoldOfferStrip,
+    #ehGoldJourney { display: none; }
+
+    #ehGoldOfferStrip.eh-profile-visible,
+    #ehGoldJourney.eh-profile-visible { display: block; }
+
+    .eh-gold-strip {
+      background: linear-gradient(90deg, #1a0e00 0%, #3a200a 50%, #1a0e00 100%);
+      border: 1px solid #b08747;
+      border-radius: 12px;
+      padding: 20px 28px;
+      margin: 28px 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .eh-gold-strip-icon { width: 48px; height: 48px; flex-shrink: 0; }
+    .eh-gold-strip-text { flex: 1; min-width: 200px; }
+    .eh-gold-strip-text h3 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #dec39b;
+      letter-spacing: -0.2px;
+    }
+    .eh-gold-strip-text p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+    .eh-gold-strip-cta {
+      background: #c9973a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .eh-gold-strip-cta:hover { background: #b08747; }
+
+    .eh-gold-journey-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    @media (max-width: 700px) { .eh-gold-journey-grid { grid-template-columns: 1fr; } }
+    .eh-gold-journey-card {
+      background: rgba(176,135,71,0.08);
+      border: 1px solid rgba(176,135,71,0.35);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .eh-gold-journey-card .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #c9973a;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .eh-gold-journey-card h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #dec39b;
+    }
+    .eh-gold-journey-card p {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.5;
+    }
+    @keyframes ehFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .eh-profile-fade-in { animation: ehFadeIn 0.5s ease forwards; }
+
+    #ehGoldOfferStrip .eh-inner,
+    #ehGoldJourney .eh-inner {
+      max-width: var(--inner-width);
+      margin: 0 auto;
+      padding-left: calc(var(--sidebar-width) + 24px);
+      padding-right: 24px;
+    }
+    body:has(#sidebar.collapsed) #ehGoldOfferStrip .eh-inner,
+    body:has(#sidebar.collapsed) #ehGoldJourney .eh-inner {
+      padding-left: calc(var(--sidebar-collapsed) + 24px);
+    }
+    @media (max-width: 720px) {
+      #ehGoldOfferStrip .eh-inner,
+      #ehGoldJourney .eh-inner {
+        padding-left: 20px;
+        padding-right: 16px;
+      }
+    }
+
+    /* Hide legacy fixed HVD strip when profile-conditional Gold blocks are visible */
+    body:has(#ehGoldOfferStrip.eh-profile-visible) #hvd-offer-strip,
+    body:has(#ehGoldOfferStrip.eh-profile-visible) #hvd-gold-journey {
+      display: none !important;
+    }
   </style>
   <script src="etihad-events.js"></script>
 </head>
 <body>
+
+  <!-- Gold personalisation: shell postMessage (etihad-events.js loads from <head>) -->
+  <!-- Gold upgrade offer strip — hidden until detractor profile loaded -->
+  <section id="ehGoldOfferStrip" aria-label="Gold upgrade offer">
+    <div class="eh-inner">
+      <div class="eh-gold-strip">
+        <svg class="eh-gold-strip-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/>
+          <path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/>
+        </svg>
+        <div class="eh-gold-strip-text">
+          <h3>Exclusive Gold upgrade offer, <span id="ehGoldFirstName">valued guest</span></h3>
+          <p>You're closer to Gold than you think. Unlock lounge access, bonus miles and priority boarding — we'll reduce the qualifying tier criteria just for you.</p>
+        </div>
+        <button type="button" class="eh-gold-strip-cta" id="ehGoldStripCta">See my Gold offer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Your Gold Journey — hidden until detractor profile loaded -->
+  <section id="ehGoldJourney" aria-label="Your Gold journey">
+    <div class="eh-inner">
+      <div style="margin-top:40px; margin-bottom:8px;">
+        <h2 style="font-size:24px; font-weight:700; color:#dec39b; margin:0 0 6px;">Your <span style="color:#fff;">Gold</span> Journey</h2>
+        <p style="color:rgba(255,255,255,0.65); margin:0; font-size:14px;">Three steps to unlock Etihad Gold status and the benefits you deserve.</p>
+      </div>
+      <div class="eh-gold-journey-grid">
+        <div class="eh-gold-journey-card">
+          <div class="step-num">1</div>
+          <h4>Fly 2 more sectors</h4>
+          <p>Complete just 2 qualifying flights in the next 90 days and meet your tier criteria.</p>
+        </div>
+        <div class="eh-gold-journey-card">
+          <div class="step-num">2</div>
+          <h4>Unlock Gold benefits</h4>
+          <p>Enjoy priority check-in, business lounge access and 50% bonus miles on every flight.</p>
+        </div>
+        <div class="eh-gold-journey-card">
+          <div class="step-num">3</div>
+          <h4>Earn more, travel better</h4>
+          <p>Gold members earn 1.5× Etihad Guest Miles and enjoy complimentary upgrades when available.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Demo path: HV Detractor Journey — etihad-site.html + etihad-events.js (postMessage → etihad-demo.html → POST /api/events/generator). Gold offer strip, booking/search/stopover/destination/nav wiring in page script. -->
   <style id="hvd-offer-strip-styles">
@@ -2668,6 +2828,47 @@
       const menu = item.getAttribute('data-menu');
       if (!menu) return;
       hvdEmit('travel.navigation.select', { hvDetractorStep: 9, menu: menu });
+    });
+
+    // Listen for profile data from outer AEP shell → show/hide Gold personalisation
+    window.addEventListener('message', function (ev) {
+      if (!ev.data || ev.data.source !== 'etihad-demo-shell') return;
+
+      var goldStrip    = document.getElementById('ehGoldOfferStrip');
+      var goldJourney  = document.getElementById('ehGoldJourney');
+      var firstNameEl  = document.getElementById('ehGoldFirstName');
+      var goldStripCta = document.getElementById('ehGoldStripCta');
+
+      function showGold(firstName) {
+        if (firstNameEl && firstName) firstNameEl.textContent = firstName;
+        if (goldStrip)   { goldStrip.classList.add('eh-profile-visible', 'eh-profile-fade-in'); }
+        if (goldJourney) { goldJourney.classList.add('eh-profile-visible', 'eh-profile-fade-in'); }
+        if (goldStripCta && !goldStripCta.dataset.wired) {
+          goldStripCta.dataset.wired = '1';
+          goldStripCta.addEventListener('click', function () {
+            hvdEmit('offer.click', { offerId: 'gold-upgrade-detractor', offerLabel: 'See my Gold offer', personalised: true });
+          });
+        }
+        hvdEmit('offer.view', { offerId: 'gold-upgrade-detractor', personalised: true });
+      }
+
+      function hideGold() {
+        if (goldStrip)   goldStrip.classList.remove('eh-profile-visible', 'eh-profile-fade-in');
+        if (goldJourney) goldJourney.classList.remove('eh-profile-visible', 'eh-profile-fade-in');
+        if (firstNameEl) firstNameEl.textContent = 'valued guest';
+      }
+
+      if (ev.data.type === 'profile-loaded') {
+        var p     = ev.data.profile || {};
+        var tier  = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';
+        var churn = p.churnPrediction != null ? Number(p.churnPrediction) : null;
+        // churnPrediction is on a 0–100 scale; normalise if already decimal
+        if (churn != null && churn <= 1) churn = churn * 100;
+        var isDetractor = (tier === 'bronze' || tier === 'silver') && churn != null && churn >= 60;
+        if (isDetractor) { showGold(p.firstName); } else { hideGold(); }
+      }
+
+      if (ev.data.type === 'profile-cleared') { hideGold(); }
     });
   </script>
 

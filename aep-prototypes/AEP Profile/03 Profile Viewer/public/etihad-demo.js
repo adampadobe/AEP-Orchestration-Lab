@@ -188,6 +188,20 @@ queryProfileBtn &&
         : null;
     const stitched = await etihadTagsInjection.stitchAfterProfileLookup(profile, email);
     if (stitched) setEtihadMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+
+    // Send profile into iframe so it can show/hide Gold personalisation
+    if (etihadSiteFrame && etihadSiteFrame.contentWindow) {
+      etihadSiteFrame.contentWindow.postMessage({
+        source: 'etihad-demo-shell',
+        type: 'profile-loaded',
+        profile: profile ? {
+          firstName:       profile.firstName      || null,
+          loyaltyStatus:   profile.loyaltyStatus  || null,
+          churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+          propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+        } : null,
+      }, '*');
+    }
   });
 
 (function initEtihadDemoFlyoutSidebar() {
@@ -267,6 +281,16 @@ DemoProfileDrawer.init({
   messageSetter: setEtihadMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
+});
+
+// Reset iframe Gold personalisation when email field is cleared
+customerEmail && customerEmail.addEventListener('input', function () {
+  if (!customerEmail.value.trim() && etihadSiteFrame && etihadSiteFrame.contentWindow) {
+    etihadSiteFrame.contentWindow.postMessage(
+      { source: 'etihad-demo-shell', type: 'profile-cleared' },
+      '*'
+    );
+  }
 });
 
 (function initEtihadSandboxAndEnvBar() {
