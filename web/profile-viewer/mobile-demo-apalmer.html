@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile (demo) – AEP Profile Viewer</title>
+  <title>Mobile simulator (apalmer sandbox) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
       <a class="mobile-demo-home" href="home.html">← Home</a>
       <div class="mobile-demo-topbar-text">
         <h1 class="mobile-demo-title">Mobile simulator</h1>
-        <p class="mobile-demo-sub">Resizable preview · same demos as <strong>Demos</strong> on Home · profile drawer on the left inside the phone</p>
+        <p class="mobile-demo-sub">Apalmer sandbox copy · resizable preview · defaults to <strong>Etihad</strong> · isolated Customize storage vs the shared <a href="mobile-demo.html">mobile-demo</a> page</p>
       </div>
       <div class="mobile-demo-topbar-actions">
         <button type="button" class="mobile-demo-fullscreen-btn" id="mobileDemoFullscreenBtn" aria-pressed="false" title="Full screen">
@@ -36,7 +36,7 @@
                 <iframe
                   id="mobileDemoFrame"
                   title="Demo preview"
-                  src="fnb-demo.html?aepSimMobile=1"
+                  src="etihad-demo.html?aepSimMobile=1"
                 ></iframe>
               </div>
             </div>
@@ -79,6 +79,6 @@
     </div>
   </aside>
 
-  <script src="mobile-demo.js?v=20260512-channel-nav" defer></script>
+  <script src="mobile-demo-apalmer.js?v=20260512-channel-nav" defer></script>
 </body>
 </html>

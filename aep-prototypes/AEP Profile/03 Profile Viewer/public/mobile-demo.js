@@ -25,7 +25,41 @@
     { id: 'pixel8', label: 'Google Pixel 8', w: 412, h: 915, bezel: 'pixel', notch: 'punch-hole' },
     { id: 'pixel8pro', label: 'Google Pixel 8 Pro', w: 412, h: 892, bezel: 'pixel', notch: 'punch-hole' },
     { id: 'oneplus12', label: 'OnePlus 12', w: 412, h: 919, bezel: 'oneplus', notch: 'oblong' },
+    { id: 'ipad11', label: 'Apple iPad Pro 11″', w: 834, h: 1194, bezel: 'ipad', notch: 'none' },
   ];
+
+  /** Deep links from Demos → Mobile (channel-first nav). */
+  var HASH_ROUTES = {
+    'fnb-phone': { demo: 'fnb-demo.html', device: 's24u' },
+    'fnb-ipad': { demo: 'fnb-demo.html', device: 'ipad11' },
+  };
+
+  function normalizeHashKey() {
+    return (window.location.hash || '').replace(/^#/, '').trim();
+  }
+
+  function ensureDefaultNavHash() {
+    var k = normalizeHashKey();
+    if (HASH_ROUTES[k]) return k;
+    if (!k && window.history && window.history.replaceState) {
+      try {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search + '#fnb-phone'
+        );
+      } catch (e) {
+        /* ignore */
+      }
+      return 'fnb-phone';
+    }
+    return k;
+  }
+
+  function routeFromHash() {
+    var k = ensureDefaultNavHash();
+    return HASH_ROUTES[k] || null;
+  }
 
   var SIM_QUERY = 'aepSimMobile=1';
   var STORAGE_KEY = 'aepMobileSimDemoPath';
@@ -146,19 +180,24 @@
       select.appendChild(opt);
     });
 
+    var hashRoute = routeFromHash();
     var initial = 'fnb-demo.html';
-    try {
-      var saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        for (var si = 0; si < DEMOS.length; si++) {
-          if (DEMOS[si].value === saved) {
-            initial = saved;
-            break;
+    if (hashRoute) {
+      initial = hashRoute.demo;
+    } else {
+      try {
+        var saved = sessionStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          for (var si = 0; si < DEMOS.length; si++) {
+            if (DEMOS[si].value === saved) {
+              initial = saved;
+              break;
+            }
           }
         }
+      } catch (_) {
+        /* ignore */
       }
-    } catch (_) {
-      /* ignore */
     }
 
     select.value = initial.split('?')[0];
@@ -180,12 +219,17 @@
       deviceSelect.appendChild(opt);
     });
 
+    var hashRouteDev = routeFromHash();
     var initialDev = 's24u';
-    try {
-      var savedD = sessionStorage.getItem(STORAGE_KEY_DEVICE);
-      if (savedD && getDeviceById(savedD)) initialDev = savedD;
-    } catch (_) {
-      /* ignore */
+    if (hashRouteDev) {
+      initialDev = hashRouteDev.device;
+    } else {
+      try {
+        var savedD = sessionStorage.getItem(STORAGE_KEY_DEVICE);
+        if (savedD && getDeviceById(savedD)) initialDev = savedD;
+      } catch (_) {
+        /* ignore */
+      }
     }
 
     applyDevice(initialDev, false);
@@ -194,6 +238,14 @@
       applyDevice(deviceSelect.value, true);
     });
   }
+
+  window.addEventListener('hashchange', function () {
+    var k = normalizeHashKey();
+    if (!HASH_ROUTES[k]) return;
+    var r = HASH_ROUTES[k];
+    applyDemoPath(r.demo, true);
+    applyDevice(r.device, true);
+  });
 
   function togglePanel() {
     var open = !panel || !panel.classList.contains('mobile-demo-customize--open');

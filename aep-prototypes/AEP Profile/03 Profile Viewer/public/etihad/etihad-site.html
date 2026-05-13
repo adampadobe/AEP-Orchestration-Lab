@@ -2028,20 +2028,36 @@
       inset: 0;
       z-index: 60;
       background: #f0f2f5;
-      overflow: hidden;
+      overflow-y: auto;          /* page scrolls */
+      overflow-x: hidden;
     }
     #ehResultsOverlay .eh-booking-page.is-active {
       display: flex;
       flex-direction: row;
-      align-items: stretch;
+      align-items: flex-start;   /* children start at top; can grow taller than viewport */
+      justify-content: center;   /* centre main + summary as a unit */
+      min-height: 100%;          /* at minimum fill the overlay */
+      padding: clamp(1rem,2vw,2rem) clamp(0.5rem,3vw,1.5rem);
+      box-sizing: border-box;
+      gap: 0;
     }
     #ehResultsOverlay .eh-booking-page .eh-booking-main {
-      overflow-y: auto;
-      min-height: 0;
+      flex: 1 1 0;
+      max-width: 720px;
+      min-width: 0;
+      overflow-y: visible;       /* page handles scroll, not this div */
+      min-height: auto;
+      padding: 0 clamp(0.5rem,2vw,1rem) 2rem;
     }
     #ehResultsOverlay .eh-booking-page .eh-summary-panel {
+      flex-shrink: 0;
+      overflow-y: visible;
+      min-height: auto;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      max-height: 100vh;
       overflow-y: auto;
-      min-height: 0;
     }
 
   </style>

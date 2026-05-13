@@ -1,8 +1,10 @@
 /**
- * Mobile simulator: iframe demo loader, device chrome, customize drawer, fullscreen.
+ * Mobile simulator — apalmer sandbox copy (isolated sessionStorage keys; Etihad default).
+ * @see mobile-demo.js (FNB / kirkham lab entry)
  */
 (function () {
   var DEMOS = [
+    { value: 'etihad-demo.html', label: 'Etihad (demo)' },
     { value: 'fnb-demo.html', label: 'FNB (demo)' },
     { value: 'oldmutual-demo.html', label: 'Old Mutual (demo)' },
     { value: 'oldmutual-wealth.html', label: 'Old Mutual Wealth (demo)' },
@@ -28,10 +30,10 @@
     { id: 'ipad11', label: 'Apple iPad Pro 11″', w: 834, h: 1194, bezel: 'ipad', notch: 'none' },
   ];
 
-  /** Deep links from Demos → Mobile (channel-first nav). */
+  /** Deep links from Demos → Mobile (apalmer sandbox). */
   var HASH_ROUTES = {
-    'fnb-phone': { demo: 'fnb-demo.html', device: 's24u' },
-    'fnb-ipad': { demo: 'fnb-demo.html', device: 'ipad11' },
+    'etihad-phone': { demo: 'etihad-demo.html', device: 's24u' },
+    'etihad-ipad': { demo: 'etihad-demo.html', device: 'ipad11' },
   };
 
   function normalizeHashKey() {
@@ -46,12 +48,12 @@
         window.history.replaceState(
           null,
           '',
-          window.location.pathname + window.location.search + '#fnb-phone'
+          window.location.pathname + window.location.search + '#etihad-phone'
         );
       } catch (e) {
         /* ignore */
       }
-      return 'fnb-phone';
+      return 'etihad-phone';
     }
     return k;
   }
@@ -62,8 +64,8 @@
   }
 
   var SIM_QUERY = 'aepSimMobile=1';
-  var STORAGE_KEY = 'aepMobileSimDemoPath';
-  var STORAGE_KEY_DEVICE = 'aepMobileSimDeviceId';
+  var STORAGE_KEY = 'aepMobileSimDemoPathApalmerLab';
+  var STORAGE_KEY_DEVICE = 'aepMobileSimDeviceIdApalmerLab';
 
   var frame = document.getElementById('mobileDemoFrame');
   var select = document.getElementById('mobileDemoSelect');
@@ -84,7 +86,7 @@
 
   function buildSrc(path) {
     var p = (path || '').trim();
-    if (!p) return 'fnb-demo.html?' + SIM_QUERY;
+    if (!p) return 'etihad-demo.html?' + SIM_QUERY;
     var sep = p.indexOf('?') >= 0 ? '&' : '?';
     if (p.indexOf('aepSimMobile=') >= 0) return p;
     return p + sep + SIM_QUERY;
@@ -181,7 +183,7 @@
     });
 
     var hashRoute = routeFromHash();
-    var initial = 'fnb-demo.html';
+    var initial = 'etihad-demo.html';
     if (hashRoute) {
       initial = hashRoute.demo;
     } else {

@@ -443,6 +443,39 @@ tokens). If you work on anything in `web/profile-viewer/`, follow the
 10. **If the page calls an API**, add the rewrite to `firebase.json` and
     the function export to `functions/index.js`.
 
+### Adding a New Demo
+
+Profile Viewer **Demos** in `web/profile-viewer/aep-lab-nav.js` use a **channel-first** menu. Contributors must place every demo under the correct channel before opening a PR.
+
+**Target structure (mandatory)**
+
+```text
+Demo
+ ├─ Web
+ │   └─ <Customer or explicit generic name>
+ ├─ Mobile
+ │   └─ <Customer or explicit generic name>
+ │       ├─ Phone
+ │       └─ iPad
+ └─ Call Centre
+     └─ <Customer or explicit generic name>
+```
+
+**Rules**
+
+- **Channel-first:** browsers filter and stakeholders scan by *where* the experience runs (web, mobile device lab, contact centre). Customer or industry names sit **under** the channel, not above it.
+- **Naming customer demos:** use the public brand or programme name the lab agreed to ship (e.g. `FNB`, `Etihad`). Avoid internal-only codenames in nav labels.
+- **Mobile form factors:** the shared nav only has one subgroup level under **Mobile**, so **Phone** and **iPad** are separate sidebar links. Each link must point at a URL the mobile simulator understands (see `mobile-demo.js` / `mobile-demo-apalmer.js` `HASH_ROUTES` and matching `href` fragments in `aep-lab-nav.js`). Add matching `navHideKey` values so **Global values** can hide Phone and iPad independently.
+- **Generic vs named:** use a **named** customer entry when the HTML, copy, and data hooks are clearly for that programme. Use an explicit **generic** label (e.g. `Generic retail`) when the asset is reusable across customers and there is no single brand story.
+- **Do not** add new top-level channels (only **Web**, **Mobile**, **Call Centre**) without an explicit product decision.
+
+**Checklist before you submit**
+
+1. Register the demo under **Web**, **Mobile**, or **Call Centre** in `aep-lab-nav.js` (with `demoMeta.owners` / optional `demoMeta.sandboxes` when the demo is sandbox-specific).
+2. For **Mobile**, add **Phone** and **iPad** links if both apply; keep `HASH_ROUTES` and `href` fragments in sync.
+3. If you add a new HTML page, bump any cache-busting query on shared scripts you touch, run `npm run verify:profile-viewer-routes`, and run `npm run sync-profile-viewer-ui` when the Express mirror must stay aligned.
+4. Confirm light and dark themes and **Global values** hide keys for new items.
+
 ### Profile Viewer lab demos — environment strip (Sandbox, Tags, event destination)
 
 Embedded demos and **site-clone** pages (e.g. Old Mutual, MOD, Race for Life) that use **Adobe Tags injection** and **`POST /api/events/generator`** must share one **canonical strip**:
