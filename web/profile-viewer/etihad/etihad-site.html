@@ -1558,6 +1558,19 @@
       text-decoration: underline;
     }
 
+    /* Namespace mirror for lab recents (datalist); not shown in Etihad UI */
+    .eh-ns-modal-visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
   </style>
   <script src="etihad-events.js"></script>
 </head>
@@ -2204,9 +2217,19 @@
         <p class="eh-login-subtitle">Access your bookings, miles and exclusive member offers.</p>
 
         <div class="eh-login-fields">
+          <div class="eh-ns-modal-visually-hidden" aria-hidden="true">
+            <label for="etihadNsModal">Identity namespace (lab)</label>
+            <select id="etihadNsModal" tabindex="-1">
+              <option value="email">Email</option>
+              <option value="ecid">ECID</option>
+              <option value="crmId">CRM ID</option>
+              <option value="loyaltyId">Loyalty ID</option>
+              <option value="phone">Phone</option>
+            </select>
+          </div>
           <div class="eh-field">
             <label for="ehLoginEmail">Email address</label>
-            <input type="email" id="ehLoginEmail" placeholder="you@example.com" autocomplete="email" spellcheck="false">
+            <input type="text" id="ehLoginEmail" placeholder="you@example.com" autocomplete="off" spellcheck="false">
           </div>
           <div class="eh-field">
             <label for="ehLoginPassword">Password</label>
@@ -2239,6 +2262,74 @@
       </div>
     </div>
   </div>
+
+  <script src="../identity-picker.js"></script>
+  <script src="../email-cache.js"></script>
+  <script>
+    (function () {
+      var NS_MODAL_ID = 'etihadNsModal';
+      var DATALIST_ID = 'ehLoginEmailRecents';
+
+      function syncNsModalFromLabStorage() {
+        var sel = document.getElementById(NS_MODAL_ID);
+        if (!sel) return;
+        var ns = 'email';
+        try {
+          ns = localStorage.getItem('aepIdentityNamespace') || 'email';
+        } catch (e) { /* noop */ }
+        if (sel.value !== ns) {
+          sel.value = ns;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+
+      function hydrateEhLoginFromRecents() {
+        var el = document.getElementById('ehLoginEmail');
+        if (!el || (el.value || '').trim()) return;
+        var ns = 'email';
+        try {
+          if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+            ns = AepIdentityPicker.getNamespace('ehLoginEmail') || 'email';
+          } else {
+            var sel = document.getElementById(NS_MODAL_ID);
+            if (sel && sel.value) ns = String(sel.value).trim().toLowerCase();
+          }
+        } catch (e) { /* noop */ }
+        try {
+          if (typeof getRecentForNamespace === 'function') {
+            var rec = getRecentForNamespace(ns);
+            if (rec.length) el.value = rec[0];
+          }
+        } catch (e2) { /* noop */ }
+      }
+
+      if (typeof AepIdentityPicker !== 'undefined') {
+        AepIdentityPicker.init('ehLoginEmail', NS_MODAL_ID);
+      }
+      if (typeof attachEmailDatalist === 'function') {
+        attachEmailDatalist('ehLoginEmail', DATALIST_ID, NS_MODAL_ID);
+      }
+      syncNsModalFromLabStorage();
+
+      window.addEventListener('storage', function (ev) {
+        if (!ev.key || ev.key !== 'aepIdentityNamespace') return;
+        syncNsModalFromLabStorage();
+      });
+      document.addEventListener('aep-lab-sandbox-keys-applied', syncNsModalFromLabStorage);
+
+      var emailEl = document.getElementById('ehLoginEmail');
+      if (emailEl) {
+        emailEl.addEventListener('focus', function () {
+          syncNsModalFromLabStorage();
+        });
+      }
+
+      window.ehPrepareLoginModalRecents = function () {
+        syncNsModalFromLabStorage();
+        hydrateEhLoginFromRecents();
+      };
+    })();
+  </script>
 
   <!-- ═══════════════════════════════════════════
        JAVASCRIPT
@@ -2998,6 +3089,9 @@
         if (submitLabel) submitLabel.textContent = 'Sign in';
         if (spinner) spinner.hidden = true;
         document.body.style.overflow = 'hidden';
+        if (typeof window.ehPrepareLoginModalRecents === 'function') {
+          window.ehPrepareLoginModalRecents();
+        }
         setTimeout(function () { emailInput && emailInput.focus(); }, 50);
       }
 
