@@ -156,12 +156,69 @@ async function sendEtihadAirlineExperienceEvent(payload) {
   }
 }
 
-window.addEventListener('message', function (ev) {
+window.addEventListener('message', async function (ev) {
   if (!etihadSiteFrame || !etihadSiteFrame.contentWindow || ev.source !== etihadSiteFrame.contentWindow) {
     return;
   }
-  if (!ev.data || ev.data.source !== 'etihad-airline-lab' || ev.data.type !== 'airline-experience-event') return;
-  void sendEtihadAirlineExperienceEvent(ev.data.payload);
+  if (!ev.data || ev.data.source !== 'etihad-airline-lab') return;
+
+  if (ev.data.type === 'login-request') {
+    const email = String(ev.data.email || '').trim();
+    if (!email) return;
+
+    if (customerEmail) customerEmail.value = email;
+
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+
+    if (etihadSiteFrame && etihadSiteFrame.contentWindow) {
+      etihadSiteFrame.contentWindow.postMessage(
+        {
+          source: 'etihad-demo-shell',
+          type: 'login-complete',
+          found: !!ok,
+          firstName: profile ? profile.firstName || null : null,
+          profile: profile
+            ? {
+                firstName: profile.firstName || null,
+                loyaltyStatus: profile.loyaltyStatus || null,
+                churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+                propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+              }
+            : null,
+        },
+        '*'
+      );
+    }
+
+    if (ok && profile && etihadSiteFrame && etihadSiteFrame.contentWindow) {
+      etihadSiteFrame.contentWindow.postMessage(
+        {
+          source: 'etihad-demo-shell',
+          type: 'profile-loaded',
+          profile: {
+            firstName: profile.firstName || null,
+            loyaltyStatus: profile.loyaltyStatus || null,
+            churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+            propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+          },
+        },
+        '*'
+      );
+    }
+
+    if (ok && etihadTagsInjection && typeof etihadTagsInjection.stitchAfterProfileLookup === 'function') {
+      void etihadTagsInjection.stitchAfterProfileLookup(profile, email);
+    }
+    return;
+  }
+
+  if (ev.data.type === 'airline-experience-event') {
+    void sendEtihadAirlineExperienceEvent(ev.data.payload);
+  }
 });
 
 async function loadGeneratorTargets() {

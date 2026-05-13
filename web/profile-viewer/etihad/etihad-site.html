@@ -334,40 +334,30 @@
       gap: 16px;
       z-index: 2;
     }
-    .hero-utils .flag-btn {
-      display: flex;
+    .hero-utils.eh-topbar-tools .eh-top-pill {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
       font-size: 13px;
       font-weight: 400;
       color: var(--color-white);
-      cursor: pointer;
+      cursor: default;
+      user-select: none;
     }
-    .hero-utils .flag-btn img { width: 20px; height: 20px; border-radius: 50%; }
-    .hero-utils .separator { color: rgba(255,255,255,0.4); font-size: 18px; line-height: 1; }
-    .hero-utils .icon-btn {
+    .hero-utils.eh-topbar-tools .eh-icon-btn {
       width: 28px;
       height: 28px;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       opacity: 0.85;
-    }
-    .hero-utils .icon-btn img { width: 20px; height: 20px; object-fit: contain; }
-    .login-btn {
-      background: rgba(15,30,43,0.8);
-      border: 1px solid rgba(255,255,255,0.45);
+      background: transparent;
+      border: none;
+      padding: 0;
       color: var(--color-white);
-      font-family: var(--font);
-      font-size: 13px;
-      font-weight: 400;
-      padding: 7px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      white-space: nowrap;
     }
-    .login-btn:hover { background: rgba(255,255,255,0.15); }
+    .hero-utils.eh-topbar-tools .eh-icon-btn:hover { opacity: 1; }
 
     /* Hero text block */
     .hero-text {
@@ -1388,6 +1378,186 @@
       }
     }
 
+    /* ── Login button in hero topbar ── */
+    .hero-utils.eh-topbar-tools .eh-login-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      border: 1px solid #b08747;
+      background: transparent;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .hero-utils.eh-topbar-tools .eh-login-btn:hover {
+      background: #b08747;
+      color: #fff;
+    }
+    .hero-utils.eh-topbar-tools .eh-login-btn.is-signed-in {
+      background: color-mix(in srgb, #b08747 15%, transparent);
+      border-color: #b08747;
+      color: #dec39b;
+    }
+
+    /* ── Login modal overlay ── */
+    .eh-login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .eh-login-overlay[hidden] { display: none; }
+
+    .eh-login-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(3px);
+    }
+
+    .eh-login-card {
+      position: relative;
+      z-index: 1;
+      background: var(--eh-panel-light, #fff);
+      color: var(--eh-panel-light-fg, #1a1a1a);
+      border-radius: var(--dash-radius, 16px);
+      border: 1px solid var(--eh-panel-field-border, #ddd);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+      padding: 2rem 2rem 1.75rem;
+      width: 100%;
+      max-width: 400px;
+      animation: ehModalIn 0.2s ease;
+    }
+    @keyframes ehModalIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .eh-login-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      border: 1px solid var(--eh-panel-field-border, #ddd);
+      background: transparent;
+      color: var(--eh-panel-light-muted, #666);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .eh-login-close:hover { background: var(--eh-panel-field-bg, #f5f5f5); }
+
+    .eh-login-logo {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .eh-login-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--eh-panel-light-fg, #1a1a1a);
+    }
+
+    .eh-login-subtitle {
+      margin: 0 0 1.5rem;
+      font-size: 0.82rem;
+      color: var(--eh-panel-light-muted, #666);
+      text-align: center;
+    }
+
+    .eh-login-fields { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem; }
+
+    .eh-login-card .eh-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .eh-login-card .eh-field label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--eh-panel-light-muted, #666);
+    }
+    .eh-login-card .eh-field input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--eh-panel-field-border, #ccc);
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: #fff;
+      color: #1a1a1a;
+    }
+
+    .eh-login-error {
+      margin: 0 0 1rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--dash-radius-sm, 12px);
+      background: var(--dash-error-bg, #fff0f0);
+      border: 1px solid var(--dash-error-border, #ffcdd2);
+      color: var(--dash-error-text, #c62828);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    .eh-btn-gold {
+      border: none;
+      border-radius: 8px;
+      background: var(--color-gold-btn, #c9973a);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .eh-btn-gold:hover { background: #b8872e; }
+
+    .eh-login-submit {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1rem;
+      font-size: 0.9rem;
+    }
+    .eh-login-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .eh-login-spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: ehSpin 0.7s linear infinite;
+    }
+    @keyframes ehSpin { to { transform: rotate(360deg); } }
+
+    .eh-login-guest-link {
+      margin: 1rem 0 0;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .eh-login-guest-link a {
+      color: var(--eh-panel-light-muted, #666);
+      text-decoration: underline;
+    }
+
   </style>
   <script src="etihad-events.js"></script>
 </head>
@@ -1530,20 +1700,12 @@
       </div>
 
       <!-- Top-right utils (static, above all slides) -->
-      <div class="hero-utils">
-        <div class="flag-btn">
-          <img src="images/imgi_22_GB.png" alt="GB">
-          <span>GB</span>
-          <img src="images/imgi_6_icon-down-white.png" alt="" style="width:12px;height:12px;opacity:0.7;">
-        </div>
-        <span class="separator">|</span>
-        <div class="icon-btn">
-          <img src="images/imgi_23_icon-search-header.png" alt="Search">
-        </div>
-        <div class="icon-btn">
-          <img src="images/imgi_24_default.png" alt="Account">
-        </div>
-        <button class="login-btn">Login or Sign up</button>
+      <div class="hero-utils eh-topbar-tools">
+        <span class="eh-top-pill">EN · UK</span>
+        <button type="button" class="eh-icon-btn" aria-label="Search (decorative)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" id="ehLoginBtn" class="eh-login-btn" aria-haspopup="dialog">Login or Sign up</button>
       </div>
 
       <!-- Per-slide text blocks (cross-fade in sync with slides) -->
@@ -2021,6 +2183,61 @@
   <div id="navFlyout" class="nav-flyout" role="menu">
     <div class="nav-flyout-title" id="navFlyoutTitle"></div>
     <div id="navFlyoutItems"></div>
+  </div>
+
+  <!-- ── Login modal overlay (before page script so init finds DOM) ── -->
+  <div id="ehLoginOverlay" class="eh-login-overlay" role="dialog" aria-modal="true" aria-labelledby="ehLoginTitle" hidden>
+    <div class="eh-login-backdrop" id="ehLoginBackdrop"></div>
+    <div class="eh-login-card">
+      <button type="button" class="eh-login-close" id="ehLoginClose" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+
+      <div id="ehLoginForm">
+        <div class="eh-login-logo" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/>
+            <path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/>
+          </svg>
+        </div>
+        <h2 class="eh-login-title" id="ehLoginTitle">Sign in to Etihad Guest</h2>
+        <p class="eh-login-subtitle">Access your bookings, miles and exclusive member offers.</p>
+
+        <div class="eh-login-fields">
+          <div class="eh-field">
+            <label for="ehLoginEmail">Email address</label>
+            <input type="email" id="ehLoginEmail" placeholder="you@example.com" autocomplete="email" spellcheck="false">
+          </div>
+          <div class="eh-field">
+            <label for="ehLoginPassword">Password</label>
+            <input type="password" id="ehLoginPassword" placeholder="••••••••" autocomplete="current-password">
+          </div>
+        </div>
+
+        <p id="ehLoginError" class="eh-login-error" hidden></p>
+
+        <button type="button" id="ehLoginSubmit" class="eh-btn-gold eh-login-submit">
+          <span id="ehLoginSubmitLabel">Sign in</span>
+          <span id="ehLoginSpinner" class="eh-login-spinner" hidden></span>
+        </button>
+
+        <p class="eh-login-guest-link">
+          <a href="#" id="ehLoginAsGuest">Continue as guest</a>
+        </p>
+      </div>
+
+      <div id="ehLoginSuccess" hidden>
+        <div class="eh-login-logo" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/>
+            <path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/>
+          </svg>
+        </div>
+        <h2 class="eh-login-title">Welcome back, <span id="ehLoginWelcomeName">Guest</span></h2>
+        <p class="eh-login-subtitle" id="ehLoginWelcomeMsg">You're signed in to Etihad Guest.</p>
+        <button type="button" class="eh-btn-gold eh-login-submit" id="ehLoginDone">Continue</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════
@@ -2750,6 +2967,125 @@
 
       if (ev.data.type === 'profile-cleared') { hideGold(); }
     });
+
+    // ── Login modal ──────────────────────────────────────────────────────────────
+    (function () {
+      var overlay     = document.getElementById('ehLoginOverlay');
+      var backdrop    = document.getElementById('ehLoginBackdrop');
+      var closeBtn    = document.getElementById('ehLoginClose');
+      var loginBtn    = document.getElementById('ehLoginBtn');
+      var submitBtn   = document.getElementById('ehLoginSubmit');
+      var emailInput  = document.getElementById('ehLoginEmail');
+      var submitLabel = document.getElementById('ehLoginSubmitLabel');
+      var spinner     = document.getElementById('ehLoginSpinner');
+      var errorEl     = document.getElementById('ehLoginError');
+      var formEl      = document.getElementById('ehLoginForm');
+      var successEl   = document.getElementById('ehLoginSuccess');
+      var welcomeName = document.getElementById('ehLoginWelcomeName');
+      var welcomeMsg  = document.getElementById('ehLoginWelcomeMsg');
+      var doneBtn     = document.getElementById('ehLoginDone');
+      var guestLink   = document.getElementById('ehLoginAsGuest');
+
+      if (!overlay || !loginBtn) return;
+
+      function openModal() {
+        overlay.hidden = false;
+        formEl.hidden = false;
+        successEl.hidden = true;
+        errorEl.hidden = true;
+        errorEl.textContent = '';
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitLabel) submitLabel.textContent = 'Sign in';
+        if (spinner) spinner.hidden = true;
+        document.body.style.overflow = 'hidden';
+        setTimeout(function () { emailInput && emailInput.focus(); }, 50);
+      }
+
+      function closeModal() {
+        overlay.hidden = true;
+        document.body.style.overflow = '';
+      }
+
+      function setLoading(on) {
+        if (submitBtn) submitBtn.disabled = on;
+        if (submitLabel) submitLabel.textContent = on ? 'Signing in…' : 'Sign in';
+        if (spinner) spinner.hidden = !on;
+      }
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.hidden = false;
+        setLoading(false);
+      }
+
+      function showSuccess(firstName, isDetractor) {
+        formEl.hidden = true;
+        successEl.hidden = false;
+        welcomeName.textContent = firstName || 'Guest';
+        welcomeMsg.textContent = isDetractor
+          ? 'Welcome back. We have a special Gold upgrade offer for you.'
+          : 'You\'re signed in to Etihad Guest.';
+        if (loginBtn) {
+          loginBtn.textContent = firstName ? 'Hi, ' + firstName : 'My Account';
+          loginBtn.classList.add('is-signed-in');
+        }
+      }
+
+      loginBtn.addEventListener('click', openModal);
+      closeBtn && closeBtn.addEventListener('click', closeModal);
+      backdrop && backdrop.addEventListener('click', closeModal);
+      doneBtn && doneBtn.addEventListener('click', closeModal);
+      guestLink && guestLink.addEventListener('click', function (e) { e.preventDefault(); closeModal(); });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.hidden) closeModal();
+      });
+
+      submitBtn && submitBtn.addEventListener('click', function () {
+        var email = emailInput ? emailInput.value.trim() : '';
+        if (!email || !email.includes('@')) {
+          showError('Please enter a valid email address.');
+          return;
+        }
+        setLoading(true);
+        errorEl.hidden = true;
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            source: 'etihad-airline-lab',
+            type: 'login-request',
+            email: email,
+          }, '*');
+        }
+        window._ehLoginTimeout = window.setTimeout(function () {
+          showError('Could not reach the profile service. Try again.');
+        }, 10000);
+      });
+
+      window.addEventListener('message', function (ev) {
+        if (!ev.data || ev.data.source !== 'etihad-demo-shell') return;
+        if (ev.data.type !== 'login-complete') return;
+        clearTimeout(window._ehLoginTimeout);
+        setLoading(false);
+        if (ev.data.found) {
+          var p = ev.data.profile || {};
+          var tier = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';
+          var churn = p.churnPrediction != null ? Number(p.churnPrediction) : null;
+          if (churn != null && churn <= 1) churn = churn * 100;
+          var isDetractor = (tier === 'bronze' || tier === 'silver') && churn != null && churn >= 60;
+          showSuccess(ev.data.firstName, isDetractor);
+          if (typeof hvdEmit === 'function') {
+            hvdEmit('account.login', {
+              method: 'email',
+              loyaltyTier: ev.data.profile ? (ev.data.profile.loyaltyStatus || null) : null,
+              personalised: isDetractor,
+              memberRecognised: true,
+            });
+          }
+        } else {
+          showError('No Etihad Guest account found for that email. Check the address and try again.');
+        }
+      });
+    })();
   </script>
 
   <!-- ══ STOPOVER MODAL ══════════════════════════════════════════ -->
