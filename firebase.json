@@ -182,6 +182,13 @@
         }
       },
       {
+        "source": "/api/ipad/event",
+        "function": {
+          "functionId": "ipadEventProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/attribute-ownership",
         "function": {
           "functionId": "profileAttributeOwnership",

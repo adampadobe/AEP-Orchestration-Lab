@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="mobile-demo.css">
-  <link rel="stylesheet" href="etihad-ipad.css?v=20260214-etihad-ipad">
+  <link rel="stylesheet" href="etihad-ipad.css?v=20260512-etihad-ipad-phase-c">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -35,17 +35,22 @@
             <header class="dashboard-hero-header">
               <h2 id="etihadIpadHeroTitle" class="dashboard-hero-title">Etihad gate agent (iPad)</h2>
               <p class="dashboard-hero-subtitle">
-                Tablet lab UI: RTDB staff context + <code>/api/profile/table</code> passenger lookup. Sandbox follows Global values or <code>?sandbox=</code>.
+                Staff iPad lab: RTDB <code>ajoLookups</code>, <code>/api/profile/table</code>, and <code>/api/ipad/event</code> streaming. Sandbox follows Global values or <code>?sandbox=</code>.
               </p>
             </header>
           </div>
         </section>
 
         <div class="ipad-stage">
+          <div id="etihadIpadFsMount" class="etihad-ipad-fs-mount">
           <div class="ipad-controls-bar">
             <div class="ipad-ctrl-group" role="group" aria-label="iPad model">
               <button type="button" class="ipad-ctrl-btn ipad-ctrl-btn--active" data-ipad-size="11">iPad Pro 11″</button>
               <button type="button" class="ipad-ctrl-btn" data-ipad-size="13">iPad Pro 13″</button>
+            </div>
+            <div class="ipad-ctrl-group" role="group" aria-label="Orientation">
+              <button type="button" class="ipad-ctrl-btn ipad-ctrl-btn--active" id="btnIpadPortrait" data-ipad-orient="portrait" aria-pressed="true">Portrait</button>
+              <button type="button" class="ipad-ctrl-btn" id="btnIpadLandscape" data-ipad-orient="landscape" aria-pressed="false">Landscape</button>
             </div>
             <div class="ipad-ctrl-group ipad-colour-picker" role="radiogroup" aria-label="Bezel colour">
               <button type="button" class="ipad-colour-swatch ipad-colour-swatch--space-black ipad-colour-swatch--active" data-ipad-colour="space-black" aria-label="Space Black" aria-checked="true" role="radio"></button>
@@ -53,7 +58,17 @@
               <button type="button" class="ipad-colour-swatch ipad-colour-swatch--natural-titanium" data-ipad-colour="natural-titanium" aria-label="Natural Titanium" aria-checked="false" role="radio"></button>
               <button type="button" class="ipad-colour-swatch ipad-colour-swatch--blue-titanium" data-ipad-colour="blue-titanium" aria-label="Blue Titanium" aria-checked="false" role="radio"></button>
             </div>
-            <span class="ipad-sandbox-label">Sandbox: <strong id="ipadSandboxLabel">—</strong></span>
+            <div class="ipad-controls-bar-end">
+              <button
+                type="button"
+                id="etihadIpadFullscreenBtn"
+                class="etihad-ipad-fullscreen-btn aep-fullscreen-btn"
+                aria-pressed="false"
+                aria-label="Enter full screen"
+                title="Fill the screen with the iPad preview. Press Esc to exit."
+              ></button>
+              <span class="ipad-sandbox-label">Sandbox: <strong id="ipadSandboxLabel">—</strong></span>
+            </div>
           </div>
 
           <div class="ipad-bezel-scaler-wrap" id="ipadBezelScalerWrap">
@@ -103,47 +118,247 @@
                         </div>
                       </div>
 
-                      <div class="ga-titlebar">
-                        <span class="ga-airline-name" id="gaAirlineName">Etihad Airways</span>
-                        <div class="ga-agent-badge" id="gaAgentBadge">
-                          <div class="ga-agent-accent" id="gaAgentAccent"></div>
-                          <div class="ga-agent-info">
-                            <span class="ga-agent-name" id="gaAgentName">—</span>
-                            <span class="ga-agent-meta" id="gaAgentMeta">—</span>
+                      <div class="ga-app-scroll">
+                        <header class="ga-app-header" id="gaAppHeader">
+                          <div class="ga-header-left">
+                            <span class="ga-header-logo" aria-hidden="true">✈️</span>
+                            <div>
+                              <div class="ga-airline-name" id="gaAirlineName">Etihad Airways</div>
+                              <div class="ga-header-sub">Gate &amp; cabin crew</div>
+                            </div>
+                            <span id="gaActiveFlightPill" class="ga-active-flight-pill" hidden><span id="gaActiveFlightText">—</span></span>
+                          </div>
+                          <div class="ga-agent-badge" id="gaAgentBadge">
+                            <div class="ga-agent-accent" id="gaAgentAccent"></div>
+                            <div class="ga-agent-info">
+                              <span class="ga-agent-name" id="gaAgentName">—</span>
+                              <span class="ga-agent-meta" id="gaAgentMeta">—</span>
+                            </div>
+                          </div>
+                        </header>
+
+                        <div class="ga-flight-strip" id="gaFlightStrip">
+                          <span class="ga-flight-strip-icon" aria-hidden="true">✈️</span>
+                          <span id="gaFlightStripFlight">—</span>
+                          <span class="ga-flight-strip-sep">·</span>
+                          <span id="gaFlightStripRoute">—</span>
+                          <span class="ga-flight-strip-sep">·</span>
+                          <span id="gaFlightStripDep">—</span>
+                          <span class="ga-flight-strip-sep">·</span>
+                          <span class="ga-flight-status-dot" aria-hidden="true"></span>
+                          <span id="gaFlightStripStatus">Boarding</span>
+                          <button type="button" class="ga-flight-info-btn" id="btnFlightInfoToggle">Flight Info ▾</button>
+                        </div>
+
+                        <div class="ga-flight-info-panel" id="gaFlightInfoPanel" hidden>
+                          <div class="ga-two-col">
+                            <div class="ga-card">
+                              <div class="ga-card-title">✈️ Flight details</div>
+                              <dl class="ga-dl">
+                                <dt>Flight</dt><dd id="gafiFlight">—</dd>
+                                <dt>Aircraft</dt><dd id="gafiAircraft">A380-800</dd>
+                                <dt>Route</dt><dd id="gafiRoute">—</dd>
+                                <dt>Departure</dt><dd id="gafiDep">—</dd>
+                                <dt>Gate</dt><dd id="gafiGate">—</dd>
+                                <dt>T-minus</dt><dd id="gafiCountdown">—</dd>
+                                <dt>Pax on board</dt><dd id="gafiPaxCount">—</dd>
+                              </dl>
+                            </div>
+                            <div class="ga-card">
+                              <div class="ga-card-title">👨‍✈️ Crew</div>
+                              <dl class="ga-dl">
+                                <dt>Captain</dt><dd id="gafiCaptain">—</dd>
+                                <dt>Co-pilot</dt><dd id="gafiCoPilot">—</dd>
+                              </dl>
+                              <div class="ga-crew-manifest" id="gaCrewManifest"></div>
+                            </div>
+                          </div>
+                          <div class="ga-broadcast-section">
+                            <div class="ga-card-title">📡 Staff broadcast</div>
+                            <div class="ga-broadcast-btns">
+                              <button type="button" class="ga-broadcast-btn" data-event="flight.staff.boarding.open">🛂 Open boarding gates</button>
+                              <button type="button" class="ga-broadcast-btn" data-event="flight.staff.boarding.final_call">📣 Final call</button>
+                              <button type="button" class="ga-broadcast-btn" data-event="flight.staff.doors.prepare">🚪 Prepare doors</button>
+                              <button type="button" class="ga-broadcast-btn" data-event="flight.staff.boarding.complete">✅ Boarding complete</button>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div class="ga-app-body">
-                        <form class="ga-search-form" id="gaSearchForm">
-                          <label class="ga-search-label" for="gaSearchInput">Passenger lookup</label>
-                          <div class="ga-search-row">
-                            <input class="ga-search-input" id="gaSearchInput" type="text" placeholder="Email address or loyalty ID" autocomplete="off" spellcheck="false" />
-                            <button class="ga-search-btn" type="submit">Look up</button>
-                          </div>
+                        <div class="ga-search-bar">
+                          <form class="ga-search-form" id="gaSearchForm">
+                            <input class="ga-search-input" id="gaSearchInput" type="text" placeholder="Passenger email or loyalty ID" autocomplete="off" spellcheck="false" aria-label="Passenger email or loyalty ID" />
+                            <button class="ga-search-btn" type="submit">Search</button>
+                          </form>
                           <p id="gaSearchError" class="ga-search-error" hidden role="alert"></p>
-                        </form>
+                        </div>
 
-                        <div class="ga-passenger-card" id="gaPassengerCard" hidden>
-                          <div class="ga-passenger-header">
-                            <div class="ga-passenger-name" id="gaPassengerName">—</div>
-                            <div class="ga-loyalty-badge" id="gaLoyaltyBadge">—</div>
+                        <div class="ga-view-toggle" id="gaViewToggle" hidden>
+                          <button type="button" class="ga-view-btn ga-view-btn--active" data-view="staff">👤 Staff view</button>
+                          <button type="button" class="ga-view-btn" data-view="data">📊 Data view</button>
+                        </div>
+
+                        <div id="gaStaffView">
+                          <div class="ga-profile-header" id="gaProfileHeader" hidden>
+                            <div class="ga-profile-photo-wrap">
+                              <img class="ga-profile-photo" id="gaProfilePhoto" src="" alt="" style="display:none" />
+                              <span class="ga-profile-gender-icon" id="gaGenderIcon">👤</span>
+                            </div>
+                            <div class="ga-profile-name-block">
+                              <div class="ga-profile-full-name" id="gaProfileFullName">—</div>
+                              <div class="ga-profile-loyalty-id" id="gaProfileLoyaltyId">—</div>
+                              <span class="ga-loyalty-tier-badge" id="gaLoyaltyTierBadge">Member</span>
+                            </div>
                           </div>
-                          <dl class="ga-detail-grid">
-                            <dt>Email</dt><dd id="gaEmail">—</dd>
-                            <dt>Phone</dt><dd id="gaPhone">—</dd>
-                            <dt>Booking ref</dt><dd id="gaBookingRef">—</dd>
-                            <dt>Flight</dt><dd id="gaFlight">—</dd>
-                            <dt>Seat pref</dt><dd id="gaSeatPref">—</dd>
-                            <dt>Meal pref</dt><dd id="gaMealPref">—</dd>
-                            <dt>Miles</dt><dd id="gaMiles">—</dd>
-                          </dl>
-                          <div class="ga-actions">
-                            <button type="button" class="ga-btn ga-btn--primary" id="btnProcessBoarding">Process boarding</button>
-                            <button type="button" class="ga-btn ga-btn--secondary" id="btnOfferUpgrade">Offer upgrade</button>
-                            <button type="button" class="ga-btn ga-btn--secondary" id="btnManageBaggage">Manage baggage</button>
+
+                          <div class="ga-tabs" id="gaTabs" hidden>
+                            <button type="button" class="ga-tab ga-tab--active" data-tab="personal">Personal</button>
+                            <button type="button" class="ga-tab" data-tab="travel">Travel</button>
+                            <button type="button" class="ga-tab" data-tab="loyalty">Loyalty</button>
+                            <button type="button" class="ga-tab" data-tab="preferences">Preferences</button>
+                            <button type="button" class="ga-tab" data-tab="offers">Offers</button>
+                            <button type="button" class="ga-tab" data-tab="boarding">Boarding</button>
+                          </div>
+
+                          <div class="ga-tab-panels" id="gaTabPanels" hidden>
+                            <div class="ga-tab-panel ga-tab-panel--active" id="tabPersonal">
+                              <div class="ga-two-col">
+                                <div class="ga-card">
+                                  <div class="ga-card-title">👤 Personal information</div>
+                                  <dl class="ga-dl">
+                                    <dt>Full name</dt><dd id="gaFullName">—</dd>
+                                    <dt>Gender</dt><dd id="gaGender">—</dd>
+                                    <dt>Date of birth</dt><dd id="gaDOB">Not available</dd>
+                                    <dt>Age</dt><dd id="gaAge">—</dd>
+                                    <dt>Nationality</dt><dd id="gaNationality">—</dd>
+                                  </dl>
+                                </div>
+                                <div class="ga-card">
+                                  <div class="ga-card-title">📞 Contact details</div>
+                                  <dl class="ga-dl">
+                                    <dt>Email</dt><dd id="gaEmail">—</dd>
+                                    <dt>Phone</dt><dd id="gaPhone">—</dd>
+                                    <dt>Address</dt><dd id="gaAddress">—</dd>
+                                    <dt>Preferred language</dt><dd id="gaLanguage">—</dd>
+                                  </dl>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="ga-tab-panel" id="tabTravel" hidden>
+                              <div class="ga-two-col">
+                                <div class="ga-card">
+                                  <div class="ga-card-title">✈️ Current booking</div>
+                                  <dl class="ga-dl">
+                                    <dt>Flight</dt><dd id="gaFlight">—</dd>
+                                    <dt>Route</dt><dd id="gaRoute">—</dd>
+                                    <dt>Class</dt><dd id="gaFlightClass">—</dd>
+                                    <dt>Date</dt><dd id="gaFlightDate">Not available</dd>
+                                    <dt>Passengers</dt><dd id="gaPassengers">—</dd>
+                                    <dt>Confirmation</dt><dd id="gaBookingRef">—</dd>
+                                    <dt>Seat</dt><dd id="gaSeat">—</dd>
+                                    <dt>Gate</dt><dd id="gaGate">—</dd>
+                                    <dt>Boarding</dt><dd id="gaBoardingTime">—</dd>
+                                    <dt>Baggage</dt><dd id="gaBaggage">—</dd>
+                                    <dt>Check-in</dt><dd id="gaCheckIn">—</dd>
+                                  </dl>
+                                </div>
+                                <div class="ga-card">
+                                  <div class="ga-card-title">🎒 Travel preferences</div>
+                                  <dl class="ga-dl">
+                                    <dt>Seat</dt><dd id="gaSeatPref">—</dd>
+                                    <dt>Meal</dt><dd id="gaMealPref">—</dd>
+                                    <dt>Special requests</dt><dd id="gaSpecialReqs">None</dd>
+                                  </dl>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="ga-tab-panel" id="tabLoyalty" hidden>
+                              <div class="ga-two-col">
+                                <div class="ga-card">
+                                  <div class="ga-card-title">🏆 Loyalty status</div>
+                                  <dl class="ga-dl">
+                                    <dt>Program</dt><dd id="gaLoyaltyProgram">—</dd>
+                                    <dt>Tier</dt><dd><span class="ga-loyalty-tier-badge ga-tier-inline" id="gaLoyaltyTierInline">—</span></dd>
+                                    <dt>Member ID</dt><dd id="gaLoyaltyID">—</dd>
+                                    <dt>Miles balance</dt><dd id="gaMiles">—</dd>
+                                    <dt>Member since</dt><dd id="gaMemberSince">—</dd>
+                                    <dt>Next tier</dt><dd id="gaNextTier">—</dd>
+                                    <dt>Miles needed</dt><dd id="gaMilesNeeded">—</dd>
+                                  </dl>
+                                </div>
+                                <div class="ga-card">
+                                  <div class="ga-card-title">📈 Travel statistics</div>
+                                  <dl class="ga-dl">
+                                    <dt>Flights this year</dt><dd id="gaOrdersYTD">—</dd>
+                                    <dt>Lifetime value</dt><dd id="gaLTV">—</dd>
+                                    <dt>NPS score</dt><dd id="gaNPS">—</dd>
+                                    <dt>Churn risk</dt><dd id="gaChurn">—</dd>
+                                    <dt>Upgrade propensity</dt><dd id="gaUpgrade">—</dd>
+                                  </dl>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="ga-tab-panel" id="tabPreferences" hidden>
+                              <div class="ga-two-col">
+                                <div class="ga-card">
+                                  <div class="ga-card-title">🎯 AI insights</div>
+                                  <dl class="ga-dl">
+                                    <dt>Churn risk</dt><dd id="gaChurnPref" class="ga-score-text">—</dd>
+                                    <dt>Propensity score</dt><dd id="gaPropensityPref" class="ga-score-text">—</dd>
+                                    <dt>NPS score</dt><dd id="gaNPSPref" class="ga-score-text">—</dd>
+                                    <dt>Upgrade propensity</dt><dd id="gaUpgradePref" class="ga-score-text">—</dd>
+                                  </dl>
+                                </div>
+                                <div class="ga-card">
+                                  <div class="ga-card-title">📧 Communication</div>
+                                  <dl class="ga-dl">
+                                    <dt>Email marketing</dt><dd class="ga-optin ga-optin--yes">✓ Opted in</dd>
+                                    <dt>SMS notifications</dt><dd class="ga-optin ga-optin--yes">✓ Opted in</dd>
+                                    <dt>Push notifications</dt><dd class="ga-optin ga-optin--yes">✓ Opted in</dd>
+                                    <dt>Preferred channel</dt><dd id="gaPrefChannel">Email</dd>
+                                    <dt>Language</dt><dd id="gaPrefLang">—</dd>
+                                  </dl>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="ga-tab-panel" id="tabOffers" hidden>
+                              <div class="ga-offers-grid" id="gaOffersGrid"></div>
+                            </div>
+                            <div class="ga-tab-panel" id="tabBoarding" hidden>
+                              <div class="ga-boarding-status-card" id="gaBoardingStatusCard">
+                                <div class="ga-bsc-row">
+                                  <span class="ga-bsc-label">Flight</span><strong id="gbsFlight">—</strong>
+                                  <span class="ga-bsc-label">Route</span><strong id="gbsRoute">—</strong>
+                                  <span class="ga-bsc-label">Aircraft</span><strong>A380-800</strong>
+                                  <span class="ga-bsc-label">Passenger</span><strong id="gbsPassenger">—</strong>
+                                </div>
+                                <div class="ga-seat-legend">
+                                  <span class="ga-seat-key ga-seat-key--avail" aria-hidden="true"></span> Available
+                                  <span class="ga-seat-key ga-seat-key--occ" aria-hidden="true"></span> Occupied
+                                  <span class="ga-seat-key ga-seat-key--sel" aria-hidden="true"></span> Selected
+                                  <span class="ga-seat-key ga-seat-key--prem" aria-hidden="true"></span> Premium
+                                </div>
+                              </div>
+                              <div class="ga-seat-map" id="gaSeatMap"></div>
+                              <div class="ga-selected-info" id="gaSelectedInfo" hidden>Selected seat: <strong id="gaSelectedSeat">—</strong></div>
+                              <button type="button" class="ga-btn ga-btn--primary ga-assign-btn" id="btnAssignSeat" disabled>Assign seat &amp; send to AEP</button>
+                            </div>
+                          </div>
+
+                          <div class="ga-actions" id="gaActions" hidden>
+                            <button type="button" class="ga-btn ga-btn--teal" id="btnProcessBoarding">🛂 Process boarding</button>
+                            <button type="button" class="ga-btn ga-btn--orange" id="btnOfferUpgrade">⬆️ Offer upgrade</button>
+                            <button type="button" class="ga-btn ga-btn--purple" id="btnManageBaggage">🧳 Manage baggage</button>
                           </div>
                         </div>
+
+                        <div id="gaDataView" hidden>
+                          <div class="ga-data-view-bar">
+                            <button type="button" class="ga-btn ga-btn--secondary ga-copy-btn" id="btnCopyJson">Copy JSON</button>
+                          </div>
+                          <pre class="ga-raw-json" id="gaRawJson"></pre>
+                        </div>
+
+                        <div class="ga-toast" id="gaToast" role="status" aria-live="polite"></div>
                       </div>
 
                       <div class="ipad-home-indicator" aria-hidden="true"></div>
@@ -153,35 +368,18 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="ga-modal" id="gaSeatMapModal" hidden role="dialog" aria-modal="true" aria-label="Seat selection">
-          <div class="ga-modal-inner">
-            <div class="ga-modal-head">
-              <span>Airbus A380-800 — seat selection</span>
-              <button type="button" class="ga-modal-close" id="gaSeatMapClose" aria-label="Close">✕</button>
-            </div>
-            <div class="ga-seat-legend">
-              <span class="ga-seat ga-seat--available" aria-hidden="true"></span> Available
-              <span class="ga-seat ga-seat--occupied" aria-hidden="true"></span> Occupied
-              <span class="ga-seat ga-seat--selected" aria-hidden="true"></span> Selected
-              <span class="ga-seat ga-seat--premium" aria-hidden="true"></span> Premium
-            </div>
-            <div class="ga-seat-grid" id="gaSeatGrid"></div>
-            <button type="button" class="ga-btn ga-btn--primary ga-confirm-btn" id="btnConfirmUpgrade" hidden>Confirm upgrade</button>
+          <button type="button" id="etihadIpadFsExitFloat" class="etihad-ipad-fs-exit-float" hidden aria-label="Exit full screen">Exit full screen</button>
           </div>
         </div>
-
-        <div class="ga-toast" id="gaToast" role="status" aria-live="polite"></div>
       </main>
     </div>
   </div>
 
   <script src="firebase-database-config.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="etihad-ipad.js?v=20260214-etihad-ipad"></script>
+  <script src="etihad-ipad.js?v=20260512-etihad-ipad-phase-c"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
+  <script defer src="aep-lab-nav.js?v=20260512-etihad-ipad-phase-c"></script>
 </body>
 </html>

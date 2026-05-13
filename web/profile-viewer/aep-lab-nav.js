@@ -360,7 +360,7 @@
                   ico: '\uD83D\uDCF1',
                 },
                 {
-                  label: 'iPad gate agent (in development)',
+                  label: 'iPad gate agent',
                   href: 'etihad-ipad.html',
                   inDevelopment: true,
                   navHideKey: 'mobileDemoApalmerIpad',

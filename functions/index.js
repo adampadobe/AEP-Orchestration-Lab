@@ -45,6 +45,7 @@ function lazyRequireMod(p) {
 }
 
 const profileTableHelpers = lazyRequireMod('./profileTableHelpers');
+const ipadEventProxy = lazyRequireMod('./ipadEventProxy');
 const profileConsentPayload = lazyRequireMod('./profileConsentPayload');
 const profileAudiences = lazyRequireMod('./profileAudiences');
 const profileEventsService = lazyRequireMod('./profileEventsService');
@@ -581,6 +582,27 @@ exports.profileTableProxy = onRequest(
       res.status(500).json({ error: String(e.message || e) });
     }
   }
+);
+
+/** POST /api/ipad/event — Etihad iPad lab staff events → Event Generator streaming (minimal XDM). */
+exports.ipadEventProxy = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: {
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+    },
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (req, res) =>
+    ipadEventProxy.handleIpadEventPost(req, res, {
+      setCors,
+      resolveSandboxFromQuery,
+      getAdobeAccessToken,
+      ADOBE_IMS_ORG,
+    })
 );
 
 /**
