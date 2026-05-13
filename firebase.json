@@ -844,6 +844,15 @@
         ]
       },
       {
+        "source": "/profile-viewer/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "/profile-viewer/**/*.html",
         "headers": [
           {
