@@ -490,12 +490,35 @@ FNB
 - **Channels:** do not invent channel names other than **Web**, **Mobile**, and **Call Centre** without a product decision.
 - **Web-only demos:** use a single **Web** channel (omit empty Mobile / Call Centre blocks).
 
+**Per-sandbox behaviour (maintain the Demos menu per sandbox)**
+
+The sidebar reads the **selected technical sandbox** from the same place as the env strip: `localStorage` key `aepGlobalSandboxName` (and `window.AepGlobalSandbox.getSandboxName()` when present). In-development Demos also require **Show in development capabilities** for that sandbox (`aepShowInDevCapabilities_<sandboxSlug>` in `aep-lab-nav.js` — see **Global values**).
+
+On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and placeholder rows), set `demoMeta` so visibility matches how the lab is meant to be used:
+
+| Field | Purpose |
+|-------|--------|
+| `demoMeta.owners` | GitHub-style handles (`apalmer`, `kirkham`, `sburch`, …). Used when **Demos visibility** is **Mine** (default): the current **Demos owner handle** (`aepDemoNavOwnerHandle`) must be in this list or the row is hidden. |
+| `demoMeta.sandboxes` | Optional. When set, it is an **allow-list** of technical sandbox names (**exact** match to the selected sandbox string). If omitted, any sandbox is allowed once the owner rule passes. If set and the user has no sandbox selected, rows with `sandboxes` do not match. |
+
+**Demos visibility** (`aepDemoNavVisibility` in Global values) works with `aep-lab-nav.js` as follows:
+
+- **Mine** — show a row only if the owner handle matches **and** `demoMeta.sandboxes` (if present) includes the current sandbox.
+- **Mine + sandbox** — same as **Mine**, **or** show rows whose `demoMeta.sandboxes` includes the current sandbox (even when the handle is not an owner). Use when a sandbox hosts demos “for that box” across owners.
+- **All** — ignore `demoMeta` filters for the Demos group (per-item **Global values** hides still apply).
+
+**Practice**
+
+- Put the **same** `demoMeta` on every sibling under one customer (Web, Mobile Phone, iPad placeholder, Call Centre) so the whole story appears or hides together under **Mine** / sandbox rules.
+- Use **`sandboxes: ['apalmer']`** (example) only for assets that must not appear when another technical sandbox is selected; omit `sandboxes` when the demo is safe to show in any sandbox for matching owners.
+- After changing `demoMeta`, smoke-test in **Global values**: switch sandbox, toggle **Demos visibility**, and confirm the customer blocks you expect appear or disappear.
+
 **Checklist before you submit**
 
-1. Register the customer block under **Demos** with `demoCustomer`, `channels`, `demoMeta.owners`, and optional `demoMeta.sandboxes`.
-2. Wire **Mobile** Phone to the correct simulator URL + hash; add **iPad** as a link or `navPlaceholder` per lab readiness.
+1. Register the customer block under **Demos** with `demoCustomer`, `channels`, and coherent **`demoMeta` on every leaf** (`owners`, and `sandboxes` only when the demo is restricted to specific technical sandboxes).
+2. Wire **Mobile** Phone to the correct simulator URL + hash; add **iPad** as a link or `navPlaceholder` per lab readiness; keep `demoMeta` aligned with other channels for that customer.
 3. Bump `home.css` / `aep-lab-nav.js` cache query on pages you touch if styles or nav data changed; run `npm run verify:profile-viewer-routes` and `npm run sync-profile-viewer-ui` when the Express mirror must stay aligned.
-4. Confirm light/dark themes and **Global values** hide keys for every new `navHideKey`.
+4. Confirm light/dark themes and **Global values** hide keys for every new `navHideKey`; verify **Demos visibility** + **sandbox switch** for handles/sandboxes you care about.
 
 ### Profile Viewer lab demos — environment strip (Sandbox, Tags, event destination)
 
