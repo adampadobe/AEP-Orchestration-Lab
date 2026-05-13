@@ -1652,8 +1652,16 @@
     .eh-res-date-label { font-size: 0.78rem; color: #555; margin-bottom: 2px; }
     .eh-res-date-price { font-size: 0.88rem; font-weight: 700; color: #0d2340; }
     .eh-res-body {
-      flex: 1; padding: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 3vw, 2rem);
+      flex: 1; min-height: 0; overflow-y: auto;
+      padding: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 3vw, 2rem);
       max-width: 1100px; width: 100%; margin: 0 auto; box-sizing: border-box;
+    }
+    .eh-res-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      position: relative;
     }
     .eh-res-gold-callout {
       display: flex; align-items: center; gap: 0.75rem;
@@ -1726,6 +1734,315 @@
     }
     .eh-res-back-btn:hover { background: #f5f5f5; }
     .eh-res-more-btn { min-width: 160px; }
+
+/* ── Fare tier expansion ── */
+#ehFarePanel { display: none; padding: 0 0 1rem; }
+#ehFarePanel.is-open { display: block; }
+.eh-fare-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-top: 8px;
+}
+@media (max-width: 900px) { .eh-fare-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .eh-fare-grid { grid-template-columns: 1fr; } }
+.eh-fare-card {
+  background: #fff; border: 1px solid #e0e0e0; border-top: 4px solid #ccc;
+  border-radius: 10px; padding: 16px; display: flex; flex-direction: column;
+  gap: 10px; position: relative;
+}
+.eh-fare-card.is-recommended { background: #0d2340; border-color: #b08747; border-top-color: #b08747; color: #fff; }
+.eh-fare-rec-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: #b08747; color: #fff; font-size: 0.68rem; font-weight: 700;
+  padding: 3px 12px; border-radius: 999px; white-space: nowrap;
+}
+.eh-fare-label { font-size: 1rem; font-weight: 700; }
+.eh-fare-card.is-recommended .eh-fare-label { color: #fff; }
+.eh-fare-price { font-size: 1.1rem; font-weight: 700; }
+.eh-fare-price-sub { font-size: 0.72rem; color: #888; margin-top: -6px; }
+.eh-fare-card.is-recommended .eh-fare-price-sub { color: rgba(255,255,255,0.6); }
+.eh-fare-sale-badge { display: inline-block; background: #e53935; color: #fff; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 3px; width: fit-content; }
+.eh-fare-cta-link { background: none; border: none; padding: 0; font-family: inherit; font-size: 0.88rem; font-weight: 600; color: #0d2340; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.eh-fare-cta-outline { border: 1.5px solid #0d2340; border-radius: 999px; background: #fff; font-size: 0.88rem; font-weight: 600; color: #0d2340; cursor: pointer; padding: 8px 0; font-family: inherit; width: 100%; }
+.eh-fare-card.is-recommended .eh-fare-cta-outline { border-color: #b08747; color: #b08747; }
+.eh-fare-cta-gold { border: none; border-radius: 999px; background: #b08747; font-size: 0.88rem; font-weight: 600; color: #fff; cursor: pointer; padding: 9px 0; font-family: inherit; width: 100%; }
+.eh-fare-cta-gold:hover { background: #9a7340; }
+.eh-fare-features { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.eh-fare-feature { display: flex; align-items: flex-start; gap: 8px; font-size: 0.78rem; }
+.eh-fare-card.is-recommended .eh-fare-feature { color: rgba(255,255,255,0.85); }
+.eh-fare-tick { color: #4caf50; flex-shrink: 0; }
+.eh-fare-cross { color: #e53935; flex-shrink: 0; }
+.eh-fare-card.is-recommended .eh-fare-tick { color: #a5d6a7; }
+.eh-fare-image-placeholder { width: 100%; height: 110px; background: linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%); border-radius: 6px; margin-top: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+
+/* ── Upsell modal ── */
+#ehUpsellModal { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; padding: 1rem; }
+#ehUpsellModal.is-open { display: flex; }
+.eh-upsell-panel { background: #fff; border-radius: 16px; padding: 28px; max-width: 560px; width: 100%; box-shadow: 0 24px 64px rgba(0,0,0,0.25); position: relative; }
+.eh-upsell-title { font-size: 1.05rem; font-weight: 700; color: #0d2340; margin-bottom: 16px; }
+.eh-upsell-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #888; line-height: 1; }
+.eh-upsell-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.eh-upsell-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; position: relative; }
+.eh-upsell-card.is-recommended { border-color: #b08747; }
+.eh-upsell-rec-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #b08747; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.eh-upsell-card-label { font-size: 0.95rem; font-weight: 700; color: #0d2340; margin-bottom: 10px; }
+.eh-upsell-feature { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #333; margin-bottom: 5px; }
+.eh-upsell-price { font-size: 1rem; font-weight: 700; color: #0d2340; margin-top: 12px; }
+.eh-upsell-price-sub { font-size: 0.72rem; color: #888; }
+.eh-upsell-actions { display: flex; gap: 12px; }
+.eh-upsell-btn-outline { flex: 1; border: 1.5px solid #ccc; background: #fff; border-radius: 999px; padding: 11px 0; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit; color: #333; }
+.eh-upsell-btn-gold { flex: 1; border: none; background: #b08747; color: #fff; border-radius: 999px; padding: 11px 0; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+/* ── Seat confirmation modal ── */
+#ehSeatConfirmModal { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; padding: 1rem; }
+#ehSeatConfirmModal.is-open { display: flex; }
+.eh-seat-confirm-panel { background: #fff; border-radius: 12px; padding: 28px 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); position: relative; }
+.eh-seat-confirm-name { font-size: 1.15rem; font-weight: 700; color: #0d2340; margin-bottom: 16px; border-bottom: 2px solid #0d2340; padding-bottom: 6px; }
+.eh-seat-confirm-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #888; }
+.eh-seat-confirm-row { margin-bottom: 14px; }
+.eh-seat-confirm-label { font-size: 0.82rem; color: #666; margin-bottom: 2px; }
+.eh-seat-confirm-value { font-size: 0.95rem; font-weight: 700; color: #0d2340; }
+.eh-seat-confirm-price { font-size: 0.95rem; font-weight: 700; color: #0d2340; }
+.eh-seat-confirm-btn { width: 100%; border: none; background: #b08747; color: #fff; border-radius: 999px; padding: 13px 0; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
+.eh-seat-confirm-btn:hover { background: #9a7340; }
+
+/* ── Shared page layout ── */
+.eh-booking-page { display: none; flex: 1; overflow-y: auto; background: #f0f2f5; }
+.eh-booking-page.is-active { display: flex; }
+.eh-booking-main { flex: 1; padding: clamp(1rem, 3vw, 2rem); }
+.eh-booking-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+.eh-booking-card-header { display: flex; justify-content: space-between; align-items: stretch; padding: 20px 24px; border-bottom: 1px solid #e8e8e8; gap: 16px; }
+.eh-booking-card-title { font-size: 1.05rem; font-weight: 700; color: #0d2340; margin-bottom: 4px; }
+.eh-booking-card-sub { font-size: 0.82rem; color: #666; }
+.eh-booking-card-img { width: 200px; height: 90px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.eh-booking-card-img-placeholder { width: 200px; height: 90px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(135deg,#b08747 0%,#0d2340 100%); display: flex; align-items: center; justify-content: center; }
+.eh-leg-tabs { display: flex; gap: 0; padding: 0 24px; border-bottom: 1px solid #e8e8e8; }
+.eh-leg-tab { padding: 10px 20px; font-size: 0.82rem; font-weight: 600; border: none; background: none; cursor: pointer; font-family: inherit; color: #888; border-bottom: 3px solid transparent; }
+.eh-leg-tab.is-active { color: #fff; background: #0d2340; border-bottom-color: #0d2340; }
+.eh-passenger-row { padding: 12px 24px; border-bottom: 1px solid #f0f0f0; }
+.eh-passenger-name { font-size: 0.88rem; font-weight: 600; color: #0d2340; }
+.eh-passenger-sub { font-size: 0.72rem; color: #888; }
+.eh-booking-actions { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: clamp(1rem, 2vw, 1.5rem) 0; }
+.eh-booking-back-btn { border: 1.5px solid #ccc; background: #fff; border-radius: 999px; padding: 10px 24px; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit; color: #333; }
+.eh-booking-continue-btn { background: #b08747; border: none; border-radius: 999px; padding: 11px 32px; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit; color: #fff; }
+.eh-booking-continue-btn:hover { background: #9a7340; }
+.eh-booking-continue-btn:disabled { background: #ccc; cursor: default; }
+
+/* ── Guests page ── */
+.eh-guests-info-banner { display: flex; align-items: flex-start; gap: 10px; background: #e8f4fd; border-radius: 8px; padding: 12px 16px; font-size: 0.82rem; color: #1565c0; margin-bottom: 20px; }
+.eh-guests-section-title { font-size: 1.15rem; font-weight: 700; color: #0d2340; margin-bottom: 16px; }
+.eh-guests-subsection { font-size: 0.82rem; font-weight: 600; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.eh-guests-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.eh-guests-field { flex: 1; min-width: 120px; border: 1px solid #ccc; border-radius: 8px; padding: 12px 14px; font-size: 0.88rem; font-family: inherit; background: #fff; color: #1a1a1a; outline: none; }
+.eh-guests-field:focus { border-color: #0d2340; }
+.eh-guests-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+.eh-guests-checkbox-row { display: flex; align-items: flex-start; gap: 10px; font-size: 0.82rem; color: #333; margin-bottom: 10px; cursor: pointer; }
+.eh-guests-checkbox-row input { margin-top: 2px; accent-color: #b08747; flex-shrink: 0; }
+
+/* ── Seat map ── */
+.eh-seats-map-wrap { padding: 20px 24px; overflow-x: auto; }
+.eh-seats-aircraft-label { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; }
+.eh-seats-direction { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.72rem; color: #888; margin-bottom: 12px; }
+.eh-seat-col-labels { display: grid; grid-template-columns: 28px repeat(2,28px) 12px repeat(2,28px) 12px repeat(2,28px); gap: 3px; margin-bottom: 4px; justify-content: center; }
+.eh-seat-col-label { text-align: center; font-size: 0.65rem; color: #888; font-weight: 600; }
+.eh-seat-row { display: grid; grid-template-columns: 28px repeat(2,28px) 12px repeat(2,28px) 12px repeat(2,28px); gap: 3px; margin-bottom: 3px; align-items: center; justify-content: center; }
+.eh-seat-row-num { text-align: right; font-size: 0.65rem; color: #aaa; padding-right: 4px; }
+.eh-seat-aisle { width: 12px; }
+.eh-seat { width: 28px; height: 28px; border-radius: 5px 5px 3px 3px; cursor: pointer; border: none; background: #b3d4f5; position: relative; transition: background 0.1s; }
+.eh-seat:hover { background: #90bce8; }
+.eh-seat.taken { background: #d0d0d0; cursor: not-allowed; }
+.eh-seat.taken::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 12px; color: #999; }
+.eh-seat.selected { background: #0d2340; }
+.eh-seat.confirmed { background: #0d2340; }
+.eh-seat.zone-forward { background: #b3cde0; }
+.eh-seat.zone-forward:hover { background: #90b0cc; }
+.eh-seat.zone-forward.taken { background: #d0d0d0; }
+.eh-seats-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 24px; border-top: 1px solid #f0f0f0; }
+.eh-seats-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #555; }
+.eh-seats-legend-swatch { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+.eh-seats-total { font-size: 0.88rem; font-weight: 600; color: #0d2340; }
+
+/* ── Bags page ── */
+.eh-bags-included-card { border: 1px solid #e0e0e0; border-left: 4px solid #b08747; border-radius: 8px; padding: 14px 16px; margin: 16px 24px; }
+.eh-bags-included-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 700; color: #0d2340; margin-bottom: 8px; }
+.eh-bags-included-badge { background: #00897b; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.eh-bags-included-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #333; margin-bottom: 4px; }
+.eh-bags-extra-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #f0f0f0; }
+.eh-bags-extra-label { font-size: 0.95rem; font-weight: 600; color: #0d2340; }
+.eh-bags-counter { display: flex; align-items: center; gap: 8px; }
+.eh-bags-counter-val { font-size: 0.88rem; font-weight: 600; color: #0d2340; min-width: 36px; text-align: center; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; }
+.eh-bags-counter-btn { width: 28px; height: 28px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; color: #0d2340; }
+.eh-bags-online-badge { display: inline-block; background: #e53935; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+/* ── Extras page ── */
+.eh-extras-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 24px; }
+@media (max-width: 600px) { .eh-extras-grid { grid-template-columns: 1fr; } }
+.eh-extra-item { display: flex; align-items: flex-start; gap: 12px; }
+.eh-extra-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: linear-gradient(135deg,#b08747 0%,#0d2340 100%); }
+.eh-extra-body { flex: 1; }
+.eh-extra-name { font-size: 0.9rem; font-weight: 700; color: #0d2340; margin-bottom: 2px; }
+.eh-extra-sub { font-size: 0.78rem; color: #666; margin-bottom: 6px; }
+.eh-extra-add-btn { background: none; border: none; font-size: 0.82rem; font-weight: 700; color: #0d2340; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 0; }
+.eh-extra-included-badge { background: #00897b; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+.eh-extra-added-label { font-size: 0.78rem; color: #666; }
+.eh-extra-offer-badge { display: inline-block; background: #e53935; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; }
+
+/* ── Summary panel ── */
+.eh-summary-panel { width: 280px; min-width: 240px; flex-shrink: 0; background: #fff; border-left: 1px solid #e8e8e8; padding: clamp(1rem, 2vw, 1.5rem); display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+@media (max-width: 800px) { .eh-summary-panel { display: none; } }
+.eh-summary-header { display: flex; align-items: center; justify-content: space-between; }
+.eh-summary-title { font-size: 1rem; font-weight: 700; color: #0d2340; }
+.eh-summary-flight-detail { color: #0d2340; font-size: 0.78rem; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.eh-summary-flight { background: #f8f9fb; border-radius: 8px; padding: 12px; font-size: 0.82rem; color: #333; }
+.eh-summary-flight-date { font-weight: 600; color: #0d2340; margin-bottom: 4px; font-size: 0.78rem; }
+.eh-summary-flight-times { display: flex; align-items: center; gap: 6px; font-size: 1rem; font-weight: 700; color: #0d2340; margin-bottom: 2px; }
+.eh-summary-apt { font-size: 0.72rem; color: #888; }
+.eh-summary-class-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600; margin-top: 4px; color: #555; }
+.eh-summary-class-dot { width: 8px; height: 8px; border-radius: 50%; background: #0d2340; }
+.eh-summary-divider { border: none; border-top: 1px solid #e8e8e8; margin: 0; }
+.eh-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.eh-summary-label { color: #555; font-weight: 600; }
+.eh-summary-val { color: #0d2340; font-weight: 600; }
+.eh-summary-included { background: #00897b; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.eh-summary-extras-section { font-size: 0.82rem; }
+.eh-summary-extras-title { font-weight: 700; color: #0d2340; margin-bottom: 6px; }
+.eh-summary-extras-leg { color: #555; font-size: 0.78rem; margin-bottom: 2px; }
+.eh-summary-extras-item { display: flex; justify-content: space-between; background: #f8f9fb; border-radius: 6px; padding: 6px 10px; margin-bottom: 4px; font-size: 0.78rem; }
+.eh-summary-fare-total { font-size: 1rem; font-weight: 700; color: #0d2340; }
+.eh-summary-fare-sub { font-size: 0.72rem; color: #888; }
+.eh-summary-links a { display: block; font-size: 0.78rem; color: #0d2340; text-decoration: underline; margin-bottom: 4px; cursor: pointer; }
+
+/* ── Payment page ── */
+.eh-pay-promo-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+}
+.eh-pay-promo-input {
+  flex: 1; border: 1px solid #ccc; border-radius: 8px; padding: 10px 14px;
+  font-size: 0.88rem; font-family: inherit; color: #1a1a1a; background: #fff; outline: none;
+}
+.eh-pay-promo-input:focus { border-color: #0d2340; }
+.eh-pay-promo-apply {
+  background: none; border: none; font-size: 0.88rem; font-weight: 700;
+  color: #0d2340; cursor: pointer; font-family: inherit; padding: 0 4px;
+  text-decoration: underline;
+}
+.eh-pay-method-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.eh-pay-method-item {
+  display: flex; align-items: center; gap: 12px; border: 1.5px solid #e0e0e0;
+  border-radius: 10px; padding: 12px 16px; cursor: pointer; transition: border-color 0.15s;
+}
+.eh-pay-method-item.is-selected { border-color: #0d2340; background: #f6f8fb; }
+.eh-pay-method-icon {
+  width: 40px; height: 28px; border-radius: 4px; display: flex; align-items: center;
+  justify-content: center; background: #f0f2f5; flex-shrink: 0;
+}
+.eh-pay-method-body { flex: 1; }
+.eh-pay-method-name { font-size: 0.9rem; font-weight: 600; color: #0d2340; margin-bottom: 1px; }
+.eh-pay-method-sub { font-size: 0.75rem; color: #888; }
+.eh-pay-new-badge {
+  background: #00897b; color: #fff; font-size: 0.6rem; font-weight: 700;
+  padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle;
+}
+/* Toggle switch */
+.eh-pay-toggle {
+  width: 42px; height: 24px; border-radius: 999px; background: #ccc; position: relative;
+  flex-shrink: 0; transition: background 0.2s; cursor: pointer; border: none; padding: 0;
+}
+.eh-pay-toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; transition: left 0.2s;
+}
+.eh-pay-toggle.is-on { background: #0d2340; }
+.eh-pay-toggle.is-on::after { left: 21px; }
+
+.eh-pay-card-logos {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+  padding: 10px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
+}
+.eh-pay-card-logo {
+  height: 22px; border: 1px solid #e0e0e0; border-radius: 3px; padding: 2px 5px;
+  font-size: 0.65rem; font-weight: 700; display: flex; align-items: center;
+  background: #fff; color: #333; white-space: nowrap;
+}
+.eh-pay-form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.eh-pay-field {
+  flex: 1; min-width: 120px; border: 1px solid #ccc; border-radius: 8px;
+  padding: 12px 14px; font-size: 0.88rem; font-family: inherit; background: #fff;
+  color: #1a1a1a; outline: none; position: relative;
+}
+.eh-pay-field:focus { border-color: #0d2340; }
+.eh-pay-field-wrap {
+  flex: 1; min-width: 120px; position: relative; display: flex; align-items: center;
+}
+.eh-pay-field-wrap .eh-pay-field { width: 100%; padding-right: 36px; }
+.eh-pay-field-icon {
+  position: absolute; right: 12px; color: #aaa; pointer-events: none;
+}
+.eh-pay-address-label {
+  font-size: 0.95rem; font-weight: 700; color: #0d2340; margin: 20px 0 10px;
+}
+.eh-pay-terms-row {
+  border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 20px;
+}
+.eh-pay-terms-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #0d2340;
+  background: #fff;
+}
+.eh-pay-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; padding-top: 8px;
+}
+.eh-pay-terms-check { display: flex; align-items: flex-start; gap: 8px; font-size: 0.78rem; color: #555; flex: 1; min-width: 180px; }
+.eh-pay-terms-check input { margin-top: 2px; accent-color: #b08747; flex-shrink: 0; }
+.eh-pay-terms-check a { color: #0d2340; }
+.eh-pay-total-wrap { text-align: right; flex-shrink: 0; }
+.eh-pay-total-amount { font-size: 1.05rem; font-weight: 700; color: #0d2340; }
+.eh-pay-total-sub { font-size: 0.72rem; color: #888; }
+.eh-pay-now-btn {
+  background: #0d2340; color: #fff; border: none; border-radius: 999px;
+  padding: 13px 32px; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  font-family: inherit; flex-shrink: 0;
+}
+.eh-pay-now-btn:hover { background: #163354; }
+
+/* Payment summary panel extras */
+.eh-summary-expand-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.82rem; cursor: pointer;
+}
+.eh-summary-expand-row .eh-summary-label { font-weight: 600; color: #555; }
+.eh-summary-expand-chevron {
+  color: #888; line-height: 1;
+}
+.eh-summary-complimentary-icons { display: flex; gap: 8px; align-items: center; padding: 6px 0; }
+.eh-summary-extras-leg-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; background: #f8f9fb; border-radius: 6px; margin-bottom: 4px;
+  font-size: 0.78rem;
+}
+.eh-summary-price-breakdown { color: #00897b; font-size: 0.78rem; text-decoration: underline; cursor: pointer; text-align: right; display: block; }
+/* ── Booking flow: overlay pages sit above flight list ── */
+    #ehResultsOverlay .eh-booking-page {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      background: #f0f2f5;
+      overflow: hidden;
+    }
+    #ehResultsOverlay .eh-booking-page.is-active {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+    }
+    #ehResultsOverlay .eh-booking-page .eh-booking-main {
+      overflow-y: auto;
+      min-height: 0;
+    }
+    #ehResultsOverlay .eh-booking-page .eh-summary-panel {
+      overflow-y: auto;
+      min-height: 0;
+    }
 
   </style>
   <script src="etihad-events.js"></script>
@@ -2505,6 +2822,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
+    <div class="eh-res-main">
     <div class="eh-res-body">
       <div id="ehResGoldCallout" class="eh-res-gold-callout" hidden>
         <svg width="18" height="18" viewBox="0 0 48 48" fill="none" style="flex-shrink:0"><circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/><path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/></svg>
@@ -2521,10 +2839,493 @@
         <div class="eh-res-col-head eh-res-col-biz">Business</div>
       </div>
       <div id="ehFlightRows"></div>
+      <div id="ehFarePanel"></div>
       <div class="eh-res-footer">
         <button type="button" class="eh-res-back-btn" id="ehResBack">Back</button>
         <button type="button" class="eh-btn-gold eh-res-more-btn" id="ehResShowMore">Show more flights</button>
       </div>
+    </div>
+    <div id="ehUpsellModal">
+      <div class="eh-upsell-panel">
+        <button type="button" class="eh-upsell-close" id="ehUpsellClose">&times;</button>
+        <p class="eh-upsell-title" id="ehUpsellTitle">Comfort fare is ideal for your trip!</p>
+        <div class="eh-upsell-grid">
+          <div class="eh-upsell-card" id="ehUpsellCurrentCard"></div>
+          <div class="eh-upsell-card is-recommended" id="ehUpsellRecCard">
+            <div class="eh-upsell-rec-badge">Recommended</div>
+          </div>
+        </div>
+        <div class="eh-upsell-actions">
+          <button type="button" class="eh-upsell-btn-outline" id="ehUpsellKeep">Continue with <span id="ehUpsellKeepLabel">Basic</span></button>
+          <button type="button" class="eh-upsell-btn-gold" id="ehUpsellUpgrade">Upgrade to <span id="ehUpsellUpgradeLabel">Comfort</span></button>
+        </div>
+      </div>
+    </div>
+    <div id="ehSeatConfirmModal">
+      <div class="eh-seat-confirm-panel">
+        <div class="eh-seat-confirm-name" id="ehSeatConfirmName">Adam Palmer</div>
+        <button type="button" class="eh-seat-confirm-close" id="ehSeatConfirmClose">&times;</button>
+        <div class="eh-seat-confirm-row">
+          <div class="eh-seat-confirm-label">Seat type:</div>
+          <div class="eh-seat-confirm-value" id="ehSeatConfirmType">Window and aisle seat, Forward zone seat</div>
+        </div>
+        <div class="eh-seat-confirm-row">
+          <div class="eh-seat-confirm-label">Seat number:</div>
+          <div class="eh-seat-confirm-value" id="ehSeatConfirmNum">9C</div>
+        </div>
+        <div class="eh-seat-confirm-row">
+          <div class="eh-seat-confirm-label">Price:</div>
+          <div class="eh-seat-confirm-price">Free</div>
+        </div>
+        <button type="button" class="eh-seat-confirm-btn" id="ehSeatConfirmBtn">Confirm seat</button>
+      </div>
+    </div>
+    <div id="ehGuestsPage" class="eh-booking-page">
+      <div class="eh-booking-main" style="max-width:720px;">
+        <div class="eh-guests-info-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          For immigration and security reasons, enter names exactly as they appear on your passport.
+          <a href="#" style="color:#1565c0;font-weight:600;margin-left:4px;">Read more</a>
+        </div>
+        <p class="eh-guests-section-title">Guest information</p>
+        <p class="eh-guests-subsection">Adult</p>
+        <div class="eh-guests-row">
+          <select class="eh-guests-field eh-guests-select" aria-label="Title">
+            <option value="">Title</option><option>Mr</option><option>Ms</option><option>Mrs</option><option>Dr</option>
+          </select>
+          <input type="text" class="eh-guests-field" placeholder="First name" id="ehGuestsFirstName">
+          <input type="text" class="eh-guests-field" placeholder="Last name" id="ehGuestsLastName">
+        </div>
+        <a href="#" class="eh-guests-loyalty-link" style="display:inline-flex;align-items:center;gap:4px;color:#0d2340;font-size:0.82rem;font-weight:600;margin-bottom:12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Loyalty programme number
+        </a>
+        <label class="eh-guests-checkbox-row"><input type="checkbox"> Join Etihad Guest for free Wi-Fi on board</label>
+        <p style="font-size:0.95rem;font-weight:700;color:#0d2340;margin:20px 0 10px;">Contact information</p>
+        <div class="eh-guests-row">
+          <select class="eh-guests-field eh-guests-select" style="max-width:160px;"><option>Select guest</option></select>
+          <input type="tel" class="eh-guests-field" placeholder="Contact number">
+          <input type="email" class="eh-guests-field" placeholder="Email address">
+        </div>
+        <label class="eh-guests-checkbox-row"><input type="checkbox" checked> Send me the latest news and offers. I am aware that I can unsubscribe at any time.</label>
+        <label class="eh-guests-checkbox-row"><input type="checkbox" checked> I agree to receive updates via WhatsApp</label>
+        <div class="eh-booking-actions">
+          <button type="button" class="eh-booking-back-btn" id="ehGuestsBack">Back</button>
+          <div style="display:flex;gap:12px;">
+            <button type="button" class="eh-booking-back-btn" id="ehGuestsSkip">Skip to payment</button>
+            <button type="button" class="eh-booking-continue-btn" id="ehGuestsContinue">Continue</button>
+          </div>
+        </div>
+      </div>
+      <aside class="eh-summary-panel" id="ehGuestsSummary">
+        <div class="eh-summary-header"><span class="eh-summary-title">Summary</span><a href="#" class="eh-summary-flight-detail">Flight details</a></div>
+        <div class="eh-summary-flight" id="ehSummaryOut1"></div>
+        <div class="eh-summary-flight" id="ehSummaryRet1"></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Guests</span><span class="eh-summary-val">Adult (1)</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Complimentary</span><span class="eh-summary-included">Included</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Fare summary</span></div>
+        <div class="eh-summary-row"><span class="eh-summary-label">Total:</span><div style="text-align:right;"><div class="eh-summary-fare-total" id="ehSummaryTotal1">GBP 3,248.39</div><div class="eh-summary-fare-sub">Including taxes</div></div></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-links"><a href="#">Baggage and fare rules</a><a href="#">Price breakdown</a></div>
+      </aside>
+    </div>
+    <div id="ehSeatsPage" class="eh-booking-page">
+      <div class="eh-booking-main" style="max-width:760px;">
+        <div class="eh-booking-card">
+          <div class="eh-booking-card-header">
+            <div>
+              <p class="eh-booking-card-title">Seat selection</p>
+              <p class="eh-booking-card-sub">Secure your seat now for a more comfortable onboard experience</p>
+            </div>
+            <div class="eh-booking-card-img-placeholder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round"><path d="M6 3v10a2 2 0 002 2h8M6 13h10M15 13v4M6 19h9"/></svg>
+            </div>
+          </div>
+          <div class="eh-leg-tabs">
+            <button type="button" class="eh-leg-tab is-active" id="ehSeatTabOut">LHR – AUH</button>
+            <button type="button" class="eh-leg-tab" id="ehSeatTabRet">AUH – LHR</button>
+          </div>
+          <div class="eh-passenger-row">
+            <div class="eh-passenger-name" id="ehSeatPassengerName">Guest</div>
+            <div class="eh-passenger-sub" id="ehSeatPassengerSub">No seat selected</div>
+          </div>
+          <div class="eh-seats-map-wrap">
+            <p class="eh-seats-aircraft-label">AIRBUS A380-800</p>
+            <div class="eh-seats-direction" style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;color:#888;margin-bottom:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              Upper deck
+            </div>
+            <div class="eh-seats-direction">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+              Front of aircraft
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </div>
+            <div class="eh-seat-col-labels">
+              <div></div>
+              <div class="eh-seat-col-label">A</div><div class="eh-seat-col-label">C</div>
+              <div></div>
+              <div class="eh-seat-col-label">D</div><div class="eh-seat-col-label">E</div>
+              <div></div>
+              <div class="eh-seat-col-label">G</div><div class="eh-seat-col-label">H</div>
+            </div>
+            <div id="ehSeatMapRows"></div>
+          </div>
+          <div class="eh-seats-legend">
+            <div class="eh-seats-legend-item"><div class="eh-seats-legend-swatch" style="background:#b3cde0;"></div>Forward zone</div>
+            <div class="eh-seats-legend-item"><div class="eh-seats-legend-swatch" style="background:#b3d4f5;"></div>Standard zone</div>
+            <div class="eh-seats-legend-item"><div class="eh-seats-legend-swatch" style="background:#d9d9d9;border:1px solid #aaa;"></div>Rear facing seats</div>
+            <div class="eh-seats-legend-item"><div class="eh-seats-legend-swatch" style="background:#0d2340;"></div>Selected</div>
+            <div class="eh-seats-legend-item"><div class="eh-seats-legend-swatch" style="background:#d0d0d0;"></div>Unavailable</div>
+            <div class="eh-seats-legend-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><path d="M3 3h18M3 21h18M3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Bar
+            </div>
+            <div class="eh-seats-legend-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>Bassinet
+            </div>
+            <div class="eh-seats-legend-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14M3 6h18M3 18h18"/></svg>Exit row
+            </div>
+            <div class="eh-seats-legend-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Galley
+            </div>
+            <div class="eh-seats-legend-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 8v4l3 3"/></svg>Toilets
+            </div>
+          </div>
+        </div>
+        <div class="eh-booking-actions">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <button type="button" class="eh-booking-back-btn" id="ehSeatsBack">Back</button>
+            <span class="eh-seats-total" id="ehSeatsTotalLabel">Total: Free</span>
+          </div>
+          <button type="button" class="eh-booking-continue-btn" id="ehSeatsContinueBtn">Add seats later</button>
+        </div>
+      </div>
+      <aside class="eh-summary-panel" id="ehSeatsSummary">
+        <div class="eh-summary-header"><span class="eh-summary-title">Summary</span><a href="#" class="eh-summary-flight-detail">Flight details</a></div>
+        <div class="eh-summary-flight" id="ehSummaryOut2"></div>
+        <div class="eh-summary-flight" id="ehSummaryRet2"></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Guests</span><span class="eh-summary-val">Adult (1)</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Complimentary</span><span class="eh-summary-included">Included</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Fare summary</span></div>
+        <div class="eh-summary-row"><span class="eh-summary-label">Total:</span><div style="text-align:right;"><div class="eh-summary-fare-total" id="ehSummaryTotal2">GBP 3,248.39</div><div class="eh-summary-fare-sub">Including taxes</div></div></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-links"><a href="#">Baggage and fare rules</a><a href="#">Price breakdown</a></div>
+      </aside>
+    </div>
+    <div id="ehBagsPage" class="eh-booking-page">
+      <div class="eh-booking-main" style="max-width:760px;">
+        <div class="eh-booking-card">
+          <div class="eh-booking-card-header">
+            <div>
+              <p class="eh-booking-card-title">Extra baggage</p>
+              <span class="eh-bags-online-badge">Online exclusive – Up to 65% off</span>
+              <p class="eh-booking-card-sub" style="margin-top:6px;">Get the best baggage price online. Add it to your booking now</p>
+            </div>
+            <div class="eh-booking-card-img-placeholder" style="width:160px;height:80px;">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+            </div>
+          </div>
+          <div class="eh-leg-tabs">
+            <button type="button" class="eh-leg-tab is-active" id="ehBagsTabOut">LHR – AUH</button>
+            <button type="button" class="eh-leg-tab" id="ehBagsTabRet">AUH – LHR</button>
+          </div>
+          <div class="eh-passenger-row">
+            <div class="eh-passenger-name" id="ehBagsPassenger">Adam Palmer</div>
+          </div>
+          <div class="eh-bags-included-card">
+            <div class="eh-bags-included-label">
+              <span id="ehBagsFareLabel">Comfort</span>
+              <span class="eh-bags-included-badge">Included</span>
+            </div>
+            <div class="eh-bags-included-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+              <span id="ehBagsIncludedKg">40kg checked baggage (max 32 kg per bag)</span>
+            </div>
+            <div class="eh-bags-included-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              12kg cabin baggage
+            </div>
+          </div>
+          <div class="eh-bags-extra-row">
+            <div class="eh-bags-extra-label">Extra baggage</div>
+            <div class="eh-bags-counter">
+              <button type="button" class="eh-bags-counter-btn" id="ehBagsMinus">−</button>
+              <div class="eh-bags-counter-val" id="ehBagsVal">0kg</div>
+              <button type="button" class="eh-bags-counter-btn" id="ehBagsPlus" title="Click here to add bag">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="eh-booking-actions">
+          <button type="button" class="eh-booking-back-btn" id="ehBagsBack">Back</button>
+          <button type="button" class="eh-booking-continue-btn" id="ehBagsContinue">Continue</button>
+        </div>
+      </div>
+      <aside class="eh-summary-panel" id="ehBagsSummary">
+        <div class="eh-summary-header"><span class="eh-summary-title">Summary</span><a href="#" class="eh-summary-flight-detail">Flight details</a></div>
+        <div class="eh-summary-flight" id="ehSummaryOut3"></div>
+        <div class="eh-summary-flight" id="ehSummaryRet3"></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Guests</span><span class="eh-summary-val">Adult (1)</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Complimentary</span><span class="eh-summary-included">Included</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-extras-section">
+          <div class="eh-summary-extras-title">Extras</div>
+          <div class="eh-summary-extras-leg" id="ehBagsSummaryLeg1">London to Abu Dhabi</div>
+          <div class="eh-summary-extras-item"><span>Seat (1)</span></div>
+          <div class="eh-summary-extras-leg" id="ehBagsSummaryLeg2">Abu Dhabi to London</div>
+          <div class="eh-summary-extras-item"><span>Seat (1)</span></div>
+        </div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Fare summary</span></div>
+        <div class="eh-summary-row"><span class="eh-summary-label">Total:</span><div style="text-align:right;"><div class="eh-summary-fare-total" id="ehSummaryTotal3">GBP 3,248.39</div><div class="eh-summary-fare-sub">Including taxes</div></div></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-links"><a href="#">Baggage and fare rules</a><a href="#">Price breakdown</a></div>
+      </aside>
+    </div>
+    <div id="ehExtrasPage" class="eh-booking-page">
+      <div class="eh-booking-main" style="max-width:760px;">
+        <div class="eh-booking-card">
+          <div style="padding:20px 24px 0;">
+            <p class="eh-booking-card-title">Extras</p>
+            <p class="eh-booking-card-sub">Enhance your travel experience</p>
+          </div>
+          <div class="eh-extras-grid">
+            <div class="eh-extra-item">
+              <div class="eh-extra-img" style="background:linear-gradient(135deg,#37474f 0%,#546e7a 100%);"></div>
+              <div class="eh-extra-body">
+                <div class="eh-extra-offer-badge">Online exclusive 10% off</div>
+                <div class="eh-extra-name">First lounge</div>
+                <div class="eh-extra-sub">Comfort before every flight</div>
+                <button type="button" class="eh-extra-add-btn">Add</button>
+              </div>
+            </div>
+            <div class="eh-extra-item">
+              <div class="eh-extra-img" style="background:linear-gradient(135deg,#6d4c41 0%,#8d6e63 100%);"></div>
+              <div class="eh-extra-body">
+                <div class="eh-extra-name">Donation</div>
+                <div class="eh-extra-sub">Give hopes, change lives</div>
+                <button type="button" class="eh-extra-add-btn">Add</button>
+              </div>
+            </div>
+            <div class="eh-extra-item" style="grid-column:1/-1;">
+              <div class="eh-extra-img" style="background:linear-gradient(135deg,#1565c0 0%,#1976d2 100%);"></div>
+              <div class="eh-extra-body">
+                <div class="eh-extra-included-badge">Included</div>
+                <div class="eh-extra-name">Priority Access</div>
+                <div class="eh-extra-added-label">2 x Added</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="eh-booking-actions">
+          <button type="button" class="eh-booking-back-btn" id="ehExtrasBack">Back</button>
+          <button type="button" class="eh-booking-continue-btn" id="ehExtrasContinue">Continue</button>
+        </div>
+      </div>
+      <aside class="eh-summary-panel" id="ehExtrasSummary">
+        <div class="eh-summary-header"><span class="eh-summary-title">Summary</span><a href="#" class="eh-summary-flight-detail">Flight details</a></div>
+        <div class="eh-summary-flight" id="ehSummaryOut4"></div>
+        <div class="eh-summary-flight" id="ehSummaryRet4"></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Guests</span><span class="eh-summary-val">Adult (1)</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Complimentary</span><span class="eh-summary-included">Included</span></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-extras-section">
+          <div class="eh-summary-extras-title">Extras</div>
+          <div class="eh-summary-extras-leg">London to Abu Dhabi</div>
+          <div class="eh-summary-extras-item"><span>Seat (1)</span></div>
+          <div class="eh-summary-extras-leg">Abu Dhabi to London</div>
+          <div class="eh-summary-extras-item"><span>Seat (1)</span></div>
+        </div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Fare summary</span></div>
+        <div class="eh-summary-row"><span class="eh-summary-label">Total:</span><div style="text-align:right;"><div class="eh-summary-fare-total" id="ehSummaryTotal4">GBP 3,248.39</div><div class="eh-summary-fare-sub">Including taxes</div></div></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-links"><a href="#">Baggage and fare rules</a><a href="#">Price breakdown</a></div>
+      </aside>
+    </div>
+    <div id="ehPaymentPage" class="eh-booking-page">
+      <div class="eh-booking-main" style="max-width:760px;">
+        <div class="eh-booking-card" style="padding:24px 28px;">
+
+          <p class="eh-booking-card-title" style="margin-bottom:4px;">Payment</p>
+          <p class="eh-booking-card-sub" style="margin-bottom:20px;">How would you like to pay?</p>
+
+          <div class="eh-pay-promo-row">
+            <input type="text" class="eh-pay-promo-input" placeholder="Enter Promo code">
+            <button type="button" class="eh-pay-promo-apply">Apply</button>
+          </div>
+
+          <div class="eh-pay-method-list">
+            <div class="eh-pay-method-item is-selected" id="ehPayMethodCard">
+              <div class="eh-pay-method-icon">
+                <svg width="22" height="16" viewBox="0 0 32 22" fill="none"><rect width="32" height="22" rx="3" fill="#1a6fc4"/><rect y="5" width="32" height="6" fill="#fff" opacity=".2"/><rect x="4" y="14" width="8" height="3" rx="1" fill="#fff" opacity=".7"/></svg>
+              </div>
+              <div class="eh-pay-method-body">
+                <div class="eh-pay-method-name">Credit/Debit cards</div>
+                <div class="eh-pay-method-sub">Pay securely with cards</div>
+              </div>
+              <button type="button" class="eh-pay-toggle is-on" aria-label="Credit card selected"></button>
+            </div>
+            <div class="eh-pay-method-item" id="ehPayMethodApple">
+              <div class="eh-pay-method-icon" style="background:#000;">
+                <svg width="20" height="14" viewBox="0 0 60 40" fill="none"><text x="4" y="30" font-family="Arial" font-size="20" font-weight="600" fill="white">Pay</text></svg>
+              </div>
+              <div class="eh-pay-method-body">
+                <div class="eh-pay-method-name">Apple Pay<span class="eh-pay-new-badge">NEW</span></div>
+                <div class="eh-pay-method-sub">Instant secure pay</div>
+              </div>
+              <button type="button" class="eh-pay-toggle" aria-label="Apple Pay"></button>
+            </div>
+            <div class="eh-pay-method-item" id="ehPayMethodPaypal">
+              <div class="eh-pay-method-icon">
+                <svg width="22" height="16" viewBox="0 0 60 40" fill="none"><text x="4" y="28" font-family="Arial" font-size="18" font-weight="700" fill="#003087">Pay</text><text x="26" y="28" font-family="Arial" font-size="18" font-weight="700" fill="#009cde">Pal</text></svg>
+              </div>
+              <div class="eh-pay-method-body">
+                <div class="eh-pay-method-name">PayPal</div>
+                <div class="eh-pay-method-sub">Express checkout</div>
+              </div>
+              <button type="button" class="eh-pay-toggle" aria-label="PayPal"></button>
+            </div>
+            <div class="eh-pay-method-item" id="ehPayMethodWallet">
+              <div class="eh-pay-method-icon">
+                <svg width="22" height="16" viewBox="0 0 24 24" fill="none" stroke="#b08747" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M16 12h2"/></svg>
+              </div>
+              <div class="eh-pay-method-body">
+                <div class="eh-pay-method-name">Etihad Wallet</div>
+                <div class="eh-pay-method-sub">Miles, Money &amp; more</div>
+              </div>
+              <button type="button" class="eh-pay-toggle" aria-label="Etihad Wallet"></button>
+            </div>
+          </div>
+
+          <div class="eh-pay-card-logos">
+            <span class="eh-pay-card-logo" style="color:#1a6fc4;font-weight:900;">VISA</span>
+            <span class="eh-pay-card-logo">
+              <svg width="28" height="18" viewBox="0 0 48 30" fill="none"><circle cx="18" cy="15" r="14" fill="#eb001b"/><circle cx="30" cy="15" r="14" fill="#f79e1b"/><path d="M24 5.5a14 14 0 010 19" fill="#ff5f00"/></svg>
+            </span>
+            <span class="eh-pay-card-logo" style="color:#016fd0;font-weight:900;font-size:0.6rem;">AMEX</span>
+            <span class="eh-pay-card-logo" style="color:#004a97;font-size:0.6rem;font-weight:700;">UATP</span>
+            <span class="eh-pay-card-logo" style="color:#0e4c96;font-size:0.6rem;font-weight:700;">JCB</span>
+            <span class="eh-pay-card-logo" style="color:#e6001a;font-size:0.55rem;font-weight:700;">DISCOVER</span>
+          </div>
+
+          <div class="eh-pay-form-row">
+            <input type="text" class="eh-pay-field" placeholder="Card number" style="flex:2;" maxlength="19">
+            <input type="text" class="eh-pay-field" placeholder="Card holder name" style="flex:2;">
+          </div>
+          <div class="eh-pay-form-row">
+            <input type="text" class="eh-pay-field" placeholder="MM / YY" style="max-width:110px;" maxlength="7">
+            <div class="eh-pay-field-wrap" style="max-width:140px;">
+              <input type="text" class="eh-pay-field" placeholder="CVV / CVC" maxlength="4">
+              <svg class="eh-pay-field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="eh-pay-field-wrap" style="flex:2;">
+              <input type="email" class="eh-pay-field" placeholder="Email address" id="ehPayEmail" value="ap2085@gmail.com">
+              <button type="button" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#aaa;font-size:1rem;padding:0;">&times;</button>
+            </div>
+          </div>
+
+          <p class="eh-pay-address-label">Payment billing address</p>
+          <div class="eh-pay-form-row">
+            <select class="eh-pay-field eh-guests-select" style="flex:1;">
+              <option value="">Country</option>
+              <option>United Kingdom</option>
+              <option>United Arab Emirates</option>
+              <option>United States</option>
+            </select>
+          </div>
+
+          <div class="eh-pay-terms-row">
+            <div class="eh-pay-terms-header">
+              Ticket terms
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+
+          <div class="eh-pay-footer">
+            <label class="eh-pay-terms-check">
+              <input type="checkbox" id="ehPayTermsCheck">
+              By clicking this box, I agree to all <a href="#">terms and conditions</a> and <a href="#">fare rules</a>
+            </label>
+            <div class="eh-pay-total-wrap">
+              <div class="eh-pay-total-amount">Total: GBP <span id="ehPayTotal">3,248.39</span></div>
+              <div class="eh-pay-total-sub">(Inclusive of all taxes)</div>
+            </div>
+            <button type="button" class="eh-pay-now-btn" id="ehPayNowBtn">Pay now</button>
+          </div>
+        </div>
+
+        <div class="eh-booking-actions" style="padding-top:0;">
+          <button type="button" class="eh-booking-back-btn" id="ehPaymentBack">Back</button>
+        </div>
+      </div>
+
+      <aside class="eh-summary-panel" id="ehPaymentSummary">
+        <div class="eh-summary-header">
+          <span class="eh-summary-title">Summary</span>
+          <a href="#" class="eh-summary-flight-detail">Flight details</a>
+        </div>
+        <div class="eh-summary-flight" id="ehSummaryOut5"></div>
+        <div class="eh-summary-flight" id="ehSummaryRet5"></div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-expand-row">
+          <span class="eh-summary-label">Guests</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span class="eh-summary-val">Adult (1)</span>
+            <span class="eh-summary-expand-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </span>
+        </div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-expand-row">
+          <span class="eh-summary-label">Complimentary</span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span class="eh-summary-included">Included</span>
+            <span class="eh-summary-expand-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </span>
+        </div>
+        <div class="eh-summary-complimentary-icons">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" title="Chauffeur"><path d="M5 17H3a2 2 0 01-2-2v-4a2 2 0 012-2h14l3 4-3 4H3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" title="Bag"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" title="Priority"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" title="Lounge"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-extras-section">
+          <div class="eh-summary-extras-title">Extras</div>
+          <div class="eh-summary-extras-leg" id="ehPaySummaryLeg1">London to Abu Dhabi</div>
+          <div class="eh-summary-extras-leg-row">
+            <span>Seat (1)</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="eh-summary-extras-leg" id="ehPaySummaryLeg2">Abu Dhabi to London</div>
+          <div class="eh-summary-extras-leg-row">
+            <span>Seat (1)</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <hr class="eh-summary-divider">
+        <div class="eh-summary-row"><span class="eh-summary-label">Fare summary</span></div>
+        <div class="eh-summary-row">
+          <span class="eh-summary-label">Total:</span>
+          <div style="text-align:right;">
+            <div class="eh-summary-fare-total" id="ehSummaryTotal5">GBP 3,248.39</div>
+            <div class="eh-summary-fare-sub">Including taxes</div>
+          </div>
+        </div>
+        <hr class="eh-summary-divider">
+        <a href="#" class="eh-summary-price-breakdown">Price breakdown</a>
+      </aside>
+    </div>
     </div>
   </div>
 
@@ -3335,6 +4136,478 @@
       var currentRoute = 'LHR-AUH';
       var currentDateIndex = 3;
 
+      var EH_FARES = {
+        economy: [
+          { id:'eco-basic',   label:'Basic',   price:0,   isBase:true,  recommended:false, sale:false,  ctaStyle:'link',    borderColor:'#e53935',
+            features:[{ok:true,text:'1x 7kg cabin baggage only'},{ok:true,text:'525 miles per guest'},{ok:true,text:'Change for free'},{ok:false,text:'Not eligible to upgrade'},{ok:false,text:'Refund not permitted'},{ok:false,text:'Free seat selection'},{ok:false,text:'Priority Access'}] },
+          { id:'eco-value',   label:'Value',   price:21,  recommended:false, sale:false,  ctaStyle:'outline', borderColor:'#00838f',
+            features:[{ok:true,text:'25kg checked baggage'},{ok:true,text:'1,225 miles per guest'},{ok:true,text:'Change for free'},{ok:true,text:'Eligible to upgrade'},{ok:false,text:'Refund not permitted'},{ok:false,text:'Free seat selection'},{ok:false,text:'Priority Access'}] },
+          { id:'eco-comfort', label:'Comfort', price:52,  recommended:true,  sale:false,  ctaStyle:'gold',    borderColor:'#b08747',
+            features:[{ok:true,text:'30kg checked baggage'},{ok:true,text:'2,625 miles per guest'},{ok:true,text:'Change for free'},{ok:true,text:'Eligible to upgrade'},{ok:true,text:'Refund permitted with fee'},{ok:true,text:'Free standard seats'},{ok:false,text:'Priority Access'}] },
+          { id:'eco-deluxe',  label:'Deluxe',  price:162, recommended:false, sale:false,  ctaStyle:'outline', borderColor:'#263238',
+            features:[{ok:true,text:'40kg checked baggage'},{ok:true,text:'4,375 miles per guest'},{ok:true,text:'Change for free'},{ok:true,text:'Eligible to upgrade'},{ok:true,text:'Refund for free'},{ok:true,text:'Free extra legroom seats'},{ok:true,text:'Priority Access'}] },
+        ],
+        business: [
+          { id:'biz-value',   label:'Value',   price:0,   isBase:true,  recommended:false, sale:true,  ctaStyle:'link',    borderColor:'#00838f',
+            features:[{ok:true,text:'35kg checked baggage'},{ok:true,text:'3,500 miles per guest'},{ok:true,text:'Eligible to upgrade'},{ok:true,text:'Priority Access'},{ok:true,text:'Change for free'},{ok:false,text:'Refund not permitted'},{ok:false,text:'Free seat selection'},{ok:false,text:'Lounge access'},{ok:false,text:'Etihad UAE Chauffeur'}] },
+          { id:'biz-comfort', label:'Comfort', price:191, recommended:true,  sale:false, ctaStyle:'gold',    borderColor:'#b08747',
+            features:[{ok:true,text:'40kg checked baggage'},{ok:true,text:'5,250 miles per guest'},{ok:true,text:'Eligible to upgrade'},{ok:true,text:'Priority Access'},{ok:true,text:'Change for free'},{ok:true,text:'Refund permitted with fee'},{ok:true,text:'Free seat selection'},{ok:true,text:'Lounge access'},{ok:true,text:'Etihad UAE Chauffeur'}] },
+          { id:'biz-deluxe',  label:'Deluxe',  price:1039,recommended:false, sale:false, ctaStyle:'outline', borderColor:'#37474f',
+            features:[{ok:true,text:'50kg checked baggage'},{ok:true,text:'8,750 miles per guest'},{ok:true,text:'Eligible to upgrade'},{ok:true,text:'Priority Access'},{ok:true,text:'Change for free'},{ok:true,text:'Refund for free'},{ok:true,text:'Free seat selection'},{ok:true,text:'Lounge access'},{ok:true,text:'Etihad Global Chauffeur'}] },
+          { id:'first',       label:'Upgrade to First', price:800, recommended:false, sale:false, ctaStyle:'outline', borderColor:'#1b5e20', hasPlaceholderImage:true, features:[] },
+        ],
+      };
+
+      var EH_SEAT_ROWS = [
+        { row:8,  seats:{A:'ok',   C:'taken',D:'taken',E:'ok',  G:'ok',  H:'taken'}, zone:'forward'  },
+        { row:9,  seats:{A:'ok',   C:'ok',   D:'ok',   E:'taken',G:'ok',  H:'ok'  }, zone:'forward'  },
+        { row:10, seats:{A:'taken',C:'taken',D:'taken',E:'taken',G:'ok',  H:'taken'}, zone:'forward'  },
+        { row:11, seats:{A:'ok',   C:'taken',D:'ok',   E:'ok',  G:'taken',H:'ok'  }, zone:'standard' },
+        { row:12, seats:{A:'taken',C:'taken',D:'taken',E:'ok',  G:'taken',H:'taken'}, zone:'standard' },
+        { row:13, seats:{A:'ok',   C:'ok',   D:'ok',   E:'taken',G:'ok',  H:'ok'  }, zone:'standard' },
+        { row:14, seats:{A:'ok',   C:'ok',   D:'ok',   E:'ok',  G:'ok',  H:'ok'  }, zone:'standard' },
+        { row:15, seats:{A:'ok',   C:'taken',D:'ok',   E:'ok',  G:'taken',H:'ok'  }, zone:'standard' },
+        { row:16, seats:{A:'taken',C:'taken',D:'taken',E:'taken',G:'taken',H:'taken'}, zone:'standard'},
+        { row:17, seats:{A:'ok',   C:'ok',   D:'taken',E:'ok',  G:'ok',  H:'taken'}, zone:'standard' },
+        { row:18, seats:{A:'ok',   C:'ok',   D:'ok',   E:'ok',  G:'ok',  H:'ok'  }, zone:'standard' },
+      ];
+
+      var ehSelectedFlight    = null;
+      var ehSelectedCabin     = null;
+      var ehSelectedBasePrice = 0;
+      var ehSelectedFare      = null;
+      var ehCurrentPage       = 'list';
+      var ehSeatCurrentLeg    = 'outward';
+      var ehSeatOutConfirmed  = false;
+      var ehSeatRetConfirmed  = false;
+      var ehSeatOutCode       = '';
+      var ehSeatRetCode       = '';
+      var ehPendingSeatEl     = null;
+      var ehPendingSeatInfo   = null;
+      var ehBagsExtraKg       = 0;
+
+      function ehSetStep(stepLabel) {
+        document.querySelectorAll('.eh-res-step').forEach(function (s) {
+          s.classList.toggle('is-active', s.textContent.trim().toLowerCase() === stepLabel.toLowerCase());
+        });
+      }
+
+      function ehShowPage(page) {
+        ehCurrentPage = page;
+        var resBody = overlay.querySelector('.eh-res-body');
+        ['ehGuestsPage','ehSeatsPage','ehBagsPage','ehExtrasPage','ehPaymentPage'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.remove('is-active');
+        });
+        if (resBody) resBody.style.display = page === 'list' ? '' : 'none';
+        if (page !== 'list') {
+          var cap = page.charAt(0).toUpperCase() + page.slice(1);
+          var pageEl = document.getElementById('eh' + cap + 'Page');
+          if (pageEl) pageEl.classList.add('is-active');
+        }
+        var stepMap = { list:'flights', guests:'guests', seats:'seats', bags:'bags', extras:'extras', payment:'payment' };
+        ehSetStep(stepMap[page] || 'flights');
+        overlay.scrollTop = 0;
+        if (page === 'guests' || page === 'seats' || page === 'bags' || page === 'extras' || page === 'payment') ehPopulateSummaries();
+        if (page === 'seats')  { ehSeatCurrentLeg = 'outward'; ehSwitchSeatLeg('outward'); ehBuildSeatMap(); }
+        if (page === 'bags')   ehUpdateBagsFareInfo();
+      }
+
+      function ehSummaryFlightHTML(dep, arr, fromCode, toCode, stops, duration, cabinLabel, fareLabel) {
+        return '<div class="eh-summary-flight-date">Wed, 17 Jun</div>' +
+          '<div class="eh-summary-flight-times"><span>' + dep + '</span>' +
+          '<svg width="28" height="10" viewBox="0 0 28 10" fill="none"><line x1="0" y1="5" x2="20" y2="5" stroke="#ccc" stroke-width="1.5" stroke-dasharray="3 2"/><polygon points="20,2 26,5 20,8" fill="#b08747"/></svg>' +
+          '<span>' + arr + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;">' +
+          '<span class="eh-summary-apt">' + fromCode + '</span>' +
+          '<span style="font-size:0.72rem;color:#666;">' + stops + ' ' + duration + '</span>' +
+          '<span class="eh-summary-apt">' + toCode + '</span></div>' +
+          '<div class="eh-summary-class-tag"><span class="eh-summary-class-dot"></span>' + cabinLabel + ' ' + fareLabel + '</div>';
+      }
+
+      function ehPopulateSummaries() {
+        var route      = EH_FLIGHTS[currentRoute] || EH_FLIGHTS['LHR-AUH'];
+        var cabin      = ehSelectedCabin === 'business' ? 'Business' : 'Economy';
+        var fare       = ehSelectedFare ? ehSelectedFare.label : 'Comfort';
+        var f          = ehSelectedFlight || { dep:'09:30', arr:'19:35', stops:'Non-stop', duration:'7h 5m' };
+        var outHTML    = ehSummaryFlightHTML(f.dep, f.arr, route.from, route.to, f.stops, f.duration, cabin, fare);
+        var retHTML    = ehSummaryFlightHTML('02:20','07:00', route.to, route.from, 'Non-stop','7h 40m', cabin, fare);
+        var total      = 'GBP 3,248.39';
+
+        [['ehSummaryOut1','ehSummaryRet1','ehSummaryTotal1'],
+         ['ehSummaryOut2','ehSummaryRet2','ehSummaryTotal2'],
+         ['ehSummaryOut3','ehSummaryRet3','ehSummaryTotal3'],
+         ['ehSummaryOut4','ehSummaryRet4','ehSummaryTotal4'],
+         ['ehSummaryOut5','ehSummaryRet5','ehSummaryTotal5']].forEach(function (ids) {
+          var o = document.getElementById(ids[0]);
+          var r = document.getElementById(ids[1]);
+          var t = document.getElementById(ids[2]);
+          if (o) o.innerHTML = outHTML;
+          if (r) r.innerHTML = retHTML;
+          if (t) t.textContent = total;
+        });
+        var pnEl = document.getElementById('ehSeatPassengerName');
+        if (pnEl) pnEl.textContent = ehProfileFirstName || 'Adam Palmer';
+        var bpEl = document.getElementById('ehBagsPassenger');
+        if (bpEl) bpEl.textContent = ehProfileFirstName || 'Adam Palmer';
+        var payTotal = document.getElementById('ehPayTotal');
+        if (payTotal) payTotal.textContent = '3,248.39';
+      }
+
+      function buildFareCard(fare, basePrice) {
+        var priceStr = fare.isBase ? 'GBP ' + basePrice : 'GBP +' + fare.price;
+        var cta = fare.ctaStyle === 'link'
+          ? '<button type="button" class="eh-fare-cta-link" data-fare-id="' + fare.id + '">Continue &rsaquo;</button>'
+          : fare.ctaStyle === 'gold'
+            ? '<button type="button" class="eh-fare-cta-gold" data-fare-id="' + fare.id + '">Choose</button>'
+            : '<button type="button" class="eh-fare-cta-outline" data-fare-id="' + fare.id + '">Choose</button>';
+        var features = fare.features.map(function (f) {
+          return '<li class="eh-fare-feature"><span class="' + (f.ok ? 'eh-fare-tick' : 'eh-fare-cross') + '">' +
+            (f.ok
+              ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+              : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>') +
+            '</span>' + f.text + '</li>';
+        }).join('');
+        return '<div class="eh-fare-card' + (fare.recommended ? ' is-recommended' : '') + '" style="border-top-color:' + fare.borderColor + ';">' +
+          (fare.recommended ? '<div class="eh-fare-rec-badge">Recommended</div>' : '') +
+          (fare.sale ? '<span class="eh-fare-sale-badge">Sale</span>' : '') +
+          '<div class="eh-fare-label">' + fare.label + '</div>' +
+          '<div class="eh-fare-price">' + priceStr + '</div>' +
+          '<div class="eh-fare-price-sub">for all guests</div>' +
+          cta +
+          (fare.features.length ? '<ul class="eh-fare-features">' + features + '</ul>' : '') +
+          (fare.hasPlaceholderImage ? '<div class="eh-fare-image-placeholder">First Class</div>' : '') +
+          '</div>';
+      }
+
+      function expandFareTiers(flightNum, cabinClass, basePrice, flightData) {
+        var panel = document.getElementById('ehFarePanel');
+        if (!panel) return;
+        var tiers = EH_FARES[cabinClass] || EH_FARES.economy;
+        ehSelectedFlight = flightData;
+        ehSelectedCabin  = cabinClass;
+        ehSelectedBasePrice = basePrice;
+        panel.innerHTML = '<div class="eh-fare-grid">' + tiers.map(function (f) { return buildFareCard(f, basePrice); }).join('') + '</div>';
+        panel.classList.add('is-open');
+        panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        ehFlightLabEmit('fare.expand', { flightNumber:flightNum, cabinClass:cabinClass, basePrice:basePrice });
+      }
+
+      function showUpsellModal(chosenFare, recFare, basePrice) {
+        var modal   = document.getElementById('ehUpsellModal');
+        var titleEl = document.getElementById('ehUpsellTitle');
+        var curCard = document.getElementById('ehUpsellCurrentCard');
+        var recCard = document.getElementById('ehUpsellRecCard');
+        if (!modal) return;
+        if (titleEl) titleEl.textContent = recFare.label + ' fare is ideal for your trip!';
+        var kl = document.getElementById('ehUpsellKeepLabel');
+        var ul = document.getElementById('ehUpsellUpgradeLabel');
+        if (kl) kl.textContent = chosenFare.label;
+        if (ul) ul.textContent = recFare.label;
+        function cardHTML(fare) {
+          var p = fare.isBase ? 'GBP ' + basePrice : 'GBP + ' + fare.price;
+          var fs = fare.features.slice(0,5).map(function (f) {
+            return '<div class="eh-upsell-feature"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="' + (f.ok ? '#4caf50' : '#e53935') + '" stroke-width="2.5" stroke-linecap="round">' +
+              (f.ok ? '<polyline points="20 6 9 17 4 12"/>' : '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>') +
+              '</svg>' + f.text + '</div>';
+          }).join('');
+          return '<div class="eh-upsell-card-label">' + fare.label + '</div>' + fs +
+            '<div class="eh-upsell-price">' + p + '</div><div class="eh-upsell-price-sub">For all guests</div>';
+        }
+        if (curCard) curCard.innerHTML = cardHTML(chosenFare);
+        if (recCard) { recCard.innerHTML = '<div class="eh-upsell-rec-badge">Recommended</div>' + cardHTML(recFare); }
+        modal.classList.add('is-open');
+      }
+
+      function ehSwitchSeatLeg(leg) {
+        ehSeatCurrentLeg = leg;
+        var tabOut = document.getElementById('ehSeatTabOut');
+        var tabRet = document.getElementById('ehSeatTabRet');
+        if (tabOut) tabOut.classList.toggle('is-active', leg === 'outward');
+        if (tabRet) tabRet.classList.toggle('is-active', leg === 'return');
+        var sub = document.getElementById('ehSeatPassengerSub');
+        if (leg === 'outward') {
+          if (sub) sub.textContent = ehSeatOutConfirmed ? ('Seat ' + ehSeatOutCode + ' · Free') : 'No seat selected';
+        } else {
+          if (sub) sub.textContent = ehSeatRetConfirmed ? ('Seat ' + ehSeatRetCode + ' · Free') : 'No seat selected';
+        }
+        ehUpdateSeatContinueBtn();
+      }
+
+      function ehUpdateSeatContinueBtn() {
+        var btn = document.getElementById('ehSeatsContinueBtn');
+        if (!btn) return;
+        if (ehSeatOutConfirmed && ehSeatRetConfirmed) {
+          btn.textContent = 'Continue';
+          btn.disabled = false;
+        } else if (ehSeatOutConfirmed) {
+          btn.textContent = 'Update my seats';
+          btn.disabled = false;
+        } else {
+          btn.textContent = 'Add seats later';
+          btn.disabled = false;
+        }
+      }
+
+      function ehBuildSeatMap() {
+        var container = document.getElementById('ehSeatMapRows');
+        if (!container) return;
+        container.innerHTML = '';
+        EH_SEAT_ROWS.forEach(function (rowData) {
+          var rowEl = document.createElement('div');
+          rowEl.className = 'eh-seat-row';
+          var numEl = document.createElement('div');
+          numEl.className = 'eh-seat-row-num';
+          numEl.textContent = rowData.row;
+          rowEl.appendChild(numEl);
+          ['A','C'].forEach(function (col) { rowEl.appendChild(ehMakeSeat(rowData, col)); });
+          var a1 = document.createElement('div'); a1.className = 'eh-seat-aisle'; rowEl.appendChild(a1);
+          ['D','E'].forEach(function (col) { rowEl.appendChild(ehMakeSeat(rowData, col)); });
+          var a2 = document.createElement('div'); a2.className = 'eh-seat-aisle'; rowEl.appendChild(a2);
+          ['G','H'].forEach(function (col) { rowEl.appendChild(ehMakeSeat(rowData, col)); });
+          container.appendChild(rowEl);
+        });
+      }
+
+      function ehMakeSeat(rowData, col) {
+        var state = rowData.seats[col];
+        var code = String(rowData.row) + col;
+        var confirmedHere = (ehSeatCurrentLeg === 'outward' && ehSeatOutConfirmed && ehSeatOutCode === code) ||
+          (ehSeatCurrentLeg === 'return' && ehSeatRetConfirmed && ehSeatRetCode === code);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'eh-seat' + (state === 'taken' ? ' taken' : '') + (rowData.zone === 'forward' ? ' zone-forward' : '') + (confirmedHere ? ' confirmed' : '');
+        btn.setAttribute('aria-label', 'Row ' + rowData.row + ' Seat ' + col);
+        btn.dataset.row  = rowData.row;
+        btn.dataset.col  = col;
+        btn.dataset.zone = rowData.zone;
+        if (state !== 'taken' && !confirmedHere) {
+          btn.addEventListener('click', function () {
+            ehPendingSeatEl   = btn;
+            ehPendingSeatInfo = { row: rowData.row, col: col, zone: rowData.zone };
+            ehShowSeatConfirm(rowData.row, col, rowData.zone);
+          });
+        }
+        return btn;
+      }
+
+      function ehShowSeatConfirm(row, col, zone) {
+        var modal   = document.getElementById('ehSeatConfirmModal');
+        var nameEl  = document.getElementById('ehSeatConfirmName');
+        var typeEl  = document.getElementById('ehSeatConfirmType');
+        var numEl   = document.getElementById('ehSeatConfirmNum');
+        var colNames = { A:'Window', C:'Aisle', D:'Aisle', E:'Middle', G:'Middle', H:'Window' };
+        var zoneLabel = zone === 'forward' ? 'Forward zone seat' : 'Standard zone seat';
+        if (nameEl)  nameEl.textContent = ehProfileFirstName || 'Adam Palmer';
+        if (typeEl)  typeEl.textContent = (colNames[col] || col) + ' seat, ' + zoneLabel;
+        if (numEl)   numEl.textContent  = row + col;
+        if (modal) modal.classList.add('is-open');
+      }
+
+      function ehUpdateBagsFareInfo() {
+        var fare   = ehSelectedFare;
+        var kgMap  = { 'eco-basic':'7kg cabin baggage only', 'eco-value':'25kg checked baggage', 'eco-comfort':'30kg checked baggage', 'eco-deluxe':'40kg checked baggage', 'biz-value':'35kg checked baggage', 'biz-comfort':'40kg checked baggage', 'biz-deluxe':'50kg checked baggage' };
+        var fareId = fare ? fare.id : 'eco-comfort';
+        var labelEl = document.getElementById('ehBagsFareLabel');
+        var kgEl    = document.getElementById('ehBagsIncludedKg');
+        if (labelEl) labelEl.textContent = fare ? fare.label : 'Comfort';
+        if (kgEl)    kgEl.textContent    = (kgMap[fareId] || '30kg checked baggage') + ' (max 32 kg per bag)';
+      }
+
+      function ehWireBookingFlowListeners() {
+        var upsellModal = document.getElementById('ehUpsellModal');
+        var seatModal = document.getElementById('ehSeatConfirmModal');
+        var farePanel = document.getElementById('ehFarePanel');
+
+        var uc = document.getElementById('ehUpsellClose');
+        if (uc) uc.addEventListener('click', function () {
+          if (upsellModal) upsellModal.classList.remove('is-open');
+        });
+        var uk = document.getElementById('ehUpsellKeep');
+        if (uk) uk.addEventListener('click', function () {
+          if (upsellModal) upsellModal.classList.remove('is-open');
+          ehFlightLabEmit('fare.upsell.decline', { cabin:ehSelectedCabin });
+          ehShowPage('guests');
+        });
+        var uu = document.getElementById('ehUpsellUpgrade');
+        if (uu) uu.addEventListener('click', function () {
+          var rec = (EH_FARES[ehSelectedCabin] || []).find(function (f) { return f.recommended; });
+          if (rec) ehSelectedFare = rec;
+          if (upsellModal) upsellModal.classList.remove('is-open');
+          ehFlightLabEmit('fare.upsell.accept', { cabin:ehSelectedCabin, upgradeTo: rec ? rec.label : '' });
+          ehShowPage('guests');
+        });
+
+        if (farePanel) farePanel.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-fare-id]');
+          if (!btn) return;
+          var tiers  = EH_FARES[ehSelectedCabin] || EH_FARES.economy;
+          var chosen = tiers.find(function (f) { return f.id === btn.getAttribute('data-fare-id'); });
+          if (!chosen) return;
+          ehSelectedFare = chosen;
+          ehFlightLabEmit('fare.selected', { fareId:chosen.id, cabinClass:ehSelectedCabin, label:chosen.label, personalised:ehProfileIsDetractor });
+          if (!chosen.recommended) {
+            var rec = tiers.find(function (f) { return f.recommended; });
+            if (rec) { showUpsellModal(chosen, rec, ehSelectedBasePrice); return; }
+          }
+          ehShowPage('guests');
+        });
+
+        var sc = document.getElementById('ehSeatConfirmClose');
+        if (sc) sc.addEventListener('click', function () {
+          if (seatModal) seatModal.classList.remove('is-open');
+          ehPendingSeatEl = null;
+        });
+        var sb = document.getElementById('ehSeatConfirmBtn');
+        if (sb) sb.addEventListener('click', function () {
+          if (seatModal) seatModal.classList.remove('is-open');
+          if (!ehPendingSeatInfo) return;
+          if (ehPendingSeatEl) {
+            document.querySelectorAll('#ehSeatMapRows .eh-seat.selected').forEach(function (s) { s.classList.remove('selected'); });
+            ehPendingSeatEl.classList.add('selected', 'confirmed');
+          }
+          var code = String(ehPendingSeatInfo.row) + ehPendingSeatInfo.col;
+          var sub = document.getElementById('ehSeatPassengerSub');
+          if (ehSeatCurrentLeg === 'outward') {
+            ehSeatOutConfirmed = true;
+            ehSeatOutCode = code;
+            if (sub) sub.textContent = 'Seat ' + code + ' · Free';
+            ehFlightLabEmit('seat.confirmed', { leg:'outward', seat: code });
+            setTimeout(function () { ehSwitchSeatLeg('return'); ehBuildSeatMap(); }, 400);
+          } else {
+            ehSeatRetConfirmed = true;
+            ehSeatRetCode = code;
+            if (sub) sub.textContent = 'Seat ' + code + ' · Free';
+            ehFlightLabEmit('seat.confirmed', { leg:'return', seat: code });
+          }
+          ehPendingSeatEl = null;
+          ehPendingSeatInfo = null;
+          ehUpdateSeatContinueBtn();
+        });
+
+        var sto = document.getElementById('ehSeatTabOut');
+        if (sto) sto.addEventListener('click', function () { ehSwitchSeatLeg('outward'); ehBuildSeatMap(); });
+        var str = document.getElementById('ehSeatTabRet');
+        if (str) str.addEventListener('click', function () { ehSwitchSeatLeg('return');  ehBuildSeatMap(); });
+
+        var bpl = document.getElementById('ehBagsPlus');
+        if (bpl) bpl.addEventListener('click', function () {
+          ehBagsExtraKg += 10;
+          var v = document.getElementById('ehBagsVal');
+          if (v) v.textContent = ehBagsExtraKg + 'kg';
+        });
+        var bmi = document.getElementById('ehBagsMinus');
+        if (bmi) bmi.addEventListener('click', function () {
+          if (ehBagsExtraKg > 0) {
+            ehBagsExtraKg -= 10;
+            var v = document.getElementById('ehBagsVal');
+            if (v) v.textContent = ehBagsExtraKg + 'kg';
+          }
+        });
+        var bto = document.getElementById('ehBagsTabOut');
+        var btr = document.getElementById('ehBagsTabRet');
+        if (bto) bto.addEventListener('click', function () {
+          this.classList.add('is-active');
+          if (btr) btr.classList.remove('is-active');
+        });
+        if (btr) btr.addEventListener('click', function () {
+          this.classList.add('is-active');
+          if (bto) bto.classList.remove('is-active');
+        });
+        var bb = document.getElementById('ehBagsBack');
+        if (bb) bb.addEventListener('click', function () { ehShowPage('seats'); });
+        var bc = document.getElementById('ehBagsContinue');
+        if (bc) bc.addEventListener('click', function () {
+          ehFlightLabEmit('booking.bags.continue', { extraKg: ehBagsExtraKg });
+          ehShowPage('extras');
+        });
+
+        var eb = document.getElementById('ehExtrasBack');
+        if (eb) eb.addEventListener('click', function () { ehShowPage('bags'); });
+        var ec = document.getElementById('ehExtrasContinue');
+        if (ec) ec.addEventListener('click', function () {
+          ehFlightLabEmit('booking.extras.continue', {});
+          ehShowPage('payment');
+        });
+
+        var gb = document.getElementById('ehGuestsBack');
+        if (gb) gb.addEventListener('click', function () { ehShowPage('list'); });
+        var gs = document.getElementById('ehGuestsSkip');
+        if (gs) gs.addEventListener('click', function () {
+          ehFlightLabEmit('booking.guests.skip', {});
+          ehShowPage('seats');
+        });
+        var gc = document.getElementById('ehGuestsContinue');
+        if (gc) gc.addEventListener('click', function () {
+          ehFlightLabEmit('booking.guests.continue', { cabin: ehSelectedCabin, fare: ehSelectedFare ? ehSelectedFare.label : '' });
+          ehShowPage('seats');
+        });
+
+        var scb = document.getElementById('ehSeatsContinueBtn');
+        if (scb) scb.addEventListener('click', function () {
+          ehFlightLabEmit('booking.seats.continue', { outConfirmed: ehSeatOutConfirmed, retConfirmed: ehSeatRetConfirmed });
+          ehShowPage('bags');
+        });
+        var sba = document.getElementById('ehSeatsBack');
+        if (sba) sba.addEventListener('click', function () { ehShowPage('guests'); });
+
+        var pb = document.getElementById('ehPaymentBack');
+        if (pb) pb.addEventListener('click', function () {
+          ehShowPage('extras');
+        });
+
+        ['ehPayMethodCard','ehPayMethodApple','ehPayMethodPaypal','ehPayMethodWallet'].forEach(function (id) {
+          var item = document.getElementById(id);
+          if (!item) return;
+          item.addEventListener('click', function () {
+            document.querySelectorAll('.eh-pay-method-item').forEach(function (m) {
+              m.classList.remove('is-selected');
+              var toggle = m.querySelector('.eh-pay-toggle');
+              if (toggle) toggle.classList.remove('is-on');
+            });
+            item.classList.add('is-selected');
+            var toggle = item.querySelector('.eh-pay-toggle');
+            if (toggle) toggle.classList.add('is-on');
+          });
+        });
+
+        var payBtn = document.getElementById('ehPayNowBtn');
+        if (payBtn) payBtn.addEventListener('click', function () {
+          var fare  = ehSelectedFare  ? ehSelectedFare.label  : 'Comfort';
+          var cabin = ehSelectedCabin ? ehSelectedCabin        : 'economy';
+          ehFlightLabEmit('booking.payment.complete', {
+            cabinClass:   cabin,
+            fareLabel:    fare,
+            totalGBP:     '3248.39',
+            outSeat:      ehSeatOutConfirmed ? 'confirmed' : 'none',
+            retSeat:      ehSeatRetConfirmed ? 'confirmed' : 'none',
+            extraBagsKg:  ehBagsExtraKg,
+            personalised: ehProfileIsDetractor,
+          });
+          overlay.hidden = true;
+          ehCurrentPage = 'list';
+          var resBody = overlay.querySelector('.eh-res-body');
+          if (resBody) resBody.style.display = '';
+          document.querySelectorAll('.eh-booking-page').forEach(function (p) { p.classList.remove('is-active'); });
+          var fp = document.getElementById('ehFarePanel');
+          if (fp) { fp.innerHTML = ''; fp.classList.remove('is-open'); }
+          if (upsellModal) upsellModal.classList.remove('is-open');
+          if (seatModal) seatModal.classList.remove('is-open');
+          ehSetStep('flights');
+          ehSeatOutConfirmed = false;
+          ehSeatRetConfirmed = false;
+          ehSeatOutCode = '';
+          ehSeatRetCode = '';
+          ehBagsExtraKg = 0;
+          ehSelectedFlight = null;
+          ehSelectedCabin = null;
+          ehSelectedFare = null;
+          ehSelectedBasePrice = 0;
+          var bv = document.getElementById('ehBagsVal');
+          if (bv) bv.textContent = '0kg';
+        });
+      }
+
       function resolveRouteKey() {
         var fromCode = BS.from && BS.from.code ? BS.from.code : 'LHR';
         var toCode = BS.to && BS.to.code ? BS.to.code : 'AUH';
@@ -3448,6 +4721,11 @@
         currentDateIndex = ai >= 0 ? ai : Math.min(3, route.dates.length - 1);
         buildDateRow(route.dates, currentDateIndex);
         flightRows.innerHTML = '';
+        var _fp = document.getElementById('ehFarePanel');
+        if (_fp) { _fp.innerHTML = ''; _fp.classList.remove('is-open'); }
+        ehShowPage('list');
+        ehSeatOutConfirmed = false; ehSeatRetConfirmed = false; ehSeatOutCode = ''; ehSeatRetCode = '';
+        ehBagsExtraKg = 0;
         route.flights.forEach(function (f) {
           flightRows.appendChild(buildFlightRow(f, route.from, route.to));
         });
@@ -3475,7 +4753,14 @@
 
       backBtn &&
         backBtn.addEventListener('click', function () {
-          overlay.hidden = true;
+          if (ehCurrentPage === 'list') {
+            var fp = document.getElementById('ehFarePanel');
+            if (fp) { fp.innerHTML = ''; fp.classList.remove('is-open'); }
+            overlay.hidden = true;
+          } else {
+            var prev = { guests:'list', seats:'guests', bags:'seats', extras:'bags', payment:'extras' };
+            ehShowPage(prev[ehCurrentPage] || 'list');
+          }
         });
       modifyLink &&
         modifyLink.addEventListener('click', function (e) {
@@ -3503,11 +4788,20 @@
       flightRows.addEventListener('click', function (e) {
         var btn = e.target.closest('.eh-price-view');
         if (btn) {
-          var route = EH_FLIGHTS[currentRoute] || {};
+          var route      = EH_FLIGHTS[currentRoute] || {};
+          var flightNum  = btn.getAttribute('data-flight');
+          var cabinClass = btn.getAttribute('data-class');
+          var basePrice  = Number(btn.getAttribute('data-price'));
+          var match      = (route.flights || []).find(function (f) { return f.num === flightNum; }) || {};
+          expandFareTiers(flightNum, cabinClass, basePrice, {
+            num: flightNum, dep: match.dep || '', arr: match.arr || '',
+            stops: match.stops || '', duration: match.duration || '',
+            from: route.from || 'LHR', to: route.to || 'AUH',
+          });
           ehFlightLabEmit('flight.select', {
-            flightNumber: btn.getAttribute('data-flight'),
-            cabinClass: btn.getAttribute('data-class'),
-            priceGBP: Number(btn.getAttribute('data-price')),
+            flightNumber: flightNum,
+            cabinClass: cabinClass,
+            priceGBP: basePrice,
             originAirport: route.from || 'LHR',
             destinationAirport: route.to || 'AUH',
             personalised: ehProfileIsDetractor,
@@ -3518,6 +4812,7 @@
           ehFlightLabEmit('flight.details.view', { routeKey: currentRoute });
         }
       });
+      ehWireBookingFlowListeners();
     })();
     document.addEventListener('DOMContentLoaded', function () {
       hvdEmit('travel.journey.pageView', { hvDetractorStep: 1, journey: 'hv_detractor' });
