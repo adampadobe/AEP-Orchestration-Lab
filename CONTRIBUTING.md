@@ -445,36 +445,57 @@ tokens). If you work on anything in `web/profile-viewer/`, follow the
 
 ### Adding a New Demo
 
-Profile Viewer **Demos** in `web/profile-viewer/aep-lab-nav.js` use a **channel-first** menu. Contributors must place every demo under the correct channel before opening a PR.
+Profile Viewer **Demos** in `web/profile-viewer/aep-lab-nav.js` follow a **customer-first** tree: each named or generic programme is one collapsible block, and **channels** (Web, Mobile, Call Centre) sit under that customer. **Mobile** always lists **Phone** and **iPad** when that customer has a mobile lab story (use a non-link placeholder row with `navPlaceholder: true` until the iPad experience ships).
 
-**Target structure (mandatory)**
+**Canonical structure (mandatory)**
 
 ```text
-Demo
+<Customer demo>
  ├─ Web
- │   └─ <Customer or explicit generic name>
  ├─ Mobile
- │   └─ <Customer or explicit generic name>
- │       ├─ Phone
- │       └─ iPad
+ │   ├─ Phone
+ │   └─ iPad
  └─ Call Centre
-     └─ <Customer or explicit generic name>
 ```
+
+**Examples**
+
+```text
+Etihad
+ ├─ Web
+ ├─ Mobile
+ │   ├─ Phone
+ │   └─ iPad (to be built)
+ └─ Call Centre
+
+FNB
+ ├─ Web
+ ├─ Mobile
+ │   ├─ Phone
+ │   └─ iPad (to be built)
+ └─ Call Centre
+```
+
+**Implementation in `aep-lab-nav.js`**
+
+- Add one **subgroup** per customer under the **Demos** group with `demoCustomer: true` and a `channels` array.
+- Each channel is `{ id, label, items }` where `label` is `Web`, `Mobile`, or `Call Centre`.
+- **Phone** / **iPad** are normal `items` under the **Mobile** channel; iPad may use `navPlaceholder: true` (no `href`) plus `navHideKey` and the same `demoMeta` as sibling links so **Mine / sandbox** filters stay coherent.
+- Hash deep links for the mobile simulator (`#fnb-phone`, `#etihad-phone`, …) must stay aligned with `HASH_ROUTES` in `mobile-demo.js` / `mobile-demo-apalmer.js`.
 
 **Rules**
 
-- **Channel-first:** browsers filter and stakeholders scan by *where* the experience runs (web, mobile device lab, contact centre). Customer or industry names sit **under** the channel, not above it.
-- **Naming customer demos:** use the public brand or programme name the lab agreed to ship (e.g. `FNB`, `Etihad`). Avoid internal-only codenames in nav labels.
-- **Mobile form factors:** the shared nav only has one subgroup level under **Mobile**, so **Phone** and **iPad** are separate sidebar links. Each link must point at a URL the mobile simulator understands (see `mobile-demo.js` / `mobile-demo-apalmer.js` `HASH_ROUTES` and matching `href` fragments in `aep-lab-nav.js`). Add matching `navHideKey` values so **Global values** can hide Phone and iPad independently.
-- **Generic vs named:** use a **named** customer entry when the HTML, copy, and data hooks are clearly for that programme. Use an explicit **generic** label (e.g. `Generic retail`) when the asset is reusable across customers and there is no single brand story.
-- **Do not** add new top-level channels (only **Web**, **Mobile**, **Call Centre**) without an explicit product decision.
+- **Customer-first:** stakeholders scan by *who* the story is for; channel is the second axis.
+- **Naming:** use the agreed public programme or brand name (`FNB`, `Etihad`, …). For reusable assets without one brand, use an explicit generic label (e.g. `Generic retail`).
+- **Channels:** do not invent channel names other than **Web**, **Mobile**, and **Call Centre** without a product decision.
+- **Web-only demos:** use a single **Web** channel (omit empty Mobile / Call Centre blocks).
 
 **Checklist before you submit**
 
-1. Register the demo under **Web**, **Mobile**, or **Call Centre** in `aep-lab-nav.js` (with `demoMeta.owners` / optional `demoMeta.sandboxes` when the demo is sandbox-specific).
-2. For **Mobile**, add **Phone** and **iPad** links if both apply; keep `HASH_ROUTES` and `href` fragments in sync.
-3. If you add a new HTML page, bump any cache-busting query on shared scripts you touch, run `npm run verify:profile-viewer-routes`, and run `npm run sync-profile-viewer-ui` when the Express mirror must stay aligned.
-4. Confirm light and dark themes and **Global values** hide keys for new items.
+1. Register the customer block under **Demos** with `demoCustomer`, `channels`, `demoMeta.owners`, and optional `demoMeta.sandboxes`.
+2. Wire **Mobile** Phone to the correct simulator URL + hash; add **iPad** as a link or `navPlaceholder` per lab readiness.
+3. Bump `home.css` / `aep-lab-nav.js` cache query on pages you touch if styles or nav data changed; run `npm run verify:profile-viewer-routes` and `npm run sync-profile-viewer-ui` when the Express mirror must stay aligned.
+4. Confirm light/dark themes and **Global values** hide keys for every new `navHideKey`.
 
 ### Profile Viewer lab demos — environment strip (Sandbox, Tags, event destination)
 

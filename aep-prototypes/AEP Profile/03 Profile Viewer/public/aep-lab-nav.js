@@ -328,145 +328,268 @@
       items: [],
       subgroups: [
         {
-          id: 'demosWeb',
-          label: 'Web',
-          items: [
+          id: 'demoEtihad',
+          label: 'Etihad',
+          demoCustomer: true,
+          channels: [
             {
-              label: 'Donate (in development)',
-              href: 'donate-demo.html',
-              inDevelopment: true,
-              navHideKey: 'donateDemo',
-              ico: '\uD83D\uDC9D',
-              demoMeta: { owners: ['kirkham'] },
+              id: 'etihadWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Etihad journey (in development)',
+                  href: 'etihad-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'etihadAirlineDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+                },
+              ],
             },
             {
-              label: 'Race for Life (in development)',
-              href: 'race-for-life-demo.html',
-              inDevelopment: true,
-              navHideKey: 'raceForLifeDemo',
-              ico: '\uD83C\uDFC3',
-              demoMeta: { owners: ['kirkham'] },
+              id: 'etihadMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Phone (in development)',
+                  href: 'mobile-demo-apalmer.html#etihad-phone',
+                  inDevelopment: true,
+                  navHideKey: 'mobileDemoApalmerPhone',
+                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'iPad (to be built) (in development)',
+                  navPlaceholder: true,
+                  inDevelopment: true,
+                  navHideKey: 'mobileDemoApalmerIpad',
+                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
+                  ico: '\uD83D\uDCF2',
+                },
+              ],
             },
             {
-              label: 'British Army (in development)',
-              href: 'mod-demo.html',
-              inDevelopment: true,
-              navHideKey: 'modDemo',
-              demoMeta: { owners: ['kirkham'] },
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 3l2 4 4.5.5-3 3 1 5L12 14l-4.5 3 1-5-3-3L10 7l2-4z"/><path stroke="currentColor" stroke-width="1.5" d="M6 21h12" opacity="0.6"/></svg>',
-            },
-            {
-              label: 'Navigator Global (in development)',
-              href: 'navigator-global-demo.html',
-              inDevelopment: true,
-              navHideKey: 'navigatorGlobalDemo',
-              demoMeta: { owners: ['kirkham'] },
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 2a7 7 0 015.196 11.607l2.804 2.804a1 1 0 01-1.414 1.414l-2.804-2.804A7 7 0 1112 2z"/><circle cx="12" cy="11" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
-            },
-            {
-              label: 'FNB journey (in development)',
-              href: 'fnb-demo.html',
-              inDevelopment: true,
-              navHideKey: 'fnbDemo',
-              demoMeta: { owners: ['kirkham'] },
-              ico: '\uD83C\uDFE6',
-            },
-            {
-              label: 'Old Mutual journey (in development)',
-              href: 'oldmutual-demo.html',
-              inDevelopment: true,
-              navHideKey: 'oldMutualDemo',
-              demoMeta: { owners: ['kirkham'] },
-              ico: '\uD83E\uDDED',
-            },
-            {
-              label: 'Admiral journey (in development)',
-              href: 'admiral-demo.html',
-              inDevelopment: true,
-              navHideKey: 'admiralDemo',
-              demoMeta: { owners: ['sburch'] },
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3.5L19.2 7.2V16.8L12 20.5L4.8 16.8V7.2L12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.8 7.2L12 11L19.2 7.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-            },
-            {
-              label: 'Premier Inn (in development)',
-              href: 'premier-inn-demo.html',
-              inDevelopment: true,
-              navHideKey: 'premierInnDemo',
-              demoMeta: { owners: ['apalmer'] },
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-            },
-            {
-              label: 'Etihad (in development)',
-              href: 'etihad-demo.html',
-              inDevelopment: true,
-              navHideKey: 'etihadAirlineDemo',
-              demoMeta: { owners: ['apalmer'] },
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+              id: 'etihadCallCentre',
+              label: 'Call Centre',
+              items: [
+                {
+                  label: 'Contact centre (in development)',
+                  href: 'call-center-demo-apalmer.html',
+                  inDevelopment: true,
+                  navHideKey: 'callCenterDemoApalmer',
+                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
+                  ico: '\u260E\uFE0F',
+                },
+              ],
             },
           ],
         },
         {
-          id: 'demosMobile',
-          label: 'Mobile',
-          items: [
+          id: 'demoFnb',
+          label: 'FNB',
+          demoCustomer: true,
+          channels: [
             {
-              label: 'FNB · Phone (in development)',
-              href: 'mobile-demo.html#fnb-phone',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoFnbPhone',
-              demoMeta: { owners: ['kirkham'] },
-              ico: '\uD83D\uDCF1',
+              id: 'fnbWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'FNB journey (in development)',
+                  href: 'fnb-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'fnbDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83C\uDFE6',
+                },
+              ],
             },
             {
-              label: 'FNB · iPad (in development)',
-              href: 'mobile-demo.html#fnb-ipad',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoFnbIpad',
-              demoMeta: { owners: ['kirkham'] },
-              ico: '\uD83D\uDCF2',
+              id: 'fnbMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Phone (in development)',
+                  href: 'mobile-demo.html#fnb-phone',
+                  inDevelopment: true,
+                  navHideKey: 'mobileDemoFnbPhone',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'iPad (to be built) (in development)',
+                  navPlaceholder: true,
+                  inDevelopment: true,
+                  navHideKey: 'mobileDemoFnbIpad',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83D\uDCF2',
+                },
+              ],
             },
             {
-              label: 'Etihad · Phone — apalmer (in development)',
-              href: 'mobile-demo-apalmer.html#etihad-phone',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoApalmerPhone',
-              demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-              ico: '\u2708\uFE0F',
-            },
-            {
-              label: 'Etihad · iPad — apalmer (in development)',
-              href: 'mobile-demo-apalmer.html#etihad-ipad',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoApalmerIpad',
-              demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-              ico: '\u2708\uFE0F',
+              id: 'fnbCallCentre',
+              label: 'Call Centre',
+              items: [
+                {
+                  label: 'Call centre (in development)',
+                  href: 'call-center-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'callCenterDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\u260E\uFE0F',
+                },
+              ],
             },
           ],
         },
         {
-          id: 'demosCallCentre',
-          label: 'Call Centre',
-          items: [
+          id: 'demoOldMutual',
+          label: 'Old Mutual',
+          demoCustomer: true,
+          channels: [
             {
-              label: 'FNB · Call centre (in development)',
-              href: 'call-center-demo.html',
-              inDevelopment: true,
-              navHideKey: 'callCenterDemo',
-              demoMeta: { owners: ['kirkham'] },
-              ico: '\u260E\uFE0F',
+              id: 'omWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Old Mutual journey (in development)',
+                  href: 'oldmutual-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'oldMutualDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83E\uDDED',
+                },
+              ],
             },
+          ],
+        },
+        {
+          id: 'demoAdmiral',
+          label: 'Admiral',
+          demoCustomer: true,
+          channels: [
             {
-              label: 'Contact centre — apalmer (in development)',
-              href: 'call-center-demo-apalmer.html',
-              inDevelopment: true,
-              navHideKey: 'callCenterDemoApalmer',
-              demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-              ico: '\u260E\uFE0F',
+              id: 'admiralWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Admiral journey (in development)',
+                  href: 'admiral-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'admiralDemo',
+                  demoMeta: { owners: ['sburch'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3.5L19.2 7.2V16.8L12 20.5L4.8 16.8V7.2L12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.8 7.2L12 11L19.2 7.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoPremierInn',
+          label: 'Premier Inn',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'piWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Premier Inn (in development)',
+                  href: 'premier-inn-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'premierInnDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoDonate',
+          label: 'Donate',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'donateWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Donate (in development)',
+                  href: 'donate-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'donateDemo',
+                  ico: '\uD83D\uDC9D',
+                  demoMeta: { owners: ['kirkham'] },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoRaceForLife',
+          label: 'Race for Life',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'rflWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Race for Life (in development)',
+                  href: 'race-for-life-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'raceForLifeDemo',
+                  ico: '\uD83C\uDFC3',
+                  demoMeta: { owners: ['kirkham'] },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoMod',
+          label: 'British Army',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'modWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'British Army (in development)',
+                  href: 'mod-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'modDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 3l2 4 4.5.5-3 3 1 5L12 14l-4.5 3 1-5-3-3L10 7l2-4z"/><path stroke="currentColor" stroke-width="1.5" d="M6 21h12" opacity="0.6"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoNavigator',
+          label: 'Navigator Global',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'navWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Navigator Global (in development)',
+                  href: 'navigator-global-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'navigatorGlobalDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 2a7 7 0 015.196 11.607l2.804 2.804a1 1 0 01-1.414 1.414l-2.804-2.804A7 7 0 1112 2z"/><circle cx="12" cy="11" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+                },
+              ],
             },
           ],
         },
@@ -588,7 +711,13 @@
         var groupName = entry.group || 'General';
         (entry.items || []).forEach(function (item) { pushOption(item, groupName); });
         (entry.subgroups || []).forEach(function (sg) {
-          (sg.items || []).forEach(function (item) { pushOption(item, groupName); });
+          if (sg.demoCustomer && sg.channels && sg.channels.length) {
+            sg.channels.forEach(function (ch) {
+              (ch.items || []).forEach(function (item) { pushOption(item, groupName); });
+            });
+          } else {
+            (sg.items || []).forEach(function (item) { pushOption(item, groupName); });
+          }
         });
       } else {
         pushOption(entry, 'General');
@@ -610,7 +739,40 @@
 
   /* ── Builders ── */
 
+  /** Non-link row (e.g. Mobile → iPad lab page not ready); still respects demoMeta + Global values hide keys. */
+  function buildPlaceholderNavRow(def) {
+    var raw = normalizeNavLabelText(def.label);
+    var stacked = /^(.+?)\s+\(in development\)\s*$/i.exec(raw);
+    var useStacked = !!stacked;
+    var tooltipText = stripInDevelopmentSuffix(raw) || raw;
+    var wrap = mk('span', 'dashboard-nav-item dashboard-nav-item--placeholder', {
+      tabindex: '-1',
+      'aria-disabled': 'true',
+      'data-tooltip': tooltipText,
+    });
+    var ico = mk('span', 'dashboard-nav-ico', { 'aria-hidden': 'true' });
+    if (def.ico && def.ico.charAt(0) === '<') { ico.innerHTML = def.ico; } else { ico.textContent = def.ico || '—'; }
+    var lbl = mk('span', 'dashboard-nav-label');
+    if (useStacked) {
+      lbl.className += ' dashboard-nav-label--stacked';
+      var primary = mk('span', 'dashboard-nav-label-primary');
+      primary.textContent = stacked[1].trim();
+      var dev = mk('span', 'dashboard-nav-label-dev');
+      dev.textContent = '(in development)';
+      lbl.appendChild(primary);
+      lbl.appendChild(dev);
+    } else {
+      lbl.textContent = raw;
+    }
+    wrap.appendChild(ico);
+    wrap.appendChild(lbl);
+    return wrap;
+  }
+
   function buildItem(def, filename) {
+    if (def.navPlaceholder) {
+      return buildPlaceholderNavRow(def);
+    }
     var active = navItemActive(def.href, filename);
     var raw = normalizeNavLabelText(def.label);
     var isLiveActivities = def.href === 'live-activities.html';
@@ -681,6 +843,58 @@
     return wrap;
   }
 
+  /**
+   * Customer demo: collapsible customer name, then channel sections (Web / Mobile / Call Centre)
+   * with Mobile nesting Phone + iPad rows in the DOM.
+   */
+  function buildCustomerDemoSubgroup(sgDef, channelRows, filename, gStates) {
+    if (!channelRows || !channelRows.length) return null;
+
+    var expanded = gStates[sgDef.id] !== false;
+    var wrap = mk('div', 'dashboard-nav-subgroup dashboard-nav-subgroup--customer-demo' + (expanded ? ' dashboard-nav-subgroup--expanded' : ''), {
+      'data-subgroup': sgDef.id,
+    });
+
+    var toggle = mk('button', 'dashboard-nav-subgroup-toggle', {
+      type: 'button',
+      'aria-expanded': String(expanded),
+      'data-tooltip': sgDef.label,
+      'aria-label': (expanded ? 'Collapse ' : 'Expand ') + sgDef.label + ' section',
+    });
+    var chev = mk('span', 'dashboard-nav-subgroup-chevron', { 'aria-hidden': 'true' });
+    var gl = mk('span', 'dashboard-nav-subgroup-label');
+    gl.textContent = sgDef.label;
+    toggle.appendChild(chev);
+    toggle.appendChild(gl);
+    wrap.appendChild(toggle);
+
+    var sgItems = mk('div', 'dashboard-nav-subgroup-items');
+    channelRows.forEach(function (row) {
+      var chWrap = mk('div', 'dashboard-nav-customer-channel');
+      var head = mk('div', 'dashboard-nav-channel-label');
+      head.textContent = row.channelLabel;
+      chWrap.appendChild(head);
+      var rowItems = mk('div', 'dashboard-nav-channel-items');
+      row.items.forEach(function (item) {
+        rowItems.appendChild(buildItem(item, filename));
+      });
+      chWrap.appendChild(rowItems);
+      sgItems.appendChild(chWrap);
+    });
+    wrap.appendChild(sgItems);
+
+    toggle.addEventListener('click', function () {
+      var isExp = wrap.classList.toggle('dashboard-nav-subgroup--expanded');
+      toggle.setAttribute('aria-expanded', String(isExp));
+      toggle.setAttribute('aria-label', (isExp ? 'Collapse ' : 'Expand ') + sgDef.label + ' section');
+      var st = getGroupStates();
+      st[sgDef.id] = isExp;
+      saveGroupStates(st);
+    });
+
+    return wrap;
+  }
+
   function buildGroup(def, filename, gStates) {
     var visibleItems = [];
     (def.items || []).forEach(function (item) {
@@ -690,11 +904,25 @@
     var subgroupsToShow = [];
     if (def.subgroups && def.subgroups.length) {
       def.subgroups.forEach(function (sg) {
-        var sgVis = [];
-        sg.items.forEach(function (item) {
-          if (shouldShowNavItem(item)) sgVis.push(item);
-        });
-        if (sgVis.length) subgroupsToShow.push({ def: sg, items: sgVis });
+        if (sg.demoCustomer && sg.channels && sg.channels.length) {
+          var channelRows = [];
+          sg.channels.forEach(function (ch) {
+            var vis = [];
+            (ch.items || []).forEach(function (item) {
+              if (shouldShowNavItem(item)) vis.push(item);
+            });
+            if (vis.length) {
+              channelRows.push({ channelLabel: ch.label, items: vis });
+            }
+          });
+          if (channelRows.length) subgroupsToShow.push({ def: sg, channelRows: channelRows });
+        } else {
+          var sgVis = [];
+          (sg.items || []).forEach(function (item) {
+            if (shouldShowNavItem(item)) sgVis.push(item);
+          });
+          if (sgVis.length) subgroupsToShow.push({ def: sg, items: sgVis });
+        }
       });
     }
 
@@ -727,7 +955,9 @@
       items.appendChild(buildItem(item, filename));
     });
     subgroupsToShow.forEach(function (sg) {
-      var sub = buildSubgroup(sg.def, sg.items, filename, gStates);
+      var sub = sg.channelRows
+        ? buildCustomerDemoSubgroup(sg.def, sg.channelRows, filename, gStates)
+        : buildSubgroup(sg.def, sg.items, filename, gStates);
       if (sub) items.appendChild(sub);
     });
     wrap.appendChild(items);

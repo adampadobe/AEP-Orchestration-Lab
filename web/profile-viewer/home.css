@@ -1162,6 +1162,61 @@ html[data-aep-theme='dark'] .dashboard-nav-subgroup {
   opacity: 1;
 }
 
+/* Customer demo (Etihad, FNB, …): taller stack under Web / Mobile / Call Centre */
+.dashboard-nav-subgroup--customer-demo .dashboard-nav-subgroup-items {
+  max-height: 0;
+}
+
+.dashboard-nav-subgroup--customer-demo.dashboard-nav-subgroup--expanded .dashboard-nav-subgroup-items {
+  max-height: 2200px;
+}
+
+.dashboard-nav-customer-channel {
+  margin: 0.15rem 0 0.35rem 0;
+}
+
+.dashboard-nav-channel-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--menu-fg-muted);
+  padding: 0.25rem 0.5rem 0.1rem 0.35rem;
+}
+
+.dashboard-nav-channel-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid rgba(20, 115, 230, 0.14);
+}
+
+html[data-aep-theme='dark'] .dashboard-nav-channel-items {
+  border-left-color: rgba(125, 211, 252, 0.18);
+}
+
+.dashboard-nav-item--placeholder {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.dashboard-sidebar--collapsed .dashboard-nav-item--placeholder,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-item--placeholder {
+  opacity: 0.55;
+}
+
+.dashboard-sidebar--collapsed .dashboard-nav-channel-label,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-channel-label {
+  display: none;
+}
+
+.dashboard-sidebar--collapsed .dashboard-nav-channel-items,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-channel-items {
+  border-left: none;
+  padding-left: 0;
+}
+
 .dashboard-sidebar--collapsed .dashboard-nav-subgroup-toggle,
 html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-subgroup-toggle {
   justify-content: center;
