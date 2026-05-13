@@ -1575,7 +1575,8 @@
     .eh-results-overlay {
       position: fixed; inset: 0; z-index: 400;
       display: flex; flex-direction: column;
-      background: var(--dash-bg, #f4f5f7); overflow-y: auto;
+      background: #f0f2f5; overflow-y: auto;
+      color: #1a1a1a; /* override dark site body color */
       animation: ehSlideIn 0.25s ease;
     }
     .eh-results-overlay[hidden] { display: none; }
@@ -1643,7 +1644,7 @@
       .eh-res-list-head { grid-template-columns: 1fr auto; }
       .eh-res-col-head { display: none; }
     }
-    .eh-res-outbound { font-size: 1.05rem; font-weight: 700; }
+    .eh-res-outbound { font-size: 1.05rem; font-weight: 700; color: #0d2340; }
     .eh-res-filter-btn {
       display: flex; align-items: center; gap: 0.3rem;
       border: 1px solid #ccc; background: #fff; border-radius: 999px;
@@ -1661,16 +1662,21 @@
       border-radius: 10px; margin-bottom: 0.5rem; overflow: hidden;
     }
     @media (max-width: 700px) { .eh-flight-row { grid-template-columns: 1fr; } }
-    .eh-flight-info { padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .eh-flight-info { padding: 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
     .eh-flight-tag {
       display: inline-block; background: #b08747; color: #fff; font-size: 0.68rem;
-      font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; width: fit-content;
+      font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 2px; width: fit-content;
     }
-    .eh-flight-times { display: flex; align-items: baseline; gap: 0.5rem; font-size: 1.35rem; font-weight: 700; }
-    .eh-next { font-size: 0.7rem; font-weight: 600; color: #888; }
+    .eh-flight-times { display: flex; align-items: center; gap: 0.4rem; }
+    .eh-time-block { display: flex; flex-direction: column; align-items: center; }
+    .eh-time { font-size: 1.3rem; font-weight: 700; color: #0d2340; line-height: 1.1; }
+    .eh-apt-code { font-size: 0.72rem; color: #888; font-weight: 400; }
+    .eh-time-line { display: flex; align-items: center; }
+    .eh-next { font-size: 0.7rem; font-weight: 600; color: #888; vertical-align: super; }
+    .eh-flight-amenities { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
     .eh-flight-via { font-size: 0.78rem; color: #666; display: flex; align-items: center; gap: 0.35rem; }
     .eh-details-link { color: #0d2340; text-decoration: underline; font-weight: 600; margin-left: 0.25rem; cursor: pointer; }
-    .eh-flight-tail { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 1rem; gap: 0.25rem; }
+    .eh-flight-tail { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 0.75rem; gap: 0.25rem; border-left: 1px solid #f0f0f0; }
     .eh-flight-num { font-size: 0.72rem; color: #888; text-align: center; }
     .eh-price-cell {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1680,7 +1686,7 @@
     .eh-price-badge { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.03em; }
     .eh-price-badge.sale, .eh-price-badge.seats { background: #e53935; color: #fff; }
     .eh-price-from { font-size: 0.7rem; color: #888; }
-    .eh-price-amount { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+    .eh-price-amount { font-size: 1.35rem; font-weight: 800; line-height: 1; color: #0d2340; }
     .eh-price-view {
       display: flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 600;
       color: #0d2340; cursor: pointer; border: none; background: none; font-family: inherit; padding: 0;
@@ -3312,55 +3318,54 @@
         });
       }
 
-      function buildFlightRow(f) {
+      var AMENITY_ICONS =
+        '<svg title="IFE" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg>' +
+        '<svg title="Wi-Fi" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>' +
+        '<svg title="Seat" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><path d="M6 3v10a2 2 0 002 2h8M6 13h10M15 13v4M6 19h9"/></svg>' +
+        '<svg title="Power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+
+      var TAIL_SVG =
+        '<svg width="54" height="40" viewBox="0 0 54 40" fill="none" aria-hidden="true">' +
+        '<path d="M27 2 L38 18 L27 16 L16 18 Z" fill="#c9973a"/>' +
+        '<path d="M16 18 L38 18 L42 36 L12 36 Z" fill="#dec39b"/>' +
+        '<path d="M20 36 L34 36 L36 40 L18 40 Z" fill="#0d2340"/>' +
+        '<text x="27" y="30" text-anchor="middle" font-size="6" font-weight="700" fill="#0d2340" font-family="Arial">EY</text>' +
+        '</svg>';
+
+      function buildFlightRow(f, fromCode, toCode) {
         var row = document.createElement('div');
         row.className = 'eh-flight-row';
+        var depLabel = fromCode ? '<span class="eh-apt-code">' + fromCode + '</span>' : '';
+        var arrLabel = toCode   ? '<span class="eh-apt-code">' + toCode   + '</span>' : '';
         row.innerHTML =
           '<div class="eh-flight-info">' +
-          (f.tag ? '<span class="eh-flight-tag">' + f.tag + '</span>' : '') +
-          '<div class="eh-flight-times"><span>' +
-          f.dep +
-          '</span><span style="font-size:0.75rem;color:#aaa;font-weight:400;">——✈——</span><span>' +
-          f.arr +
-          (f.next ? '<sup class="eh-next">+1</sup>' : '') +
-          '</span></div>' +
-          '<div class="eh-flight-via"><span>' +
-          f.stops +
-          ' · ' +
-          f.duration +
-          '</span><span class="eh-details-link">Details</span></div>' +
+          (f.tag ? '<span class="eh-flight-tag">' + f.tag + '</span>' : '<span style="display:inline-block;height:20px;margin-bottom:4px;"></span>') +
+          '<div class="eh-flight-times">' +
+          '<span class="eh-time-block"><span class="eh-time">' + f.dep + '</span>' + depLabel + '</span>' +
+          '<span class="eh-time-line"><svg width="80" height="12" viewBox="0 0 80 12" fill="none"><line x1="0" y1="6" x2="60" y2="6" stroke="#ccc" stroke-width="1.5" stroke-dasharray="4 3"/><polygon points="60,3 68,6 60,9" fill="#888"/></svg></span>' +
+          '<span class="eh-time-block"><span class="eh-time">' + f.arr + (f.next ? '<sup class="eh-next">+1</sup>' : '') + '</span>' + arrLabel + '</span>' +
+          '</div>' +
+          '<div class="eh-flight-amenities">' + (f.tag ? AMENITY_ICONS : '') + '</div>' +
+          '<div class="eh-flight-via"><span>' + f.stops + ' · ' + f.duration + '</span>' +
+          '<span class="eh-details-link">Details</span></div>' +
           '</div>' +
           '<div class="eh-flight-tail">' +
-          '<svg width="52" height="28" viewBox="0 0 60 32" fill="none" aria-hidden="true"><path d="M4 28L28 4l4 2-18 16 2 6H4z" fill="#b08747"/><path d="M28 4l28 8-2 4L30 8l-2-4z" fill="#0d2340"/></svg>' +
-          '<div class="eh-flight-num">' +
-          f.num +
-          '</div>' +
+          TAIL_SVG +
+          '<div class="eh-flight-num">' + f.num + '</div>' +
           '</div>' +
           '<div class="eh-price-cell">' +
           (f.sale ? '<span class="eh-price-badge sale">Sale</span>' : '') +
-          '<span class="eh-price-from">From GBP</span><span class="eh-price-amount">' +
-          f.eco +
-          '</span>' +
-          '<button type="button" class="eh-price-view" data-flight="' +
-          f.num +
-          '" data-class="economy" data-price="' +
-          f.eco +
-          '">View <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<span class="eh-price-from">From GBP</span>' +
+          '<span class="eh-price-amount">' + f.eco + '</span>' +
+          '<button type="button" class="eh-price-view" data-flight="' + f.num + '" data-class="economy" data-price="' + f.eco + '">View <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>' +
           '</div>' +
           '<div class="eh-price-cell eh-biz-cell">' +
           (f.seats
             ? '<span class="eh-price-badge seats">' + f.seats + '</span>'
-            : f.sale
-              ? '<span class="eh-price-badge sale">Sale</span>'
-              : '') +
-          '<span class="eh-price-from">From GBP</span><span class="eh-price-amount">' +
-          f.biz +
-          '</span>' +
-          '<button type="button" class="eh-price-view" data-flight="' +
-          f.num +
-          '" data-class="business" data-price="' +
-          f.biz +
-          '">View <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+            : f.sale ? '<span class="eh-price-badge sale">Sale</span>' : '') +
+          '<span class="eh-price-from">From GBP</span>' +
+          '<span class="eh-price-amount">' + f.biz + '</span>' +
+          '<button type="button" class="eh-price-view" data-flight="' + f.num + '" data-class="business" data-price="' + f.biz + '">View <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>' +
           '</div>';
         return row;
       }
@@ -3376,7 +3381,7 @@
         buildDateRow(route.dates, currentDateIndex);
         flightRows.innerHTML = '';
         route.flights.forEach(function (f) {
-          flightRows.appendChild(buildFlightRow(f));
+          flightRows.appendChild(buildFlightRow(f, route.from, route.to));
         });
         if (goldCallout) {
           goldCallout.hidden = !ehProfileIsDetractor;
