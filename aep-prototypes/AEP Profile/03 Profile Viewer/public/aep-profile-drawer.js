@@ -1081,7 +1081,14 @@ async function loadProfileDataForDrawer(email, options) {
       }
       return false;
     }
-    if (typeof addEmail === 'function' && (opts.addEmailOnSuccess || opts.updateMessage)) addEmail(emailTrim);
+    if (data.found && (opts.addEmailOnSuccess || opts.updateMessage)) {
+      if (typeof addRecentIdentifier === 'function') addRecentIdentifier(emailTrim, ns);
+      else if (typeof addEmail === 'function') addEmail(emailTrim);
+      if (typeof addEmail === 'function' && data.email) {
+        const resolvedEmail = String(data.email).trim();
+        if (resolvedEmail) addEmail(resolvedEmail);
+      }
+    }
 
     const ecidVal =
       data.ecid == null ? '' : Array.isArray(data.ecid) ? (data.ecid[0] != null ? String(data.ecid[0]) : '') : String(data.ecid);

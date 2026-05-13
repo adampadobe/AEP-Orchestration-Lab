@@ -4,8 +4,43 @@
  */
 
 const customerEmail = document.getElementById('customerEmail');
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+const etihadNs = document.getElementById('etihadNs');
+
+/** Pre-fill identifier from shared recent-identifiers map (same keys as consent / home). */
+function hydrateEtihadIdentifierFromRecents() {
+  if (!customerEmail || (customerEmail.value || '').trim()) return;
+  let ns = 'email';
+  try {
+    if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+      ns = AepIdentityPicker.getNamespace('customerEmail') || 'email';
+    } else if (etihadNs && etihadNs.value) {
+      ns = String(etihadNs.value).trim().toLowerCase();
+    }
+  } catch {
+    /* noop */
+  }
+  try {
+    if (typeof getRecentForNamespace === 'function') {
+      const rec = getRecentForNamespace(ns);
+      if (rec.length) customerEmail.value = rec[0];
+    }
+  } catch {
+    /* noop */
+  }
+}
+
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'etihadNs');
+if (typeof attachEmailDatalist === 'function') {
+  attachEmailDatalist('customerEmail', 'recentEmails', 'etihadNs');
+}
+hydrateEtihadIdentifierFromRecents();
+if (etihadNs) {
+  etihadNs.addEventListener('change', function () {
+    window.requestAnimationFrame(function () {
+      hydrateEtihadIdentifierFromRecents();
+    });
+  });
+}
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const etihadMessage = document.getElementById('etihadMessage');
