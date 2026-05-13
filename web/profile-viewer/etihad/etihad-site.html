@@ -221,13 +221,48 @@
     }
     #sidebar.collapsed .sidebar-collapse-btn svg { transform: rotate(180deg); }
 
-    /* ─── MAIN CONTENT ───────────────────────────────────────── */
-    #main-content {
+    /* ─── TOPBAR + SCROLL COLUMN (ribbon sits under fixed sidebar stack) ─ */
+    .eh-topbar {
+      position: relative;
+      z-index: 100;
+    }
+    .eh-scroll {
       margin-left: var(--sidebar-width);
       transition: margin-left 200ms ease;
       min-width: 0;
     }
-    #sidebar.collapsed ~ #main-content { margin-left: var(--sidebar-collapsed); }
+    body:has(#sidebar.collapsed) .eh-scroll {
+      margin-left: var(--sidebar-collapsed);
+    }
+
+    /* ─── MAIN CONTENT ───────────────────────────────────────── */
+    #main-content {
+      min-width: 0;
+    }
+
+    /* ── Promo ribbon (in-flow under topbar / sidebar stack) ── */
+    #ehPromoRibbon {
+      position: relative;
+      width: 100%;
+      text-align: center;
+      padding: 10px 16px;
+      background: #b08747;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: auto;
+      font-family: 'Etihad Altis', Arial, sans-serif;
+    }
+    #ehPromoRibbon a {
+      color: #fff;
+    }
+    #ehPromoRibbon #ehPromoRibbonText {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1.4;
+    }
+    #ehPromoRibbon #ehPromoRibbonText a { font-weight: 600; }
 
     /* Inner width centering helper */
     .inner {
@@ -1342,12 +1377,8 @@
     #ehGoldJourney .eh-inner {
       max-width: var(--inner-width);
       margin: 0 auto;
-      padding-left: calc(var(--sidebar-width) + 24px);
+      padding-left: 24px;
       padding-right: 24px;
-    }
-    body:has(#sidebar.collapsed) #ehGoldOfferStrip .eh-inner,
-    body:has(#sidebar.collapsed) #ehGoldJourney .eh-inner {
-      padding-left: calc(var(--sidebar-collapsed) + 24px);
     }
     @media (max-width: 720px) {
       #ehGoldOfferStrip .eh-inner,
@@ -1362,87 +1393,9 @@
 </head>
 <body>
 
-  <!-- Gold personalisation: shell postMessage (etihad-events.js loads from <head>) -->
-  <!-- Gold upgrade offer strip — hidden until detractor profile loaded -->
-  <section id="ehGoldOfferStrip" aria-label="Gold upgrade offer">
-    <div class="eh-inner">
-      <div class="eh-gold-strip">
-        <svg class="eh-gold-strip-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-          <circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/>
-          <path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/>
-        </svg>
-        <div class="eh-gold-strip-text">
-          <h3>Exclusive Gold upgrade offer, <span id="ehGoldFirstName">valued guest</span></h3>
-          <p>You're closer to Gold than you think. Unlock lounge access, bonus miles and priority boarding — we'll reduce the qualifying tier criteria just for you.</p>
-        </div>
-        <button type="button" class="eh-gold-strip-cta" id="ehGoldStripCta">See my Gold offer</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Your Gold Journey — hidden until detractor profile loaded -->
-  <section id="ehGoldJourney" aria-label="Your Gold journey">
-    <div class="eh-inner">
-      <div style="margin-top:40px; margin-bottom:8px;">
-        <h2 style="font-size:24px; font-weight:700; color:#dec39b; margin:0 0 6px;">Your <span style="color:#fff;">Gold</span> Journey</h2>
-        <p style="color:rgba(255,255,255,0.65); margin:0; font-size:14px;">Three steps to unlock Etihad Gold status and the benefits you deserve.</p>
-      </div>
-      <div class="eh-gold-journey-grid">
-        <div class="eh-gold-journey-card">
-          <div class="step-num">1</div>
-          <h4>Fly 2 more sectors</h4>
-          <p>Complete just 2 qualifying flights in the next 90 days and meet your tier criteria.</p>
-        </div>
-        <div class="eh-gold-journey-card">
-          <div class="step-num">2</div>
-          <h4>Unlock Gold benefits</h4>
-          <p>Enjoy priority check-in, business lounge access and 50% bonus miles on every flight.</p>
-        </div>
-        <div class="eh-gold-journey-card">
-          <div class="step-num">3</div>
-          <h4>Earn more, travel better</h4>
-          <p>Gold members earn 1.5× Etihad Guest Miles and enjoy complimentary upgrades when available.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Demo path: HV Detractor Journey — etihad-site.html + etihad-events.js (postMessage → etihad-demo.html → POST /api/events/generator). Gold offer strip, booking/search/stopover/destination/nav wiring in page script. -->
-  <style id="eh-promo-ribbon-styles">
-    #ehPromoRibbon {
-      position: relative;
-      z-index: 250;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      padding: 12px 20px 12px calc(var(--sidebar-width) + 16px);
-      font-family: 'Etihad Altis', Arial, sans-serif;
-      background: linear-gradient(90deg, #c9973a 0%, #a8781e 100%);
-      color: #1b2d3e;
-      border-bottom: 1px solid rgba(27, 45, 62, 0.2);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      text-align: center;
-    }
-    @media (max-width: 720px) {
-      #ehPromoRibbon { padding-left: 20px; padding-right: 16px; }
-    }
-    #ehPromoRibbon #ehPromoRibbonText {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      line-height: 1.4;
-    }
-    #ehPromoRibbon #ehPromoRibbonText a { font-weight: 600; }
-  </style>
-  <div id="ehPromoRibbon" role="region" aria-label="Promotions">
-    <span id="ehPromoRibbonText">Global Sale — up to 30% off selected routes.
-      <a href="#" style="color:inherit; text-decoration:underline;">Book before 14 May</a>
-    </span>
-  </div>
-
+  <header class="eh-topbar">
   <!-- ═══════════════════════════════════════════
-       SIDEBAR
+       SIDEBAR (nav + Etihad logo)
   ═══════════════════════════════════════════════ -->
   <aside id="sidebar">
     <!-- Logo -->
@@ -1504,10 +1457,66 @@
     </button>
   </aside>
 
+  </header>
+
+  <div class="eh-scroll">
+  <!-- Demo path: HV Detractor Journey — etihad-site.html + etihad-events.js (postMessage → etihad-demo.html → POST /api/events/generator). Gold offer strip, booking/search/stopover/destination/nav wiring in page script. -->
+  <div id="ehPromoRibbon" role="region" aria-label="Promotions">
+    <span id="ehPromoRibbonText">Global Sale — up to 30% off selected routes.
+      <a href="#" style="text-decoration:underline;">Book before 14 May</a>
+    </span>
+  </div>
+
+  <!-- Gold personalisation: shell postMessage (etihad-events.js loads from <head>) -->
+  <!-- Gold upgrade offer strip — hidden until detractor profile loaded -->
+  <section id="ehGoldOfferStrip" aria-label="Gold upgrade offer">
+    <div class="eh-inner">
+      <div class="eh-gold-strip">
+        <svg class="eh-gold-strip-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <circle cx="24" cy="24" r="23" stroke="#b08747" stroke-width="1.5"/>
+          <path d="M24 12l3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z" fill="#dec39b"/>
+        </svg>
+        <div class="eh-gold-strip-text">
+          <h3>Exclusive Gold upgrade offer, <span id="ehGoldFirstName">valued guest</span></h3>
+          <p>You're closer to Gold than you think. Unlock lounge access, bonus miles and priority boarding — we'll reduce the qualifying tier criteria just for you.</p>
+        </div>
+        <button type="button" class="eh-gold-strip-cta" id="ehGoldStripCta">See my Gold offer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Your Gold Journey — hidden until detractor profile loaded -->
+  <section id="ehGoldJourney" aria-label="Your Gold journey">
+    <div class="eh-inner">
+      <div style="margin-top:40px; margin-bottom:8px;">
+        <h2 style="font-size:24px; font-weight:700; color:#dec39b; margin:0 0 6px;">Your <span style="color:#fff;">Gold</span> Journey</h2>
+        <p style="color:rgba(255,255,255,0.65); margin:0; font-size:14px;">Three steps to unlock Etihad Gold status and the benefits you deserve.</p>
+      </div>
+      <div class="eh-gold-journey-grid">
+        <div class="eh-gold-journey-card">
+          <div class="step-num">1</div>
+          <h4>Fly 2 more sectors</h4>
+          <p>Complete just 2 qualifying flights in the next 90 days and meet your tier criteria.</p>
+        </div>
+        <div class="eh-gold-journey-card">
+          <div class="step-num">2</div>
+          <h4>Unlock Gold benefits</h4>
+          <p>Enjoy priority check-in, business lounge access and 50% bonus miles on every flight.</p>
+        </div>
+        <div class="eh-gold-journey-card">
+          <div class="step-num">3</div>
+          <h4>Earn more, travel better</h4>
+          <p>Gold members earn 1.5× Etihad Guest Miles and enjoy complimentary upgrades when available.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════
        MAIN CONTENT
   ═══════════════════════════════════════════════ -->
   <main id="main-content">
+
 
     <!-- ─── HERO BANNER SLIDER ──────────────────────────────── -->
     <section class="hero" id="heroBanner">
@@ -2006,6 +2015,7 @@
       </div>
     </footer>
   </main>
+  </div>
 
   <!-- ── Nav flyout panel (shared, repositioned by JS) ──────── -->
   <div id="navFlyout" class="nav-flyout" role="menu">
