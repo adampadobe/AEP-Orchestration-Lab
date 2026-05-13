@@ -1571,7 +1571,7 @@
       border: 0;
     }
 
-    /* ── Flight results overlay (MASTER STEP 7 subset) ── */
+    /* ── Flight results overlay ── */
     .eh-results-overlay {
       position: fixed; inset: 0; z-index: 400;
       display: flex; flex-direction: column;
@@ -1721,11 +1721,11 @@
       margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e8e8e8;
     }
     .eh-res-back-btn {
-      border: 1px solid #ccc; background: #fff; border-radius: 999px;
-      padding: 0.65rem 1.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      border: 1.5px solid #ccc; background: #fff; border-radius: 999px;
+      padding: 0.6rem 1.4rem; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
     }
     .eh-res-back-btn:hover { background: #f5f5f5; }
-    .eh-res-more-btn { padding: 0.65rem 1.75rem; }
+    .eh-res-more-btn { min-width: 160px; }
 
   </style>
   <script src="etihad-events.js"></script>
@@ -2419,7 +2419,7 @@
     </div>
   </div>
 
-  <!-- Flight search results overlay (MASTER STEP 5) -->
+  <!-- Flight search results overlay -->
   <div id="ehResultsOverlay" class="eh-results-overlay" hidden>
     <div class="eh-res-header">
       <div class="eh-res-header-inner">
