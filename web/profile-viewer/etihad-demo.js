@@ -173,6 +173,14 @@ window.addEventListener('message', async function (ev) {
       window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
         ? window.DemoProfileDrawer.getLastLookedUpProfile()
         : null;
+    const profileMsg = profile
+      ? {
+          firstName: profile.firstName || null,
+          loyaltyStatus: profile.loyaltyStatus || null,
+          churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+          propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+        }
+      : null;
 
     if (etihadSiteFrame && etihadSiteFrame.contentWindow) {
       etihadSiteFrame.contentWindow.postMessage(
@@ -181,33 +189,16 @@ window.addEventListener('message', async function (ev) {
           type: 'login-complete',
           found: !!ok,
           firstName: profile ? profile.firstName || null : null,
-          profile: profile
-            ? {
-                firstName: profile.firstName || null,
-                loyaltyStatus: profile.loyaltyStatus || null,
-                churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
-                propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
-              }
-            : null,
+          profile: profileMsg,
         },
         '*'
       );
-    }
-
-    if (ok && profile && etihadSiteFrame && etihadSiteFrame.contentWindow) {
-      etihadSiteFrame.contentWindow.postMessage(
-        {
-          source: 'etihad-demo-shell',
-          type: 'profile-loaded',
-          profile: {
-            firstName: profile.firstName || null,
-            loyaltyStatus: profile.loyaltyStatus || null,
-            churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
-            propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
-          },
-        },
-        '*'
-      );
+      if (ok && profileMsg) {
+        etihadSiteFrame.contentWindow.postMessage(
+          { source: 'etihad-demo-shell', type: 'profile-loaded', profile: profileMsg },
+          '*'
+        );
+      }
     }
 
     if (ok && etihadTagsInjection && typeof etihadTagsInjection.stitchAfterProfileLookup === 'function') {
