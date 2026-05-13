@@ -1357,11 +1357,6 @@
       }
     }
 
-    /* Hide legacy fixed HVD strip when profile-conditional Gold blocks are visible */
-    body:has(#ehGoldOfferStrip.eh-profile-visible) #hvd-offer-strip,
-    body:has(#ehGoldOfferStrip.eh-profile-visible) #hvd-gold-journey {
-      display: none !important;
-    }
   </style>
   <script src="etihad-events.js"></script>
 </head>
@@ -1413,14 +1408,13 @@
   </section>
 
   <!-- Demo path: HV Detractor Journey — etihad-site.html + etihad-events.js (postMessage → etihad-demo.html → POST /api/events/generator). Gold offer strip, booking/search/stopover/destination/nav wiring in page script. -->
-  <style id="hvd-offer-strip-styles">
-    #hvd-offer-strip {
+  <style id="eh-promo-ribbon-styles">
+    #ehPromoRibbon {
       position: relative;
       z-index: 250;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+      justify-content: center;
       flex-wrap: wrap;
       padding: 12px 20px 12px calc(var(--sidebar-width) + 16px);
       font-family: 'Etihad Altis', Arial, sans-serif;
@@ -1428,57 +1422,23 @@
       color: #1b2d3e;
       border-bottom: 1px solid rgba(27, 45, 62, 0.2);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      text-align: center;
     }
-    #hvd-offer-strip.hvd-offer-strip-dismissed { display: none !important; }
     @media (max-width: 720px) {
-      #hvd-offer-strip { padding-left: 20px; padding-right: 16px; }
+      #ehPromoRibbon { padding-left: 20px; padding-right: 16px; }
     }
-    #hvd-offer-strip .hvd-offer-strip-text { flex: 1; min-width: 200px; }
-    #hvd-offer-strip .hvd-offer-strip-title { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; margin: 0 0 4px; }
-    #hvd-offer-strip .hvd-offer-strip-sub { font-size: 13px; font-weight: 400; margin: 0; opacity: 0.92; line-height: 1.35; }
-    #hvd-offer-strip .hvd-offer-strip-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    #hvd-offer-strip-cta {
-      cursor: pointer;
-      border: none;
-      border-radius: 999px;
-      padding: 10px 20px;
-      font-size: 13px;
+    #ehPromoRibbon #ehPromoRibbonText {
+      font-size: 15px;
       font-weight: 600;
-      font-family: inherit;
-      color: #c9973a;
-      background: #1b2d3e;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      box-shadow: 0 2px 8px rgba(27, 45, 62, 0.25);
+      letter-spacing: 0.02em;
+      line-height: 1.4;
     }
-    #hvd-offer-strip-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27, 45, 62, 0.35); }
-    #hvd-offer-strip-dismiss {
-      cursor: pointer;
-      border: none;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      font-size: 22px;
-      line-height: 1;
-      font-family: Arial, sans-serif;
-      color: #1b2d3e;
-      background: rgba(255, 255, 255, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.15s ease;
-    }
-    #hvd-offer-strip-dismiss:hover { background: rgba(255, 255, 255, 0.55); }
+    #ehPromoRibbon #ehPromoRibbonText a { font-weight: 600; }
   </style>
-  <div id="hvd-offer-strip" role="region" aria-label="Etihad Guest Gold upgrade offer">
-    <div class="hvd-offer-strip-text">
-      <p class="hvd-offer-strip-title">You are close to Gold — upgrade on this trip</p>
-      <p class="hvd-offer-strip-sub">Lock in extra Tier Miles and lounge access when you book today.</p>
-    </div>
-    <div class="hvd-offer-strip-actions">
-      <button type="button" id="hvd-offer-strip-cta">View offer &amp; book</button>
-      <button type="button" id="hvd-offer-strip-dismiss" aria-label="Dismiss offer">×</button>
-    </div>
+  <div id="ehPromoRibbon" role="region" aria-label="Promotions">
+    <span id="ehPromoRibbonText">Global Sale — up to 30% off selected routes.
+      <a href="#" style="color:inherit; text-decoration:underline;">Book before 14 May</a>
+    </span>
   </div>
 
   <!-- ═══════════════════════════════════════════
@@ -1749,87 +1709,6 @@
         </div>
       </div>
     </div>
-
-    <style id="hvd-gold-journey-styles">
-      #hvd-gold-journey {
-        background: #1b2d3e;
-        color: #ffffff;
-        padding: 48px 0 56px;
-        font-family: 'Etihad Altis', Arial, sans-serif;
-      }
-      #hvd-gold-journey .hvd-gj-inner { max-width: var(--inner-width); margin: 0 auto; padding: 0 24px; }
-      #hvd-gold-journey .hvd-gj-head { margin-bottom: 28px; text-align: center; }
-      #hvd-gold-journey .hvd-gj-title {
-        font-size: 26px;
-        font-weight: 500;
-        letter-spacing: -0.02em;
-        margin: 0 0 8px;
-      }
-      #hvd-gold-journey .hvd-gj-title span { color: #c9973a; }
-      #hvd-gold-journey .hvd-gj-lede { font-size: 15px; color: rgba(255, 255, 255, 0.78); margin: 0; line-height: 1.5; }
-      #hvd-gold-journey .hvd-gj-cards {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-        margin-bottom: 28px;
-      }
-      @media (max-width: 900px) {
-        #hvd-gold-journey .hvd-gj-cards { grid-template-columns: 1fr; }
-      }
-      #hvd-gold-journey .hvd-gj-card {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(201, 151, 58, 0.35);
-        border-radius: 16px;
-        padding: 20px 20px 22px;
-        min-height: 120px;
-      }
-      #hvd-gold-journey .hvd-gj-card h3 {
-        font-size: 16px;
-        font-weight: 600;
-        color: #c9973a;
-        margin: 0 0 10px;
-      }
-      #hvd-gold-journey .hvd-gj-card p { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, 0.85); margin: 0; }
-      #hvd-gold-journey .hvd-gj-cta-wrap { text-align: center; }
-      #hvd-gold-journey-cta {
-        cursor: pointer;
-        border: 2px solid #c9973a;
-        border-radius: 999px;
-        padding: 12px 28px;
-        font-size: 14px;
-        font-weight: 600;
-        font-family: inherit;
-        color: #1b2d3e;
-        background: #c9973a;
-        transition: background 0.15s ease, color 0.15s ease;
-      }
-      #hvd-gold-journey-cta:hover { background: #a8781e; color: #ffffff; border-color: #a8781e; }
-    </style>
-    <section id="hvd-gold-journey" class="hvd-gold-journey-section" aria-labelledby="hvd-gold-journey-title">
-      <div class="hvd-gj-inner">
-        <div class="hvd-gj-head">
-          <h2 class="hvd-gj-title" id="hvd-gold-journey-title">Your <span>Gold</span> journey</h2>
-          <p class="hvd-gj-lede">Three reasons travellers like you pick Gold before long-haul trips — then jump back into booking.</p>
-        </div>
-        <div class="hvd-gj-cards">
-          <article class="hvd-gj-card">
-            <h3>Lounge &amp; priority</h3>
-            <p>Relax before you fly with priority check-in and fast-track security where available.</p>
-          </article>
-          <article class="hvd-gj-card">
-            <h3>Extra baggage</h3>
-            <p>Pack for the whole family with an additional allowance on select routes.</p>
-          </article>
-          <article class="hvd-gj-card">
-            <h3>Bonus Tier Miles</h3>
-            <p>Earn faster on this booking and get closer to your next tier milestone.</p>
-          </article>
-        </div>
-        <div class="hvd-gj-cta-wrap">
-          <button type="button" id="hvd-gold-journey-cta">Continue to booking</button>
-        </div>
-      </div>
-    </section>
 
     <!-- ─── SECTION: FLIGHTS FROM NEW YORK ──────────────────── -->
     <section class="section section-dest">
@@ -2758,26 +2637,9 @@
         );
       }
     }
-    function hvdScrollToBooking() {
-      const el = document.querySelector('.booking-widget-wrap');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
       hvdEmit('travel.journey.pageView', { hvDetractorStep: 1, journey: 'hv_detractor' });
       hvdEmit('travel.journey.demoReady', { hvDetractorStep: 2, journey: 'hv_detractor' });
-    });
-
-    document.getElementById('hvd-offer-strip-cta')?.addEventListener('click', function () {
-      hvdEmit('travel.loyalty.goldUpgradeIntent', { hvDetractorStep: 3, source: 'offerStrip' });
-      hvdScrollToBooking();
-    });
-    document.getElementById('hvd-offer-strip-dismiss')?.addEventListener('click', function () {
-      document.getElementById('hvd-offer-strip')?.classList.add('hvd-offer-strip-dismissed');
-    });
-    document.getElementById('hvd-gold-journey-cta')?.addEventListener('click', function () {
-      hvdEmit('travel.loyalty.goldUpgradeIntent', { hvDetractorStep: 3, source: 'goldJourney' });
-      hvdScrollToBooking();
     });
 
     (function () {
@@ -2838,8 +2700,16 @@
       var goldJourney  = document.getElementById('ehGoldJourney');
       var firstNameEl  = document.getElementById('ehGoldFirstName');
       var goldStripCta = document.getElementById('ehGoldStripCta');
+      var ribbonText   = document.getElementById('ehPromoRibbonText');
+
+      var GENERIC_RIBBON = 'Global Sale — up to 30% off selected routes. <a href="#" style="color:inherit;text-decoration:underline;">Book before 14 May</a>';
 
       function showGold(firstName) {
+        if (ribbonText) {
+          ribbonText.innerHTML = firstName
+            ? 'You\u2019re close to Gold, ' + firstName + ' — <a href="#" style="color:inherit;text-decoration:underline;">unlock your upgrade offer</a>'
+            : 'You\u2019re close to Gold — <a href="#" style="color:inherit;text-decoration:underline;">unlock your upgrade offer</a>';
+        }
         if (firstNameEl && firstName) firstNameEl.textContent = firstName;
         if (goldStrip)   { goldStrip.classList.add('eh-profile-visible', 'eh-profile-fade-in'); }
         if (goldJourney) { goldJourney.classList.add('eh-profile-visible', 'eh-profile-fade-in'); }
@@ -2853,6 +2723,7 @@
       }
 
       function hideGold() {
+        if (ribbonText) ribbonText.innerHTML = GENERIC_RIBBON;
         if (goldStrip)   goldStrip.classList.remove('eh-profile-visible', 'eh-profile-fade-in');
         if (goldJourney) goldJourney.classList.remove('eh-profile-visible', 'eh-profile-fade-in');
         if (firstNameEl) firstNameEl.textContent = 'valued guest';
@@ -2862,7 +2733,6 @@
         var p     = ev.data.profile || {};
         var tier  = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';
         var churn = p.churnPrediction != null ? Number(p.churnPrediction) : null;
-        // churnPrediction is on a 0–100 scale; normalise if already decimal
         if (churn != null && churn <= 1) churn = churn * 100;
         var isDetractor = (tier === 'bronze' || tier === 'silver') && churn != null && churn >= 60;
         if (isDetractor) { showGold(p.firstName); } else { hideGold(); }
