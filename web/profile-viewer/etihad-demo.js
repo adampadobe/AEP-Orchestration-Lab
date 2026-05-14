@@ -71,6 +71,7 @@ const etihadTagsInjection =
         configSummaryTextId: 'etihadSdkConfigSummaryText',
         changeConfigButtonId: 'etihadChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
       })
     : null;

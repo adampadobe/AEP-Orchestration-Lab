@@ -47,6 +47,7 @@ const raceTagsInjection =
         configSummaryTextId: 'raceSdkConfigSummaryText',
         changeConfigButtonId: 'raceChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         /**
          * Parent shell only (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`) — Launch + #infoEcid stay on one document with generator ECID.
          */

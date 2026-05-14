@@ -31,6 +31,8 @@ Canonical logic lives in **`web/profile-viewer/demo-tags-injection.js`** (shared
 
 5. **Generator mirror (optional but recommended on Tag demos):** if `DemoTagsInjection.init` receives **`getSelectedGeneratorTarget`**, the lab sends the same **`web.webPageDetails.pageViews`** identity through **`POST /api/events/generator`** right after the Edge `sendEvent`. The drawer’s **`GET /api/profile/events`** path often reflects generator traffic sooner than Edge-only ingestion, so the timeline is not blank while you demo.
 
+6. **Refresh without re-clicking Inject:** pass **`getEmail`** from each demo shell (e.g. `() => (customerEmail && customerEmail.value) || ''`). When the **lab email field is empty**, this sandbox is still **SDK-configured**, and a persisted Launch URL exists, **`DemoTagsInjection`** **auto-re-injects** that script on page load and runs **`syncEcidFromAlloy`** so **`getIdentity`** can reuse the **same anonymous ECID** (Adobe identity persistence). The last resolved ECID per sandbox is cached in **`localStorage`** so **`#infoEcid`** can show immediately until `getIdentity` completes. Use **`resumeSdkOnReload: false`** on `init` to disable.
+
 Optional: use a distinct **`webPageDetails.name`** suffix (e.g. `· AEP lab (anonymous ECID)`) so Data Explorer / queries can spot lab traffic.
 
 ## Demos with an iframe “site” + parent shell

@@ -1,5 +1,8 @@
 /* Shared Tags/Launch injection flow for demo pages.
  * One-time per-sandbox config, reload-based injection with cache busting, and ECID/email stitching helpers.
+ * When the lab email field is empty and this sandbox is still SDK-configured, a normal refresh
+ * auto-reinjects the persisted Launch URL so alloy/getIdentity can reuse the same ECID without
+ * clicking Inject again (optional cfg.getEmail gates this; cfg.resumeSdkOnReload: false opts out).
  *
  * Anonymous Edge + _demoemea: see docs/ANONYMOUS_EDGE_DEMO_PATTERN.md (core.ecid + getIdentity + single sendEvent).
  */
@@ -189,6 +192,7 @@
     const scriptStorageKey = storagePrefix + 'SelectedLaunchScriptBySandbox';
     const configuredStorageKey = storagePrefix + 'SdkConfiguredBySandbox';
     const pendingSessionKey = storagePrefix + 'PendingLaunchInject';
+    const ecidBySandboxKey = storagePrefix + 'LastResolvedEcidBySandbox';
     const identityEventType = String(cfg.identityEventType || 'demo.identity.stitch');
 
     const injectSdkBtn = byId(cfg.injectButtonId);
@@ -265,6 +269,46 @@
       if (configured) map[key] = 1;
       else delete map[key];
       writeStorageMap(configuredStorageKey, map);
+    }
+
+    function readLastResolvedEcid() {
+      const map = readStorageMap(ecidBySandboxKey);
+      return normaliseEcidDigits(map[getSandboxKey()]);
+    }
+
+    function persistLastResolvedEcid(ecidDigits) {
+      const id = normaliseEcidDigits(ecidDigits);
+      const map = readStorageMap(ecidBySandboxKey);
+      const key = getSandboxKey();
+      if (!id) delete map[key];
+      else map[key] = id;
+      writeStorageMap(ecidBySandboxKey, map);
+    }
+
+    function clearLastResolvedEcidForSandbox() {
+      const map = readStorageMap(ecidBySandboxKey);
+      delete map[getSandboxKey()];
+      writeStorageMap(ecidBySandboxKey, map);
+    }
+
+    function currentLabEmailForSdkResume() {
+      if (typeof cfg.getEmail === 'function') return String(cfg.getEmail() || '').trim();
+      return '';
+    }
+
+    /**
+     * Full page reload removes the injected Launch tag. When the lab email field is empty and this
+     * sandbox is still marked SDK-configured, re-inject the persisted property so alloy/getIdentity
+     * can restore the same anonymous ECID without another manual inject click.
+     */
+    function shouldResumeAnonymousSdkInjection() {
+      if (cfg.resumeSdkOnReload === false) return false;
+      if (!isSdkConfiguredForSandbox()) return false;
+      const url = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+      if (!url) return false;
+      const labEmail = currentLabEmailForSdkResume();
+      if (labEmail && looksLikeEmail(labEmail)) return false;
+      return true;
     }
 
     /** When Tags lists reload, keep showing the persisted Launch URL if this sandbox is already SDK-configured (avoids “Selected script: None” after inject + properties load). */
@@ -670,6 +714,7 @@
           return '';
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
+        persistLastResolvedEcid(ecid);
         await sendDemoemeaWebPageViewToEdge(alloyFn, {
           phase: 'post-ecid-anonymous',
           ecid: ecid,
@@ -875,6 +920,7 @@
     if (changeSdkConfigBtn) {
       changeSdkConfigBtn.addEventListener('click', function () {
         markSdkConfiguredForSandbox(false);
+        clearLastResolvedEcidForSandbox();
         setSdkConfigExpanded(true);
         setMessage('SDK config reopened for this sandbox.', '');
       });
@@ -902,7 +948,27 @@
     } else {
       dtLog('init: no pending inject — applySandboxConfigState');
       applySandboxConfigState();
-      void loadTagsCompanies();
+      const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+      if (shouldResumeAnonymousSdkInjection() && persistedResume) {
+        dtLog('init: anonymous resume — auto-reinject persisted Launch script', {
+          sandboxKey: getSandboxKey(),
+          preview: dtPreview(persistedResume),
+        });
+        const cachedEcid = readLastResolvedEcid();
+        if (cachedEcid && infoEcidEl) {
+          const cur = String(infoEcidEl.textContent || '').trim();
+          if (!cur || cur === '—' || cur === '-' || cur.length < 10) {
+            infoEcidEl.textContent = cachedEcid;
+            setMessage('Restoring Web SDK — last lab ECID shown until getIdentity refreshes.', '');
+          }
+        }
+        renderSelectedScript(persistedResume);
+        void injectSelectedScriptNow(persistedResume).finally(function () {
+          void loadTagsCompanies();
+        });
+      } else {
+        void loadTagsCompanies();
+      }
     }
 
     return {

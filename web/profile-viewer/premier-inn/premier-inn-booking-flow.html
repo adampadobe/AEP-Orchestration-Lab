@@ -5,7 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Book your stay — lab journey</title>
   <meta name="description" content="Lab booking: Manchester city break → filters → breakfast content → checkout abandon; emits hotel.* events to the parent AEP shell."/>
-  <script src="premier-inn-events.js?v=20260513-city-break-filters"></script>
+  <script>
+    (function () {
+      try {
+        var u = localStorage.getItem('piPremierInnDemoAssetBase');
+        if (u && typeof u === 'string') window.__PI_ASSET_ORIGIN = u.replace(/\/*$/, '');
+      } catch (e) {}
+      if (!window.__PI_ASSET_ORIGIN) window.__PI_ASSET_ORIGIN = 'https://www.premierinn.com';
+    })();
+    function piAsset(path) {
+      var o = window.__PI_ASSET_ORIGIN || 'https://www.premierinn.com';
+      if (path.charAt(0) !== '/') path = '/' + path;
+      return o.replace(/\/*$/, '') + path;
+    }
+    function piApplyAssets() {
+      document.querySelectorAll('[data-pi-src]').forEach(function (el) {
+        el.setAttribute('src', piAsset(el.getAttribute('data-pi-src')));
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
+    else piApplyAssets();
+  </script>
+  <script src="premier-inn-events.js?v=20260212-hotel-funnel-exit"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; background: #f4f0f7; }
@@ -20,7 +41,58 @@
       justify-content: space-between;
       gap: 12px;
     }
-    .pi-lab-header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .pi-lab-header-brand {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px 20px;
+      min-width: 0;
+    }
+    .pi-lab-logo-link {
+      display: flex;
+      align-items: center;
+      line-height: 0;
+      flex-shrink: 0;
+      border-radius: 6px;
+    }
+    .pi-lab-logo-link:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+    .pi-lab-logo-link img {
+      height: 36px;
+      width: auto;
+      max-width: 172px;
+      display: block;
+    }
+    .pi-lab-header-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px;
+      min-width: 0;
+    }
+    .pi-lab-title-link {
+      color: inherit;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .pi-lab-title-link:hover {
+      text-decoration: underline;
+    }
+    .pi-lab-title-link:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    .pi-lab-header-labsuffix {
+      font-weight: 400;
+      opacity: 0.85;
+    }
     .pi-lab-steps { font-size: 13px; opacity: 0.95; }
     .pi-wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
     .pi-card {
@@ -198,7 +270,20 @@
 </head>
 <body>
   <header class="pi-lab-header">
-    <h1>Book your stay <span style="font-weight:400;opacity:.85">(lab)</span></h1>
+    <div class="pi-lab-header-brand">
+      <a id="piLabHomeFromLogo" class="pi-lab-logo-link" href="#" aria-label="Premier Inn — back to search (lab)">
+        <img
+          data-pi-src="/content/dam/pi/websites/desktop/icons/brand/premier-inn-master-logo-white-2026.png"
+          alt="Premier Inn"
+          width="180"
+          height="40"
+        />
+      </a>
+      <h1 class="pi-lab-header-title">
+        <a id="piLabHomeFromTitle" class="pi-lab-title-link" href="#">Book your stay</a>
+        <span class="pi-lab-header-labsuffix"> (lab)</span>
+      </h1>
+    </div>
     <div class="pi-lab-steps" id="piStepLabel" aria-live="polite">Step 1 of 3 · Results</div>
   </header>
   <div class="pi-wrap">
@@ -276,6 +361,7 @@
         Default journey: <strong>Manchester city break</strong> → <code>hotel.search</code> on the home mock → this page fires
         <code>hotel.availability.view</code>, then <code>hotel.filter.apply</code> when guests toggle amenities,
         <code>hotel.content.view</code> when they open breakfast details, then room select → payment → <code>hotel.checkout.abandon</code>.
+        Logo or “Book your stay” in the purple header sends <code>hotel.funnel.exit</code> (see <em>hotelJourneyStage</em> + <em>hotelExitVia</em>) before returning to the lab home — distinct from payment abandon.
         Abandon recovery can use <em>hotelDemandForecastScore</em>, <em>hotelInventoryAvailable</em>, and <em>hotelResumeUrl</em> as before.
       </p>
     </details>
@@ -385,6 +471,46 @@
 
       function searchIntent() {
         return isManchester() ? 'city_break' : 'leisure';
+      }
+
+      function currentJourneyStage() {
+        if (stepSummary && !stepSummary.hidden) return 'confirmation';
+        if (stepPayment && !stepPayment.hidden) return 'payment';
+        if (stepCheckout && !stepCheckout.hidden) return 'booking_summary';
+        return 'rates';
+      }
+
+      function emitHeaderExitAndHome(exitVia, ev) {
+        if (ev) ev.preventDefault();
+        var stage = currentJourneyStage();
+        var pub = {
+          hotelExitReason: 'navigate_lab_home',
+          hotelExitVia: exitVia,
+          hotelJourneyStage: stage,
+          hotelFunnelStep: 'lab_header_exit',
+          hotelSearchIntent: searchIntent(),
+          linkUrl: homeSearchUrl(),
+          ctaLabel: 'lab_home',
+        };
+        if (selectedHotel && selectedHotel.id) {
+          pub.hotelPropertyId = selectedHotel.id;
+          pub.hotelPropertyName = selectedHotel.name;
+        }
+        emit('hotel.funnel.exit', pub, 'Hospitality lab — funnel exit (' + stage + ')');
+        window.location.href = homeSearchUrl();
+      }
+
+      var logoHome = document.getElementById('piLabHomeFromLogo');
+      var titleHome = document.getElementById('piLabHomeFromTitle');
+      if (logoHome) {
+        logoHome.addEventListener('click', function (e) {
+          emitHeaderExitAndHome('header_logo', e);
+        });
+      }
+      if (titleHome) {
+        titleHome.addEventListener('click', function (e) {
+          emitHeaderExitAndHome('header_title', e);
+        });
       }
 
       function allCatalogHotels() {

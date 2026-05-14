@@ -34,6 +34,7 @@ const admiralTagsInjection =
         configSummaryTextId: 'admiralSdkConfigSummaryText',
         changeConfigButtonId: 'admiralChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         /**
          * Parent shell only — same pattern as Premier Inn (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
          * Injecting Launch into the iframe mints a different ECID / kndctr context than parent

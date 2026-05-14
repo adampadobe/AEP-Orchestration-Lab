@@ -36,6 +36,7 @@ const premierInnTagsInjection =
         configSummaryTextId: 'premierInnSdkConfigSummaryText',
         changeConfigButtonId: 'premierInnChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         /* Launch only on the parent shell: iframe + third-party cookies often mint a different ECID than the parent, while hotel.* events use parent #infoEcid via the generator — bad anonymous tracking. */
         iframeIds: [],
       })

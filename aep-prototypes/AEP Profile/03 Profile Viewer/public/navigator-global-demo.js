@@ -49,6 +49,7 @@ const navigatorTagsInjection =
         configSummaryTextId: 'navigatorSdkConfigSummaryText',
         changeConfigButtonId: 'navigatorChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         /**
          * Parent shell only — same as Premier Inn (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
          * Avoids a second ECID in the Navigator iframe vs parent #infoEcid + generator payloads.

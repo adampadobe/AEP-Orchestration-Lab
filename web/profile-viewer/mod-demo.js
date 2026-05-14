@@ -31,6 +31,7 @@ const modTagsInjection =
         configSummaryTextId: 'modSdkConfigSummaryText',
         changeConfigButtonId: 'modChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: () => (customerEmail && customerEmail.value) || '',
         /**
          * Parent shell only — same as Premier Inn / Admiral (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
          * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
