@@ -1,7 +1,8 @@
 /**
  * Hospitality lab events — iframe posts to parent (premier-inn-demo.html) so
  * POST /api/events/generator runs with the sandbox + generator target from the shell.
- * Event types are generic (hotel.*) for travel/hospitality orchestration demos.
+ * Event types are generic (hotel.*) e.g. hotel.search, hotel.availability.view, hotel.filter.apply,
+ * hotel.content.view, hotel.room.select, hotel.booking.start, hotel.payment.expose, hotel.checkout.abandon.
  */
 (function () {
   'use strict';

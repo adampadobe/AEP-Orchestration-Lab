@@ -231,6 +231,18 @@
     .pi-search-feedback--error {
       background: rgba(180, 40, 60, 0.35);
     }
+    .pi-city-break-hint {
+      margin: 10px auto 0;
+      max-width: 960px;
+      padding: 0 8px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
+      text-align: center;
+    }
+    .pi-city-break-hint:empty {
+      display: none;
+    }
     .pi-search-divider {
       width: 1px;
       flex-shrink: 0;
@@ -724,7 +736,7 @@
             id="piWhere"
             class="pi-search-input"
             list="piLocationHints"
-            placeholder="Enter place, postcode or hotel"
+            placeholder="Try Manchester, London, or a postcode"
             autocomplete="street-address"
             maxlength="160"
           />
@@ -769,6 +781,7 @@
         <option value="M1 1AE"></option>
       </datalist>
       <div id="piSearchFeedback" class="pi-search-feedback" role="status" aria-live="polite" hidden></div>
+      <p id="piCityBreakHint" class="pi-city-break-hint" aria-live="polite"></p>
       <div class="pi-search-subrow">
         <a class="pi-explore-prices" href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -998,7 +1011,7 @@
         <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a>.
         Asset origin: <code>localStorage.piPremierInnDemoAssetBase</code> or premierinn.com.
         <strong style="display:block;margin-top:10px">AEP journey</strong>
-        Search sends a generic <code>hotel.search</code> event to the parent shell, then opens a lab booking + payment flow (midweek London is a good default) for abandon-recovery demos.
+        Default demo: <strong>Manchester city break</strong> — search sends <code>hotel.search</code>, then the lab booking page runs filters (e.g. free parking), breakfast content (<code>hotel.content.view</code>), rates, and payment abandon (<code>hotel.checkout.abandon</code>).
       </div>
     </div>
   </footer>
@@ -1037,7 +1050,7 @@
     </div>
   </div>
 
-  <script src="premier-inn-events.js"></script>
+  <script src="premier-inn-events.js?v=20260513-city-break-filters"></script>
   <script>
     (function () {
       var SHELL = 'premier-inn-demo-shell';
@@ -1173,7 +1186,7 @@
   </script>
   <script>
     (function () {
-      var STORAGE_KEY = 'piDemoSearchState_v1';
+      var STORAGE_KEY = 'piDemoSearchState_v2';
       var whereEl = document.getElementById('piWhere');
       var ciEl = document.getElementById('piCheckin');
       var coEl = document.getElementById('piCheckout');
@@ -1274,7 +1287,19 @@
       var tomorrowStr = toYmd(addDays(today, 1));
 
       var saved = loadState();
-      if (whereEl) whereEl.value = saved && saved.where ? saved.where : '';
+      var hintEl = document.getElementById('piCityBreakHint');
+      if (whereEl) {
+        if (saved && saved.where) {
+          whereEl.value = saved.where;
+        } else {
+          whereEl.value = 'Manchester';
+        }
+      }
+      if (hintEl) {
+        hintEl.textContent =
+          'Demo default: Manchester city break — adjust destination or dates, then Search to open the lab results, filters, breakfast view, and checkout.';
+      }
+
       if (ciEl) ciEl.value = saved && saved.checkin ? saved.checkin : todayStr;
       if (coEl) coEl.value = saved && saved.checkout ? saved.checkout : tomorrowStr;
       if (adultsEl) adultsEl.value = saved && saved.adults ? saved.adults : '1';
@@ -1357,6 +1382,8 @@
           try {
             sessionStorage.setItem('piPremierInnItineraryId', itin);
           } catch (eIt) {}
+          var plc = String(place).toLowerCase();
+          var cityBreak = plc.indexOf('manchester') >= 0;
           if (window.PremierInnLabEvents && typeof window.PremierInnLabEvents.emit === 'function') {
             window.PremierInnLabEvents.emit(
               'hotel.search',
@@ -1370,6 +1397,8 @@
                 hotelRooms: Number(rm) || 1,
                 hotelWeekdaySegment: weekdaySeg(),
                 hotelFunnelStep: 'search_submitted',
+                hotelSearchIntent: cityBreak ? 'city_break' : 'leisure',
+                hotelScenarioLabel: cityBreak ? 'manchester_city_break' : 'generic_destination',
               },
               'Hospitality lab — search',
               window.location.href
