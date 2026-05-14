@@ -1893,6 +1893,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       if (
         typeof out === 'string' &&
         valueType !== 'string' &&
+        !profileStreamingCore.isHotelBookingStringLeafPath(path) &&
         out.trim() !== '' &&
         /^\d+$/.test(out)
       ) {

@@ -144,6 +144,18 @@ function setByPath(obj, path, value) {
 }
 
 /**
+ * Travel Hotel Experience FG types these leaves as string; operators (and
+ * randomizers) often use digit-only values ("101", "12345678"). The profile
+ * update merge historically coerced /^\d+$/ strings to integers for tenant
+ * paths — which breaks DCVS-1104-400 when the schema expects String.
+ */
+function isHotelBookingStringLeafPath(relativePath) {
+  if (!relativePath || typeof relativePath !== 'string') return false;
+  const p = relativePath.toLowerCase();
+  return /^hotel\.bookingdetails\.(roomnumber|confirmationnumber|ratecode)$/.test(p);
+}
+
+/**
  * Merge dotted-path attributes from the Generate Profiles UI into the tenant
  * object vs root/stream extras (OOTB root mixins use PROFILE_STREAM_ROOT_PATH_PREFIXES).
  */
@@ -159,7 +171,12 @@ function assignProfileStreamingAttributes(demoemeaTenant, rootExtras, filteredAt
     const out = val !== undefined && val !== null ? val : '';
     const top = cleanPath.split('.')[0];
     const target = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top) ? rootExtras : demoemeaTenant;
-    if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) {
+    if (
+      typeof out === 'string' &&
+      out.trim() !== '' &&
+      /^\d+$/.test(out) &&
+      !isHotelBookingStringLeafPath(cleanPath)
+    ) {
       setByPath(target, cleanPath, parseInt(out, 10));
     } else {
       setByPath(target, cleanPath, out);
@@ -629,6 +646,7 @@ module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   mirrorPreferredLanguageDemoSchema,
   assignProfileStreamingAttributes,
+  isHotelBookingStringLeafPath,
   setByPath,
   normalizeProfileUpdateDateString,
   buildConsentXdm,

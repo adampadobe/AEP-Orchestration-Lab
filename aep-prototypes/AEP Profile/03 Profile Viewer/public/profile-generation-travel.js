@@ -1726,7 +1726,11 @@
    */
   function buildUpdatesFromForm() {
     const updates = [];
-    const push = (path, value) => updates.push({ path, value });
+    const push = (path, value, valueType) => {
+      const row = { path, value };
+      if (valueType) row.valueType = String(valueType);
+      updates.push(row);
+    };
 
     // Identity (root via PROFILE_STREAM_ROOT_PATH_PREFIXES)
     const firstName = trimVal(firstNameEl);
@@ -1926,9 +1930,9 @@
       if (nightsStay > 0) push(`${bd}.nightsStay`, nightsStay);
       push(`${bd}.totalNights`, totalNights);
       if (trimVal(recentStayRoomTypeEl)) push(`${bd}.roomType`, trimVal(recentStayRoomTypeEl));
-      if (trimVal(recentStayRateCodeEl)) push(`${bd}.rateCode`, trimVal(recentStayRateCodeEl));
-      if (trimVal(recentStayRoomNumberEl)) push(`${bd}.roomNumber`, trimVal(recentStayRoomNumberEl));
-      if (trimVal(recentStayConfirmationEl)) push(`${bd}.confirmationNumber`, trimVal(recentStayConfirmationEl));
+      if (trimVal(recentStayRateCodeEl)) push(`${bd}.rateCode`, trimVal(recentStayRateCodeEl), 'string');
+      if (trimVal(recentStayRoomNumberEl)) push(`${bd}.roomNumber`, trimVal(recentStayRoomNumberEl), 'string');
+      if (trimVal(recentStayConfirmationEl)) push(`${bd}.confirmationNumber`, trimVal(recentStayConfirmationEl), 'string');
       if (!Number.isNaN(roomCost) && roomCost > 0) push(`${bd}.roomCost`, roomCost);
       if (!Number.isNaN(totalCost) && totalCost > 0) push(`${bd}.totalCost`, totalCost);
 
