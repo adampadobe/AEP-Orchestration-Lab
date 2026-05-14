@@ -255,6 +255,264 @@
     'public_sector',
   ];
 
+  const BOOKING_PLACEHOLDER_HTML =
+    '<p class="cc-history-lead" id="ccBookingPlaceholder">Load a customer profile above to see their flight booking from Adobe Experience Platform.</p>';
+
+  /** @type {'voice'|'email'|'mobile'} */
+  let selectedChannel = 'voice';
+
+  function setSelectedChannel(ch) {
+    if (ch !== 'voice' && ch !== 'email' && ch !== 'mobile') return;
+    selectedChannel = ch;
+    document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
+      const active = btn.dataset.channel === ch;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
+    btn.addEventListener('click', () => setSelectedChannel(btn.dataset.channel));
+  });
+
+  function getRtdbSandboxName() {
+    try {
+      if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+        return window.AepGlobalSandbox.getSandboxName() || 'apalmer';
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    try {
+      const m = window.location.search.match(/[?&]sandbox=([^&]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    } catch (_) {
+      /* ignore */
+    }
+    return 'apalmer';
+  }
+
+  async function fetchRtdbLookups() {
+    const cfg = (typeof window.firebaseDatabaseConfig !== 'undefined' && window.firebaseDatabaseConfig) || {};
+    const dbUrl = cfg.databaseURL || 'https://aep-orchestration-lab-default-rtdb.firebaseio.com';
+    const sandbox = getRtdbSandboxName();
+    try {
+      const res = await fetch(`${dbUrl}/ajoLookups/${encodeURIComponent(sandbox)}.json`);
+      return res.ok ? await res.json() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function accentSoftFromColour(colour) {
+    if (typeof colour !== 'string' || !/^#([0-9a-fA-F]{6})$/.test(colour.trim())) return null;
+    return colour.trim() + '22';
+  }
+
+  function applyRtdbToAgentUi(rtdb) {
+    if (!rtdb || typeof rtdb !== 'object') return;
+    const sp = rtdb.StaffPortal || {};
+    const cd = rtdb.CoreDemoData || {};
+
+    const agentName = sp.AgentName || sp.agentName || null;
+    if (agentName) {
+      const nameEl = document.getElementById('ccAgentName');
+      if (nameEl) nameEl.textContent = agentName;
+      const initialsEl = document.getElementById('ccUserInitials');
+      if (initialsEl) {
+        const parts = String(agentName).trim().split(/\s+/);
+        initialsEl.textContent = parts
+          .map((p) => p[0] || '')
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+        initialsEl.title = agentName;
+      }
+    }
+
+    const colour = sp.Colour || cd.Colour || null;
+    if (colour) {
+      document.body.style.setProperty('--cc-accent', colour);
+      const soft = accentSoftFromColour(String(colour));
+      if (soft) document.body.style.setProperty('--cc-accent-soft', soft);
+    }
+  }
+
+  async function initFromRtdb() {
+    const data = await fetchRtdbLookups();
+    applyRtdbToAgentUi(data);
+  }
+
+  async function fetchProfileTableRows(email) {
+    if (!email) return null;
+    const sandbox = getRtdbSandboxName();
+    const qs = `identifier=${encodeURIComponent(email)}&namespace=email&sandbox=${encodeURIComponent(sandbox)}`;
+    try {
+      const res = await fetch(`/api/profile/table?${qs}`);
+      return res.ok ? await res.json() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function extractTravelFromRows(tablePayload) {
+    const rows = tablePayload && Array.isArray(tablePayload.rows) ? tablePayload.rows : [];
+    const find = (fragment) => {
+      const lf = fragment.toLowerCase();
+      const row = rows.find((r) => r.path && r.path.toLowerCase().includes(lf) && r.value && r.value !== '');
+      return row ? row.value : null;
+    };
+    return {
+      flightNumber: find('flightreservations.flightnumber'),
+      flightClass: find('flightreservations.flightclass'),
+      flightDate: find('flightreservations.flightdate'),
+      confirmationNumber: find('flightreservations.confirmationnumber'),
+      departureAirportCode: find('flightreservations.departureairportcode'),
+      arrivalAirportCode: find('flightreservations.arrivalairportcode'),
+      flightReservationStatus: find('flightreservations.flightreservationstatus'),
+      numberOfPassengers: find('flightreservations.numberofpassengers'),
+      layoverAirport: find('multilleg.layoverairportcode_1') || find('layoverairportcode'),
+      seatPreference: find('travelpreferences.seat'),
+      mealPreference: find('travelpreferences.meal'),
+      loyaltyPoints: find('loyaltydetails.points'),
+      loyaltyId: find('identification.core.loyaltyid'),
+    };
+  }
+
+  function formatFlightDate(raw) {
+    if (!raw) return '—';
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return raw;
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  function generatorChannelLabel() {
+    return selectedChannel === 'voice' ? 'Call' : selectedChannel === 'mobile' ? 'Mobile' : 'Web';
+  }
+
+  function renderBookingPanel(travel, email) {
+    const panel = document.getElementById('ccPanelOrders');
+    if (!panel) return;
+
+    if (!travel || (!travel.flightNumber && !travel.confirmationNumber)) {
+      panel.innerHTML =
+        '<p class="cc-history-lead">No booking data found in profile for this customer.</p>' +
+        '<p class="cc-history-lead cc-booking-seed-hint">Expected at <code>_demoemea.travelReservations.flightReservations</code> in the AEP sandbox. ' +
+        'Seed the profile via Profile Generation to populate this view.</p>';
+      return;
+    }
+
+    const dept = travel.departureAirportCode || '—';
+    const arr = travel.arrivalAirportCode || '—';
+    const flt = travel.flightNumber || '—';
+    const cls = travel.flightClass || '—';
+    const dt = formatFlightDate(travel.flightDate);
+    const ref = travel.confirmationNumber || '—';
+    const pax = travel.numberOfPassengers || '1';
+    const stat = travel.flightReservationStatus || 'Confirmed';
+    const seat = travel.seatPreference || '—';
+    const meal = travel.mealPreference || '—';
+    const pts = travel.loyaltyPoints ? Number(travel.loyaltyPoints).toLocaleString() : '—';
+    const lid = travel.loyaltyId || '—';
+    const via = travel.layoverAirport ? ` via ${travel.layoverAirport}` : '';
+
+    const statusCls = /cancel/i.test(stat)
+      ? 'cc-tx-status--warn'
+      : /wait|pending/i.test(stat)
+        ? 'cc-tx-status--pending'
+        : 'cc-tx-status--ok';
+
+    panel.innerHTML = `
+    <div class="cc-order-card">
+      <div class="cc-order-actions">
+        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.seat.change">Change seat</button>
+        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.meal.change">Meal preference</button>
+        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.upgrade.request">Request upgrade</button>
+        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.booking.amend">Amend booking</button>
+      </div>
+      <div class="cc-booking-route-header">
+        <div class="cc-booking-route-airports">
+          <span class="cc-booking-airport">${dept}</span>
+          <svg class="cc-booking-plane-ico" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+            <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+          </svg>
+          <span class="cc-booking-airport">${arr}</span>
+        </div>
+        <div class="cc-booking-route-meta">
+          <span class="cc-booking-flight-num">${flt}${via}</span>
+          <span class="cc-tx-status ${statusCls}">${stat}</span>
+        </div>
+      </div>
+      <dl class="cc-order-dl cc-booking-dl">
+        <div><dt>Booking ref.</dt><dd>${ref}</dd></div>
+        <div><dt>Class</dt><dd>${cls}</dd></div>
+        <div><dt>Date</dt><dd>${dt}</dd></div>
+        <div><dt>Passengers</dt><dd>${pax}</dd></div>
+        <div><dt>Seat preference</dt><dd>${seat}</dd></div>
+        <div><dt>Meal preference</dt><dd>${meal}</dd></div>
+        <div><dt>Loyalty ID</dt><dd>${lid}</dd></div>
+        <div><dt>Loyalty points</dt><dd>${pts}</dd></div>
+      </dl>
+    </div>`;
+
+    panel.querySelectorAll('.cc-booking-action').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const eventType = btn.dataset.event;
+        const lookupEmail = email || getEmail().trim();
+        if (!lookupEmail) {
+          setStatus('No customer loaded.', 'error');
+          return;
+        }
+        btn.disabled = true;
+        try {
+          const target = getSelectedGeneratorTarget();
+          const channelLabel = generatorChannelLabel();
+          const body = augmentCcGeneratorPostBody({
+            targetId: target ? target.id : undefined,
+            email: lookupEmail,
+            eventType,
+            viewName: 'Contact centre — booking amendment',
+            viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+            channel: channelLabel,
+          });
+          const ecid = getEcidForExperienceEvent();
+          if (ecid) body.ecid = ecid;
+          const res = await fetch('/api/events/generator', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || data.message || 'Request failed.');
+          }
+          setStatus(`Event sent to AEP: ${eventType}`, 'success');
+        } catch (err) {
+          setStatus('Event failed: ' + ((err && err.message) || String(err)), 'error');
+        } finally {
+          window.setTimeout(() => {
+            btn.disabled = false;
+          }, 3000);
+        }
+      });
+    });
+  }
+
+  async function fetchAndRenderTravel(email) {
+    const tableData = await fetchProfileTableRows(email);
+    const travel = extractTravelFromRows(tableData);
+    renderBookingPanel(travel, email);
+  }
+
+  function resetBookingPanelPlaceholder() {
+    const panel = document.getElementById('ccPanelOrders');
+    if (panel) panel.innerHTML = BOOKING_PLACEHOLDER_HTML;
+  }
+
   const customerEmail = document.getElementById('customerEmail');
   if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 
@@ -492,7 +750,9 @@
     if (heroAv && avFrom && avFrom.getAttribute('src')) heroAv.src = avFrom.src;
 
     setElText('ccHeroStatusVerb', 'Talking');
-    setElText('ccHeroChannel', 'Virtual engagement · Adobe Experience Platform');
+    const channelLabel =
+      selectedChannel === 'voice' ? 'Voice call' : selectedChannel === 'mobile' ? 'Mobile' : 'Email';
+    setElText('ccHeroChannel', channelLabel + ' · Adobe Experience Platform');
 
     const qn = document.getElementById('ccQueueActiveName');
     const qs = document.getElementById('ccQueueActiveSub');
@@ -508,6 +768,7 @@
     setElText('ccHeroPhoneLine', '—');
     setElText('ccHeroStatusVerb', 'Idle');
     setElText('ccHeroChannel', 'Load a profile to simulate engagement');
+    resetBookingPanelPlaceholder();
     const heroAv = document.getElementById('ccHeroAvatar');
     if (heroAv) heroAv.src = 'https://contenthosting.web.app/AEPProfile/avatar-female.png';
     setElText('ccQueueActiveName', 'Awaiting lookup');
@@ -594,7 +855,7 @@
     } catch (_) {
       /* ignore */
     }
-    return 'Web';
+    return generatorChannelLabel();
   }
 
   function demoApplicationLoginEventType() {
@@ -761,6 +1022,7 @@
             startSessionTimer();
             activateWorkspaceTab('details');
           });
+          void fetchAndRenderTravel(email);
         } else if (profileResult && profileResult.ok && !profileResult.found) {
           setStatus('No profile in store for this email. Try another address or seed data in the sandbox.', 'warn');
           resetIdleAgentUi();
@@ -794,9 +1056,11 @@
 
   initIndustryUi();
   void loadGeneratorTargets();
+  void initFromRtdb();
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
     window.AepDemoGeneratorTargets.onSandboxChange(function () {
       void loadGeneratorTargets();
+      void initFromRtdb();
     });
   }
 })();

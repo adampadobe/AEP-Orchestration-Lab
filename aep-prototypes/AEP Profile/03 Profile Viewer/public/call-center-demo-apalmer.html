@@ -241,7 +241,7 @@
               <button type="button" class="cc-header-icon-round" aria-label="Notifications" title="Demo">🔔</button>
               <button type="button" class="cc-header-icon-round" aria-label="Settings" title="Demo">⚙</button>
               <div class="cc-header-agent">
-                <span class="cc-header-agent-name">Alex</span>
+                <span class="cc-header-agent-name" id="ccAgentName">Alex</span>
                 <span class="cc-user-chip" id="ccUserInitials" title="Demo agent">AL</span>
               </div>
             </div>
@@ -333,6 +333,14 @@
                   spellcheck="false"
                   aria-describedby="ccPinnedLead"
                 >
+              </div>
+              <div class="call-center-pinned-field call-center-pinned-field--channel">
+                <label>Contact channel</label>
+                <div class="cc-channel-group" role="group" id="ccChannelGroup" aria-label="Contact channel">
+                  <button type="button" class="cc-channel-btn is-active" data-channel="voice" aria-pressed="true">📞 Voice</button>
+                  <button type="button" class="cc-channel-btn" data-channel="email" aria-pressed="false">✉️ Email</button>
+                  <button type="button" class="cc-channel-btn" data-channel="mobile" aria-pressed="false">📱 Mobile</button>
+                </div>
               </div>
               <div class="call-center-pinned-field call-center-pinned-field--target">
                 <label for="generatorTarget">Event destination</label>
@@ -476,7 +484,7 @@
           <div class="cc-tabbed-region">
             <div class="cc-tabs-bar" role="tablist" aria-label="Customer views">
               <button type="button" class="cc-tab cc-tab--active" role="tab" id="ccTabDetails" aria-selected="true" aria-controls="ccPanelDetails">Customer details</button>
-              <button type="button" class="cc-tab" role="tab" id="ccTabOrders" aria-selected="false" aria-controls="ccPanelOrders">Orders</button>
+              <button type="button" class="cc-tab" role="tab" id="ccTabOrders" aria-selected="false" aria-controls="ccPanelOrders">Booking</button>
               <button type="button" class="cc-tab" role="tab" id="ccTabNotes" aria-selected="false" aria-controls="ccPanelNotes">Notes</button>
               <button type="button" class="cc-tab" role="tab" id="ccTabPlatform" aria-selected="false" aria-controls="ccPanelPlatform">Platform</button>
             </div>
@@ -545,32 +553,7 @@
             </div>
 
             <div id="ccPanelOrders" role="tabpanel" aria-labelledby="ccTabOrders" class="cc-tab-panel" hidden>
-              <p class="cc-history-lead">Illustrative order — tie-outs to commerce events would surface here from Experience Platform.</p>
-              <div class="cc-order-card">
-                <div class="cc-order-actions">
-                  <button type="button" class="cc-order-chip" disabled title="Demo">Cancel order</button>
-                  <button type="button" class="cc-order-chip" disabled title="Demo">Change delivery</button>
-                  <button type="button" class="cc-order-chip" disabled title="Demo">Pickup in store</button>
-                </div>
-                <div class="cc-order-main">
-                  <div class="cc-order-thumb" role="img" aria-label="Product placeholder"></div>
-                  <div class="cc-order-copy">
-                    <p class="cc-order-product">AE 24/7 Active hoodie · demo SKU</p>
-                    <p class="cc-order-price">$129.00</p>
-                    <dl class="cc-order-dl">
-                      <div><dt>Ordered</dt><dd>May 12, 2026</dd></div>
-                      <div><dt>Est. delivery</dt><dd>May 30, 2026</dd></div>
-                      <div><dt>Tracking</dt><dd>1Z999AA10123456784</dd></div>
-                    </dl>
-                  </div>
-                </div>
-                <ol class="cc-order-stepper" aria-label="Fulfillment progress">
-                  <li class="cc-step cc-step--done"><span class="cc-step-label">Processed</span><span class="cc-step-date">May 14</span></li>
-                  <li class="cc-step cc-step--done"><span class="cc-step-label">Shipped</span><span class="cc-step-date">May 20</span></li>
-                  <li class="cc-step cc-step--current"><span class="cc-step-label">In transit</span><span class="cc-step-date">May 24</span></li>
-                  <li class="cc-step"><span class="cc-step-label">Delivered</span><span class="cc-step-date">May 30</span></li>
-                </ol>
-              </div>
+              <p class="cc-history-lead" id="ccBookingPlaceholder">Load a customer profile above to see their flight booking from Adobe Experience Platform.</p>
             </div>
 
             <div id="ccPanelNotes" role="tabpanel" aria-labelledby="ccTabNotes" class="cc-tab-panel" hidden>
@@ -933,12 +916,13 @@
       if (!isCorrect) document.getElementById('serverWarning').hidden = false;
     })();
   </script>
+  <script src="firebase-database-config.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
-  <script src="call-center-demo-apalmer.js?v=20260512-apalmer-lab"></script>
+  <script src="call-center-demo-apalmer.js?v=20260514-apalmer-rtdb-booking"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>
