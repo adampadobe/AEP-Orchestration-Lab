@@ -509,46 +509,56 @@
                     <div><dt>Loyalty</dt><dd id="ccCardLoyalty">—</dd></div>
                   </dl>
                 </section>
-                <section class="cc-card cc-card--wide">
-                  <h4 class="cc-card-title">Engagement signals <span class="cc-card-title-note">(demo)</span></h4>
-                  <table class="cc-mini-table">
-                    <thead>
-                      <tr><th>Signal</th><th>Value</th><th>Source</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr><td>Marketing consent</td><td id="ccSigMarket">—</td><td>Profile</td></tr>
-                      <tr><td>ECID</td><td id="ccSigEcid">—</td><td>Identity</td></tr>
-                      <tr><td>Audience summary</td><td id="ccSigAud">—</td><td>RTCDP</td></tr>
-                    </tbody>
-                  </table>
+                <section class="cc-card cc-card--wide cc-card--engagement">
+                  <div class="cc-engagement-head">
+                    <h4 class="cc-card-title">Engagement signals</h4>
+                    <div class="cc-engagement-toggle" id="ccEngagementToggle" hidden>
+                      <button
+                        type="button"
+                        data-cc-chart-type="doughnut"
+                        class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active"
+                        aria-pressed="true"
+                      >
+                        Doughnut
+                      </button>
+                      <button type="button" data-cc-chart-type="bar-v" class="cc-engagement-toggle-btn" aria-pressed="false">
+                        Bar
+                      </button>
+                    </div>
+                  </div>
+                  <dl class="cc-engagement-dl">
+                    <div><dt>Consent</dt><dd id="ccSigMarket">—</dd></div>
+                    <div><dt>ECID</dt><dd id="ccSigEcid" class="cc-sig-ecid-val">—</dd></div>
+                    <div class="cc-engagement-dl-aud"><dt>Audiences</dt><dd id="ccSigAud">—</dd></div>
+                  </dl>
+                  <div id="ccEngagementChartSection" hidden>
+                    <canvas id="ccEventActivityChart" aria-label="Event activity by event type"></canvas>
+                    <div id="ccEventActivityLegend" class="cc-engagement-legend"></div>
+                  </div>
+                  <p id="ccEngagementChartEmpty" class="cc-events-placeholder" hidden>No event data available.</p>
                 </section>
               </div>
 
-              <section class="cc-activity-feed" aria-labelledby="ccActivityHeading">
-                <h3 id="ccActivityHeading" class="cc-activity-feed-title">Recent activity</h3>
-                <ul class="cc-activity-list">
-                  <li class="cc-activity-row">
-                    <span class="cc-activity-avatar" aria-hidden="true">A</span>
-                    <div class="cc-activity-bubble">
-                      <p class="cc-activity-meta"><strong>Automation</strong> · 09:12</p>
-                      <p>Journey entry · welcome series (demo).</p>
-                    </div>
-                  </li>
-                  <li class="cc-activity-row cc-activity-row--agent">
-                    <span class="cc-activity-avatar cc-activity-avatar--agent" aria-hidden="true">You</span>
-                    <div class="cc-activity-bubble cc-activity-bubble--agent">
-                      <p class="cc-activity-meta"><strong>You</strong> · 09:18</p>
-                      <p>Opened profile after lookup — RTCDP unified record.</p>
-                    </div>
-                  </li>
-                  <li class="cc-activity-row">
-                    <span class="cc-activity-avatar" aria-hidden="true">S</span>
-                    <div class="cc-activity-bubble">
-                      <p class="cc-activity-meta"><strong>System</strong> · 09:22</p>
-                      <p>Consent flags refreshed from profile service.</p>
-                    </div>
-                  </li>
-                </ul>
+              <section class="cc-details-journey-section" id="ccDetailsJourneySection" aria-labelledby="ccDetailsJourneyHeading">
+                <div class="cc-details-journey-header">
+                  <h3 id="ccDetailsJourneyHeading" class="cc-activity-feed-title">Journey activity</h3>
+                  <span class="cc-journey-note">Inferred from journey version IDs in experience events · last 365 days</span>
+                </div>
+                <p id="ccDetailsJourneyEmpty" class="cc-events-placeholder">
+                  Load a customer profile to see journey activity from AEP experience events.
+                </p>
+                <div id="ccDetailsJourneyWrap" hidden>
+                  <table class="cc-transactions-table cc-journey-table cc-details-journey-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Journey</th>
+                        <th scope="col">Touches</th>
+                        <th scope="col">Last seen</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ccDetailsJourneyBody"></tbody>
+                  </table>
+                </div>
               </section>
             </div>
 
@@ -913,7 +923,8 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
-  <script src="call-center-demo-apalmer.js?v=20260514-apalmer-rtdb-booking"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="call-center-demo-apalmer.js?v=20260514-cc-details-chart"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

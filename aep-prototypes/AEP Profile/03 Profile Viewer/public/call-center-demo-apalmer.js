@@ -791,6 +791,7 @@
       'ccSigMarket',
     ].forEach((id) => setElText(id, '—'));
     updateFauxCardPan();
+    resetCcEventsUi();
   }
 
   const WORKSPACE_TABS = [
@@ -1021,8 +1022,9 @@
             mirrorAboutCardsFromDrawer();
             startSessionTimer();
             activateWorkspaceTab('details');
+            void fetchAndRenderTravel(email);
+            void fetchAndRenderCcEvents(email);
           });
-          void fetchAndRenderTravel(email);
         } else if (profileResult && profileResult.ok && !profileResult.found) {
           setStatus('No profile in store for this email. Try another address or seed data in the sandbox.', 'warn');
           resetIdleAgentUi();
@@ -1034,6 +1036,7 @@
           ccScreenPop.hidden = false;
         }
       } catch (err) {
+        resetCcEventsUi();
         setStatus((err && err.message) || 'Could not load profile.', 'error');
       } finally {
         if (profileResult && profileResult.ok && profileResult.found) {
@@ -1052,6 +1055,543 @@
       document.querySelectorAll('.call-center-state-btn').forEach((b) => b.classList.remove('is-active'));
       btn.classList.add('is-active');
     });
+  });
+
+  window._ccLastEvents = [];
+  const CC_JOURNEY_LOOKBACK_MS = 365 * 24 * 60 * 60 * 1000;
+  const ccJourneyNameCache = new Map();
+  let ccEventActivityChartInst = null;
+  let ccEventChartType = 'doughnut';
+
+  function getCcSandboxQs() {
+    return '&sandbox=' + encodeURIComponent(getRtdbSandboxName());
+  }
+
+  function escapeHtmlCc(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatCcEventTs(ts) {
+    if (ts == null) return '—';
+    const d = new Date(typeof ts === 'number' ? ts : parseInt(String(ts), 10));
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  async function fetchCcJourneyName(journeyVersionId) {
+    if (!journeyVersionId) return null;
+    if (ccJourneyNameCache.has(journeyVersionId)) return ccJourneyNameCache.get(journeyVersionId);
+    try {
+      const res = await fetch('/api/journey-name?id=' + encodeURIComponent(journeyVersionId) + getCcSandboxQs());
+      const data = await res.json().catch(() => ({}));
+      const name = data.name || null;
+      ccJourneyNameCache.set(journeyVersionId, name);
+      return name;
+    } catch (_) {
+      ccJourneyNameCache.set(journeyVersionId, null);
+      return null;
+    }
+  }
+
+  function getCcEventJourneyVersionId(ev) {
+    const rows = ev.rows || [];
+    const row = rows.find((r) => {
+      const p = (r.path || '').toLowerCase();
+      const a = (r.attribute || '').toLowerCase();
+      return p.includes('messageexecution') && (p.includes('journeyversionid') || a === 'journeyversionid');
+    });
+    if (!row || row.value == null) return '';
+    return String(row.value).trim();
+  }
+
+  function getCcEventFeedbackStatus(ev) {
+    const rows = ev.rows || [];
+    const row = rows.find((r) => {
+      const p = (r.path || '').toLowerCase();
+      return (
+        p === '_experience.customerjourneymanagement.messagedeliveryfeedback.feedbackstatus' ||
+        (p.includes('messagedelivery') && p.includes('feedbackstatus'))
+      );
+    });
+    if (!row || row.value == null) return '—';
+    const val = String(row.value).trim();
+    return val || '—';
+  }
+
+  function getCcPushChannelPlatform(ev) {
+    const rows = ev.rows || [];
+    const row = rows.find((r) => {
+      const p = (r.path || '').toLowerCase().replace(/_/g, '.');
+      return (
+        p.endsWith('pushchannelcontext.platform') ||
+        (p.includes('pushchannelcontext') && (p.endsWith('.platform') || p.endsWith('_platform')))
+      );
+    });
+    if (!row || row.value == null) return '';
+    return String(row.value).trim();
+  }
+
+  function ccEventChannelNamespaceIsEmail(ev) {
+    const rows = ev.rows || [];
+    for (const r of rows) {
+      const p = (r.path || '').toLowerCase().replace(/_/g, '.');
+      if (!p.includes('channelcontext')) continue;
+      if (!(p.endsWith('.namespace') || p.endsWith('_namespace'))) continue;
+      if (r.value == null || !String(r.value).trim()) continue;
+      if (String(r.value).trim().toLowerCase() === 'email') return true;
+    }
+    return false;
+  }
+
+  function getCcEventChannel(ev) {
+    const platformRaw = getCcPushChannelPlatform(ev);
+    if (platformRaw && platformRaw.toLowerCase() === 'fcm') return 'Android Push';
+    if (platformRaw && platformRaw.toLowerCase() === 'apns') return 'iOS Push';
+    if (ccEventChannelNamespaceIsEmail(ev)) return 'email';
+    if (ev.channel != null && String(ev.channel).trim()) return String(ev.channel).trim();
+    const rows = ev.rows || [];
+    const channelRow = rows.find((r) => {
+      const p = (r.path || '').toLowerCase();
+      const a = (r.attribute || '').toLowerCase();
+      return (
+        (p === 'channel' || p.endsWith('.channel') || p === '_experiencechannel' || a === 'channel') &&
+        r.value != null &&
+        String(r.value).trim()
+      );
+    });
+    return channelRow ? String(channelRow.value).trim() : '—';
+  }
+
+  function formatCcChannelDisplay(raw) {
+    const s = String(raw ?? '').trim();
+    if (!s || s === '—') return s;
+    const lower = s.toLowerCase();
+    if (lower === 'email') return 'Email';
+    if (lower === 'mobile') return 'Mobile';
+    return s;
+  }
+
+  function ccGetEventTypeIcon(eventType) {
+    if (!eventType) return '⚡';
+    const key = String(eventType).trim();
+    if (key.startsWith('web.')) return '🌐';
+    if (key.startsWith('commerce.')) return '🛒';
+    if (key.startsWith('email.')) return '📧';
+    if (key.startsWith('contactCenter.')) return '📞';
+    if (key.startsWith('app.') || key.startsWith('application.')) return '📱';
+    if (key.startsWith('mobile.')) return '📱';
+    return '⚡';
+  }
+
+  function aggregateCcJourneyActivity(events) {
+    const map = new Map();
+    (events || []).forEach((ev) => {
+      const vid = getCcEventJourneyVersionId(ev);
+      if (!vid) return;
+      const ts = ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : 0;
+      if (!map.has(vid)) {
+        map.set(vid, { journeyVersionId: vid, count: 0, firstTs: ts, lastTs: ts });
+      }
+      const j = map.get(vid);
+      j.count += 1;
+      if (ts && (!j.firstTs || ts < j.firstTs)) j.firstTs = ts;
+      if (ts > j.lastTs) j.lastTs = ts;
+    });
+    return Array.from(map.values()).sort((a, b) => b.lastTs - a.lastTs);
+  }
+
+  function filterCcEventsJourneyWindow(events) {
+    const now = Date.now();
+    return (events || []).filter((ev) => {
+      const ts = ev.timestamp != null ? Number(ev.timestamp) : 0;
+      return ts && now - ts <= CC_JOURNEY_LOOKBACK_MS;
+    });
+  }
+
+  function ccFindLastEventForJourney(events, vid) {
+    let best = null;
+    let bestTs = -1;
+    (events || []).forEach((ev) => {
+      if (getCcEventJourneyVersionId(ev) !== vid) return;
+      const ts = ev.timestamp != null ? Number(ev.timestamp) : 0;
+      if (ts >= bestTs) {
+        bestTs = ts;
+        best = ev;
+      }
+    });
+    return best;
+  }
+
+  function ccResolvedChartColors(n) {
+    const el = document.querySelector('.cc-card--engagement') || document.body;
+    const cs = getComputedStyle(el);
+    let candidates = [
+      cs.getPropertyValue('--cc-accent').trim(),
+      cs.getPropertyValue('--cc-muted').trim(),
+      cs.getPropertyValue('--cc-text').trim(),
+      cs.getPropertyValue('--cc-border').trim(),
+    ].filter((c) => c && c.length > 0);
+    if (candidates.length === 0) {
+      candidates = ['rgb(13, 102, 208)', 'rgb(100, 116, 139)', 'rgb(15, 23, 42)'];
+    }
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      out.push(candidates[i % candidates.length]);
+    }
+    return out;
+  }
+
+  function renderCcRecentEvents(events) {
+    const tbody = document.getElementById('ccEventsTableBody');
+    const countEl = document.getElementById('ccEventsCount');
+    if (!tbody) return;
+    const sorted = (events || []).slice().sort((a, b) => {
+      const at = a && a.timestamp != null ? Number(a.timestamp) : 0;
+      const bt = b && b.timestamp != null ? Number(b.timestamp) : 0;
+      return bt - at;
+    });
+    const top = sorted.slice(0, 10);
+    if (countEl) {
+      if (sorted.length) {
+        countEl.hidden = false;
+        countEl.textContent = String(sorted.length) + ' in sandbox';
+      } else {
+        countEl.hidden = true;
+        countEl.textContent = '';
+      }
+    }
+    if (!top.length) {
+      tbody.innerHTML =
+        '<tr class="cc-events-placeholder-row"><td colspan="5" class="cc-events-placeholder">No experience events returned for this profile.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = top
+      .map((ev) => {
+        const src = escapeHtmlCc(formatCcChannelDisplay(getCcEventChannel(ev)));
+        const name = escapeHtmlCc(ev.eventName || 'Experience event');
+        const icon = ccGetEventTypeIcon(ev.eventName);
+        const when = escapeHtmlCc(formatCcEventTs(ev.timestamp));
+        const detailRaw = ev.entityId != null ? String(ev.entityId).trim() : '';
+        const detail = escapeHtmlCc(detailRaw && detailRaw.length > 48 ? detailRaw.slice(0, 45) + '…' : detailRaw || '—');
+        const st = escapeHtmlCc(getCcEventFeedbackStatus(ev));
+        return (
+          '<tr><td>' +
+          src +
+          '</td><td><span class="cc-tx-ico" aria-hidden="true">' +
+          icon +
+          '</span>' +
+          name +
+          '</td><td>' +
+          when +
+          '</td><td>' +
+          detail +
+          '</td><td>' +
+          st +
+          '</td></tr>'
+        );
+      })
+      .join('');
+  }
+
+  function renderCcJourneyActivity(events) {
+    const section = document.getElementById('ccJourneyActivitySection');
+    const tbody = document.getElementById('ccJourneyTableBody');
+    if (!section || !tbody) return;
+    const filtered = filterCcEventsJourneyWindow(events);
+    const rows = aggregateCcJourneyActivity(filtered);
+    if (!rows.length) {
+      section.hidden = true;
+      tbody.innerHTML = '';
+      return;
+    }
+    section.hidden = false;
+    const maxCount = Math.max(...rows.map((r) => r.count), 1);
+    tbody.innerHTML = rows
+      .map((r, i) => {
+        const pct = Math.round((r.count / maxCount) * 100);
+        const last = r.lastTs ? formatCcEventTs(r.lastTs) : '—';
+        const lastEv = ccFindLastEventForJourney(filtered, r.journeyVersionId);
+        const stRaw = lastEv ? getCcEventFeedbackStatus(lastEv) : '—';
+        const stEsc = escapeHtmlCc(stRaw);
+        const bar =
+          '<div class="cc-journey-count-bar-wrap"><div class="cc-journey-count-bar" style="width:' +
+          pct +
+          '%"></div><span class="cc-journey-count-text">' +
+          r.count.toLocaleString() +
+          '</span></div>';
+        return (
+          '<tr><td class="cc-journey-name-cell" data-cc-journey-row="' +
+          i +
+          '">…</td><td>' +
+          bar +
+          '</td><td class="cc-journey-last-seen">' +
+          escapeHtmlCc(last) +
+          '</td><td>' +
+          stEsc +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    rows.forEach((r, i) => {
+      fetchCcJourneyName(r.journeyVersionId).then((name) => {
+        const cell = tbody.querySelector('[data-cc-journey-row="' + i + '"]');
+        if (cell) cell.textContent = name || r.journeyVersionId || '—';
+      });
+    });
+  }
+
+  function renderCcDetailsJourneyActivity(events) {
+    const emptyEl = document.getElementById('ccDetailsJourneyEmpty');
+    const wrapEl = document.getElementById('ccDetailsJourneyWrap');
+    const tbody = document.getElementById('ccDetailsJourneyBody');
+    if (!emptyEl || !wrapEl || !tbody) return;
+    const filtered = filterCcEventsJourneyWindow(events);
+    const rows = aggregateCcJourneyActivity(filtered);
+    if (!rows.length) {
+      emptyEl.hidden = false;
+      emptyEl.textContent = 'No journey-linked events in the last 365 days for this profile.';
+      wrapEl.hidden = true;
+      tbody.innerHTML = '';
+      return;
+    }
+    emptyEl.hidden = true;
+    wrapEl.hidden = false;
+    const maxCount = Math.max(...rows.map((r) => r.count), 1);
+    tbody.innerHTML = rows
+      .map((r, i) => {
+        const pct = Math.round((r.count / maxCount) * 100);
+        const last = r.lastTs ? formatCcEventTs(r.lastTs) : '—';
+        const bar =
+          '<div class="cc-journey-count-bar-wrap"><div class="cc-journey-count-bar" style="width:' +
+          pct +
+          '%"></div><span class="cc-journey-count-text">' +
+          r.count.toLocaleString() +
+          '</span></div>';
+        return (
+          '<tr><td class="cc-journey-name-cell" data-cc-details-journey-row="' +
+          i +
+          '">…</td><td>' +
+          bar +
+          '</td><td class="cc-journey-last-seen">' +
+          escapeHtmlCc(last) +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    rows.forEach((r, i) => {
+      fetchCcJourneyName(r.journeyVersionId).then((name) => {
+        const cell = tbody.querySelector('[data-cc-details-journey-row="' + i + '"]');
+        if (cell) cell.textContent = name || r.journeyVersionId || '—';
+      });
+    });
+  }
+
+  function renderCcEventActivityChart(events) {
+    const section = document.getElementById('ccEngagementChartSection');
+    const emptyEl = document.getElementById('ccEngagementChartEmpty');
+    const toggle = document.getElementById('ccEngagementToggle');
+    const canvas = document.getElementById('ccEventActivityChart');
+    const legendEl = document.getElementById('ccEventActivityLegend');
+    if (!section || !emptyEl || !canvas) return;
+    if (typeof window.Chart === 'undefined') {
+      section.hidden = true;
+      if (toggle) toggle.hidden = true;
+      emptyEl.hidden = false;
+      emptyEl.textContent = 'Chart library failed to load.';
+      return;
+    }
+    if (ccEventActivityChartInst) {
+      ccEventActivityChartInst.destroy();
+      ccEventActivityChartInst = null;
+    }
+    const list = events || [];
+    const counts = {};
+    list.forEach((ev) => {
+      const t = ev.eventName || 'unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) {
+      section.hidden = true;
+      if (toggle) toggle.hidden = true;
+      emptyEl.hidden = false;
+      emptyEl.textContent = 'No event data available.';
+      if (legendEl) legendEl.innerHTML = '';
+      return;
+    }
+    section.hidden = false;
+    emptyEl.hidden = true;
+    if (toggle) toggle.hidden = false;
+    const labels = sorted.map((e) => e[0]);
+    const data = sorted.map((e) => e[1]);
+    const colors = ccResolvedChartColors(labels.length);
+    const el = document.querySelector('.cc-card--engagement') || document.body;
+    const cs = getComputedStyle(el);
+    const borderCol =
+      cs.getPropertyValue('--cc-card').trim() ||
+      cs.getPropertyValue('--cc-bank-elev').trim() ||
+      'rgba(255, 255, 255, 0.12)';
+    const gridCol =
+      cs.getPropertyValue('--cc-bank-border').trim() || cs.getPropertyValue('--cc-border').trim() || 'rgba(255, 255, 255, 0.08)';
+    const tickCol = cs.getPropertyValue('--cc-muted').trim() || 'rgb(148, 163, 184)';
+    const isDoughnut = ccEventChartType === 'doughnut';
+    ccEventActivityChartInst = new window.Chart(canvas, {
+      type: isDoughnut ? 'doughnut' : 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Events',
+            data,
+            backgroundColor: colors,
+            borderWidth: isDoughnut ? 2 : 0,
+            borderColor: isDoughnut ? borderCol : colors,
+            borderRadius: isDoughnut ? 0 : 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                let v = ctx.parsed;
+                if (v && typeof v === 'object' && v.y !== undefined) v = v.y;
+                return (ctx.label || '') + ': ' + v + ' events';
+              },
+            },
+          },
+        },
+        ...(isDoughnut
+          ? { cutout: '55%' }
+          : {
+              scales: {
+                x: { grid: { color: gridCol }, ticks: { color: tickCol } },
+                y: { grid: { color: gridCol }, ticks: { color: tickCol }, beginAtZero: true },
+              },
+            }),
+      },
+    });
+    if (legendEl) {
+      legendEl.innerHTML = sorted
+        .map(
+          (e, i) =>
+            '<div class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background-color:' +
+            escapeHtmlCc(colors[i]) +
+            '"></span><span>' +
+            escapeHtmlCc(e[0]) +
+            '</span><span class="cc-engagement-legend-count">' +
+            escapeHtmlCc(String(e[1])) +
+            '</span></div>',
+        )
+        .join('');
+    }
+  }
+
+  async function fetchAndRenderCcEvents(email) {
+    const em = String(email || '').trim();
+    if (!em) {
+      window._ccLastEvents = [];
+      renderCcRecentEvents([]);
+      renderCcJourneyActivity([]);
+      renderCcDetailsJourneyActivity([]);
+      renderCcEventActivityChart([]);
+      return;
+    }
+    const qs = 'identifier=' + encodeURIComponent(em) + '&namespace=email' + getCcSandboxQs();
+    try {
+      const res = await fetch('/api/profile/events?' + qs);
+      const payload = await res.json().catch(() => ({}));
+      const raw = res.ok && Array.isArray(payload.events) ? payload.events : [];
+      raw.sort((a, b) => {
+        const at = a && a.timestamp != null ? Number(a.timestamp) : 0;
+        const bt = b && b.timestamp != null ? Number(b.timestamp) : 0;
+        return bt - at;
+      });
+      window._ccLastEvents = raw;
+    } catch (_) {
+      window._ccLastEvents = [];
+    }
+    renderCcRecentEvents(window._ccLastEvents);
+    renderCcJourneyActivity(window._ccLastEvents);
+    renderCcDetailsJourneyActivity(window._ccLastEvents);
+    renderCcEventActivityChart(window._ccLastEvents);
+  }
+
+  function resetCcEventsUi() {
+    window._ccLastEvents = [];
+    if (ccEventActivityChartInst) {
+      try {
+        ccEventActivityChartInst.destroy();
+      } catch (_) {
+        /* ignore */
+      }
+      ccEventActivityChartInst = null;
+    }
+    const tbody = document.getElementById('ccEventsTableBody');
+    if (tbody) {
+      tbody.innerHTML =
+        '<tr class="cc-events-placeholder-row"><td colspan="5" class="cc-events-placeholder">Load a customer profile to see their experience events from AEP.</td></tr>';
+    }
+    const countEl = document.getElementById('ccEventsCount');
+    if (countEl) {
+      countEl.hidden = true;
+      countEl.textContent = '';
+    }
+    const jSec = document.getElementById('ccJourneyActivitySection');
+    if (jSec) jSec.hidden = true;
+    const jBody = document.getElementById('ccJourneyTableBody');
+    if (jBody) jBody.innerHTML = '';
+    const dEmpty = document.getElementById('ccDetailsJourneyEmpty');
+    const dWrap = document.getElementById('ccDetailsJourneyWrap');
+    const dBody = document.getElementById('ccDetailsJourneyBody');
+    if (dEmpty) {
+      dEmpty.hidden = false;
+      dEmpty.textContent = 'Load a customer profile to see journey activity from AEP experience events.';
+    }
+    if (dWrap) dWrap.hidden = true;
+    if (dBody) dBody.innerHTML = '';
+    const chSec = document.getElementById('ccEngagementChartSection');
+    const chEmpty = document.getElementById('ccEngagementChartEmpty');
+    const chToggle = document.getElementById('ccEngagementToggle');
+    const leg = document.getElementById('ccEventActivityLegend');
+    if (chSec) chSec.hidden = true;
+    if (chEmpty) {
+      chEmpty.hidden = true;
+      chEmpty.textContent = 'No event data available.';
+    }
+    if (chToggle) chToggle.hidden = true;
+    if (leg) leg.innerHTML = '';
+    ccEventChartType = 'doughnut';
+    const tgl = document.getElementById('ccEngagementToggle');
+    if (tgl) {
+      tgl.querySelectorAll('[data-cc-chart-type]').forEach((b) => {
+        const dou = b.getAttribute('data-cc-chart-type') === 'doughnut';
+        b.classList.toggle('cc-engagement-toggle-btn--active', dou);
+        b.setAttribute('aria-pressed', dou ? 'true' : 'false');
+      });
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('ccEngagementToggle');
+    const btn = e.target && e.target.closest && e.target.closest('[data-cc-chart-type]');
+    if (!wrap || !btn || !wrap.contains(btn)) return;
+    const type = btn.getAttribute('data-cc-chart-type');
+    if (!type || type === ccEventChartType) return;
+    ccEventChartType = type === 'bar-v' ? 'bar-v' : 'doughnut';
+    wrap.querySelectorAll('[data-cc-chart-type]').forEach((b) => {
+      const active = b === btn;
+      b.classList.toggle('cc-engagement-toggle-btn--active', active);
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    renderCcEventActivityChart(window._ccLastEvents || []);
   });
 
   initIndustryUi();

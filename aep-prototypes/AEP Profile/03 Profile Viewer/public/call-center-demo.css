@@ -2943,3 +2943,236 @@ body.call-center-demo-page.cc-theme-banking-dark {
 .cc-theme-banking-dark .call-center-pinned-ecid strong {
   color: #fda4af;
 }
+
+/* ── Customer details: journey activity + engagement chart (Chart.js) ── */
+.cc-details-journey-section {
+  margin-top: 1rem;
+  padding: 1rem 1rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid var(--cc-border);
+  background: var(--cc-card);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.cc-details-journey-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.cc-details-journey-table {
+  border-radius: 0;
+}
+
+.cc-transactions-head .cc-journey-note {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--cc-muted);
+  max-width: 52ch;
+  line-height: 1.35;
+}
+
+.cc-journey-last-seen {
+  font-size: 0.78rem;
+  color: var(--cc-muted);
+  white-space: nowrap;
+}
+
+.cc-journey-count-bar-wrap {
+  position: relative;
+  min-width: 88px;
+  height: 1.35rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cc-muted) 12%, transparent);
+  overflow: hidden;
+}
+
+.cc-journey-count-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  max-width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc-accent) 85%, transparent), var(--cc-accent));
+}
+
+.cc-journey-count-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--cc-text);
+  text-shadow: 0 0 2px color-mix(in srgb, var(--cc-card) 80%, transparent);
+}
+
+.cc-card--engagement {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cc-engagement-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cc-engagement-head .cc-card-title {
+  margin: 0;
+}
+
+.cc-engagement-toggle {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--cc-border);
+}
+
+.cc-engagement-toggle-btn {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border: none;
+  background: color-mix(in srgb, var(--cc-muted) 10%, transparent);
+  color: var(--cc-muted);
+  cursor: pointer;
+}
+
+.cc-engagement-toggle-btn--active {
+  background: color-mix(in srgb, var(--cc-accent) 18%, transparent);
+  color: var(--cc-accent);
+}
+
+.cc-engagement-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.cc-engagement-dl > div {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.35fr) 1fr;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.cc-engagement-dl dt {
+  margin: 0;
+  color: var(--cc-muted);
+  font-weight: 600;
+}
+
+.cc-engagement-dl dd {
+  margin: 0;
+  color: var(--cc-text);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.cc-engagement-dl-aud {
+  grid-column: 1 / -1;
+}
+
+.cc-sig-ecid-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+#ccEngagementChartSection {
+  margin-top: 0.25rem;
+}
+
+#ccEventActivityChart {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+}
+
+.cc-engagement-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--cc-muted);
+}
+
+.cc-engagement-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.cc-engagement-legend-item > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cc-text);
+}
+
+.cc-engagement-legend-count {
+  font-weight: 700;
+  color: var(--cc-muted);
+  flex-shrink: 0;
+}
+
+.cc-engagement-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--cc-border) 80%, transparent);
+}
+
+.cc-events-placeholder {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--cc-muted);
+}
+
+.cc-theme-banking-dark .cc-details-journey-section {
+  background: var(--cc-bank-elev);
+  border-color: var(--cc-bank-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.cc-theme-banking-dark .cc-engagement-toggle {
+  border-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-engagement-toggle-btn {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cc-muted);
+}
+
+.cc-theme-banking-dark .cc-engagement-toggle-btn--active {
+  background: color-mix(in srgb, var(--cc-accent) 22%, transparent);
+  color: var(--cc-text);
+}
+
+.cc-theme-banking-dark .cc-journey-count-bar-wrap {
+  background: color-mix(in srgb, var(--cc-muted) 16%, transparent);
+}
+
+.cc-theme-banking-dark .cc-journey-count-text {
+  color: var(--cc-text);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--cc-text) 40%, transparent);
+}
