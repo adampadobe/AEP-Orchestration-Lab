@@ -1881,23 +1881,21 @@
       </div>
 
       <!-- Travel-specific attributes — aligned with `AEP Lab - Travel Profile - Schema`
-           in the configured sandbox. Paths actually streamed by Generate / Update:
+           in the configured sandbox. Paths streamed by Generate / Update include:
              _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg)
+             _<tenant>.hotel.* when Recent stay is enabled (Travel - Hotel Experience v1 FG)
              travelPreferences.* (root-level OOTB Adobe travel-preferences mixin)
-           Form fields under "Travel attributes" / "Recent stay" / "Hotel reservation"
-           / "Car reservation" stay client-side for now (no schema home). See the
-           hint banner below — operators can preview a richer persona, but those
-           values aren't streamed until the Travel schema gains tenant FGs that
-           expose them. profile-generation-travel.js builds the update list. -->
+           "Hotel reservation" / "Car reservation" rows stay client-side (no schema home).
+           profile-generation-travel.js builds the update list. -->
       <div class="generic-analytics-section">
         <h3 class="generic-subhead"><span class="icon">✈️</span> Travel attributes</h3>
         <p class="setup-step-hint" style="margin-top:0;font-size:0.88em;">
           Generate auto-fills the full Flight reservation block + a randomized OOTB
           <code>travelPreferences.*</code> bundle (meal, seat, roomType, vehicleType, …)
           so the resulting AEP profile carries substantive travel data, not just analytics.
-          Hotel reservation, Car reservation and Recent-stay subsections are not in the
-          current Travel Profile schema and stay client-side only — extend the Travel
-          tenant FG to add them.
+          With Recent stay enabled, lifecycle fields stream to <code>hotel.*</code> when the
+          Travel - Hotel Experience v1 field group is on the schema. Hotel reservation and
+          Car reservation subsections are not in the Travel Profile schema and stay client-side.
         </p>
         <div class="gen-identity-grid">
           <div class="form-group">
@@ -1923,32 +1921,251 @@
             <span>Include recent stay attributes</span>
           </label>
           <div class="gen-loyalty-fields" id="travelRecentStayFields" hidden>
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 8px;">Booking details</h5>
             <div class="form-row form-row--inline">
               <div class="form-group form-group--flex">
                 <label for="travelRecentStayHotelName">Hotel name</label>
                 <input type="text" id="travelRecentStayHotelName" placeholder="e.g. The Savoy">
               </div>
               <div class="form-group">
-                <label for="travelRecentStayCity">City</label>
+                <label for="travelRecentStayCity">City / location</label>
                 <input type="text" id="travelRecentStayCity" placeholder="e.g. London">
               </div>
               <div class="form-group">
-                <label for="travelRecentStayCountry">Country</label>
-                <input type="text" id="travelRecentStayCountry" placeholder="e.g. United Kingdom">
+                <label for="travelRecentStayHotelChain">Hotel chain</label>
+                <select id="travelRecentStayHotelChain">
+                  <option value="">— Select —</option>
+                  <option value="Marriott">Marriott</option>
+                  <option value="Hilton">Hilton</option>
+                  <option value="IHG">IHG</option>
+                  <option value="Accor">Accor</option>
+                  <option value="Hyatt">Hyatt</option>
+                  <option value="Radisson">Radisson</option>
+                  <option value="Four Seasons">Four Seasons</option>
+                  <option value="Shangri-La">Shangri-La</option>
+                  <option value="Wyndham">Wyndham</option>
+                  <option value="Best Western">Best Western</option>
+                </select>
               </div>
             </div>
             <div class="form-row form-row--inline">
               <div class="form-group">
-                <label for="travelRecentStayCheckIn">Check-in</label>
+                <label for="travelRecentStayCheckIn">Check-in date</label>
                 <input type="date" id="travelRecentStayCheckIn">
               </div>
               <div class="form-group">
-                <label for="travelRecentStayCheckOut">Check-out</label>
+                <label for="travelRecentStayCheckOut">Check-out date</label>
                 <input type="date" id="travelRecentStayCheckOut">
               </div>
               <div class="form-group">
+                <label for="travelRecentStayNights">Nights this stay</label>
+                <input type="number" id="travelRecentStayNights" min="1" max="365" placeholder="auto">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayTotalNights">Total nights (past year)</label>
+                <input type="number" id="travelRecentStayTotalNights" min="0" max="365" placeholder="28">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
                 <label for="travelRecentStayRoomType">Room type</label>
-                <input type="text" id="travelRecentStayRoomType" placeholder="e.g. Deluxe King">
+                <select id="travelRecentStayRoomType">
+                  <option value="">— Select —</option>
+                  <option value="standard">Standard</option>
+                  <option value="superior">Superior</option>
+                  <option value="deluxe">Deluxe</option>
+                  <option value="junior_suite">Junior suite</option>
+                  <option value="suite">Suite</option>
+                  <option value="executive">Executive</option>
+                  <option value="penthouse">Penthouse</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRateCode">Rate code</label>
+                <select id="travelRecentStayRateCode">
+                  <option value="">— Select —</option>
+                  <option value="BAR">BAR (best available)</option>
+                  <option value="LOYALTY">Loyalty rate</option>
+                  <option value="CORPORATE">Corporate</option>
+                  <option value="AAA">AAA</option>
+                  <option value="PACKAGE">Package</option>
+                  <option value="PROMOTIONAL">Promotional</option>
+                  <option value="ADVANCE_PURCHASE">Advance purchase</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRoomNumber">Room number</label>
+                <input type="text" id="travelRecentStayRoomNumber" placeholder="e.g. 412">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayConfirmation">Confirmation #</label>
+                <input type="text" id="travelRecentStayConfirmation" placeholder="e.g. HE-928341">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayRoomCost">Room cost / night (£)</label>
+                <input type="number" id="travelRecentStayRoomCost" min="0" step="0.01" placeholder="e.g. 189.00">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayTotalCost">Total cost (£)</label>
+                <input type="number" id="travelRecentStayTotalCost" min="0" step="0.01" placeholder="auto">
+              </div>
+            </div>
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Check-in experience</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayCheckInMethod">Check-in method</label>
+                <select id="travelRecentStayCheckInMethod">
+                  <option value="">— Select —</option>
+                  <option value="front_desk">Front desk</option>
+                  <option value="mobile_app">Mobile app</option>
+                  <option value="kiosk">Kiosk</option>
+                  <option value="express">Express</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayQueueTime">Queue time (min)</label>
+                <input type="number" id="travelRecentStayQueueTime" min="0" step="1" placeholder="e.g. 5">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayEarlyCheckIn">Early check-in?</label>
+                <select id="travelRecentStayEarlyCheckIn">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRoomReady">Room ready on arrival?</label>
+                <select id="travelRecentStayRoomReady">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayUpgraded">Room upgraded?</label>
+                <select id="travelRecentStayUpgraded">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayWelcomeAmenities">Welcome amenities?</label>
+                <select id="travelRecentStayWelcomeAmenities">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">In-stay experience</h5>
+            <p class="setup-step-hint" style="margin-top: 0; margin-bottom: 6px; font-size: 0.85em;">Housekeeping · amenity used · room service (if any)</p>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayDoNotDisturb">Do not disturb?</label>
+                <select id="travelRecentStayDoNotDisturb">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayExtraTowels">Extra towels requested?</label>
+                <select id="travelRecentStayExtraTowels">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayHousekeepingService">Housekeeping service called?</label>
+                <select id="travelRecentStayHousekeepingService">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayCleanlinessRating">Cleanliness rating (1–10)</label>
+                <input type="number" id="travelRecentStayCleanlinessRating" min="1" max="10" step="1" placeholder="e.g. 9">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayAmenityType">Amenity used</label>
+                <select id="travelRecentStayAmenityType">
+                  <option value="">— None / not recorded —</option>
+                  <option value="gym">Gym</option>
+                  <option value="pool">Pool</option>
+                  <option value="spa">Spa</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="bar">Bar</option>
+                  <option value="concierge">Concierge</option>
+                  <option value="business_centre">Business centre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayAmenitySatisfaction">Amenity satisfaction (1–10)</label>
+                <input type="number" id="travelRecentStayAmenitySatisfaction" min="1" max="10" step="1" placeholder="e.g. 8">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayRoomServiceType">Room service interaction</label>
+                <select id="travelRecentStayRoomServiceType">
+                  <option value="">— None —</option>
+                  <option value="food_order">Food order</option>
+                  <option value="beverage">Beverage</option>
+                  <option value="laundry">Laundry</option>
+                  <option value="amenity_request">Amenity request</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRoomServiceTotal">Room service total (£)</label>
+                <input type="number" id="travelRecentStayRoomServiceTotal" min="0" step="0.01" placeholder="e.g. 45.00">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayRoomServiceRating">Room service rating (1–10)</label>
+                <input type="number" id="travelRecentStayRoomServiceRating" min="1" max="10" step="1" placeholder="e.g. 8">
+              </div>
+            </div>
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Check-out &amp; rating</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayCheckOutMethod">Check-out method</label>
+                <select id="travelRecentStayCheckOutMethod">
+                  <option value="">— Select —</option>
+                  <option value="front_desk">Front desk</option>
+                  <option value="express">Express</option>
+                  <option value="mobile_app">Mobile app</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayLateCheckOut">Late check-out?</label>
+                <select id="travelRecentStayLateCheckOut">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayOverallRating">Overall rating (1–10)</label>
+                <input type="number" id="travelRecentStayOverallRating" min="1" max="10" step="1" placeholder="e.g. 9">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelRecentStayFinalBill">Final bill (£)</label>
+                <input type="number" id="travelRecentStayFinalBill" min="0" step="0.01" placeholder="e.g. 749.50">
+              </div>
+              <div class="form-group">
+                <label for="travelRecentStayIncidentals">Incidental charges (£)</label>
+                <input type="number" id="travelRecentStayIncidentals" min="0" step="0.01" placeholder="e.g. 35.00">
               </div>
             </div>
           </div>

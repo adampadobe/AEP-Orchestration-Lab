@@ -9,7 +9,7 @@
  *    endpoints back the wizard / connection store (separate Firestore
  *    collection from Generic).
  *  - `buildUpdatesFromForm()` adds Travel attribute paths under the tenant
- *    (`individualCharacteristics.travel.*`, `travelReservations.*`).
+ *    (`travelReservations.*`, `hotel.*`).
  *
  * Cross-industry coordination (counter / base email / recent / lastStreamed)
  * runs through window.AepProfileGenShared, so a Generic profile and a
@@ -113,10 +113,37 @@
   const recentStayFieldsEl = document.getElementById('travelRecentStayFields');
   const recentStayHotelEl = document.getElementById('travelRecentStayHotelName');
   const recentStayCityEl = document.getElementById('travelRecentStayCity');
-  const recentStayCountryEl = document.getElementById('travelRecentStayCountry');
   const recentStayCheckInEl = document.getElementById('travelRecentStayCheckIn');
   const recentStayCheckOutEl = document.getElementById('travelRecentStayCheckOut');
   const recentStayRoomTypeEl = document.getElementById('travelRecentStayRoomType');
+  const recentStayHotelChainEl = document.getElementById('travelRecentStayHotelChain');
+  const recentStayNightsEl = document.getElementById('travelRecentStayNights');
+  const recentStayTotalNightsEl = document.getElementById('travelRecentStayTotalNights');
+  const recentStayRateCodeEl = document.getElementById('travelRecentStayRateCode');
+  const recentStayRoomNumberEl = document.getElementById('travelRecentStayRoomNumber');
+  const recentStayConfirmationEl = document.getElementById('travelRecentStayConfirmation');
+  const recentStayRoomCostEl = document.getElementById('travelRecentStayRoomCost');
+  const recentStayTotalCostEl = document.getElementById('travelRecentStayTotalCost');
+  const recentStayCheckInMethodEl = document.getElementById('travelRecentStayCheckInMethod');
+  const recentStayQueueTimeEl = document.getElementById('travelRecentStayQueueTime');
+  const recentStayEarlyCheckInEl = document.getElementById('travelRecentStayEarlyCheckIn');
+  const recentStayRoomReadyEl = document.getElementById('travelRecentStayRoomReady');
+  const recentStayUpgradedEl = document.getElementById('travelRecentStayUpgraded');
+  const recentStayWelcomeAmenitiesEl = document.getElementById('travelRecentStayWelcomeAmenities');
+  const recentStayDoNotDisturbEl = document.getElementById('travelRecentStayDoNotDisturb');
+  const recentStayExtraTowelsEl = document.getElementById('travelRecentStayExtraTowels');
+  const recentStayHousekeepingServiceEl = document.getElementById('travelRecentStayHousekeepingService');
+  const recentStayCleanlinessRatingEl = document.getElementById('travelRecentStayCleanlinessRating');
+  const recentStayAmenityTypeEl = document.getElementById('travelRecentStayAmenityType');
+  const recentStayAmenitySatisfactionEl = document.getElementById('travelRecentStayAmenitySatisfaction');
+  const recentStayRoomServiceTypeEl = document.getElementById('travelRecentStayRoomServiceType');
+  const recentStayRoomServiceTotalEl = document.getElementById('travelRecentStayRoomServiceTotal');
+  const recentStayRoomServiceRatingEl = document.getElementById('travelRecentStayRoomServiceRating');
+  const recentStayCheckOutMethodEl = document.getElementById('travelRecentStayCheckOutMethod');
+  const recentStayLateCheckOutEl = document.getElementById('travelRecentStayLateCheckOut');
+  const recentStayOverallRatingEl = document.getElementById('travelRecentStayOverallRating');
+  const recentStayFinalBillEl = document.getElementById('travelRecentStayFinalBill');
+  const recentStayIncidentalsEl = document.getElementById('travelRecentStayIncidentals');
 
   const reservationsEnabledEl = document.getElementById('travelReservationsEnabled');
   const reservationsFieldsEl = document.getElementById('travelReservationsFields');
@@ -1009,11 +1036,12 @@
   //     (root-level OOTB Adobe travel-preferences mixin)
   //
   // What is NOT streamed (no schema home today — see hint banner in profile-generation.html):
-  //   _<tenant>.individualCharacteristics.travel.* (favouriteAirline, primaryTravelClass, recentStay)
+  //   _<tenant>.individualCharacteristics.travel.* (favouriteAirline, primaryTravelClass only —
+  //     used by the Generate randomizer for flight IATA / class, not persisted as tenant leaves)
   //   _<tenant>.travelReservations.{hotelReservations, carReservations}.*
-  // The form inputs for those subsections still render so an operator can preview
-  // a richer travel persona, but the values stay client-side until the Travel Profile
-  // schema gains a tenant FG that exposes them.
+  // Recent stay maps to `_<tenant>.hotel.*` when the Recent stay toggle is on (Travel - Hotel
+  // Experience v1 FG). The reservation "hotel" row inputs remain client-side previews until
+  // those paths exist on-schema.
   const RANDOM_AIRLINES = [
     'British Airways', 'Air France', 'Lufthansa', 'KLM', 'Emirates',
     'Qatar Airways', 'Delta Air Lines', 'United Airlines', 'American Airlines',
@@ -1285,7 +1313,7 @@
   // stream.
   //
   // **Always-on contract (per operator request 2026-05-02):** every Generate
-  // click MUST force both the Reservations and Travel-preferences toggles ON
+  // click MUST force Reservations, Travel-preferences, and Recent stay toggles ON
   // and populate every schema-aligned field, regardless of prior UI state.
   // The toggles are visibility-only affordances; buildUpdatesFromForm streams
   // travel data whenever the inputs hold values, so Generate cannot produce a
@@ -1302,6 +1330,10 @@
     if (travelPrefsEnabledEl) {
       travelPrefsEnabledEl.checked = true;
       try { applyTravelPrefsToggleVisibility(); } catch (_) {}
+    }
+    if (recentStayEnabledEl) {
+      recentStayEnabledEl.checked = true;
+      try { applyRecentStayToggleVisibility(); } catch (_) {}
     }
 
     const airline = randomPick(RANDOM_AIRLINES);
@@ -1400,6 +1432,81 @@
     if (prefSmokingVehicleEl) prefSmokingVehicleEl.checked = false;
     if (prefVisuallyImpairedEl) prefVisuallyImpairedEl.checked = false;
     if (prefWheelchairEl) prefWheelchairEl.checked = Math.random() < 0.05;
+
+    // Tenant `hotel.*` (Travel - Hotel Experience v1) — aligns with Recent stay form + buildUpdatesFromForm.
+    const setIfEl = (el, val) => {
+      if (!el) return;
+      el.value = val == null ? '' : String(val);
+    };
+    const hotelChains = ['Marriott', 'Hilton', 'IHG', 'Accor', 'Hyatt', 'Radisson'];
+    const roomTypes = ['standard', 'superior', 'deluxe', 'junior_suite', 'suite', 'executive'];
+    const rateCodes = ['BAR', 'LOYALTY', 'CORPORATE', 'ADVANCE_PURCHASE'];
+    const checkInMethods = ['front_desk', 'mobile_app', 'kiosk'];
+    const checkOutMethods = ['front_desk', 'express', 'mobile_app'];
+    const amenityTypes = ['gym', 'pool', 'spa', 'restaurant', 'bar'];
+    const rsTypes = ['food_order', 'beverage', 'laundry'];
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const rInt = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+    const rCost = (lo, hi) => Math.round((Math.random() * (hi - lo) + lo) * 100) / 100;
+
+    const nightsRand = rInt(1, 7);
+    const offsetDays = randomBetween(-40, 45);
+    const ci = new Date();
+    ci.setUTCDate(ci.getUTCDate() + offsetDays);
+    const co = new Date(ci);
+    co.setUTCDate(co.getUTCDate() + nightsRand);
+    if (recentStayCheckInEl) recentStayCheckInEl.value = ci.toISOString().slice(0, 10);
+    if (recentStayCheckOutEl) recentStayCheckOutEl.value = co.toISOString().slice(0, 10);
+    if (recentStayNightsEl) recentStayNightsEl.value = '';
+    if (recentStayHotelEl) {
+      recentStayHotelEl.value = randomPick([
+        'The Savoy', 'Claridge\'s', 'Hotel Arts Barcelona', 'Park Hyatt Tokyo', 'Rosewood London',
+      ]);
+    }
+    if (recentStayCityEl) recentStayCityEl.value = arr.city || '';
+    if (recentStayConfirmationEl) recentStayConfirmationEl.value = `HE-${randomBetween(100000, 999999)}`;
+
+    setIfEl(recentStayHotelChainEl, pick(hotelChains));
+    setIfEl(recentStayRoomTypeEl, pick(roomTypes));
+    setIfEl(recentStayRateCodeEl, pick(rateCodes));
+    setIfEl(recentStayRoomNumberEl, String(rInt(101, 1250)));
+    setIfEl(recentStayTotalNightsEl, String(rInt(14, 60)));
+
+    const roomCostRand = rCost(89, 499);
+    setIfEl(recentStayRoomCostEl, String(roomCostRand));
+    setIfEl(recentStayTotalCostEl, String(Math.round(roomCostRand * nightsRand * 100) / 100));
+
+    setIfEl(recentStayCheckInMethodEl, pick(checkInMethods));
+    setIfEl(recentStayQueueTimeEl, String(rInt(0, 15)));
+    setIfEl(recentStayEarlyCheckInEl, Math.random() > 0.7 ? 'true' : 'false');
+    setIfEl(recentStayRoomReadyEl, Math.random() > 0.3 ? 'true' : 'false');
+    setIfEl(recentStayUpgradedEl, Math.random() > 0.6 ? 'true' : 'false');
+    setIfEl(recentStayWelcomeAmenitiesEl, Math.random() > 0.5 ? 'true' : 'false');
+
+    setIfEl(recentStayDoNotDisturbEl, Math.random() > 0.5 ? 'true' : 'false');
+    setIfEl(recentStayExtraTowelsEl, Math.random() > 0.6 ? 'true' : 'false');
+    setIfEl(recentStayHousekeepingServiceEl, Math.random() > 0.4 ? 'true' : 'false');
+    setIfEl(recentStayCleanlinessRatingEl, String(rInt(7, 10)));
+
+    setIfEl(recentStayAmenityTypeEl, pick(amenityTypes));
+    setIfEl(recentStayAmenitySatisfactionEl, String(rInt(6, 10)));
+
+    if (Math.random() > 0.5) {
+      setIfEl(recentStayRoomServiceTypeEl, pick(rsTypes));
+      setIfEl(recentStayRoomServiceTotalEl, String(rCost(15, 95)));
+      setIfEl(recentStayRoomServiceRatingEl, String(rInt(6, 10)));
+    } else {
+      setIfEl(recentStayRoomServiceTypeEl, '');
+      setIfEl(recentStayRoomServiceTotalEl, '');
+      setIfEl(recentStayRoomServiceRatingEl, '');
+    }
+
+    setIfEl(recentStayCheckOutMethodEl, pick(checkOutMethods));
+    setIfEl(recentStayLateCheckOutEl, Math.random() > 0.7 ? 'true' : 'false');
+    setIfEl(recentStayOverallRatingEl, String(rInt(7, 10)));
+    const incidentalsRand = Math.random() > 0.4 ? rCost(10, 120) : 0;
+    setIfEl(recentStayFinalBillEl, String(Math.round((roomCostRand * nightsRand + incidentalsRand) * 100) / 100));
+    setIfEl(recentStayIncidentalsEl, String(incidentalsRand));
   }
 
   function applyRandomCustomerPersonaForGenerate() {
@@ -1537,10 +1644,37 @@
           enabled: true,
           hotelName: trimVal(recentStayHotelEl),
           city: trimVal(recentStayCityEl),
-          country: trimVal(recentStayCountryEl),
+          hotelChain: trimVal(recentStayHotelChainEl),
           checkIn: trimVal(recentStayCheckInEl),
           checkOut: trimVal(recentStayCheckOutEl),
+          nights: trimVal(recentStayNightsEl),
+          totalNights: trimVal(recentStayTotalNightsEl) || '28',
           roomType: trimVal(recentStayRoomTypeEl),
+          rateCode: trimVal(recentStayRateCodeEl),
+          roomNumber: trimVal(recentStayRoomNumberEl),
+          confirmation: trimVal(recentStayConfirmationEl),
+          roomCost: trimVal(recentStayRoomCostEl),
+          totalCost: trimVal(recentStayTotalCostEl),
+          checkInMethod: trimVal(recentStayCheckInMethodEl),
+          queueTime: trimVal(recentStayQueueTimeEl),
+          earlyCheckIn: trimVal(recentStayEarlyCheckInEl),
+          roomReady: trimVal(recentStayRoomReadyEl),
+          upgradedRoom: trimVal(recentStayUpgradedEl),
+          welcomeAmenities: trimVal(recentStayWelcomeAmenitiesEl),
+          doNotDisturb: trimVal(recentStayDoNotDisturbEl),
+          extraTowels: trimVal(recentStayExtraTowelsEl),
+          housekeepingService: trimVal(recentStayHousekeepingServiceEl),
+          cleanlinessRating: trimVal(recentStayCleanlinessRatingEl),
+          amenityType: trimVal(recentStayAmenityTypeEl),
+          amenitySatisfaction: trimVal(recentStayAmenitySatisfactionEl),
+          roomServiceType: trimVal(recentStayRoomServiceTypeEl),
+          roomServiceTotal: trimVal(recentStayRoomServiceTotalEl),
+          roomServiceRating: trimVal(recentStayRoomServiceRatingEl),
+          checkOutMethod: trimVal(recentStayCheckOutMethodEl),
+          lateCheckOut: trimVal(recentStayLateCheckOutEl),
+          overallRating: trimVal(recentStayOverallRatingEl),
+          finalBill: trimVal(recentStayFinalBillEl),
+          incidentals: trimVal(recentStayIncidentalsEl),
         } : { enabled: false },
         reservations: reservationsOn ? {
           enabled: true,
@@ -1674,17 +1808,14 @@
     // the operator clicks Update afterwards. To skip a field, clear the input
     // value (or leave it empty) instead of unticking the toggle.
     //
-    // NOTE on dropped paths:
-    //   - `individualCharacteristics.travel.{favouriteAirlineCompany, primaryTravelClass,
-    //     recentStay.*}` is NOT in the current schema's `_<tenant>` subtree. The favourite
-    //     airline / primary travel class form inputs still drive the Generate randomizer
-    //     (airline picks the IATA prefix for flightNumber, class flows into flightClass),
-    //     and recentStay form fields stay client-side only. AEP would silently drop them
-    //     if streamed, which is the bug that caused "travel profiles with only generic
-    //     attributes" before.
-    //   - `travelReservations.{hotelReservations, carReservations}.*` likewise have no
-    //     schema home today. The OOTB `travelPreferences.{roomType, vehicleType}` covers
-    //     room/vehicle preferences instead, and Generate now populates those.
+    // NOTE on tenant / root paths:
+    //   - `individualCharacteristics.travel.{favouriteAirlineCompany, primaryTravelClass}`
+    //     are not in Profile Core v2; they still drive the Generate randomizer (IATA prefix,
+    //     flightClass).
+    //   - `hotel.*` (Travel - Hotel Experience v1 FG) streams when Recent stay is enabled.
+    //   - `travelReservations.{hotelReservations, carReservations}.*` have no schema home today.
+    //     OOTB `travelPreferences.{roomType, vehicleType}` covers room/vehicle preferences; Generate
+    //     populates those.
     {
       const flightPath = 'travelReservations.flightReservations';
       const v = (el) => trimVal(el);
@@ -1762,6 +1893,84 @@
           if (ld2 != null) push(`${flightPath}.multiLeg.layoverDuration_2`, ld2);
         }
       }
+    }
+
+    const recentStayOn = !!(recentStayEnabledEl && recentStayEnabledEl.checked);
+    if (recentStayOn) {
+      const checkIn = trimVal(recentStayCheckInEl);
+      const checkOut = trimVal(recentStayCheckOutEl);
+
+      let nightsStay = parseInt(trimVal(recentStayNightsEl), 10);
+      if ((!nightsStay || nightsStay <= 0) && checkIn && checkOut) {
+        nightsStay = Math.max(0, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000));
+      }
+
+      const roomCost = parseFloat(trimVal(recentStayRoomCostEl));
+      let totalCost = parseFloat(trimVal(recentStayTotalCostEl));
+      if (Number.isNaN(totalCost) && !Number.isNaN(roomCost) && nightsStay > 0) {
+        totalCost = Math.round(roomCost * nightsStay * 100) / 100;
+      }
+
+      const totalNights = parseInt(trimVal(recentStayTotalNightsEl), 10) || 28;
+
+      const bd = 'hotel.bookingDetails';
+      if (trimVal(recentStayHotelEl)) push(`${bd}.hotelName`, trimVal(recentStayHotelEl));
+      if (trimVal(recentStayCityEl)) push(`${bd}.hotelLocation`, trimVal(recentStayCityEl));
+      if (trimVal(recentStayHotelChainEl)) push(`${bd}.hotelChain`, trimVal(recentStayHotelChainEl));
+      if (checkIn) push(`${bd}.checkInDate`, checkIn);
+      if (checkOut) push(`${bd}.checkOutDate`, checkOut);
+      if (nightsStay > 0) push(`${bd}.nightsStay`, nightsStay);
+      push(`${bd}.totalNights`, totalNights);
+      if (trimVal(recentStayRoomTypeEl)) push(`${bd}.roomType`, trimVal(recentStayRoomTypeEl));
+      if (trimVal(recentStayRateCodeEl)) push(`${bd}.rateCode`, trimVal(recentStayRateCodeEl));
+      if (trimVal(recentStayRoomNumberEl)) push(`${bd}.roomNumber`, trimVal(recentStayRoomNumberEl));
+      if (trimVal(recentStayConfirmationEl)) push(`${bd}.confirmationNumber`, trimVal(recentStayConfirmationEl));
+      if (!Number.isNaN(roomCost) && roomCost > 0) push(`${bd}.roomCost`, roomCost);
+      if (!Number.isNaN(totalCost) && totalCost > 0) push(`${bd}.totalCost`, totalCost);
+
+      const ci = 'hotel.checkIn';
+      if (trimVal(recentStayCheckInMethodEl)) push(`${ci}.checkInMethod`, trimVal(recentStayCheckInMethodEl));
+      const queueTime = parseInt(trimVal(recentStayQueueTimeEl), 10);
+      if (!Number.isNaN(queueTime) && queueTime >= 0) push(`${ci}.queueTime`, queueTime);
+      if (trimVal(recentStayEarlyCheckInEl)) push(`${ci}.earlyCheckIn`, trimVal(recentStayEarlyCheckInEl) === 'true');
+      if (trimVal(recentStayRoomReadyEl)) push(`${ci}.roomReady`, trimVal(recentStayRoomReadyEl) === 'true');
+      if (trimVal(recentStayUpgradedEl)) push(`${ci}.upgradedRoom`, trimVal(recentStayUpgradedEl) === 'true');
+      if (trimVal(recentStayWelcomeAmenitiesEl)) push(`${ci}.welcomeAmenities`, trimVal(recentStayWelcomeAmenitiesEl) === 'true');
+
+      const hk = 'hotel.housekeeping';
+      if (trimVal(recentStayDoNotDisturbEl)) push(`${hk}.doNotDisturb`, trimVal(recentStayDoNotDisturbEl) === 'true');
+      if (trimVal(recentStayExtraTowelsEl)) push(`${hk}.extraTowels`, trimVal(recentStayExtraTowelsEl) === 'true');
+      if (trimVal(recentStayHousekeepingServiceEl)) {
+        push(`${hk}.serviceRequested`, trimVal(recentStayHousekeepingServiceEl) === 'true');
+      }
+      const cleanRating = parseInt(trimVal(recentStayCleanlinessRatingEl), 10);
+      if (!Number.isNaN(cleanRating)) push(`${hk}.cleanlinessRating`, cleanRating);
+
+      const am = 'hotel.amenities';
+      if (trimVal(recentStayAmenityTypeEl)) {
+        push(`${am}.amenityType`, trimVal(recentStayAmenityTypeEl));
+        const amenitySat = parseInt(trimVal(recentStayAmenitySatisfactionEl), 10);
+        if (!Number.isNaN(amenitySat)) push(`${am}.satisfactionRating`, amenitySat);
+      }
+
+      const rs = 'hotel.roomService';
+      if (trimVal(recentStayRoomServiceTypeEl)) {
+        push(`${rs}.interactionType`, trimVal(recentStayRoomServiceTypeEl));
+        const rsTotal = parseFloat(trimVal(recentStayRoomServiceTotalEl));
+        if (!Number.isNaN(rsTotal) && rsTotal > 0) push(`${rs}.orderTotal`, rsTotal);
+        const rsRating = parseInt(trimVal(recentStayRoomServiceRatingEl), 10);
+        if (!Number.isNaN(rsRating)) push(`${rs}.serviceRating`, rsRating);
+      }
+
+      const co = 'hotel.checkOut';
+      if (trimVal(recentStayCheckOutMethodEl)) push(`${co}.checkOutMethod`, trimVal(recentStayCheckOutMethodEl));
+      if (trimVal(recentStayLateCheckOutEl)) push(`${co}.lateCheckOut`, trimVal(recentStayLateCheckOutEl) === 'true');
+      const overallRating = parseInt(trimVal(recentStayOverallRatingEl), 10);
+      if (!Number.isNaN(overallRating)) push(`${co}.overallRating`, overallRating);
+      const finalBill = parseFloat(trimVal(recentStayFinalBillEl));
+      if (!Number.isNaN(finalBill) && finalBill > 0) push(`${co}.finalBillAmount`, finalBill);
+      const incidentals = parseFloat(trimVal(recentStayIncidentalsEl));
+      if (!Number.isNaN(incidentals) && incidentals > 0) push(`${co}.incidentalCharges`, incidentals);
     }
 
     // Root-level OOTB Travel Preferences mixin (https://ns.adobe.com/xdm/mixins/profile/
@@ -2329,6 +2538,11 @@
       const pp = [t.prefs.meal, t.prefs.seat, t.prefs.roomType, t.prefs.vehicleType].filter(Boolean);
       if (pp.length) parts.push(pp.join('/'));
     }
+    const rs = t.recentStay;
+    if (rs && rs.enabled && (rs.hotelName || rs.city)) {
+      const hb = [rs.hotelName, rs.city].filter(Boolean).join(', ');
+      if (hb) parts.push(`Stay: ${hb}`);
+    }
     if (snap.loyalty && snap.loyalty.enabled) {
       const lp = [];
       if (snap.loyalty.tier) lp.push(snap.loyalty.tier);
@@ -2419,12 +2633,40 @@
     if (recentStayEnabledEl && t.recentStay) {
       recentStayEnabledEl.checked = !!t.recentStay.enabled;
       if (t.recentStay.enabled) {
-        if (recentStayHotelEl) recentStayHotelEl.value = t.recentStay.hotelName || '';
-        if (recentStayCityEl) recentStayCityEl.value = t.recentStay.city || '';
-        if (recentStayCountryEl) recentStayCountryEl.value = t.recentStay.country || '';
-        if (recentStayCheckInEl) recentStayCheckInEl.value = t.recentStay.checkIn || '';
-        if (recentStayCheckOutEl) recentStayCheckOutEl.value = t.recentStay.checkOut || '';
-        if (recentStayRoomTypeEl) recentStayRoomTypeEl.value = t.recentStay.roomType || '';
+        const rs = t.recentStay;
+        if (recentStayHotelEl) recentStayHotelEl.value = rs.hotelName || '';
+        if (recentStayCityEl) recentStayCityEl.value = rs.city || '';
+        if (recentStayHotelChainEl) recentStayHotelChainEl.value = rs.hotelChain || '';
+        if (recentStayCheckInEl) recentStayCheckInEl.value = rs.checkIn || '';
+        if (recentStayCheckOutEl) recentStayCheckOutEl.value = rs.checkOut || '';
+        if (recentStayNightsEl) recentStayNightsEl.value = rs.nights || '';
+        if (recentStayTotalNightsEl) recentStayTotalNightsEl.value = rs.totalNights || '';
+        if (recentStayRoomTypeEl) recentStayRoomTypeEl.value = rs.roomType || '';
+        if (recentStayRateCodeEl) recentStayRateCodeEl.value = rs.rateCode || '';
+        if (recentStayRoomNumberEl) recentStayRoomNumberEl.value = rs.roomNumber || '';
+        if (recentStayConfirmationEl) recentStayConfirmationEl.value = rs.confirmation || '';
+        if (recentStayRoomCostEl) recentStayRoomCostEl.value = rs.roomCost || '';
+        if (recentStayTotalCostEl) recentStayTotalCostEl.value = rs.totalCost || '';
+        if (recentStayCheckInMethodEl) recentStayCheckInMethodEl.value = rs.checkInMethod || '';
+        if (recentStayQueueTimeEl) recentStayQueueTimeEl.value = rs.queueTime || '';
+        if (recentStayEarlyCheckInEl) recentStayEarlyCheckInEl.value = rs.earlyCheckIn || '';
+        if (recentStayRoomReadyEl) recentStayRoomReadyEl.value = rs.roomReady || '';
+        if (recentStayUpgradedEl) recentStayUpgradedEl.value = rs.upgradedRoom || '';
+        if (recentStayWelcomeAmenitiesEl) recentStayWelcomeAmenitiesEl.value = rs.welcomeAmenities || '';
+        if (recentStayDoNotDisturbEl) recentStayDoNotDisturbEl.value = rs.doNotDisturb || '';
+        if (recentStayExtraTowelsEl) recentStayExtraTowelsEl.value = rs.extraTowels || '';
+        if (recentStayHousekeepingServiceEl) recentStayHousekeepingServiceEl.value = rs.housekeepingService || '';
+        if (recentStayCleanlinessRatingEl) recentStayCleanlinessRatingEl.value = rs.cleanlinessRating || '';
+        if (recentStayAmenityTypeEl) recentStayAmenityTypeEl.value = rs.amenityType || '';
+        if (recentStayAmenitySatisfactionEl) recentStayAmenitySatisfactionEl.value = rs.amenitySatisfaction || '';
+        if (recentStayRoomServiceTypeEl) recentStayRoomServiceTypeEl.value = rs.roomServiceType || '';
+        if (recentStayRoomServiceTotalEl) recentStayRoomServiceTotalEl.value = rs.roomServiceTotal || '';
+        if (recentStayRoomServiceRatingEl) recentStayRoomServiceRatingEl.value = rs.roomServiceRating || '';
+        if (recentStayCheckOutMethodEl) recentStayCheckOutMethodEl.value = rs.checkOutMethod || '';
+        if (recentStayLateCheckOutEl) recentStayLateCheckOutEl.value = rs.lateCheckOut || '';
+        if (recentStayOverallRatingEl) recentStayOverallRatingEl.value = rs.overallRating || '';
+        if (recentStayFinalBillEl) recentStayFinalBillEl.value = rs.finalBill || '';
+        if (recentStayIncidentalsEl) recentStayIncidentalsEl.value = rs.incidentals || '';
       }
       applyRecentStayToggleVisibility();
     }

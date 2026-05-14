@@ -178,6 +178,108 @@ const TRAVEL_RESERVATIONS_SUBTREE = {
 };
 
 /**
+ * Tenant `hotel.*` subtree for Travel - Hotel Experience v1 (booking through check-out).
+ * Flattened manifest key `hotel` matches `buildUpdatesFromForm` in profile-generation-travel.js.
+ */
+const HOTEL_EXPERIENCE_SUBTREE = {
+  type: 'object',
+  title: 'hotel',
+  description: '',
+  required: [],
+  note: '',
+  'meta:xdmType': 'object',
+  properties: {
+    bookingDetails: {
+      type: 'object',
+      title: 'bookingDetails',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        hotelName: STRING_LEAF('hotelName'),
+        hotelLocation: STRING_LEAF('hotelLocation'),
+        hotelChain: STRING_LEAF('hotelChain'),
+        checkInDate: DATE_LEAF('checkInDate'),
+        checkOutDate: DATE_LEAF('checkOutDate'),
+        nightsStay: INT_LEAF('nightsStay'),
+        totalNights: INT_LEAF('totalNights'),
+        roomType: STRING_LEAF('roomType'),
+        rateCode: STRING_LEAF('rateCode'),
+        roomNumber: STRING_LEAF('roomNumber'),
+        confirmationNumber: STRING_LEAF('confirmationNumber'),
+        roomCost: NUMBER_LEAF('roomCost'),
+        totalCost: NUMBER_LEAF('totalCost'),
+      },
+    },
+    checkIn: {
+      type: 'object',
+      title: 'checkIn',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        checkInMethod: STRING_LEAF('checkInMethod'),
+        queueTime: INT_LEAF('queueTime'),
+        earlyCheckIn: BOOLEAN_LEAF('earlyCheckIn'),
+        roomReady: BOOLEAN_LEAF('roomReady'),
+        upgradedRoom: BOOLEAN_LEAF('upgradedRoom'),
+        welcomeAmenities: BOOLEAN_LEAF('welcomeAmenities'),
+      },
+    },
+    housekeeping: {
+      type: 'object',
+      title: 'housekeeping',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        doNotDisturb: BOOLEAN_LEAF('doNotDisturb'),
+        extraTowels: BOOLEAN_LEAF('extraTowels'),
+        serviceRequested: BOOLEAN_LEAF('serviceRequested'),
+        cleanlinessRating: INT_LEAF('cleanlinessRating'),
+      },
+    },
+    amenities: {
+      type: 'object',
+      title: 'amenities',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        amenityType: STRING_LEAF('amenityType'),
+        satisfactionRating: INT_LEAF('satisfactionRating'),
+      },
+    },
+    roomService: {
+      type: 'object',
+      title: 'roomService',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        interactionType: STRING_LEAF('interactionType'),
+        orderTotal: NUMBER_LEAF('orderTotal'),
+        serviceRating: INT_LEAF('serviceRating'),
+      },
+    },
+    checkOut: {
+      type: 'object',
+      title: 'checkOut',
+      description: '',
+      required: [],
+      'meta:xdmType': 'object',
+      properties: {
+        checkOutMethod: STRING_LEAF('checkOutMethod'),
+        lateCheckOut: BOOLEAN_LEAF('lateCheckOut'),
+        overallRating: INT_LEAF('overallRating'),
+        finalBillAmount: NUMBER_LEAF('finalBillAmount'),
+        incidentalCharges: NUMBER_LEAF('incidentalCharges'),
+      },
+    },
+  },
+};
+
+/**
  * Shared generic leaves the lab streams for every industry via the
  * `web/profile-viewer/profile-generation-industry-runtime.js` helper and
  * the Generic / Travel per-industry JS modules (which haven't been
@@ -224,6 +326,7 @@ const INDUSTRY_EXTENSIONS = {
     // `travelReservations.*`. Stream paths mirror
     // `buildUpdatesFromForm` in `web/profile-viewer/profile-generation-travel.js`.
     travelReservations: TRAVEL_RESERVATIONS_SUBTREE,
+    hotel: HOTEL_EXPERIENCE_SUBTREE,
   },
   retail: {
     // Retail's `individualCharacteristics.retail.*` and `scoring.retail.*`
@@ -286,5 +389,6 @@ module.exports = {
   getManifestForIndustry,
   // Exposed for tests / docs.
   TRAVEL_RESERVATIONS_SUBTREE,
+  HOTEL_EXPERIENCE_SUBTREE,
   _schemaLeafBuilders: { NUMBER_LEAF, INT_LEAF, STRING_LEAF, BOOLEAN_LEAF, DATE_LEAF },
 };
