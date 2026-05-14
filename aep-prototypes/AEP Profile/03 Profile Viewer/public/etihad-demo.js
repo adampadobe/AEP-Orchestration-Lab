@@ -73,8 +73,23 @@ const etihadTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
+        webPush: { enabled: true },
       })
     : null;
+
+const etihadWebPushBtn = document.getElementById('etihadWebPushBtn');
+if (etihadWebPushBtn && typeof window.AepDemoWebPush !== 'undefined') {
+  etihadWebPushBtn.addEventListener('click', function () {
+    void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'etihadAirline' }).then(function (ok) {
+      setEtihadMessage(
+        ok
+          ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'
+          : 'Web push did not complete. Inject Tags first, allow notifications, and ensure push is enabled on your datastream.',
+        ok ? 'success' : 'error',
+      );
+    });
+  });
+}
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';

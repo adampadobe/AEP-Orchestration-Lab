@@ -311,6 +311,19 @@
       return true;
     }
 
+    /** Optional `cfg.webPush` — registers Adobe Alloy SW and, after successful ECID sync, calls `sendPushSubscriptionIfReady` when `AepDemoWebPush` is loaded. */
+    function resolveWebPushCfg() {
+      if (!cfg.webPush || cfg.webPush.enabled !== true) return null;
+      const w = typeof cfg.webPush === 'object' ? cfg.webPush : {};
+      return {
+        workerScriptUrl: w.workerScriptUrl || '/profile-viewer/alloyServiceWorker.min.js',
+        scope: w.scope || '/profile-viewer/',
+        storagePrefix: storagePrefix,
+        requestPermissionOnInject: w.requestPermissionOnInject === true,
+        skipDailyThrottleOnInject: w.skipDailyThrottleOnInject === true,
+      };
+    }
+
     /** When Tags lists reload, keep showing the persisted Launch URL if this sandbox is already SDK-configured (avoids “Selected script: None” after inject + properties load). */
     function syncSelectedScriptDisplayAfterTagsStructureChange() {
       if (isSdkConfiguredForSandbox()) {
@@ -789,7 +802,22 @@
 
         renderSelectedScript(scriptUrl);
         persistSelectedScriptUrl(scriptUrl);
-        await syncEcidFromAlloy();
+        const ecid = await syncEcidFromAlloy();
+        const wp = resolveWebPushCfg();
+        if (
+          ecid &&
+          wp &&
+          global.AepDemoWebPush &&
+          typeof global.AepDemoWebPush.sendPushSubscriptionIfReady === 'function'
+        ) {
+          void global.AepDemoWebPush.sendPushSubscriptionIfReady({
+            storagePrefix: wp.storagePrefix,
+            workerScriptUrl: wp.workerScriptUrl,
+            scope: wp.scope,
+            requestPermission: wp.requestPermissionOnInject,
+            skipDailyThrottle: wp.skipDailyThrottleOnInject,
+          });
+        }
         markSdkConfiguredForSandbox(true);
         setSdkConfigExpanded(false);
         dtLog('injectSelectedScriptNow: complete (configured + summary mode)');
@@ -969,6 +997,15 @@
       } else {
         void loadTagsCompanies();
       }
+    }
+
+    const webPushCfgEarly = resolveWebPushCfg();
+    if (
+      webPushCfgEarly &&
+      global.AepDemoWebPush &&
+      typeof global.AepDemoWebPush.ensureServiceWorkerRegistered === 'function'
+    ) {
+      void global.AepDemoWebPush.ensureServiceWorkerRegistered(webPushCfgEarly);
     }
 
     return {
