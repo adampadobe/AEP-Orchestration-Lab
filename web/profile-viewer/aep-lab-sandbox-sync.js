@@ -233,16 +233,18 @@
     if (authMonitorStarted || !auth) return;
     authMonitorStarted = true;
     auth.onIdTokenChanged(function (user) {
-      if (!user || forcedLogoutInProgress) return;
-      user.getIdToken(true).catch(function (error) {
-        handleAuthFailure(error, { source: 'id-token-change' });
-      });
+      if (forcedLogoutInProgress) return;
+      if (!user) return;
+      // Do not call getIdToken(true) here. That forces a securetoken.googleapis.com refresh on
+      // every ID-token rotation and races with other work (Alloy web push, SW updates), producing
+      // noisy 400s in DevTools. This callback already indicates Firebase issued a new token.
     });
     tokenHealthTimer = global.setInterval(function () {
       if (forcedLogoutInProgress) return;
       var user = auth.currentUser;
       if (!user) return;
-      user.getIdToken(true).catch(function (error) {
+      // Prefer cached token; only hit the network when the SDK decides the JWT is expired.
+      user.getIdToken(false).catch(function (error) {
         handleAuthFailure(error, { source: 'auth-health-poll' });
       });
     }, AUTH_POLL_MS);
