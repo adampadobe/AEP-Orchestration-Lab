@@ -852,6 +852,10 @@
   const queryProfileBtn = document.getElementById('queryProfileBtn');
   const infoEcid = document.getElementById('infoEcid');
   const generatorTargetSelect = document.getElementById('generatorTarget');
+  const ccEventDestToggle = document.getElementById('ccEventDestToggle');
+  const ccEventDestPanel = document.getElementById('ccEventDestPanel');
+  const ccEventDestSummary = document.getElementById('ccEventDestSummary');
+  const ccEventDestField = document.querySelector('.cc-event-dest-field');
   const ccStatus = document.getElementById('ccStatus');
   const ccScreenPop = document.getElementById('ccScreenPop');
   const ccScreenPopName = document.getElementById('ccScreenPopName');
@@ -864,6 +868,67 @@
   const customizePanel = document.getElementById('ccCustomizePanel');
   const industrySelect = document.getElementById('ccIndustrySelect');
   const industryTabBadge = document.getElementById('ccIndustryTabBadge');
+
+  const EVENT_DEST_EXPANDED_KEY = 'aepCcEventDestExpanded';
+
+  function readEventDestExpandedPref() {
+    try {
+      const v = window.localStorage.getItem(EVENT_DEST_EXPANDED_KEY);
+      return v === '1' || v === 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function persistEventDestExpanded(expanded) {
+    try {
+      window.localStorage.setItem(EVENT_DEST_EXPANDED_KEY, expanded ? '1' : '0');
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function updateCcEventDestSummary() {
+    if (!ccEventDestSummary || !generatorTargetSelect) return;
+    const opt = generatorTargetSelect.options[generatorTargetSelect.selectedIndex];
+    const text = opt && opt.textContent ? String(opt.textContent).trim() : '—';
+    ccEventDestSummary.textContent = text || '—';
+    if (ccEventDestToggle) {
+      ccEventDestToggle.setAttribute(
+        'title',
+        text && text !== '—' ? `Current: ${text}. Expand to change.` : 'Expand to choose event destination',
+      );
+    }
+  }
+
+  function setCcEventDestExpanded(expanded, options) {
+    const skipPersist = options && options.skipPersist;
+    if (!ccEventDestField || !ccEventDestToggle || !ccEventDestPanel) return;
+    ccEventDestField.classList.toggle('cc-event-dest-expanded', expanded);
+    ccEventDestToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    ccEventDestPanel.hidden = !expanded;
+    if (!skipPersist) persistEventDestExpanded(expanded);
+  }
+
+  function initCcEventDestDisclosure() {
+    if (!ccEventDestToggle || !ccEventDestPanel || !ccEventDestField) return;
+    setCcEventDestExpanded(readEventDestExpandedPref(), { skipPersist: true });
+    ccEventDestToggle.addEventListener('click', () => {
+      const next = !ccEventDestField.classList.contains('cc-event-dest-expanded');
+      setCcEventDestExpanded(next);
+      if (next && generatorTargetSelect) {
+        window.requestAnimationFrame(() => {
+          generatorTargetSelect.focus();
+        });
+      }
+    });
+    if (generatorTargetSelect) {
+      generatorTargetSelect.addEventListener('change', () => {
+        updateCcEventDestSummary();
+      });
+    }
+    updateCcEventDestSummary();
+  }
 
   /** @type {Array<{ id: string, label: string }>} */
   let generatorTargets = [];
@@ -1312,34 +1377,38 @@
 
   async function loadGeneratorTargets() {
     if (!generatorTargetSelect) return;
-    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
-      generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
-      return;
-    }
     try {
-      const res = await fetch('/api/events/generator-targets');
-      const data = await res.json().catch(() => ({}));
-      generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-      generatorTargetSelect.innerHTML = '';
-      if (generatorTargets.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'No targets (check event-generator-targets.json)';
-        generatorTargetSelect.appendChild(opt);
+      if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect) {
+        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
         return;
       }
-      generatorTargets.forEach((t) => {
+      try {
+        const res = await fetch('/api/events/generator-targets');
+        const data = await res.json().catch(() => ({}));
+        generatorTargets = Array.isArray(data.targets) ? data.targets : [];
+        generatorTargetSelect.innerHTML = '';
+        if (generatorTargets.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No targets (check event-generator-targets.json)';
+          generatorTargetSelect.appendChild(opt);
+          return;
+        }
+        generatorTargets.forEach((t) => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.label || t.id;
+          generatorTargetSelect.appendChild(opt);
+        });
+      } catch {
+        generatorTargetSelect.innerHTML = '';
         const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.label || t.id;
+        opt.value = '';
+        opt.textContent = 'Failed to load targets';
         generatorTargetSelect.appendChild(opt);
-      });
-    } catch {
-      generatorTargetSelect.innerHTML = '';
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'Failed to load targets';
-      generatorTargetSelect.appendChild(opt);
+      }
+    } finally {
+      updateCcEventDestSummary();
     }
   }
 
@@ -1368,6 +1437,14 @@
     if (document.body.classList.contains('call-center-nav-open')) {
       setNavOpen(false);
       return;
+    }
+    if (ccEventDestField && ccEventDestField.classList.contains('cc-event-dest-expanded') && ccEventDestPanel) {
+      const ae = document.activeElement;
+      if (ae && (ccEventDestPanel === ae || ccEventDestPanel.contains(ae))) {
+        setCcEventDestExpanded(false);
+        if (ccEventDestToggle) ccEventDestToggle.focus();
+        return;
+      }
     }
     if (customizeDock && customizeDock.classList.contains('cc-customize-open')) {
       setCustomizeOpen(false);
@@ -1495,6 +1572,7 @@
   }
 
   initIndustryUi();
+  initCcEventDestDisclosure();
   void loadGeneratorTargets();
   void initFromRtdb();
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
