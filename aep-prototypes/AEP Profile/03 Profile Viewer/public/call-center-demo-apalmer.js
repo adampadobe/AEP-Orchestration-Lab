@@ -1135,11 +1135,13 @@
   }
 
   function mirrorProfileToAgentUi() {
-    const name = copyElText('profileDrawerName');
+    const fallbackEmail = customerEmail ? String(customerEmail.value || '').trim() : '';
+    const drawerName = copyElText('profileDrawerName');
+    const name =
+      drawerName && drawerName !== 'No profile loaded' ? drawerName : getCcScreenPopDisplayName(fallbackEmail);
     const email = copyElText('profileDrawerEmail');
     const phone = copyElText('profileDrawerPhone');
-    const fallbackEmail = customerEmail ? String(customerEmail.value || '').trim() : '';
-    const dispName = name && name !== 'No profile loaded' ? name : fallbackEmail || 'Customer';
+    const dispName = name || fallbackEmail || 'Customer';
     setElText('ccSessionName', dispName);
     const emailDisp = email && email !== '—' ? email : fallbackEmail || '—';
     setElText('ccSessionEmail', emailDisp);
@@ -1158,7 +1160,7 @@
     const qs = document.getElementById('ccQueueActiveSub');
     if (qn)
       qn.textContent =
-        name && name !== 'No profile loaded' ? name.split(/\s+/)[0] + ' · active' : 'Awaiting lookup';
+        name && name !== 'Customer' && name !== fallbackEmail ? name.split(/\s+/)[0] + ' · active' : 'Awaiting lookup';
     if (qs) qs.textContent = fallbackEmail || emailDisp !== '—' ? 'On session' : 'Session idle';
   }
 
