@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation.css?v=20260504i">
+  <link rel="stylesheet" href="profile-generation.css?v=20260515payload-preview">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1230,6 +1230,15 @@
         </div>
 
         <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="genPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="genPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="genPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <!-- C0. Identity (basic profile fields shared by every generic profile) -->
@@ -1643,6 +1652,15 @@
         </div>
 
         <p id="travelProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="travelPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="travelPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="travelPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -2685,6 +2703,15 @@
         </div>
 
         <p id="fsiProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="fsiPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="fsiPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="fsiPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -3214,6 +3241,15 @@
         </div>
 
         <p id="sportsProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="sportsPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="sportsPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="sportsPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -3686,6 +3722,15 @@
         </div>
 
         <p id="mediaProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="mediaPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="mediaPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="mediaPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -4278,6 +4323,15 @@
         </div>
 
         <p id="retailProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="retailPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="retailPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="retailPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -4946,6 +5000,15 @@
         </div>
 
         <p id="telecomProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+
+        <details id="telecomPayloadPreview" class="profile-payload-preview">
+          <summary>Preview request payload</summary>
+          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+          <div class="button-row profile-payload-preview__actions">
+            <button type="button" id="telecomPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
+          </div>
+          <pre id="telecomPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+        </details>
       </div>
 
       <div class="generic-identity-section">
@@ -5358,12 +5421,12 @@
        call into window.AepProfileGenShared on init. -->
   <script src="profile-generation-shared.js?v=20260511a"></script>
   <script src="profile-generation.js?v=20260511a"></script>
-  <script src="profile-generation-generic.js?v=20260511a"></script>
-  <script src="profile-generation-travel.js?v=20260514hotel-v1"></script>
+  <script src="profile-generation-generic.js?v=20260515payload-preview"></script>
+  <script src="profile-generation-travel.js?v=20260515payload-preview"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260511a"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260515payload-preview"></script>
   <script src="profile-generation-fsi.js?v=20260511a"></script>
   <script src="profile-generation-telecom.js?v=20260511a"></script>
   <script src="profile-generation-retail.js?v=20260511a"></script>

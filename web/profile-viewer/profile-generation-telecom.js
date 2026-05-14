@@ -280,6 +280,9 @@
       debugClientRequest: 'telecomDebugClientRequest',
       debugStatus: 'telecomDebugStatus',
       debugResponse: 'telecomDebugResponse',
+      payloadPreview: 'telecomPayloadPreview',
+      payloadPreviewBtn: 'telecomPayloadPreviewBtn',
+      payloadPreviewPre: 'telecomPayloadPreviewPre',
     },
     industry: {
       snapshot() {

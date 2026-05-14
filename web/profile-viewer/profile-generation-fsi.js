@@ -392,6 +392,9 @@
       debugClientRequest: 'fsiDebugClientRequest',
       debugStatus: 'fsiDebugStatus',
       debugResponse: 'fsiDebugResponse',
+      payloadPreview: 'fsiPayloadPreview',
+      payloadPreviewBtn: 'fsiPayloadPreviewBtn',
+      payloadPreviewPre: 'fsiPayloadPreviewPre',
     },
 
     industry: {

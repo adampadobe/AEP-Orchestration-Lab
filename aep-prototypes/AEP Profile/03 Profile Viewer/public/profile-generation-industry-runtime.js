@@ -21,7 +21,8 @@
  *     panelShownEvent: 'aep-fsi-panel-shown',
  *     apiPathPrefix: 'fsi-profile',
  *     defaultFlowName: 'AEP Lab - FSI Profile - Dataflow',
- *     ids: { ...all DOM ids the runtime needs..., markTestProfile?: string },
+ *     ids: { ...all DOM ids the runtime needs..., markTestProfile?: string,
+ *       payloadPreview?: string, payloadPreviewBtn?: string, payloadPreviewPre?: string },
  *     industry: {
  *       fields: [...],                  // industry attribute element IDs
  *       toggles: [{ checkboxId, fieldsId }],
@@ -490,6 +491,9 @@
     const debugClientReqEl = $(ids.debugClientRequest);
     const debugStatusEl = $(ids.debugStatus);
     const debugResponseEl = $(ids.debugResponse);
+    const payloadPreviewDetails = ids.payloadPreview ? $(ids.payloadPreview) : null;
+    const payloadPreviewBtn = ids.payloadPreviewBtn ? $(ids.payloadPreviewBtn) : null;
+    const payloadPreviewPre = ids.payloadPreviewPre ? $(ids.payloadPreviewPre) : null;
 
     if (!baseEmailEl || !counterEl || !emailPreviewEl) {
       warn('Skipping bind — required base elements not in DOM (panel may not be on this page).');
@@ -1476,6 +1480,37 @@
       return updates;
     }
 
+    function refreshPayloadPreview() {
+      if (!payloadPreviewPre) return;
+      try {
+        const email = getCurrentScaledEmail();
+        if (!email) {
+          payloadPreviewPre.textContent = '// Enter a base email to preview the scaled recipient for Update / Generate.';
+          return;
+        }
+        const updates = buildUpdatesFromForm();
+        const sb = getSandboxName();
+        const streaming = getStreamingPayload();
+        const dryRun = !!(dryRunEl && dryRunEl.checked);
+        const body = {
+          email,
+          sandbox: sb || undefined,
+          updates,
+          streaming,
+          ...(dryRun ? { dryRun: true } : {}),
+        };
+        const clientReq = {
+          method: 'POST',
+          url: `${window.location.origin}/api/profile/update`,
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        };
+        payloadPreviewPre.textContent = JSON.stringify(clientReq, null, 2);
+      } catch (e) {
+        payloadPreviewPre.textContent = '// Error building preview: ' + (e && e.message ? e.message : String(e));
+      }
+    }
+
     function applyProfileFindResultToForm(found) {
       if (!found || typeof found !== 'object') return;
       const rows = Array.isArray(found.rows) ? found.rows : null;
@@ -2087,6 +2122,18 @@
     }
     if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
     if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
+
+    if (payloadPreviewBtn) payloadPreviewBtn.addEventListener('click', refreshPayloadPreview);
+    if (payloadPreviewDetails) {
+      payloadPreviewDetails.addEventListener('toggle', () => {
+        if (payloadPreviewDetails.open) refreshPayloadPreview();
+      });
+    }
+    if (dryRunEl) {
+      dryRunEl.addEventListener('change', () => {
+        if (payloadPreviewDetails && payloadPreviewDetails.open) refreshPayloadPreview();
+      });
+    }
 
     function onSandboxChange() {
       // Reset the auto-discover cache so the new sandbox gets one fresh

@@ -222,6 +222,10 @@
   const debugStatusEl = document.getElementById('travelDebugStatus');
   const debugResponseEl = document.getElementById('travelDebugResponse');
 
+  const payloadPreviewDetails = document.getElementById('travelPayloadPreview');
+  const payloadPreviewBtn = document.getElementById('travelPayloadPreviewBtn');
+  const payloadPreviewPre = document.getElementById('travelPayloadPreviewPre');
+
   if (!baseEmailEl || !counterEl || !emailPreviewEl) return;
 
   const Shared = window.AepProfileGenShared;
@@ -2018,6 +2022,37 @@
     return updates;
   }
 
+  function refreshPayloadPreview() {
+    if (!payloadPreviewPre) return;
+    try {
+      const email = getCurrentScaledEmail();
+      if (!email) {
+        payloadPreviewPre.textContent = '// Enter a base email to preview the scaled recipient for Update / Generate.';
+        return;
+      }
+      const updates = buildUpdatesFromForm();
+      const sb = getSandboxName();
+      const streaming = getStreamingPayload();
+      const dryRun = !!(dryRunEl && dryRunEl.checked);
+      const body = {
+        email,
+        sandbox: sb || undefined,
+        updates,
+        streaming,
+        ...(dryRun ? { dryRun: true } : {}),
+      };
+      const clientReq = {
+        method: 'POST',
+        url: `${window.location.origin}/api/profile/update`,
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      };
+      payloadPreviewPre.textContent = JSON.stringify(clientReq, null, 2);
+    } catch (e) {
+      payloadPreviewPre.textContent = '// Error building preview: ' + (e && e.message ? e.message : String(e));
+    }
+  }
+
   /**
    * Hydrate the editor below from a /api/profile/table response. Same
    * suffix-/keyword-match strategy as Generic for tenant-agnostic handling
@@ -2829,6 +2864,18 @@
   }
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
+
+  if (payloadPreviewBtn) payloadPreviewBtn.addEventListener('click', refreshPayloadPreview);
+  if (payloadPreviewDetails) {
+    payloadPreviewDetails.addEventListener('toggle', () => {
+      if (payloadPreviewDetails.open) refreshPayloadPreview();
+    });
+  }
+  if (dryRunEl) {
+    dryRunEl.addEventListener('change', () => {
+      if (payloadPreviewDetails && payloadPreviewDetails.open) refreshPayloadPreview();
+    });
+  }
 
   // Sandbox change
   function onSandboxChange() {

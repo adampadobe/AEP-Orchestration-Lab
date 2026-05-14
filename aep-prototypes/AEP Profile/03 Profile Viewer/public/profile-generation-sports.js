@@ -221,6 +221,9 @@
       debugClientRequest: 'sportsDebugClientRequest',
       debugStatus: 'sportsDebugStatus',
       debugResponse: 'sportsDebugResponse',
+      payloadPreview: 'sportsPayloadPreview',
+      payloadPreviewBtn: 'sportsPayloadPreviewBtn',
+      payloadPreviewPre: 'sportsPayloadPreviewPre',
     },
     industry: {
       snapshot() {

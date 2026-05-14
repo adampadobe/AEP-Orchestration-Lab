@@ -347,6 +347,9 @@
       debugClientRequest: 'retailDebugClientRequest',
       debugStatus: 'retailDebugStatus',
       debugResponse: 'retailDebugResponse',
+      payloadPreview: 'retailPayloadPreview',
+      payloadPreviewBtn: 'retailPayloadPreviewBtn',
+      payloadPreviewPre: 'retailPayloadPreviewPre',
     },
     industry: {
       // ----- snapshot: capture form state for the recently-generated picker.

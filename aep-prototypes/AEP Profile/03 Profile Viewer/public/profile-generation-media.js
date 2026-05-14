@@ -241,6 +241,9 @@
       debugClientRequest: 'mediaDebugClientRequest',
       debugStatus: 'mediaDebugStatus',
       debugResponse: 'mediaDebugResponse',
+      payloadPreview: 'mediaPayloadPreview',
+      payloadPreviewBtn: 'mediaPayloadPreviewBtn',
+      payloadPreviewPre: 'mediaPayloadPreviewPre',
     },
     industry: {
       snapshot() {
