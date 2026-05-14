@@ -835,6 +835,32 @@
     ],
     "headers": [
       {
+        "source": "/scripts/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "/api/brand-scraper/**",
         "headers": [
           {
@@ -898,19 +924,6 @@
           {
             "key": "Access-Control-Allow-Origin",
             "value": "*"
-          }
-        ]
-      },
-      {
-        "source": "**/alloyServiceWorker.min.js",
-        "headers": [
-          {
-            "key": "Service-Worker-Allowed",
-            "value": "/"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, max-age=0, must-revalidate"
           }
         ]
       }
