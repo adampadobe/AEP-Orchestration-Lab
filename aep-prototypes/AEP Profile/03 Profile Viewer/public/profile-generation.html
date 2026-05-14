@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation.css?v=20260515payload-preview">
+  <link rel="stylesheet" href="profile-generation.css?v=20260515payload-preview-b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1231,13 +1231,18 @@
 
         <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="genPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="genPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="genPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="genPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="genPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -1653,13 +1658,18 @@
 
         <p id="travelProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="travelPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="travelPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="travelPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="travelPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="travelPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -2704,13 +2714,18 @@
 
         <p id="fsiProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="fsiPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="fsiPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="fsiPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="fsiPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="fsiPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -3242,13 +3257,18 @@
 
         <p id="sportsProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="sportsPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="sportsPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="sportsPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="sportsPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="sportsPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -3723,13 +3743,18 @@
 
         <p id="mediaProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="mediaPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="mediaPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="mediaPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="mediaPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="mediaPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -4324,13 +4349,18 @@
 
         <p id="retailProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="retailPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="retailPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="retailPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="retailPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="retailPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 
@@ -5001,13 +5031,18 @@
 
         <p id="telecomProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
 
-        <details id="telecomPayloadPreview" class="profile-payload-preview">
-          <summary>Preview request payload</summary>
-          <p class="field-hint profile-payload-preview__hint">JSON the browser would POST to <code>/api/profile/update</code> for <strong>Update profile</strong> or the next <strong>Generate profiles</strong> (scaled email from the counter). Reflects the Dry run checkbox. Does not call the server.</p>
+        <details id="telecomPayloadPreview" class="generate-debug profile-payload-preview">
+          <summary>Expected Client POST (live preview — no server call)</summary>
+          <p class="field-hint profile-payload-preview__hint">Shows the same <strong>Client POST</strong> JSON as <strong>Request &amp; response details</strong> after Update or Generate — but built from the form <em>before</em> you click Generate. Dry run is reflected when checked. Expanding refreshes automatically.</p>
           <div class="button-row profile-payload-preview__actions">
             <button type="button" id="telecomPayloadPreviewBtn" class="btn btn-secondary">Refresh preview</button>
           </div>
-          <pre id="telecomPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Open this section and click Refresh preview.</pre>
+          <div class="generate-debug-content">
+            <div class="generate-debug-section">
+              <strong>Client POST (to /api/profile/update):</strong>
+              <pre id="telecomPayloadPreviewPre" class="profile-payload-preview__pre" tabindex="0" aria-label="Preview JSON">Expand above — preview refreshes automatically.</pre>
+            </div>
+          </div>
         </details>
       </div>
 

@@ -1486,21 +1486,10 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   font-weight: 500;
 }
 
-/* Collapsed client-side preview of POST /api/profile/update (all industries) */
-.profile-generation-page .profile-payload-preview {
+/* Collapsed client-side preview of POST /api/profile/update (all industries).
+   Pairs with .generate-debug for the same visual language as "Request & response details". */
+.profile-generation-page details.generate-debug.profile-payload-preview {
   margin-top: 0.75rem;
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
-  background: var(--dash-surface-alt);
-  padding: 0 0.75rem 0.65rem;
-}
-
-.profile-generation-page .profile-payload-preview > summary {
-  cursor: pointer;
-  font-weight: 600;
-  padding: 0.65rem 0;
-  color: var(--dash-text);
-  list-style-position: outside;
 }
 
 .profile-generation-page .profile-payload-preview__hint {
@@ -1515,16 +1504,11 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .profile-payload-preview__pre {
-  margin: 0;
+  margin: 0.5rem 0 0;
   max-height: 280px;
   overflow: auto;
   font-size: 0.8rem;
   line-height: 1.35;
-  background: var(--dash-input-bg);
-  border: 1px solid var(--dash-border);
-  border-radius: 8px;
-  padding: 0.65rem;
-  color: var(--dash-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
