@@ -2347,9 +2347,19 @@ body.call-center-demo-page.cc-theme-banking-dark {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
-.cc-theme-banking-dark .call-center-pinned-title,
-.cc-theme-banking-dark .call-center-pinned-field label {
-  color: #e2e8f0;
+/* Pinned lookup: body+theme beats `body.call-center-demo-page .call-center-pinned-field label` (0,2,2) */
+body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-title {
+  color: var(--cc-text);
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field label {
+  color: color-mix(in srgb, var(--cc-text) 86%, var(--cc-muted));
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field input::placeholder,
+body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field textarea::placeholder {
+  color: color-mix(in srgb, var(--cc-text) 52%, transparent);
+  opacity: 1;
 }
 
 .cc-theme-banking-dark .call-center-pinned-lead {
@@ -2644,7 +2654,7 @@ body.call-center-demo-page.cc-theme-banking-dark {
 }
 
 .cc-theme-banking-dark .cc-tab {
-  color: var(--cc-muted);
+  color: color-mix(in srgb, var(--cc-text) 68%, var(--cc-muted));
 }
 
 .cc-theme-banking-dark .cc-tab--active {
@@ -2712,6 +2722,44 @@ body.call-center-demo-page.cc-theme-banking-dark {
 .cc-theme-banking-dark .cc-conversations-rail {
   background: linear-gradient(180deg, #1c1c1c 0%, #141414 100%);
   border-left-color: var(--cc-bank-border);
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-topbar-title {
+  color: var(--cc-text);
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-count-inline {
+  color: color-mix(in srgb, var(--cc-text) 78%, var(--cc-muted));
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-section-label {
+  color: color-mix(in srgb, var(--cc-text) 74%, var(--cc-muted));
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-search::placeholder {
+  color: color-mix(in srgb, var(--cc-text) 50%, transparent);
+  opacity: 1;
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-context-toggle {
+  border-color: var(--cc-bank-border);
+  background: color-mix(in srgb, var(--cc-bank-bg) 65%, transparent);
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-context-toggle-btn {
+  background: var(--cc-bank-elev2);
+  color: color-mix(in srgb, var(--cc-text) 72%, var(--cc-muted));
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-context-toggle-btn:hover {
+  color: var(--cc-text);
+  background: color-mix(in srgb, var(--cc-text) 10%, var(--cc-bank-elev2));
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-context-toggle-btn.is-active {
+  background: color-mix(in srgb, var(--cc-banking-red) 42%, var(--cc-bank-elev));
+  color: #fda4af;
+  box-shadow: inset 0 0 0 1px rgba(225, 29, 72, 0.4);
 }
 
 .cc-conv-topbar-row {
@@ -2872,14 +2920,17 @@ body.call-center-demo-page.cc-theme-banking-dark {
   border-color: color-mix(in srgb, var(--cc-accent) 25%, transparent);
 }
 
-.cc-theme-banking-dark .cc-channel-btn {
+body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:not(.is-active) {
   border-color: var(--cc-bank-border);
-  color: var(--cc-muted);
+  background: color-mix(in srgb, var(--cc-bank-bg) 45%, transparent);
+  color: color-mix(in srgb, var(--cc-text) 76%, var(--cc-muted));
 }
-.cc-theme-banking-dark .cc-channel-btn:hover {
-  border-color: var(--cc-accent);
-  color: var(--cc-accent);
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-active) {
+  border-color: color-mix(in srgb, var(--cc-banking-red) 55%, var(--cc-bank-border));
+  color: var(--cc-text);
 }
+
 .cc-theme-banking-dark .cc-channel-btn.is-active {
   background: var(--cc-accent);
   color: #fff;
