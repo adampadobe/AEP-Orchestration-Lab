@@ -1916,11 +1916,12 @@
 
         <div class="generic-identity-section" style="margin-top: 16px;">
           <h4 class="generic-subhead" style="font-size: 0.95em;">Recent stay</h4>
+          <p class="setup-step-hint" style="margin: 4px 0 8px; font-size: 0.85em;">Hotel lifecycle (booking → check-out) streams to <code>hotel.*</code> when this block is included. Uncheck to hide the fields.</p>
           <label class="gen-loyalty-toggle">
-            <input type="checkbox" id="travelRecentStayEnabled">
+            <input type="checkbox" id="travelRecentStayEnabled" checked>
             <span>Include recent stay attributes</span>
           </label>
-          <div class="gen-loyalty-fields" id="travelRecentStayFields" hidden>
+          <div class="gen-loyalty-fields" id="travelRecentStayFields">
             <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 8px;">Booking details</h5>
             <div class="form-row form-row--inline">
               <div class="form-group form-group--flex">
@@ -5358,7 +5359,7 @@
   <script src="profile-generation-shared.js?v=20260511a"></script>
   <script src="profile-generation.js?v=20260511a"></script>
   <script src="profile-generation-generic.js?v=20260511a"></script>
-  <script src="profile-generation-travel.js?v=20260511a"></script>
+  <script src="profile-generation-travel.js?v=20260514hotel-v1"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
