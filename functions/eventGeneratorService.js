@@ -343,6 +343,11 @@ function buildEventGeneratorXdm(reqBody, options) {
   }
   mergeGeneratorPublicIntoTenant(xdm._demoemea, body.public);
   mergeGeneratorInteractionDetailsChannel(xdm._demoemea, body.channel);
+  // Allow callers to pass arbitrary _demoemea.message.* fields (e.g. contactCentre events).
+  if (body.message && typeof body.message === 'object' && !Array.isArray(body.message)) {
+    if (!xdm._demoemea) xdm._demoemea = {};
+    xdm._demoemea.message = { ...body.message };
+  }
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
   return xdm;
