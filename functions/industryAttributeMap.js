@@ -33,11 +33,12 @@
  *
  * Tenant prefix
  * -------------
- * Tenant-prefixed paths use `_demoemea.` because that is the live xdmKey
- * default in this lab (see `profileStreamingCore.js` —
- * `key = xdmKey || '_demoemea'`). If a sandbox ever runs against a
- * different tenant key, expand `expandTenantPrefixes()` to inject the
- * resolved tenant from the request instead of relying on this constant.
+ * Profile Access rows often use the sandbox’s real XDM tenant key
+ * (`_demoemea`, `_derceneea`, …). `resolveIndustryForPath()` strips one
+ * leading `_<tenant>.` segment (never `_id` / `_repo`) before matching so
+ * ownership prefixes can stay tenant-agnostic (`hotel.*`,
+ * `industryFsi.*`, …). `<TENANT>` expansion to `_demoemea.` remains for
+ * payloads that still include that literal prefix.
  *
  * What is intentionally NOT in this map
  * -------------------------------------
@@ -67,6 +68,22 @@ const RESOLUTION_REASON = {
   CATCH_ALL_GENERIC: 'matched Generic catch-all (no industry-specific prefix)',
   UNOWNED: 'no industry schema declares this path',
 };
+
+/**
+ * Strip one leading Profile XDM tenant namespace (`_<key>.rest`) so path
+ * ownership can match tenant-agnostic prefixes. UPS metadata keys `_id`
+ * and `_repo` are never stripped.
+ * @param {string} path
+ * @returns {string}
+ */
+function stripPrimaryTenantNamespaceForOwnership(path) {
+  const trimmed = String(path || '').trim();
+  const m = /^(_[A-Za-z0-9]+)\.(.+)$/.exec(trimmed);
+  if (!m) return trimmed;
+  const head = m[1];
+  if (head === '_id' || head === '_repo') return trimmed;
+  return m[2];
+}
 
 /**
  * Ordered ownership rules. First match wins — industry-specific entries
@@ -140,6 +157,8 @@ const RAW_PATH_OWNERSHIP = [
   // Tenant: `_<tenant>.travelReservations.*` (Profile Travel v1 tenant FG;
   // `travelReservations` is NOT in PROFILE_STREAM_ROOT_PATH_PREFIXES, so
   // the proxy auto-prefixes it under the tenant key).
+  // Tenant: `_<tenant>.hotel.*` — Hotel Experience FG on the Travel schema
+  // (see travelProfileInfraService.js TRAVEL_HOTEL_EXPERIENCE_V1_PROPERTIES).
   // Root mixin: `travelPreferences.*` (OOTB Travel Preferences FG — listed
   // in PROFILE_STREAM_ROOT_PATH_PREFIXES).
   {
@@ -148,10 +167,12 @@ const RAW_PATH_OWNERSHIP = [
       'travelReservations.',
       'travelPreferences.',
       'industryTravel.',
+      'hotel.',
       '<TENANT>travelReservations.',
       '<TENANT>travelPreferences.',
       '<TENANT>industryTravel.',
       '<TENANT>individualCharacteristics.travel.',
+      '<TENANT>hotel.',
     ],
   },
 
@@ -278,14 +299,15 @@ function resolveIndustryForPath(path) {
   if (!trimmed) {
     return { industry: null, reason: RESOLUTION_REASON.UNOWNED };
   }
+  const matchPath = stripPrimaryTenantNamespaceForOwnership(trimmed);
   for (const entry of PATH_OWNERSHIP) {
     for (const prefix of entry.prefixes) {
       // Treat both `prefix.` (subtree) and bare `prefix` (exact-match
       // scalar root-leaf, e.g. `preferredLanguage`) as a hit.
       if (
-        trimmed === prefix ||
-        trimmed.startsWith(prefix) ||
-        (!prefix.endsWith('.') && trimmed === prefix)
+        matchPath === prefix ||
+        matchPath.startsWith(prefix) ||
+        (!prefix.endsWith('.') && matchPath === prefix)
       ) {
         const reason =
           entry.industry === 'generic'
@@ -324,6 +346,7 @@ module.exports = {
   RAW_PATH_OWNERSHIP,
   RESOLUTION_REASON,
   expandTenantPrefixes,
+  stripPrimaryTenantNamespaceForOwnership,
   resolveIndustryForPath,
   getAttributeOwnershipPayload,
 };
