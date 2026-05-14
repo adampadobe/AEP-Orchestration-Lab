@@ -10,6 +10,19 @@ body.call-center-demo-page {
   --cc-muted: #64748b;
 }
 
+body.call-center-demo-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 body.call-center-demo-page .dashboard-shell {
   position: relative;
 }
@@ -1614,6 +1627,11 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   border-radius: 8px;
   cursor: default;
   opacity: 0.75;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .cc-conv-section-label {
@@ -2160,6 +2178,9 @@ body.call-center-demo-page.cc-theme-banking-dark {
   --cc-surface: #1f1f1f;
   --cc-rail-bg: #141414;
   --cc-header-border: rgba(255, 255, 255, 0.1);
+  /* Paper / #fff cards inside dark chrome still use light surfaces; ink comes from dashboard tokens */
+  --cc-text-on-light-surface: var(--dash-text);
+  --cc-muted-on-light-surface: var(--dash-text-secondary);
 }
 
 .cc-theme-banking-dark .dashboard-main {
@@ -2724,6 +2745,21 @@ body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field texta
   border-left-color: var(--cc-bank-border);
 }
 
+/* Light-surface queue + conversation cards: global --cc-text is light for dark chrome */
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-queue-active-name,
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-item-name {
+  color: var(--cc-text-on-light-surface);
+}
+
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-queue-active-sub,
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-item-sub,
+body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-item-time,
+body.call-center-demo-page.cc-theme-banking-dark
+  .cc-conversations-rail
+  .cc-conv-item-status:not(.cc-conv-item-status--live) {
+  color: var(--cc-muted-on-light-surface);
+}
+
 body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-topbar-title {
   color: var(--cc-text);
 }
@@ -2737,7 +2773,7 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv
 }
 
 body.call-center-demo-page.cc-theme-banking-dark .cc-conversations-rail .cc-conv-search::placeholder {
-  color: color-mix(in srgb, var(--cc-text) 50%, transparent);
+  color: color-mix(in srgb, var(--cc-text) 64%, transparent);
   opacity: 1;
 }
 
