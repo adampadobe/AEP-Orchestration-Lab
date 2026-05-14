@@ -197,125 +197,6 @@ async function sendEtihadAirlineExperienceEvent(payload) {
   }
 }
 
-/**
- * AJO unitary execution `campaignId` for the Etihad concierge web-push journey (verified 202).
- * The Journey UI "version" / summary segment id is not interchangeable with this field.
- */
-const ETIHAD_CONCIERGE_WEB_PUSH_CAMPAIGN_ID = '7a824aae-5893-4d3f-8c6e-759aedeea8ab';
-
-function getEtihadDemoSandboxName() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
-  }
-  return '';
-}
-
-function getEcidFromEtihadDemoUi() {
-  const ecidEl = document.getElementById('infoEcid');
-  const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
-  if (ecidText && ecidText !== '-' && ecidText !== '\u2014' && /^\d+$/.test(ecidText) && ecidText.length >= 10) {
-    return ecidText;
-  }
-  return null;
-}
-
-function extractWebPushChannelFromProfileTablePayload(tablePayload) {
-  const rows = tablePayload && Array.isArray(tablePayload.rows) ? tablePayload.rows : [];
-  let appID = '';
-  let token = '';
-  for (let i = 0; i < rows.length; i += 1) {
-    const r = rows[i];
-    const p = String((r && r.path) || '').toLowerCase();
-    if (!p.includes('pushnotificationdetails')) continue;
-    if (p.endsWith('.appid')) {
-      const v = String((r && r.value) || '').trim();
-      if (v) appID = v;
-    } else if (p.endsWith('.token')) {
-      const v = String((r && r.value) || '').trim();
-      if (v.length > 30) token = v;
-    }
-  }
-  if (!appID || !token) return null;
-  return { appID, token };
-}
-
-async function sendEtihadConciergeCallOfferPushFromFlightsIdle() {
-  const ecid = getEcidFromEtihadDemoUi();
-  if (!ecid) {
-    setEtihadMessage('No ECID yet — inject Tags / stitch so the concierge push can target this browser.', 'error');
-    return;
-  }
-  const sandbox = getEtihadDemoSandboxName();
-  const sbQs = sandbox ? `&sandbox=${encodeURIComponent(sandbox)}` : '';
-  setEtihadMessage('Sending concierge call offer (AJO web push)…', '');
-  try {
-    const tableRes = await fetch(`/api/profile/table?namespace=ecid&identifier=${encodeURIComponent(ecid)}${sbQs}`);
-    const tableJson = await tableRes.json().catch(() => ({}));
-    if (!tableRes.ok) {
-      const errMsg = tableJson.error || tableJson.message || 'Profile table lookup failed.';
-      setEtihadMessage(errMsg, 'error');
-      return;
-    }
-    const pushCh = extractWebPushChannelFromProfileTablePayload(tableJson);
-    if (!pushCh) {
-      setEtihadMessage(
-        'No web push token on this profile — enable push on inject or use Retry web push, then open flight results again.',
-        'error',
-      );
-      return;
-    }
-    let firstName = 'Guest';
-    if (window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function') {
-      const prof = window.DemoProfileDrawer.getLastLookedUpProfile();
-      if (prof && prof.firstName) firstName = String(prof.firstName).trim() || firstName;
-    }
-    const requestId =
-      window.crypto && typeof window.crypto.randomUUID === 'function'
-        ? window.crypto.randomUUID()
-        : `flights-idle-${Date.now()}`;
-    const payload = {
-      requestId,
-      campaignId: ETIHAD_CONCIERGE_WEB_PUSH_CAMPAIGN_ID,
-      recipients: [
-        {
-          type: 'aep',
-          userId: ecid,
-          namespace: 'ECID',
-          channelData: {
-            pushInfo: {
-              appID: pushCh.appID,
-              platform: 'web',
-              token: pushCh.token,
-            },
-          },
-          profile: {
-            person: {
-              name: {
-                firstName,
-              },
-            },
-          },
-        },
-      ],
-    };
-    const postBody = sandbox ? { sandboxName: sandbox, payload } : { payload };
-    const res = await fetch('/api/ajo/live-activity', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(postBody),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const errMsg = data.error || data.message || `AJO live activity failed (${res.status}).`;
-      setEtihadMessage(errMsg, 'error');
-      return;
-    }
-    setEtihadMessage('Concierge call offer push requested (check notifications if permission is on).', 'success');
-  } catch (err) {
-    setEtihadMessage(err && err.message ? err.message : 'Network error', 'error');
-  }
-}
-
 window.addEventListener('message', async function (ev) {
   if (!etihadSiteFrame || !etihadSiteFrame.contentWindow || ev.source !== etihadSiteFrame.contentWindow) {
     return;
@@ -348,6 +229,7 @@ window.addEventListener('message', async function (ev) {
           source: 'etihad-demo-shell',
           type: 'login-complete',
           found: !!ok,
+          email: email,
           firstName: profile ? profile.firstName || null : null,
           profile: profileMsg,
         },
@@ -369,11 +251,6 @@ window.addEventListener('message', async function (ev) {
 
   if (ev.data.type === 'airline-experience-event') {
     void sendEtihadAirlineExperienceEvent(ev.data.payload);
-    return;
-  }
-
-  if (ev.data.type === 'concierge-flights-idle-push') {
-    void sendEtihadConciergeCallOfferPushFromFlightsIdle();
     return;
   }
 });

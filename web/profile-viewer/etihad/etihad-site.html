@@ -1805,6 +1805,14 @@
 .eh-seat-confirm-btn { width: 100%; border: none; background: #b08747; color: #fff; border-radius: 999px; padding: 13px 0; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
 .eh-seat-confirm-btn:hover { background: #9a7340; }
 
+/* ── Concierge call offer (idle story — lab demo) ── */
+#ehConciergeCallModal { position: fixed; inset: 0; z-index: 550; background: rgba(0,0,0,0.48); display: none; align-items: center; justify-content: center; padding: 1rem; }
+#ehConciergeCallModal.is-open { display: flex; }
+.eh-concierge-call-panel { max-width: 520px; }
+.eh-concierge-call-title { font-size: 1.12rem; font-weight: 700; color: #0d2340; margin-bottom: 12px; line-height: 1.3; }
+.eh-concierge-call-lead { font-size: 0.88rem; color: #333; line-height: 1.55; margin-bottom: 20px; }
+.eh-concierge-call-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+
 /* ── Shared page layout ── */
 .eh-booking-page { display: none; flex: 1; overflow-y: auto; background: #f0f2f5; }
 .eh-booking-page.is-active { display: flex; }
@@ -2894,6 +2902,17 @@
           <div class="eh-seat-confirm-price">Free</div>
         </div>
         <button type="button" class="eh-seat-confirm-btn" id="ehSeatConfirmBtn">Confirm seat</button>
+      </div>
+    </div>
+    <div id="ehConciergeCallModal" role="dialog" aria-modal="true" aria-labelledby="ehConciergeCallTitle">
+      <div class="eh-upsell-panel eh-concierge-call-panel">
+        <button type="button" class="eh-upsell-close" id="ehConciergeCallClose" aria-label="Close">&times;</button>
+        <p class="eh-concierge-call-title" id="ehConciergeCallTitle">Concierge call offer</p>
+        <p class="eh-concierge-call-lead" id="ehConciergeCallLead"></p>
+        <div class="eh-concierge-call-actions">
+          <button type="button" class="eh-upsell-btn-outline" id="ehConciergeCallDismiss">Not now</button>
+          <button type="button" class="eh-upsell-btn-gold" id="ehConciergeCallYes">Yes, call me</button>
+        </div>
       </div>
     </div>
     <div id="ehGuestsPage" class="eh-booking-page">
@@ -4202,8 +4221,8 @@
       var ehPendingSeatInfo   = null;
       var ehBagsExtraKg       = 0;
 
-      /** Idle on flight results → parent may trigger AJO web push (concierge call offer). */
-      var EH_FLIGHTS_IDLE_CONCIERGE_MS = 12000;
+      /** Idle on flight results → lab story: concierge call offer modal (fake / no AJO round-trip). */
+      var EH_FLIGHTS_IDLE_CONCIERGE_MS = 30000;
       var ehFlightsIdleConciergeTimer = null;
       var ehFlightsIdleConciergeFired = false;
 
@@ -4214,6 +4233,27 @@
         }
       }
 
+      function ehCloseConciergeCallModal() {
+        var m = document.getElementById('ehConciergeCallModal');
+        if (m) m.classList.remove('is-open');
+      }
+
+      function ehOpenConciergeCallModal() {
+        var m = document.getElementById('ehConciergeCallModal');
+        var lead = document.getElementById('ehConciergeCallLead');
+        var fn = (typeof ehProfileFirstName === 'string' && ehProfileFirstName.trim()) ? ehProfileFirstName.trim() : 'Guest';
+        var bodyText;
+        if (ehProfileIsDetractor) {
+          bodyText =
+            fn + ', you have been on the flight results for a little while. As a valued guest we would like to offer you a live call from our concierge service to help you complete your booking.';
+        } else {
+          bodyText =
+            fn + ', you have been on the flight results for a little while. Would you like a concierge team member to call you and help complete your booking?';
+        }
+        if (lead) lead.textContent = bodyText;
+        if (m) m.classList.add('is-open');
+      }
+
       function ehScheduleFlightsIdleConcierge() {
         ehClearFlightsIdleConcierge();
         if (overlay.hidden || ehCurrentPage !== 'list') return;
@@ -4222,12 +4262,7 @@
           ehFlightsIdleConciergeTimer = null;
           if (overlay.hidden || ehCurrentPage !== 'list' || ehFlightsIdleConciergeFired) return;
           ehFlightsIdleConciergeFired = true;
-          if (window.parent && window.parent !== window) {
-            window.parent.postMessage(
-              { source: 'etihad-airline-lab', type: 'concierge-flights-idle-push', routeKey: currentRoute },
-              '*'
-            );
-          }
+          ehOpenConciergeCallModal();
         }, EH_FLIGHTS_IDLE_CONCIERGE_MS);
       }
 
@@ -4245,6 +4280,7 @@
       function ehShowPage(page) {
         if (page !== 'list') {
           ehClearFlightsIdleConcierge();
+          ehCloseConciergeCallModal();
         }
         ehCurrentPage = page;
         var resBody = overlay.querySelector('.eh-res-body');
@@ -4638,6 +4674,7 @@
             personalised: ehProfileIsDetractor,
           });
           ehClearFlightsIdleConcierge();
+          ehCloseConciergeCallModal();
           overlay.hidden = true;
           ehCurrentPage = 'list';
           var resBody = overlay.querySelector('.eh-res-body');
@@ -4767,6 +4804,7 @@
 
       function showResults(routeKey) {
         var route = EH_FLIGHTS[routeKey] || EH_FLIGHTS['LHR-AUH'];
+        ehCloseConciergeCallModal();
         currentRoute = routeKey;
         syncHeaderMeta(route);
         var ai = route.dates.findIndex(function (d) {
@@ -4813,6 +4851,7 @@
             var fp = document.getElementById('ehFarePanel');
             if (fp) { fp.innerHTML = ''; fp.classList.remove('is-open'); }
             ehClearFlightsIdleConcierge();
+            ehCloseConciergeCallModal();
             overlay.hidden = true;
           } else {
             var prev = { guests:'list', seats:'guests', bags:'seats', extras:'bags', payment:'extras' };
@@ -4823,6 +4862,7 @@
         modifyLink.addEventListener('click', function (e) {
           e.preventDefault();
           ehClearFlightsIdleConcierge();
+          ehCloseConciergeCallModal();
           overlay.hidden = true;
         });
       moreBtn &&
@@ -4881,6 +4921,50 @@
             { passive: true, capture: true }
           );
         }
+      })();
+      (function wireConciergeCallOfferModal() {
+        var modal = document.getElementById('ehConciergeCallModal');
+        var dismiss = document.getElementById('ehConciergeCallDismiss');
+        var yesbtn = document.getElementById('ehConciergeCallYes');
+        var close = document.getElementById('ehConciergeCallClose');
+        function labOrigin() {
+          try {
+            if (window.parent && window.parent !== window && window.parent.location && window.parent.location.origin) {
+              return window.parent.location.origin;
+            }
+          } catch (_e) {}
+          return window.location.origin;
+        }
+        function openCallCentre() {
+          var base = labOrigin() + '/profile-viewer/call-center-demo-apalmer.html';
+          var em = typeof window.ehLabLastGuestEmail === 'string' ? window.ehLabLastGuestEmail.trim() : '';
+          var url = em ? base + '?email=' + encodeURIComponent(em) : base;
+          window.open(url, '_blank', 'noopener,noreferrer');
+          ehCloseConciergeCallModal();
+        }
+        dismiss &&
+          dismiss.addEventListener('click', function () {
+            ehCloseConciergeCallModal();
+            ehFlightLabEmit('concierge.call.offer.dismiss', { routeKey: currentRoute });
+          });
+        close &&
+          close.addEventListener('click', function () {
+            ehCloseConciergeCallModal();
+          });
+        yesbtn &&
+          yesbtn.addEventListener('click', function () {
+            ehFlightLabEmit('concierge.call.offer.accept', { routeKey: currentRoute });
+            openCallCentre();
+          });
+        modal &&
+          modal.addEventListener('click', function (e) {
+            if (e.target === modal) ehCloseConciergeCallModal();
+          });
+        document.addEventListener('keydown', function (e) {
+          if (e.key !== 'Escape') return;
+          var m = document.getElementById('ehConciergeCallModal');
+          if (m && m.classList.contains('is-open')) ehCloseConciergeCallModal();
+        });
       })();
       ehWireBookingFlowListeners();
     })();
@@ -5090,7 +5174,13 @@
       closeBtn && closeBtn.addEventListener('click', closeModal);
       backdrop && backdrop.addEventListener('click', closeModal);
       doneBtn && doneBtn.addEventListener('click', closeModal);
-      guestLink && guestLink.addEventListener('click', function (e) { e.preventDefault(); closeModal(); });
+      guestLink && guestLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        try {
+          window.ehLabLastGuestEmail = '';
+        } catch (_e2) {}
+        closeModal();
+      });
 
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && !overlay.hidden) closeModal();
@@ -5102,6 +5192,9 @@
           showError('Please enter a valid email address.');
           return;
         }
+        try {
+          window.ehLabLastGuestEmail = email;
+        } catch (_e) {}
         setLoading(true);
         errorEl.hidden = true;
         if (window.parent && window.parent !== window) {
@@ -5121,6 +5214,12 @@
         if (ev.data.type !== 'login-complete') return;
         clearTimeout(window._ehLoginTimeout);
         setLoading(false);
+        var emBack = String(ev.data.email || '').trim();
+        if (emBack) {
+          try {
+            window.ehLabLastGuestEmail = emBack;
+          } catch (_e3) {}
+        }
         if (ev.data.found) {
           var p = ev.data.profile || {};
           var tier = p.loyaltyStatus ? String(p.loyaltyStatus).toLowerCase().trim() : '';

@@ -1383,4 +1383,18 @@
       void loadGeneratorTargets();
     });
   }
+
+  function applyCallCenterEmailFromQuery() {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const raw = p.get('email') || p.get('identifier') || '';
+      const email = String(raw || '').trim();
+      if (!email || !customerEmail) return;
+      customerEmail.value = email;
+      if (queryProfileBtn) queryProfileBtn.click();
+    } catch (_err) {
+      /* noop */
+    }
+  }
+  window.setTimeout(applyCallCenterEmailFromQuery, 650);
 })();
