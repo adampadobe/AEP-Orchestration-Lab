@@ -231,18 +231,6 @@
     .pi-search-feedback--error {
       background: rgba(180, 40, 60, 0.35);
     }
-    .pi-city-break-hint {
-      margin: 10px auto 0;
-      max-width: 960px;
-      padding: 0 8px;
-      font-size: 14px;
-      line-height: 1.45;
-      color: rgba(255, 255, 255, 0.92);
-      text-align: center;
-    }
-    .pi-city-break-hint:empty {
-      display: none;
-    }
     .pi-search-divider {
       width: 1px;
       flex-shrink: 0;
@@ -552,6 +540,35 @@
       text-align: center;
     }
     .pi-lab-note a { color: #511e62; font-weight: 700; }
+    .pi-lab-note-details {
+      margin-top: 12px;
+      text-align: left;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 10px 12px;
+      background: #faf7fc;
+      border: 1px solid #e6dde8;
+      border-radius: 8px;
+      border-left: 4px solid #511e62;
+    }
+    .pi-lab-note-details > summary {
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+      color: #511e62;
+      font-size: 13px;
+      list-style-position: outside;
+    }
+    .pi-lab-note-details[open] > summary {
+      margin-bottom: 8px;
+    }
+    .pi-lab-note-details-body {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #444;
+    }
 
     .pi-header-account-btn {
       cursor: pointer;
@@ -781,7 +798,6 @@
         <option value="M1 1AE"></option>
       </datalist>
       <div id="piSearchFeedback" class="pi-search-feedback" role="status" aria-live="polite" hidden></div>
-      <p id="piCityBreakHint" class="pi-city-break-hint" aria-live="polite"></p>
       <div class="pi-search-subrow">
         <a class="pi-explore-prices" href="https://www.premierinn.com/gb/en/offers.html" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -1010,8 +1026,12 @@
         <strong>Lab demo only</strong> — not affiliated with Whitbread PLC. Official site:
         <a href="https://www.premierinn.com/gb/en/home.html" target="_blank" rel="noopener">premierinn.com</a>.
         Asset origin: <code>localStorage.piPremierInnDemoAssetBase</code> or premierinn.com.
-        <strong style="display:block;margin-top:10px">AEP journey</strong>
-        Default demo: <strong>Manchester city break</strong> — search sends <code>hotel.search</code>, then the lab booking page runs filters (e.g. free parking), breakfast content (<code>hotel.content.view</code>), rates, and payment abandon (<code>hotel.checkout.abandon</code>).
+        <details class="pi-lab-note-details">
+          <summary>AEP journey — expand for <code>hotel.*</code> event map</summary>
+          <p class="pi-lab-note-details-body">
+            Default demo: <strong>Manchester city break</strong> — search sends <code>hotel.search</code>, then the lab booking page runs filters (e.g. free parking), breakfast content (<code>hotel.content.view</code>), rates, and payment abandon (<code>hotel.checkout.abandon</code>).
+          </p>
+        </details>
       </div>
     </div>
   </footer>
@@ -1287,17 +1307,12 @@
       var tomorrowStr = toYmd(addDays(today, 1));
 
       var saved = loadState();
-      var hintEl = document.getElementById('piCityBreakHint');
       if (whereEl) {
         if (saved && saved.where) {
           whereEl.value = saved.where;
         } else {
           whereEl.value = 'Manchester';
         }
-      }
-      if (hintEl) {
-        hintEl.textContent =
-          'Demo default: Manchester city break — adjust destination or dates, then Search to open the lab results, filters, breakfast view, and checkout.';
       }
 
       if (ciEl) ciEl.value = saved && saved.checkin ? saved.checkin : todayStr;

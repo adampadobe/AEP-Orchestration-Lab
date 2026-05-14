@@ -128,10 +128,6 @@ body.call-center-demo-page .dashboard-main {
   align-items: end;
 }
 
-.call-center-pinned-form:has(.call-center-pinned-field--channel) {
-  grid-template-columns: minmax(180px, 1.1fr) minmax(200px, 1fr) minmax(140px, 0.95fr) auto;
-}
-
 @media (max-width: 900px) {
   .call-center-pinned-form {
     grid-template-columns: 1fr;
@@ -1957,7 +1953,7 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   color: var(--cc-text);
 }
 
-/* ── Booking panel ─────────────────────────────────────────────────────── */
+/* ── Booking panel (replaces generic Orders tab) ─────────────────────────── */
 .cc-order-chip--action {
   cursor: pointer;
   color: var(--cc-accent);
@@ -1966,7 +1962,7 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   transition: background 0.15s, color 0.15s;
 }
 .cc-order-chip--action:hover:not(:disabled) {
-  background: var(--cc-accent-soft);
+  background: var(--cc-accent-soft, #e8f0ff);
 }
 .cc-order-chip--action:disabled {
   cursor: not-allowed;
@@ -1982,8 +1978,8 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   margin-bottom: 0.85rem;
   padding: 0.75rem 0.85rem;
   border-radius: 10px;
-  background: var(--cc-accent-soft);
-  border: 1px solid color-mix(in srgb, var(--cc-accent) 20%, transparent);
+  background: var(--cc-accent-soft, #e8f0ff);
+  border: 1px solid color-mix(in srgb, var(--cc-accent, #0d66d0) 20%, transparent);
 }
 
 .cc-booking-route-airports {
@@ -2021,18 +2017,11 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   margin-top: 0.75rem;
 }
 
-.cc-booking-seed-hint {
-  margin-top: 0.35rem;
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-/* ── Channel selector ─────────────────────────────────────────────────── */
+/* ── Channel selector ─────────────────────────────────────────────────────── */
 .call-center-pinned-field--channel {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .cc-channel-group {
@@ -2058,7 +2047,7 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
 }
 .cc-channel-btn.is-active {
   background: var(--cc-accent);
-  color: var(--cc-text);
+  color: #fff;
   border-color: var(--cc-accent);
 }
 
@@ -2618,11 +2607,6 @@ body.call-center-demo-page.cc-theme-banking-dark {
   color: #fde047;
 }
 
-.cc-tx-status--warn {
-  background: color-mix(in srgb, var(--cc-accent) 22%, transparent);
-  color: var(--cc-text);
-}
-
 .cc-theme-banking-dark .cc-profile-hero {
   border-radius: 18px;
   border-color: var(--cc-bank-border);
@@ -2884,7 +2868,7 @@ body.call-center-demo-page.cc-theme-banking-dark {
 }
 
 .cc-theme-banking-dark .cc-booking-route-header {
-  background: color-mix(in srgb, var(--cc-accent) 10%, var(--cc-bank-elev));
+  background: color-mix(in srgb, var(--cc-accent, #0d66d0) 10%, var(--cc-bank-elev));
   border-color: color-mix(in srgb, var(--cc-accent) 25%, transparent);
 }
 
@@ -2898,7 +2882,7 @@ body.call-center-demo-page.cc-theme-banking-dark {
 }
 .cc-theme-banking-dark .cc-channel-btn.is-active {
   background: var(--cc-accent);
-  color: var(--cc-text);
+  color: #fff;
   border-color: var(--cc-accent);
 }
 
@@ -2944,88 +2928,196 @@ body.call-center-demo-page.cc-theme-banking-dark {
   color: #fda4af;
 }
 
-/* ── Customer details: journey activity + engagement chart (Chart.js) ── */
+/* ─────────────────────────────────────────────────────
+   Journey activity block
+   ───────────────────────────────────────────────────── */
+.cc-journey-activity-block {
+  margin-top: 20px;
+}
+
+.cc-journey-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cc-journey-table th,
+.cc-journey-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--cc-border, #e2e8f0);
+  vertical-align: middle;
+}
+
+.cc-journey-table th {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cc-muted);
+  white-space: nowrap;
+}
+
+.cc-journey-name-cell {
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-journey-count-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+}
+
+.cc-journey-count-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--cc-border, #e2e8f0);
+  overflow: hidden;
+}
+
+.cc-journey-count-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--cc-accent, #0d66d0);
+  transition: width 0.4s ease;
+}
+
+.cc-journey-count-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cc-text, #1e293b);
+  min-width: 18px;
+  text-align: right;
+}
+
+.cc-journey-note {
+  font-size: 11px;
+  color: var(--cc-muted);
+  margin-left: 8px;
+}
+
+/* ─────────────────────────────────────────────────────
+   Recent events table placeholder + count badge
+   ───────────────────────────────────────────────────── */
+.cc-events-placeholder {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--cc-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.cc-transactions-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cc-accent, #0d66d0);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────────────
+   Dark overrides — journey + events
+   ───────────────────────────────────────────────────── */
+.cc-theme-banking-dark .cc-journey-table th,
+.cc-theme-banking-dark .cc-journey-table td {
+  border-bottom-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-journey-table th {
+  color: var(--cc-muted);
+}
+
+.cc-theme-banking-dark .cc-journey-name-cell {
+  color: #f1f5f9;
+}
+
+.cc-theme-banking-dark .cc-journey-count-bar {
+  background: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-journey-count-text {
+  color: #e2e8f0;
+}
+
+.cc-theme-banking-dark .cc-events-placeholder {
+  color: var(--cc-muted);
+}
+
+/* ─────────────────────────────────────────────────────
+   Details panel: Journey activity section
+   ───────────────────────────────────────────────────── */
 .cc-details-journey-section {
-  margin-top: 1rem;
-  padding: 1rem 1rem 1.05rem;
-  border-radius: 12px;
-  border: 1px solid var(--cc-border);
-  background: var(--cc-card);
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  margin-top: 20px;
+  border: 1px solid var(--cc-border, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .cc-details-journey-header {
   display: flex;
+  align-items: baseline;
+  gap: 10px;
   flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.65rem;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--cc-border, #e2e8f0);
+}
+
+.cc-details-journey-header .cc-activity-feed-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cc-details-journey-section .cc-events-placeholder {
+  padding: 20px 16px;
+  margin: 0;
+}
+
+.cc-details-journey-section #ccDetailsJourneyWrap {
+  overflow-x: auto;
 }
 
 .cc-details-journey-table {
   border-radius: 0;
 }
 
-.cc-transactions-head .cc-journey-note {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--cc-muted);
-  max-width: 52ch;
-  line-height: 1.35;
+.cc-details-journey-table th,
+.cc-details-journey-table td {
+  padding: 9px 14px;
 }
 
 .cc-journey-last-seen {
-  font-size: 0.78rem;
-  color: var(--cc-muted);
   white-space: nowrap;
+  color: var(--cc-muted);
+  font-size: 12px;
 }
 
-.cc-journey-count-bar-wrap {
-  position: relative;
-  min-width: 88px;
-  height: 1.35rem;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--cc-muted) 12%, transparent);
-  overflow: hidden;
-}
-
-.cc-journey-count-bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  max-width: 100%;
-  border-radius: 6px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--cc-accent) 85%, transparent), var(--cc-accent));
-}
-
-.cc-journey-count-text {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  padding: 0 0.45rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--cc-text);
-  text-shadow: 0 0 2px color-mix(in srgb, var(--cc-card) 80%, transparent);
-}
-
+/* ─────────────────────────────────────────────────────
+   Engagement signals: event activity chart card
+   ───────────────────────────────────────────────────── */
 .cc-card--engagement {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 10px;
 }
 
 .cc-engagement-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .cc-engagement-head .cc-card-title {
@@ -3033,105 +3125,96 @@ body.call-center-demo-page.cc-theme-banking-dark {
 }
 
 .cc-engagement-toggle {
-  display: inline-flex;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--cc-border);
+  display: flex;
+  gap: 4px;
 }
 
 .cc-engagement-toggle-btn {
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.35rem 0.65rem;
-  border: none;
-  background: color-mix(in srgb, var(--cc-muted) 10%, transparent);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--cc-border, #e2e8f0);
+  background: transparent;
   color: var(--cc-muted);
   cursor: pointer;
+  line-height: 1.5;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cc-engagement-toggle-btn:hover {
+  border-color: var(--cc-accent, #0d66d0);
+  color: var(--cc-accent, #0d66d0);
 }
 
 .cc-engagement-toggle-btn--active {
-  background: color-mix(in srgb, var(--cc-accent) 18%, transparent);
-  color: var(--cc-accent);
+  background: var(--cc-accent, #0d66d0);
+  border-color: var(--cc-accent, #0d66d0);
+  color: #fff;
 }
 
 .cc-engagement-dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 4px 16px;
   margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.5rem 1rem;
-}
-
-.cc-engagement-dl > div {
-  display: grid;
-  grid-template-columns: minmax(72px, 0.35fr) 1fr;
-  gap: 0.35rem 0.5rem;
-  align-items: baseline;
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .cc-engagement-dl dt {
-  margin: 0;
   color: var(--cc-muted);
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 1px;
 }
 
 .cc-engagement-dl dd {
-  margin: 0;
-  color: var(--cc-text);
-  font-weight: 600;
-  word-break: break-word;
+  margin: 0 0 6px;
+  color: var(--cc-text, #1e293b);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.cc-sig-ecid-val {
+  font-size: 11px;
+  font-family: monospace;
+  word-break: break-all;
 }
 
 .cc-engagement-dl-aud {
   grid-column: 1 / -1;
 }
 
-.cc-sig-ecid-val {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.76rem;
-  font-weight: 500;
+.cc-engagement-dl-aud dd {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 #ccEngagementChartSection {
-  margin-top: 0.25rem;
+  padding-top: 4px;
 }
 
 #ccEventActivityChart {
-  display: block;
-  width: 100%;
-  max-height: 220px;
+  max-height: 200px;
 }
 
 .cc-engagement-legend {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
-  font-size: 0.72rem;
-  color: var(--cc-muted);
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--cc-text, #1e293b);
 }
 
 .cc-engagement-legend-item {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.cc-engagement-legend-item > span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 5px;
   white-space: nowrap;
-  color: var(--cc-text);
-}
-
-.cc-engagement-legend-count {
-  font-weight: 700;
-  color: var(--cc-muted);
-  flex-shrink: 0;
 }
 
 .cc-engagement-legend-swatch {
@@ -3139,40 +3222,43 @@ body.call-center-demo-page.cc-theme-banking-dark {
   height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--cc-border) 80%, transparent);
 }
 
-.cc-events-placeholder {
-  margin: 0;
-  font-size: 0.82rem;
+/* ─────────────────────────────────────────────────────
+   Dark overrides — Details journey + engagement chart
+   ───────────────────────────────────────────────────── */
+.cc-theme-banking-dark .cc-details-journey-section {
+  border-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-details-journey-header {
+  border-bottom-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-journey-last-seen {
   color: var(--cc-muted);
 }
 
-.cc-theme-banking-dark .cc-details-journey-section {
-  background: var(--cc-bank-elev);
-  border-color: var(--cc-bank-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+.cc-theme-banking-dark .cc-engagement-dl dd {
+  color: #f1f5f9;
 }
 
-.cc-theme-banking-dark .cc-engagement-toggle {
-  border-color: var(--cc-bank-border);
+.cc-theme-banking-dark .cc-engagement-legend {
+  color: #e2e8f0;
 }
 
 .cc-theme-banking-dark .cc-engagement-toggle-btn {
-  background: rgba(0, 0, 0, 0.25);
+  border-color: var(--cc-bank-border);
   color: var(--cc-muted);
 }
 
+.cc-theme-banking-dark .cc-engagement-toggle-btn:hover {
+  border-color: var(--cc-accent);
+  color: var(--cc-accent);
+}
+
 .cc-theme-banking-dark .cc-engagement-toggle-btn--active {
-  background: color-mix(in srgb, var(--cc-accent) 22%, transparent);
-  color: var(--cc-text);
-}
-
-.cc-theme-banking-dark .cc-journey-count-bar-wrap {
-  background: color-mix(in srgb, var(--cc-muted) 16%, transparent);
-}
-
-.cc-theme-banking-dark .cc-journey-count-text {
-  color: var(--cc-text);
-  text-shadow: 0 1px 2px color-mix(in srgb, var(--cc-text) 40%, transparent);
+  background: var(--cc-accent);
+  border-color: var(--cc-accent);
+  color: #fff;
 }
