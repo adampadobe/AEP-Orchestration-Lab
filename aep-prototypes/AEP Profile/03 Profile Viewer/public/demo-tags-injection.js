@@ -312,6 +312,29 @@
     }
 
     /** Optional `cfg.webPush` — registers Adobe Alloy SW and, after successful ECID sync, calls `sendPushSubscriptionIfReady` when `AepDemoWebPush` is loaded. */
+    function coerceWebPushFlag(value) {
+      if (typeof value === 'function') {
+        try {
+          return !!value();
+        } catch (_e) {
+          return false;
+        }
+      }
+      return value === true;
+    }
+
+    function coerceWebPushSubscribeAfterInject(value) {
+      if (value === false) return false;
+      if (typeof value === 'function') {
+        try {
+          return !!value();
+        } catch (_e) {
+          return true;
+        }
+      }
+      return true;
+    }
+
     function resolveWebPushCfg() {
       if (!cfg.webPush || cfg.webPush.enabled !== true) return null;
       const w = typeof cfg.webPush === 'object' ? cfg.webPush : {};
@@ -319,8 +342,9 @@
         workerScriptUrl: w.workerScriptUrl || '/profile-viewer/alloyServiceWorker.min.js',
         scope: w.scope || '/profile-viewer/',
         storagePrefix: storagePrefix,
-        requestPermissionOnInject: w.requestPermissionOnInject === true,
-        skipDailyThrottleOnInject: w.skipDailyThrottleOnInject === true,
+        subscribeAfterInject: coerceWebPushSubscribeAfterInject(w.subscribeAfterInject),
+        requestPermissionOnInject: coerceWebPushFlag(w.requestPermissionOnInject),
+        skipDailyThrottleOnInject: coerceWebPushFlag(w.skipDailyThrottleOnInject),
       };
     }
 
@@ -807,6 +831,7 @@
         if (
           ecid &&
           wp &&
+          wp.subscribeAfterInject &&
           global.AepDemoWebPush &&
           typeof global.AepDemoWebPush.sendPushSubscriptionIfReady === 'function'
         ) {

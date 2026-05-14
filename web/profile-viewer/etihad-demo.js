@@ -53,6 +53,27 @@ const etihadSiteFrame = document.getElementById('etihadSiteFrame');
 /** Match Demo Website / Premier Inn generator payloads (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`). */
 const ETIHAD_XDM_TENANT_KEY = '_demoemea';
 
+const ETIHAD_WEB_PUSH_ON_INJECT_KEY = 'etihadAirlineWebPushOnInjectToggle';
+const etihadWebPushOnInjectToggle = document.getElementById('etihadWebPushOnInjectToggle');
+if (etihadWebPushOnInjectToggle) {
+  try {
+    if (localStorage.getItem(ETIHAD_WEB_PUSH_ON_INJECT_KEY) === '1') etihadWebPushOnInjectToggle.checked = true;
+  } catch {
+    /* noop */
+  }
+  etihadWebPushOnInjectToggle.addEventListener('change', function () {
+    try {
+      localStorage.setItem(ETIHAD_WEB_PUSH_ON_INJECT_KEY, etihadWebPushOnInjectToggle.checked ? '1' : '0');
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+function etihadWebPushOnInjectDesired() {
+  return !!(etihadWebPushOnInjectToggle && etihadWebPushOnInjectToggle.checked);
+}
+
 const etihadTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -73,18 +94,22 @@ const etihadTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
-        webPush: { enabled: true },
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: etihadWebPushOnInjectDesired,
+          requestPermissionOnInject: etihadWebPushOnInjectDesired,
+        },
       })
     : null;
 
-const etihadWebPushBtn = document.getElementById('etihadWebPushBtn');
-if (etihadWebPushBtn && typeof window.AepDemoWebPush !== 'undefined') {
-  etihadWebPushBtn.addEventListener('click', function () {
+const etihadWebPushRetryBtn = document.getElementById('etihadWebPushRetryBtn');
+if (etihadWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
+  etihadWebPushRetryBtn.addEventListener('click', function () {
     void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'etihadAirline' }).then(function (ok) {
       setEtihadMessage(
         ok
           ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'
-          : 'Web push did not complete. Inject Tags first, allow notifications, and ensure push is enabled on your datastream.',
+          : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
         ok ? 'success' : 'error',
       );
     });
