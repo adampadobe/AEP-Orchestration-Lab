@@ -16,10 +16,6 @@
   <script defer src="aep-sim-mobile.js"></script>
 </head>
 <body class="call-center-demo-page cc-theme-banking-dark home-dashboard-concierge home-dashboard-ajo">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/call-center-demo-apalmer.html">http://localhost:3333/call-center-demo-apalmer.html</a>
-  </div>
-
   <div class="dashboard-shell dashboard-shell--ajo">
     <button
       type="button"
@@ -912,14 +908,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
