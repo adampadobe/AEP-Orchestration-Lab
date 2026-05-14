@@ -632,43 +632,6 @@
     }).join('');
   }
 
-  function renderCcJourneyActivity(events) {
-    const section = document.getElementById('ccJourneyActivitySection');
-    const tbody = document.getElementById('ccJourneyTableBody');
-    if (!section || !tbody) return;
-
-    const journeys = ccAggregateJourneyActivity(events);
-    if (journeys.length === 0) {
-      section.hidden = true;
-      return;
-    }
-
-    section.hidden = false;
-    const maxCount = Math.max(...journeys.map((j) => j.count), 1);
-
-    tbody.innerHTML = journeys.map((j, i) => {
-      const pct = Math.round((j.count / maxCount) * 100);
-      const last = ccFormatTimestamp(j.lastTs);
-      return `<tr>
-        <td class="cc-journey-name-cell" data-jrow="${i}"><span style="opacity:0.45">…</span></td>
-        <td class="cc-journey-count-cell">
-          <div class="cc-journey-count-wrap">
-            <div class="cc-journey-count-bar" style="width:${pct}%"></div>
-            <span class="cc-journey-count-text">${j.count}</span>
-          </div>
-        </td>
-        <td>${last}</td>
-      </tr>`;
-    }).join('');
-
-    journeys.forEach((j, i) => {
-      fetchCcJourneyName(j.vid).then((name) => {
-        const cell = tbody.querySelector(`[data-jrow="${i}"]`);
-        if (cell) cell.textContent = name || j.vid.slice(0, 8) + '…';
-      });
-    });
-  }
-
   function renderCcActivityFeed(events, agentName) {
     const feed = document.getElementById('ccActivityFeed');
     const agentNote = document.getElementById('ccActivityAgentNote');
@@ -721,7 +684,6 @@
     const events = await fetchCcEvents(email);
     window._ccLastEvents = events;
     renderCcRecentEvents(events);
-    renderCcJourneyActivity(events);
     renderCcDetailsJourneyActivity(events);
     renderCcEventActivityChart(events);
     const agentName = (document.getElementById('ccAgentName') || {}).textContent || 'You';

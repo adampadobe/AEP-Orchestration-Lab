@@ -255,40 +255,34 @@
     'public_sector',
   ];
 
-  const BOOKING_PLACEHOLDER_HTML =
-    '<p class="cc-history-lead" id="ccBookingPlaceholder">Load a customer profile above to see their flight booking from Adobe Experience Platform.</p>';
-
+  // ─── Channel selector ──────────────────────────────────────────────────────
   /** @type {'voice'|'email'|'mobile'} */
   let selectedChannel = 'voice';
 
   function setSelectedChannel(ch) {
-    if (ch !== 'voice' && ch !== 'email' && ch !== 'mobile') return;
     selectedChannel = ch;
     document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
-      const active = btn.dataset.ch === ch;
+      const active = btn.dataset.channel === ch;
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
   }
 
   document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
-    btn.addEventListener('click', () => setSelectedChannel(btn.dataset.ch));
+    btn.addEventListener('click', () => setSelectedChannel(btn.dataset.channel));
   });
 
+  // ─── RTDB helpers ─────────────────────────────────────────────────────────
   function getRtdbSandboxName() {
     try {
       if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
         return window.AepGlobalSandbox.getSandboxName() || 'apalmer';
       }
-    } catch (_) {
-      /* ignore */
-    }
+    } catch (_) { /* ignore */ }
     try {
       const m = window.location.search.match(/[?&]sandbox=([^&]+)/);
       if (m) return decodeURIComponent(m[1]);
-    } catch (_) {
-      /* ignore */
-    }
+    } catch (_) { /* ignore */ }
     return 'apalmer';
   }
 
@@ -304,11 +298,6 @@
     }
   }
 
-  function accentSoftFromColour(colour) {
-    if (typeof colour !== 'string' || !/^#([0-9a-fA-F]{6})$/.test(colour.trim())) return null;
-    return colour.trim() + '22';
-  }
-
   function applyRtdbToAgentUi(rtdb) {
     if (!rtdb || typeof rtdb !== 'object') return;
     const sp = rtdb.StaffPortal || {};
@@ -321,11 +310,7 @@
       const initialsEl = document.getElementById('ccUserInitials');
       if (initialsEl) {
         const parts = String(agentName).trim().split(/\s+/);
-        initialsEl.textContent = parts
-          .map((p) => p[0] || '')
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
+        initialsEl.textContent = parts.map((p) => p[0] || '').join('').slice(0, 2).toUpperCase();
         initialsEl.title = agentName;
       }
     }
@@ -333,8 +318,7 @@
     const colour = sp.Colour || cd.Colour || null;
     if (colour) {
       document.body.style.setProperty('--cc-accent', colour);
-      const soft = accentSoftFromColour(String(colour));
-      if (soft) document.body.style.setProperty('--cc-accent-soft', soft);
+      document.body.style.setProperty('--cc-accent-soft', colour + '22');
     }
   }
 
@@ -343,6 +327,7 @@
     applyRtdbToAgentUi(data);
   }
 
+  // ─── Travel data from profile table ───────────────────────────────────────
   async function fetchProfileTableRows(email) {
     if (!email) return null;
     const sandbox = getRtdbSandboxName();
@@ -356,26 +341,26 @@
   }
 
   function extractTravelFromRows(tablePayload) {
-    const rows = tablePayload && Array.isArray(tablePayload.rows) ? tablePayload.rows : [];
+    const rows = (tablePayload && Array.isArray(tablePayload.rows)) ? tablePayload.rows : [];
     const find = (fragment) => {
       const lf = fragment.toLowerCase();
       const row = rows.find((r) => r.path && r.path.toLowerCase().includes(lf) && r.value && r.value !== '');
       return row ? row.value : null;
     };
     return {
-      flightNumber: find('flightreservations.flightnumber'),
-      flightClass: find('flightreservations.flightclass'),
-      flightDate: find('flightreservations.flightdate'),
-      confirmationNumber: find('flightreservations.confirmationnumber'),
-      departureAirportCode: find('flightreservations.departureairportcode'),
-      arrivalAirportCode: find('flightreservations.arrivalairportcode'),
+      flightNumber:            find('flightreservations.flightnumber'),
+      flightClass:             find('flightreservations.flightclass'),
+      flightDate:              find('flightreservations.flightdate'),
+      confirmationNumber:      find('flightreservations.confirmationnumber'),
+      departureAirportCode:    find('flightreservations.departureairportcode'),
+      arrivalAirportCode:      find('flightreservations.arrivalairportcode'),
       flightReservationStatus: find('flightreservations.flightreservationstatus'),
-      numberOfPassengers: find('flightreservations.numberofpassengers'),
-      layoverAirport: find('multilleg.layoverairportcode_1') || find('layoverairportcode'),
-      seatPreference: find('travelpreferences.seat'),
-      mealPreference: find('travelpreferences.meal'),
-      loyaltyPoints: find('loyaltydetails.points'),
-      loyaltyId: find('identification.core.loyaltyid'),
+      numberOfPassengers:      find('flightreservations.numberofpassengers'),
+      layoverAirport:          find('multilleg.layoverairportcode_1') || find('layoverairportcode'),
+      seatPreference:          find('travelpreferences.seat'),
+      mealPreference:          find('travelpreferences.meal'),
+      loyaltyPoints:           find('loyaltydetails.points'),
+      loyaltyId:               find('identification.core.loyaltyid'),
     };
   }
 
@@ -390,87 +375,79 @@
     }
   }
 
-  function generatorChannelLabel() {
-    return selectedChannel === 'voice' ? 'Call' : selectedChannel === 'mobile' ? 'Mobile' : 'Web';
-  }
-
   function renderBookingPanel(travel, email) {
     const panel = document.getElementById('ccPanelOrders');
     if (!panel) return;
 
     if (!travel || (!travel.flightNumber && !travel.confirmationNumber)) {
-      panel.innerHTML =
-        '<p class="cc-history-lead">No booking data found in profile for this customer.</p>' +
-        '<p class="cc-history-lead cc-booking-seed-hint">Expected at <code>_demoemea.travelReservations.flightReservations</code> in the AEP sandbox. ' +
-        'Seed the profile via Profile Generation to populate this view.</p>';
+      panel.innerHTML = `
+        <p class="cc-history-lead">No booking data found in profile for this customer.</p>
+        <p class="cc-history-lead" style="margin-top:0.35rem;font-size:0.8rem;opacity:0.6;">
+          Expected at <code>_demoemea.travelReservations.flightReservations</code> in the AEP sandbox.
+          Seed the profile via Profile Generation to populate this view.
+        </p>`;
       return;
     }
 
-    const dept = travel.departureAirportCode || '—';
-    const arr = travel.arrivalAirportCode || '—';
-    const flt = travel.flightNumber || '—';
-    const cls = travel.flightClass || '—';
-    const dt = formatFlightDate(travel.flightDate);
-    const ref = travel.confirmationNumber || '—';
-    const pax = travel.numberOfPassengers || '1';
-    const stat = travel.flightReservationStatus || 'Confirmed';
-    const seat = travel.seatPreference || '—';
-    const meal = travel.mealPreference || '—';
-    const pts = travel.loyaltyPoints ? Number(travel.loyaltyPoints).toLocaleString() : '—';
-    const lid = travel.loyaltyId || '—';
-    const via = travel.layoverAirport ? ` via ${travel.layoverAirport}` : '';
+    const dept  = travel.departureAirportCode || '—';
+    const arr   = travel.arrivalAirportCode || '—';
+    const flt   = travel.flightNumber || '—';
+    const cls   = travel.flightClass || '—';
+    const dt    = formatFlightDate(travel.flightDate);
+    const ref   = travel.confirmationNumber || '—';
+    const pax   = travel.numberOfPassengers || '1';
+    const stat  = travel.flightReservationStatus || 'Confirmed';
+    const seat  = travel.seatPreference || '—';
+    const meal  = travel.mealPreference || '—';
+    const pts   = travel.loyaltyPoints ? Number(travel.loyaltyPoints).toLocaleString() : '—';
+    const lid   = travel.loyaltyId || '—';
+    const via   = travel.layoverAirport ? ` via ${travel.layoverAirport}` : '';
 
-    const statusCls = /cancel/i.test(stat)
-      ? 'cc-tx-status--warn'
-      : /wait|pending/i.test(stat)
-        ? 'cc-tx-status--pending'
-        : 'cc-tx-status--ok';
+    const statusCls = /cancel/i.test(stat) ? 'cc-tx-status--warn' :
+                      /wait|pending/i.test(stat) ? 'cc-tx-status--pending' : 'cc-tx-status--ok';
 
     panel.innerHTML = `
-    <div class="cc-order-card">
-      <div class="cc-order-actions">
-        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.seat.change">Change seat</button>
-        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.meal.change">Meal preference</button>
-        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.upgrade.request">Request upgrade</button>
-        <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.booking.amend">Amend booking</button>
-      </div>
-      <div class="cc-booking-route-header">
-        <div class="cc-booking-route-airports">
-          <span class="cc-booking-airport">${dept}</span>
-          <svg class="cc-booking-plane-ico" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
-            <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-          </svg>
-          <span class="cc-booking-airport">${arr}</span>
+      <div class="cc-order-card">
+        <div class="cc-order-actions">
+          <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.seat.change">Change seat</button>
+          <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.meal.change">Meal preference</button>
+          <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.upgrade.request">Request upgrade</button>
+          <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.booking.amend">Amend booking</button>
         </div>
-        <div class="cc-booking-route-meta">
-          <span class="cc-booking-flight-num">${flt}${via}</span>
-          <span class="cc-tx-status ${statusCls}">${stat}</span>
+        <div class="cc-booking-route-header">
+          <div class="cc-booking-route-airports">
+            <span class="cc-booking-airport">${dept}</span>
+            <svg class="cc-booking-plane-ico" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+              <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+            </svg>
+            <span class="cc-booking-airport">${arr}</span>
+          </div>
+          <div class="cc-booking-route-meta">
+            <span class="cc-booking-flight-num">${flt}${via}</span>
+            <span class="cc-tx-status ${statusCls}">${stat}</span>
+          </div>
         </div>
-      </div>
-      <dl class="cc-order-dl cc-booking-dl">
-        <div><dt>Booking ref.</dt><dd>${ref}</dd></div>
-        <div><dt>Class</dt><dd>${cls}</dd></div>
-        <div><dt>Date</dt><dd>${dt}</dd></div>
-        <div><dt>Passengers</dt><dd>${pax}</dd></div>
-        <div><dt>Seat preference</dt><dd>${seat}</dd></div>
-        <div><dt>Meal preference</dt><dd>${meal}</dd></div>
-        <div><dt>Loyalty ID</dt><dd>${lid}</dd></div>
-        <div><dt>Loyalty points</dt><dd>${pts}</dd></div>
-      </dl>
-    </div>`;
+        <dl class="cc-order-dl cc-booking-dl">
+          <div><dt>Booking ref.</dt><dd>${ref}</dd></div>
+          <div><dt>Class</dt><dd>${cls}</dd></div>
+          <div><dt>Date</dt><dd>${dt}</dd></div>
+          <div><dt>Passengers</dt><dd>${pax}</dd></div>
+          <div><dt>Seat preference</dt><dd>${seat}</dd></div>
+          <div><dt>Meal preference</dt><dd>${meal}</dd></div>
+          <div><dt>Loyalty ID</dt><dd>${lid}</dd></div>
+          <div><dt>Loyalty points</dt><dd>${pts}</dd></div>
+        </dl>
+      </div>`;
 
     panel.querySelectorAll('.cc-booking-action').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const eventType = btn.dataset.event;
         const lookupEmail = email || getEmail().trim();
-        if (!lookupEmail) {
-          setStatus('No customer loaded.', 'error');
-          return;
-        }
+        if (!lookupEmail) { setStatus('No customer loaded.', 'error'); return; }
         btn.disabled = true;
         try {
           const target = getSelectedGeneratorTarget();
-          const channelLabel = generatorChannelLabel();
+          const channelLabel = selectedChannel === 'voice' ? 'Call' : selectedChannel === 'mobile' ? 'Mobile' : 'Web';
           const body = augmentCcGeneratorPostBody({
             targetId: target ? target.id : undefined,
             email: lookupEmail,
@@ -479,24 +456,17 @@
             viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
             channel: channelLabel,
           });
-          const ecid = getEcidForExperienceEvent();
-          if (ecid) body.ecid = ecid;
           const res = await fetch('/api/events/generator', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(data.error || data.message || 'Request failed.');
-          }
+          await res.json().catch(() => ({}));
           setStatus(`Event sent to AEP: ${eventType}`, 'success');
         } catch (err) {
           setStatus('Event failed: ' + ((err && err.message) || String(err)), 'error');
         } finally {
-          window.setTimeout(() => {
-            btn.disabled = false;
-          }, 3000);
+          window.setTimeout(() => { btn.disabled = false; }, 3000);
         }
       });
     });
@@ -508,9 +478,336 @@
     renderBookingPanel(travel, email);
   }
 
-  function resetBookingPanelPlaceholder() {
-    const panel = document.getElementById('ccPanelOrders');
-    if (panel) panel.innerHTML = BOOKING_PLACEHOLDER_HTML;
+  // ─── Experience events: helpers (compact port from profile-viewer/app.js) ──
+
+  const ccJourneyNameCache = new Map();
+
+  async function fetchCcJourneyName(versionId) {
+    if (!versionId) return null;
+    if (ccJourneyNameCache.has(versionId)) return ccJourneyNameCache.get(versionId);
+    const sandbox = getRtdbSandboxName();
+    try {
+      const res = await fetch(`/api/journey-name?id=${encodeURIComponent(versionId)}&sandbox=${encodeURIComponent(sandbox)}`);
+      const data = await res.json().catch(() => ({}));
+      const name = data.name || null;
+      ccJourneyNameCache.set(versionId, name);
+      return name;
+    } catch (_) {
+      ccJourneyNameCache.set(versionId, null);
+      return null;
+    }
+  }
+
+  function ccFindEventRow(ev, testFn) {
+    return (ev.rows || []).find((r) => testFn((r.path || '').toLowerCase(), (r.attribute || '').toLowerCase()));
+  }
+
+  function ccGetEventJourneyVersionId(ev) {
+    const r = ccFindEventRow(ev, (p, a) => p.includes('messageexecution') && (p.includes('journeyversionid') || a === 'journeyversionid'));
+    return r && r.value ? String(r.value).trim() : '';
+  }
+
+  function ccGetEventFeedbackStatus(ev) {
+    const r = ccFindEventRow(ev, (p) => p.includes('messagedelivery') && p.includes('feedbackstatus'));
+    return r && r.value ? String(r.value).trim() : '';
+  }
+
+  function ccGetEventChannel(ev) {
+    const r = ccFindEventRow(ev, (p, a) =>
+      p.endsWith('channel') || a === 'channel' ||
+      p.includes('messagechannel') || p.includes('channel.type') ||
+      p.endsWith('messagingchannel') || p.includes('channeltype')
+    );
+    return r && r.value ? String(r.value).trim() : '';
+  }
+
+  function ccGetEventSource(ev) {
+    const name = (ev.eventName || '').toLowerCase();
+    const ch = ccGetEventChannel(ev).toLowerCase();
+    const vid = ccGetEventJourneyVersionId(ev);
+    if (vid || name.includes('message') || name.includes('journey') || name.includes('campaign')) return 'Journey Optimizer';
+    if (name.includes('application.login') || name.includes('mobile.logon')) return 'Mobile';
+    if (ch.includes('push') || name.includes('push')) return 'Push';
+    if (ch.includes('sms') || name.includes('sms')) return 'SMS';
+    if (name.includes('email') || ch.includes('email')) return 'Email';
+    if (name.includes('commerce') || name.includes('product') || name.includes('cart')) return 'Edge Network';
+    return 'AEP';
+  }
+
+  function ccGetEventTypeLabel(ev) {
+    const name = ev.eventName || '';
+    const short = name.replace(/^(application|commerce|web|mobile)\./i, '').replace(/([a-z])([A-Z])/g, '$1 $2');
+    return short.charAt(0).toUpperCase() + short.slice(1) || 'Experience event';
+  }
+
+  function ccGetEventTypeIcon(eventName) {
+    const n = (eventName || '').toLowerCase();
+    if (n.includes('email') || n.includes('message.feedback')) return '✉️';
+    if (n.includes('push')) return '🔔';
+    if (n.includes('sms')) return '💬';
+    if (n.includes('login') || n.includes('logon')) return '🔑';
+    if (n.includes('product') || n.includes('commerce')) return '🛍️';
+    if (n.includes('journey') || n.includes('campaign')) return '🗺️';
+    if (n.includes('location')) return '📍';
+    if (n.includes('flight') || n.includes('travel') || n.includes('booking')) return '✈️';
+    if (n.includes('seat')) return '💺';
+    if (n.includes('contact.center')) return '📞';
+    return '◇';
+  }
+
+  function ccFormatTimestamp(ts) {
+    if (!ts) return '—';
+    const d = new Date(typeof ts === 'number' ? ts : parseInt(ts, 10));
+    if (isNaN(d.getTime())) return '—';
+    const now = Date.now();
+    const diff = now - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 2) return 'Just now';
+    if (mins < 60) return `${mins} min ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return 'Yesterday · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function ccFormatNow() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function ccAggregateJourneyActivity(events) {
+    const map = new Map();
+    (events || []).forEach((ev) => {
+      const vid = ccGetEventJourneyVersionId(ev);
+      if (!vid) return;
+      const ts = ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : 0;
+      if (!map.has(vid)) map.set(vid, { vid, count: 0, lastTs: ts });
+      const j = map.get(vid);
+      j.count += 1;
+      if (ts > j.lastTs) j.lastTs = ts;
+    });
+    return Array.from(map.values()).sort((a, b) => b.lastTs - a.lastTs);
+  }
+
+  // ─── Renderers ────────────────────────────────────────────────────────────
+
+  function renderCcRecentEvents(events) {
+    const tbody = document.getElementById('ccEventsTableBody');
+    const countEl = document.getElementById('ccEventsCount');
+    if (!tbody) return;
+
+    const latest = (events || []).slice(0, 10);
+    if (latest.length === 0) {
+      tbody.innerHTML = '<tr class="cc-events-placeholder-row"><td colspan="5" class="cc-events-placeholder">No experience events found for this profile.</td></tr>';
+      if (countEl) countEl.hidden = true;
+      return;
+    }
+
+    if (countEl) {
+      countEl.textContent = `${(events || []).length} total`;
+      countEl.hidden = false;
+    }
+
+    tbody.innerHTML = latest.map((ev) => {
+      const source = ccGetEventSource(ev);
+      const type = ccGetEventTypeLabel(ev);
+      const icon = ccGetEventTypeIcon(ev.eventName);
+      const when = ccFormatTimestamp(ev.timestamp);
+      const fb = ccGetEventFeedbackStatus(ev);
+      const detail = fb || type;
+      const statusClass = /sent|delivered|open|click/i.test(fb) ? 'cc-tx-status--ok' :
+                          /bounce|fail|error/i.test(fb) ? 'cc-tx-status--warn' :
+                          fb ? 'cc-tx-status--pending' : '';
+      const statusLabel = fb || '—';
+      const statusHtml = statusClass
+        ? `<span class="cc-tx-status ${statusClass}">${statusLabel}</span>`
+        : `<span style="opacity:0.5">—</span>`;
+      return `<tr>
+        <td><span class="cc-tx-ico" aria-hidden="true">${icon}</span> ${source}</td>
+        <td>${type}</td>
+        <td>${when}</td>
+        <td>${detail}</td>
+        <td>${statusHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderCcActivityFeed(events, agentName) {
+    const feed = document.getElementById('ccActivityFeed');
+    const agentNote = document.getElementById('ccActivityAgentNote');
+    const agentNowEl = document.getElementById('ccActivityNow');
+    const agentNameEl = document.getElementById('ccActivityAgentName');
+
+    if (agentNameEl && agentName) agentNameEl.textContent = agentName;
+    if (agentNowEl) agentNowEl.textContent = ccFormatNow();
+    if (agentNote) agentNote.textContent = 'Profile loaded from AEP — Real-Time Customer Profile unified record.';
+
+    if (!feed) return;
+
+    const latest3 = (events || []).slice(0, 3);
+    const existingAgent = feed.querySelector('.cc-activity-row--agent');
+
+    const newRows = latest3.map((ev) => {
+      const source = ccGetEventSource(ev);
+      const icon = ccGetEventTypeIcon(ev.eventName);
+      const type = ccGetEventTypeLabel(ev);
+      const when = ccFormatTimestamp(ev.timestamp);
+      const initial = source.charAt(0).toUpperCase();
+      return `<li class="cc-activity-row">
+        <span class="cc-activity-avatar" aria-hidden="true">${initial}</span>
+        <div class="cc-activity-bubble">
+          <p class="cc-activity-meta"><strong>${source}</strong> · ${when}</p>
+          <p>${icon} ${type}</p>
+        </div>
+      </li>`;
+    }).join('');
+
+    if (existingAgent) {
+      existingAgent.insertAdjacentHTML('beforebegin', newRows);
+    } else {
+      feed.insertAdjacentHTML('beforeend', newRows);
+    }
+  }
+
+  async function fetchCcEvents(email) {
+    const sandbox = getRtdbSandboxName();
+    const qs = `identifier=${encodeURIComponent(email)}&namespace=email&sandbox=${encodeURIComponent(sandbox)}`;
+    try {
+      const res = await fetch(`/api/profile/events?${qs}`);
+      return res.ok ? (await res.json()).events || [] : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function fetchAndRenderCcEvents(email) {
+    const events = await fetchCcEvents(email);
+    window._ccLastEvents = events;
+    renderCcRecentEvents(events);
+    renderCcDetailsJourneyActivity(events);
+    renderCcEventActivityChart(events);
+    const agentName = (document.getElementById('ccAgentName') || {}).textContent || 'You';
+    renderCcActivityFeed(events, agentName);
+  }
+
+  /* ── Details panel: Journey activity table ── */
+  function renderCcDetailsJourneyActivity(events) {
+    const emptyEl = document.getElementById('ccDetailsJourneyEmpty');
+    const wrapEl = document.getElementById('ccDetailsJourneyWrap');
+    const tbody = document.getElementById('ccDetailsJourneyBody');
+    if (!tbody || !wrapEl || !emptyEl) return;
+
+    const rows = ccAggregateJourneyActivity(events);
+    if (rows.length === 0) {
+      emptyEl.hidden = false;
+      wrapEl.hidden = true;
+      tbody.innerHTML = '';
+      return;
+    }
+
+    emptyEl.hidden = true;
+    wrapEl.hidden = false;
+    const maxCount = Math.max(...rows.map((r) => r.count), 1);
+    tbody.innerHTML = rows.map((r, i) => {
+      const pct = Math.round((r.count / maxCount) * 100);
+      const last = r.lastTs ? ccFormatTimestamp(r.lastTs) : '—';
+      const feedbackStatus = '';
+      return `<tr>
+        <td class="cc-journey-name-cell" data-ccdjrow="${i}"><span class="cc-journey-name-loading">${r.vid.slice(0, 8)}…</span></td>
+        <td><div class="cc-journey-count-wrap"><div class="cc-journey-count-bar"><div class="cc-journey-count-bar-fill" style="width:${pct}%"></div></div><span class="cc-journey-count-text">${r.count}</span></div></td>
+        <td class="cc-journey-last-seen">${last}</td>
+      </tr>`;
+    }).join('');
+
+    rows.forEach((r, i) => {
+      fetchCcJourneyName(r.vid).then((name) => {
+        const cell = tbody.querySelector(`[data-ccdjrow="${i}"]`);
+        if (cell) cell.textContent = name || r.vid.slice(0, 8) + '…';
+      });
+    });
+  }
+
+  /* ── Engagement signals: event activity chart ── */
+  const CC_CHART_PALETTE = [
+    '#1473e6', '#e68619', '#12805c', '#c9252d', '#7c4dff',
+    '#0d66d0', '#d7373f', '#2d9d78', '#e8a735', '#5c6bc0',
+    '#00838f', '#ad1457', '#558b2f', '#ef6c00', '#6a1b9a',
+  ];
+  let ccEventChartInst = null;
+  let ccEventChartMode = 'doughnut';
+
+  function renderCcEventActivityChart(events) {
+    const sectionEl = document.getElementById('ccEngagementChartSection');
+    const emptyEl = document.getElementById('ccEngagementChartEmpty');
+    const canvas = document.getElementById('ccEventActivityChart');
+    const legendEl = document.getElementById('ccEventActivityLegend');
+    const toggleEl = document.getElementById('ccEngagementToggle');
+    if (!sectionEl || !canvas) return;
+
+    const counts = {};
+    (events || []).forEach((ev) => {
+      const t = ev.eventName || 'unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+    if (!sorted.length) {
+      sectionEl.hidden = true;
+      if (emptyEl) emptyEl.hidden = false;
+      if (toggleEl) toggleEl.hidden = true;
+      return;
+    }
+
+    sectionEl.hidden = false;
+    if (emptyEl) emptyEl.hidden = true;
+    if (toggleEl) toggleEl.hidden = false;
+
+    const labels = sorted.map((e) => e[0]);
+    const data = sorted.map((e) => e[1]);
+    const colors = sorted.map((_, i) => CC_CHART_PALETTE[i % CC_CHART_PALETTE.length]);
+
+    if (ccEventChartInst) { ccEventChartInst.destroy(); ccEventChartInst = null; }
+
+    const isDoughnut = ccEventChartMode === 'doughnut';
+    const isDark = document.documentElement.getAttribute('data-aep-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const tickColor = isDark ? '#b0b0b0' : '#666';
+
+    ccEventChartInst = new Chart(canvas, {
+      type: isDoughnut ? 'doughnut' : 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Events',
+          data,
+          backgroundColor: colors,
+          borderWidth: isDoughnut ? 2 : 0,
+          borderColor: isDark ? '#1e1e1e' : '#fff',
+          borderRadius: isDoughnut ? 0 : 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed ?? ctx.raw} events` } },
+        },
+        ...(isDoughnut ? { cutout: '55%' } : {
+          indexAxis: 'x',
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: tickColor, maxRotation: 30, font: { size: 10 } } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
+          },
+        }),
+      },
+    });
+
+    if (legendEl) {
+      legendEl.innerHTML = sorted.map((e, i) =>
+        `<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background:${colors[i]}"></span>${e[0]} (${e[1]})</span>`
+      ).join('');
+    }
   }
 
   const customerEmail = document.getElementById('customerEmail');
@@ -708,10 +1005,12 @@
     const audUl = document.getElementById('profileDrawerAudiences');
     let audSummary = '—';
     if (audUl) {
-      const lis = audUl.querySelectorAll('li');
-      const first = lis[0];
-      if (first && first.textContent && !/no audience/i.test(first.textContent)) {
-        audSummary = lis.length + ' segment(s)';
+      const lis = Array.from(audUl.querySelectorAll('li'));
+      const valid = lis.filter(li => li.textContent && !/no audience/i.test(li.textContent));
+      if (valid.length > 0) {
+        const names = valid.slice(0, 3).map(li => li.textContent.trim());
+        audSummary = names.join(' · ');
+        if (valid.length > 3) audSummary += ' +' + (valid.length - 3);
       }
     }
     setElText('ccSigAud', audSummary);
@@ -750,8 +1049,7 @@
     if (heroAv && avFrom && avFrom.getAttribute('src')) heroAv.src = avFrom.src;
 
     setElText('ccHeroStatusVerb', 'Talking');
-    const channelLabel =
-      selectedChannel === 'voice' ? 'Voice call' : selectedChannel === 'mobile' ? 'Mobile' : 'Email';
+    const channelLabel = selectedChannel === 'voice' ? 'Voice call' : selectedChannel === 'mobile' ? 'Mobile' : 'Email';
     setElText('ccHeroChannel', channelLabel + ' · Adobe Experience Platform');
 
     const qn = document.getElementById('ccQueueActiveName');
@@ -768,7 +1066,6 @@
     setElText('ccHeroPhoneLine', '—');
     setElText('ccHeroStatusVerb', 'Idle');
     setElText('ccHeroChannel', 'Load a profile to simulate engagement');
-    resetBookingPanelPlaceholder();
     const heroAv = document.getElementById('ccHeroAvatar');
     if (heroAv) heroAv.src = 'https://contenthosting.web.app/AEPProfile/avatar-female.png';
     setElText('ccQueueActiveName', 'Awaiting lookup');
@@ -791,7 +1088,6 @@
       'ccSigMarket',
     ].forEach((id) => setElText(id, '—'));
     updateFauxCardPan();
-    resetCcEventsUi();
   }
 
   const WORKSPACE_TABS = [
@@ -849,24 +1145,16 @@
       if (ccToggleContact) ccToggleContact.classList.remove('is-active');
     });
 
-  function demoExperienceChannel() {
-    try {
-      if (/\baepSimMobile=1\b/.test(window.location.search || '')) return 'Mobile';
-      if (document.documentElement && document.documentElement.classList.contains('aep-sim-mobile')) return 'Mobile';
-    } catch (_) {
-      /* ignore */
-    }
-    return generatorChannelLabel();
+  function ccInboundEventType() {
+    if (selectedChannel === 'email') return 'contactCentre.inbound.email';
+    if (selectedChannel === 'mobile') return 'contactCentre.inbound.sms';
+    return 'contactCentre.inbound.call';
   }
 
-  function demoApplicationLoginEventType() {
-    try {
-      if (/\baepSimMobile=1\b/.test(window.location.search || '')) return 'mobile.logon';
-      if (document.documentElement && document.documentElement.classList.contains('aep-sim-mobile')) return 'mobile.logon';
-    } catch (_) {
-      /* ignore */
-    }
-    return 'application.login';
+  function ccInboundChannelLabel() {
+    if (selectedChannel === 'email') return 'Email';
+    if (selectedChannel === 'mobile') return 'SMS';
+    return 'Voice';
   }
 
   function getEmail() {
@@ -890,17 +1178,21 @@
     return ecidText && ecidText !== '—' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
   }
 
-  async function sendApplicationLoginExperienceEvent(email) {
+  async function sendCcInboundEvent(email) {
     const target = getSelectedGeneratorTarget();
     const ecid = getEcidForExperienceEvent();
-    const ind = getIndustry(currentIndustryId);
+    const eventType = ccInboundEventType();
+    const channelLabel = ccInboundChannelLabel();
     const body = {
       targetId: target ? target.id : undefined,
       email: String(email || '').trim(),
-      eventType: demoApplicationLoginEventType(),
-      viewName: 'Contact center · ' + ind.tabShort,
+      eventType,
+      // cx → _demoemea.interactionDetails.core.channel (contact centre channel)
+      channel: 'cx',
+      // message.channel → _demoemea.message.channel (specific inbound channel)
+      message: { channel: channelLabel.toLowerCase() },
+      viewName: 'Contact centre · inbound · ' + channelLabel,
       viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
-      channel: demoExperienceChannel(),
     };
     if (ecid) body.ecid = ecid;
     const res = await fetch('/api/events/generator', {
@@ -995,24 +1287,31 @@
       stopSessionTimer();
       sessionSeconds = 0;
       updateSessionTimerEl();
-      let profileResult = null;
+      let drawerCallOk = false;
+      let profileFound = false;
       try {
-        profileResult = await window.AepProfileDrawer.loadProfileDataForDrawer(email, {
-          onUserMessage: setStatus,
+        // loadProfileDataForDrawer returns true/false (boolean), not {ok,found}.
+        // Capture found status via the message callback — drawer fires type='success'
+        // when a real profile exists, empty string when not found.
+        drawerCallOk = await window.AepProfileDrawer.loadProfileDataForDrawer(email, {
+          onUserMessage: (msg, type) => {
+            setStatus(msg, type);
+            if (type === 'success' && /profile found/i.test(msg)) profileFound = true;
+          },
           addEmailOnSuccess: true,
         });
-        if (profileResult && profileResult.ok && profileResult.found) {
+        if (drawerCallOk && profileFound) {
           try {
-            await sendApplicationLoginExperienceEvent(email);
+            await sendCcInboundEvent(email);
             setStatus(
-              'Profile loaded. Sent ' + demoApplicationLoginEventType() + ' to AEP (with ECID when available).',
+              'Profile loaded. Sent ' + ccInboundEventType() + ' to AEP (with ECID when available).',
               'success',
             );
           } catch (loginErr) {
             setStatus(
               'Profile loaded. ' +
-                demoApplicationLoginEventType() +
-                ' failed: ' +
+                ccInboundEventType() +
+                ' event failed: ' +
                 (loginErr && loginErr.message ? loginErr.message : String(loginErr)),
               'error',
             );
@@ -1022,24 +1321,25 @@
             mirrorAboutCardsFromDrawer();
             startSessionTimer();
             activateWorkspaceTab('details');
-            void fetchAndRenderTravel(email);
-            void fetchAndRenderCcEvents(email);
           });
-        } else if (profileResult && profileResult.ok && !profileResult.found) {
+          void fetchAndRenderTravel(email);
+          void fetchAndRenderCcEvents(email);
+        } else if (drawerCallOk && !profileFound) {
           setStatus('No profile in store for this email. Try another address or seed data in the sandbox.', 'warn');
           resetIdleAgentUi();
         }
-        if (ccScreenPop && ccScreenPopName && profileResult && profileResult.found) {
+        if (profileFound) {
           const nameEl = document.getElementById('profileDrawerName');
           const displayName = nameEl && nameEl.textContent ? nameEl.textContent.trim() : email;
-          ccScreenPopName.textContent = displayName;
-          ccScreenPop.hidden = false;
+          if (ccScreenPop && ccScreenPopName) {
+            ccScreenPopName.textContent = displayName;
+            ccScreenPop.hidden = false;
+          }
         }
       } catch (err) {
-        resetCcEventsUi();
         setStatus((err && err.message) || 'Could not load profile.', 'error');
       } finally {
-        if (profileResult && profileResult.ok && profileResult.found) {
+        if (profileFound) {
           document.body.classList.add('call-center-profile-loaded');
         } else {
           document.body.classList.remove('call-center-profile-loaded');
@@ -1057,541 +1357,22 @@
     });
   });
 
-  window._ccLastEvents = [];
-  const CC_JOURNEY_LOOKBACK_MS = 365 * 24 * 60 * 60 * 1000;
-  const ccJourneyNameCache = new Map();
-  let ccEventActivityChartInst = null;
-  let ccEventChartType = 'doughnut';
-
-  function getCcSandboxQs() {
-    return '&sandbox=' + encodeURIComponent(getRtdbSandboxName());
-  }
-
-  function escapeHtmlCc(s) {
-    return String(s ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function formatCcEventTs(ts) {
-    if (ts == null) return '—';
-    const d = new Date(typeof ts === 'number' ? ts : parseInt(String(ts), 10));
-    return isNaN(d.getTime()) ? '—' : d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
-  }
-
-  async function fetchCcJourneyName(journeyVersionId) {
-    if (!journeyVersionId) return null;
-    if (ccJourneyNameCache.has(journeyVersionId)) return ccJourneyNameCache.get(journeyVersionId);
-    try {
-      const res = await fetch('/api/journey-name?id=' + encodeURIComponent(journeyVersionId) + getCcSandboxQs());
-      const data = await res.json().catch(() => ({}));
-      const name = data.name || null;
-      ccJourneyNameCache.set(journeyVersionId, name);
-      return name;
-    } catch (_) {
-      ccJourneyNameCache.set(journeyVersionId, null);
-      return null;
-    }
-  }
-
-  function getCcEventJourneyVersionId(ev) {
-    const rows = ev.rows || [];
-    const row = rows.find((r) => {
-      const p = (r.path || '').toLowerCase();
-      const a = (r.attribute || '').toLowerCase();
-      return p.includes('messageexecution') && (p.includes('journeyversionid') || a === 'journeyversionid');
-    });
-    if (!row || row.value == null) return '';
-    return String(row.value).trim();
-  }
-
-  function getCcEventFeedbackStatus(ev) {
-    const rows = ev.rows || [];
-    const row = rows.find((r) => {
-      const p = (r.path || '').toLowerCase();
-      return (
-        p === '_experience.customerjourneymanagement.messagedeliveryfeedback.feedbackstatus' ||
-        (p.includes('messagedelivery') && p.includes('feedbackstatus'))
-      );
-    });
-    if (!row || row.value == null) return '—';
-    const val = String(row.value).trim();
-    return val || '—';
-  }
-
-  function getCcPushChannelPlatform(ev) {
-    const rows = ev.rows || [];
-    const row = rows.find((r) => {
-      const p = (r.path || '').toLowerCase().replace(/_/g, '.');
-      return (
-        p.endsWith('pushchannelcontext.platform') ||
-        (p.includes('pushchannelcontext') && (p.endsWith('.platform') || p.endsWith('_platform')))
-      );
-    });
-    if (!row || row.value == null) return '';
-    return String(row.value).trim();
-  }
-
-  function ccEventChannelNamespaceIsEmail(ev) {
-    const rows = ev.rows || [];
-    for (const r of rows) {
-      const p = (r.path || '').toLowerCase().replace(/_/g, '.');
-      if (!p.includes('channelcontext')) continue;
-      if (!(p.endsWith('.namespace') || p.endsWith('_namespace'))) continue;
-      if (r.value == null || !String(r.value).trim()) continue;
-      if (String(r.value).trim().toLowerCase() === 'email') return true;
-    }
-    return false;
-  }
-
-  function getCcEventChannel(ev) {
-    const platformRaw = getCcPushChannelPlatform(ev);
-    if (platformRaw && platformRaw.toLowerCase() === 'fcm') return 'Android Push';
-    if (platformRaw && platformRaw.toLowerCase() === 'apns') return 'iOS Push';
-    if (ccEventChannelNamespaceIsEmail(ev)) return 'email';
-    if (ev.channel != null && String(ev.channel).trim()) return String(ev.channel).trim();
-    const rows = ev.rows || [];
-    const channelRow = rows.find((r) => {
-      const p = (r.path || '').toLowerCase();
-      const a = (r.attribute || '').toLowerCase();
-      return (
-        (p === 'channel' || p.endsWith('.channel') || p === '_experiencechannel' || a === 'channel') &&
-        r.value != null &&
-        String(r.value).trim()
-      );
-    });
-    return channelRow ? String(channelRow.value).trim() : '—';
-  }
-
-  function formatCcChannelDisplay(raw) {
-    const s = String(raw ?? '').trim();
-    if (!s || s === '—') return s;
-    const lower = s.toLowerCase();
-    if (lower === 'email') return 'Email';
-    if (lower === 'mobile') return 'Mobile';
-    return s;
-  }
-
-  function ccGetEventTypeIcon(eventType) {
-    if (!eventType) return '⚡';
-    const key = String(eventType).trim();
-    if (key.startsWith('web.')) return '🌐';
-    if (key.startsWith('commerce.')) return '🛒';
-    if (key.startsWith('email.')) return '📧';
-    if (key.startsWith('contactCenter.')) return '📞';
-    if (key.startsWith('app.') || key.startsWith('application.')) return '📱';
-    if (key.startsWith('mobile.')) return '📱';
-    return '⚡';
-  }
-
-  function aggregateCcJourneyActivity(events) {
-    const map = new Map();
-    (events || []).forEach((ev) => {
-      const vid = getCcEventJourneyVersionId(ev);
-      if (!vid) return;
-      const ts = ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : 0;
-      if (!map.has(vid)) {
-        map.set(vid, { journeyVersionId: vid, count: 0, firstTs: ts, lastTs: ts });
-      }
-      const j = map.get(vid);
-      j.count += 1;
-      if (ts && (!j.firstTs || ts < j.firstTs)) j.firstTs = ts;
-      if (ts > j.lastTs) j.lastTs = ts;
-    });
-    return Array.from(map.values()).sort((a, b) => b.lastTs - a.lastTs);
-  }
-
-  function filterCcEventsJourneyWindow(events) {
-    const now = Date.now();
-    return (events || []).filter((ev) => {
-      const ts = ev.timestamp != null ? Number(ev.timestamp) : 0;
-      return ts && now - ts <= CC_JOURNEY_LOOKBACK_MS;
-    });
-  }
-
-  function ccFindLastEventForJourney(events, vid) {
-    let best = null;
-    let bestTs = -1;
-    (events || []).forEach((ev) => {
-      if (getCcEventJourneyVersionId(ev) !== vid) return;
-      const ts = ev.timestamp != null ? Number(ev.timestamp) : 0;
-      if (ts >= bestTs) {
-        bestTs = ts;
-        best = ev;
-      }
-    });
-    return best;
-  }
-
-  function ccResolvedChartColors(n) {
-    const el = document.querySelector('.cc-card--engagement') || document.body;
-    const cs = getComputedStyle(el);
-    let candidates = [
-      cs.getPropertyValue('--cc-accent').trim(),
-      cs.getPropertyValue('--cc-muted').trim(),
-      cs.getPropertyValue('--cc-text').trim(),
-      cs.getPropertyValue('--cc-border').trim(),
-    ].filter((c) => c && c.length > 0);
-    if (candidates.length === 0) {
-      candidates = ['rgb(13, 102, 208)', 'rgb(100, 116, 139)', 'rgb(15, 23, 42)'];
-    }
-    const out = [];
-    for (let i = 0; i < n; i++) {
-      out.push(candidates[i % candidates.length]);
-    }
-    return out;
-  }
-
-  function renderCcRecentEvents(events) {
-    const tbody = document.getElementById('ccEventsTableBody');
-    const countEl = document.getElementById('ccEventsCount');
-    if (!tbody) return;
-    const sorted = (events || []).slice().sort((a, b) => {
-      const at = a && a.timestamp != null ? Number(a.timestamp) : 0;
-      const bt = b && b.timestamp != null ? Number(b.timestamp) : 0;
-      return bt - at;
-    });
-    const top = sorted.slice(0, 10);
-    if (countEl) {
-      if (sorted.length) {
-        countEl.hidden = false;
-        countEl.textContent = String(sorted.length) + ' in sandbox';
-      } else {
-        countEl.hidden = true;
-        countEl.textContent = '';
-      }
-    }
-    if (!top.length) {
-      tbody.innerHTML =
-        '<tr class="cc-events-placeholder-row"><td colspan="5" class="cc-events-placeholder">No experience events returned for this profile.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = top
-      .map((ev) => {
-        const src = escapeHtmlCc(formatCcChannelDisplay(getCcEventChannel(ev)));
-        const name = escapeHtmlCc(ev.eventName || 'Experience event');
-        const icon = ccGetEventTypeIcon(ev.eventName);
-        const when = escapeHtmlCc(formatCcEventTs(ev.timestamp));
-        const detailRaw = ev.entityId != null ? String(ev.entityId).trim() : '';
-        const detail = escapeHtmlCc(detailRaw && detailRaw.length > 48 ? detailRaw.slice(0, 45) + '…' : detailRaw || '—');
-        const st = escapeHtmlCc(getCcEventFeedbackStatus(ev));
-        return (
-          '<tr><td>' +
-          src +
-          '</td><td><span class="cc-tx-ico" aria-hidden="true">' +
-          icon +
-          '</span>' +
-          name +
-          '</td><td>' +
-          when +
-          '</td><td>' +
-          detail +
-          '</td><td>' +
-          st +
-          '</td></tr>'
-        );
-      })
-      .join('');
-  }
-
-  function renderCcJourneyActivity(events) {
-    const section = document.getElementById('ccJourneyActivitySection');
-    const tbody = document.getElementById('ccJourneyTableBody');
-    if (!section || !tbody) return;
-    const filtered = filterCcEventsJourneyWindow(events);
-    const rows = aggregateCcJourneyActivity(filtered);
-    if (!rows.length) {
-      section.hidden = true;
-      tbody.innerHTML = '';
-      return;
-    }
-    section.hidden = false;
-    const maxCount = Math.max(...rows.map((r) => r.count), 1);
-    tbody.innerHTML = rows
-      .map((r, i) => {
-        const pct = Math.round((r.count / maxCount) * 100);
-        const last = r.lastTs ? formatCcEventTs(r.lastTs) : '—';
-        const lastEv = ccFindLastEventForJourney(filtered, r.journeyVersionId);
-        const stRaw = lastEv ? getCcEventFeedbackStatus(lastEv) : '—';
-        const stEsc = escapeHtmlCc(stRaw);
-        const bar =
-          '<div class="cc-journey-count-bar-wrap"><div class="cc-journey-count-bar" style="width:' +
-          pct +
-          '%"></div><span class="cc-journey-count-text">' +
-          r.count.toLocaleString() +
-          '</span></div>';
-        return (
-          '<tr><td class="cc-journey-name-cell" data-cc-journey-row="' +
-          i +
-          '">…</td><td>' +
-          bar +
-          '</td><td class="cc-journey-last-seen">' +
-          escapeHtmlCc(last) +
-          '</td><td>' +
-          stEsc +
-          '</td></tr>'
-        );
-      })
-      .join('');
-    rows.forEach((r, i) => {
-      fetchCcJourneyName(r.journeyVersionId).then((name) => {
-        const cell = tbody.querySelector('[data-cc-journey-row="' + i + '"]');
-        if (cell) cell.textContent = name || r.journeyVersionId || '—';
-      });
-    });
-  }
-
-  function renderCcDetailsJourneyActivity(events) {
-    const emptyEl = document.getElementById('ccDetailsJourneyEmpty');
-    const wrapEl = document.getElementById('ccDetailsJourneyWrap');
-    const tbody = document.getElementById('ccDetailsJourneyBody');
-    if (!emptyEl || !wrapEl || !tbody) return;
-    const filtered = filterCcEventsJourneyWindow(events);
-    const rows = aggregateCcJourneyActivity(filtered);
-    if (!rows.length) {
-      emptyEl.hidden = false;
-      emptyEl.textContent = 'No journey-linked events in the last 365 days for this profile.';
-      wrapEl.hidden = true;
-      tbody.innerHTML = '';
-      return;
-    }
-    emptyEl.hidden = true;
-    wrapEl.hidden = false;
-    const maxCount = Math.max(...rows.map((r) => r.count), 1);
-    tbody.innerHTML = rows
-      .map((r, i) => {
-        const pct = Math.round((r.count / maxCount) * 100);
-        const last = r.lastTs ? formatCcEventTs(r.lastTs) : '—';
-        const bar =
-          '<div class="cc-journey-count-bar-wrap"><div class="cc-journey-count-bar" style="width:' +
-          pct +
-          '%"></div><span class="cc-journey-count-text">' +
-          r.count.toLocaleString() +
-          '</span></div>';
-        return (
-          '<tr><td class="cc-journey-name-cell" data-cc-details-journey-row="' +
-          i +
-          '">…</td><td>' +
-          bar +
-          '</td><td class="cc-journey-last-seen">' +
-          escapeHtmlCc(last) +
-          '</td></tr>'
-        );
-      })
-      .join('');
-    rows.forEach((r, i) => {
-      fetchCcJourneyName(r.journeyVersionId).then((name) => {
-        const cell = tbody.querySelector('[data-cc-details-journey-row="' + i + '"]');
-        if (cell) cell.textContent = name || r.journeyVersionId || '—';
-      });
-    });
-  }
-
-  function renderCcEventActivityChart(events) {
-    const section = document.getElementById('ccEngagementChartSection');
-    const emptyEl = document.getElementById('ccEngagementChartEmpty');
-    const toggle = document.getElementById('ccEngagementToggle');
-    const canvas = document.getElementById('ccEventActivityChart');
-    const legendEl = document.getElementById('ccEventActivityLegend');
-    if (!section || !emptyEl || !canvas) return;
-    if (typeof window.Chart === 'undefined') {
-      section.hidden = true;
-      if (toggle) toggle.hidden = true;
-      emptyEl.hidden = false;
-      emptyEl.textContent = 'Chart library failed to load.';
-      return;
-    }
-    if (ccEventActivityChartInst) {
-      ccEventActivityChartInst.destroy();
-      ccEventActivityChartInst = null;
-    }
-    const list = events || [];
-    const counts = {};
-    list.forEach((ev) => {
-      const t = ev.eventName || 'unknown';
-      counts[t] = (counts[t] || 0) + 1;
-    });
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    if (!sorted.length) {
-      section.hidden = true;
-      if (toggle) toggle.hidden = true;
-      emptyEl.hidden = false;
-      emptyEl.textContent = 'No event data available.';
-      if (legendEl) legendEl.innerHTML = '';
-      return;
-    }
-    section.hidden = false;
-    emptyEl.hidden = true;
-    if (toggle) toggle.hidden = false;
-    const labels = sorted.map((e) => e[0]);
-    const data = sorted.map((e) => e[1]);
-    const colors = ccResolvedChartColors(labels.length);
-    const el = document.querySelector('.cc-card--engagement') || document.body;
-    const cs = getComputedStyle(el);
-    const borderCol =
-      cs.getPropertyValue('--cc-card').trim() ||
-      cs.getPropertyValue('--cc-bank-elev').trim() ||
-      'rgba(255, 255, 255, 0.12)';
-    const gridCol =
-      cs.getPropertyValue('--cc-bank-border').trim() || cs.getPropertyValue('--cc-border').trim() || 'rgba(255, 255, 255, 0.08)';
-    const tickCol = cs.getPropertyValue('--cc-muted').trim() || 'rgb(148, 163, 184)';
-    const isDoughnut = ccEventChartType === 'doughnut';
-    ccEventActivityChartInst = new window.Chart(canvas, {
-      type: isDoughnut ? 'doughnut' : 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Events',
-            data,
-            backgroundColor: colors,
-            borderWidth: isDoughnut ? 2 : 0,
-            borderColor: isDoughnut ? borderCol : colors,
-            borderRadius: isDoughnut ? 0 : 4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                let v = ctx.parsed;
-                if (v && typeof v === 'object' && v.y !== undefined) v = v.y;
-                return (ctx.label || '') + ': ' + v + ' events';
-              },
-            },
-          },
-        },
-        ...(isDoughnut
-          ? { cutout: '55%' }
-          : {
-              scales: {
-                x: { grid: { color: gridCol }, ticks: { color: tickCol } },
-                y: { grid: { color: gridCol }, ticks: { color: tickCol }, beginAtZero: true },
-              },
-            }),
-      },
-    });
-    if (legendEl) {
-      legendEl.innerHTML = sorted
-        .map(
-          (e, i) =>
-            '<div class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background-color:' +
-            escapeHtmlCc(colors[i]) +
-            '"></span><span>' +
-            escapeHtmlCc(e[0]) +
-            '</span><span class="cc-engagement-legend-count">' +
-            escapeHtmlCc(String(e[1])) +
-            '</span></div>',
-        )
-        .join('');
-    }
-  }
-
-  async function fetchAndRenderCcEvents(email) {
-    const em = String(email || '').trim();
-    if (!em) {
-      window._ccLastEvents = [];
-      renderCcRecentEvents([]);
-      renderCcJourneyActivity([]);
-      renderCcDetailsJourneyActivity([]);
-      renderCcEventActivityChart([]);
-      return;
-    }
-    const qs = 'identifier=' + encodeURIComponent(em) + '&namespace=email' + getCcSandboxQs();
-    try {
-      const res = await fetch('/api/profile/events?' + qs);
-      const payload = await res.json().catch(() => ({}));
-      const raw = res.ok && Array.isArray(payload.events) ? payload.events : [];
-      raw.sort((a, b) => {
-        const at = a && a.timestamp != null ? Number(a.timestamp) : 0;
-        const bt = b && b.timestamp != null ? Number(b.timestamp) : 0;
-        return bt - at;
-      });
-      window._ccLastEvents = raw;
-    } catch (_) {
-      window._ccLastEvents = [];
-    }
-    renderCcRecentEvents(window._ccLastEvents);
-    renderCcJourneyActivity(window._ccLastEvents);
-    renderCcDetailsJourneyActivity(window._ccLastEvents);
-    renderCcEventActivityChart(window._ccLastEvents);
-  }
-
-  function resetCcEventsUi() {
-    window._ccLastEvents = [];
-    if (ccEventActivityChartInst) {
-      try {
-        ccEventActivityChartInst.destroy();
-      } catch (_) {
-        /* ignore */
-      }
-      ccEventActivityChartInst = null;
-    }
-    const tbody = document.getElementById('ccEventsTableBody');
-    if (tbody) {
-      tbody.innerHTML =
-        '<tr class="cc-events-placeholder-row"><td colspan="5" class="cc-events-placeholder">Load a customer profile to see their experience events from AEP.</td></tr>';
-    }
-    const countEl = document.getElementById('ccEventsCount');
-    if (countEl) {
-      countEl.hidden = true;
-      countEl.textContent = '';
-    }
-    const jSec = document.getElementById('ccJourneyActivitySection');
-    if (jSec) jSec.hidden = true;
-    const jBody = document.getElementById('ccJourneyTableBody');
-    if (jBody) jBody.innerHTML = '';
-    const dEmpty = document.getElementById('ccDetailsJourneyEmpty');
-    const dWrap = document.getElementById('ccDetailsJourneyWrap');
-    const dBody = document.getElementById('ccDetailsJourneyBody');
-    if (dEmpty) {
-      dEmpty.hidden = false;
-      dEmpty.textContent = 'Load a customer profile to see journey activity from AEP experience events.';
-    }
-    if (dWrap) dWrap.hidden = true;
-    if (dBody) dBody.innerHTML = '';
-    const chSec = document.getElementById('ccEngagementChartSection');
-    const chEmpty = document.getElementById('ccEngagementChartEmpty');
-    const chToggle = document.getElementById('ccEngagementToggle');
-    const leg = document.getElementById('ccEventActivityLegend');
-    if (chSec) chSec.hidden = true;
-    if (chEmpty) {
-      chEmpty.hidden = true;
-      chEmpty.textContent = 'No event data available.';
-    }
-    if (chToggle) chToggle.hidden = true;
-    if (leg) leg.innerHTML = '';
-    ccEventChartType = 'doughnut';
-    const tgl = document.getElementById('ccEngagementToggle');
-    if (tgl) {
-      tgl.querySelectorAll('[data-cc-chart-type]').forEach((b) => {
-        const dou = b.getAttribute('data-cc-chart-type') === 'doughnut';
-        b.classList.toggle('cc-engagement-toggle-btn--active', dou);
-        b.setAttribute('aria-pressed', dou ? 'true' : 'false');
-      });
-    }
-  }
-
   document.addEventListener('click', (e) => {
-    const wrap = document.getElementById('ccEngagementToggle');
-    const btn = e.target && e.target.closest && e.target.closest('[data-cc-chart-type]');
-    if (!wrap || !btn || !wrap.contains(btn)) return;
+    const btn = e.target.closest('[data-cc-chart-type]');
+    if (!btn) return;
     const type = btn.getAttribute('data-cc-chart-type');
-    if (!type || type === ccEventChartType) return;
-    ccEventChartType = type === 'bar-v' ? 'bar-v' : 'doughnut';
-    wrap.querySelectorAll('[data-cc-chart-type]').forEach((b) => {
-      const active = b === btn;
-      b.classList.toggle('cc-engagement-toggle-btn--active', active);
-      b.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    renderCcEventActivityChart(window._ccLastEvents || []);
+    if (type === ccEventChartMode) return;
+    ccEventChartMode = type;
+    const toggleEl = document.getElementById('ccEngagementToggle');
+    if (toggleEl) {
+      toggleEl.querySelectorAll('[data-cc-chart-type]').forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('cc-engagement-toggle-btn--active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+    const lastEmail = (document.getElementById('customerEmail') || {}).value || '';
+    if (lastEmail) void renderCcEventActivityChart(window._ccLastEvents || []);
   });
 
   initIndustryUi();
@@ -1600,7 +1381,6 @@
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
     window.AepDemoGeneratorTargets.onSandboxChange(function () {
       void loadGeneratorTargets();
-      void initFromRtdb();
     });
   }
 })();
