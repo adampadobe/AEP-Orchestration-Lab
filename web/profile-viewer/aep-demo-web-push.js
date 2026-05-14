@@ -5,6 +5,10 @@
  * `https://cdn1.adoberesources.net/alloy/2.30.0/alloyServiceWorker.min.js` — keep in
  * sync with the Web SDK / Tags extension version that supports `sendPushSubscription`).
  *
+ * Tags often registers `/scripts/alloyServiceWorker.min.js` with scope `/`. Browsers
+ * require `Service-Worker-Allowed: /` on that script response (see `firebase.json`
+ * hosting headers) or registration throws SecurityError and web push never works.
+ *
  * Push surface config (VAPID public key, applicationId, trackingDatasetId) belongs in
  * Tags / Web SDK `pushNotifications` — not private VAPID keys in this repo.
  *

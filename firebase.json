@@ -900,6 +900,19 @@
             "value": "*"
           }
         ]
+      },
+      {
+        "source": "**/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
       }
     ]
   }
