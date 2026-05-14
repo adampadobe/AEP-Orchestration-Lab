@@ -339,9 +339,22 @@
                   <button type="button" class="cc-channel-btn" data-channel="mobile" aria-pressed="false">📱 Mobile</button>
                 </div>
               </div>
-              <div class="call-center-pinned-field call-center-pinned-field--target">
-                <label for="generatorTarget">Event destination</label>
-                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+              <div class="call-center-pinned-field call-center-pinned-field--target cc-event-dest-field">
+                <button
+                  type="button"
+                  class="cc-event-dest-toggle"
+                  id="ccEventDestToggle"
+                  aria-expanded="false"
+                  aria-controls="ccEventDestPanel"
+                >
+                  <span class="cc-event-dest-toggle-label">Event destination</span>
+                  <span class="cc-event-dest-summary" id="ccEventDestSummary" aria-live="polite">—</span>
+                  <span class="cc-event-dest-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="cc-event-dest-panel" id="ccEventDestPanel" hidden>
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
               </div>
               <div class="call-center-pinned-actions">
                 <button type="button" id="queryProfileBtn" class="btn-lookup call-center-pinned-submit">Load profile</button>
@@ -903,7 +916,7 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
-  <script src="call-center-demo-apalmer.js?v=20260516-cc-engagement-range"></script>
+  <script src="call-center-demo-apalmer.js?v=20260514-cc-event-dest"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>
