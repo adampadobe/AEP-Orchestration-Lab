@@ -122,12 +122,60 @@ async function sendPremierInnHotelExperienceEvent(payload) {
   }
 }
 
-window.addEventListener('message', function (ev) {
+window.addEventListener('message', async function (ev) {
   if (!premierInnSiteFrame || !premierInnSiteFrame.contentWindow || ev.source !== premierInnSiteFrame.contentWindow) {
     return;
   }
-  if (!ev.data || ev.data.source !== 'premier-inn-lab' || ev.data.type !== 'hotel-experience-event') return;
-  void sendPremierInnHotelExperienceEvent(ev.data.payload);
+  if (!ev.data || ev.data.source !== 'premier-inn-lab') return;
+
+  if (ev.data.type === 'login-request') {
+    const email = String(ev.data.email || '').trim();
+    if (!email) return;
+
+    if (customerEmail) customerEmail.value = email;
+
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    const profileMsg = profile
+      ? {
+          firstName: profile.firstName || null,
+          loyaltyStatus: profile.loyaltyStatus || null,
+          churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+          propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+        }
+      : null;
+
+    if (premierInnSiteFrame && premierInnSiteFrame.contentWindow) {
+      premierInnSiteFrame.contentWindow.postMessage(
+        {
+          source: 'premier-inn-demo-shell',
+          type: 'login-complete',
+          found: !!ok,
+          firstName: profile ? profile.firstName || null : null,
+          profile: profileMsg,
+        },
+        '*'
+      );
+      if (ok && profileMsg) {
+        premierInnSiteFrame.contentWindow.postMessage(
+          { source: 'premier-inn-demo-shell', type: 'profile-loaded', profile: profileMsg },
+          '*'
+        );
+      }
+    }
+
+    if (ok && premierInnTagsInjection && typeof premierInnTagsInjection.stitchAfterProfileLookup === 'function') {
+      void premierInnTagsInjection.stitchAfterProfileLookup(profile, email);
+    }
+    return;
+  }
+
+  if (ev.data.type === 'hotel-experience-event') {
+    void sendPremierInnHotelExperienceEvent(ev.data.payload);
+  }
 });
 
 async function loadGeneratorTargets() {
