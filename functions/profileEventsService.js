@@ -367,7 +367,11 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
     try {
       const rawRows = await getEventsFromQueryService(identityValue, sandboxName, token, clientId, orgId);
       const events = rawRows.map((row, i) => eventRowToEventPayload(row, i));
-      return { email: identityValue, events, source: 'query_service' };
+      // Query Service can succeed with zero rows while UPS still has related experience events
+      // (dataset/column mismatch). Only short-circuit when we actually got rows.
+      if (events.length > 0) {
+        return { email: identityValue, events, source: 'query_service' };
+      }
     } catch (queryErr) {
       if (explicitDataset !== undefined && explicitDataset !== '') {
         throw queryErr;
