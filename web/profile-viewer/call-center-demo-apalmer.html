@@ -11,11 +11,14 @@
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="call-center-demo.css">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
-  <script src="firebase-database-config.js"></script>
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
 </head>
 <body class="call-center-demo-page cc-theme-banking-dark home-dashboard-concierge home-dashboard-ajo">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/call-center-demo-apalmer.html">http://localhost:3333/call-center-demo-apalmer.html</a>
+  </div>
+
   <div class="dashboard-shell dashboard-shell--ajo">
     <button
       type="button"
@@ -334,9 +337,9 @@
               <div class="call-center-pinned-field call-center-pinned-field--channel">
                 <label>Contact channel</label>
                 <div class="cc-channel-group" role="group" id="ccChannelGroup" aria-label="Contact channel">
-                  <button type="button" class="cc-channel-btn is-active" data-ch="voice" aria-pressed="true">📞 Voice</button>
-                  <button type="button" class="cc-channel-btn" data-ch="email" aria-pressed="false">✉️ Email</button>
-                  <button type="button" class="cc-channel-btn" data-ch="mobile" aria-pressed="false">📱 Mobile</button>
+                  <button type="button" class="cc-channel-btn is-active" data-channel="voice" aria-pressed="true">📞 Voice</button>
+                  <button type="button" class="cc-channel-btn" data-channel="email" aria-pressed="false">✉️ Email</button>
+                  <button type="button" class="cc-channel-btn" data-channel="mobile" aria-pressed="false">📱 Mobile</button>
                 </div>
               </div>
               <div class="call-center-pinned-field call-center-pinned-field--target">
@@ -394,10 +397,9 @@
           <div class="cc-transactions-head">
             <h3 id="ccTxHeading" class="cc-transactions-title">Recent experience events</h3>
             <span id="ccEventsCount" class="cc-transactions-count" hidden></span>
-            <button type="button" class="cc-transactions-refresh" disabled title="Demo">Refresh</button>
           </div>
           <div class="cc-transactions-table-wrap">
-            <table class="cc-transactions-table">
+            <table class="cc-transactions-table" id="ccEventsTable">
               <thead>
                 <tr>
                   <th scope="col">Source</th>
@@ -416,19 +418,18 @@
           </div>
         </section>
 
-        <section class="cc-journey-activity-block" id="ccJourneyActivitySection" hidden>
+        <section class="cc-journey-activity-block" id="ccJourneyActivitySection" aria-labelledby="ccJourneyHeading" hidden>
           <div class="cc-transactions-head">
-            <h3 class="cc-transactions-title" id="ccJourneyHeading">Journey Activity</h3>
+            <h3 id="ccJourneyHeading" class="cc-transactions-title">Journey activity</h3>
             <span class="cc-journey-note">Inferred from journey version IDs in experience events · last 365 days</span>
           </div>
           <div class="cc-transactions-table-wrap">
             <table class="cc-transactions-table cc-journey-table">
               <thead>
                 <tr>
-                  <th scope="col">Journey</th>
-                  <th scope="col">Touches</th>
-                  <th scope="col">Last Seen</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">Journey name</th>
+                  <th scope="col">Events</th>
+                  <th scope="col">Last activity</th>
                 </tr>
               </thead>
               <tbody id="ccJourneyTableBody"></tbody>
@@ -513,17 +514,8 @@
                   <div class="cc-engagement-head">
                     <h4 class="cc-card-title">Engagement signals</h4>
                     <div class="cc-engagement-toggle" id="ccEngagementToggle" hidden>
-                      <button
-                        type="button"
-                        data-cc-chart-type="doughnut"
-                        class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active"
-                        aria-pressed="true"
-                      >
-                        Doughnut
-                      </button>
-                      <button type="button" data-cc-chart-type="bar-v" class="cc-engagement-toggle-btn" aria-pressed="false">
-                        Bar
-                      </button>
+                      <button type="button" class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active" data-cc-chart-type="doughnut" aria-pressed="true">Doughnut</button>
+                      <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="bar-v" aria-pressed="false">Bar</button>
                     </div>
                   </div>
                   <dl class="cc-engagement-dl">
@@ -532,28 +524,26 @@
                     <div class="cc-engagement-dl-aud"><dt>Audiences</dt><dd id="ccSigAud">—</dd></div>
                   </dl>
                   <div id="ccEngagementChartSection" hidden>
-                    <canvas id="ccEventActivityChart" aria-label="Event activity by event type"></canvas>
+                    <canvas id="ccEventActivityChart"></canvas>
                     <div id="ccEventActivityLegend" class="cc-engagement-legend"></div>
                   </div>
                   <p id="ccEngagementChartEmpty" class="cc-events-placeholder" hidden>No event data available.</p>
                 </section>
               </div>
 
-              <section class="cc-details-journey-section" id="ccDetailsJourneySection" aria-labelledby="ccDetailsJourneyHeading">
+              <section class="cc-details-journey-section" aria-labelledby="ccDetailsJourneyHeading">
                 <div class="cc-details-journey-header">
                   <h3 id="ccDetailsJourneyHeading" class="cc-activity-feed-title">Journey activity</h3>
-                  <span class="cc-journey-note">Inferred from journey version IDs in experience events · last 365 days</span>
+                  <span class="cc-journey-note" id="ccDetailsJourneyNote">Inferred from journey version IDs in experience events · last 365 days</span>
                 </div>
-                <p id="ccDetailsJourneyEmpty" class="cc-events-placeholder">
-                  Load a customer profile to see journey activity from AEP experience events.
-                </p>
+                <p id="ccDetailsJourneyEmpty" class="cc-events-placeholder">Load a customer profile to see their journey activity from Journey Optimizer.</p>
                 <div id="ccDetailsJourneyWrap" hidden>
                   <table class="cc-transactions-table cc-journey-table cc-details-journey-table">
                     <thead>
                       <tr>
-                        <th scope="col">Journey</th>
-                        <th scope="col">Touches</th>
-                        <th scope="col">Last seen</th>
+                        <th>Journey</th>
+                        <th>Touches</th>
+                        <th>Last seen</th>
                       </tr>
                     </thead>
                     <tbody id="ccDetailsJourneyBody"></tbody>
@@ -918,13 +908,22 @@
     </div>
   </div>
 
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="firebase-database-config.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="call-center-demo-apalmer.js?v=20260514-cc-details-chart"></script>
+  <script src="call-center-demo-apalmer.js?v=20260512-apalmer-lab"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>
