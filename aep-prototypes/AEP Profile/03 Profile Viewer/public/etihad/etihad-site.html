@@ -4202,6 +4202,40 @@
       var ehPendingSeatInfo   = null;
       var ehBagsExtraKg       = 0;
 
+      /** Idle on flight results → parent may trigger AJO web push (concierge call offer). */
+      var EH_FLIGHTS_IDLE_CONCIERGE_MS = 12000;
+      var ehFlightsIdleConciergeTimer = null;
+      var ehFlightsIdleConciergeFired = false;
+
+      function ehClearFlightsIdleConcierge() {
+        if (ehFlightsIdleConciergeTimer) {
+          clearTimeout(ehFlightsIdleConciergeTimer);
+          ehFlightsIdleConciergeTimer = null;
+        }
+      }
+
+      function ehScheduleFlightsIdleConcierge() {
+        ehClearFlightsIdleConcierge();
+        if (overlay.hidden || ehCurrentPage !== 'list') return;
+        if (ehFlightsIdleConciergeFired) return;
+        ehFlightsIdleConciergeTimer = setTimeout(function () {
+          ehFlightsIdleConciergeTimer = null;
+          if (overlay.hidden || ehCurrentPage !== 'list' || ehFlightsIdleConciergeFired) return;
+          ehFlightsIdleConciergeFired = true;
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { source: 'etihad-airline-lab', type: 'concierge-flights-idle-push', routeKey: currentRoute },
+              '*'
+            );
+          }
+        }, EH_FLIGHTS_IDLE_CONCIERGE_MS);
+      }
+
+      function ehBumpFlightsIdleConciergeActivity() {
+        if (overlay.hidden || ehCurrentPage !== 'list' || ehFlightsIdleConciergeFired) return;
+        ehScheduleFlightsIdleConcierge();
+      }
+
       function ehSetStep(stepLabel) {
         document.querySelectorAll('.eh-res-step').forEach(function (s) {
           s.classList.toggle('is-active', s.textContent.trim().toLowerCase() === stepLabel.toLowerCase());
@@ -4209,6 +4243,9 @@
       }
 
       function ehShowPage(page) {
+        if (page !== 'list') {
+          ehClearFlightsIdleConcierge();
+        }
         ehCurrentPage = page;
         var resBody = overlay.querySelector('.eh-res-body');
         ['ehGuestsPage','ehSeatsPage','ehBagsPage','ehExtrasPage','ehPaymentPage'].forEach(function (id) {
@@ -4600,6 +4637,7 @@
             extraBagsKg:  ehBagsExtraKg,
             personalised: ehProfileIsDetractor,
           });
+          ehClearFlightsIdleConcierge();
           overlay.hidden = true;
           ehCurrentPage = 'list';
           var resBody = overlay.querySelector('.eh-res-body');
@@ -4761,6 +4799,8 @@
           resultsCount: route.flights.length,
           personalised: ehProfileIsDetractor,
         });
+        ehFlightsIdleConciergeFired = false;
+        ehScheduleFlightsIdleConcierge();
       }
 
       window.ehOpenFlightResults = function () {
@@ -4772,6 +4812,7 @@
           if (ehCurrentPage === 'list') {
             var fp = document.getElementById('ehFarePanel');
             if (fp) { fp.innerHTML = ''; fp.classList.remove('is-open'); }
+            ehClearFlightsIdleConcierge();
             overlay.hidden = true;
           } else {
             var prev = { guests:'list', seats:'guests', bags:'seats', extras:'bags', payment:'extras' };
@@ -4781,6 +4822,7 @@
       modifyLink &&
         modifyLink.addEventListener('click', function (e) {
           e.preventDefault();
+          ehClearFlightsIdleConcierge();
           overlay.hidden = true;
         });
       moreBtn &&
@@ -4828,6 +4870,18 @@
           ehFlightLabEmit('flight.details.view', { routeKey: currentRoute });
         }
       });
+      (function wireFlightsIdleConciergeListeners() {
+        var evs = ['scroll', 'wheel', 'touchstart', 'pointerdown', 'keydown'];
+        for (var i = 0; i < evs.length; i += 1) {
+          overlay.addEventListener(
+            evs[i],
+            function () {
+              ehBumpFlightsIdleConciergeActivity();
+            },
+            { passive: true, capture: true }
+          );
+        }
+      })();
       ehWireBookingFlowListeners();
     })();
     document.addEventListener('DOMContentLoaded', function () {
