@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="call-center-demo.css">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
+  <script src="firebase-database-config.js"></script>
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
 </head>
@@ -337,9 +338,9 @@
               <div class="call-center-pinned-field call-center-pinned-field--channel">
                 <label>Contact channel</label>
                 <div class="cc-channel-group" role="group" id="ccChannelGroup" aria-label="Contact channel">
-                  <button type="button" class="cc-channel-btn is-active" data-channel="voice" aria-pressed="true">📞 Voice</button>
-                  <button type="button" class="cc-channel-btn" data-channel="email" aria-pressed="false">✉️ Email</button>
-                  <button type="button" class="cc-channel-btn" data-channel="mobile" aria-pressed="false">📱 Mobile</button>
+                  <button type="button" class="cc-channel-btn is-active" data-ch="voice" aria-pressed="true">📞 Voice</button>
+                  <button type="button" class="cc-channel-btn" data-ch="email" aria-pressed="false">✉️ Email</button>
+                  <button type="button" class="cc-channel-btn" data-ch="mobile" aria-pressed="false">📱 Mobile</button>
                 </div>
               </div>
               <div class="call-center-pinned-field call-center-pinned-field--target">
@@ -396,6 +397,7 @@
         <section class="cc-transactions-block" aria-labelledby="ccTxHeading">
           <div class="cc-transactions-head">
             <h3 id="ccTxHeading" class="cc-transactions-title">Recent experience events</h3>
+            <span id="ccEventsCount" class="cc-transactions-count" hidden></span>
             <button type="button" class="cc-transactions-refresh" disabled title="Demo">Refresh</button>
           </div>
           <div class="cc-transactions-table-wrap">
@@ -409,29 +411,31 @@
                   <th scope="col">Status</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Journey Optimizer</td>
-                  <td>Campaign</td>
-                  <td>Today · 08:13</td>
-                  <td>Email open</td>
-                  <td><span class="cc-tx-status cc-tx-status--ok">Done</span></td>
-                </tr>
-                <tr>
-                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Edge Network</td>
-                  <td>Streaming</td>
-                  <td>Today · 07:51</td>
-                  <td>commerce.productViews</td>
-                  <td><span class="cc-tx-status cc-tx-status--pending">In processing</span></td>
-                </tr>
-                <tr>
-                  <td><span class="cc-tx-ico" aria-hidden="true">◇</span> Identity</td>
-                  <td>Graph</td>
-                  <td>Yesterday</td>
-                  <td>ECID link</td>
-                  <td><span class="cc-tx-status cc-tx-status--ok">Done</span></td>
+              <tbody id="ccEventsTableBody">
+                <tr class="cc-events-placeholder-row">
+                  <td colspan="5" class="cc-events-placeholder">Load a customer profile to see their experience events from AEP.</td>
                 </tr>
               </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="cc-journey-activity-block" id="ccJourneyActivitySection" hidden>
+          <div class="cc-transactions-head">
+            <h3 class="cc-transactions-title" id="ccJourneyHeading">Journey Activity</h3>
+            <span class="cc-journey-note">Inferred from journey version IDs in experience events · last 365 days</span>
+          </div>
+          <div class="cc-transactions-table-wrap">
+            <table class="cc-transactions-table cc-journey-table">
+              <thead>
+                <tr>
+                  <th scope="col">Journey</th>
+                  <th scope="col">Touches</th>
+                  <th scope="col">Last Seen</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="ccJourneyTableBody"></tbody>
             </table>
           </div>
         </section>
@@ -916,7 +920,6 @@
       if (!isCorrect) document.getElementById('serverWarning').hidden = false;
     })();
   </script>
-  <script src="firebase-database-config.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>

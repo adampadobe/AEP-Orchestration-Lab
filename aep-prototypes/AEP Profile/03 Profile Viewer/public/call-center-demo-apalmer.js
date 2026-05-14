@@ -265,14 +265,14 @@
     if (ch !== 'voice' && ch !== 'email' && ch !== 'mobile') return;
     selectedChannel = ch;
     document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
-      const active = btn.dataset.channel === ch;
+      const active = btn.dataset.ch === ch;
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
   }
 
   document.querySelectorAll('.cc-channel-btn').forEach((btn) => {
-    btn.addEventListener('click', () => setSelectedChannel(btn.dataset.channel));
+    btn.addEventListener('click', () => setSelectedChannel(btn.dataset.ch));
   });
 
   function getRtdbSandboxName() {
