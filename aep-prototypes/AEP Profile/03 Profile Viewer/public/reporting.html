@@ -13,9 +13,6 @@
   <link rel="stylesheet" href="reporting.css">
 </head>
 <body class="reporting-page home-dashboard-concierge home-dashboard-ajo">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/reporting.html">http://localhost:3333/reporting.html</a>
-  </div>
 
     <div class="dashboard-shell dashboard-shell--ajo">
     <aside class="dashboard-sidebar dashboard-sidebar--ajo" aria-label="Primary">
@@ -320,14 +317,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
   <script src="reporting.js" defer></script>

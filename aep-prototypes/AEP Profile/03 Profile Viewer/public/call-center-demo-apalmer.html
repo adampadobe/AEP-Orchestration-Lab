@@ -15,9 +15,6 @@
   <script defer src="aep-sim-mobile.js"></script>
 </head>
 <body class="call-center-demo-page cc-theme-banking-dark home-dashboard-concierge home-dashboard-ajo">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/call-center-demo-apalmer.html">http://localhost:3333/call-center-demo-apalmer.html</a>
-  </div>
 
   <div class="dashboard-shell dashboard-shell--ajo">
     <button
@@ -494,16 +491,28 @@
                 <section class="cc-card cc-card--wide cc-card--engagement">
                   <div class="cc-engagement-head">
                     <h4 class="cc-card-title">Engagement signals</h4>
-                    <div class="cc-engagement-toggle" id="ccEngagementToggle" hidden>
-                      <button type="button" class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active" data-cc-chart-type="doughnut" aria-pressed="true">Doughnut</button>
-                      <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="bar-v" aria-pressed="false">Bar</button>
+                    <div class="cc-engagement-tools">
+                      <div class="cc-engagement-range-wrap">
+                        <label class="cc-engagement-range-label" for="ccEngagementDateRange">Date range</label>
+                        <select
+                          id="ccEngagementDateRange"
+                          class="cc-engagement-range-select"
+                          aria-label="Filter engagement by date range"
+                        >
+                          <option value="24" selected>Last 24 hours</option>
+                          <option value="168">Last 7 days</option>
+                          <option value="720">Last 30 days</option>
+                          <option value="2160">Last 90 days</option>
+                          <option value="4320">Last 180 days</option>
+                          <option value="8760">Last 365 days</option>
+                        </select>
+                      </div>
+                      <div class="cc-engagement-toggle" id="ccEngagementToggle" hidden>
+                        <button type="button" class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active" data-cc-chart-type="doughnut" aria-pressed="true">Doughnut</button>
+                        <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="bar-v" aria-pressed="false">Bar</button>
+                      </div>
                     </div>
                   </div>
-                  <dl class="cc-engagement-dl">
-                    <div><dt>Consent</dt><dd id="ccSigMarket">—</dd></div>
-                    <div><dt>ECID</dt><dd id="ccSigEcid" class="cc-sig-ecid-val">—</dd></div>
-                    <div class="cc-engagement-dl-aud"><dt>Audiences</dt><dd id="ccSigAud">—</dd></div>
-                  </dl>
                   <div id="ccEngagementChartSection" hidden>
                     <canvas id="ccEventActivityChart"></canvas>
                     <div id="ccEventActivityLegend" class="cc-engagement-legend"></div>
@@ -649,7 +658,7 @@
                     >
                       <div class="aep-profile-drawer-message-sent-heading-row">
                         <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
-                        <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+                        <p class="aep-profile-drawer-email-sends-subheading" id="profileDrawerMessageSentRangeHint">(last 24 hours)</p>
                       </div>
                       <div class="aep-profile-drawer-email-sends-body">
                         <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
@@ -889,22 +898,14 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="firebase-database-config.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
-  <script src="aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
-  <script src="call-center-demo-apalmer.js?v=20260515-cc-email-query"></script>
+  <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
+  <script src="call-center-demo-apalmer.js?v=20260516-cc-engagement-range"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

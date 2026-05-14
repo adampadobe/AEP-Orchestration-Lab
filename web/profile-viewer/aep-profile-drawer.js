@@ -27,6 +27,7 @@
   let profileDrawerAudiences;
   let profileDrawerMessageSentValue;
   let profileDrawerMessageSentUnit;
+  let profileDrawerMessageSentRangeHint;
   let profileDrawerPushSendsRow;
   let profileDrawerPushSentValue;
   let profileDrawerPushSentUnit;
@@ -72,6 +73,7 @@
     profileDrawerAudiences = document.getElementById('profileDrawerAudiences');
     profileDrawerMessageSentValue = document.getElementById('profileDrawerMessageSentValue');
     profileDrawerMessageSentUnit = document.getElementById('profileDrawerMessageSentUnit');
+    profileDrawerMessageSentRangeHint = document.getElementById('profileDrawerMessageSentRangeHint');
     profileDrawerPushSendsRow = document.getElementById('profileDrawerPushSendsRow');
     profileDrawerPushSentValue = document.getElementById('profileDrawerPushSentValue');
     profileDrawerPushSentUnit = document.getElementById('profileDrawerPushSentUnit');
@@ -193,6 +195,39 @@ function updateMarketingConsentCheckboxes(source) {
   set(profileDrawerConsentPush, marketingChannelOptIn(source, 'push'));
 }
 
+/** @param {Record<string, unknown>} [opts] */
+function resolveEngagementMetricsHoursBack(opts) {
+  const o = opts || {};
+  const direct = Number(o.engagementMetricsHoursBack);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  if (typeof _config.getEngagementMetricsHoursBack === 'function') {
+    try {
+      const n = Number(_config.getEngagementMetricsHoursBack());
+      if (Number.isFinite(n) && n > 0) return n;
+    } catch {
+      /* ignore */
+    }
+  }
+  const cfg = Number(_config.engagementMetricsHoursBack);
+  if (Number.isFinite(cfg) && cfg > 0) return cfg;
+  return 24;
+}
+
+/** @param {number} hours */
+function formatEngagementMetricsRangeHint(hours) {
+  const h = Number(hours);
+  if (!Number.isFinite(h) || h <= 0) return '(last 24 hours)';
+  if (h === 24) return '(last 24 hours)';
+  if (h === 168) return '(last 7 days)';
+  if (h === 720) return '(last 30 days)';
+  if (h === 2160) return '(last 90 days)';
+  if (h === 4320) return '(last 180 days)';
+  if (h === 8760) return '(last 365 days)';
+  if (h < 48) return `(last ${Math.round(h)} hours)`;
+  const days = Math.round(h / 24);
+  return `(last ${days} days)`;
+}
+
 function updateProfileDrawer(profile) {
   const source = profile || null;
   const first = source && source.firstName ? String(source.firstName).trim() : '';
@@ -247,6 +282,12 @@ function updateProfileDrawer(profile) {
         if (profileDrawerPushSentUnit) profileDrawerPushSentUnit.textContent = '';
       }
     }
+  }
+  if (profileDrawerMessageSentRangeHint) {
+    const h =
+      source && source.engagementMetricsHoursBack != null ? Number(source.engagementMetricsHoursBack) : null;
+    profileDrawerMessageSentRangeHint.textContent =
+      h != null && Number.isFinite(h) && h > 0 ? formatEngagementMetricsRangeHint(h) : '(last 24 hours)';
   }
   if (profileDrawerAvatar) {
     profileDrawerAvatar.src = avatarSrcForProfile(source);
@@ -1132,16 +1173,17 @@ async function loadProfileDataForDrawer(email, options) {
     ]);
     const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
     const events = eventsForTimeline.slice(0, 5);
+    const engagementH = resolveEngagementMetricsHoursBack(opts);
     let emailSendsLast24h;
     let pushSendsLast24h;
     if (typeof window.EmailEngagementMetrics !== 'undefined') {
       if (window.EmailEngagementMetrics.getEmailSendsLastHours) {
-        emailSendsLast24h = window.EmailEngagementMetrics.getEmailSendsLastHours(eventsAll, 24);
+        emailSendsLast24h = window.EmailEngagementMetrics.getEmailSendsLastHours(eventsAll, engagementH);
       } else {
         emailSendsLast24h = undefined;
       }
       if (window.EmailEngagementMetrics.getPushSendsLastHours) {
-        pushSendsLast24h = window.EmailEngagementMetrics.getPushSendsLastHours(eventsAll, 24);
+        pushSendsLast24h = window.EmailEngagementMetrics.getPushSendsLastHours(eventsAll, engagementH);
       } else {
         pushSendsLast24h = undefined;
       }
@@ -1192,6 +1234,7 @@ async function loadProfileDataForDrawer(email, options) {
       events,
       emailSendsLast24h,
       pushSendsLast24h,
+      engagementMetricsHoursBack: engagementH,
     };
 
     updateProfileDrawer(lastLookedUpProfile);

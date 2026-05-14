@@ -3153,46 +3153,6 @@ body.call-center-demo-page.cc-theme-banking-dark {
   color: #fff;
 }
 
-.cc-engagement-dl {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 4px 16px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.cc-engagement-dl dt {
-  color: var(--cc-muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 1px;
-}
-
-.cc-engagement-dl dd {
-  margin: 0 0 6px;
-  color: var(--cc-text, #1e293b);
-  font-weight: 500;
-  word-break: break-all;
-}
-
-.cc-sig-ecid-val {
-  font-size: 11px;
-  font-family: monospace;
-  word-break: break-all;
-}
-
-.cc-engagement-dl-aud {
-  grid-column: 1 / -1;
-}
-
-.cc-engagement-dl-aud dd {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
 #ccEngagementChartSection {
   padding-top: 4px;
 }
@@ -3237,10 +3197,6 @@ body.call-center-demo-page.cc-theme-banking-dark {
 
 .cc-theme-banking-dark .cc-journey-last-seen {
   color: var(--cc-muted);
-}
-
-.cc-theme-banking-dark .cc-engagement-dl dd {
-  color: #f1f5f9;
 }
 
 .cc-theme-banking-dark .cc-engagement-legend {

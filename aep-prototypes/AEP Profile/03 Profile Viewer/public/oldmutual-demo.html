@@ -16,9 +16,6 @@
   <!-- Optional: embed Adobe Experience Platform Tags (Launch) before oldmutual-demo.js so window.alloy is available for ECID. -->
 </head>
 <body class="oldmutual-demo-page">
-  <div id="serverWarning" class="server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/oldmutual-demo.html">http://localhost:3333/oldmutual-demo.html</a>
-  </div>
   <div id="raceMessageRevealZone" class="om-message-reveal-zone" aria-hidden="true"></div>
 
   <header class="om-aep-login-bar" aria-label="AEP profile login">
@@ -627,14 +624,6 @@
     </div>
   </aside>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>

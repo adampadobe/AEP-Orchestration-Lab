@@ -19,9 +19,6 @@
   -->
 </head>
 <body class="fnb-demo-page">
-  <div id="serverWarning" class="server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/fnb-demo.html">http://localhost:3333/fnb-demo.html</a>
-  </div>
   <div id="raceMessageRevealZone" class="fnb-message-reveal-zone" aria-hidden="true"></div>
 
   <header class="fnb-aep-login-bar" aria-label="AEP profile login">
@@ -285,14 +282,6 @@
     </div>
   </aside>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-global-sandbox.js"></script>

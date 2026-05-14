@@ -728,6 +728,35 @@
   }
 
   /* ── Engagement signals: event activity chart ── */
+  function getCcEngagementHoursBack() {
+    const sel = document.getElementById('ccEngagementDateRange');
+    if (!sel) return 24;
+    const n = Number(sel.value);
+    return Number.isFinite(n) && n > 0 ? n : 24;
+  }
+
+  function refreshCcDrawerEngagementFromRange() {
+    const drawerApi = window.DemoProfileDrawer || window.AepProfileDrawer;
+    if (
+      !drawerApi ||
+      typeof drawerApi.getLastLookedUpProfile !== 'function' ||
+      typeof drawerApi.patchLastProfileOrUpdate !== 'function'
+    ) {
+      return;
+    }
+    const prof = drawerApi.getLastLookedUpProfile();
+    const evs = window._ccLastEvents;
+    if (!prof || !evs || !window.EmailEngagementMetrics) return;
+    const hours = getCcEngagementHoursBack();
+    const emailN = window.EmailEngagementMetrics.getEmailSendsLastHours(evs, hours);
+    const pushN = window.EmailEngagementMetrics.getPushSendsLastHours(evs, hours);
+    drawerApi.patchLastProfileOrUpdate({
+      emailSendsLast24h: emailN,
+      pushSendsLast24h: pushN,
+      engagementMetricsHoursBack: hours,
+    });
+  }
+
   const CC_CHART_PALETTE = [
     '#1473e6', '#e68619', '#12805c', '#c9252d', '#7c4dff',
     '#0d66d0', '#d7373f', '#2d9d78', '#e8a735', '#5c6bc0',
@@ -744,8 +773,15 @@
     const toggleEl = document.getElementById('ccEngagementToggle');
     if (!sectionEl || !canvas) return;
 
+    const hours = getCcEngagementHoursBack();
+    const raw = events || [];
+    const scoped =
+      window.EmailEngagementMetrics && typeof window.EmailEngagementMetrics.filterEventsByDateRange === 'function'
+        ? window.EmailEngagementMetrics.filterEventsByDateRange(raw, hours)
+        : raw;
+
     const counts = {};
-    (events || []).forEach((ev) => {
+    scoped.forEach((ev) => {
       const t = ev.eventName || 'unknown';
       counts[t] = (counts[t] || 0) + 1;
     });
@@ -983,6 +1019,91 @@
     return el ? String(el.textContent || '').trim() : '';
   }
 
+  function getLastProfileFromDrawerApi() {
+    const d = window.DemoProfileDrawer;
+    const a = window.AepProfileDrawer;
+    if (d && typeof d.getLastLookedUpProfile === 'function') return d.getLastLookedUpProfile();
+    if (a && typeof a.getLastLookedUpProfile === 'function') return a.getLastLookedUpProfile();
+    return null;
+  }
+
+  /** Display name for screen pop / hero — same source as agent cards (not drawer DOM timing). */
+  function getCcScreenPopDisplayName(lookupEmail) {
+    const profile = getLastProfileFromDrawerApi();
+    const emailFallback = String(lookupEmail || '').trim();
+    if (profile) {
+      const first = profile.firstName != null ? String(profile.firstName).trim() : '';
+      const last = profile.lastName != null ? String(profile.lastName).trim() : '';
+      const full = `${first} ${last}`.trim();
+      if (full) return full;
+      const em = profile.email != null ? String(profile.email).trim() : '';
+      if (em) return em;
+    }
+    return emailFallback || 'Customer';
+  }
+
+  /** First phone-like identity from profile graph (consent payload does not set `phone` on lastLookedUpProfile). */
+  function pickPhoneFromProfileIdentities(profile) {
+    if (!profile || profile.phone == null || String(profile.phone).trim() === '') {
+      const ids = profile && profile.identities;
+      if (!Array.isArray(ids)) return '';
+      for (let i = 0; i < ids.length; i += 1) {
+        const id = ids[i];
+        const ns = String(id && id.namespace != null ? id.namespace : '');
+        if (/phone|sms/i.test(ns)) {
+          const v = String(id.value || '').trim();
+          if (v) return v;
+        }
+      }
+      return '';
+    }
+    return String(profile.phone).trim();
+  }
+
+  function formatCcCardScalar(val) {
+    if (val == null) return '';
+    const s = String(val).trim();
+    return s;
+  }
+
+  /**
+   * Fill Contact details / Profile attributes cards from the same object as the bottom drawer
+   * (`getLastLookedUpProfile()`), so we are not racing drawer DOM paints.
+   * @param {string} lookupEmail - typed email when API omits canonical email
+   */
+  function applyCcAgentCardsFromLastProfile(lookupEmail) {
+    const profile = getLastProfileFromDrawerApi();
+    const emailFallback = String(lookupEmail || '').trim();
+
+    const emailRaw = profile && profile.email != null && String(profile.email).trim() ? String(profile.email).trim() : emailFallback;
+    setElText('ccCardEmail', emailRaw ? emailRaw : '—');
+
+    const phoneRaw = pickPhoneFromProfileIdentities(profile || {});
+    setElText('ccCardPhone', phoneRaw ? phoneRaw : 'Unknown');
+
+    const cityRaw = formatCcCardScalar(profile && profile.city);
+    setElText('ccCardCity', cityRaw ? cityRaw : '—');
+
+    const first = profile && profile.firstName ? String(profile.firstName).trim() : '';
+    const last = profile && profile.lastName ? String(profile.lastName).trim() : '';
+    const full = `${first} ${last}`.trim();
+    setElText('ccCardFullName', full ? full : 'No profile loaded');
+
+    const ltvRaw = formatCcCardScalar(profile && profile.customerLifetimeValue);
+    setElText('ccCardLtv', ltvRaw ? ltvRaw : '—');
+
+    const prop = formatCcCardScalar(profile && profile.propensityScore);
+    setElText('ccCardPropensity', prop ? prop : '—');
+
+    const churn = formatCcCardScalar(profile && profile.churnPrediction);
+    setElText('ccCardChurn', churn ? churn : '—');
+
+    const loyalty = formatCcCardScalar(profile && profile.loyaltyStatus);
+    setElText('ccCardLoyalty', loyalty ? loyalty : 'Unknown');
+
+    updateFauxCardPan();
+  }
+
   function mirrorAboutCardsFromDrawer() {
     const pairs = [
       ['profileDrawerEmail', 'ccCardEmail'],
@@ -998,25 +1119,6 @@
       const v = copyElText(from);
       setElText(to, v && v !== '' ? v : '—');
     });
-    const ecidProfile = copyElText('profileDrawerDesktopId');
-    const ecidHint = infoEcid ? String(infoEcid.textContent || '').trim() : '';
-    setElText('ccSigEcid', ecidProfile && ecidProfile !== '—' ? ecidProfile : ecidHint || '—');
-
-    const audUl = document.getElementById('profileDrawerAudiences');
-    let audSummary = '—';
-    if (audUl) {
-      const lis = Array.from(audUl.querySelectorAll('li'));
-      const valid = lis.filter(li => li.textContent && !/no audience/i.test(li.textContent));
-      if (valid.length > 0) {
-        const names = valid.slice(0, 3).map(li => li.textContent.trim());
-        audSummary = names.join(' · ');
-        if (valid.length > 3) audSummary += ' +' + (valid.length - 3);
-      }
-    }
-    setElText('ccSigAud', audSummary);
-
-    const firstConsent = document.querySelector('.aep-profile-drawer-card-consent input[type="checkbox"]');
-    setElText('ccSigMarket', firstConsent && firstConsent.checked ? 'Opted in' : '—');
 
     updateFauxCardPan();
   }
@@ -1083,11 +1185,10 @@
       'ccCardPropensity',
       'ccCardChurn',
       'ccCardLoyalty',
-      'ccSigEcid',
-      'ccSigAud',
-      'ccSigMarket',
     ].forEach((id) => setElText(id, '—'));
     updateFauxCardPan();
+    if (ccScreenPop) ccScreenPop.hidden = true;
+    if (ccScreenPopName) ccScreenPopName.textContent = '—';
   }
 
   const WORKSPACE_TABS = [
@@ -1290,15 +1391,15 @@
       let drawerCallOk = false;
       let profileFound = false;
       try {
-        // loadProfileDataForDrawer returns true/false (boolean), not {ok,found}.
-        // Capture found status via the message callback — drawer fires type='success'
-        // when a real profile exists, empty string when not found.
+        // loadProfileDataForDrawer returns true after a successful HTTP consent response (boolean).
+        // `type === 'success'` on onUserMessage means `data.found` (profile entity exists).
         drawerCallOk = await window.AepProfileDrawer.loadProfileDataForDrawer(email, {
           onUserMessage: (msg, type) => {
             setStatus(msg, type);
-            if (type === 'success' && /profile found/i.test(msg)) profileFound = true;
+            if (type === 'success') profileFound = true;
           },
           addEmailOnSuccess: true,
+          engagementMetricsHoursBack: getCcEngagementHoursBack(),
         });
         if (drawerCallOk && profileFound) {
           try {
@@ -1316,25 +1417,25 @@
               'error',
             );
           }
+          const emailForCards = email;
           window.requestAnimationFrame(() => {
-            mirrorProfileToAgentUi();
-            mirrorAboutCardsFromDrawer();
-            startSessionTimer();
-            activateWorkspaceTab('details');
+            window.requestAnimationFrame(() => {
+              applyCcAgentCardsFromLastProfile(emailForCards);
+              mirrorProfileToAgentUi();
+              mirrorAboutCardsFromDrawer();
+              if (ccScreenPop && ccScreenPopName) {
+                ccScreenPopName.textContent = getCcScreenPopDisplayName(emailForCards);
+                ccScreenPop.hidden = false;
+              }
+              startSessionTimer();
+              activateWorkspaceTab('details');
+            });
           });
           void fetchAndRenderTravel(email);
           void fetchAndRenderCcEvents(email);
         } else if (drawerCallOk && !profileFound) {
           setStatus('No profile in store for this email. Try another address or seed data in the sandbox.', 'warn');
           resetIdleAgentUi();
-        }
-        if (profileFound) {
-          const nameEl = document.getElementById('profileDrawerName');
-          const displayName = nameEl && nameEl.textContent ? nameEl.textContent.trim() : email;
-          if (ccScreenPop && ccScreenPopName) {
-            ccScreenPopName.textContent = displayName;
-            ccScreenPop.hidden = false;
-          }
         }
       } catch (err) {
         setStatus((err && err.message) || 'Could not load profile.', 'error');
@@ -1348,6 +1449,14 @@
       }
     });
 
+  if (typeof window.AepProfileDrawer !== 'undefined' && typeof window.AepProfileDrawer.init === 'function') {
+    window.AepProfileDrawer.init({
+      emailInputId: 'customerEmail',
+      viewName: 'Contact centre (apalmer sandbox)',
+      getSelectedGeneratorTarget,
+      engagementMetricsHoursBack: getCcEngagementHoursBack(),
+    });
+  }
   document.body.classList.add('aep-profile-drawer-open');
 
   document.querySelectorAll('.call-center-state-btn').forEach((btn) => {
@@ -1374,6 +1483,14 @@
     const lastEmail = (document.getElementById('customerEmail') || {}).value || '';
     if (lastEmail) void renderCcEventActivityChart(window._ccLastEvents || []);
   });
+
+  const ccEngagementDateRange = document.getElementById('ccEngagementDateRange');
+  if (ccEngagementDateRange) {
+    ccEngagementDateRange.addEventListener('change', () => {
+      renderCcEventActivityChart(window._ccLastEvents || []);
+      refreshCcDrawerEngagementFromRange();
+    });
+  }
 
   initIndustryUi();
   void loadGeneratorTargets();
