@@ -311,10 +311,20 @@
     );
   }
 
+  /** RTDB keys must match `database.rules.json` workspaceClaims / ajoLookups slug pattern (lowercase a-z0-9._-). */
+  function normalizeAjoLookupSlug(raw) {
+    const s = String(raw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '');
+    if (s.length < 2 || s.length > 48) return '';
+    return s;
+  }
+
   async function fetchRtdbLookups() {
     const cfg = (typeof window.firebaseDatabaseConfig !== 'undefined' && window.firebaseDatabaseConfig) || {};
     const dbUrl = cfg.databaseURL || 'https://aep-orchestration-lab-default-rtdb.firebaseio.com';
-    const sandbox = getRtdbSandboxName();
+    const sandbox = normalizeAjoLookupSlug(getRtdbSandboxName()) || 'apalmer';
     try {
       const res = await fetch(`${dbUrl}/ajoLookups/${encodeURIComponent(sandbox)}.json`);
       return res.ok ? await res.json() : null;

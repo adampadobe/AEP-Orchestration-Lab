@@ -71,6 +71,29 @@
             </div>
             <p id="globalSettingsStatus" class="dashboard-hero-subtitle" style="margin-top: 16px; font-size: 13px;"></p>
             </div>
+            <div id="aepRtdbLabDemosSection" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dash-border);">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Lab demos — Realtime Database (Contact centre + iPad)</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">
+                Contact centre and iPad read branding from <code>ajoLookups/&lt;sandbox&gt;</code> in the lab Firebase project (public read). Writes require you to be signed in (this page uses anonymous lab auth) and to
+                <strong>claim</strong> the same technical sandbox name as a workspace slug under <code>workspaceClaims</code> — rules are in <code>database.rules.json</code> at repo root. Slugs are normalized to lowercase
+                <code>a-z 0-9 . _ -</code> (2–48 chars) so they match Firebase validation. Use <a href="firebase-database.html">Firebase workspace</a> for email/password accounts or advanced edits.
+              </p>
+              <ol class="dashboard-hero-subtitle" style="margin: 0 0 12px; padding-left: 1.25rem; font-size: 13px; line-height: 1.5;">
+                <li>Select <strong>Adobe sandbox</strong> access mode and pick your technical sandbox above (e.g. switch org → choose <code>kirkham</code>).</li>
+                <li>Wait a moment for background lab sync (anonymous Firebase completes automatically).</li>
+                <li>Click <strong>Write RTDB stub</strong> — claims <code>workspaceClaims/&lt;slug&gt;</code> if free, then merges a starter object into <code>ajoLookups/&lt;slug&gt;</code> for Contact centre + iPad.</li>
+                <li>Edit values in Firebase Console → Realtime Database, or export JSON from the preview below and paste manually.</li>
+              </ol>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 8px; font-size: 12px; color: var(--dash-text-secondary);">
+                Active slug for this action: <strong id="aepRtdbSeedSlugPreview">—</strong>
+              </p>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+                <button type="button" class="dashboard-btn-outline" id="aepRtdbSeedBtn">Write RTDB stub</button>
+                <span id="aepRtdbSeedStatus" class="dashboard-hero-subtitle" style="margin:0; font-size:13px;"></span>
+              </div>
+              <label for="aepRtdbSeedJsonPreview" class="schema-aep-sandbox-label" style="display:block;margin-bottom:6px;font-weight:600;">Stub JSON (merged with <code>update</code> — top-level keys only)</label>
+              <textarea id="aepRtdbSeedJsonPreview" readonly rows="14" style="width:100%;max-width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:10px 12px;border:1px solid var(--dash-input-border);border-radius:10px;background:var(--dash-input-bg);color:var(--dash-text);resize:vertical;" spellcheck="false" aria-label="RTDB stub JSON preview"></textarea>
+            </div>
             <div class="aep-theme-global-row">
               <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Appearance</label>
               <button type="button" class="aep-theme-toggle-btn" aria-label="Toggle color theme">Dark mode</button>
@@ -169,6 +192,7 @@
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="aep-access-scope.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
@@ -695,5 +719,6 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-rtdb-lab-demos-seed.js?v=20260512-rtdb-stub"></script>
 </body>
 </html>

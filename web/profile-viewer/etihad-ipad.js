@@ -532,7 +532,7 @@
     }
 
     updateFlightCountdown(td);
-    setText('ipadSandboxLabel', getSandboxName() || '—');
+    setText('ipadSandboxLabel', normalizeAjoLookupSlug(getSandboxName()) || getSandboxName() || '—');
 
     applyIpadHeroTitleFromRtdb(cd);
 
@@ -564,8 +564,18 @@
     el.textContent = h > 0 ? h + 'h ' + mm + 'm' : mm + ' min';
   }
 
+  /** RTDB slug must satisfy `database.rules.json` (lowercase a-z0-9._-); Adobe sandbox names are normalized here only for RTDB. */
+  function normalizeAjoLookupSlug(raw) {
+    var s = String(raw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '');
+    if (s.length < 2 || s.length > 48) return '';
+    return s;
+  }
+
   async function loadRtdbData() {
-    var slug = getSandboxName() || 'apalmer';
+    var slug = normalizeAjoLookupSlug(getSandboxName()) || 'apalmer';
     try {
       var res = await fetch(rtdbBase + '/ajoLookups/' + encodeURIComponent(slug) + '.json');
       if (res.ok) rtdbData = (await res.json()) || {};
