@@ -120,7 +120,7 @@
                       <div class="ga-app-scroll">
                         <header class="ga-app-header" id="gaAppHeader">
                           <div class="ga-header-left">
-                            <span class="ga-header-logo" aria-hidden="true">✈️</span>
+                            <span class="ga-header-logo" id="gaHeaderLogoEmoji" aria-hidden="true">✈️</span>
                             <div>
                               <div class="ga-airline-name" id="gaAirlineName">Etihad Airways</div>
                               <div class="ga-header-sub" id="gaHeaderSub">Gate &amp; cabin crew</div>
@@ -176,7 +176,7 @@
                         <div class="ga-flight-info-panel" id="gaFlightInfoPanel" hidden>
                           <div class="ga-two-col">
                             <div class="ga-card">
-                              <div class="ga-card-title">✈️ Flight details</div>
+                              <div class="ga-card-title" data-ipad-card="flight-details">✈️ Flight details</div>
                               <dl class="ga-dl">
                                 <dt>Flight</dt><dd id="gafiFlight">—</dd>
                                 <dt>Aircraft</dt><dd id="gafiAircraft">A380-800</dd>
@@ -188,7 +188,7 @@
                               </dl>
                             </div>
                             <div class="ga-card">
-                              <div class="ga-card-title">👨‍✈️ Crew</div>
+                              <div class="ga-card-title" data-ipad-card="crew">👨‍✈️ Crew</div>
                               <dl class="ga-dl">
                                 <dt>Captain</dt><dd id="gafiCaptain">—</dd>
                                 <dt>Co-pilot</dt><dd id="gafiCoPilot">—</dd>
@@ -197,7 +197,7 @@
                             </div>
                           </div>
                           <div class="ga-broadcast-section">
-                            <div class="ga-card-title">📡 Staff broadcast</div>
+                            <div class="ga-card-title" id="gaBroadcastTitle">📡 Staff broadcast</div>
                             <div class="ga-broadcast-btns">
                               <button type="button" class="ga-broadcast-btn" data-event="flight.staff.boarding.open">🛂 Open boarding gates</button>
                               <button type="button" class="ga-broadcast-btn" data-event="flight.staff.boarding.final_call">📣 Final call</button>
@@ -248,7 +248,7 @@
                             <div class="ga-tab-panel ga-tab-panel--active" id="tabPersonal">
                               <div class="ga-two-col">
                                 <div class="ga-card">
-                                  <div class="ga-card-title">👤 Personal information</div>
+                                  <div class="ga-card-title" data-ipad-card="personal-info">👤 Personal information</div>
                                   <dl class="ga-dl">
                                     <dt>Full name</dt><dd id="gaFullName">—</dd>
                                     <dt>Gender</dt><dd id="gaGender">—</dd>
@@ -258,7 +258,7 @@
                                   </dl>
                                 </div>
                                 <div class="ga-card">
-                                  <div class="ga-card-title">📞 Contact details</div>
+                                  <div class="ga-card-title" data-ipad-card="contact-details">📞 Contact details</div>
                                   <dl class="ga-dl">
                                     <dt>Email</dt><dd id="gaEmail">—</dd>
                                     <dt>Phone</dt><dd id="gaPhone">—</dd>
@@ -271,7 +271,7 @@
                             <div class="ga-tab-panel" id="tabTravel" hidden>
                               <div class="ga-two-col">
                                 <div class="ga-card">
-                                  <div class="ga-card-title">✈️ Current booking</div>
+                                  <div class="ga-card-title" data-ipad-card="travel-booking">✈️ Current booking</div>
                                   <dl class="ga-dl">
                                     <dt>Flight</dt><dd id="gaFlight">—</dd>
                                     <dt>Route</dt><dd id="gaRoute">—</dd>
@@ -287,7 +287,7 @@
                                   </dl>
                                 </div>
                                 <div class="ga-card">
-                                  <div class="ga-card-title">🎒 Travel preferences</div>
+                                  <div class="ga-card-title" data-ipad-card="travel-prefs">🎒 Travel preferences</div>
                                   <dl class="ga-dl">
                                     <dt>Seat</dt><dd id="gaSeatPref">—</dd>
                                     <dt>Meal</dt><dd id="gaMealPref">—</dd>
@@ -299,7 +299,7 @@
                             <div class="ga-tab-panel" id="tabLoyalty" hidden>
                               <div class="ga-two-col">
                                 <div class="ga-card">
-                                  <div class="ga-card-title">🏆 Loyalty status</div>
+                                  <div class="ga-card-title" data-ipad-card="loyalty-status">🏆 Loyalty status</div>
                                   <dl class="ga-dl">
                                     <dt>Program</dt><dd id="gaLoyaltyProgram">—</dd>
                                     <dt>Tier</dt><dd><span class="ga-loyalty-tier-badge ga-tier-inline" id="gaLoyaltyTierInline">—</span></dd>
@@ -311,7 +311,7 @@
                                   </dl>
                                 </div>
                                 <div class="ga-card">
-                                  <div class="ga-card-title">📈 Travel statistics</div>
+                                  <div class="ga-card-title" data-ipad-card="loyalty-stats">📈 Travel statistics</div>
                                   <dl class="ga-dl">
                                     <dt>Flights this year</dt><dd id="gaOrdersYTD">—</dd>
                                     <dt>Lifetime value</dt><dd id="gaLTV">—</dd>
@@ -325,7 +325,7 @@
                             <div class="ga-tab-panel" id="tabPreferences" hidden>
                               <div class="ga-two-col">
                                 <div class="ga-card">
-                                  <div class="ga-card-title">🎯 AI insights</div>
+                                  <div class="ga-card-title" data-ipad-card="ai-insights">🎯 AI insights</div>
                                   <dl class="ga-dl">
                                     <dt>Churn risk</dt><dd id="gaChurnPref" class="ga-score-text">—</dd>
                                     <dt>Propensity score</dt><dd id="gaPropensityPref" class="ga-score-text">—</dd>
@@ -334,7 +334,7 @@
                                   </dl>
                                 </div>
                                 <div class="ga-card">
-                                  <div class="ga-card-title">📧 Communication</div>
+                                  <div class="ga-card-title" data-ipad-card="communication">📧 Communication</div>
                                   <dl class="ga-dl">
                                     <dt>Email marketing</dt><dd class="ga-optin ga-optin--yes">✓ Opted in</dd>
                                     <dt>SMS notifications</dt><dd class="ga-optin ga-optin--yes">✓ Opted in</dd>
@@ -416,7 +416,7 @@
         <div class="cc-customize-field">
           <label for="ccIndustrySelect">Industry context</label>
           <p class="cc-customize-field-hint">
-            Same preset as the <a href="call-centre-demo-v1.html">Contact centre</a> lab: retitle the page banner and gate-agent tablet chrome for your vertical. Changes sync across open tabs.
+            Same preset as the <a href="call-centre-demo-v1.html">Contact centre</a> lab: aligns with <code>POST /api/profile/generate</code> industry keys (<code>generic</code>, <code>travel</code>, <code>fsi</code>, <code>telecom</code>, <code>retail</code>, <code>media</code>, <code>sports</code>). Changes sync across open tabs.
           </p>
           <select id="ccIndustrySelect" class="cc-industry-select"></select>
         </div>
@@ -426,8 +426,8 @@
 
   <script src="firebase-database-config.js?v=20260513-etihad-ipad-cache"></script>
   <script src="aep-global-sandbox.js?v=20260513-etihad-ipad-cache"></script>
-  <script src="aep-lab-industry-context.js?v=20260512-industry-sync"></script>
-  <script src="etihad-ipad.js?v=20260512-industry-sync"></script>
+  <script src="aep-lab-industry-context.js?v=20260515-profile-gen-industry"></script>
+  <script src="etihad-ipad.js?v=20260515-profile-gen-industry"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260513-etihad-ipad-cache"></script>

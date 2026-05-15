@@ -1348,7 +1348,7 @@
     return b;
   }
 
-  let currentIndustryId = 'adobe';
+  let currentIndustryId = 'generic';
 
   /** @type {number|null} */
   let sessionTimerId = null;
@@ -1360,7 +1360,7 @@
   }
 
   function getIndustry(id) {
-    return INDUSTRIES[id] || INDUSTRIES.adobe;
+    return INDUSTRIES[id] || INDUSTRIES.generic;
   }
 
   function loadSavedIndustryId() {
@@ -1369,7 +1369,7 @@
 
   function applyIndustry(id) {
     const ind = getIndustry(id);
-    currentIndustryId = INDUSTRIES[id] ? id : 'adobe';
+    currentIndustryId = INDUSTRIES[id] ? id : 'generic';
     document.body.dataset.ccIndustry = currentIndustryId;
     document.body.style.setProperty('--cc-accent', ind.accent);
     document.body.style.setProperty('--cc-accent-soft', ind.accentSoft);
@@ -1421,7 +1421,7 @@
     try {
       const hasNew = window.localStorage.getItem(CTX.STORAGE_KEY);
       const leg = window.localStorage.getItem(CTX.LEGACY_STORAGE_KEY);
-      if (!hasNew && leg && INDUSTRIES[leg]) CTX.persistIndustry(leg);
+      if (!hasNew && leg) CTX.persistIndustry(CTX.normalizeLabIndustryId(leg));
     } catch (_) {
       /* ignore */
     }

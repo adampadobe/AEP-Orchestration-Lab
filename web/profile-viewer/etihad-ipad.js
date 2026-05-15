@@ -51,73 +51,41 @@
     '<path fill="currentColor" d="M16.25,19.75c-.41406,0-.75-.33594-.75-.75v-2.25c0-.68945.56055-1.25,1.25-1.25h2.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2v2c0,.41406-.33594.75-.75.75Z"/>' +
     '</svg>';
 
-  var OFFERS = [
-    { title: 'Upgrade to Business', subtitle: 'Bid from 500 USD', badge: 'NEW', grade: 'AA' },
-    { title: 'Extra legroom', subtitle: 'Rows 20–24', badge: '', grade: 'A' },
-    { title: 'Lounge access', subtitle: 'Abu Dhabi', badge: 'HOT', grade: 'AAA' },
-    { title: 'Miles accelerator', subtitle: '2× this sector', badge: '', grade: 'A' },
-    { title: 'Carbon offset', subtitle: 'Optional add-on', badge: '', grade: 'AA' },
-  ];
+  /** Industry preset id — shared with Contact centre via AepLabIndustryContext (aligns with profile generate keys). */
+  var currentLabIndustryId = 'generic';
 
-  /** Industry preset id — shared with Contact centre via AepLabIndustryContext. */
-  var currentLabIndustryId = 'adobe';
-
-  var IPAD_INDUSTRY_COPY = {
-    adobe: {
-      headerSub: 'Demo field team',
-      searchPlaceholder: 'Participant email or loyalty ID',
-      detractorHeadline: 'At-risk participant (detractor)',
-      defaultAirline: 'Experience Cloud',
-    },
-    telco: {
-      headerSub: 'Retail & care desk',
-      searchPlaceholder: 'Account email or line ID',
-      detractorHeadline: 'At-risk subscriber (detractor)',
-      defaultAirline: 'Demo Mobile',
-    },
-    banking: {
-      headerSub: 'Branch service tablet',
-      searchPlaceholder: 'Registered email or customer ID',
+  function getMergedIpad() {
+    var C = window.AepLabIndustryContext;
+    if (C && typeof C.mergeIpadUi === 'function') return C.mergeIpadUi(currentLabIndustryId);
+    return {
+      showTravelChrome: false,
+      showGaActions: false,
+      headerEmoji: '💼',
+      headerSub: 'Front-line service',
+      searchPlaceholder: 'Customer email or identifier',
+      defaultBrandName: 'Experience Cloud',
       detractorHeadline: 'At-risk customer (detractor)',
-      defaultAirline: 'Demo Financial',
-    },
-    retail: {
-      headerSub: 'Omni-channel service',
-      searchPlaceholder: 'Shopper email or loyalty ID',
-      detractorHeadline: 'At-risk shopper (detractor)',
-      defaultAirline: 'Demo Retail',
-    },
-    healthcare: {
-      headerSub: 'Member check-in',
-      searchPlaceholder: 'Member email or member ID',
-      detractorHeadline: 'At-risk member (detractor)',
-      defaultAirline: 'Demo Health Plan',
-    },
-    travel: {
-      headerSub: 'Gate & cabin crew',
-      searchPlaceholder: 'Passenger email or loyalty ID',
-      detractorHeadline: 'At-risk guest (detractor)',
-      defaultAirline: 'Etihad Airways',
-    },
-    media: {
-      headerSub: 'Subscriber care',
-      searchPlaceholder: 'Subscriber email or account ID',
-      detractorHeadline: 'At-risk subscriber (detractor)',
-      defaultAirline: 'Demo Streaming',
-    },
-    insurance: {
-      headerSub: 'Policy service desk',
-      searchPlaceholder: 'Policyholder email or policy #',
-      detractorHeadline: 'At-risk policyholder (detractor)',
-      defaultAirline: 'Demo Insurance',
-    },
-    public_sector: {
-      headerSub: 'Front desk',
-      searchPlaceholder: 'Contact email or reference #',
-      detractorHeadline: 'At-risk contact (detractor)',
-      defaultAirline: 'Demo Services',
-    },
-  };
+      detractorBodyTemplate:
+        'NPS is below {threshold} — acknowledge concerns early, confirm the issue, and close with a clear next step.',
+      detractorFourthDt: 'Profile highlights',
+      detractorOfferChurn:
+        'Suggested: validate frustration, recap commitments already made, and offer a supervised follow-up (e.g. callback / case owner) if policy allows.',
+      detractorOfferTier:
+        'Suggested: recognise {tier} status with a concise thank-you, then focus on resolution speed and a single actionable next step.',
+      detractorOfferDefault:
+        'Suggested: open with empathy, restate the customer goal in one sentence, and confirm consent before any proactive outreach.',
+      memberSubtitlePrefix: 'Profile ·',
+      tabLabels: {},
+      cardTitles: {},
+      broadcastTitle: '📡 Staff signals (demo stream)',
+      broadcastButtons: [],
+      ipadOffers: [],
+      staffActionBoard: '🛂 Process service step',
+      staffActionUpgrade: '⬆️ Suggest next-best action',
+      staffActionBaggage: '🧳 Log follow-up task',
+      profileGenerateIndustry: 'generic',
+    };
+  }
 
   function getFsEl() {
     return (
@@ -232,7 +200,8 @@
     var el = document.getElementById(id);
     if (!el) return;
     var fd = formatFieldDisplay(memberIdRaw, dummyMemberId);
-    el.textContent = fd.isDummy ? 'Member · ' + fd.text : 'Member · ' + String(memberIdRaw).trim();
+    var prefix = String(getMergedIpad().memberSubtitlePrefix || 'Profile ·').replace(/\s+$/, '');
+    el.textContent = fd.isDummy ? prefix + ' ' + fd.text : prefix + ' ' + String(memberIdRaw).trim();
     el.classList.toggle('ga-field-dummy', fd.isDummy);
   }
 
@@ -288,10 +257,6 @@
     hdr.style.background = 'linear-gradient(135deg, #' + c + ' 0%, ' + end + ' 100%)';
   }
 
-  function getIpadIndustryCopy() {
-    return IPAD_INDUSTRY_COPY[currentLabIndustryId] || IPAD_INDUSTRY_COPY.adobe;
-  }
-
   /** When RTDB StaffPortal.Colour is absent, tint the gate-agent header from the shared industry accent. */
   function applyIndustryHeaderGradientFallback() {
     var C = window.AepLabIndustryContext;
@@ -299,7 +264,7 @@
       applyHeaderGradient('');
       return;
     }
-    var ind = C.INDUSTRIES[currentLabIndustryId] || C.INDUSTRIES.adobe;
+    var ind = C.INDUSTRIES[currentLabIndustryId] || C.INDUSTRIES.generic;
     var hex = String(ind.accent || '#0d66d0').replace(/^#/, '');
     applyHeaderGradient(hex);
   }
@@ -432,20 +397,17 @@
     return '—';
   }
 
-  function buildDetractorOfferLine(churnHigh, loyaltyLevel, tierFromRtdb) {
+  function buildDetractorOfferLine(churnHigh, loyaltyLevel, tierFromRtdb, ipc) {
     var tierLabel = String(loyaltyLevel || tierFromRtdb || '').trim();
     if (churnHigh) {
-      return 'Suggested: acknowledge the journey so far, keep a calm recovery tone, invite quick feedback at the gate, and offer a discreet gesture (e.g. priority re-seating consideration) if policy allows.';
+      return String((ipc && ipc.detractorOfferChurn) || '');
     }
     if (tierLabel && tierSlug(tierLabel)) {
-      return (
-        'Suggested: greet as ' +
-        tierLabel.charAt(0).toUpperCase() +
-        tierLabel.slice(1) +
-        ' — thank them for flying Etihad and offer a brief, personal service check-in before boarding.'
-      );
+      var tpl = String((ipc && ipc.detractorOfferTier) || '');
+      var nice = tierLabel.charAt(0).toUpperCase() + tierLabel.slice(1);
+      return tpl.replace(/\{tier\}/g, nice);
     }
-    return 'Suggested: warm greeting using the name on screen, brief empathy for any inconvenience, and invite them to share how we can help today.';
+    return String((ipc && ipc.detractorOfferDefault) || '');
   }
 
   function updateDetractorBanner(rows, data, ctx) {
@@ -469,19 +431,21 @@
     var loyaltyLevel = pickLoyaltyLevelFromRows(rows, tierRtdb);
     var travelLine = buildTravelPrefsSummaryForDetractor(rows, td);
 
-    var ipcBanner = getIpadIndustryCopy();
+    var ipcBanner = getMergedIpad();
     var dh0 = document.getElementById('gaDetractorHeadline');
     if (dh0) dh0.textContent = ipcBanner.detractorHeadline;
 
     var bodyEl = document.getElementById('gaDetractorBody');
     if (bodyEl) {
-      bodyEl.textContent =
-        'NPS is below ' +
-        ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD +
-        ' — acknowledge concerns early; keep boarding efficient and empathetic.';
+      var tpl =
+        String(ipcBanner.detractorBodyTemplate || '').replace(
+          /\{threshold\}/g,
+          String(ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD),
+        );
+      bodyEl.textContent = tpl;
     }
     var offerEl = document.getElementById('gaDetractorOffer');
-    if (offerEl) offerEl.textContent = buildDetractorOfferLine(churnHigh, loyaltyLevel, tierRtdb);
+    if (offerEl) offerEl.textContent = buildDetractorOfferLine(churnHigh, loyaltyLevel, tierRtdb, ipcBanner);
 
     var kv = document.getElementById('gaDetractorKv');
     if (kv) {
@@ -489,6 +453,7 @@
       var churnShow = formatScore(churnRaw);
       var loyaltyShow = loyaltyLevel || tierRtdb || '—';
       var tp = travelLine || '—';
+      var fourthDt = escapeHtml(String(ipcBanner.detractorFourthDt || 'Profile highlights'));
       kv.innerHTML =
         '<dt>NPS score</dt><dd>' +
         escapeHtml(npsShow) +
@@ -499,7 +464,9 @@
         '<dt>Loyalty level</dt><dd>' +
         escapeHtml(loyaltyShow || '—') +
         '</dd>' +
-        '<dt>Travel preferences</dt><dd>' +
+        '<dt>' +
+        fourthDt +
+        '</dt><dd>' +
         escapeHtml(tp) +
         '</dd>';
     }
@@ -521,7 +488,7 @@
       if (ex) return ex;
     }
     var full = ((cd.name && String(cd.name).trim()) || (cd.airlineName && String(cd.airlineName).trim()) || '');
-    if (!full) return 'Etihad';
+    if (!full) return String(getMergedIpad().defaultBrandName || 'Experience Cloud');
     var parts = full.split(/\s+/).filter(Boolean);
     if (parts.length === 1) return parts[0];
     var w1 = parts[0];
@@ -549,8 +516,8 @@
     var td = rtdbData.TravelData || {};
     var mb = rtdbData.Mobile || {};
 
-    var ipc = getIpadIndustryCopy();
-    var airlineName = cd.name || cd.airlineName || ipc.defaultAirline;
+    var ipc = getMergedIpad();
+    var airlineName = cd.name || cd.airlineName || ipc.defaultBrandName;
     var agentName = mb.StaffName || sp.AgentName || '—';
     var agentId = mb.StaffId || sp.AgentID || '';
     var agentType = mb.StaffRole || sp.AgentType || '';
@@ -622,15 +589,70 @@
     if (dBanner && !dBanner.hidden) applyDetractorBannerAccentFromRtdb();
   }
 
+  function applyBroadcastButtons(ipc) {
+    var wrap = document.querySelector('.ga-broadcast-btns');
+    if (!wrap || !ipc || !Array.isArray(ipc.broadcastButtons)) return;
+    wrap.innerHTML = ipc.broadcastButtons
+      .map(function (b) {
+        var ev = escapeHtml(String(b.event || ''));
+        var lab = escapeHtml(String(b.label || 'Send'));
+        var ic = b.icon != null ? String(b.icon) : '';
+        return (
+          '<button type="button" class="ga-broadcast-btn" data-event="' +
+          ev +
+          '">' +
+          escapeHtml(ic) +
+          (ic ? ' ' : '') +
+          lab +
+          '</button>'
+        );
+      })
+      .join('');
+  }
+
+  function applyIpadTabAndCardCopy(ipc) {
+    var labels = (ipc && ipc.tabLabels) || {};
+    document.querySelectorAll('.ga-tab[data-tab]').forEach(function (btn) {
+      var key = btn.getAttribute('data-tab');
+      if (!key) return;
+      if (key === 'boarding' && !ipc.showTravelChrome) {
+        btn.hidden = true;
+        return;
+      }
+      btn.hidden = false;
+      var t = labels[key];
+      if (t) btn.textContent = t;
+    });
+    var titles = (ipc && ipc.cardTitles) || {};
+    document.querySelectorAll('[data-ipad-card]').forEach(function (el) {
+      var k = el.getAttribute('data-ipad-card');
+      if (k && titles[k]) el.textContent = titles[k];
+    });
+    var bt = document.getElementById('gaBroadcastTitle');
+    if (bt && ipc.broadcastTitle) bt.textContent = ipc.broadcastTitle;
+    var logo = document.getElementById('gaHeaderLogoEmoji');
+    if (logo && ipc.headerEmoji) logo.textContent = ipc.headerEmoji;
+    var ab = document.getElementById('btnProcessBoarding');
+    var au = document.getElementById('btnOfferUpgrade');
+    var ag = document.getElementById('btnManageBaggage');
+    if (ab && ipc.staffActionBoard) ab.textContent = ipc.staffActionBoard;
+    if (au && ipc.staffActionUpgrade) au.textContent = ipc.staffActionUpgrade;
+    if (ag && ipc.staffActionBaggage) ag.textContent = ipc.staffActionBaggage;
+    var actions = document.getElementById('gaActions');
+    if (actions) actions.hidden = !ipc.showGaActions;
+  }
+
   function applyIndustryToIpad(id) {
     var C = window.AepLabIndustryContext;
     if (!C) return;
-    var resolved = C.INDUSTRIES[id] ? id : 'adobe';
+    var resolved = C.INDUSTRIES[id] ? id : 'generic';
     currentLabIndustryId = resolved;
     var ind = C.INDUSTRIES[resolved];
-    var ipc = getIpadIndustryCopy();
+    var ipc = getMergedIpad();
 
     document.body.dataset.labIndustry = resolved;
+    document.body.classList.toggle('etihad-ipad--travel-chrome', !!ipc.showTravelChrome);
+    document.body.classList.toggle('etihad-ipad--no-travel-chrome', !ipc.showTravelChrome);
     try {
       document.body.style.setProperty('--cc-accent', ind.accent);
       document.body.style.setProperty('--cc-accent-soft', ind.accentSoft);
@@ -650,6 +672,11 @@
     }
     var dh = document.getElementById('gaDetractorHeadline');
     if (dh) dh.textContent = ipc.detractorHeadline;
+
+    applyIpadTabAndCardCopy(ipc);
+    applyBroadcastButtons(ipc);
+
+    if (!ipc.showTravelChrome) activateTab('personal');
 
     var badge = document.getElementById('ccIndustryTabBadge');
     var sel = document.getElementById('ccIndustrySelect');
@@ -693,7 +720,7 @@
     try {
       var hasNew = window.localStorage.getItem(C.STORAGE_KEY);
       var leg = window.localStorage.getItem(C.LEGACY_STORAGE_KEY);
-      if (!hasNew && leg && C.INDUSTRIES[leg]) C.persistIndustry(leg);
+      if (!hasNew && leg) C.persistIndustry(C.normalizeLabIndustryId(leg));
     } catch (eM) {}
 
     if (customizeTabBtn) {
@@ -1073,7 +1100,8 @@
   function renderOffersGrid() {
     var grid = document.getElementById('gaOffersGrid');
     if (!grid) return;
-    grid.innerHTML = OFFERS.map(function (o) {
+    var offers = getMergedIpad().ipadOffers || [];
+    grid.innerHTML = offers.map(function (o) {
       var badge =
         o.badge && o.badge.trim()
           ? '<span class="ga-offer-badge">' + escapeHtml(o.badge) + '</span>'
@@ -1236,6 +1264,8 @@
   }
 
   function activateTab(name) {
+    var ipc = getMergedIpad();
+    if (name === 'boarding' && !ipc.showTravelChrome) name = 'personal';
     document.querySelectorAll('.ga-tab').forEach(function (t) {
       t.classList.toggle('ga-tab--active', t.getAttribute('data-tab') === name);
     });
@@ -1424,7 +1454,7 @@
     showEl('gaProfileHeader', true);
     showEl('gaTabs', true);
     showEl('gaTabPanels', true);
-    showEl('gaActions', true);
+    showEl('gaActions', !!getMergedIpad().showGaActions);
     showEl('gaViewToggle', true);
 
     updateDetractorBanner(rows, data, { npsRaw: npsRaw, churnRaw: churnRaw });

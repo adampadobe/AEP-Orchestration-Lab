@@ -1363,3 +1363,12 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
 .etihad-ipad-page .ipad-ios-faceid .ipad-ios-camera {
   display: none;
 }
+
+/* Industry-agnostic mode: hide gate / boarding chrome (RTDB flight strip still updates but stays off-screen). */
+.etihad-ipad-page.etihad-ipad--no-travel-chrome .ga-flight-strip {
+  display: none;
+}
+
+.etihad-ipad-page.etihad-ipad--no-travel-chrome .ga-active-flight-pill {
+  display: none;
+}
