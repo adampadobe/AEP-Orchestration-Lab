@@ -267,14 +267,168 @@
 
   function rowVal(rows, path) {
     if (!rows || !Array.isArray(rows)) return '';
+    var exact = rows.find(function (row) {
+      var a = row.attribute || '';
+      var p = row.path || '';
+      return a === path || p === path;
+    });
+    if (exact) return exact.value != null ? String(exact.value) : '';
     var tail = path.split('.').pop();
     var r = rows.find(function (row) {
       var a = row.attribute || '';
       var p = row.path || '';
-      return a === path || p === path || a.endsWith('.' + tail) || p.endsWith('.' + tail);
+      return a.endsWith('.' + tail) || p.endsWith('.' + tail);
     });
     if (!r) return '';
     return r.value != null ? String(r.value) : '';
+  }
+
+  /** Normalised path for suffix / keyword scans (aligns with app.js + profile-generation-generic). */
+  function pathLower(row) {
+    return String((row && row.path) || '')
+      .toLowerCase()
+      .replace(/_/g, '.');
+  }
+
+  function findRowValue(rows, testFn) {
+    var r = rows.find(testFn);
+    if (!r || r.value == null) return '';
+    var v = String(r.value).trim();
+    return v || '';
+  }
+
+  function findByPathKeywords(rows, keywords) {
+    var kws = keywords.map(function (k) {
+      return String(k).toLowerCase();
+    });
+    return findRowValue(rows, function (row) {
+      var p = pathLower(row);
+      return kws.every(function (k) {
+        return p.indexOf(k) !== -1;
+      });
+    });
+  }
+
+  function findByPathSuffix(rows, suffixes) {
+    for (var ri = 0; ri < rows.length; ri++) {
+      var row = rows[ri];
+      var p = pathLower(row);
+      for (var si = 0; si < suffixes.length; si++) {
+        var s = String(suffixes[si]).toLowerCase();
+        if (p.endsWith('.' + s) || p.endsWith(s)) {
+          var v = String(row.value != null ? row.value : '').trim();
+          if (v) return v;
+        }
+      }
+    }
+    return '';
+  }
+
+  function composeAddressFromRows(rows) {
+    var street =
+      findByPathSuffix(rows, ['street1', 'address1', 'addressline1']) ||
+      findByPathKeywords(rows, ['address', 'street']);
+    var city = findByPathSuffix(rows, ['city']) || findByPathKeywords(rows, ['address', 'city']);
+    var state = findByPathSuffix(rows, ['state', 'stateprovince', 'region']);
+    var postal = findByPathSuffix(rows, ['postalcode', 'zip', 'zipcode']);
+    var country = findByPathSuffix(rows, ['country', 'countrycode']);
+    var parts = [street, city, state, postal, country].filter(Boolean);
+    return parts.length ? parts.join(', ') : '';
+  }
+
+  /** Phone: standard mixins, then identityMap Phone/SMS, then tenant identification.core.phoneNumber. */
+  function findPhoneFromTableRows(rows) {
+    var v =
+      findByPathSuffix(rows, ['mobilephone.number', 'mobilephonenumber', 'homephone.number']) ||
+      findByPathKeywords(rows, ['mobilephone', 'number']);
+    if (v) return v;
+    v = findByPathSuffix(rows, ['identification.core.phonenumber', 'core.phonenumber']);
+    if (v) return v;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var p = pathLower(row);
+      if (p.indexOf('identitymap') === -1) continue;
+      if (!/\.(id|xid)$/.test(p)) continue;
+      if (!/phone|sms/i.test(p)) continue;
+      var pv = String(row.value != null ? row.value : '').trim();
+      if (pv) return pv;
+    }
+    return '';
+  }
+
+  function pickPreferredLanguage(rows) {
+    return (
+      findByPathSuffix(rows, ['preferences.preferredlanguage', 'preferredlanguage', 'person.preferredlanguage']) ||
+      findByPathKeywords(rows, ['personalemail', 'language']) ||
+      rowVal(rows, 'person.preferredLanguage') ||
+      rowVal(rows, '_demoemea.preferences.language') ||
+      ''
+    );
+  }
+
+  function pickNpsFromRows(rows) {
+    return (
+      findByPathSuffix(rows, ['npsscore', 'scoring.nps']) ||
+      findByPathKeywords(rows, ['scoring', 'nps']) ||
+      rowVal(rows, '_demoemea.scoring.npsScore') ||
+      rowVal(rows, '_demoemea.scoring.nps') ||
+      rowVal(rows, '_demoemea.ai.nps') ||
+      ''
+    );
+  }
+
+  function pickChurnFromRows(rows) {
+    return (
+      findByPathSuffix(rows, ['churn.churnprediction', 'churnprediction', 'churnscore']) ||
+      findByPathKeywords(rows, ['churn', 'prediction']) ||
+      rowVal(rows, '_demoemea.scoring.churn.churnPrediction') ||
+      rowVal(rows, '_demoemea.ai.churnRisk') ||
+      ''
+    );
+  }
+
+  /** Core propensity (0–100), tenant-agnostic path scan. */
+  function pickPropensityFromRows(rows) {
+    return (
+      findByPathKeywords(rows, ['scoring', 'core', 'propensity']) ||
+      findByPathSuffix(rows, ['scoring.core.propensityscore', 'propensityscore']) ||
+      rowVal(rows, '_demoemea.scoring.core.propensityScore') ||
+      rowVal(rows, '_demoemea.ai.propensity') ||
+      ''
+    );
+  }
+
+  /** Seat / travel upgrade propensity — schema leaf when present; no random placeholders. */
+  function pickUpgradePropensityFromRows(rows) {
+    return (
+      findByPathSuffix(rows, [
+        'scoring.travel.propensityforseatupgrade',
+        'propensityforseatupgrade',
+      ]) ||
+      findByPathKeywords(rows, ['travel', 'propensity']) ||
+      rowVal(rows, '_demoemea.scoring.travel.propensityForSeatUpgrade') ||
+      rowVal(rows, '_demoemea.ai.upgradePropensity') ||
+      ''
+    );
+  }
+
+  function pickFlightsYtd(rows) {
+    return (
+      findByPathSuffix(rows, ['flightsytd', 'flightytd', 'flightcountytd']) ||
+      rowVal(rows, '_demoemea.stats.flightsYtd') ||
+      ''
+    );
+  }
+
+  function pickLtv(rows) {
+    return (
+      findByPathKeywords(rows, ['lifetime', 'value']) ||
+      findByPathSuffix(rows, ['orderprofile.lifetimevalue', 'lifetimevalue', 'customerlifetimevalue']) ||
+      findByPathKeywords(rows, ['commerce', 'lifetime']) ||
+      rowVal(rows, '_demoemea.stats.ltv') ||
+      rowVal(rows, '_demoemea.orderProfile.lifetimeValue') ||
+      ''
+    );
   }
 
   function resolveNamespace(identifier) {
@@ -554,17 +708,33 @@
     var last = rowVal(rows, 'person.name.lastName');
     var fullName = (first + ' ' + last).trim() || '—';
 
-    var email = data.profileEmail || rowVal(rows, 'personalEmail.address') || '—';
-    var phone = rowVal(rows, 'mobilePhone.number') || '—';
+    var emailRaw =
+      (data.profileEmail && String(data.profileEmail).trim()) ||
+      rowVal(rows, 'personalEmail.address') ||
+      findByPathSuffix(rows, ['identification.core.email', 'person.emailaddress.address']) ||
+      '';
+    var email = emailRaw || '—';
+    var phone = findPhoneFromTableRows(rows) || rowVal(rows, 'mobilePhone.number') || '';
     var gender = rowVal(rows, 'person.gender') || '';
     var dob = rowVal(rows, 'person.birthDate') || rowVal(rows, 'person.birthDayAndMonth') || '';
     var nationality = rowVal(rows, 'person.nationality') || '—';
-    var addr = [rowVal(rows, 'homeAddress.street1'), rowVal(rows, 'homeAddress.city')]
-      .filter(Boolean)
-      .join(', ') || '—';
-    var lang = rowVal(rows, 'person.preferredLanguage') || rowVal(rows, '_demoemea.preferences.language') || '—';
+    var addr =
+      composeAddressFromRows(rows) ||
+      [rowVal(rows, 'homeAddress.street1'), rowVal(rows, 'homeAddress.city')].filter(Boolean).join(', ') ||
+      rowVal(rows, 'homeAddress.city') ||
+      findByPathSuffix(rows, ['homeaddress.city', 'address.city']) ||
+      '';
+    if (!addr) addr = '—';
+    var lang = pickPreferredLanguage(rows) || '—';
 
-    currentPassengerEmail = (data.profileEmail || rowVal(rows, 'personalEmail.address') || '').trim() || '';
+    var npsRaw = pickNpsFromRows(rows);
+    var churnRaw = pickChurnFromRows(rows);
+    var propensityRaw = pickPropensityFromRows(rows);
+    var upgradeRaw = pickUpgradePropensityFromRows(rows);
+    var flightsYtdRaw = pickFlightsYtd(rows);
+    var ltvRaw = pickLtv(rows);
+
+    currentPassengerEmail = String(emailRaw || '').trim();
 
     var tier = cl.tier || rowVal(rows, '_demoemea.loyalty.tier') || '';
     var miles = cl.miles || cl.balance || rowVal(rows, '_demoemea.loyalty.miles') || '—';
@@ -602,7 +772,7 @@
     setText('gaAge', rowVal(rows, 'person.age') || '—');
     setText('gaNationality', nationality);
     setText('gaEmail', email);
-    setText('gaPhone', phone);
+    setText('gaPhone', phone || '—');
     setText('gaAddress', addr);
     setText('gaLanguage', lang);
 
@@ -627,16 +797,16 @@
     setText('gaMemberSince', cl.memberSince || rowVal(rows, '_demoemea.loyalty.memberSince') || '—');
     setText('gaNextTier', cl.nextTier || rowVal(rows, '_demoemea.loyalty.nextTier') || '—');
     setText('gaMilesNeeded', cl.milesToNext || rowVal(rows, '_demoemea.loyalty.milesNeeded') || '—');
-    setText('gaOrdersYTD', rowVal(rows, '_demoemea.stats.flightsYtd') || '—');
-    setText('gaLTV', rowVal(rows, '_demoemea.stats.ltv') || '—');
-    setText('gaNPS', formatScore(rowVal(rows, '_demoemea.ai.nps')));
-    setText('gaChurn', formatScore(rowVal(rows, '_demoemea.ai.churnRisk')));
-    setText('gaUpgrade', formatScore(rowVal(rows, '_demoemea.ai.upgradePropensity')));
+    setText('gaOrdersYTD', flightsYtdRaw || '—');
+    setText('gaLTV', ltvRaw || '—');
+    setText('gaNPS', formatScore(npsRaw));
+    setText('gaChurn', formatScore(churnRaw));
+    setText('gaUpgrade', formatScore(upgradeRaw));
 
-    setText('gaChurnPref', formatScore(rowVal(rows, '_demoemea.ai.churnRisk')));
-    setText('gaPropensityPref', formatScore(rowVal(rows, '_demoemea.ai.propensity')));
-    setText('gaNPSPref', formatScore(rowVal(rows, '_demoemea.ai.nps')));
-    setText('gaUpgradePref', formatScore(rowVal(rows, '_demoemea.ai.upgradePropensity')));
+    setText('gaChurnPref', formatScore(churnRaw));
+    setText('gaPropensityPref', formatScore(propensityRaw));
+    setText('gaNPSPref', formatScore(npsRaw));
+    setText('gaUpgradePref', formatScore(upgradeRaw));
     setText('gaPrefChannel', rowVal(rows, '_demoemea.preferences.channel') || 'Email');
     setText('gaPrefLang', lang);
 
