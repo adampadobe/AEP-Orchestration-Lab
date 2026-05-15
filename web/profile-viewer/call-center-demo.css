@@ -2566,10 +2566,11 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
 .cc-event-dest-toggle {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.45rem;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.55rem 0.65rem;
+  padding: 0.65rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--cc-border);
   background: var(--cc-card);
@@ -2593,31 +2594,6 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
 .cc-event-dest-toggle:focus-visible {
   outline: 2px solid var(--cc-accent);
   outline-offset: 2px;
-}
-
-.cc-event-dest-toggle-label {
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--cc-muted);
-  max-width: 38%;
-}
-
-@media (max-width: 520px) {
-  .cc-event-dest-toggle-label {
-    max-width: none;
-  }
-}
-
-.cc-event-dest-summary {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--cc-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .cc-event-dest-chevron {
@@ -2644,13 +2620,6 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
 
 .cc-event-dest-panel[hidden] {
   display: none !important;
-}
-
-.cc-event-dest-panel label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--cc-muted);
-  margin-bottom: 0;
 }
 
 .cc-order-stepper {
@@ -3952,6 +3921,20 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
 
 #ccEngagementChartSection {
   padding-top: 4px;
+}
+
+/* Canvas-adjacent shell: Chart.js reads computed CSS elsewhere; this keeps inline/HTML chrome aligned. */
+.cc-engagement-chart-surface {
+  color: var(--dash-text);
+}
+
+/* Dark banking cards use CC ink tokens; dashboard --dash-* on body still targets light paper. */
+body.call-center-demo-page.cc-theme-banking-dark .cc-card--engagement {
+  --dash-text: var(--cc-text);
+  --dash-text-secondary: var(--cc-muted);
+  --dash-muted: var(--cc-muted);
+  --dash-border: var(--cc-bank-border);
+  --dash-surface: var(--cc-bank-elev2);
 }
 
 #ccEventActivityChart {

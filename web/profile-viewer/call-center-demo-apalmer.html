@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css">
-  <link rel="stylesheet" href="call-center-demo.css?v=20260516-engagement-line-buckets">
+  <link rel="stylesheet" href="call-center-demo.css?v=20260515-engagement-chart-tokens">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
@@ -343,20 +343,22 @@
                 </div>
               </div>
               <div class="call-center-pinned-field call-center-pinned-field--target cc-event-dest-field">
+                <label id="ccEventDestFieldLabel" for="ccEventDestToggle">Event destination</label>
+                <span id="ccEventDestSrCurrent" class="visually-hidden" aria-live="polite"></span>
                 <button
                   type="button"
                   class="cc-event-dest-toggle"
                   id="ccEventDestToggle"
                   aria-expanded="false"
+                  aria-haspopup="true"
                   aria-controls="ccEventDestPanel"
+                  aria-labelledby="ccEventDestFieldLabel"
+                  aria-describedby="ccEventDestSrCurrent"
                 >
-                  <span class="cc-event-dest-toggle-label">Event destination</span>
-                  <span class="cc-event-dest-summary" id="ccEventDestSummary" aria-live="polite">—</span>
                   <span class="cc-event-dest-chevron" aria-hidden="true"></span>
                 </button>
                 <div class="cc-event-dest-panel" id="ccEventDestPanel" hidden>
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                  <select id="generatorTarget" aria-labelledby="ccEventDestFieldLabel"></select>
                 </div>
               </div>
               <div class="call-center-pinned-actions">
@@ -544,7 +546,7 @@
                     </div>
                   </div>
                   <p id="ccEngagementChartCaption" class="cc-engagement-chart-caption" hidden></p>
-                  <div id="ccEngagementChartSection" hidden>
+                  <div id="ccEngagementChartSection" class="cc-engagement-chart-surface" hidden>
                     <canvas id="ccEventActivityChart"></canvas>
                     <div id="ccEventActivityLegend" class="cc-engagement-legend"></div>
                   </div>
@@ -990,7 +992,7 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
-  <script src="call-center-demo-apalmer.js?v=20260516-engagement-line-buckets"></script>
+  <script src="call-center-demo-apalmer.js?v=20260515-engagement-chart-tokens"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

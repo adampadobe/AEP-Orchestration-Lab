@@ -936,9 +936,10 @@
     return s === 'Journey Optimizer' || s === 'Email' || s === 'Push' || s === 'SMS';
   }
 
-  function ccReadBodyToken(name, fallback) {
+  function ccReadTokenFrom(el, name, fallback) {
     try {
-      const v = getComputedStyle(document.body).getPropertyValue(name).trim();
+      const node = el && el.nodeType === 1 ? el : document.body;
+      const v = getComputedStyle(node).getPropertyValue(name).trim();
       return v || fallback;
     } catch (_) {
       return fallback;
@@ -1261,11 +1262,16 @@
     if (toggleEl) toggleEl.hidden = false;
 
     const rangeTitle = getCcEngagementRangeTitle(hours);
-    const gridColor = ccReadBodyToken('--dash-border', 'rgba(128,128,128,0.25)');
-    const tickColor = ccReadBodyToken('--dash-muted', 'rgb(110,110,115)');
-    const surf = ccReadBodyToken('--dash-surface', '#ffffff');
-    const lineColorA = ccReadBodyToken('--dash-blue', '#1473e6');
-    const lineColorB = ccReadBodyToken('--dash-success-border', '#2d8c6f');
+    const tokenRoot = sectionEl.closest('.cc-card--engagement') || sectionEl;
+    const readT = (name, fb) => ccReadTokenFrom(tokenRoot, name, fb);
+    const gridColor = readT('--dash-border', 'rgba(128,128,128,0.25)');
+    const tickInk = readT('--dash-text-secondary', readT('--dash-muted', 'rgb(110,110,115)'));
+    const titleInk = readT('--dash-text', 'rgb(15,23,42)');
+    const surf = readT('--dash-surface', '#ffffff');
+    const lineColorA = readT('--dash-blue', '#1473e6');
+    const lineColorB = readT('--dash-success-border', '#2d8c6f');
+    const ttBg = readT('--dash-surface', '#ffffff');
+    const ttBorder = readT('--dash-border', 'rgba(148,163,184,0.45)');
 
     if (ccEventChartInst) {
       ccEventChartInst.destroy();
@@ -1326,7 +1332,7 @@
               offset: true,
               grid: { color: gridColor },
               ticks: {
-                color: tickColor,
+                color: tickInk,
                 maxRotation: spec.numBuckets > 18 ? 50 : 30,
                 minRotation: spec.numBuckets > 18 ? 24 : 0,
                 autoSkip: true,
@@ -1339,7 +1345,7 @@
               max: yb.max,
               grid: { color: gridColor },
               ticks: {
-                color: tickColor,
+                color: tickInk,
                 precision: 0,
                 callback: (v) => (Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)),
               },
@@ -1350,11 +1356,15 @@
             title: {
               display: true,
               text: rangeTitle + ' · ' + spec.bucketPhrase,
-              color: tickColor,
+              color: titleInk,
               font: { size: 12, weight: '600' },
               padding: { bottom: 6, top: 0 },
             },
             tooltip: {
+              backgroundColor: ttBg,
+              titleColor: titleInk,
+              bodyColor: titleInk,
+              borderColor: ttBorder,
               callbacks: {
                 label: (ctx) => {
                   const y = ctx.parsed && typeof ctx.parsed.y === 'number' ? ctx.parsed.y : ctx.raw;
@@ -1372,6 +1382,7 @@
       );
 
       if (legendEl) {
+        legendEl.hidden = false;
         legendEl.innerHTML =
           '<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-line cc-engagement-legend-line--solid" style="border-color:' +
           lineColorA +
@@ -1412,35 +1423,47 @@
         responsive: true,
         maintainAspectRatio: true,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              padding: 10,
+              font: { size: 11 },
+              color: () => ccReadTokenFrom(tokenRoot, '--dash-text', 'rgb(15,23,42)'),
+            },
+          },
           title: {
             display: true,
             text: rangeTitle + ' · by event type',
-            color: tickColor,
+            color: titleInk,
             font: { size: 12, weight: '600' },
             padding: { bottom: 6, top: 0 },
           },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed ?? ctx.raw} events` } },
+          tooltip: {
+            backgroundColor: ttBg,
+            titleColor: titleInk,
+            bodyColor: titleInk,
+            borderColor: ttBorder,
+            callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed ?? ctx.raw} events` },
+          },
         },
         ...(isDoughnut
           ? { cutout: '55%' }
           : {
               indexAxis: 'x',
               scales: {
-                x: { grid: { color: gridColor }, ticks: { color: tickColor, maxRotation: 30, font: { size: 10 } } },
-                y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
+                x: { grid: { color: gridColor }, ticks: { color: tickInk, maxRotation: 30, font: { size: 10 } } },
+                y: { grid: { color: gridColor }, ticks: { color: tickInk }, beginAtZero: true },
               },
             }),
       },
     });
 
     if (legendEl) {
-      legendEl.innerHTML = sorted
-        .map(
-          (e, i) =>
-            `<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background:${colors[i]}"></span>${e[0]} (${e[1]})</span>`,
-        )
-        .join('');
+      legendEl.innerHTML = '';
+      legendEl.hidden = true;
     }
   }
 
@@ -1452,7 +1475,7 @@
   const generatorTargetSelect = document.getElementById('generatorTarget');
   const ccEventDestToggle = document.getElementById('ccEventDestToggle');
   const ccEventDestPanel = document.getElementById('ccEventDestPanel');
-  const ccEventDestSummary = document.getElementById('ccEventDestSummary');
+  const ccEventDestSrCurrent = document.getElementById('ccEventDestSrCurrent');
   const ccEventDestField = document.querySelector('.cc-event-dest-field');
   const ccStatus = document.getElementById('ccStatus');
   const ccScreenPop = document.getElementById('ccScreenPop');
@@ -1487,14 +1510,19 @@
   }
 
   function updateCcEventDestSummary() {
-    if (!ccEventDestSummary || !generatorTargetSelect) return;
+    if (!generatorTargetSelect) return;
     const opt = generatorTargetSelect.options[generatorTargetSelect.selectedIndex];
     const text = opt && opt.textContent ? String(opt.textContent).trim() : '—';
-    ccEventDestSummary.textContent = text || '—';
+    const hasChoice = Boolean(text && text !== '—');
+    if (ccEventDestSrCurrent) {
+      ccEventDestSrCurrent.textContent = hasChoice
+        ? `Current selection: ${text}. Expand or press Enter to change.`
+        : 'No destination selected. Expand to choose a streaming destination.';
+    }
     if (ccEventDestToggle) {
       ccEventDestToggle.setAttribute(
         'title',
-        text && text !== '—' ? `Current: ${text}. Expand to change.` : 'Expand to choose event destination',
+        hasChoice ? `Current: ${text}. Click to change.` : 'Choose event destination',
       );
     }
   }
@@ -1515,6 +1543,17 @@
       const next = !ccEventDestField.classList.contains('cc-event-dest-expanded');
       setCcEventDestExpanded(next);
       if (next && generatorTargetSelect) {
+        window.requestAnimationFrame(() => {
+          generatorTargetSelect.focus();
+        });
+      }
+    });
+    ccEventDestToggle.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (ccEventDestField.classList.contains('cc-event-dest-expanded')) return;
+      e.preventDefault();
+      setCcEventDestExpanded(true);
+      if (generatorTargetSelect) {
         window.requestAnimationFrame(() => {
           generatorTargetSelect.focus();
         });
