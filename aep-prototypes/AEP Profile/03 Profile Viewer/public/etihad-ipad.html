@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css?v=20260513-etihad-ipad-cache">
   <link rel="stylesheet" href="mobile-demo.css?v=20260513-etihad-ipad-cache">
   <link rel="stylesheet" href="etihad-ipad.css?v=20260512-ipad-hero-rtdb">
+  <link rel="stylesheet" href="aep-lab-industry-dock.css?v=20260512-industry-sync">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -34,6 +35,7 @@
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="etihadIpadHeroTitle" class="dashboard-hero-title">Etihad iPad</h2>
+              <p id="etihadIpadHeroSubtitle" class="dashboard-hero-subtitle" hidden></p>
             </header>
           </div>
         </section>
@@ -121,7 +123,7 @@
                             <span class="ga-header-logo" aria-hidden="true">✈️</span>
                             <div>
                               <div class="ga-airline-name" id="gaAirlineName">Etihad Airways</div>
-                              <div class="ga-header-sub">Gate &amp; cabin crew</div>
+                              <div class="ga-header-sub" id="gaHeaderSub">Gate &amp; cabin crew</div>
                             </div>
                             <span id="gaActiveFlightPill" class="ga-active-flight-pill" hidden><span id="gaActiveFlightText">—</span></span>
                           </div>
@@ -145,7 +147,7 @@
                           <div class="ga-detractor-banner-inner">
                             <div class="ga-detractor-main">
                               <div class="ga-detractor-title-row">
-                                <span class="ga-detractor-headline">At-risk guest (detractor)</span>
+                                <span class="ga-detractor-headline" id="gaDetractorHeadline">At-risk guest (detractor)</span>
                               </div>
                               <p class="ga-detractor-body" id="gaDetractorBody"></p>
                               <p class="ga-detractor-offer" id="gaDetractorOffer"></p>
@@ -398,9 +400,34 @@
     </div>
   </div>
 
+  <div class="cc-customize-dock" id="ccCustomizeDock">
+    <button
+      type="button"
+      class="cc-customize-tab"
+      id="ccCustomizeTabBtn"
+      aria-expanded="false"
+      aria-controls="ccCustomizePanel"
+    >
+      <span class="cc-customize-tab-label">Customise</span>
+      <span class="cc-customize-tab-current" id="ccIndustryTabBadge">Adobe &amp; digital experience</span>
+    </button>
+    <div class="cc-customize-panel" id="ccCustomizePanel" role="region" aria-label="Workspace customise" aria-hidden="true">
+      <div class="cc-customize-panel-inner">
+        <div class="cc-customize-field">
+          <label for="ccIndustrySelect">Industry context</label>
+          <p class="cc-customize-field-hint">
+            Same preset as the <a href="call-centre-demo-v1.html">Contact centre</a> lab: retitle the page banner and gate-agent tablet chrome for your vertical. Changes sync across open tabs.
+          </p>
+          <select id="ccIndustrySelect" class="cc-industry-select"></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="firebase-database-config.js?v=20260513-etihad-ipad-cache"></script>
   <script src="aep-global-sandbox.js?v=20260513-etihad-ipad-cache"></script>
-  <script src="etihad-ipad.js?v=20260512-rtdb-slug-normalize"></script>
+  <script src="aep-lab-industry-context.js?v=20260512-industry-sync"></script>
+  <script src="etihad-ipad.js?v=20260512-industry-sync"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260513-etihad-ipad-cache"></script>

@@ -59,6 +59,66 @@
     { title: 'Carbon offset', subtitle: 'Optional add-on', badge: '', grade: 'AA' },
   ];
 
+  /** Industry preset id — shared with Contact centre via AepLabIndustryContext. */
+  var currentLabIndustryId = 'adobe';
+
+  var IPAD_INDUSTRY_COPY = {
+    adobe: {
+      headerSub: 'Demo field team',
+      searchPlaceholder: 'Participant email or loyalty ID',
+      detractorHeadline: 'At-risk participant (detractor)',
+      defaultAirline: 'Experience Cloud',
+    },
+    telco: {
+      headerSub: 'Retail & care desk',
+      searchPlaceholder: 'Account email or line ID',
+      detractorHeadline: 'At-risk subscriber (detractor)',
+      defaultAirline: 'Demo Mobile',
+    },
+    banking: {
+      headerSub: 'Branch service tablet',
+      searchPlaceholder: 'Registered email or customer ID',
+      detractorHeadline: 'At-risk customer (detractor)',
+      defaultAirline: 'Demo Financial',
+    },
+    retail: {
+      headerSub: 'Omni-channel service',
+      searchPlaceholder: 'Shopper email or loyalty ID',
+      detractorHeadline: 'At-risk shopper (detractor)',
+      defaultAirline: 'Demo Retail',
+    },
+    healthcare: {
+      headerSub: 'Member check-in',
+      searchPlaceholder: 'Member email or member ID',
+      detractorHeadline: 'At-risk member (detractor)',
+      defaultAirline: 'Demo Health Plan',
+    },
+    travel: {
+      headerSub: 'Gate & cabin crew',
+      searchPlaceholder: 'Passenger email or loyalty ID',
+      detractorHeadline: 'At-risk guest (detractor)',
+      defaultAirline: 'Etihad Airways',
+    },
+    media: {
+      headerSub: 'Subscriber care',
+      searchPlaceholder: 'Subscriber email or account ID',
+      detractorHeadline: 'At-risk subscriber (detractor)',
+      defaultAirline: 'Demo Streaming',
+    },
+    insurance: {
+      headerSub: 'Policy service desk',
+      searchPlaceholder: 'Policyholder email or policy #',
+      detractorHeadline: 'At-risk policyholder (detractor)',
+      defaultAirline: 'Demo Insurance',
+    },
+    public_sector: {
+      headerSub: 'Front desk',
+      searchPlaceholder: 'Contact email or reference #',
+      detractorHeadline: 'At-risk contact (detractor)',
+      defaultAirline: 'Demo Services',
+    },
+  };
+
   function getFsEl() {
     return (
       document.fullscreenElement ||
@@ -228,6 +288,22 @@
     hdr.style.background = 'linear-gradient(135deg, #' + c + ' 0%, ' + end + ' 100%)';
   }
 
+  function getIpadIndustryCopy() {
+    return IPAD_INDUSTRY_COPY[currentLabIndustryId] || IPAD_INDUSTRY_COPY.adobe;
+  }
+
+  /** When RTDB StaffPortal.Colour is absent, tint the gate-agent header from the shared industry accent. */
+  function applyIndustryHeaderGradientFallback() {
+    var C = window.AepLabIndustryContext;
+    if (!C) {
+      applyHeaderGradient('');
+      return;
+    }
+    var ind = C.INDUSTRIES[currentLabIndustryId] || C.INDUSTRIES.adobe;
+    var hex = String(ind.accent || '#0d66d0').replace(/^#/, '');
+    applyHeaderGradient(hex);
+  }
+
   /** Same source as ga-agent-accent / header: RTDB `StaffPortal.Colour` (6-hex, optional #). */
   function sanitizeRtdbHex6(input) {
     var s = String(input || '')
@@ -393,6 +469,10 @@
     var loyaltyLevel = pickLoyaltyLevelFromRows(rows, tierRtdb);
     var travelLine = buildTravelPrefsSummaryForDetractor(rows, td);
 
+    var ipcBanner = getIpadIndustryCopy();
+    var dh0 = document.getElementById('gaDetractorHeadline');
+    if (dh0) dh0.textContent = ipcBanner.detractorHeadline;
+
     var bodyEl = document.getElementById('gaDetractorBody');
     if (bodyEl) {
       bodyEl.textContent =
@@ -469,7 +549,8 @@
     var td = rtdbData.TravelData || {};
     var mb = rtdbData.Mobile || {};
 
-    var airlineName = cd.name || cd.airlineName || 'Etihad Airways';
+    var ipc = getIpadIndustryCopy();
+    var airlineName = cd.name || cd.airlineName || ipc.defaultAirline;
     var agentName = mb.StaffName || sp.AgentName || '—';
     var agentId = mb.StaffId || sp.AgentID || '';
     var agentType = mb.StaffRole || sp.AgentType || '';
@@ -486,7 +567,8 @@
       else accent.style.borderLeft = '';
     }
 
-    applyHeaderGradient(colour);
+    if (colour) applyHeaderGradient(colour);
+    else applyIndustryHeaderGradientFallback();
 
     var flightNo = td.flightNumber || td.flight || '';
     var route = td.route || [td.origin, td.destination].filter(Boolean).join(' → ') || '—';
@@ -538,6 +620,98 @@
 
     var dBanner = document.getElementById('gaDetractorBanner');
     if (dBanner && !dBanner.hidden) applyDetractorBannerAccentFromRtdb();
+  }
+
+  function applyIndustryToIpad(id) {
+    var C = window.AepLabIndustryContext;
+    if (!C) return;
+    var resolved = C.INDUSTRIES[id] ? id : 'adobe';
+    currentLabIndustryId = resolved;
+    var ind = C.INDUSTRIES[resolved];
+    var ipc = getIpadIndustryCopy();
+
+    document.body.dataset.labIndustry = resolved;
+    try {
+      document.body.style.setProperty('--cc-accent', ind.accent);
+      document.body.style.setProperty('--cc-accent-soft', ind.accentSoft);
+    } catch (eAc) {}
+
+    var subEl = document.getElementById('etihadIpadHeroSubtitle');
+    if (subEl) {
+      subEl.textContent = ind.heroSubtitle || '';
+      subEl.hidden = !subEl.textContent;
+    }
+
+    setText('gaHeaderSub', ipc.headerSub);
+    var si = document.getElementById('gaSearchInput');
+    if (si) {
+      si.placeholder = ipc.searchPlaceholder;
+      si.setAttribute('aria-label', ipc.searchPlaceholder);
+    }
+    var dh = document.getElementById('gaDetractorHeadline');
+    if (dh) dh.textContent = ipc.detractorHeadline;
+
+    var badge = document.getElementById('ccIndustryTabBadge');
+    var sel = document.getElementById('ccIndustrySelect');
+    if (badge) badge.textContent = ind.label;
+    if (sel) sel.value = resolved;
+
+    applyRtdbToShell();
+  }
+
+  function setCustomizeDockOpen(open) {
+    var dock = document.getElementById('ccCustomizeDock');
+    var tab = document.getElementById('ccCustomizeTabBtn');
+    var panel = document.getElementById('ccCustomizePanel');
+    if (!dock) return;
+    dock.classList.toggle('cc-customize-open', !!open);
+    if (tab) tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (panel) panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+
+  function initLabIndustryDock() {
+    var C = window.AepLabIndustryContext;
+    var industrySelect = document.getElementById('ccIndustrySelect');
+    var customizeDock = document.getElementById('ccCustomizeDock');
+    var customizeTabBtn = document.getElementById('ccCustomizeTabBtn');
+    if (!C || !industrySelect || !customizeDock) return;
+
+    industrySelect.innerHTML = '';
+    for (var i = 0; i < C.INDUSTRY_ORDER.length; i++) {
+      var key = C.INDUSTRY_ORDER[i];
+      var def = C.INDUSTRIES[key];
+      if (!def) continue;
+      var opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = def.label;
+      industrySelect.appendChild(opt);
+    }
+
+    currentLabIndustryId = C.loadSavedIndustryId();
+    applyIndustryToIpad(currentLabIndustryId);
+
+    try {
+      var hasNew = window.localStorage.getItem(C.STORAGE_KEY);
+      var leg = window.localStorage.getItem(C.LEGACY_STORAGE_KEY);
+      if (!hasNew && leg && C.INDUSTRIES[leg]) C.persistIndustry(leg);
+    } catch (eM) {}
+
+    if (customizeTabBtn) {
+      customizeTabBtn.addEventListener('click', function () {
+        var next = !customizeDock.classList.contains('cc-customize-open');
+        setCustomizeDockOpen(next);
+      });
+    }
+    industrySelect.addEventListener('change', function () {
+      var sid = industrySelect.value;
+      applyIndustryToIpad(sid);
+      C.persistIndustry(sid);
+    });
+    C.attachCrossPageIndustryListener(function (jid) {
+      if (!C.INDUSTRIES[jid]) return;
+      if (jid === currentLabIndustryId) return;
+      applyIndustryToIpad(jid);
+    });
   }
 
   function updateFlightCountdown(td) {
@@ -1652,6 +1826,7 @@
   applyBezelColour(savedColour || 'space-black');
   applySize(savedSize || '11');
   syncOrientButtons();
+  initLabIndustryDock();
   wireEvents();
   refreshRecentEmailDatalistUi();
   loadRtdbData();

@@ -1,0 +1,114 @@
+/* Bottom customise dock — same structure/classes as contact centre (call-center-demo.css subset). */
+
+body.etihad-ipad-page {
+  --cc-border: var(--dash-border);
+  --cc-text: var(--dash-text);
+  --cc-muted: var(--dash-muted);
+}
+
+.cc-customize-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4300;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.cc-customize-dock * {
+  pointer-events: auto;
+}
+
+.cc-customize-tab {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.35rem 1rem 0.45rem;
+  border: 1px solid var(--cc-border);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: var(--dash-surface);
+  box-shadow: 0 -4px 18px var(--dash-shadow);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cc-text);
+  cursor: pointer;
+  max-width: min(96vw, 520px);
+}
+
+.cc-customize-tab-label {
+  color: var(--cc-muted);
+  font-weight: 600;
+}
+
+.cc-customize-tab-current {
+  color: var(--cc-accent);
+  font-weight: 700;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-customize-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+  background: var(--dash-surface);
+  border-top: 1px solid var(--cc-border);
+  box-shadow: 0 -8px 28px var(--dash-shadow);
+}
+
+.cc-customize-dock.cc-customize-open .cc-customize-panel {
+  max-height: 280px;
+}
+
+.cc-customize-panel-inner {
+  padding: 1rem 1.25rem 1.15rem;
+  max-width: min(720px, 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.cc-customize-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cc-text);
+  margin-bottom: 0.35rem;
+}
+
+.cc-customize-field-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--cc-muted);
+}
+
+.cc-customize-field-hint a {
+  color: var(--dash-blue);
+}
+
+.cc-industry-select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--cc-border);
+  font-size: 0.9rem;
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+}
+
+body.etihad-ipad-page .dashboard-main {
+  padding-bottom: 3.5rem;
+}
