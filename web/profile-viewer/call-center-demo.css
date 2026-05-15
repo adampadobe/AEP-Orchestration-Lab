@@ -705,7 +705,8 @@ body.call-center-demo-page .dashboard-main {
   flex-wrap: wrap;
   padding: 0.55rem 0.85rem;
   border-bottom: 1px solid var(--cc-header-border);
-  background: #fff;
+  /* Default surface; RTDB StaffPortal.Colour may override via inline gradient (color-mix + --dash-surface). */
+  background: var(--dash-surface);
 }
 
 .cc-app-header-left,
@@ -786,6 +787,45 @@ body.call-center-demo-page .dashboard-main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.cc-header-agent {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.cc-header-agent-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  min-width: 0;
+  text-align: right;
+}
+
+.cc-header-agent-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cc-text);
+  max-width: 12rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cc-header-agent-meta {
+  font-size: 0.72rem;
+  color: var(--cc-muted);
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cc-header-agent-meta[hidden] {
+  display: none !important;
 }
 
 .cc-session-strip {

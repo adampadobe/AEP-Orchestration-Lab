@@ -214,7 +214,7 @@
         <h1 class="dashboard-home-page-title-sr">Contact centre workspace — apalmer sandbox demo</h1>
 
         <div class="cc-agent-shell">
-          <header class="cc-app-header">
+          <header class="cc-app-header" id="ccAppHeader">
             <div class="cc-app-header-left">
               <button
                 type="button"
@@ -230,7 +230,7 @@
               </button>
               <div class="cc-brand-lockup">
                 <span class="cc-brand-mark" aria-hidden="true"></span>
-                <span class="cc-brand-name">Experience Care</span>
+                <span class="cc-brand-name" id="ccBrandName">Experience Care</span>
               </div>
             </div>
             <div class="cc-app-header-right">
@@ -238,7 +238,10 @@
               <button type="button" class="cc-header-icon-round" aria-label="Notifications" title="Demo">🔔</button>
               <button type="button" class="cc-header-icon-round" aria-label="Settings" title="Demo">⚙</button>
               <div class="cc-header-agent">
-                <span class="cc-header-agent-name" id="ccAgentName">Alex</span>
+                <div class="cc-header-agent-text">
+                  <span class="cc-header-agent-name" id="ccAgentName">Alex</span>
+                  <span class="cc-header-agent-meta" id="ccAgentMeta" hidden></span>
+                </div>
                 <span class="cc-user-chip" id="ccUserInitials" title="Demo agent">AL</span>
               </div>
             </div>
@@ -972,7 +975,7 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
-  <script src="call-center-demo-apalmer.js?v=20260515-flight-booking"></script>
+  <script src="call-center-demo-apalmer.js?v=20260515-cc-mobile-phone"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

@@ -272,7 +272,11 @@
     btn.addEventListener('click', () => setSelectedChannel(btn.dataset.channel));
   });
 
-  // ─── RTDB helpers ─────────────────────────────────────────────────────────
+  // ─── RTDB helpers (Etihad iPad parity: ajoLookups/{sandbox}, StaffPortal, CoreDemoData, Mobile) ──
+  const CC_DEFAULT_BRAND = 'Experience Care';
+  const CC_DEFAULT_AGENT_NAME = 'Alex';
+  const CC_DEFAULT_AGENT_INITIALS = 'AL';
+
   function getRtdbSandboxName() {
     try {
       if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
@@ -284,6 +288,27 @@
       if (m) return decodeURIComponent(m[1]);
     } catch (_) { /* ignore */ }
     return 'apalmer';
+  }
+
+  /** Same validation as etihad-ipad.js: RTDB `StaffPortal.Colour` (6-hex, optional #). */
+  function sanitizeRtdbHex6(input) {
+    const s = String(input || '')
+      .trim()
+      .replace(/^#/, '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(s)) return '';
+    return '#' + s.toLowerCase();
+  }
+
+  function buildCcTopbarBackgroundCss(hex) {
+    return (
+      'linear-gradient(135deg, ' +
+      'color-mix(in srgb, ' +
+      hex +
+      ' 82%, var(--dash-surface)) 0%, ' +
+      'color-mix(in srgb, ' +
+      hex +
+      ' 42%, var(--dash-surface)) 100%)'
+    );
   }
 
   async function fetchRtdbLookups() {
@@ -298,27 +323,106 @@
     }
   }
 
+  /** Reset top bar + branding + staff line when RTDB is unavailable (accent colours restored via applyIndustry). */
+  function clearRtdbCallCenterChrome() {
+    const hdr = document.getElementById('ccAppHeader');
+    if (hdr) {
+      hdr.style.removeProperty('background');
+      hdr.style.removeProperty('--cc-topbar-accent');
+    }
+    const brandEl = document.getElementById('ccBrandName');
+    if (brandEl) brandEl.textContent = CC_DEFAULT_BRAND;
+    const nameEl = document.getElementById('ccAgentName');
+    if (nameEl) nameEl.textContent = CC_DEFAULT_AGENT_NAME;
+    const initialsEl = document.getElementById('ccUserInitials');
+    if (initialsEl) {
+      initialsEl.textContent = CC_DEFAULT_AGENT_INITIALS;
+      initialsEl.title = 'Demo agent';
+    }
+    const metaEl = document.getElementById('ccAgentMeta');
+    if (metaEl) {
+      metaEl.textContent = '';
+      metaEl.hidden = true;
+    }
+  }
+
   function applyRtdbToAgentUi(rtdb) {
-    if (!rtdb || typeof rtdb !== 'object') return;
+    if (!rtdb || typeof rtdb !== 'object') {
+      clearRtdbCallCenterChrome();
+      applyIndustry(currentIndustryId);
+      return;
+    }
     const sp = rtdb.StaffPortal || {};
     const cd = rtdb.CoreDemoData || {};
+    const mb = rtdb.Mobile || {};
 
-    const agentName = sp.AgentName || sp.agentName || null;
+    const hdr = document.getElementById('ccAppHeader');
+    const hex = sanitizeRtdbHex6(sp.Colour);
+    if (hdr) {
+      if (hex) {
+        hdr.style.setProperty('--cc-topbar-accent', hex);
+        hdr.style.background = buildCcTopbarBackgroundCss(hex);
+      } else {
+        hdr.style.removeProperty('background');
+        hdr.style.removeProperty('--cc-topbar-accent');
+      }
+    }
+
+    /* Same source as etihad-ipad `gaAirlineName`: CoreDemoData.name || CoreDemoData.airlineName (not passenger name). */
+    const brand =
+      (cd.name && String(cd.name).trim()) ||
+      (cd.airlineName && String(cd.airlineName).trim()) ||
+      '';
+    const brandEl = document.getElementById('ccBrandName');
+    if (brandEl) brandEl.textContent = brand || CC_DEFAULT_BRAND;
+
+    const agentNameRaw = mb.StaffName || sp.AgentName || sp.agentName;
+    const agentName = agentNameRaw && String(agentNameRaw).trim();
     if (agentName) {
       const nameEl = document.getElementById('ccAgentName');
       if (nameEl) nameEl.textContent = agentName;
       const initialsEl = document.getElementById('ccUserInitials');
       if (initialsEl) {
-        const parts = String(agentName).trim().split(/\s+/);
-        initialsEl.textContent = parts.map((p) => p[0] || '').join('').slice(0, 2).toUpperCase();
+        const parts = agentName.split(/\s+/);
+        initialsEl.textContent = parts.map((p) => (p[0] || '')).join('').slice(0, 2).toUpperCase();
         initialsEl.title = agentName;
+      }
+    } else {
+      const nameEl = document.getElementById('ccAgentName');
+      if (nameEl) nameEl.textContent = CC_DEFAULT_AGENT_NAME;
+      const initialsEl = document.getElementById('ccUserInitials');
+      if (initialsEl) {
+        initialsEl.textContent = CC_DEFAULT_AGENT_INITIALS;
+        initialsEl.title = 'Demo agent';
       }
     }
 
-    const colour = sp.Colour || cd.Colour || null;
-    if (colour) {
-      document.body.style.setProperty('--cc-accent', colour);
-      document.body.style.setProperty('--cc-accent-soft', colour + '22');
+    const agentId = sp.AgentID != null ? String(sp.AgentID).trim() : '';
+    const agentType =
+      (sp.AgentType && String(sp.AgentType).trim()) ||
+      (mb.StaffRole && String(mb.StaffRole).trim()) ||
+      '';
+    const terminal =
+      (sp.FlightTerminalInfo && String(sp.FlightTerminalInfo).trim()) ||
+      (mb.Terminal && String(mb.Terminal).trim()) ||
+      '';
+    const metaLine = [agentId, agentType, terminal].filter(Boolean).join(' · ');
+    const metaEl = document.getElementById('ccAgentMeta');
+    if (metaEl) {
+      if (metaLine) {
+        metaEl.textContent = metaLine;
+        metaEl.hidden = false;
+      } else {
+        metaEl.textContent = '';
+        metaEl.hidden = true;
+      }
+    }
+
+    if (hex) {
+      document.body.style.setProperty('--cc-accent', hex);
+      document.body.style.setProperty('--cc-accent-soft', 'color-mix(in srgb, ' + hex + ' 16%, var(--dash-surface))');
+    } else {
+      applyIndustry(currentIndustryId);
     }
   }
 
@@ -338,6 +442,37 @@
     } catch (_) {
       return null;
     }
+  }
+
+  /** Exact `path` / `attribute` match for `/api/profile/table` rows (avoids ambiguous `.number` suffix matches). */
+  function ccProfileTableRowVal(rows, path) {
+    if (!rows || !Array.isArray(rows) || !path) return '';
+    const exact = rows.find((row) => {
+      const a = row.attribute || '';
+      const p = row.path || '';
+      return a === path || p === path;
+    });
+    if (exact && exact.value != null) {
+      const s = String(exact.value).trim();
+      if (s) return s;
+    }
+    return '';
+  }
+
+  function extractMobilePhoneNumberFromTablePayload(tablePayload) {
+    const rows = tablePayload && Array.isArray(tablePayload.rows) ? tablePayload.rows : [];
+    const direct =
+      ccProfileTableRowVal(rows, 'mobilePhone.number') ||
+      ccProfileTableRowVal(rows, '_demoemea.mobilePhone.number');
+    if (direct) return direct;
+    const fuzzy = rows.find((row) => {
+      if (row.value == null || String(row.value).trim() === '') return false;
+      const pl = String(row.path || '').toLowerCase().replace(/_/g, '.');
+      const al = String(row.attribute || '').toLowerCase().replace(/_/g, '.');
+      const blob = pl + ' ' + al;
+      return blob.includes('mobilephone') && blob.includes('number');
+    });
+    return fuzzy && fuzzy.value != null ? String(fuzzy.value).trim() : '';
   }
 
   function extractTravelFromRows(tablePayload) {
@@ -472,8 +607,9 @@
     });
   }
 
-  async function fetchAndRenderTravel(email) {
-    const tableData = await fetchProfileTableRows(email);
+  async function fetchAndRenderTravel(email, tableDataPreloaded) {
+    const tableData =
+      tableDataPreloaded != null ? tableDataPreloaded : await fetchProfileTableRows(email);
     const travel = extractTravelFromRows(tableData);
     renderBookingPanel(travel, email);
   }
@@ -1107,22 +1243,31 @@
     return emailFallback || 'Customer';
   }
 
-  /** First phone-like identity from profile graph (consent payload does not set `phone` on lastLookedUpProfile). */
+  /**
+   * Phone for agent cards / hero: `mobilePhone.number` (XDM / table), then `phone` on merged profile,
+   * then phone-like identities (consent graph).
+   * Sourced from `DemoProfileDrawer.getLastLookedUpProfile()` after consent + optional `patchLastProfileOrUpdate({ phone })` from table.
+   */
   function pickPhoneFromProfileIdentities(profile) {
-    if (!profile || profile.phone == null || String(profile.phone).trim() === '') {
-      const ids = profile && profile.identities;
-      if (!Array.isArray(ids)) return '';
-      for (let i = 0; i < ids.length; i += 1) {
-        const id = ids[i];
-        const ns = String(id && id.namespace != null ? id.namespace : '');
-        if (/phone|sms/i.test(ns)) {
-          const v = String(id.value || '').trim();
-          if (v) return v;
-        }
-      }
-      return '';
+    const p = profile || {};
+    if (p.mobilePhone && typeof p.mobilePhone === 'object' && p.mobilePhone.number != null) {
+      const m = String(p.mobilePhone.number).trim();
+      if (m) return m;
     }
-    return String(profile.phone).trim();
+    if (p.phone != null && String(p.phone).trim() !== '') {
+      return String(p.phone).trim();
+    }
+    const ids = p.identities;
+    if (!Array.isArray(ids)) return '';
+    for (let i = 0; i < ids.length; i += 1) {
+      const id = ids[i];
+      const ns = String(id && id.namespace != null ? id.namespace : '');
+      if (/phone|sms/i.test(ns)) {
+        const v = String(id.value || '').trim();
+        if (v) return v;
+      }
+    }
+    return '';
   }
 
   function formatCcCardScalar(val) {
@@ -1144,7 +1289,7 @@
     setElText('ccCardEmail', emailRaw ? emailRaw : '—');
 
     const phoneRaw = pickPhoneFromProfileIdentities(profile || {});
-    setElText('ccCardPhone', phoneRaw ? phoneRaw : 'Unknown');
+    setElText('ccCardPhone', phoneRaw ? phoneRaw : '—');
 
     const cityRaw = formatCcCardScalar(profile && profile.city);
     setElText('ccCardCity', cityRaw ? cityRaw : '—');
@@ -1766,12 +1911,26 @@
               'error',
             );
           }
+          let tablePayload = null;
+          try {
+            tablePayload = await fetchProfileTableRows(email);
+          } catch (_) {
+            tablePayload = null;
+          }
+          const mobileFromTable = extractMobilePhoneNumberFromTablePayload(tablePayload);
+          if (
+            mobileFromTable &&
+            window.AepProfileDrawer &&
+            typeof window.AepProfileDrawer.patchLastProfileOrUpdate === 'function'
+          ) {
+            window.AepProfileDrawer.patchLastProfileOrUpdate({ phone: mobileFromTable });
+          }
           const emailForCards = email;
           window.requestAnimationFrame(() => {
             window.requestAnimationFrame(() => {
+              mirrorAboutCardsFromDrawer();
               applyCcAgentCardsFromLastProfile(emailForCards);
               mirrorProfileToAgentUi();
-              mirrorAboutCardsFromDrawer();
               if (ccScreenPop && ccScreenPopName) {
                 ccScreenPopName.textContent = getCcScreenPopDisplayName(emailForCards);
                 ccScreenPop.hidden = false;
@@ -1780,7 +1939,7 @@
               activateWorkspaceTab('details');
             });
           });
-          void fetchAndRenderTravel(email);
+          void fetchAndRenderTravel(email, tablePayload);
           void fetchAndRenderCcEvents(email);
         } else if (drawerCallOk && !profileFound) {
           setStatus('No profile in store for this email. Try another address or seed data in the sandbox.', 'warn');
@@ -1846,6 +2005,9 @@
   initCcEventDestDisclosure();
   void loadGeneratorTargets();
   void initFromRtdb();
+  window.addEventListener('aep-global-sandbox-change', function () {
+    void initFromRtdb();
+  });
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
     window.AepDemoGeneratorTargets.onSandboxChange(function () {
       void loadGeneratorTargets();
