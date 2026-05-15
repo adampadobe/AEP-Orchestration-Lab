@@ -709,6 +709,95 @@ body.call-center-demo-page .dashboard-main {
   background: var(--dash-surface);
 }
 
+/* RTDB `StaffPortal.Colour` → inline warm/light header gradient: banking/forest chrome may still use
+   light-on-dark ink — switch to dashboard-token paper ink + legible links (see call-center-demo-apalmer.js). */
+.cc-app-header.cc-app-header--rtdb-brand-surface {
+  --cc-header-ink: var(--dash-text);
+  --cc-header-ink-muted: var(--dash-text-secondary);
+  color: var(--cc-header-ink);
+  border-bottom-color: color-mix(in srgb, var(--dash-border) 55%, var(--cc-header-ink-muted));
+}
+
+html[data-aep-theme='dark'] .cc-app-header.cc-app-header--rtdb-brand-surface {
+  /* Global --dash-text stays light in dark theme; header strip is physically light — use deep ink from bg mix */
+  --cc-header-ink: color-mix(in srgb, var(--dash-bg) 90%, var(--dash-text));
+  --cc-header-ink-muted: color-mix(in srgb, var(--dash-bg) 68%, var(--dash-text-secondary));
+  color: var(--cc-header-ink);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-brand-name,
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-agent-name {
+  color: var(--cc-header-ink);
+  font-weight: 700;
+  text-shadow:
+    0 0.06em 0.18em color-mix(in srgb, var(--dash-bg) 28%, transparent),
+    0 0 1px color-mix(in srgb, var(--cc-header-ink) 22%, transparent);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-agent-meta {
+  color: var(--cc-header-ink-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-shadow: 0 0.05em 0.14em color-mix(in srgb, var(--dash-bg) 22%, transparent);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-link {
+  color: color-mix(in srgb, var(--dash-blue) 72%, var(--cc-header-ink));
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+  text-shadow: 0 0.05em 0.16em color-mix(in srgb, var(--dash-bg) 24%, transparent);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-link:hover {
+  color: var(--dash-blue);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-link:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-app-header-right {
+  padding: 0.2rem 0.45rem 0.25rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  background: color-mix(in srgb, var(--dash-surface) 52%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dash-border) 42%, transparent);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-icon-round {
+  border: 1px solid color-mix(in srgb, var(--dash-border) 55%, var(--cc-header-ink));
+  background: color-mix(in srgb, var(--dash-surface) 36%, transparent);
+  color: var(--cc-header-ink);
+  opacity: 1;
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .cc-user-chip {
+  background: color-mix(in srgb, var(--dash-blue) 14%, var(--dash-surface));
+  color: color-mix(in srgb, var(--dash-blue) 88%, var(--cc-header-ink));
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 35%, var(--dash-border));
+  box-shadow: none;
+}
+
+.cc-theme-banking-dark .cc-app-header.cc-app-header--rtdb-brand-surface .cc-user-chip {
+  background: color-mix(in srgb, var(--dash-blue) 18%, var(--dash-surface));
+  color: color-mix(in srgb, var(--dash-blue) 82%, var(--cc-header-ink));
+  border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .call-center-menu-btn.cc-header-menu {
+  border-color: color-mix(in srgb, var(--dash-border) 65%, var(--cc-header-ink));
+  background: color-mix(in srgb, var(--dash-surface) 55%, transparent);
+  color: var(--cc-header-ink);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--dash-bg) 12%, transparent);
+}
+
+.cc-app-header.cc-app-header--rtdb-brand-surface .call-center-menu-btn.cc-header-menu:hover {
+  border-color: color-mix(in srgb, var(--dash-blue) 45%, var(--dash-border));
+  background: color-mix(in srgb, var(--dash-surface) 72%, transparent);
+}
+
 .cc-app-header-left,
 .cc-app-header-right {
   display: flex;
@@ -2994,41 +3083,67 @@ body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field texta
   padding: 0.85rem 1rem;
   border-radius: 18px;
   border: 1px solid var(--cc-bank-border);
-  background: rgba(42, 42, 42, 0.65);
+  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--cc-bank-elev));
   backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dash-border) 65%, transparent);
 }
 
 .cc-chart-title {
   margin: 0 0 0.5rem;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--cc-text);
 }
 
 .cc-chart-note {
   font-weight: 500;
-  color: var(--cc-muted);
+  color: var(--dash-text-secondary);
   font-size: 0.72rem;
+}
+
+.cc-trend-chart-empty {
+  margin: 0 0 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+  background: color-mix(in srgb, var(--dash-surface) 70%, transparent);
+  border: 1px solid var(--dash-border);
 }
 
 .cc-chart-svg-wrap {
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--dash-surface) 88%, var(--cc-bank-elev));
 }
 
-.cc-chart-grid {
-  stroke: rgba(255, 255, 255, 0.06);
+.cc-trend-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cc-trend-chart-grid line {
+  stroke: var(--dash-border);
   stroke-width: 1;
 }
 
-.cc-chart-line--a {
-  stroke: #fb7185;
+.cc-trend-area--a {
+  fill: color-mix(in srgb, var(--dash-blue) 22%, transparent);
 }
 
-.cc-chart-line--b {
-  stroke: #94a3b8;
+.cc-trend-area--b {
+  fill: color-mix(in srgb, var(--dash-text-secondary) 14%, transparent);
+}
+
+.cc-trend-line--a {
+  stroke: var(--dash-blue);
+}
+
+.cc-trend-line--b {
+  stroke: var(--dash-text-secondary);
+  stroke-dasharray: 4 3;
 }
 
 .cc-chart-legend {
@@ -3037,7 +3152,7 @@ body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field texta
   gap: 0.75rem 1rem;
   margin-top: 0.5rem;
   font-size: 0.68rem;
-  color: var(--cc-muted);
+  color: var(--dash-text-secondary);
 }
 
 .cc-chart-dot {
@@ -3050,11 +3165,11 @@ body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field texta
 }
 
 .cc-chart-dot--a {
-  background: #fb7185;
+  background: var(--dash-blue);
 }
 
 .cc-chart-dot--b {
-  background: #94a3b8;
+  background: var(--dash-text-secondary);
 }
 
 .cc-transactions-block {
@@ -3712,42 +3827,127 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
 
 .cc-engagement-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .cc-engagement-head .cc-card-title {
   margin: 0;
+  padding-top: 0.12rem;
+}
+
+.cc-engagement-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-left: auto;
+}
+
+.cc-engagement-dash-field {
+  margin: 0;
+  min-width: 0;
+}
+
+.cc-engagement-dash-field--segmented {
+  flex: 1 1 200px;
+  max-width: 22rem;
+}
+
+.cc-engagement-dash-field label,
+.cc-engagement-dash-field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--dash-text);
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.cc-engagement-dash-input-wrap {
+  box-sizing: border-box;
+  min-height: 2.45rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--dash-border) 35%, transparent);
+}
+
+.cc-engagement-dash-input-wrap:focus-within {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 1px;
+}
+
+.cc-engagement-dash-input-wrap--segmented {
+  padding: 3px;
+  min-height: 2.45rem;
+}
+
+.cc-engagement-range-select {
+  width: 100%;
+  min-width: 10.5rem;
+  flex: 1;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+  padding: 0.45rem 0.35rem;
+  cursor: pointer;
+  accent-color: var(--dash-blue);
 }
 
 .cc-engagement-toggle {
   display: flex;
-  gap: 4px;
+  flex: 1;
+  width: 100%;
+  gap: 2px;
 }
 
 .cc-engagement-toggle-btn {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 9px;
-  border-radius: 6px;
-  border: 1px solid var(--cc-border, #e2e8f0);
+  flex: 1 1 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.4rem 0.35rem;
+  border-radius: calc(var(--dash-radius-sm) - 5px);
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--cc-muted);
+  color: var(--dash-text-secondary);
   cursor: pointer;
-  line-height: 1.5;
+  line-height: 1.35;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .cc-engagement-toggle-btn:hover {
-  border-color: var(--cc-accent, #0d66d0);
-  color: var(--cc-accent, #0d66d0);
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: color-mix(in srgb, var(--dash-border) 55%, transparent);
+}
+
+.cc-engagement-toggle-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 1px;
 }
 
 .cc-engagement-toggle-btn--active {
-  background: var(--cc-accent, #0d66d0);
-  border-color: var(--cc-accent, #0d66d0);
-  color: #fff;
+  background: var(--dash-blue);
+  border-color: color-mix(in srgb, var(--dash-blue) 70%, var(--dash-border));
+  color: var(--menu-nav-active-fg, var(--dash-surface));
+}
+
+.cc-engagement-chart-caption {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--dash-muted);
 }
 
 #ccEngagementChartSection {
@@ -3755,7 +3955,7 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
 }
 
 #ccEventActivityChart {
-  max-height: 200px;
+  max-height: 220px;
 }
 
 .cc-engagement-legend {
@@ -3764,7 +3964,7 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
   gap: 4px 10px;
   margin-top: 10px;
   font-size: 11px;
-  color: var(--cc-text, #1e293b);
+  color: var(--dash-text);
 }
 
 .cc-engagement-legend-item {
@@ -3779,6 +3979,18 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
   height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+.cc-engagement-legend-line {
+  width: 20px;
+  flex-shrink: 0;
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-radius: 1px;
+}
+
+.cc-engagement-legend-line--dash {
+  border-top-style: dashed;
 }
 
 /* ─────────────────────────────────────────────────────
@@ -3797,21 +4009,5 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
 }
 
 .cc-theme-banking-dark .cc-engagement-legend {
-  color: #e2e8f0;
-}
-
-.cc-theme-banking-dark .cc-engagement-toggle-btn {
-  border-color: var(--cc-bank-border);
-  color: var(--cc-muted);
-}
-
-.cc-theme-banking-dark .cc-engagement-toggle-btn:hover {
-  border-color: var(--cc-accent);
-  color: var(--cc-accent);
-}
-
-.cc-theme-banking-dark .cc-engagement-toggle-btn--active {
-  background: var(--cc-accent);
-  border-color: var(--cc-accent);
-  color: #fff;
+  color: var(--dash-text);
 }

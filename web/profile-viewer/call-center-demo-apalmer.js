@@ -329,6 +329,7 @@
     if (hdr) {
       hdr.style.removeProperty('background');
       hdr.style.removeProperty('--cc-topbar-accent');
+      hdr.classList.remove('cc-app-header--rtdb-brand-surface');
     }
     const brandEl = document.getElementById('ccBrandName');
     if (brandEl) brandEl.textContent = CC_DEFAULT_BRAND;
@@ -362,9 +363,11 @@
       if (hex) {
         hdr.style.setProperty('--cc-topbar-accent', hex);
         hdr.style.background = buildCcTopbarBackgroundCss(hex);
+        hdr.classList.add('cc-app-header--rtdb-brand-surface');
       } else {
         hdr.style.removeProperty('background');
         hdr.style.removeProperty('--cc-topbar-accent');
+        hdr.classList.remove('cc-app-header--rtdb-brand-surface');
       }
     }
 
@@ -822,6 +825,7 @@
     renderCcRecentEvents(events);
     renderCcDetailsJourneyActivity(events);
     renderCcEventActivityChart(events);
+    renderCcEngagementTrendChart(events);
     const agentName = (document.getElementById('ccAgentName') || {}).textContent || 'You';
     renderCcActivityFeed(events, agentName);
   }
@@ -864,11 +868,147 @@
   }
 
   /* ── Engagement signals: event activity chart ── */
+  const CC_ENGAGEMENT_DEFAULT_HOURS = 168;
+
   function getCcEngagementHoursBack() {
     const sel = document.getElementById('ccEngagementDateRange');
-    if (!sel) return 24;
+    if (!sel) return CC_ENGAGEMENT_DEFAULT_HOURS;
     const n = Number(sel.value);
-    return Number.isFinite(n) && n > 0 ? n : 24;
+    return Number.isFinite(n) && n > 0 ? n : CC_ENGAGEMENT_DEFAULT_HOURS;
+  }
+
+  function resetCcEngagementRangeToDefault() {
+    const sel = document.getElementById('ccEngagementDateRange');
+    if (sel) sel.value = String(CC_ENGAGEMENT_DEFAULT_HOURS);
+  }
+
+  function getCcEngagementRangeTitle(hours) {
+    const map = {
+      24: 'Last 24 hours',
+      168: 'Last 7 days',
+      720: 'Last 30 days',
+      2160: 'Last 90 days',
+      4320: 'Last 180 days',
+      8760: 'Last 365 days',
+    };
+    return map[hours] || `Last ${hours} hours`;
+  }
+
+  /**
+   * Rolling window [now − hours, now] split into buckets.
+   * ≤24h → hourly; ≤60d → daily; else weekly (so long ranges stay readable).
+   */
+  function getCcEngagementBucketSpec(hoursBack) {
+    const HOUR_MS = 3600000;
+    const rangeMs = hoursBack * HOUR_MS;
+    const days = hoursBack / 24;
+    if (hoursBack <= 24) {
+      return {
+        rangeMs,
+        numBuckets: 24,
+        bucketMs: HOUR_MS,
+        xGranularity: 'hour',
+        bucketPhrase: 'hourly buckets',
+      };
+    }
+    if (days <= 60) {
+      const numBuckets = Math.max(1, Math.ceil(days));
+      return {
+        rangeMs,
+        numBuckets,
+        bucketMs: rangeMs / numBuckets,
+        xGranularity: 'day',
+        bucketPhrase: 'daily buckets',
+      };
+    }
+    const numBuckets = Math.max(1, Math.ceil(days / 7));
+    return {
+      rangeMs,
+      numBuckets,
+      bucketMs: rangeMs / numBuckets,
+      xGranularity: 'week',
+      bucketPhrase: 'weekly buckets',
+    };
+  }
+
+  function ccIsMessagingOrJourneyBucket(ev) {
+    const s = ccGetEventSource(ev);
+    return s === 'Journey Optimizer' || s === 'Email' || s === 'Push' || s === 'SMS';
+  }
+
+  function ccReadBodyToken(name, fallback) {
+    try {
+      const v = getComputedStyle(document.body).getPropertyValue(name).trim();
+      return v || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function ccHexToRgba(hex, alpha) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function ccFormatEngagementAxisLabel(ms, granularity) {
+    const d = new Date(ms);
+    if (granularity === 'hour') {
+      return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    }
+    if (granularity === 'day') {
+      return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  function ccBuildEngagementTimeBuckets(scoped, hoursBack) {
+    const spec = getCcEngagementBucketSpec(hoursBack);
+    const now = Date.now();
+    const windowStart = now - spec.rangeMs;
+    const totals = new Array(spec.numBuckets).fill(0);
+    const messaging = new Array(spec.numBuckets).fill(0);
+    (scoped || []).forEach((ev) => {
+      const ts =
+        ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : NaN;
+      if (!Number.isFinite(ts) || ts < windowStart || ts > now) return;
+      let idx = Math.floor((ts - windowStart) / spec.bucketMs);
+      if (idx < 0) idx = 0;
+      if (idx >= spec.numBuckets) idx = spec.numBuckets - 1;
+      totals[idx] += 1;
+      if (ccIsMessagingOrJourneyBucket(ev)) messaging[idx] += 1;
+    });
+    const labels = [];
+    for (let i = 0; i < spec.numBuckets; i += 1) {
+      const mid = windowStart + i * spec.bucketMs + spec.bucketMs / 2;
+      labels.push(ccFormatEngagementAxisLabel(mid, spec.xGranularity));
+    }
+    return { labels, totals, messaging, spec, windowStart, windowEnd: now };
+  }
+
+  function ccYAxisSoftBounds(seriesArrays) {
+    const flat = [];
+    seriesArrays.forEach((arr) => {
+      (arr || []).forEach((n) => {
+        if (typeof n === 'number' && Number.isFinite(n)) flat.push(n);
+      });
+    });
+    let minV = flat.length ? Math.min(...flat) : 0;
+    let maxV = flat.length ? Math.max(...flat) : 0;
+    if (!Number.isFinite(minV)) minV = 0;
+    if (!Number.isFinite(maxV)) maxV = 0;
+    if (minV === 0 && maxV === 0) return { min: 0, max: 1 };
+    if (minV === maxV) {
+      const bump = minV === 0 ? 1 : Math.max(minV * 0.1, 0.5);
+      return { min: Math.max(0, minV - bump * 0.2), max: maxV + bump };
+    }
+    const span = maxV - minV;
+    const pad = Math.max(span * 0.12, 0.5);
+    return { min: Math.max(0, minV - pad * 0.15), max: maxV + pad };
   }
 
   function refreshCcDrawerEngagementFromRange() {
@@ -893,13 +1033,189 @@
     });
   }
 
+  /* ── Overview: experience-event volume trend (SVG, profile /api/profile/events) ── */
+  const CC_TREND_LEGEND_A = 'Digital touchpoints';
+  const CC_TREND_LEGEND_B = 'Journey & platform';
+
+  function ccTrendScopedEventsFromApi(events) {
+    const hours = getCcEngagementHoursBack();
+    const raw = events || [];
+    if (window.EmailEngagementMetrics && typeof window.EmailEngagementMetrics.filterEventsByDateRange === 'function') {
+      return window.EmailEngagementMetrics.filterEventsByDateRange(raw, hours);
+    }
+    return raw;
+  }
+
+  /** Edge / app / messaging channels vs Journey Optimizer + generic AEP (same buckets as the event table “Source”). */
+  function ccTrendIsDigitalTouchpoint(ev) {
+    const src = ccGetEventSource(ev);
+    return new Set(['Edge Network', 'Mobile', 'Push', 'SMS', 'Email']).has(src);
+  }
+
+  function ccTrendEventTimestamp(ev) {
+    if (ev.timestamp == null) return null;
+    const ts = typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10);
+    if (!Number.isFinite(ts) || ts <= 0) return null;
+    return ts;
+  }
+
+  function ccTrendBinCountForHours(hours) {
+    const h = Number(hours);
+    if (!Number.isFinite(h) || h <= 0) return 6;
+    if (h <= 24) return 6;
+    if (h <= 168) return 7;
+    if (h <= 720) return 10;
+    return 12;
+  }
+
+  function ccTrendHoursLabel(hours) {
+    const h = Number(hours);
+    if (!Number.isFinite(h) || h <= 0) return 'selected window';
+    if (h === 24) return 'last 24 hours';
+    if (h === 168) return 'last 7 days';
+    if (h === 720) return 'last 30 days';
+    if (h === 2160) return 'last 90 days';
+    if (h === 4320) return 'last 180 days';
+    if (h === 8760) return 'last 365 days';
+    return h + ' hours';
+  }
+
+  function renderCcEngagementTrendChart(events) {
+    const emptyEl = document.getElementById('ccTrendChartEmpty');
+    const wrapEl = document.getElementById('ccTrendChartWrap');
+    const noteEl = document.getElementById('ccTrendChartNote');
+    const legendA = document.getElementById('ccTrendLegendA');
+    const legendB = document.getElementById('ccTrendLegendB');
+    const svg = document.getElementById('ccTrendChartSvg');
+    const gridG = document.getElementById('ccTrendChartGrid');
+    const areaA = document.getElementById('ccTrendAreaA');
+    const areaB = document.getElementById('ccTrendAreaB');
+    const lineA = document.getElementById('ccTrendLineA');
+    const lineB = document.getElementById('ccTrendLineB');
+    if (!emptyEl || !wrapEl || !svg || !gridG || !areaA || !areaB || !lineA || !lineB) return;
+
+    const hours = getCcEngagementHoursBack();
+    if (noteEl) {
+      noteEl.textContent = '· ' + ccTrendHoursLabel(hours) + ', from AEP experience events';
+    }
+
+    const profileLoaded = document.body.classList.contains('call-center-profile-loaded');
+    if (!profileLoaded) {
+      emptyEl.hidden = false;
+      emptyEl.textContent =
+        'Load a customer profile to chart experience-event volume over time (same time window as Engagement signals).';
+      wrapEl.hidden = true;
+      if (legendA) {
+        legendA.innerHTML = '<i class="cc-chart-dot cc-chart-dot--a" aria-hidden="true"></i>' + CC_TREND_LEGEND_A;
+      }
+      if (legendB) {
+        legendB.innerHTML = '<i class="cc-chart-dot cc-chart-dot--b" aria-hidden="true"></i>' + CC_TREND_LEGEND_B;
+      }
+      gridG.innerHTML = '';
+      lineA.setAttribute('points', '');
+      lineB.setAttribute('points', '');
+      areaA.setAttribute('points', '');
+      areaB.setAttribute('points', '');
+      return;
+    }
+
+    const scoped = ccTrendScopedEventsFromApi(events);
+    if (scoped.length === 0) {
+      emptyEl.hidden = false;
+      emptyEl.textContent = 'No experience events in this date range for this profile.';
+      wrapEl.hidden = true;
+      if (legendA) {
+        legendA.innerHTML = '<i class="cc-chart-dot cc-chart-dot--a" aria-hidden="true"></i>' + CC_TREND_LEGEND_A + ' · 0';
+      }
+      if (legendB) {
+        legendB.innerHTML = '<i class="cc-chart-dot cc-chart-dot--b" aria-hidden="true"></i>' + CC_TREND_LEGEND_B + ' · 0';
+      }
+      gridG.innerHTML = '';
+      lineA.setAttribute('points', '');
+      lineB.setAttribute('points', '');
+      areaA.setAttribute('points', '');
+      areaB.setAttribute('points', '');
+      return;
+    }
+
+    emptyEl.hidden = true;
+    wrapEl.hidden = false;
+
+    const nBins = ccTrendBinCountForHours(hours);
+    const end = Date.now();
+    const start = end - hours * 3600000;
+    const binMs = (end - start) / nBins;
+    const digital = new Array(nBins).fill(0);
+    const other = new Array(nBins).fill(0);
+
+    scoped.forEach((ev) => {
+      const ts = ccTrendEventTimestamp(ev);
+      if (ts == null || ts < start || ts > end) return;
+      const bin = Math.min(nBins - 1, Math.max(0, Math.floor((ts - start) / binMs)));
+      if (ccTrendIsDigitalTouchpoint(ev)) digital[bin] += 1;
+      else other[bin] += 1;
+    });
+
+    const sumD = digital.reduce((a, b) => a + b, 0);
+    const sumO = other.reduce((a, b) => a + b, 0);
+    if (legendA) {
+      legendA.innerHTML =
+        '<i class="cc-chart-dot cc-chart-dot--a" aria-hidden="true"></i>' + CC_TREND_LEGEND_A + ' (' + sumD + ')';
+    }
+    if (legendB) {
+      legendB.innerHTML =
+        '<i class="cc-chart-dot cc-chart-dot--b" aria-hidden="true"></i>' + CC_TREND_LEGEND_B + ' (' + sumO + ')';
+    }
+
+    const W = 280;
+    const H = 120;
+    const padL = 8;
+    const padR = 8;
+    const padT = 10;
+    const padB = 10;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+    const maxY = Math.max(1, ...digital, ...other);
+
+    const xs = (i) => padL + (nBins === 1 ? innerW / 2 : (i / (nBins - 1)) * innerW);
+    const ys = (v) => padT + innerH * (1 - v / maxY);
+
+    const gridLines = 4;
+    let gridHtml = '';
+    for (let g = 1; g <= gridLines; g += 1) {
+      const y = padT + (innerH * g) / (gridLines + 1);
+      gridHtml += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+    }
+    gridG.innerHTML = gridHtml;
+
+    const buildPoints = (counts) => {
+      const parts = [];
+      for (let i = 0; i < nBins; i += 1) {
+        parts.push(xs(i).toFixed(2) + ',' + ys(counts[i]).toFixed(2));
+      }
+      return parts.join(' ');
+    };
+
+    const polyPoints = (counts) => {
+      const top = buildPoints(counts).split(' ').filter(Boolean);
+      const baseLeft = padL + ',' + (H - padB);
+      const baseRight = W - padR + ',' + (H - padB);
+      return baseLeft + ' ' + top.join(' ') + ' ' + baseRight;
+    };
+
+    lineA.setAttribute('points', buildPoints(digital));
+    lineB.setAttribute('points', buildPoints(other));
+    areaA.setAttribute('points', polyPoints(digital));
+    areaB.setAttribute('points', polyPoints(other));
+  }
+
   const CC_CHART_PALETTE = [
     '#1473e6', '#e68619', '#12805c', '#c9252d', '#7c4dff',
     '#0d66d0', '#d7373f', '#2d9d78', '#e8a735', '#5c6bc0',
     '#00838f', '#ad1457', '#558b2f', '#ef6c00', '#6a1b9a',
   ];
   let ccEventChartInst = null;
-  let ccEventChartMode = 'doughnut';
+  let ccEventChartMode = 'line';
 
   function renderCcEventActivityChart(events) {
     const sectionEl = document.getElementById('ccEngagementChartSection');
@@ -907,6 +1223,7 @@
     const canvas = document.getElementById('ccEventActivityChart');
     const legendEl = document.getElementById('ccEventActivityLegend');
     const toggleEl = document.getElementById('ccEngagementToggle');
+    const captionEl = document.getElementById('ccEngagementChartCaption');
     if (!sectionEl || !canvas) return;
 
     const hours = getCcEngagementHoursBack();
@@ -916,17 +1233,26 @@
         ? window.EmailEngagementMetrics.filterEventsByDateRange(raw, hours)
         : raw;
 
-    const counts = {};
-    scoped.forEach((ev) => {
-      const t = ev.eventName || 'unknown';
-      counts[t] = (counts[t] || 0) + 1;
-    });
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    function setCaption(text, show) {
+      if (!captionEl) return;
+      if (show && text) {
+        captionEl.textContent = text;
+        captionEl.hidden = false;
+      } else {
+        captionEl.textContent = '';
+        captionEl.hidden = true;
+      }
+    }
 
-    if (!sorted.length) {
+    if (!scoped.length) {
+      if (ccEventChartInst) {
+        ccEventChartInst.destroy();
+        ccEventChartInst = null;
+      }
       sectionEl.hidden = true;
       if (emptyEl) emptyEl.hidden = false;
       if (toggleEl) toggleEl.hidden = true;
+      setCaption('', false);
       return;
     }
 
@@ -934,16 +1260,140 @@
     if (emptyEl) emptyEl.hidden = true;
     if (toggleEl) toggleEl.hidden = false;
 
+    const rangeTitle = getCcEngagementRangeTitle(hours);
+    const gridColor = ccReadBodyToken('--dash-border', 'rgba(128,128,128,0.25)');
+    const tickColor = ccReadBodyToken('--dash-muted', 'rgb(110,110,115)');
+    const surf = ccReadBodyToken('--dash-surface', '#ffffff');
+    const lineColorA = ccReadBodyToken('--dash-blue', '#1473e6');
+    const lineColorB = ccReadBodyToken('--dash-success-border', '#2d8c6f');
+
+    if (ccEventChartInst) {
+      ccEventChartInst.destroy();
+      ccEventChartInst = null;
+    }
+
+    const isLine = ccEventChartMode === 'line';
+    const isDoughnut = ccEventChartMode === 'doughnut';
+
+    if (isLine) {
+      const bucketed = ccBuildEngagementTimeBuckets(scoped, hours);
+      const lineLabels = bucketed.labels;
+      const totals = bucketed.totals;
+      const messaging = bucketed.messaging;
+      const spec = bucketed.spec;
+      const yb = ccYAxisSoftBounds([totals, messaging]);
+      const ptR = spec.numBuckets > 48 ? 0 : spec.numBuckets > 24 ? 2 : 3;
+      const fillA = ccHexToRgba(lineColorA, 0.14) || 'rgba(20,115,230,0.14)';
+
+      ccEventChartInst = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: lineLabels,
+          datasets: [
+            {
+              label: 'Total events',
+              data: totals,
+              borderColor: lineColorA,
+              backgroundColor: fillA,
+              fill: true,
+              tension: 0.25,
+              pointRadius: ptR,
+              pointHoverRadius: Math.max(ptR, 4),
+              pointHitRadius: Math.max(10, ptR + 6),
+              borderWidth: 2,
+            },
+            {
+              label: 'Messaging & journeys',
+              data: messaging,
+              borderColor: lineColorB,
+              backgroundColor: 'transparent',
+              fill: false,
+              tension: 0.25,
+              pointRadius: ptR,
+              pointHoverRadius: Math.max(ptR, 4),
+              pointHitRadius: Math.max(10, ptR + 6),
+              borderWidth: 2,
+              borderDash: [5, 4],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              offset: true,
+              grid: { color: gridColor },
+              ticks: {
+                color: tickColor,
+                maxRotation: spec.numBuckets > 18 ? 50 : 30,
+                minRotation: spec.numBuckets > 18 ? 24 : 0,
+                autoSkip: true,
+                maxTicksLimit: spec.xGranularity === 'hour' ? 8 : spec.numBuckets > 20 ? 12 : 14,
+                font: { size: 10 },
+              },
+            },
+            y: {
+              min: yb.min,
+              max: yb.max,
+              grid: { color: gridColor },
+              ticks: {
+                color: tickColor,
+                precision: 0,
+                callback: (v) => (Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)),
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: rangeTitle + ' · ' + spec.bucketPhrase,
+              color: tickColor,
+              font: { size: 12, weight: '600' },
+              padding: { bottom: 6, top: 0 },
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const y = ctx.parsed && typeof ctx.parsed.y === 'number' ? ctx.parsed.y : ctx.raw;
+                  return ` ${ctx.dataset.label}: ${y}`;
+                },
+              },
+            },
+          },
+        },
+      });
+
+      setCaption(
+        `${rangeTitle} — ${spec.bucketPhrase}. Solid: all experience events in the window. Dashed: email, push, SMS, and Journey Optimizer touches.`,
+        true,
+      );
+
+      if (legendEl) {
+        legendEl.innerHTML =
+          '<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-line cc-engagement-legend-line--solid" style="border-color:' +
+          lineColorA +
+          '"></span>Total events</span>' +
+          '<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-line cc-engagement-legend-line--dash" style="border-color:' +
+          lineColorB +
+          '"></span>Messaging &amp; journeys</span>';
+      }
+      return;
+    }
+
+    const counts = {};
+    scoped.forEach((ev) => {
+      const t = ev.eventName || 'unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     const labels = sorted.map((e) => e[0]);
     const data = sorted.map((e) => e[1]);
     const colors = sorted.map((_, i) => CC_CHART_PALETTE[i % CC_CHART_PALETTE.length]);
 
-    if (ccEventChartInst) { ccEventChartInst.destroy(); ccEventChartInst = null; }
-
-    const isDoughnut = ccEventChartMode === 'doughnut';
-    const isDark = document.documentElement.getAttribute('data-aep-theme') === 'dark';
-    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-    const tickColor = isDark ? '#b0b0b0' : '#666';
+    setCaption(`${rangeTitle} — counts by event type (same window as date range).`, true);
 
     ccEventChartInst = new Chart(canvas, {
       type: isDoughnut ? 'doughnut' : 'bar',
@@ -954,7 +1404,7 @@
           data,
           backgroundColor: colors,
           borderWidth: isDoughnut ? 2 : 0,
-          borderColor: isDark ? '#1e1e1e' : '#fff',
+          borderColor: surf,
           borderRadius: isDoughnut ? 0 : 4,
         }],
       },
@@ -963,22 +1413,34 @@
         maintainAspectRatio: true,
         plugins: {
           legend: { display: false },
+          title: {
+            display: true,
+            text: rangeTitle + ' · by event type',
+            color: tickColor,
+            font: { size: 12, weight: '600' },
+            padding: { bottom: 6, top: 0 },
+          },
           tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed ?? ctx.raw} events` } },
         },
-        ...(isDoughnut ? { cutout: '55%' } : {
-          indexAxis: 'x',
-          scales: {
-            x: { grid: { color: gridColor }, ticks: { color: tickColor, maxRotation: 30, font: { size: 10 } } },
-            y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
-          },
-        }),
+        ...(isDoughnut
+          ? { cutout: '55%' }
+          : {
+              indexAxis: 'x',
+              scales: {
+                x: { grid: { color: gridColor }, ticks: { color: tickColor, maxRotation: 30, font: { size: 10 } } },
+                y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
+              },
+            }),
       },
     });
 
     if (legendEl) {
-      legendEl.innerHTML = sorted.map((e, i) =>
-        `<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background:${colors[i]}"></span>${e[0]} (${e[1]})</span>`
-      ).join('');
+      legendEl.innerHTML = sorted
+        .map(
+          (e, i) =>
+            `<span class="cc-engagement-legend-item"><span class="cc-engagement-legend-swatch" style="background:${colors[i]}"></span>${e[0]} (${e[1]})</span>`,
+        )
+        .join('');
     }
   }
 
@@ -1375,6 +1837,8 @@
   }
 
   function resetIdleAgentUi() {
+    document.body.classList.remove('call-center-profile-loaded');
+    window._ccLastEvents = null;
     setElText('ccSessionName', 'No active customer');
     setElText('ccSessionEmail', '—');
     setElText('ccHeroPhoneLine', '—');
@@ -1401,6 +1865,8 @@
     updateFauxCardPan();
     if (ccScreenPop) ccScreenPop.hidden = true;
     if (ccScreenPopName) ccScreenPopName.textContent = '—';
+    renderCcEngagementTrendChart([]);
+    renderCcEventActivityChart([]);
   }
 
   const WORKSPACE_TABS = [
@@ -1442,7 +1908,6 @@
       updateSessionTimerEl();
       resetIdleAgentUi();
       if (ccScreenPop) ccScreenPop.hidden = true;
-      document.body.classList.remove('call-center-profile-loaded');
     });
 
   const ccToggleContact = document.getElementById('ccToggleContact');
@@ -1877,6 +2342,7 @@
         setStatus('Profile drawer script not loaded.', 'error');
         return;
       }
+      resetCcEngagementRangeToDefault();
       queryProfileBtn.disabled = true;
       setStatus('Loading profile from AEP…', '');
       stopSessionTimer();
@@ -1989,13 +2455,17 @@
       });
     }
     const lastEmail = (document.getElementById('customerEmail') || {}).value || '';
-    if (lastEmail) void renderCcEventActivityChart(window._ccLastEvents || []);
+    if (lastEmail) {
+      renderCcEventActivityChart(window._ccLastEvents || []);
+      renderCcEngagementTrendChart(window._ccLastEvents || []);
+    }
   });
 
   const ccEngagementDateRange = document.getElementById('ccEngagementDateRange');
   if (ccEngagementDateRange) {
     ccEngagementDateRange.addEventListener('change', () => {
       renderCcEventActivityChart(window._ccLastEvents || []);
+      renderCcEngagementTrendChart(window._ccLastEvents || []);
       refreshCcDrawerEngagementFromRange();
     });
   }
@@ -2007,12 +2477,33 @@
   void initFromRtdb();
   window.addEventListener('aep-global-sandbox-change', function () {
     void initFromRtdb();
+    resetCcEngagementRangeToDefault();
+    const em = customerEmail ? String(customerEmail.value || '').trim() : '';
+    if (em && document.body.classList.contains('call-center-profile-loaded')) {
+      void fetchAndRenderCcEvents(em);
+    } else {
+      window._ccLastEvents = [];
+      renderCcRecentEvents([]);
+      renderCcDetailsJourneyActivity([]);
+      renderCcEventActivityChart([]);
+      renderCcEngagementTrendChart([]);
+      refreshCcDrawerEngagementFromRange();
+    }
   });
   if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
     window.AepDemoGeneratorTargets.onSandboxChange(function () {
       void loadGeneratorTargets();
     });
   }
+
+  window.addEventListener('aep-theme-change', function () {
+    renderCcEngagementTrendChart(window._ccLastEvents || []);
+    if (window._ccLastEvents && window._ccLastEvents.length) {
+      renderCcEventActivityChart(window._ccLastEvents);
+    }
+  });
+
+  renderCcEngagementTrendChart([]);
 
   function applyCallCenterEmailFromQuery() {
     try {

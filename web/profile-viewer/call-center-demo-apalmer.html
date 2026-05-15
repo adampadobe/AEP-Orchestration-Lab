@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css">
-  <link rel="stylesheet" href="call-center-demo.css">
+  <link rel="stylesheet" href="call-center-demo.css?v=20260516-engagement-line-buckets">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
@@ -379,28 +379,30 @@
                 <span class="cc-faux-card-pan" id="ccFauxCardLast4">···· ···· ···· ——</span>
               </div>
             </div>
-            <div class="cc-chart-panel">
-              <p class="cc-chart-title">Engagement trend <span class="cc-chart-note">(illustrative)</span></p>
-              <div class="cc-chart-svg-wrap">
-                <svg class="cc-chart-svg" viewBox="0 0 280 120" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="ccChartFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stop-color="rgba(225,29,72,0.35)"/>
-                      <stop offset="100%" stop-color="rgba(225,29,72,0)"/>
-                    </linearGradient>
-                  </defs>
-                  <line class="cc-chart-grid" x1="0" y1="24" x2="280" y2="24"/>
-                  <line class="cc-chart-grid" x1="0" y1="48" x2="280" y2="48"/>
-                  <line class="cc-chart-grid" x1="0" y1="72" x2="280" y2="72"/>
-                  <line class="cc-chart-grid" x1="0" y1="96" x2="280" y2="96"/>
-                  <polygon fill="url(#ccChartFill)" points="0,96 40,72 80,88 120,40 160,56 200,32 240,48 280,24 280,120 0,120"/>
-                  <polyline class="cc-chart-line cc-chart-line--a" fill="none" stroke-width="2" points="0,96 40,72 80,88 120,40 160,56 200,32 240,48 280,24"/>
-                  <polyline class="cc-chart-line cc-chart-line--b" fill="none" stroke-width="2" stroke-dasharray="4 3" points="0,104 56,80 112,96 168,64 224,72 280,56"/>
+            <div class="cc-chart-panel" aria-labelledby="ccTrendChartHeading">
+              <p class="cc-chart-title" id="ccTrendChartHeading">
+                Engagement trend
+                <span class="cc-chart-note" id="ccTrendChartNote" aria-live="polite"></span>
+              </p>
+              <p id="ccTrendChartEmpty" class="cc-trend-chart-empty" hidden></p>
+              <div class="cc-chart-svg-wrap" id="ccTrendChartWrap">
+                <svg
+                  id="ccTrendChartSvg"
+                  class="cc-chart-svg cc-trend-chart-svg"
+                  viewBox="0 0 280 120"
+                  role="img"
+                  aria-hidden="true"
+                >
+                  <g id="ccTrendChartGrid" class="cc-trend-chart-grid"></g>
+                  <polygon id="ccTrendAreaA" class="cc-trend-area cc-trend-area--a" points="" />
+                  <polygon id="ccTrendAreaB" class="cc-trend-area cc-trend-area--b" points="" />
+                  <polyline id="ccTrendLineA" class="cc-trend-line cc-trend-line--a" fill="none" stroke-width="2" points="" />
+                  <polyline id="ccTrendLineB" class="cc-trend-line cc-trend-line--b" fill="none" stroke-width="2" points="" />
                 </svg>
               </div>
-              <div class="cc-chart-legend">
-                <span><i class="cc-chart-dot cc-chart-dot--a"></i> Web sessions</span>
-                <span><i class="cc-chart-dot cc-chart-dot--b"></i> Cross-channel</span>
+              <div class="cc-chart-legend" id="ccTrendChartLegend">
+                <span id="ccTrendLegendA"><i class="cc-chart-dot cc-chart-dot--a" aria-hidden="true"></i> Digital touchpoints</span>
+                <span id="ccTrendLegendB"><i class="cc-chart-dot cc-chart-dot--b" aria-hidden="true"></i> Journey &amp; platform</span>
               </div>
             </div>
           </div>
@@ -508,27 +510,40 @@
                   <div class="cc-engagement-head">
                     <h4 class="cc-card-title">Engagement signals</h4>
                     <div class="cc-engagement-tools">
-                      <div class="cc-engagement-range-wrap">
-                        <label class="cc-engagement-range-label" for="ccEngagementDateRange">Date range</label>
-                        <select
-                          id="ccEngagementDateRange"
-                          class="cc-engagement-range-select"
-                          aria-label="Filter engagement by date range"
-                        >
-                          <option value="24" selected>Last 24 hours</option>
-                          <option value="168">Last 7 days</option>
-                          <option value="720">Last 30 days</option>
-                          <option value="2160">Last 90 days</option>
-                          <option value="4320">Last 180 days</option>
-                          <option value="8760">Last 365 days</option>
-                        </select>
+                      <div class="cc-engagement-dash-field">
+                        <label for="ccEngagementDateRange">Date range</label>
+                        <div class="cc-engagement-dash-input-wrap">
+                          <select
+                            id="ccEngagementDateRange"
+                            class="cc-engagement-range-select"
+                            aria-label="Filter engagement by date range"
+                          >
+                            <option value="24">Last 24 hours</option>
+                            <option value="168" selected>Last 7 days</option>
+                            <option value="720">Last 30 days</option>
+                            <option value="2160">Last 90 days</option>
+                            <option value="4320">Last 180 days</option>
+                            <option value="8760">Last 365 days</option>
+                          </select>
+                        </div>
                       </div>
-                      <div class="cc-engagement-toggle" id="ccEngagementToggle" hidden>
-                        <button type="button" class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active" data-cc-chart-type="doughnut" aria-pressed="true">Doughnut</button>
-                        <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="bar-v" aria-pressed="false">Bar</button>
+                      <div class="cc-engagement-dash-field cc-engagement-dash-field--segmented" id="ccEngagementToggle" hidden>
+                        <span class="cc-engagement-dash-field-label" id="ccEngagementChartTypeLabel">Chart type</span>
+                        <div
+                          class="cc-engagement-dash-input-wrap cc-engagement-dash-input-wrap--segmented"
+                          role="group"
+                          aria-labelledby="ccEngagementChartTypeLabel"
+                        >
+                          <div class="cc-engagement-toggle">
+                            <button type="button" class="cc-engagement-toggle-btn cc-engagement-toggle-btn--active" data-cc-chart-type="line" aria-pressed="true">Line</button>
+                            <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="doughnut" aria-pressed="false">Doughnut</button>
+                            <button type="button" class="cc-engagement-toggle-btn" data-cc-chart-type="bar-v" aria-pressed="false">Bar</button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <p id="ccEngagementChartCaption" class="cc-engagement-chart-caption" hidden></p>
                   <div id="ccEngagementChartSection" hidden>
                     <canvas id="ccEventActivityChart"></canvas>
                     <div id="ccEventActivityLegend" class="cc-engagement-legend"></div>
@@ -975,7 +990,7 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
-  <script src="call-center-demo-apalmer.js?v=20260515-cc-mobile-phone"></script>
+  <script src="call-center-demo-apalmer.js?v=20260516-engagement-line-buckets"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>
