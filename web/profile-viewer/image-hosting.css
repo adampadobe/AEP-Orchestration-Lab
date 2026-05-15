@@ -755,3 +755,64 @@
 .image-hosting-conflict-dialog-actions .dashboard-btn-outline {
   min-width: 0;
 }
+
+/* Backup — customer name step (replaces window.prompt) */
+.image-hosting-backup-customer-dialog .image-hosting-restore-dialog-inner {
+  gap: 0.65rem;
+}
+.image-hosting-backup-customer-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+.image-hosting-backup-customer-desc strong {
+  font-weight: 600;
+  color: var(--dash-text);
+}
+.image-hosting-backup-customer-desc code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.88em;
+  padding: 0.08rem 0.28rem;
+  border-radius: 4px;
+  background: var(--dash-input-bg, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+}
+.image-hosting-backup-customer-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  margin-top: 0.15rem;
+}
+.image-hosting-backup-customer-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--dash-input-border, var(--dash-border));
+  border-radius: var(--dash-radius-sm, 10px);
+  background: var(--dash-input-bg, var(--dash-surface));
+  color: var(--dash-text);
+}
+.image-hosting-backup-customer-input:focus {
+  border-color: var(--dash-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue) 28%, transparent);
+}
+.image-hosting-backup-customer-input[aria-invalid="true"] {
+  border-color: var(--dash-error, #d7373f);
+}
+.image-hosting-backup-customer-error {
+  margin: 0;
+  min-height: 1.15em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-error, #d7373f);
+}
+.image-hosting-backup-customer-error[hidden] {
+  display: none !important;
+}
+.image-hosting-backup-customer-actions {
+  margin-top: 0.35rem;
+}

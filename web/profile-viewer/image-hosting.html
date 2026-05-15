@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260501a">
+  <link rel="stylesheet" href="image-hosting.css?v=20260515a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -172,6 +172,22 @@
     </figure>
   </dialog>
 
+  <dialog id="imageHostingBackupCustomerDialog" class="image-hosting-restore-dialog image-hosting-backup-customer-dialog" aria-labelledby="imageHostingBackupCustomerTitle" aria-describedby="imageHostingBackupCustomerDesc">
+    <div class="image-hosting-restore-dialog-inner">
+      <h3 id="imageHostingBackupCustomerTitle">Backup customer images</h3>
+      <p id="imageHostingBackupCustomerDesc" class="image-hosting-backup-customer-desc">
+        Files are saved as <code>logo_&lt;name&gt;.zip</code>. Enter a customer name using <strong>letters, numbers, and hyphens</strong> only (leave blank to use the sandbox name). In Chromium-based browsers you can choose the save location; this lab remembers that folder for the next backup. Other browsers save to the default Downloads folder.
+      </p>
+      <label for="imageHostingBackupCustomerInput" class="image-hosting-backup-customer-label">Customer name</label>
+      <input id="imageHostingBackupCustomerInput" type="text" class="image-hosting-backup-customer-input" autocomplete="organization" spellcheck="false" maxlength="120" aria-invalid="false" aria-describedby="imageHostingBackupCustomerDesc" placeholder="e.g. acme-corp" />
+      <p id="imageHostingBackupCustomerError" class="image-hosting-backup-customer-error" role="alert" hidden></p>
+      <div class="image-hosting-restore-dialog-actions image-hosting-backup-customer-actions">
+        <button type="button" id="imageHostingBackupCustomerCancel" class="dashboard-btn-outline">Cancel</button>
+        <button type="button" id="imageHostingBackupCustomerContinue" class="dashboard-btn-primary">Continue</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="imageHostingBackupDialog" class="image-hosting-restore-dialog" aria-labelledby="imageHostingBackupDialogTitle" aria-describedby="imageHostingBackupDialogStatus">
     <div class="image-hosting-restore-dialog-inner">
       <h3 id="imageHostingBackupDialogTitle">Backing up library to ZIP</h3>
@@ -237,6 +253,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
-  <script src="image-hosting.js?v=20260501a"></script>
+  <script src="image-hosting.js?v=20260515a"></script>
 </body>
 </html>

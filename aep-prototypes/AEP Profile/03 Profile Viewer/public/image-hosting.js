@@ -1892,6 +1892,114 @@
     return 'picker';
   }
 
+  /** Non-empty customer names: letters, numbers, hyphens only (matches prior prompt copy). */
+  var BACKUP_CUSTOMER_NAME_RE = /^[a-zA-Z0-9-]+$/;
+
+  var backupCustomerDlgEl = null;
+  var backupCustomerDlgWired = false;
+  var backupCustomerInputEl = null;
+  var backupCustomerErrorEl = null;
+  var backupCustomerContinueBtn = null;
+  var backupCustomerCancelBtn = null;
+
+  function ensureBackupCustomerDialog() {
+    if (backupCustomerDlgWired) return backupCustomerDlgEl;
+    backupCustomerDlgEl = document.getElementById('imageHostingBackupCustomerDialog');
+    backupCustomerInputEl = document.getElementById('imageHostingBackupCustomerInput');
+    backupCustomerErrorEl = document.getElementById('imageHostingBackupCustomerError');
+    backupCustomerContinueBtn = document.getElementById('imageHostingBackupCustomerContinue');
+    backupCustomerCancelBtn = document.getElementById('imageHostingBackupCustomerCancel');
+    backupCustomerDlgWired = true;
+    return backupCustomerDlgEl;
+  }
+
+  function setBackupCustomerFieldError(message) {
+    if (!backupCustomerErrorEl) return;
+    if (message) {
+      backupCustomerErrorEl.textContent = message;
+      backupCustomerErrorEl.hidden = false;
+      if (backupCustomerInputEl) backupCustomerInputEl.setAttribute('aria-invalid', 'true');
+    } else {
+      backupCustomerErrorEl.textContent = '';
+      backupCustomerErrorEl.hidden = true;
+      if (backupCustomerInputEl) backupCustomerInputEl.setAttribute('aria-invalid', 'false');
+    }
+  }
+
+  /**
+   * @param {string} defaultCustomer
+   * @returns {Promise<string|null>} trimmed value (empty allowed → caller uses sandbox); null if cancelled
+   */
+  function promptBackupCustomerName(defaultCustomer) {
+    var dlg = ensureBackupCustomerDialog();
+    if (!dlg || !backupCustomerInputEl) {
+      try { setStatus('Cannot open backup name dialog — refresh the page.', 'err'); } catch (_e) {}
+      return Promise.resolve(null);
+    }
+
+    return new Promise(function (resolve) {
+      function cleanup() {
+        if (backupCustomerContinueBtn) backupCustomerContinueBtn.removeEventListener('click', onContinue);
+        if (backupCustomerCancelBtn) backupCustomerCancelBtn.removeEventListener('click', onCancel);
+        dlg.removeEventListener('cancel', onDialogCancel);
+        if (backupCustomerInputEl) backupCustomerInputEl.removeEventListener('keydown', onInputKeydown);
+      }
+      function closeDialog() {
+        if (dlg.open) {
+          try { dlg.close(); } catch (_e) { dlg.removeAttribute('open'); }
+        }
+      }
+      function finish(value) {
+        cleanup();
+        closeDialog();
+        resolve(value);
+      }
+      function onCancel() {
+        finish(null);
+      }
+      function onDialogCancel(e) {
+        e.preventDefault();
+        finish(null);
+      }
+      function onContinue() {
+        var raw = backupCustomerInputEl ? String(backupCustomerInputEl.value || '') : '';
+        var v = raw.trim();
+        if (v && !BACKUP_CUSTOMER_NAME_RE.test(v)) {
+          setBackupCustomerFieldError('Use only letters, numbers, and hyphens.');
+          if (backupCustomerInputEl) backupCustomerInputEl.focus();
+          return;
+        }
+        setBackupCustomerFieldError('');
+        finish(v);
+      }
+      function onInputKeydown(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onContinue();
+        }
+      }
+
+      setBackupCustomerFieldError('');
+      backupCustomerInputEl.value = defaultCustomer || '';
+      if (backupCustomerContinueBtn) backupCustomerContinueBtn.addEventListener('click', onContinue);
+      if (backupCustomerCancelBtn) backupCustomerCancelBtn.addEventListener('click', onCancel);
+      dlg.addEventListener('cancel', onDialogCancel);
+      backupCustomerInputEl.addEventListener('keydown', onInputKeydown);
+
+      if (typeof dlg.showModal === 'function' && !dlg.open) {
+        try { dlg.showModal(); } catch (_e) { dlg.setAttribute('open', ''); }
+      } else if (!dlg.open) {
+        dlg.setAttribute('open', '');
+      }
+      setTimeout(function () {
+        if (backupCustomerInputEl) {
+          backupCustomerInputEl.focus();
+          try { backupCustomerInputEl.select(); } catch (_e2) {}
+        }
+      }, 0);
+    });
+  }
+
   async function downloadLibrary() {
     var sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
@@ -1899,12 +2007,7 @@
     try {
       defaultCustomer = localStorage.getItem('imageHostingBackupCustomer') || '';
     } catch (_e) { defaultCustomer = ''; }
-    var customer = window.prompt(
-      'Backup images as logo_<name>.zip\n\n' +
-      'Enter a customer name (letters, numbers, hyphens).\n' +
-      'In Chromium-based browsers you can choose the save location; the app remembers that folder for the next backup. Other browsers save to the default Downloads folder.',
-      defaultCustomer
-    );
+    var customer = await promptBackupCustomerName(defaultCustomer);
     if (customer == null) return;
     customer = String(customer).trim();
     if (!customer) customer = sb;
