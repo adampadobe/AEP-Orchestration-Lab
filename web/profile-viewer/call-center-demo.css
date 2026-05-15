@@ -2491,15 +2491,34 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   cursor: not-allowed;
 }
 
+/* Dark chrome: global --dash-* still follow dashboard paper; remap so CC ink wins */
 .cc-theme-banking-dark .cc-booking-toolbar {
   background: var(--cc-bank-elev2, var(--cc-bank-elev));
   border-color: var(--cc-bank-border, var(--cc-border));
+  --dash-text: var(--cc-text);
+  --dash-text-secondary: var(--cc-muted);
+  --dash-muted: var(--cc-muted);
+  --dash-border: var(--cc-bank-border, var(--cc-border));
+  --dash-surface: var(--cc-bank-elev);
+  --dash-surface-alt: color-mix(in srgb, var(--cc-text) 8%, var(--cc-bank-elev2));
+  --dash-hover: color-mix(in srgb, var(--cc-text) 12%, transparent);
 }
 
 .cc-theme-banking-dark .cc-flight-booking-dialog {
   background: var(--cc-bank-elev, var(--cc-card));
   border-color: var(--cc-bank-border, var(--cc-border));
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
+  color: var(--cc-text);
+  --dash-text: var(--cc-text);
+  --dash-text-secondary: var(--cc-muted);
+  --dash-muted: var(--cc-muted);
+  --dash-border: var(--cc-bank-border, var(--cc-border));
+  --dash-surface: var(--cc-bank-elev2);
+  --dash-surface-alt: color-mix(in srgb, var(--cc-text) 8%, var(--cc-bank-elev));
+  --dash-hover: color-mix(in srgb, var(--cc-text) 12%, transparent);
+  --dash-warning-text: var(--cc-text);
+  --dash-warning-bg: color-mix(in srgb, var(--cc-muted) 22%, transparent);
+  --dash-warning-border: color-mix(in srgb, var(--cc-muted) 45%, var(--cc-bank-border));
 }
 
 .cc-theme-banking-dark .cc-flight-option {
@@ -3141,6 +3160,17 @@ body.call-center-demo-page.cc-theme-banking-dark .call-center-pinned-field texta
   background: var(--dash-text-secondary);
 }
 
+/* Trend chart strip: same dash-token pitfall as booking toolbar (light ink on dark glass) */
+.cc-theme-banking-dark .cc-chart-panel {
+  --dash-text: var(--cc-text);
+  --dash-text-secondary: var(--cc-muted);
+  --dash-muted: var(--cc-muted);
+  --dash-border: var(--cc-bank-border);
+  --dash-surface: var(--cc-bank-elev2);
+  --dash-surface-alt: color-mix(in srgb, var(--cc-text) 10%, var(--cc-bank-elev));
+  --dash-blue: var(--cc-accent);
+}
+
 .cc-transactions-block {
   margin-bottom: 0.85rem;
 }
@@ -3573,6 +3603,40 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-channel-btn:hover:not(.is-a
   color: #f1f5f9;
 }
 
+/* Customise dock uses light paper; banking sets --cc-text for dark chrome — swap to dashboard paper ink */
+.cc-theme-banking-dark .cc-customize-tab {
+  background: var(--dash-surface);
+  color: var(--cc-text-on-light-surface);
+  border-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-customize-tab-label {
+  color: var(--cc-muted-on-light-surface);
+}
+
+.cc-theme-banking-dark .cc-customize-tab-current {
+  color: var(--dash-blue);
+}
+
+.cc-theme-banking-dark .cc-customize-panel {
+  background: var(--dash-surface);
+  border-top-color: var(--cc-bank-border);
+}
+
+.cc-theme-banking-dark .cc-customize-field label {
+  color: var(--cc-text-on-light-surface);
+}
+
+.cc-theme-banking-dark .cc-customize-field-hint {
+  color: var(--cc-muted-on-light-surface);
+}
+
+.cc-theme-banking-dark .cc-industry-select {
+  background: var(--dash-surface-alt);
+  color: var(--cc-text-on-light-surface);
+  border-color: var(--dash-border);
+}
+
 .cc-theme-banking-dark .call-center-panel-title {
   color: #f1f5f9 !important;
 }
@@ -3935,6 +3999,12 @@ body.call-center-demo-page.cc-theme-banking-dark .cc-card--engagement {
   --dash-muted: var(--cc-muted);
   --dash-border: var(--cc-bank-border);
   --dash-surface: var(--cc-bank-elev2);
+  --dash-surface-alt: color-mix(in srgb, var(--cc-text) 8%, var(--cc-bank-elev2));
+  --dash-hover: color-mix(in srgb, var(--cc-text) 12%, transparent);
+  --dash-input-bg: color-mix(in srgb, var(--cc-text) 6%, var(--cc-bank-elev));
+  --dash-input-border: var(--cc-bank-border);
+  /* Segmented control active chip uses --dash-surface as fallback label ink */
+  --menu-nav-active-fg: var(--cc-text);
 }
 
 #ccEventActivityChart {
