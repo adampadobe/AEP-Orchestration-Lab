@@ -1,5 +1,5 @@
 /**
- * Etihad iPad gate-agent lab — bezel colour presets, stage layout, gate-agent UI.
+ * iPad lab (RTDB per sandbox) — bezel colour presets, stage layout, gate-agent workspace UI.
  * Reuses mobile-demo.css bezel / viewport classes. Hardware chrome: decorative only.
  */
 .etihad-ipad-main {

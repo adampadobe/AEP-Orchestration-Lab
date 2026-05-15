@@ -1,5 +1,5 @@
 /**
- * Etihad iPad gate-agent lab: RTDB ajoLookups/{sandbox} + GET /api/profile/table + POST /api/ipad/event.
+ * Etihad iPad lab: RTDB ajoLookups/{sandbox} + GET /api/profile/table + POST /api/ipad/event.
  */
 (function () {
   'use strict';
@@ -431,6 +431,38 @@
     }
   }
 
+  /** Banner title: "{customer} iPad" from RTDB CoreDemoData (shortName / brand / name / airlineName). */
+  function ipadHeroCustomerLabel(cd) {
+    cd = cd || {};
+    var i;
+    var extras = [cd.shortName, cd.brand, cd.customerShortName];
+    for (i = 0; i < extras.length; i++) {
+      var ex = extras[i] != null ? String(extras[i]).trim() : '';
+      if (ex) return ex;
+    }
+    var full = ((cd.name && String(cd.name).trim()) || (cd.airlineName && String(cd.airlineName).trim()) || '');
+    if (!full) return 'Etihad';
+    var parts = full.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0];
+    var w1 = parts[0];
+    var w2 = parts[1];
+    if (/^(airways|airlines|air)$/i.test(w2)) return w1;
+    if (parts.length === 2) return w1 + ' ' + w2;
+    return w1;
+  }
+
+  function applyIpadHeroTitleFromRtdb(cd) {
+    var customer = ipadHeroCustomerLabel(cd);
+    var label = customer + ' iPad';
+    var heroEl = document.getElementById('etihadIpadHeroTitle');
+    if (heroEl) heroEl.textContent = label;
+    try {
+      document.title = customer + ' · iPad – AEP Profile Viewer';
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function applyRtdbToShell() {
     var sp = rtdbData.StaffPortal || {};
     var cd = rtdbData.CoreDemoData || {};
@@ -501,6 +533,8 @@
 
     updateFlightCountdown(td);
     setText('ipadSandboxLabel', getSandboxName() || '—');
+
+    applyIpadHeroTitleFromRtdb(cd);
 
     var dBanner = document.getElementById('gaDetractorBanner');
     if (dBanner && !dBanner.hidden) applyDetractorBannerAccentFromRtdb();
