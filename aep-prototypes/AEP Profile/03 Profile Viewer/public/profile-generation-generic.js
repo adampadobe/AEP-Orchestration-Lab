@@ -74,6 +74,7 @@
 
   // Base email + counter + actions ("Generate from your base email" sub-block)
   const baseEmailEl = document.getElementById('genBaseEmail');
+  const mobilePhoneEl = document.getElementById('genMobilePhone');
   const counterEl = document.getElementById('genCounter');
   const generateCountEl = document.getElementById('genGenerateCount');
   const emailPreviewEl = document.getElementById('genEmailPreview');
@@ -1134,6 +1135,7 @@
     return {
       firstName: trimVal(firstNameEl),
       lastName: trimVal(lastNameEl),
+      mobilePhone: trimVal(mobilePhoneEl),
       birthDate: trimVal(birthDateEl),
       age: trimVal(ageEl),
       gender: trimVal(genderEl),
@@ -1167,6 +1169,11 @@
     if (firstName) push('person.name.firstName', firstName);
     const lastName = trimVal(lastNameEl);
     if (lastName) push('person.name.lastName', lastName);
+
+    // Phone — root `mobilePhone` mixin (same path as legacy /api/profile/generate
+    // in profile-generation.js and profile table reads like `mobilePhone.number`).
+    const mobilePhone = trimVal(mobilePhoneEl);
+    if (mobilePhone) push('mobilePhone.number', mobilePhone);
 
     // Birth date + age. Stream both leaves whenever either has a value;
     // re-derive age from birthDate at push time so the two never drift
@@ -1406,6 +1413,8 @@
       findByKeywords('personalemail', 'language') ||
       findBySuffix(['language', 'locale']);
     let gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
+    let mobilePhone = findBySuffix(['mobilephone.number', 'mobilephonenumber']) ||
+      findByKeywords('mobilephone', 'number');
     let preferredChannel = findBySuffix(['marketing.preferred']);
 
     // Loyalty (dual-written by buildUpdatesFromForm to both the standard
@@ -1456,6 +1465,14 @@
         if (v != null) lang = String(v);
       }
       if (!gender) { const v = get(entity, 'person.gender'); if (v != null) gender = String(v); }
+      if (!mobilePhone) {
+        let v = get(entity, 'mobilePhone.number');
+        if (v == null && entity.mobilePhone && typeof entity.mobilePhone === 'object') {
+          v = entity.mobilePhone.number;
+        }
+        if (v == null) v = get(tenant, 'mobilePhone.number');
+        if (v != null) mobilePhone = String(v);
+      }
       if (!preferredChannel) {
         const v = get(entity, 'consents.marketing.preferred');
         if (v != null) preferredChannel = String(v);
@@ -1471,6 +1488,7 @@
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
+    if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
     // Birth date / age. Prefer birthDate (the source of truth) and re-derive
     // age from it; fall back to whatever age leaf the lookup returned. Leave
     // birthDate blank when only age is known — we can't reliably back-derive
@@ -1659,7 +1677,11 @@
     if (!streaming) return;
     const updates = buildUpdatesFromForm();
     if (!updates.length) {
-      setMessage(messageEl, 'No fields to update — fill at least one Customer Analytics field.', 'warning');
+      setMessage(
+        messageEl,
+        'No fields to update — fill identity, mobile phone, Customer Analytics, or mark test profile.',
+        'warning'
+      );
       return;
     }
     updateProfileBtn.disabled = true;
@@ -1816,6 +1838,7 @@
       const name = `${snap.firstName || ''} ${snap.lastName || ''}`.trim();
       parts.push(snap.age ? `${name} (${snap.age})` : name);
     }
+    if (snap.mobilePhone) parts.push(snap.mobilePhone);
     if (snap.gender) parts.push(snap.gender);
     if (snap.loyalty && snap.loyalty.enabled) {
       const lp = [];
@@ -1890,6 +1913,7 @@
     // Identity
     if (firstNameEl) firstNameEl.value = s.firstName || '';
     if (lastNameEl) lastNameEl.value = s.lastName || '';
+    if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
     if (birthDateEl) birthDateEl.value = s.birthDate || '';
     if (ageEl) ageEl.value = s.age || '';
     // Analytics
