@@ -308,6 +308,7 @@
       lookupBtn: 'retailLookupBtn',
       lookupRecent: 'retailLookupIdentifierRecent',
       baseEmail: 'retailBaseEmail',
+      mobilePhone: 'retailMobilePhone',
       counter: 'retailCounter',
       generateCount: 'retailGenerateCount',
       emailPreview: 'retailEmailPreview',

@@ -241,6 +241,7 @@
       lookupBtn: 'telecomLookupBtn',
       lookupRecent: 'telecomLookupIdentifierRecent',
       baseEmail: 'telecomBaseEmail',
+      mobilePhone: 'telecomMobilePhone',
       counter: 'telecomCounter',
       generateCount: 'telecomGenerateCount',
       emailPreview: 'telecomEmailPreview',

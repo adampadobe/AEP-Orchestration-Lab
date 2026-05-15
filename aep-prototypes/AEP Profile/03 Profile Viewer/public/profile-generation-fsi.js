@@ -349,6 +349,7 @@
       lookupRecent: 'fsiLookupIdentifierRecent',
 
       baseEmail: 'fsiBaseEmail',
+      mobilePhone: 'fsiMobilePhone',
       counter: 'fsiCounter',
       generateCount: 'fsiGenerateCount',
       emailPreview: 'fsiEmailPreview',

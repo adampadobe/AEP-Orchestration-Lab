@@ -202,6 +202,7 @@
       lookupBtn: 'mediaLookupBtn',
       lookupRecent: 'mediaLookupIdentifierRecent',
       baseEmail: 'mediaBaseEmail',
+      mobilePhone: 'mediaMobilePhone',
       counter: 'mediaCounter',
       generateCount: 'mediaGenerateCount',
       emailPreview: 'mediaEmailPreview',

@@ -228,6 +228,16 @@
     baseEmailEl.value = Shared.readBaseEmail(getSandboxName());
   }
 
+  function loadBaseMobileForCurrentSandbox() {
+    if (!mobilePhoneEl) return;
+    mobilePhoneEl.value = Shared.readBaseMobile(getSandboxName());
+  }
+
+  function persistBaseMobile() {
+    if (!mobilePhoneEl) return;
+    Shared.writeBaseMobile(getSandboxName(), mobilePhoneEl.value || '');
+  }
+
   function querySuffix(extra) {
     const params = new URLSearchParams();
     const sb = getSandboxName();
@@ -2010,6 +2020,11 @@
     });
     baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
   }
+  if (mobilePhoneEl) {
+    mobilePhoneEl.addEventListener('input', persistBaseMobile);
+    mobilePhoneEl.addEventListener('change', persistBaseMobile);
+    mobilePhoneEl.addEventListener('blur', persistBaseMobile);
+  }
   if (counterEl) {
     counterEl.addEventListener('input', () => {
       const n = parseInt(counterEl.value || '1', 10) || 1;
@@ -2138,6 +2153,7 @@
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
     loadBaseEmailForCurrentSandbox();
+    loadBaseMobileForCurrentSandbox();
     loadCounterForCurrentContext();
     renderRecent();
   }
@@ -2150,6 +2166,7 @@
   // emits aep-generic-panel-shown — that's a good cue to refresh the picker
   // (the panel was hidden on initial load so the table wasn't drawn).
   window.addEventListener('aep-generic-panel-shown', () => {
+    loadBaseMobileForCurrentSandbox();
     renderRecent();
     applyLoyaltyToggleVisibility();
     // Reflect the current configured state in the wizard <details> on the
@@ -2167,6 +2184,7 @@
 
   // Restore base email for the current sandbox before the counter so the counter partition matches.
   loadBaseEmailForCurrentSandbox();
+  loadBaseMobileForCurrentSandbox();
 
   // Initial render (labels + Edge-style slider tints)
   if (churnEl) syncChurnSlider();

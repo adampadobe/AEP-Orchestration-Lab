@@ -66,6 +66,7 @@
 
   // Base email + counter + actions
   const baseEmailEl = document.getElementById('travelBaseEmail');
+  const mobilePhoneEl = document.getElementById('travelMobilePhone');
   const counterEl = document.getElementById('travelCounter');
   const generateCountEl = document.getElementById('travelGenerateCount');
   const emailPreviewEl = document.getElementById('travelEmailPreview');
@@ -286,6 +287,16 @@
   function loadBaseEmailForCurrentSandbox() {
     if (!baseEmailEl) return;
     baseEmailEl.value = Shared.readBaseEmail(getSandboxName());
+  }
+
+  function loadBaseMobileForCurrentSandbox() {
+    if (!mobilePhoneEl) return;
+    mobilePhoneEl.value = Shared.readBaseMobile(getSandboxName());
+  }
+
+  function persistBaseMobile() {
+    if (!mobilePhoneEl) return;
+    Shared.writeBaseMobile(getSandboxName(), mobilePhoneEl.value || '');
   }
 
   function querySuffix(extra) {
@@ -1619,6 +1630,7 @@
     return {
       firstName: trimVal(firstNameEl),
       lastName: trimVal(lastNameEl),
+      mobilePhone: trimVal(mobilePhoneEl),
       birthDate: trimVal(birthDateEl),
       age: trimVal(ageEl),
       gender: trimVal(genderEl),
@@ -1723,14 +1735,28 @@
    * and `travelReservations.*`. The proxy auto-prefixes paths whose top
    * segment isn't in PROFILE_STREAM_ROOT_PATH_PREFIXES with the discovered
    * tenant XDM key (e.g. `_demoemea`), so we only specify suffixes here.
+   *
+   * @param {string} [identityEmailForStream] Same trimmed string POSTed as `body.email` /
+   *   merged server-side to `_<xdmKey>.identification.core.email` — mirror onto root `personalEmail.address`.
    */
-  function buildUpdatesFromForm() {
+  function buildUpdatesFromForm(identityEmailForStream) {
     const updates = [];
     const push = (path, value, valueType) => {
       const row = { path, value };
       if (valueType) row.valueType = String(valueType);
       updates.push(row);
     };
+
+    const identificationEmail =
+      identityEmailForStream != null && typeof identityEmailForStream === 'string'
+        ? identityEmailForStream.trim()
+        : '';
+    if (identificationEmail) {
+      push('personalEmail.address', identificationEmail);
+    }
+
+    const mobilePhone = trimVal(mobilePhoneEl);
+    if (mobilePhone) push('mobilePhone.number', mobilePhone);
 
     // Identity (root via PROFILE_STREAM_ROOT_PATH_PREFIXES)
     const firstName = trimVal(firstNameEl);
@@ -2034,7 +2060,7 @@
         payloadPreviewPre.textContent = '// Enter a base email to preview the scaled recipient for Update / Generate.';
         return;
       }
-      const updates = buildUpdatesFromForm();
+      const updates = buildUpdatesFromForm(email);
       const sb = getSandboxName();
       const streaming = getStreamingPayload();
       const dryRun = !!(dryRunEl && dryRunEl.checked);
@@ -2120,6 +2146,51 @@
     const points = findByKeywords('loyalty', 'points') ||
       findByKeywords('loyaltydetails', 'points');
 
+    let mobilePhone = findBySuffix(['mobilephone.number', 'mobilephonenumber']) ||
+      findByKeywords('mobilephone', 'number');
+    let identificationEmailLookup = findBySuffix(['identification.core.email']);
+    let personalEmailAddressLookup = findBySuffix(['personalemail.address']);
+
+    if (!rows) {
+      let entity = null;
+      if (found.entity && typeof found.entity === 'object') entity = found.entity;
+      if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
+      if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
+      if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
+      if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
+      if (entity) {
+        const get = (obj, path) => {
+          const keys = path.split('.');
+          let cur = obj;
+          for (const k of keys) {
+            if (cur == null || typeof cur !== 'object') return undefined;
+            cur = cur[k];
+          }
+          return cur;
+        };
+        const tenantKey = Object.keys(entity).find((k) => k.startsWith('_'));
+        const tenant = tenantKey && entity[tenantKey] && typeof entity[tenantKey] === 'object'
+          ? entity[tenantKey]
+          : {};
+        if (!mobilePhone) {
+          let v = get(entity, 'mobilePhone.number');
+          if (v == null && entity.mobilePhone && typeof entity.mobilePhone === 'object') {
+            v = entity.mobilePhone.number;
+          }
+          if (v == null) v = get(tenant, 'mobilePhone.number');
+          if (v != null) mobilePhone = String(v);
+        }
+        if (!identificationEmailLookup) {
+          const v = get(tenant, 'identification.core.email');
+          if (v != null) identificationEmailLookup = String(v).trim();
+        }
+        if (!personalEmailAddressLookup) {
+          const v = get(entity, 'personalEmail.address');
+          if (v != null) personalEmailAddressLookup = String(v).trim();
+        }
+      }
+    }
+
     // Travel — favourite airline / primary travel class are operator-only fields
     // (not in schema today), but if a previous tool happened to write them we
     // still hydrate so the operator sees something familiar.
@@ -2184,6 +2255,7 @@
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
+    if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
     // Birth date / age. Prefer birthDate (source of truth, age re-derived
     // on push). Leave birthDate blank when only age is known.
     if (birthDate && birthDateEl) {
@@ -2284,6 +2356,19 @@
     setCb(prefSmokingVehicleEl, prefSmokingVehicle);
     setCb(prefVisuallyImpairedEl, prefVisuallyImpaired);
     setCb(prefWheelchairEl, prefWheelchair);
+
+    if (
+      baseEmailEl &&
+      !trim(identificationEmailLookup) &&
+      trim(personalEmailAddressLookup)
+    ) {
+      const seed = trim(personalEmailAddressLookup);
+      baseEmailEl.value = seed;
+      try {
+        Shared.writeBaseEmail(getSandboxName(), seed);
+      } catch (_) { /* ignore */ }
+      loadCounterForCurrentContext();
+    }
   }
 
   function setSelectValueLoose(selectEl, raw) {
@@ -2412,9 +2497,9 @@
     }
     const streaming = ensureStreamingReady();
     if (!streaming) return;
-    const updates = buildUpdatesFromForm();
+    const updates = buildUpdatesFromForm(email);
     if (!updates.length) {
-      setMessage(messageEl, 'No fields to update — fill at least one Customer Analytics or Travel field.', 'warning');
+      setMessage(messageEl, 'No fields to update — fill identity, mobile phone, Customer Analytics, or Travel fields.', 'warning');
       return;
     }
     updateProfileBtn.disabled = true;
@@ -2468,7 +2553,7 @@
         lastEmail = email;
         try {
           applyRandomCustomerPersonaForGenerate();
-          const updates = buildUpdatesFromForm();
+          const updates = buildUpdatesFromForm(email);
           if (!updates.length) {
             lastError = 'Could not build profile fields after randomization — check form configuration.';
             break;
@@ -2559,6 +2644,7 @@
       const name = `${snap.firstName || ''} ${snap.lastName || ''}`.trim();
       parts.push(snap.age ? `${name} (${snap.age})` : name);
     }
+    if (snap.mobilePhone) parts.push(snap.mobilePhone);
     if (snap.gender) parts.push(snap.gender);
     const t = snap.travel || {};
     // Flight route is the most identifiable bit — show it first if we streamed
@@ -2650,6 +2736,7 @@
     const s = entry.snapshot;
     if (firstNameEl) firstNameEl.value = s.firstName || '';
     if (lastNameEl) lastNameEl.value = s.lastName || '';
+    if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
     if (birthDateEl) birthDateEl.value = s.birthDate || '';
     if (ageEl) ageEl.value = s.age || '';
     if (genderEl) genderEl.value = s.gender || '';
@@ -2783,6 +2870,11 @@
     });
     baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
   }
+  if (mobilePhoneEl) {
+    mobilePhoneEl.addEventListener('input', persistBaseMobile);
+    mobilePhoneEl.addEventListener('change', persistBaseMobile);
+    mobilePhoneEl.addEventListener('blur', persistBaseMobile);
+  }
   if (counterEl) {
     counterEl.addEventListener('input', () => {
       const n = parseInt(counterEl.value || '1', 10) || 1;
@@ -2892,6 +2984,7 @@
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
     loadBaseEmailForCurrentSandbox();
+    loadBaseMobileForCurrentSandbox();
     loadCounterForCurrentContext();
     renderRecent();
   }
@@ -2899,6 +2992,7 @@
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
 
   window.addEventListener('aep-travel-panel-shown', () => {
+    loadBaseMobileForCurrentSandbox();
     renderRecent();
     applyLoyaltyToggleVisibility();
     applyRecentStayToggleVisibility();
@@ -2915,6 +3009,7 @@
   });
 
   loadBaseEmailForCurrentSandbox();
+  loadBaseMobileForCurrentSandbox();
   if (churnEl) syncChurnSlider();
   if (propensityEl) syncPropensitySlider();
   if (aovEl) syncAovSlider();

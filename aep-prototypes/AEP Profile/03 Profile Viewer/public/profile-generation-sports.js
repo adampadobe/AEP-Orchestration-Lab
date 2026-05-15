@@ -182,6 +182,7 @@
       lookupBtn: 'sportsLookupBtn',
       lookupRecent: 'sportsLookupIdentifierRecent',
       baseEmail: 'sportsBaseEmail',
+      mobilePhone: 'sportsMobilePhone',
       counter: 'sportsCounter',
       generateCount: 'sportsGenerateCount',
       emailPreview: 'sportsEmailPreview',

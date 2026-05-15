@@ -21,8 +21,9 @@
  *     panelShownEvent: 'aep-fsi-panel-shown',
  *     apiPathPrefix: 'fsi-profile',
  *     defaultFlowName: 'AEP Lab - FSI Profile - Dataflow',
- *     ids: { ...all DOM ids the runtime needs..., markTestProfile?: string,
- *       payloadPreview?: string, payloadPreviewBtn?: string, payloadPreviewPre?: string },
+ *     ids: { ...all DOM ids the runtime needs..., mobilePhone?: string (optional),
+ *       markTestProfile?: string, payloadPreview?: string, payloadPreviewBtn?: string,
+ *       payloadPreviewPre?: string },
  *     industry: {
  *       fields: [...],                  // industry attribute element IDs
  *       toggles: [{ checkboxId, fieldsId }],
@@ -448,6 +449,7 @@
     }
 
     const baseEmailEl = $(ids.baseEmail);
+    const mobilePhoneEl = ids.mobilePhone ? $(ids.mobilePhone) : null;
     const counterEl = $(ids.counter);
     const generateCountEl = $(ids.generateCount);
     const emailPreviewEl = $(ids.emailPreview);
@@ -571,6 +573,16 @@
     function loadBaseEmailForCurrentSandbox() {
       if (!baseEmailEl) return;
       baseEmailEl.value = Shared.readBaseEmail(getSandboxName());
+    }
+
+    function loadBaseMobileForCurrentSandbox() {
+      if (!mobilePhoneEl) return;
+      mobilePhoneEl.value = Shared.readBaseMobile(getSandboxName());
+    }
+
+    function persistBaseMobile() {
+      if (!mobilePhoneEl) return;
+      Shared.writeBaseMobile(getSandboxName(), mobilePhoneEl.value || '');
     }
 
     function querySuffix(extra) {
@@ -1353,6 +1365,7 @@
       const base = {
         firstName: trimVal(firstNameEl),
         lastName: trimVal(lastNameEl),
+        mobilePhone: trimVal(mobilePhoneEl),
         birthDate: trimVal(birthDateEl),
         age: trimVal(ageEl),
         gender: trimVal(genderEl),
@@ -1379,9 +1392,24 @@
       return base;
     }
 
-    function buildUpdatesFromForm() {
+    /**
+     * @param {string} [identityEmailForStream] Trimmed string POSTed as `body.email` /
+     *   merged to tenant `identification.core.email` — mirror onto root `personalEmail.address`.
+     */
+    function buildUpdatesFromForm(identityEmailForStream) {
       const updates = [];
       const push = (path, value) => updates.push({ path, value });
+
+      const identificationEmail =
+        identityEmailForStream != null && typeof identityEmailForStream === 'string'
+          ? identityEmailForStream.trim()
+          : '';
+      if (identificationEmail) {
+        push('personalEmail.address', identificationEmail);
+      }
+
+      const mobilePhone = trimVal(mobilePhoneEl);
+      if (mobilePhone) push('mobilePhone.number', mobilePhone);
 
       const firstName = trimVal(firstNameEl);
       if (firstName) push('person.name.firstName', firstName);
@@ -1488,7 +1516,7 @@
           payloadPreviewPre.textContent = '// Enter a base email to preview the scaled recipient for Update / Generate.';
           return;
         }
-        const updates = buildUpdatesFromForm();
+        const updates = buildUpdatesFromForm(email);
         const sb = getSandboxName();
         const streaming = getStreamingPayload();
         const dryRun = !!(dryRunEl && dryRunEl.checked);
@@ -1587,8 +1615,54 @@
       const points = findByKeywords('loyalty', 'points') ||
         findByKeywords('loyaltydetails', 'points');
 
+      let mobilePhone = findBySuffix(['mobilephone.number', 'mobilephonenumber']) ||
+        findByKeywords('mobilephone', 'number');
+      let identificationEmailLookup = findBySuffix(['identification.core.email']);
+      let personalEmailAddressLookup = findBySuffix(['personalemail.address']);
+
+      if (!rows) {
+        let entity = null;
+        if (found.entity && typeof found.entity === 'object') entity = found.entity;
+        if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
+        if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
+        if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
+        if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
+        if (entity) {
+          const get = (obj, path) => {
+            const keys = path.split('.');
+            let cur = obj;
+            for (const k of keys) {
+              if (cur == null || typeof cur !== 'object') return undefined;
+              cur = cur[k];
+            }
+            return cur;
+          };
+          const tenantKey = Object.keys(entity).find((k) => k.startsWith('_'));
+          const tenant = tenantKey && entity[tenantKey] && typeof entity[tenantKey] === 'object'
+            ? entity[tenantKey]
+            : {};
+          if (!mobilePhone) {
+            let v = get(entity, 'mobilePhone.number');
+            if (v == null && entity.mobilePhone && typeof entity.mobilePhone === 'object') {
+              v = entity.mobilePhone.number;
+            }
+            if (v == null) v = get(tenant, 'mobilePhone.number');
+            if (v != null) mobilePhone = String(v);
+          }
+          if (!identificationEmailLookup) {
+            const v = get(tenant, 'identification.core.email');
+            if (v != null) identificationEmailLookup = String(v).trim();
+          }
+          if (!personalEmailAddressLookup) {
+            const v = get(entity, 'personalEmail.address');
+            if (v != null) personalEmailAddressLookup = String(v).trim();
+          }
+        }
+      }
+
       if (firstName && firstNameEl) firstNameEl.value = firstName;
       if (lastName && lastNameEl) lastNameEl.value = lastName;
+      if (mobilePhoneEl) mobilePhoneEl.value = mobilePhone || '';
       // Birth date / age: prefer the lookup's birthDate (it's the source of
       // truth — we re-derive age from it on every push). When only age is
       // returned, populate the age input but leave birthDate blank (we
@@ -1628,6 +1702,19 @@
         industryHooks.applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose });
       } catch (e) {
         warn('industry applyFindResult threw:', e && e.message);
+      }
+
+      if (
+        baseEmailEl &&
+        !trim(identificationEmailLookup) &&
+        trim(personalEmailAddressLookup)
+      ) {
+        const seed = trim(personalEmailAddressLookup);
+        baseEmailEl.value = seed;
+        try {
+          Shared.writeBaseEmail(getSandboxName(), seed);
+        } catch (_) { /* ignore */ }
+        loadCounterForCurrentContext();
       }
     }
 
@@ -1744,9 +1831,9 @@
       }
       const streaming = ensureStreamingReady();
       if (!streaming) return;
-      const updates = buildUpdatesFromForm();
+      const updates = buildUpdatesFromForm(email);
       if (!updates.length) {
-        setMessage(messageEl, `No fields to update — fill at least one Customer Analytics or ${displayName} field.`, 'warning');
+        setMessage(messageEl, `No fields to update — fill identity, mobile phone, Customer Analytics, or ${displayName} fields.`, 'warning');
         return;
       }
       updateProfileBtn.disabled = true;
@@ -1800,7 +1887,7 @@
           lastEmail = email;
           try {
             applyRandomCustomerPersonaForGenerate();
-            const updates = buildUpdatesFromForm();
+            const updates = buildUpdatesFromForm(email);
             if (!updates.length) {
               lastError = 'Could not build profile fields after randomization — check form configuration.';
               break;
@@ -1888,6 +1975,7 @@
         // operators can scan recently-generated cohorts at a glance.
         parts.push(snap.age ? `${name} (${snap.age})` : name);
       }
+      if (snap.mobilePhone) parts.push(snap.mobilePhone);
       if (snap.gender) parts.push(snap.gender);
 
       let industryTail = '';
@@ -1966,6 +2054,7 @@
       const s = entry.snapshot;
       if (firstNameEl) firstNameEl.value = s.firstName || '';
       if (lastNameEl) lastNameEl.value = s.lastName || '';
+      if (mobilePhoneEl) mobilePhoneEl.value = s.mobilePhone || '';
       if (birthDateEl) birthDateEl.value = s.birthDate || '';
       if (ageEl) ageEl.value = s.age || '';
       if (genderEl) genderEl.value = s.gender || '';
@@ -2031,6 +2120,11 @@
         loadCounterForCurrentContext();
       });
       baseEmailEl.addEventListener('change', loadCounterForCurrentContext);
+    }
+    if (mobilePhoneEl) {
+      mobilePhoneEl.addEventListener('input', persistBaseMobile);
+      mobilePhoneEl.addEventListener('change', persistBaseMobile);
+      mobilePhoneEl.addEventListener('blur', persistBaseMobile);
     }
     if (counterEl) {
       counterEl.addEventListener('input', () => {
@@ -2145,6 +2239,7 @@
       applyConfiguredCollapseState();
       loadConnectionFromFirestore(true);
       loadBaseEmailForCurrentSandbox();
+      loadBaseMobileForCurrentSandbox();
       loadCounterForCurrentContext();
       renderRecent();
     }
@@ -2152,6 +2247,7 @@
     window.addEventListener('aep-global-sandbox-change', onSandboxChange);
 
     window.addEventListener(panelShownEvent, () => {
+      loadBaseMobileForCurrentSandbox();
       renderRecent();
       applyLoyaltyToggleVisibility();
       applyAllIndustryToggles();
@@ -2166,6 +2262,7 @@
 
     // ---- Initial state ----
     loadBaseEmailForCurrentSandbox();
+    loadBaseMobileForCurrentSandbox();
     if (churnEl) syncChurnSlider();
     if (propensityEl) syncPropensitySlider();
     if (aovEl) syncAovSlider();

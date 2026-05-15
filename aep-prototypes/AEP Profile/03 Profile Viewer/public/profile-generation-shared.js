@@ -3,8 +3,8 @@
  *
  * Owns the email scaler, the daily per-(sandbox, base email) counter, the
  * last-streamed cache, the recently-generated picker, and the per-sandbox
- * base email persistence used by every industry-specific profile generator
- * module on this page (currently Generic + Travel).
+ * base email / base mobile persistence used by every industry-specific profile
+ * generator module on this page (Generic, Travel, and industry-runtime panels).
  *
  * Exposes a single global `window.AepProfileGenShared` so each industry
  * module reads/writes the SAME counter and recent list — guaranteeing that
@@ -16,6 +16,7 @@
  * All keys live under the `profileGen` prefix:
  *
  *   profileGenBaseEmail:<sandbox>
+ *   profileGenBaseMobile:<sandbox>
  *   profileGenCounter:<sandbox>:<baseLower>:<DDMMYYYY>
  *   profileGenLastStreamed:<sandbox>:<baseLower>:<DDMMYYYY>
  *   profileGenRecent:<sandbox>:<baseLower>:<DDMMYYYY>
@@ -132,6 +133,10 @@
     return `${PREFIX_NEW}BaseEmail:${normSandbox(sandbox)}`;
   }
 
+  function baseMobileStorageKey(sandbox) {
+    return `${PREFIX_NEW}BaseMobile:${normSandbox(sandbox)}`;
+  }
+
   function counterStorageKey(sandbox, baseEmail, date) {
     return `${PREFIX_NEW}Counter:${normSandbox(sandbox)}:${normBaseEmail(baseEmail)}:${todayYmd(date)}`;
   }
@@ -169,6 +174,17 @@
 
   function writeBaseEmail(sandbox, value) {
     safeSet(baseEmailStorageKey(sandbox), String(value || ''));
+  }
+
+  // ---------- Base mobile persistence (trimmed, same sandbox scope as base email) ----------
+
+  function readBaseMobile(sandbox) {
+    const v = safeGet(baseMobileStorageKey(sandbox));
+    return v == null ? '' : String(v).trim();
+  }
+
+  function writeBaseMobile(sandbox, value) {
+    safeSet(baseMobileStorageKey(sandbox), String(value || '').trim());
   }
 
   // ---------- Counter ----------
@@ -252,11 +268,14 @@
     todayYmd,
     scaleEmail,
     baseEmailStorageKey,
+    baseMobileStorageKey,
     counterStorageKey,
     lastStreamedKey,
     recentKey,
     readBaseEmail,
     writeBaseEmail,
+    readBaseMobile,
+    writeBaseMobile,
     readCounter,
     persistCounter,
     incrementCounter,
