@@ -22,7 +22,8 @@
     'donate-demo.html': { name: 'Donate (demo)' },
     'race-for-life-demo.html': { name: 'Race for Life (demo)' },
     'call-center-demo.html': { name: 'FNB · Call centre (demo)' },
-    'call-center-demo-apalmer.html': { name: 'Contact centre (apalmer sandbox)' },
+    'call-centre-demo-v1.html': { name: 'Contact centre (v1)' },
+    'call-center-demo-apalmer.html': { name: 'Contact centre (legacy URL → v1)' },
     'mobile-demo.html': { name: 'Mobile simulator (FNB)' },
     'mobile-demo-apalmer.html': { name: 'Mobile simulator (apalmer · Etihad)' },
     'premier-inn-demo.html': { name: 'Premier Inn (demo)' },
@@ -101,8 +102,13 @@
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
     },
+    'call-centre-demo-v1.html': {
+      label: 'Contact centre (v1)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+    },
     'call-center-demo-apalmer.html': {
-      label: 'Contact centre (apalmer sandbox)',
+      label: 'Contact centre (legacy URL)',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
     },

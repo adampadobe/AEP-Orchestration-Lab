@@ -710,7 +710,7 @@ body.call-center-demo-page .dashboard-main {
 }
 
 /* RTDB `StaffPortal.Colour` → inline warm/light header gradient: banking/forest chrome may still use
-   light-on-dark ink — switch to dashboard-token paper ink + legible links (see call-center-demo-apalmer.js). */
+   light-on-dark ink — switch to dashboard-token paper ink + legible links (see call-center-demo-apalmer.js; page call-centre-demo-v1.html). */
 .cc-app-header.cc-app-header--rtdb-brand-surface {
   --cc-header-ink: var(--dash-text);
   --cc-header-ink-muted: var(--dash-text-secondary);

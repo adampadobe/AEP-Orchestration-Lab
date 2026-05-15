@@ -361,7 +361,7 @@
           items: [
             {
               label: 'Contact centre (in development)',
-              href: 'call-center-demo-apalmer.html',
+              href: 'call-centre-demo-v1.html',
               inDevelopment: true,
               navHideKey: 'callCenterDemoApalmer',
               ico: '\u260E\uFE0F',
@@ -420,28 +420,6 @@
                   navHideKey: 'mobileDemoFnbPhone',
                   demoMeta: { owners: ['kirkham'] },
                   ico: '\uD83D\uDCF1',
-                },
-                {
-                  label: 'iPad (to be built) (in development)',
-                  navPlaceholder: true,
-                  inDevelopment: true,
-                  navHideKey: 'mobileDemoFnbIpad',
-                  demoMeta: { owners: ['kirkham'] },
-                  ico: '\uD83D\uDCF2',
-                },
-              ],
-            },
-            {
-              id: 'fnbCallCentre',
-              label: 'Call Centre',
-              items: [
-                {
-                  label: 'Call centre (in development)',
-                  href: 'call-center-demo.html',
-                  inDevelopment: true,
-                  navHideKey: 'callCenterDemo',
-                  demoMeta: { owners: ['kirkham'] },
-                  ico: '\u260E\uFE0F',
                 },
               ],
             },
