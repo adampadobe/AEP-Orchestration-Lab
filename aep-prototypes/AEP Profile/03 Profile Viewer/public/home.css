@@ -2330,3 +2330,83 @@ body.search-tool-page.home-dashboard-concierge .search-legacy-inner .lookup {
   margin-left: 0;
   border-left: 2px solid var(--dash-border);
 }
+
+/* Global values — RTDB lab demos disclosure (global-settings.html; native <details>) */
+.aep-global-settings-rtdb-wrap {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dash-border);
+}
+
+.aep-global-settings-disclosure {
+  border: none;
+  margin: 0;
+}
+
+.aep-global-settings-disclosure__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  padding: 0.35rem 0;
+  margin: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: var(--dash-radius-sm, 12px);
+}
+
+.aep-global-settings-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.aep-global-settings-disclosure__summary::after {
+  content: '▸';
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--dash-muted);
+  opacity: 0.65;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.aep-global-settings-disclosure[open] .aep-global-settings-disclosure__summary::after {
+  transform: rotate(90deg);
+}
+
+.aep-global-settings-disclosure__summary:hover {
+  background: var(--dash-hover);
+}
+
+.aep-global-settings-disclosure__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.aep-global-settings-disclosure__hint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--dash-text-secondary);
+  flex: 1 1 100%;
+  margin: 0;
+  line-height: 1.35;
+}
+
+@media (min-width: 800px) {
+  .aep-global-settings-disclosure__hint {
+    flex: 1 1 12rem;
+    margin: 0;
+  }
+}
+
+.aep-global-settings-disclosure__body {
+  padding: 0 0 0.25rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--dash-border);
+  color: var(--dash-text);
+}
