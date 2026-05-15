@@ -1025,7 +1025,7 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
 .ga-tab {
   flex: 0 0 auto;
   padding: 0.45rem 0.65rem;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--dash-radius-sm);
   background: transparent;
   color: var(--dash-text-secondary);
@@ -1034,12 +1034,33 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ga-tab:hover:not(.ga-tab--active) {
+  background: color-mix(in srgb, var(--dash-surface) 55%, transparent);
+  color: var(--dash-text);
+}
+
+.ga-tab:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+  z-index: 1;
+  position: relative;
 }
 
 .ga-tab--active {
   background: var(--dash-surface);
   color: var(--dash-text);
-  box-shadow: 0 1px 3px var(--dash-shadow);
+  font-weight: 700;
+  border-color: var(--dash-border);
+  box-shadow: var(--dash-shadow), inset 0 -2px 0 0 var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] .etihad-ipad-page .ga-tab--active {
+  background: color-mix(in srgb, var(--dash-surface) 92%, var(--dash-text));
+  border-color: color-mix(in srgb, var(--dash-border) 70%, var(--dash-blue));
+  box-shadow: var(--dash-shadow-hover), inset 0 -2px 0 0 var(--dash-blue);
 }
 
 .ga-tab-panels {
