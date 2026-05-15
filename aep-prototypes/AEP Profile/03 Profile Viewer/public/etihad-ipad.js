@@ -17,6 +17,14 @@
   var SIZE_STORE_KEY = 'ipadBezSize';
   var ORIENT_STORE_KEY = 'ipadBezOrient';
 
+  /** Client-only recent email lookups (max 5, newest first, case-insensitive dedupe). */
+  var ETIHAD_IPAD_RECENT_EMAILS_KEY = 'etihadIpadRecentEmails';
+  var ETIHAD_IPAD_RECENT_EMAILS_MAX = 5;
+
+  /** NPS on 0–10 scale: scores strictly below this show the at-risk (detractor) banner. */
+  var ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD = 7;
+  var ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX = 'etihadIpadDetractorDismissed:';
+
   var SIZE_MAP = {
     '11': { vpW: 834, vpH: 1194, wrapW: 870, outerH: 1242, baseScale: 0.75 },
     '13': { vpW: 1024, vpH: 1366, wrapW: 1062, outerH: 1416, baseScale: 0.62 },
@@ -103,6 +111,71 @@
     if (el) el.textContent = val != null ? String(val) : '';
   }
 
+  /** True when profile/table has no displayable value (treats em dash + “Not available” as empty). */
+  function isEmptyDisplayValue(raw) {
+    if (raw == null) return true;
+    var s = String(raw).trim();
+    if (!s) return true;
+    if (s === '—') return true;
+    if (/^not available$/i.test(s)) return true;
+    return false;
+  }
+
+  /**
+   * Central helper: real profile value → normal text; empty → dummy demo copy (never mixed).
+   * @returns {{ text: string, isDummy: boolean }}
+   */
+  function formatFieldDisplay(raw, dummyLabel) {
+    if (!isEmptyDisplayValue(raw)) {
+      return { text: String(raw).trim(), isDummy: false };
+    }
+    return { text: String(dummyLabel != null ? dummyLabel : '—'), isDummy: true };
+  }
+
+  function setFieldDisplay(id, raw, dummyLabel) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var fd = formatFieldDisplay(raw, dummyLabel);
+    el.textContent = fd.text;
+    el.classList.toggle('ga-field-dummy', fd.isDummy);
+  }
+
+  function formatScoreFieldDisplay(raw, dummyLabel) {
+    if (!isEmptyDisplayValue(raw)) {
+      return { text: formatScore(raw), isDummy: false };
+    }
+    return { text: String(dummyLabel != null ? dummyLabel : '—'), isDummy: true };
+  }
+
+  function setScoreFieldDisplay(id, raw, dummyLabel) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var fd = formatScoreFieldDisplay(raw, dummyLabel);
+    el.textContent = fd.text;
+    el.classList.toggle('ga-field-dummy', fd.isDummy);
+  }
+
+  function setLoyaltyTierBadge(el, tierRaw, dummyLabel) {
+    if (!el) return;
+    var fd = formatFieldDisplay(tierRaw, dummyLabel != null ? dummyLabel : 'Gold Guest');
+    el.textContent = fd.text;
+    el.classList.remove('ga-tier--bronze', 'ga-tier--silver', 'ga-tier--gold', 'ga-tier--platinum');
+    el.classList.toggle('ga-field-dummy', fd.isDummy);
+    if (!fd.isDummy) {
+      var slug = tierSlug(fd.text);
+      if (slug) el.classList.add('ga-tier--' + slug);
+    }
+  }
+
+  /** “Member · {id}” line under the profile name; dummy id only when loyalty id is missing. */
+  function setProfileLoyaltySubtitle(id, memberIdRaw, dummyMemberId) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var fd = formatFieldDisplay(memberIdRaw, dummyMemberId);
+    el.textContent = fd.isDummy ? 'Member · ' + fd.text : 'Member · ' + String(memberIdRaw).trim();
+    el.classList.toggle('ga-field-dummy', fd.isDummy);
+  }
+
   function showEl(id, on) {
     var el = document.getElementById(id);
     if (el) el.hidden = !on;
@@ -153,6 +226,209 @@
     var c = colourHex.replace(/^#/, '');
     var end = adjustColorBrightness(c, -28);
     hdr.style.background = 'linear-gradient(135deg, #' + c + ' 0%, ' + end + ' 100%)';
+  }
+
+  /** Same source as ga-agent-accent / header: RTDB `StaffPortal.Colour` (6-hex, optional #). */
+  function sanitizeRtdbHex6(input) {
+    var s = String(input || '')
+      .trim()
+      .replace(/^#/, '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(s)) return '';
+    return '#' + s.toLowerCase();
+  }
+
+  function getStaffPortalAccentHexCss() {
+    var sp = rtdbData.StaffPortal || {};
+    return sanitizeRtdbHex6(sp.Colour);
+  }
+
+  function applyDetractorBannerAccentFromRtdb() {
+    var b = document.getElementById('gaDetractorBanner');
+    if (!b) return;
+    var hex = getStaffPortalAccentHexCss();
+    if (hex) {
+      b.style.setProperty('--ga-detractor-accent', hex);
+      b.style.setProperty('background', 'color-mix(in srgb, ' + hex + ' 12%, var(--dash-surface))');
+    } else {
+      b.style.removeProperty('--ga-detractor-accent');
+      b.style.removeProperty('background');
+    }
+  }
+
+  function hideDetractorBanner() {
+    var b = document.getElementById('gaDetractorBanner');
+    if (!b) return;
+    b.hidden = true;
+    b.style.removeProperty('--ga-detractor-accent');
+    b.style.removeProperty('background');
+  }
+
+  function clearDetractorDismissSessionKeysOnNewSearch() {
+    try {
+      var rm = [];
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf(ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX) === 0) rm.push(k);
+      }
+      for (var j = 0; j < rm.length; j++) sessionStorage.removeItem(rm[j]);
+    } catch (eD0) {}
+  }
+
+  function getPassengerDismissStorageKey(data) {
+    if (!data) return ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX + 'guest';
+    var rows = data.rows || [];
+    var em =
+      (data.profileEmail && String(data.profileEmail).trim()) ||
+      rowVal(rows, 'personalEmail.address') ||
+      findByPathSuffix(rows, ['identification.core.email', 'person.emailaddress.address']) ||
+      '';
+    if (em) return ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX + String(em).toLowerCase();
+    var lid = rowVal(rows, '_demoemea.loyalty.id') || rowVal(rows, 'loyaltyIds.loyaltyId') || '';
+    if (lid) return ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX + 'loyalty:' + String(lid).toLowerCase();
+    return ETIHAD_IPAD_DETRACTOR_DISMISS_PREFIX + 'guest';
+  }
+
+  function dismissDetractorBannerPersisted() {
+    hideDetractorBanner();
+    try {
+      if (currentProfileData) sessionStorage.setItem(getPassengerDismissStorageKey(currentProfileData), '1');
+    } catch (eD1) {}
+  }
+
+  /** Valid NPS 0–10 only; anything else → no detractor banner (missing / wrong field). */
+  function parseNpsForDetractor(raw) {
+    if (raw === '' || raw == null) return null;
+    var n = parseFloat(String(raw).trim().replace(/%/g, ''));
+    if (!Number.isFinite(n)) return null;
+    if (n >= 0 && n <= 10) return n;
+    return null;
+  }
+
+  function pickLoyaltyLevelFromRows(rows, tierFallback) {
+    var v =
+      rowVal(rows, '_demoemea.loyaltyDetails.level') ||
+      findByPathSuffix(rows, ['loyaltydetails.level', 'loyalty.tierlevel']) ||
+      '';
+    if (v) return String(v).trim();
+    return tierFallback ? String(tierFallback).trim() : '';
+  }
+
+  function isChurnRiskElevated(raw) {
+    if (raw === '' || raw == null) return false;
+    var n = parseFloat(String(raw).trim().replace(/%/g, ''));
+    if (!Number.isFinite(n)) return false;
+    if (n >= 0 && n <= 1) return n >= 0.55;
+    if (n > 1 && n <= 100) return n >= 55;
+    return false;
+  }
+
+  function pickFlightReservationFragment(rows) {
+    var v = findByPathKeywords(rows, ['flightreservation', 'itinerary']);
+    if (v) return String(v).trim();
+    v = findByPathSuffix(rows, ['travelreservations.flightreservations', 'flightreservations']);
+    return v ? String(v).trim() : '';
+  }
+
+  function buildTravelPrefsSummaryForDetractor(rows, td) {
+    var seat =
+      (td && td.seatPreference) ||
+      rowVal(rows, 'travelPreferences.seat') ||
+      findByPathSuffix(rows, ['preferences.seat', 'seatpreference']) ||
+      '';
+    var meal =
+      (td && td.mealPreference) ||
+      rowVal(rows, 'travelPreferences.meal') ||
+      findByPathSuffix(rows, ['preferences.meal', 'mealpreference']) ||
+      '';
+    var spec = rowVal(rows, 'travelPreferences.specialRequests') || '';
+    var parts = [];
+    if (seat) parts.push('Seat: ' + seat);
+    if (meal) parts.push('Meal: ' + meal);
+    if (spec && String(spec).toLowerCase() !== 'none') parts.push('Requests: ' + spec);
+    if (parts.length) return parts.join(' · ');
+    var fr = pickFlightReservationFragment(rows);
+    if (fr) {
+      var short = fr.length > 72 ? fr.slice(0, 69) + '…' : fr;
+      return 'From profile: ' + short;
+    }
+    var travelScore = findByPathKeywords(rows, ['scoring', 'travel']);
+    if (travelScore) return 'From profile: ' + String(travelScore).trim();
+    return '—';
+  }
+
+  function buildDetractorOfferLine(churnHigh, loyaltyLevel, tierFromRtdb) {
+    var tierLabel = String(loyaltyLevel || tierFromRtdb || '').trim();
+    if (churnHigh) {
+      return 'Suggested: acknowledge the journey so far, keep a calm recovery tone, invite quick feedback at the gate, and offer a discreet gesture (e.g. priority re-seating consideration) if policy allows.';
+    }
+    if (tierLabel && tierSlug(tierLabel)) {
+      return (
+        'Suggested: greet as ' +
+        tierLabel.charAt(0).toUpperCase() +
+        tierLabel.slice(1) +
+        ' — thank them for flying Etihad and offer a brief, personal service check-in before boarding.'
+      );
+    }
+    return 'Suggested: warm greeting using the name on screen, brief empathy for any inconvenience, and invite them to share how we can help today.';
+  }
+
+  function updateDetractorBanner(rows, data, ctx) {
+    var npsNum = parseNpsForDetractor(ctx && ctx.npsRaw != null ? ctx.npsRaw : pickNpsFromRows(rows));
+    var dismissKey = getPassengerDismissStorageKey(data);
+    var dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(dismissKey) === '1';
+    } catch (eD2) {}
+
+    if (npsNum == null || npsNum >= ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD || dismissed) {
+      hideDetractorBanner();
+      return;
+    }
+
+    var td = rtdbData.TravelData || {};
+    var cl = rtdbData.CustomerLoyalty || {};
+    var churnRaw = ctx && ctx.churnRaw != null ? ctx.churnRaw : pickChurnFromRows(rows);
+    var churnHigh = isChurnRiskElevated(churnRaw);
+    var tierRtdb = cl.tier || rowVal(rows, '_demoemea.loyalty.tier') || '';
+    var loyaltyLevel = pickLoyaltyLevelFromRows(rows, tierRtdb);
+    var travelLine = buildTravelPrefsSummaryForDetractor(rows, td);
+
+    var bodyEl = document.getElementById('gaDetractorBody');
+    if (bodyEl) {
+      bodyEl.textContent =
+        'NPS is below ' +
+        ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD +
+        ' — acknowledge concerns early; keep boarding efficient and empathetic.';
+    }
+    var offerEl = document.getElementById('gaDetractorOffer');
+    if (offerEl) offerEl.textContent = buildDetractorOfferLine(churnHigh, loyaltyLevel, tierRtdb);
+
+    var kv = document.getElementById('gaDetractorKv');
+    if (kv) {
+      var npsShow = String(npsNum);
+      var churnShow = formatScore(churnRaw);
+      var loyaltyShow = loyaltyLevel || tierRtdb || '—';
+      var tp = travelLine || '—';
+      kv.innerHTML =
+        '<dt>NPS score</dt><dd>' +
+        escapeHtml(npsShow) +
+        '</dd>' +
+        '<dt>Churn prediction</dt><dd>' +
+        escapeHtml(churnShow) +
+        '</dd>' +
+        '<dt>Loyalty level</dt><dd>' +
+        escapeHtml(loyaltyShow || '—') +
+        '</dd>' +
+        '<dt>Travel preferences</dt><dd>' +
+        escapeHtml(tp) +
+        '</dd>';
+    }
+
+    var b = document.getElementById('gaDetractorBanner');
+    if (b) {
+      b.hidden = false;
+      applyDetractorBannerAccentFromRtdb();
+    }
   }
 
   function applyRtdbToShell() {
@@ -225,6 +501,9 @@
 
     updateFlightCountdown(td);
     setText('ipadSandboxLabel', getSandboxName() || '—');
+
+    var dBanner = document.getElementById('gaDetractorBanner');
+    if (dBanner && !dBanner.hidden) applyDetractorBannerAccentFromRtdb();
   }
 
   function updateFlightCountdown(td) {
@@ -438,6 +717,64 @@
     return 'loyaltyId';
   }
 
+  function readRecentEmailsFromStorage() {
+    try {
+      var raw = localStorage.getItem(ETIHAD_IPAD_RECENT_EMAILS_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      var out = [];
+      for (var i = 0; i < parsed.length; i++) {
+        var s = typeof parsed[i] === 'string' ? parsed[i].trim() : '';
+        if (s && resolveNamespace(s) === 'email') out.push(s);
+      }
+      return out;
+    } catch (eRe0) {
+      return [];
+    }
+  }
+
+  function writeRecentEmailsToStorage(list) {
+    try {
+      localStorage.setItem(ETIHAD_IPAD_RECENT_EMAILS_KEY, JSON.stringify(list));
+    } catch (eRe1) {}
+  }
+
+  /** Rebuild datalist + hint from storage (call after writes and on load). */
+  function refreshRecentEmailDatalistUi() {
+    var emails = readRecentEmailsFromStorage();
+    var dl = document.getElementById('etihadIpadRecentEmailList');
+    if (dl) {
+      dl.innerHTML = '';
+      for (var i = 0; i < emails.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = emails[i];
+        dl.appendChild(opt);
+      }
+    }
+    var hint = document.getElementById('etihadIpadRecentEmailHint');
+    if (hint) hint.hidden = emails.length === 0;
+  }
+
+  /**
+   * After a successful profile table load, remember the typed query if it was an email search.
+   * Prunes to ETIHAD_IPAD_RECENT_EMAILS_MAX distinct addresses (case-insensitive); newest first.
+   */
+  function rememberRecentEmailAfterSuccessfulLookup(typedQuery) {
+    var trimmed = String(typedQuery || '').trim();
+    if (!trimmed || resolveNamespace(trimmed) !== 'email') return;
+    var lower = trimmed.toLowerCase();
+    var prev = readRecentEmailsFromStorage();
+    var next = [trimmed];
+    for (var i = 0; i < prev.length; i++) {
+      if (prev[i].toLowerCase() === lower) continue;
+      next.push(prev[i]);
+      if (next.length >= ETIHAD_IPAD_RECENT_EMAILS_MAX) break;
+    }
+    writeRecentEmailsToStorage(next);
+    refreshRecentEmailDatalistUi();
+  }
+
   async function lookupProfile(identifier) {
     var ns = resolveNamespace(identifier);
     var url =
@@ -463,6 +800,7 @@
   function resolveIpadEventEmail() {
     if (currentPassengerEmail) return currentPassengerEmail;
     var ga = document.getElementById('gaEmail');
+    if (ga && ga.classList.contains('ga-field-dummy')) return 'broadcast@etihad.com';
     var t = ga && ga.textContent ? String(ga.textContent).trim() : '';
     if (t && t !== '—') return t;
     return 'broadcast@etihad.com';
@@ -501,12 +839,7 @@
   }
 
   function setTierBadge(el, tierRaw) {
-    if (!el) return;
-    var label = tierRaw && String(tierRaw).trim() ? String(tierRaw).trim() : 'Member';
-    el.textContent = label;
-    el.classList.remove('ga-tier--bronze', 'ga-tier--silver', 'ga-tier--gold', 'ga-tier--platinum');
-    var slug = tierSlug(label);
-    if (slug) el.classList.add('ga-tier--' + slug);
+    setLoyaltyTierBadge(el, tierRaw, 'Gold Guest');
   }
 
   function formatScore(v) {
@@ -706,26 +1039,26 @@
 
     var first = rowVal(rows, 'person.name.firstName');
     var last = rowVal(rows, 'person.name.lastName');
-    var fullName = (first + ' ' + last).trim() || '—';
+    var fullNameRaw = (first + ' ' + last).trim();
+    var fullNameFd = formatFieldDisplay(fullNameRaw, 'Guest Traveller');
+    var fullNameForPhotoAlt = fullNameFd.isDummy ? 'Guest' : fullNameFd.text;
 
     var emailRaw =
       (data.profileEmail && String(data.profileEmail).trim()) ||
       rowVal(rows, 'personalEmail.address') ||
       findByPathSuffix(rows, ['identification.core.email', 'person.emailaddress.address']) ||
       '';
-    var email = emailRaw || '—';
-    var phone = findPhoneFromTableRows(rows) || rowVal(rows, 'mobilePhone.number') || '';
-    var gender = rowVal(rows, 'person.gender') || '';
-    var dob = rowVal(rows, 'person.birthDate') || rowVal(rows, 'person.birthDayAndMonth') || '';
-    var nationality = rowVal(rows, 'person.nationality') || '—';
-    var addr =
+    var phoneRaw = findPhoneFromTableRows(rows) || rowVal(rows, 'mobilePhone.number') || '';
+    var genderRaw = rowVal(rows, 'person.gender') || '';
+    var dobRaw = rowVal(rows, 'person.birthDate') || rowVal(rows, 'person.birthDayAndMonth') || '';
+    var nationalityRaw = rowVal(rows, 'person.nationality') || '';
+    var addrRaw =
       composeAddressFromRows(rows) ||
       [rowVal(rows, 'homeAddress.street1'), rowVal(rows, 'homeAddress.city')].filter(Boolean).join(', ') ||
       rowVal(rows, 'homeAddress.city') ||
       findByPathSuffix(rows, ['homeaddress.city', 'address.city']) ||
       '';
-    if (!addr) addr = '—';
-    var lang = pickPreferredLanguage(rows) || '—';
+    var langRaw = pickPreferredLanguage(rows) || '';
 
     var npsRaw = pickNpsFromRows(rows);
     var churnRaw = pickChurnFromRows(rows);
@@ -736,20 +1069,65 @@
 
     currentPassengerEmail = String(emailRaw || '').trim();
 
-    var tier = cl.tier || rowVal(rows, '_demoemea.loyalty.tier') || '';
-    var miles = cl.miles || cl.balance || rowVal(rows, '_demoemea.loyalty.miles') || '—';
-    var loyaltyId = rowVal(rows, '_demoemea.loyalty.id') || rowVal(rows, 'loyaltyIds.loyaltyId') || '—';
-    var program = rowVal(rows, '_demoemea.loyalty.program') || 'Etihad Guest';
+    var tierRaw = cl.tier || rowVal(rows, '_demoemea.loyalty.tier') || '';
+    var milesRaw =
+      (cl.miles != null && String(cl.miles).trim() !== '' ? String(cl.miles) : '') ||
+      (cl.balance != null && String(cl.balance).trim() !== '' ? String(cl.balance) : '') ||
+      rowVal(rows, '_demoemea.loyalty.miles') ||
+      '';
+    var loyaltyIdRaw = rowVal(rows, '_demoemea.loyalty.id') || rowVal(rows, 'loyaltyIds.loyaltyId') || '';
+    var programRaw = rowVal(rows, '_demoemea.loyalty.program') || '';
 
-    setText('gaProfileFullName', fullName);
-    setText('gaProfileLoyaltyId', loyaltyId !== '—' ? 'Member · ' + loyaltyId : '—');
-    setTierBadge(document.getElementById('gaLoyaltyTierBadge'), tier);
-    setTierBadge(document.getElementById('gaLoyaltyTierInline'), tier);
+    var flightRaw =
+      (td.flightNumber && String(td.flightNumber).trim()) ||
+      (td.flight && String(td.flight).trim()) ||
+      rowVal(rows, '_demoemea.booking.flight') ||
+      '';
+    var routeRaw = (td.route && String(td.route).trim()) || rowVal(rows, '_demoemea.booking.route') || '';
+    var cabinRaw = (td.cabin && String(td.cabin).trim()) || rowVal(rows, '_demoemea.booking.class') || '';
+    var flightDateRaw = (td.flightDate && String(td.flightDate).trim()) || '';
+    var passengersRaw =
+      (td.passengers != null && String(td.passengers).trim() !== '' ? String(td.passengers) : '') ||
+      rowVal(rows, '_demoemea.booking.pax') ||
+      '';
+    var bookingRefRaw = (td.bookingRef && String(td.bookingRef).trim()) || (td.bookingReference && String(td.bookingReference).trim()) || '';
+    var seatRaw = (td.seat && String(td.seat).trim()) || rowVal(rows, '_demoemea.booking.seat') || '';
+    var gateRaw = (td.gate && String(td.gate).trim()) || '';
+    var boardingRaw = (td.boardingTime && String(td.boardingTime).trim()) || '';
+    var baggageRaw = (td.baggage && String(td.baggage).trim()) || rowVal(rows, '_demoemea.booking.baggage') || '';
+    var checkInRaw = (td.checkInStatus && String(td.checkInStatus).trim()) || '';
+    var seatPrefRaw = (td.seatPreference && String(td.seatPreference).trim()) || rowVal(rows, 'travelPreferences.seat') || '';
+    var mealPrefRaw = (td.mealPreference && String(td.mealPreference).trim()) || rowVal(rows, 'travelPreferences.meal') || '';
+    var specialReqsRaw = rowVal(rows, 'travelPreferences.specialRequests') || '';
+
+    var memberSinceRaw =
+      (cl.memberSince != null && String(cl.memberSince).trim() !== '' ? String(cl.memberSince) : '') ||
+      rowVal(rows, '_demoemea.loyalty.memberSince') ||
+      '';
+    var nextTierRaw =
+      (cl.nextTier != null && String(cl.nextTier).trim() !== '' ? String(cl.nextTier) : '') ||
+      rowVal(rows, '_demoemea.loyalty.nextTier') ||
+      '';
+    var milesNeededRaw =
+      (cl.milesToNext != null && String(cl.milesToNext).trim() !== '' ? String(cl.milesToNext) : '') ||
+      rowVal(rows, '_demoemea.loyalty.milesNeeded') ||
+      '';
+
+    var prefChannelRaw = rowVal(rows, '_demoemea.preferences.channel') || '';
+
+    setFieldDisplay('gaProfileFullName', fullNameRaw, 'Guest Traveller');
+    setProfileLoyaltySubtitle('gaProfileLoyaltyId', loyaltyIdRaw, 'EY00000000');
+    setTierBadge(document.getElementById('gaLoyaltyTierBadge'), tierRaw);
+    setTierBadge(document.getElementById('gaLoyaltyTierInline'), tierRaw);
 
     var gIcon = document.getElementById('gaGenderIcon');
     if (gIcon) {
-      var gl = gender.toLowerCase();
-      gIcon.textContent = gl.indexOf('f') === 0 ? '👩' : gl.indexOf('m') === 0 ? '👨' : '👤';
+      if (!isEmptyDisplayValue(genderRaw)) {
+        var gl = String(genderRaw).toLowerCase();
+        gIcon.textContent = gl.indexOf('f') === 0 ? '👩' : gl.indexOf('m') === 0 ? '👨' : '👤';
+      } else {
+        gIcon.textContent = '👤';
+      }
     }
 
     var img = document.getElementById('gaProfilePhoto');
@@ -758,7 +1136,7 @@
       if (photoUrl && photoUrl.indexOf('http') === 0) {
         img.src = photoUrl;
         img.style.display = '';
-        img.alt = fullName;
+        img.alt = fullNameForPhotoAlt;
       } else {
         img.removeAttribute('src');
         img.style.display = 'none';
@@ -766,53 +1144,53 @@
       }
     }
 
-    setText('gaFullName', fullName);
-    setText('gaGender', gender || '—');
-    setText('gaDOB', dob || 'Not available');
-    setText('gaAge', rowVal(rows, 'person.age') || '—');
-    setText('gaNationality', nationality);
-    setText('gaEmail', email);
-    setText('gaPhone', phone || '—');
-    setText('gaAddress', addr);
-    setText('gaLanguage', lang);
+    setFieldDisplay('gaFullName', fullNameRaw, 'Guest Traveller');
+    setFieldDisplay('gaGender', genderRaw, 'Prefer not to say');
+    setFieldDisplay('gaDOB', dobRaw, '15 JAN 1990');
+    setFieldDisplay('gaAge', rowVal(rows, 'person.age'), '42');
+    setFieldDisplay('gaNationality', nationalityRaw, 'United Kingdom (GB)');
+    setFieldDisplay('gaEmail', emailRaw, 'guest.demo@example.com');
+    setFieldDisplay('gaPhone', phoneRaw, '+971 00 000 0000');
+    setFieldDisplay('gaAddress', addrRaw, '123 Demo Street, London (LHR), SW1A 1AA');
+    setFieldDisplay('gaLanguage', langRaw, 'English (UK)');
 
-    setText('gaFlight', td.flightNumber || td.flight || rowVal(rows, '_demoemea.booking.flight') || '—');
-    setText('gaRoute', td.route || '—');
-    setText('gaFlightClass', td.cabin || rowVal(rows, '_demoemea.booking.class') || '—');
-    setText('gaFlightDate', td.flightDate || 'Not available');
-    setText('gaPassengers', td.passengers || rowVal(rows, '_demoemea.booking.pax') || '—');
-    setText('gaBookingRef', td.bookingRef || td.bookingReference || '—');
-    setText('gaSeat', td.seat || rowVal(rows, '_demoemea.booking.seat') || '—');
-    setText('gaGate', td.gate || '—');
-    setText('gaBoardingTime', td.boardingTime || '—');
-    setText('gaBaggage', td.baggage || rowVal(rows, '_demoemea.booking.baggage') || '—');
-    setText('gaCheckIn', td.checkInStatus || '—');
-    setText('gaSeatPref', td.seatPreference || rowVal(rows, 'travelPreferences.seat') || '—');
-    setText('gaMealPref', td.mealPreference || rowVal(rows, 'travelPreferences.meal') || '—');
-    setText('gaSpecialReqs', rowVal(rows, 'travelPreferences.specialRequests') || 'None');
+    setFieldDisplay('gaFlight', flightRaw, 'EY 200');
+    setFieldDisplay('gaRoute', routeRaw, 'AUH → LHR');
+    setFieldDisplay('gaFlightClass', cabinRaw, 'Business');
+    setFieldDisplay('gaFlightDate', flightDateRaw, '15 May 2026');
+    setFieldDisplay('gaPassengers', passengersRaw, '2');
+    setFieldDisplay('gaBookingRef', bookingRefRaw, 'EYDEM000');
+    setFieldDisplay('gaSeat', seatRaw, '14A');
+    setFieldDisplay('gaGate', gateRaw, 'C12');
+    setFieldDisplay('gaBoardingTime', boardingRaw, '08:40');
+    setFieldDisplay('gaBaggage', baggageRaw, '23 kg (1 bag)');
+    setFieldDisplay('gaCheckIn', checkInRaw, 'Online — complete');
+    setFieldDisplay('gaSeatPref', seatPrefRaw, 'Window');
+    setFieldDisplay('gaMealPref', mealPrefRaw, 'Vegetarian');
+    setFieldDisplay('gaSpecialReqs', specialReqsRaw, 'No special requests logged');
 
-    setText('gaLoyaltyProgram', program);
-    setText('gaLoyaltyID', loyaltyId);
-    setText('gaMiles', miles);
-    setText('gaMemberSince', cl.memberSince || rowVal(rows, '_demoemea.loyalty.memberSince') || '—');
-    setText('gaNextTier', cl.nextTier || rowVal(rows, '_demoemea.loyalty.nextTier') || '—');
-    setText('gaMilesNeeded', cl.milesToNext || rowVal(rows, '_demoemea.loyalty.milesNeeded') || '—');
-    setText('gaOrdersYTD', flightsYtdRaw || '—');
-    setText('gaLTV', ltvRaw || '—');
-    setText('gaNPS', formatScore(npsRaw));
-    setText('gaChurn', formatScore(churnRaw));
-    setText('gaUpgrade', formatScore(upgradeRaw));
+    setFieldDisplay('gaLoyaltyProgram', programRaw, 'Etihad Guest');
+    setFieldDisplay('gaLoyaltyID', loyaltyIdRaw, 'EY00000000');
+    setFieldDisplay('gaMiles', milesRaw, '480,000');
+    setFieldDisplay('gaMemberSince', memberSinceRaw, '2017');
+    setFieldDisplay('gaNextTier', nextTierRaw, 'Platinum');
+    setFieldDisplay('gaMilesNeeded', milesNeededRaw, '12,500');
+    setFieldDisplay('gaOrdersYTD', flightsYtdRaw, '3 flights YTD');
+    setFieldDisplay('gaLTV', ltvRaw, 'AED 120,000');
+    setScoreFieldDisplay('gaNPS', npsRaw, '8');
+    setScoreFieldDisplay('gaChurn', churnRaw, '18%');
+    setScoreFieldDisplay('gaUpgrade', upgradeRaw, '62%');
 
-    setText('gaChurnPref', formatScore(churnRaw));
-    setText('gaPropensityPref', formatScore(propensityRaw));
-    setText('gaNPSPref', formatScore(npsRaw));
-    setText('gaUpgradePref', formatScore(upgradeRaw));
-    setText('gaPrefChannel', rowVal(rows, '_demoemea.preferences.channel') || 'Email');
-    setText('gaPrefLang', lang);
+    setScoreFieldDisplay('gaChurnPref', churnRaw, '18%');
+    setScoreFieldDisplay('gaPropensityPref', propensityRaw, '74%');
+    setScoreFieldDisplay('gaNPSPref', npsRaw, '8');
+    setScoreFieldDisplay('gaUpgradePref', upgradeRaw, '62%');
+    setFieldDisplay('gaPrefChannel', prefChannelRaw, 'Email');
+    setFieldDisplay('gaPrefLang', langRaw, 'English (UK)');
 
-    setText('gbsFlight', td.flightNumber || td.flight || '—');
-    setText('gbsRoute', td.route || '—');
-    setText('gbsPassenger', fullName);
+    setFieldDisplay('gbsFlight', flightRaw, 'EY 200');
+    setFieldDisplay('gbsRoute', routeRaw, 'AUH → LHR');
+    setFieldDisplay('gbsPassenger', fullNameRaw, 'Guest Traveller');
 
     var raw = document.getElementById('gaRawJson');
     if (raw) {
@@ -830,6 +1208,8 @@
     showEl('gaTabPanels', true);
     showEl('gaActions', true);
     showEl('gaViewToggle', true);
+
+    updateDetractorBanner(rows, data, { npsRaw: npsRaw, churnRaw: churnRaw });
 
     var btnBoard = document.getElementById('btnProcessBoarding');
     if (btnBoard) btnBoard.disabled = false;
@@ -987,6 +1367,7 @@
     if (on) {
       currentPassengerEmail = '';
       currentProfileData = null;
+      hideDetractorBanner();
       showEl('gaProfileHeader', false);
       showEl('gaTabs', false);
       showEl('gaTabPanels', false);
@@ -1020,6 +1401,7 @@
         var input = document.getElementById('gaSearchInput');
         var val = input && input.value ? String(input.value).trim() : '';
         if (!val) return;
+        clearDetractorDismissSessionKeysOnNewSearch();
         setLoading(true);
         lookupProfile(val)
           .then(function (data) {
@@ -1028,6 +1410,7 @@
               return;
             }
             renderAll(data);
+            rememberRecentEmailAfterSuccessfulLookup(val);
           })
           .catch(function (err) {
             showError('Lookup failed: ' + (err && err.message ? err.message : String(err)));
@@ -1160,6 +1543,11 @@
       });
     }
 
+    var btnDetClose = document.getElementById('gaDetractorClose');
+    var btnDetCloseX = document.getElementById('gaDetractorCloseX');
+    if (btnDetClose) btnDetClose.addEventListener('click', dismissDetractorBannerPersisted);
+    if (btnDetCloseX) btnDetCloseX.addEventListener('click', dismissDetractorBannerPersisted);
+
     var seatMap = document.getElementById('gaSeatMap');
     if (seatMap) seatMap.addEventListener('click', onGaSeatMapClick);
 
@@ -1221,5 +1609,6 @@
   applySize(savedSize || '11');
   syncOrientButtons();
   wireEvents();
+  refreshRecentEmailDatalistUi();
   loadRtdbData();
 })();

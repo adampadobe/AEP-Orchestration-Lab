@@ -556,7 +556,25 @@
             </div>
 
             <div id="ccPanelOrders" role="tabpanel" aria-labelledby="ccTabOrders" class="cc-tab-panel" hidden>
-              <p class="cc-history-lead" id="ccBookingPlaceholder">Load a customer profile above to see their flight booking from Adobe Experience Platform.</p>
+              <div class="cc-booking-panel-wrap">
+                <div class="cc-booking-toolbar" aria-label="Booking concierge tools">
+                  <div class="cc-booking-toolbar-copy">
+                    <p class="cc-booking-toolbar-title">Concierge tools</p>
+                    <p class="cc-booking-toolbar-hint">
+                      Mimic a lightweight airline-style booking; the <strong>Book</strong> action streams <code>contactCentre.flight.booked</code> to your selected event destination (same path as inbound <code>contactCentre.inbound.*</code>).
+                    </p>
+                  </div>
+                  <button type="button" class="cc-flight-booking-open-btn" id="ccFlightBookingBtn">
+                    <span class="cc-flight-booking-open-ico" aria-hidden="true">✈</span>
+                    <span>Flight Booking</span>
+                  </button>
+                </div>
+                <div id="ccBookingContent" class="cc-booking-content" aria-live="polite">
+                  <p class="cc-history-lead" id="ccBookingPlaceholder">
+                    Load a customer profile above to see their flight booking from Adobe Experience Platform.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div id="ccPanelNotes" role="tabpanel" aria-labelledby="ccTabNotes" class="cc-tab-panel" hidden>
@@ -887,6 +905,44 @@
     </div>
   </div>
 
+  <div id="ccFlightBookingRoot" class="cc-flight-booking-root" hidden>
+    <div class="cc-flight-booking-backdrop" id="ccFlightBookingBackdrop" tabindex="-1" aria-hidden="true"></div>
+    <div
+      id="ccFlightBookingDialog"
+      class="cc-flight-booking-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ccFlightBookingTitle"
+    >
+      <div class="cc-flight-booking-dialog-header">
+        <h2 id="ccFlightBookingTitle" class="cc-flight-booking-title">Flight Booking (demo)</h2>
+        <button type="button" class="cc-flight-booking-close" id="ccFlightBookingClose" aria-label="Close flight booking">×</button>
+      </div>
+      <p class="cc-flight-booking-lead">
+        Select outbound and return flights, one seat per leg, then book. No real GDS — events only.
+      </p>
+      <p id="ccFlightBookingEmailHint" class="cc-flight-booking-email-hint" role="status" aria-live="polite" hidden></p>
+      <div class="cc-flight-booking-body">
+        <section class="cc-flight-leg" aria-labelledby="ccFlightOutboundHeading">
+          <h3 id="ccFlightOutboundHeading" class="cc-flight-leg-title">Outbound</h3>
+          <div id="ccFlightOutboundOptions" class="cc-flight-options" role="radiogroup" aria-labelledby="ccFlightOutboundHeading"></div>
+          <p id="ccSeatOutboundLabel" class="cc-flight-seat-legend">Seat · outbound</p>
+          <div id="ccSeatGridOutbound" class="cc-seat-grid" role="group" aria-labelledby="ccSeatOutboundLabel"></div>
+        </section>
+        <section class="cc-flight-leg" aria-labelledby="ccFlightReturnHeading">
+          <h3 id="ccFlightReturnHeading" class="cc-flight-leg-title">Return</h3>
+          <div id="ccFlightReturnOptions" class="cc-flight-options" role="radiogroup" aria-labelledby="ccFlightReturnHeading"></div>
+          <p id="ccSeatReturnLabel" class="cc-flight-seat-legend">Seat · return</p>
+          <div id="ccSeatGridReturn" class="cc-seat-grid" role="group" aria-labelledby="ccSeatReturnLabel"></div>
+        </section>
+      </div>
+      <div class="cc-flight-booking-footer">
+        <button type="button" class="cc-flight-booking-cancel" id="ccFlightBookingCancel">Cancel</button>
+        <button type="button" class="btn-lookup cc-flight-booking-submit" id="ccFlightBookSubmit" disabled>Book</button>
+      </div>
+    </div>
+  </div>
+
   <div class="cc-customize-dock" id="ccCustomizeDock">
     <button
       type="button"
@@ -916,7 +972,7 @@
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260516-engagement-range"></script>
-  <script src="call-center-demo-apalmer.js?v=20260514-cc-event-dest"></script>
+  <script src="call-center-demo-apalmer.js?v=20260515-flight-booking"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

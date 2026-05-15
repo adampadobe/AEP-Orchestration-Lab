@@ -523,6 +523,120 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
   line-height: 1.2;
 }
 
+/* At-risk (NPS detractor) — accent from RTDB StaffPortal.Colour when set (see etihad-ipad.js) */
+.ga-detractor-banner {
+  --ga-detractor-accent: var(--dash-error-border, var(--dash-blue));
+  flex-shrink: 0;
+  padding: 0.55rem 0.75rem 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--dash-border);
+  border-left: 4px solid var(--ga-detractor-accent);
+  background: color-mix(in srgb, var(--ga-detractor-accent) 12%, var(--dash-surface));
+  color: var(--dash-text);
+}
+
+.ga-detractor-banner-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.ga-detractor-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.ga-detractor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.ga-detractor-headline {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dash-text);
+  letter-spacing: 0.01em;
+}
+
+.ga-detractor-body {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--dash-text-secondary);
+}
+
+.ga-detractor-offer {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--dash-text);
+}
+
+.ga-detractor-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.65rem;
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.ga-detractor-kv dt {
+  margin: 0;
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+}
+
+.ga-detractor-kv dd {
+  margin: 0;
+  color: var(--dash-text);
+  font-weight: 500;
+}
+
+.ga-detractor-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.ga-detractor-btn {
+  padding: 0.28rem 0.55rem;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ga-detractor-btn:hover {
+  background: var(--dash-hover);
+}
+
+.ga-detractor-icon-btn {
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  line-height: 1;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: transparent;
+  color: var(--dash-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ga-detractor-icon-btn:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
 .ga-active-flight-pill {
   margin-left: 0.35rem;
   padding: 0.2rem 0.55rem;
@@ -667,6 +781,18 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
   word-break: break-word;
 }
 
+/* Profile/table empty-state: muted demo copy (never mixed with real — see formatFieldDisplay). */
+.ga-field-dummy {
+  color: var(--dash-text-secondary);
+}
+
+.ga-profile-full-name.ga-field-dummy,
+.ga-profile-loyalty-id.ga-field-dummy,
+.ga-loyalty-tier-badge.ga-field-dummy,
+.ga-bsc-row strong.ga-field-dummy {
+  color: var(--dash-text-secondary);
+}
+
 .ga-crew-manifest {
   margin-top: 0.45rem;
   font-size: 0.72rem;
@@ -757,6 +883,13 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
 .ga-search-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.ga-search-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+  line-height: 1.35;
 }
 
 .ga-search-error {

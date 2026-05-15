@@ -2035,6 +2035,363 @@ body.call-center-demo-page:not(.call-center-profile-loaded) .cc-rec-pill {
   margin-top: 0.75rem;
 }
 
+/* ── Booking tab toolbar + flight booking modal ─────────────────────────── */
+.cc-booking-panel-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cc-booking-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  background: var(--dash-surface-alt, var(--cc-surface));
+}
+
+.cc-booking-toolbar-copy {
+  flex: 1;
+  min-width: min(100%, 220px);
+}
+
+.cc-booking-toolbar-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--dash-text, var(--cc-text));
+}
+
+.cc-booking-toolbar-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-booking-toolbar-hint code {
+  font-size: 0.72em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: var(--dash-hover, rgba(15, 23, 42, 0.06));
+  color: var(--dash-text, var(--cc-text));
+}
+
+.cc-flight-booking-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  background: var(--dash-surface, var(--cc-card));
+  color: var(--dash-text, var(--cc-text));
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cc-flight-booking-open-btn:hover {
+  border-color: var(--cc-accent, var(--dash-blue));
+  color: var(--cc-accent, var(--dash-blue));
+  background: var(--cc-accent-soft, var(--dash-hover));
+}
+
+.cc-flight-booking-open-btn:focus-visible {
+  outline: 2px solid var(--cc-accent, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.cc-flight-booking-open-ico {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.cc-booking-content {
+  min-height: 2rem;
+}
+
+.cc-flight-booking-root {
+  position: fixed;
+  inset: 0;
+  z-index: 4400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.cc-flight-booking-root[hidden] {
+  display: none !important;
+}
+
+.cc-flight-booking-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.cc-flight-booking-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: min(92vh, 640px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--dash-radius, 16px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  background: var(--dash-surface, var(--cc-card));
+  color: var(--dash-text, var(--cc-text));
+  box-shadow: var(--dash-shadow, 0 24px 64px rgba(0, 0, 0, 0.35));
+}
+
+.cc-flight-booking-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--dash-border, var(--cc-border));
+}
+
+.cc-flight-booking-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dash-text, var(--cc-text));
+}
+
+.cc-flight-booking-close {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: var(--dash-radius-sm, 10px);
+  background: var(--dash-hover, rgba(15, 23, 42, 0.08));
+  color: var(--dash-text-secondary, var(--cc-muted));
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cc-flight-booking-close:hover {
+  color: var(--dash-text, var(--cc-text));
+  background: var(--dash-surface-alt, rgba(15, 23, 42, 0.1));
+}
+
+.cc-flight-booking-close:focus-visible {
+  outline: 2px solid var(--cc-accent, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.cc-flight-booking-lead {
+  margin: 0;
+  padding: 0.65rem 1rem 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-flight-booking-email-hint {
+  margin: 0.35rem 1rem 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  background: var(--dash-warning-bg, rgba(234, 179, 8, 0.12));
+  color: var(--dash-warning-text, var(--cc-text));
+  border: 1px solid var(--dash-warning-border, rgba(234, 179, 8, 0.35));
+}
+
+.cc-flight-booking-body {
+  padding: 0.75rem 1rem 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.cc-flight-leg {
+  margin-bottom: 1rem;
+}
+
+.cc-flight-leg:last-child {
+  margin-bottom: 0;
+}
+
+.cc-flight-leg-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-flight-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.cc-flight-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  cursor: pointer;
+  background: var(--dash-surface-alt, rgba(15, 23, 42, 0.03));
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cc-flight-option:has(input:checked) {
+  border-color: var(--cc-accent, var(--dash-blue));
+  background: var(--cc-accent-soft, rgba(13, 102, 208, 0.08));
+}
+
+.cc-flight-option input {
+  margin-top: 0.2rem;
+  accent-color: var(--cc-accent, var(--dash-blue));
+}
+
+.cc-flight-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cc-flight-option-route {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dash-text, var(--cc-text));
+}
+
+.cc-flight-option-meta {
+  font-size: 0.72rem;
+  color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-flight-seat-legend {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  max-width: 220px;
+}
+
+.cc-seat-btn {
+  padding: 0.45rem 0.35rem;
+  border-radius: var(--dash-radius-sm, 8px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  background: var(--dash-surface, var(--cc-card));
+  color: var(--dash-text, var(--cc-text));
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.cc-seat-btn:hover {
+  border-color: var(--cc-accent, var(--dash-blue));
+}
+
+.cc-seat-btn[aria-pressed='true'] {
+  border-color: var(--cc-accent, var(--dash-blue));
+  background: var(--cc-accent-soft, rgba(13, 102, 208, 0.12));
+  color: var(--cc-accent, var(--dash-blue));
+}
+
+.cc-seat-btn:focus-visible {
+  outline: 2px solid var(--cc-accent, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.cc-flight-booking-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid var(--dash-border, var(--cc-border));
+}
+
+.cc-flight-booking-cancel {
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid var(--dash-border, var(--cc-border));
+  background: transparent;
+  color: var(--dash-text-secondary, var(--cc-muted));
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-flight-booking-cancel:hover {
+  color: var(--dash-text, var(--cc-text));
+  border-color: var(--dash-text-secondary, var(--cc-muted));
+}
+
+.cc-flight-booking-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cc-theme-banking-dark .cc-booking-toolbar {
+  background: var(--cc-bank-elev2, var(--cc-bank-elev));
+  border-color: var(--cc-bank-border, var(--cc-border));
+}
+
+.cc-theme-banking-dark .cc-flight-booking-dialog {
+  background: var(--cc-bank-elev, var(--cc-card));
+  border-color: var(--cc-bank-border, var(--cc-border));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
+}
+
+.cc-theme-banking-dark .cc-flight-option {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cc-theme-banking-dark .cc-flight-option:has(input:checked) {
+  background: var(--cc-banking-red-soft, rgba(225, 29, 72, 0.12));
+  border-color: rgba(225, 29, 72, 0.45);
+}
+
+.cc-theme-banking-dark .cc-seat-btn {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cc-theme-banking-dark .cc-seat-btn[aria-pressed='true'] {
+  background: var(--cc-banking-red-soft, rgba(225, 29, 72, 0.18));
+  border-color: rgba(253, 164, 175, 0.55);
+  color: var(--cc-text);
+}
+
 /* ── Channel selector ─────────────────────────────────────────────────────── */
 .call-center-pinned-field--channel {
   display: flex;

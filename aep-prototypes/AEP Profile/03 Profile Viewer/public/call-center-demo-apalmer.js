@@ -376,11 +376,11 @@
   }
 
   function renderBookingPanel(travel, email) {
-    const panel = document.getElementById('ccPanelOrders');
-    if (!panel) return;
+    const content = document.getElementById('ccBookingContent');
+    if (!content) return;
 
     if (!travel || (!travel.flightNumber && !travel.confirmationNumber)) {
-      panel.innerHTML = `
+      content.innerHTML = `
         <p class="cc-history-lead">No booking data found in profile for this customer.</p>
         <p class="cc-history-lead" style="margin-top:0.35rem;font-size:0.8rem;opacity:0.6;">
           Expected at <code>_demoemea.travelReservations.flightReservations</code> in the AEP sandbox.
@@ -406,7 +406,7 @@
     const statusCls = /cancel/i.test(stat) ? 'cc-tx-status--warn' :
                       /wait|pending/i.test(stat) ? 'cc-tx-status--pending' : 'cc-tx-status--ok';
 
-    panel.innerHTML = `
+    content.innerHTML = `
       <div class="cc-order-card">
         <div class="cc-order-actions">
           <button type="button" class="cc-order-chip cc-order-chip--action cc-booking-action" data-event="contact.center.seat.change">Change seat</button>
@@ -439,7 +439,7 @@
         </dl>
       </div>`;
 
-    panel.querySelectorAll('.cc-booking-action').forEach((btn) => {
+    content.querySelectorAll('.cc-booking-action').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const eventType = btn.dataset.event;
         const lookupEmail = email || getEmail().trim();
@@ -1329,6 +1329,16 @@
     return (customerEmail && customerEmail.value) || '';
   }
 
+  /** Email field or last-loaded profile drawer email (for generator identity). */
+  function getCcCustomerEmailForEvents() {
+    const fromInput = getEmail().trim();
+    if (fromInput) return fromInput;
+    const drawer = document.getElementById('profileDrawerEmail');
+    const t = drawer ? String(drawer.textContent || '').trim() : '';
+    if (t && t !== '—') return t;
+    return '';
+  }
+
   function setStatus(text, type) {
     if (!ccStatus) return;
     ccStatus.textContent = text || '';
@@ -1373,6 +1383,260 @@
       throw new Error(data.error || data.message || 'Request failed.');
     }
     return data;
+  }
+
+  /** Static demo flights (concierge mimic; not real inventory). */
+  const CC_DEMO_FLIGHTS_OUTBOUND = [
+    { id: 'ey11', flightNo: 'EY 11', label: 'Abu Dhabi → London Heathrow', time: '09:30', route: 'AUH–LHR' },
+    { id: 'ey19', flightNo: 'EY 19', label: 'Abu Dhabi → London Heathrow', time: '14:05', route: 'AUH–LHR' },
+    { id: 'ey25', flightNo: 'EY 25', label: 'Abu Dhabi → London Heathrow', time: '22:40', route: 'AUH–LHR' },
+  ];
+  const CC_DEMO_FLIGHTS_RETURN = [
+    { id: 'ey12', flightNo: 'EY 12', label: 'London Heathrow → Abu Dhabi', time: '10:15', route: 'LHR–AUH' },
+    { id: 'ey20', flightNo: 'EY 20', label: 'London Heathrow → Abu Dhabi', time: '21:30', route: 'LHR–AUH' },
+  ];
+  const CC_DEMO_SEATS = ['1A', '1B', '2A', '2B', '3A', '3B'];
+
+  /** @type {{ outboundId: string, returnId: string, seatOutbound: string|null, seatReturn: string|null }} */
+  let ccFlightBookingState = {
+    outboundId: CC_DEMO_FLIGHTS_OUTBOUND[0].id,
+    returnId: CC_DEMO_FLIGHTS_RETURN[0].id,
+    seatOutbound: null,
+    seatReturn: null,
+  };
+
+  /** @type {HTMLElement|null} */
+  let ccFlightBookingOpener = null;
+
+  function findCcDemoFlight(leg, id) {
+    const list = leg === 'outbound' ? CC_DEMO_FLIGHTS_OUTBOUND : CC_DEMO_FLIGHTS_RETURN;
+    return list.find((f) => f.id === id) || list[0];
+  }
+
+  function resetCcFlightBookingState() {
+    ccFlightBookingState = {
+      outboundId: CC_DEMO_FLIGHTS_OUTBOUND[0].id,
+      returnId: CC_DEMO_FLIGHTS_RETURN[0].id,
+      seatOutbound: null,
+      seatReturn: null,
+    };
+  }
+
+  function buildCcFlightRadioGroup(container, flights, groupName, checkedId, onChange) {
+    if (!container) return;
+    container.innerHTML = '';
+    flights.forEach((f) => {
+      const lbl = document.createElement('label');
+      lbl.className = 'cc-flight-option';
+      const inp = document.createElement('input');
+      inp.type = 'radio';
+      inp.name = groupName;
+      inp.value = f.id;
+      inp.checked = f.id === checkedId;
+      inp.addEventListener('change', () => {
+        if (!inp.checked) return;
+        if (groupName === 'ccFlightOutbound') ccFlightBookingState.outboundId = f.id;
+        else ccFlightBookingState.returnId = f.id;
+        onChange();
+      });
+      const main = document.createElement('span');
+      main.className = 'cc-flight-option-main';
+      const route = document.createElement('span');
+      route.className = 'cc-flight-option-route';
+      route.textContent = f.label + ' · ' + f.flightNo;
+      const meta = document.createElement('span');
+      meta.className = 'cc-flight-option-meta';
+      meta.textContent = f.time + ' · ' + f.route;
+      main.appendChild(route);
+      main.appendChild(meta);
+      lbl.appendChild(inp);
+      lbl.appendChild(main);
+      container.appendChild(lbl);
+    });
+  }
+
+  function buildCcSeatGrid(container, legKey, onChange) {
+    if (!container) return;
+    container.innerHTML = '';
+    const curSeat = legKey === 'outbound' ? ccFlightBookingState.seatOutbound : ccFlightBookingState.seatReturn;
+    CC_DEMO_SEATS.forEach((seat) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cc-seat-btn';
+      b.textContent = seat;
+      b.setAttribute('aria-pressed', curSeat === seat ? 'true' : 'false');
+      b.addEventListener('click', () => {
+        if (legKey === 'outbound') ccFlightBookingState.seatOutbound = seat;
+        else ccFlightBookingState.seatReturn = seat;
+        container.querySelectorAll('.cc-seat-btn').forEach((btn) => {
+          btn.setAttribute('aria-pressed', btn === b ? 'true' : 'false');
+        });
+        onChange();
+      });
+      container.appendChild(b);
+    });
+  }
+
+  function updateCcFlightBookSubmitState() {
+    const hint = document.getElementById('ccFlightBookingEmailHint');
+    const submit = document.getElementById('ccFlightBookSubmit');
+    const email = getCcCustomerEmailForEvents().trim();
+    const seatsOk = Boolean(ccFlightBookingState.seatOutbound && ccFlightBookingState.seatReturn);
+    if (!email) {
+      if (hint) {
+        hint.hidden = false;
+        hint.textContent =
+          'Load a customer profile first so an email is available — the lab generator uses it like inbound contactCentre events.';
+      }
+      if (submit) submit.disabled = true;
+      return;
+    }
+    if (hint) hint.hidden = true;
+    if (submit) submit.disabled = !seatsOk;
+  }
+
+  function syncCcFlightModalSelectionsFromState() {
+    buildCcFlightRadioGroup(
+      document.getElementById('ccFlightOutboundOptions'),
+      CC_DEMO_FLIGHTS_OUTBOUND,
+      'ccFlightOutbound',
+      ccFlightBookingState.outboundId,
+      updateCcFlightBookSubmitState,
+    );
+    buildCcFlightRadioGroup(
+      document.getElementById('ccFlightReturnOptions'),
+      CC_DEMO_FLIGHTS_RETURN,
+      'ccFlightReturn',
+      ccFlightBookingState.returnId,
+      updateCcFlightBookSubmitState,
+    );
+    buildCcSeatGrid(document.getElementById('ccSeatGridOutbound'), 'outbound', updateCcFlightBookSubmitState);
+    buildCcSeatGrid(document.getElementById('ccSeatGridReturn'), 'return', updateCcFlightBookSubmitState);
+    updateCcFlightBookSubmitState();
+  }
+
+  function openCcFlightBookingModal() {
+    const root = document.getElementById('ccFlightBookingRoot');
+    const opener = document.getElementById('ccFlightBookingBtn');
+    if (!root) return;
+    ccFlightBookingOpener = opener || null;
+    resetCcFlightBookingState();
+    syncCcFlightModalSelectionsFromState();
+    root.hidden = false;
+    window.requestAnimationFrame(() => {
+      const radio = root.querySelector('#ccFlightOutboundOptions input[type="radio"]');
+      if (radio) radio.focus();
+      else {
+        const closeBtn = document.getElementById('ccFlightBookingClose');
+        if (closeBtn) closeBtn.focus();
+      }
+    });
+  }
+
+  function closeCcFlightBookingModal() {
+    const root = document.getElementById('ccFlightBookingRoot');
+    if (!root || root.hidden) return;
+    root.hidden = true;
+    const back = ccFlightBookingOpener;
+    ccFlightBookingOpener = null;
+    if (back && typeof back.focus === 'function') {
+      window.requestAnimationFrame(() => back.focus());
+    }
+  }
+
+  async function sendCcFlightBookedEvent() {
+    const email = getCcCustomerEmailForEvents().trim();
+    if (!email) return;
+    if (!ccFlightBookingState.seatOutbound || !ccFlightBookingState.seatReturn) return;
+    const target = getSelectedGeneratorTarget();
+    const ecid = getEcidForExperienceEvent();
+    const ob = findCcDemoFlight('outbound', ccFlightBookingState.outboundId);
+    const rt = findCcDemoFlight('return', ccFlightBookingState.returnId);
+    const channelLower = ccInboundChannelLabel().toLowerCase();
+    const body = augmentCcGeneratorPostBody({
+      targetId: target ? target.id : undefined,
+      email,
+      eventType: 'contactCentre.flight.booked',
+      channel: 'cx',
+      message: {
+        channel: channelLower,
+        outbound: {
+          flightNo: ob.flightNo,
+          seat: ccFlightBookingState.seatOutbound,
+          label: ob.label,
+          time: ob.time,
+          route: ob.route,
+        },
+        return: {
+          flightNo: rt.flightNo,
+          seat: ccFlightBookingState.seatReturn,
+          label: rt.label,
+          time: rt.time,
+          route: rt.route,
+        },
+      },
+      viewName: 'Contact centre · flight booking',
+      viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+    });
+    if (ecid) body.ecid = ecid;
+    const res = await fetch('/api/events/generator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Request failed.');
+    }
+    return data;
+  }
+
+  function initCcFlightBookingModal() {
+    const btn = document.getElementById('ccFlightBookingBtn');
+    const root = document.getElementById('ccFlightBookingRoot');
+    const backdrop = document.getElementById('ccFlightBookingBackdrop');
+    const dlgClose = document.getElementById('ccFlightBookingClose');
+    const cancel = document.getElementById('ccFlightBookingCancel');
+    const submit = document.getElementById('ccFlightBookSubmit');
+    if (!btn || !root) return;
+
+    btn.addEventListener('click', () => {
+      activateWorkspaceTab('orders');
+      openCcFlightBookingModal();
+    });
+    dlgClose && dlgClose.addEventListener('click', () => closeCcFlightBookingModal());
+    cancel && cancel.addEventListener('click', () => closeCcFlightBookingModal());
+    backdrop &&
+      backdrop.addEventListener('click', () => {
+        closeCcFlightBookingModal();
+      });
+    submit &&
+      submit.addEventListener('click', async () => {
+        if (!getCcCustomerEmailForEvents().trim()) {
+          updateCcFlightBookSubmitState();
+          return;
+        }
+        if (!ccFlightBookingState.seatOutbound || !ccFlightBookingState.seatReturn) return;
+        submit.disabled = true;
+        try {
+          await sendCcFlightBookedEvent();
+          setStatus('Sent contactCentre.flight.booked to AEP.', 'success');
+          closeCcFlightBookingModal();
+          const em = getCcCustomerEmailForEvents().trim();
+          if (em) void fetchAndRenderCcEvents(em);
+        } catch (err) {
+          setStatus('Flight booking event failed: ' + ((err && err.message) || String(err)), 'error');
+        } finally {
+          if (submit) submit.disabled = false;
+          updateCcFlightBookSubmitState();
+        }
+      });
+
+    if (customerEmail) {
+      customerEmail.addEventListener('input', () => {
+        if (!root.hidden) updateCcFlightBookSubmitState();
+      });
+    }
   }
 
   async function loadGeneratorTargets() {
@@ -1434,6 +1698,12 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    const flightRoot = document.getElementById('ccFlightBookingRoot');
+    if (flightRoot && !flightRoot.hidden) {
+      e.preventDefault();
+      closeCcFlightBookingModal();
+      return;
+    }
     if (document.body.classList.contains('call-center-nav-open')) {
       setNavOpen(false);
       return;
@@ -1572,6 +1842,7 @@
   }
 
   initIndustryUi();
+  initCcFlightBookingModal();
   initCcEventDestDisclosure();
   void loadGeneratorTargets();
   void initFromRtdb();

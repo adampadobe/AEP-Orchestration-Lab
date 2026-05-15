@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=20260513-etihad-ipad-cache">
   <link rel="stylesheet" href="mobile-demo.css?v=20260513-etihad-ipad-cache">
-  <link rel="stylesheet" href="etihad-ipad.css?v=20260513-etihad-ipad-cache">
+  <link rel="stylesheet" href="etihad-ipad.css?v=20260515-etihad-ipad-field-dummy">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -137,6 +137,30 @@
                           </div>
                         </header>
 
+                        <div
+                          id="gaDetractorBanner"
+                          class="ga-detractor-banner"
+                          hidden
+                          role="status"
+                          aria-live="polite"
+                          aria-label="Guest risk alert"
+                        >
+                          <div class="ga-detractor-banner-inner">
+                            <div class="ga-detractor-main">
+                              <div class="ga-detractor-title-row">
+                                <span class="ga-detractor-headline">At-risk guest (detractor)</span>
+                              </div>
+                              <p class="ga-detractor-body" id="gaDetractorBody"></p>
+                              <p class="ga-detractor-offer" id="gaDetractorOffer"></p>
+                              <dl class="ga-detractor-kv" id="gaDetractorKv"></dl>
+                            </div>
+                            <div class="ga-detractor-actions">
+                              <button type="button" class="ga-detractor-btn" id="gaDetractorClose">Close</button>
+                              <button type="button" class="ga-detractor-icon-btn" id="gaDetractorCloseX" aria-label="Dismiss alert">×</button>
+                            </div>
+                          </div>
+                        </div>
+
                         <div class="ga-flight-strip" id="gaFlightStrip">
                           <span class="ga-flight-strip-icon" aria-hidden="true">✈️</span>
                           <span id="gaFlightStripFlight">—</span>
@@ -185,10 +209,12 @@
                         </div>
 
                         <div class="ga-search-bar">
+                          <datalist id="etihadIpadRecentEmailList"></datalist>
                           <form class="ga-search-form" id="gaSearchForm">
-                            <input class="ga-search-input" id="gaSearchInput" type="text" placeholder="Passenger email or loyalty ID" autocomplete="off" spellcheck="false" aria-label="Passenger email or loyalty ID" />
+                            <input class="ga-search-input" id="gaSearchInput" type="text" placeholder="Passenger email or loyalty ID" list="etihadIpadRecentEmailList" autocomplete="off" spellcheck="false" aria-label="Passenger email or loyalty ID" />
                             <button class="ga-search-btn" type="submit">Search</button>
                           </form>
+                          <p id="etihadIpadRecentEmailHint" class="ga-search-hint" hidden>Recent email lookups on this device — focus the field for suggestions.</p>
                           <p id="gaSearchError" class="ga-search-error" hidden role="alert"></p>
                         </div>
 
@@ -377,7 +403,7 @@
 
   <script src="firebase-database-config.js?v=20260513-etihad-ipad-cache"></script>
   <script src="aep-global-sandbox.js?v=20260513-etihad-ipad-cache"></script>
-  <script src="etihad-ipad.js?v=20260515-etihad-ipad-profile-rows"></script>
+  <script src="etihad-ipad.js?v=20260515-etihad-ipad-field-dummy"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260513-etihad-ipad-cache"></script>
