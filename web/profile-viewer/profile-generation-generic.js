@@ -1160,9 +1160,21 @@
    * top segment is in PROFILE_STREAM_ROOT_PATH_PREFIXES. Random persona code only
    * mutates scalar form values—it never changes path strings or push order below.
    */
-  function buildUpdatesFromForm() {
+  /**
+   * @param {string} [identityEmailForStream] Same trimmed string POSTed as `body.email` / merged
+   *   server-side to `_<xdmKey>.identification.core.email` — mirror onto root `personalEmail.address`.
+   */
+  function buildUpdatesFromForm(identityEmailForStream) {
     const updates = [];
     const push = (path, value) => updates.push({ path, value });
+
+    const identificationEmail =
+      identityEmailForStream != null && typeof identityEmailForStream === 'string'
+        ? identityEmailForStream.trim()
+        : '';
+    if (identificationEmail) {
+      push('personalEmail.address', identificationEmail);
+    }
 
     // Identity (XDM root via PROFILE_STREAM_ROOT_PATH_PREFIXES "person.")
     const firstName = trimVal(firstNameEl);
@@ -1291,7 +1303,7 @@
         payloadPreviewPre.textContent = '// Enter a base email to preview the scaled recipient for Update / Generate.';
         return;
       }
-      const updates = buildUpdatesFromForm();
+      const updates = buildUpdatesFromForm(getCurrentScaledEmail());
       const sb = getSandboxName();
       const streaming = getStreamingPayload();
       const dryRun = !!(dryRunEl && dryRunEl.checked);
@@ -1416,6 +1428,8 @@
     let mobilePhone = findBySuffix(['mobilephone.number', 'mobilephonenumber']) ||
       findByKeywords('mobilephone', 'number');
     let preferredChannel = findBySuffix(['marketing.preferred']);
+    let identificationEmailLookup = findBySuffix(['identification.core.email']);
+    let personalEmailAddressLookup = findBySuffix(['personalemail.address']);
 
     // Loyalty (dual-written by buildUpdatesFromForm to both the standard
     // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
@@ -1484,6 +1498,14 @@
       }
       if (!tier)   { let v = get(entity, 'loyalty.tier');   if (v == null) v = get(tenant, 'loyaltyDetails.level');  if (v != null) tier   = String(v); }
       if (!points) { let v = get(entity, 'loyalty.points'); if (v == null) v = get(tenant, 'loyaltyDetails.points'); if (v != null) points = String(v); }
+      if (!identificationEmailLookup) {
+        const v = get(tenant, 'identification.core.email');
+        if (v != null) identificationEmailLookup = String(v).trim();
+      }
+      if (!personalEmailAddressLookup) {
+        const v = get(entity, 'personalEmail.address');
+        if (v != null) personalEmailAddressLookup = String(v).trim();
+      }
     }
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
@@ -1522,6 +1544,19 @@
     if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
     setSelectValueLoose(loyaltyTierEl, tier);
     if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+
+    if (
+      baseEmailEl &&
+      !trim(identificationEmailLookup) &&
+      trim(personalEmailAddressLookup)
+    ) {
+      const seed = trim(personalEmailAddressLookup);
+      baseEmailEl.value = seed;
+      try {
+        Shared.writeBaseEmail(getSandboxName(), seed);
+      } catch (_) { /* ignore */ }
+      loadCounterForCurrentContext();
+    }
   }
 
   /**
@@ -1675,7 +1710,7 @@
     }
     const streaming = ensureStreamingReady();
     if (!streaming) return;
-    const updates = buildUpdatesFromForm();
+    const updates = buildUpdatesFromForm(email);
     if (!updates.length) {
       setMessage(
         messageEl,
@@ -1737,7 +1772,7 @@
         lastEmail = email;
         try {
           applyRandomCustomerPersonaForGenerate();
-          const updates = buildUpdatesFromForm();
+          const updates = buildUpdatesFromForm(email);
           if (!updates.length) {
             lastError = 'Could not build profile fields after randomization — check form configuration.';
             break;

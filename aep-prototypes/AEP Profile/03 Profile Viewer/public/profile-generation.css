@@ -67,6 +67,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .consent-panel input[type="email"],
+.profile-generation-page .consent-panel input[type="tel"],
 .profile-generation-page .consent-panel input[type="text"],
 .profile-generation-page .consent-panel input[type="number"],
 .profile-generation-page .consent-panel input[readonly],
@@ -566,6 +567,25 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   font-weight: 400;
   color: var(--dash-text-secondary);
   font-size: 0.8em;
+}
+
+/* Base email + mobile phone: one shared class so both match (global style.css only styles type=email). */
+.profile-generation-page .generic-pattern-block input.generic-pattern-contact-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.25;
+  border-radius: 8px;
+  border: 1px solid var(--dash-input-border, #ddd);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+}
+
+.profile-generation-page .generic-pattern-block input.generic-pattern-contact-input:focus {
+  outline: none;
+  border-color: #6b5b95;
+  box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);
 }
 
 .profile-generation-page .generic-helper code,
