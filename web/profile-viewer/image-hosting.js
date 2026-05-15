@@ -1789,17 +1789,126 @@
     return (n / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  /** IndexedDB name for File System Access handles (Chromium save-folder memory). */
+  var IDB_BACKUP_PREFS = 'aepImageHostingBackupPrefs';
+  var IDB_BACKUP_STORE = 'handles';
+  var IDB_LAST_BACKUP_FILE_KEY = 'lastBackupZipFileHandle';
+
+  function openBackupPrefsIdb() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(IDB_BACKUP_PREFS, 1);
+      req.onupgradeneeded = function (ev) {
+        var db = ev.target.result;
+        if (!db.objectStoreNames.contains(IDB_BACKUP_STORE)) {
+          db.createObjectStore(IDB_BACKUP_STORE);
+        }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error('IndexedDB open failed')); };
+    });
+  }
+
+  function idbPutHandle(key, handle) {
+    return openBackupPrefsIdb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_BACKUP_STORE, 'readwrite');
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+        tx.objectStore(IDB_BACKUP_STORE).put(handle, key);
+      });
+    });
+  }
+
+  function idbGetHandle(key) {
+    return openBackupPrefsIdb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_BACKUP_STORE, 'readonly');
+        var r = tx.objectStore(IDB_BACKUP_STORE).get(key);
+        r.onsuccess = function () { resolve(r.result || null); };
+        r.onerror = function () { reject(r.error); };
+      });
+    });
+  }
+
+  /**
+   * Restore a handle from IDB for use as showSaveFilePicker({ startIn }).
+   * Readonly is enough to hint the parent folder for the next save dialog.
+   */
+  async function backupPrefsEnsureStartInHandle(handle) {
+    if (!handle || typeof handle.queryPermission !== 'function') return handle || null;
+    try {
+      var ro = { mode: 'readonly' };
+      var st = await handle.queryPermission(ro);
+      if (st !== 'granted' && typeof handle.requestPermission === 'function') {
+        st = await handle.requestPermission(ro);
+      }
+      return st === 'granted' ? handle : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  /**
+   * Chromium / Edge: native save dialog + remember last folder via IndexedDB
+   * (last FileSystemFileHandle as startIn). Falls back to anchor download.
+   * @returns {Promise<'picker'|'anchor'|'aborted'>}
+   */
+  async function trySaveBackupZipViaFilePicker(blob, fileName) {
+    if (typeof window.showSaveFilePicker !== 'function') return 'anchor';
+    var startIn = null;
+    try {
+      var prev = await idbGetHandle(IDB_LAST_BACKUP_FILE_KEY);
+      if (prev) startIn = await backupPrefsEnsureStartInHandle(prev);
+    } catch (_e) { startIn = null; }
+
+    var pickOpts = {
+      suggestedName: fileName,
+      types: [{ description: 'ZIP archive', accept: { 'application/zip': ['.zip'] } }],
+    };
+    if (startIn) pickOpts.startIn = startIn;
+
+    var fileHandle;
+    try {
+      fileHandle = await window.showSaveFilePicker(pickOpts);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return 'aborted';
+      console.warn('[image-hosting] showSaveFilePicker:', e);
+      return 'anchor';
+    }
+
+    try {
+      var writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } catch (e) {
+      console.warn('[image-hosting] backup write failed:', e);
+      return 'anchor';
+    }
+
+    try {
+      await idbPutHandle(IDB_LAST_BACKUP_FILE_KEY, fileHandle);
+    } catch (_e) { /* best-effort */ }
+
+    return 'picker';
+  }
+
   async function downloadLibrary() {
     var sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
+    var defaultCustomer = '';
+    try {
+      defaultCustomer = localStorage.getItem('imageHostingBackupCustomer') || '';
+    } catch (_e) { defaultCustomer = ''; }
     var customer = window.prompt(
       'Backup images as logo_<name>.zip\n\n' +
-      'Enter a customer name (letters, numbers, hyphens). The ZIP will save to your browser\'s Downloads folder.',
-      ''
+      'Enter a customer name (letters, numbers, hyphens).\n' +
+      'In Chromium-based browsers you can choose the save location; the app remembers that folder for the next backup. Other browsers save to the default Downloads folder.',
+      defaultCustomer
     );
     if (customer == null) return;
     customer = String(customer).trim();
     if (!customer) customer = sb;
+    try { localStorage.setItem('imageHostingBackupCustomer', customer); } catch (_e) {}
     var safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'library';
     var fileName = 'logo_' + safe + '.zip';
     var url = '/api/image-hosting/library/download?sandbox=' + encodeURIComponent(sb) + '&customer=' + encodeURIComponent(customer);
@@ -1903,8 +2012,31 @@
 
       blobUrl = URL.createObjectURL(blob);
 
-      // Trigger the browser download. Two reliability fixes vs the previous
-      // implementation:
+      var pickerOutcome = await trySaveBackupZipViaFilePicker(blob, fileName);
+      if (pickerOutcome === 'aborted') {
+        markBackupDone('Save cancelled — no file was written. Use Re-download to save with the browser default.', blobUrl, fileName);
+        setStatus('Backup save cancelled.', '');
+        var capturedUrlAbort = blobUrl;
+        setTimeout(function () {
+          try { URL.revokeObjectURL(capturedUrlAbort); } catch (_e) {}
+        }, 60000);
+        return;
+      }
+
+      if (pickerOutcome === 'picker') {
+        var sizeStrPick = formatBytesShort(blob.size);
+        var doneMsgPick = 'Saved ' + fileName + ' (' + sizeStrPick + ') to the folder you chose (remembered for next time in this browser).';
+        markBackupDone(doneMsgPick, blobUrl, fileName);
+        setStatus('Saved ' + fileName + ' (' + sizeStrPick + ').', 'ok');
+        var capturedUrlPick = blobUrl;
+        setTimeout(function () {
+          try { URL.revokeObjectURL(capturedUrlPick); } catch (_e) {}
+        }, 60000);
+        return;
+      }
+
+      // Trigger the browser download (Safari / Firefox / picker failure).
+      // Two reliability fixes vs the previous implementation:
       //   1. Anchor stays in the DOM (some browsers cancel the download
       //      if the anchor element is removed before the click event has
       //      finished propagating).
