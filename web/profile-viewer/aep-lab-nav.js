@@ -326,7 +326,48 @@
     {
       group: 'Demos', id: 'demos',
       items: [],
+      /*
+       * Demos sidebar policy:
+       * - Flat subgroups first (no demoMeta): shared lab surfaces — Contact centre, Ipad, mobile
+       *   shell — tuned at runtime from RTDB (ajoLookups/{sandbox}) so everyone sees the same entry
+       *   points while copy/branding stays sandbox-specific.
+       * - demoCustomer subgroups below: bespoke Web / Mobile / Call centre per customer; use
+       *   demoMeta.owners (and optional sandboxes) so "Mine" / mine+sandbox lists stay owner-scoped.
+       */
       subgroups: [
+        {
+          id: 'demoMobileLab',
+          label: 'Mobile',
+          items: [
+            {
+              label: 'Phone (in development)',
+              href: 'mobile-demo-apalmer.html#etihad-phone',
+              inDevelopment: true,
+              navHideKey: 'mobileDemoApalmerPhone',
+              ico: '\uD83D\uDCF1',
+            },
+            {
+              label: 'Ipad',
+              href: 'etihad-ipad.html',
+              inDevelopment: true,
+              navHideKey: 'mobileDemoApalmerIpad',
+              ico: '\uD83D\uDCF2',
+            },
+          ],
+        },
+        {
+          id: 'demoCallCentreLab',
+          label: 'Call Centre',
+          items: [
+            {
+              label: 'Contact centre (in development)',
+              href: 'call-center-demo-apalmer.html',
+              inDevelopment: true,
+              navHideKey: 'callCenterDemoApalmer',
+              ico: '\u260E\uFE0F',
+            },
+          ],
+        },
         {
           id: 'demoEtihad',
           label: 'Etihad',
@@ -344,42 +385,6 @@
                   demoMeta: { owners: ['apalmer'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9L3 14v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-                },
-              ],
-            },
-            {
-              id: 'etihadMobile',
-              label: 'Mobile',
-              items: [
-                {
-                  label: 'Phone (in development)',
-                  href: 'mobile-demo-apalmer.html#etihad-phone',
-                  inDevelopment: true,
-                  navHideKey: 'mobileDemoApalmerPhone',
-                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-                  ico: '\uD83D\uDCF1',
-                },
-                {
-                  label: 'iPad gate agent',
-                  href: 'etihad-ipad.html',
-                  inDevelopment: true,
-                  navHideKey: 'mobileDemoApalmerIpad',
-                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-                  ico: '\uD83D\uDCF2',
-                },
-              ],
-            },
-            {
-              id: 'etihadCallCentre',
-              label: 'Call Centre',
-              items: [
-                {
-                  label: 'Contact centre (in development)',
-                  href: 'call-center-demo-apalmer.html',
-                  inDevelopment: true,
-                  navHideKey: 'callCenterDemoApalmer',
-                  demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] },
-                  ico: '\u260E\uFE0F',
                 },
               ],
             },
@@ -844,8 +849,9 @@
   }
 
   /**
-   * Customer demo: collapsible customer name, then channel sections (Web / Mobile / Call Centre)
-   * with Mobile nesting Phone + iPad rows in the DOM.
+   * Customer demo: collapsible customer name, then channel sections (e.g. Web / Mobile / Call Centre)
+   * with Mobile nesting Phone + iPad rows in the DOM. Shared Mobile / Call Centre lab links live in
+   * flat `subgroups` (no demoCustomer) at the top of the Demos group.
    */
   function buildCustomerDemoSubgroup(sgDef, channelRows, filename, gStates) {
     if (!channelRows || !channelRows.length) return null;
