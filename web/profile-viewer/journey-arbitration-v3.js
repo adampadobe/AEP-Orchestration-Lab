@@ -1,8 +1,41 @@
 /**
- * Journey arbitration v3 — nav hide visibility + sync iframe theme + fullscreen
- * (embed: the-anatomy-of-a-decision-v19-1.html). Reuses v2 iframe token bridge CSS.
+ * Journey arbitration v3 — nav hide visibility + sync iframe theme + fullscreen + industry toolbar (postMessage to anatomy embed).
  */
 (function () {
+  var LS_INDUSTRY = 'dceVizIndustry';
+  var LS_EDP_INDUSTRY = 'aepEdpIndustry';
+
+  var jaV3IndustryToolbar =
+    typeof window.aepDceIndustryToolbarInit === 'function'
+      ? window.aepDceIndustryToolbarInit({
+          scopeId: 'jaV3IndustryScope',
+          btnId: 'ja-v3-industry-btn',
+          menuId: 'ja-v3-industry-menu',
+          labelId: 'ja-v3-industry-label',
+          icoId: 'ja-v3-industry-ico',
+          builtAttr: 'data-ja-v3-built',
+          boundAttr: 'data-ja-v3-bound',
+          iframeId: 'jaV3Iframe',
+          postMessageType: 'ja-v2-set-industry',
+        })
+      : null;
+
+  function getJaV3IndustryKey() {
+    return jaV3IndustryToolbar ? jaV3IndustryToolbar.getIndustryKey() : 'media';
+  }
+
+  function postJaV3IndustryToIframe(key) {
+    if (jaV3IndustryToolbar) jaV3IndustryToolbar.postToIframe(key);
+  }
+
+  function jaV3SetIndustry(key, persist, skipPost) {
+    if (jaV3IndustryToolbar) jaV3IndustryToolbar.setIndustry(key, persist, skipPost);
+  }
+
+  function bootJaV3Industry() {
+    if (jaV3IndustryToolbar) jaV3IndustryToolbar.boot();
+  }
+
   var LS_NAV = 'aepNavHideInDev_journeyArbitrationV3';
   var BRIDGE_ID = 'ja-v3-iframe-bridge';
   var BRIDGE_HREF = 'journey-arbitration-v2-iframe-bridge.css?v=20260427b';
@@ -112,6 +145,12 @@
     if (!frame) return;
     frame.addEventListener('load', function () {
       syncIframeTheme();
+      var k = getJaV3IndustryKey();
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          postJaV3IndustryToIframe(k);
+        });
+      });
     });
     try {
       if (frame.contentDocument && frame.contentDocument.readyState === 'complete') {
@@ -127,6 +166,11 @@
   window.addEventListener('storage', function (e) {
     if (e.key === LS_NAV) window.location.reload();
     if (e.key === 'aepTheme') syncIframeTheme();
+    if (e.key === LS_INDUSTRY || e.key === LS_EDP_INDUSTRY) {
+      if (!jaV3IndustryToolbar) return;
+      var nk = jaV3IndustryToolbar.migrateIndustryKey(e.newValue);
+      if (jaV3IndustryToolbar.isValidIndustry(nk)) jaV3SetIndustry(nk, false);
+    }
   });
   window.addEventListener('aep-theme-change', function () {
     requestAnimationFrame(function () {
@@ -214,6 +258,7 @@
   }
 
   function bootJaV3Page() {
+    bootJaV3Industry();
     jaV3BindFullscreen();
   }
 

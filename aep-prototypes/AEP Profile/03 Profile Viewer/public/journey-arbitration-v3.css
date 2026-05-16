@@ -9,6 +9,143 @@
   box-sizing: border-box;
 }
 
+/* Industry control — top-left over iframe (same pattern as Journey arbitration v2 / Decisioning visualiser). */
+.journey-arbitration-v3-page .ja-v3-industry-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-wrap {
+  position: relative;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--dash-hover);
+  border: 1px solid var(--dash-border);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-btn:hover {
+  filter: brightness(0.98);
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-industry-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue);
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-industry-ico svg {
+  display: block;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-chev {
+  flex-shrink: 0;
+  opacity: 0.75;
+  color: var(--dash-muted);
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 3px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: var(--dash-shadow);
+  min-width: 200px;
+  z-index: 600;
+  box-sizing: border-box;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-menu[hidden] {
+  display: none !important;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dash-text);
+  background: transparent;
+  border: none;
+  box-sizing: border-box;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-item:hover {
+  background: var(--dash-hover);
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-item.dce-edp-dropdown-item--active {
+  font-weight: 600;
+  color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 10%, transparent);
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-menu-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue);
+  opacity: 0.95;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+
+#jaV3IndustryScope.dce-viz-core .dce-edp-dropdown-item:not(.dce-edp-dropdown-item--active) .dce-edp-menu-ico {
+  color: var(--dash-muted);
+  opacity: 1;
+}
+
+.journey-arbitration-v3-page .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
+  display: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+body.journey-arbitration-v3-page[data-dce-industry='media'] .dashboard-hero-subtitle[data-dce-industry-show='media'],
+body.journey-arbitration-v3-page[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'],
+body.journey-arbitration-v3-page[data-dce-industry='retail'] .dashboard-hero-subtitle[data-dce-industry-show='retail'],
+body.journey-arbitration-v3-page[data-dce-industry='fsi'] .dashboard-hero-subtitle[data-dce-industry-show='fsi'],
+body.journey-arbitration-v3-page[data-dce-industry='telecommunications']
+  .dashboard-hero-subtitle[data-dce-industry-show='telecommunications'],
+body.journey-arbitration-v3-page[data-dce-industry='sports'] .dashboard-hero-subtitle[data-dce-industry-show='sports'],
+body.journey-arbitration-v3-page[data-dce-industry='public'] .dashboard-hero-subtitle[data-dce-industry-show='public'],
+body.journey-arbitration-v3-page[data-dce-industry='healthcare'] .dashboard-hero-subtitle[data-dce-industry-show='healthcare'] {
+  display: block;
+}
+
 .journey-arbitration-v3-page .ja-v3-fullscreen-toolbar {
   position: absolute;
   top: 10px;

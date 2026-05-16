@@ -13,9 +13,10 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="journey-arbitration-v3.css?v=20260509">
+  <link rel="stylesheet" href="journey-arbitration-v3.css?v=20260516">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journey-arbitration-v3-page">
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -35,8 +36,29 @@
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingJaV3" class="dashboard-hero-title">Journey arbitration v3</h2>
-              <p class="dashboard-hero-subtitle">
-                AJO decisioning pipeline (v19.1): profile through message with stage tabs inside the embed. Source <code>the-anatomy-of-a-decision-v19-1.html</code>; lab chrome uses <code>--dash-*</code> tokens and the shared iframe bridge so light/dark matches the rest of Profile Viewer.
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="media">
+                AJO decisioning pipeline (v19.1) — profile through message with stage tabs inside the embed. Source <code>the-anatomy-of-a-decision-v19-1.html</code>. Examples follow <strong>media &amp; entertainment</strong> (streaming upgrades, trials, content rails); use the industry control on the embed to retune the iframe copy.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="travel">
+                Same v19.1 pipeline embed — tuned for <strong>travel</strong>: flights, ancillaries, loyalty, and trip context flowing through journey, path, channel, send time, and message.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="retail">
+                Same v19.1 pipeline embed — tuned for <strong>retail</strong>: carts, loyalty, delivery, promos, and merchandising signals across the full arbitration stack.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="fsi">
+                Same v19.1 pipeline embed — tuned for <strong>financial services</strong>: accounts, lending, cards, wealth, and regulated offer sequencing.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="telecommunications">
+                Same v19.1 pipeline embed — tuned for <strong>telecommunications</strong>: mobile, fibre, SMB, roaming, and bundle arbitration.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="sports">
+                Same v19.1 pipeline embed — tuned for <strong>sports</strong>: ticketing, memberships, merch, broadcast, and fan engagement paths.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="public">
+                Same v19.1 pipeline embed — tuned for <strong>public sector</strong>: programmes, benefits, permits, and equitable service ordering.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="healthcare">
+                Same v19.1 pipeline embed — tuned for <strong>healthcare</strong>: payer and provider journeys, care pathways, screenings, and member engagement.
               </p>
             </header>
           </div>
@@ -51,6 +73,16 @@
         </div>
 
         <section class="ja-v3-embed-wrap" id="jaV3Mount" aria-label="Journey arbitration v3 embed">
+          <div id="jaV3IndustryScope" class="dce-viz-core ja-v3-industry-toolbar" aria-label="Industry context for embedded demo">
+            <div class="dce-edp-dropdown-wrap">
+              <button type="button" class="dce-edp-dropdown-btn" id="ja-v3-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="ja-v3-industry-menu" aria-label="Industry">
+                <span id="ja-v3-industry-ico" class="dce-edp-industry-ico" aria-hidden="true"></span>
+                <span id="ja-v3-industry-label">Media</span>
+                <svg class="dce-edp-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div class="dce-edp-dropdown-menu" id="ja-v3-industry-menu" role="listbox" hidden></div>
+            </div>
+          </div>
           <div class="ja-v3-fullscreen-toolbar" aria-label="Embed display">
             <button
               type="button"
@@ -65,7 +97,7 @@
             id="jaV3Iframe"
             class="ja-v3-iframe"
             title="The anatomy of a decision — AJO pipeline (v19.1)"
-            src="the-anatomy-of-a-decision-v19-1.html?v=20260509"
+            src="the-anatomy-of-a-decision-v19-1.html?v=20260516"
             referrerpolicy="no-referrer-when-downgrade"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             loading="lazy"
@@ -77,7 +109,8 @@
 
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="journey-arbitration-v3.js?v=20260509"></script>
+  <script defer src="dce-industry-toolbar.js?v=20260516"></script>
+  <script defer src="journey-arbitration-v3.js?v=20260516"></script>
   <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
 </body>
 </html>

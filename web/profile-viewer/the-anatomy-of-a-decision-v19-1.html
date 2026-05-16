@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Vendored AJO "anatomy of a decision" interactive (v19.1). Iframe source for journey-arbitration-v3.html — refresh from design export when updating. -->
+<!-- Vendored AJO "anatomy of a decision" interactive (v19.1). Iframe source for journey-arbitration-v3.html — refresh from design export when updating. Lab tail: industry snapshot + ajo-pipeline-industry-*.js for parent postMessage. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -5166,6 +5166,11 @@ document.querySelectorAll('#sfEmailConnectors [data-ec]').forEach(el=>el.classLi
 
 sfRender();
 
+try {
+  window.__AEP_SF_JOURNEYS_BASE = JSON.parse(JSON.stringify(SF_JOURNEYS));
+  window.__AEP_SF_PATHS_BASE = JSON.parse(JSON.stringify(SF_PATHS));
+} catch (e) {}
+
 /* ═══ SMOOTH NAV ═══ */
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
 a.addEventListener('click',e=>{
@@ -5174,6 +5179,24 @@ const t=document.querySelector(a.getAttribute('href'));
 if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
+</script>
+<script src="ajo-pipeline-industry-labels.js?v=20260427"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260427"></script>
+<script>
+(function () {
+  try {
+    var V = ['retail', 'fsi', 'travel', 'media', 'sports', 'telecommunications', 'public', 'healthcare'];
+    var m = { telco: 'telecommunications', automotive: 'sports' };
+    var k = localStorage.getItem('dceVizIndustry');
+    try {
+      var e = localStorage.getItem('aepEdpIndustry');
+      if (e && V.indexOf(m[e] || e) >= 0) k = m[e] || e;
+    } catch (x) {}
+    if (k && m[k]) k = m[k];
+    if (!k || V.indexOf(k) < 0) k = 'media';
+    if (typeof window.aepPipelineApplyIndustry === 'function') window.aepPipelineApplyIndustry(k);
+  } catch (err) {}
+})();
 </script>
 </body>
 </html>
