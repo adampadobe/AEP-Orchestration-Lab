@@ -13,7 +13,7 @@
  * All colours use --dash-* tokens so light/dark themes work out of the box.
  * The two iframes are intentionally given height = min(82vh, 1100px) and
  * grown to fill the viewport when the wrapper enters :fullscreen mode
- * (mirrors the journey-arbitration-v2 pattern, which is the proven full-
+ * (mirrors the journey-arbitration embed shell pattern, which is the proven full-
  * screen embed approach in this repo).
  */
 
@@ -987,7 +987,7 @@
   box-shadow: var(--dash-shadow);
 }
 
-/* Fullscreen wrapper rules — mirrors journey-arbitration-v2.css */
+/* Fullscreen wrapper rules — mirrors journey-arbitration-v3.css */
 .cj-embed-panel:fullscreen,
 .cj-embed-panel:-webkit-full-screen {
   display: flex;

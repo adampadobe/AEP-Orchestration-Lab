@@ -1,4 +1,4 @@
-/* Journey arbitration v3 — lab shell + iframe chrome (embed: the-anatomy-of-a-decision-v19-1.html). */
+/* Journey arbitration — lab shell + iframe chrome (embed: the-anatomy-of-a-decision-v19-1.html). */
 
 .journey-arbitration-v3-page .ja-v3-embed-wrap {
   position: relative;
@@ -9,7 +9,7 @@
   box-sizing: border-box;
 }
 
-/* Industry control — top-left over iframe (same pattern as Journey arbitration v2 / Decisioning visualiser). */
+/* Industry control — top-left over iframe (same pattern as Decisioning visualiser). */
 .journey-arbitration-v3-page .ja-v3-industry-toolbar {
   position: absolute;
   top: 10px;

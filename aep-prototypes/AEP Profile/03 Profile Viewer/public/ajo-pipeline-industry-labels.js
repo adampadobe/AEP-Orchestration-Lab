@@ -1,5 +1,5 @@
 /**
- * Per-industry display copy for ajo-decisioning-pipeline-v8-demo (Journey arbitration v2 iframe).
+ * Per-industry display copy for embedded AJO pipeline HTML (the-anatomy-of-a-decision iframe).
  * Journey ids and path ids stay FSI-shaped for engine compatibility; only labels change.
  */
 (function () {

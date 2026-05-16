@@ -1,5 +1,5 @@
 /**
- * Journey arbitration v3 — nav hide visibility + sync iframe theme + fullscreen + industry toolbar (postMessage to anatomy embed).
+ * Journey arbitration — sync iframe theme + fullscreen + industry toolbar (postMessage to anatomy embed).
  */
 (function () {
   var LS_INDUSTRY = 'dceVizIndustry';
@@ -36,7 +36,6 @@
     if (jaV3IndustryToolbar) jaV3IndustryToolbar.boot();
   }
 
-  var LS_NAV = 'aepNavHideInDev_journeyArbitrationV3';
   var BRIDGE_ID = 'ja-v3-iframe-bridge';
   var BRIDGE_HREF = 'journey-arbitration-v2-iframe-bridge.css?v=20260427b';
 
@@ -84,25 +83,6 @@
     '--panel-bg-alt',
   ];
 
-  function applyVisibility() {
-    var hide = false;
-    try {
-      hide = localStorage.getItem(LS_NAV) === '1';
-    } catch (e) {}
-    var blocked = document.getElementById('jaV3Blocked');
-    var mount = document.getElementById('jaV3Mount');
-    var frame = document.getElementById('jaV3Iframe');
-    if (blocked && mount) {
-      blocked.hidden = !hide;
-      mount.hidden = hide;
-    }
-    if (frame) {
-      try {
-        frame.tabIndex = hide ? -1 : 0;
-      } catch (e2) {}
-    }
-  }
-
   function copyDashTokensToIframeRoot(iframeDoc) {
     var srcEl = document.body;
     if (!srcEl || !iframeDoc || !iframeDoc.documentElement) return;
@@ -126,8 +106,6 @@
   }
 
   function syncIframeTheme() {
-    var mount = document.getElementById('jaV3Mount');
-    if (mount && mount.hidden) return;
     var frame = document.getElementById('jaV3Iframe');
     if (!frame) return;
     try {
@@ -159,12 +137,7 @@
     } catch (e) {}
   }
 
-  applyVisibility();
-  window.addEventListener('aep-nav-indev-visibility-change', function () {
-    window.location.reload();
-  });
   window.addEventListener('storage', function (e) {
-    if (e.key === LS_NAV) window.location.reload();
     if (e.key === 'aepTheme') syncIframeTheme();
     if (e.key === LS_INDUSTRY || e.key === LS_EDP_INDUSTRY) {
       if (!jaV3IndustryToolbar) return;

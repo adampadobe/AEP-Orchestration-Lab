@@ -15,7 +15,7 @@
   var LS_ACCESS_MODE = 'aepAccessMode';
   /** Legacy — Decisioning overview; kept in sync with navHideKey decisioningOverview in global-settings */
   var LS_HIDE_EDP  = 'aepHideDataViewerDecisioningPlayground';
-  /** Per–in-development nav item: localStorage key = LS_NAV_HIDE_PREFIX + navHideKey → "1" hides from sidebar when in-dev is enabled */
+  /** Per–in-development nav item: localStorage key = LS_NAV_HIDE_PREFIX + navHideKey → "1" hides from sidebar when in-dev is enabled. Nav entry: skipNavVisibilityOption: true → omit from Global values hide checklist (no per-item toggle). */
   var LS_NAV_HIDE_PREFIX = 'aepNavHideInDev_';
   /** Master switch per sandbox: aepShowInDevCapabilities_<slug> === '1' shows all in-development nav (subject to per-item hides). Missing key = off. */
   var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
@@ -241,19 +241,10 @@
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v-4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M12.24 12.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h-4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M12.24 7.76l2.83-2.83"/></svg>',
         },
         {
-          label: 'Journey arbitration v2 (in development)',
-          href: 'journey-arbitration-v2.html',
-          allowWorkspace: true,
-          inDevelopment: true,
-          navHideKey: 'journeyArbitrationV2',
-          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h8v4H4z"/><circle cx="15" cy="14" r="2"/><path d="M16 4v2h2"/></svg>',
-        },
-        {
-          label: 'Journey arbitration v3 (in development)',
+          label: 'Journey arbitration',
           href: 'journey-arbitration-v3.html',
           allowWorkspace: true,
-          inDevelopment: true,
-          navHideKey: 'journeyArbitrationV3',
+          skipNavVisibilityOption: true,
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h12v4H4z"/><path d="M16 8v4"/></svg>',
         },
       ],
@@ -667,6 +658,7 @@
 
   function navHideKeyForItem(item) {
     if (!item) return '';
+    if (item.skipNavVisibilityOption === true) return '';
     return String(item.navHideKey || '').trim() || generatedNavHideKeyFromHref(item.href);
   }
 

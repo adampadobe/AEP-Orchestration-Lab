@@ -1,6 +1,6 @@
 /**
  * Shared Decisioning / Journey arbitration industry dropdown (matches Decisioning visualiser markup + behaviour).
- * Loaded before journey-arbitration-v2.js / journey-arbitration-v3.js — exposes window.aepDceIndustryToolbarInit.
+ * Loaded before journey-arbitration-v3.js — exposes window.aepDceIndustryToolbarInit.
  */
 (function () {
   var LS_INDUSTRY = 'dceVizIndustry';

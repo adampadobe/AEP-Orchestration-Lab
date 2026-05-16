@@ -57,8 +57,8 @@ for (const rel of FORBIDDEN_FILES) {
 
 const jaV1Path = path.join(root, 'web/profile-viewer/journey-arbitration.html');
 const jaV1 = fs.readFileSync(jaV1Path, 'utf8');
-if (!jaV1.includes('journey-arbitration-v2.html')) {
-  console.error('journey-arbitration.html must redirect to journey-arbitration-v2.html');
+if (!jaV1.includes('journey-arbitration-v3.html')) {
+  console.error('journey-arbitration.html must redirect to journey-arbitration-v3.html');
   failed = true;
 }
 if (!jaV1.includes('location.replace') && !jaV1.includes('http-equiv="refresh"')) {
@@ -66,10 +66,21 @@ if (!jaV1.includes('location.replace') && !jaV1.includes('http-equiv="refresh"')
   failed = true;
 }
 
+const jaV2Path = path.join(root, 'web/profile-viewer/journey-arbitration-v2.html');
+const jaV2 = fs.readFileSync(jaV2Path, 'utf8');
+if (!jaV2.includes('journey-arbitration-v3.html')) {
+  console.error('journey-arbitration-v2.html must redirect to journey-arbitration-v3.html');
+  failed = true;
+}
+if (!jaV2.includes('location.replace') && !jaV2.includes('http-equiv="refresh"')) {
+  console.error('journey-arbitration-v2.html must use meta refresh and/or location.replace for redirect');
+  failed = true;
+}
+
 const navPath = path.join(root, 'web/profile-viewer/aep-lab-nav.js');
 const nav = fs.readFileSync(navPath, 'utf8');
 if (nav.includes("href: 'journey-arbitration.html'")) {
-  console.error('aep-lab-nav.js must not link to legacy journey-arbitration.html (use v2 only)');
+  console.error('aep-lab-nav.js must not link to legacy journey-arbitration.html (use journey-arbitration-v3.html)');
   failed = true;
 }
 if (nav.includes('decisioning-overview-v2.html')) {
@@ -80,9 +91,33 @@ if (nav.includes('demo-delivery-concept.html')) {
   console.error('aep-lab-nav.js must NOT include href demo-delivery-concept.html (page hard-deleted)');
   failed = true;
 }
-if (!nav.includes('journey-arbitration-v2.html')) {
-  console.error('aep-lab-nav.js must include href journey-arbitration-v2.html');
+if (!nav.includes('journey-arbitration-v3.html')) {
+  console.error('aep-lab-nav.js must include href journey-arbitration-v3.html');
   failed = true;
+}
+if (nav.includes("href: 'journey-arbitration-v2.html'")) {
+  console.error('aep-lab-nav.js must not link to retired journey-arbitration-v2.html (redirect stub only)');
+  failed = true;
+}
+if (nav.includes("navHideKey: 'journeyArbitrationV2'") || nav.includes("navHideKey: 'journeyArbitrationV3'")) {
+  console.error('aep-lab-nav.js must not use journeyArbitrationV2/V3 nav hide keys (Journey arbitration is generally available)');
+  failed = true;
+}
+const jaNavIdx = nav.indexOf("href: 'journey-arbitration-v3.html'");
+if (jaNavIdx !== -1) {
+  const jaNavWindow = nav.slice(Math.max(0, jaNavIdx - 220), jaNavIdx + 220);
+  if (!jaNavWindow.includes("label: 'Journey arbitration'")) {
+    console.error("aep-lab-nav.js: Journey arbitration nav entry must use label: 'Journey arbitration' (no version suffix)");
+    failed = true;
+  }
+  if (!jaNavWindow.includes('skipNavVisibilityOption: true')) {
+    console.error('aep-lab-nav.js: Journey arbitration entry must set skipNavVisibilityOption: true (no per-item Global values hide)');
+    failed = true;
+  }
+  if (jaNavWindow.includes('inDevelopment: true')) {
+    console.error('aep-lab-nav.js: Journey arbitration entry must not use inDevelopment: true');
+    failed = true;
+  }
 }
 if (!nav.includes("href: 'eds-quickstart.html'")) {
   console.error('aep-lab-nav.js must include the EDS Demo Creator entry (href: eds-quickstart.html)');
@@ -114,23 +149,11 @@ if (gs.includes('decisioningOverviewV2')) {
   failed = true;
 }
 if (gs.includes('demoDeliveryConcept')) {
-  console.error('global-settings.html must NOT include nav hide key demoDeliveryConcept (page hard-deleted)');
-  failed = true;
-}
-if (!nav.includes("navHideKey: 'journeyArbitrationV2'")) {
-  console.error("aep-lab-nav.js must include navHideKey 'journeyArbitrationV2'");
-  failed = true;
-}
-if (!nav.includes('journey-arbitration-v3.html')) {
-  console.error('aep-lab-nav.js must include href journey-arbitration-v3.html');
-  failed = true;
-}
-if (!nav.includes("navHideKey: 'journeyArbitrationV3'")) {
-  console.error("aep-lab-nav.js must include navHideKey 'journeyArbitrationV3'");
+  console.error('global-settings.html must not include nav hide key demoDeliveryConcept (page hard-deleted)');
   failed = true;
 }
 if (!nav.includes("navHideKey: 'edsQuickstart'")) {
-  console.error("aep-lab-nav.js must include navHideKey 'edsQuickstart' (per-item toggle for EDS Demo Creator)");
+  console.error("aep-lab-nav.js must include navHideKey: 'edsQuickstart' (per-item toggle for EDS Demo Creator)");
   failed = true;
 }
 if (!gs.includes('id="aepNavInDevChecklist"') || !gs.includes('id="aepNavSidebarChecklist"')) {
@@ -145,4 +168,4 @@ if (!gs.includes('getMenuVisibilityOptions')) {
 if (failed) {
   process.exit(1);
 }
-console.log('OK: profile-viewer routes (journey-arbitration redirect, journey-arbitration-v2/v3, eds-quickstart) verified');
+console.log('OK: profile-viewer routes (journey-arbitration redirects, journey-arbitration-v2 assets + embed, v3 GA nav, eds-quickstart) verified');

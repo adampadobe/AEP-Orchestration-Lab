@@ -1,95 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <script src="aep-head-sync.js?v=20260416c"></script>
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Journey arbitration v2 – AEP Profile Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
-  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="journey-arbitration-v2.css?v=20260427d">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journey arbitration v2 — retired</title>
+  <meta http-equiv="refresh" content="0;url=journey-arbitration-v3.html">
+  <link rel="canonical" href="journey-arbitration-v3.html">
+  <script>(function(){try{location.replace('journey-arbitration-v3.html');}catch(e){}})();</script>
 </head>
-<body class="profile-viewer-page home-dashboard-concierge journey-arbitration-v2-page">
-  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
-  <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
-
-    <div class="dashboard-main-wrap">
-      <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
-        <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="AEP sandbox APIs">AEP</span>
-          <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-orchestration/decision-management/decision-management.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Decision management</a>
-          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
-          <a href="decisioning-visualiser.html" class="dashboard-topbar-icon" title="Decisioning visualiser">◇</a>
-        </div>
-      </header>
-
-      <main class="dashboard-main profile-viewer-main app-page">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingJaV2">
-          <div class="dashboard-hero-inner">
-            <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingJaV2" class="dashboard-hero-title">Journey arbitration v2</h2>
-              <p class="dashboard-hero-subtitle">
-                Interactive AJO decisioning pipeline demo (profile → journey → path → channel → send-time → message). Embedded from the lab asset <code>ajo-decisioning-pipeline-v8-demo.html</code>; uses its own layout inside the frame.
-              </p>
-            </header>
-          </div>
-        </section>
-
-        <div id="jaV2Blocked" class="edp-blocked" hidden>
-          <p>
-            This page is hidden from the sidebar. Turn it back on under
-            <a href="global-settings.html"><strong>Global values</strong></a>
-            (uncheck “Hide Journey arbitration v2”).
-          </p>
-        </div>
-
-        <section class="ja-v2-embed-wrap" id="jaV2Mount" aria-label="Journey arbitration v2 demo">
-          <div id="jaV2IndustryScope" class="dce-viz-core ja-v2-industry-toolbar" aria-label="Industry context for embedded demo">
-            <div class="dce-edp-dropdown-wrap">
-              <button type="button" class="dce-edp-dropdown-btn" id="ja-v2-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="ja-v2-industry-menu" aria-label="Industry">
-                <span id="ja-v2-industry-ico" class="dce-edp-industry-ico" aria-hidden="true"></span>
-                <span id="ja-v2-industry-label">Media</span>
-                <svg class="dce-edp-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="dce-edp-dropdown-menu" id="ja-v2-industry-menu" role="listbox" hidden></div>
-            </div>
-          </div>
-          <div class="ja-v2-fullscreen-toolbar" aria-label="Embed display">
-            <button
-              type="button"
-              id="ja-v2-fullscreen-btn"
-              class="ja-v2-fullscreen-btn aep-fullscreen-btn"
-              aria-pressed="false"
-              aria-label="Enter full screen"
-              title="Fill the screen with the pipeline demo. Press Esc to exit."
-            ></button>
-          </div>
-          <iframe
-            id="jaV2Iframe"
-            class="ja-v2-iframe"
-            title="AJO decisioning pipeline — journey arbitration v2 demo"
-            src="ajo-decisioning-pipeline-v8-demo.html"
-            referrerpolicy="no-referrer-when-downgrade"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            loading="lazy"
-          ></iframe>
-        </section>
-      </main>
-    </div>
-  </div>
-
-  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
-  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="dce-industry-toolbar.js?v=20260516"></script>
-  <script defer src="journey-arbitration-v2.js?v=20260516"></script>
-  <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
+<body>
+  <p>Journey arbitration v2 was retired; you are being redirected to <a href="journey-arbitration-v3.html">Journey arbitration</a>. If that does not happen automatically, use the link.</p>
 </body>
 </html>

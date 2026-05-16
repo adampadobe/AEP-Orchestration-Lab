@@ -1,5 +1,5 @@
 ---
-description: Keep journey-arbitration URL (redirect to v2) and journey-arbitration-v2 Profile Viewer pages from being removed or orphaned.
+description: Keep journey-arbitration URLs (redirect stubs to v3) and journey-arbitration-v3 Profile Viewer assets from being removed or orphaned.
 alwaysApply: true
 ---
 
@@ -7,14 +7,17 @@ alwaysApply: true
 
 These **Firebase Hosting** URLs are part of the product surface and must remain on **`main`** under **`web/profile-viewer/`**:
 
-- `profile-viewer/journey-arbitration.html` — **redirect stub** to `journey-arbitration-v2.html` (same directory); do not restore the old standalone app assets on this URL
-- `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
+- `profile-viewer/journey-arbitration.html` — **redirect stub** to `journey-arbitration-v3.html` (same directory); do not restore the old standalone app assets on this URL
+- `profile-viewer/journey-arbitration-v2.html` — **redirect stub** to `journey-arbitration-v3.html` for bookmarks that still target v2; the v2 lab shell and `ajo-decisioning-pipeline-v8-demo.html` were retired by product decision
+- `profile-viewer/journey-arbitration-v3.html`, `journey-arbitration-v3.css`, `journey-arbitration-v3.js`, shared `journey-arbitration-v2-iframe-bridge.css`, embed `the-anatomy-of-a-decision-v19-1.html`, and `ajo-pipeline-industry-labels.js` / `ajo-pipeline-industry-apply.js`
 
-**Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan. The legacy **`journey-arbitration.html`** URL is satisfied by a **redirect stub** to **`journey-arbitration-v2.html`**; lab nav lists **v2** only.
+**Do not** delete, rename, or drop nav wiring for these routes without an explicit product decision and redirect plan. Lab nav lists **Journey arbitration** (targets **`journey-arbitration-v3.html`**) without the in-development gate.
 
 ## Hard-deleted (do not restore)
 
-- `profile-viewer/decisioning-overview-v2.html` — hard-deleted on Apr 28, 2026 by explicit product decision. Bookmark URLs accepted to 404. The route verifier (`scripts/verify-profile-viewer-routes.mjs`) treats this path as **forbidden** and fails CI if the file, its nav entry, or its `decisioningOverviewV2` Global values hide-key are reintroduced.
+- `profile-viewer/decisioning-overview-v2.html` — hard-deleted on Apr 28, 2026 by explicit product decision. Bookmark URLs accepted to 404. The route verifier (`scripts/verify-profile-viewer-routes.mjs`) treats this path as **forbidden** and fails CI if the file, its nav entry, or its `decisioningOverviewV2` Global values hide-key is reintroduced.
+
+- `profile-viewer/ajo-decisioning-pipeline-v8-demo.html` — retired with journey arbitration v2 (May 2026). The route verifier treats this file as **forbidden**; bookmarks to v2 URLs are satisfied by **redirect stubs** to v3.
 
 **After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include the preserved files and must NOT include the hard-deleted ones).
 
