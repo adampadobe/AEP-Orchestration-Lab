@@ -328,7 +328,7 @@
       items: [],
       /*
        * Demos sidebar policy:
-       * - Flat subgroups first (no demoMeta): shared lab surfaces — Contact centre, Ipad, mobile
+       * - Flat subgroups first (no demoMeta): shared lab surfaces — Contact centre, iPad, mobile
        *   shell — tuned at runtime from RTDB (ajoLookups/{sandbox}) so everyone sees the same entry
        *   points while copy/branding stays sandbox-specific.
        * - demoCustomer subgroups below: bespoke Web / Mobile / Call centre per customer; use
@@ -347,7 +347,7 @@
               ico: '\uD83D\uDCF1',
             },
             {
-              label: 'Ipad',
+              label: 'iPad',
               href: 'etihad-ipad.html',
               inDevelopment: true,
               navHideKey: 'mobileDemoApalmerIpad',
