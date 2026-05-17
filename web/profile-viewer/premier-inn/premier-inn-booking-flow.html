@@ -474,8 +474,8 @@
         Logo or “Book your stay” in the purple header sends <code>hotel.funnel.exit</code> (see <em>hotelJourneyStage</em> + <em>hotelExitVia</em>) before returning to the lab home — distinct from payment abandon.
         Abandon recovery can use <em>hotelDemandForecastScore</em>, <em>hotelInventoryAvailable</em>, and <em>hotelResumeUrl</em> as before.
         <strong>Booker vs stayer (lab):</strong> choosing <strong>Select</strong> on a rate opens a short dialog — self vs someone else. If someone else, capture the guest (stayer) under <code>hotelStayer*</code>, then the same second step as self: <strong>Sign in</strong> or <strong>Continue as guest</strong> for the <strong>booker</strong> (payer / confirmation). Stayer path emits <code>hotel.checkout.booker_guest_capture</code> or <code>hotel.checkout.booker_signed_in</code> plus stayer fields; <code>hotel.room.select</code> / <code>hotel.booking.complete</code> carry <code>hotelBookerCheckoutChannel</code> and optional <code>hotelBookerGuest*</code> alongside <code>hotelStayer*</code>.
-        If <strong>self</strong>, that second step uses <code>hotel.checkout.guest_capture</code> or <code>hotel.checkout.signed_in</code> with <code>hotelGuestCheckout*</code> / <code>hotelCheckoutChannel</code> as before.
-        On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer and booker-guest fields; when the stayer differs, <code>hotel.booking.stayerIdentified</code> still carries stayer identity for orchestration (shell ECID/email follow the signed-in or guest booker).
+        If <strong>self</strong>, that second step uses <code>hotel.checkout.guest_capture</code> or <code>hotel.checkout.signed_in</code> with <code>hotelGuestCheckout*</code> / <code>hotelCheckoutChannel</code> and <code>hotelStayerSameAsBooker: true</code>. Later steps (<code>hotel.booking.start</code>, <code>hotel.payment.expose</code>, <code>hotel.booking.complete</code>) repeat the same flag; <code>public.bookingParty</code> carries <code>bookerStayerSamePerson: true</code> and <code>eventPerspective: booker</code> when the booker profile is present.
+        On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer and booker-guest fields; when the stayer differs, <code>hotel.booking.stayerIdentified</code> still carries stayer identity for orchestration (stayer event uses email-primary identity; booker events use the shell ECID/email).
       </p>
     </details>
   </div>
@@ -704,8 +704,8 @@
         if (!party && !hasBooker && !hasStayer) return null;
         var bp = { booker: {} };
         if (same && (hasBooker || party || hasStayer)) {
-          bp.eventPerspective = 'both';
           bp.bookerStayerSamePerson = true;
+          bp.eventPerspective = hasBooker ? 'booker' : 'both';
         } else if (diffStayer && hasStayer) {
           bp.eventPerspective = 'stayer';
           bp.bookerStayerSamePerson = false;
@@ -847,6 +847,13 @@
         } catch (eP) {
           return null;
         }
+      }
+
+      /** True when booking for self (default if party missing or flag unset). False only when explicitly booking for someone else. */
+      function hotelStayerSameAsBookerForEvents() {
+        var r = loadPartyRecord();
+        if (!r || typeof r !== 'object') return true;
+        return r.hotelStayerSameAsBooker !== false;
       }
 
       function persistPartyRecord(rec) {
@@ -1115,6 +1122,7 @@
         emit('hotel.checkout.guest_capture', {
           hotelFunnelStep: 'room_select_self_guest_contact',
           hotelCheckoutChannel: 'guest',
+          hotelStayerSameAsBooker: true,
           hotelGuestCheckoutFirstName: fn,
           hotelGuestCheckoutLastName: ln,
           hotelGuestCheckoutEmail: em,
@@ -1181,6 +1189,7 @@
             emit('hotel.checkout.signed_in', {
               hotelFunnelStep: 'room_select_self_signed_in',
               hotelCheckoutChannel: 'signed_in',
+              hotelStayerSameAsBooker: true,
               hotelSearchIntent: searchIntent(),
             }, 'Hospitality lab — signed in (room select)');
             completeSelfAuthAndRoom(pr);
@@ -1209,6 +1218,7 @@
             {
               hotelFunnelStep: 'room_select_authentication_choice',
               hotelCheckoutBranch: 'self_sign_in_or_guest',
+              hotelStayerSameAsBooker: true,
               hotelSearchIntent: searchIntent(),
             },
             'Hospitality lab — self auth prompt'
@@ -1248,6 +1258,7 @@
           {
             hotelFunnelStep: 'room_select_authentication_choice',
             hotelCheckoutBranch: 'booker_for_stayer_sign_in_or_guest',
+            hotelStayerSameAsBooker: false,
             hotelSearchIntent: searchIntent(),
           },
           'Hospitality lab — booker auth prompt (stayer path)'
@@ -1655,6 +1666,7 @@
           hotelQuotedTotal: selectedHotel.rate,
           hotelCurrency: 'GBP',
           hotelFunnelStep: 'checkout_continue',
+          hotelStayerSameAsBooker: hotelStayerSameAsBookerForEvents(),
           hotelSearchIntent: searchIntent(),
         }, 'Hospitality lab — checkout');
         if (stepCheckout) stepCheckout.hidden = true;
@@ -1667,6 +1679,7 @@
           hotelQuotedTotal: selectedHotel.rate,
           hotelCurrency: 'GBP',
           hotelFunnelStep: 'payment_view',
+          hotelStayerSameAsBooker: hotelStayerSameAsBookerForEvents(),
         }, 'Hospitality lab — payment');
       });
 
@@ -1694,6 +1707,7 @@
           hotelQuotedTotal: selectedHotel.rate,
           hotelCurrency: 'GBP',
           hotelFunnelStep: 'payment_abandon',
+          hotelStayerSameAsBooker: hotelStayerSameAsBookerForEvents(),
           hotelAbandonReason: 'user_exit_payment',
           hotelDemandForecastScore: 0.37,
           hotelInventoryAvailable: true,
@@ -1716,9 +1730,9 @@
           hotelQuotedTotal: selectedHotel.rate,
           hotelCurrency: 'GBP',
           hotelFunnelStep: 'payment_complete_mock',
+          hotelStayerSameAsBooker: hotelStayerSameAsBookerForEvents(),
         };
         if (partyRec) {
-          completePub.hotelStayerSameAsBooker = !!partyRec.hotelStayerSameAsBooker;
           if (partyRec.hotelStayerSameAsBooker === false) {
             if (partyRec.hotelStayerFirstName) completePub.hotelStayerFirstName = partyRec.hotelStayerFirstName;
             if (partyRec.hotelStayerLastName) completePub.hotelStayerLastName = partyRec.hotelStayerLastName;
