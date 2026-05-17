@@ -104,15 +104,21 @@ function premierInnLooksLikeEmail(s) {
 }
 
 /**
- * Streams a generic UPS profile for the stayer (email identity; server mints ECID when needed).
- * Fire-and-forget after hotel.booking.stayerIdentified succeeds.
- * @param {Record<string, unknown>} [pub]
+ * Upserts the stayer generic profile and returns the ECID Adobe has for that person
+ * (existing lookup when appendIfExisting, else generated) so the follow-up Experience Event
+ * can use the same identities as the profile, not the booker's browser ECID.
+ * @param {Record<string, unknown>} [pub] - iframe `public` (hotelStayer* fields)
+ * @returns {Promise<{ ok: true, email: string, ecid: string } | { ok: false, error: string }>}
  */
-async function ensurePremierInnStayerProfileFromPublic(pub) {
+async function upsertPremierInnStayerProfile(pub) {
   const p = pub && typeof pub === 'object' ? pub : {};
-  if (p.hotelStayerSameAsBooker === true) return;
+  if (p.hotelStayerSameAsBooker === true) {
+    return { ok: false, error: 'Stayer is the same as the booker — no separate stayer profile event.' };
+  }
   const em = String(p.hotelStayerEmail || '').trim();
-  if (!premierInnLooksLikeEmail(em)) return;
+  if (!premierInnLooksLikeEmail(em)) {
+    return { ok: false, error: 'Missing valid stayer email for profile upsert.' };
+  }
   const fn = String(p.hotelStayerFirstName || '').trim();
   const ln = String(p.hotelStayerLastName || '').trim();
   /** @type {Record<string, string>} */
@@ -136,10 +142,16 @@ async function ensurePremierInnStayerProfileFromPublic(pub) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.warn('[premier-inn] stayer profile generate failed', data.error || res.status);
+      const detail = data.error || data.message || `HTTP ${res.status}`;
+      return { ok: false, error: String(detail) };
     }
+    const outEcid = data.ecid != null ? String(data.ecid).trim() : '';
+    if (!/^\d{10,}$/.test(outEcid)) {
+      return { ok: false, error: 'Profile upsert succeeded but no usable ECID was returned for the stayer.' };
+    }
+    return { ok: true, email: em, ecid: outEcid };
   } catch (e) {
-    console.warn('[premier-inn] stayer profile generate', e);
+    return { ok: false, error: String(e && e.message ? e.message : e) };
   }
 }
 
@@ -148,21 +160,37 @@ async function ensurePremierInnStayerProfileFromPublic(pub) {
  */
 async function sendPremierInnHotelExperienceEvent(payload) {
   const p = payload && typeof payload === 'object' ? payload : {};
+  const eventType = String(p.eventType || 'hotel.search').trim();
+  const pub = p.public && typeof p.public === 'object' ? p.public : {};
   const ecidEl = document.getElementById('infoEcid');
   const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
-  const ecid =
+  let ecid =
     ecidText && ecidText !== '-' && ecidText !== '\u2014' && /^\d+$/.test(ecidText) && ecidText.length >= 10
       ? ecidText
       : null;
-  const emailForEvent = getEmail().trim();
+  let emailForEvent = getEmail().trim();
+
+  if (eventType === 'hotel.booking.stayerIdentified') {
+    const prep = await upsertPremierInnStayerProfile(pub);
+    if (!prep.ok) {
+      setPremierInnMessage(
+        prep.error + ' The stayer event was not sent so it does not land on the wrong profile.',
+        'error',
+      );
+      return false;
+    }
+    emailForEvent = prep.email;
+    ecid = prep.ecid;
+  }
+
   const target = getSelectedGeneratorTarget();
   const body = {
     targetId: target ? target.id : undefined,
-    eventType: String(p.eventType || 'hotel.search').trim(),
+    eventType,
     viewName: String(p.viewName || 'Premier Inn lab').trim(),
     viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
     channel: 'web',
-    public: p.public && typeof p.public === 'object' ? p.public : {},
+    public: pub,
     xdmTenantKey: PREMIER_INN_XDM_TENANT_KEY,
     identityMapEcidKey: 'ECID',
   };
@@ -199,9 +227,6 @@ async function sendPremierInnHotelExperienceEvent(payload) {
       window.setTimeout(function () {
         void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
       }, 8000);
-    }
-    if (String(p.eventType || '').trim() === 'hotel.booking.stayerIdentified') {
-      void ensurePremierInnStayerProfileFromPublic(p.public || {});
     }
     return true;
   } catch (err) {
