@@ -3,7 +3,8 @@
  * Expects window.__AEP_SF_JOURNEYS_BASE / __AEP_SF_PATHS_BASE (snapshot from inline script)
  * and window.AEP_PIPELINE_INDUSTRY_LABELS from ajo-pipeline-industry-labels.js.
  * Business impact (#impact): baseline captured on first apply (before mutations), same pattern as profileHub.
- * Journey prioritisation (#s2): baseline captured on first apply; ranked rows sync from patched SF_JOURNEYS.
+ * Journey prioritisation (#s2): baseline captured on first apply; `journeyPrioritisation` updates
+ * funnel + formula legend; `rankedJourneys` updates the five ranked rows and explainer (HTML-safe).
  */
 (function () {
   function migrateIndustryKey(k) {
