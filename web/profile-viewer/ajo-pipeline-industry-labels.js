@@ -4,7 +4,8 @@
  * `businessImpact` drives the #impact KPI strip; `profileHub` drives Stage 1 hub cards;
  * `journeyPrioritisation` drives Stage 2 (#s2) intro, funnel, formula term, and legend;
  * `rankedJourneys` drives the ranked journey rows, card title, and result banner copy.
- *
+ * `nextBestPath` drives Stage 3 (#s3): intro, AJO 101, mini-canvas, formula legend, ranked path cards, footer.
+ * `fsi` omits `nextBestPath` so the iframe HTML baseline (mortgage demo) restores for that toolbar key.
  * Canonical toolbar keys: retail, fsi, travel, media, sports, telecommunications, public, healthcare
  * (dce-industry-toolbar.js). Legacy keys sent by some embeds are normalised in
  * ajo-pipeline-industry-apply.js migrateIndustryKey: telco→telecommunications, automotive→sports.
@@ -375,6 +376,98 @@
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
         },
       },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Upgrade & save journey, the engine arbitrates across four upgrade paths. Each path is a sequence of actions toward conversion. Path scoring blends attach-rate economics with the household\'s signal fit, binge-and-trial behaviour, and renewal-window urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Upgrade checkout, Drama bundle path, Save desk callback, Standard offers page) are the four branches of a conditional split inside the Upgrade & save journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one upgrade journey can produce a hyper-personalised outcome for thousands of distinct subscribers.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Upgrade & save · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Upgrade checkout', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Drama bundle path', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Save desk callback', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard offers page', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Attach-rate base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ household watch habit (×1.2)',
+            'Renewal / trial window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Upgrade & save',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Upgrade checkout',
+            actions: 'Plan compare → Promo stack → One-tap pay',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ binge_cluster' },
+              { cls: 'teal', text: '+ trial_end_48h' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Drama bundle path',
+            actions: 'Genre fit → Bundle price → Trial bridge',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ genre_affinity' },
+              { cls: 'teal', text: '+ ad_tier_eligible' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Assisted',
+            name: 'Save desk callback',
+            actions: 'Churn score → Offer tier → Agent queue',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · In-app',
+            name: 'Standard offers page',
+            actions: 'Catalog → FAQ → Support link',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Conversion likelihood',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
+        },
+      },
     },
 
     retail: {
@@ -579,6 +672,98 @@
           body:
             'Composite score 345 — winning by 2.5×. Strong cart-recovery and loyalty signals drive a high signalPropensity (190 points), the basketValue multiplier (×1.50) reflects the strongest expected basket lift, and the agenticLift (×1.50) reflects a recent pickup-and-delivery assist thread. ',
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
+      },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Express checkout recovery journey, the engine arbitrates across four checkout paths. Each path is a sequence of actions toward conversion. Path scoring blends basket economics with the shopper\'s signal fit, omnichannel habit, and cut-off urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Abandoned cart rescue, Click & collect fast lane, Stylist callback, Standard promo page) are the four branches of a conditional split inside the Express checkout recovery journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one basket-rescue journey can produce a hyper-personalised outcome for thousands of distinct shoppers.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Express checkout recovery · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Abandoned cart rescue', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Click & collect fast lane', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Stylist callback', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard promo page', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Basket-intent base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ fulfilment habit (×1.2)',
+            'Cut-off / slot window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Express checkout recovery',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Abandoned cart rescue',
+            actions: 'Basket recall → Free ship → One-tap checkout',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ cart_abandon_72h' },
+              { cls: 'teal', text: '+ platinum_tier' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Click & collect fast lane',
+            actions: 'Store stock → Slot pick → QR pickup',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ omnichannel_active' },
+              { cls: 'teal', text: '+ beauty_category' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Assisted',
+            name: 'Stylist callback',
+            actions: 'Size history → Recommendations → Book slot',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Store',
+            name: 'Standard promo page',
+            actions: 'Category landing → Grid → Cart',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Conversion likelihood',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
         },
       },
     },
@@ -786,6 +971,98 @@
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
         },
       },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Long-haul ancillaries journey, the engine arbitrates across four attach paths. Each path is a sequence of actions toward conversion. Path scoring blends cabin-route economics with the traveller\'s signal alignment, digital habit, and departure-window urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Seat + bag bundle, Upgrade auction path, Agent rebooking, Standard ancillaries) are the four branches of a conditional split inside the Long-haul ancillaries journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one ancillary journey can produce a hyper-personalised outcome for thousands of distinct travellers.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Long-haul ancillaries · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Seat + bag bundle', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Upgrade auction path', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Agent rebooking', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard ancillaries', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Route attach base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ trip-day habit (×1.2)',
+            'Departure / IRROPS window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Long-haul ancillaries',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Seat + bag bundle',
+            actions: 'PNR lookup → Bundle price → Pay',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ ancillary_intent' },
+              { cls: 'teal', text: '+ gold_tier' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Upgrade auction path',
+            actions: 'Bid window → Cabin map → Confirm',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ upgrade_bid_open' },
+              { cls: 'teal', text: '+ seat_pref_window' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Assisted',
+            name: 'Agent rebooking',
+            actions: 'Disruption queue → Options → Ticket',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Service desk',
+            name: 'Standard ancillaries',
+            actions: 'Grid → Fees → Checkout',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Attach likelihood',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
+        },
+      },
     },
 
     sports: {
@@ -989,6 +1266,98 @@
           body:
             'Composite score 345 — winning by 2.5×. Strong renewal and seat-map signals drive a high signalPropensity (190 points), the fanValue multiplier (×1.50) reflects the strongest expected attach, and the agenticLift (×1.50) reflects a recent authenticated membership-services conversation. ',
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
+      },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Season renewal push journey, the engine arbitrates across four renewal paths. Each path is a sequence of actions toward conversion. Path scoring blends ticketing yield with the fan\'s signal fit, digital gameday habit, and deadline urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Renewal checkout, Upgrade seat map, Membership services, Standard renewal page) are the four branches of a conditional split inside the Season renewal push journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one renewal journey can produce a hyper-personalised outcome for thousands of distinct members.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Season renewal push · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Renewal checkout', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Upgrade seat map', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Membership services', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard renewal page', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Renewal-yield base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ gameday digital habit (×1.2)',
+            'Deadline / payment-plan window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Season renewal push',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Renewal checkout',
+            actions: 'Seat hold → Payment plan → Confirm',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ renewal_window_30d' },
+              { cls: 'teal', text: '+ season_seat_holder' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Upgrade seat map',
+            actions: 'View from seat → Price ladder → Pay',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ seat_upgrade_flow' },
+              { cls: 'teal', text: '+ matchday_upsell' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Assisted',
+            name: 'Membership services',
+            actions: 'Pause/transfer → Agent → Resolution',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Box office',
+            name: 'Standard renewal page',
+            actions: 'FAQ → Renew CTA → Portal',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Renewal likelihood',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
         },
       },
     },
@@ -1196,6 +1565,98 @@
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
         },
       },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Fibre upgrade journey, the engine arbitrates across four install paths. Each path is a sequence of actions toward conversion. Path scoring blends line economics with the subscriber\'s usage signals, channel habit, and contract-end urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Fibre address check, Self-install kit path, Engineer install, Standard broadband page) are the four branches of a conditional split inside the Fibre upgrade journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one upgrade journey can produce a hyper-personalised outcome for thousands of distinct subscribers.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Fibre upgrade · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Fibre address check', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Self-install kit path', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Engineer install', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard broadband page', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Service attach base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ install / app habit (×1.2)',
+            'Contract / truck-roll window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Fibre upgrade',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Fibre address check',
+            actions: 'Postcode → Speed promise → Book install',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ fibre_ready_addr' },
+              { cls: 'teal', text: '+ high_data_use' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Self-install kit path',
+            actions: 'Router ship → App setup → Activate',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ self_serve_pref' },
+              { cls: 'teal', text: '+ contract_end_45d' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Field ops',
+            name: 'Engineer install',
+            actions: 'Survey → Slot → Truck roll',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Retail store',
+            name: 'Standard broadband page',
+            actions: 'Plans table → Chat → Order',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Upgrade completion',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
+        },
+      },
     },
 
     public: {
@@ -1401,6 +1862,98 @@
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
         },
       },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Transit & mobility benefits journey, the engine arbitrates across four service paths. Each path is a sequence of actions toward completion. Path scoring blends programme value with the citizen\'s eligibility signals, channel policy fit, and deadline urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Benefit eligibility checker, Reduced fare onboarding, Assisted application, Standard info hub) are the four branches of a conditional split inside the Transit & mobility benefits journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one benefits journey can produce a hyper-personalised outcome for thousands of distinct citizens.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Transit & mobility benefits · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Benefit eligibility checker', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Reduced fare onboarding', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Assisted application', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard info hub', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Service-fit base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ digital-equity habit (×1.2)',
+            'Deadline / SLA window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Transit & mobility benefits',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Benefit eligibility checker',
+            actions: 'Income verify → Program list → Apply',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ reduced_fare_flag' },
+              { cls: 'teal', text: '+ portal_first' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Reduced fare onboarding',
+            actions: 'Doc upload → Review → Pass issue',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ doc_checklist_done' },
+              { cls: 'teal', text: '+ multilingual_pref' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Navigator',
+            name: 'Assisted application',
+            actions: 'Queue ticket → Caseworker → Finish',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · 311',
+            name: 'Standard info hub',
+            actions: 'FAQ → PDF forms → Portal',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Digital completion',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
+        },
+      },
     },
 
     healthcare: {
@@ -1604,6 +2157,98 @@
           body:
             'Composite score 345 — winning by 2.5×. Strong access and care-gap signals drive a high signalPropensity (190 points), the memberValue multiplier (×1.50) reflects the strongest appropriate programme lift, and the agenticLift (×1.50) reflects a recent in-network benefits lookup session. ',
           bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
+      },
+      nextBestPath: {
+        intro:
+          'Inside the chosen Virtual-first care journey, the engine arbitrates across four access paths. Each path is a sequence of actions toward the next best clinical step. Path scoring blends programme appropriateness with the member\'s benefit signals, channel sensitivity, and care-gap urgency.',
+        ajo101: {
+          titleHtml: 'What is a <em>conditional split</em>?',
+          bodyHtml:
+            'In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Video visit booking, Care gap closure, Nurse line escalation, Standard care finder) are the four branches of a conditional split inside the Virtual-first care journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.',
+          whyHtml:
+            '<strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That is how one access journey can produce a hyper-personalised outcome for thousands of distinct members.',
+          sourceHtml:
+            'This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.',
+        },
+        canvas: {
+          entryLabel: 'Virtual-first care · entry',
+          splitLabel: 'Conditional split',
+          branches: [
+            { name: 'Video visit booking', statHtml: '<strong>87%</strong> 11,171 profiles', winner: true },
+            { name: 'Care gap closure', statHtml: '<strong>71%</strong> 9,116 profiles', winner: false },
+            { name: 'Nurse line escalation', statHtml: '<strong>52%</strong> 6,677 profiles', winner: false },
+            { name: 'Standard care finder', statHtml: '<strong>38%</strong> 4,879 profiles', winner: false },
+          ],
+        },
+        formula: {
+          pathTerm: 'pathBase',
+          legends: [
+            'Clinical-fit base 0.35–0.55',
+            'Σ signal × path-specific boosts',
+            'Path channel ↔ portal / telehealth habit (×1.2)',
+            'Care-gap / refill window: fast paths +15%, slow paths −10%',
+          ],
+        },
+        rankedPathsTitle: 'Ranked paths within Virtual-first care',
+        paths: [
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Video visit booking',
+            actions: 'Symptom triage → Slot → Intake form',
+            score: '87%',
+            winner: true,
+            tags: [
+              { cls: 'teal', text: '+ virtual_visit_pref' },
+              { cls: 'teal', text: '+ care_gap_a1c' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+              { cls: 'amber', text: 'urgencyWindow ✓ (fast)' },
+            ],
+          },
+          {
+            channel: 'digital',
+            channelLabel: 'Channel · Digital',
+            name: 'Care gap closure',
+            actions: 'Preventive due → Schedule → Reminder',
+            score: '71%',
+            tags: [
+              { cls: 'teal', text: '+ quality_gap_open' },
+              { cls: 'teal', text: '+ in_network_lab' },
+              { cls: 'violet', text: 'behaviouralFit ✓' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Nurse line',
+            name: 'Nurse line escalation',
+            actions: 'Protocol → Nurse → Orders',
+            score: '52%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'urgencyWindow miss (slow)' },
+            ],
+          },
+          {
+            channel: 'assisted',
+            channelLabel: 'Channel · Care guide',
+            name: 'Standard care finder',
+            actions: 'ZIP → Providers → Book',
+            score: '38%',
+            tags: [
+              { cls: 'dim', text: 'behaviouralFit miss' },
+              { cls: 'dim', text: 'slow path' },
+            ],
+          },
+        ],
+        footer: {
+          pathsEvaluatedLabel: 'Paths evaluated',
+          pathsEvaluatedValue: '4',
+          conversionLabel: 'Visit show-rate',
+          conversionValue: '87%',
+          conversionBarW: '87%',
+          liftLabel: 'Lift vs default branch',
+          liftValue: '+25%',
         },
       },
     },

@@ -5,6 +5,8 @@
  * Business impact (#impact): baseline captured on first apply (before mutations), same pattern as profileHub.
  * Journey prioritisation (#s2): baseline captured on first apply; `journeyPrioritisation` updates
  * funnel + formula legend; `rankedJourneys` updates the five ranked rows and explainer (HTML-safe).
+ * Stage 3 (#s3): `nextBestPath` updates intro, AJO 101 callout, mini-canvas labels, path formula legend,
+ * ranked path cards, and footer metrics; `fsi` omits `nextBestPath` and restores the HTML baseline.
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -508,6 +510,227 @@
     if (card) card.innerHTML = agenticBodyHtml(ph.agentic);
   }
 
+  var S3_LEG_DOT_CLASSES = ['journey', 'profile', 'external', 'business'];
+  var ALLOWED_S3_PATH_TAG = { teal: 1, amber: 1, violet: 1, dim: 1 };
+
+  function ensureNextBestPathBaseline() {
+    if (window.__AEP_NEXT_BEST_PATH_BASE) return;
+    var sec = document.getElementById('s3');
+    if (!sec) {
+      window.__AEP_NEXT_BEST_PATH_BASE = null;
+      return;
+    }
+    try {
+      var qText = function (hook) {
+        var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+        return el ? el.textContent : '';
+      };
+      var qHtml = function (hook) {
+        var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+        return el ? el.innerHTML : '';
+      };
+      var branchStats = [];
+      for (var bi = 1; bi <= 4; bi++) {
+        var st = sec.querySelector('[data-aep-nbp="canvas-b' + bi + '-stat"]');
+        branchStats.push({
+          html: st ? st.innerHTML : '',
+          winner: st ? st.classList.contains('winner') : false,
+        });
+      }
+      var legends = [];
+      for (var li = 0; li < 4; li++) {
+        var lg = sec.querySelector('[data-aep-nbp="s3-leg-' + li + '"]');
+        legends.push(lg ? lg.innerHTML : '');
+      }
+      var list = sec.querySelector('[data-aep-nbp="s3-path-list"]');
+      var cbar = sec.querySelector('[data-aep-nbp="s3-foot-conv-bar"]');
+      window.__AEP_NEXT_BEST_PATH_BASE = {
+        intro: qText('s3-intro'),
+        ajo101Title: qHtml('ajo101-title'),
+        ajo101Body: qHtml('ajo101-body'),
+        ajo101Why: qHtml('ajo101-why'),
+        ajo101Source: qHtml('ajo101-source'),
+        canvasEntry: qText('canvas-entry'),
+        canvasSplit: qText('canvas-split'),
+        branchNames: [1, 2, 3, 4].map(function (n) {
+          return qText('canvas-b' + n + '-name');
+        }),
+        branchStats: branchStats,
+        formulaPathTerm: qText('s3-formula-path-term'),
+        legends: legends,
+        rankedTitle: qText('s3-ranked-title'),
+        pathListHtml: list ? list.innerHTML : '',
+        footerPathsLabel: qText('s3-foot-paths-label'),
+        footerPathsValue: qText('s3-foot-paths-value'),
+        footerConvLabel: qText('s3-foot-conv-label'),
+        footerConvValue: qText('s3-foot-conv-value'),
+        footerConvBarW: cbar ? cbar.getAttribute('data-w') || '' : '',
+        footerLiftLabel: qText('s3-foot-lift-label'),
+        footerLiftValue: qText('s3-foot-lift-value'),
+      };
+    } catch (e) {
+      window.__AEP_NEXT_BEST_PATH_BASE = null;
+    }
+  }
+
+  function restoreNextBestPathBaseline() {
+    var b = window.__AEP_NEXT_BEST_PATH_BASE;
+    if (!b) return;
+    var sec = document.getElementById('s3');
+    if (!sec) return;
+    var setT = function (hook, val) {
+      var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+      if (el && val != null) el.textContent = val;
+    };
+    var setH = function (hook, val) {
+      var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+      if (el && val != null) el.innerHTML = val;
+    };
+    setT('s3-intro', b.intro);
+    setH('ajo101-title', b.ajo101Title);
+    setH('ajo101-body', b.ajo101Body);
+    setH('ajo101-why', b.ajo101Why);
+    setH('ajo101-source', b.ajo101Source);
+    setT('canvas-entry', b.canvasEntry);
+    setT('canvas-split', b.canvasSplit);
+    for (var bi = 1; bi <= 4; bi++) {
+      setT('canvas-b' + bi + '-name', b.branchNames && b.branchNames[bi - 1]);
+      var st = sec.querySelector('[data-aep-nbp="canvas-b' + bi + '-stat"]');
+      if (st && b.branchStats && b.branchStats[bi - 1]) {
+        var bs = b.branchStats[bi - 1];
+        st.innerHTML = bs.html != null ? bs.html : '';
+        st.classList.toggle('winner', !!bs.winner);
+      }
+    }
+    setT('s3-formula-path-term', b.formulaPathTerm);
+    for (var li = 0; li < 4; li++) {
+      setH('s3-leg-' + li, b.legends && b.legends[li]);
+    }
+    setT('s3-ranked-title', b.rankedTitle);
+    var list = sec.querySelector('[data-aep-nbp="s3-path-list"]');
+    if (list && b.pathListHtml != null) list.innerHTML = b.pathListHtml;
+    setT('s3-foot-paths-label', b.footerPathsLabel);
+    setT('s3-foot-paths-value', b.footerPathsValue);
+    setT('s3-foot-conv-label', b.footerConvLabel);
+    setT('s3-foot-conv-value', b.footerConvValue);
+    var cbar = sec.querySelector('[data-aep-nbp="s3-foot-conv-bar"]');
+    if (cbar && b.footerConvBarW != null) {
+      cbar.setAttribute('data-w', b.footerConvBarW);
+      cbar.style.width = b.footerConvBarW;
+    }
+    setT('s3-foot-lift-label', b.footerLiftLabel);
+    setT('s3-foot-lift-value', b.footerLiftValue);
+    if (typeof window.drawAjoCanvas === 'function') setTimeout(window.drawAjoCanvas, 40);
+  }
+
+  function s3PathTagSpan(cls, text) {
+    var c = ALLOWED_S3_PATH_TAG[cls] ? cls : 'dim';
+    return '<span class="s3-tag ' + c + '">' + escapeHtml(text) + '</span>';
+  }
+
+  function buildS3PathListRow(p, rank) {
+    var isW = p.winner != null ? !!p.winner : rank === 1;
+    var ch = p.channel === 'assisted' ? 'assisted' : 'digital';
+    var tagHtml = (p.tags || [])
+      .map(function (t) {
+        return s3PathTagSpan(t.cls, t.text);
+      })
+      .join('\n        ');
+    return (
+      '<div class="s3-path' +
+      (isW ? ' winner' : '') +
+      '">\n    <div class="s3-prank">' +
+      rank +
+      '</div>\n    <div class="s3-pbody">\n      <span class="s3-pchannel ' +
+      ch +
+      '">' +
+      escapeHtml(p.channelLabel || '') +
+      '</span>\n      <div class="s3-pname">' +
+      escapeHtml(p.name || '') +
+      '</div>\n      <div class="s3-pactions">' +
+      escapeHtml(p.actions || '') +
+      '</div>\n      <div class="s3-pcontrib">\n        ' +
+      tagHtml +
+      '\n      </div>\n    </div>\n    <div class="s3-pscore">' +
+      escapeHtml(p.score || '') +
+      '</div>\n  </div>'
+    );
+  }
+
+  function applyNextBestPath(nbp) {
+    if (!nbp) return;
+    var sec = document.getElementById('s3');
+    if (!sec) return;
+    var aj = nbp.ajo101 || {};
+    var cv = nbp.canvas || {};
+    var fo = nbp.formula || {};
+    var ft = nbp.footer || {};
+
+    var setT = function (hook, val) {
+      var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+      if (el && val != null) el.textContent = val;
+    };
+    var setH = function (hook, val) {
+      var el = sec.querySelector('[data-aep-nbp="' + hook + '"]');
+      if (el && val != null) el.innerHTML = val;
+    };
+
+    if (nbp.intro != null) setT('s3-intro', nbp.intro);
+    if (aj.titleHtml != null) setH('ajo101-title', aj.titleHtml);
+    if (aj.bodyHtml != null) setH('ajo101-body', aj.bodyHtml);
+    if (aj.whyHtml != null) setH('ajo101-why', aj.whyHtml);
+    if (aj.sourceHtml != null) setH('ajo101-source', aj.sourceHtml);
+
+    if (cv.entryLabel != null) setT('canvas-entry', cv.entryLabel);
+    if (cv.splitLabel != null) setT('canvas-split', cv.splitLabel);
+
+    var branches = cv.branches || [];
+    for (var bi = 0; bi < 4; bi++) {
+      var br = branches[bi] || {};
+      if (br.name != null) setT('canvas-b' + (bi + 1) + '-name', br.name);
+      var st = sec.querySelector('[data-aep-nbp="canvas-b' + (bi + 1) + '-stat"]');
+      if (st) {
+        if (br.statHtml != null) st.innerHTML = br.statHtml;
+        st.classList.toggle('winner', !!br.winner);
+      }
+    }
+
+    if (fo.pathTerm != null) setT('s3-formula-path-term', fo.pathTerm);
+    var legs = fo.legends || [];
+    for (var li = 0; li < 4; li++) {
+      var legEl = sec.querySelector('[data-aep-nbp="s3-leg-' + li + '"]');
+      if (legEl && legs[li] != null) {
+        var dotc = S3_LEG_DOT_CLASSES[li] || 'journey';
+        legEl.innerHTML = '<span class="ldot ' + dotc + '"></span>' + escapeHtml(legs[li]);
+      }
+    }
+
+    if (nbp.rankedPathsTitle != null) setT('s3-ranked-title', nbp.rankedPathsTitle);
+
+    var plist = sec.querySelector('[data-aep-nbp="s3-path-list"]');
+    if (plist && nbp.paths && nbp.paths.length) {
+      plist.innerHTML = nbp.paths
+        .map(function (p, i) {
+          return buildS3PathListRow(p, i + 1);
+        })
+        .join('\n  ');
+    }
+
+    if (ft.pathsEvaluatedLabel != null) setT('s3-foot-paths-label', ft.pathsEvaluatedLabel);
+    if (ft.pathsEvaluatedValue != null) setT('s3-foot-paths-value', ft.pathsEvaluatedValue);
+    if (ft.conversionLabel != null) setT('s3-foot-conv-label', ft.conversionLabel);
+    if (ft.conversionValue != null) setT('s3-foot-conv-value', ft.conversionValue);
+    var cbar = sec.querySelector('[data-aep-nbp="s3-foot-conv-bar"]');
+    if (cbar && ft.conversionBarW != null) {
+      cbar.setAttribute('data-w', ft.conversionBarW);
+      cbar.style.width = ft.conversionBarW;
+    }
+    if (ft.liftLabel != null) setT('s3-foot-lift-label', ft.liftLabel);
+    if (ft.liftValue != null) setT('s3-foot-lift-value', ft.liftValue);
+
+    if (typeof window.drawAjoCanvas === 'function') setTimeout(window.drawAjoCanvas, 40);
+  }
+
   function resetFlowUiAfterIndustryChange() {
     try {
       sfExpandedJourney = null;
@@ -546,6 +769,7 @@
     ensureProfileHubBaseline();
     ensureBusinessImpactBaseline();
     ensureJourneyPrioritisationBaseline();
+    ensureNextBestPathBaseline();
 
     document.body.setAttribute('data-dce-industry', key);
 
@@ -613,6 +837,12 @@
     }
     if (labels.rankedJourneys) {
       applyRankedJourneys(labels.rankedJourneys);
+    }
+
+    if (labels.nextBestPath) {
+      applyNextBestPath(labels.nextBestPath);
+    } else {
+      restoreNextBestPathBaseline();
     }
 
     resetFlowUiAfterIndustryChange();

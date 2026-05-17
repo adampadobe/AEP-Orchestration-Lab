@@ -35,6 +35,9 @@
 --blue:#2B6CB0;
 --blue-soft:#EBF4FF;
 --blue-border:rgba(43,108,176,.15);
+--violet:#7B5CC7;
+--violet-soft:#F3EEFC;
+--violet-border:rgba(123,92,199,.22);
 --border:rgba(30,26,21,.08);
 --border-strong:rgba(30,26,21,.12);
 --radius:12px;
@@ -622,7 +625,7 @@ body{background:var(--bg-cream);color:var(--text-primary);font-family:var(--font
 .s3-tag{font-size:9px;padding:2px 8px;border-radius:100px;font-weight:500;font-family:var(--font-mono)}
 .s3-tag.teal{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
 .s3-tag.amber{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
-.s3-tag.violet{background:#F3EEFC;color:#7B5CC7;border:1px solid #D8CCEF}
+.s3-tag.violet{background:var(--violet-soft);color:var(--violet);border:1px solid var(--violet-border)}
 .s3-tag.dim{background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border)}
 .s3-pscore{
   font-family:var(--font-display);font-size:26px;font-weight:400;
@@ -3138,7 +3141,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="stage-number">03</div>
 <div class="stage-info">
 <h2>Next best path</h2>
-<p>Inside the chosen Mortgage refinance journey, the engine arbitrates across four candidate paths. Each path is a sequence of actions toward conversion. Path scoring blends intrinsic effectiveness with the customer's signal alignment, behavioural fit, and any active time-pressure context.</p>
+<p data-aep-nbp="s3-intro">Inside the chosen Mortgage refinance journey, the engine arbitrates across four candidate paths. Each path is a sequence of actions toward conversion. Path scoring blends intrinsic effectiveness with the customer's signal alignment, behavioural fit, and any active time-pressure context.</p>
 </div>
 </div>
 
@@ -3149,12 +3152,12 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5v13M2 5l6-3.5L14 5M2 11l6 3.5L14 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
     <span class="ajo-callout-eyebrow">AJO 101</span>
-    <span class="ajo-callout-title">What is a <em>conditional split</em>?</span>
+    <span class="ajo-callout-title" data-aep-nbp="ajo101-title">What is a <em>conditional split</em>?</span>
     <span class="ajo-callout-chev">▾</span>
   </summary>
   <div class="ajo-callout-body">
-    <p>In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Rate calculator, Pre-approval flow, Advisor callback, In-branch consultation) are the four branches of a conditional split inside the Mortgage refinance journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.</p>
-    <p class="ajo-callout-tip"><strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That's how one mortgage journey can produce a hyper-personalised outcome for thousands of distinct members.</p>
+    <p data-aep-nbp="ajo101-body">In <strong>Adobe Journey Optimizer</strong>, a journey is built on a visual canvas. A <strong>conditional split node</strong> is a fork in that canvas — incoming profiles are evaluated against a rule, and each profile is routed down one branch or another. The branches you see below (Rate calculator, Pre-approval flow, Advisor callback, In-branch consultation) are the four branches of a conditional split inside the Mortgage refinance journey. The percentage on each branch shows the share of profiles that flowed down that branch — your real metric for path effectiveness.</p>
+    <p class="ajo-callout-tip" data-aep-nbp="ajo101-why"><strong>Why it matters:</strong> the path scoring formula above runs <em>per profile</em> at the split node. Two profiles entering the same journey can take entirely different branches because their signal mix tips the formula differently. That's how one mortgage journey can produce a hyper-personalised outcome for thousands of distinct members.</p>
 
     <!-- Mini journey-canvas illustration mirroring the AJO screenshot style -->
     <div class="ajo-canvas">
@@ -3164,7 +3167,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 14c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
         <div class="ajo-node-body">
-          <div class="ajo-node-name">Mortgage refinance · entry</div>
+          <div class="ajo-node-name" data-aep-nbp="canvas-entry">Mortgage refinance · entry</div>
           <div class="ajo-node-type">Segment</div>
           <div class="ajo-node-stat"><strong>100%</strong> 12,840 profiles</div>
         </div>
@@ -3175,7 +3178,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
         <div class="ajo-split-node">
           <div class="ajo-split-icon">⋔</div>
         </div>
-        <div class="ajo-split-label">Conditional split</div>
+        <div class="ajo-split-label" data-aep-nbp="canvas-split">Conditional split</div>
       </div>
 
       <!-- 4 branches with conversion percentages -->
@@ -3187,11 +3190,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="ajo-node-body" style="flex:1">
-            <div class="ajo-node-name">Rate calculator</div>
+            <div class="ajo-node-name" data-aep-nbp="canvas-b1-name">Rate calculator</div>
             <div class="ajo-node-type">Action</div>
           </div>
           </div>
-          <div class="ajo-node-stat winner"><strong>87%</strong> 11,171 profiles</div>
+          <div class="ajo-node-stat winner" data-aep-nbp="canvas-b1-stat"><strong>87%</strong> 11,171 profiles</div>
         </div>
       </div>
       <div class="ajo-branch" data-branch="b2">
@@ -3201,11 +3204,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 13V5l5-3 5 3v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 13V8.5h3V13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
           <div class="ajo-node-body" style="flex:1">
-            <div class="ajo-node-name">Pre-approval flow</div>
+            <div class="ajo-node-name" data-aep-nbp="canvas-b2-name">Pre-approval flow</div>
             <div class="ajo-node-type">Action</div>
           </div>
           </div>
-          <div class="ajo-node-stat"><strong>71%</strong> 9,116 profiles</div>
+          <div class="ajo-node-stat" data-aep-nbp="canvas-b2-stat"><strong>71%</strong> 9,116 profiles</div>
         </div>
       </div>
       <div class="ajo-branch" data-branch="b3">
@@ -3215,11 +3218,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 5v6c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 5h12l-1.5-2h-9L2 5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
           <div class="ajo-node-body" style="flex:1">
-            <div class="ajo-node-name">Advisor callback</div>
+            <div class="ajo-node-name" data-aep-nbp="canvas-b3-name">Advisor callback</div>
             <div class="ajo-node-type">Action</div>
           </div>
           </div>
-          <div class="ajo-node-stat"><strong>52%</strong> 6,677 profiles</div>
+          <div class="ajo-node-stat" data-aep-nbp="canvas-b3-stat"><strong>52%</strong> 6,677 profiles</div>
         </div>
       </div>
       <div class="ajo-branch" data-branch="b4">
@@ -3229,11 +3232,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="3" y="6" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 6V4h6v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="ajo-node-body" style="flex:1">
-            <div class="ajo-node-name">In-branch</div>
+            <div class="ajo-node-name" data-aep-nbp="canvas-b4-name">In-branch</div>
             <div class="ajo-node-type">Action</div>
           </div>
           </div>
-          <div class="ajo-node-stat"><strong>38%</strong> 4,879 profiles</div>
+          <div class="ajo-node-stat" data-aep-nbp="canvas-b4-stat"><strong>38%</strong> 4,879 profiles</div>
         </div>
       </div>
       </div>
@@ -3242,7 +3245,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
       <svg class="ajo-canvas-svg" id="ajoCanvasSvg" aria-hidden="true"></svg>
     </div>
 
-    <p class="ajo-callout-source">This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.</p>
+    <p class="ajo-callout-source" data-aep-nbp="ajo101-source">This is a simplified illustration of an Adobe Journey Optimizer Journey Canvas — the real canvas in AJO offers the same conditional-split mechanic with richer branching, expression rules, percentages and segment overlays.</p>
   </div>
 </details>
 
@@ -3252,7 +3255,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="s2-formula">
   <span class="s2-f-kw">score =</span>
   <span class="s2-f-paren">(</span>
-  <span class="s2-f-term journey">pathBase</span>
+  <span class="s2-f-term journey" data-aep-nbp="s3-formula-path-term">pathBase</span>
   <span class="s2-f-op">+</span>
   <span class="s2-f-term profile">signalResonance</span>
   <span class="s2-f-paren">)</span>
@@ -3262,17 +3265,17 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
   <span class="s2-f-term business">urgencyWindow</span>
 </div>
 <div class="s2-formula-legend">
-  <span><span class="ldot journey"></span>Path base 0.35–0.55</span>
-  <span><span class="ldot profile"></span>Σ signal × path-specific boosts</span>
-  <span><span class="ldot external"></span>Path channel ↔ member habit (×1.2)</span>
-  <span><span class="ldot business"></span>Time-pressure: fast paths +15%, slow paths −10%</span>
+  <span data-aep-nbp="s3-leg-0"><span class="ldot journey"></span>Path base 0.35–0.55</span>
+  <span data-aep-nbp="s3-leg-1"><span class="ldot profile"></span>Σ signal × path-specific boosts</span>
+  <span data-aep-nbp="s3-leg-2"><span class="ldot external"></span>Path channel ↔ member habit (×1.2)</span>
+  <span data-aep-nbp="s3-leg-3"><span class="ldot business"></span>Time-pressure: fast paths +15%, slow paths −10%</span>
 </div>
 </div>
 
 <!-- Ranked paths -->
 <div class="card">
-<div class="card-title">Ranked paths within Mortgage refinance</div>
-<div class="s3-path-list">
+<div class="card-title" data-aep-nbp="s3-ranked-title">Ranked paths within Mortgage refinance</div>
+<div class="s3-path-list" data-aep-nbp="s3-path-list">
   <div class="s3-path winner">
     <div class="s3-prank">1</div>
     <div class="s3-pbody">
@@ -3332,17 +3335,17 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 
 <div class="metrics-grid">
 <div class="metric-card">
-<div class="metric-label">Paths evaluated</div>
-<div class="metric-value red">4</div>
+<div class="metric-label" data-aep-nbp="s3-foot-paths-label">Paths evaluated</div>
+<div class="metric-value red" data-aep-nbp="s3-foot-paths-value">4</div>
 </div>
 <div class="metric-card">
-<div class="metric-label">Conversion likelihood</div>
-<div class="metric-value teal">87%</div>
-<div class="bar-track"><div class="bar-fill bar-teal" data-w="87%"></div></div>
+<div class="metric-label" data-aep-nbp="s3-foot-conv-label">Conversion likelihood</div>
+<div class="metric-value teal" data-aep-nbp="s3-foot-conv-value">87%</div>
+<div class="bar-track"><div class="bar-fill bar-teal" data-aep-nbp="s3-foot-conv-bar" data-w="87%"></div></div>
 </div>
 <div class="metric-card">
-<div class="metric-label">Lift vs default branch</div>
-<div class="metric-value amber">+25%</div>
+<div class="metric-label" data-aep-nbp="s3-foot-lift-label">Lift vs default branch</div>
+<div class="metric-value amber" data-aep-nbp="s3-foot-lift-value">+25%</div>
 </div>
 </div>
 </section>
@@ -4464,7 +4467,7 @@ sigVal.style.color='';
 }
 }
 const agVal=document.getElementById('sfFbAgenticVal');
-if(agVal){agVal.textContent=agenticFiring?'· ON — × 1.5':'· off';agVal.style.color=agenticFiring?'#7B5CC7':'';}
+if(agVal){agVal.textContent=agenticFiring?'· ON — × 1.5':'· off';agVal.style.color=agenticFiring?'var(--violet)':'';}
 const bankVal=document.getElementById('sfFbBankVal');
 if(bankVal){
 const b=sfSimContext.bankBoost;
@@ -4605,7 +4608,7 @@ if(s==='auto')text='· auto — '+(memberDigital?'digital (mobile-first signal)'
 else if(s==='digital')text='· digital-first override';
 else text='· advisor-led override';
 bhVal.textContent=text;
-bhVal.style.color=winner.behaviourFires?'#7B5CC7':'';
+bhVal.style.color=winner.behaviourFires?'var(--violet)':'';
 }
 const urgVal=document.getElementById('sfPFbUrgVal');
 if(urgVal){
@@ -5180,8 +5183,8 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
-<script src="ajo-pipeline-industry-labels.js?v=20260520"></script>
-<script src="ajo-pipeline-industry-apply.js?v=20260520"></script>
+<script src="ajo-pipeline-industry-labels.js?v=20260521"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260521"></script>
 <script>
 (function () {
   try {
