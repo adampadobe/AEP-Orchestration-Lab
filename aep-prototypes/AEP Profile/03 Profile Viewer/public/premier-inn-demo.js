@@ -124,6 +124,8 @@ async function upsertPremierInnStayerProfile(pub) {
   const attrs = {};
   if (fn) attrs['person.name.firstName'] = fn;
   if (ln) attrs['person.name.lastName'] = ln;
+  const lang = String(p.hotelStayerPreferredLanguage || '').trim();
+  if (lang) attrs.preferredLanguage = lang;
   const body = { email: em, industry: 'generic', appendIfExisting: true, attributes: attrs };
   const postBody =
     typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody

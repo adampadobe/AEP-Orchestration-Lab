@@ -307,7 +307,8 @@
       color: #555;
       margin-bottom: 4px;
     }
-    .pi-party-stayer-fields input {
+    .pi-party-stayer-fields input,
+    .pi-party-stayer-fields select {
       width: 100%;
       max-width: 100%;
       padding: 10px 12px;
@@ -457,6 +458,7 @@
         <div class="pi-kv"><strong>First name</strong> <span id="piSumStayerFirst"></span></div>
         <div class="pi-kv"><strong>Last name</strong> <span id="piSumStayerLast"></span></div>
         <div class="pi-kv"><strong>Email</strong> <span id="piSumStayerEmail"></span></div>
+        <div class="pi-kv"><strong>Preferred language</strong> <span id="piSumStayerLang"></span></div>
       </div>
       <div class="pi-actions">
         <a class="pi-btn" id="piSumHome" href="premier-inn-site.html">Back to search</a>
@@ -522,6 +524,44 @@
           <input id="piPartyStayerLast" type="text" autocomplete="family-name" maxlength="80"/>
           <label for="piPartyStayerEmail">Guest email</label>
           <input id="piPartyStayerEmail" type="email" autocomplete="email" maxlength="120" placeholder="stayer@example.com"/>
+          <label for="piPartyStayerPreferredLanguage">Guest preferred language (profile)</label>
+          <select id="piPartyStayerPreferredLanguage" autocomplete="language">
+            <option value="en-US" selected>English (United States)</option>
+            <option value="en-GB">English (United Kingdom)</option>
+            <option value="en-CA">English (Canada)</option>
+            <option value="en-AU">English (Australia)</option>
+            <option value="fr-FR">French (France)</option>
+            <option value="fr-CA">French (Canada)</option>
+            <option value="de-DE">German (Germany)</option>
+            <option value="de-AT">German (Austria)</option>
+            <option value="de-CH">German (Switzerland)</option>
+            <option value="es-ES">Spanish (Spain)</option>
+            <option value="es-MX">Spanish (Mexico)</option>
+            <option value="es-AR">Spanish (Argentina)</option>
+            <option value="it-IT">Italian (Italy)</option>
+            <option value="pt-PT">Portuguese (Portugal)</option>
+            <option value="pt-BR">Portuguese (Brazil)</option>
+            <option value="nl-NL">Dutch (Netherlands)</option>
+            <option value="nl-BE">Dutch (Belgium)</option>
+            <option value="da-DK">Danish (Denmark)</option>
+            <option value="sv-SE">Swedish (Sweden)</option>
+            <option value="no-NO">Norwegian (Norway)</option>
+            <option value="fi-FI">Finnish (Finland)</option>
+            <option value="pl-PL">Polish (Poland)</option>
+            <option value="ru-RU">Russian (Russia)</option>
+            <option value="zh-CN">Chinese (Simplified)</option>
+            <option value="zh-TW">Chinese (Traditional)</option>
+            <option value="ja-JP">Japanese (Japan)</option>
+            <option value="ko-KR">Korean (South Korea)</option>
+            <option value="ar-SA">Arabic (Saudi Arabia)</option>
+            <option value="ar-AE">Arabic (UAE)</option>
+            <option value="he-IL">Hebrew (Israel)</option>
+            <option value="tr-TR">Turkish (Turkey)</option>
+            <option value="hi-IN">Hindi (India)</option>
+            <option value="th-TH">Thai (Thailand)</option>
+            <option value="vi-VN">Vietnamese (Vietnam)</option>
+            <option value="unknown">Unknown</option>
+          </select>
         </div>
       </fieldset>
       <p class="pi-party-err" id="piPartyErr" aria-live="polite"></p>
@@ -607,6 +647,7 @@
       var partyStayerFirst = document.getElementById('piPartyStayerFirst');
       var partyStayerLast = document.getElementById('piPartyStayerLast');
       var partyStayerEmail = document.getElementById('piPartyStayerEmail');
+      var partyStayerPreferredLanguage = document.getElementById('piPartyStayerPreferredLanguage');
       var partyErr = document.getElementById('piPartyErr');
       var partyContinue = document.getElementById('piPartyContinue');
       var partyCancel = document.getElementById('piPartyCancel');
@@ -654,6 +695,9 @@
         var stayerEm =
           (party && party.hotelStayerEmail ? String(party.hotelStayerEmail).trim() : '') ||
           String(ex.hotelStayerEmail || '').trim();
+        var stayerLang =
+          (party && party.hotelStayerPreferredLanguage ? String(party.hotelStayerPreferredLanguage).trim() : '') ||
+          String(ex.hotelStayerPreferredLanguage || '').trim();
         var hasStayer = !!(stayerFn && stayerEm);
         var diffStayer =
           party && party.hotelStayerSameAsBooker === false ? true : ex.hotelStayerSameAsBooker === false;
@@ -686,6 +730,7 @@
             isGuestOfRecord: true,
             relationshipToBooker: 'other',
           };
+          if (stayerLang) bp.stayer.preferredLanguage = stayerLang;
         }
         if (diffStayer && hasStayer && hasBooker && bp.booker && typeof bp.booker === 'object') {
           bp.booker.isPrimaryBooker = true;
@@ -788,6 +833,7 @@
         if (!show && partyStayerFirst) partyStayerFirst.value = '';
         if (!show && partyStayerLast) partyStayerLast.value = '';
         if (!show && partyStayerEmail) partyStayerEmail.value = '';
+        if (!show && partyStayerPreferredLanguage) partyStayerPreferredLanguage.value = 'en-US';
       }
 
       function loadPartyRecord() {
@@ -1052,6 +1098,7 @@
             hotelStayerFirstName: stayerBase.hotelStayerFirstName,
             hotelStayerLastName: stayerBase.hotelStayerLastName,
             hotelStayerEmail: stayerBase.hotelStayerEmail,
+            hotelStayerPreferredLanguage: stayerBase.hotelStayerPreferredLanguage || 'en-US',
             hotelSearchIntent: searchIntent(),
           }, 'Hospitality lab — booker guest capture (stayer path)');
           var prBookerGuest = Object.assign({}, stayerBase, {
@@ -1120,6 +1167,7 @@
               hotelStayerFirstName: stayerBase2.hotelStayerFirstName,
               hotelStayerLastName: stayerBase2.hotelStayerLastName,
               hotelStayerEmail: stayerBase2.hotelStayerEmail,
+              hotelStayerPreferredLanguage: stayerBase2.hotelStayerPreferredLanguage || 'en-US',
               hotelSearchIntent: searchIntent(),
             }, 'Hospitality lab — booker signed in (stayer path)');
             completeSelfAuthAndRoom(prSignedBooker);
@@ -1178,12 +1226,15 @@
           setPartyErr('Enter a valid guest email address.');
           return;
         }
+        var stLang = partyStayerPreferredLanguage ? String(partyStayerPreferredLanguage.value || '').trim() : '';
+        if (!stLang) stLang = 'en-US';
         var rec = {
           itineraryId: itineraryId,
           hotelStayerSameAsBooker: false,
           hotelStayerFirstName: fn,
           hotelStayerLastName: ln,
           hotelStayerEmail: em,
+          hotelStayerPreferredLanguage: stLang,
         };
         var cbOther = partyModalOnDone;
         closePartyModal();
@@ -1548,6 +1599,9 @@
           pub.hotelStayerFirstName = party.hotelStayerFirstName;
           pub.hotelStayerLastName = party.hotelStayerLastName;
           pub.hotelStayerEmail = party.hotelStayerEmail;
+          if (party.hotelStayerPreferredLanguage) {
+            pub.hotelStayerPreferredLanguage = party.hotelStayerPreferredLanguage;
+          }
         } else {
           pub.hotelStayerSameAsBooker = true;
         }
@@ -1669,6 +1723,9 @@
             if (partyRec.hotelStayerFirstName) completePub.hotelStayerFirstName = partyRec.hotelStayerFirstName;
             if (partyRec.hotelStayerLastName) completePub.hotelStayerLastName = partyRec.hotelStayerLastName;
             if (partyRec.hotelStayerEmail) completePub.hotelStayerEmail = partyRec.hotelStayerEmail;
+            if (partyRec.hotelStayerPreferredLanguage) {
+              completePub.hotelStayerPreferredLanguage = partyRec.hotelStayerPreferredLanguage;
+            }
           }
         }
         if (partyRec && partyRec.hotelCheckoutChannel) {
@@ -1714,6 +1771,7 @@
               hotelStayerFirstName: partyRec.hotelStayerFirstName,
               hotelStayerLastName: partyRec.hotelStayerLastName,
               hotelStayerEmail: partyRec.hotelStayerEmail,
+              hotelStayerPreferredLanguage: partyRec.hotelStayerPreferredLanguage || 'en-US',
             },
             'Hospitality lab — stayer identified'
           );
@@ -1744,9 +1802,11 @@
             var sf = document.getElementById('piSumStayerFirst');
             var sl = document.getElementById('piSumStayerLast');
             var se = document.getElementById('piSumStayerEmail');
+            var slg = document.getElementById('piSumStayerLang');
             if (sf) sf.textContent = dashIfEmpty(partyRec.hotelStayerFirstName);
             if (sl) sl.textContent = dashIfEmpty(partyRec.hotelStayerLastName);
             if (se) se.textContent = dashIfEmpty(partyRec.hotelStayerEmail);
+            if (slg) slg.textContent = dashIfEmpty(partyRec.hotelStayerPreferredLanguage || 'en-US');
           }
         }
         var cardNameEl = document.getElementById('piCardName');
