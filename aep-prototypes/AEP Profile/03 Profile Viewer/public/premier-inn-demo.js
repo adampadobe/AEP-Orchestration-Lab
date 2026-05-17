@@ -104,10 +104,12 @@ function premierInnLooksLikeEmail(s) {
 }
 
 /**
- * Ensures a generic UPS profile exists for the stayer (names via attributes).
- * The follow-up Experience Event uses `primaryIdentity: 'email'` (no browser ECID).
+ * Ensures a generic UPS profile exists for the stayer (names, language via attributes).
+ * Returns the ECID from the profile stream response when present so the follow-up event can use
+ * the same primary identity as UPS (ECID primary + stayer email secondary). Falls back to email-only
+ * if the API does not return an ECID.
  * @param {Record<string, unknown>} [pub] - iframe `public` (hotelStayer* fields)
- * @returns {Promise<{ ok: true, email: string } | { ok: false, error: string }>}
+ * @returns {Promise<{ ok: true, email: string, ecid: string } | { ok: false, error: string }>}
  */
 async function upsertPremierInnStayerProfile(pub) {
   const p = pub && typeof pub === 'object' ? pub : {};
@@ -146,7 +148,9 @@ async function upsertPremierInnStayerProfile(pub) {
       const detail = data.error || data.message || `HTTP ${res.status}`;
       return { ok: false, error: String(detail) };
     }
-    return { ok: true, email: em };
+    const outEcid = data.ecid != null ? String(data.ecid).trim() : '';
+    const ecidOk = /^\d{10,}$/.test(outEcid);
+    return { ok: true, email: em, ecid: ecidOk ? outEcid : '' };
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) };
   }
@@ -177,7 +181,7 @@ async function sendPremierInnHotelExperienceEvent(payload) {
       return false;
     }
     emailForEvent = prep.email;
-    ecid = null;
+    ecid = prep.ecid && /^\d{10,}$/.test(String(prep.ecid).trim()) ? String(prep.ecid).trim() : null;
   }
 
   const target = getSelectedGeneratorTarget();
@@ -193,7 +197,7 @@ async function sendPremierInnHotelExperienceEvent(payload) {
   };
   if (emailForEvent) body.email = emailForEvent;
   if (ecid) body.ecid = ecid;
-  if (eventType === 'hotel.booking.stayerIdentified') {
+  if (eventType === 'hotel.booking.stayerIdentified' && !ecid) {
     body.primaryIdentity = 'email';
   }
   const postBody =
@@ -218,10 +222,13 @@ async function sendPremierInnHotelExperienceEvent(payload) {
     let idPart = '';
     if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
     else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
+    if (eventType === 'hotel.booking.stayerIdentified' && ecid) {
+      idPart += ' Stayer profile ECID (use for Profile Viewer / events): ' + ecid;
+    }
     setPremierInnMessage((data.message || 'Hotel journey event sent to AEP.') + idPart, 'success');
     let refreshId = ecid;
     let refreshNs = 'ecid';
-    if (eventType === 'hotel.booking.stayerIdentified' && emailForEvent) {
+    if (eventType === 'hotel.booking.stayerIdentified' && emailForEvent && !refreshId) {
       refreshId = emailForEvent;
       refreshNs = 'email';
     }
