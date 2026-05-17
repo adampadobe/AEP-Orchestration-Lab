@@ -2,7 +2,8 @@
  * Per-industry display copy for embedded AJO pipeline HTML (the-anatomy-of-a-decision iframe).
  * Journey ids and path ids stay FSI-shaped for engine compatibility; only labels change.
  * `businessImpact` drives the #impact KPI strip; `profileHub` drives Stage 1 hub cards;
- * `journeyPrioritisation` drives Stage 2 (#s2) funnel, formula display, ranked list, and result banner.
+ * `journeyPrioritisation` drives Stage 2 (#s2) intro, funnel, formula term, and legend;
+ * `rankedJourneys` drives the ranked journey rows, card title, and result banner copy.
  *
  * Canonical toolbar keys: retail, fsi, travel, media, sports, telecommunications, public, healthcare
  * (dce-industry-toolbar.js). Legacy keys sent by some embeds are normalised in
@@ -1133,10 +1134,67 @@
         legendSignal: 'Σ active signals × journey affinity',
         legendAgentic: 'Omnichannel care dialogue × 1.5',
         legendStrategic: 'Retention / upgrade programme push × 1.3',
-        rankedTitle: 'Ranked journeys for Sam Okonkwo',
-        resultTitle: 'Selected: Fibre upgrade journey',
-        resultBodyHtml:
-          'Composite score 345 — winning by 2.5×. Strong upgrade and speed-test signals drive a high signalPropensity (190 points), the contractValue multiplier (×1.50) reflects the strongest expected ARPU lift, and the agenticLift (×1.50) reflects a recent install-booking assist session. <em>Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.</em>',
+      },
+      rankedJourneys: {
+        heading: 'Ranked journeys for this profile',
+        rows: [
+          {
+            rank: 1,
+            issue: 'sales',
+            title: 'Fibre upgrade',
+            desc: '1Gb install · self-setup · ARPU lift',
+            score: '345',
+            barWidth: '100%',
+            barOpacity: 1,
+            multipliers: '×1.50 contract value · ×1.50 agentic',
+          },
+          {
+            rank: 2,
+            issue: 'retention',
+            title: 'Mobile save / retention',
+            desc: 'Loyalty discount · add-ons',
+            score: '136',
+            barWidth: '40%',
+            barOpacity: 0.55,
+            multipliers: '×1.30 contract value',
+          },
+          {
+            rank: 3,
+            issue: 'sales',
+            title: 'Device trade-in',
+            desc: 'Early upgrade · recycle value',
+            score: '114',
+            barWidth: '33%',
+            barOpacity: 0.45,
+            multipliers: '×1.10 contract value',
+          },
+          {
+            rank: 4,
+            issue: 'sales',
+            title: 'SMB static IP',
+            desc: 'Business line · SLA attach',
+            score: '82',
+            barWidth: '24%',
+            barOpacity: 0.3,
+            multipliers: '×0.90 contract value',
+          },
+          {
+            rank: 5,
+            issue: 'sales',
+            title: 'Roaming & travel pack',
+            desc: 'Trip add-on · bolt-on revenue',
+            score: '61',
+            barWidth: '18%',
+            barOpacity: 0.2,
+            multipliers: '×1.40 contract value',
+          },
+        ],
+        selectedExplainer: {
+          title: 'Selected: Fibre upgrade journey',
+          body:
+            'Composite score 345 — winning by 2.5×. Strong upgrade and speed-test signals drive a high signalPropensity (190 points), the contractValue multiplier (×1.50) reflects the strongest expected ARPU lift, and the agenticLift (×1.50) reflects a recent install-booking assist session. ',
+          bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
       },
     },
 
@@ -1281,10 +1339,67 @@
         legendSignal: 'Σ active signals × journey affinity',
         legendAgentic: '311 / navigator assist intent × 1.5',
         legendStrategic: 'Service improvement wave × 1.3',
-        rankedTitle: 'Ranked journeys for Riley Kim',
-        resultTitle: 'Selected: Transit & mobility benefits journey',
-        resultBodyHtml:
-          'Composite score 345 — winning by 2.5×. Strong eligibility-completion signals drive a high signalPropensity (190 points), the citizenValue multiplier (×1.50) reflects the strongest programme fit, and the agenticLift (×1.50) reflects a recent document-format assist session. <em>Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.</em>',
+      },
+      rankedJourneys: {
+        heading: 'Ranked journeys for this profile',
+        rows: [
+          {
+            rank: 1,
+            issue: 'sales',
+            title: 'Transit & mobility benefits',
+            desc: 'Passes · concessions · uptake',
+            score: '345',
+            barWidth: '100%',
+            barOpacity: 1,
+            multipliers: '×1.50 citizen value · ×1.50 agentic',
+          },
+          {
+            rank: 2,
+            issue: 'sales',
+            title: 'Income-linked programmes',
+            desc: 'Grants · fee relief',
+            score: '136',
+            barWidth: '40%',
+            barOpacity: 0.55,
+            multipliers: '×1.30 citizen value',
+          },
+          {
+            rank: 3,
+            issue: 'sales',
+            title: 'Permit & licensing fast lane',
+            desc: 'Digital proof · SLA',
+            score: '114',
+            barWidth: '33%',
+            barOpacity: 0.45,
+            multipliers: '×1.10 citizen value',
+          },
+          {
+            rank: 4,
+            issue: 'sales',
+            title: 'Skills & workforce',
+            desc: 'Cohort intake · training',
+            score: '82',
+            barWidth: '24%',
+            barOpacity: 0.3,
+            multipliers: '×0.90 citizen value',
+          },
+          {
+            rank: 5,
+            issue: 'retention',
+            title: 'Housing support pathway',
+            desc: 'Case-managed · resolution',
+            score: '61',
+            barWidth: '18%',
+            barOpacity: 0.2,
+            multipliers: '×1.40 citizen value',
+          },
+        ],
+        selectedExplainer: {
+          title: 'Selected: Transit & mobility benefits journey',
+          body:
+            'Composite score 345 — winning by 2.5×. Strong eligibility-completion signals drive a high signalPropensity (190 points), the citizenValue multiplier (×1.50) reflects the strongest programme fit, and the agenticLift (×1.50) reflects a recent document-format assist session. ',
+          bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
       },
     },
 
@@ -1429,10 +1544,67 @@
         legendSignal: 'Σ active signals × journey affinity',
         legendAgentic: 'Benefits navigator dialogue × 1.5',
         legendStrategic: 'Care programme weighting × 1.3',
-        rankedTitle: 'Ranked journeys for Jordan Ellis',
-        resultTitle: 'Selected: Virtual-first care journey',
-        resultBodyHtml:
-          'Composite score 345 — winning by 2.5×. Strong access and care-gap signals drive a high signalPropensity (190 points), the memberValue multiplier (×1.50) reflects the strongest appropriate programme lift, and the agenticLift (×1.50) reflects a recent in-network benefits lookup session. <em>Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.</em>',
+      },
+      rankedJourneys: {
+        heading: 'Ranked journeys for this profile',
+        rows: [
+          {
+            rank: 1,
+            issue: 'sales',
+            title: 'Virtual-first care',
+            desc: 'Triage · same-week slot · utilisation',
+            score: '345',
+            barWidth: '100%',
+            barOpacity: 1,
+            multipliers: '×1.50 member value · ×1.50 agentic',
+          },
+          {
+            rank: 2,
+            issue: 'sales',
+            title: 'Specialty referral assist',
+            desc: 'In-network · prior auth',
+            score: '136',
+            barWidth: '40%',
+            barOpacity: 0.55,
+            multipliers: '×1.30 member value',
+          },
+          {
+            rank: 3,
+            issue: 'sales',
+            title: 'Pharmacy adherence',
+            desc: 'Mail order · 90-day fills',
+            score: '114',
+            barWidth: '33%',
+            barOpacity: 0.45,
+            multipliers: '×1.10 member value',
+          },
+          {
+            rank: 4,
+            issue: 'sales',
+            title: 'Chronic programme',
+            desc: 'Coaching · devices · engagement',
+            score: '82',
+            barWidth: '24%',
+            barOpacity: 0.3,
+            multipliers: '×0.90 member value',
+          },
+          {
+            rank: 5,
+            issue: 'sales',
+            title: 'Wellness incentive',
+            desc: 'Steps · screenings · rewards',
+            score: '61',
+            barWidth: '18%',
+            barOpacity: 0.2,
+            multipliers: '×1.40 member value',
+          },
+        ],
+        selectedExplainer: {
+          title: 'Selected: Virtual-first care journey',
+          body:
+            'Composite score 345 — winning by 2.5×. Strong access and care-gap signals drive a high signalPropensity (190 points), the memberValue multiplier (×1.50) reflects the strongest appropriate programme lift, and the agenticLift (×1.50) reflects a recent in-network benefits lookup session. ',
+          bodyEm: 'Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.',
+        },
       },
     },
   };
