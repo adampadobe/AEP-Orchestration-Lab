@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-profile">
+  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-schema-fg">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -102,19 +102,25 @@
                 <div class="et-config-step">
                   <h4 class="et-config-step-title">Step 1 — Create an XDM ExperienceEvent schema</h4>
                   <p class="field-hint">
-                    Creates an <strong>ExperienceEvent</strong> schema, attaches <strong>Profile Core v2</strong> when that field group exists in the sandbox, and registers <strong>ECID</strong> + <strong>Email</strong> on
+                    Creates an <strong>ExperienceEvent</strong> schema and attaches <strong>Experience Event Core v2.1</strong> when that field group exists in the sandbox, then
+                    <strong>Interaction Details Lite</strong> (channel on <code class="et-code-inline">interactionDetails.core.channel</code>) and
+                    <strong>Travel - Hotel Experience v1</strong> when those global field groups are visible to the Schema Registry API.
+                    It also registers <strong>ECID</strong> + <strong>Email</strong> on
                     <code class="et-code-inline">_{tenant}.identification.core.*</code> as <strong>secondary</strong> identity descriptors (not the schema primary).
+                    For an <strong>existing</strong> Event Tool schema, use <strong>Attach recommended field groups</strong> after importing any missing field groups from the AEP library.
                   </p>
                   <div class="et-config-step-row">
                     <div class="form-row et-schema-name-row">
                       <label for="etSchemaTitle">Schema name</label>
                       <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
                     </div>
-                    <div class="form-row form-row--action">
+                    <div class="form-row form-row--action et-schema-actions">
                       <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">Create schema</button>
+                      <button type="button" id="etAttachFieldGroupsBtn" class="btn btn-secondary">Attach recommended field groups</button>
                     </div>
                   </div>
                   <div id="etSchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                  <div id="etAttachFgMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                 </div>
 
                 <details class="et-identity-map-hint">
@@ -300,7 +306,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="event-tool.js?v=20260415"></script>
+  <script src="event-tool.js?v=20260511-event-tool-schema-fg"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>

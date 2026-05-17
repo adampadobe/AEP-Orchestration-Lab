@@ -370,3 +370,10 @@
 [data-aep-theme="dark"] .et-code-inline {
   background: var(--dash-surface);
 }
+
+.et-schema-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}

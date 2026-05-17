@@ -190,6 +190,110 @@ function findExperienceEventCoreV21Mixin(rows) {
   return hit || null;
 }
 
+/** Adobe standard ExperienceEvent field group — channel on `interactionDetails.core.channel`. */
+function findInteractionDetailsLiteMixin(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return (
+    list.find((m) => {
+      if (!mixinExtendsExperienceEventClass(m)) return false;
+      const t = String(m.title || '').toLowerCase().replace(/\s+/g, ' ');
+      return /interaction\s*details\s*lite/.test(t);
+    }) || null
+  );
+}
+
+/** Adobe / lab "Travel - Hotel Experience v1" (ExperienceEvent) — hotel stay lifecycle fields. */
+function findTravelHotelExperienceV1Mixin(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return (
+    list.find((m) => {
+      if (!mixinExtendsExperienceEventClass(m)) return false;
+      const t = String(m.title || '');
+      return /travel\s*[-–]?\s*hotel\s*experience\s*v1/i.test(t);
+    }) || null
+  );
+}
+
+function dedupeFieldgroupsById(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    if (r && typeof r.$id === 'string' && r.$id && mixinExtendsExperienceEventClass(r)) {
+      map.set(r.$id, r);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * Global OOTB field groups (ExperienceEvent-class) — used for Interaction Details Lite, Travel Hotel, etc.
+ */
+async function listGlobalExperienceEventFieldgroups(token, clientId, orgId, sandbox) {
+  const url = `${SCHEMA_REGISTRY}/global/fieldgroups?limit=500&properties=title,$id,meta:intendedToExtend`;
+  const base = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+  };
+  const accepts = ['application/vnd.adobe.xed-id+json', 'application/vnd.adobe.xed+json', ACCEPT_XED, ACCEPT_JSON];
+  let lastErr = '';
+  for (const accept of accepts) {
+    const { res, data } = await fetchJson(url, { method: 'GET', headers: { ...base, Accept: accept } });
+    if (res.ok) {
+      const raw = Array.isArray(data.results) ? data.results : [];
+      return raw.filter((m) => mixinExtendsExperienceEventClass(m));
+    }
+    lastErr = data.message || data.title || res.statusText || String(res.status);
+    if (!/accept header/i.test(String(lastErr))) break;
+  }
+  throw new Error(`Global field groups list failed: ${lastErr}`);
+}
+
+/**
+ * Merge tenant + global ExperienceEvent field group catalogs (deduped by $id).
+ */
+async function listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox) {
+  let tenant = [];
+  try {
+    tenant = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+  } catch {
+    tenant = [];
+  }
+  let globalRows = [];
+  try {
+    globalRows = await listGlobalExperienceEventFieldgroups(token, clientId, orgId, sandbox);
+  } catch {
+    globalRows = [];
+  }
+  return dedupeFieldgroupsById([...(Array.isArray(tenant) ? tenant : []), ...globalRows]);
+}
+
+/**
+ * Attach extra ExperienceEvent field groups by $ref (JSON Patch). Refetches schema between attempts.
+ * @param {string[]} mixinIds
+ */
+async function attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, mixinIds) {
+  const attached = [];
+  const skipped = [];
+  const warnings = [];
+  for (const ref of mixinIds) {
+    if (!ref) continue;
+    const full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || {};
+    const ops = buildAddFieldGroupPatchOps(full, ref);
+    if (!ops.length) {
+      skipped.push(ref);
+      continue;
+    }
+    try {
+      await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
+      attached.push(ref);
+    } catch (e) {
+      warnings.push(`${ref}: ${String(e.message || e).slice(0, 220)}`);
+    }
+  }
+  return { attached, skipped, warnings };
+}
+
 function collectSchemaRefUris(schema) {
   const set = new Set();
   for (const x of schema.allOf || []) {
@@ -307,6 +411,9 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
   const empty = {
     experienceEventCoreV21Attached: false,
     profileCoreAttached: false,
+    interactionDetailsLiteAttached: false,
+    travelHotelExperienceV1Attached: false,
+    hospitalityFieldGroupWarnings: [],
     identityDescriptors: 0,
     warn: null,
     tenantXdmKey: null,
@@ -330,17 +437,21 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     };
   }
 
-  let mixins;
+  let merged;
   try {
-    mixins = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+    merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
   } catch (e) {
-    return {
-      ...empty,
-      warn: String(e.message || e),
-    };
+    try {
+      merged = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+    } catch (e2) {
+      return {
+        ...empty,
+        warn: String(e2.message || e2 || e.message || e),
+      };
+    }
   }
 
-  const eeCore = findExperienceEventCoreV21Mixin(mixins);
+  const eeCore = findExperienceEventCoreV21Mixin(merged);
   if (!eeCore || !eeCore.$id) {
     return {
       ...empty,
@@ -371,6 +482,40 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     experienceEventCoreV21Attached = true;
   }
 
+  const interactionLite = findInteractionDetailsLiteMixin(merged);
+  const travelHotel = findTravelHotelExperienceV1Mixin(merged);
+  const extraRefs = [interactionLite && interactionLite.$id, travelHotel && travelHotel.$id].filter(Boolean);
+  let interactionDetailsLiteAttached = false;
+  let travelHotelExperienceV1Attached = false;
+  const hospitalityFieldGroupWarnings = [];
+  if (extraRefs.length) {
+    const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, extraRefs);
+    for (const w of fgRes.warnings || []) hospitalityFieldGroupWarnings.push(w);
+    if (interactionLite && interactionLite.$id && fgRes.attached.includes(interactionLite.$id)) {
+      interactionDetailsLiteAttached = true;
+    }
+    if (travelHotel && travelHotel.$id && fgRes.attached.includes(travelHotel.$id)) {
+      travelHotelExperienceV1Attached = true;
+    }
+    if (interactionLite && interactionLite.$id && fgRes.skipped.includes(interactionLite.$id)) {
+      interactionDetailsLiteAttached = true;
+    }
+    if (travelHotel && travelHotel.$id && fgRes.skipped.includes(travelHotel.$id)) {
+      travelHotelExperienceV1Attached = true;
+    }
+    if (!interactionLite) {
+      hospitalityFieldGroupWarnings.push(
+        'Interaction Details Lite (ExperienceEvent) not found in Schema Registry — import it in AEP (Add field groups) if you need root interactionDetails on the schema.'
+      );
+    }
+    if (!travelHotel) {
+      hospitalityFieldGroupWarnings.push(
+        'Travel - Hotel Experience v1 (ExperienceEvent) not found in Schema Registry — add it from the standard library in AEP if you need hotel.bookingDetails on the schema.'
+      );
+    }
+    full = (await getSchemaByMetaAlt(token, clientId, orgId, sandbox, metaAltId)) || full;
+  }
+
   const ver = Number(full.version) || 1;
   const tenant = String(tenantCtx.xdmKey || '_demoemea').replace(/^_/, '');
   const ecidPath = `/_${tenant}/identification/core/ecid`;
@@ -393,6 +538,9 @@ async function attachExperienceEventCoreV21AndIdentityDescriptors(token, clientI
     experienceEventCoreV21Attached,
     /** @deprecated Same as experienceEventCoreV21Attached; kept for API consumers that still read this key. */
     profileCoreAttached: experienceEventCoreV21Attached,
+    interactionDetailsLiteAttached,
+    travelHotelExperienceV1Attached,
+    hospitalityFieldGroupWarnings,
     identityDescriptors,
     warn: null,
     tenantXdmKey: tenantCtx.xdmKey,
@@ -500,6 +648,11 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     const attach = await attachExperienceEventCoreV21AndIdentityDescriptors(token, clientId, orgId, sandbox, created);
     const parts = [`Schema "${title}" created (ExperienceEvent class).`];
     if (attach.experienceEventCoreV21Attached) parts.push('Experience Event Core v2.1 field group attached.');
+    if (attach.interactionDetailsLiteAttached) parts.push('Interaction Details Lite attached (root interactionDetails.core.channel).');
+    if (attach.travelHotelExperienceV1Attached) parts.push('Travel - Hotel Experience v1 attached (maps core stay fields to hotel.bookingDetails on payloads).');
+    for (const w of attach.hospitalityFieldGroupWarnings || []) {
+      if (w) parts.push(`Note: ${w}`);
+    }
     if (attach.identityDescriptors > 0) {
       parts.push(
         `Identity descriptors on ${attach.tenantXdmKey || 'tenant'}.identification.core.ecid / .email (not schema primary — use identityMap per event).`
@@ -516,11 +669,63 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       schemaMetaAltId: created['meta:altId'],
       experienceEventCoreV21Attached: !!attach.experienceEventCoreV21Attached,
       profileCoreAttached: !!attach.profileCoreAttached,
+      interactionDetailsLiteAttached: !!attach.interactionDetailsLiteAttached,
+      travelHotelExperienceV1Attached: !!attach.travelHotelExperienceV1Attached,
+      hospitalityFieldGroupWarnings: attach.hospitalityFieldGroupWarnings || [],
       identityDescriptorsCreated: Number(attach.identityDescriptors) || 0,
       experienceEventCoreWarning: attach.warn || null,
       profileCoreWarning: attach.warn || null,
       tenantXdmKey: attach.tenantXdmKey || null,
       identityMapHint: EVENT_TOOL_IDENTITY_MAP_HINT,
+      message: parts.join(' '),
+    };
+  }
+
+  if (step === 'attachRecommendedFieldGroups') {
+    const title = String(opts.schemaTitle || '').trim();
+    if (!title) return { ok: false, error: 'schemaTitle is required.' };
+    const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
+    if (!schema) {
+      return { ok: false, error: `Schema "${title}" not found. Create the schema first or check the exact title.` };
+    }
+    const metaAltId = schema['meta:altId'];
+    if (!metaAltId) {
+      return { ok: false, error: `Schema "${title}" has no meta:altId yet — wait a few seconds after creation and retry.` };
+    }
+    let merged;
+    try {
+      merged = await listMergedExperienceEventFieldgroups(token, clientId, orgId, sandbox);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+    const interactionLite = findInteractionDetailsLiteMixin(merged);
+    const travelHotel = findTravelHotelExperienceV1Mixin(merged);
+    const refs = [interactionLite && interactionLite.$id, travelHotel && travelHotel.$id].filter(Boolean);
+    if (!refs.length) {
+      return {
+        ok: false,
+        error:
+          'No matching ExperienceEvent field groups found. In AEP → Schemas → Browse, import **Interaction Details Lite** and **Travel - Hotel Experience v1** for the ExperienceEvent class, then retry.',
+      };
+    }
+    const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, refs);
+    const parts = [`Field groups processed for "${title}".`];
+    if (fgRes.attached.length) parts.push(`Attached: ${fgRes.attached.length} (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
+    if (fgRes.skipped.length) parts.push(`Already present: ${fgRes.skipped.length}.`);
+    for (const w of fgRes.warnings) parts.push(`Warning: ${w}`);
+    if (!interactionLite) parts.push('Note: Interaction Details Lite not found in registry — add from AEP field group library.');
+    if (!travelHotel) parts.push('Note: Travel - Hotel Experience v1 not found in registry — add from AEP field group library.');
+    return {
+      ok: true,
+      sandbox,
+      step,
+      schemaId: schema.$id,
+      schemaMetaAltId: metaAltId,
+      attachedFieldGroupIds: fgRes.attached,
+      skippedFieldGroupIds: fgRes.skipped,
+      interactionDetailsLiteFound: !!interactionLite,
+      travelHotelExperienceV1Found: !!travelHotel,
+      warnings: fgRes.warnings,
       message: parts.join(' '),
     };
   }
@@ -616,7 +821,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
   return {
     ok: false,
-    error: `Unknown step: ${step}. Use createSchema, createDataset, createDatastream, or probeTagsApi.`,
+    error: `Unknown step: ${step}. Use createSchema, attachRecommendedFieldGroups, createDataset, createDatastream, or probeTagsApi.`,
   };
 }
 

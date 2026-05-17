@@ -37,27 +37,10 @@ function syncDemoemeaAlias(xdm) {
   catch { xdm.demoemea = { ...xdm._demoemea }; }
 }
 
+const { mergeGeneratorPublicIntoTenant, alignExperienceEventFieldGroupPayloads } = require('./eventGeneratorService');
+
 function mergePublicFields(demoemea, pub) {
-  if (!demoemea || !pub || typeof pub !== 'object' || Array.isArray(pub)) return;
-  const dest = {};
-  let donationNum = null;
-
-  const da = pub.donationAmount ?? pub.donatedAmount;
-  if (da != null && da !== '') {
-    const n = typeof da === 'number' ? da : Number(String(da).replace(/,/g, ''));
-    if (Number.isFinite(n)) { dest.donationAmount = n; donationNum = n; }
-    else dest.donationAmount = String(da).trim();
-  }
-  if (pub.eventRegistration != null && String(pub.eventRegistration).trim())
-    dest.eventRegistration = String(pub.eventRegistration).trim();
-  if (pub.donationDate != null && String(pub.donationDate).trim())
-    dest.donationDate = String(pub.donationDate).trim();
-
-  if (Object.keys(dest).length) demoemea.public = dest;
-  if (donationNum != null) {
-    if (!demoemea.omnichannelCdpUseCasePack) demoemea.omnichannelCdpUseCasePack = {};
-    demoemea.omnichannelCdpUseCasePack.donatedAmount = donationNum;
-  }
+  mergeGeneratorPublicIntoTenant(demoemea, pub);
 }
 
 function mergeChannel(demoemea, channel) {
@@ -104,6 +87,7 @@ function buildXdm(body) {
     xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
   }
 
+  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', b.channel);
   syncDemoemeaAlias(xdm);
   return xdm;
 }

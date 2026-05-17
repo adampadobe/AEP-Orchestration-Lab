@@ -24,7 +24,9 @@
     configBadge:      document.getElementById('etConfigBadge'),
     schemaTitle:      document.getElementById('etSchemaTitle'),
     createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
+    attachFieldGroupsBtn: document.getElementById('etAttachFieldGroupsBtn'),
     schemaMsg:        document.getElementById('etSchemaMsg'),
+    attachFgMsg:      document.getElementById('etAttachFgMsg'),
     datasetName:      document.getElementById('etDatasetName'),
     createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
     datasetMsg:       document.getElementById('etDatasetMsg'),
@@ -489,6 +491,32 @@
       dom.createSchemaBtn.disabled = false;
     }
   });
+
+  if (dom.attachFieldGroupsBtn) {
+    dom.attachFieldGroupsBtn.addEventListener('click', async () => {
+      const schemaTitle = (dom.schemaTitle.value || '').trim();
+      if (!schemaTitle) { setMsg(dom.attachFgMsg, 'Enter the schema name first.', 'error'); return; }
+      const sandbox = getSandboxName();
+      if (!sandbox) { setMsg(dom.attachFgMsg, 'Select a sandbox first.', 'error'); return; }
+      dom.attachFieldGroupsBtn.disabled = true;
+      setMsg(dom.attachFgMsg, 'Attaching field groups…', '');
+      try {
+        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'attachRecommendedFieldGroups', schemaTitle }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!data.ok) { setMsg(dom.attachFgMsg, data.error || 'Failed.', 'error'); return; }
+        setMsg(dom.attachFgMsg, data.message || 'Done.', 'success');
+        loadSchemaEventTypes(schemaTitle);
+      } catch (e) {
+        setMsg(dom.attachFgMsg, e.message || 'Network error', 'error');
+      } finally {
+        dom.attachFieldGroupsBtn.disabled = false;
+      }
+    });
+  }
 
   /* ═══════════ Step 2 — Create Dataset ═══════════ */
 

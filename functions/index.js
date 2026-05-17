@@ -3780,7 +3780,7 @@ exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** POST /api/events/infra/step — createSchema | createDataset | createDatastream | probeTagsApi */
+/** POST /api/events/infra/step — createSchema | attachRecommendedFieldGroups | createDataset | createDatastream | probeTagsApi */
 exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }

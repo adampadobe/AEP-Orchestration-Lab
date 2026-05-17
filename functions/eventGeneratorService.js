@@ -180,6 +180,53 @@ function mergeGeneratorInteractionDetailsChannel(tenant, channelIn) {
   tenant.interactionDetails.core.channel = ch;
 }
 
+/** Root `interactionDetails` — aligns with Interaction Details Lite on the ExperienceEvent schema. */
+function applyRootInteractionDetailsChannel(xdm, channelIn) {
+  if (!xdm || typeof xdm !== 'object') return;
+  const ch =
+    channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim();
+  if (!ch) return;
+  const normalized = /^web$/i.test(ch) ? 'web' : ch;
+  if (!xdm.interactionDetails) xdm.interactionDetails = {};
+  if (!xdm.interactionDetails.core) xdm.interactionDetails.core = {};
+  xdm.interactionDetails.core.channel = normalized;
+}
+
+/**
+ * Map lab `_{tenant}.public.hotel*` scalars onto Travel - Hotel Experience v1 style root `hotel.bookingDetails`.
+ * Booker/stayer-specific keys stay on `public` for orchestration.
+ */
+function mergeHospitalityPublicIntoRootHotel(xdm, tenantKey) {
+  if (!xdm || typeof xdm !== 'object' || !tenantKey) return;
+  const node = xdm[tenantKey];
+  if (!node || typeof node !== 'object' || !node.public || typeof node.public !== 'object') return;
+  const pub = node.public;
+  const keys = Object.keys(pub);
+  const hasHotelKey = keys.some((k) => /^hotel/i.test(k));
+  const hasItin = pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim() !== '';
+  if (!hasHotelKey && !hasItin) return;
+  const bd = {};
+  if (pub.hotelPropertyName != null && String(pub.hotelPropertyName).trim() !== '') {
+    bd.hotelName = String(pub.hotelPropertyName).trim();
+  }
+  if (pub.hotelQuotedTotal != null && pub.hotelQuotedTotal !== '') {
+    const n =
+      typeof pub.hotelQuotedTotal === 'number' ? pub.hotelQuotedTotal : Number(String(pub.hotelQuotedTotal).replace(/,/g, ''));
+    if (Number.isFinite(n) && !Number.isNaN(n)) bd.totalCost = n;
+  }
+  if (hasItin) bd.confirmationNumber = String(pub.hotelItineraryId).trim();
+  if (Object.keys(bd).length === 0) return;
+  if (!xdm.hotel || typeof xdm.hotel !== 'object') xdm.hotel = {};
+  const prev = typeof xdm.hotel.bookingDetails === 'object' && !Array.isArray(xdm.hotel.bookingDetails) ? xdm.hotel.bookingDetails : {};
+  xdm.hotel.bookingDetails = { ...prev, ...bd };
+}
+
+/** After tenant `public` + channel merges, add root paths expected by Interaction Details Lite + Travel Hotel Experience v1. */
+function alignExperienceEventFieldGroupPayloads(xdm, tenantKey, channelIn) {
+  applyRootInteractionDetailsChannel(xdm, channelIn);
+  mergeHospitalityPublicIntoRootHotel(xdm, tenantKey);
+}
+
 function buildEdgeInteractPayload() {
   const isoTimestamp = new Date().toISOString();
   const timestamp = String(Date.now());
@@ -257,6 +304,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (vName || vUrl) {
       xdm.web = { webPageDetails: { URL: vUrl, name: vName, viewName: vName } };
     }
+    alignExperienceEventFieldGroupPayloads(xdm, tenantKey, body.channel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
@@ -295,6 +343,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (viewName || viewUrl) {
       xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName: viewName } };
     }
+    alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', body.channel);
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     return xdm;
@@ -348,6 +397,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (!xdm._demoemea) xdm._demoemea = {};
     xdm._demoemea.message = { ...body.message };
   }
+  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', body.channel);
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
   return xdm;
@@ -409,6 +459,8 @@ module.exports = {
   loadEventGeneratorTargets,
   buildEventGeneratorXdm,
   buildLabFirestoreGeneratorPresets,
+  alignExperienceEventFieldGroupPayloads,
+  mergeGeneratorPublicIntoTenant,
   LAB_EVENT_TOOL_TARGET_ID,
   LAB_DECISION_LAB_TARGET_ID,
   EVENT_GENERATOR_STREAMING_URL,
