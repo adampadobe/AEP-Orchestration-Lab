@@ -52,3 +52,54 @@ test('buildEventGeneratorXdm merges insurance quoteForm into _demoemea.public', 
   assert.equal(xdm._demoemea.public.bankSubscribtion.yes, true);
   assert.equal(xdm.eventType, 'insurance.quoteForm.step1complete');
 });
+
+test('buildEventGeneratorXdm maps hospitality public to root and tenant hotel.bookingDetails + web channel', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'hotel.room.select',
+    ecid,
+    channel: 'Web',
+    public: {
+      hotelPropertyName: 'Manchester Deansgate',
+      hotelDestination: 'Manchester',
+      hotelCheckIn: '2026-06-01',
+      hotelCheckOut: '2026-06-03',
+      hotelNights: 2,
+      hotelQuotedTotal: '189.00',
+      hotelItineraryId: 'piit_test123',
+      hotelRoomType: 'double',
+    },
+  });
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.ok(xdm.hotel && xdm.hotel.bookingDetails);
+  assert.equal(xdm.hotel.bookingDetails.hotelName, 'Manchester Deansgate');
+  assert.equal(xdm.hotel.bookingDetails.hotelLocation, 'Manchester');
+  assert.equal(xdm.hotel.bookingDetails.checkInDate, '2026-06-01');
+  assert.equal(xdm.hotel.bookingDetails.checkOutDate, '2026-06-03');
+  assert.equal(xdm.hotel.bookingDetails.nightsStay, 2);
+  assert.equal(xdm.hotel.bookingDetails.confirmationNumber, 'piit_test123');
+  assert.equal(xdm.hotel.bookingDetails.roomType, 'double');
+  assert.equal(xdm._demoemea.interactionDetails.core.channel, 'web');
+  assert.ok(xdm._demoemea.hotel && xdm._demoemea.hotel.bookingDetails);
+  assert.equal(xdm._demoemea.hotel.bookingDetails.hotelName, 'Manchester Deansgate');
+});
+
+test('buildEventGeneratorXdm merges bookingParty into _demoemea.public', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'hotel.booking.complete',
+    ecid,
+    public: {
+      bookingParty: {
+        eventPerspective: 'stayer',
+        bookerStayerSamePerson: false,
+        booker: { firstName: 'Ann', email: 'ann@example.com' },
+        stayer: { firstName: 'Bob', lastName: 'Lee', email: 'bob@example.com', isGuestOfRecord: true },
+      },
+    },
+  });
+  assert.ok(xdm._demoemea.public.bookingParty);
+  assert.equal(xdm._demoemea.public.bookingParty.eventPerspective, 'stayer');
+  assert.equal(xdm._demoemea.public.bookingParty.booker.firstName, 'Ann');
+  assert.equal(xdm._demoemea.public.bookingParty.stayer.email, 'bob@example.com');
+});

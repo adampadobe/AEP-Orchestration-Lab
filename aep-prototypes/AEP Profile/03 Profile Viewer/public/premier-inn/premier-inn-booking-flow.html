@@ -628,6 +628,72 @@
         return 'premier-inn-site.html?' + u.toString();
       }
 
+      /**
+       * Maps session booker + party (and inline hotelStayer* on the event) to XDM
+       * `_{tenant}.public.bookingParty` (Booker Stayer field group).
+       * @param {Record<string, unknown>} [mergedPub] - payload after base + pub merge (may carry hotelStayer*)
+       */
+      function buildBookingPartyForPublic(mergedPub) {
+        var ex = mergedPub && typeof mergedPub === 'object' ? mergedPub : {};
+        var party = loadPartyRecord();
+        var booker = loadBookerFromStorage();
+        var hasBooker =
+          booker &&
+          (String(booker.firstName || '').trim() ||
+            String(booker.lastName || '').trim() ||
+            String(booker.email || '').trim());
+        var sameFromParty = party && party.hotelStayerSameAsBooker === true;
+        var sameFromPub = ex.hotelStayerSameAsBooker === true;
+        var same = sameFromParty || sameFromPub;
+        var stayerFn =
+          (party && party.hotelStayerFirstName ? String(party.hotelStayerFirstName).trim() : '') ||
+          String(ex.hotelStayerFirstName || '').trim();
+        var stayerLn =
+          (party && party.hotelStayerLastName ? String(party.hotelStayerLastName).trim() : '') ||
+          String(ex.hotelStayerLastName || '').trim();
+        var stayerEm =
+          (party && party.hotelStayerEmail ? String(party.hotelStayerEmail).trim() : '') ||
+          String(ex.hotelStayerEmail || '').trim();
+        var hasStayer = !!(stayerFn && stayerEm);
+        var diffStayer =
+          party && party.hotelStayerSameAsBooker === false ? true : ex.hotelStayerSameAsBooker === false;
+        if (!party && !hasBooker && !hasStayer) return null;
+        var bp = { booker: {} };
+        if (same && (hasBooker || party || hasStayer)) {
+          bp.eventPerspective = 'both';
+          bp.bookerStayerSamePerson = true;
+        } else if (diffStayer && hasStayer) {
+          bp.eventPerspective = 'stayer';
+          bp.bookerStayerSamePerson = false;
+        } else if (hasBooker || party) {
+          bp.eventPerspective = 'booker';
+          if (party && typeof party.hotelStayerSameAsBooker === 'boolean') {
+            bp.bookerStayerSamePerson = party.hotelStayerSameAsBooker;
+          } else if (typeof ex.hotelStayerSameAsBooker === 'boolean') {
+            bp.bookerStayerSamePerson = ex.hotelStayerSameAsBooker;
+          }
+        }
+        if (hasBooker) {
+          if (booker.firstName) bp.booker.firstName = String(booker.firstName).trim();
+          if (booker.lastName) bp.booker.lastName = String(booker.lastName).trim();
+          if (booker.email) bp.booker.email = String(booker.email).trim();
+        }
+        if (diffStayer && hasStayer && !same) {
+          bp.stayer = {
+            firstName: stayerFn,
+            lastName: stayerLn,
+            email: stayerEm,
+            isGuestOfRecord: true,
+            relationshipToBooker: 'other',
+          };
+        }
+        var bk = bp.booker && typeof bp.booker === 'object' ? Object.keys(bp.booker) : [];
+        if (!bk.length && !bp.stayer && bp.eventPerspective == null && bp.bookerStayerSamePerson == null) {
+          return null;
+        }
+        return bp;
+      }
+
       function emit(t, pub, viewName) {
         if (!window.PremierInnLabEvents || typeof window.PremierInnLabEvents.emit !== 'function') return;
         var base = Object.assign(
@@ -641,6 +707,8 @@
           },
           pub || {}
         );
+        var bparty = buildBookingPartyForPublic(base);
+        if (bparty) base.bookingParty = bparty;
         window.PremierInnLabEvents.emit(t, base, viewName || 'Hospitality lab — booking', window.location.href);
       }
 

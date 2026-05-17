@@ -117,7 +117,7 @@ async function sendPremierInnHotelExperienceEvent(payload) {
     eventType: String(p.eventType || 'hotel.search').trim(),
     viewName: String(p.viewName || 'Premier Inn lab').trim(),
     viewUrl: String(p.viewUrl || '').trim() || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : ''),
-    channel: 'Web',
+    channel: 'web',
     public: p.public && typeof p.public === 'object' ? p.public : {},
     xdmTenantKey: PREMIER_INN_XDM_TENANT_KEY,
     identityMapEcidKey: 'ECID',

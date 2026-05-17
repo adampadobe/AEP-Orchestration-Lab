@@ -16,7 +16,7 @@
 
   /**
    * @param {string} eventType - e.g. hotel.search, hotel.checkout.abandon
-   * @param {Record<string, unknown>} [publicObj] - merged into XDM tenant public (hotel* + itineraryId)
+   * @param {Record<string, unknown>} [publicObj] - merged into XDM tenant public (hotel*, itineraryId, optional bookingParty)
    * @param {string} [viewName]
    * @param {string} [viewUrl]
    */

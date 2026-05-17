@@ -143,6 +143,7 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
     'protectionConsolidation',
     'policyInfo',
     'dashboard',
+    'bookingParty',
   ];
   for (const ek of extraPublicKeys) {
     if (!Object.prototype.hasOwnProperty.call(pubIn, ek)) continue;
@@ -172,59 +173,110 @@ function mergeGeneratorPublicIntoTenant(tenant, pubIn) {
 
 function mergeGeneratorInteractionDetailsChannel(tenant, channelIn) {
   if (!tenant) return;
-  const ch =
-    channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim();
+  const chRaw = channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim();
+  const ch = normalizeInteractionDetailsChannel(chRaw);
   if (!ch) return;
   if (!tenant.interactionDetails) tenant.interactionDetails = {};
   if (!tenant.interactionDetails.core) tenant.interactionDetails.core = {};
   tenant.interactionDetails.core.channel = ch;
 }
 
-/** Root `interactionDetails` — aligns with Interaction Details Lite on the ExperienceEvent schema. */
+/** Map UI / generator channel strings to Interaction Details Lite enum keys (lowercase). */
+function normalizeInteractionDetailsChannel(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const low = s.toLowerCase();
+  if (low === 'web' || low === 'website') return 'web';
+  if (low === 'mobile' || low === 'mobile app' || low === 'app') return 'mobile';
+  if (low === 'pos' || low === 'point of sale') return 'pos';
+  if (low === 'callcentre' || low === 'call centre' || low === 'call center' || low === 'cx') return 'callcentre';
+  if (low === 'email') return 'email';
+  if (low === 'kiosk') return 'kiosk';
+  if (low === 'agent' || low === 'travel agent') return 'agent';
+  if (low === 'partner') return 'partner';
+  return low;
+}
+
+/** Root `interactionDetails` — aligns with global-style Interaction Details Lite on the ExperienceEvent schema. */
 function applyRootInteractionDetailsChannel(xdm, channelIn) {
   if (!xdm || typeof xdm !== 'object') return;
-  const ch =
-    channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim();
+  const ch = normalizeInteractionDetailsChannel(
+    channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim(),
+  );
   if (!ch) return;
-  const normalized = /^web$/i.test(ch) ? 'web' : ch;
   if (!xdm.interactionDetails) xdm.interactionDetails = {};
   if (!xdm.interactionDetails.core) xdm.interactionDetails.core = {};
-  xdm.interactionDetails.core.channel = normalized;
+  xdm.interactionDetails.core.channel = ch;
 }
 
 /**
- * Map lab `_{tenant}.public.hotel*` scalars onto Travel - Hotel Experience v1 style root `hotel.bookingDetails`.
- * Booker/stayer-specific keys stay on `public` for orchestration.
+ * Map lab `_{tenant}.public` hospitality scalars onto Travel - Hotel Experience v1
+ * `hotel.bookingDetails` on **both** the ExperienceEvent root and `_{tenant}.hotel`
+ * (tenant-wrapped field groups keep hotel under the tenant prefix).
  */
-function mergeHospitalityPublicIntoRootHotel(xdm, tenantKey) {
+function mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey) {
   if (!xdm || typeof xdm !== 'object' || !tenantKey) return;
   const node = xdm[tenantKey];
   if (!node || typeof node !== 'object' || !node.public || typeof node.public !== 'object') return;
   const pub = node.public;
   const keys = Object.keys(pub);
   const hasHotelKey = keys.some((k) => /^hotel/i.test(k));
-  const hasItin = pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim() !== '';
+  const itin =
+    pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim() !== ''
+      ? String(pub.hotelItineraryId).trim()
+      : pub.itineraryId != null && String(pub.itineraryId).trim() !== ''
+        ? String(pub.itineraryId).trim()
+        : '';
+  const hasItin = itin !== '';
   if (!hasHotelKey && !hasItin) return;
+
   const bd = {};
   if (pub.hotelPropertyName != null && String(pub.hotelPropertyName).trim() !== '') {
     bd.hotelName = String(pub.hotelPropertyName).trim();
+  }
+  if (pub.hotelDestination != null && String(pub.hotelDestination).trim() !== '') {
+    bd.hotelLocation = String(pub.hotelDestination).trim();
+  }
+  if (pub.hotelChain != null && String(pub.hotelChain).trim() !== '') {
+    bd.hotelChain = String(pub.hotelChain).trim();
+  }
+  const cin = pub.hotelCheckIn != null ? String(pub.hotelCheckIn).trim() : '';
+  const cout = pub.hotelCheckOut != null ? String(pub.hotelCheckOut).trim() : '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(cin)) bd.checkInDate = cin.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}/.test(cout)) bd.checkOutDate = cout.slice(0, 10);
+  if (pub.hotelNights != null && pub.hotelNights !== '') {
+    const n = typeof pub.hotelNights === 'number' ? pub.hotelNights : Number(String(pub.hotelNights).replace(/,/g, ''));
+    if (Number.isFinite(n) && !Number.isNaN(n)) bd.nightsStay = Math.trunc(n);
+  }
+  if (pub.hotelRoomType != null && String(pub.hotelRoomType).trim() !== '') {
+    bd.roomType = String(pub.hotelRoomType).trim();
   }
   if (pub.hotelQuotedTotal != null && pub.hotelQuotedTotal !== '') {
     const n =
       typeof pub.hotelQuotedTotal === 'number' ? pub.hotelQuotedTotal : Number(String(pub.hotelQuotedTotal).replace(/,/g, ''));
     if (Number.isFinite(n) && !Number.isNaN(n)) bd.totalCost = n;
   }
-  if (hasItin) bd.confirmationNumber = String(pub.hotelItineraryId).trim();
+  if (hasItin) bd.confirmationNumber = itin;
   if (Object.keys(bd).length === 0) return;
-  if (!xdm.hotel || typeof xdm.hotel !== 'object') xdm.hotel = {};
-  const prev = typeof xdm.hotel.bookingDetails === 'object' && !Array.isArray(xdm.hotel.bookingDetails) ? xdm.hotel.bookingDetails : {};
-  xdm.hotel.bookingDetails = { ...prev, ...bd };
+
+  function mergeIntoHotelTarget(target) {
+    if (!target || typeof target !== 'object') return;
+    if (!target.hotel || typeof target.hotel !== 'object') target.hotel = {};
+    const prev =
+      typeof target.hotel.bookingDetails === 'object' && !Array.isArray(target.hotel.bookingDetails)
+        ? target.hotel.bookingDetails
+        : {};
+    target.hotel.bookingDetails = { ...prev, ...bd };
+  }
+
+  mergeIntoHotelTarget(xdm);
+  mergeIntoHotelTarget(node);
 }
 
-/** After tenant `public` + channel merges, add root paths expected by Interaction Details Lite + Travel Hotel Experience v1. */
+/** After tenant `public` + channel merges, align root + tenant hotel / interaction paths for common field-group shapes. */
 function alignExperienceEventFieldGroupPayloads(xdm, tenantKey, channelIn) {
   applyRootInteractionDetailsChannel(xdm, channelIn);
-  mergeHospitalityPublicIntoRootHotel(xdm, tenantKey);
+  mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey);
 }
 
 function buildEdgeInteractPayload() {
