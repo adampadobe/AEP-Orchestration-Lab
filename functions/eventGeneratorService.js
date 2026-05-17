@@ -197,6 +197,49 @@ function normalizeInteractionDetailsChannel(raw) {
   return low;
 }
 
+/**
+ * Effective channel for generator XDM: explicit `body.channel`, else infer `web` for hospitality
+ * (`hotel.*` event types or `public` keys like hotel*) so AJO / UPS "Channel" columns stay populated.
+ * @param {Record<string, unknown>} body
+ * @returns {string} normalized Interaction Details key or '' if unknown
+ */
+function resolveEffectiveGeneratorChannel(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const direct = normalizeInteractionDetailsChannel(
+    b.channel == null ? '' : typeof b.channel === 'string' ? b.channel.trim() : String(b.channel).trim(),
+  );
+  if (direct) return direct;
+  const et = typeof b.eventType === 'string' ? b.eventType.trim().toLowerCase() : '';
+  if (et.startsWith('hotel.')) return 'web';
+  const pub = b.public && typeof b.public === 'object' && !Array.isArray(b.public) ? b.public : null;
+  if (pub) {
+    const keys = Object.keys(pub);
+    if (keys.some((k) => /^hotel/i.test(k))) return 'web';
+    const itin = pub.itineraryId != null && String(pub.itineraryId).trim();
+    const hitin = pub.hotelItineraryId != null && String(pub.hotelItineraryId).trim();
+    if (itin || hitin) return 'web';
+  }
+  return '';
+}
+
+/** OOTB Channel Details field group — URIs Adobe uses for ExperienceEvent `channel` (UPS / Journey "Channel"). */
+const CHANNEL_DETAILS_TYPE_BY_ENUM = {
+  web: 'https://ns.adobe.com/xdm/channel-types/web',
+  mobile: 'https://ns.adobe.com/xdm/channel-types/mobile',
+  email: 'https://ns.adobe.com/xdm/channel-types/email',
+  messaging: 'https://ns.adobe.com/xdm/channel-types/messaging',
+};
+
+function mergeChannelDetailsFieldGroup(xdm, normalizedEnumKey) {
+  if (!xdm || typeof xdm !== 'object') return;
+  const ch = String(normalizedEnumKey || '').trim();
+  if (!ch) return;
+  const typeUri = CHANNEL_DETAILS_TYPE_BY_ENUM[ch];
+  if (!typeUri) return;
+  // `@id` is required on Experience Channel; use `@type` as stable instance id when no finer-grained id is needed.
+  xdm.channel = { '@id': typeUri, '@type': typeUri };
+}
+
 /** Root `interactionDetails` — aligns with global-style Interaction Details Lite on the ExperienceEvent schema. */
 function applyRootInteractionDetailsChannel(xdm, channelIn) {
   if (!xdm || typeof xdm !== 'object') return;
@@ -276,6 +319,10 @@ function mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey) {
 /** After tenant `public` + channel merges, align root + tenant hotel / interaction paths for common field-group shapes. */
 function alignExperienceEventFieldGroupPayloads(xdm, tenantKey, channelIn) {
   applyRootInteractionDetailsChannel(xdm, channelIn);
+  const chNorm = normalizeInteractionDetailsChannel(
+    channelIn == null ? '' : typeof channelIn === 'string' ? channelIn.trim() : String(channelIn).trim(),
+  );
+  mergeChannelDetailsFieldGroup(xdm, chNorm);
   mergeHospitalityPublicIntoHotelBookingDetails(xdm, tenantKey);
 }
 
@@ -306,6 +353,7 @@ function buildEdgeInteractPayload() {
  */
 function buildEventGeneratorXdm(reqBody, options) {
   const body = reqBody && typeof reqBody === 'object' ? reqBody : {};
+  const effectiveChannel = resolveEffectiveGeneratorChannel(body);
   const style = options && options.style === 'minimal' ? 'minimal' : 'full';
   const defaultOrch = (options && options.defaultOrchestrationEventID) || '';
   const tenantKey = getXdmTenantKey(body);
@@ -341,7 +389,7 @@ function buildEventGeneratorXdm(reqBody, options) {
       tenantNode.identification = { core: { ecid, email: email || '' } };
     }
     mergeGeneratorPublicIntoTenant(tenantNode, body.public);
-    mergeGeneratorInteractionDetailsChannel(tenantNode, body.channel);
+    mergeGeneratorInteractionDetailsChannel(tenantNode, effectiveChannel);
 
     const xdm = {
       identityMap,
@@ -356,7 +404,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (vName || vUrl) {
       xdm.web = { webPageDetails: { URL: vUrl, name: vName, viewName: vName } };
     }
-    alignExperienceEventFieldGroupPayloads(xdm, tenantKey, body.channel);
+    alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveChannel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
@@ -380,7 +428,7 @@ function buildEventGeneratorXdm(reqBody, options) {
 
     const _demosystem5 = { identification: { core: { ecid } } };
     mergeGeneratorPublicIntoTenant(_demosystem5, body.public);
-    mergeGeneratorInteractionDetailsChannel(_demosystem5, body.channel);
+    mergeGeneratorInteractionDetailsChannel(_demosystem5, effectiveChannel);
 
     const xdm = {
       identityMap,
@@ -395,7 +443,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (viewName || viewUrl) {
       xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName: viewName } };
     }
-    alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', body.channel);
+    alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', effectiveChannel);
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     return xdm;
@@ -443,13 +491,13 @@ function buildEventGeneratorXdm(reqBody, options) {
     delete xdm.web;
   }
   mergeGeneratorPublicIntoTenant(xdm._demoemea, body.public);
-  mergeGeneratorInteractionDetailsChannel(xdm._demoemea, body.channel);
+  mergeGeneratorInteractionDetailsChannel(xdm._demoemea, effectiveChannel);
   // Allow callers to pass arbitrary _demoemea.message.* fields (e.g. contactCentre events).
   if (body.message && typeof body.message === 'object' && !Array.isArray(body.message)) {
     if (!xdm._demoemea) xdm._demoemea = {};
     xdm._demoemea.message = { ...body.message };
   }
-  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', body.channel);
+  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveChannel);
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
   return xdm;
@@ -513,6 +561,8 @@ module.exports = {
   buildLabFirestoreGeneratorPresets,
   alignExperienceEventFieldGroupPayloads,
   mergeGeneratorPublicIntoTenant,
+  normalizeInteractionDetailsChannel,
+  resolveEffectiveGeneratorChannel,
   LAB_EVENT_TOOL_TARGET_ID,
   LAB_DECISION_LAB_TARGET_ID,
   EVENT_GENERATOR_STREAMING_URL,

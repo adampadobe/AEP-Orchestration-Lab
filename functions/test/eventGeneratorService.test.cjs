@@ -71,6 +71,7 @@ test('buildEventGeneratorXdm maps hospitality public to root and tenant hotel.bo
     },
   });
   assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.ok(xdm.channel && xdm.channel['@type'] === 'https://ns.adobe.com/xdm/channel-types/web');
   assert.ok(xdm.hotel && xdm.hotel.bookingDetails);
   assert.equal(xdm.hotel.bookingDetails.hotelName, 'Manchester Deansgate');
   assert.equal(xdm.hotel.bookingDetails.hotelLocation, 'Manchester');
@@ -102,4 +103,16 @@ test('buildEventGeneratorXdm merges bookingParty into _demoemea.public', () => {
   assert.equal(xdm._demoemea.public.bookingParty.eventPerspective, 'stayer');
   assert.equal(xdm._demoemea.public.bookingParty.booker.firstName, 'Ann');
   assert.equal(xdm._demoemea.public.bookingParty.stayer.email, 'bob@example.com');
+});
+
+test('buildEventGeneratorXdm infers web channel for hotel.* when channel omitted (standard channel + interactionDetails)', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'hotel.room.select',
+    ecid,
+    public: { hotelPropertyName: 'Test Inn' },
+  });
+  assert.equal(xdm._demoemea.interactionDetails.core.channel, 'web');
+  assert.equal(xdm.interactionDetails.core.channel, 'web');
+  assert.equal(xdm.channel['@type'], 'https://ns.adobe.com/xdm/channel-types/web');
 });

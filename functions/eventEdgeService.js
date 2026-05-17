@@ -37,7 +37,12 @@ function syncDemoemeaAlias(xdm) {
   catch { xdm.demoemea = { ...xdm._demoemea }; }
 }
 
-const { mergeGeneratorPublicIntoTenant, alignExperienceEventFieldGroupPayloads } = require('./eventGeneratorService');
+const {
+  mergeGeneratorPublicIntoTenant,
+  alignExperienceEventFieldGroupPayloads,
+  normalizeInteractionDetailsChannel,
+  resolveEffectiveGeneratorChannel,
+} = require('./eventGeneratorService');
 
 function mergePublicFields(demoemea, pub) {
   mergeGeneratorPublicIntoTenant(demoemea, pub);
@@ -45,7 +50,7 @@ function mergePublicFields(demoemea, pub) {
 
 function mergeChannel(demoemea, channel) {
   if (!demoemea) return;
-  const ch = channel == null ? '' : String(channel).trim();
+  const ch = normalizeInteractionDetailsChannel(channel == null ? '' : String(channel).trim());
   if (!ch) return;
   if (!demoemea.interactionDetails) demoemea.interactionDetails = {};
   if (!demoemea.interactionDetails.core) demoemea.interactionDetails.core = {};
@@ -66,7 +71,8 @@ function buildXdm(body) {
 
   const _demoemea = { identification: { core: { ecid: ecid || '', email: email || '' } } };
   mergePublicFields(_demoemea, b.public);
-  mergeChannel(_demoemea, b.channel);
+  const effectiveCh = resolveEffectiveGeneratorChannel(b);
+  mergeChannel(_demoemea, effectiveCh);
 
   const identityMap = {};
   if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
@@ -87,7 +93,7 @@ function buildXdm(body) {
     xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName } };
   }
 
-  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', b.channel);
+  alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveCh);
   syncDemoemeaAlias(xdm);
   return xdm;
 }
