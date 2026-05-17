@@ -99,6 +99,50 @@ function getSelectedGeneratorTarget() {
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
 }
 
+function premierInnLooksLikeEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+}
+
+/**
+ * Streams a generic UPS profile for the stayer (email identity; server mints ECID when needed).
+ * Fire-and-forget after hotel.booking.stayerIdentified succeeds.
+ * @param {Record<string, unknown>} [pub]
+ */
+async function ensurePremierInnStayerProfileFromPublic(pub) {
+  const p = pub && typeof pub === 'object' ? pub : {};
+  if (p.hotelStayerSameAsBooker === true) return;
+  const em = String(p.hotelStayerEmail || '').trim();
+  if (!premierInnLooksLikeEmail(em)) return;
+  const fn = String(p.hotelStayerFirstName || '').trim();
+  const ln = String(p.hotelStayerLastName || '').trim();
+  /** @type {Record<string, string>} */
+  const attrs = {};
+  if (fn) attrs['person.name.firstName'] = fn;
+  if (ln) attrs['person.name.lastName'] = ln;
+  const body = { email: em, industry: 'generic', appendIfExisting: true, attributes: attrs };
+  const postBody =
+    typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+      ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+      : body;
+  const doFetch =
+    typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.labAuthFetch
+      ? (url, opts) => window.AepDemoGeneratorTargets.labAuthFetch(url, opts)
+      : fetch;
+  try {
+    const res = await doFetch('/api/profile/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(postBody),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.warn('[premier-inn] stayer profile generate failed', data.error || res.status);
+    }
+  } catch (e) {
+    console.warn('[premier-inn] stayer profile generate', e);
+  }
+}
+
 /**
  * @param {{ eventType?: string, viewName?: string, viewUrl?: string, public?: Record<string, unknown> }} payload
  */
@@ -155,6 +199,9 @@ async function sendPremierInnHotelExperienceEvent(payload) {
       window.setTimeout(function () {
         void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
       }, 8000);
+    }
+    if (String(p.eventType || '').trim() === 'hotel.booking.stayerIdentified') {
+      void ensurePremierInnStayerProfileFromPublic(p.public || {});
     }
     return true;
   } catch (err) {

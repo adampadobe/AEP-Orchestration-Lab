@@ -687,6 +687,9 @@
             relationshipToBooker: 'other',
           };
         }
+        if (diffStayer && hasStayer && hasBooker && bp.booker && typeof bp.booker === 'object') {
+          bp.booker.isPrimaryBooker = true;
+        }
         var bk = bp.booker && typeof bp.booker === 'object' ? Object.keys(bp.booker) : [];
         if (!bk.length && !bp.stayer && bp.eventPerspective == null && bp.bookerStayerSamePerson == null) {
           return null;
@@ -1684,6 +1687,18 @@
             completePub.hotelBookerGuestEmail = partyRec.hotelBookerGuestEmail;
           }
         }
+        var existingBooker = loadBookerFromStorage();
+        try {
+          sessionStorage.setItem(
+            BOOKER_STORAGE_KEY,
+            JSON.stringify({
+              email: String(bookerDisp.email || '').trim(),
+              firstName: String(bookerDisp.firstName || '').trim(),
+              lastName: String(bookerDisp.lastName || '').trim(),
+              guestCheckout: !!(existingBooker && existingBooker.guestCheckout === true),
+            })
+          );
+        } catch (ePersist) {}
         emit('hotel.booking.complete', completePub, 'Hospitality lab — complete (mock)');
         if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelStayerEmail) {
           emit(
