@@ -1,10 +1,65 @@
 /**
  * Per-industry display copy for embedded AJO pipeline HTML (the-anatomy-of-a-decision iframe).
  * Journey ids and path ids stay FSI-shaped for engine compatibility; only labels change.
+ *
+ * Canonical toolbar keys: retail, fsi, travel, media, sports, telecommunications, public, healthcare
+ * (dce-industry-toolbar.js). Legacy keys sent by some embeds are normalised in
+ * ajo-pipeline-industry-apply.js migrateIndustryKey: telco→telecommunications, automotive→sports.
  */
 (function () {
   window.AEP_PIPELINE_INDUSTRY_LABELS = {
-    fsi: {},
+    /** Default iframe copy stays FSI-shaped; hub cards override when FSI is selected */
+    fsi: {
+      profileHub: {
+        segmentTags: [
+          { text: 'Mass-affluent household', tone: 'accent' },
+          { text: 'Primary current account', tone: 'teal' },
+          { text: 'Mortgage renewal · 90d', tone: 'amber' },
+          { text: 'Digital banking active', tone: 'coral' },
+          { text: 'Investments lite user', tone: 'blue' },
+          { text: 'Open-banking consent on', tone: 'accent' },
+        ],
+        events: [
+          { key: '1h ago', text: 'Savings rate comparison tool · 3× product tiles opened' },
+          { key: '5h ago', text: 'Inbound secure message · ISA allowance question' },
+          { key: '1d ago', text: 'Card present · grocery · contactless under £100' },
+          { key: '4d ago', text: 'Mobile app · biometric re-auth · statement PDF export' },
+        ],
+        support: {
+          lastCall: '11 May 2026 · ISA transfer status and cut-off dates',
+          csat: '4.7 / 5 · Follow-up scheduled with wealth desk',
+        },
+        propensities: [
+          { name: 'Product cross-hold', val: '0.76', w: '76%', barClass: 'bar-red' },
+          { name: 'Mortgage retention', val: '0.71', w: '71%', barClass: 'bar-blue' },
+          { name: 'Wealth advice uptake', val: '0.48', w: '48%', barClass: 'bar-amber' },
+          { name: 'Fraud alert sensitivity', val: '0.29', w: '29%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 6 min ago',
+          quoteBefore: 'Please ',
+          quoteEm: 'confirm my ISA transfer deadline',
+          quoteAfter: ' and text me the reference number.',
+          tags: [
+            { cls: 'intent', text: 'intent: transfer_status' },
+            { cls: 'entity', text: 'entity: isa_wrapper' },
+            { cls: 'sentiment', text: 'tone: compliance-focused' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'retail_banking_terms_2026.pdf', meta: '2,041 chunks' },
+            { icon: '📄', name: 'isa_transfer_faq_secure.pdf', meta: '1,267 chunks' },
+            { icon: '🎙', name: 'voice_session_isa_help.transcript', meta: '412 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '86%', label: 'Multi-product retail · digital-first savers', val: '0.86' },
+            { w: '79%', label: 'Mortgage maturity · retention offers', val: '0.79' },
+            { w: '71%', label: 'Voice banking · authenticated sessions', val: '0.71' },
+          ],
+        },
+      },
+    },
 
     media: {
       profile: {
@@ -51,6 +106,55 @@
           { name: 'Loyalty bonus unlock', actions: 'Tenure calc → Credits → Fee waiver', desc: 'Value reinforcement' },
           { name: 'Dedicated specialist', actions: 'Priority queue → Callback → Save script', desc: 'White-glove save' },
         ],
+      },
+      profileHub: {
+        segmentTags: [
+          { text: 'Premium SVOD tier', tone: 'accent' },
+          { text: 'Binge cluster · drama', tone: 'teal' },
+          { text: 'Trial ending · 48h', tone: 'amber' },
+          { text: 'Smart TV primary', tone: 'coral' },
+          { text: 'Household · 3 profiles', tone: 'blue' },
+          { text: 'Ad-tier eligible upsell', tone: 'accent' },
+        ],
+        events: [
+          { key: '45m ago', text: 'Episode complete · auto-play next · 4× skips in opening credits' },
+          { key: '3h ago', text: 'In-app upgrade tile · annual plan compare · payment sheet opened' },
+          { key: '1d ago', text: 'Kids profile · parental gate · content rail curated' },
+          { key: '5d ago', text: 'Email click · “double points on bundles” loyalty teaser' },
+        ],
+        support: {
+          lastCall: '10 May 2026 · Device limit and 4K playback troubleshooting',
+          csat: '4.6 / 5 · Self-serve article link + follow-up push',
+        },
+        propensities: [
+          { name: 'Annual plan conversion', val: '0.73', w: '73%', barClass: 'bar-red' },
+          { name: 'Bundle attach', val: '0.61', w: '61%', barClass: 'bar-blue' },
+          { name: 'Churn save accept', val: '0.44', w: '44%', barClass: 'bar-amber' },
+          { name: 'Ad-tier tolerance', val: '0.38', w: '38%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 3 min ago',
+          quoteBefore: 'Can you ',
+          quoteEm: 'add the sports add-on for this weekend only',
+          quoteAfter: ' and show me what it costs on my plan?',
+          tags: [
+            { cls: 'intent', text: 'intent: add_on_purchase' },
+            { cls: 'entity', text: 'entity: subscription_tier' },
+            { cls: 'sentiment', text: 'tone: promotional interest' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'subscriber_fair_use_policy.pdf', meta: '1,654 chunks' },
+            { icon: '📄', name: 'bundle_pricing_matrix_2026.pdf', meta: '982 chunks' },
+            { icon: '🎙', name: 'voice_session_addon_request.transcript', meta: '298 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '87%', label: 'High watch-time · premium upsell cohorts', val: '0.87' },
+            { w: '80%', label: 'Household plans · multi-seat upgrades', val: '0.80' },
+            { w: '72%', label: 'Voice commerce · media subscriptions', val: '0.72' },
+          ],
+        },
       },
     },
 
@@ -198,6 +302,55 @@
           { name: 'Proactive rebook assist', actions: 'Ops alert → Options → Agent', desc: 'Service-led save' },
         ],
       },
+      profileHub: {
+        segmentTags: [
+          { text: 'Gold frequent flyer', tone: 'accent' },
+          { text: 'Long-haul leisure · LHR hub', tone: 'teal' },
+          { text: 'IRROPS sensitive · 72h', tone: 'amber' },
+          { text: 'Co-brand card holder', tone: 'coral' },
+          { text: 'Ancillary buyer · seats', tone: 'blue' },
+          { text: 'Partner hotel linker', tone: 'accent' },
+        ],
+        events: [
+          { key: '30m ago', text: 'Mobile check-in · seat 12A · paid bag added to PNR' },
+          { key: '4h ago', text: 'Fare alert opened · JFK route · flexible dates toggled' },
+          { key: '1d ago', text: 'Lounge access scan · Tier-2 · on-time departure' },
+          { key: '6d ago', text: 'Partner hotel booking · earn miles · confirmation email' },
+        ],
+        support: {
+          lastCall: '9 May 2026 · Schedule change and rebooking options',
+          csat: '4.8 / 5 · Proactive SMS with new itinerary link',
+        },
+        propensities: [
+          { name: 'Ancillary upsell', val: '0.77', w: '77%', barClass: 'bar-red' },
+          { name: 'Co-brand acquisition', val: '0.58', w: '58%', barClass: 'bar-blue' },
+          { name: 'Status retention', val: '0.66', w: '66%', barClass: 'bar-amber' },
+          { name: 'Compensation claim risk', val: '0.31', w: '31%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 8 min ago',
+          quoteBefore: 'I need to ',
+          quoteEm: 'move my return flight one day later',
+          quoteAfter: ' without losing my seat fee—what are my options?',
+          tags: [
+            { cls: 'intent', text: 'intent: itinerary_change' },
+            { cls: 'entity', text: 'entity: pnr_record' },
+            { cls: 'sentiment', text: 'tone: stressed but polite' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'tariff_rules_flex_plus_2026.pdf', meta: '1,776 chunks' },
+            { icon: '📄', name: 'irrops_customer_commitments.pdf', meta: '1,021 chunks' },
+            { icon: '🎙', name: 'voice_session_rebook_help.transcript', meta: '367 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '85%', label: 'Gold tier · long-haul leisure mix', val: '0.85' },
+            { w: '78%', label: 'High ancillary attach · seat + bag buyers', val: '0.78' },
+            { w: '70%', label: 'Voice IVR · disruption handling cohorts', val: '0.70' },
+          ],
+        },
+      },
     },
 
     sports: {
@@ -245,6 +398,55 @@
           { name: 'Loyalty tier unlock', actions: 'Tenure → Perks → Fee credit', desc: 'Value reinforcement' },
           { name: 'Dedicated rep outreach', actions: 'VIP queue → Personal call → Offer', desc: 'White-glove retention' },
         ],
+      },
+      profileHub: {
+        segmentTags: [
+          { text: 'Season ticket holder', tone: 'accent' },
+          { text: 'Renewal window · 30d', tone: 'teal' },
+          { text: 'Hospitality prospect', tone: 'amber' },
+          { text: 'Stadium app power user', tone: 'coral' },
+          { text: 'Merch high basket', tone: 'blue' },
+          { text: 'Family zone buyer', tone: 'accent' },
+        ],
+        events: [
+          { key: '2h ago', text: 'Seat upgrade flow · interactive map · payment abandoned at confirm' },
+          { key: '6h ago', text: 'Matchday push · parking pass purchased · QR saved to wallet' },
+          { key: '1d ago', text: 'Official store · kit pre-order · player name personalisation' },
+          { key: '4d ago', text: 'Renewal email opened · payment plan calculator used' },
+        ],
+        support: {
+          lastCall: '13 May 2026 · Seat relocation after partial stadium closure',
+          csat: '4.7 / 5 · Callback from membership services within SLA',
+        },
+        propensities: [
+          { name: 'Season renewal', val: '0.82', w: '82%', barClass: 'bar-red' },
+          { name: 'Matchday upsell', val: '0.69', w: '69%', barClass: 'bar-blue' },
+          { name: 'Hospitality conversion', val: '0.41', w: '41%', barClass: 'bar-amber' },
+          { name: 'Payment plan default risk', val: '0.27', w: '27%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 5 min ago',
+          quoteBefore: 'Can we ',
+          quoteEm: 'split our season seats across two payment cards',
+          quoteAfter: ' before the renewal deadline tonight?',
+          tags: [
+            { cls: 'intent', text: 'intent: payment_split' },
+            { cls: 'entity', text: 'entity: season_seat_block' },
+            { cls: 'sentiment', text: 'tone: urgent deadline' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'membership_terms_renewal_2026.pdf', meta: '1,512 chunks' },
+            { icon: '📄', name: 'stadium_accessibility_guide.pdf', meta: '887 chunks' },
+            { icon: '🎙', name: 'voice_session_renewal_help.transcript', meta: '334 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '84%', label: 'Renewal cohort · multi-seat households', val: '0.84' },
+            { w: '77%', label: 'Premium hospitality · B2B entertaining', val: '0.77' },
+            { w: '69%', label: 'Gameday digital · parking + F&B buyers', val: '0.69' },
+          ],
+        },
       },
     },
 
@@ -294,6 +496,55 @@
           { name: 'Care case owner', actions: 'Open ticket → Owner → Callback', desc: 'Service-led save' },
         ],
       },
+      profileHub: {
+        segmentTags: [
+          { text: 'Fibre-ready address', tone: 'accent' },
+          { text: 'Unlimited mobile · 5G', tone: 'teal' },
+          { text: 'Contract end · 45d', tone: 'amber' },
+          { text: 'High data utilisation', tone: 'coral' },
+          { text: 'Multi-play household', tone: 'blue' },
+          { text: 'SMB static IP interest', tone: 'accent' },
+        ],
+        events: [
+          { key: '20m ago', text: 'Usage spike · tethering · fair-use policy page viewed' },
+          { key: '2h ago', text: 'Upgrade journey · handset trade-in estimator completed' },
+          { key: '1d ago', text: 'Network status push acknowledged · outage resolved' },
+          { key: '5d ago', text: 'Bill shock prevention · roaming pack purchased pre-trip' },
+        ],
+        support: {
+          lastCall: '14 May 2026 · Router swap and line speed verification',
+          csat: '4.5 / 5 · Engineer visit confirmed via app',
+        },
+        propensities: [
+          { name: 'Fibre upgrade', val: '0.74', w: '74%', barClass: 'bar-red' },
+          { name: 'Handset refresh', val: '0.62', w: '62%', barClass: 'bar-blue' },
+          { name: 'Save offer acceptance', val: '0.55', w: '55%', barClass: 'bar-amber' },
+          { name: 'Churn to competitor', val: '0.36', w: '36%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 7 min ago',
+          quoteBefore: "I'm moving house next week—can you ",
+          quoteEm: 'schedule the fibre install before my contract renews',
+          quoteAfter: '?',
+          tags: [
+            { cls: 'intent', text: 'intent: install_reschedule' },
+            { cls: 'entity', text: 'entity: service_address' },
+            { cls: 'sentiment', text: 'tone: logistics stress' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'broadband_install_booking_policy.pdf', meta: '1,445 chunks' },
+            { icon: '📄', name: 'fair_usage_mobile_unlimited.pdf', meta: '1,198 chunks' },
+            { icon: '🎙', name: 'voice_session_install_book.transcript', meta: '401 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '83%', label: 'Fibre upgrade candidates · speed-test engaged', val: '0.83' },
+            { w: '76%', label: 'Contract-end save · outbound retention', val: '0.76' },
+            { w: '68%', label: 'Roaming-heavy · travel bolt-on buyers', val: '0.68' },
+          ],
+        },
+      },
     },
 
     public: {
@@ -342,6 +593,55 @@
           { name: 'Dedicated navigator', actions: 'Complex case → Assign → Call', desc: 'Human-assisted path' },
         ],
       },
+      profileHub: {
+        segmentTags: [
+          { text: 'Reduced fare eligible', tone: 'accent' },
+          { text: 'Transit pass holder', tone: 'teal' },
+          { text: 'Digital equity pathway', tone: 'amber' },
+          { text: 'Multilingual preference', tone: 'coral' },
+          { text: 'Benefits renewal due', tone: 'blue' },
+          { text: 'Portal-first citizen', tone: 'accent' },
+        ],
+        events: [
+          { key: '1h ago', text: 'Eligibility wizard · income band · document checklist downloaded' },
+          { key: '5h ago', text: 'Reduced fare application · photo upload · status pending review' },
+          { key: '2d ago', text: 'SMS reminder · permit renewal · appointment slot held' },
+          { key: '1w ago', text: 'Community workshop RSVP · workforce skills session' },
+        ],
+        support: {
+          lastCall: '8 May 2026 · Interpreter-assisted housing intake call',
+          csat: '4.6 / 5 · Written confirmation in preferred language',
+        },
+        propensities: [
+          { name: 'Programme uptake', val: '0.68', w: '68%', barClass: 'bar-red' },
+          { name: 'Digital completion', val: '0.59', w: '59%', barClass: 'bar-blue' },
+          { name: 'Assisted-service need', val: '0.46', w: '46%', barClass: 'bar-amber' },
+          { name: 'Appeal / escalation risk', val: '0.22', w: '22%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 12 min ago',
+          quoteBefore: 'I need help to ',
+          quoteEm: 'upload my proof of income in the right format',
+          quoteAfter: ' before my benefit deadline Friday.',
+          tags: [
+            { cls: 'intent', text: 'intent: document_upload_help' },
+            { cls: 'entity', text: 'entity: eligibility_case' },
+            { cls: 'sentiment', text: 'tone: anxious · deadline-driven' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'reduced_fare_policy_2026.pdf', meta: '1,389 chunks' },
+            { icon: '📄', name: 'digital_accessibility_service_standard.pdf', meta: '1,056 chunks' },
+            { icon: '🎙', name: 'voice_session_eligibility_help.transcript', meta: '289 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '82%', label: 'Income-linked programmes · high completion intent', val: '0.82' },
+            { w: '75%', label: 'Transit concessions · mobile-first applicants', val: '0.75' },
+            { w: '67%', label: 'Navigator-assisted · complex multi-agency cases', val: '0.67' },
+          ],
+        },
+      },
     },
 
     healthcare: {
@@ -389,6 +689,55 @@
           { name: 'Premium support unlock', actions: 'Tenure → Concierge → Callback', desc: 'Member reinforcement' },
           { name: 'Pharmacist consult', actions: 'Med review → Interaction check → Plan', desc: 'Clinical retention' },
         ],
+      },
+      profileHub: {
+        segmentTags: [
+          { text: 'PPO in-network', tone: 'accent' },
+          { text: 'Chronic condition programme', tone: 'teal' },
+          { text: 'Mail-order pharmacy', tone: 'amber' },
+          { text: 'Virtual-first utiliser', tone: 'coral' },
+          { text: 'HSA contributor', tone: 'blue' },
+          { text: 'Care gap flagged · A1c', tone: 'accent' },
+        ],
+        events: [
+          { key: '90m ago', text: 'Video visit completed · follow-up lab order sent to in-network lab' },
+          { key: '4h ago', text: 'Member portal · prior auth status · document upload' },
+          { key: '1d ago', text: 'Pharmacy refill · 90-day maintenance · SMS pick-up reminder' },
+          { key: '3d ago', text: 'Wellness app sync · step goal · incentive points credited' },
+        ],
+        support: {
+          lastCall: '7 May 2026 · Prior authorisation for specialty tier-3 drug',
+          csat: '4.7 / 5 · Nurse line callback within committed window',
+        },
+        propensities: [
+          { name: 'Care gap closure', val: '0.72', w: '72%', barClass: 'bar-red' },
+          { name: 'Mail-order adherence', val: '0.67', w: '67%', barClass: 'bar-blue' },
+          { name: 'Programme enrolment', val: '0.51', w: '51%', barClass: 'bar-amber' },
+          { name: 'ED utilisation risk', val: '0.33', w: '33%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 9 min ago',
+          quoteBefore: 'Can you ',
+          quoteEm: 'tell me if this specialist is in network for my plan',
+          quoteAfter: ' and what my copay would be?',
+          tags: [
+            { cls: 'intent', text: 'intent: network_benefit_lookup' },
+            { cls: 'entity', text: 'entity: plan_tier' },
+            { cls: 'sentiment', text: 'tone: cost-sensitive' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'member_coverage_summary_2026.pdf', meta: '2,103 chunks' },
+            { icon: '📄', name: 'prior_auth_clinical_criteria_index.pdf', meta: '1,512 chunks' },
+            { icon: '🎙', name: 'voice_session_benefits_lookup.transcript', meta: '356 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '86%', label: 'Chronic care · high digital engagement members', val: '0.86' },
+            { w: '79%', label: 'Pharmacy adherence · mail-order 90-day', val: '0.79' },
+            { w: '71%', label: 'Benefits voice · authenticated portal sessions', val: '0.71' },
+          ],
+        },
       },
     },
   };
