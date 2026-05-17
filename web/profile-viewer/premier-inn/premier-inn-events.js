@@ -3,6 +3,7 @@
  * POST /api/events/generator runs with the sandbox + generator target from the shell.
  * Event types are generic (hotel.*) e.g. hotel.search, hotel.availability.view, hotel.filter.apply,
  * hotel.content.view, hotel.room.select, hotel.booking.start, hotel.payment.expose, hotel.checkout.abandon,
+ * hotel.booking.complete, hotel.booking.stayerIdentified (second POST when booker ≠ stayer; same shell ECID/email),
  * hotel.funnel.exit (logo / title → lab home; use hotelJourneyStage + hotelExitVia vs payment abandon).
  */
 (function () {

@@ -26,7 +26,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
     else piApplyAssets();
   </script>
-  <script src="premier-inn-events.js?v=20260212-hotel-funnel-exit"></script>
+  <script src="premier-inn-events.js?v=20260511-booker-stayer"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; background: #f4f0f7; }
@@ -265,6 +265,64 @@
       cursor: pointer;
       margin: -8px -8px 8px 8px;
     }
+    .pi-party-fieldset {
+      border: none;
+      margin: 0 0 16px;
+      padding: 0;
+    }
+    .pi-party-legend {
+      font-size: 13px;
+      font-weight: 700;
+      color: #511e62;
+      margin-bottom: 10px;
+    }
+    .pi-party-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      color: #333;
+      cursor: pointer;
+      line-height: 1.35;
+    }
+    .pi-party-option input {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      accent-color: #511e62;
+      flex-shrink: 0;
+    }
+    .pi-party-stayer-fields {
+      margin: 4px 0 0 28px;
+      padding: 14px 14px 4px;
+      background: #faf7fc;
+      border: 1px solid #e6dde8;
+      border-radius: 8px;
+    }
+    .pi-party-stayer-fields label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .pi-party-stayer-fields input {
+      width: 100%;
+      max-width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    .pi-party-err {
+      font-size: 13px;
+      color: #b00020;
+      margin: 0 0 10px;
+      min-height: 1.2em;
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -363,6 +421,8 @@
         <code>hotel.content.view</code> when they open breakfast details, then room select → payment → <code>hotel.checkout.abandon</code>.
         Logo or “Book your stay” in the purple header sends <code>hotel.funnel.exit</code> (see <em>hotelJourneyStage</em> + <em>hotelExitVia</em>) before returning to the lab home — distinct from payment abandon.
         Abandon recovery can use <em>hotelDemandForecastScore</em>, <em>hotelInventoryAvailable</em>, and <em>hotelResumeUrl</em> as before.
+        <strong>Booker vs stayer (lab):</strong> choosing <strong>Select</strong> on a rate opens a short dialog — self vs someone else. If someone else, capture first name, last name, and email (stored under <code>hotelStayer*</code> on <code>hotel.room.select</code>).
+        On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer fields; when the stayer differs, a second <code>hotel.booking.stayerIdentified</code> event carries the same <code>itineraryId</code> plus stayer identity for orchestration (linked, not merged — shell email/ECID remain the booker).
       </p>
     </details>
   </div>
@@ -387,6 +447,40 @@
     </div>
   </div>
 
+  <div id="piPartyOverlay" class="pi-overlay" role="dialog" aria-modal="true" aria-labelledby="piPartyTitle" hidden>
+    <div class="pi-modal">
+      <button type="button" class="pi-modal-close" id="piPartyClose" aria-label="Close">&times;</button>
+      <h3 id="piPartyTitle">Who is this stay for?</h3>
+      <p class="pi-muted" id="piPartyLead">
+        You selected <strong id="piPartyHotelName"></strong>. The lab shell still represents the <strong>booker</strong> (email / ECID); guest details are sent as separate fields for orchestration.
+      </p>
+      <fieldset class="pi-party-fieldset">
+        <div class="pi-party-legend">I am booking this room for</div>
+        <label class="pi-party-option">
+          <input type="radio" name="piPartyWho" id="piPartySelf" value="self" checked/>
+          <span>Myself — I am the guest staying at the hotel.</span>
+        </label>
+        <label class="pi-party-option">
+          <input type="radio" name="piPartyWho" id="piPartyOther" value="other"/>
+          <span>Someone else — they are the guest (booker vs stayer).</span>
+        </label>
+        <div id="piPartyStayerBlock" class="pi-party-stayer-fields" hidden>
+          <label for="piPartyStayerFirst">Guest first name</label>
+          <input id="piPartyStayerFirst" type="text" autocomplete="given-name" maxlength="80"/>
+          <label for="piPartyStayerLast">Guest last name</label>
+          <input id="piPartyStayerLast" type="text" autocomplete="family-name" maxlength="80"/>
+          <label for="piPartyStayerEmail">Guest email</label>
+          <input id="piPartyStayerEmail" type="email" autocomplete="email" maxlength="120" placeholder="stayer@example.com"/>
+        </div>
+      </fieldset>
+      <p class="pi-party-err" id="piPartyErr" aria-live="polite"></p>
+      <div class="pi-actions" style="margin-top:4px">
+        <button type="button" class="pi-btn" id="piPartyContinue">Continue</button>
+        <button type="button" class="pi-btn pi-btn-secondary" id="piPartyCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var params = new URLSearchParams(window.location.search);
@@ -407,6 +501,18 @@
       var filterWifi = document.getElementById('piFilterWifi');
       var listEl = document.getElementById('piRateList');
       var breakfastOverlay = document.getElementById('piBreakfastOverlay');
+      var partyOverlay = document.getElementById('piPartyOverlay');
+      var partyHotelName = document.getElementById('piPartyHotelName');
+      var partySelf = document.getElementById('piPartySelf');
+      var partyOther = document.getElementById('piPartyOther');
+      var partyStayerBlock = document.getElementById('piPartyStayerBlock');
+      var partyStayerFirst = document.getElementById('piPartyStayerFirst');
+      var partyStayerLast = document.getElementById('piPartyStayerLast');
+      var partyStayerEmail = document.getElementById('piPartyStayerEmail');
+      var partyErr = document.getElementById('piPartyErr');
+      var partyContinue = document.getElementById('piPartyContinue');
+      var partyCancel = document.getElementById('piPartyCancel');
+      var partyClose = document.getElementById('piPartyClose');
       var stepResults = document.getElementById('piStepResults');
       var stepCheckout = document.getElementById('piStepCheckout');
       var stepPayment = document.getElementById('piStepPayment');
@@ -438,6 +544,118 @@
           pub || {}
         );
         window.PremierInnLabEvents.emit(t, base, viewName || 'Hospitality lab — booking', window.location.href);
+      }
+
+      var PARTY_STORAGE_KEY = 'piPremierInnParty_v1';
+
+      function syncPartyStayerFieldsVisibility() {
+        if (!partyStayerBlock) return;
+        var show = partyOther && partyOther.checked;
+        partyStayerBlock.hidden = !show;
+        if (!show && partyStayerFirst) partyStayerFirst.value = '';
+        if (!show && partyStayerLast) partyStayerLast.value = '';
+        if (!show && partyStayerEmail) partyStayerEmail.value = '';
+      }
+
+      function loadPartyRecord() {
+        try {
+          var raw = sessionStorage.getItem(PARTY_STORAGE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || typeof o !== 'object') return null;
+          if (String(o.itineraryId || '') !== String(itineraryId || '')) return null;
+          return o;
+        } catch (eP) {
+          return null;
+        }
+      }
+
+      function persistPartyRecord(rec) {
+        try {
+          sessionStorage.setItem(PARTY_STORAGE_KEY, JSON.stringify(rec));
+        } catch (eS) {}
+      }
+
+      /** @type {null | function(Object|null): void} */
+      var partyModalOnDone = null;
+
+      function setPartyErr(msg) {
+        if (partyErr) partyErr.textContent = msg || '';
+      }
+
+      function closePartyModal() {
+        if (partyOverlay) partyOverlay.hidden = true;
+        setPartyErr('');
+        partyModalOnDone = null;
+      }
+
+      function openPartyModal(hotelName, onDone) {
+        partyModalOnDone = typeof onDone === 'function' ? onDone : null;
+        if (partyHotelName) partyHotelName.textContent = hotelName || 'this hotel';
+        if (partySelf) partySelf.checked = true;
+        if (partyOther) partyOther.checked = false;
+        syncPartyStayerFieldsVisibility();
+        setPartyErr('');
+        if (partyOverlay) partyOverlay.hidden = false;
+        try {
+          if (partySelf) partySelf.focus();
+        } catch (eF) {}
+      }
+
+      function finishPartyModal(partyOrNull) {
+        var cb = partyModalOnDone;
+        closePartyModal();
+        if (cb) cb(partyOrNull);
+      }
+
+      function simpleEmailOk(s) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+      }
+
+      function onPartyContinueClick() {
+        var same = !(partyOther && partyOther.checked);
+        if (same) {
+          persistPartyRecord({
+            itineraryId: itineraryId,
+            hotelStayerSameAsBooker: true,
+          });
+          finishPartyModal({
+            itineraryId: itineraryId,
+            hotelStayerSameAsBooker: true,
+          });
+          return;
+        }
+        var fn = partyStayerFirst ? String(partyStayerFirst.value || '').trim() : '';
+        var ln = partyStayerLast ? String(partyStayerLast.value || '').trim() : '';
+        var em = partyStayerEmail ? String(partyStayerEmail.value || '').trim() : '';
+        if (!fn || !ln) {
+          setPartyErr('Enter the guest’s first and last name.');
+          return;
+        }
+        if (!simpleEmailOk(em)) {
+          setPartyErr('Enter a valid guest email address.');
+          return;
+        }
+        var rec = {
+          itineraryId: itineraryId,
+          hotelStayerSameAsBooker: false,
+          hotelStayerFirstName: fn,
+          hotelStayerLastName: ln,
+          hotelStayerEmail: em,
+        };
+        persistPartyRecord(rec);
+        finishPartyModal(rec);
+      }
+
+      if (partySelf) partySelf.addEventListener('change', syncPartyStayerFieldsVisibility);
+      if (partyOther) partyOther.addEventListener('change', syncPartyStayerFieldsVisibility);
+      if (partyContinue) partyContinue.addEventListener('click', onPartyContinueClick);
+      if (partyCancel) partyCancel.addEventListener('click', function () { finishPartyModal(null); });
+      if (partyClose) partyClose.addEventListener('click', function () { finishPartyModal(null); });
+      if (partyOverlay) {
+        partyOverlay.addEventListener('click', function (e) {
+          if (e.target === partyOverlay) finishPartyModal(null);
+        });
       }
 
       function nightsBetween(a, b) {
@@ -717,20 +935,18 @@
         });
       }
       document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && partyOverlay && !partyOverlay.hidden) {
+          finishPartyModal(null);
+          return;
+        }
         if (e.key === 'Escape' && breakfastOverlay && !breakfastOverlay.hidden) closeBreakfast();
       });
 
       var selectedHotel = null;
 
-      listEl.addEventListener('click', function (ev) {
-        var btn = ev.target.closest('button[data-hotel-idx]');
-        if (!btn) return;
-        var idx = Number(btn.getAttribute('data-hotel-idx'));
-        var hotels = visibleHotels();
-        var h = hotels[idx];
-        if (!h) return;
+      function applyRoomSelectionAfterParty(h, party) {
         selectedHotel = { id: h.id, name: h.name, rate: h.rate };
-        emit('hotel.room.select', {
+        var pub = {
           hotelPropertyId: selectedHotel.id,
           hotelPropertyName: selectedHotel.name,
           hotelQuotedTotal: selectedHotel.rate,
@@ -738,7 +954,16 @@
           hotelFunnelStep: 'room_selected',
           hotelFiltersActive: activeFilterIds(),
           hotelSearchIntent: searchIntent(),
-        }, 'Hospitality lab — room');
+        };
+        if (party && party.hotelStayerSameAsBooker === false) {
+          pub.hotelStayerSameAsBooker = false;
+          pub.hotelStayerFirstName = party.hotelStayerFirstName;
+          pub.hotelStayerLastName = party.hotelStayerLastName;
+          pub.hotelStayerEmail = party.hotelStayerEmail;
+        } else {
+          pub.hotelStayerSameAsBooker = true;
+        }
+        emit('hotel.room.select', pub, 'Hospitality lab — room');
         if (stepResults) stepResults.hidden = true;
         if (stepCheckout) stepCheckout.hidden = false;
         if (stepPayment) stepPayment.hidden = true;
@@ -748,6 +973,19 @@
         document.getElementById('piItinDisplay').textContent = itineraryId || '(no itinerary id — run search from home)';
         document.getElementById('piCheckoutIntro').textContent =
           'Review your stay before payment. Deep links in production would reopen this itinerary in web or app.';
+      }
+
+      listEl.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('button[data-hotel-idx]');
+        if (!btn) return;
+        var idx = Number(btn.getAttribute('data-hotel-idx'));
+        var hotels = visibleHotels();
+        var h = hotels[idx];
+        if (!h) return;
+        openPartyModal(h.name, function (party) {
+          if (!party) return;
+          applyRoomSelectionAfterParty(h, party);
+        });
       });
 
       document.getElementById('piBtnToPayment').addEventListener('click', function () {
@@ -810,13 +1048,50 @@
 
       document.getElementById('piBtnPayMock').addEventListener('click', function () {
         if (!selectedHotel) return;
-        emit('hotel.booking.complete', {
+        var partyRec = loadPartyRecord();
+        var completePub = {
           hotelPropertyId: selectedHotel.id,
           hotelPropertyName: selectedHotel.name,
           hotelQuotedTotal: selectedHotel.rate,
           hotelCurrency: 'GBP',
           hotelFunnelStep: 'payment_complete_mock',
-        }, 'Hospitality lab — complete (mock)');
+        };
+        if (partyRec) {
+          completePub.hotelStayerSameAsBooker = !!partyRec.hotelStayerSameAsBooker;
+          if (partyRec.hotelStayerSameAsBooker === false) {
+            if (partyRec.hotelStayerFirstName) completePub.hotelStayerFirstName = partyRec.hotelStayerFirstName;
+            if (partyRec.hotelStayerLastName) completePub.hotelStayerLastName = partyRec.hotelStayerLastName;
+            if (partyRec.hotelStayerEmail) completePub.hotelStayerEmail = partyRec.hotelStayerEmail;
+          }
+        }
+        emit('hotel.booking.complete', completePub, 'Hospitality lab — complete (mock)');
+        if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelStayerEmail) {
+          emit(
+            'hotel.booking.stayerIdentified',
+            {
+              hotelPropertyId: selectedHotel.id,
+              hotelPropertyName: selectedHotel.name,
+              hotelQuotedTotal: selectedHotel.rate,
+              hotelCurrency: 'GBP',
+              hotelFunnelStep: 'stayer_identified_post_payment',
+              hotelPartyLinkType: 'booker_to_stayer',
+              hotelStayerSameAsBooker: false,
+              hotelStayerFirstName: partyRec.hotelStayerFirstName,
+              hotelStayerLastName: partyRec.hotelStayerLastName,
+              hotelStayerEmail: partyRec.hotelStayerEmail,
+            },
+            'Hospitality lab — stayer identified'
+          );
+        }
+        var summaryLead = document.getElementById('piSummaryLead');
+        if (summaryLead) {
+          if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelStayerEmail) {
+            summaryLead.textContent =
+              'Thank you — lab only. hotel.booking.complete was sent for the booker profile, then hotel.booking.stayerIdentified with the guest email for pre-stay / in-stay orchestration.';
+          } else {
+            summaryLead.textContent = 'Thank you — lab only. A hotel.booking.complete event was sent to the AEP shell.';
+          }
+        }
         var cardNameEl = document.getElementById('piCardName');
         var cardLast4El = document.getElementById('piCardLast4');
         var nameOnCard = cardNameEl && cardNameEl.value ? String(cardNameEl.value).trim() : '';

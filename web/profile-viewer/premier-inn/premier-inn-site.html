@@ -1070,7 +1070,7 @@
     </div>
   </div>
 
-  <script src="premier-inn-events.js?v=20260513-city-break-filters"></script>
+  <script src="premier-inn-events.js?v=20260511-booker-stayer"></script>
   <script>
     (function () {
       var SHELL = 'premier-inn-demo-shell';
@@ -1427,6 +1427,7 @@
           next.set('adults', ad);
           next.set('rooms', rm);
           next.set('itinerary', itin);
+          next.set('_piFlow', '20260511-booker-stayer');
           window.location.href = 'premier-inn-booking-flow.html?' + next.toString();
         });
       }
