@@ -3,6 +3,7 @@
  * Expects window.__AEP_SF_JOURNEYS_BASE / __AEP_SF_PATHS_BASE (snapshot from inline script)
  * and window.AEP_PIPELINE_INDUSTRY_LABELS from ajo-pipeline-industry-labels.js.
  * Business impact (#impact): baseline captured on first apply (before mutations), same pattern as profileHub.
+ * Journey prioritisation (#s2): baseline captured on first apply; ranked rows sync from patched SF_JOURNEYS.
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -78,6 +79,214 @@
     if (h2 && b.sectionTitle != null) h2.textContent = b.sectionTitle;
     if (desc && b.sectionDesc != null) desc.textContent = b.sectionDesc;
     if (grid && b.gridHtml != null) grid.innerHTML = b.gridHtml;
+  }
+
+  var S2_LEG_DOT = ['journey', 'profile', 'external', 'business'];
+  var S2_LEG_KEYS = ['s2-leg-base', 's2-leg-signal', 's2-leg-agentic', 's2-leg-strategic'];
+
+  function s2RankedListEl(sec) {
+    return sec.querySelector('[data-aep-jp="s2-ranked-list"]') || sec.querySelector('.s2-journey-list');
+  }
+
+  function ensureJourneyPrioritisationBaseline() {
+    if (window.__AEP_JOURNEY_PRIORITISATION_BASE) return;
+    var sec = document.getElementById('s2');
+    if (!sec) {
+      window.__AEP_JOURNEY_PRIORITISATION_BASE = null;
+      return;
+    }
+    try {
+      var intro = sec.querySelector('[data-aep-jp="s2-intro"]');
+      var funnelDetails = [];
+      for (var fi = 0; fi < 5; fi++) {
+        var fd = sec.querySelector('[data-aep-jp="s2-funnel-' + fi + '"]');
+        funnelDetails.push(fd ? fd.textContent : '');
+      }
+      var vt = sec.querySelector('[data-aep-jp="s2-value-term"]');
+      var legs = S2_LEG_KEYS.map(function (k) {
+        var el = sec.querySelector('[data-aep-jp="' + k + '"]');
+        return el ? el.innerHTML : '';
+      });
+      var rankedTitle = sec.querySelector('[data-aep-jp="s2-ranked-title"]');
+      var list = s2RankedListEl(sec);
+      var rt = sec.querySelector('[data-aep-jp="s2-result-title"]');
+      var rb = sec.querySelector('[data-aep-jp="s2-result-body"]');
+      window.__AEP_JOURNEY_PRIORITISATION_BASE = {
+        intro: intro ? intro.textContent : '',
+        funnelDetails: funnelDetails,
+        valueTerm: vt ? vt.textContent : '',
+        legendHtml: legs,
+        rankedTitle: rankedTitle ? rankedTitle.textContent : '',
+        journeyListHtml: list ? list.innerHTML : '',
+        resultTitle: rt ? rt.textContent : '',
+        resultBodyHtml: rb ? rb.innerHTML : '',
+      };
+    } catch (e) {
+      window.__AEP_JOURNEY_PRIORITISATION_BASE = null;
+    }
+  }
+
+  function restoreJourneyPrioritisationBaseline() {
+    var b = window.__AEP_JOURNEY_PRIORITISATION_BASE;
+    if (!b) return;
+    var sec = document.getElementById('s2');
+    if (!sec) return;
+    var intro = sec.querySelector('[data-aep-jp="s2-intro"]');
+    if (intro && b.intro != null) intro.textContent = b.intro;
+    for (var fi = 0; fi < 5; fi++) {
+      var fd = sec.querySelector('[data-aep-jp="s2-funnel-' + fi + '"]');
+      if (fd && b.funnelDetails && b.funnelDetails[fi] != null) fd.textContent = b.funnelDetails[fi];
+    }
+    var vt = sec.querySelector('[data-aep-jp="s2-value-term"]');
+    if (vt && b.valueTerm != null) vt.textContent = b.valueTerm;
+    S2_LEG_KEYS.forEach(function (k, i) {
+      var el = sec.querySelector('[data-aep-jp="' + k + '"]');
+      if (el && b.legendHtml && b.legendHtml[i] != null) el.innerHTML = b.legendHtml[i];
+    });
+    var rankedTitle = sec.querySelector('[data-aep-jp="s2-ranked-title"]');
+    if (rankedTitle && b.rankedTitle != null) rankedTitle.textContent = b.rankedTitle;
+    var list = s2RankedListEl(sec);
+    if (list && b.journeyListHtml != null) list.innerHTML = b.journeyListHtml;
+    var rt = sec.querySelector('[data-aep-jp="s2-result-title"]');
+    var rb = sec.querySelector('[data-aep-jp="s2-result-body"]');
+    if (rt && b.resultTitle != null) rt.textContent = b.resultTitle;
+    if (rb && b.resultBodyHtml != null) rb.innerHTML = b.resultBodyHtml;
+  }
+
+  function s2LegendSpanHtml(dotClass, labelText) {
+    return '<span class="ldot ' + dotClass + '"></span>' + escapeHtml(labelText);
+  }
+
+  function buildS2JourneyListHtml(valueMultSpoken) {
+    var rows = window.SF_JOURNEYS;
+    if (!rows || !rows.length) return '';
+    var scores = ['345', '136', '95', '82', '61'];
+    var widths = ['100%', '40%', '28%', '24%', '18%'];
+    var opac = ['', ' style="opacity:.55"', ' style="opacity:.4"', ' style="opacity:.3"', ' style="opacity:.2"'];
+    var parts = [];
+    for (var i = 0; i < 5 && i < rows.length; i++) {
+      var j = rows[i];
+      var issCls = j.issue === 'retention' ? 'retention' : 'sales';
+      var issText = j.issue === 'retention' ? 'Issue · Retention' : 'Issue · Sales';
+      var mult = '×' + j.bankValue.toFixed(2) + ' ' + valueMultSpoken;
+      if (i === 0) mult += ' · ×1.50 agentic';
+      var sel = i === 0 ? ' selected' : '';
+      parts.push(
+        '<div class="s2-journey' +
+          sel +
+          '">\n    <div class="s2-jrank">' +
+          (i + 1) +
+          '</div>\n    <div class="s2-jbody">\n      <span class="s2-jissue ' +
+          issCls +
+          '">' +
+          escapeHtml(issText) +
+          '</span>\n      <div class="s2-jname">' +
+          escapeHtml(j.name || '') +
+          '</div>\n      <div class="s2-jdesc">' +
+          escapeHtml(j.desc || '') +
+          '</div>\n    </div>\n    <div class="s2-jscore-wrap">\n      <div class="s2-jscore">' +
+          scores[i] +
+          '</div>\n      <div class="bar-track"><div class="bar-fill bar-red" data-w="' +
+          escapeHtml(widths[i]) +
+          '"' +
+          opac[i] +
+          '></div></div>\n      <div class="s2-jmult">' +
+          escapeHtml(mult) +
+          '</div>\n    </div>\n  </div>'
+      );
+    }
+    return parts.join('\n  ');
+  }
+
+  function rankedJourneyRowHtml(row, idx) {
+    var issue = row.issue === 'retention' ? 'retention' : 'sales';
+    var issText = issue === 'retention' ? 'Issue · Retention' : 'Issue · Sales';
+    var sel = idx === 0 ? ' selected' : '';
+    var w = row.barWidth || '100%';
+    var op =
+      row.barOpacity != null && row.barOpacity !== 1 ? ' style="opacity:' + row.barOpacity + '"' : '';
+    var rank = row.rank != null ? row.rank : idx + 1;
+    return (
+      '<div class="s2-journey' +
+      sel +
+      '">\n    <div class="s2-jrank">' +
+      escapeHtml(String(rank)) +
+      '</div>\n    <div class="s2-jbody">\n      <span class="s2-jissue ' +
+      issue +
+      '">' +
+      issText +
+      '</span>\n      <div class="s2-jname">' +
+      escapeHtml(row.title || '') +
+      '</div>\n      <div class="s2-jdesc">' +
+      escapeHtml(row.desc || '') +
+      '</div>\n    </div>\n    <div class="s2-jscore-wrap">\n      <div class="s2-jscore">' +
+      escapeHtml(row.score || '') +
+      '</div>\n      <div class="bar-track"><div class="bar-fill bar-red" data-w="' +
+      escapeHtml(w) +
+      '"' +
+      op +
+      '></div></div>\n      <div class="s2-jmult">' +
+      escapeHtml(row.multipliers || '') +
+      '</div>\n    </div>\n  </div>'
+    );
+  }
+
+  function applyRankedJourneys(rj) {
+    if (!rj) return;
+    var sec = document.getElementById('s2');
+    if (!sec) return;
+    var rankedTitle = sec.querySelector('[data-aep-jp="s2-ranked-title"]');
+    if (rankedTitle && rj.heading != null) rankedTitle.textContent = rj.heading;
+    var list = s2RankedListEl(sec);
+    var rows = rj.rows || [];
+    if (list && rows.length) {
+      list.innerHTML = rows
+        .map(function (row, i) {
+          return rankedJourneyRowHtml(row, i);
+        })
+        .join('\n  ');
+    }
+    var ex = rj.selectedExplainer || {};
+    var rt = sec.querySelector('[data-aep-jp="s2-result-title"]');
+    if (rt && ex.title != null) rt.textContent = ex.title;
+    var rb = sec.querySelector('[data-aep-jp="s2-result-body"]');
+    if (rb) {
+      var main = ex.body != null ? escapeHtml(ex.body) : '';
+      var em = ex.bodyEm != null ? '<em>' + escapeHtml(ex.bodyEm) + '</em>' : '';
+      rb.innerHTML = main + em;
+    }
+  }
+
+  function applyJourneyPrioritisation(jp, skipRankedPanel) {
+    if (!jp) return;
+    var sec = document.getElementById('s2');
+    if (!sec) return;
+    var intro = sec.querySelector('[data-aep-jp="s2-intro"]');
+    if (intro && jp.intro != null) intro.textContent = jp.intro;
+    if (jp.funnelDetails && jp.funnelDetails.length) {
+      for (var fi = 0; fi < 5; fi++) {
+        var fd = sec.querySelector('[data-aep-jp="s2-funnel-' + fi + '"]');
+        if (fd && jp.funnelDetails[fi] != null) fd.textContent = jp.funnelDetails[fi];
+      }
+    }
+    var vt = sec.querySelector('[data-aep-jp="s2-value-term"]');
+    if (vt && jp.valueTerm != null) vt.textContent = jp.valueTerm;
+    var legTexts = [jp.legendBase, jp.legendSignal, jp.legendAgentic, jp.legendStrategic];
+    S2_LEG_KEYS.forEach(function (k, i) {
+      var el = sec.querySelector('[data-aep-jp="' + k + '"]');
+      if (!el || legTexts[i] == null) return;
+      el.innerHTML = s2LegendSpanHtml(S2_LEG_DOT[i], legTexts[i]);
+    });
+    if (skipRankedPanel) return;
+    var rankedTitle = sec.querySelector('[data-aep-jp="s2-ranked-title"]');
+    if (rankedTitle && jp.rankedTitle != null) rankedTitle.textContent = jp.rankedTitle;
+    var spoken = jp.valueMultSpoken || 'bank value';
+    var list = s2RankedListEl(sec);
+    if (list) list.innerHTML = buildS2JourneyListHtml(spoken);
+    var rt = sec.querySelector('[data-aep-jp="s2-result-title"]');
+    var rb = sec.querySelector('[data-aep-jp="s2-result-body"]');
+    if (rt && jp.resultTitle != null) rt.textContent = jp.resultTitle;
+    if (rb && jp.resultBodyHtml != null) rb.innerHTML = jp.resultBodyHtml;
   }
 
   function applyBusinessImpact(bi) {
@@ -335,6 +544,7 @@
 
     ensureProfileHubBaseline();
     ensureBusinessImpactBaseline();
+    ensureJourneyPrioritisationBaseline();
 
     document.body.setAttribute('data-dce-industry', key);
 
@@ -393,6 +603,15 @@
           if (patch.desc != null) p.desc = patch.desc;
         });
       });
+    }
+
+    if (labels.journeyPrioritisation) {
+      applyJourneyPrioritisation(labels.journeyPrioritisation, !!labels.rankedJourneys);
+    } else {
+      restoreJourneyPrioritisationBaseline();
+    }
+    if (labels.rankedJourneys) {
+      applyRankedJourneys(labels.rankedJourneys);
     }
 
     resetFlowUiAfterIndustryChange();

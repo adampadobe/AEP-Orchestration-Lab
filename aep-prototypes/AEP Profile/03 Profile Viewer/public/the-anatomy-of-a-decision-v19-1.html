@@ -3011,7 +3011,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="stage-number">02</div>
 <div class="stage-info">
 <h2>Journey prioritisation</h2>
-<p>The Next-Best-Action engine arbitrates across all eligible journeys in the repository. A composite score blends the customer's signal-driven propensity with business value, agentic context, and strategic levers — selecting the highest-priority journey for Sarah right now.</p>
+<p data-aep-jp="s2-intro">The Next-Best-Action engine arbitrates across all eligible journeys in the repository. A composite score blends the customer's signal-driven propensity with business value, agentic context, and strategic levers — selecting the highest-priority journey for this profile right now.</p>
 </div>
 </div>
 
@@ -3019,11 +3019,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="card">
 <div class="card-title">Arbitration funnel · NBA hierarchy</div>
 <div class="s2-funnel">
-  <div class="s2-funnel-row" style="--w:100%"><span class="s2-funnel-num">200</span><span class="s2-funnel-label">All available actions</span><span class="s2-funnel-detail">across the journey repository</span></div>
-  <div class="s2-funnel-row" style="--w:80%"><span class="s2-funnel-num">80</span><span class="s2-funnel-label">Eligible</span><span class="s2-funnel-detail">passes regulatory + product rules</span></div>
-  <div class="s2-funnel-row" style="--w:60%"><span class="s2-funnel-num">50</span><span class="s2-funnel-label">Passed constraints</span><span class="s2-funnel-detail">matches Sarah's life-stage &amp; segments</span></div>
-  <div class="s2-funnel-row" style="--w:35%"><span class="s2-funnel-num">10</span><span class="s2-funnel-label">Suitable</span><span class="s2-funnel-detail">passes contact policy + frequency caps</span></div>
-  <div class="s2-funnel-row winner" style="--w:18%"><span class="s2-funnel-num">3</span><span class="s2-funnel-label">Top-ranked by arbitration</span><span class="s2-funnel-detail">composite priority score</span></div>
+  <div class="s2-funnel-row" style="--w:100%"><span class="s2-funnel-num">200</span><span class="s2-funnel-label">All available actions</span><span class="s2-funnel-detail" data-aep-jp="s2-funnel-0">across the journey repository</span></div>
+  <div class="s2-funnel-row" style="--w:80%"><span class="s2-funnel-num">80</span><span class="s2-funnel-label">Eligible</span><span class="s2-funnel-detail" data-aep-jp="s2-funnel-1">passes regulatory + product rules</span></div>
+  <div class="s2-funnel-row" style="--w:60%"><span class="s2-funnel-num">50</span><span class="s2-funnel-label">Passed constraints</span><span class="s2-funnel-detail" data-aep-jp="s2-funnel-2">matches this profile's life-stage &amp; segments</span></div>
+  <div class="s2-funnel-row" style="--w:35%"><span class="s2-funnel-num">10</span><span class="s2-funnel-label">Suitable</span><span class="s2-funnel-detail" data-aep-jp="s2-funnel-3">passes contact policy + frequency caps</span></div>
+  <div class="s2-funnel-row winner" style="--w:18%"><span class="s2-funnel-num">3</span><span class="s2-funnel-label">Top-ranked by arbitration</span><span class="s2-funnel-detail" data-aep-jp="s2-funnel-4">composite priority score</span></div>
 </div>
 </div>
 
@@ -3038,24 +3038,24 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
   <span class="s2-f-term profile">signalPropensity</span>
   <span class="s2-f-paren">)</span>
   <span class="s2-f-op">×</span>
-  <span class="s2-f-term journey">bankValue</span>
+  <span class="s2-f-term journey" data-aep-jp="s2-value-term">bankValue</span>
   <span class="s2-f-op">×</span>
   <span class="s2-f-term external">agenticLift</span>
   <span class="s2-f-op">×</span>
   <span class="s2-f-term business">strategicLever</span>
 </div>
 <div class="s2-formula-legend">
-  <span><span class="ldot journey"></span>Journey base + product margin</span>
-  <span><span class="ldot profile"></span>Σ active signals × journey affinity</span>
-  <span><span class="ldot external"></span>Voice-agent dialogue × 1.5</span>
-  <span><span class="ldot business"></span>Quarterly business push × 1.3</span>
+  <span data-aep-jp="s2-leg-base"><span class="ldot journey"></span>Journey base + product margin</span>
+  <span data-aep-jp="s2-leg-signal"><span class="ldot profile"></span>Σ active signals × journey affinity</span>
+  <span data-aep-jp="s2-leg-agentic"><span class="ldot external"></span>Voice-agent dialogue × 1.5</span>
+  <span data-aep-jp="s2-leg-strategic"><span class="ldot business"></span>Quarterly business push × 1.3</span>
 </div>
 </div>
 
 <!-- Ranked journeys with NBA Issue pills -->
 <div class="card">
-<div class="card-title">Ranked journeys for Sarah</div>
-<div class="s2-journey-list">
+<div class="card-title" data-aep-jp="s2-ranked-title">Ranked journeys for this profile</div>
+<div class="s2-journey-list" data-aep-jp="s2-ranked-list">
   <div class="s2-journey selected">
     <div class="s2-jrank">1</div>
     <div class="s2-jbody">
@@ -3125,8 +3125,8 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 </div>
 
 <div class="result-banner">
-<h3>Selected: Mortgage refinance journey</h3>
-<p>Composite score 345 — winning by 2.5×. Strong mortgage signals (mortgage_need + refi_intent) drive a high signalPropensity (190 points), the bankValue multiplier (×1.50) reflects highest product margin, and the agenticLift (×1.50) fires on Sarah's recent voice-agent dialogue. <em>Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.</em></p>
+<h3 data-aep-jp="s2-result-title">Selected: Mortgage refinance journey</h3>
+<p data-aep-jp="s2-result-body">Composite score 345 — winning by 2.5×. Strong mortgage signals (mortgage_need + refi_intent) drive a high signalPropensity (190 points), the bankValue multiplier (×1.50) reflects highest product margin, and the agenticLift (×1.50) fires on this customer's recent voice-agent dialogue. <em>Try the Flow Analysis above to swap the strategicLever and watch the ranking re-arbitrate live.</em></p>
 </div>
 </section>
 
@@ -5180,8 +5180,8 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
-<script src="ajo-pipeline-industry-labels.js?v=20260519"></script>
-<script src="ajo-pipeline-industry-apply.js?v=20260519"></script>
+<script src="ajo-pipeline-industry-labels.js?v=20260520"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260520"></script>
 <script>
 (function () {
   try {
