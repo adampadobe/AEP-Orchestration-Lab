@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-schema-id">
+  <link rel="stylesheet" href="event-tool.css?v=20260517-event-tool-booker-stayer-fg">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -107,8 +107,7 @@
                     <strong>Travel - Hotel Experience v1</strong> when those global field groups are visible to the Schema Registry API.
                     It also registers <strong>ECID</strong> + <strong>Email</strong> on
                     <code class="et-code-inline">_{tenant}.identification.core.*</code> as <strong>secondary</strong> identity descriptors (not the schema primary).
-                    For an <strong>existing</strong> Event Tool schema, use <strong>Attach recommended field groups</strong> after importing any missing field groups from the AEP library.
-                    You can attach by <strong>full schema <code class="et-code-inline">$id</code></strong> (optional field below) instead of the display title.
+                    <strong>Add booker/stayer field group</strong> creates and attaches <strong>AEP Event Tool - Booker Stayer v1</strong> (typed <code class="et-code-inline">public.bookingParty</code> under your tenant prefix) for booker vs guest-of-record.
                   </p>
                   <div class="et-config-step-row">
                     <div class="form-row et-schema-name-row">
@@ -118,6 +117,7 @@
                     <div class="form-row form-row--action et-schema-actions">
                       <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">Create schema</button>
                       <button type="button" id="etAttachFieldGroupsBtn" class="btn btn-secondary">Attach recommended field groups</button>
+                      <button type="button" id="etBookerStayerFgBtn" class="btn btn-secondary">Add booker/stayer field group</button>
                     </div>
                   </div>
                   <div class="form-row et-schema-id-row">
@@ -126,6 +126,7 @@
                   </div>
                   <div id="etSchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                   <div id="etAttachFgMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                  <div id="etBookerStayerMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                 </div>
 
                 <details class="et-identity-map-hint">
@@ -311,7 +312,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="event-tool.js?v=20260511-event-tool-schema-id"></script>
+  <script src="event-tool.js?v=20260517-event-tool-booker-stayer-fg"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>

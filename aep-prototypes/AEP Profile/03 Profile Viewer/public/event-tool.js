@@ -26,8 +26,10 @@
     schemaId:         document.getElementById('etSchemaId'),
     createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
     attachFieldGroupsBtn: document.getElementById('etAttachFieldGroupsBtn'),
+    bookerStayerFgBtn: document.getElementById('etBookerStayerFgBtn'),
     schemaMsg:        document.getElementById('etSchemaMsg'),
     attachFgMsg:      document.getElementById('etAttachFgMsg'),
+    bookerStayerMsg:  document.getElementById('etBookerStayerMsg'),
     datasetName:      document.getElementById('etDatasetName'),
     createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
     datasetMsg:       document.getElementById('etDatasetMsg'),
@@ -533,6 +535,42 @@
         setMsg(dom.attachFgMsg, e.message || 'Network error', 'error');
       } finally {
         dom.attachFieldGroupsBtn.disabled = false;
+      }
+    });
+  }
+
+  if (dom.bookerStayerFgBtn) {
+    dom.bookerStayerFgBtn.addEventListener('click', async () => {
+      const schemaTitle = (dom.schemaTitle.value || '').trim();
+      const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
+      if (!schemaTitle && !schemaId) {
+        setMsg(dom.bookerStayerMsg, 'Enter the schema name or paste the full schema $id URI.', 'error');
+        return;
+      }
+      const sandbox = getSandboxName();
+      if (!sandbox) { setMsg(dom.bookerStayerMsg, 'Select a sandbox first.', 'error'); return; }
+      dom.bookerStayerFgBtn.disabled = true;
+      setMsg(dom.bookerStayerMsg, 'Creating / attaching booker-stayer field group…', '');
+      try {
+        const body = { step: 'ensureBookerStayerFieldGroup' };
+        if (schemaId) body.schemaId = schemaId;
+        if (schemaTitle) body.schemaTitle = schemaTitle;
+        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!data.ok) { setMsg(dom.bookerStayerMsg, data.error || 'Failed.', 'error'); return; }
+        setMsg(dom.bookerStayerMsg, data.message || 'Done.', 'success');
+        if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
+        if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+        saveConfigField({ schemaTitle: data.schemaTitle || schemaTitle, schemaId: data.schemaId || schemaId });
+        loadSchemaEventTypes(data.schemaTitle || schemaTitle, data.schemaId || schemaId);
+      } catch (e) {
+        setMsg(dom.bookerStayerMsg, e.message || 'Network error', 'error');
+      } finally {
+        dom.bookerStayerFgBtn.disabled = false;
       }
     });
   }

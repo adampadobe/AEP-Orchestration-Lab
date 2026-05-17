@@ -648,6 +648,142 @@ async function runEventInfraStatus(sandbox, token, clientId, orgId, schemaTitle,
   return { ok: true, sandbox, schemaFound, schemaId, schemaMetaAltId, datasetFound, datasetId };
 }
 
+/** Tenant ExperienceEvent field group: typed booker/stayer under `_{tenant}.public.bookingParty`. */
+const BOOKER_STAYER_FG_TITLE = 'AEP Event Tool - Booker Stayer v1';
+
+function xdmStringField(title) {
+  return { type: 'string', title, 'meta:xdmType': 'string' };
+}
+
+function xdmBoolField(title) {
+  return { type: 'boolean', title, 'meta:xdmType': 'boolean' };
+}
+
+function buildBookerStayerExperienceEventFieldGroup(tenantId) {
+  const tid = String(tenantId || '').trim();
+  const tk = tid.startsWith('_') ? tid : `_${tid}`;
+  const personShape = {
+    firstName: xdmStringField('First name'),
+    lastName: xdmStringField('Last name'),
+    email: xdmStringField('Email'),
+    phone: xdmStringField('Phone'),
+    crmId: xdmStringField('CRM ID'),
+    loyaltyId: xdmStringField('Loyalty ID'),
+  };
+  return {
+    title: BOOKER_STAYER_FG_TITLE,
+    description:
+      'Booker vs stayer / guest-of-record under tenant public.bookingParty. Created by AEP Orchestration Lab Event Tool.',
+    type: 'object',
+    'meta:intendedToExtend': [XDM_EXPERIENCE_EVENT_CLASS],
+    definitions: {
+      bookingPartyBlock: {
+        type: 'object',
+        properties: {
+          [tk]: {
+            type: 'object',
+            properties: {
+              public: {
+                type: 'object',
+                properties: {
+                  bookingParty: {
+                    type: 'object',
+                    title: 'Booker / stayer',
+                    properties: {
+                      eventPerspective: {
+                        type: 'string',
+                        title: 'Primary subject of this event',
+                        'meta:enum': {
+                          booker: 'Booker',
+                          stayer: 'Stayer',
+                          both: 'Both',
+                          unknown: 'Unknown',
+                        },
+                        'meta:xdmType': 'string',
+                      },
+                      bookerStayerSamePerson: xdmBoolField('Booker is the guest of record / stayer'),
+                      booker: {
+                        type: 'object',
+                        title: 'Booker',
+                        properties: {
+                          ...personShape,
+                          isPrimaryBooker: xdmBoolField('Primary booker'),
+                        },
+                        'meta:xdmType': 'object',
+                      },
+                      stayer: {
+                        type: 'object',
+                        title: 'Stayer / guest of record',
+                        properties: {
+                          ...personShape,
+                          isGuestOfRecord: xdmBoolField('Guest of record'),
+                          relationshipToBooker: xdmStringField('Relationship to booker'),
+                        },
+                        'meta:xdmType': 'object',
+                      },
+                    },
+                    'meta:xdmType': 'object',
+                  },
+                },
+                'meta:xdmType': 'object',
+              },
+            },
+            'meta:xdmType': 'object',
+          },
+        },
+      },
+    },
+    allOf: [{ $ref: '#/definitions/bookingPartyBlock', type: 'object', 'meta:xdmType': 'object' }],
+  };
+}
+
+async function findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, exactTitle) {
+  let rows = [];
+  try {
+    rows = await listTenantFieldgroupsLike(token, clientId, orgId, sandbox);
+  } catch {
+    rows = [];
+  }
+  const want = String(exactTitle || '').trim();
+  return (Array.isArray(rows) ? rows : []).find((r) => String(r.title || '').trim() === want) || null;
+}
+
+async function postTenantFieldGroup(token, clientId, orgId, sandbox, body) {
+  const url = `${SCHEMA_REGISTRY}/tenant/fieldgroups`;
+  const baseHeaders = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+    'Content-Type': 'application/json',
+  };
+  const acceptOrder = [
+    'application/vnd.adobe.xed+json',
+    ACCEPT_XED,
+    ACCEPT_XDM,
+    ACCEPT_JSON,
+  ];
+  let lastErr = 'Unknown';
+  for (const accept of acceptOrder) {
+    const { res, data } = await fetchJson(url, {
+      method: 'POST',
+      headers: { ...baseHeaders, Accept: accept },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      log(sandbox, 'postTenantFieldGroup.ok', { title: body.title, $id: data.$id });
+      return data;
+    }
+    lastErr = data.message || data.title || data.detail || res.statusText || String(res.status);
+    const retry =
+      res.status === 415 ||
+      res.status === 406 ||
+      /unsupported media type|not acceptable/i.test(String(lastErr));
+    if (!retry) throw new Error(`Create tenant field group failed: ${lastErr}`);
+  }
+  throw new Error(`Create tenant field group failed: ${lastErr}`);
+}
+
 /* ── Step-based provisioning ── */
 
 async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {}) {
@@ -769,6 +905,80 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
     };
   }
 
+  if (step === 'ensureBookerStayerFieldGroup') {
+    const title = String(opts.schemaTitle || '').trim();
+    const schemaIdOpt = String(opts.schemaId || '').trim();
+    if (!title && !schemaIdOpt) {
+      return { ok: false, error: 'Provide schemaTitle or schemaId (full schema $id URI).' };
+    }
+    let schema = null;
+    if (schemaIdOpt) {
+      schema = await findSchemaById(token, clientId, orgId, sandbox, schemaIdOpt);
+    } else {
+      schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
+    }
+    if (!schema) {
+      return { ok: false, error: 'Schema not found for the given title or schemaId.' };
+    }
+    const metaAltId = schema['meta:altId'];
+    if (!metaAltId) {
+      return { ok: false, error: 'Schema has no meta:altId yet — wait a few seconds and retry.' };
+    }
+    let tenantCtx;
+    try {
+      tenantCtx = await discoverTenantContextForEventTool(token, clientId, orgId, sandbox);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+    let fgRow = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, BOOKER_STAYER_FG_TITLE);
+    let fieldGroupCreated = false;
+    if (!fgRow) {
+      try {
+        const body = buildBookerStayerExperienceEventFieldGroup(tenantCtx.tenantId);
+        fgRow = await postTenantFieldGroup(token, clientId, orgId, sandbox, body);
+        fieldGroupCreated = true;
+      } catch (e) {
+        const msg = String(e.message || e);
+        if (/duplicate|already exists|409/i.test(msg)) {
+          fgRow = await findTenantFieldGroupByTitle(token, clientId, orgId, sandbox, BOOKER_STAYER_FG_TITLE);
+        }
+        if (!fgRow) {
+          return { ok: false, error: msg };
+        }
+      }
+    }
+    if (!fgRow || !fgRow.$id) {
+      return { ok: false, error: 'Booker/stayer field group could not be created or loaded.' };
+    }
+    const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, [fgRow.$id]);
+    const parts = [];
+    if (fieldGroupCreated) parts.push(`Created "${BOOKER_STAYER_FG_TITLE}".`);
+    else parts.push(`Field group "${BOOKER_STAYER_FG_TITLE}" already exists in this sandbox.`);
+    if (fgRes.attached.length) {
+      parts.push(`Attached to schema (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
+    }
+    if (fgRes.skipped.length) parts.push('Field group was already on the schema.');
+    for (const w of fgRes.warnings) parts.push(`Warning: ${w}`);
+    parts.push(
+      `Payload path: ${tenantCtx.xdmKey}.public.bookingParty — use eventPerspective, booker, stayer, bookerStayerSamePerson.`,
+    );
+    return {
+      ok: true,
+      sandbox,
+      step,
+      fieldGroupCreated,
+      fieldGroupId: fgRow.$id,
+      fieldGroupTitle: BOOKER_STAYER_FG_TITLE,
+      schemaId: schema.$id,
+      schemaMetaAltId: metaAltId,
+      tenantXdmKey: tenantCtx.xdmKey,
+      attachedFieldGroupIds: fgRes.attached,
+      skippedFieldGroupIds: fgRes.skipped,
+      warnings: fgRes.warnings,
+      message: parts.join(' '),
+    };
+  }
+
   if (step === 'createDataset') {
     const schemaTitle = String(opts.schemaTitle || '').trim();
     const datasetName = String(opts.datasetName || '').trim();
@@ -860,7 +1070,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
   return {
     ok: false,
-    error: `Unknown step: ${step}. Use createSchema, attachRecommendedFieldGroups, createDataset, createDatastream, or probeTagsApi.`,
+    error: `Unknown step: ${step}. Use createSchema, attachRecommendedFieldGroups, ensureBookerStayerFieldGroup, createDataset, createDatastream, or probeTagsApi.`,
   };
 }
 
