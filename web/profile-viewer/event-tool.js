@@ -23,6 +23,7 @@
     configDetails:    document.getElementById('etConfigDetails'),
     configBadge:      document.getElementById('etConfigBadge'),
     schemaTitle:      document.getElementById('etSchemaTitle'),
+    schemaId:         document.getElementById('etSchemaId'),
     createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
     attachFieldGroupsBtn: document.getElementById('etAttachFieldGroupsBtn'),
     schemaMsg:        document.getElementById('etSchemaMsg'),
@@ -179,6 +180,7 @@
       if (data.ok && data.record) {
         if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
         if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
+        if (dom.schemaId && data.record.schemaId) dom.schemaId.value = data.record.schemaId;
         if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
         customTriggers = Array.isArray(data.record.customTriggers) ? data.record.customTriggers : [];
         if (Array.isArray(data.record.quickMenuTriggers)) {
@@ -198,7 +200,9 @@
           expandConfig();
           setMsg(dom.infraMsg, 'No datastream saved for this sandbox yet. Complete the steps below, then click Save.', '');
         }
-        if (data.record.schemaTitle) loadSchemaEventTypes(data.record.schemaTitle);
+        if (data.record.schemaTitle || data.record.schemaId) {
+          loadSchemaEventTypes(data.record.schemaTitle, data.record.schemaId);
+        }
       } else {
         expandConfig();
         setMsg(dom.infraMsg, 'No configuration found for this sandbox. Complete the steps below to get started.', '');
@@ -233,14 +237,19 @@
 
   /* ═══════════ Event types from schema ═══════════ */
 
-  async function loadSchemaEventTypes(schemaTitle) {
-    if (!schemaTitle) return;
+  async function loadSchemaEventTypes(schemaTitle, schemaId) {
+    const t = (schemaTitle || '').trim();
+    const id = (schemaId || '').trim();
+    if (!t && !id) return;
     const qs = sandboxQs();
     if (!qs) return;
     const hint = document.getElementById('etEventTypeHint');
     if (hint) { hint.textContent = 'Loading event types from schema…'; hint.hidden = false; }
     try {
-      const res = await fetch('/api/events/infra/event-types' + qs + '&schemaTitle=' + encodeURIComponent(schemaTitle));
+      let url = '/api/events/infra/event-types' + qs;
+      if (id) url += '&schemaId=' + encodeURIComponent(id);
+      else url += '&schemaTitle=' + encodeURIComponent(t);
+      const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
       if (data.ok && Array.isArray(data.eventTypes) && data.eventTypes.length > 0) {
         schemaEventTypes = data.eventTypes;
@@ -495,21 +504,31 @@
   if (dom.attachFieldGroupsBtn) {
     dom.attachFieldGroupsBtn.addEventListener('click', async () => {
       const schemaTitle = (dom.schemaTitle.value || '').trim();
-      if (!schemaTitle) { setMsg(dom.attachFgMsg, 'Enter the schema name first.', 'error'); return; }
+      const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
+      if (!schemaTitle && !schemaId) {
+        setMsg(dom.attachFgMsg, 'Enter the schema name or paste the full schema $id URI.', 'error');
+        return;
+      }
       const sandbox = getSandboxName();
       if (!sandbox) { setMsg(dom.attachFgMsg, 'Select a sandbox first.', 'error'); return; }
       dom.attachFieldGroupsBtn.disabled = true;
       setMsg(dom.attachFgMsg, 'Attaching field groups…', '');
       try {
+        const body = { step: 'attachRecommendedFieldGroups' };
+        if (schemaId) body.schemaId = schemaId;
+        if (schemaTitle) body.schemaTitle = schemaTitle;
         const res = await fetch('/api/events/infra/step' + sandboxQs(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step: 'attachRecommendedFieldGroups', schemaTitle }),
+          body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
         if (!data.ok) { setMsg(dom.attachFgMsg, data.error || 'Failed.', 'error'); return; }
         setMsg(dom.attachFgMsg, data.message || 'Done.', 'success');
-        loadSchemaEventTypes(schemaTitle);
+        if (data.schemaTitle && dom.schemaTitle) dom.schemaTitle.value = data.schemaTitle;
+        if (data.schemaId && dom.schemaId) dom.schemaId.value = data.schemaId;
+        saveConfigField({ schemaTitle: data.schemaTitle || schemaTitle, schemaId: data.schemaId || schemaId });
+        loadSchemaEventTypes(data.schemaTitle || schemaTitle, data.schemaId || schemaId);
       } catch (e) {
         setMsg(dom.attachFgMsg, e.message || 'Network error', 'error');
       } finally {
@@ -625,19 +644,20 @@
     if (!sandbox) { setMsg(dom.connectionMsg, 'Select a sandbox first.', 'error'); return; }
     setMsg(dom.connectionMsg, 'Saving to Firebase…', '');
     const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const schemaId = dom.schemaId ? (dom.schemaId.value || '').trim() : '';
     const datasetName = (dom.datasetName.value || '').trim();
     try {
       const res = await labAuthFetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox, datastreamId: dsId, schemaTitle, datasetName }),
+        body: JSON.stringify({ sandbox, datastreamId: dsId, schemaTitle, schemaId, datasetName }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
         setMsg(dom.connectionMsg, 'Saved to Firebase for sandbox "' + sandbox + '".', 'success');
         setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
         collapseConfig();
-        if (schemaTitle) loadSchemaEventTypes(schemaTitle);
+        if (schemaTitle || schemaId) loadSchemaEventTypes(schemaTitle, schemaId);
       } else {
         setMsg(dom.connectionMsg, data.error || 'Save failed.', 'error');
       }
@@ -660,6 +680,7 @@
         const r = data.record;
         const parts = [];
         if (r.schemaTitle) { dom.schemaTitle.value = r.schemaTitle; parts.push('Schema: ' + r.schemaTitle); }
+        if (dom.schemaId && r.schemaId) dom.schemaId.value = r.schemaId;
         if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
         if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
         customTriggers = Array.isArray(r.customTriggers) ? r.customTriggers : [];
@@ -675,7 +696,7 @@
         rebuildTriggerSelect();
         if (parts.length > 0) {
           setMsg(dom.infraMsg, 'Loaded from Firebase — ' + parts.join('  ·  '), 'success');
-          if (r.schemaTitle) loadSchemaEventTypes(r.schemaTitle);
+          if (r.schemaTitle || r.schemaId) loadSchemaEventTypes(r.schemaTitle, r.schemaId);
         } else {
           setMsg(dom.infraMsg, 'No saved configuration found for sandbox "' + sandbox + '".', 'error');
         }

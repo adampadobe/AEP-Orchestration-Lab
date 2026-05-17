@@ -23,7 +23,7 @@ const eventTypeHint = document.getElementById('eventTypeHint');
 const generatorTargetSelect = document.getElementById('generatorTarget');
 const orchestrationEventIDInput = document.getElementById('orchestrationEventID');
 
-const EVENT_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/d9b88a044ad96154637965a97ed63c7b20bdf2ab3b4f642e';
+const EVENT_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/be572a5774e5efd073564998ffc4893a356b4d6c44d4788';
 
 /** @type {Array<{ id: string, label: string, transport: string, dataStreamId: string | null, xdmStyle: string, streamingUrl: string | null }>} */
 let generatorTargets = [];

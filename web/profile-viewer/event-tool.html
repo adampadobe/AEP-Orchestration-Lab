@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-schema-fg">
+  <link rel="stylesheet" href="event-tool.css?v=20260511-event-tool-schema-id">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -108,16 +108,21 @@
                     It also registers <strong>ECID</strong> + <strong>Email</strong> on
                     <code class="et-code-inline">_{tenant}.identification.core.*</code> as <strong>secondary</strong> identity descriptors (not the schema primary).
                     For an <strong>existing</strong> Event Tool schema, use <strong>Attach recommended field groups</strong> after importing any missing field groups from the AEP library.
+                    You can attach by <strong>full schema <code class="et-code-inline">$id</code></strong> (optional field below) instead of the display title.
                   </p>
                   <div class="et-config-step-row">
                     <div class="form-row et-schema-name-row">
                       <label for="etSchemaTitle">Schema name</label>
-                      <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
+                      <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Event Tool - Schema - v1" autocomplete="off" spellcheck="false">
                     </div>
                     <div class="form-row form-row--action et-schema-actions">
                       <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">Create schema</button>
                       <button type="button" id="etAttachFieldGroupsBtn" class="btn btn-secondary">Attach recommended field groups</button>
                     </div>
+                  </div>
+                  <div class="form-row et-schema-id-row">
+                    <label for="etSchemaId">Schema <code class="et-code-inline">$id</code> (optional)</label>
+                    <input type="text" id="etSchemaId" placeholder="https://ns.adobe.com/…/schemas/…" autocomplete="off" spellcheck="false">
                   </div>
                   <div id="etSchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                   <div id="etAttachFgMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
@@ -306,7 +311,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="event-tool.js?v=20260511-event-tool-schema-fg"></script>
+  <script src="event-tool.js?v=20260511-event-tool-schema-id"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>

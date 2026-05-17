@@ -3780,7 +3780,7 @@ exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** POST /api/events/infra/step — createSchema | attachRecommendedFieldGroups | createDataset | createDatastream | probeTagsApi */
+/** POST /api/events/infra/step — body: step, schemaTitle?, schemaId?, datasetName?, datastreamName? */
 exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
@@ -3794,6 +3794,7 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   try {
     const result = await eventInfraService.runEventInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step, {
       schemaTitle: body.schemaTitle,
+      schemaId: body.schemaId,
       datasetName: body.datasetName,
       datastreamName: body.datastreamName,
     });
@@ -3803,19 +3804,23 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** GET /api/events/infra/event-types?sandbox=&schemaTitle= — extract eventType enum from schema */
+/** GET /api/events/infra/event-types?sandbox=&schemaTitle=|schemaId= — extract eventType enum from schema */
 exports.eventInfraEventTypes = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
   if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
   const sandbox = resolveSandboxFromQuery(req);
   const schemaTitle = String(req.query.schemaTitle || '').trim();
-  if (!schemaTitle) { res.status(400).json({ error: 'schemaTitle query param required', eventTypes: [] }); return; }
+  const schemaId = String(req.query.schemaId || '').trim();
+  if (!schemaTitle && !schemaId) {
+    res.status(400).json({ error: 'schemaTitle or schemaId query param required', eventTypes: [] });
+    return;
+  }
   let accessToken;
   try { accessToken = await getAdobeAccessToken(); }
   catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e), eventTypes: [] }); return; }
   try {
-    const result = await eventInfraService.fetchSchemaEventTypes(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle);
+    const result = await eventInfraService.fetchSchemaEventTypes(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle, schemaId);
     res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), eventTypes: [] });

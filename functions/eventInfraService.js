@@ -14,6 +14,14 @@ const ACCEPT_JSON = 'application/json';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
 const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
 
+/** List responses: prefer full XED so rows include meta:intendedToExtend (xed-id profile omits it). */
+const LIST_FIELDGROUP_ACCEPTS = [
+  'application/vnd.adobe.xed+json',
+  ACCEPT_XED,
+  'application/vnd.adobe.xed-id+json',
+  ACCEPT_JSON,
+];
+
 const eventEdgeService = require('./eventEdgeService');
 const tagsReactorService = require('./tagsReactorService');
 
@@ -55,6 +63,20 @@ async function findSchemaByTitle(token, clientId, orgId, sandbox, title) {
   if (!res.ok) return null;
   const results = data.results || [];
   return results.find((s) => String(s.title || '').trim() === title.trim()) || null;
+}
+
+/** Resolve a tenant schema by full `$id` URI (or `meta:altId`) for GET /tenant/schemas/{id}. */
+async function findSchemaById(token, clientId, orgId, sandbox, schemaId) {
+  const id = String(schemaId || '').trim();
+  if (!id) return null;
+  const enc = encodeURIComponent(id);
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
+  const { res, data } = await fetchJson(url, {
+    method: 'GET',
+    headers: headers(token, clientId, orgId, sandbox, { Accept: ACCEPT_XED }),
+  });
+  if (!res.ok) return null;
+  return data;
 }
 
 async function createEventSchema(token, clientId, orgId, sandbox, schemaTitle) {
@@ -139,7 +161,7 @@ async function listTenantFieldgroupsLike(token, clientId, orgId, sandbox) {
     'x-sandbox-name': sandbox,
   };
   const paths = ['/tenant/fieldgroups?limit=200', '/tenant/mixins?limit=200'];
-  const accepts = ['application/vnd.adobe.xed-id+json', 'application/vnd.adobe.xed+json', ACCEPT_XED, ACCEPT_JSON];
+  const accepts = LIST_FIELDGROUP_ACCEPTS;
   let lastErr = '';
   for (const pathSuffix of paths) {
     const url = `${SCHEMA_REGISTRY}${pathSuffix}`;
@@ -228,14 +250,14 @@ function dedupeFieldgroupsById(rows) {
  * Global OOTB field groups (ExperienceEvent-class) — used for Interaction Details Lite, Travel Hotel, etc.
  */
 async function listGlobalExperienceEventFieldgroups(token, clientId, orgId, sandbox) {
-  const url = `${SCHEMA_REGISTRY}/global/fieldgroups?limit=500&properties=title,$id,meta:intendedToExtend`;
+  const url = `${SCHEMA_REGISTRY}/global/fieldgroups?limit=300&properties=title,$id,meta:intendedToExtend`;
   const base = {
     Authorization: `Bearer ${token}`,
     'x-api-key': clientId,
     'x-gw-ims-org-id': orgId,
     'x-sandbox-name': sandbox,
   };
-  const accepts = ['application/vnd.adobe.xed-id+json', 'application/vnd.adobe.xed+json', ACCEPT_XED, ACCEPT_JSON];
+  const accepts = LIST_FIELDGROUP_ACCEPTS;
   let lastErr = '';
   for (const accept of accepts) {
     const { res, data } = await fetchJson(url, { method: 'GET', headers: { ...base, Accept: accept } });
@@ -683,14 +705,29 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
   if (step === 'attachRecommendedFieldGroups') {
     const title = String(opts.schemaTitle || '').trim();
-    if (!title) return { ok: false, error: 'schemaTitle is required.' };
-    const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
-    if (!schema) {
-      return { ok: false, error: `Schema "${title}" not found. Create the schema first or check the exact title.` };
+    const schemaIdOpt = String(opts.schemaId || '').trim();
+    if (!title && !schemaIdOpt) {
+      return { ok: false, error: 'Provide schemaTitle or schemaId (full schema $id URI).' };
+    }
+    let schema = null;
+    if (schemaIdOpt) {
+      schema = await findSchemaById(token, clientId, orgId, sandbox, schemaIdOpt);
+      if (!schema) {
+        return {
+          ok: false,
+          error: `Schema not found for schemaId. Check the URI, sandbox (${sandbox}), and IMS org access.`,
+        };
+      }
+    } else {
+      schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
+      if (!schema) {
+        return { ok: false, error: `Schema "${title}" not found. Create the schema first or check the exact title.` };
+      }
     }
     const metaAltId = schema['meta:altId'];
     if (!metaAltId) {
-      return { ok: false, error: `Schema "${title}" has no meta:altId yet — wait a few seconds after creation and retry.` };
+      const ref = String(schema.$id || schemaIdOpt || title || 'schema').trim();
+      return { ok: false, error: `Schema "${ref}" has no meta:altId yet — wait a few seconds after creation and retry.` };
     }
     let merged;
     try {
@@ -709,7 +746,8 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       };
     }
     const fgRes = await attachFieldGroupRefsToSchema(token, clientId, orgId, sandbox, metaAltId, refs);
-    const parts = [`Field groups processed for "${title}".`];
+    const label = schemaIdOpt ? schema.$id || schemaIdOpt : title;
+    const parts = [`Field groups processed for "${label}".`];
     if (fgRes.attached.length) parts.push(`Attached: ${fgRes.attached.length} (${fgRes.attached.map((r) => r.split('/').pop()).join(', ')}).`);
     if (fgRes.skipped.length) parts.push(`Already present: ${fgRes.skipped.length}.`);
     for (const w of fgRes.warnings) parts.push(`Warning: ${w}`);
@@ -719,6 +757,7 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       ok: true,
       sandbox,
       step,
+      schemaTitle: String(schema.title || '').trim() || null,
       schemaId: schema.$id,
       schemaMetaAltId: metaAltId,
       attachedFieldGroupIds: fgRes.attached,
@@ -912,10 +951,20 @@ function extractEventTypes(schema) {
     .sort((a, b) => a.value.localeCompare(b.value));
 }
 
-async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitle) {
-  log(sandbox, 'eventTypes.start', { schemaTitle });
-  const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, schemaTitle);
-  if (!schema) return { ok: false, error: `Schema "${schemaTitle}" not found.`, eventTypes: [] };
+async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitle, schemaIdOpt) {
+  const title = String(schemaTitle || '').trim();
+  const sid = String(schemaIdOpt || '').trim();
+  log(sandbox, 'eventTypes.start', { schemaTitle: title, schemaId: sid || undefined });
+  let schema = null;
+  if (sid) {
+    schema = await findSchemaById(token, clientId, orgId, sandbox, sid);
+  } else if (title) {
+    schema = await findSchemaByTitle(token, clientId, orgId, sandbox, title);
+  }
+  if (!schema) {
+    const ref = sid || title || 'schema';
+    return { ok: false, error: `Schema "${ref}" not found.`, eventTypes: [] };
+  }
 
   const full = await fetchFullSchema(token, clientId, orgId, sandbox, schema);
   let eventTypes = [];
@@ -933,7 +982,8 @@ async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitl
     log(sandbox, 'eventTypes.fromGlobal', { count: eventTypes.length });
   }
 
-  return { ok: true, schemaTitle, schemaId: schema.$id, eventTypes };
+  const resolvedTitle = String(schema.title || '').trim() || title || null;
+  return { ok: true, schemaTitle: resolvedTitle, schemaId: schema.$id, eventTypes };
 }
 
 module.exports = { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes };

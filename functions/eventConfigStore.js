@@ -75,6 +75,10 @@ async function saveEventConfig(sandbox, patch) {
         patch.schemaTitle !== undefined ? patch.schemaTitle : prev.schemaTitle,
         256
       ),
+      schemaId: trim(
+        patch.schemaId !== undefined ? patch.schemaId : prev.schemaId,
+        384
+      ),
       datasetName: trim(
         patch.datasetName !== undefined ? patch.datasetName : prev.datasetName,
         256
@@ -144,6 +148,10 @@ async function saveUserEventConfig(uid, sandbox, patch) {
         patch.schemaTitle !== undefined ? patch.schemaTitle : prev.schemaTitle,
         256,
       ),
+      schemaId: trim(
+        patch.schemaId !== undefined ? patch.schemaId : prev.schemaId,
+        384,
+      ),
       datasetName: trim(
         patch.datasetName !== undefined ? patch.datasetName : prev.datasetName,
         256,
@@ -168,6 +176,7 @@ async function saveUserEventConfig(uid, sandbox, patch) {
         datastreamId: savedUser.datastreamId,
         datastreamTitle: savedUser.datastreamTitle,
         schemaTitle: savedUser.schemaTitle,
+        schemaId: savedUser.schemaId,
         datasetName: savedUser.datasetName,
         customTriggers: savedUser.customTriggers,
         quickMenuTriggers: savedUser.quickMenuTriggers,

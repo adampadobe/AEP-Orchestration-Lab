@@ -43,7 +43,7 @@ const SEGMENT_JOBS_BASE = 'https://platform.adobe.io/data/core/ups/segment/jobs'
 const SEGMENTATION_PREVIEW_BASE = 'https://platform.adobe.io/data/core/ups/preview';
 
 /** Default schema for eventType enum lookup (demoemea events). */
-const DEFAULT_EVENT_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/d9b88a044ad96154637965a97ed63c7b20bdf2ab3b4f642e';
+const DEFAULT_EVENT_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/be572a5774e5efd073564998ffc4893a356b4d6c44d4788';
 
 const get = (obj, path) => path.split('.').reduce((o, k) => (o && o[k]), obj);
 
