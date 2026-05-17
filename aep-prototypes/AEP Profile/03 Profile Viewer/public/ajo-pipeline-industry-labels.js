@@ -6,6 +6,8 @@
  * `rankedJourneys` drives the ranked journey rows, card title, and result banner copy.
  * `nextBestPath` drives Stage 3 (#s3): intro, AJO 101, mini-canvas, formula legend, ranked path cards, footer.
  * `fsi` omits `nextBestPath` so the iframe HTML baseline (mortgage demo) restores for that toolbar key.
+ * Stages 4–6 (#s4–#s6): `channelOptimisation`, `sendTimeOptimisation`, `messagePersonalisation`; `fsi` omits all three.
+ * Load `ajo-pipeline-industry-stages456-labels.js` immediately after this file so merges run before `ajo-pipeline-industry-apply.js`.
  * Canonical toolbar keys: retail, fsi, travel, media, sports, telecommunications, public, healthcare
  * (dce-industry-toolbar.js). Legacy keys sent by some embeds are normalised in
  * ajo-pipeline-industry-apply.js migrateIndustryKey: telco→telecommunications, automotive→sports.

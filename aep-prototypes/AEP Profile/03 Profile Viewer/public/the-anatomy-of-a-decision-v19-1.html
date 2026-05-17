@@ -2765,22 +2765,22 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <button class="stage-tab" role="tab" data-stage="s4" onclick="sfSwitchStage('s4')">
   <span class="stage-tab-num">04</span>
   <span class="stage-tab-label">
-    <span class="stage-tab-eyebrow">Channel</span>
-    <span class="stage-tab-title">Channel optimisation</span>
+    <span class="stage-tab-eyebrow" data-aep-s4-tab-eyebrow="">Channel</span>
+    <span class="stage-tab-title" data-aep-s4-tab-title="">Channel optimisation</span>
   </span>
 </button>
 <button class="stage-tab" role="tab" data-stage="s5" onclick="sfSwitchStage('s5')">
   <span class="stage-tab-num">05</span>
   <span class="stage-tab-label">
-    <span class="stage-tab-eyebrow">Send time</span>
-    <span class="stage-tab-title">Send time optimisation</span>
+    <span class="stage-tab-eyebrow" data-aep-s5-tab-eyebrow="">Send time</span>
+    <span class="stage-tab-title" data-aep-s5-tab-title="">Send time optimisation</span>
   </span>
 </button>
 <button class="stage-tab" role="tab" data-stage="s6" onclick="sfSwitchStage('s6')">
   <span class="stage-tab-num">06</span>
   <span class="stage-tab-label">
-    <span class="stage-tab-eyebrow">Message</span>
-    <span class="stage-tab-title">Message personalisation</span>
+    <span class="stage-tab-eyebrow" data-aep-s6-tab-eyebrow="">Message</span>
+    <span class="stage-tab-title" data-aep-s6-tab-title="">Message personalisation</span>
   </span>
 </button>
 </div>
@@ -3357,14 +3357,15 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="stage-header">
 <div class="stage-number">04</div>
 <div class="stage-info">
-<h2>Channel optimisation</h2>
-<p>The engine selects the best delivery channel for the chosen path — respecting Sarah's reachability, channel-level engagement propensity, and contact policy. Channels split into <strong>inbound</strong> (the customer comes to us — sub-100ms decisions) and <strong>outbound</strong> (we reach to them — fatigue-aware).</p>
+<h2 data-aep-s4-title="">Channel optimisation</h2>
+<p data-aep-s4-intro="">The engine selects the best delivery channel for the chosen path — respecting Sarah's reachability, channel-level engagement propensity, and contact policy. Channels split into <strong>inbound</strong> (the customer comes to us — sub-100ms decisions) and <strong>outbound</strong> (we reach to them — fatigue-aware).</p>
 </div>
 </div>
 
 <div class="card">
-<div class="card-title">Channel arbitration · grouped by direction</div>
+<div class="card-title" data-aep-s4-card-title="">Channel arbitration · grouped by direction</div>
 
+<div data-aep-s4-groups="">
 <div class="s4-channel-group inbound">
   <div class="s4-channel-group-label">INBOUND  ·  customer-initiated · sub-100ms decision</div>
   <div class="channel-item">
@@ -3390,7 +3391,7 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
     <div class="channel-score">0.84</div>
   </div>
   <div class="channel-item">
-    <div class="channel-icon" style="background:#F3EEFC;color:#7B5CC7">💬</div>
+    <div class="channel-icon" style="background:var(--blue-soft);color:var(--blue)">💬</div>
     <div class="channel-name">SMS<span class="s4-cmeta">opt-in confirmed</span></div>
     <div class="channel-bar"><div class="bar-track"><div class="bar-fill bar-blue" data-w="66%"></div></div></div>
     <div class="channel-score">0.66</div>
@@ -3413,10 +3414,11 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
   </div>
 </div>
 </div>
+</div>
 
 <div class="result-banner" style="background:var(--accent-soft);border-color:var(--accent-border)">
-<h3 style="color:var(--accent)">Selected: Push notification (outbound)</h3>
-<p>Sarah's push engagement (0.84) wins arbitration. Mobile-first signal contributes a +0.32 boost. Email dropped out of contention — her weekly contact-frequency cap is already reached, so the engine respects fatigue rules. Inbound channels (web, in-app) remain on standby for any session triggers under 100ms.</p>
+<h3 style="color:var(--accent)" data-aep-s4-banner-title="">Selected: Push notification (outbound)</h3>
+<p data-aep-s4-banner-body="">Sarah's push engagement (0.84) wins arbitration. Mobile-first signal contributes a +0.32 boost. Email dropped out of contention — her weekly contact-frequency cap is already reached, so the engine respects fatigue rules. Inbound channels (web, in-app) remain on standby for any session triggers under 100ms.</p>
 </div>
 </section>
 
@@ -3427,15 +3429,15 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 <div class="stage-header">
 <div class="stage-number">05</div>
 <div class="stage-info">
-<h2>Send time optimisation</h2>
-<p>For outbound channels (push, SMS), the engine schedules delivery at Sarah's predicted peak-engagement window. For inbound channels (web, in-app), there is no schedule — the engine evaluates and responds in real time, sub-100 ms, the moment Sarah arrives.</p>
+<h2 data-aep-s5-title="">Send time optimisation</h2>
+<p data-aep-s5-intro="">For outbound channels (push, SMS), the engine schedules delivery at Sarah's predicted peak-engagement window. For inbound channels (web, in-app), there is no schedule — the engine evaluates and responds in real time, sub-100 ms, the moment Sarah arrives.</p>
 </div>
 </div>
 
 <!-- Timing spectrum -->
 <div class="card">
-<div class="card-title">The timing spectrum · scheduled ↔ real-time</div>
-<div class="s5-spectrum">
+<div class="card-title" data-aep-s5-spectrum-card-title="">The timing spectrum · scheduled ↔ real-time</div>
+<div class="s5-spectrum" data-aep-s5-spectrum="">
   <div class="s5-spectrum-bar"></div>
   <div class="s5-spectrum-end left">
     <div class="s5-spectrum-label">SCHEDULED</div>
@@ -3454,17 +3456,17 @@ SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
 
 <!-- Outbound: heatmap predicting Sarah's peak hour -->
 <div class="card card-lg">
-<div class="card-title">Outbound · engagement probability by hour of day</div>
+<div class="card-title" data-aep-s5-heatmap-card-title="">Outbound · engagement probability by hour of day</div>
 <div class="time-heatmap" id="heatmap"></div>
 <div class="time-labels">
 <span>12am</span><span>3am</span><span>6am</span><span>9am</span><span>12pm</span><span>3pm</span><span>6pm</span><span>9pm</span>
 </div>
-<div style="margin-top:14px;font-size:13px;color:var(--text-secondary);line-height:1.65">
+<div data-aep-s5-heatmap-caption="" style="margin-top:14px;font-size:13px;color:var(--text-secondary);line-height:1.65">
 The model predicts Sarah's peak engagement at <strong style="color:var(--accent)">19:00 – 20:00</strong> — aligning with her evening mobile-first usage pattern. Push is scheduled automatically for that window.
 </div>
 </div>
 
-<div class="metrics-grid">
+<div class="metrics-grid" data-aep-s5-metrics="">
 <div class="metric-card">
 <div class="metric-label">Outbound · scheduled at</div>
 <div class="metric-value red">19:00</div>
@@ -3492,21 +3494,22 @@ The model predicts Sarah's peak engagement at <strong style="color:var(--accent)
 <div class="stage-header">
 <div class="stage-number">06</div>
 <div class="stage-info">
-<h2>Message personalisation</h2>
-<p>The last mile assembles the push notification from the item library. The Selection Strategy ranks every eligible item, applies eligibility &amp; capping rules, and chooses the top item for each container — including a dynamic-content underused-feature surface and a variant-aware primary item.</p>
+<h2 data-aep-s6-title="">Message personalisation</h2>
+<p data-aep-s6-intro="">The last mile assembles the push notification from the item library. The Selection Strategy ranks every eligible item, applies eligibility &amp; capping rules, and chooses the top item for each container — including a dynamic-content underused-feature surface and a variant-aware primary item.</p>
 </div>
 </div>
 
 <!-- Selection strategy ranking -->
 <div class="card">
-<div class="card-title">Selection Strategy · ranked items in the library</div>
+<div class="card-title" data-aep-s6-selection-card-title="">Selection Strategy · ranked items in the library</div>
+<div data-aep-s6-item-list="">
 <div class="s6-item chosen">
   <div class="s6-itype" style="background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border)">PRIMARY</div>
   <div class="s6-iname">Refinance options · standard variant<span class="s6-imeta">expiry &gt; 24h · calm framing</span></div>
   <div class="s6-iscore">0.92</div>
 </div>
 <div class="s6-item">
-  <div class="s6-itype" style="background:#FFF8EC;color:#B8760C;border-color:#E8D5A8">VARIANT</div>
+  <div class="s6-itype" style="background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border)">VARIANT</div>
   <div class="s6-iname">Refinance options · urgency variant<span class="s6-imeta">activates if rate-lock &lt; 24h</span></div>
   <div class="s6-iscore">—</div>
 </div>
@@ -3521,28 +3524,29 @@ The model predicts Sarah's peak engagement at <strong style="color:var(--accent)
   <div class="s6-iscore">0.65</div>
 </div>
 <div class="s6-item">
-  <div class="s6-itype" style="background:#F3EEFC;color:#7B5CC7;border-color:#D8CCEF">CROSS-SELL</div>
+  <div class="s6-itype" style="background:var(--coral-soft);color:var(--coral);border-color:var(--coral-border)">CROSS-SELL</div>
   <div class="s6-iname">Life cover assessment · AI-ranked secondary<span class="s6-imeta">family_protection propensity</span></div>
   <div class="s6-iscore">0.54</div>
+</div>
 </div>
 </div>
 
 <!-- Assembled push notification -->
 <div class="card">
-<div class="card-title">Assembled push notification</div>
-<div class="message-preview">
+<div class="card-title" data-aep-s6-assembled-card-title="">Assembled push notification</div>
+<div class="message-preview" data-aep-s6-assembled-body="">
 <div class="subject">Clarity on your refinance options</div>
 <div class="body">Hi Sarah — your refinance simulation is ready when you are. Indicative annual saving based on your figures: <strong style="color:var(--teal)">£2,244</strong>.</div>
 <span class="message-cta">Review Options</span>
 </div>
-<div style="margin-top:12px;font-size:11px;color:var(--text-muted);font-style:italic;line-height:1.5">
+<div data-aep-s6-brand-note="" style="margin-top:12px;font-size:11px;color:var(--text-muted);font-style:italic;line-height:1.5">
 Brand voice: trustworthy, calm, no urgency framing. CTA is action-led, ≤3 words. The standard variant is delivered because Sarah's rate-lock window is &gt;24 hours away — drag the Rate-lock slider in the Flow Analysis profile panel below 24h to swap to the urgency variant.
 </div>
 </div>
 
 <div class="result-banner">
-<h3>End-to-end optimisation complete</h3>
-<p>Each of the six stages — profile, journey, path, channel, send time, and message — fed into the next. The result: one decision, one channel, one moment, one variant — all tuned to Sarah and to the business at the same time.</p>
+<h3 data-aep-s6-end-title="">End-to-end optimisation complete</h3>
+<p data-aep-s6-end-body="">Each of the six stages — profile, journey, path, channel, send time, and message — fed into the next. The result: one decision, one channel, one moment, one variant — all tuned to Sarah and to the business at the same time.</p>
 </div>
 </section>
 
@@ -5183,8 +5187,9 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
-<script src="ajo-pipeline-industry-labels.js?v=20260521"></script>
-<script src="ajo-pipeline-industry-apply.js?v=20260521"></script>
+<script src="ajo-pipeline-industry-labels.js?v=20260517"></script>
+<script src="ajo-pipeline-industry-stages456-labels.js?v=20260517"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260517"></script>
 <script>
 (function () {
   try {

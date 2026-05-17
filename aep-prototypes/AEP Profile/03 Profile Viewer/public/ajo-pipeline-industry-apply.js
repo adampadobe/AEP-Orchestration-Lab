@@ -7,6 +7,8 @@
  * funnel + formula legend; `rankedJourneys` updates the five ranked rows and explainer (HTML-safe).
  * Stage 3 (#s3): `nextBestPath` updates intro, AJO 101 callout, mini-canvas labels, path formula legend,
  * ranked path cards, and footer metrics; `fsi` omits `nextBestPath` and restores the HTML baseline.
+ * Stages 4–6 (#s4–#s6): `channelOptimisation`, `sendTimeOptimisation`, `messagePersonalisation` retune tab
+ * copy + matrices; `fsi` omits all three (same restore pattern as `nextBestPath`).
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -731,6 +733,310 @@
     if (typeof window.drawAjoCanvas === 'function') setTimeout(window.drawAjoCanvas, 40);
   }
 
+  var S4_GROUP_CLASS = { inbound: 1, outbound: 1, agent: 1 };
+  var S6_ITYPE_STYLE = {
+    primary: 'background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border)',
+    variant: 'background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border)',
+    dynamic: 'background:var(--teal-soft);color:var(--teal);border-color:var(--teal-border)',
+    crosssell: 'background:var(--blue-soft);color:var(--blue);border-color:var(--blue-border)',
+    accentAlt: 'background:var(--coral-soft);color:var(--coral);border-color:var(--coral-border)',
+  };
+
+  function s4ChannelRowHtml(r) {
+    var cls = 'channel-item';
+    if (r.winner) cls += ' winner';
+    if (r.dimmed) cls += ' dimmed';
+    var metaCls = 's4-cmeta' + (r.metaWarn ? ' s4-cmeta-warn' : '');
+    var meta =
+      r.meta != null && r.meta !== ''
+        ? '<span class="' + metaCls + '">' + escapeHtml(r.meta) + '</span>'
+        : '';
+    var barCls = r.barClass && /^bar-/.test(r.barClass) ? r.barClass : 'bar-teal';
+    return (
+      '<div class="' +
+      cls +
+      '">\n    <div class="channel-icon" style="' +
+      escapeHtml(r.iconStyle || '') +
+      '">' +
+      escapeHtml(r.icon || '') +
+      '</div>\n    <div class="channel-name">' +
+      escapeHtml(r.name || '') +
+      meta +
+      '</div>\n    <div class="channel-bar"><div class="bar-track"><div class="bar-fill ' +
+      barCls +
+      '" data-w="' +
+      escapeHtml(r.barW || '0%') +
+      '"></div></div></div>\n    <div class="channel-score">' +
+      escapeHtml(r.score || '') +
+      '</div>\n  </div>'
+    );
+  }
+
+  function s4GroupsHtmlFromSpec(groups) {
+    if (!groups || !groups.length) return '';
+    return groups
+      .map(function (g) {
+        var gcl = S4_GROUP_CLASS[g.cssClass] ? g.cssClass : 'inbound';
+        var rows = (g.rows || [])
+          .map(function (row) {
+            return s4ChannelRowHtml(row);
+          })
+          .join('\n  ');
+        return (
+          '<div class="s4-channel-group ' +
+          gcl +
+          '">\n  <div class="s4-channel-group-label">' +
+          escapeHtml(g.label || '') +
+          '</div>\n  ' +
+          rows +
+          '\n</div>'
+        );
+      })
+      .join('\n');
+  }
+
+  function s5SpectrumHtml(m) {
+    var markers = (m.markers || [])
+      .map(function (mk) {
+        var cl = mk.cls === 'inbound' ? 'inbound' : 'outbound';
+        return (
+          '<div class="s5-spectrum-marker ' +
+          cl +
+          '" style="left:' +
+          escapeHtml(mk.left || '0%') +
+          '">' +
+          escapeHtml(mk.label || '') +
+          '</div>'
+        );
+      })
+      .join('\n  ');
+    return (
+      '<div class="s5-spectrum-bar"></div>\n  <div class="s5-spectrum-end left">\n    <div class="s5-spectrum-label">' +
+      escapeHtml(m.scheduledLabel || '') +
+      '</div>\n    <div class="s5-spectrum-detail">' +
+      escapeHtml(m.scheduledDetail || '') +
+      '</div>\n  </div>\n  <div class="s5-spectrum-end right">\n    <div class="s5-spectrum-label">' +
+      escapeHtml(m.realtimeLabel || '') +
+      '</div>\n    <div class="s5-spectrum-detail">' +
+      escapeHtml(m.realtimeDetail || '') +
+      '</div>\n  </div>\n  ' +
+      markers
+    );
+  }
+
+  function s5MetricsHtml(metrics) {
+    if (!metrics || !metrics.length) return '';
+    return metrics
+      .map(function (x) {
+        var bar = '';
+        if (x.barW) {
+          bar =
+            '<div class="bar-track"><div class="bar-fill bar-teal" data-w="' +
+            escapeHtml(x.barW) +
+            '"></div></div>';
+        }
+        var vc = x.valueClass && /^[a-z-]+$/.test(x.valueClass) ? x.valueClass : 'teal';
+        var valInner = x.valueHtml != null ? x.valueHtml : escapeHtml(x.value || '');
+        return (
+          '<div class="metric-card">\n<div class="metric-label">' +
+          escapeHtml(x.label || '') +
+          '</div>\n<div class="metric-value ' +
+          vc +
+          '">' +
+          valInner +
+          '</div>\n' +
+          bar +
+          '</div>'
+        );
+      })
+      .join('\n');
+  }
+
+  function s6ItemsHtml(items) {
+    return (items || [])
+      .map(function (it) {
+        var st = S6_ITYPE_STYLE[it.itypeStyle] ? S6_ITYPE_STYLE[it.itypeStyle] : S6_ITYPE_STYLE.primary;
+        var meta =
+          it.meta != null && it.meta !== ''
+            ? '<span class="s6-imeta">' + escapeHtml(it.meta) + '</span>'
+            : '';
+        return (
+          '<div class="s6-item' +
+          (it.chosen ? ' chosen' : '') +
+          '">\n  <div class="s6-itype" style="' +
+          st +
+          '">' +
+          escapeHtml(it.itypeLabel || '') +
+          '</div>\n  <div class="s6-iname">' +
+          escapeHtml(it.name || '') +
+          meta +
+          '</div>\n  <div class="s6-iscore">' +
+          escapeHtml(it.score != null ? String(it.score) : '') +
+          '</div>\n</div>'
+        );
+      })
+      .join('\n');
+  }
+
+  function ensureStages456Baseline() {
+    if (window.__AEP_STAGES_456_BASE) return;
+    function qText(sel) {
+      var el = document.querySelector(sel);
+      return el ? el.textContent : '';
+    }
+    function qHtml(sel) {
+      var el = document.querySelector(sel);
+      return el ? el.innerHTML : '';
+    }
+    try {
+      window.__AEP_STAGES_456_BASE = {
+        s4TabEyebrow: qText('[data-aep-s4-tab-eyebrow]'),
+        s4TabTitle: qText('[data-aep-s4-tab-title]'),
+        s4Title: qText('[data-aep-s4-title]'),
+        s4Intro: qText('[data-aep-s4-intro]'),
+        s4CardTitle: qText('[data-aep-s4-card-title]'),
+        s4GroupsHtml: qHtml('[data-aep-s4-groups]'),
+        s4BannerTitle: qText('[data-aep-s4-banner-title]'),
+        s4BannerBody: qText('[data-aep-s4-banner-body]'),
+        s5TabEyebrow: qText('[data-aep-s5-tab-eyebrow]'),
+        s5TabTitle: qText('[data-aep-s5-tab-title]'),
+        s5Title: qText('[data-aep-s5-title]'),
+        s5Intro: qText('[data-aep-s5-intro]'),
+        s5SpectrumCardTitle: qText('[data-aep-s5-spectrum-card-title]'),
+        s5SpectrumHtml: qHtml('[data-aep-s5-spectrum]'),
+        s5HeatmapCardTitle: qText('[data-aep-s5-heatmap-card-title]'),
+        s5HeatmapCaptionHtml: qHtml('[data-aep-s5-heatmap-caption]'),
+        s5MetricsHtml: qHtml('[data-aep-s5-metrics]'),
+        s6TabEyebrow: qText('[data-aep-s6-tab-eyebrow]'),
+        s6TabTitle: qText('[data-aep-s6-tab-title]'),
+        s6Title: qText('[data-aep-s6-title]'),
+        s6Intro: qText('[data-aep-s6-intro]'),
+        s6SelectionCardTitle: qText('[data-aep-s6-selection-card-title]'),
+        s6ItemListHtml: qHtml('[data-aep-s6-item-list]'),
+        s6AssembledCardTitle: qText('[data-aep-s6-assembled-card-title]'),
+        s6AssembledInnerHtml: qHtml('[data-aep-s6-assembled-body]'),
+        s6BrandNote: qText('[data-aep-s6-brand-note]'),
+        s6EndTitle: qText('[data-aep-s6-end-title]'),
+        s6EndBody: qText('[data-aep-s6-end-body]'),
+      };
+    } catch (e) {
+      window.__AEP_STAGES_456_BASE = null;
+    }
+  }
+
+  function restoreStages456Baseline() {
+    var b = window.__AEP_STAGES_456_BASE;
+    if (!b) return;
+    function setT(sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.textContent = val;
+    }
+    function setH(sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.innerHTML = val;
+    }
+    setT('[data-aep-s4-tab-eyebrow]', b.s4TabEyebrow);
+    setT('[data-aep-s4-tab-title]', b.s4TabTitle);
+    setT('[data-aep-s4-title]', b.s4Title);
+    setT('[data-aep-s4-intro]', b.s4Intro);
+    setT('[data-aep-s4-card-title]', b.s4CardTitle);
+    setH('[data-aep-s4-groups]', b.s4GroupsHtml);
+    setT('[data-aep-s4-banner-title]', b.s4BannerTitle);
+    setT('[data-aep-s4-banner-body]', b.s4BannerBody);
+    setT('[data-aep-s5-tab-eyebrow]', b.s5TabEyebrow);
+    setT('[data-aep-s5-tab-title]', b.s5TabTitle);
+    setT('[data-aep-s5-title]', b.s5Title);
+    setT('[data-aep-s5-intro]', b.s5Intro);
+    setT('[data-aep-s5-spectrum-card-title]', b.s5SpectrumCardTitle);
+    setH('[data-aep-s5-spectrum]', b.s5SpectrumHtml);
+    setT('[data-aep-s5-heatmap-card-title]', b.s5HeatmapCardTitle);
+    setH('[data-aep-s5-heatmap-caption]', b.s5HeatmapCaptionHtml);
+    setH('[data-aep-s5-metrics]', b.s5MetricsHtml);
+    setT('[data-aep-s6-tab-eyebrow]', b.s6TabEyebrow);
+    setT('[data-aep-s6-tab-title]', b.s6TabTitle);
+    setT('[data-aep-s6-title]', b.s6Title);
+    setT('[data-aep-s6-intro]', b.s6Intro);
+    setT('[data-aep-s6-selection-card-title]', b.s6SelectionCardTitle);
+    setH('[data-aep-s6-item-list]', b.s6ItemListHtml);
+    setT('[data-aep-s6-assembled-card-title]', b.s6AssembledCardTitle);
+    setH('[data-aep-s6-assembled-body]', b.s6AssembledInnerHtml);
+    setT('[data-aep-s6-brand-note]', b.s6BrandNote);
+    setT('[data-aep-s6-end-title]', b.s6EndTitle);
+    setT('[data-aep-s6-end-body]', b.s6EndBody);
+  }
+
+  function applyChannelOptimisation(co) {
+    if (!co) return;
+    var setT = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.textContent = val;
+    };
+    var setH = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.innerHTML = val;
+    };
+    if (co.tabEyebrow != null) setT('[data-aep-s4-tab-eyebrow]', co.tabEyebrow);
+    if (co.tabTitle != null) setT('[data-aep-s4-tab-title]', co.tabTitle);
+    if (co.title != null) setT('[data-aep-s4-title]', co.title);
+    if (co.intro != null) setT('[data-aep-s4-intro]', co.intro);
+    if (co.cardTitle != null) setT('[data-aep-s4-card-title]', co.cardTitle);
+    if (co.groups && co.groups.length) setH('[data-aep-s4-groups]', s4GroupsHtmlFromSpec(co.groups));
+    if (co.resultTitle != null) setT('[data-aep-s4-banner-title]', co.resultTitle);
+    if (co.resultBody != null) setT('[data-aep-s4-banner-body]', co.resultBody);
+  }
+
+  function applySendTimeOptimisation(st) {
+    if (!st) return;
+    var setT = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.textContent = val;
+    };
+    var setH = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.innerHTML = val;
+    };
+    if (st.tabEyebrow != null) setT('[data-aep-s5-tab-eyebrow]', st.tabEyebrow);
+    if (st.tabTitle != null) setT('[data-aep-s5-tab-title]', st.tabTitle);
+    if (st.title != null) setT('[data-aep-s5-title]', st.title);
+    if (st.intro != null) setT('[data-aep-s5-intro]', st.intro);
+    if (st.spectrumCardTitle != null) setT('[data-aep-s5-spectrum-card-title]', st.spectrumCardTitle);
+    if (st.spectrum) setH('[data-aep-s5-spectrum]', s5SpectrumHtml(st.spectrum));
+    if (st.heatmapCardTitle != null) setT('[data-aep-s5-heatmap-card-title]', st.heatmapCardTitle);
+    if (st.heatmapCaptionHtml != null) setH('[data-aep-s5-heatmap-caption]', st.heatmapCaptionHtml);
+    if (st.metrics && st.metrics.length) setH('[data-aep-s5-metrics]', s5MetricsHtml(st.metrics));
+  }
+
+  function applyMessagePersonalisation(mp) {
+    if (!mp) return;
+    var setT = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.textContent = val;
+    };
+    var setH = function (sel, val) {
+      var el = document.querySelector(sel);
+      if (el && val != null) el.innerHTML = val;
+    };
+    if (mp.tabEyebrow != null) setT('[data-aep-s6-tab-eyebrow]', mp.tabEyebrow);
+    if (mp.tabTitle != null) setT('[data-aep-s6-tab-title]', mp.tabTitle);
+    if (mp.title != null) setT('[data-aep-s6-title]', mp.title);
+    if (mp.intro != null) setT('[data-aep-s6-intro]', mp.intro);
+    if (mp.selectionCardTitle != null) setT('[data-aep-s6-selection-card-title]', mp.selectionCardTitle);
+    if (mp.items && mp.items.length) setH('[data-aep-s6-item-list]', s6ItemsHtml(mp.items));
+    if (mp.assembledCardTitle != null) setT('[data-aep-s6-assembled-card-title]', mp.assembledCardTitle);
+    if (mp.subject != null || mp.bodyHtml != null || mp.cta != null) {
+      var subj = escapeHtml(mp.subject || '');
+      var body = mp.bodyHtml != null ? mp.bodyHtml : '';
+      var cta = escapeHtml(mp.cta || '');
+      setH(
+        '[data-aep-s6-assembled-body]',
+        '<div class="subject">' + subj + '</div>\n<div class="body">' + body + '</div>\n<span class="message-cta">' + cta + '</span>'
+      );
+    }
+    if (mp.brandNote != null) setT('[data-aep-s6-brand-note]', mp.brandNote);
+    if (mp.endBannerTitle != null) setT('[data-aep-s6-end-title]', mp.endBannerTitle);
+    if (mp.endBannerBody != null) setT('[data-aep-s6-end-body]', mp.endBannerBody);
+  }
+
   function resetFlowUiAfterIndustryChange() {
     try {
       sfExpandedJourney = null;
@@ -770,6 +1076,7 @@
     ensureBusinessImpactBaseline();
     ensureJourneyPrioritisationBaseline();
     ensureNextBestPathBaseline();
+    ensureStages456Baseline();
 
     document.body.setAttribute('data-dce-industry', key);
 
@@ -843,6 +1150,18 @@
       applyNextBestPath(labels.nextBestPath);
     } else {
       restoreNextBestPathBaseline();
+    }
+
+    if (
+      labels.channelOptimisation &&
+      labels.sendTimeOptimisation &&
+      labels.messagePersonalisation
+    ) {
+      applyChannelOptimisation(labels.channelOptimisation);
+      applySendTimeOptimisation(labels.sendTimeOptimisation);
+      applyMessagePersonalisation(labels.messagePersonalisation);
+    } else {
+      restoreStages456Baseline();
     }
 
     resetFlowUiAfterIndustryChange();
