@@ -49,6 +49,24 @@ function getIdentityMapEcidKey(body) {
 }
 
 /**
+ * When true, build _demoemea events with Email as the only identityMap entry (primary: true)
+ * and tenant identification.core = { email } only — for guests with no browser ECID.
+ * Request: `primaryIdentity: 'email'` (or `emailPrimaryIdentity: true`) plus non-empty `email`.
+ * @param {Record<string, unknown>} body
+ * @param {string} tenantKey
+ */
+function shouldUseEmailPrimaryIdentity(body, tenantKey) {
+  const b = body && typeof body === 'object' ? body : {};
+  if (String(tenantKey || '').trim() !== '_demoemea') return false;
+  const email = String(b.email || '').trim();
+  if (!email) return false;
+  const pi = String(b.primaryIdentity || '').trim().toLowerCase();
+  if (pi === 'email') return true;
+  if (b.emailPrimaryIdentity === true || b.emailPrimaryIdentity === 'true') return true;
+  return false;
+}
+
+/**
  * Profile / Identity resolve Experience Cloud IDs under namespace code "ECID".
  * identityMap.ecid (lowercase) is a different key and often does not stitch to the same profile
  * as UPS queries using relatedEntityIdNS=ECID — coalesce to the standard code.
@@ -391,6 +409,15 @@ function buildEventGeneratorXdm(reqBody, options) {
     mergeGeneratorPublicIntoTenant(tenantNode, body.public);
     mergeGeneratorInteractionDetailsChannel(tenantNode, effectiveChannel);
 
+    if (shouldUseEmailPrimaryIdentity(body, tenantKey)) {
+      const em = String(body.email || '').trim();
+      delete identityMap[ecidImKey];
+      delete identityMap.ECID;
+      delete identityMap.ecid;
+      identityMap.Email = [{ id: em, primary: true }];
+      tenantNode.identification = { core: { email: em } };
+    }
+
     const xdm = {
       identityMap,
       [tenantKey]: tenantNode,
@@ -482,6 +509,16 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (!xdm._demoemea.identification) xdm._demoemea.identification = {};
     if (!xdm._demoemea.identification.core) xdm._demoemea.identification.core = {};
     xdm._demoemea.identification.core.email = emailInteract;
+  }
+  if (shouldUseEmailPrimaryIdentity(body, '_demoemea')) {
+    const em = String(body.email || '').trim();
+    delete xdm.identityMap.ECID;
+    delete xdm.identityMap.ecid;
+    delete xdm.identityMap.Email;
+    xdm.identityMap.Email = [{ id: em, primary: true }];
+    if (!xdm._demoemea) xdm._demoemea = {};
+    if (!xdm._demoemea.identification) xdm._demoemea.identification = {};
+    xdm._demoemea.identification.core = { email: em };
   }
   const viewName = body.viewName != null ? String(body.viewName).trim() : '';
   const viewUrl = body.viewUrl != null ? String(body.viewUrl).trim() : '';

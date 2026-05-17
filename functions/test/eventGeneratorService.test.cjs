@@ -105,6 +105,20 @@ test('buildEventGeneratorXdm merges bookingParty into _demoemea.public', () => {
   assert.equal(xdm._demoemea.public.bookingParty.stayer.email, 'bob@example.com');
 });
 
+test('buildEventGeneratorXdm email-primary _demoemea uses Email identity only (no ECID)', () => {
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'hotel.booking.stayerIdentified',
+    email: 'stayer@example.com',
+    primaryIdentity: 'email',
+    public: { hotelPropertyName: 'Test Inn' },
+  });
+  assert.ok(xdm.identityMap.Email);
+  assert.equal(xdm.identityMap.Email[0].id, 'stayer@example.com');
+  assert.equal(xdm.identityMap.Email[0].primary, true);
+  assert.equal(xdm.identityMap.ECID, undefined);
+  assert.deepEqual(xdm._demoemea.identification.core, { email: 'stayer@example.com' });
+});
+
 test('buildEventGeneratorXdm infers web channel for hotel.* when channel omitted (standard channel + interactionDetails)', () => {
   const ecid = '03976612467829823963241934423837679452';
   const xdm = buildEventGeneratorXdm({

@@ -104,11 +104,10 @@ function premierInnLooksLikeEmail(s) {
 }
 
 /**
- * Upserts the stayer generic profile and returns the ECID Adobe has for that person
- * (existing lookup when appendIfExisting, else generated) so the follow-up Experience Event
- * can use the same identities as the profile, not the booker's browser ECID.
+ * Ensures a generic UPS profile exists for the stayer (names via attributes).
+ * The follow-up Experience Event uses `primaryIdentity: 'email'` (no browser ECID).
  * @param {Record<string, unknown>} [pub] - iframe `public` (hotelStayer* fields)
- * @returns {Promise<{ ok: true, email: string, ecid: string } | { ok: false, error: string }>}
+ * @returns {Promise<{ ok: true, email: string } | { ok: false, error: string }>}
  */
 async function upsertPremierInnStayerProfile(pub) {
   const p = pub && typeof pub === 'object' ? pub : {};
@@ -145,11 +144,7 @@ async function upsertPremierInnStayerProfile(pub) {
       const detail = data.error || data.message || `HTTP ${res.status}`;
       return { ok: false, error: String(detail) };
     }
-    const outEcid = data.ecid != null ? String(data.ecid).trim() : '';
-    if (!/^\d{10,}$/.test(outEcid)) {
-      return { ok: false, error: 'Profile upsert succeeded but no usable ECID was returned for the stayer.' };
-    }
-    return { ok: true, email: em, ecid: outEcid };
+    return { ok: true, email: em };
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) };
   }
@@ -180,7 +175,7 @@ async function sendPremierInnHotelExperienceEvent(payload) {
       return false;
     }
     emailForEvent = prep.email;
-    ecid = prep.ecid;
+    ecid = null;
   }
 
   const target = getSelectedGeneratorTarget();
@@ -196,6 +191,9 @@ async function sendPremierInnHotelExperienceEvent(payload) {
   };
   if (emailForEvent) body.email = emailForEvent;
   if (ecid) body.ecid = ecid;
+  if (eventType === 'hotel.booking.stayerIdentified') {
+    body.primaryIdentity = 'email';
+  }
   const postBody =
     typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
       ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
@@ -219,13 +217,23 @@ async function sendPremierInnHotelExperienceEvent(payload) {
     if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
     else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
     setPremierInnMessage((data.message || 'Hotel journey event sent to AEP.') + idPart, 'success');
-    if (ecid && typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
-      void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+    let refreshId = ecid;
+    let refreshNs = 'ecid';
+    if (eventType === 'hotel.booking.stayerIdentified' && emailForEvent) {
+      refreshId = emailForEvent;
+      refreshNs = 'email';
+    }
+    if (
+      refreshId &&
+      typeof DemoProfileDrawer !== 'undefined' &&
+      typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function'
+    ) {
+      void DemoProfileDrawer.refreshDrawerEventsForIdentity(refreshId, refreshNs);
       window.setTimeout(function () {
-        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(refreshId, refreshNs);
       }, 2500);
       window.setTimeout(function () {
-        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(refreshId, refreshNs);
       }, 8000);
     }
     return true;
