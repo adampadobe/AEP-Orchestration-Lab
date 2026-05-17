@@ -9,6 +9,9 @@
  * ranked path cards, and footer metrics; `fsi` omits `nextBestPath` and restores the HTML baseline.
  * Stages 4–6 (#s4–#s6): `channelOptimisation`, `sendTimeOptimisation`, `messagePersonalisation` retune tab
  * copy + matrices; `fsi` omits all three (same restore pattern as `nextBestPath`).
+ * Decisioning controls (cascade view): `decisioningControls` on industry packs or
+ * `window.AEP_PIPELINE_DECISIONING_CONTROLS` — chips + `SCENARIOS` mini-cards 01–06; `fsi` restores
+ * `__AEP_DC_BASE_SNAPSHOT` baseline from the anatomy HTML.
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -1037,6 +1040,112 @@
     if (mp.endBannerBody != null) setT('[data-aep-s6-end-body]', mp.endBannerBody);
   }
 
+  var SF_DC_PROP_TO_JID = { refi: 'mortgage', invest: 'invest', card: 'card', retain: 'retention' };
+
+  function deepClone(o) {
+    return JSON.parse(JSON.stringify(o));
+  }
+
+  function ensureDecisioningControlsBaseline() {
+    if (window.__AEP_DECISIONING_CONTROLS_BASE) return;
+    var snap = window.__AEP_DC_BASE_SNAPSHOT;
+    if (!snap || !window.__AEP_CASCADE_SCENARIOS) {
+      window.__AEP_DECISIONING_CONTROLS_BASE = null;
+      return;
+    }
+    try {
+      window.__AEP_DECISIONING_CONTROLS_BASE = {
+        attrRowHtml: snap.attrRowHtml,
+        propRowHtml: snap.propRowHtml,
+        scenarios: JSON.parse(snap.scenariosJson),
+        state: JSON.parse(snap.stateJson),
+      };
+    } catch (e) {
+      window.__AEP_DECISIONING_CONTROLS_BASE = null;
+    }
+  }
+
+  function restoreDcUiState(s) {
+    var st = window.__AEP_CASCADE_STATE;
+    if (!st || !s) return;
+    st.attrs.clear();
+    (s.attrs || []).forEach(function (a) {
+      st.attrs.add(a);
+    });
+    st.prop = s.prop || 'refi';
+    st.formula = s.formula || 'balanced';
+    document.querySelectorAll('#dcAttrRow [data-attr]').forEach(function (el) {
+      var da = el.getAttribute('data-attr');
+      el.classList.toggle('active', da && st.attrs.has(da));
+    });
+    document.querySelectorAll('#dcPropRow [data-prop]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-prop') === st.prop);
+    });
+    document.querySelectorAll('.cascade-controls [data-formula]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-formula') === st.formula);
+    });
+  }
+
+  function restoreDecisioningControlsBaseline() {
+    var b = window.__AEP_DECISIONING_CONTROLS_BASE;
+    if (!b || !window.__AEP_CASCADE_SCENARIOS) return;
+    var ar = document.getElementById('dcAttrRow');
+    var pr = document.getElementById('dcPropRow');
+    if (ar && b.attrRowHtml != null) ar.innerHTML = b.attrRowHtml;
+    if (pr && b.propRowHtml != null) pr.innerHTML = b.propRowHtml;
+    var scen = window.__AEP_CASCADE_SCENARIOS;
+    var baseScen = b.scenarios;
+    if (baseScen && scen) {
+      ['refi', 'invest', 'card', 'retain'].forEach(function (k) {
+        if (baseScen[k] != null) scen[k] = deepClone(baseScen[k]);
+      });
+    }
+    window.__AEP_CASCADE_ATTR_LABELS = null;
+    window.__AEP_CASCADE_CHANNEL_HINTS = null;
+    restoreDcUiState(b.state);
+    if (typeof window.__AEP_CASCADE_RENDER === 'function') window.__AEP_CASCADE_RENDER();
+  }
+
+  function syncCascadeScenariosFromSf() {
+    var scen = window.__AEP_CASCADE_SCENARIOS;
+    var sj = window.SF_JOURNEYS;
+    var sp = window.SF_PATHS;
+    if (!scen || !sj || !sp) return;
+    Object.keys(SF_DC_PROP_TO_JID).forEach(function (pk) {
+      var sc = scen[pk];
+      if (!sc || !sc.journeys) return;
+      for (var ji = 0; ji < sc.journeys.length && ji < sj.length; ji++) {
+        if (sj[ji].name != null) sc.journeys[ji].name = sj[ji].name;
+      }
+      var jid = SF_DC_PROP_TO_JID[pk];
+      var plist = sp[jid];
+      if (!plist || !sc.paths) return;
+      for (var pi = 0; pi < sc.paths.length && pi < plist.length; pi++) {
+        if (plist[pi].name != null) sc.paths[pi].name = plist[pi].name;
+      }
+    });
+  }
+
+  function applyDecisioningControls(dc) {
+    if (!dc || !window.__AEP_CASCADE_SCENARIOS) return;
+    var ar = document.getElementById('dcAttrRow');
+    var pr = document.getElementById('dcPropRow');
+    if (dc.attrChipsHtml != null && ar) ar.innerHTML = dc.attrChipsHtml;
+    if (dc.propChipsHtml != null && pr) pr.innerHTML = dc.propChipsHtml;
+    if (dc.scenarios) {
+      Object.keys(dc.scenarios).forEach(function (k) {
+        if (window.__AEP_CASCADE_SCENARIOS[k] && dc.scenarios[k]) {
+          window.__AEP_CASCADE_SCENARIOS[k] = deepClone(dc.scenarios[k]);
+        }
+      });
+    }
+    syncCascadeScenariosFromSf();
+    window.__AEP_CASCADE_ATTR_LABELS = dc.attrLabels || null;
+    window.__AEP_CASCADE_CHANNEL_HINTS = dc.channelHints || null;
+    if (dc.stateDefaults) restoreDcUiState(dc.stateDefaults);
+    if (typeof window.__AEP_CASCADE_RENDER === 'function') window.__AEP_CASCADE_RENDER();
+  }
+
   function resetFlowUiAfterIndustryChange() {
     try {
       sfExpandedJourney = null;
@@ -1162,6 +1271,20 @@
       applyMessagePersonalisation(labels.messagePersonalisation);
     } else {
       restoreStages456Baseline();
+    }
+
+    ensureDecisioningControlsBaseline();
+    if (key === 'fsi') {
+      restoreDecisioningControlsBaseline();
+    } else {
+      var dcPack =
+        (labels && labels.decisioningControls) ||
+        (window.AEP_PIPELINE_DECISIONING_CONTROLS && window.AEP_PIPELINE_DECISIONING_CONTROLS[key]);
+      if (dcPack) {
+        applyDecisioningControls(dcPack);
+      } else {
+        restoreDecisioningControlsBaseline();
+      }
     }
 
     resetFlowUiAfterIndustryChange();

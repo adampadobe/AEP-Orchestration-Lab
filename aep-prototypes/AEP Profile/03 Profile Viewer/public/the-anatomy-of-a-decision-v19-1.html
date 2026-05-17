@@ -2099,22 +2099,22 @@ body{background:var(--bg-cream);color:var(--text-primary);font-family:var(--font
 <div class="cascade-controls">
 <div class="control-group">
 <div class="control-group-label"><span class="ctrl-icon" style="background:var(--accent-soft);color:var(--accent)">👤</span> Profile attributes</div>
-<div class="chip-row">
-<div class="chip active" data-attr="high-value" onclick="toggleAttr(this)">High-value segment</div>
-<div class="chip active" data-attr="mobile-first" onclick="toggleAttr(this)">Mobile-first</div>
-<div class="chip" data-attr="desktop-pref" onclick="toggleAttr(this)">Desktop preference</div>
-<div class="chip active" data-attr="mortgage-holder" onclick="toggleAttr(this)">Mortgage holder</div>
-<div class="chip" data-attr="high-churn" onclick="toggleAttr(this)">High churn risk</div>
-<div class="chip" data-attr="new-customer" onclick="toggleAttr(this)">New customer</div>
+<div class="chip-row" id="dcAttrRow" data-aep-dc="attr-chips">
+<div class="chip active" data-attr="high-value" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="high-value">High-value segment</span></div>
+<div class="chip active" data-attr="mobile-first" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="mobile-first">Mobile-first</span></div>
+<div class="chip" data-attr="desktop-pref" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="desktop-pref">Desktop preference</span></div>
+<div class="chip active" data-attr="mortgage-holder" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="mortgage-holder">Mortgage holder</span></div>
+<div class="chip" data-attr="high-churn" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="high-churn">High churn risk</span></div>
+<div class="chip" data-attr="new-customer" onclick="toggleAttr(this)"><span data-aep-dc-attr-chip="new-customer">New customer</span></div>
 </div>
 </div>
 <div class="control-group">
 <div class="control-group-label"><span class="ctrl-icon" style="background:var(--teal-soft);color:var(--teal)">🧠</span> Product propensity</div>
-<div class="chip-row">
-<div class="chip active" data-prop="refi" onclick="toggleProp(this)">Mortgage refinance <span class="chip-val">0.82</span></div>
-<div class="chip" data-prop="invest" onclick="toggleProp(this)">Investment advisory <span class="chip-val">0.61</span></div>
-<div class="chip" data-prop="card" onclick="toggleProp(this)">Credit card upgrade <span class="chip-val">0.44</span></div>
-<div class="chip" data-prop="retain" onclick="toggleProp(this)">Retention / loyalty <span class="chip-val">0.38</span></div>
+<div class="chip-row" id="dcPropRow" data-aep-dc="prop-chips">
+<div class="chip active" data-prop="refi" onclick="toggleProp(this)"><span data-aep-dc-prop-chip="refi">Mortgage refinance</span> <span class="chip-val" data-aep-dc-prop-val="refi">0.82</span></div>
+<div class="chip" data-prop="invest" onclick="toggleProp(this)"><span data-aep-dc-prop-chip="invest">Investment advisory</span> <span class="chip-val" data-aep-dc-prop-val="invest">0.61</span></div>
+<div class="chip" data-prop="card" onclick="toggleProp(this)"><span data-aep-dc-prop-chip="card">Credit card upgrade</span> <span class="chip-val" data-aep-dc-prop-val="card">0.44</span></div>
+<div class="chip" data-prop="retain" onclick="toggleProp(this)"><span data-aep-dc-prop-chip="retain">Retention / loyalty</span> <span class="chip-val" data-aep-dc-prop-val="retain">0.38</span></div>
 </div>
 </div>
 <div class="control-group">
@@ -3594,6 +3594,7 @@ attrs:new Set(['high-value','mobile-first','mortgage-holder']),
 prop:'refi',
 formula:'balanced'
 };
+window.__AEP_CASCADE_STATE=state;
 
 const SCENARIOS={
 refi:{
@@ -3737,6 +3738,7 @@ resultTitle:'Optimised for retention & loyalty renewal',
 resultDesc:'High churn risk combined with retention-focus formula dramatically shifts the cascade — prioritising the loyalty journey (0.92), personal SMS at 10:00, and value-reinforcement content over cross-sell.'
 }
 };
+window.__AEP_CASCADE_SCENARIOS=SCENARIOS;
 
 const FORMULAS={
 balanced:{label:'Balanced',expr:'(propensity × 0.5) + (biz_value × 0.3) + (churn_offset × 0.2)',weights:[.5,.3,.2]},
@@ -3776,7 +3778,8 @@ setTimeout(()=>{
 const sigEl=document.getElementById('profileSignals');
 let sigHtml='';
 state.attrs.forEach(a=>{
-const labels={'high-value':'High-value','mobile-first':'Mobile-first','desktop-pref':'Desktop pref.','mortgage-holder':'Mortgage holder','high-churn':'High churn risk','new-customer':'New customer'};
+const DEFAULT_ATTR_LABELS={'high-value':'High-value','mobile-first':'Mobile-first','desktop-pref':'Desktop pref.','mortgage-holder':'Mortgage holder','high-churn':'High churn risk','new-customer':'New customer'};
+const labels=Object.assign({},DEFAULT_ATTR_LABELS,window.__AEP_CASCADE_ATTR_LABELS||{});
 const colors={'high-value':'red','mobile-first':'teal','desktop-pref':'blue','mortgage-holder':'amber','high-churn':'red','new-customer':'teal'};
 sigHtml+=`<span class="cascade-influence-tag visible ${colors[a]||'red'}">${labels[a]||a}</span>`;
 });
@@ -3820,7 +3823,7 @@ return `<div class="cascade-item${c.sel?' selected-teal':''}">
 <div class="ci-name">${c.name}</div>
 <div class="ci-bar"><div class="ci-bar-fill" style="width:${c.score*100}%;background:${c.sel?'var(--teal)':'var(--border-strong)'}"></div></div>
 <div class="ci-score">${c.score.toFixed(2)}</div></div>`;
-}).join('')+`<div style="margin-top:6px"><span class="cascade-influence-tag visible ${isMobile?'teal':'blue'}">${isMobile?'Mobile-first signal':'Desktop preference signal'}</span></div>`;
+}).join('')+`<div style="margin-top:6px"><span class="cascade-influence-tag visible ${isMobile?'teal':'blue'}">${(()=>{const h=window.__AEP_CASCADE_CHANNEL_HINTS||{};return isMobile?(h.mobile!=null&&h.mobile!==''?h.mobile:'Mobile-first signal'):(h.desktop!=null&&h.desktop!==''?h.desktop:'Desktop preference signal');})()}</span></div>`;
 
 // Stage 5: Send time mini heatmap
 const hrs=isMobile?S.sendTime.hours_m:S.sendTime.hours_d;
@@ -3861,9 +3864,22 @@ setTimeout(()=>document.querySelectorAll('.cascade-stage-inner').forEach(s=>s.cl
 document.querySelectorAll('.cascade-content').forEach(c=>c.classList.remove('fading'));
 },250);
 }
+window.__AEP_CASCADE_RENDER=renderCascade;
 
 // Initial render
 renderCascade();
+(function aepCaptureDecisioningControlsBaseline(){
+try{
+var ar=document.getElementById('dcAttrRow');
+var pr=document.getElementById('dcPropRow');
+window.__AEP_DC_BASE_SNAPSHOT={
+attrRowHtml:ar?ar.innerHTML:'',
+propRowHtml:pr?pr.innerHTML:'',
+scenariosJson:JSON.stringify(SCENARIOS),
+stateJson:JSON.stringify({attrs:Array.from(state.attrs),prop:state.prop,formula:state.formula})
+};
+}catch(e){}
+})();
 
 /* ═══ HEATMAP (warm tones — detail section) ═══ */
 const hours=[.15,.12,.08,.06,.05,.10,.25,.55,.82,.75,.60,.48,.52,.58,.45,.38,.50,.72,.90,.95,.85,.65,.42,.22];
@@ -5187,9 +5203,10 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
-<script src="ajo-pipeline-industry-labels.js?v=20260517"></script>
-<script src="ajo-pipeline-industry-stages456-labels.js?v=20260517"></script>
-<script src="ajo-pipeline-industry-apply.js?v=20260517"></script>
+<script src="ajo-pipeline-industry-labels.js?v=20260517b"></script>
+<script src="ajo-pipeline-industry-stages456-labels.js?v=20260517b"></script>
+<script src="ajo-pipeline-industry-decisioning-controls.js?v=20260517b"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260517b"></script>
 <script>
 (function () {
   try {
