@@ -7,8 +7,8 @@
   <title>Etihad (demo) - AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="etihad-demo.css?v=20260515-web-push-toggle">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-strip">
+  <link rel="stylesheet" href="etihad-demo.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260512-web-push-strip">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -53,20 +53,20 @@
                   <div class="etihad-demo-id-actions">
                     <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
                   </div>
-                  <div class="form-row etihad-demo-web-push-row" role="group" aria-label="Web push">
-                    <label class="etihad-demo-web-push-label">
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
                       <input type="checkbox" id="etihadWebPushOnInjectToggle" />
                       <span>
                         Register web push when injecting Tags
-                        <span class="etihad-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
                       </span>
                     </label>
                   </div>
-                  <div class="etihad-demo-web-push-retry">
+                  <div class="aep-demo-web-push-retry">
                     <button type="button" id="etihadWebPushRetryBtn" class="btn-lookup">
                       Register web push now
                     </button>
-                    <span class="etihad-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
                   </div>
                 </div>
                 <div class="form-row">

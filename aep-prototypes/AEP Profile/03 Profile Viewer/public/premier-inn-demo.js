@@ -1,5 +1,5 @@
 /**
- * Premier Inn demo — profile lookup + Tags injection (shared DemoTagsInjection) + flyout lab nav.
+ * Premier Inn demo — profile lookup + Tags injection (shared DemoTagsInjection) + optional Alloy web push + flyout lab nav.
  * Iframe journey emits generic hospitality events (hotel.*) via postMessage; parent POSTs /api/events/generator.
  */
 
@@ -17,6 +17,27 @@ let generatorTargets = [];
 const premierInnSiteFrame = document.getElementById('premierInnSiteFrame');
 /** Match Demo Website / global v1.1 style datasets (see Navigator `_demosystem5` for generator-only CTAs). */
 const PREMIER_INN_XDM_TENANT_KEY = '_demoemea';
+
+const PREMIER_INN_WEB_PUSH_ON_INJECT_KEY = 'premierInnWebPushOnInjectToggle';
+const premierInnWebPushOnInjectToggle = document.getElementById('premierInnWebPushOnInjectToggle');
+if (premierInnWebPushOnInjectToggle) {
+  try {
+    if (localStorage.getItem(PREMIER_INN_WEB_PUSH_ON_INJECT_KEY) === '1') premierInnWebPushOnInjectToggle.checked = true;
+  } catch {
+    /* noop */
+  }
+  premierInnWebPushOnInjectToggle.addEventListener('change', function () {
+    try {
+      localStorage.setItem(PREMIER_INN_WEB_PUSH_ON_INJECT_KEY, premierInnWebPushOnInjectToggle.checked ? '1' : '0');
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+function premierInnWebPushOnInjectDesired() {
+  return !!(premierInnWebPushOnInjectToggle && premierInnWebPushOnInjectToggle.checked);
+}
 
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -39,8 +60,27 @@ const premierInnTagsInjection =
         getEmail: () => (customerEmail && customerEmail.value) || '',
         /* Launch only on the parent shell: iframe + third-party cookies often mint a different ECID than the parent, while hotel.* events use parent #infoEcid via the generator — bad anonymous tracking. */
         iframeIds: [],
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: premierInnWebPushOnInjectDesired,
+          requestPermissionOnInject: premierInnWebPushOnInjectDesired,
+        },
       })
     : null;
+
+const premierInnWebPushRetryBtn = document.getElementById('premierInnWebPushRetryBtn');
+if (premierInnWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
+  premierInnWebPushRetryBtn.addEventListener('click', function () {
+    void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'premierInn' }).then(function (ok) {
+      setPremierInnMessage(
+        ok
+          ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'
+          : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
+        ok ? 'success' : 'error',
+      );
+    });
+  });
+}
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="premier-inn-demo.css?v=20260508-demo-env-strip">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260508-demo-env-strip">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260512-web-push-strip">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260513-drawer-identity-recents">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -52,6 +52,21 @@
                   </div>
                   <div class="premier-inn-demo-id-actions">
                     <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="premierInnWebPushOnInjectToggle" />
+                      <span>
+                        Register web push when injecting Tags
+                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="aep-demo-web-push-retry">
+                    <button type="button" id="premierInnWebPushRetryBtn" class="btn-lookup">
+                      Register web push now
+                    </button>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
                   </div>
                 </div>
                 <div class="form-row">
@@ -194,10 +209,11 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
+  <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
   <script src="demo-tags-injection.js?v=20260515-web-push-toggle"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="premier-inn-demo.js?v=20260511-self-auth"></script>
+  <script src="premier-inn-demo.js?v=20260512-web-push-strip"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260507-nav-visibility"></script>
