@@ -100,6 +100,56 @@
           { name: 'Store manager outreach', actions: 'VIP flag → Local store → Call', desc: 'High-value retention' },
         ],
       },
+      /** Stage 1 hub cards (profileHub) — applied by ajo-pipeline-industry-apply.js */
+      profileHub: {
+        segmentTags: [
+          { text: 'High-value shopper', tone: 'accent' },
+          { text: 'Platinum loyalty tier', tone: 'teal' },
+          { text: 'Cart abandoner · 72h', tone: 'amber' },
+          { text: 'Mobile app–first', tone: 'coral' },
+          { text: 'Beauty & wellness buyer', tone: 'blue' },
+          { text: 'Omnichannel active', tone: 'accent' },
+        ],
+        events: [
+          { key: '2h ago', text: 'Product detail views · satin blazer · 4× size compare' },
+          { key: '6h ago', text: 'Cart add · guest checkout started · free-ship threshold near' },
+          { key: '1d ago', text: 'Order confirmation · £124 · home delivery' },
+          { key: '3d ago', text: 'Push opened · loyalty double-points weekend teaser' },
+        ],
+        support: {
+          lastCall: '12 May 2026 · Click & collect locker pickup help',
+          csat: '4.9 / 5 · Style advisor follow-up booked',
+        },
+        propensities: [
+          { name: 'Repeat purchase', val: '0.79', w: '79%', barClass: 'bar-red' },
+          { name: 'Upsell / attach', val: '0.64', w: '64%', barClass: 'bar-blue' },
+          { name: 'Loyalty enrolment', val: '0.52', w: '52%', barClass: 'bar-amber' },
+          { name: 'Returns risk', val: '0.34', w: '34%', barClass: 'bar-teal' },
+        ],
+        agentic: {
+          voiceLabel: 'Voice-agent dialogue · 4 min ago',
+          quoteBefore: 'Can you ',
+          quoteEm: 'switch this to store pickup tomorrow',
+          quoteAfter: '? I need it before the weekend.',
+          tags: [
+            { cls: 'intent', text: 'intent: fulfilment_change' },
+            { cls: 'entity', text: 'entity: pickup_store' },
+            { cls: 'sentiment', text: 'tone: action-oriented' },
+          ],
+          docsLabel: 'Indexed unstructured · vectorised',
+          docs: [
+            { icon: '📄', name: 'return_policy_retail_2026.pdf', meta: '1,892 chunks' },
+            { icon: '📄', name: 'click_collect_store_guide.pdf', meta: '1,104 chunks' },
+            { icon: '🎙', name: 'voice_session_pickup_help.transcript', meta: '356 chunks' },
+          ],
+          neighboursLabel: 'Semantic neighbours · cosine similarity',
+          neighbours: [
+            { w: '88%', label: 'High-intent apparel buyers · flagship cities', val: '0.88' },
+            { w: '81%', label: 'VIP loyalty · omnichannel redeemers', val: '0.81' },
+            { w: '74%', label: 'Voice-agent journeys · retail service', val: '0.74' },
+          ],
+        },
+      },
     },
 
     travel: {

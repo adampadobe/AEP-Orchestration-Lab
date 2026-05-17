@@ -13,14 +13,11 @@ const root = path.join(__dirname, '..');
 const REQUIRED_FILES = [
   'web/profile-viewer/journey-arbitration.html',
   'web/profile-viewer/journey-arbitration-v2.html',
-  'web/profile-viewer/journey-arbitration-v2.css',
-  'web/profile-viewer/journey-arbitration-v2.js',
   'web/profile-viewer/journey-arbitration-v2-iframe-bridge.css',
   'web/profile-viewer/journey-arbitration-v3.html',
   'web/profile-viewer/journey-arbitration-v3.css',
   'web/profile-viewer/journey-arbitration-v3.js',
   'web/profile-viewer/the-anatomy-of-a-decision-v19-1.html',
-  'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
   'web/profile-viewer/ajo-pipeline-industry-labels.js',
   'web/profile-viewer/ajo-pipeline-industry-apply.js',
   'web/profile-viewer/eds-quickstart.html',
@@ -35,6 +32,7 @@ const FORBIDDEN_FILES = [
   'web/profile-viewer/demo-delivery-concept.html',
   'web/profile-viewer/demo-delivery-concept.css',
   'web/profile-viewer/demo-delivery-concept.js',
+  'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
 ];
 
 let failed = false;
@@ -168,4 +166,4 @@ if (!gs.includes('getMenuVisibilityOptions')) {
 if (failed) {
   process.exit(1);
 }
-console.log('OK: profile-viewer routes (journey-arbitration redirects, journey-arbitration-v2 assets + embed, v3 GA nav, eds-quickstart) verified');
+console.log('OK: profile-viewer routes (journey-arbitration redirects, journey-arbitration-v3, eds-quickstart) verified');
