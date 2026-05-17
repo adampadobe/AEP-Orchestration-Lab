@@ -1,6 +1,7 @@
 /**
  * Per-industry display copy for embedded AJO pipeline HTML (the-anatomy-of-a-decision iframe).
  * Journey ids and path ids stay FSI-shaped for engine compatibility; only labels change.
+ * `businessImpact` drives the #impact KPI strip; `profileHub` drives Stage 1 hub cards.
  *
  * Canonical toolbar keys: retail, fsi, travel, media, sports, telecommunications, public, healthcare
  * (dce-industry-toolbar.js). Legacy keys sent by some embeds are normalised in
@@ -10,6 +11,36 @@
   window.AEP_PIPELINE_INDUSTRY_LABELS = {
     /** Default iframe copy stays FSI-shaped; hub cards override when FSI is selected */
     fsi: {
+      businessImpact: {
+        sectionDesc:
+          'When lending and payments journeys stay compliant, orchestrated optimisation still compounds across profile, path, channel, and message — turning marginal gains into measurable portfolio outcomes.',
+        cards: [
+          {
+            value: '+41%',
+            valueTone: 'accent',
+            label: 'Conversion uplift',
+            sub: 'vs batch delivery baseline',
+          },
+          {
+            value: '+31%',
+            valueTone: 'teal',
+            label: 'Open rate improvement',
+            sub: 'via send time optimisation',
+          },
+          {
+            value: '+25%',
+            valueTone: 'amber',
+            label: 'Path conversion lift',
+            sub: 'vs default journey branch',
+          },
+          {
+            value: '3.89%',
+            valueTone: 'blue',
+            label: 'Personalised APR',
+            sub: 'tailored to profile attributes',
+          },
+        ],
+      },
       profileHub: {
         segmentTags: [
           { text: 'Mass-affluent household', tone: 'accent' },
@@ -62,6 +93,36 @@
     },
 
     media: {
+      businessImpact: {
+        sectionDesc:
+          'When content, packaging, and save offers align to viewing behaviour, small lifts in engagement, completion, and renewal stack into sustainable subscriber revenue.',
+        cards: [
+          {
+            value: '+35%',
+            valueTone: 'accent',
+            label: 'Upgrade conversion',
+            sub: 'vs blanket upsell cohort',
+          },
+          {
+            value: '+42%',
+            valueTone: 'teal',
+            label: 'Series completion',
+            sub: 'personalised rails + nudges',
+          },
+          {
+            value: '+28%',
+            valueTone: 'amber',
+            label: 'Save-offer acceptance',
+            sub: 'model-led vs static discount',
+          },
+          {
+            value: '+18%',
+            valueTone: 'blue',
+            label: 'Ad-tier tolerance',
+            sub: 'frequency-capped personalisation',
+          },
+        ],
+      },
       profile: {
         initials: 'AC',
         name: 'Alex Chen',
@@ -159,6 +220,36 @@
     },
 
     retail: {
+      businessImpact: {
+        sectionDesc:
+          'When basket intent, loyalty tier, and fulfilment preference inform every layer, conversion and basket economics improve together — without eroding margin with generic blasts.',
+        cards: [
+          {
+            value: '+38%',
+            valueTone: 'accent',
+            label: 'Revenue per session',
+            sub: 'vs generic promo baseline',
+          },
+          {
+            value: '+27%',
+            valueTone: 'teal',
+            label: 'Email CTR lift',
+            sub: 'segmented journeys + send time',
+          },
+          {
+            value: '+22%',
+            valueTone: 'amber',
+            label: 'Cart recovery',
+            sub: 'vs default abandonment branch',
+          },
+          {
+            value: '+14%',
+            valueTone: 'blue',
+            label: 'AOV uplift',
+            sub: 'bundles & care attach at checkout',
+          },
+        ],
+      },
       profile: {
         initials: 'ML',
         name: 'Morgan Lee',
@@ -257,6 +348,36 @@
     },
 
     travel: {
+      businessImpact: {
+        sectionDesc:
+          'When trip context, loyalty status, and disruption risk inform journeys end-to-end, ancillary attach and completion rates rise while service costs stay predictable.',
+        cards: [
+          {
+            value: '+33%',
+            valueTone: 'accent',
+            label: 'Ancillary attach rate',
+            sub: 'seat, bag & Wi‑Fi bundle path',
+          },
+          {
+            value: '+29%',
+            valueTone: 'teal',
+            label: 'Booking completion',
+            sub: 'channel + timing orchestration',
+          },
+          {
+            value: '+21%',
+            valueTone: 'amber',
+            label: 'Upgrade bid uptake',
+            sub: 'vs static upsell tile',
+          },
+          {
+            value: '+$67',
+            valueTone: 'blue',
+            label: 'Trip revenue lift',
+            sub: 'demo PNR-level attach mix',
+          },
+        ],
+      },
       profile: {
         initials: 'JM',
         name: 'Jordan Miles',
@@ -354,6 +475,36 @@
     },
 
     sports: {
+      businessImpact: {
+        sectionDesc:
+          'When renewal windows, seat preferences, and matchday behaviour inform arbitration, ticketing and hospitality revenue compound without spamming the whole list.',
+        cards: [
+          {
+            value: '+36%',
+            valueTone: 'accent',
+            label: 'Season renewal rate',
+            sub: 'vs batch reminder only',
+          },
+          {
+            value: '+31%',
+            valueTone: 'teal',
+            label: 'Matchday attach',
+            sub: 'parking & F&B digital path',
+          },
+          {
+            value: '+19%',
+            valueTone: 'amber',
+            label: 'Hospitality lead rate',
+            sub: 'VIP cohort vs generic invite',
+          },
+          {
+            value: '+24%',
+            valueTone: 'blue',
+            label: 'Merch uptake',
+            sub: 'drops + member pricing',
+          },
+        ],
+      },
       profile: {
         initials: 'CT',
         name: 'Chris Taylor',
@@ -451,6 +602,36 @@
     },
 
     telecommunications: {
+      businessImpact: {
+        sectionDesc:
+          'When usage, contract end-date, and install complexity inform every touchpoint, upgrade and save journeys convert faster while truck rolls and bill shock shrink.',
+        cards: [
+          {
+            value: '+32%',
+            valueTone: 'accent',
+            label: 'Fibre upgrade accept',
+            sub: 'vs single-channel blast',
+          },
+          {
+            value: '+41%',
+            valueTone: 'teal',
+            label: 'Save-offer take-up',
+            sub: 'model-led retention branch',
+          },
+          {
+            value: '+26%',
+            valueTone: 'amber',
+            label: 'Trade-in completion',
+            sub: 'guided omnichannel flow',
+          },
+          {
+            value: '+19%',
+            valueTone: 'blue',
+            label: 'ARPU lift',
+            sub: 'add-ons + plan optimisation',
+          },
+        ],
+      },
       profile: {
         initials: 'SO',
         name: 'Sam Okonkwo',
@@ -548,6 +729,36 @@
     },
 
     public: {
+      businessImpact: {
+        sectionDesc:
+          'When eligibility, language, and channel policy are respected, digital completion improves and assisted-service load falls — better citizen outcomes within the same budget.',
+        cards: [
+          {
+            value: '+44%',
+            valueTone: 'accent',
+            label: 'Digital completion',
+            sub: 'checklists + proactive reminders',
+          },
+          {
+            value: '+31%',
+            valueTone: 'teal',
+            label: 'On-time submission',
+            sub: 'document prompts + SMS nudge',
+          },
+          {
+            value: '+26%',
+            valueTone: 'amber',
+            label: 'Programme uptake',
+            sub: 'eligibility-aligned outreach',
+          },
+          {
+            value: '−22%',
+            valueTone: 'blue',
+            label: 'Contact-centre minutes',
+            sub: 'self-serve resolution mix',
+          },
+        ],
+      },
       profile: {
         initials: 'RK',
         name: 'Riley Kim',
@@ -645,6 +856,36 @@
     },
 
     healthcare: {
+      businessImpact: {
+        sectionDesc:
+          'When access, benefits, and clinical programmes stay appropriate to each member, operational metrics like show-rate and gap closure improve without noisy outreach.',
+        cards: [
+          {
+            value: '+29%',
+            valueTone: 'accent',
+            label: 'Appointment show-rate',
+            sub: 'reminders + channel fit',
+          },
+          {
+            value: '+24%',
+            valueTone: 'teal',
+            label: 'Care-gap closure',
+            sub: 'preventive outreach vs static mail',
+          },
+          {
+            value: '+21%',
+            valueTone: 'amber',
+            label: 'Mail-order adherence',
+            sub: '90-day refill orchestration',
+          },
+          {
+            value: '+18%',
+            valueTone: 'blue',
+            label: 'Portal task completion',
+            sub: 'personalised benefit prompts',
+          },
+        ],
+      },
       profile: {
         initials: 'JE',
         name: 'Jordan Ellis',

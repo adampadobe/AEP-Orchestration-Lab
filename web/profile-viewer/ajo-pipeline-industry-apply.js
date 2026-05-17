@@ -2,6 +2,7 @@
  * AJO pipeline iframe — apply industry labels to cloned journey/path data + profile hero copy.
  * Expects window.__AEP_SF_JOURNEYS_BASE / __AEP_SF_PATHS_BASE (snapshot from inline script)
  * and window.AEP_PIPELINE_INDUSTRY_LABELS from ajo-pipeline-industry-labels.js.
+ * Business impact (#impact): baseline captured on first apply (before mutations), same pattern as profileHub.
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -32,6 +33,86 @@
 
   var ALLOWED_BAR_CLASS = { 'bar-red': 1, 'bar-blue': 1, 'bar-amber': 1, 'bar-teal': 1 };
   var ALLOWED_AG_TAG = { intent: 1, entity: 1, sentiment: 1 };
+
+  var IMPACT_VALUE_TONE_COLOR = {
+    accent: 'var(--accent)',
+    teal: 'var(--teal)',
+    amber: 'var(--amber)',
+    blue: 'var(--blue)',
+  };
+
+  function impactNumberStyleAttr(tone) {
+    var c = IMPACT_VALUE_TONE_COLOR[tone] ? IMPACT_VALUE_TONE_COLOR[tone] : IMPACT_VALUE_TONE_COLOR.accent;
+    return 'color:' + c;
+  }
+
+  function ensureBusinessImpactBaseline() {
+    if (window.__AEP_BUSINESS_IMPACT_BASE) return;
+    try {
+      var root = document.getElementById('impact');
+      if (!root) {
+        window.__AEP_BUSINESS_IMPACT_BASE = { sectionTitle: '', sectionDesc: '', gridHtml: '' };
+        return;
+      }
+      var h2 = root.querySelector('h2.section-title');
+      var desc = root.querySelector('p.section-desc');
+      var grid = root.querySelector('.impact-grid');
+      window.__AEP_BUSINESS_IMPACT_BASE = {
+        sectionTitle: h2 ? h2.textContent : '',
+        sectionDesc: desc ? desc.textContent : '',
+        gridHtml: grid ? grid.innerHTML : '',
+      };
+    } catch (e) {
+      window.__AEP_BUSINESS_IMPACT_BASE = { sectionTitle: '', sectionDesc: '', gridHtml: '' };
+    }
+  }
+
+  function restoreBusinessImpactBaseline() {
+    var b = window.__AEP_BUSINESS_IMPACT_BASE;
+    if (!b) return;
+    var root = document.getElementById('impact');
+    if (!root) return;
+    var h2 = root.querySelector('h2.section-title');
+    var desc = root.querySelector('p.section-desc');
+    var grid = root.querySelector('.impact-grid');
+    if (h2 && b.sectionTitle != null) h2.textContent = b.sectionTitle;
+    if (desc && b.sectionDesc != null) desc.textContent = b.sectionDesc;
+    if (grid && b.gridHtml != null) grid.innerHTML = b.gridHtml;
+  }
+
+  function applyBusinessImpact(bi) {
+    if (!bi || !bi.cards || !bi.cards.length) return;
+    var root = document.getElementById('impact');
+    if (!root) return;
+    var h2 = root.querySelector('h2.section-title');
+    var desc = root.querySelector('p.section-desc');
+    var grid = root.querySelector('.impact-grid');
+    if (bi.sectionTitle != null && h2) h2.textContent = bi.sectionTitle;
+    if (bi.sectionDesc != null && desc) desc.textContent = bi.sectionDesc;
+    if (!grid) return;
+    var cards = bi.cards.slice(0, 4);
+    while (cards.length < 4) {
+      cards.push({ value: '—', valueTone: 'accent', label: '', sub: '' });
+    }
+    var html = cards
+      .map(function (c) {
+        var tone = c.valueTone || 'accent';
+        var styleAttr = impactNumberStyleAttr(tone);
+        return (
+          '<div class="impact-card"><div class="impact-number" style="' +
+          styleAttr +
+          '">' +
+          escapeHtml(c.value) +
+          '</div><div class="impact-label">' +
+          escapeHtml(c.label) +
+          '</div><div class="impact-sub">' +
+          escapeHtml(c.sub) +
+          '</div></div>'
+        );
+      })
+      .join('');
+    grid.innerHTML = html;
+  }
 
   function segmentTagsHtml(tags) {
     if (!tags || !tags.length) return '';
@@ -253,6 +334,7 @@
     if (!packs || !window.__AEP_SF_JOURNEYS_BASE || !window.__AEP_SF_PATHS_BASE) return;
 
     ensureProfileHubBaseline();
+    ensureBusinessImpactBaseline();
 
     document.body.setAttribute('data-dce-industry', key);
 
@@ -265,6 +347,12 @@
       applyProfileHub(labels.profileHub);
     } else {
       restoreProfileHubBaseline();
+    }
+
+    if (labels.businessImpact) {
+      applyBusinessImpact(labels.businessImpact);
+    } else {
+      restoreBusinessImpactBaseline();
     }
 
     if (labels.profile) {
