@@ -26,7 +26,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
     else piApplyAssets();
   </script>
-  <script src="premier-inn-events.js?v=20260511-confirm-party"></script>
+  <script src="premier-inn-events.js?v=20260511-self-auth"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; background: #f4f0f7; }
@@ -323,6 +323,44 @@
       margin: 0 0 10px;
       min-height: 1.2em;
     }
+    .pi-self-auth-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .pi-self-auth-stack button.pi-btn-wide {
+      width: 100%;
+      justify-content: center;
+    }
+    .pi-self-auth-panel label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .pi-self-auth-panel input {
+      width: 100%;
+      max-width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    .pi-self-auth-back {
+      margin-top: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #511e62;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -434,6 +472,7 @@
         Logo or “Book your stay” in the purple header sends <code>hotel.funnel.exit</code> (see <em>hotelJourneyStage</em> + <em>hotelExitVia</em>) before returning to the lab home — distinct from payment abandon.
         Abandon recovery can use <em>hotelDemandForecastScore</em>, <em>hotelInventoryAvailable</em>, and <em>hotelResumeUrl</em> as before.
         <strong>Booker vs stayer (lab):</strong> choosing <strong>Select</strong> on a rate opens a short dialog — self vs someone else. If someone else, capture first name, last name, and email (stored under <code>hotelStayer*</code> on <code>hotel.room.select</code>).
+        If <strong>self</strong>, a second step offers <strong>Sign in</strong> (email + password mock → same shell <code>login-request</code> / ECID–email stitch as the home page) or <strong>Continue as guest</strong> (name + email → <code>hotel.checkout.guest_capture</code>, shell strip email updated for downstream generator calls).
         On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer fields; when the stayer differs, a second <code>hotel.booking.stayerIdentified</code> event carries the same <code>itineraryId</code> plus stayer identity for orchestration (linked, not merged — shell email/ECID remain the booker).
       </p>
     </details>
@@ -489,6 +528,50 @@
       <div class="pi-actions" style="margin-top:4px">
         <button type="button" class="pi-btn" id="piPartyContinue">Continue</button>
         <button type="button" class="pi-btn pi-btn-secondary" id="piPartyCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="piSelfAuthOverlay" class="pi-overlay" role="dialog" aria-modal="true" aria-labelledby="piSelfAuthTitle" hidden>
+    <div class="pi-modal">
+      <button type="button" class="pi-modal-close" id="piSelfAuthClose" aria-label="Close">&times;</button>
+      <h3 id="piSelfAuthTitle">Continue as guest or sign in</h3>
+      <p class="pi-muted" id="piSelfAuthLead">
+        You are the guest for <strong id="piSelfAuthHotelName"></strong>. Sign in to link this browser ECID to your lab profile (same as the home page), or continue as a guest so we can still capture contact for orchestration demos.
+      </p>
+
+      <div id="piSelfAuthChoose">
+        <div class="pi-self-auth-stack">
+          <button type="button" class="pi-btn pi-btn-wide" id="piSelfAuthPickSignIn">Sign in</button>
+          <button type="button" class="pi-btn pi-btn-secondary pi-btn-wide" id="piSelfAuthPickGuest">Continue as guest</button>
+        </div>
+      </div>
+
+      <div id="piSelfAuthLogin" class="pi-self-auth-panel" hidden>
+        <p class="pi-muted" style="margin-bottom:12px;font-size:14px">Username is your email. Password is lab-only (not verified).</p>
+        <label for="piSelfAuthLoginEmail">Email (username)</label>
+        <input id="piSelfAuthLoginEmail" type="email" autocomplete="username" maxlength="120" placeholder="you@example.com"/>
+        <label for="piSelfAuthLoginPassword">Password</label>
+        <input id="piSelfAuthLoginPassword" type="password" autocomplete="current-password" maxlength="128" placeholder="Lab mock password"/>
+        <p class="pi-party-err" id="piSelfAuthLoginErr" aria-live="polite"></p>
+        <div class="pi-actions" style="margin-top:0">
+          <button type="button" class="pi-btn" id="piSelfAuthLoginSubmit">Sign in</button>
+        </div>
+        <button type="button" class="pi-self-auth-back" id="piSelfAuthBackFromLogin">Back</button>
+      </div>
+
+      <div id="piSelfAuthGuest" class="pi-self-auth-panel" hidden>
+        <label for="piSelfAuthGuestFirst">First name</label>
+        <input id="piSelfAuthGuestFirst" type="text" autocomplete="given-name" maxlength="80"/>
+        <label for="piSelfAuthGuestLast">Last name</label>
+        <input id="piSelfAuthGuestLast" type="text" autocomplete="family-name" maxlength="80"/>
+        <label for="piSelfAuthGuestEmail">Email</label>
+        <input id="piSelfAuthGuestEmail" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com"/>
+        <p class="pi-party-err" id="piSelfAuthGuestErr" aria-live="polite"></p>
+        <div class="pi-actions" style="margin-top:0">
+          <button type="button" class="pi-btn" id="piSelfAuthGuestSubmit">Continue as guest</button>
+        </div>
+        <button type="button" class="pi-self-auth-back" id="piSelfAuthBackFromGuest">Back</button>
       </div>
     </div>
   </div>
@@ -657,6 +740,33 @@
 
       /** @type {null | function(Object|null): void} */
       var partyModalOnDone = null;
+      /** @type {{ id: string, name: string, rate: number } | null} */
+      var pendingPartyHotel = null;
+
+      /** Self-path auth overlay (sign in vs guest) */
+      var selfAuthOverlay = document.getElementById('piSelfAuthOverlay');
+      var selfAuthChoose = document.getElementById('piSelfAuthChoose');
+      var selfAuthLogin = document.getElementById('piSelfAuthLogin');
+      var selfAuthGuest = document.getElementById('piSelfAuthGuest');
+      var selfAuthHotelName = document.getElementById('piSelfAuthHotelName');
+      var selfAuthPickSignIn = document.getElementById('piSelfAuthPickSignIn');
+      var selfAuthPickGuest = document.getElementById('piSelfAuthPickGuest');
+      var selfAuthLoginEmail = document.getElementById('piSelfAuthLoginEmail');
+      var selfAuthLoginPassword = document.getElementById('piSelfAuthLoginPassword');
+      var selfAuthLoginErr = document.getElementById('piSelfAuthLoginErr');
+      var selfAuthLoginSubmit = document.getElementById('piSelfAuthLoginSubmit');
+      var selfAuthBackFromLogin = document.getElementById('piSelfAuthBackFromLogin');
+      var selfAuthGuestFirst = document.getElementById('piSelfAuthGuestFirst');
+      var selfAuthGuestLast = document.getElementById('piSelfAuthGuestLast');
+      var selfAuthGuestEmail = document.getElementById('piSelfAuthGuestEmail');
+      var selfAuthGuestErr = document.getElementById('piSelfAuthGuestErr');
+      var selfAuthGuestSubmit = document.getElementById('piSelfAuthGuestSubmit');
+      var selfAuthBackFromGuest = document.getElementById('piSelfAuthBackFromGuest');
+      var selfAuthClose = document.getElementById('piSelfAuthClose');
+      /** @type {null | function(Object|null): void} */
+      var selfAuthOnDone = null;
+      var selfAuthAwaitingLogin = false;
+      var selfAuthLoginTimer = null;
 
       function setPartyErr(msg) {
         if (partyErr) partyErr.textContent = msg || '';
@@ -684,8 +794,199 @@
       function finishPartyModal(partyOrNull) {
         var cb = partyModalOnDone;
         closePartyModal();
+        if (!partyOrNull) pendingPartyHotel = null;
         if (cb) cb(partyOrNull);
       }
+
+      function setSelfAuthLoginErr(msg) {
+        if (selfAuthLoginErr) selfAuthLoginErr.textContent = msg || '';
+      }
+      function setSelfAuthGuestErr(msg) {
+        if (selfAuthGuestErr) selfAuthGuestErr.textContent = msg || '';
+      }
+      function showSelfAuthChooseView() {
+        if (selfAuthChoose) selfAuthChoose.hidden = false;
+        if (selfAuthLogin) selfAuthLogin.hidden = true;
+        if (selfAuthGuest) selfAuthGuest.hidden = true;
+        setSelfAuthLoginErr('');
+        setSelfAuthGuestErr('');
+      }
+      function showSelfAuthLoginView() {
+        if (selfAuthChoose) selfAuthChoose.hidden = true;
+        if (selfAuthLogin) selfAuthLogin.hidden = false;
+        if (selfAuthGuest) selfAuthGuest.hidden = true;
+        setSelfAuthLoginErr('');
+      }
+      function showSelfAuthGuestView() {
+        if (selfAuthChoose) selfAuthChoose.hidden = true;
+        if (selfAuthLogin) selfAuthLogin.hidden = true;
+        if (selfAuthGuest) selfAuthGuest.hidden = false;
+        setSelfAuthGuestErr('');
+      }
+      function clearSelfAuthLoginTimer() {
+        if (selfAuthLoginTimer) {
+          window.clearTimeout(selfAuthLoginTimer);
+          selfAuthLoginTimer = null;
+        }
+      }
+      function resetSelfAuthFields() {
+        selfAuthAwaitingLogin = false;
+        clearSelfAuthLoginTimer();
+        if (selfAuthLoginEmail) selfAuthLoginEmail.value = '';
+        if (selfAuthLoginPassword) selfAuthLoginPassword.value = '';
+        if (selfAuthGuestFirst) selfAuthGuestFirst.value = '';
+        if (selfAuthGuestLast) selfAuthGuestLast.value = '';
+        if (selfAuthGuestEmail) selfAuthGuestEmail.value = '';
+      }
+      function completeSelfAuthAndRoom(partyDone) {
+        if (selfAuthOverlay) selfAuthOverlay.hidden = true;
+        resetSelfAuthFields();
+        showSelfAuthChooseView();
+        var cb = selfAuthOnDone;
+        selfAuthOnDone = null;
+        pendingPartyHotel = null;
+        if (cb) cb(partyDone);
+      }
+      function abortSelfAuthFlow() {
+        selfAuthAwaitingLogin = false;
+        clearSelfAuthLoginTimer();
+        if (selfAuthOverlay) selfAuthOverlay.hidden = true;
+        resetSelfAuthFields();
+        showSelfAuthChooseView();
+        var cb = selfAuthOnDone;
+        selfAuthOnDone = null;
+        pendingPartyHotel = null;
+        if (cb) cb(null);
+      }
+      function openSelfAuthOverlay(hotel, onDone) {
+        selfAuthOnDone = typeof onDone === 'function' ? onDone : null;
+        if (selfAuthHotelName) selfAuthHotelName.textContent = (hotel && hotel.name) || 'this hotel';
+        resetSelfAuthFields();
+        showSelfAuthChooseView();
+        if (selfAuthOverlay) selfAuthOverlay.hidden = false;
+        try {
+          if (selfAuthPickSignIn) selfAuthPickSignIn.focus();
+        } catch (eFA) {}
+      }
+      function onSelfAuthLoginSubmit() {
+        var em = selfAuthLoginEmail ? String(selfAuthLoginEmail.value || '').trim() : '';
+        var pw = selfAuthLoginPassword ? String(selfAuthLoginPassword.value || '') : '';
+        if (!simpleEmailOk(em)) {
+          setSelfAuthLoginErr('Enter a valid email.');
+          return;
+        }
+        if (!pw || pw.length < 2) {
+          setSelfAuthLoginErr('Enter a password (lab mock — any 2+ characters).');
+          return;
+        }
+        setSelfAuthLoginErr('');
+        selfAuthAwaitingLogin = true;
+        clearSelfAuthLoginTimer();
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ source: LAB, type: 'login-request', email: em }, '*');
+          } else {
+            selfAuthAwaitingLogin = false;
+            setSelfAuthLoginErr('Not embedded in the lab shell.');
+            return;
+          }
+        } catch (eL) {
+          selfAuthAwaitingLogin = false;
+          setSelfAuthLoginErr('Could not reach the parent page.');
+          return;
+        }
+        selfAuthLoginTimer = window.setTimeout(function () {
+          selfAuthLoginTimer = null;
+          if (!selfAuthAwaitingLogin) return;
+          selfAuthAwaitingLogin = false;
+          setSelfAuthLoginErr('No response from the shell (timeout).');
+        }, 12000);
+      }
+      function onSelfAuthGuestSubmit() {
+        var fn = selfAuthGuestFirst ? String(selfAuthGuestFirst.value || '').trim() : '';
+        var ln = selfAuthGuestLast ? String(selfAuthGuestLast.value || '').trim() : '';
+        var em = selfAuthGuestEmail ? String(selfAuthGuestEmail.value || '').trim() : '';
+        if (!fn || !ln) {
+          setSelfAuthGuestErr('Enter first and last name.');
+          return;
+        }
+        if (!simpleEmailOk(em)) {
+          setSelfAuthGuestErr('Enter a valid email address.');
+          return;
+        }
+        setSelfAuthGuestErr('');
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { source: LAB, type: 'set-shell-customer-email', email: em, firstName: fn, lastName: ln },
+              '*'
+            );
+          }
+        } catch (eG) {}
+        try {
+          sessionStorage.setItem(
+            BOOKER_STORAGE_KEY,
+            JSON.stringify({ email: em, firstName: fn, lastName: ln, guestCheckout: true })
+          );
+        } catch (eGS) {}
+        emit('hotel.checkout.guest_capture', {
+          hotelFunnelStep: 'room_select_self_guest_contact',
+          hotelCheckoutChannel: 'guest',
+          hotelGuestCheckoutFirstName: fn,
+          hotelGuestCheckoutLastName: ln,
+          hotelGuestCheckoutEmail: em,
+          hotelSearchIntent: searchIntent(),
+        }, 'Hospitality lab — guest capture (room select)');
+        var pr = {
+          itineraryId: itineraryId,
+          hotelStayerSameAsBooker: true,
+          hotelCheckoutChannel: 'guest',
+          hotelGuestCheckoutFirstName: fn,
+          hotelGuestCheckoutLastName: ln,
+          hotelGuestCheckoutEmail: em,
+        };
+        persistPartyRecord(pr);
+        completeSelfAuthAndRoom(pr);
+      }
+
+      window.addEventListener('message', function (ev) {
+        if (!ev.data || ev.data.source !== 'premier-inn-demo-shell') return;
+        if (ev.data.type !== 'login-complete') return;
+        if (!selfAuthAwaitingLogin) return;
+        selfAuthAwaitingLogin = false;
+        clearSelfAuthLoginTimer();
+        if (ev.data.found) {
+          try {
+            var p = ev.data.profile || {};
+            sessionStorage.setItem(
+              BOOKER_STORAGE_KEY,
+              JSON.stringify({
+                email: String(ev.data.email || '').trim(),
+                firstName:
+                  (ev.data.firstName && String(ev.data.firstName).trim()) ||
+                  (p.firstName && String(p.firstName).trim()) ||
+                  '',
+                lastName: p.lastName ? String(p.lastName).trim() : '',
+                guestCheckout: false,
+              })
+            );
+          } catch (eSB) {}
+          var pr = {
+            itineraryId: itineraryId,
+            hotelStayerSameAsBooker: true,
+            hotelCheckoutChannel: 'signed_in',
+          };
+          persistPartyRecord(pr);
+          emit('hotel.checkout.signed_in', {
+            hotelFunnelStep: 'room_select_self_signed_in',
+            hotelCheckoutChannel: 'signed_in',
+            hotelSearchIntent: searchIntent(),
+          }, 'Hospitality lab — signed in (room select)');
+          completeSelfAuthAndRoom(pr);
+        } else {
+          setSelfAuthLoginErr('No lab profile for that email. Try guest checkout or another address.');
+        }
+      });
 
       function simpleEmailOk(s) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
@@ -694,14 +995,22 @@
       function onPartyContinueClick() {
         var same = !(partyOther && partyOther.checked);
         if (same) {
-          persistPartyRecord({
-            itineraryId: itineraryId,
-            hotelStayerSameAsBooker: true,
-          });
-          finishPartyModal({
-            itineraryId: itineraryId,
-            hotelStayerSameAsBooker: true,
-          });
+          var cb = partyModalOnDone;
+          closePartyModal();
+          if (!pendingPartyHotel) {
+            if (cb) cb(null);
+            return;
+          }
+          openSelfAuthOverlay(pendingPartyHotel, cb);
+          emit(
+            'hotel.checkout.self_auth_prompt',
+            {
+              hotelFunnelStep: 'room_select_authentication_choice',
+              hotelCheckoutBranch: 'self_sign_in_or_guest',
+              hotelSearchIntent: searchIntent(),
+            },
+            'Hospitality lab — self auth prompt'
+          );
           return;
         }
         var fn = partyStayerFirst ? String(partyStayerFirst.value || '').trim() : '';
@@ -734,6 +1043,33 @@
       if (partyOverlay) {
         partyOverlay.addEventListener('click', function (e) {
           if (e.target === partyOverlay) finishPartyModal(null);
+        });
+      }
+
+      if (selfAuthPickSignIn) {
+        selfAuthPickSignIn.addEventListener('click', function () {
+          showSelfAuthLoginView();
+          window.setTimeout(function () {
+            if (selfAuthLoginEmail) selfAuthLoginEmail.focus();
+          }, 80);
+        });
+      }
+      if (selfAuthPickGuest) {
+        selfAuthPickGuest.addEventListener('click', function () {
+          showSelfAuthGuestView();
+          window.setTimeout(function () {
+            if (selfAuthGuestFirst) selfAuthGuestFirst.focus();
+          }, 80);
+        });
+      }
+      if (selfAuthBackFromLogin) selfAuthBackFromLogin.addEventListener('click', showSelfAuthChooseView);
+      if (selfAuthBackFromGuest) selfAuthBackFromGuest.addEventListener('click', showSelfAuthChooseView);
+      if (selfAuthLoginSubmit) selfAuthLoginSubmit.addEventListener('click', onSelfAuthLoginSubmit);
+      if (selfAuthGuestSubmit) selfAuthGuestSubmit.addEventListener('click', onSelfAuthGuestSubmit);
+      if (selfAuthClose) selfAuthClose.addEventListener('click', abortSelfAuthFlow);
+      if (selfAuthOverlay) {
+        selfAuthOverlay.addEventListener('click', function (e) {
+          if (e.target === selfAuthOverlay) abortSelfAuthFlow();
         });
       }
 
@@ -1014,6 +1350,10 @@
         });
       }
       document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && selfAuthOverlay && !selfAuthOverlay.hidden) {
+          abortSelfAuthFlow();
+          return;
+        }
         if (e.key === 'Escape' && partyOverlay && !partyOverlay.hidden) {
           finishPartyModal(null);
           return;
@@ -1024,6 +1364,7 @@
       var selectedHotel = null;
 
       function applyRoomSelectionAfterParty(h, party) {
+        pendingPartyHotel = null;
         selectedHotel = { id: h.id, name: h.name, rate: h.rate };
         var pub = {
           hotelPropertyId: selectedHotel.id,
@@ -1041,6 +1382,14 @@
           pub.hotelStayerEmail = party.hotelStayerEmail;
         } else {
           pub.hotelStayerSameAsBooker = true;
+        }
+        if (party && party.hotelCheckoutChannel) {
+          pub.hotelCheckoutChannel = party.hotelCheckoutChannel;
+        }
+        if (party && party.hotelGuestCheckoutEmail) {
+          pub.hotelGuestCheckoutFirstName = party.hotelGuestCheckoutFirstName;
+          pub.hotelGuestCheckoutLastName = party.hotelGuestCheckoutLastName;
+          pub.hotelGuestCheckoutEmail = party.hotelGuestCheckoutEmail;
         }
         emit('hotel.room.select', pub, 'Hospitality lab — room');
         if (stepResults) stepResults.hidden = true;
@@ -1061,6 +1410,7 @@
         var hotels = visibleHotels();
         var h = hotels[idx];
         if (!h) return;
+        pendingPartyHotel = h;
         openPartyModal(h.name, function (party) {
           if (!party) return;
           applyRoomSelectionAfterParty(h, party);
@@ -1144,6 +1494,14 @@
             if (partyRec.hotelStayerLastName) completePub.hotelStayerLastName = partyRec.hotelStayerLastName;
             if (partyRec.hotelStayerEmail) completePub.hotelStayerEmail = partyRec.hotelStayerEmail;
           }
+        }
+        if (partyRec && partyRec.hotelCheckoutChannel) {
+          completePub.hotelCheckoutChannel = partyRec.hotelCheckoutChannel;
+        }
+        if (partyRec && partyRec.hotelGuestCheckoutEmail) {
+          completePub.hotelGuestCheckoutFirstName = partyRec.hotelGuestCheckoutFirstName;
+          completePub.hotelGuestCheckoutLastName = partyRec.hotelGuestCheckoutLastName;
+          completePub.hotelGuestCheckoutEmail = partyRec.hotelGuestCheckoutEmail;
         }
         emit('hotel.booking.complete', completePub, 'Hospitality lab — complete (mock)');
         if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelStayerEmail) {

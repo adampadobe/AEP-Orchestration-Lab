@@ -1070,7 +1070,7 @@
     </div>
   </div>
 
-  <script src="premier-inn-events.js?v=20260511-booker-stayer"></script>
+  <script src="premier-inn-events.js?v=20260511-self-auth"></script>
   <script>
     (function () {
       var SHELL = 'premier-inn-demo-shell';
@@ -1450,7 +1450,7 @@
           next.set('adults', ad);
           next.set('rooms', rm);
           next.set('itinerary', itin);
-          next.set('_piFlow', '20260511-confirm-party');
+          next.set('_piFlow', '20260511-self-auth');
           window.location.href = 'premier-inn-booking-flow.html?' + next.toString();
         });
       }

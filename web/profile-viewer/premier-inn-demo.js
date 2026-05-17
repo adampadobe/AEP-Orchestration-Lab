@@ -181,6 +181,27 @@ window.addEventListener('message', async function (ev) {
     return;
   }
 
+  if (ev.data.type === 'set-shell-customer-email') {
+    const em = String(ev.data.email || '').trim();
+    if (!em) return;
+    if (customerEmail) customerEmail.value = em;
+    void (async () => {
+      try {
+        const ok = await DemoProfileDrawer.loadProfileDataForDrawer(em, { updateMessage: true });
+        const profile =
+          window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+            ? window.DemoProfileDrawer.getLastLookedUpProfile()
+            : null;
+        if (ok && premierInnTagsInjection && typeof premierInnTagsInjection.stitchAfterProfileLookup === 'function') {
+          await premierInnTagsInjection.stitchAfterProfileLookup(profile, em);
+        }
+      } catch {
+        /* Guest path may have no UPS profile; strip email still updates generator identity. */
+      }
+    })();
+    return;
+  }
+
   if (ev.data.type === 'shell-booker-request') {
     const rid = ev.data.requestId != null ? String(ev.data.requestId) : '';
     if (!rid || !premierInnSiteFrame || !premierInnSiteFrame.contentWindow) return;
