@@ -26,7 +26,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', piApplyAssets);
     else piApplyAssets();
   </script>
-  <script src="premier-inn-events.js?v=20260511-booker-stayer"></script>
+  <script src="premier-inn-events.js?v=20260511-confirm-party"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; background: #f4f0f7; }
@@ -408,6 +408,18 @@
       <div class="pi-kv"><strong>Total</strong> <span id="piSumTotal"></span></div>
       <div class="pi-kv"><strong>Itinerary</strong> <code id="piSumItin"></code></div>
       <div class="pi-kv"><strong>Payment (mock)</strong> <span id="piSumPay"></span></div>
+      <div class="pi-confirm-party" style="margin-top:16px;padding-top:16px;border-top:1px solid #eee">
+        <p class="pi-muted" style="margin:0 0 10px;font-weight:700;color:#511e62;font-size:13px">Booker</p>
+        <div class="pi-kv"><strong>First name</strong> <span id="piSumBookerFirst"></span></div>
+        <div class="pi-kv"><strong>Last name</strong> <span id="piSumBookerLast"></span></div>
+        <div class="pi-kv"><strong>Email</strong> <span id="piSumBookerEmail"></span></div>
+      </div>
+      <div id="piSumStayerWrap" class="pi-confirm-party" style="margin-top:14px;padding-top:14px;border-top:1px dashed #d4c4dc" hidden>
+        <p class="pi-muted" style="margin:0 0 10px;font-weight:700;color:#511e62;font-size:13px">Guest (stayer)</p>
+        <div class="pi-kv"><strong>First name</strong> <span id="piSumStayerFirst"></span></div>
+        <div class="pi-kv"><strong>Last name</strong> <span id="piSumStayerLast"></span></div>
+        <div class="pi-kv"><strong>Email</strong> <span id="piSumStayerEmail"></span></div>
+      </div>
       <div class="pi-actions">
         <a class="pi-btn" id="piSumHome" href="premier-inn-site.html">Back to search</a>
       </div>
@@ -497,6 +509,9 @@
         }
       })();
 
+      var LAB = 'premier-inn-lab';
+      var BOOKER_STORAGE_KEY = 'piPremierInnBooker_v1';
+
       var filterFreeParking = document.getElementById('piFilterFreeParking');
       var filterWifi = document.getElementById('piFilterWifi');
       var listEl = document.getElementById('piRateList');
@@ -544,6 +559,70 @@
           pub || {}
         );
         window.PremierInnLabEvents.emit(t, base, viewName || 'Hospitality lab — booking', window.location.href);
+      }
+
+      function loadBookerFromStorage() {
+        try {
+          var raw = sessionStorage.getItem(BOOKER_STORAGE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          return o && typeof o === 'object' ? o : null;
+        } catch (eBk) {
+          return null;
+        }
+      }
+
+      function requestShellBookerContext() {
+        return new Promise(function (resolve) {
+          if (!window.parent || window.parent === window) {
+            resolve(null);
+            return;
+          }
+          var rid = 'bkr_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+          function onMsg(ev) {
+            try {
+              if (!ev.data || ev.data.source !== 'premier-inn-demo-shell') return;
+              if (ev.data.type !== 'shell-booker-context' || String(ev.data.requestId) !== rid) return;
+              window.removeEventListener('message', onMsg);
+              resolve({
+                email: ev.data.email ? String(ev.data.email).trim() : '',
+                firstName: ev.data.firstName ? String(ev.data.firstName).trim() : '',
+                lastName: ev.data.lastName ? String(ev.data.lastName).trim() : '',
+              });
+            } catch (eM) {}
+          }
+          window.addEventListener('message', onMsg);
+          try {
+            window.parent.postMessage({ source: LAB, type: 'shell-booker-request', requestId: rid }, '*');
+          } catch (eP) {
+            window.removeEventListener('message', onMsg);
+            resolve(null);
+            return;
+          }
+          window.setTimeout(function () {
+            window.removeEventListener('message', onMsg);
+            resolve(null);
+          }, 2000);
+        });
+      }
+
+      function mergeBookerDisplayFields(stored, shell) {
+        function pick(key) {
+          var a = stored && stored[key] ? String(stored[key]).trim() : '';
+          if (a) return a;
+          var b = shell && shell[key] ? String(shell[key]).trim() : '';
+          return b || '';
+        }
+        return {
+          firstName: pick('firstName'),
+          lastName: pick('lastName'),
+          email: pick('email'),
+        };
+      }
+
+      function dashIfEmpty(s) {
+        var t = String(s || '').trim();
+        return t ? t : '\u2014';
       }
 
       var PARTY_STORAGE_KEY = 'piPremierInnParty_v1';
@@ -1046,9 +1125,11 @@
         window.location.href = homeSearchUrl();
       });
 
-      document.getElementById('piBtnPayMock').addEventListener('click', function () {
+      document.getElementById('piBtnPayMock').addEventListener('click', async function () {
         if (!selectedHotel) return;
         var partyRec = loadPartyRecord();
+        var shellCtx = await requestShellBookerContext();
+        var bookerDisp = mergeBookerDisplayFields(loadBookerFromStorage(), shellCtx);
         var completePub = {
           hotelPropertyId: selectedHotel.id,
           hotelPropertyName: selectedHotel.name,
@@ -1090,6 +1171,28 @@
               'Thank you — lab only. hotel.booking.complete was sent for the booker profile, then hotel.booking.stayerIdentified with the guest email for pre-stay / in-stay orchestration.';
           } else {
             summaryLead.textContent = 'Thank you — lab only. A hotel.booking.complete event was sent to the AEP shell.';
+          }
+        }
+        var bfn = document.getElementById('piSumBookerFirst');
+        var bln = document.getElementById('piSumBookerLast');
+        var bem = document.getElementById('piSumBookerEmail');
+        if (bfn) bfn.textContent = dashIfEmpty(bookerDisp.firstName);
+        if (bln) bln.textContent = dashIfEmpty(bookerDisp.lastName);
+        if (bem) bem.textContent = dashIfEmpty(bookerDisp.email);
+        var stayerWrap = document.getElementById('piSumStayerWrap');
+        var showStayer =
+          partyRec &&
+          partyRec.hotelStayerSameAsBooker === false &&
+          (partyRec.hotelStayerFirstName || partyRec.hotelStayerLastName || partyRec.hotelStayerEmail);
+        if (stayerWrap) {
+          stayerWrap.hidden = !showStayer;
+          if (showStayer) {
+            var sf = document.getElementById('piSumStayerFirst');
+            var sl = document.getElementById('piSumStayerLast');
+            var se = document.getElementById('piSumStayerEmail');
+            if (sf) sf.textContent = dashIfEmpty(partyRec.hotelStayerFirstName);
+            if (sl) sl.textContent = dashIfEmpty(partyRec.hotelStayerLastName);
+            if (se) se.textContent = dashIfEmpty(partyRec.hotelStayerEmail);
           }
         }
         var cardNameEl = document.getElementById('piCardName');

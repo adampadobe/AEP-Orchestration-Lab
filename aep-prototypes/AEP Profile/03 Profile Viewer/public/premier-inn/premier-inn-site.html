@@ -1187,6 +1187,20 @@
           setLoading(false);
           if (ev.data.found) {
             showSuccess(ev.data.firstName);
+            try {
+              var p = ev.data.profile || {};
+              sessionStorage.setItem(
+                'piPremierInnBooker_v1',
+                JSON.stringify({
+                  email: String(ev.data.email || '').trim(),
+                  firstName:
+                    (ev.data.firstName && String(ev.data.firstName).trim()) ||
+                    (p.firstName && String(p.firstName).trim()) ||
+                    '',
+                  lastName: p.lastName ? String(p.lastName).trim() : '',
+                })
+              );
+            } catch (eB) {}
           } else {
             showError('No lab profile found for that email. Check the address or generate a profile first.');
           }
@@ -1200,6 +1214,15 @@
             welcomeLine.textContent = 'Welcome back, ' + fn;
             welcomeLine.hidden = false;
           }
+          try {
+            var raw = sessionStorage.getItem('piPremierInnBooker_v1');
+            if (!raw) return;
+            var cur = JSON.parse(raw);
+            if (!cur || typeof cur !== 'object') return;
+            if (p.firstName) cur.firstName = String(p.firstName).trim();
+            if (p.lastName) cur.lastName = String(p.lastName).trim();
+            sessionStorage.setItem('piPremierInnBooker_v1', JSON.stringify(cur));
+          } catch (e2) {}
         }
       });
     })();
@@ -1427,7 +1450,7 @@
           next.set('adults', ad);
           next.set('rooms', rm);
           next.set('itinerary', itin);
-          next.set('_piFlow', '20260511-booker-stayer');
+          next.set('_piFlow', '20260511-confirm-party');
           window.location.href = 'premier-inn-booking-flow.html?' + next.toString();
         });
       }

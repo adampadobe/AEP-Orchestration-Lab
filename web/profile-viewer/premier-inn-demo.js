@@ -143,6 +143,7 @@ window.addEventListener('message', async function (ev) {
     const profileMsg = profile
       ? {
           firstName: profile.firstName || null,
+          lastName: profile.lastName || null,
           loyaltyStatus: profile.loyaltyStatus || null,
           churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
           propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
@@ -155,6 +156,7 @@ window.addEventListener('message', async function (ev) {
           source: 'premier-inn-demo-shell',
           type: 'login-complete',
           found: !!ok,
+          email: email,
           firstName: profile ? profile.firstName || null : null,
           profile: profileMsg,
         },
@@ -176,6 +178,28 @@ window.addEventListener('message', async function (ev) {
 
   if (ev.data.type === 'hotel-experience-event') {
     void sendPremierInnHotelExperienceEvent(ev.data.payload);
+    return;
+  }
+
+  if (ev.data.type === 'shell-booker-request') {
+    const rid = ev.data.requestId != null ? String(ev.data.requestId) : '';
+    if (!rid || !premierInnSiteFrame || !premierInnSiteFrame.contentWindow) return;
+    const shellEmail = getEmail().trim();
+    const prof =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    premierInnSiteFrame.contentWindow.postMessage(
+      {
+        source: 'premier-inn-demo-shell',
+        type: 'shell-booker-context',
+        requestId: rid,
+        email: shellEmail || null,
+        firstName: prof && prof.firstName ? String(prof.firstName).trim() : null,
+        lastName: prof && prof.lastName ? String(prof.lastName).trim() : null,
+      },
+      '*'
+    );
   }
 });
 
