@@ -471,9 +471,9 @@
         <code>hotel.content.view</code> when they open breakfast details, then room select → payment → <code>hotel.checkout.abandon</code>.
         Logo or “Book your stay” in the purple header sends <code>hotel.funnel.exit</code> (see <em>hotelJourneyStage</em> + <em>hotelExitVia</em>) before returning to the lab home — distinct from payment abandon.
         Abandon recovery can use <em>hotelDemandForecastScore</em>, <em>hotelInventoryAvailable</em>, and <em>hotelResumeUrl</em> as before.
-        <strong>Booker vs stayer (lab):</strong> choosing <strong>Select</strong> on a rate opens a short dialog — self vs someone else. If someone else, capture first name, last name, and email (stored under <code>hotelStayer*</code> on <code>hotel.room.select</code>).
-        If <strong>self</strong>, a second step offers <strong>Sign in</strong> (email + password mock → same shell <code>login-request</code> / ECID–email stitch as the home page) or <strong>Continue as guest</strong> (name + email → <code>hotel.checkout.guest_capture</code>, shell strip email updated for downstream generator calls).
-        On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer fields; when the stayer differs, a second <code>hotel.booking.stayerIdentified</code> event carries the same <code>itineraryId</code> plus stayer identity for orchestration (linked, not merged — shell email/ECID remain the booker).
+        <strong>Booker vs stayer (lab):</strong> choosing <strong>Select</strong> on a rate opens a short dialog — self vs someone else. If someone else, capture the guest (stayer) under <code>hotelStayer*</code>, then the same second step as self: <strong>Sign in</strong> or <strong>Continue as guest</strong> for the <strong>booker</strong> (payer / confirmation). Stayer path emits <code>hotel.checkout.booker_guest_capture</code> or <code>hotel.checkout.booker_signed_in</code> plus stayer fields; <code>hotel.room.select</code> / <code>hotel.booking.complete</code> carry <code>hotelBookerCheckoutChannel</code> and optional <code>hotelBookerGuest*</code> alongside <code>hotelStayer*</code>.
+        If <strong>self</strong>, that second step uses <code>hotel.checkout.guest_capture</code> or <code>hotel.checkout.signed_in</code> with <code>hotelGuestCheckout*</code> / <code>hotelCheckoutChannel</code> as before.
+        On mock payment complete, <code>hotel.booking.complete</code> includes <code>hotelStayerSameAsBooker</code> and optional stayer and booker-guest fields; when the stayer differs, <code>hotel.booking.stayerIdentified</code> still carries stayer identity for orchestration (shell ECID/email follow the signed-in or guest booker).
       </p>
     </details>
   </div>
@@ -503,7 +503,7 @@
       <button type="button" class="pi-modal-close" id="piPartyClose" aria-label="Close">&times;</button>
       <h3 id="piPartyTitle">Who is this stay for?</h3>
       <p class="pi-muted" id="piPartyLead">
-        You selected <strong id="piPartyHotelName"></strong>. The lab shell still represents the <strong>booker</strong> (email / ECID); guest details are sent as separate fields for orchestration.
+        You selected <strong id="piPartyHotelName"></strong>. If you choose someone else as guest, you will enter their details first, then confirm yourself as the booker (sign in or guest) so confirmation matches the payer.
       </p>
       <fieldset class="pi-party-fieldset">
         <div class="pi-party-legend">I am booking this room for</div>
@@ -748,7 +748,10 @@
       var selfAuthChoose = document.getElementById('piSelfAuthChoose');
       var selfAuthLogin = document.getElementById('piSelfAuthLogin');
       var selfAuthGuest = document.getElementById('piSelfAuthGuest');
+      var selfAuthTitle = document.getElementById('piSelfAuthTitle');
+      var selfAuthLead = document.getElementById('piSelfAuthLead');
       var selfAuthHotelName = document.getElementById('piSelfAuthHotelName');
+      var selfAuthDefaultLeadHTML = selfAuthLead ? selfAuthLead.innerHTML : '';
       var selfAuthPickSignIn = document.getElementById('piSelfAuthPickSignIn');
       var selfAuthPickGuest = document.getElementById('piSelfAuthPickGuest');
       var selfAuthLoginEmail = document.getElementById('piSelfAuthLoginEmail');
@@ -767,6 +770,10 @@
       var selfAuthOnDone = null;
       var selfAuthAwaitingLogin = false;
       var selfAuthLoginTimer = null;
+      /** @type {'self' | 'booker_for_stayer'} */
+      var selfAuthMode = 'self';
+      /** @type {null | Record<string, unknown>} */
+      var selfAuthPendingStayerParty = null;
 
       function setPartyErr(msg) {
         if (partyErr) partyErr.textContent = msg || '';
@@ -845,6 +852,8 @@
         var cb = selfAuthOnDone;
         selfAuthOnDone = null;
         pendingPartyHotel = null;
+        selfAuthMode = 'self';
+        selfAuthPendingStayerParty = null;
         if (cb) cb(partyDone);
       }
       function abortSelfAuthFlow() {
@@ -856,11 +865,40 @@
         var cb = selfAuthOnDone;
         selfAuthOnDone = null;
         pendingPartyHotel = null;
+        selfAuthMode = 'self';
+        selfAuthPendingStayerParty = null;
         if (cb) cb(null);
       }
-      function openSelfAuthOverlay(hotel, onDone) {
+      function openSelfAuthOverlay(hotel, onDone, opts) {
+        opts = opts || {};
+        selfAuthMode = opts.mode === 'booker_for_stayer' ? 'booker_for_stayer' : 'self';
+        selfAuthPendingStayerParty =
+          selfAuthMode === 'booker_for_stayer' && opts.stayerParty && typeof opts.stayerParty === 'object'
+            ? JSON.parse(JSON.stringify(opts.stayerParty))
+            : null;
+
         selfAuthOnDone = typeof onDone === 'function' ? onDone : null;
-        if (selfAuthHotelName) selfAuthHotelName.textContent = (hotel && hotel.name) || 'this hotel';
+
+        if (selfAuthMode === 'booker_for_stayer' && selfAuthTitle && selfAuthLead) {
+          selfAuthTitle.textContent = 'Confirm booker (payer)';
+          var sg = selfAuthPendingStayerParty || {};
+          selfAuthLead.textContent =
+            'Guest staying: ' +
+            String(sg.hotelStayerFirstName || '').trim() +
+            ' ' +
+            String(sg.hotelStayerLastName || '').trim() +
+            ' (' +
+            String(sg.hotelStayerEmail || '').trim() +
+            '). You pay and receive confirmation — sign in to your lab profile or continue as guest with the booker’s name and email.';
+        } else {
+          if (selfAuthTitle) selfAuthTitle.textContent = 'Continue as guest or sign in';
+          if (selfAuthLead && selfAuthDefaultLeadHTML) {
+            selfAuthLead.innerHTML = selfAuthDefaultLeadHTML;
+            selfAuthHotelName = document.getElementById('piSelfAuthHotelName');
+          }
+          if (selfAuthHotelName) selfAuthHotelName.textContent = (hotel && hotel.name) || 'this hotel';
+        }
+
         resetSelfAuthFields();
         showSelfAuthChooseView();
         if (selfAuthOverlay) selfAuthOverlay.hidden = false;
@@ -929,6 +967,33 @@
             JSON.stringify({ email: em, firstName: fn, lastName: ln, guestCheckout: true })
           );
         } catch (eGS) {}
+        if (selfAuthMode === 'booker_for_stayer' && selfAuthPendingStayerParty) {
+          var stayerBase = JSON.parse(JSON.stringify(selfAuthPendingStayerParty));
+          selfAuthPendingStayerParty = null;
+          selfAuthMode = 'self';
+          emit('hotel.checkout.booker_guest_capture', {
+            hotelFunnelStep: 'room_select_booker_for_stayer_guest',
+            hotelBookerCheckoutChannel: 'guest',
+            hotelBookerGuestFirstName: fn,
+            hotelBookerGuestLastName: ln,
+            hotelBookerGuestEmail: em,
+            hotelStayerSameAsBooker: false,
+            hotelStayerFirstName: stayerBase.hotelStayerFirstName,
+            hotelStayerLastName: stayerBase.hotelStayerLastName,
+            hotelStayerEmail: stayerBase.hotelStayerEmail,
+            hotelSearchIntent: searchIntent(),
+          }, 'Hospitality lab — booker guest capture (stayer path)');
+          var prBookerGuest = Object.assign({}, stayerBase, {
+            hotelBookerCheckoutChannel: 'guest',
+            hotelBookerGuestFirstName: fn,
+            hotelBookerGuestLastName: ln,
+            hotelBookerGuestEmail: em,
+          });
+          persistPartyRecord(prBookerGuest);
+          completeSelfAuthAndRoom(prBookerGuest);
+          return;
+        }
+
         emit('hotel.checkout.guest_capture', {
           hotelFunnelStep: 'room_select_self_guest_contact',
           hotelCheckoutChannel: 'guest',
@@ -971,18 +1036,36 @@
               })
             );
           } catch (eSB) {}
-          var pr = {
-            itineraryId: itineraryId,
-            hotelStayerSameAsBooker: true,
-            hotelCheckoutChannel: 'signed_in',
-          };
-          persistPartyRecord(pr);
-          emit('hotel.checkout.signed_in', {
-            hotelFunnelStep: 'room_select_self_signed_in',
-            hotelCheckoutChannel: 'signed_in',
-            hotelSearchIntent: searchIntent(),
-          }, 'Hospitality lab — signed in (room select)');
-          completeSelfAuthAndRoom(pr);
+          if (selfAuthMode === 'booker_for_stayer' && selfAuthPendingStayerParty) {
+            var stayerBase2 = JSON.parse(JSON.stringify(selfAuthPendingStayerParty));
+            selfAuthPendingStayerParty = null;
+            selfAuthMode = 'self';
+            var prSignedBooker = Object.assign({}, stayerBase2, { hotelBookerCheckoutChannel: 'signed_in' });
+            persistPartyRecord(prSignedBooker);
+            emit('hotel.checkout.booker_signed_in', {
+              hotelFunnelStep: 'room_select_booker_for_stayer_signed_in',
+              hotelBookerCheckoutChannel: 'signed_in',
+              hotelStayerSameAsBooker: false,
+              hotelStayerFirstName: stayerBase2.hotelStayerFirstName,
+              hotelStayerLastName: stayerBase2.hotelStayerLastName,
+              hotelStayerEmail: stayerBase2.hotelStayerEmail,
+              hotelSearchIntent: searchIntent(),
+            }, 'Hospitality lab — booker signed in (stayer path)');
+            completeSelfAuthAndRoom(prSignedBooker);
+          } else {
+            var pr = {
+              itineraryId: itineraryId,
+              hotelStayerSameAsBooker: true,
+              hotelCheckoutChannel: 'signed_in',
+            };
+            persistPartyRecord(pr);
+            emit('hotel.checkout.signed_in', {
+              hotelFunnelStep: 'room_select_self_signed_in',
+              hotelCheckoutChannel: 'signed_in',
+              hotelSearchIntent: searchIntent(),
+            }, 'Hospitality lab — signed in (room select)');
+            completeSelfAuthAndRoom(pr);
+          }
         } else {
           setSelfAuthLoginErr('No lab profile for that email. Try guest checkout or another address.');
         }
@@ -1031,8 +1114,22 @@
           hotelStayerLastName: ln,
           hotelStayerEmail: em,
         };
-        persistPartyRecord(rec);
-        finishPartyModal(rec);
+        var cbOther = partyModalOnDone;
+        closePartyModal();
+        if (!pendingPartyHotel) {
+          if (cbOther) cbOther(null);
+          return;
+        }
+        openSelfAuthOverlay(pendingPartyHotel, cbOther, { mode: 'booker_for_stayer', stayerParty: rec });
+        emit(
+          'hotel.checkout.self_auth_prompt',
+          {
+            hotelFunnelStep: 'room_select_authentication_choice',
+            hotelCheckoutBranch: 'booker_for_stayer_sign_in_or_guest',
+            hotelSearchIntent: searchIntent(),
+          },
+          'Hospitality lab — booker auth prompt (stayer path)'
+        );
       }
 
       if (partySelf) partySelf.addEventListener('change', syncPartyStayerFieldsVisibility);
@@ -1391,6 +1488,14 @@
           pub.hotelGuestCheckoutLastName = party.hotelGuestCheckoutLastName;
           pub.hotelGuestCheckoutEmail = party.hotelGuestCheckoutEmail;
         }
+        if (party && party.hotelStayerSameAsBooker === false && party.hotelBookerCheckoutChannel) {
+          pub.hotelBookerCheckoutChannel = party.hotelBookerCheckoutChannel;
+          if (party.hotelBookerGuestEmail) {
+            pub.hotelBookerGuestFirstName = party.hotelBookerGuestFirstName;
+            pub.hotelBookerGuestLastName = party.hotelBookerGuestLastName;
+            pub.hotelBookerGuestEmail = party.hotelBookerGuestEmail;
+          }
+        }
         emit('hotel.room.select', pub, 'Hospitality lab — room');
         if (stepResults) stepResults.hidden = true;
         if (stepCheckout) stepCheckout.hidden = false;
@@ -1502,6 +1607,14 @@
           completePub.hotelGuestCheckoutFirstName = partyRec.hotelGuestCheckoutFirstName;
           completePub.hotelGuestCheckoutLastName = partyRec.hotelGuestCheckoutLastName;
           completePub.hotelGuestCheckoutEmail = partyRec.hotelGuestCheckoutEmail;
+        }
+        if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelBookerCheckoutChannel) {
+          completePub.hotelBookerCheckoutChannel = partyRec.hotelBookerCheckoutChannel;
+          if (partyRec.hotelBookerGuestEmail) {
+            completePub.hotelBookerGuestFirstName = partyRec.hotelBookerGuestFirstName;
+            completePub.hotelBookerGuestLastName = partyRec.hotelBookerGuestLastName;
+            completePub.hotelBookerGuestEmail = partyRec.hotelBookerGuestEmail;
+          }
         }
         emit('hotel.booking.complete', completePub, 'Hospitality lab — complete (mock)');
         if (partyRec && partyRec.hotelStayerSameAsBooker === false && partyRec.hotelStayerEmail) {

@@ -4,8 +4,9 @@
  * Event types are generic (hotel.*) e.g. hotel.search, hotel.availability.view, hotel.filter.apply,
  * hotel.content.view, hotel.room.select, hotel.booking.start, hotel.payment.expose, hotel.checkout.abandon,
  * hotel.booking.complete, hotel.booking.stayerIdentified (second POST when booker ≠ stayer; same shell ECID/email),
- * hotel.checkout.self_auth_prompt (self path: sign-in vs guest choice), hotel.checkout.guest_capture (guest contact on self path),
- * hotel.checkout.signed_in (self path after lab sign-in before room.select),
+ * hotel.checkout.self_auth_prompt (self or stayer path: sign-in vs guest for booker identity),
+ * hotel.checkout.guest_capture (self path guest contact), hotel.checkout.signed_in (self path after lab sign-in),
+ * hotel.checkout.booker_guest_capture / hotel.checkout.booker_signed_in (stayer path: booker guest or signed-in after stayer fields),
  * hotel.funnel.exit (logo / title → lab home; use hotelJourneyStage + hotelExitVia vs payment abandon).
  */
 (function () {
