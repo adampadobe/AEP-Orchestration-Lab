@@ -40,8 +40,22 @@
   /** After successful Create account + server signup approval request (user is signed out). */
   var POST_SIGNUP_PENDING_MSG =
     'Your registration was submitted. An administrator must approve your account before you can sign in. Wait for approval, then use Log in below to continue lab setup.';
-  /** Email only (sessionStorage) — prefilled when switching from the pending hold screen to Log in. */
+  /**
+   * Tab-scoped sessionStorage so a full page refresh keeps the step-1 “awaiting approval” hold panel
+   * instead of resetting to Create account (lab-only; cleared when the tab closes).
+   *
+   * Keys:
+   * - `aepLabSignupPendingAwaitingApproval` — `'1'` while the user should see the hold UI after signup
+   *   pending and/or lab access status pending (typically signed out).
+   * - `aepLabSignupPendingHoldKind` — `postSignup` (Create account → pendingApproval) vs `labStatus`
+   *   (login / status check → pending).
+   * - `aepLabOnboardingLastSignupEmail` — prefilled when switching from hold to Log in (existing).
+   */
   var SS_ONBOARDING_LAST_SIGNUP_EMAIL = 'aepLabOnboardingLastSignupEmail';
+  var SS_SIGNUP_PENDING_AWAITING_APPROVAL = 'aepLabSignupPendingAwaitingApproval';
+  var SS_SIGNUP_PENDING_HOLD_KIND = 'aepLabSignupPendingHoldKind';
+  var HOLD_KIND_POST_SIGNUP = 'postSignup';
+  var HOLD_KIND_LAB_STATUS = 'labStatus';
   var step1LoginMode = false;
   var step1SessionExpiredShell = false;
   /** Step 1 “holding” panel: post-signup pending or signed-in-as-pending lockout (no form, single Log in). */
@@ -402,6 +416,52 @@
     } catch (_e2) {}
   }
 
+  function isPendingApprovalRefreshHoldActive() {
+    try {
+      return global.sessionStorage.getItem(SS_SIGNUP_PENDING_AWAITING_APPROVAL) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function readPendingHoldKind() {
+    try {
+      var k = global.sessionStorage.getItem(SS_SIGNUP_PENDING_HOLD_KIND) || '';
+      if (k === HOLD_KIND_LAB_STATUS) return HOLD_KIND_LAB_STATUS;
+      return HOLD_KIND_POST_SIGNUP;
+    } catch (_e2) {
+      return HOLD_KIND_POST_SIGNUP;
+    }
+  }
+
+  function setPendingApprovalSessionHold(kind) {
+    try {
+      global.sessionStorage.setItem(SS_SIGNUP_PENDING_AWAITING_APPROVAL, '1');
+      global.sessionStorage.setItem(
+        SS_SIGNUP_PENDING_HOLD_KIND,
+        kind === HOLD_KIND_LAB_STATUS ? HOLD_KIND_LAB_STATUS : HOLD_KIND_POST_SIGNUP,
+      );
+    } catch (_e) {}
+  }
+
+  function clearPendingApprovalSessionHold() {
+    try {
+      global.sessionStorage.removeItem(SS_SIGNUP_PENDING_AWAITING_APPROVAL);
+      global.sessionStorage.removeItem(SS_SIGNUP_PENDING_HOLD_KIND);
+    } catch (_e) {}
+  }
+
+  function tryRestorePendingApprovalHoldFromSession() {
+    if (step1SessionExpiredShell) return false;
+    if (!isPendingApprovalRefreshHoldActive()) return false;
+    var msg =
+      readPendingHoldKind() === HOLD_KIND_LAB_STATUS ? PENDING_LAB_ACCESS_MSG : POST_SIGNUP_PENDING_MSG;
+    setUiStep(1);
+    setStep1HoldMode(true, msg);
+    setMsg('', '');
+    return true;
+  }
+
   function clearLabGateStorageForPendingLockout() {
     try {
       if (global.AepAccessScope && typeof global.AepAccessScope.clearLabGateMode === 'function') {
@@ -422,6 +482,7 @@
         global.sessionStorage.setItem(SS_ONBOARDING_LAST_SIGNUP_EMAIL, String(u.email).trim().toLowerCase());
       }
     } catch (_s) {}
+    setPendingApprovalSessionHold(HOLD_KIND_LAB_STATUS);
     var p = !authInst ? Promise.resolve() : authInst.signOut().catch(function () {});
     return p.then(function () {
       show();
@@ -501,7 +562,7 @@
 
   function setOnboardingCopyVariant(variant, opts) {
     opts = opts || {};
-    if (variant === 'default' && step1HoldMode && !opts.force) {
+    if (variant === 'default' && !opts.force && (step1HoldMode || isPendingApprovalRefreshHoldActive())) {
       return;
     }
     clearStep1HoldMode();
@@ -742,6 +803,7 @@
     }
 
     if (!isLabEmailReauthPending()) setMsg('', '');
+    if (tryRestorePendingApprovalHoldFromSession()) return;
     setUiStep(1);
     syncStep1AuthUi();
     focusEmailField();
@@ -1181,6 +1243,7 @@
             return signOutAndShowPendingApproval(ensureFirebaseAuth(), PENDING_LAB_ACCESS_MSG);
           }
           if (status === 'approved' || status === 'missing') {
+            clearPendingApprovalSessionHold();
             afterStep1AuthSuccess({ ok: true, user: user });
             return;
           }
@@ -1256,6 +1319,7 @@
               try {
                 global.sessionStorage.setItem(SS_ONBOARDING_LAST_SIGNUP_EMAIL, String(fields.email || '').trim().toLowerCase());
               } catch (_se) {}
+              setPendingApprovalSessionHold(HOLD_KIND_POST_SIGNUP);
               var authInst = ensureFirebaseAuth();
               var msg = POST_SIGNUP_PENDING_MSG;
               if (!reg.emailSent && !reg.alreadyPending) {
