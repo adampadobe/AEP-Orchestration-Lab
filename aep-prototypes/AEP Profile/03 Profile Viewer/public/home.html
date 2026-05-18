@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260518-access-toggle">
+  <link rel="stylesheet" href="home.css?v=20260518b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
@@ -142,9 +142,9 @@
             <h3 class="dashboard-panel-title" id="aepAccessModeHeading">Access mode</h3>
             <span id="aepAccessModeSummary" class="dashboard-muted">Detecting mode…</span>
           </div>
-          <p class="dashboard-panel-text">First-time visitors <strong>sign in with Google</strong> (<strong>@adobe.com</strong>), then pick <strong>Adobe sandbox</strong> or <strong>no Adobe sandbox</strong>. Returning visitors use the quick switch or reopen the full setup dialog anytime.</p>
+          <p class="dashboard-panel-text">First-time visitors <strong>sign in with Adobe email</strong> (<strong>@adobe.com</strong> + password in Firebase), then pick <strong>Adobe sandbox</strong> or <strong>no Adobe sandbox</strong>. Returning visitors use the quick switch or reopen the full setup dialog anytime.</p>
           <div id="aepAccessModeToggleWrap" class="aep-access-mode-toggle-wrap" hidden>
-            <p class="aep-access-mode-toggle-hint">Quick switch — same Google identity; confirm when changing paths.</p>
+            <p class="aep-access-mode-toggle-hint">Quick switch — same Adobe lab account; confirm when changing paths.</p>
             <div class="aep-access-mode-toggle-row" role="group" aria-label="Lab access mode">
               <button type="button" class="dashboard-btn-outline" id="aepAccessToggleSandbox" aria-pressed="false">Adobe sandbox</button>
               <button type="button" class="dashboard-btn-outline" id="aepAccessToggleWorkspace" aria-pressed="false">No Adobe sandbox</button>
@@ -193,8 +193,8 @@
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260507-access-popup"></script>
-  <script src="aep-access-onboarding.js?v=20260518-signin-first-toggle"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260518c"></script>
+  <script src="aep-access-onboarding.js?v=20260518d"></script>
   <script>
     (function () {
       if (!window.AepAccessScope) return;
@@ -258,10 +258,10 @@
           statusEl.textContent = 'Choose your access mode to continue.';
         } else if (
           window.AepAccessOnboarding &&
-          typeof window.AepAccessOnboarding.hasAdobeGoogleLabSession === 'function' &&
-          !window.AepAccessOnboarding.hasAdobeGoogleLabSession()
+          typeof window.AepAccessOnboarding.hasAdobeLabFirebaseSession === 'function' &&
+          !window.AepAccessOnboarding.hasAdobeLabFirebaseSession()
         ) {
-          statusEl.textContent = 'Sign in with Google (@adobe.com) — use Configure access mode.';
+          statusEl.textContent = 'Sign in with Adobe email (@adobe.com + password) — use Configure access mode.';
         } else {
           statusEl.textContent = '';
         }
@@ -288,6 +288,7 @@
         syncUi();
         refreshAccessStatusHint();
       });
+      window.addEventListener('aep-lab-email-session-updated', refreshAccessStatusHint);
       window.addEventListener('aep-lab-google-session-updated', refreshAccessStatusHint);
       syncUi();
       refreshAccessStatusHint();

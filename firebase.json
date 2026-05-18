@@ -672,6 +672,13 @@
         }
       },
       {
+        "source": "/api/lab/workspace-auth/register-from-id-token",
+        "function": {
+          "functionId": "labWorkspaceAuthRegisterFromIdToken",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/workspace-auth/register-google",
         "function": {
           "functionId": "labWorkspaceAuthRegisterGoogle",
@@ -931,6 +938,15 @@
           {
             "key": "Access-Control-Allow-Origin",
             "value": "*"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/home.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
           }
         ]
       }

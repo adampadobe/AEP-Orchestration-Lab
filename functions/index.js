@@ -3373,6 +3373,57 @@ exports.labWorkspaceAuthRegister = onRequest(
   },
 );
 
+/** POST /api/lab/workspace-auth/register-from-id-token — existing Firebase user (e.g. email/password) + admin approval gate. */
+exports.labWorkspaceAuthRegisterFromIdToken = onRequest(
+  {
+    ...CONSENT_STORE_FN_OPTS,
+    secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
+    environmentVariables: {
+      LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
+      LAB_APPROVAL_MAILGUN_REGION: '',
+      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_MAIL_FROM: '',
+    },
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ ok: false, error: 'Method not allowed' });
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const mailgunDomain = String(EASTER_EGG_MAILGUN_DOMAIN.value() || '').trim();
+    const fallbackFrom = mailgunDomain ? `postmaster@${mailgunDomain}` : '';
+    try {
+      const result = await labWorkspaceAuthService.registerWorkspaceLabSessionFromIdTokenRequest(
+        {
+          idToken: body.idToken,
+          firstName: body.firstName,
+          lastName: body.lastName,
+          origin: req.get('origin') || req.get('referer') || '',
+        },
+        {
+          notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
+          approvalBaseUrl: String(process.env.LAB_APPROVAL_BASE_URL || '').trim(),
+          mailgunKey: EASTER_EGG_MAILGUN_API_KEY.value(),
+          mailgunDomain,
+          mailFrom: String(process.env.LAB_APPROVAL_MAIL_FROM || fallbackFrom).trim(),
+          mailgunRegion: String(process.env.LAB_APPROVAL_MAILGUN_REGION || '').trim(),
+        },
+      );
+      res.status(200).json(result);
+    } catch (e) {
+      const status = Number(e && e.status) || 400;
+      res.status(status).json({ ok: false, code: e && e.code ? String(e.code) : '', error: String(e && e.message ? e.message : e) });
+    }
+  },
+);
+
 /** POST /api/lab/workspace-auth/register-google — Google-verified signup (idToken) + admin approval gate. */
 exports.labWorkspaceAuthRegisterGoogle = onRequest(
   {

@@ -4,20 +4,81 @@
   var OVERLAY_ID = 'aepAccessOnboardingOverlay';
   var FORCE_QUERY = /(?:^|[?&])accessSetup=1(?:&|$)/;
   var FORCE_ONBOARDING_FLAG = 'aepAccessForceOnboarding';
-  /** Max wall-clock age for the hosted lab’s Google @adobe gate (re-prompt / sign-in), not Firebase refresh-token lifetime. Override before this script: `window.AEP_LAB_GOOGLE_SESSION_MAX_MS = 3*24*60*60*1000`. */
-  var DEFAULT_LAB_GOOGLE_SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000;
-  var LAB_GOOGLE_SESSION_MAX_MS =
-    typeof global.AEP_LAB_GOOGLE_SESSION_MAX_MS === 'number' &&
-    isFinite(global.AEP_LAB_GOOGLE_SESSION_MAX_MS) &&
-    global.AEP_LAB_GOOGLE_SESSION_MAX_MS > 0
-      ? global.AEP_LAB_GOOGLE_SESSION_MAX_MS
-      : DEFAULT_LAB_GOOGLE_SESSION_MAX_MS;
-  global.AEP_LAB_GOOGLE_SESSION_MAX_MS = LAB_GOOGLE_SESSION_MAX_MS;
-  var LS_GOOGLE_VERIFIED_AT = 'aepLabGoogleVerifiedAt';
-  /** Survives the sign-out auth tick so the modal keeps “session expired” copy until Google save succeeds. */
-  var LS_REAUTH_PENDING = 'aepLabGoogleReauthPending';
+  /** Max wall-clock age for the hosted lab Adobe-email gate (re-prompt), not Firebase refresh-token lifetime. */
+  var DEFAULT_LAB_EMAIL_SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+  var LAB_EMAIL_SESSION_MAX_MS =
+    typeof global.AEP_LAB_EMAIL_SESSION_MAX_MS === 'number' &&
+    isFinite(global.AEP_LAB_EMAIL_SESSION_MAX_MS) &&
+    global.AEP_LAB_EMAIL_SESSION_MAX_MS > 0
+      ? global.AEP_LAB_EMAIL_SESSION_MAX_MS
+      : typeof global.AEP_LAB_GOOGLE_SESSION_MAX_MS === 'number' &&
+          isFinite(global.AEP_LAB_GOOGLE_SESSION_MAX_MS) &&
+          global.AEP_LAB_GOOGLE_SESSION_MAX_MS > 0
+        ? global.AEP_LAB_GOOGLE_SESSION_MAX_MS
+        : DEFAULT_LAB_EMAIL_SESSION_MAX_MS;
+  global.AEP_LAB_EMAIL_SESSION_MAX_MS = LAB_EMAIL_SESSION_MAX_MS;
+  global.AEP_LAB_GOOGLE_SESSION_MAX_MS = LAB_EMAIL_SESSION_MAX_MS;
+
+  var LS_EMAIL_VERIFIED_AT = 'aepLabEmailVerifiedAt';
+  var LS_GOOGLE_VERIFIED_AT_LEGACY = 'aepLabGoogleVerifiedAt';
+  /** Survives the sign-out auth tick so the modal keeps “session expired” copy until sign-in succeeds. */
+  var LS_REAUTH_PENDING = 'aepLabEmailReauthPending';
+  var LS_GOOGLE_REAUTH_LEGACY = 'aepLabGoogleReauthPending';
   /** If `verifiedAt` is this many ms ahead of `Date.now()`, treat clock as skewed and force re-verify. */
   var VERIFIED_AT_FUTURE_SKEW_MS = 5 * 60 * 1000;
+  var MIN_LAB_PASSWORD_LEN = 8;
+  var step1LoginMode = false;
+  var step1SessionExpiredShell = false;
+
+  function migrateLegacyLabLocalStorage() {
+    try {
+      if (!localStorage.getItem(LS_EMAIL_VERIFIED_AT)) {
+        var legV = localStorage.getItem(LS_GOOGLE_VERIFIED_AT_LEGACY);
+        if (legV) {
+          localStorage.setItem(LS_EMAIL_VERIFIED_AT, legV);
+          localStorage.removeItem(LS_GOOGLE_VERIFIED_AT_LEGACY);
+        }
+      }
+      if (localStorage.getItem(LS_REAUTH_PENDING) !== '1' && localStorage.getItem(LS_GOOGLE_REAUTH_LEGACY) === '1') {
+        localStorage.setItem(LS_REAUTH_PENDING, '1');
+        localStorage.removeItem(LS_GOOGLE_REAUTH_LEGACY);
+      }
+    } catch (_e) {}
+  }
+
+  function syncStep1AuthUi() {
+    var title = document.getElementById('aepAccessOnbTitleSignIn');
+    var primary = document.getElementById('aepAccessOnbPrimaryAuthBtn');
+    var secondary = document.getElementById('aepAccessOnbSecondaryAuthBtn');
+    var confirmWrap = document.getElementById('aepAccessOnbConfirmWrap');
+    var pwd = document.getElementById('aepAccessOnbPassword');
+    if (!primary || !secondary) return;
+    if (step1LoginMode) {
+      if (title) title.textContent = step1SessionExpiredShell ? 'Sign in again' : 'Log in';
+      primary.textContent = 'Log in';
+      primary.setAttribute('class', 'dashboard-btn-primary');
+      secondary.textContent = 'Create an account';
+      secondary.setAttribute('class', 'dashboard-btn-outline');
+      if (confirmWrap) confirmWrap.hidden = true;
+      if (pwd) pwd.setAttribute('autocomplete', 'current-password');
+    } else {
+      if (title) title.textContent = 'Create an account';
+      primary.textContent = 'Create account';
+      primary.setAttribute('class', 'dashboard-btn-primary');
+      secondary.textContent = 'Login';
+      secondary.setAttribute('class', 'dashboard-btn-outline');
+      if (confirmWrap) confirmWrap.hidden = false;
+      if (pwd) pwd.setAttribute('autocomplete', 'new-password');
+    }
+  }
+
+  function setStep1AuthMode(isLogin, opts) {
+    opts = opts || {};
+    step1LoginMode = !!isLogin;
+    if (opts.sessionExpired) step1SessionExpiredShell = true;
+    if (opts.clearSessionExpired) step1SessionExpiredShell = false;
+    syncStep1AuthUi();
+  }
 
   function injectStyles() {
     if (document.getElementById('aepAccessOnboardingStyle')) return;
@@ -43,7 +104,7 @@
       '.aep-access-onb-msg.ok{color:var(--dash-success);}' +
       '.aep-access-onb-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.95em;color:var(--dash-text);}' +
       '.aep-access-onb-step[hidden]{display:none !important;}' +
-      '.aep-access-onb-step-actions{margin-top:14px;}';
+      '.aep-access-onb-step-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}';
     document.head.appendChild(style);
   }
 
@@ -63,10 +124,16 @@
       '<div class="aep-access-onb-card">' +
       '<div id="aepAccessOnbStepSignIn" class="aep-access-onb-step">' +
       '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
-      '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Sign in with Google</h2>' +
-      '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> Google account. After you verify, you will choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
+      '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Create an account</h2>' +
+      '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. Next, you will pick <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
+      '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
+      '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
+      '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
+      '<div id="aepAccessOnbConfirmWrap" class="full"><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" autocomplete="new-password" maxlength="128"></div>' +
+      '</div>' +
       '<div class="aep-access-onb-step-actions">' +
-      '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbGoogleBtn">Continue with Google</button>' +
+      '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbPrimaryAuthBtn">Create account</button>' +
+      '<button type="button" class="dashboard-btn-outline" id="aepAccessOnbSecondaryAuthBtn">Login</button>' +
       '</div></div>' +
       '<div id="aepAccessOnbStepMode" class="aep-access-onb-step" hidden>' +
       '<p class="aep-access-onb-kicker">Step 2 of 2</p>' +
@@ -81,7 +148,7 @@
       '<div id="aepAccessOnbWorkspaceForm" class="aep-access-onb-grid" style="display:none">' +
       '<div><label for="aepAccessOnbFirstName">First name</label><input id="aepAccessOnbFirstName" type="text" maxlength="80" autocomplete="given-name"></div>' +
       '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
-      '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your Google <span class="aep-access-onb-mono">@adobe.com</span> email. New workspace access stays <strong>pending</strong> until an admin approves it.</p>' +
+      '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. New workspace access stays <strong>pending</strong> until an admin approves it.</p>' +
       '</div>' +
       '</div>' +
       '<div class="aep-access-onb-foot">' +
@@ -108,12 +175,14 @@
   }
 
   function clearForceOpenFlag() {
-    try { localStorage.removeItem(FORCE_ONBOARDING_FLAG); } catch (_e) {}
+    try {
+      localStorage.removeItem(FORCE_ONBOARDING_FLAG);
+    } catch (_e) {}
   }
 
   function readVerifiedAtRaw() {
     try {
-      return localStorage.getItem(LS_GOOGLE_VERIFIED_AT) || '';
+      return localStorage.getItem(LS_EMAIL_VERIFIED_AT) || '';
     } catch (_e) {
       return '';
     }
@@ -126,32 +195,36 @@
 
   function writeVerifiedAt(ts) {
     try {
-      localStorage.setItem(LS_GOOGLE_VERIFIED_AT, String(ts));
+      localStorage.setItem(LS_EMAIL_VERIFIED_AT, String(ts));
     } catch (_e) {}
   }
 
   function clearVerifiedAt() {
     try {
-      localStorage.removeItem(LS_GOOGLE_VERIFIED_AT);
+      localStorage.removeItem(LS_EMAIL_VERIFIED_AT);
+      localStorage.removeItem(LS_GOOGLE_VERIFIED_AT_LEGACY);
     } catch (_e2) {}
   }
 
-  function clearLabGoogleReauthPending() {
+  function clearLabEmailReauthPending() {
     try {
       localStorage.removeItem(LS_REAUTH_PENDING);
+      localStorage.removeItem(LS_GOOGLE_REAUTH_LEGACY);
     } catch (_e) {}
   }
 
-  function isLabGoogleReauthPending() {
+  function isLabEmailReauthPending() {
     try {
-      return localStorage.getItem(LS_REAUTH_PENDING) === '1';
+      return (
+        localStorage.getItem(LS_REAUTH_PENDING) === '1' || localStorage.getItem(LS_GOOGLE_REAUTH_LEGACY) === '1'
+      );
     } catch (_e2) {
       return false;
     }
   }
 
-  function recordSuccessfulLabGoogleVerification() {
-    clearLabGoogleReauthPending();
+  function recordSuccessfulLabEmailVerification() {
+    clearLabEmailReauthPending();
     writeVerifiedAt(Date.now());
   }
 
@@ -166,14 +239,13 @@
 
   function setOnboardingCopyVariant(variant) {
     var kicker = document.getElementById('aepAccessOnbKickerSignIn');
-    var title = document.getElementById('aepAccessOnbTitleSignIn');
-    if (!kicker || !title) return;
+    if (!kicker) return;
     if (variant === 'session-expired') {
       kicker.textContent = 'Session expired';
-      title.textContent = 'Sign in again';
+      setStep1AuthMode(true, { sessionExpired: true });
     } else {
       kicker.textContent = 'Step 1 of 2';
-      title.textContent = 'Sign in with Google';
+      setStep1AuthMode(false, { clearSessionExpired: true });
     }
   }
 
@@ -212,17 +284,23 @@
     if (!fnEl || !lnEl || !user) return;
     if (String(fnEl.value || '').trim() && String(lnEl.value || '').trim()) return;
     var dn = user.displayName ? String(user.displayName).trim() : '';
-    if (!dn) return;
-    var parts = dn.split(/\s+/);
-    if (parts.length === 1) {
-      fnEl.value = parts[0];
-    } else {
-      fnEl.value = parts[0];
-      lnEl.value = parts.slice(1).join(' ');
+    if (dn) {
+      var parts = dn.split(/\s+/);
+      if (parts.length === 1) {
+        fnEl.value = parts[0];
+      } else {
+        fnEl.value = parts[0];
+        lnEl.value = parts.slice(1).join(' ');
+      }
+      return;
+    }
+    var local = String((user.email || '').split('@')[0] || '').trim();
+    if (local && !fnEl.value.trim()) {
+      fnEl.value = local.charAt(0).toUpperCase() + local.slice(1);
     }
   }
 
-  function expireLabGoogleGateAndSignOut(auth) {
+  function expireLabEmailGateAndSignOut(auth) {
     clearVerifiedAt();
     try {
       localStorage.setItem(LS_REAUTH_PENDING, '1');
@@ -237,12 +315,12 @@
   }
 
   /**
-   * Lab gate TTL: @adobe Google + explicit access mode + stored verification age.
+   * Lab gate TTL: @adobe Firebase user + explicit access mode + stored verification age.
    * Skips users without an explicit mode (including no-sandbox signup not finished) so we do not loop on pending flows.
    */
-  function enforceLabGoogleSessionMaxAgeAsync(auth, user) {
+  function enforceLabEmailSessionMaxAgeAsync(auth, user) {
     if (!auth || !global.AepAccessScope) return Promise.resolve(false);
-    if (!user || !isAdobeGoogleUser(user)) return Promise.resolve(false);
+    if (!user || !isAdobeLabFirebaseUser(user)) return Promise.resolve(false);
     if (!global.AepAccessScope.hasExplicitMode()) return Promise.resolve(false);
     bootstrapVerifiedAtFromFirebaseUser(user);
     var verifiedAt = parseVerifiedAtMs(readVerifiedAtRaw());
@@ -252,19 +330,18 @@
     }
     var now = Date.now();
     if (verifiedAt > now + VERIFIED_AT_FUTURE_SKEW_MS) {
-      return expireLabGoogleGateAndSignOut(auth);
+      return expireLabEmailGateAndSignOut(auth);
     }
-    if (now - verifiedAt <= LAB_GOOGLE_SESSION_MAX_MS) return Promise.resolve(false);
-    return expireLabGoogleGateAndSignOut(auth);
+    if (now - verifiedAt <= LAB_EMAIL_SESSION_MAX_MS) return Promise.resolve(false);
+    return expireLabEmailGateAndSignOut(auth);
   }
 
   function maybeOpenOnboardingAfterAuthCheck(labSessionJustExpired) {
-    var reauthPending = isLabGoogleReauthPending();
+    var reauthPending = isLabEmailReauthPending();
     var explicitMode = global.AepAccessScope && global.AepAccessScope.hasExplicitMode();
-    var needsGoogle = !hasAdobeGoogleLabSession();
+    var needsFirebase = !hasAdobeLabFirebaseSession();
     var useExpiredShell =
-      !!labSessionJustExpired ||
-      !!(reauthPending && explicitMode && needsGoogle);
+      !!labSessionJustExpired || !!(reauthPending && explicitMode && needsFirebase);
 
     var shouldOpen = !!labSessionJustExpired || shouldAutoOpenOnboarding();
     if (!shouldOpen) return;
@@ -273,7 +350,7 @@
 
     if (useExpiredShell) {
       setOnboardingCopyVariant('session-expired');
-      setMsg('Session expired — sign in with Google again to continue.', 'err');
+      setMsg('Session expired — sign in again with your Adobe email and password.', 'err');
     } else {
       setOnboardingCopyVariant('default');
     }
@@ -331,6 +408,7 @@
   }
 
   function show() {
+    migrateLegacyLabLocalStorage();
     var overlay = ensureOverlay();
     overlay.hidden = false;
     document.body.classList.add('aep-access-onboarding-open');
@@ -341,16 +419,17 @@
         global.__aepOnboardingPreferWorkspace = false;
       }
     } catch (_pw) {}
-    if (hasAdobeGoogleLabSession()) {
+    if (hasAdobeLabFirebaseSession()) {
       setUiStep(2);
       refreshModeChoiceUi();
       var focusEl = document.getElementById('aepAccessOnbSandbox');
       if (focusEl) focusEl.focus();
     } else {
-      if (!isLabGoogleReauthPending()) setMsg('', '');
+      if (!isLabEmailReauthPending()) setMsg('', '');
       setUiStep(1);
-      var gBtn = document.getElementById('aepAccessOnbGoogleBtn');
-      if (gBtn) gBtn.focus();
+      syncStep1AuthUi();
+      var emailEl = document.getElementById('aepAccessOnbEmail');
+      if (emailEl) emailEl.focus();
     }
   }
 
@@ -362,78 +441,123 @@
     return firebase.auth ? firebase.auth() : null;
   }
 
-  function isAdobeGoogleUser(user) {
+  function isAdobeLabFirebaseUser(user) {
     if (!user || !user.email) return false;
     var email = String(user.email).trim().toLowerCase();
-    if (!email.endsWith('@adobe.com')) return false;
-    var data = user.providerData || [];
-    for (var i = 0; i < data.length; i++) {
-      if (data[i].providerId === 'google.com') return true;
-    }
-    return false;
+    return email.endsWith('@adobe.com');
   }
 
-  function hasAdobeGoogleLabSession() {
+  function hasAdobeLabFirebaseSession() {
     var auth = ensureFirebaseAuth();
     if (!auth) return false;
-    return isAdobeGoogleUser(auth.currentUser);
+    return isAdobeLabFirebaseUser(auth.currentUser);
   }
 
   function shouldAutoOpenOnboarding() {
     if (!global.AepAccessScope) return false;
     var needsModeSetup = !global.AepAccessScope.hasExplicitMode();
-    var needsGoogle = !hasAdobeGoogleLabSession();
+    var needsFirebase = !hasAdobeLabFirebaseSession();
     if (shouldForceOpen()) return true;
     if (needsModeSetup) return true;
-    if (global.AepAccessScope.hasExplicitMode() && needsGoogle) return true;
+    if (global.AepAccessScope.hasExplicitMode() && needsFirebase) return true;
     return false;
   }
 
-  function ensureAdobeGoogleSession() {
+  function mapFirebaseAuthError(e) {
+    var code = String((e && e.code) || '');
+    if (code === 'auth/user-disabled') {
+      return 'This account is pending admin approval or has been disabled. Try again after your no-sandbox access is approved.';
+    }
+    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      return 'Incorrect password. Try again or reset your password in Firebase if your org allows it.';
+    }
+    if (code === 'auth/user-not-found') {
+      return 'No account found for that email — check spelling or use Create account first.';
+    }
+    if (code === 'auth/email-already-in-use') {
+      return 'That email is already registered — use Login.';
+    }
+    if (code === 'auth/weak-password') {
+      return 'Password is too weak. Use at least ' + MIN_LAB_PASSWORD_LEN + ' characters.';
+    }
+    if (code === 'auth/invalid-email') {
+      return 'Enter a valid email address.';
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'Email/password sign-in is disabled for this Firebase project. Ask an admin to enable Email/Password in Firebase Authentication.';
+    }
+    if (code === 'auth/too-many-requests') {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    return String((e && e.message) || e || 'Sign-in failed.');
+  }
+
+  function registerLabAdobeAccount(rawEmail, password, confirm) {
     var auth = ensureFirebaseAuth();
     if (!auth) {
       return Promise.resolve({ ok: false, error: 'Firebase auth is not available on this page.' });
     }
-    if (isAdobeGoogleUser(auth.currentUser)) {
-      return Promise.resolve({ ok: true, user: auth.currentUser });
+    var email = String(rawEmail || '').trim().toLowerCase();
+    if (!email.endsWith('@adobe.com')) {
+      return Promise.resolve({ ok: false, error: 'Use an Adobe email address ending in @adobe.com.' });
     }
-    var provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+    if (!password || String(password).length < MIN_LAB_PASSWORD_LEN) {
+      return Promise.resolve({
+        ok: false,
+        error: 'Password must be at least ' + MIN_LAB_PASSWORD_LEN + ' characters.',
+      });
+    }
+    if (String(password) !== String(confirm || '')) {
+      return Promise.resolve({ ok: false, error: 'Passwords do not match.' });
+    }
     return auth
-      .signInWithPopup(provider)
+      .createUserWithEmailAndPassword(email, password)
       .then(function (cred) {
-        var user = cred && cred.user;
-        var email = String((user && user.email) || '').trim().toLowerCase();
-        if (!email.endsWith('@adobe.com')) {
-          return auth.signOut().then(function () {
-            return { ok: false, error: 'Use your Adobe Google account (email must end in @adobe.com).' };
-          });
-        }
-        if (!isAdobeGoogleUser(user)) {
-          return auth.signOut().then(function () {
-            return { ok: false, error: 'Please choose Sign in with Google using your Adobe @adobe.com account.' };
-          });
-        }
-        return { ok: true, user: user };
+        return { ok: true, user: cred && cred.user };
       })
       .catch(function (e) {
-        var code = String((e && e.code) || '');
-        if (code === 'auth/user-disabled') {
-          return {
-            ok: false,
-            error:
-              'This account is pending admin approval or has been disabled. Try again after your no-sandbox access is approved.',
-          };
-        }
-        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-          return { ok: false, error: 'Sign-in was cancelled.' };
-        }
-        return { ok: false, error: String((e && e.message) || e || 'Google sign-in failed.') };
+        return { ok: false, error: mapFirebaseAuthError(e) };
       });
   }
 
-  function requestWorkspaceGoogleRegister(idToken, firstName, lastName) {
-    return fetch('/api/lab/workspace-auth/register-google', {
+  function signInLabAdobeAccount(rawEmail, password) {
+    var auth = ensureFirebaseAuth();
+    if (!auth) {
+      return Promise.resolve({ ok: false, error: 'Firebase auth is not available on this page.' });
+    }
+    var email = String(rawEmail || '').trim().toLowerCase();
+    if (!email.endsWith('@adobe.com')) {
+      return Promise.resolve({ ok: false, error: 'Use an Adobe email address ending in @adobe.com.' });
+    }
+    if (!password) {
+      return Promise.resolve({ ok: false, error: 'Enter your password.' });
+    }
+    return auth
+      .signInWithEmailAndPassword(email, password)
+      .then(function (cred) {
+        return { ok: true, user: cred && cred.user };
+      })
+      .catch(function (e) {
+        return { ok: false, error: mapFirebaseAuthError(e) };
+      });
+  }
+
+  function ensureAdobeLabFirebaseSession() {
+    var auth = ensureFirebaseAuth();
+    if (!auth) {
+      return Promise.resolve({ ok: false, error: 'Firebase auth is not available on this page.' });
+    }
+    if (isAdobeLabFirebaseUser(auth.currentUser)) {
+      return Promise.resolve({ ok: true, user: auth.currentUser });
+    }
+    return Promise.resolve({
+      ok: false,
+      error: 'Sign in with your Adobe @adobe.com email and password first.',
+    });
+  }
+
+  function requestWorkspaceRegisterFromIdToken(idToken, firstName, lastName) {
+    return fetch('/api/lab/workspace-auth/register-from-id-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -473,11 +597,11 @@
       });
   }
 
-  function ensureApprovedWorkspaceGoogleAuth(user, input) {
+  function ensureApprovedWorkspaceLabAuth(user, input) {
     return user
       .getIdToken(true)
       .then(function (idToken) {
-        return requestWorkspaceGoogleRegister(idToken, input.firstName, input.lastName);
+        return requestWorkspaceRegisterFromIdToken(idToken, input.firstName, input.lastName);
       })
       .then(function (reg) {
         if (!reg || !reg.ok) return reg;
@@ -514,10 +638,14 @@
           body: JSON.stringify(payload),
         })
           .then(function (res) {
-            return res.json().catch(function () { return {}; });
+            return res.json().catch(function () {
+              return {};
+            });
           })
           .then(function (json) {
-            return json && json.ok ? { ok: true, profile: json.profile || null } : { ok: false, error: (json && json.error) || 'Failed to save profile.' };
+            return json && json.ok
+              ? { ok: true, profile: json.profile || null }
+              : { ok: false, error: (json && json.error) || 'Failed to save profile.' };
           })
           .catch(function (e) {
             return { ok: false, error: String((e && e.message) || e || 'Failed to save profile.') };
@@ -530,9 +658,10 @@
     var summaryEl = document.getElementById('aepAccessModeSummary');
     if (!summaryEl) return;
     var scope = global.AepAccessScope.getScope();
-    summaryEl.textContent = scope.mode === 'workspace'
-      ? ('No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured'))
-      : 'Adobe sandbox mode';
+    summaryEl.textContent =
+      scope.mode === 'workspace'
+        ? 'No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured')
+        : 'Adobe sandbox mode';
   }
 
   function refreshModeChoiceUi() {
@@ -540,10 +669,19 @@
     setWorkspaceFormVisible(workspaceMode);
     setMsg(
       workspaceMode
-        ? 'No-sandbox mode uses your Google identity; admin approval may apply to new signups.'
+        ? 'No-sandbox mode uses your Adobe lab account; admin approval may apply to new signups.'
         : 'Adobe sandbox uses your .env-backed sandbox selector and AEP APIs.',
       '',
     );
+  }
+
+  function dispatchLabSessionUpdated() {
+    try {
+      global.dispatchEvent(new CustomEvent('aep-lab-email-session-updated'));
+    } catch (_ev) {}
+    try {
+      global.dispatchEvent(new CustomEvent('aep-lab-google-session-updated'));
+    } catch (_ev2) {}
   }
 
   function wire() {
@@ -551,8 +689,10 @@
     var sandboxRadio = document.getElementById('aepAccessOnbSandbox');
     var workspaceRadio = document.getElementById('aepAccessOnbWorkspace');
     var saveBtn = document.getElementById('aepAccessOnbSaveBtn');
-    var googleBtn = document.getElementById('aepAccessOnbGoogleBtn');
-    if (!sandboxRadio || !workspaceRadio || !saveBtn || !googleBtn) return;
+    var primaryAuthBtn = document.getElementById('aepAccessOnbPrimaryAuthBtn');
+    var secondaryAuthBtn = document.getElementById('aepAccessOnbSecondaryAuthBtn');
+    if (!sandboxRadio || !workspaceRadio || !saveBtn || !primaryAuthBtn || !secondaryAuthBtn) return;
+    syncStep1AuthUi();
 
     function onModeChange() {
       refreshModeChoiceUi();
@@ -560,48 +700,80 @@
     sandboxRadio.addEventListener('change', onModeChange);
     workspaceRadio.addEventListener('change', onModeChange);
 
-    googleBtn.addEventListener('click', function () {
-      googleBtn.disabled = true;
-      setMsg('Opening Google sign-in…', '');
-      ensureAdobeGoogleSession()
-        .then(function (session) {
-          if (!session || !session.ok) {
-            setMsg((session && session.error) || 'Google sign-in is required.', 'err');
-            return;
-          }
-          prefillWorkspaceNamesFromUser(session.user);
-          setUiStep(2);
-          syncRadiosFromScope();
-          try {
-            if (global.__aepOnboardingPreferWorkspace) {
-              selectWorkspaceMode();
-              global.__aepOnboardingPreferWorkspace = false;
-            }
-          } catch (_pw2) {}
-          refreshModeChoiceUi();
-          setMsg('Choose your access mode, then save.', '');
-          if (sandboxRadio) sandboxRadio.focus();
-        })
-        .finally(function () {
-          googleBtn.disabled = false;
-        });
+    function readStep1Fields() {
+      var emailEl = document.getElementById('aepAccessOnbEmail');
+      var passEl = document.getElementById('aepAccessOnbPassword');
+      var confEl = document.getElementById('aepAccessOnbPasswordConfirm');
+      return {
+        email: emailEl ? String(emailEl.value || '').trim() : '',
+        password: passEl ? String(passEl.value || '') : '',
+        confirm: confEl ? String(confEl.value || '') : '',
+      };
+    }
+
+    function afterStep1AuthSuccess(session) {
+      prefillWorkspaceNamesFromUser(session.user);
+      setUiStep(2);
+      syncRadiosFromScope();
+      try {
+        if (global.__aepOnboardingPreferWorkspace) {
+          selectWorkspaceMode();
+          global.__aepOnboardingPreferWorkspace = false;
+        }
+      } catch (_pw2) {}
+      refreshModeChoiceUi();
+      setMsg('Choose your access mode, then save.', '');
+      if (sandboxRadio) sandboxRadio.focus();
+    }
+
+    secondaryAuthBtn.addEventListener('click', function () {
+      if (step1LoginMode) {
+        setStep1AuthMode(false, { clearSessionExpired: true });
+        setMsg('', '');
+      } else {
+        setStep1AuthMode(true, {});
+        setMsg('', '');
+      }
+    });
+
+    primaryAuthBtn.addEventListener('click', function () {
+      var fields = readStep1Fields();
+      primaryAuthBtn.disabled = true;
+      secondaryAuthBtn.disabled = true;
+      setMsg(step1LoginMode ? 'Signing in…' : 'Creating account…', '');
+      var p = step1LoginMode
+        ? signInLabAdobeAccount(fields.email, fields.password)
+        : registerLabAdobeAccount(fields.email, fields.password, fields.confirm);
+      p.then(function (session) {
+        primaryAuthBtn.disabled = false;
+        secondaryAuthBtn.disabled = false;
+        if (!session || !session.ok) {
+          setMsg((session && session.error) || 'Something went wrong.', 'err');
+          return;
+        }
+        afterStep1AuthSuccess(session);
+      });
     });
 
     saveBtn.addEventListener('click', function () {
       if (!global.AepAccessScope) return;
-      if (!hasAdobeGoogleLabSession()) {
-        setMsg('Use “Continue with Google” first, then choose your mode.', 'err');
+      if (!hasAdobeLabFirebaseSession()) {
+        setMsg('Sign in with your Adobe email and password first, then choose your mode.', 'err');
         setUiStep(1);
+        syncStep1AuthUi();
         return;
       }
       saveBtn.disabled = true;
-      var alreadySignedIn = hasAdobeGoogleLabSession();
-      setMsg(alreadySignedIn ? 'Saving…' : 'Opening Google sign-in…', '');
+      var alreadySignedIn = hasAdobeLabFirebaseSession();
+      setMsg(alreadySignedIn ? 'Saving…' : 'Checking sign-in…', '');
 
-      ensureAdobeGoogleSession().then(function (session) {
+      ensureAdobeLabFirebaseSession().then(function (session) {
         if (!session || !session.ok) {
-          setMsg((session && session.error) || 'Google sign-in is required.', 'err');
-          if (!hasAdobeGoogleLabSession()) setUiStep(1);
+          setMsg((session && session.error) || 'Sign in is required.', 'err');
+          if (!hasAdobeLabFirebaseSession()) {
+            setUiStep(1);
+            syncStep1AuthUi();
+          }
           saveBtn.disabled = false;
           return;
         }
@@ -613,13 +785,13 @@
 
         if (mode === 'sandbox') {
           global.AepAccessScope.setAccessMode('sandbox');
-          recordSuccessfulLabGoogleVerification();
+          recordSuccessfulLabEmailVerification();
           setMsg('Saved.', 'ok');
           refreshSummary();
-          try {
-            global.dispatchEvent(new CustomEvent('aep-lab-google-session-updated'));
-          } catch (_ev) {}
-          setTimeout(function () { hide(); }, 220);
+          dispatchLabSessionUpdated();
+          setTimeout(function () {
+            hide();
+          }, 220);
           saveBtn.disabled = false;
           return;
         }
@@ -639,7 +811,7 @@
           return;
         }
 
-        return ensureApprovedWorkspaceGoogleAuth(user, input).then(function (authResult) {
+        return ensureApprovedWorkspaceLabAuth(user, input).then(function (authResult) {
           if (!authResult || !authResult.ok) {
             setMsg((authResult && authResult.error) || 'Could not complete workspace signup.', 'err');
             if (authResult && authResult.pending) {
@@ -667,14 +839,16 @@
             global.AepAccessScope.setWorkspaceName(workspaceName);
             global.AepAccessScope.setWorkspaceSlug(workspaceSlug);
             global.AepAccessScope.setAccessMode('workspace');
-            try { localStorage.removeItem('aepGlobalSandboxName'); } catch (_e) {}
-            recordSuccessfulLabGoogleVerification();
+            try {
+              localStorage.removeItem('aepGlobalSandboxName');
+            } catch (_e) {}
+            recordSuccessfulLabEmailVerification();
             setMsg('Saved. You are in no-sandbox mode.', 'ok');
             refreshSummary();
-            try {
-              global.dispatchEvent(new CustomEvent('aep-lab-google-session-updated'));
-            } catch (_ev2) {}
-            setTimeout(function () { hide(); }, 250);
+            dispatchLabSessionUpdated();
+            setTimeout(function () {
+              hide();
+            }, 250);
             saveBtn.disabled = false;
           });
         });
@@ -684,6 +858,7 @@
 
   function init() {
     if (!global.AepAccessScope) return;
+    migrateLegacyLabLocalStorage();
     wire();
     refreshSummary();
 
@@ -694,7 +869,7 @@
       clearForceOpenFlag();
       show();
       selectWorkspaceMode();
-      setMsg('Your no-sandbox account is no longer active. Sign in with Google again to continue.', 'err');
+      setMsg('Your no-sandbox account is no longer active. Sign in again with your Adobe email and password.', 'err');
     });
 
     var auth = ensureFirebaseAuth();
@@ -703,7 +878,7 @@
       return;
     }
     auth.onAuthStateChanged(function (user) {
-      enforceLabGoogleSessionMaxAgeAsync(auth, user).then(function (expired) {
+      enforceLabEmailSessionMaxAgeAsync(auth, user).then(function (expired) {
         maybeOpenOnboardingAfterAuthCheck(expired);
       });
     });
@@ -713,6 +888,8 @@
     init: init,
     open: show,
     close: hide,
-    hasAdobeGoogleLabSession: hasAdobeGoogleLabSession,
+    hasAdobeLabFirebaseSession: hasAdobeLabFirebaseSession,
+    /** @deprecated Use hasAdobeLabFirebaseSession */
+    hasAdobeGoogleLabSession: hasAdobeLabFirebaseSession,
   };
 })(typeof window !== 'undefined' ? window : this);

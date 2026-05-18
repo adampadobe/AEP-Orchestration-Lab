@@ -164,6 +164,7 @@ async function registerWorkspaceAuthRequest(input, deps) {
   if (!firstName) throw badRequest('firstName is required');
   if (!lastName) throw badRequest('lastName is required');
   if (!isValidEmail(adobeEmail)) throw badRequest('adobeEmail is invalid');
+  if (!isAdobeComEmail(adobeEmail)) throw badRequest('Adobe email must end with @adobe.com');
   if (password.length < 8) throw badRequest('Password must be at least 8 characters');
 
   if (!admin.apps.length) admin.initializeApp();
@@ -269,13 +270,15 @@ async function registerWorkspaceAuthRequest(input, deps) {
 }
 
 /**
- * No-sandbox signup after client Firebase Google sign-in: verifies ID token,
- * requires @adobe.com + Google provider, mirrors email/password approval flow.
+ * No-sandbox signup after client Firebase sign-in: verifies ID token, requires @adobe.com.
+ * Optional Google + verified-email checks for legacy register-google callers.
  */
-async function registerWorkspaceGoogleAuthRequest(input, deps) {
+async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
   const idToken = String(input.idToken || '').trim();
   const firstName = sanitizeName(input.firstName);
   const lastName = sanitizeName(input.lastName);
+  const requireGoogle = !!(gate && gate.requireGoogle);
+  const requireEmailVerified = !!(gate && gate.requireEmailVerified);
 
   if (!idToken) throw badRequest('idToken is required');
   if (!firstName) throw badRequest('firstName is required');
@@ -294,12 +297,24 @@ async function registerWorkspaceGoogleAuthRequest(input, deps) {
   const uid = String(decoded.uid || '').trim();
   const adobeEmail = sanitizeEmail(decoded.email);
   if (!isValidEmail(adobeEmail)) throw badRequest('Token email is invalid');
-  if (!isAdobeComEmail(adobeEmail)) throw badRequest('Sign in with an Adobe Google account (@adobe.com).');
-  if (!decoded.email_verified) throw badRequest('Google email must be verified');
+  if (!isAdobeComEmail(adobeEmail)) {
+    throw badRequest(requireGoogle ? 'Sign in with an Adobe Google account (@adobe.com).' : 'Sign in with an Adobe @adobe.com account.');
+  }
+  if (requireEmailVerified && !decoded.email_verified) {
+    throw badRequest('Google email must be verified');
+  }
 
   const userRecord = await auth.getUser(uid);
-  const hasGoogle = (userRecord.providerData || []).some((p) => p && p.providerId === 'google.com');
-  if (!hasGoogle) throw badRequest('Google sign-in is required for this workspace path');
+  const providerIds = (userRecord.providerData || [])
+    .map((p) => (p && p.providerId ? String(p.providerId) : ''))
+    .filter(Boolean);
+  const hasGoogle = providerIds.includes('google.com');
+  const hasPassword = providerIds.includes('password');
+  if (requireGoogle) {
+    if (!hasGoogle) throw badRequest('Google sign-in is required for this workspace path');
+  } else if (!hasGoogle && !hasPassword) {
+    throw badRequest('Use Adobe @adobe.com sign-in (password or Google) for this workspace path.');
+  }
 
   const workspaceName = `${firstName} ${lastName}`.trim();
   const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
@@ -397,7 +412,7 @@ async function registerWorkspaceGoogleAuthRequest(input, deps) {
       mailgunRegion: deps.mailgunRegion,
     });
   } catch (e) {
-    console.error('[labWorkspaceAuthService] approval email failed (google path)', e.message || e);
+    console.error('[labWorkspaceAuthService] approval email failed (id-token path)', e.message || e);
     emailResult = { sent: false, error: String(e.message || e) };
   }
 
@@ -411,6 +426,22 @@ async function registerWorkspaceGoogleAuthRequest(input, deps) {
     workspaceSlug,
     message: 'Signup request submitted. Await admin approval before login.',
   };
+}
+
+/** Legacy: same as registerWorkspaceFromFirebaseIdTokenRequest with Google + verified-email gate. */
+async function registerWorkspaceGoogleAuthRequest(input, deps) {
+  return registerWorkspaceFromFirebaseIdTokenRequest(input, deps, {
+    requireGoogle: true,
+    requireEmailVerified: true,
+  });
+}
+
+/** Email/password (or any) Firebase user already signed in on the client; no duplicate Admin user creation. */
+async function registerWorkspaceLabSessionFromIdTokenRequest(input, deps) {
+  return registerWorkspaceFromFirebaseIdTokenRequest(input, deps, {
+    requireGoogle: false,
+    requireEmailVerified: false,
+  });
 }
 
 async function approveWorkspaceAuthRequest(input) {
@@ -464,6 +495,7 @@ async function approveWorkspaceAuthRequest(input) {
 module.exports = {
   registerWorkspaceAuthRequest,
   registerWorkspaceGoogleAuthRequest,
+  registerWorkspaceLabSessionFromIdTokenRequest,
   approveWorkspaceAuthRequest,
 };
 
