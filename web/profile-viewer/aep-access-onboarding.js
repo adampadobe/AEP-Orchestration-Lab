@@ -36,12 +36,17 @@
   var MIN_LAB_PASSWORD_LEN = 8;
   /** Shown when lab access is pending (login, auth listener, or reopening setup while still signed in). */
   var PENDING_LAB_ACCESS_MSG =
-    'Your lab access is pending administrator approval. Please check back after your account has been approved, then sign in again to continue.';
+    'Your lab access is pending administrator approval. Wait for an administrator to approve your account, then sign in with Log in below to continue lab setup.';
   /** After successful Create account + server signup approval request (user is signed out). */
   var POST_SIGNUP_PENDING_MSG =
-    'Your registration was submitted. An administrator must approve your account before you can sign in and finish lab setup. Please check back after your account has been approved.';
+    'Your registration was submitted. An administrator must approve your account before you can sign in. Wait for approval, then use Log in below to continue lab setup.';
+  /** Email only (sessionStorage) — prefilled when switching from the pending hold screen to Log in. */
+  var SS_ONBOARDING_LAST_SIGNUP_EMAIL = 'aepLabOnboardingLastSignupEmail';
   var step1LoginMode = false;
   var step1SessionExpiredShell = false;
+  /** Step 1 “holding” panel: post-signup pending or signed-in-as-pending lockout (no form, single Log in). */
+  var step1HoldMode = false;
+  var step1HoldMessage = '';
 
   function migrateLegacyLabLocalStorage() {
     try {
@@ -65,7 +70,31 @@
     var secondary = document.getElementById('aepAccessOnbSecondaryAuthBtn');
     var confirmWrap = document.getElementById('aepAccessOnbConfirmWrap');
     var pwd = document.getElementById('aepAccessOnbPassword');
+    var holdPanel = document.getElementById('aepAccessOnbHoldPanel');
+    var holdCopy = document.getElementById('aepAccessOnbHoldCopy');
+    var emailForm = document.getElementById('aepAccessOnbEmailForm');
+    var step1Intro = document.getElementById('aepAccessOnbCopySignIn');
+    var step1Actions = document.getElementById('aepAccessOnbStep1Actions');
     if (!primary || !secondary) return;
+
+    if (step1HoldMode) {
+      var kickerHold = document.getElementById('aepAccessOnbKickerSignIn');
+      if (kickerHold) kickerHold.textContent = 'Pending approval';
+      if (holdPanel) holdPanel.hidden = false;
+      if (holdCopy) holdCopy.textContent = step1HoldMessage || PENDING_LAB_ACCESS_MSG;
+      if (emailForm) emailForm.hidden = true;
+      if (step1Intro) step1Intro.hidden = true;
+      if (step1Actions) step1Actions.hidden = true;
+      if (title) title.textContent = 'Awaiting administrator approval';
+      if (confirmWrap) confirmWrap.hidden = true;
+      return;
+    }
+
+    if (holdPanel) holdPanel.hidden = true;
+    if (emailForm) emailForm.hidden = false;
+    if (step1Intro) step1Intro.hidden = false;
+    if (step1Actions) step1Actions.hidden = false;
+
     if (step1LoginMode) {
       if (title) title.textContent = step1SessionExpiredShell ? 'Sign in again' : 'Log in';
       primary.textContent = 'Log in';
@@ -83,6 +112,34 @@
       if (confirmWrap) confirmWrap.hidden = false;
       if (pwd) pwd.setAttribute('autocomplete', 'new-password');
     }
+  }
+
+  function setStep1HoldMode(on, message) {
+    step1HoldMode = !!on;
+    step1HoldMessage = on ? String(message || '') : '';
+    syncStep1AuthUi();
+    if (on) {
+      var holdBtn = document.getElementById('aepAccessOnbHoldLoginBtn');
+      try {
+        if (holdBtn && typeof holdBtn.focus === 'function') {
+          global.setTimeout(function () {
+            holdBtn.focus();
+          }, 0);
+        }
+      } catch (_f) {}
+    }
+  }
+
+  function clearStep1HoldMode(opts) {
+    opts = opts || {};
+    step1HoldMode = false;
+    step1HoldMessage = '';
+    if (opts.preferLogin) {
+      setStep1AuthMode(true, { clearSessionExpired: true });
+    }
+    var kicker = document.getElementById('aepAccessOnbKickerSignIn');
+    if (kicker && !step1SessionExpiredShell) kicker.textContent = 'Step 1 of 2';
+    syncStep1AuthUi();
   }
 
   function setStep1AuthMode(isLogin, opts) {
@@ -238,12 +295,17 @@
         '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
         '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Create an account</h2>' +
         '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. New accounts are reviewed by an administrator; after approval, sign in again to choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
+        '<div id="aepAccessOnbHoldPanel" class="aep-access-onb-hold" hidden>' +
+        '<p id="aepAccessOnbHoldCopy" class="aep-access-onb-copy" style="margin-top:0"></p>' +
+        '<div class="aep-access-onb-step-actions" style="margin-top:4px">' +
+        '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbHoldLoginBtn">Log in</button>' +
+        '</div></div>' +
         '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
         '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
         '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
         '<div id="aepAccessOnbConfirmWrap" class="full"><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" autocomplete="new-password" maxlength="128"></div>' +
         '</div>' +
-        '<div class="aep-access-onb-step-actions">' +
+        '<div id="aepAccessOnbStep1Actions" class="aep-access-onb-step-actions">' +
         '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbPrimaryAuthBtn">Create account</button>' +
         '<button type="button" class="dashboard-btn-outline" id="aepAccessOnbSecondaryAuthBtn">Login</button>' +
         '</div></div>' +
@@ -341,12 +403,18 @@
 
   function signOutAndShowPendingApproval(auth, message) {
     var authInst = auth || ensureFirebaseAuth();
+    try {
+      var u = authInst && authInst.currentUser;
+      if (u && u.email) {
+        global.sessionStorage.setItem(SS_ONBOARDING_LAST_SIGNUP_EMAIL, String(u.email).trim().toLowerCase());
+      }
+    } catch (_s) {}
     var p = !authInst ? Promise.resolve() : authInst.signOut().catch(function () {});
     return p.then(function () {
       show();
       setUiStep(1);
-      syncStep1AuthUi();
-      setMsg(message || PENDING_LAB_ACCESS_MSG, '');
+      setStep1HoldMode(true, message || PENDING_LAB_ACCESS_MSG);
+      setMsg('', '');
     });
   }
 
@@ -419,6 +487,7 @@
   }
 
   function setOnboardingCopyVariant(variant) {
+    clearStep1HoldMode();
     var kicker = document.getElementById('aepAccessOnbKickerSignIn');
     if (!kicker) return;
     if (variant === 'session-expired') {
@@ -1035,8 +1104,22 @@
     var saveBtn = document.getElementById('aepAccessOnbSaveBtn');
     var primaryAuthBtn = document.getElementById('aepAccessOnbPrimaryAuthBtn');
     var secondaryAuthBtn = document.getElementById('aepAccessOnbSecondaryAuthBtn');
+    var holdLoginBtn = document.getElementById('aepAccessOnbHoldLoginBtn');
     if (!sandboxRadio || !workspaceRadio || !saveBtn || !primaryAuthBtn || !secondaryAuthBtn) return;
     syncStep1AuthUi();
+
+    if (holdLoginBtn) {
+      holdLoginBtn.addEventListener('click', function () {
+        clearStep1HoldMode({ preferLogin: true });
+        var emailEl = document.getElementById('aepAccessOnbEmail');
+        try {
+          var lastE = global.sessionStorage.getItem(SS_ONBOARDING_LAST_SIGNUP_EMAIL) || '';
+          if (emailEl && lastE) emailEl.value = lastE;
+        } catch (_le) {}
+        setMsg('', '');
+        if (emailEl) emailEl.focus();
+      });
+    }
 
     function onModeChange() {
       refreshModeChoiceUi();
@@ -1153,6 +1236,9 @@
                 return;
               }
               clearLabGateStorageForPendingLockout();
+              try {
+                global.sessionStorage.setItem(SS_ONBOARDING_LAST_SIGNUP_EMAIL, String(fields.email || '').trim().toLowerCase());
+              } catch (_se) {}
               var authInst = ensureFirebaseAuth();
               var msg = POST_SIGNUP_PENDING_MSG;
               if (!reg.emailSent && !reg.alreadyPending) {
@@ -1162,8 +1248,8 @@
               var pOut = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
               return pOut.then(function () {
                 setUiStep(1);
-                syncStep1AuthUi();
-                setMsg(msg, !reg.emailSent && !reg.alreadyPending ? 'err' : '');
+                setStep1HoldMode(true, msg);
+                setMsg('', '');
               });
             })
             .catch(function (e) {
