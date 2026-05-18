@@ -455,6 +455,9 @@ async function runLabAccessApprovalAfterOnboardingFlow(input, deps, gate, flowOp
       workspaceName,
       workspaceSlug,
     });
+    // Always re-apply disabled — sandbox path historically used return_ok without re-disabling,
+    // and clients can retain a session until the next token refresh.
+    await auth.updateUser(uid, { disabled: true });
     if (onExistingPending === 'throw403') {
       const err = new Error(
         'Your workspace request is still pending admin approval. You cannot sign in until it is approved.',
@@ -512,13 +515,13 @@ async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
   });
 }
 
-/** Adobe sandbox (or any) path after onboarding step 2 — same approval doc + Mailgun + disable as workspace; dedupes pending. */
+/** Adobe sandbox (or any) path after onboarding step 2 — same approval doc + Mailgun + disable as workspace; pending matches workspace (403 on repeat). */
 async function requestLabAccessApprovalAfterOnboardingRequest(input, deps) {
   return runLabAccessApprovalAfterOnboardingFlow(
     input,
     deps,
     { requireGoogle: false, requireEmailVerified: false },
-    { namePolicy: 'derive_ok', onExistingPending: 'return_ok' },
+    { namePolicy: 'derive_ok', onExistingPending: 'throw403' },
   );
 }
 
@@ -536,6 +539,49 @@ async function registerWorkspaceLabSessionFromIdTokenRequest(input, deps) {
     requireGoogle: false,
     requireEmailVerified: false,
   });
+}
+
+/**
+ * GET helper: @adobe.com lab gate from ID token + Firestore approval doc + Auth disabled flag.
+ * @returns {{ ok: true, status: 'pending'|'approved'|'missing'|'not_applicable' }}
+ */
+async function getLabAccessStatusFromIdTokenRequest(input) {
+  const idToken = String(input.idToken || '').trim();
+  if (!idToken) throw badRequest('idToken is required');
+
+  if (!admin.apps.length) admin.initializeApp();
+  const auth = admin.auth();
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(idToken, true);
+  } catch (_e) {
+    throw badRequest('Invalid or expired ID token');
+  }
+
+  const uid = String(decoded.uid || '').trim();
+  const adobeEmail = sanitizeEmail(decoded.email);
+  if (!isValidEmail(adobeEmail) || !isAdobeComEmail(adobeEmail)) {
+    return { ok: true, status: 'not_applicable' };
+  }
+
+  const userRecord = await auth.getUser(uid);
+  const snap = await approvalDocRef(uid).get();
+  if (!snap.exists) {
+    if (userRecord.disabled) {
+      return { ok: true, status: 'pending' };
+    }
+    return { ok: true, status: 'missing' };
+  }
+  const data = snap.data() || {};
+  const docStatus = String(data.status || '');
+  if (docStatus === 'approved') {
+    return { ok: true, status: 'approved' };
+  }
+  if (docStatus === 'pending') {
+    return { ok: true, status: 'pending' };
+  }
+  return { ok: true, status: 'missing' };
 }
 
 async function approveWorkspaceAuthRequest(input) {
@@ -591,6 +637,7 @@ module.exports = {
   registerWorkspaceGoogleAuthRequest,
   registerWorkspaceLabSessionFromIdTokenRequest,
   requestLabAccessApprovalAfterOnboardingRequest,
+  getLabAccessStatusFromIdTokenRequest,
   approveWorkspaceAuthRequest,
 };
 

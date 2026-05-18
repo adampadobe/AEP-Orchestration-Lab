@@ -318,6 +318,72 @@
     } catch (_e2) {}
   }
 
+  function clearLabGateStorageForPendingLockout() {
+    try {
+      if (global.AepAccessScope && typeof global.AepAccessScope.clearLabGateMode === 'function') {
+        global.AepAccessScope.clearLabGateMode();
+      }
+    } catch (_e) {}
+    clearVerifiedAt();
+    try {
+      localStorage.setItem(FORCE_ONBOARDING_FLAG, '1');
+    } catch (_e2) {}
+  }
+
+  function signOutAndShowPendingApproval(auth, message) {
+    var authInst = auth || ensureFirebaseAuth();
+    show();
+    setUiStep(1);
+    syncStep1AuthUi();
+    setMsg(
+      message ||
+        'Your lab access is pending admin approval. You cannot use the lab until an admin approves your account.',
+      'err',
+    );
+    if (!authInst) return Promise.resolve();
+    return authInst.signOut().catch(function () {});
+  }
+
+  function fetchLabAccessStatusWithIdToken(idToken) {
+    return fetch('/api/lab/lab-access/status', {
+      headers: { Authorization: 'Bearer ' + String(idToken || '') },
+    })
+      .then(function (res) {
+        return res.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (body) {
+        if (!body || body.ok !== true) return 'error';
+        return String(body.status || 'error');
+      });
+  }
+
+  function verifyAdobeUserApprovedOrLockout(auth, user) {
+    if (!auth || !user || !isAdobeLabFirebaseUser(user)) {
+      return Promise.resolve(false);
+    }
+    return user
+      .getIdToken(false)
+      .then(function (idToken) {
+        return fetchLabAccessStatusWithIdToken(idToken);
+      })
+      .then(function (status) {
+        if (status === 'pending') {
+          return signOutAndShowPendingApproval(
+            auth,
+            'Your lab access is pending admin approval. Sign-in will work after an admin approves your account.',
+          ).then(function () {
+            return true;
+          });
+        }
+        return false;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function clearLabEmailReauthPending() {
     try {
       localStorage.removeItem(LS_REAUTH_PENDING);
@@ -717,6 +783,14 @@
             emailSent: !!resp.body.emailSent,
           };
         }
+        if (resp.status === 403 && String((resp.body && resp.body.code) || '') === 'pending_approval') {
+          return {
+            ok: true,
+            pendingApproval: true,
+            alreadyPending: true,
+            emailSent: false,
+          };
+        }
         return {
           ok: false,
           code: String((resp.body && resp.body.code) || ''),
@@ -980,11 +1054,12 @@
                       : 'Signup submitted, but approval email could not be sent. Contact the admin. You will be signed out until approved.',
                   reg.alreadyPending || reg.emailSent ? 'ok' : 'err',
                 );
+                clearLabGateStorageForPendingLockout();
                 var authInst = ensureFirebaseAuth();
-                if (authInst) {
-                  authInst.signOut().catch(function () {});
-                }
-                saveBtn.disabled = false;
+                var pOut = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
+                pOut.finally(function () {
+                  saveBtn.disabled = false;
+                });
                 return;
               }
               global.AepAccessScope.setAccessMode('sandbox');
@@ -1018,10 +1093,12 @@
           if (!authResult || !authResult.ok) {
             setMsg((authResult && authResult.error) || 'Could not complete workspace signup.', 'err');
             if (authResult && authResult.pending) {
+              clearLabGateStorageForPendingLockout();
               var authInst = ensureFirebaseAuth();
-              if (authInst) {
-                authInst.signOut().catch(function () {});
-              }
+              var pOut2 = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
+              return pOut2.finally(function () {
+                saveBtn.disabled = false;
+              });
             }
             saveBtn.disabled = false;
             return;
@@ -1081,8 +1158,11 @@
       return;
     }
     auth.onAuthStateChanged(function (user) {
-      enforceLabEmailSessionMaxAgeAsync(auth, user).then(function (expired) {
-        maybeOpenOnboardingAfterAuthCheck(expired);
+      verifyAdobeUserApprovedOrLockout(auth, user).then(function (lockedOut) {
+        if (lockedOut) return;
+        enforceLabEmailSessionMaxAgeAsync(auth, user).then(function (expired) {
+          maybeOpenOnboardingAfterAuthCheck(expired);
+        });
       });
     });
   }

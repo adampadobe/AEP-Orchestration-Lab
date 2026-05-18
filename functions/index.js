@@ -3373,7 +3373,7 @@ exports.labWorkspaceAuthRegister = onRequest(
   },
 );
 
-/** POST /api/lab/lab-access/request-approval — Step 2 (Adobe sandbox): same pending + Mailgun + disable as workspace; dedupes by uid. */
+/** POST /api/lab/lab-access/request-approval — Step 2 (Adobe sandbox): pending + Mailgun + disable; repeat calls 403 like workspace. */
 exports.labLabAccessRequestApproval = onRequest(
   {
     ...CONSENT_STORE_FN_OPTS,
@@ -3427,6 +3427,30 @@ exports.labLabAccessRequestApproval = onRequest(
     }
   },
 );
+
+/** GET /api/lab/lab-access/status — lab gate: pending | approved | missing (legacy) from Firestore + Auth. */
+exports.labLabAccessStatus = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ ok: false, error: 'Method not allowed' });
+    return;
+  }
+
+  const authHeader = String(req.get('authorization') || req.get('Authorization') || '');
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
+  const idToken = bearer ? String(bearer[1] || '').trim() : '';
+  try {
+    const result = await labWorkspaceAuthService.getLabAccessStatusFromIdTokenRequest({ idToken });
+    res.status(200).json(result);
+  } catch (e) {
+    const status = Number(e && e.status) || 400;
+    res.status(status).json({ ok: false, code: e && e.code ? String(e.code) : '', error: String(e && e.message ? e.message : e) });
+  }
+});
 
 /** POST /api/lab/workspace-auth/register-from-id-token — existing Firebase user (e.g. email/password) + admin approval gate. */
 exports.labWorkspaceAuthRegisterFromIdToken = onRequest(

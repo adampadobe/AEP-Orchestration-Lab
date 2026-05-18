@@ -93,6 +93,14 @@
     dispatchChange();
   }
 
+  /** Clear explicit access mode + workspace labels (pending Adobe lockout / admin disabled). */
+  function clearLabGateMode() {
+    safeRemove(LS_MODE);
+    safeRemove(LS_WORKSPACE_NAME);
+    safeRemove(LS_WORKSPACE_SLUG);
+    dispatchChange();
+  }
+
   function getSandboxNameFromStorage() {
     return String(safeGet('aepGlobalSandboxName') || '').trim();
   }
@@ -155,6 +163,7 @@
     setWorkspaceName: setWorkspaceName,
     setWorkspaceSlug: setWorkspaceSlug,
     resetWorkspaceAccess: resetWorkspaceAccess,
+    clearLabGateMode: clearLabGateMode,
     toSlug: toSlug,
     getScope: getScope,
     buildScopeQuery: buildScopeQuery,

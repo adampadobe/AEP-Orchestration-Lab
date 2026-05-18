@@ -179,17 +179,41 @@
     } catch (_e) {}
   }
 
+  function clearAdobeLabGateLocalStorage() {
+    try {
+      localStorage.removeItem('aepLabEmailVerifiedAt');
+      localStorage.removeItem('aepLabGoogleVerifiedAt');
+      localStorage.removeItem('aepLabEmailReauthPending');
+      localStorage.removeItem('aepLabGoogleReauthPending');
+    } catch (_e) {}
+  }
+
   function forceLogout(detail) {
     if (forcedLogoutInProgress) return Promise.resolve();
     forcedLogoutInProgress = true;
     clearTimeout(pushTimer);
     lastKnownScopeId = null;
     var currentScope = getScope();
-    var shouldRequireOnboarding = currentScope && currentScope.scopeType === 'workspace';
-    if (shouldRequireOnboarding) {
+    var pendingAdobeLockout = String((detail && detail.code) || '') === 'auth/user-disabled';
+    var isWorkspaceScope = currentScope && currentScope.scopeType === 'workspace';
+
+    if (pendingAdobeLockout) {
+      if (typeof AepAccessScope !== 'undefined' && AepAccessScope && typeof AepAccessScope.clearLabGateMode === 'function') {
+        AepAccessScope.clearLabGateMode();
+      } else {
+        try {
+          localStorage.removeItem('aepAccessMode');
+          localStorage.removeItem('aepWorkspaceName');
+          localStorage.removeItem('aepWorkspaceSlug');
+        } catch (_e2) {}
+      }
+      clearAdobeLabGateLocalStorage();
+      markOnboardingRequired();
+    } else if (isWorkspaceScope) {
       clearWorkspaceIndicators();
       markOnboardingRequired();
     }
+    var shouldRequireOnboarding = pendingAdobeLockout || isWorkspaceScope;
     try {
       global.dispatchEvent(new CustomEvent(FORCED_LOGOUT_EVENT, {
         detail: Object.assign({
