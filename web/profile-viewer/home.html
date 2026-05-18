@@ -194,7 +194,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260518c"></script>
-  <script src="aep-access-onboarding.js?v=20260518d"></script>
+  <script src="aep-access-onboarding.js?v=20260518f"></script>
   <script>
     (function () {
       if (!window.AepAccessScope) return;
@@ -261,7 +261,7 @@
           typeof window.AepAccessOnboarding.hasAdobeLabFirebaseSession === 'function' &&
           !window.AepAccessOnboarding.hasAdobeLabFirebaseSession()
         ) {
-          statusEl.textContent = 'Sign in with Adobe email (@adobe.com + password) — use Configure access mode.';
+          statusEl.textContent = 'Sign in with Adobe @adobe.com (Login in Configure access mode).';
         } else {
           statusEl.textContent = '';
         }

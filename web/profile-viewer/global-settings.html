@@ -260,6 +260,7 @@
       if (!window.AepAccessScope) return;
       var modeSandbox = document.getElementById('globalAccessModeSandbox');
       var modeWorkspace = document.getElementById('globalAccessModeWorkspace');
+      if (!modeSandbox || !modeWorkspace) return;
       var workspaceRow = document.getElementById('globalWorkspaceRow');
       var workspaceInput = document.getElementById('globalWorkspaceNameInput');
       var saveBtn = document.getElementById('globalAccessModeSaveBtn');
@@ -274,6 +275,13 @@
         workspaceRow.style.display = mode === 'workspace' ? 'block' : 'none';
         workspaceInput.value = ws;
         if (sandboxSection) sandboxSection.style.display = mode === 'workspace' ? 'none' : 'block';
+      }
+
+      /** Radios reflect a pending choice until Save; do not re-read storage on change or clicks snap back. */
+      function syncAccessModeDependentUiFromRadios() {
+        var pendingWorkspace = modeWorkspace && modeWorkspace.checked;
+        if (workspaceRow) workspaceRow.style.display = pendingWorkspace ? 'block' : 'none';
+        if (sandboxSection) sandboxSection.style.display = pendingWorkspace ? 'none' : 'block';
       }
 
       function save() {
@@ -292,8 +300,8 @@
         syncUi();
       }
 
-      modeSandbox.addEventListener('change', syncUi);
-      modeWorkspace.addEventListener('change', syncUi);
+      modeSandbox.addEventListener('change', syncAccessModeDependentUiFromRadios);
+      modeWorkspace.addEventListener('change', syncAccessModeDependentUiFromRadios);
       saveBtn.addEventListener('click', save);
       window.addEventListener('aep-access-scope-change', syncUi);
       syncUi();

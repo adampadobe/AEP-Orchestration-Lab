@@ -2,6 +2,13 @@
   'use strict';
 
   var OVERLAY_ID = 'aepAccessOnboardingOverlay';
+  var GATE_LAYER_ID = 'aepAccessOnboardingGateLayer';
+  /** True while the lab gate should block the shell (between show() and hide()). */
+  var gateInteractionLockActive = false;
+  var gateDomObserver = null;
+  var gateRecoverScheduled = null;
+  var gateLayerElRef = null;
+  var dialogWrapElRef = null;
   var FORCE_QUERY = /(?:^|[?&])accessSetup=1(?:&|$)/;
   var FORCE_ONBOARDING_FLAG = 'aepAccessForceOnboarding';
   /** Max wall-clock age for the hosted lab Adobe-email gate (re-prompt), not Firebase refresh-token lifetime. */
@@ -28,6 +35,7 @@
   var VERIFIED_AT_FUTURE_SKEW_MS = 5 * 60 * 1000;
   var MIN_LAB_PASSWORD_LEN = 8;
   var step1LoginMode = false;
+  var step1SessionExpiredShell = false;
 
   function migrateLegacyLabLocalStorage() {
     try {
@@ -52,8 +60,8 @@
     var confirmWrap = document.getElementById('aepAccessOnbConfirmWrap');
     var pwd = document.getElementById('aepAccessOnbPassword');
     if (!primary || !secondary) return;
-    if (title) title.textContent = 'Access AEP Lab';
     if (step1LoginMode) {
+      if (title) title.textContent = step1SessionExpiredShell ? 'Sign in again' : 'Log in';
       primary.textContent = 'Log in';
       primary.setAttribute('class', 'dashboard-btn-primary');
       secondary.textContent = 'Create an account';
@@ -61,6 +69,7 @@
       if (confirmWrap) confirmWrap.hidden = true;
       if (pwd) pwd.setAttribute('autocomplete', 'current-password');
     } else {
+      if (title) title.textContent = 'Create an account';
       primary.textContent = 'Create account';
       primary.setAttribute('class', 'dashboard-btn-primary');
       secondary.textContent = 'Login';
@@ -70,8 +79,11 @@
     }
   }
 
-  function setStep1AuthMode(isLogin) {
+  function setStep1AuthMode(isLogin, opts) {
+    opts = opts || {};
     step1LoginMode = !!isLogin;
+    if (opts.sessionExpired) step1SessionExpiredShell = true;
+    if (opts.clearSessionExpired) step1SessionExpiredShell = false;
     syncStep1AuthUi();
   }
 
@@ -80,10 +92,13 @@
     var style = document.createElement('style');
     style.id = 'aepAccessOnboardingStyle';
     style.textContent =
-      '.aep-access-onb-overlay{position:fixed;inset:0;z-index:14000;display:flex;align-items:center;justify-content:center;padding:20px;}' +
+      'body.aep-access-onboarding-open{overflow:hidden;}' +
+      '.aep-access-onb-gate{position:fixed;inset:0;z-index:13990;pointer-events:auto;background:var(--dash-bg);opacity:0.72;backdrop-filter:blur(2px);}' +
+      '.aep-access-onb-gate[hidden]{display:none !important;}' +
+      '.aep-access-onb-overlay{position:fixed;inset:0;z-index:14000;display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:none;}' +
       '.aep-access-onb-overlay[hidden]{display:none !important;}' +
-      '.aep-access-onb-backdrop{position:absolute;inset:0;background:var(--dash-bg);opacity:0.72;backdrop-filter:blur(2px);}' +
-      '.aep-access-onb-card{position:relative;z-index:1;width:min(640px,100%);background:var(--dash-surface);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:22px;}' +
+      '.aep-access-onb-card{position:relative;z-index:1;width:min(640px,100%);pointer-events:auto;background:var(--dash-surface);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:22px;}' +
+      '.dashboard-main.aep-access-gate-locked{pointer-events:none;user-select:none;}' +
       '.aep-access-onb-kicker{margin:0 0 6px;color:var(--dash-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}' +
       '.aep-access-onb-title{margin:0 0 10px;font-size:24px;line-height:1.2;}' +
       '.aep-access-onb-copy{margin:0 0 14px;color:var(--dash-text-secondary);}' +
@@ -103,55 +118,157 @@
     document.head.appendChild(style);
   }
 
-  function ensureOverlay() {
-    var existing = document.getElementById(OVERLAY_ID);
-    if (existing) return existing;
+  function getDashboardMainEl() {
+    return document.querySelector('.dashboard-main') || document.querySelector('main.dashboard-main');
+  }
+
+  function supportsInertAttribute() {
+    return typeof HTMLElement !== 'undefined' && 'inert' in HTMLElement.prototype;
+  }
+
+  function applyShellInteractionLock() {
+    var main = getDashboardMainEl();
+    if (!main) return;
+    if (supportsInertAttribute()) {
+      main.inert = true;
+    } else {
+      main.classList.add('aep-access-gate-locked');
+    }
+  }
+
+  function clearShellInteractionLock() {
+    var main = getDashboardMainEl();
+    if (!main) return;
+    if (supportsInertAttribute()) {
+      main.inert = false;
+    } else {
+      main.classList.remove('aep-access-gate-locked');
+    }
+  }
+
+  function enforceGateLayerOrder(gate, dialog) {
+    if (!gate || !dialog || !document.body) return;
+    if (!document.body.contains(gate)) document.body.appendChild(gate);
+    if (!document.body.contains(dialog)) document.body.appendChild(dialog);
+    try {
+      document.body.insertBefore(gate, dialog);
+    } catch (_e) {}
+  }
+
+  function flushGateDomRecovery() {
+    gateRecoverScheduled = null;
+    if (!gateInteractionLockActive) return;
+    var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+    var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
+    if (!gate || !dialog) return;
+    enforceGateLayerOrder(gate, dialog);
+    gate.hidden = false;
+    dialog.hidden = false;
+  }
+
+  function scheduleGateDomRecovery() {
+    if (!gateInteractionLockActive) return;
+    if (gateRecoverScheduled) return;
+    gateRecoverScheduled = setTimeout(flushGateDomRecovery, 40);
+  }
+
+  function startGateDomObserver() {
+    if (gateDomObserver || typeof MutationObserver === 'undefined') return;
+    gateDomObserver = new MutationObserver(function () {
+      if (!gateInteractionLockActive) return;
+      var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+      var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
+      if (!gate || !dialog || !document.body.contains(gate) || !document.body.contains(dialog)) {
+        scheduleGateDomRecovery();
+      }
+    });
+    gateDomObserver.observe(document.body, { childList: true, subtree: false });
+  }
+
+  function stopGateDomObserver() {
+    if (gateRecoverScheduled) {
+      clearTimeout(gateRecoverScheduled);
+      gateRecoverScheduled = null;
+    }
+    if (gateDomObserver) {
+      gateDomObserver.disconnect();
+      gateDomObserver = null;
+    }
+  }
+
+  function ensureAccessGateDom() {
+    var gate = document.getElementById(GATE_LAYER_ID);
+    var wrap = document.getElementById(OVERLAY_ID);
+    if (gate && wrap) {
+      gateLayerElRef = gate;
+      dialogWrapElRef = wrap;
+      enforceGateLayerOrder(gate, wrap);
+      return wrap;
+    }
     injectStyles();
-    var wrap = document.createElement('div');
-    wrap.id = OVERLAY_ID;
-    wrap.className = 'aep-access-onb-overlay';
-    wrap.setAttribute('role', 'dialog');
-    wrap.setAttribute('aria-modal', 'true');
-    wrap.setAttribute('aria-labelledby', 'aepAccessOnbTitleSignIn');
-    wrap.hidden = true;
-    wrap.innerHTML =
-      '<div class="aep-access-onb-backdrop"></div>' +
-      '<div class="aep-access-onb-card">' +
-      '<div id="aepAccessOnbStepSignIn" class="aep-access-onb-step">' +
-      '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
-      '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Access AEP Lab</h2>' +
-      '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. Next, you will pick <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
-      '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
-      '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
-      '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
-      '<div id="aepAccessOnbConfirmWrap" class="full"><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" autocomplete="new-password" maxlength="128"></div>' +
-      '</div>' +
-      '<div class="aep-access-onb-step-actions">' +
-      '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbPrimaryAuthBtn">Create account</button>' +
-      '<button type="button" class="dashboard-btn-outline" id="aepAccessOnbSecondaryAuthBtn">Login</button>' +
-      '</div></div>' +
-      '<div id="aepAccessOnbStepMode" class="aep-access-onb-step" hidden>' +
-      '<p class="aep-access-onb-kicker">Step 2 of 2</p>' +
-      '<h2 id="aepAccessOnbTitleMode" class="aep-access-onb-title">Choose your lab access mode</h2>' +
-      '<p class="aep-access-onb-copy">Adobe sandbox unlocks full AEP APIs with the sandbox selector. No Adobe sandbox keeps Brand Scraper and related tools on a workspace profile (admin approval may apply).</p>' +
-      '<div class="aep-access-onb-choices">' +
-      '<label class="aep-access-onb-choice"><input type="radio" name="aepAccessOnbMode" id="aepAccessOnbSandbox" value="sandbox" checked>' +
-      '<span><strong>Adobe sandbox</strong><br><small>Use the standard sandbox selector and AEP APIs.</small></span></label>' +
-      '<label class="aep-access-onb-choice"><input type="radio" name="aepAccessOnbMode" id="aepAccessOnbWorkspace" value="workspace">' +
-      '<span><strong>No Adobe sandbox</strong><br><small>Use non-AEP tools with your own workspace profile.</small></span></label>' +
-      '</div>' +
-      '<div id="aepAccessOnbWorkspaceForm" class="aep-access-onb-grid" style="display:none">' +
-      '<div><label for="aepAccessOnbFirstName">First name</label><input id="aepAccessOnbFirstName" type="text" maxlength="80" autocomplete="given-name"></div>' +
-      '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
-      '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. New workspace access stays <strong>pending</strong> until an admin approves it.</p>' +
-      '</div>' +
-      '</div>' +
-      '<div class="aep-access-onb-foot">' +
-      '<p id="aepAccessOnbMsg" class="aep-access-onb-msg" role="status" aria-live="polite"></p>' +
-      '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbSaveBtn" hidden>Save and continue</button>' +
-      '</div></div>';
-    document.body.appendChild(wrap);
+
+    if (!gate) {
+      gate = document.createElement('div');
+      gate.id = GATE_LAYER_ID;
+      gate.className = 'aep-access-onb-gate';
+      gate.setAttribute('aria-hidden', 'true');
+      gate.hidden = true;
+      document.body.appendChild(gate);
+    }
+    gateLayerElRef = gate;
+
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = OVERLAY_ID;
+      wrap.className = 'aep-access-onb-overlay';
+      wrap.setAttribute('role', 'dialog');
+      wrap.setAttribute('aria-modal', 'true');
+      wrap.setAttribute('aria-labelledby', 'aepAccessOnbTitleSignIn');
+      wrap.hidden = true;
+      wrap.innerHTML =
+        '<div class="aep-access-onb-card">' +
+        '<div id="aepAccessOnbStepSignIn" class="aep-access-onb-step">' +
+        '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
+        '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Create an account</h2>' +
+        '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. Next, you will pick <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
+        '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
+        '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
+        '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
+        '<div id="aepAccessOnbConfirmWrap" class="full"><label for="aepAccessOnbPasswordConfirm">Confirm password</label><input id="aepAccessOnbPasswordConfirm" type="password" autocomplete="new-password" maxlength="128"></div>' +
+        '</div>' +
+        '<div class="aep-access-onb-step-actions">' +
+        '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbPrimaryAuthBtn">Create account</button>' +
+        '<button type="button" class="dashboard-btn-outline" id="aepAccessOnbSecondaryAuthBtn">Login</button>' +
+        '</div></div>' +
+        '<div id="aepAccessOnbStepMode" class="aep-access-onb-step" hidden>' +
+        '<p class="aep-access-onb-kicker">Step 2 of 2</p>' +
+        '<h2 id="aepAccessOnbTitleMode" class="aep-access-onb-title">Choose your lab access mode</h2>' +
+        '<p class="aep-access-onb-copy">Adobe sandbox unlocks full AEP APIs with the sandbox selector. No Adobe sandbox keeps Brand Scraper and related tools on a workspace profile (admin approval may apply).</p>' +
+        '<div class="aep-access-onb-choices">' +
+        '<label class="aep-access-onb-choice"><input type="radio" name="aepAccessOnbMode" id="aepAccessOnbSandbox" value="sandbox" checked>' +
+        '<span><strong>Adobe sandbox</strong><br><small>Use the standard sandbox selector and AEP APIs.</small></span></label>' +
+        '<label class="aep-access-onb-choice"><input type="radio" name="aepAccessOnbMode" id="aepAccessOnbWorkspace" value="workspace">' +
+        '<span><strong>No Adobe sandbox</strong><br><small>Use non-AEP tools with your own workspace profile.</small></span></label>' +
+        '</div>' +
+        '<div id="aepAccessOnbWorkspaceForm" class="aep-access-onb-grid" style="display:none">' +
+        '<div><label for="aepAccessOnbFirstName">First name</label><input id="aepAccessOnbFirstName" type="text" maxlength="80" autocomplete="given-name"></div>' +
+        '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
+        '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. New workspace access stays <strong>pending</strong> until an admin approves it.</p>' +
+        '</div>' +
+        '</div>' +
+        '<div class="aep-access-onb-foot">' +
+        '<p id="aepAccessOnbMsg" class="aep-access-onb-msg" role="status" aria-live="polite"></p>' +
+        '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbSaveBtn" hidden>Save and continue</button>' +
+        '</div></div>';
+      document.body.appendChild(wrap);
+    }
+    dialogWrapElRef = wrap;
+    enforceGateLayerOrder(gate, wrap);
     return wrap;
+  }
+
+  function ensureOverlay() {
+    return ensureAccessGateDom();
   }
 
   function shouldForceOpen() {
@@ -237,10 +354,10 @@
     if (!kicker) return;
     if (variant === 'session-expired') {
       kicker.textContent = 'Session expired';
-      setStep1AuthMode(true);
+      setStep1AuthMode(true, { sessionExpired: true });
     } else {
       kicker.textContent = 'Step 1 of 2';
-      setStep1AuthMode(false);
+      setStep1AuthMode(false, { clearSessionExpired: true });
     }
   }
 
@@ -394,8 +511,13 @@
   }
 
   function hide() {
-    var overlay = ensureOverlay();
-    overlay.hidden = true;
+    gateInteractionLockActive = false;
+    stopGateDomObserver();
+    clearShellInteractionLock();
+    var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+    var overlay = dialogWrapElRef || document.getElementById(OVERLAY_ID);
+    if (gate) gate.hidden = true;
+    if (overlay) overlay.hidden = true;
     document.body.classList.remove('aep-access-onboarding-open');
     setOnboardingCopyVariant('default');
     setMsg('', '');
@@ -404,8 +526,14 @@
 
   function show() {
     migrateLegacyLabLocalStorage();
-    var overlay = ensureOverlay();
+    var overlay = ensureAccessGateDom();
+    var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+    gateInteractionLockActive = true;
+    if (gate) gate.hidden = false;
     overlay.hidden = false;
+    enforceGateLayerOrder(gate, overlay);
+    applyShellInteractionLock();
+    startGateDomObserver();
     document.body.classList.add('aep-access-onboarding-open');
     syncRadiosFromScope();
     try {
@@ -723,10 +851,10 @@
 
     secondaryAuthBtn.addEventListener('click', function () {
       if (step1LoginMode) {
-        setStep1AuthMode(false);
+        setStep1AuthMode(false, { clearSessionExpired: true });
         setMsg('', '');
       } else {
-        setStep1AuthMode(true);
+        setStep1AuthMode(true, {});
         setMsg('', '');
       }
     });
@@ -755,6 +883,7 @@
       if (!hasAdobeLabFirebaseSession()) {
         setMsg('Sign in with your Adobe email and password first, then choose your mode.', 'err');
         setUiStep(1);
+        syncStep1AuthUi();
         return;
       }
       saveBtn.disabled = true;
@@ -764,7 +893,10 @@
       ensureAdobeLabFirebaseSession().then(function (session) {
         if (!session || !session.ok) {
           setMsg((session && session.error) || 'Sign in is required.', 'err');
-          if (!hasAdobeLabFirebaseSession()) setUiStep(1);
+          if (!hasAdobeLabFirebaseSession()) {
+            setUiStep(1);
+            syncStep1AuthUi();
+          }
           saveBtn.disabled = false;
           return;
         }
