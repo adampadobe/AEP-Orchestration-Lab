@@ -120,7 +120,8 @@
       '.aep-access-onb-msg.ok{color:var(--dash-success);}' +
       '.aep-access-onb-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.95em;color:var(--dash-text);}' +
       '.aep-access-onb-step[hidden]{display:none !important;}' +
-      '.aep-access-onb-step-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}';
+      '.aep-access-onb-step-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}' +
+      '.aep-access-onb-step2-foot{display:flex;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:10px;}';
     document.head.appendChild(style);
   }
 
@@ -261,10 +262,12 @@
         '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
         '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. First-time workspace setup runs after your lab account is already approved.</p>' +
         '</div>' +
+        '<div class="aep-access-onb-step2-foot">' +
+        '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbSaveBtn">Save and continue</button>' +
+        '</div>' +
         '</div>' +
         '<div class="aep-access-onb-foot">' +
         '<p id="aepAccessOnbMsg" class="aep-access-onb-msg" role="status" aria-live="polite"></p>' +
-        '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbSaveBtn" hidden>Save and continue</button>' +
         '</div></div>';
       document.body.appendChild(wrap);
     }
@@ -430,13 +433,11 @@
   function setUiStep(step) {
     var signInEl = document.getElementById('aepAccessOnbStepSignIn');
     var modeEl = document.getElementById('aepAccessOnbStepMode');
-    var saveBtn = document.getElementById('aepAccessOnbSaveBtn');
     var wrap = document.getElementById(OVERLAY_ID);
-    if (!signInEl || !modeEl || !saveBtn) return;
+    if (!signInEl || !modeEl) return;
     var isOne = step === 1;
     signInEl.hidden = !isOne;
     modeEl.hidden = isOne;
-    saveBtn.hidden = isOne;
     if (wrap) {
       wrap.setAttribute('aria-labelledby', isOne ? 'aepAccessOnbTitleSignIn' : 'aepAccessOnbTitleMode');
     }
