@@ -686,6 +686,13 @@
         }
       },
       {
+        "source": "/api/lab/lab-access/request-approval-signup",
+        "function": {
+          "functionId": "labLabAccessRequestApprovalSignup",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/lab-access/status",
         "function": {
           "functionId": "labLabAccessStatus",

@@ -161,20 +161,39 @@ async function sendApprovalNotification({
   mailgunDomain,
   mailFrom,
   mailgunRegion,
+  approvalEmailKind,
 }) {
-  const subject = `Lab access approval needed: ${firstName} ${lastName}`;
-  const text = [
-    'A new @adobe.com lab account finished onboarding (Adobe sandbox or no-sandbox path) and requires admin approval before sign-in.',
-    '',
-    `Name: ${firstName} ${lastName}`,
-    `Adobe email: ${adobeEmail}`,
-    `UID: ${uid}`,
-    '',
-    'Approve this user:',
-    approvalLink,
-    '',
-    'If this request is unexpected, ignore this email.',
-  ].join('\n');
+  const kind = approvalEmailKind === 'signup' ? 'signup' : 'onboarding';
+  const subject =
+    kind === 'signup'
+      ? `Lab access approval needed (new @adobe.com signup): ${firstName} ${lastName}`
+      : `Lab access approval needed: ${firstName} ${lastName}`;
+  const text =
+    kind === 'signup'
+      ? [
+          'A new @adobe.com lab account was created and requires admin approval before the user can sign in and choose Adobe sandbox vs no-sandbox access.',
+          '',
+          `Display name (best effort): ${firstName} ${lastName}`,
+          `Adobe email: ${adobeEmail}`,
+          `UID: ${uid}`,
+          '',
+          'Approve this user:',
+          approvalLink,
+          '',
+          'If this request is unexpected, ignore this email.',
+        ].join('\n')
+      : [
+          'A new @adobe.com lab account finished onboarding (Adobe sandbox or no-sandbox path) and requires admin approval before sign-in.',
+          '',
+          `Name: ${firstName} ${lastName}`,
+          `Adobe email: ${adobeEmail}`,
+          `UID: ${uid}`,
+          '',
+          'Approve this user:',
+          approvalLink,
+          '',
+          'If this request is unexpected, ignore this email.',
+        ].join('\n');
   return sendMailgunEmail({
     apiKey: mailgunKey,
     domain: mailgunDomain,
@@ -188,8 +207,9 @@ async function sendApprovalNotification({
 
 /**
  * Writes pending approval doc, disables Auth user, sends Mailgun (shared onboarding completion path).
+ * @param {{ uid: string, adobeEmail: string, firstName: string, lastName: string, origin?: string, approvalEmailKind?: 'signup'|'onboarding' }} params
  */
-async function createPendingLabApprovalAndNotify({ uid, adobeEmail, firstName, lastName, origin }, deps) {
+async function createPendingLabApprovalAndNotify({ uid, adobeEmail, firstName, lastName, origin, approvalEmailKind }, deps) {
   const workspaceName = `${firstName} ${lastName}`.trim();
   const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
   const token = approvalToken();
@@ -235,6 +255,7 @@ async function createPendingLabApprovalAndNotify({ uid, adobeEmail, firstName, l
       mailgunDomain: deps.mailgunDomain,
       mailFrom: deps.mailFrom,
       mailgunRegion: deps.mailgunRegion,
+      approvalEmailKind: approvalEmailKind === 'signup' ? 'signup' : 'onboarding',
     });
   } catch (e) {
     console.error('[labWorkspaceAuthService] approval email failed (pending gate)', e.message || e);
@@ -525,6 +546,89 @@ async function requestLabAccessApprovalAfterOnboardingRequest(input, deps) {
   );
 }
 
+/**
+ * Immediately after client `createUserWithEmailAndPassword` for @adobe.com: pending + Mailgun + disable.
+ * If Firestore is already `pending`, re-disables Auth and returns without sending another email.
+ * If already `approved`, returns success and does not disable (re-enables if the account was left disabled).
+ */
+async function requestLabAccessApprovalOnSignupRequest(input, deps) {
+  const idToken = String(input.idToken || '').trim();
+  if (!idToken) throw badRequest('idToken is required');
+
+  if (!admin.apps.length) admin.initializeApp();
+  const auth = admin.auth();
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(idToken, true);
+  } catch (_e) {
+    throw badRequest('Invalid or expired ID token');
+  }
+
+  const uid = String(decoded.uid || '').trim();
+  const adobeEmail = sanitizeEmail(decoded.email);
+  if (!isValidEmail(adobeEmail)) throw badRequest('Token email is invalid');
+  if (!isAdobeComEmail(adobeEmail)) {
+    throw badRequest('Sign in with an Adobe @adobe.com account.');
+  }
+
+  const userRecord = await auth.getUser(uid);
+  const providerIds = (userRecord.providerData || [])
+    .map((p) => (p && p.providerId ? String(p.providerId) : ''))
+    .filter(Boolean);
+  if (!providerIds.includes('password')) {
+    throw badRequest('This endpoint is for email/password lab signups from Create account.');
+  }
+
+  const ref = approvalDocRef(uid);
+  const snap = await ref.get();
+  const data = snap.exists ? snap.data() || {} : {};
+  const status = String(data.status || '');
+
+  if (status === 'approved') {
+    if (userRecord.disabled) {
+      await auth.updateUser(uid, { disabled: false });
+    }
+    return {
+      ok: true,
+      uid,
+      pendingApproval: false,
+      alreadyPending: false,
+      emailSent: false,
+      message: 'Lab access is already approved for this account.',
+    };
+  }
+
+  if (status === 'pending') {
+    await auth.updateUser(uid, { disabled: true });
+    return {
+      ok: true,
+      uid,
+      pendingApproval: true,
+      alreadyPending: true,
+      emailSent: false,
+      message: 'Lab access request is still pending admin approval.',
+    };
+  }
+
+  const { firstName, lastName } = coalesceNamesWithUserRecord('', '', userRecord);
+  const { emailResult, workspaceName, workspaceSlug } = await createPendingLabApprovalAndNotify(
+    { uid, adobeEmail, firstName, lastName, origin: input.origin, approvalEmailKind: 'signup' },
+    deps,
+  );
+
+  return {
+    ok: true,
+    uid,
+    pendingApproval: true,
+    alreadyPending: false,
+    emailSent: !!emailResult.sent,
+    workspaceName,
+    workspaceSlug,
+    message: 'Signup request submitted. Await admin approval before login.',
+  };
+}
+
 /** Legacy: same as registerWorkspaceFromFirebaseIdTokenRequest with Google + verified-email gate. */
 async function registerWorkspaceGoogleAuthRequest(input, deps) {
   return registerWorkspaceFromFirebaseIdTokenRequest(input, deps, {
@@ -637,6 +741,7 @@ module.exports = {
   registerWorkspaceGoogleAuthRequest,
   registerWorkspaceLabSessionFromIdTokenRequest,
   requestLabAccessApprovalAfterOnboardingRequest,
+  requestLabAccessApprovalOnSignupRequest,
   getLabAccessStatusFromIdTokenRequest,
   approveWorkspaceAuthRequest,
 };

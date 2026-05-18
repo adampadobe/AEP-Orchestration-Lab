@@ -34,6 +34,12 @@
   /** If `verifiedAt` is this many ms ahead of `Date.now()`, treat clock as skewed and force re-verify. */
   var VERIFIED_AT_FUTURE_SKEW_MS = 5 * 60 * 1000;
   var MIN_LAB_PASSWORD_LEN = 8;
+  /** Shown when lab access is pending (login, auth listener, or reopening setup while still signed in). */
+  var PENDING_LAB_ACCESS_MSG =
+    'Your lab access is pending administrator approval. Please check back after your account has been approved, then sign in again to continue.';
+  /** After successful Create account + server signup approval request (user is signed out). */
+  var POST_SIGNUP_PENDING_MSG =
+    'Your registration was submitted. An administrator must approve your account before you can sign in and finish lab setup. Please check back after your account has been approved.';
   var step1LoginMode = false;
   var step1SessionExpiredShell = false;
 
@@ -230,7 +236,7 @@
         '<div id="aepAccessOnbStepSignIn" class="aep-access-onb-step">' +
         '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
         '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Create an account</h2>' +
-        '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. Next, you will pick <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
+        '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. New accounts are reviewed by an administrator; after approval, sign in again to choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
         '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
         '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
         '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
@@ -243,7 +249,7 @@
         '<div id="aepAccessOnbStepMode" class="aep-access-onb-step" hidden>' +
         '<p class="aep-access-onb-kicker">Step 2 of 2</p>' +
         '<h2 id="aepAccessOnbTitleMode" class="aep-access-onb-title">Choose your lab access mode</h2>' +
-        '<p class="aep-access-onb-copy">Adobe sandbox unlocks full AEP APIs with the sandbox selector. No Adobe sandbox keeps Brand Scraper and related tools on a workspace profile (admin approval may apply).</p>' +
+        '<p class="aep-access-onb-copy">After you sign in, choose <strong>Adobe sandbox</strong> (full AEP APIs and sandbox selector) or <strong>no Adobe sandbox</strong> (workspace profile for Brand Scraper and related tools). This step is available once your account is approved.</p>' +
         '<div class="aep-access-onb-choices">' +
         '<label class="aep-access-onb-choice"><input type="radio" name="aepAccessOnbMode" id="aepAccessOnbSandbox" value="sandbox" checked>' +
         '<span><strong>Adobe sandbox</strong><br><small>Use the standard sandbox selector and AEP APIs.</small></span></label>' +
@@ -253,7 +259,7 @@
         '<div id="aepAccessOnbWorkspaceForm" class="aep-access-onb-grid" style="display:none">' +
         '<div><label for="aepAccessOnbFirstName">First name</label><input id="aepAccessOnbFirstName" type="text" maxlength="80" autocomplete="given-name"></div>' +
         '<div><label for="aepAccessOnbLastName">Last name</label><input id="aepAccessOnbLastName" type="text" maxlength="80" autocomplete="family-name"></div>' +
-        '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. New workspace access stays <strong>pending</strong> until an admin approves it.</p>' +
+        '<p class="full aep-access-onb-copy" style="margin:0">No-sandbox mode uses your <span class="aep-access-onb-mono">@adobe.com</span> lab account. First-time workspace setup runs after your lab account is already approved.</p>' +
         '</div>' +
         '</div>' +
         '<div class="aep-access-onb-foot">' +
@@ -332,16 +338,13 @@
 
   function signOutAndShowPendingApproval(auth, message) {
     var authInst = auth || ensureFirebaseAuth();
-    show();
-    setUiStep(1);
-    syncStep1AuthUi();
-    setMsg(
-      message ||
-        'Your lab access is pending admin approval. You cannot use the lab until an admin approves your account.',
-      'err',
-    );
-    if (!authInst) return Promise.resolve();
-    return authInst.signOut().catch(function () {});
+    var p = !authInst ? Promise.resolve() : authInst.signOut().catch(function () {});
+    return p.then(function () {
+      show();
+      setUiStep(1);
+      syncStep1AuthUi();
+      setMsg(message || PENDING_LAB_ACCESS_MSG, '');
+    });
   }
 
   function fetchLabAccessStatusWithIdToken(idToken) {
@@ -370,10 +373,7 @@
       })
       .then(function (status) {
         if (status === 'pending') {
-          return signOutAndShowPendingApproval(
-            auth,
-            'Your lab access is pending admin approval. Sign-in will work after an admin approves your account.',
-          ).then(function () {
+          return signOutAndShowPendingApproval(auth, PENDING_LAB_ACCESS_MSG).then(function () {
             return true;
           });
         }
@@ -608,18 +608,56 @@
         global.__aepOnboardingPreferWorkspace = false;
       }
     } catch (_pw) {}
-    if (hasAdobeLabFirebaseSession()) {
-      setUiStep(2);
-      refreshModeChoiceUi();
-      var focusEl = document.getElementById('aepAccessOnbSandbox');
-      if (focusEl) focusEl.focus();
-    } else {
-      if (!isLabEmailReauthPending()) setMsg('', '');
-      setUiStep(1);
-      syncStep1AuthUi();
+
+    function focusEmailField() {
       var emailEl = document.getElementById('aepAccessOnbEmail');
       if (emailEl) emailEl.focus();
     }
+
+    if (hasAdobeLabFirebaseSession()) {
+      var auth0 = ensureFirebaseAuth();
+      var user0 = auth0 && auth0.currentUser;
+      if (!user0) {
+        if (!isLabEmailReauthPending()) setMsg('', '');
+        setUiStep(1);
+        syncStep1AuthUi();
+        focusEmailField();
+        return;
+      }
+      user0
+        .getIdToken(false)
+        .then(function (idToken) {
+          return fetchLabAccessStatusWithIdToken(idToken);
+        })
+        .then(function (status) {
+          if (status === 'pending') {
+            return signOutAndShowPendingApproval(auth0, PENDING_LAB_ACCESS_MSG);
+          }
+          if (status === 'approved' || status === 'missing') {
+            setUiStep(2);
+            refreshModeChoiceUi();
+            var focusEl = document.getElementById('aepAccessOnbSandbox');
+            if (focusEl) focusEl.focus();
+            return;
+          }
+          if (!isLabEmailReauthPending()) setMsg('', '');
+          setUiStep(1);
+          syncStep1AuthUi();
+          focusEmailField();
+        })
+        .catch(function () {
+          if (!isLabEmailReauthPending()) setMsg('', '');
+          setUiStep(1);
+          syncStep1AuthUi();
+          focusEmailField();
+        });
+      return;
+    }
+
+    if (!isLabEmailReauthPending()) setMsg('', '');
+    setUiStep(1);
+    syncStep1AuthUi();
+    focusEmailField();
   }
 
   function ensureFirebaseAuth() {
@@ -655,7 +693,7 @@
   function mapFirebaseAuthError(e) {
     var code = String((e && e.code) || '');
     if (code === 'auth/user-disabled') {
-      return 'This account is pending admin approval or has been disabled. Try again after an admin approves your lab access.';
+      return PENDING_LAB_ACCESS_MSG;
     }
     if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
       return 'Incorrect password. Try again or reset your password in Firebase if your org allows it.';
@@ -743,6 +781,51 @@
       ok: false,
       error: 'Sign in with your Adobe @adobe.com email and password first.',
     });
+  }
+
+  function requestLabAccessApprovalSignup(idToken) {
+    var origin = '';
+    try {
+      origin = String((global.location && global.location.origin) || '') || '';
+    } catch (_o) {
+      origin = '';
+    }
+    return fetch('/api/lab/lab-access/request-approval-signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + String(idToken || ''),
+      },
+      body: JSON.stringify({ origin: origin }),
+    })
+      .then(function (res) {
+        return res
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (json) {
+            return { status: res.status, body: json || {} };
+          });
+      })
+      .then(function (resp) {
+        if (resp.status >= 200 && resp.status < 300 && resp.body && resp.body.ok) {
+          return {
+            ok: true,
+            pendingApproval: !!resp.body.pendingApproval,
+            alreadyPending: !!resp.body.alreadyPending,
+            emailSent: !!resp.body.emailSent,
+          };
+        }
+        return {
+          ok: false,
+          code: String((resp.body && resp.body.code) || ''),
+          error: (resp.body && resp.body.error) || 'Lab signup approval request failed.',
+        };
+      })
+      .catch(function (e) {
+        return { ok: false, error: String((e && e.message) || e || 'Lab signup approval request failed.') };
+      });
   }
 
   function requestLabAccessApprovalAfterStep2(idToken, firstName, lastName) {
@@ -833,6 +916,16 @@
             workspaceSlug: String((resp.body && resp.body.workspaceSlug) || ''),
           };
         }
+        if (resp.status === 403 && String((resp.body && resp.body.code) || '') === 'pending_approval') {
+          return {
+            ok: true,
+            pendingApproval: true,
+            alreadyPending: true,
+            emailSent: false,
+            workspaceName: String((resp.body && resp.body.workspaceName) || ''),
+            workspaceSlug: String((resp.body && resp.body.workspaceSlug) || ''),
+          };
+        }
         return {
           ok: false,
           code: String((resp.body && resp.body.code) || ''),
@@ -919,8 +1012,8 @@
     setWorkspaceFormVisible(workspaceMode);
     setMsg(
       workspaceMode
-        ? 'No-sandbox mode uses your Adobe lab account; admin approval may apply to new signups.'
-        : 'Adobe sandbox uses your .env-backed sandbox selector and AEP APIs. New @adobe.com accounts require admin approval after you save.',
+        ? 'No-sandbox mode uses your Adobe lab account; enter your name below for your workspace profile.'
+        : 'Adobe sandbox uses your .env-backed sandbox selector and AEP APIs. You can enable it here once your @adobe.com account is approved.',
       '',
     );
   }
@@ -976,6 +1069,27 @@
       if (sandboxRadio) sandboxRadio.focus();
     }
 
+    function proceedAfterLogin(user) {
+      return user
+        .getIdToken(true)
+        .then(function (idToken) {
+          return fetchLabAccessStatusWithIdToken(idToken);
+        })
+        .then(function (status) {
+          if (status === 'pending') {
+            return signOutAndShowPendingApproval(ensureFirebaseAuth(), PENDING_LAB_ACCESS_MSG);
+          }
+          if (status === 'approved' || status === 'missing') {
+            afterStep1AuthSuccess({ ok: true, user: user });
+            return;
+          }
+          setMsg('Could not verify lab access status. Try again in a moment.', 'err');
+        })
+        .catch(function () {
+          setMsg('Could not verify lab access status. Try again in a moment.', 'err');
+        });
+    }
+
     secondaryAuthBtn.addEventListener('click', function () {
       if (step1LoginMode) {
         setStep1AuthMode(false, { clearSessionExpired: true });
@@ -991,18 +1105,77 @@
       primaryAuthBtn.disabled = true;
       secondaryAuthBtn.disabled = true;
       setMsg(step1LoginMode ? 'Signing in…' : 'Creating account…', '');
-      var p = step1LoginMode
-        ? signInLabAdobeAccount(fields.email, fields.password)
-        : registerLabAdobeAccount(fields.email, fields.password, fields.confirm);
-      p.then(function (session) {
-        primaryAuthBtn.disabled = false;
-        secondaryAuthBtn.disabled = false;
-        if (!session || !session.ok) {
-          setMsg((session && session.error) || 'Something went wrong.', 'err');
-          return;
-        }
-        afterStep1AuthSuccess(session);
-      });
+      if (step1LoginMode) {
+        signInLabAdobeAccount(fields.email, fields.password).then(function (session) {
+          if (!session || !session.ok) {
+            primaryAuthBtn.disabled = false;
+            secondaryAuthBtn.disabled = false;
+            setMsg((session && session.error) || 'Something went wrong.', 'err');
+            return;
+          }
+          primaryAuthBtn.disabled = true;
+          secondaryAuthBtn.disabled = true;
+          setMsg('Verifying lab access…', '');
+          proceedAfterLogin(session.user).finally(function () {
+            primaryAuthBtn.disabled = false;
+            secondaryAuthBtn.disabled = false;
+          });
+        });
+        return;
+      }
+      registerLabAdobeAccount(fields.email, fields.password, fields.confirm)
+        .then(function (session) {
+          if (!session || !session.ok) {
+            primaryAuthBtn.disabled = false;
+            secondaryAuthBtn.disabled = false;
+            setMsg((session && session.error) || 'Something went wrong.', 'err');
+            return;
+          }
+          setMsg('Submitting access request…', '');
+          return session.user
+            .getIdToken(true)
+            .then(function (idToken) {
+              return requestLabAccessApprovalSignup(idToken);
+            })
+            .then(function (reg) {
+              primaryAuthBtn.disabled = false;
+              secondaryAuthBtn.disabled = false;
+              if (!reg || !reg.ok) {
+                setMsg(
+                  (reg && reg.error) || 'Could not submit your lab access request. Try again or contact an administrator.',
+                  'err',
+                );
+                return;
+              }
+              if (!reg.pendingApproval) {
+                afterStep1AuthSuccess({ ok: true, user: session.user });
+                return;
+              }
+              clearLabGateStorageForPendingLockout();
+              var authInst = ensureFirebaseAuth();
+              var msg = POST_SIGNUP_PENDING_MSG;
+              if (!reg.emailSent && !reg.alreadyPending) {
+                msg +=
+                  ' We could not email the administrator automatically; please contact your lab admin if you do not hear back.';
+              }
+              var pOut = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
+              return pOut.then(function () {
+                setUiStep(1);
+                syncStep1AuthUi();
+                setMsg(msg, !reg.emailSent && !reg.alreadyPending ? 'err' : '');
+              });
+            })
+            .catch(function (e) {
+              primaryAuthBtn.disabled = false;
+              secondaryAuthBtn.disabled = false;
+              setMsg(String((e && e.message) || e || 'Request failed.'), 'err');
+            });
+        })
+        .catch(function (e) {
+          primaryAuthBtn.disabled = false;
+          secondaryAuthBtn.disabled = false;
+          setMsg(String((e && e.message) || e || 'Something went wrong.'), 'err');
+        });
     });
 
     saveBtn.addEventListener('click', function () {
@@ -1046,21 +1219,11 @@
                 return;
               }
               if (reg.pendingApproval) {
-                setMsg(
-                  reg.alreadyPending
-                    ? 'Your lab access is still pending admin approval. You will be signed out until it is approved.'
-                    : reg.emailSent
-                      ? 'Signup submitted. Approval email sent to admin. You will be signed out until the account is approved.'
-                      : 'Signup submitted, but approval email could not be sent. Contact the admin. You will be signed out until approved.',
-                  reg.alreadyPending || reg.emailSent ? 'ok' : 'err',
-                );
                 clearLabGateStorageForPendingLockout();
                 var authInst = ensureFirebaseAuth();
-                var pOut = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
-                pOut.finally(function () {
+                return signOutAndShowPendingApproval(authInst, PENDING_LAB_ACCESS_MSG).finally(function () {
                   saveBtn.disabled = false;
                 });
-                return;
               }
               global.AepAccessScope.setAccessMode('sandbox');
               recordSuccessfulLabEmailVerification();
@@ -1094,9 +1257,8 @@
             setMsg((authResult && authResult.error) || 'Could not complete workspace signup.', 'err');
             if (authResult && authResult.pending) {
               clearLabGateStorageForPendingLockout();
-              var authInst = ensureFirebaseAuth();
-              var pOut2 = authInst ? authInst.signOut().catch(function () {}) : Promise.resolve();
-              return pOut2.finally(function () {
+              var authInstW = ensureFirebaseAuth();
+              return signOutAndShowPendingApproval(authInstW, PENDING_LAB_ACCESS_MSG).finally(function () {
                 saveBtn.disabled = false;
               });
             }
