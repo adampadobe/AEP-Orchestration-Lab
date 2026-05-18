@@ -1926,6 +1926,32 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   color: var(--dash-muted);
 }
 
+body.home-dashboard-concierge .aep-access-mode-toggle-wrap {
+  margin-top: 0.75rem;
+}
+
+body.home-dashboard-concierge .aep-access-mode-toggle-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dash-muted);
+}
+
+body.home-dashboard-concierge .aep-access-mode-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+body.home-dashboard-concierge .aep-access-mode-actions-row {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
 .dashboard-code {
   font-size: 0.8em;
   padding: 0.12em 0.4em;

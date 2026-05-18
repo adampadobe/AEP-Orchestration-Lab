@@ -672,6 +672,13 @@
         }
       },
       {
+        "source": "/api/lab/workspace-auth/register-google",
+        "function": {
+          "functionId": "labWorkspaceAuthRegisterGoogle",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/workspace-auth/register",
         "function": {
           "functionId": "labWorkspaceAuthRegister",

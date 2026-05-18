@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="home.css?v=20260518-access-toggle">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
@@ -142,8 +142,15 @@
             <h3 class="dashboard-panel-title" id="aepAccessModeHeading">Access mode</h3>
             <span id="aepAccessModeSummary" class="dashboard-muted">Detecting mode…</span>
           </div>
-          <p class="dashboard-panel-text">First-time visitors now get a setup popup to choose Adobe sandbox or no-sandbox access. You can reopen it anytime here.</p>
-          <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+          <p class="dashboard-panel-text">First-time visitors <strong>sign in with Google</strong> (<strong>@adobe.com</strong>), then pick <strong>Adobe sandbox</strong> or <strong>no Adobe sandbox</strong>. Returning visitors use the quick switch or reopen the full setup dialog anytime.</p>
+          <div id="aepAccessModeToggleWrap" class="aep-access-mode-toggle-wrap" hidden>
+            <p class="aep-access-mode-toggle-hint">Quick switch — same Google identity; confirm when changing paths.</p>
+            <div class="aep-access-mode-toggle-row" role="group" aria-label="Lab access mode">
+              <button type="button" class="dashboard-btn-outline" id="aepAccessToggleSandbox" aria-pressed="false">Adobe sandbox</button>
+              <button type="button" class="dashboard-btn-outline" id="aepAccessToggleWorkspace" aria-pressed="false">No Adobe sandbox</button>
+            </div>
+          </div>
+          <div class="aep-access-mode-actions-row">
             <button type="button" class="dashboard-btn-outline" id="aepAccessModeOpenBtn">Configure access mode</button>
             <span id="aepAccessModeStatus" class="dashboard-muted" aria-live="polite"></span>
           </div>
@@ -187,7 +194,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260507-access-popup"></script>
-  <script src="aep-access-onboarding.js?v=20260507a"></script>
+  <script src="aep-access-onboarding.js?v=20260518-signin-first-toggle"></script>
   <script>
     (function () {
       if (!window.AepAccessScope) return;
@@ -197,12 +204,77 @@
       var openBtn = document.getElementById('aepAccessModeOpenBtn');
       var statusEl = document.getElementById('aepAccessModeStatus');
       var summaryEl = document.getElementById('aepAccessModeSummary');
+      var toggleWrap = document.getElementById('aepAccessModeToggleWrap');
+      var btnSandbox = document.getElementById('aepAccessToggleSandbox');
+      var btnWorkspace = document.getElementById('aepAccessToggleWorkspace');
+
+      function syncToggleUi() {
+        if (!toggleWrap || !btnSandbox || !btnWorkspace) return;
+        var hasMode = window.AepAccessScope.hasExplicitMode();
+        toggleWrap.hidden = !hasMode;
+        if (!hasMode) return;
+        var mode = window.AepAccessScope.getAccessMode();
+        var isSandbox = mode === 'sandbox';
+        btnSandbox.setAttribute('class', isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
+        btnWorkspace.setAttribute('class', !isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
+        btnSandbox.setAttribute('aria-pressed', isSandbox ? 'true' : 'false');
+        btnWorkspace.setAttribute('aria-pressed', !isSandbox ? 'true' : 'false');
+      }
+
+      function trySwitchAccessMode(target) {
+        var cur = window.AepAccessScope.getAccessMode();
+        if (cur === target) return;
+        var msg =
+          target === 'sandbox'
+            ? 'Switch to Adobe sandbox? No-sandbox tools stay idle until you switch back. Your saved workspace keys are kept.'
+            : 'Switch to no Adobe sandbox? Sandbox-backed tools will follow workspace scope until you switch again.';
+        if (!window.confirm(msg)) return;
+        if (target === 'sandbox') {
+          window.AepAccessScope.setAccessMode('sandbox');
+          return;
+        }
+        var slug = window.AepAccessScope.getWorkspaceSlug();
+        if (!slug) {
+          try {
+            window.__aepOnboardingPreferWorkspace = true;
+          } catch (_e) {}
+          if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
+            window.AepAccessOnboarding.open();
+          }
+          return;
+        }
+        window.AepAccessScope.setAccessMode('workspace');
+      }
 
       function syncUi() {
         var scope = window.AepAccessScope.getScope();
         summaryEl.textContent = scope.mode === 'workspace'
           ? ('No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured'))
           : 'Adobe sandbox mode';
+        syncToggleUi();
+      }
+      function refreshAccessStatusHint() {
+        if (!window.AepAccessScope.hasExplicitMode()) {
+          statusEl.textContent = 'Choose your access mode to continue.';
+        } else if (
+          window.AepAccessOnboarding &&
+          typeof window.AepAccessOnboarding.hasAdobeGoogleLabSession === 'function' &&
+          !window.AepAccessOnboarding.hasAdobeGoogleLabSession()
+        ) {
+          statusEl.textContent = 'Sign in with Google (@adobe.com) — use Configure access mode.';
+        } else {
+          statusEl.textContent = '';
+        }
+      }
+      if (btnSandbox) {
+        btnSandbox.addEventListener('click', function () {
+          trySwitchAccessMode('sandbox');
+        });
+      }
+      if (btnWorkspace) {
+        btnWorkspace.addEventListener('click', function () {
+          trySwitchAccessMode('workspace');
+        });
       }
       if (openBtn) {
         openBtn.addEventListener('click', function () {
@@ -212,11 +284,13 @@
           }
         });
       }
-      window.addEventListener('aep-access-scope-change', syncUi);
+      window.addEventListener('aep-access-scope-change', function () {
+        syncUi();
+        refreshAccessStatusHint();
+      });
+      window.addEventListener('aep-lab-google-session-updated', refreshAccessStatusHint);
       syncUi();
-      if (!window.AepAccessScope.hasExplicitMode()) {
-        statusEl.textContent = 'Choose your access mode to continue.';
-      }
+      refreshAccessStatusHint();
     })();
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

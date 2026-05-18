@@ -26,6 +26,11 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim().toLowerCase());
 }
 
+function isAdobeComEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  return e.endsWith('@adobe.com');
+}
+
 function toSlug(raw) {
   return String(raw || '')
     .toLowerCase()
@@ -263,6 +268,151 @@ async function registerWorkspaceAuthRequest(input, deps) {
   };
 }
 
+/**
+ * No-sandbox signup after client Firebase Google sign-in: verifies ID token,
+ * requires @adobe.com + Google provider, mirrors email/password approval flow.
+ */
+async function registerWorkspaceGoogleAuthRequest(input, deps) {
+  const idToken = String(input.idToken || '').trim();
+  const firstName = sanitizeName(input.firstName);
+  const lastName = sanitizeName(input.lastName);
+
+  if (!idToken) throw badRequest('idToken is required');
+  if (!firstName) throw badRequest('firstName is required');
+  if (!lastName) throw badRequest('lastName is required');
+
+  if (!admin.apps.length) admin.initializeApp();
+  const auth = admin.auth();
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(idToken, true);
+  } catch (e) {
+    throw badRequest('Invalid or expired ID token');
+  }
+
+  const uid = String(decoded.uid || '').trim();
+  const adobeEmail = sanitizeEmail(decoded.email);
+  if (!isValidEmail(adobeEmail)) throw badRequest('Token email is invalid');
+  if (!isAdobeComEmail(adobeEmail)) throw badRequest('Sign in with an Adobe Google account (@adobe.com).');
+  if (!decoded.email_verified) throw badRequest('Google email must be verified');
+
+  const userRecord = await auth.getUser(uid);
+  const hasGoogle = (userRecord.providerData || []).some((p) => p && p.providerId === 'google.com');
+  if (!hasGoogle) throw badRequest('Google sign-in is required for this workspace path');
+
+  const workspaceName = `${firstName} ${lastName}`.trim();
+  const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
+
+  const ref = approvalDocRef(uid);
+  const snap = await ref.get();
+  const data = snap.exists ? snap.data() || {} : {};
+  const status = String(data.status || '');
+
+  if (status === 'approved') {
+    await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+      firstName,
+      lastName,
+      adobeEmail,
+      workspaceName,
+      workspaceSlug,
+    });
+    if (userRecord.disabled) {
+      await auth.updateUser(uid, { disabled: false });
+    }
+    return {
+      ok: true,
+      pendingApproval: false,
+      emailSent: false,
+      workspaceName,
+      workspaceSlug,
+      message: 'Workspace access is active.',
+    };
+  }
+
+  if (status === 'pending') {
+    await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+      firstName,
+      lastName,
+      adobeEmail,
+      workspaceName,
+      workspaceSlug,
+    });
+    const err = new Error(
+      'Your workspace request is still pending admin approval. You cannot sign in until it is approved.',
+    );
+    err.status = 403;
+    err.code = 'pending_approval';
+    throw err;
+  }
+
+  await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+    firstName,
+    lastName,
+    adobeEmail,
+    workspaceName,
+    workspaceSlug,
+  });
+
+  const token = approvalToken();
+  const hashed = tokenHash(token);
+  const now = Date.now();
+  const expiresAt = new Date(now + APPROVAL_TTL_MS);
+  await ref.set(
+    {
+      uid,
+      adobeEmail,
+      firstName,
+      lastName,
+      workspaceName,
+      workspaceSlug,
+      status: 'pending',
+      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tokenHash: hashed,
+      tokenExpiresAt: expiresAt,
+      requestCount: admin.firestore.FieldValue.increment(1),
+      approvedAt: null,
+    },
+    { merge: true },
+  );
+
+  await auth.updateUser(uid, { disabled: true });
+
+  const baseUrl = resolveBaseUrl(input.origin, deps.approvalBaseUrl);
+  const link = approvalUrl(baseUrl, uid, token);
+
+  let emailResult = { skipped: true };
+  try {
+    emailResult = await sendApprovalNotification({
+      uid,
+      firstName,
+      lastName,
+      adobeEmail,
+      approvalLink: link,
+      notifyEmail: deps.notifyEmail,
+      mailgunKey: deps.mailgunKey,
+      mailgunDomain: deps.mailgunDomain,
+      mailFrom: deps.mailFrom,
+      mailgunRegion: deps.mailgunRegion,
+    });
+  } catch (e) {
+    console.error('[labWorkspaceAuthService] approval email failed (google path)', e.message || e);
+    emailResult = { sent: false, error: String(e.message || e) };
+  }
+
+  return {
+    ok: true,
+    uid,
+    createdNow: true,
+    pendingApproval: true,
+    emailSent: !!emailResult.sent,
+    workspaceName,
+    workspaceSlug,
+    message: 'Signup request submitted. Await admin approval before login.',
+  };
+}
+
 async function approveWorkspaceAuthRequest(input) {
   const uid = String(input.uid || '').trim().slice(0, 128);
   const token = String(input.token || '').trim();
@@ -313,6 +463,7 @@ async function approveWorkspaceAuthRequest(input) {
 
 module.exports = {
   registerWorkspaceAuthRequest,
+  registerWorkspaceGoogleAuthRequest,
   approveWorkspaceAuthRequest,
 };
 
