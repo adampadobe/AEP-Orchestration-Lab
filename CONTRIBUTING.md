@@ -626,6 +626,10 @@ Complex logic goes into a separate `*Service.js` file in `functions/`
 (e.g. `schemaViewerService.js`, `consentInfraService.js`).
 Keep `index.js` as a thin routing / export layer.
 
+### AJO content templates (HTML) via platform API
+
+To create Journey Optimizer **HTML email content templates** (`POST /ajo/content/templates`), you must send a **single** request `Content-Type` of `application/vnd.adobe.ajo.template.v1+json` (never let a second `application/json` slip in on the same request). Full workflow, curl-style examples, `/api/aep` shape, and the `InvalidMediaTypeException` pitfall are documented in **`docs/AJO_CONTENT_TEMPLATE_API.md`**. From the repo root, use **`npm run ajo:create-content-template`** (see `scripts/create-ajo-content-template.mjs`) for a supported one-liner. When using **POST `/api/aep`** instead, set **`platform_headers.content-type`** to that same MIME type so the proxy forwards a valid template create call.
+
 ---
 
 ## Credentials, secrets and .env files
@@ -981,6 +985,7 @@ submodule is set to a no-push dummy as a safety net.
 
 ## Further reading
 
+- `docs/AJO_CONTENT_TEMPLATE_API.md` — AJO HTML content templates: bearer auth, correct `Content-Type`, `/api/aep` and MCP notes
 - `docs/COLLEAGUE_PROFILE_VIEWER.md` — local Express setup, auth, sandbox selection
 - `docs/FIREBASE_STANDALONE_DEPLOY.md` — full deploy walkthrough with secrets
 - `docs/DECISIONING_APIS.md` — Adobe Experience Decisioning API reference
