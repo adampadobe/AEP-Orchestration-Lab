@@ -45,6 +45,37 @@ function buildWorkspaceSlug(email, firstName, lastName) {
   return toSlug(localPart) || toSlug(`${firstName}-${lastName}`) || 'workspace-user';
 }
 
+function deriveFirstLastFromUserRecord(userRecord) {
+  const dn = userRecord && userRecord.displayName ? String(userRecord.displayName).trim() : '';
+  if (dn) {
+    const parts = dn.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      return { firstName: sanitizeName(parts[0]), lastName: sanitizeName('User') };
+    }
+    return {
+      firstName: sanitizeName(parts[0]),
+      lastName: sanitizeName(parts.slice(1).join(' ')),
+    };
+  }
+  const email = userRecord && userRecord.email ? String(userRecord.email).trim().toLowerCase() : '';
+  const local = String(email.split('@')[0] || '').trim();
+  const cap = local ? local.charAt(0).toUpperCase() + local.slice(1) : '';
+  return { firstName: sanitizeName(cap || 'Adobe'), lastName: sanitizeName('User') };
+}
+
+function coalesceNamesWithUserRecord(inputFirst, inputLast, userRecord) {
+  let firstName = sanitizeName(inputFirst);
+  let lastName = sanitizeName(inputLast);
+  if (!firstName || !lastName) {
+    const d = deriveFirstLastFromUserRecord(userRecord);
+    if (!firstName) firstName = d.firstName;
+    if (!lastName) lastName = d.lastName;
+  }
+  if (!firstName) firstName = 'Adobe';
+  if (!lastName) lastName = 'User';
+  return { firstName, lastName };
+}
+
 function approvalDocRef(uid) {
   return getDb().collection(APPROVAL_COLLECTION).doc(String(uid || '').trim().slice(0, 128));
 }
@@ -131,9 +162,9 @@ async function sendApprovalNotification({
   mailFrom,
   mailgunRegion,
 }) {
-  const subject = `Workspace access approval needed: ${firstName} ${lastName}`;
+  const subject = `Lab access approval needed: ${firstName} ${lastName}`;
   const text = [
-    'A no-sandbox workspace access request requires approval.',
+    'A new @adobe.com lab account finished onboarding (Adobe sandbox or no-sandbox path) and requires admin approval before sign-in.',
     '',
     `Name: ${firstName} ${lastName}`,
     `Adobe email: ${adobeEmail}`,
@@ -153,6 +184,68 @@ async function sendApprovalNotification({
     text,
     recipients: [notifyEmail],
   });
+}
+
+/**
+ * Writes pending approval doc, disables Auth user, sends Mailgun (shared onboarding completion path).
+ */
+async function createPendingLabApprovalAndNotify({ uid, adobeEmail, firstName, lastName, origin }, deps) {
+  const workspaceName = `${firstName} ${lastName}`.trim();
+  const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
+  const token = approvalToken();
+  const hashed = tokenHash(token);
+  const now = Date.now();
+  const expiresAt = new Date(now + APPROVAL_TTL_MS);
+  const ref = approvalDocRef(uid);
+  await ref.set(
+    {
+      uid,
+      adobeEmail,
+      firstName,
+      lastName,
+      workspaceName,
+      workspaceSlug,
+      status: 'pending',
+      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tokenHash: hashed,
+      tokenExpiresAt: expiresAt,
+      requestCount: admin.firestore.FieldValue.increment(1),
+      approvedAt: null,
+    },
+    { merge: true },
+  );
+
+  if (!admin.apps.length) admin.initializeApp();
+  await admin.auth().updateUser(uid, { disabled: true });
+
+  const baseUrl = resolveBaseUrl(origin, deps.approvalBaseUrl);
+  const link = approvalUrl(baseUrl, uid, token);
+
+  let emailResult = { skipped: true };
+  try {
+    emailResult = await sendApprovalNotification({
+      uid,
+      firstName,
+      lastName,
+      adobeEmail,
+      approvalLink: link,
+      notifyEmail: deps.notifyEmail,
+      mailgunKey: deps.mailgunKey,
+      mailgunDomain: deps.mailgunDomain,
+      mailFrom: deps.mailFrom,
+      mailgunRegion: deps.mailgunRegion,
+    });
+  } catch (e) {
+    console.error('[labWorkspaceAuthService] approval email failed (pending gate)', e.message || e);
+    emailResult = { sent: false, error: String(e.message || e) };
+  }
+
+  return {
+    emailResult,
+    workspaceName,
+    workspaceSlug,
+  };
 }
 
 async function registerWorkspaceAuthRequest(input, deps) {
@@ -270,19 +363,25 @@ async function registerWorkspaceAuthRequest(input, deps) {
 }
 
 /**
- * No-sandbox signup after client Firebase sign-in: verifies ID token, requires @adobe.com.
- * Optional Google + verified-email checks for legacy register-google callers.
+ * Shared lab access approval gate after onboarding step 2 (workspace path or Adobe sandbox path).
+ * @param {'workspace_form'|'derive_ok'} namePolicy
+ * @param {'throw403'|'return_ok'} onExistingPending
  */
-async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
+async function runLabAccessApprovalAfterOnboardingFlow(input, deps, gate, flowOpts) {
+  const namePolicy = flowOpts && flowOpts.namePolicy === 'workspace_form' ? 'workspace_form' : 'derive_ok';
+  const onExistingPending = flowOpts && flowOpts.onExistingPending === 'throw403' ? 'throw403' : 'return_ok';
   const idToken = String(input.idToken || '').trim();
-  const firstName = sanitizeName(input.firstName);
-  const lastName = sanitizeName(input.lastName);
   const requireGoogle = !!(gate && gate.requireGoogle);
   const requireEmailVerified = !!(gate && gate.requireEmailVerified);
 
   if (!idToken) throw badRequest('idToken is required');
-  if (!firstName) throw badRequest('firstName is required');
-  if (!lastName) throw badRequest('lastName is required');
+
+  let firstNameInput = sanitizeName(input.firstName);
+  let lastNameInput = sanitizeName(input.lastName);
+  if (namePolicy === 'workspace_form') {
+    if (!firstNameInput) throw badRequest('firstName is required');
+    if (!lastNameInput) throw badRequest('lastName is required');
+  }
 
   if (!admin.apps.length) admin.initializeApp();
   const auth = admin.auth();
@@ -316,6 +415,7 @@ async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
     throw badRequest('Use Adobe @adobe.com sign-in (password or Google) for this workspace path.');
   }
 
+  const { firstName, lastName } = coalesceNamesWithUserRecord(firstNameInput, lastNameInput, userRecord);
   const workspaceName = `${firstName} ${lastName}`.trim();
   const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
 
@@ -337,7 +437,9 @@ async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
     }
     return {
       ok: true,
+      uid,
       pendingApproval: false,
+      alreadyPending: false,
       emailSent: false,
       workspaceName,
       workspaceSlug,
@@ -353,12 +455,24 @@ async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
       workspaceName,
       workspaceSlug,
     });
-    const err = new Error(
-      'Your workspace request is still pending admin approval. You cannot sign in until it is approved.',
-    );
-    err.status = 403;
-    err.code = 'pending_approval';
-    throw err;
+    if (onExistingPending === 'throw403') {
+      const err = new Error(
+        'Your workspace request is still pending admin approval. You cannot sign in until it is approved.',
+      );
+      err.status = 403;
+      err.code = 'pending_approval';
+      throw err;
+    }
+    return {
+      ok: true,
+      uid,
+      pendingApproval: true,
+      alreadyPending: true,
+      emailSent: false,
+      workspaceName,
+      workspaceSlug,
+      message: 'Your lab access request is still pending admin approval.',
+    };
   }
 
   await labUserSandboxStore.upsertWorkspaceProfile(uid, {
@@ -369,63 +483,43 @@ async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
     workspaceSlug,
   });
 
-  const token = approvalToken();
-  const hashed = tokenHash(token);
-  const now = Date.now();
-  const expiresAt = new Date(now + APPROVAL_TTL_MS);
-  await ref.set(
-    {
-      uid,
-      adobeEmail,
-      firstName,
-      lastName,
-      workspaceName,
-      workspaceSlug,
-      status: 'pending',
-      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      tokenHash: hashed,
-      tokenExpiresAt: expiresAt,
-      requestCount: admin.firestore.FieldValue.increment(1),
-      approvedAt: null,
-    },
-    { merge: true },
+  const { emailResult, workspaceName: wn, workspaceSlug: ws } = await createPendingLabApprovalAndNotify(
+    { uid, adobeEmail, firstName, lastName, origin: input.origin },
+    deps,
   );
-
-  await auth.updateUser(uid, { disabled: true });
-
-  const baseUrl = resolveBaseUrl(input.origin, deps.approvalBaseUrl);
-  const link = approvalUrl(baseUrl, uid, token);
-
-  let emailResult = { skipped: true };
-  try {
-    emailResult = await sendApprovalNotification({
-      uid,
-      firstName,
-      lastName,
-      adobeEmail,
-      approvalLink: link,
-      notifyEmail: deps.notifyEmail,
-      mailgunKey: deps.mailgunKey,
-      mailgunDomain: deps.mailgunDomain,
-      mailFrom: deps.mailFrom,
-      mailgunRegion: deps.mailgunRegion,
-    });
-  } catch (e) {
-    console.error('[labWorkspaceAuthService] approval email failed (id-token path)', e.message || e);
-    emailResult = { sent: false, error: String(e.message || e) };
-  }
 
   return {
     ok: true,
     uid,
     createdNow: true,
     pendingApproval: true,
+    alreadyPending: false,
     emailSent: !!emailResult.sent,
-    workspaceName,
-    workspaceSlug,
+    workspaceName: wn,
+    workspaceSlug: ws,
     message: 'Signup request submitted. Await admin approval before login.',
   };
+}
+
+/**
+ * No-sandbox signup after client Firebase sign-in: verifies ID token, requires @adobe.com.
+ * Optional Google + verified-email checks for legacy register-google callers.
+ */
+async function registerWorkspaceFromFirebaseIdTokenRequest(input, deps, gate) {
+  return runLabAccessApprovalAfterOnboardingFlow(input, deps, gate, {
+    namePolicy: 'workspace_form',
+    onExistingPending: 'throw403',
+  });
+}
+
+/** Adobe sandbox (or any) path after onboarding step 2 — same approval doc + Mailgun + disable as workspace; dedupes pending. */
+async function requestLabAccessApprovalAfterOnboardingRequest(input, deps) {
+  return runLabAccessApprovalAfterOnboardingFlow(
+    input,
+    deps,
+    { requireGoogle: false, requireEmailVerified: false },
+    { namePolicy: 'derive_ok', onExistingPending: 'return_ok' },
+  );
 }
 
 /** Legacy: same as registerWorkspaceFromFirebaseIdTokenRequest with Google + verified-email gate. */
@@ -442,6 +536,127 @@ async function registerWorkspaceLabSessionFromIdTokenRequest(input, deps) {
     requireGoogle: false,
     requireEmailVerified: false,
   });
+}
+
+/**
+ * Adobe sandbox path after Step 2: verify ID token, optional Mailgun to LAB_APPROVAL_NOTIFY_EMAIL, Firestore dedupe.
+ * Does not disable the Auth user (unlike no-sandbox workspace signup).
+ */
+async function notifySandboxLabOnboardingFromIdTokenRequest(input, deps) {
+  const idToken = String(input.idToken || '').trim();
+  if (!idToken) throw badRequest('idToken is required');
+
+  if (!admin.apps.length) admin.initializeApp();
+  const auth = admin.auth();
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(idToken, true);
+  } catch (_e) {
+    throw badRequest('Invalid or expired ID token');
+  }
+
+  const uid = String(decoded.uid || '').trim();
+  const adobeEmail = sanitizeEmail(decoded.email);
+  if (!isValidEmail(adobeEmail)) throw badRequest('Token email is invalid');
+  if (!isAdobeComEmail(adobeEmail)) {
+    throw badRequest('Sign in with an Adobe @adobe.com account.');
+  }
+
+  const userRecord = await auth.getUser(uid);
+  const providerIds = (userRecord.providerData || [])
+    .map((p) => (p && p.providerId ? String(p.providerId) : ''))
+    .filter(Boolean);
+  const hasGoogle = providerIds.includes('google.com');
+  const hasPassword = providerIds.includes('password');
+  if (!hasGoogle && !hasPassword) {
+    throw badRequest('Use Adobe @adobe.com sign-in (password or Google) for this lab path.');
+  }
+
+  const ref = approvalDocRef(uid);
+  const snap = await ref.get();
+  const data = snap.exists ? snap.data() || {} : {};
+  const status = String(data.status || '');
+
+  if (status === 'pending' || status === 'approved') {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'workspace_access_record',
+      emailSent: false,
+      message: 'No duplicate notification; workspace access is already tracked for this account.',
+    };
+  }
+
+  if (status === SANDBOX_LAB_STATUS) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'sandbox_already_notified',
+      emailSent: false,
+      message: 'Sandbox onboarding was already recorded for this account.',
+    };
+  }
+
+  const displayName = String(userRecord.displayName || '').trim();
+  let firstName = sanitizeName(input.firstName);
+  let lastName = sanitizeName(input.lastName);
+  if (!firstName && displayName) {
+    const parts = displayName.split(/\s+/);
+    firstName = sanitizeName(parts[0]) || '';
+    lastName = sanitizeName(parts.slice(1).join(' ')) || '';
+  }
+  if (!firstName) {
+    const localPart = String(adobeEmail.split('@')[0] || '').trim();
+    firstName = sanitizeName(localPart) || 'Adobe';
+  }
+  if (!lastName) lastName = 'User';
+
+  const workspaceName = `${firstName} ${lastName}`.trim();
+  const workspaceSlug = buildWorkspaceSlug(adobeEmail, firstName, lastName);
+
+  await ref.set(
+    {
+      uid,
+      adobeEmail,
+      firstName,
+      lastName,
+      workspaceName,
+      workspaceSlug,
+      status: SANDBOX_LAB_STATUS,
+      sandboxOnboardedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  let emailResult = { skipped: true };
+  try {
+    emailResult = await sendSandboxOnboardingNotification({
+      uid,
+      firstName,
+      lastName,
+      adobeEmail,
+      notifyEmail: deps.notifyEmail,
+      mailgunKey: deps.mailgunKey,
+      mailgunDomain: deps.mailgunDomain,
+      mailFrom: deps.mailFrom,
+      mailgunRegion: deps.mailgunRegion,
+    });
+  } catch (e) {
+    console.error('[labWorkspaceAuthService] sandbox onboarding email failed', e.message || e);
+    emailResult = { sent: false, error: String(e.message || e) };
+  }
+
+  return {
+    ok: true,
+    skipped: false,
+    emailSent: !!emailResult.sent,
+    uid,
+    message: emailResult.sent
+      ? 'Admin notified of sandbox lab onboarding.'
+      : 'Sandbox onboarding recorded; email was skipped or failed to send.',
+  };
 }
 
 async function approveWorkspaceAuthRequest(input) {
@@ -496,6 +711,7 @@ module.exports = {
   registerWorkspaceAuthRequest,
   registerWorkspaceGoogleAuthRequest,
   registerWorkspaceLabSessionFromIdTokenRequest,
+  requestLabAccessApprovalAfterOnboardingRequest,
   approveWorkspaceAuthRequest,
 };
 

@@ -679,6 +679,44 @@
     });
   }
 
+  function requestSandboxOnboardingNotify(idToken) {
+    return fetch('/api/lab/workspace-auth/notify-sandbox-onboarding', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + String(idToken || ''),
+      },
+      body: JSON.stringify({}),
+    })
+      .then(function (res) {
+        return res
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (json) {
+            return { status: res.status, body: json || {} };
+          });
+      })
+      .then(function (resp) {
+        if (resp.status >= 200 && resp.status < 300 && resp.body && resp.body.ok) {
+          return {
+            ok: true,
+            skipped: !!resp.body.skipped,
+            emailSent: !!resp.body.emailSent,
+          };
+        }
+        return {
+          ok: false,
+          code: String((resp.body && resp.body.code) || ''),
+          error: (resp.body && resp.body.error) || 'Sandbox onboarding notification failed.',
+        };
+      })
+      .catch(function (e) {
+        return { ok: false, error: String((e && e.message) || e || 'Sandbox onboarding notification failed.') };
+      });
+  }
+
   function requestWorkspaceRegisterFromIdToken(idToken, firstName, lastName) {
     return fetch('/api/lab/workspace-auth/register-from-id-token', {
       method: 'POST',
@@ -909,14 +947,42 @@
         if (mode === 'sandbox') {
           global.AepAccessScope.setAccessMode('sandbox');
           recordSuccessfulLabEmailVerification();
-          setMsg('Saved.', 'ok');
-          refreshSummary();
-          dispatchLabSessionUpdated();
-          setTimeout(function () {
-            hide();
-          }, 220);
-          saveBtn.disabled = false;
-          return;
+          return user
+            .getIdToken(true)
+            .then(function (idToken) {
+              return requestSandboxOnboardingNotify(idToken);
+            })
+            .then(function (n) {
+              if (n && n.ok) {
+                if (n.skipped) {
+                  setMsg('Saved.', 'ok');
+                } else if (n.emailSent) {
+                  setMsg('Saved. Admin notified.', 'ok');
+                } else {
+                  setMsg('Saved. Admin notification could not be sent (check Mailgun config).', 'err');
+                }
+              } else {
+                setMsg(
+                  (n && n.error) ||
+                    'Saved locally, but admin notification failed. Continue using the lab or try again later.',
+                  'err',
+                );
+              }
+            })
+            .catch(function () {
+              setMsg(
+                'Saved locally, but admin notification failed. Continue using the lab or try again later.',
+                'err',
+              );
+            })
+            .then(function () {
+              refreshSummary();
+              dispatchLabSessionUpdated();
+              setTimeout(function () {
+                hide();
+              }, 220);
+              saveBtn.disabled = false;
+            });
         }
 
         var input = validateWorkspaceNames();

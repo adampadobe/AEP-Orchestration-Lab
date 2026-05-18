@@ -679,6 +679,13 @@
         }
       },
       {
+        "source": "/api/lab/workspace-auth/notify-sandbox-onboarding",
+        "function": {
+          "functionId": "labWorkspaceAuthNotifySandboxOnboarding",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/workspace-auth/register-google",
         "function": {
           "functionId": "labWorkspaceAuthRegisterGoogle",
