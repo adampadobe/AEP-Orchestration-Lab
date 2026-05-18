@@ -72,6 +72,7 @@
     var pwd = document.getElementById('aepAccessOnbPassword');
     var holdPanel = document.getElementById('aepAccessOnbHoldPanel');
     var holdCopy = document.getElementById('aepAccessOnbHoldCopy');
+    var credentialWrap = document.getElementById('aepAccessOnbStep1CredentialWrap');
     var emailForm = document.getElementById('aepAccessOnbEmailForm');
     var step1Intro = document.getElementById('aepAccessOnbCopySignIn');
     var step1Actions = document.getElementById('aepAccessOnbStep1Actions');
@@ -82,18 +83,26 @@
       if (kickerHold) kickerHold.textContent = 'Pending approval';
       if (holdPanel) holdPanel.hidden = false;
       if (holdCopy) holdCopy.textContent = step1HoldMessage || PENDING_LAB_ACCESS_MSG;
-      if (emailForm) emailForm.hidden = true;
-      if (step1Intro) step1Intro.hidden = true;
-      if (step1Actions) step1Actions.hidden = true;
+      if (credentialWrap) {
+        credentialWrap.hidden = true;
+      } else {
+        if (emailForm) emailForm.hidden = true;
+        if (step1Intro) step1Intro.hidden = true;
+        if (step1Actions) step1Actions.hidden = true;
+      }
       if (title) title.textContent = 'Awaiting administrator approval';
       if (confirmWrap) confirmWrap.hidden = true;
       return;
     }
 
     if (holdPanel) holdPanel.hidden = true;
-    if (emailForm) emailForm.hidden = false;
-    if (step1Intro) step1Intro.hidden = false;
-    if (step1Actions) step1Actions.hidden = false;
+    if (credentialWrap) {
+      credentialWrap.hidden = false;
+    } else {
+      if (emailForm) emailForm.hidden = false;
+      if (step1Intro) step1Intro.hidden = false;
+      if (step1Actions) step1Actions.hidden = false;
+    }
 
     if (step1LoginMode) {
       if (title) title.textContent = step1SessionExpiredShell ? 'Sign in again' : 'Log in';
@@ -177,6 +186,9 @@
       '.aep-access-onb-msg.ok{color:var(--dash-success);}' +
       '.aep-access-onb-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.95em;color:var(--dash-text);}' +
       '.aep-access-onb-step[hidden]{display:none !important;}' +
+      '.aep-access-onb-step1-credentials[hidden]{display:none !important;}' +
+      '.aep-access-onb-hold-copy{margin-top:0}' +
+      '.aep-access-onb-hold-actions{margin-top:4px}' +
       '.aep-access-onb-step-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}' +
       '.aep-access-onb-step2-foot{display:flex;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:10px;}';
     document.head.appendChild(style);
@@ -294,12 +306,13 @@
         '<div id="aepAccessOnbStepSignIn" class="aep-access-onb-step">' +
         '<p id="aepAccessOnbKickerSignIn" class="aep-access-onb-kicker">Step 1 of 2</p>' +
         '<h2 id="aepAccessOnbTitleSignIn" class="aep-access-onb-title">Create an account</h2>' +
-        '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. New accounts are reviewed by an administrator; after approval, sign in again to choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
         '<div id="aepAccessOnbHoldPanel" class="aep-access-onb-hold" hidden>' +
-        '<p id="aepAccessOnbHoldCopy" class="aep-access-onb-copy" style="margin-top:0"></p>' +
-        '<div class="aep-access-onb-step-actions" style="margin-top:4px">' +
+        '<p id="aepAccessOnbHoldCopy" class="aep-access-onb-copy aep-access-onb-hold-copy"></p>' +
+        '<div class="aep-access-onb-step-actions aep-access-onb-hold-actions">' +
         '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbHoldLoginBtn">Log in</button>' +
         '</div></div>' +
+        '<div id="aepAccessOnbStep1CredentialWrap" class="aep-access-onb-step1-credentials">' +
+        '<p id="aepAccessOnbCopySignIn" class="aep-access-onb-copy">Use your Adobe <strong>@adobe.com</strong> email and password. New accounts are reviewed by an administrator; after approval, sign in again to choose <strong>Adobe sandbox</strong> vs <strong>no Adobe sandbox</strong> access.</p>' +
         '<div id="aepAccessOnbEmailForm" class="aep-access-onb-grid" style="grid-template-columns:1fr">' +
         '<div class="full"><label for="aepAccessOnbEmail">Adobe email</label><input id="aepAccessOnbEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" maxlength="200" placeholder="you@adobe.com"></div>' +
         '<div class="full"><label for="aepAccessOnbPassword">Password</label><input id="aepAccessOnbPassword" type="password" autocomplete="new-password" maxlength="128"></div>' +
@@ -308,7 +321,7 @@
         '<div id="aepAccessOnbStep1Actions" class="aep-access-onb-step-actions">' +
         '<button type="button" class="dashboard-btn-primary" id="aepAccessOnbPrimaryAuthBtn">Create account</button>' +
         '<button type="button" class="dashboard-btn-outline" id="aepAccessOnbSecondaryAuthBtn">Login</button>' +
-        '</div></div>' +
+        '</div></div></div>' +
         '<div id="aepAccessOnbStepMode" class="aep-access-onb-step" hidden>' +
         '<p class="aep-access-onb-kicker">Step 2 of 2</p>' +
         '<h2 id="aepAccessOnbTitleMode" class="aep-access-onb-title">Choose your lab access mode</h2>' +
@@ -486,7 +499,11 @@
     if (isFinite(t) && t > 0) writeVerifiedAt(t);
   }
 
-  function setOnboardingCopyVariant(variant) {
+  function setOnboardingCopyVariant(variant, opts) {
+    opts = opts || {};
+    if (variant === 'default' && step1HoldMode && !opts.force) {
+      return;
+    }
     clearStep1HoldMode();
     var kicker = document.getElementById('aepAccessOnbKickerSignIn');
     if (!kicker) return;
@@ -655,7 +672,7 @@
     if (gate) gate.hidden = true;
     if (overlay) overlay.hidden = true;
     document.body.classList.remove('aep-access-onboarding-open');
-    setOnboardingCopyVariant('default');
+    setOnboardingCopyVariant('default', { force: true });
     setMsg('', '');
     setUiStep(1);
   }
