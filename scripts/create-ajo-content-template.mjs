@@ -8,6 +8,9 @@
  *   2025-11-06_AJO_Content_Templates/create_content_templates.py
  * (IMS client_credentials + Content-Type: application/vnd.adobe.ajo.template.v1+json only).
  *
+ * Lab policy: create AJO content templates/fragments by calling platform.adobe.io from the terminal
+ * (this script or curl) — not via Firebase. See docs/AJO_CONTENT_TEMPLATE_API.md.
+ *
  * Loads ~/.config/adobe-ims/credentials.env without overwriting non-empty env vars.
  *
  * Usage:

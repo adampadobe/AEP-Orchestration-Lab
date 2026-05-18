@@ -35,7 +35,7 @@ npm run validate:architecture-logos-tags
 # Validate ecosystem vendor logo index
 npm run validate:ecosystem-vendor-index
 
-# Create AJO HTML content template on platform.adobe.io (IMS from credentials.env; see docs/AJO_CONTENT_TEMPLATE_API.md)
+# Create AJO HTML content template on platform.adobe.io (direct API from this repo — do not use Firebase for template/fragment authoring; IMS from credentials.env; see docs/AJO_CONTENT_TEMPLATE_API.md)
 npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html --sandbox apalmer
 
 # Deploy (from repo root — always commit and push first)

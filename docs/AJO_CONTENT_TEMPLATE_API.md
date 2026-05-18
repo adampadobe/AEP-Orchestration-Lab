@@ -2,6 +2,16 @@
 
 This note explains how we **create** Journey Optimizer **content templates** of type `html` (email) against `platform.adobe.io`, and how to avoid a recurring pitfall: **invalid or duplicate `Content-Type` headers**.
 
+## Policy — create templates and fragments against AEP directly
+
+When **creating or updating** Journey Optimizer **content templates** or **content fragments**, do **not** implement that flow through **Firebase** (no new Cloud Function whose job is to POST/PATCH authoring objects to AJO for this lab’s workflows).
+
+Instead, call **`https://platform.adobe.io`** from **this machine** (terminal): use **`npm run ajo:create-content-template`** for HTML email templates, **`curl`** with a bearer token, or a small **Node/Python script** in `scripts/` (same pattern as Campaign Orchestration’s `07_AEP_Content_Fragments_Templates/`). Load IMS credentials from **`~/.config/adobe-ims/credentials.env`** (or env vars), mint **`client_credentials`** access tokens, and send the correct vendor **`Content-Type` / `Accept`** headers for the AJO content APIs.
+
+**Rationale:** keeps authoring off the hosted surface, avoids coupling deploys to template experiments, and sidesteps header/proxy edge cases. Firebase Functions in this repo remain for **hosted lab features** (Profile Viewer, proxies the product needs in the browser); they are not the default pipe for bulk AJO authoring.
+
+**Fragments API base:** `https://platform.adobe.io/ajo/content/fragments` — use Adobe’s documented fragment media types and schemas (same direct-to-AEP rule).
+
 ## Endpoint and media type
 
 - **URL:** `POST https://platform.adobe.io/ajo/content/templates`
@@ -64,9 +74,9 @@ The lab’s earlier **Premier League** (and other) templates were created with P
 
 That script sets only `Content-Type: application/vnd.adobe.ajo.template.v1+json` and posts JSON — same contract as above.
 
-## Using `/api/aep` (Cloud Function `aepProxy`)
+## Using `/api/aep` (Cloud Function `aepProxy`) — optional
 
-The hosted **POST `/api/aep`** proxy forwards to `platform.adobe.io` and must send **at most one** `Content-Type` value.
+The hosted **POST `/api/aep`** proxy is for **in-browser** or **app-integrated** Platform calls from the lab UI. For **creating** AJO content templates or fragments, follow the **policy above** (terminal → AEP). If you still use `/api/aep` for a template create (e.g. a quick browser test), it must send **at most one** `Content-Type` value.
 
 When you pass a custom type in `platform_headers`, use the key **`content-type`** (lowercase is fine). The proxy **collapses** `content-type` / `Content-Type` into a single `Content-Type` header before calling `fetch`, so Adobe does not see a merged invalid MIME like:
 

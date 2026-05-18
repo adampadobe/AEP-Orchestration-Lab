@@ -25,7 +25,7 @@ Firebase-backed lab: **Hosting** serves static assets from `web/` (Profile Viewe
 - After edits under **`web/profile-viewer/`:** run **`npm run verify:profile-viewer-routes`** before PR; run **`npm run sync-profile-viewer-ui`** when the Express mirror must stay aligned (see CONTRIBUTING).
 - **New lab demos** (Tags + generator): use the canonical strip documented in [CONTRIBUTING.md](CONTRIBUTING.md) (section *Profile Viewer lab demos — environment strip*) and the Cursor skill **`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`**.
 - **Anonymous Web SDK + `_demoemea` (Edge → profile):** [docs/ANONYMOUS_EDGE_DEMO_PATTERN.md](docs/ANONYMOUS_EDGE_DEMO_PATTERN.md) — `getIdentity`, then `sendEvent` with `_demoemea.identification.core.ecid`; validate with **`GET /api/profile/table?namespace=ecid&identifier=…`**.
-- **AJO HTML content templates (API):** [docs/AJO_CONTENT_TEMPLATE_API.md](docs/AJO_CONTENT_TEMPLATE_API.md) — correct `Content-Type` for `POST /ajo/content/templates`, `npm run ajo:create-content-template`, and `/api/aep` `platform_headers` so duplicate MIME types do not break MCP or the proxy.
+- **AJO content templates & fragments:** create via **terminal → `platform.adobe.io`** (not Firebase); see [docs/AJO_CONTENT_TEMPLATE_API.md](docs/AJO_CONTENT_TEMPLATE_API.md) — policy, correct `Content-Type` for `POST /ajo/content/templates`, `npm run ajo:create-content-template`, fragments base path, and optional `/api/aep` `platform_headers` for browser-only tests.
 - Rebuild vendored sub-apps when their sources change (e.g. **`npm run build:edp`**, **`npm run build:eds-quickstart`**) before deploy — see ship rule.
 
 ## Secrets and credentials
