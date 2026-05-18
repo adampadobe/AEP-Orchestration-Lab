@@ -589,7 +589,7 @@
   function mapFirebaseAuthError(e) {
     var code = String((e && e.code) || '');
     if (code === 'auth/user-disabled') {
-      return 'This account is pending admin approval or has been disabled. Try again after your no-sandbox access is approved.';
+      return 'This account is pending admin approval or has been disabled. Try again after an admin approves your lab access.';
     }
     if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
       return 'Incorrect password. Try again or reset your password in Firebase if your org allows it.';
@@ -679,14 +679,24 @@
     });
   }
 
-  function requestSandboxOnboardingNotify(idToken) {
-    return fetch('/api/lab/workspace-auth/notify-sandbox-onboarding', {
+  function requestLabAccessApprovalAfterStep2(idToken, firstName, lastName) {
+    var origin = '';
+    try {
+      origin = String((global.location && global.location.origin) || '') || '';
+    } catch (_o) {
+      origin = '';
+    }
+    return fetch('/api/lab/lab-access/request-approval', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: 'Bearer ' + String(idToken || ''),
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        firstName: firstName != null ? String(firstName) : '',
+        lastName: lastName != null ? String(lastName) : '',
+        origin: origin,
+      }),
     })
       .then(function (res) {
         return res
@@ -702,18 +712,19 @@
         if (resp.status >= 200 && resp.status < 300 && resp.body && resp.body.ok) {
           return {
             ok: true,
-            skipped: !!resp.body.skipped,
+            pendingApproval: !!resp.body.pendingApproval,
+            alreadyPending: !!resp.body.alreadyPending,
             emailSent: !!resp.body.emailSent,
           };
         }
         return {
           ok: false,
           code: String((resp.body && resp.body.code) || ''),
-          error: (resp.body && resp.body.error) || 'Sandbox onboarding notification failed.',
+          error: (resp.body && resp.body.error) || 'Lab access approval request failed.',
         };
       })
       .catch(function (e) {
-        return { ok: false, error: String((e && e.message) || e || 'Sandbox onboarding notification failed.') };
+        return { ok: false, error: String((e && e.message) || e || 'Lab access approval request failed.') };
       });
   }
 
@@ -742,6 +753,7 @@
           return {
             ok: true,
             pendingApproval: !!resp.body.pendingApproval,
+            alreadyPending: !!resp.body.alreadyPending,
             emailSent: !!resp.body.emailSent,
             workspaceName: String((resp.body && resp.body.workspaceName) || ''),
             workspaceSlug: String((resp.body && resp.body.workspaceSlug) || ''),
@@ -770,9 +782,12 @@
           return {
             ok: false,
             pending: true,
-            error: reg.emailSent
-              ? 'Signup submitted. Approval email sent to admin. You will be signed out until the account is approved.'
-              : 'Signup submitted, but approval email could not be sent. Contact the admin. You will be signed out until approved.',
+            alreadyPending: !!reg.alreadyPending,
+            error: reg.alreadyPending
+              ? 'Your lab access is still pending admin approval. You will be signed out until it is approved.'
+              : reg.emailSent
+                ? 'Signup submitted. Approval email sent to admin. You will be signed out until the account is approved.'
+                : 'Signup submitted, but approval email could not be sent. Contact the admin. You will be signed out until approved.',
           };
         }
         return { ok: true, workspaceName: reg.workspaceName, workspaceSlug: reg.workspaceSlug };
@@ -831,7 +846,7 @@
     setMsg(
       workspaceMode
         ? 'No-sandbox mode uses your Adobe lab account; admin approval may apply to new signups.'
-        : 'Adobe sandbox uses your .env-backed sandbox selector and AEP APIs.',
+        : 'Adobe sandbox uses your .env-backed sandbox selector and AEP APIs. New @adobe.com accounts require admin approval after you save.',
       '',
     );
   }
@@ -945,37 +960,36 @@
         setMsg('Saving…', '');
 
         if (mode === 'sandbox') {
-          global.AepAccessScope.setAccessMode('sandbox');
-          recordSuccessfulLabEmailVerification();
           return user
             .getIdToken(true)
             .then(function (idToken) {
-              return requestSandboxOnboardingNotify(idToken);
+              return requestLabAccessApprovalAfterStep2(idToken, '', '');
             })
-            .then(function (n) {
-              if (n && n.ok) {
-                if (n.skipped) {
-                  setMsg('Saved.', 'ok');
-                } else if (n.emailSent) {
-                  setMsg('Saved. Admin notified.', 'ok');
-                } else {
-                  setMsg('Saved. Admin notification could not be sent (check Mailgun config).', 'err');
-                }
-              } else {
-                setMsg(
-                  (n && n.error) ||
-                    'Saved locally, but admin notification failed. Continue using the lab or try again later.',
-                  'err',
-                );
+            .then(function (reg) {
+              if (!reg || !reg.ok) {
+                setMsg((reg && reg.error) || 'Could not complete lab access setup.', 'err');
+                saveBtn.disabled = false;
+                return;
               }
-            })
-            .catch(function () {
-              setMsg(
-                'Saved locally, but admin notification failed. Continue using the lab or try again later.',
-                'err',
-              );
-            })
-            .then(function () {
+              if (reg.pendingApproval) {
+                setMsg(
+                  reg.alreadyPending
+                    ? 'Your lab access is still pending admin approval. You will be signed out until it is approved.'
+                    : reg.emailSent
+                      ? 'Signup submitted. Approval email sent to admin. You will be signed out until the account is approved.'
+                      : 'Signup submitted, but approval email could not be sent. Contact the admin. You will be signed out until approved.',
+                  reg.alreadyPending || reg.emailSent ? 'ok' : 'err',
+                );
+                var authInst = ensureFirebaseAuth();
+                if (authInst) {
+                  authInst.signOut().catch(function () {});
+                }
+                saveBtn.disabled = false;
+                return;
+              }
+              global.AepAccessScope.setAccessMode('sandbox');
+              recordSuccessfulLabEmailVerification();
+              setMsg('Saved.', 'ok');
               refreshSummary();
               dispatchLabSessionUpdated();
               setTimeout(function () {

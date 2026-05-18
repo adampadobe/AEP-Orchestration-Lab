@@ -679,9 +679,9 @@
         }
       },
       {
-        "source": "/api/lab/workspace-auth/notify-sandbox-onboarding",
+        "source": "/api/lab/lab-access/request-approval",
         "function": {
-          "functionId": "labWorkspaceAuthNotifySandboxOnboarding",
+          "functionId": "labLabAccessRequestApproval",
           "region": "us-central1"
         }
       },

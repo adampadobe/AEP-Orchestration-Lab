@@ -3373,8 +3373,8 @@ exports.labWorkspaceAuthRegister = onRequest(
   },
 );
 
-/** POST /api/lab/workspace-auth/notify-sandbox-onboarding — Adobe sandbox Step 2 complete; Mailgun notify + Firestore dedupe (Bearer idToken). */
-exports.labWorkspaceAuthNotifySandboxOnboarding = onRequest(
+/** POST /api/lab/lab-access/request-approval — Step 2 (Adobe sandbox): same pending + Mailgun + disable as workspace; dedupes by uid. */
+exports.labLabAccessRequestApproval = onRequest(
   {
     ...CONSENT_STORE_FN_OPTS,
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
@@ -3404,11 +3404,12 @@ exports.labWorkspaceAuthNotifySandboxOnboarding = onRequest(
     const mailgunDomain = String(EASTER_EGG_MAILGUN_DOMAIN.value() || '').trim();
     const fallbackFrom = mailgunDomain ? `postmaster@${mailgunDomain}` : '';
     try {
-      const result = await labWorkspaceAuthService.notifySandboxLabOnboardingFromIdTokenRequest(
+      const result = await labWorkspaceAuthService.requestLabAccessApprovalAfterOnboardingRequest(
         {
           idToken,
           firstName: body.firstName,
           lastName: body.lastName,
+          origin: req.get('origin') || req.get('referer') || '',
         },
         {
           notifyEmail: String(process.env.LAB_APPROVAL_NOTIFY_EMAIL || 'apalmer@adobe.com').trim(),
