@@ -60,6 +60,16 @@ Uses a **single** `Content-Type` and reads credentials the same way as other rep
 npm run ajo:create-content-template -- \
   --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html \
   --sandbox apalmer
+
+# Update an existing template in AJO by exact name (GET + If-Match + PUT):
+npm run ajo:create-content-template -- \
+  --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html \
+  --sandbox apalmer --upsert
+
+# Channel email with templateType **content** (email-variant-detail: subject + html.body):
+npm run ajo:create-content-template -- \
+  --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html \
+  --sandbox apalmer --template-type content --name "My channel template name"
 ```
 
 Optional: `--name "…"` and `--description "…"`.
