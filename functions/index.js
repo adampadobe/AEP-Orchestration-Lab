@@ -338,7 +338,17 @@ exports.aepProxy = onRequest(
     const envSandbox = String(process.env.ADOBE_SANDBOX_NAME || DEFAULT_ADOBE_SANDBOX).trim();
     headers['x-sandbox-name'] = phSandbox || envSandbox;
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+      // aepHeaders may set lowercase `content-type` from platform_headers; Node fetch
+      // would emit two Content-Type values (e.g. AJO template.v1+json + application/json)
+      // which Adobe rejects. Collapse to a single canonical header.
+      const ct =
+        headers['Content-Type'] ||
+        headers['content-type'] ||
+        headers['Content-type'] ||
+        '';
+      delete headers['content-type'];
+      delete headers['Content-type'];
+      headers['Content-Type'] = ct.trim() || 'application/json';
     }
 
     const init = { method, headers };

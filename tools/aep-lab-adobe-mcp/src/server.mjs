@@ -100,7 +100,14 @@ async function aepPlatformRequest({
   }
 
   if (['POST', 'PUT', 'PATCH'].includes(m)) {
-    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    const ct =
+      headers['Content-Type'] ||
+      headers['content-type'] ||
+      headers['Content-type'] ||
+      '';
+    delete headers['content-type'];
+    delete headers['Content-type'];
+    headers['Content-Type'] = ct.trim() || 'application/json';
   }
 
   const init = { method: m, headers };

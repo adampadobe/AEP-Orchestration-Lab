@@ -19,6 +19,8 @@
     Content-Type must be exactly: application/vnd.adobe.ajo.template.v1+json (single value; no extra MIME suffix).
     Body JSON: name, description, templateType "html", channels ["email"], template: { html: (this file as one string), editorContext: {} }
     UI path: Journey Optimizer — Content — Content templates — Create — HTML — paste full document source.
+    From this repo (same pattern as Campaign Orchestration AJO content template scripts):
+    npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html --sandbox apalmer
   -->
 </head>
 <body style="margin:0;padding:0;background-color:#4b1d5c;-webkit-text-size-adjust:100%;">
