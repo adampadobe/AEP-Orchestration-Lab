@@ -630,6 +630,8 @@ Keep `index.js` as a thin routing / export layer.
 
 **Create templates and fragments from your terminal against `platform.adobe.io`** (IMS bearer + correct vendor `Content-Type` / `Accept`). **Do not** add Firebase-only flows to create AJO content templates or fragments for this lab’s authoring work — see **`docs/AJO_CONTENT_TEMPLATE_API.md`** (policy section). Use **`npm run ajo:create-content-template`** (`scripts/create-ajo-content-template.mjs`) for HTML email templates, or curl/scripts mirroring Campaign Orchestration’s AJO folders.
 
+Keep AJO template **`name`**, **`description`**, and default **`subject`** (content-type templates) **generic** when sharing or demoing so lists do not reveal client or competitor ties; personalised or brand copy belongs in the **HTML body** (see the same doc’s confidentiality section). Script defaults follow that rule; `--name` / `--description` / `--subject` are for local overrides.
+
 For any `POST /ajo/content/templates` call you must send a **single** request `Content-Type` of `application/vnd.adobe.ajo.template.v1+json` (never let a second `application/json` slip in on the same request). Full workflow, curl-style examples, optional `/api/aep` shape, and the `InvalidMediaTypeException` pitfall are in **`docs/AJO_CONTENT_TEMPLATE_API.md`**. If you use **POST `/api/aep`** from the browser for a one-off test, set **`platform_headers.content-type`** to that same MIME type so the proxy forwards a valid template create call.
 
 ---
