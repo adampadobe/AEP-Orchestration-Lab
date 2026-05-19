@@ -5,7 +5,7 @@
  */
 window.styleConfiguration = {
   "metadata": {
-    "brandName": "Adobe styling",
+    "brandName": "Army recruitment",
     "version": "1.0.0",
     "language": "en-US",
     "namespace": "brand-concierge"
@@ -26,7 +26,7 @@ window.styleConfiguration = {
     },
     "privacyNotice": {
       "title": "Privacy Notice",
-      "text": "Your use of this automated chatbot constitutes your consent that the personal information you provide in the chat session \n      can be collected, used, disclosed, and retained by Adobe styling and service providers acting on Adobe styling's behalf \n      in accordance with the Adobe styling {Privacy Policy}. Please do not provide sensitive personal information \n      (such as financial or health information) in the chatbot.",
+      "text": "Your use of this automated chatbot constitutes your consent that the personal information you provide in the chat session \n      can be collected, used, disclosed, and retained by Army recruitment and service providers acting on Army recruitment's behalf \n      in accordance with the Army recruitment {Privacy Policy}. Please do not provide sensitive personal information \n      (such as financial or health information) in the chatbot.",
       "links": [
         {
           "text": "Privacy Policy",
@@ -122,9 +122,9 @@ window.styleConfiguration = {
     ]
   },
   "text": {
-    "welcome.heading": "What role are you interested in?",
+    "welcome.heading": "Explore what you can do with Army recruitment.",
     "welcome.subheading": "Choose an option or tell us what interests you and we'll point you in the right direction.",
-    "input.placeholder": "Tell us about yourself, what role would be of interest",
+    "input.placeholder": "Tell us what you'd like to do or create",
     "input.messageInput.aria": "Message input",
     "input.send.aria": "Send message",
     "input.aiChatIcon.tooltip": "Ask AI",
@@ -150,25 +150,25 @@ window.styleConfiguration = {
   "arrays": {
     "welcome.examples": [
       {
+        "text": "About the Army",
+        "systemPrompt": "",
+        "imageUrl": "https://aep-orchestration-lab.web.app/cdn/kirkham/image.png",
+        "imageName": "",
+        "image": "https://aep-orchestration-lab.web.app/cdn/kirkham/image.png"
+      },
+      {
         "text": "Army Life",
         "systemPrompt": "",
-        "imageUrl": "https://www.army.mod.uk/media/rugl0zqg/45169856.jpg?rxy=0.48715050116813624,0.3106290107169615&width=2560&height=1097&format=webp&quality=50&v=1db09cbad1f91e0",
+        "imageUrl": "https://aep-orchestration-lab.web.app/cdn/kirkham/image-2.png",
         "imageName": "",
-        "image": "https://www.army.mod.uk/media/rugl0zqg/45169856.jpg?rxy=0.48715050116813624,0.3106290107169615&width=2560&height=1097&format=webp&quality=50&v=1db09cbad1f91e0"
+        "image": "https://aep-orchestration-lab.web.app/cdn/kirkham/image-2.png"
       },
       {
-        "text": "Army of the future",
+        "text": "Events",
         "systemPrompt": "",
-        "imageUrl": "https://www.army.mod.uk/media/18289/discover-future-soldier-mh-1440x810.jpg?width=2560&height=1097&format=webp&quality=50&v=1db10c328eab860",
+        "imageUrl": "https://aep-orchestration-lab.web.app/cdn/kirkham/image-3.png",
         "imageName": "",
-        "image": "https://www.army.mod.uk/media/18289/discover-future-soldier-mh-1440x810.jpg?width=2560&height=1097&format=webp&quality=50&v=1db10c328eab860"
-      },
-      {
-        "text": "Training",
-        "systemPrompt": "",
-        "imageUrl": "https://www.army.mod.uk/media/18792/aponec-official-20220727-047-077.jpg?width=2560&height=1920&format=webp&quality=50&v=1db0db8ed7e1bd0",
-        "imageName": "",
-        "image": "https://www.army.mod.uk/media/18792/aponec-official-20220727-047-077.jpg?width=2560&height=1920&format=webp&quality=50&v=1db0db8ed7e1bd0"
+        "image": "https://aep-orchestration-lab.web.app/cdn/kirkham/image-3.png"
       }
     ],
     "feedback.positive.options": [
@@ -192,8 +192,6 @@ window.styleConfiguration = {
     }
   },
   "theme": {
-    "--welcome-input-order": "3",
-    "--welcome-cards-order": "2",
     "--welcome-heading-size-desktop": "28px",
     "--welcome-heading-size-mobile": "28px",
     "--welcome-heading-weight": "700",
@@ -206,6 +204,8 @@ window.styleConfiguration = {
     "--prompt-suggestion-background-hover": "#E1E1E1",
     "--prompt-suggestion-text-color": "#292929",
     "--prompt-suggestion-border-color": "transparent",
+    "--welcome-input-order": "3",
+    "--welcome-cards-order": "2",
     "--font-family": "'Adobe Clean', adobe-clean, 'Trebuchet MS', sans-serif",
     "--color-primary": "#007bff",
     "--color-text": "#131313",
@@ -216,7 +216,7 @@ window.styleConfiguration = {
     "--input-border-radius": "12px",
     "--input-border-radius-mobile": "12px",
     "--input-background": "#FFFFFF",
-    "--input-outline-color": "#FFFFFF",
+    "--input-outline-color": "#ae429a",
     "--input-outline-width": "2px",
     "--input-box-shadow": "0 4px 16px 0 #00000029",
     "--input-focus-outline-width": "2px",
@@ -272,9 +272,9 @@ window.styleConfiguration = {
     "--prompt-suggestion-button-background": "#F8F8F8",
     "--prompt-suggestion-button-background-hover": "#E1E1E1",
     "--prompt-suggestion-button-text-color": "#292929",
-    "--card-border-radius": "9px",
+    "--card-border-radius": "8px",
     "--card-text-background": "#FFFFFF",
-    "--card-text-border-radius": "9px",
+    "--card-text-border-radius": "8px",
     "--card-text-color": "#000000",
     "--card-text-font-size": "14px",
     "--card-text-padding": "8px 10px",
