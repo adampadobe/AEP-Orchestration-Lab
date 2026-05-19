@@ -261,28 +261,27 @@
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
 
-  <!-- Brand Concierge: inline Alloy + bootstrap (Army recruitment theme from style-config-army-recruitment.json) -->
+  <!-- Brand Concierge (integration guide pattern on this page; Army theme via styleConfigurations-mod-demo-army.js) -->
   <script src="styleConfigurations-mod-demo-army.js?v=20260508-army-bc-v3"></script>
   <script>
-    !(function (n, o) {
+    !function (n, o) {
       o.forEach(function (o) {
-        n[o] ||
-          ((n.__alloyNS = n.__alloyNS || []).push(o),
-          (n[o] = function () {
-            var u = arguments;
-            return new Promise(function (i, l) {
-              n[o].q.push([i, l, u]);
-            });
-          }),
-          (n[o].q = []));
-      });
-    })(window, ['alloy']);
+        n[o] || ((n.__alloyNS = n.__alloyNS ||
+          []).push(o), n[o] = function () {
+            var u = arguments; return new Promise(
+              function (i, l) { n[o].q.push([i, l, u]) })
+          }, n[o].q = [])
+      })
+    }
+    (window, ["alloy"]);
   </script>
+
   <style>
     .bc-card__image {
       background-size: contain !important;
       background-repeat: no-repeat !important;
     }
+    /* Lab shell: panel position + size over the Army iframe */
     #brand-concierge-mount-host {
       width: min(420px, calc(100vw - 32px));
       max-height: min(720px, calc(100vh - 32px));
@@ -293,21 +292,24 @@
       color-scheme: dark;
     }
   </style>
+
   <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
   <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
+
   <script>
-    alloy('configure', {
-      defaultConsent: 'in',
-      edgeDomain: 'edge-int.adobedc.net',
-      edgeBasePath: 'ee',
-      datastreamId: '6867d16a-713c-4619-8c1f-8f99d6062c90',
-      orgId: '079D1DB561F9460C0A495FFB@AdobeOrg',
+    alloy("configure", {
+      defaultConsent: "in",
+      edgeDomain: "edge-int.adobedc.net",
+      edgeBasePath: "ee",
+      datastreamId: "cf7272a7-f634-4bdf-9ce6-fa31ac0c6416",
+      orgId: "BF9C27AA6464801C0A495FD0@AdobeOrg",
       debugEnabled: true,
       idMigrationEnabled: false,
       thirdPartyCookiesEnabled: false,
-      prehidingStyle: '.personalization-container { opacity: 0 !important }',
+      prehidingStyle: ".personalization-container { opacity: 0 !important }",
     });
-    alloy('sendEvent', {});
+
+    alloy("sendEvent", {});
   </script>
 
   <button
@@ -350,39 +352,17 @@
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">
       x
     </button>
+    <!-- Agent mount target (selector: #brand-concierge-mount) -->
     <div id="brand-concierge-mount"></div>
   </div>
 
   <script>
-    (function bootBrandConciergeModDemo() {
-      var attempts = 0;
-      var maxAttempts = 200;
-      function tick() {
-        if (
-          window.adobe &&
-          window.adobe.concierge &&
-          typeof window.adobe.concierge.bootstrap === 'function'
-        ) {
-          try {
-            window.adobe.concierge.bootstrap({
-              instanceName: 'alloy',
-              stylingConfigurations: window.styleConfiguration,
-              selector: '#brand-concierge-mount',
-              stickySession: false,
-            });
-          } catch (e) {
-            console.warn('Brand Concierge bootstrap failed:', e);
-          }
-          return;
-        }
-        if (++attempts >= maxAttempts) {
-          console.warn('Brand Concierge: adobe.concierge.bootstrap not available after wait');
-          return;
-        }
-        setTimeout(tick, 50);
-      }
-      tick();
-    })();
+    window.adobe.concierge.bootstrap({
+      instanceName: "alloy",
+      stylingConfigurations: window.styleConfiguration,
+      selector: "#brand-concierge-mount",
+      stickySession: false
+    });
   </script>
   <script src="brand-concierge-controls.js?v=20260427-corner"></script>
 </body>
