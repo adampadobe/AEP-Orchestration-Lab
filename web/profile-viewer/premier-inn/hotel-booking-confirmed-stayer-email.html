@@ -6,38 +6,40 @@
   <meta name="x-apple-disable-message-reformatting"/>
   <meta name="color-scheme" content="light"/>
   <meta name="supported-color-schemes" content="light"/>
-  <title>Premier Inn — We would love to see you again</title>
+  <title>Premier Inn — Your stay is confirmed (booked for you)</title>
   <!--
-    Paste-ready HTML email (AJO template type html). Body below may use scenario/brand copy; when
-    pushing via the lab script, keep AJO template name/description/subject generic (script defaults)
-    unless you intentionally pass --name / --description / --subject for a private sandbox.
-    Visual tokens align with Premier Inn promo reference: page #fffffe, brand purple #511e62,
-    accent bar #511e59, headings/body Arial (hero ~32px / 900, body 16px / 1.5, #333333),
-    CTA pill #511e62 on #fffffe (radius ~24px). Logo + footer socials: res.e.premierinn.com CDN.
-    Lab hero art (journey slide) kept for HLV narrative — promo breakfast JPG omitted (copy + food column).
-    After AJO HTML import: keep centering with both align="center" on layout td/table and text-align:center on copy blocks (AJO often defaults to left).
-    Optional lab-hosted story art (after deploy):
-    https://aep-orchestration-lab.web.app/profile-viewer/premier-inn/email-assets/reactivation-journey-slide.png
+    Paste-ready HTML email (AJO template type html). Body may use scenario/brand copy; when pushing
+    via the lab script, keep AJO template name/description/subject generic (script defaults) unless you intentionally
+    pass private-sandbox overrides. Visual shell matches abandonment booker-not-guest: full-bleed stage purple
+    #4b1d5c outside the card, inner 600px card #fffffe, brand bar #511e62 / #511e59, journey slide hero,
+    Arial typography, purple CTA pills. Logo + footer socials: res.e.premierinn.com CDN.
+    After AJO import: keep align="center" on layout td/table and text-align:center on copy blocks.
 
     Create in AJO (API): POST https://platform.adobe.io/ajo/content/templates
-    Headers: x-sandbox-name, x-api-key, x-gw-ims-org-id, Authorization: Bearer IMS token
-    Content-Type must be exactly: application/vnd.adobe.ajo.template.v1+json (single value; no extra MIME suffix).
-    Body JSON: name, description, templateType "html", channels ["email"], template: { html: (this file as one string), editorContext: {} }
-    UI path: Journey Optimizer — Content — Content templates — Create — HTML — paste full document source.
-    From this repo (same pattern as Campaign Orchestration AJO content template scripts):
-    npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html --sandbox apalmer --upsert
-    npm run ajo:create-content-template -- --html ... --template-type content --sandbox apalmer
+    Content-Type: application/vnd.adobe.ajo.template.v1+json (single value only).
+
+    From this repo — HTML template type (defaults metadata; no --name/--description/--subject):
+    npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-booking-confirmed-stayer-email.html --sandbox apalmer --upsert --template-type html
+
+    Channel email, templateType content (generic metadata per docs/AJO_CONTENT_TEMPLATE_API.md):
+    npm run ajo:create-content-template -- \
+      --html web/profile-viewer/premier-inn/hotel-booking-confirmed-stayer-email.html \
+      --template-type content \
+      --sandbox apalmer \
+      --upsert \
+      --name "Hotel booking confirmed — stayer (lab)" \
+      --description "Hospitality booking-confirmation email for the guest when a different person made the booking. Operational lab template." \
+      --subject "Your stay is confirmed — lab demo"
   -->
 </head>
-<body style="margin:0;padding:0;background-color:#fffffe;-webkit-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:#4b1d5c;-webkit-text-size-adjust:100%;">
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-    Personalised Manchester search — book direct for our best rates.
+    You&apos;re the guest in Manchester, Fri 21 Nov – Sun 23 Nov 2026. The person who booked also received a confirmation.
   </div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fffffe;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#4b1d5c;">
     <tr>
-      <td align="center" style="padding:0 12px 32px;">
-        <table role="presentation" width="600" align="center" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;margin:0 auto;">
-          <!-- Brand bar -->
+      <td align="center" style="padding:24px 12px 32px;">
+        <table role="presentation" width="600" align="center" cellspacing="0" cellpadding="0" border="0" bgcolor="#fffffe" style="max-width:600px;width:100%;margin:0 auto;background-color:#fffffe;border-radius:16px;overflow:hidden;">
           <tr>
             <td align="center" style="padding:20px 16px 0;background-color:#511e62;text-align:center;">
               <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="text-decoration:none;">
@@ -48,49 +50,45 @@
           <tr>
             <td style="height:4px;line-height:4px;font-size:4px;background-color:#511e59;">&nbsp;</td>
           </tr>
-          <!-- Optional journey creative (lab-hosted; swap for AJO CDN if preferred) -->
           <tr>
             <td align="center" style="padding:20px 8px 0;text-align:center;background-color:#fffffe;">
               <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="text-decoration:none;">
-                <img src="https://aep-orchestration-lab.web.app/profile-viewer/premier-inn/email-assets/reactivation-journey-slide.png" width="584" alt="AI lapse detection to Premier Inn reactivation" style="display:inline-block;width:100%;max-width:584px;height:auto;border-radius:12px;border:0;"/>
+                <img src="https://aep-orchestration-lab.web.app/profile-viewer/premier-inn/email-assets/reactivation-journey-slide.png" width="584" alt="From search signal to re-engagement" style="display:inline-block;width:100%;max-width:584px;height:auto;border-radius:12px;border:0;"/>
               </a>
             </td>
           </tr>
-          <!-- Hero copy -->
           <tr>
             <td align="center" style="padding:20px 16px 8px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;text-align:center;background-color:#fffffe;">
-              <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#511e62;text-align:center;">The journey begins — reactivating</p>
-              <h1 style="margin:0 0 14px;font-size:32px;line-height:1.2;font-weight:900;color:#511e62;text-align:center;">Get a great night&apos;s sleep &mdash; we saved your favourites</h1>
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#511e62;text-align:center;">Booking confirmed — you&apos;re the guest</p>
+              <h1 style="margin:0 0 14px;font-size:32px;line-height:1.2;font-weight:900;color:#511e62;text-align:center;">Your Manchester stay is confirmed</h1>
               <p style="margin:0 0 16px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">
-                Hi{{#if profile.person.name.firstName}} {{profile.person.name.firstName}}{{else}} there{{/if}}, you clicked through from our reactivation journey.
-                Search for <strong style="color:#511e62;">&ldquo;Manchester city break&rdquo;</strong> and we will surface hotels that match your stay history &mdash; including Premier Plus and breakfast messaging where it applies.
+                Hi{{#if profile.person.name.firstName}} {{profile.person.name.firstName}}{{else}} there{{/if}}, <strong style="color:#511e62;">you&apos;re the guest</strong> on this reservation for <strong style="color:#511e62;">Manchester</strong> &mdash; <strong style="color:#511e62;">Fri 21 Nov – Sun 23 Nov 2026</strong> (check-in from 3pm, check-out by 12 noon). Someone else booked and paid on your behalf; they&apos;ve been sent their own confirmation with payment and policy details. This message is for <strong style="color:#511e62;">you</strong> as the person staying &mdash; save it for directions, timings, and add-ons. Tap View booking for the guest-facing summary; ask the booker if you need changes only they can make.
               </p>
             </td>
           </tr>
-          <!-- Search pill -->
           <tr>
             <td align="center" style="padding:8px 8px 20px;text-align:center;background-color:#fffffe;">
               <table role="presentation" width="100%" align="center" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;margin:0 auto;background:#fffffe;border:1px solid #e8e4ec;border-radius:999px;overflow:hidden;box-shadow:0 4px 18px rgba(81,30,98,0.12);">
                 <tr>
                   <td align="center" style="padding:14px 18px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">
-                    <span style="color:#666666;">Where to</span><br/>
-                    <strong>Manchester</strong>
+                    <span style="color:#666666;">Your stay</span><br/>
+                    <strong>Manchester</strong><br/>
+                    <span style="font-size:14px;color:#666666;">Fri 21 Nov – Sun 23 Nov 2026</span>
                   </td>
                   <td width="132" align="center" style="background:#511e62;">
-                    <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="display:block;padding:16px 12px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#fffffe;text-decoration:none;border-radius:24px;">Search</a>
+                    <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="display:block;padding:16px 12px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#fffffe;text-decoration:none;border-radius:24px;">View booking</a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          <!-- White content card -->
           <tr>
             <td style="padding:0 0 8px;background-color:#fffffe;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#fffffe;border:1px solid #e8e4ec;border-radius:16px 16px 0 0;overflow:hidden;">
                 <tr>
                   <td align="center" style="padding:24px 20px 8px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;text-align:center;">
-                    <h2 style="margin:0 0 10px;font-size:20px;line-height:1.3;font-weight:900;color:#511e62;text-align:center;">From a comfy bed to a great night&apos;s sleep</h2>
-                    <p style="margin:0 0 18px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">Our hotels offer comfort you can count on: flexible rates, unlimited breakfast where available, and beds you will not want to leave.</p>
+                    <h2 style="margin:0 0 10px;font-size:20px;line-height:1.3;font-weight:900;color:#511e62;text-align:center;">Before you travel to Manchester</h2>
+                    <p style="margin:0 0 18px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">Breakfast, parking, and flexible options may still be managed by the booker on some reservations &mdash; if something looks missing, check with them. Otherwise use this email for check-in times, food where served, and handy reminders before you head to the hotel.</p>
                   </td>
                 </tr>
                 <tr>
@@ -125,7 +123,6 @@
               </table>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td align="center" style="padding:0;background-color:#511e62;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#511e62;">

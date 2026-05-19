@@ -6,38 +6,39 @@
   <meta name="x-apple-disable-message-reformatting"/>
   <meta name="color-scheme" content="light"/>
   <meta name="supported-color-schemes" content="light"/>
-  <title>Premier Inn — We would love to see you again</title>
+  <title>Premier Inn — Your Manchester search is still here</title>
   <!--
-    Paste-ready HTML email (AJO template type html). Body below may use scenario/brand copy; when
-    pushing via the lab script, keep AJO template name/description/subject generic (script defaults)
-    unless you intentionally pass --name / --description / --subject for a private sandbox.
-    Visual tokens align with Premier Inn promo reference: page #fffffe, brand purple #511e62,
-    accent bar #511e59, headings/body Arial (hero ~32px / 900, body 16px / 1.5, #333333),
-    CTA pill #511e62 on #fffffe (radius ~24px). Logo + footer socials: res.e.premierinn.com CDN.
-    Lab hero art (journey slide) kept for HLV narrative — promo breakfast JPG omitted (copy + food column).
-    After AJO HTML import: keep centering with both align="center" on layout td/table and text-align:center on copy blocks (AJO often defaults to left).
-    Optional lab-hosted story art (after deploy):
-    https://aep-orchestration-lab.web.app/profile-viewer/premier-inn/email-assets/reactivation-journey-slide.png
+    Paste-ready HTML email (AJO template type html). Body may use scenario/brand copy; when pushing
+    via the lab script, keep AJO template name/description/subject generic (script defaults) unless you intentionally
+    pass private-sandbox overrides. Visual tokens: #fffffe, #511e62 / #511e59, Arial typography, purple CTA pills.
+    Logo + footer socials: res.e.premierinn.com CDN. Hero: promo breakfast JPG (628DD4AA…) same asset as brand email.
+    After AJO import: keep align="center" on layout td/table and text-align:center on copy blocks.
 
     Create in AJO (API): POST https://platform.adobe.io/ajo/content/templates
-    Headers: x-sandbox-name, x-api-key, x-gw-ims-org-id, Authorization: Bearer IMS token
-    Content-Type must be exactly: application/vnd.adobe.ajo.template.v1+json (single value; no extra MIME suffix).
-    Body JSON: name, description, templateType "html", channels ["email"], template: { html: (this file as one string), editorContext: {} }
-    UI path: Journey Optimizer — Content — Content templates — Create — HTML — paste full document source.
-    From this repo (same pattern as Campaign Orchestration AJO content template scripts):
-    npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html --sandbox apalmer --upsert
-    npm run ajo:create-content-template -- --html ... --template-type content --sandbox apalmer
+    Content-Type: application/vnd.adobe.ajo.template.v1+json (single value only).
+
+    From this repo — HTML template type:
+    npm run ajo:create-content-template -- --html web/profile-viewer/premier-inn/hotel-abandonment-booker-stayer-email.html --sandbox apalmer --upsert
+
+    Channel email, templateType content (generic metadata per docs/AJO_CONTENT_TEMPLATE_API.md):
+    npm run ajo:create-content-template -- \
+      --html web/profile-viewer/premier-inn/hotel-abandonment-booker-stayer-email.html \
+      --template-type content \
+      --sandbox apalmer \
+      --upsert \
+      --name "Hotel abandonment — booker+stayer (lab)" \
+      --description "Hospitality search-abandonment email when booker and guest are the same person. Operational lab template." \
+      --subject "Your saved search — lab demo"
   -->
 </head>
 <body style="margin:0;padding:0;background-color:#fffffe;-webkit-text-size-adjust:100%;">
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-    Personalised Manchester search — book direct for our best rates.
+    Manchester search for your own stay — pick it up where you left off, book direct for our best rates.
   </div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fffffe;">
     <tr>
       <td align="center" style="padding:0 12px 32px;">
         <table role="presentation" width="600" align="center" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;margin:0 auto;">
-          <!-- Brand bar -->
           <tr>
             <td align="center" style="padding:20px 16px 0;background-color:#511e62;text-align:center;">
               <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="text-decoration:none;">
@@ -48,26 +49,22 @@
           <tr>
             <td style="height:4px;line-height:4px;font-size:4px;background-color:#511e59;">&nbsp;</td>
           </tr>
-          <!-- Optional journey creative (lab-hosted; swap for AJO CDN if preferred) -->
           <tr>
             <td align="center" style="padding:20px 8px 0;text-align:center;background-color:#fffffe;">
               <a href="https://www.premierinn.com/" target="_blank" rel="noopener" style="text-decoration:none;">
-                <img src="https://aep-orchestration-lab.web.app/profile-viewer/premier-inn/email-assets/reactivation-journey-slide.png" width="584" alt="AI lapse detection to Premier Inn reactivation" style="display:inline-block;width:100%;max-width:584px;height:auto;border-radius:12px;border:0;"/>
+                <img src="https://res.e.premierinn.com/res/img/628DD4AAF0A75ADB9B8BB84B4CA5707A.jpg" width="600" alt="Breakfast offer — a Premier Inn cooked breakfast, with a coffee and orange juice." style="display:inline-block;width:100%;max-width:600px;height:auto;border-radius:12px;border:0;"/>
               </a>
             </td>
           </tr>
-          <!-- Hero copy -->
           <tr>
             <td align="center" style="padding:20px 16px 8px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;text-align:center;background-color:#fffffe;">
-              <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#511e62;text-align:center;">The journey begins — reactivating</p>
-              <h1 style="margin:0 0 14px;font-size:32px;line-height:1.2;font-weight:900;color:#511e62;text-align:center;">Get a great night&apos;s sleep &mdash; we saved your favourites</h1>
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#511e62;text-align:center;">Search abandonment — booker &amp; stayer</p>
+              <h1 style="margin:0 0 14px;font-size:32px;line-height:1.2;font-weight:900;color:#511e62;text-align:center;">We saved your Manchester search</h1>
               <p style="margin:0 0 16px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">
-                Hi{{#if profile.person.name.firstName}} {{profile.person.name.firstName}}{{else}} there{{/if}}, you clicked through from our reactivation journey.
-                Search for <strong style="color:#511e62;">&ldquo;Manchester city break&rdquo;</strong> and we will surface hotels that match your stay history &mdash; including Premier Plus and breakfast messaging where it applies.
+                Hi {%= profile.person.name.firstName ?: "there" %}, you started looking for <strong style="color:#511e62;">Manchester</strong> for a stay where <strong style="color:#511e62;">you are both booking and staying</strong> &mdash; then stepped away. Jump back in: your dates and destination are ready, and booking direct unlocks our best available rates.
               </p>
             </td>
           </tr>
-          <!-- Search pill -->
           <tr>
             <td align="center" style="padding:8px 8px 20px;text-align:center;background-color:#fffffe;">
               <table role="presentation" width="100%" align="center" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;margin:0 auto;background:#fffffe;border:1px solid #e8e4ec;border-radius:999px;overflow:hidden;box-shadow:0 4px 18px rgba(81,30,98,0.12);">
@@ -83,14 +80,13 @@
               </table>
             </td>
           </tr>
-          <!-- White content card -->
           <tr>
             <td style="padding:0 0 8px;background-color:#fffffe;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#fffffe;border:1px solid #e8e4ec;border-radius:16px 16px 0 0;overflow:hidden;">
                 <tr>
                   <td align="center" style="padding:24px 20px 8px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;text-align:center;">
-                    <h2 style="margin:0 0 10px;font-size:20px;line-height:1.3;font-weight:900;color:#511e62;text-align:center;">From a comfy bed to a great night&apos;s sleep</h2>
-                    <p style="margin:0 0 18px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">Our hotels offer comfort you can count on: flexible rates, unlimited breakfast where available, and beds you will not want to leave.</p>
+                    <h2 style="margin:0 0 10px;font-size:20px;line-height:1.3;font-weight:900;color:#511e62;text-align:center;">One journey: you search, you stay</h2>
+                    <p style="margin:0 0 18px;font-size:16px;line-height:1.5em;color:#333333;text-align:center;">When you are planning for yourself, we keep things simple: flexible rates, unlimited breakfast where available, and rooms designed for a great night&apos;s sleep in Manchester and beyond.</p>
                   </td>
                 </tr>
                 <tr>
@@ -125,7 +121,6 @@
               </table>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td align="center" style="padding:0;background-color:#511e62;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#511e62;">

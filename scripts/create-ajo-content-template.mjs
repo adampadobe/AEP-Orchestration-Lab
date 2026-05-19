@@ -11,13 +11,23 @@
  * Lab policy: create/update AJO content templates by calling platform.adobe.io from the terminal
  * (this script or curl) — not via Firebase. See docs/AJO_CONTENT_TEMPLATE_API.md.
  *
+ * Confidentiality (AJO metadata vs HTML body): the email HTML **body** may use personalised or
+ * brand-specific copy for demos. Defaults for **name**, **description**, and (for templateType
+ * **content**) **subject** stay **generic** so template lists and outsider-visible titles do not
+ * reveal which clients or competitors a sandbox is used for. Use `--name`, `--description`, and
+ * `--subject` for private/local overrides.
+ *
  * Loads ~/.config/adobe-ims/credentials.env without overwriting non-empty env vars.
  *
  * Usage:
  *   node scripts/create-ajo-content-template.mjs --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html
- *   node scripts/create-ajo-content-template.mjs --html ./tpl.html --name "Hotel - HLV - Reactivation" --sandbox apalmer
+ *   node scripts/create-ajo-content-template.mjs --html ./tpl.html --name "HLV reactivation email (lab)" --sandbox apalmer
  *   node scripts/create-ajo-content-template.mjs --html ... --upsert
- *   node scripts/create-ajo-content-template.mjs --html ... --template-type content --name "Hotel - HLV - Reactivation (content lab)"
+ *   node scripts/create-ajo-content-template.mjs --html ... --template-id <uuid>   # GET+PUT that resource (no name list)
+ *   node scripts/create-ajo-content-template.mjs --html ... --template-type content --name "HLV reactivation email (content lab)"
+ *   node scripts/create-ajo-content-template.mjs --html ... --template-type content --subject "HLV reactivation — lab demo"
+ *   For --template-type content, the script sends only the first <body>…</body> inner HTML to
+ *   template.html.body (full-document .html files are still OK on disk; use --template-type html to POST the whole file).
  *
  * Env: ADOBE_CLIENT_ID (or ADOBE_API_KEY), ADOBE_CLIENT_SECRET, ADOBE_SCOPES,
  *      ADOBE_IMS_ORG (or ADOBE_ORG_ID), ADOBE_SANDBOX_NAME (optional if --sandbox)
@@ -64,8 +74,10 @@ function parseArgs(argv) {
     html: '',
     name: '',
     description: '',
+    subject: '',
     sandbox: '',
     upsert: false,
+    templateId: '',
     templateType: 'html',
   };
   for (let i = 2; i < argv.length; i += 1) {
@@ -73,8 +85,10 @@ function parseArgs(argv) {
     if (a === '--html' && argv[i + 1]) out.html = String(argv[++i]).trim();
     else if (a === '--name' && argv[i + 1]) out.name = String(argv[++i]).trim();
     else if (a === '--description' && argv[i + 1]) out.description = String(argv[++i]).trim();
+    else if (a === '--subject' && argv[i + 1]) out.subject = String(argv[++i]).trim();
     else if (a === '--sandbox' && argv[i + 1]) out.sandbox = String(argv[++i]).trim();
     else if (a === '--upsert') out.upsert = true;
+    else if (a === '--template-id' && argv[i + 1]) out.templateId = String(argv[++i]).trim();
     else if (a === '--template-type' && argv[i + 1]) out.templateType = String(argv[++i]).trim().toLowerCase();
   }
   return out;
@@ -141,7 +155,25 @@ async function ajoFetch(auth, method, pathWithQuery, opts = {}) {
   return { res, url, parsed, etag, text };
 }
 
-function buildPayload({ name, description, templateType, html }) {
+/**
+ * For `templateType: "content"`, AJO expects `template.html.body` to be inner body markup (tables,
+ * inline styles), not a full `<!DOCTYPE>…<html>…` document. Sending a complete document can break
+ * simulation/rendering (e.g. CJMRT-130015-400). Full files are still correct for `templateType: "html"`.
+ * @param {string} fullHtml
+ * @returns {string}
+ */
+function extractBodyInnerHtmlForContentTemplate(fullHtml) {
+  const raw = String(fullHtml ?? '');
+  const open = raw.match(/<body\b[^>]*>/i);
+  if (!open || open.index === undefined) return raw.trim();
+  const start = open.index + open[0].length;
+  const tail = raw.slice(start);
+  const close = tail.match(/<\/body\b[^>]*>/i);
+  if (!close || close.index === undefined) return raw.trim();
+  return tail.slice(0, close.index).trim();
+}
+
+function buildPayload({ name, description, templateType, html, subject }) {
   const base = {
     name,
     description,
@@ -165,11 +197,16 @@ function buildPayload({ name, description, templateType, html }) {
 
   if (templateType === 'content') {
     /** @see Adobe content.yaml — email-variant-detail */
+    const subj =
+      subject && String(subject).trim()
+        ? String(subject).trim()
+        : 'HLV reactivation — lab demo';
+    const bodyFragment = extractBodyInnerHtmlForContentTemplate(html);
     return {
       ...base,
       template: {
-        subject: 'Premier Inn — we would love to see you again',
-        html: { body: html },
+        subject: subj,
+        html: { body: bodyFragment },
         editorContext: {},
       },
     };
@@ -198,13 +235,70 @@ async function findTemplateIdByName(auth, wantName) {
   return null;
 }
 
+/**
+ * GET template for ETag, then PUT full replacement payload.
+ * @param {{ token: string, clientId: string, orgId: string, sandbox: string }} auth
+ * @param {string} id
+ * @param {unknown} payload
+ */
+async function putTemplateById(auth, id, payload) {
+  const getPath = `/ajo/content/templates/${encodeURIComponent(id)}`;
+  const got = await ajoFetch(auth, 'GET', getPath, { accept: MIME_TEMPLATE });
+  if (!got.res.ok) {
+    return {
+      ok: false,
+      step: 'GET template',
+      status: got.res.status,
+      body: got.parsed,
+      templateId: id,
+    };
+  }
+  const ifMatch = got.etag || got.res.headers.get('etag');
+  if (!ifMatch) {
+    return {
+      ok: false,
+      step: 'GET template',
+      status: got.res.status,
+      body: { error: 'Missing ETag on GET template; cannot PUT.' },
+      templateId: id,
+    };
+  }
+  const put = await ajoFetch(auth, 'PUT', getPath, {
+    contentType: MIME_TEMPLATE,
+    ifMatch,
+    json: payload,
+  });
+  if (![200, 204].includes(put.res.status)) {
+    return {
+      ok: false,
+      step: 'PUT template',
+      status: put.res.status,
+      body: put.parsed,
+      templateId: id,
+    };
+  }
+  return { ok: true, templateId: id, status: put.res.status };
+}
+
+/** @param {Headers} headers */
+function templateIdFromLocationHeader(headers) {
+  const raw =
+    typeof headers.get === 'function'
+      ? headers.get('location') || headers.get('Location') || ''
+      : String((headers.location || headers.Location || '') ?? '');
+  const loc = String(raw).trim();
+  if (!loc) return '';
+  const m = loc.match(/\/templates\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  return m ? m[1] : '';
+}
+
 async function main() {
   mergeCredentialsIntoEnv(credPath);
 
   const args = parseArgs(process.argv);
   if (!args.html) {
     console.error(
-      'Usage: node scripts/create-ajo-content-template.mjs --html <path> [--name "..."] [--description "..."] [--sandbox apalmer] [--upsert] [--template-type html|content]',
+      'Usage: node scripts/create-ajo-content-template.mjs --html <path> [--name "..."] [--description "..."] [--subject "..."] [--sandbox apalmer] [--upsert] [--template-id <uuid>] [--template-type html|content]',
     );
     process.exit(1);
   }
@@ -221,12 +315,16 @@ async function main() {
   }
 
   const html = readFileSync(htmlPath, 'utf8');
-  const name = args.name || 'Hotel - HLV - Reactivation';
+  const name = args.name || 'HLV reactivation email (lab)';
+  /**
+   * Operational, generic copy only: no customer/brand names (defaults must stay demo-safe).
+   * Do not put recipient names or other PII in `description`. Personalised copy belongs in the HTML body.
+   */
   const description =
     args.description ||
     (args.templateType === 'content'
-      ? 'Premier Inn HLV reactivation — channel template (content + email). Lab script.'
-      : 'Premier Inn HLV reactivation HTML email (lab script).');
+      ? 'Hospitality high-lapse-value reactivation email (AJO content-type channel template). AEP Orchestration Lab.'
+      : 'Hospitality high-lapse-value reactivation email (AJO HTML template). AEP Orchestration Lab.');
 
   const orgId = process.env.ADOBE_IMS_ORG || process.env.ADOBE_ORG_ID;
   const clientId = process.env.ADOBE_CLIENT_ID || process.env.ADOBE_API_KEY;
@@ -243,29 +341,44 @@ async function main() {
 
   const token = await imsToken();
   const auth = { token, clientId, orgId, sandbox };
-  const payload = buildPayload({ name, description, templateType: args.templateType, html });
+  const payload = buildPayload({
+    name,
+    description,
+    templateType: args.templateType,
+    html,
+    subject: args.subject,
+  });
+
+  const forceId = args.templateId && String(args.templateId).trim();
+  if (forceId) {
+    const result = await putTemplateById(auth, forceId, payload);
+    if (!result.ok) {
+      console.error(JSON.stringify(result, null, 2));
+      process.exit(1);
+    }
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          action: 'updated (by --template-id)',
+          templateId: result.templateId,
+          name,
+          templateType: args.templateType,
+          status: result.status,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
 
   if (args.upsert) {
     const found = await findTemplateIdByName(auth, name);
     if (found) {
-      const getPath = `/ajo/content/templates/${encodeURIComponent(found.id)}`;
-      const got = await ajoFetch(auth, 'GET', getPath, { accept: MIME_TEMPLATE });
-      if (!got.res.ok) {
-        console.error(JSON.stringify({ step: 'GET template', status: got.res.status, body: got.parsed }, null, 2));
-        process.exit(1);
-      }
-      const ifMatch = got.etag || got.res.headers.get('etag');
-      if (!ifMatch) {
-        console.error('Missing ETag on GET template; cannot PUT. Response headers may omit etag in this environment.');
-        process.exit(1);
-      }
-      const put = await ajoFetch(auth, 'PUT', getPath, {
-        contentType: MIME_TEMPLATE,
-        ifMatch,
-        json: payload,
-      });
-      if (![200, 204].includes(put.res.status)) {
-        console.error(JSON.stringify({ step: 'PUT template', status: put.res.status, body: put.parsed }, null, 2));
+      const result = await putTemplateById(auth, found.id, payload);
+      if (!result.ok) {
+        console.error(JSON.stringify(result, null, 2));
         process.exit(1);
       }
       console.log(
@@ -276,7 +389,7 @@ async function main() {
             templateId: found.id,
             name,
             templateType: args.templateType,
-            status: put.res.status,
+            status: result.status,
           },
           null,
           2,
@@ -296,16 +409,23 @@ async function main() {
     process.exit(1);
   }
 
+  const createdId =
+    post.parsed.id ||
+    post.parsed._id ||
+    templateIdFromLocationHeader(post.res.headers) ||
+    null;
+
   console.log(
     JSON.stringify(
       {
         ok: true,
         action: args.upsert ? 'created (no prior match for upsert)' : 'created',
         status: post.res.status,
-        templateId: post.parsed.id || post.parsed._id || null,
+        templateId: createdId,
         name,
         templateType: args.templateType,
-        body: post.parsed,
+        responseBody: post.parsed,
+        location: post.res.headers.get('location') || post.res.headers.get('Location') || null,
       },
       null,
       2,

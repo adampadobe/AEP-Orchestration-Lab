@@ -10,6 +10,12 @@ Instead, call **`https://platform.adobe.io`** from **this machine** (terminal): 
 
 **Rationale:** keeps authoring off the hosted surface, avoids coupling deploys to template experiments, and sidesteps header/proxy edge cases. Firebase Functions in this repo remain for **hosted lab features** (Profile Viewer, proxies the product needs in the browser); they are not the default pipe for bulk AJO authoring.
 
+### Confidentiality (template metadata vs HTML body)
+
+The **email HTML body** may use personalised, scenario, or brand-specific copy when you are building a realistic demo. In AJO and other UIs, fields such as **template `name`**, **`description`**, and (for `templateType` **content**) the **default `subject`** are often visible to people who should not infer which customers or competitors a sandbox is tied to.
+
+For lab-created templates, keep **`name`**, **`description`**, and **default `subject`** (when applicable) **generic and operational** (for example the defaults in `scripts/create-ajo-content-template.mjs`). Put customer- or brand-specific wording in the **HTML body** (or journey/personalisation), not in those metadata defaults. Use the script’s **`--name`**, **`--description`**, and **`--subject`** flags only for **private/local** overrides when you need identifiable labels in your own sandbox.
+
 **Fragments API base:** `https://platform.adobe.io/ajo/content/fragments` — use Adobe’s documented fragment media types and schemas (same direct-to-AEP rule).
 
 ## Endpoint and media type
@@ -23,7 +29,7 @@ Minimal shape for an HTML email template:
 ```json
 {
   "name": "My template name",
-  "description": "Short description",
+  "description": "Operational description (generic for demos; no customer/brand names, recipient names, or PII)",
   "templateType": "html",
   "channels": ["email"],
   "source": { "origin": "ajo", "metadata": {} },
@@ -69,10 +75,10 @@ npm run ajo:create-content-template -- \
 # Channel email with templateType **content** (email-variant-detail: subject + html.body):
 npm run ajo:create-content-template -- \
   --html web/profile-viewer/premier-inn/hotel-hlv-reactivation-email.html \
-  --sandbox apalmer --template-type content --name "My channel template name"
+  --sandbox apalmer --template-type content
 ```
 
-Optional: `--name "…"` and `--description "…"`.
+Optional: `--name "…"`, `--description "…"`, and for `--template-type content` also `--subject "…"`. Prefer **generic, operational** wording in those fields for shared demos (see [Confidentiality (template metadata vs HTML body)](#confidentiality-template-metadata-vs-html-body) above); **no** customer or brand names, **no** recipient names or PII in `description`. The HTML file may still contain personalised body copy. Omit these flags to use the script’s demo-safe defaults, or set them for **local/private** sandbox labelling only.
 
 Implementation: `scripts/create-ajo-content-template.mjs`.
 
@@ -127,10 +133,18 @@ If you add new code paths that set request headers, **never** set both lowercase
 - **`InvalidMediaTypeException`** / message containing **`Invalid token character ',' in token`**  
   → Almost always **two `Content-Type` values** on one request. Fix header construction, not the JSON body.
 
+## AJO export zip vs what the lab script sends
+
+When you **export** an email template from the AJO UI, the zip is typically a single **`index.html`** plus an **`images/`** folder. That HTML is a **full document** produced by AJO’s html-converter (for example `<meta name="content-generated" content="html-converter">`, `acr-structure` / `acr-fragment` wrappers, and optional `data-source-uuid` on nodes). It is **not** the same string as `template.html.body` for `templateType: **content**`, which must be **inner body markup only** (no `<!DOCTYPE>`, no outer `<html>…</html>`). Putting a full document into `template.html.body` is a common way to hit **simulation / rendering errors** (for example **CJMRT-130015** / HTTP 400 on preview paths). A normal export therefore does **not** prove that failure mode: exports are expected to be one complete document; the break is usually **API payload shape** (full doc inside the **body** field), not the fact that AJO stores canonical converter HTML for **`templateType: html`**.
+
+To **push disk HTML to an existing template by id** (no name list):  
+`npm run ajo:create-content-template -- --html <path> --sandbox <name> --template-id <uuid>`  
+(uses GET + `If-Match` + PUT — see `scripts/create-ajo-content-template.mjs`).
+
 ## Related files in this repo
 
 | File | Role |
 |------|------|
-| `scripts/create-ajo-content-template.mjs` | CLI: token + POST template |
+| `scripts/create-ajo-content-template.mjs` | CLI: token + POST; `--upsert` (by name) or `--template-id` (PUT by id); `--template-type content` strips `<body>` for `template.html.body` |
 | `functions/index.js` | `aepProxy`: single `Content-Type` for POST/PUT/PATCH |
 | `tools/aep-lab-adobe-mcp/src/server.mjs` | MCP platform request: same collapse |
