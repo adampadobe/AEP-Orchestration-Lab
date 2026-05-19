@@ -12,6 +12,7 @@
  *       buildPhase ('crawl' | 'brand' | 'audiences' | 'complete') — progressive build; optional on legacy rows,
  *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
+ *       crawlHeartbeatDetail (string, optional) — short note from periodic crawl heartbeat so list/poll see fresh updatedAt,
  *       runStartedAt, crawlEngine, includeSummary,
  *       payloadRetentionExpiresAt (Timestamp) — when JSON payload may be GC’d;
  *         user can POST …/extend to push this out (images use shorter storage),
@@ -352,8 +353,33 @@ async function markScrapeFailed(sandbox, scrapeId, { error, steps } = {}) {
     scrapeStatus: 'failed',
     scrapeError: String(error || 'unknown error').slice(0, 800),
     runSteps: normalized && normalized.length ? normalized : admin.firestore.FieldValue.delete(),
+    crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
+}
+
+/**
+ * Light merge while scrapeStatus === 'running' so the index `updatedAt` advances during long crawls
+ * (no GCS write). UI/poll can detect liveness and avoid “frozen” list rows until crawl checkpoint.
+ */
+async function touchScrapeRunningHeartbeat(sandbox, scrapeId, { detail } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid) return;
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const d = snap.data() || {};
+    if (String(d.scrapeStatus || '') !== 'running') return;
+    const patch = {
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (detail != null && String(detail).trim()) {
+      patch.crawlHeartbeatDetail = String(detail).trim().slice(0, 140);
+    }
+    tx.set(ref, patch, { merge: true });
+  });
 }
 
 /**
@@ -385,6 +411,7 @@ async function cancelScrapeRun(sandbox, scrapeId, { reason } = {}) {
       scrapeStatus: 'failed',
       scrapeError: 'Run cancelled by user. You can retry this scrape from the card.',
       buildPhase: 'cancelled',
+      crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
       runSteps: [{
         id: 'cancelled',
         label: 'Run cancelled',
@@ -545,6 +572,7 @@ async function saveScrape(sandbox, payload, options = {}) {
       updatedAt: now,
       payloadRetentionExpiresAt,
       runSteps: admin.firestore.FieldValue.delete(),
+      crawlHeartbeatDetail: admin.firestore.FieldValue.delete(),
     }, { merge: true });
   });
 
@@ -614,6 +642,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       archiveVersionCount: Array.isArray(data.scrapeVersions) ? data.scrapeVersions.length : 0,
       runSteps: Array.isArray(data.runSteps) ? data.runSteps : [],
       buildPhase: data.buildPhase || null,
+      crawlHeartbeatDetail: data.crawlHeartbeatDetail != null ? String(data.crawlHeartbeatDetail).slice(0, 160) : null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       payloadRetentionExpiresAt: payloadRetentionExpiresIsoForApi({
@@ -880,6 +909,7 @@ module.exports = {
   genId,
   markScrapeRunning,
   markScrapeFailed,
+  touchScrapeRunningHeartbeat,
   cancelScrapeRun,
   runBrandScrapeStaleMaintenance,
   extendScrapeRetention,

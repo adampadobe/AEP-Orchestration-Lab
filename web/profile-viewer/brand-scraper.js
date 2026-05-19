@@ -418,7 +418,12 @@
   let progressHandle = null;
   /** When true, bottom dock mirrors Analyse progress; classify/export keep in-card only. */
   let progressBottomDockEnabled = false;
-  const RUN_STALE_WARN_MS = 35 * 60 * 1000;
+  /** Total wall clock — warn before server stale job cleanup (35m), but well above normal crawl+LLM. */
+  const RUN_STALE_WARN_MS = 12 * 60 * 1000;
+  /** If index `updatedAt` stalls this long while still “active”, worker likely died (crawl heartbeats ~22s). */
+  const RUN_STALE_NO_SERVER_UPDATE_MS = 4 * 60 * 1000;
+  /** Reassure during long fetch/JS crawl before first checkpoint. */
+  const RUN_LONG_CRAWL_HINT_MS = 3 * 60 * 1000;
 
   function parseTimestampMs(v) {
     if (!v) return null;
@@ -1644,8 +1649,16 @@
       : '';
     const runStartedMs = parseTimestampMs(it.runStartedAt);
     const runAgeMs = runStartedMs != null ? Math.max(0, Date.now() - runStartedMs) : null;
+    const updatedMs = parseTimestampMs(it.updatedAt);
+    const noServerUpdateMs = (activeRow && updatedMs != null) ? Math.max(0, Date.now() - updatedMs) : null;
+    const staleNoServerUpdate = runState === 'running' && noServerUpdateMs != null &&
+      noServerUpdateMs >= RUN_STALE_NO_SERVER_UPDATE_MS;
+    const staleLongWall = runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS;
+    const longCrawlHint = activeRow && runAgeMs != null && runAgeMs >= RUN_LONG_CRAWL_HINT_MS &&
+      runState === 'running' && !(it.buildPhase);
     const runAgeMeta = (activeRow && runAgeMs != null) ? (' · running ' + fmtDuration(runAgeMs)) : '';
-    const staleMeta = (activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS) ? ' · likely stuck' : '';
+    const staleMeta = (activeRow && (staleLongWall || staleNoServerUpdate)) ? ' · check status' : '';
+    const hbMeta = (activeRow && it.crawlHeartbeatDetail) ? (' · ' + esc(String(it.crawlHeartbeatDetail))) : '';
     const viewDisabled = runState === 'running';
     const progressPct = cardProgressPercent(it);
     const progressLabel = cardProgressLabel(it);
@@ -1672,6 +1685,7 @@
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +
+            hbMeta +
             staleMeta +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
@@ -1683,8 +1697,14 @@
               '<div class="brand-scraper-history-progress-meta">' + esc(progressLabel) + (runAgeMs != null ? ' · ' + esc(fmtDuration(runAgeMs)) : '') + '</div>' +
             '</div>'
           ) : '') +
-          ((activeRow && runAgeMs != null && runAgeMs >= RUN_STALE_WARN_MS)
-            ? '<p class="brand-scraper-result-warn">This run has been active for ' + esc(fmtDuration(runAgeMs)) + '. It may be stuck — cancel and retry.</p>'
+          ((activeRow && longCrawlHint && !staleNoServerUpdate && !staleLongWall)
+            ? '<p class="brand-scraper-result-muted">Large sites or JS-rendered pages can take several minutes before the first save. While the crawl is alive, the card timestamp should advance about every 20–30s.</p>'
+            : '') +
+          ((activeRow && staleNoServerUpdate)
+            ? '<p class="brand-scraper-result-warn">No server updates for ' + esc(fmtDuration(noServerUpdateMs)) + '. The worker may have crashed or hit a platform limit — try <strong>Cancel</strong> and run again.</p>'
+            : '') +
+          ((activeRow && staleLongWall && !staleNoServerUpdate)
+            ? '<p class="brand-scraper-result-warn">This run has been active for ' + esc(fmtDuration(runAgeMs)) + '. If results never arrive, cancel and retry.</p>'
             : '') +
           failDetails +
         '</div>' +
@@ -1851,7 +1871,9 @@
       const bp = row && row.buildPhase ? String(row.buildPhase) : '';
       if (progressPhases) {
         if (st === 'running' && !bp) {
-          setProgressPhaseBoth(progressPhases[0] || 'Crawling pages…');
+          const base = progressPhases[0] || 'Crawling pages…';
+          const hb = row && row.crawlHeartbeatDetail ? (' ' + String(row.crawlHeartbeatDetail)) : '';
+          setProgressPhaseBoth(base + hb);
         } else if (bp === 'crawl') {
           setProgressPhaseBoth('Crawl saved — generating brand core…');
         } else if (bp === 'brand') {

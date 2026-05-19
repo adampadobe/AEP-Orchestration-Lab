@@ -16,16 +16,17 @@ const labUserSandboxStore = require('./labUserSandboxStore');
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
 
-async function crawlViaPlaywrightService(url, { maxPages, tagAudit: runTagAudit = true } = {}) {
+async function crawlViaPlaywrightService(url, { maxPages, tagAudit: runTagAudit = true, timeoutMs } = {}) {
   const { GoogleAuth } = require('google-auth-library');
   const auth = new GoogleAuth();
   const client = await auth.getIdTokenClient(PLAYWRIGHT_CRAWLER_URL);
+  const t = Math.min(280000, Math.max(15000, Number(timeoutMs) || 280000));
   const resp = await client.request({
     url: PLAYWRIGHT_CRAWLER_URL + '/crawl',
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     data: { url, maxPages, tagAudit: runTagAudit },
-    timeout: 280000,
+    timeout: t,
   });
   return resp.data;
 }
@@ -39,6 +40,13 @@ const MAX_DISCOVERED = 200;
 const MAX_QUEUE_URLS = 120;
 /** Hard stop for fetch crawl wall time so the function can reach LLM phases within CF budget. */
 const MAX_CRAWL_WALL_MS = 240000;
+/**
+ * Must stay aligned with `exports.brandScraperAnalyze` timeoutSeconds in functions/index.js (540).
+ * Crawl retries used to run many sequential 240s passes and exceed the CF hard kill — Firestore stayed
+ * `running` until stale cleanup (~35m). Reserve wall time for checkpoints + LLM after crawl.
+ */
+const ANALYZE_FN_TIMEOUT_MS = 540000;
+const ANALYZE_POST_CRAWL_RESERVE_MS = 200000;
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company'];
 
 function normaliseUrl(raw) {
@@ -348,13 +356,17 @@ function prioritise(urls, baseUrl) {
   return urls.slice().sort((a, b) => score(a) - score(b));
 }
 
-async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit = true } = {}) {
+async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit = true, maxWallMs } = {}) {
   const baseUrl = normaliseUrl(rawUrl);
   const visited = new Set();
   const discovered = new Set([baseUrl]);
   const queue = [baseUrl];
   const pendingUrls = new Set(queue);
   const crawlStarted = Date.now();
+  const crawlWallMs = Math.min(
+    MAX_CRAWL_WALL_MS,
+    Math.max(8000, Number(maxWallMs) > 0 ? Number(maxWallMs) : MAX_CRAWL_WALL_MS),
+  );
   const pages = [];
   const failures = [];
   let brandName = '';
@@ -387,7 +399,7 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
   }
 
   while (queue.length && pages.length < maxPages) {
-    if (Date.now() - crawlStarted > MAX_CRAWL_WALL_MS) break;
+    if (Date.now() - crawlStarted > crawlWallMs) break;
     const current = queue.shift();
     pendingUrls.delete(current);
     if (visited.has(current)) continue;
@@ -503,25 +515,46 @@ function looksHttp2ProtocolIssue(crawl) {
  *   2) fallback engine over the same candidates (smaller retry budget)
  * Random gaps between attempts can clear brief anti-bot or WAF windows without user intervention.
  */
-async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAttempts = 4 } = {}) {
+async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAttempts = 4, crawlDeadlineMs = null } = {}) {
   let lastCrawl = null;
   let lastErr = null;
   let attemptsUsed = 0;
+  let stoppedForFnBudget = false;
+  let lastEngineTried = wantJs ? 'js' : 'fetch';
   const primaryAttempts = Math.max(1, Math.min(Number(maxAttempts) || 4, 8));
   const fallbackAttempts = Math.max(1, Math.ceil(primaryAttempts / 2));
   const seeds = buildSeedCandidates(url);
   const engines = wantJs ? ['js', 'fetch'] : ['fetch', 'js'];
-  for (let eIdx = 0; eIdx < engines.length; eIdx++) {
+  attemptLoop: for (let eIdx = 0; eIdx < engines.length; eIdx++) {
     const engine = engines[eIdx];
     const budget = eIdx === 0 ? primaryAttempts : fallbackAttempts;
     for (const seed of seeds) {
       for (let i = 1; i <= budget; i++) {
+        const now = Date.now();
+        if (crawlDeadlineMs && now >= crawlDeadlineMs) {
+          stoppedForFnBudget = true;
+          break attemptLoop;
+        }
+        lastEngineTried = engine;
+        const remainingMs = crawlDeadlineMs
+          ? Math.max(0, crawlDeadlineMs - now - 4000)
+          : MAX_CRAWL_WALL_MS;
+        const siteWall = Math.min(MAX_CRAWL_WALL_MS, Math.max(8000, remainingMs));
+        const pwTimeout = engine === 'js' ? Math.min(280000, Math.max(15000, remainingMs)) : undefined;
         attemptsUsed++;
         try {
           if (engine === 'js') {
-            lastCrawl = await crawlViaPlaywrightService(seed, { maxPages: maxPages || MAX_PAGES, tagAudit: wantTagAudit });
+            lastCrawl = await crawlViaPlaywrightService(seed, {
+              maxPages: maxPages || MAX_PAGES,
+              tagAudit: wantTagAudit,
+              timeoutMs: pwTimeout,
+            });
           } else {
-            lastCrawl = await crawlSite(seed, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
+            lastCrawl = await crawlSite(seed, {
+              ...(maxPages ? { maxPages } : {}),
+              tagAudit: wantTagAudit,
+              maxWallMs: siteWall,
+            });
           }
           lastErr = null;
           if (lastCrawl && Array.isArray(lastCrawl.pages) && lastCrawl.pages.length > 0) {
@@ -548,10 +581,45 @@ async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAtt
       await sleep(randomDelayMs(250, 900));
     }
   }
+  if (stoppedForFnBudget) {
+    if (lastCrawl && Array.isArray(lastCrawl.pages) && lastCrawl.pages.length > 0) {
+      lastCrawl._crawlAttemptsUsed = attemptsUsed || 1;
+      lastCrawl._crawlEngineUsed = lastCrawl._crawlEngineUsed || lastEngineTried;
+      return lastCrawl;
+    }
+    const merged = [];
+    if (lastCrawl && Array.isArray(lastCrawl.failures)) merged.push(...lastCrawl.failures);
+    if (lastErr) {
+      merged.push({
+        url,
+        status: 0,
+        reason: 'network',
+        error: String((lastErr && lastErr.message) || lastErr).slice(0, 500),
+      });
+    }
+    merged.push({
+      url,
+      status: 0,
+      reason: 'budget',
+      error: 'Crawl phase hit the server time budget (sequential retries used to exceed the analyse function limit). Try JS-rendered crawl, fewer pages, or retry.',
+    });
+    return {
+      brandName: inferBrandNameFromUrl(url),
+      baseUrl: normaliseUrl(url),
+      pages: [],
+      totalDiscovered: (lastCrawl && lastCrawl.totalDiscovered) || 0,
+      assets: (lastCrawl && lastCrawl.assets) || {},
+      failures: merged,
+      tagAuditSummary: (lastCrawl && lastCrawl.tagAuditSummary) || null,
+      _crawlAttemptsUsed: attemptsUsed || 1,
+      _crawlEngineUsed: lastEngineTried,
+      _crawlSeedUrl: url,
+    };
+  }
   if (lastErr) throw lastErr;
   if (lastCrawl) {
     lastCrawl._crawlAttemptsUsed = attemptsUsed || 1;
-    lastCrawl._crawlEngineUsed = engines[engines.length - 1];
+    lastCrawl._crawlEngineUsed = lastEngineTried;
   }
   return lastCrawl;
 }
@@ -602,6 +670,8 @@ function friendlyFailureMessage(url, failures) {
     bits.push('— site returned an empty response.');
   } else if (first.reason === 'non_html') {
     bits.push(`— response was not HTML (${first.contentType || 'unknown type'})`);
+  } else if (first.reason === 'budget') {
+    bits.push('— crawl stopped to stay within the server time budget; use JS-rendered crawl or retry with fewer pages.');
   }
   const parts = Object.entries(summary.byReason).map(([k, v]) => `${k} × ${v}`).join(', ');
   if (parts) bits.push(`\nAll attempts: ${parts}.`);
@@ -1376,9 +1446,16 @@ async function executeAnalyzePipeline({
   const runSteps = [];
 
   analyzePipelineLog(runScrapeId, 'crawl_start', { sandbox });
+  const crawlDeadlineMs = started + (ANALYZE_FN_TIMEOUT_MS - ANALYZE_POST_CRAWL_RESERVE_MS);
   let crawl;
+  const crawlHeartbeatMs = 22000;
+  const crawlHeartbeatDetail = wantJs ? 'Still crawling (JS renderer)…' : 'Still crawling (fetch)…';
+  const crawlHeartbeatTimer = setInterval(() => {
+    brandScrapeStore.touchScrapeRunningHeartbeat(sandbox, runScrapeId, { detail: crawlHeartbeatDetail })
+      .catch(() => {});
+  }, crawlHeartbeatMs);
   try {
-    crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
+    crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, crawlDeadlineMs });
   } catch (e) {
     const msg = 'Crawler failed: ' + String((e && e.message) || e);
     try {
@@ -1389,6 +1466,8 @@ async function executeAnalyzePipeline({
     } catch (_e) { /* ignore */ }
     analyzePipelineLog(runScrapeId, 'crawl_failed', { sandbox, ms: Date.now() - started });
     return { status: 502, payload: { error: msg, scrapeId: runScrapeId } };
+  } finally {
+    clearInterval(crawlHeartbeatTimer);
   }
   if (!crawl.pages || !crawl.pages.length) {
     const fails = (crawl && crawl.failures) || [];
