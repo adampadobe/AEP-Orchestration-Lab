@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warner Bros. World™ Abu Dhabi</title>
+  <meta name="description" content="Warner Bros. World™ Abu Dhabi — The world's biggest indoor theme park on Yas Island. Six immersive lands, 29 rides, and your favourite characters.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --gold:#f5a623;--gold-dk:#c8840a;--red:#e31837;
+      --bg:#0a0a0f;--surf:#111120;--card:#16162a;--border:#2a2a45;
+      --txt:#fff;--muted:#9898b2;--dim:#5c5c78;
+      --r:12px;--rsm:6px;--navh:72px;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--txt);font-family:'Open Sans',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%}
+
+    /* util */
+    .container{max-width:1240px;margin:0 auto;padding:0 24px}
+    .btn{display:inline-block;font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:13px 32px;border-radius:var(--rsm);cursor:pointer;border:none;transition:transform .15s,box-shadow .15s,background .15s}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-gold{background:var(--gold);color:#0a0a0f}
+    .btn-gold:hover{background:#ffc04a;box-shadow:0 8px 24px rgba(245,166,35,.35)}
+    .btn-outline{background:transparent;color:var(--txt);border:2px solid rgba(255,255,255,.45)}
+    .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+    .slabel{font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+    .stitle{font-family:'Oswald',sans-serif;font-size:clamp(26px,4vw,42px);font-weight:700;line-height:1.15}
+
+    /* announce */
+    .ann{background:var(--red);color:#fff;font-family:'Oswald',sans-serif;font-size:13px;font-weight:500;letter-spacing:.8px;text-align:center;padding:9px 16px}
+    .ann a{text-decoration:underline;margin-left:8px}
+
+    /* nav */
+    .nav{position:sticky;top:0;z-index:900;height:var(--navh);background:rgba(10,10,15,.93);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:100%;max-width:1240px;margin:0 auto;padding:0 24px;gap:20px}
+    .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .logo img{height:44px;width:auto}
+    .logo-txt{font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;line-height:1.2}
+    .logo-txt span{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+    .nav-links{display:flex;align-items:center;gap:2px;list-style:none}
+    .nav-links a{font-family:'Oswald',sans-serif;font-size:13px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-radius:var(--rsm);transition:color .15s,background .15s}
+    .nav-links a:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+    .nav-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s}
+    .icon-btn:hover{background:rgba(255,255,255,.14);color:var(--txt)}
+    .icon-btn svg{width:16px;height:16px}
+    .nav-toggle{display:none;background:none;border:none;cursor:pointer;color:var(--txt);padding:4px}
+
+    /* hero */
+    .hero{position:relative;height:100vh;min-height:580px;display:flex;align-items:center;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 35%;transform:scale(1.04);transition:transform 8s ease-out}
+    .hero-bg.loaded{transform:scale(1)}
+    .hero-ov{position:absolute;inset:0;background:linear-gradient(110deg,rgba(10,10,15,.88) 0%,rgba(10,10,15,.6) 50%,rgba(10,10,15,.2) 100%)}
+    .hero-bot{position:absolute;bottom:0;left:0;right:0;height:180px;background:linear-gradient(to top,var(--bg),transparent)}
+    .hero-content{position:relative;z-index:2;max-width:660px;padding:0 24px;margin-left:max(24px,calc((100vw - 1240px)/2 + 24px))}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.4);border-radius:24px;padding:6px 14px;font-family:'Oswald',sans-serif;font-size:13px;font-weight:500;letter-spacing:1px;color:var(--gold);margin-bottom:22px}
+    .hero-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+    .hero-title{font-family:'Oswald',sans-serif;font-size:clamp(38px,6vw,74px);font-weight:700;line-height:1.03;text-shadow:0 2px 24px rgba(0,0,0,.4);margin-bottom:18px}
+    .hero-title em{font-style:normal;color:var(--gold)}
+    .hero-sub{font-size:clamp(14px,1.5vw,18px);font-weight:300;color:rgba(255,255,255,.8);max-width:500px;margin-bottom:34px;line-height:1.65}
+    .hero-ctas{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+
+    /* offers */
+    .offers{padding:72px 0;background:var(--surf)}
+    .offers-hdr{text-align:center;margin-bottom:48px}
+    .offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .ocard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s}
+    .ocard:hover{transform:translateY(-5px);border-color:var(--gold);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+    .ocard-img-wrap{overflow:hidden;height:200px}
+    .ocard img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+    .ocard:hover img{transform:scale(1.05)}
+    .ocard-body{padding:22px}
+    .ocard-tag{font-family:'Oswald',sans-serif;font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+    .ocard-title{font-family:'Oswald',sans-serif;font-size:19px;font-weight:700;margin-bottom:9px}
+    .ocard-desc{font-size:14px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+    .ocard-link{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);display:inline-flex;align-items:center;gap:5px;transition:gap .15s}
+    .ocard:hover .ocard-link{gap:9px}
+
+    /* lands */
+    .lands{padding:80px 0 90px;overflow:hidden}
+    .lands-hdr{margin-bottom:44px}
+    .lands-rail{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 max(24px,calc((100vw - 1240px)/2 + 24px))}
+    .lands-rail::-webkit-scrollbar{display:none}
+    .lcard{flex:0 0 310px;scroll-snap-align:start;border-radius:var(--r);overflow:hidden;position:relative;height:420px;cursor:pointer}
+    .lcard-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .4s}
+    .lcard:hover .lcard-bg{transform:scale(1.07)}
+    .lcard-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 55%,transparent 100%)}
+    .lcard-body{position:absolute;bottom:0;left:0;right:0;padding:26px 22px;z-index:2}
+    .lcard-num{font-family:'Oswald',sans-serif;font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+    .lcard-name{font-family:'Oswald',sans-serif;font-size:23px;font-weight:700;line-height:1.15;margin-bottom:8px}
+    .lcard-desc{font-size:13px;color:rgba(255,255,255,.72);line-height:1.5}
+    .lcard-cta{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);opacity:0;transform:translateY(7px);transition:opacity .2s,transform .2s}
+    .lcard:hover .lcard-cta{opacity:1;transform:translateY(0)}
+    .rail-nav{display:flex;justify-content:center;gap:12px;margin-top:32px}
+    .rail-btn{width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+    .rail-btn:hover{background:var(--gold);border-color:var(--gold);color:#0a0a0f}
+    .rail-btn svg{width:18px;height:18px}
+
+    /* park map */
+    .mapbox{padding:80px 0;background:var(--surf)}
+    .mapbox-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+    .mapbox-visual{position:relative;border-radius:var(--r);overflow:hidden;height:380px}
+    .mapbox-visual img{width:100%;height:100%;object-fit:cover}
+    .mapbox-badge{position:absolute;top:18px;right:18px;background:var(--gold);color:#0a0a0f;font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:7px 13px;border-radius:var(--rsm)}
+    .mapbox-desc{color:var(--muted);font-size:15px;margin:14px 0 28px;line-height:1.7}
+    .stats{display:flex;gap:28px;margin-bottom:34px;flex-wrap:wrap}
+    .stat-num{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700;color:var(--gold);line-height:1}
+    .stat-lbl{font-size:13px;color:var(--muted);margin-top:3px}
+
+    /* partners */
+    .partners{padding:52px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surf)}
+    .partners-lbl{text-align:center;font-family:'Oswald',sans-serif;font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:32px}
+    .partners-row{display:flex;align-items:center;justify-content:center;gap:56px;flex-wrap:wrap}
+    .partner{opacity:.6;transition:opacity .2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+    .partner:hover{opacity:1}
+    .partner img{height:40px;width:auto;object-fit:contain;filter:brightness(0) invert(1)}
+    .partner span{font-size:11px;color:var(--dim)}
+
+    /* support */
+    .support{padding:60px 0;background:var(--bg)}
+    .support-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;transition:border-color .2s}
+    .scard:hover{border-color:var(--gold)}
+    .scard-icon{width:46px;height:46px;background:rgba(245,166,35,.1);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
+    .scard-icon svg{width:22px;height:22px}
+    .scard-title{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;margin-bottom:7px}
+    .scard-desc{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+    .scard-action{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
+
+    /* newsletter */
+    .nl{padding:68px 0;text-align:center;background:linear-gradient(135deg,#0d0d20,#150a28);border-top:1px solid var(--border)}
+    .nl-title{font-family:'Oswald',sans-serif;font-size:clamp(24px,3.5vw,38px);font-weight:700;margin-bottom:10px}
+    .nl-sub{color:var(--muted);font-size:15px;margin-bottom:32px}
+    .nl-form{display:flex;gap:12px;max-width:460px;margin:0 auto}
+    .nl-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--rsm);color:var(--txt);font-family:'Open Sans',sans-serif;font-size:15px;padding:13px 18px;outline:none;transition:border-color .15s}
+    .nl-input::placeholder{color:var(--dim)}
+    .nl-input:focus{border-color:var(--gold)}
+
+    /* footer */
+    .footer{background:#06060d;border-top:1px solid var(--border);padding:60px 0 28px}
+    .footer-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:44px;margin-bottom:52px}
+    .footer-desc{font-size:14px;color:var(--muted);line-height:1.65;margin:14px 0 26px}
+    .socials{display:flex;flex-wrap:wrap;gap:10px}
+    .soc{width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background .15s,border-color .15s,color .15s}
+    .soc:hover{background:var(--gold);border-color:var(--gold);color:#0a0a0f}
+    .soc svg{width:15px;height:15px}
+    .fcol-title{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt);margin-bottom:18px}
+    .flinks{list-style:none}
+    .flinks li{margin-bottom:11px}
+    .flinks a{font-size:14px;color:var(--muted);transition:color .15s}
+    .flinks a:hover{color:var(--gold)}
+    .footer-bot{border-top:1px solid var(--border);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+    .footer-copy{font-size:12px;color:var(--dim)}
+    .footer-legal{display:flex;gap:20px}
+    .footer-legal a{font-size:12px;color:var(--dim);transition:color .15s}
+    .footer-legal a:hover{color:var(--muted)}
+
+    /* aep demo bar */
+    .aep-bar{position:fixed;bottom:20px;right:20px;z-index:9999;background:rgba(10,10,15,.96);border:1px solid var(--gold);border-radius:var(--r);padding:14px 18px;min-width:260px;max-width:320px;backdrop-filter:blur(12px);display:none}
+    .aep-bar.on{display:block}
+    .aep-bar-lbl{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+    .aep-bar-msg{font-size:14px;color:var(--txt);line-height:1.45}
+    .aep-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;line-height:1}
+
+    /* responsive */
+    @media(max-width:1024px){.offers-grid{grid-template-columns:repeat(2,1fr)}.mapbox-inner{grid-template-columns:1fr}.footer-top{grid-template-columns:1fr 1fr}}
+    @media(max-width:768px){.nav-links{display:none}.nav-toggle{display:flex}.offers-grid{grid-template-columns:1fr}.support-grid{grid-template-columns:1fr}.footer-top{grid-template-columns:1fr}.nl-form{flex-direction:column}.hero-content{margin-left:0}}
+  </style>
+</head>
+<body>
+
+<div class="ann">NOW OPEN — 9:00am to 7:00pm &nbsp;|&nbsp; <strong>30% off with Emirates NBD</strong> <a href="#tickets">Shop Offers →</a></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/header/wbw_logo_desktop_en.png" alt="Warner Bros. World Abu Dhabi" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="logo-txt" style="display:none">Warner Bros. World™<span>Abu Dhabi</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#visit">Plan Your Visit</a></li>
+      <li><a href="#lands">Explore</a></li>
+      <li><a href="#tickets">Tickets</a></li>
+      <li><a href="#events">Events</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <button class="icon-btn" aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button>
+      <a href="#tickets" class="btn btn-gold">Buy Now</a>
+      <button class="nav-toggle" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-ov"></div>
+  <div class="hero-bot"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="hero-dot"></span>Open Today · 9:00am – 7:00pm</div>
+    <h1 class="hero-title">Experience<br><em>Everything</em><br>You've Imagined</h1>
+    <p class="hero-sub">Enter Warner Bros. World™ Abu Dhabi and get transported to six awesome worlds on Yas Island — the world's biggest indoor theme park.</p>
+    <div class="hero-ctas">
+      <a href="#tickets" class="btn btn-gold">Buy Tickets</a>
+      <a href="#lands" class="btn btn-outline">Explore the Park</a>
+    </div>
+  </div>
+</section>
+
+<section class="offers" id="offers">
+  <div class="container">
+    <div class="offers-hdr">
+      <p class="slabel">Featured Offers</p>
+      <h2 class="stitle">Deals Worth Imagining</h2>
+    </div>
+    <div class="offers-grid">
+      <article class="ocard">
+        <div class="ocard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/home/thumbnails/inter-brand-thumbnail.jpg" alt="Emirates NBD Offer" onerror="this.src='https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&q=80'">
+        </div>
+        <div class="ocard-body">
+          <p class="ocard-tag">Bank Offer</p>
+          <h3 class="ocard-title">Emirates NBD Offer</h3>
+          <p class="ocard-desc">Enjoy 30% discount on Single Day Tickets and exclusive benefits when you pay with Emirates NBD.</p>
+          <a href="#tickets" class="ocard-link">Shop Now <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+      <article class="ocard">
+        <div class="ocard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/home/thumbnails/wbw-thumbnail-1d2p-1.jpg" alt="Multi-Park Ticket" onerror="this.src='https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80'">
+        </div>
+        <div class="ocard-body">
+          <p class="ocard-tag">Best Value</p>
+          <h3 class="ocard-title">Multi-Park Ticket</h3>
+          <p class="ocard-desc">Visit Warner Bros. World™ plus Yas Island's other world-class parks — more fun, bigger savings.</p>
+          <a href="#tickets" class="ocard-link">Discover More <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+      <article class="ocard">
+        <div class="ocard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/offers/offers_en.jpg" alt="Special Offers" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80'">
+        </div>
+        <div class="ocard-body">
+          <p class="ocard-tag">Travel Deal</p>
+          <h3 class="ocard-title">Buckle Up for a Super Vacation</h3>
+          <p class="ocard-desc">Fly with Etihad Airways and unlock a bundled theme park package at a superhero-sized value.</p>
+          <a href="#tickets" class="ocard-link">View Package <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="lands" id="lands">
+  <div class="lands-hdr container">
+    <p class="slabel">Six Themed Worlds</p>
+    <h2 class="stitle">Explore the Lands</h2>
+  </div>
+  <div class="lands-rail" id="landsRail">
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/plaza-2019.jpg" data-fallback="linear-gradient(135deg,#1a0a2e,#3d1a6e)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 01</p>
+        <h3 class="lcard-name">Warner Bros. Plaza</h3>
+        <p class="lcard-desc">The grand entrance — a Hollywood golden-age boulevard alive with characters and entertainment.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/bedrock-2019.jpg" data-fallback="linear-gradient(135deg,#2e1a0a,#7a4010)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 02</p>
+        <h3 class="lcard-name">Bedrock</h3>
+        <p class="lcard-desc">Step back to the stone age with Fred, Wilma, and the Flintstones in a prehistoric family adventure.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/dynamite-gulch-2019.jpg" data-fallback="linear-gradient(135deg,#2e0a0a,#8a1010)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 03</p>
+        <h3 class="lcard-name">Dynamite Gulch</h3>
+        <p class="lcard-desc">High-octane rides and wild west thrills with Wile E. Coyote and Road Runner.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/cartoon-junction-2019.jpg" data-fallback="linear-gradient(135deg,#0a2e2e,#0a5c5c)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 04</p>
+        <h3 class="lcard-name">Cartoon Junction</h3>
+        <p class="lcard-desc">Where Bugs Bunny, Tweety, and friends bring colour and laughter to every corner.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/gotham-city-2019.jpg" data-fallback="linear-gradient(135deg,#0a0a1e,#1a1a5e)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 05</p>
+        <h3 class="lcard-name">Gotham City</h3>
+        <p class="lcard-desc">Enter Batman's world — dark skylines, the Batmobile, and Gotham's most notorious villains.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="lcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/metropolis-2019.jpg" data-fallback="linear-gradient(135deg,#1a2e0a,#2a6020)">
+      <div class="lcard-bg"></div><div class="lcard-ov"></div>
+      <div class="lcard-body">
+        <p class="lcard-num">Land 06</p>
+        <h3 class="lcard-name">Metropolis</h3>
+        <p class="lcard-desc">Soar with Superman above the city of tomorrow in this futuristic DC universe experience.</p>
+        <span class="lcard-cta">Explore →</span>
+      </div>
+    </div>
+
+  </div>
+  <div class="rail-nav container">
+    <button class="rail-btn" id="landsPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="rail-btn" id="landsNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+</section>
+
+<section class="mapbox" id="visit">
+  <div class="container">
+    <div class="mapbox-inner">
+      <div>
+        <p class="slabel">Navigate the Park</p>
+        <h2 class="stitle">Download the Park Map</h2>
+        <p class="mapbox-desc">Plan your perfect day with our interactive park map. Discover ride locations, character meet-and-greet spots, dining, and show schedules across all six themed lands.</p>
+        <div class="stats">
+          <div><div class="stat-num">6</div><div class="stat-lbl">Themed Lands</div></div>
+          <div><div class="stat-num">29</div><div class="stat-lbl">Rides &amp; Attractions</div></div>
+          <div><div class="stat-num">50+</div><div class="stat-lbl">Dining &amp; Retail</div></div>
+        </div>
+        <a href="https://static.myconnect.ae/-/media/yasconnect/project/wbw/pdf/wbw-map-new-2026.pdf" target="_blank" class="btn btn-gold">Download Map (PDF)</a>
+      </div>
+      <div class="mapbox-visual">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/productdetail/tickets.jpg" alt="Warner Bros. World Abu Dhabi" onerror="this.src='https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80'">
+        <div class="mapbox-badge">Yas Island, Abu Dhabi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="partners">
+  <div class="container">
+    <p class="partners-lbl">Our Official Partners</p>
+    <div class="partners-row">
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/sponsorship/yi-partnership-logos-cc.png?h=80&w=155" alt="Coca-Cola" onerror="this.parentElement.querySelector('span').style.fontSize='20px';this.style.display='none'">
+        <span>Official Soft Drinks Partner</span>
+      </div>
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/partnerships/enbd.svg" alt="Emirates NBD" onerror="this.style.display='none'">
+        <span>Official Banking Partner</span>
+      </div>
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/sponsorship/etihadairways-1.png?h=55&w=155" alt="Etihad Airways" onerror="this.style.display='none'">
+        <span>Official Airline Partner</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="support" id="support">
+  <div class="container" style="text-align:center;margin-bottom:44px">
+    <p class="slabel">We're Here to Help</p>
+    <h2 class="stitle">Got a Question?</h2>
+  </div>
+  <div class="container">
+    <div class="support-grid">
+      <div class="scard">
+        <div class="scard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.58 3.41 2 2 0 0 1 3.55 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.88-.88a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg></div>
+        <h3 class="scard-title">Call Us</h3>
+        <p class="scard-desc">Speak to our guest experience team. Available daily 9:00am – 7:00pm GST.</p>
+        <a href="tel:600511115" class="scard-action">600 511 115</a>
+      </div>
+      <div class="scard">
+        <div class="scard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <h3 class="scard-title">Email Us</h3>
+        <p class="scard-desc">Send us your question and we'll respond within one business day.</p>
+        <a href="mailto:guest@wbworldabudhabi.com" class="scard-action">Send a Message</a>
+      </div>
+      <div class="scard">
+        <div class="scard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3 class="scard-title">WhatsApp</h3>
+        <p class="scard-desc">Chat with us instantly via WhatsApp for fast answers to your park questions.</p>
+        <a href="#" class="scard-action">Chat on WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="nl">
+  <div class="container">
+    <p class="slabel" style="text-align:center">Stay in the Loop</p>
+    <h2 class="nl-title">Never Miss a Magic Moment</h2>
+    <p class="nl-sub">Be the first to hear about new attractions, events, and exclusive offers.</p>
+    <form class="nl-form" onsubmit="nlSubmit(event)">
+      <input type="email" class="nl-input" placeholder="Your email address" required>
+      <button type="submit" class="btn btn-gold">Subscribe</button>
+    </form>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <a href="#" class="logo">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/header/wbw_logo_desktop_en.png" alt="Warner Bros. World" style="height:44px;width:auto" onerror="this.style.display='none'">
+        </a>
+        <p class="footer-desc">Warner Bros. World™ Abu Dhabi is the world's largest fully indoor theme park, located on Yas Island, Abu Dhabi, UAE. Six immersive lands — one extraordinary world.</p>
+        <div class="socials">
+          <a href="#" class="soc" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>
+          <a href="#" class="soc" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          <a href="#" class="soc" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+          <a href="#" class="soc" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a href="#" class="soc" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg></a>
+          <a href="#" class="soc" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <p class="fcol-title">About the Park</p>
+        <ul class="flinks"><li><a href="#">About Us</a></li><li><a href="#">Park History</a></li><li><a href="#">Sustainability</a></li><li><a href="#">Press Room</a></li><li><a href="#">Careers</a></li></ul>
+      </div>
+      <div>
+        <p class="fcol-title">Explore the Park</p>
+        <ul class="flinks"><li><a href="#lands">Warner Bros. Plaza</a></li><li><a href="#lands">Bedrock</a></li><li><a href="#lands">Dynamite Gulch</a></li><li><a href="#lands">Cartoon Junction</a></li><li><a href="#lands">Gotham City</a></li><li><a href="#lands">Metropolis</a></li></ul>
+      </div>
+      <div>
+        <p class="fcol-title">Support</p>
+        <ul class="flinks"><li><a href="#">FAQs</a></li><li><a href="#">Plan Your Visit</a></li><li><a href="#">Accessibility</a></li><li><a href="#">Guest Services</a></li><li><a href="#">Contact Us</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bot">
+      <p class="footer-copy">© 2025 Warner Bros. Entertainment Inc. All rights reserved. Warner Bros. World™ Abu Dhabi is operated under license.</p>
+      <div class="footer-legal"><a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Cookie Settings</a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="aep-bar" id="aepBar">
+  <button class="aep-close" onclick="document.getElementById('aepBar').classList.remove('on');sessionStorage.setItem('wbAepDismissed','1')">×</button>
+  <p class="aep-bar-lbl">AEP Personalisation Active</p>
+  <p class="aep-bar-msg" id="aepBarMsg">Welcome back! You have unused park credit. <strong>View your offers →</strong></p>
+</div>
+
+<script>
+  // Hero BG — try real CDN first, fallback to Unsplash
+  const heroBg = document.getElementById('heroBg');
+  const heroUrl = 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/plaza-2019.jpg';
+  const heroFallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1800&q=80';
+  const testHero = new Image();
+  testHero.onload = () => { heroBg.style.backgroundImage = `url('${heroUrl}')`; setTimeout(() => heroBg.classList.add('loaded'), 50); };
+  testHero.onerror = () => { heroBg.style.backgroundImage = `url('${heroFallback}')`; setTimeout(() => heroBg.classList.add('loaded'), 50); };
+  testHero.src = heroUrl;
+
+  // Land cards — try CDN, fall back to gradient
+  document.querySelectorAll('.lcard').forEach(card => {
+    const bg = card.querySelector('.lcard-bg');
+    const url = card.dataset.bg;
+    const fallback = card.dataset.fallback;
+    const t = new Image();
+    t.onload = () => { bg.style.backgroundImage = `url('${url}')`; };
+    t.onerror = () => { bg.style.background = fallback; };
+    t.src = url;
+  });
+
+  // Carousel nav
+  const rail = document.getElementById('landsRail');
+  const CW = 310 + 20;
+  document.getElementById('landsNext').onclick = () => rail.scrollBy({left: CW*2, behavior:'smooth'});
+  document.getElementById('landsPrev').onclick = () => rail.scrollBy({left: -CW*2, behavior:'smooth'});
+
+  // Newsletter
+  function nlSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const inp = e.target.querySelector('input');
+    btn.textContent = 'Subscribed ✓';
+    btn.style.background = '#2ecc71';
+    inp.value = '';
+    setTimeout(() => { btn.textContent = 'Subscribe'; btn.style.background = ''; }, 3000);
+  }
+
+  // AEP bar
+  setTimeout(() => {
+    if (!sessionStorage.getItem('wbAepDismissed')) document.getElementById('aepBar').classList.add('on');
+  }, 4000);
+
+  // Scroll fade-in
+  const fades = document.querySelectorAll('.ocard,.lcard,.scard');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform=''; io.unobserve(e.target); }});
+  }, {threshold:0.1});
+  fades.forEach(el => { el.style.opacity='0'; el.style.transform='translateY(18px)'; el.style.transition='opacity .5s,transform .5s'; io.observe(el); });
+</script>
+</body>
+</html>

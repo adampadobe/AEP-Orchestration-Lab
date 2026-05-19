@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeaWorld® Yas Island Abu Dhabi</title>
+  <meta name="description" content="SeaWorld Yas Island Abu Dhabi — Over 100 animal experiences and presentations. Every ticket supports the Yas SeaWorld Research & Rescue Center.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --deep:#003a6b;--mid:#0077b6;--bright:#00a8e8;--teal:#00b4d8;--tl:#caf0f8;
+      --bg:#fff;--wash:#f0f7fc;--card:#fff;--border:#d0e8f5;
+      --txt:#0d1f2d;--muted:#4a6274;--dim:#94aab8;--green:#00b894;
+      --r:16px;--rsm:8px;--navh:76px;
+      --sh:0 4px 24px rgba(0,58,107,.10);--shlg:0 12px 48px rgba(0,58,107,.16);
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%}
+
+    /* util */
+    .container{max-width:1240px;margin:0 auto;padding:0 24px}
+    .btn{display:inline-block;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;letter-spacing:.4px;padding:13px 30px;border-radius:50px;cursor:pointer;border:none;transition:transform .15s,box-shadow .15s,background .15s,color .15s}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-ocean{background:var(--mid);color:#fff}
+    .btn-ocean:hover{background:var(--deep);box-shadow:0 8px 24px rgba(0,119,182,.35)}
+    .btn-teal{background:var(--teal);color:#fff}
+    .btn-teal:hover{background:var(--bright);box-shadow:0 8px 24px rgba(0,180,216,.35)}
+    .btn-outline{background:transparent;color:var(--mid);border:2px solid var(--mid)}
+    .btn-outline:hover{background:var(--mid);color:#fff}
+    .btn-white{background:#fff;color:var(--deep)}
+    .btn-white:hover{background:var(--tl)}
+    .slabel{font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+    .stitle{font-family:'Nunito',sans-serif;font-size:clamp(26px,4vw,42px);font-weight:900;line-height:1.15;color:var(--deep)}
+    .stitle.light{color:#fff}
+
+    /* announce */
+    .ann{background:var(--deep);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;text-align:center;padding:10px 16px}
+    .ann a{color:var(--tl);text-decoration:underline;margin-left:8px}
+
+    /* nav */
+    .nav{position:sticky;top:0;z-index:900;height:var(--navh);background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);box-shadow:0 2px 12px rgba(0,58,107,.06)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:100%;max-width:1240px;margin:0 auto;padding:0 24px;gap:18px}
+    .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .logo img{height:44px;width:auto}
+    .logo-fallback{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--deep);line-height:1.2;display:none}
+    .logo-fallback span{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+    .nav-links{display:flex;align-items:center;gap:2px;list-style:none}
+    .nav-links a{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--muted);padding:8px 12px;border-radius:var(--rsm);transition:color .15s,background .15s;white-space:nowrap}
+    .nav-links a:hover{color:var(--mid);background:var(--wash)}
+    .nav-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .icon-btn{width:36px;height:36px;border-radius:50%;background:var(--wash);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .15s,color .15s}
+    .icon-btn:hover{background:var(--tl);color:var(--mid)}
+    .icon-btn svg{width:16px;height:16px}
+    .nav-toggle{display:none;background:none;border:none;cursor:pointer;color:var(--deep);padding:4px}
+
+    /* hero */
+    .hero{position:relative;height:100vh;min-height:580px;display:flex;align-items:center;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 40%;transform:scale(1.04);transition:transform 8s ease-out}
+    .hero-bg.loaded{transform:scale(1)}
+    .hero-ov{position:absolute;inset:0;background:linear-gradient(110deg,rgba(0,30,60,.8) 0%,rgba(0,50,90,.5) 45%,rgba(0,100,180,.15) 100%)}
+    .hero-bot{position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to top,rgba(255,255,255,.95),transparent)}
+    .hero-content{position:relative;z-index:2;max-width:660px;padding:0 24px;margin-left:max(24px,calc((100vw - 1240px)/2 + 24px))}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,180,216,.18);border:1px solid rgba(0,180,216,.5);border-radius:50px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#caf0f8;margin-bottom:20px}
+    .hero-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+    .hero-title{font-family:'Nunito',sans-serif;font-size:clamp(36px,5.5vw,68px);font-weight:900;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.3);margin-bottom:18px}
+    .hero-title em{font-style:normal;color:var(--teal)}
+    .hero-sub{font-size:clamp(14px,1.5vw,18px);font-weight:400;color:rgba(255,255,255,.85);max-width:520px;margin-bottom:34px;line-height:1.65}
+    .hero-ctas{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+    .hero-card{position:absolute;bottom:56px;right:max(24px,calc((100vw - 1240px)/2 + 24px));z-index:2;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;max-width:290px;box-shadow:var(--sh)}
+    .hero-card-ico{width:28px;height:28px;background:var(--tl);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:10px;color:var(--mid)}
+    .hero-card-ico svg{width:15px;height:15px}
+    .hero-card-title{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--deep);margin-bottom:5px}
+    .hero-card-text{font-size:12px;color:var(--muted);line-height:1.5}
+
+    /* pledge */
+    .pledge{padding:64px 0;background:var(--wash);border-top:1px solid var(--border)}
+    .pledge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+    .pitem{text-align:center;padding:30px 22px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);transition:box-shadow .2s,transform .2s}
+    .pitem:hover{box-shadow:var(--shlg);transform:translateY(-4px)}
+    .pitem-ico{width:52px;height:52px;border-radius:50%;background:var(--tl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--mid)}
+    .pitem-ico svg{width:24px;height:24px}
+    .pitem-num{font-family:'Nunito',sans-serif;font-size:40px;font-weight:900;color:var(--mid);line-height:1;margin-bottom:5px}
+    .pitem-lbl{font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;color:var(--deep);margin-bottom:7px}
+    .pitem-desc{font-size:14px;color:var(--muted);line-height:1.55}
+
+    /* flex strip */
+    .fstrip{padding:38px 0;background:linear-gradient(135deg,var(--mid),var(--teal))}
+    .fstrip-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    .fstrip-title{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#fff;margin-bottom:5px}
+    .fstrip-sub{font-size:14px;color:rgba(255,255,255,.85)}
+
+    /* events */
+    .events{padding:80px 0}
+    .events-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:44px;gap:16px;flex-wrap:wrap}
+    .events-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .ecard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:box-shadow .2s,transform .2s}
+    .ecard:hover{box-shadow:var(--shlg);transform:translateY(-5px)}
+    .ecard-img-wrap{overflow:hidden;height:196px}
+    .ecard img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+    .ecard:hover img{transform:scale(1.05)}
+    .ecard-body{padding:22px}
+    .ecard-tag{display:inline-block;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);background:var(--tl);padding:4px 10px;border-radius:50px;margin-bottom:11px}
+    .ecard-title{font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;color:var(--deep);margin-bottom:9px;line-height:1.25}
+    .ecard-desc{font-size:14px;color:var(--muted);margin-bottom:18px;line-height:1.55}
+    .ecard-link{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--mid);display:inline-flex;align-items:center;gap:5px;transition:gap .15s}
+    .ecard:hover .ecard-link{gap:9px}
+
+    /* realms */
+    .realms{padding:80px 0 90px;background:var(--wash);overflow:hidden}
+    .realms-hdr{margin-bottom:44px}
+    .realms-rail{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 max(24px,calc((100vw - 1240px)/2 + 24px));padding-bottom:8px}
+    .realms-rail::-webkit-scrollbar{display:none}
+    .rcard{flex:0 0 286px;scroll-snap-align:start;border-radius:var(--r);overflow:hidden;position:relative;height:400px;cursor:pointer;box-shadow:var(--sh);transition:box-shadow .2s}
+    .rcard:hover{box-shadow:var(--shlg)}
+    .rcard-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .4s}
+    .rcard:hover .rcard-bg{transform:scale(1.07)}
+    .rcard-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,20,50,.88) 0%,rgba(0,20,50,.28) 55%,transparent 100%)}
+    .rcard-body{position:absolute;bottom:0;left:0;right:0;padding:22px 20px;z-index:2}
+    .rcard-num{font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:4px}
+    .rcard-name{font-family:'Nunito',sans-serif;font-size:21px;font-weight:900;color:#fff;line-height:1.15;margin-bottom:7px}
+    .rcard-desc{font-size:13px;color:rgba(255,255,255,.75);line-height:1.5}
+    .rcard-cta{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--teal);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
+    .rcard:hover .rcard-cta{opacity:1;transform:translateY(0)}
+    .rail-nav{display:flex;justify-content:center;gap:12px;margin-top:32px}
+    .rail-btn{width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+    .rail-btn:hover{background:var(--mid);border-color:var(--mid);color:#fff}
+    .rail-btn svg{width:18px;height:18px}
+
+    /* rescue */
+    .rescue{padding:80px 0;background:linear-gradient(135deg,#001f40,#003a6b 55%,#005c8a);position:relative;overflow:hidden}
+    .rescue::before{content:'';position:absolute;top:-50%;right:-10%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,180,216,.15),transparent 70%)}
+    .rescue-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;position:relative;z-index:1}
+    .rescue-desc{color:rgba(255,255,255,.8);font-size:15px;margin:14px 0 28px;line-height:1.7}
+    .rescue-alert{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:var(--r);padding:22px;margin-bottom:28px}
+    .rescue-alert-title{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:#fff;margin-bottom:7px}
+    .rescue-alert-txt{font-size:14px;color:rgba(255,255,255,.72);margin-bottom:11px}
+    .rescue-phone{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:var(--teal)}
+    .rescue-media{position:relative;border-radius:var(--r);overflow:hidden;height:440px}
+    .rescue-media img{width:100%;height:100%;object-fit:cover}
+    .rescue-cap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,20,50,.8),transparent);padding:22px 20px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.9)}
+
+    /* partners */
+    .partners{padding:50px 0;border-top:1px solid var(--border)}
+    .partners-lbl{text-align:center;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:32px}
+    .partners-row{display:flex;align-items:center;justify-content:center;gap:56px;flex-wrap:wrap}
+    .partner{opacity:.55;transition:opacity .2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+    .partner:hover{opacity:1}
+    .partner img{height:38px;width:auto;object-fit:contain}
+    .partner span{font-size:11px;color:var(--dim)}
+
+    /* newsletter */
+    .nl{padding:68px 0;background:var(--wash);border-top:1px solid var(--border);text-align:center}
+    .nl-title{font-family:'Nunito',sans-serif;font-size:clamp(22px,3.5vw,36px);font-weight:900;color:var(--deep);margin-bottom:10px}
+    .nl-sub{color:var(--muted);font-size:15px;margin-bottom:30px}
+    .nl-form{display:flex;gap:12px;max-width:450px;margin:0 auto}
+    .nl-input{flex:1;background:var(--card);border:2px solid var(--border);border-radius:50px;color:var(--txt);font-family:'Inter',sans-serif;font-size:15px;padding:13px 20px;outline:none;transition:border-color .15s}
+    .nl-input::placeholder{color:var(--dim)}
+    .nl-input:focus{border-color:var(--mid)}
+    .nl-privacy{font-size:12px;color:var(--dim);margin-top:12px}
+    .nl-privacy a{color:var(--mid);text-decoration:underline}
+
+    /* footer */
+    .footer{background:var(--deep);color:#fff;padding:60px 0 28px}
+    .footer-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:44px;margin-bottom:48px}
+    .footer-desc{font-size:14px;color:rgba(255,255,255,.6);line-height:1.65;margin:14px 0 24px}
+    .socials{display:flex;flex-wrap:wrap;gap:10px}
+    .soc{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);transition:background .15s,border-color .15s,color .15s}
+    .soc:hover{background:var(--teal);border-color:var(--teal);color:#fff}
+    .soc svg{width:15px;height:15px}
+    .fcol-title{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin-bottom:18px}
+    .flinks{list-style:none}
+    .flinks li{margin-bottom:11px}
+    .flinks a{font-size:14px;color:rgba(255,255,255,.58);transition:color .15s}
+    .flinks a:hover{color:#fff}
+    .footer-bot{border-top:1px solid rgba(255,255,255,.12);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+    .footer-copy{font-size:12px;color:rgba(255,255,255,.38)}
+    .footer-legal{display:flex;gap:20px;flex-wrap:wrap}
+    .footer-legal a{font-size:12px;color:rgba(255,255,255,.38);transition:color .15s}
+    .footer-legal a:hover{color:rgba(255,255,255,.7)}
+
+    /* aep bar */
+    .aep-bar{position:fixed;bottom:20px;right:20px;z-index:9999;background:rgba(0,58,107,.97);border:1px solid var(--teal);border-radius:var(--r);padding:14px 18px;min-width:260px;max-width:320px;backdrop-filter:blur(12px);color:#fff;display:none}
+    .aep-bar.on{display:block}
+    .aep-lbl{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:5px}
+    .aep-msg{font-size:14px;line-height:1.45}
+    .aep-close{position:absolute;top:8px;right:10px;background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;line-height:1}
+
+    /* responsive */
+    @media(max-width:1024px){.pledge-grid{grid-template-columns:repeat(2,1fr)}.events-grid{grid-template-columns:repeat(2,1fr)}.rescue-inner{grid-template-columns:1fr}.hero-card{display:none}.footer-top{grid-template-columns:1fr 1fr}}
+    @media(max-width:768px){.nav-links{display:none}.nav-toggle{display:flex}.pledge-grid{grid-template-columns:1fr}.events-grid{grid-template-columns:1fr}.footer-top{grid-template-columns:1fr}.nl-form{flex-direction:column}.footer-bot{flex-direction:column;align-items:flex-start}.hero-content{margin-left:0}.fstrip-inner{flex-direction:column;text-align:center}}
+  </style>
+</head>
+<body>
+
+<div class="ann">🌊 Flexibility for Every Visit — Simple changes &amp; flexible refunds until 31 May <a href="#tickets">View Tickets →</a></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-color-new.png?w=320" alt="SeaWorld Yas Island Abu Dhabi" onerror="this.style.display='none';document.querySelector('.logo-fallback').style.display='block'">
+      <div class="logo-fallback">SeaWorld®<span>Yas Island, Abu Dhabi</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#visit">Plan Your Visit</a></li>
+      <li><a href="#realms">Explore</a></li>
+      <li><a href="#rescue">Research &amp; Rescue</a></li>
+      <li><a href="#events">Events</a></li>
+      <li><a href="#tickets">Tickets &amp; Offers</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <button class="icon-btn" aria-label="My account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+      <button class="icon-btn" aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button>
+      <a href="#tickets" class="btn btn-ocean">Buy Now</a>
+      <button class="nav-toggle" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-ov"></div>
+  <div class="hero-bot"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="hero-dot"></span>Now Open on Yas Island</div>
+    <h1 class="hero-title">One Ocean,<br><em>Infinite</em><br>Wonders</h1>
+    <p class="hero-sub">Get ready for over 100 animal experiences and presentations, and learn all about the One Ocean that connects us all.</p>
+    <div class="hero-ctas">
+      <a href="#tickets" class="btn btn-teal">Buy Tickets</a>
+      <a href="#realms" class="btn btn-white">Explore the Park</a>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="hero-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+    <p class="hero-card-title">Conservation at Heart</p>
+    <p class="hero-card-text">Every ticket purchased supports the Yas SeaWorld Research &amp; Rescue Center.</p>
+  </div>
+</section>
+
+<section class="pledge">
+  <div class="container">
+    <div class="pledge-grid">
+      <div class="pitem">
+        <div class="pitem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <div class="pitem-num">100+</div>
+        <div class="pitem-lbl">Animal Experiences</div>
+        <p class="pitem-desc">Presentations, encounters, and live experiences across all eight realms of the park.</p>
+      </div>
+      <div class="pitem">
+        <div class="pitem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        <div class="pitem-num">1</div>
+        <div class="pitem-lbl">One Ocean</div>
+        <p class="pitem-desc">The world's oceans are connected. Explore, learn, and help protect what unites us all.</p>
+      </div>
+      <div class="pitem">
+        <div class="pitem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="pitem-num">8</div>
+        <div class="pitem-lbl">Themed Realms</div>
+        <p class="pitem-desc">From icy polar waters to vibrant tropical reefs — eight immersive ocean worlds await.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="fstrip">
+  <div class="container">
+    <div class="fstrip-inner">
+      <div>
+        <p class="fstrip-title">Flexibility for Every Visit</p>
+        <p class="fstrip-sub">Enjoy stress-free ticket buying with simple changes and flexible refund options until 31 May.</p>
+      </div>
+      <a href="#tickets" class="btn btn-white">View Flexible Tickets</a>
+    </div>
+  </div>
+</div>
+
+<section class="events" id="events">
+  <div class="container">
+    <div class="events-hdr">
+      <div>
+        <p class="slabel">Latest at the Park</p>
+        <h2 class="stitle">What's On</h2>
+      </div>
+      <a href="#" class="btn btn-outline">View All Events</a>
+    </div>
+    <div class="events-grid">
+      <article class="ecard">
+        <div class="ecard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/dolphinecounter2-medium1.jpg" alt="Dolphin Encounter" onerror="this.src='https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=600&q=80'">
+        </div>
+        <div class="ecard-body">
+          <span class="ecard-tag">Live Show</span>
+          <h3 class="ecard-title">Dolphin Discoveries Presentation</h3>
+          <p class="ecard-desc">Watch our marine team showcase the intelligence and agility of Atlantic bottlenose dolphins in a spectacular live presentation.</p>
+          <a href="#" class="ecard-link">Learn More <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+      <article class="ecard">
+        <div class="ecard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/manta-coasterkv-medium.jpg" alt="Manta Coaster" onerror="this.src='https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80'">
+        </div>
+        <div class="ecard-body">
+          <span class="ecard-tag">Ride</span>
+          <h3 class="ecard-title">Manta Roller Coaster</h3>
+          <p class="ecard-desc">Swoop and soar like a majestic manta ray on this thrilling family coaster in the heart of Tropical Ocean.</p>
+          <a href="#" class="ecard-link">Learn More <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+      <article class="ecard">
+        <div class="ecard-img-wrap">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/to-aviarykv-hero.jpg" alt="Aviary" onerror="this.src='https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=600&q=80'">
+        </div>
+        <div class="ecard-body">
+          <span class="ecard-tag">Encounter</span>
+          <h3 class="ecard-title">Tropical Aviary Walk-Through</h3>
+          <p class="ecard-desc">Step inside a living rainforest canopy and meet hundreds of free-flying tropical birds up close.</p>
+          <a href="#" class="ecard-link">Learn More <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="realms" id="realms">
+  <div class="realms-hdr container">
+    <p class="slabel">Eight Immersive Worlds</p>
+    <h2 class="stitle">Explore the Realms</h2>
+  </div>
+  <div class="realms-rail" id="realmsRail">
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/one-ocean/jpg/oo-header-hero.jpg" data-fb="linear-gradient(160deg,#003a6b,#0077b6)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 01</p>
+        <h3 class="rcard-name">One Ocean</h3>
+        <p class="rcard-desc">The heart of the park — celebrating the single body of water that connects our world.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/tropical-ocean/jpg/to-kv-full.jpg" data-fb="linear-gradient(160deg,#005c6b,#00b894)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 02</p>
+        <h3 class="rcard-name">Tropical Ocean</h3>
+        <p class="rcard-desc">Swim alongside dolphins, manta rays, and technicolour reef creatures in a living coral paradise.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/abu-dhabi-ocean/jpg/ado-kv-full.jpg" data-fb="linear-gradient(160deg,#003a6b,#005080)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 03</p>
+        <h3 class="rcard-name">Abu Dhabi Ocean</h3>
+        <p class="rcard-desc">Discover the unique marine life of the Arabian Gulf — dugongs, sea turtles, and bamboo sharks.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/endless-ocean/jpg/eo-kv-hero.jpg" data-fb="linear-gradient(160deg,#00637a,#00b4d8)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 04</p>
+        <h3 class="rcard-name">Endless Ocean</h3>
+        <p class="rcard-desc">Dive into open waters with schooling fish, hammerheads, and the awe-inspiring The Swirl tunnel.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/antartica/jpg/antartica-kv-hero.jpg" data-fb="linear-gradient(160deg,#1a3a5c,#4a90a0)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 05</p>
+        <h3 class="rcard-name">Antarctica</h3>
+        <p class="rcard-desc">Meet six species of penguins — King, Gentoo, Rockhopper, Chinstrap, Macaroni, and Adélie.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/arctic/jpg/po-artic-kv-hero.jpg" data-fb="linear-gradient(160deg,#1a3050,#306080)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 06</p>
+        <h3 class="rcard-name">Arctic</h3>
+        <p class="rcard-desc">Venture to the polar extremes — walruses, puffins, and the High Per Sphere await.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/rocky-point/jpg/sw-ro-kv-full.jpg" data-fb="linear-gradient(160deg,#3a4a5c,#6a8a9c)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 07</p>
+        <h3 class="rcard-name">Rocky Point</h3>
+        <p class="rcard-desc">The rugged coastline home of sea lions, harbour seals, and playful marine mammals.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+    <div class="rcard" data-bg="https://static.myconnect.ae/-/media/yasconnect/project/swad/realms/micro-ocean/jpg/sw-mo-kv-full.jpg" data-fb="linear-gradient(160deg,#0a2a50,#1a5080)">
+      <div class="rcard-bg"></div><div class="rcard-ov"></div>
+      <div class="rcard-body">
+        <p class="rcard-num">Realm 08</p>
+        <h3 class="rcard-name">Micro Ocean</h3>
+        <p class="rcard-desc">A thrilling kids' realm packed with rides — Turtle Twist, OctoZoom, Jelly Plunge, and more.</p>
+        <span class="rcard-cta">Explore →</span>
+      </div>
+    </div>
+
+  </div>
+  <div class="rail-nav container">
+    <button class="rail-btn" id="realmsPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="rail-btn" id="realmsNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+</section>
+
+<section class="rescue" id="rescue">
+  <div class="container">
+    <div class="rescue-inner">
+      <div>
+        <p class="slabel" style="color:var(--teal)">Yas SeaWorld Research &amp; Rescue</p>
+        <h2 class="stitle light">Conservation in Action</h2>
+        <p class="rescue-desc">The Yas SeaWorld Research &amp; Rescue Center is one of the most advanced marine animal rescue facilities in the world. Every ticket sold directly funds this vital work.</p>
+        <div class="rescue-alert">
+          <p class="rescue-alert-title">🐠 Spotted an animal in distress?</p>
+          <p class="rescue-alert-txt">We're ready to help any marine animal that's sick or injured. Contact our rescue line:</p>
+          <a href="tel:00971565030060" class="rescue-phone">056 503 0060</a>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <a href="#" class="btn btn-teal">Learn About Our Work</a>
+          <a href="#" class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.4)">Science Talks</a>
+        </div>
+      </div>
+      <div class="rescue-media">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/armillary-hero.jpg" alt="Yas SeaWorld Research and Rescue Center" onerror="this.src='https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=800&q=80'">
+        <div class="rescue-cap">Yas SeaWorld Research &amp; Rescue Center — Yas Island, Abu Dhabi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="partners" id="partners">
+  <div class="container">
+    <p class="partners-lbl">Our Official Partners</p>
+    <div class="partners-row">
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/sponsorship/yi-partnership-logos-cc.png?h=80&w=155" alt="Coca-Cola" onerror="this.style.display='none'">
+        <span>Official Soft Drinks Partner</span>
+      </div>
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/partnerships/enbd.svg" alt="Emirates NBD" style="filter:none" onerror="this.style.display='none'">
+        <span>Official Banking Partner</span>
+      </div>
+      <div class="partner">
+        <img src="https://static.myconnect.ae/-/media/yasconnect/project/wbw/sponsorship/etihadairways-1.png?h=55&w=155" alt="Etihad Airways" onerror="this.style.display='none'">
+        <span>Official Airline Partner</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="nl" id="newsletter">
+  <div class="container">
+    <p class="slabel" style="text-align:center">Stay Connected</p>
+    <h2 class="nl-title">Dive Deeper with SeaWorld</h2>
+    <p class="nl-sub">Be the first to hear about new animals, events, conservation news, and exclusive offers.</p>
+    <form class="nl-form" onsubmit="nlSubmit(event)">
+      <input type="email" class="nl-input" placeholder="Your email address" required>
+      <button type="submit" class="btn btn-ocean">Sign Up</button>
+    </form>
+    <p class="nl-privacy">By signing up you agree to our <a href="#">Privacy Policy</a>. Unsubscribe at any time.</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <a href="#" class="logo" style="margin-bottom:14px">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-white-new.png?w=320" alt="SeaWorld" style="height:44px;width:auto" onerror="this.style.display='none'">
+        </a>
+        <p class="footer-desc">SeaWorld® Yas Island Abu Dhabi — an immersive ocean park dedicated to inspiring guests with the wonders of the natural world and the importance of marine conservation.</p>
+        <div class="socials">
+          <a href="#" class="soc" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          <a href="#" class="soc" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+          <a href="#" class="soc" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a href="#" class="soc" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg></a>
+          <a href="#" class="soc" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z"/></svg></a>
+          <a href="#" class="soc" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <p class="fcol-title">About</p>
+        <ul class="flinks"><li><a href="#">Park Overview</a></li><li><a href="#">FAQs</a></li><li><a href="#">Partnerships</a></li><li><a href="#">News</a></li><li><a href="#">Careers</a></li><li><a href="#">People of Determination</a></li></ul>
+      </div>
+      <div>
+        <p class="fcol-title">Explore</p>
+        <ul class="flinks"><li><a href="#realms">The Eight Realms</a></li><li><a href="#">Animal Experiences</a></li><li><a href="#">Rides</a></li><li><a href="#">Dining</a></li><li><a href="#">Shopping</a></li><li><a href="#rescue">Research &amp; Rescue</a></li></ul>
+      </div>
+      <div>
+        <p class="fcol-title">Legal</p>
+        <ul class="flinks"><li><a href="#">Terms &amp; Conditions</a></li><li><a href="#">Ticket Terms</a></li><li><a href="#">Park Entry Terms</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Cookies Policy</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bot">
+      <p class="footer-copy">© 2025 SeaWorld Parks &amp; Entertainment. SeaWorld® Yas Island Abu Dhabi is operated under license on Yas Island.</p>
+      <div class="footer-legal"><a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Cookie Settings</a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="aep-bar" id="aepBar">
+  <button class="aep-close" onclick="document.getElementById('aepBar').classList.remove('on');sessionStorage.setItem('swAepDismissed','1')">×</button>
+  <p class="aep-lbl">AEP Personalisation Active</p>
+  <p class="aep-msg" id="aepBarMsg">Welcome back! You have a saved dolphin encounter. <strong>Resume booking →</strong></p>
+</div>
+
+<script>
+  // Hero BG
+  const heroBg = document.getElementById('heroBg');
+  const heroUrl = 'https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/endless-vistakv-hero.jpg';
+  const heroFb  = 'https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80';
+  const th = new Image();
+  th.onload  = () => { heroBg.style.backgroundImage = `url('${heroUrl}')`; setTimeout(() => heroBg.classList.add('loaded'), 50); };
+  th.onerror = () => { heroBg.style.backgroundImage = `url('${heroFb}')`; setTimeout(() => heroBg.classList.add('loaded'), 50); };
+  th.src = heroUrl;
+
+  // Realm cards
+  document.querySelectorAll('.rcard').forEach(card => {
+    const bg = card.querySelector('.rcard-bg');
+    const url = card.dataset.bg, fb = card.dataset.fb;
+    const t = new Image();
+    t.onload  = () => { bg.style.backgroundImage = `url('${url}')`; };
+    t.onerror = () => { bg.style.background = fb; };
+    t.src = url;
+  });
+
+  // Carousel
+  const rail = document.getElementById('realmsRail');
+  const CW = 286 + 20;
+  document.getElementById('realmsNext').onclick = () => rail.scrollBy({left: CW*2, behavior:'smooth'});
+  document.getElementById('realmsPrev').onclick = () => rail.scrollBy({left: -CW*2, behavior:'smooth'});
+
+  // Newsletter
+  function nlSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button'), inp = e.target.querySelector('input');
+    btn.textContent = 'Subscribed ✓'; btn.style.background = '#00b894';
+    inp.value = '';
+    setTimeout(() => { btn.textContent = 'Sign Up'; btn.style.background = ''; }, 3000);
+  }
+
+  // AEP bar
+  setTimeout(() => {
+    if (!sessionStorage.getItem('swAepDismissed')) document.getElementById('aepBar').classList.add('on');
+  }, 4000);
+
+  // Scroll fade-in
+  const fades = document.querySelectorAll('.ecard,.rcard,.pitem');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform=''; io.unobserve(e.target); }});
+  }, {threshold:0.1});
+  fades.forEach(el => { el.style.opacity='0'; el.style.transform='translateY(18px)'; el.style.transition='opacity .5s,transform .5s'; io.observe(el); });
+</script>
+</body>
+</html>

@@ -1,0 +1,1664 @@
+# Warner Bros. World™ Abu Dhabi — Demo Site Build Spec
+
+> **Cursor instructions:** Create the file `wb-world-abu-dhabi.html` exactly as specified below. It is a single self-contained HTML page that faithfully reproduces the visual design, layout, typography, color scheme, and content structure of the Warner Bros. World Abu Dhabi theme park website. No external frameworks (no Bootstrap, no Tailwind). All CSS is in a `<style>` block in `<head>`. All JS is in a `<script>` block before `</body>`. The page must be fully responsive. Use Google Fonts `Oswald` (display/headings) and `Open Sans` (body). For hero/section background images, use the Unsplash source URLs listed per section — they are free to use and load without API keys.
+
+---
+
+## Design System
+
+| Token | Value |
+|---|---|
+| `--bg-deep` | `#09090f` |
+| `--bg-surface` | `#111120` |
+| `--bg-card` | `#16162a` |
+| `--border` | `#2a2a45` |
+| `--gold` | `#f5a623` |
+| `--gold-dark` | `#c8840a` |
+| `--red` | `#e31837` |
+| `--text` | `#ffffff` |
+| `--text-muted` | `#9898b2` |
+| `--text-dim` | `#5c5c78` |
+| `--radius` | `12px` |
+| `--radius-sm` | `6px` |
+| `--nav-h` | `72px` |
+
+**Fonts:**
+```
+https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap
+```
+
+---
+
+## Full HTML Implementation
+
+Create `wb-world-abu-dhabi.html` with the following complete content:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warner Bros. World™ Abu Dhabi — The World's Biggest Indoor Theme Park</title>
+  <meta name="description" content="Warner Bros. World™ Abu Dhabi — Enter six immersive themed lands and experience your favourite characters in the world's biggest indoor theme park on Yas Island.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #09090f;
+      --bg-surface: #111120;
+      --bg-card:    #16162a;
+      --border:     #2a2a45;
+      --gold:       #f5a623;
+      --gold-dark:  #c8840a;
+      --red:        #e31837;
+      --text:       #ffffff;
+      --text-muted: #9898b2;
+      --text-dim:   #5c5c78;
+      --radius:     12px;
+      --radius-sm:  6px;
+      --nav-h:      72px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: 'Open Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ─── UTILITY ─── */
+    .container { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .btn {
+      display: inline-block;
+      font-family: 'Oswald', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 13px 32px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-gold {
+      background: var(--gold);
+      color: #0a0a0f;
+    }
+    .btn-gold:hover { background: #ffc04a; box-shadow: 0 8px 24px rgba(245,166,35,.35); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid rgba(255,255,255,.5);
+    }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+    .section-label {
+      font-family: 'Oswald', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text);
+    }
+
+    /* ─── ANNOUNCEMENT BAR ─── */
+    .announcement-bar {
+      background: var(--red);
+      color: #fff;
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-align: center;
+      padding: 9px 16px;
+    }
+    .announcement-bar a { text-decoration: underline; margin-left: 10px; }
+
+    /* ─── NAVIGATION ─── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      height: var(--nav-h);
+      background: rgba(9,9,15,.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    .nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 24px;
+    }
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .nav__logo-shield {
+      width: 44px;
+      height: 44px;
+      background: var(--gold);
+      border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Oswald', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0a0a0f;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+    }
+    .nav__logo-text {
+      font-family: 'Oswald', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text);
+    }
+    .nav__logo-text span {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: .5px;
+    }
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      list-style: none;
+    }
+    .nav__links a {
+      font-family: 'Oswald', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      transition: color .15s, background .15s;
+    }
+    .nav__links a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .nav__actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .nav__icon-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s;
+      color: var(--text-muted);
+    }
+    .nav__icon-btn:hover { background: rgba(255,255,255,.13); color: var(--text); }
+    .nav__icon-btn svg { width: 17px; height: 17px; }
+    .nav__menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+      padding: 4px;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .hero__bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1800&q=80');
+      background-size: cover;
+      background-position: center 30%;
+      transform: scale(1.05);
+      transition: transform 8s ease-out;
+    }
+    .hero__bg.loaded { transform: scale(1); }
+    .hero__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        rgba(9,9,15,.88) 0%,
+        rgba(9,9,15,.65) 50%,
+        rgba(9,9,15,.25) 100%
+      );
+    }
+    .hero__overlay-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 200px;
+      background: linear-gradient(to top, var(--bg-deep), transparent);
+    }
+    .hero__content {
+      position: relative;
+      z-index: 2;
+      max-width: 680px;
+      padding: 0 24px;
+      margin-left: max(24px, calc((100vw - 1240px) / 2 + 24px));
+    }
+    .hero__open-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(245,166,35,.15);
+      border: 1px solid rgba(245,166,35,.4);
+      border-radius: 24px;
+      padding: 6px 14px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+    .hero__open-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.8); }
+    }
+    .hero__title {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(38px, 6vw, 72px);
+      font-weight: 700;
+      line-height: 1.05;
+      color: var(--text);
+      margin-bottom: 20px;
+      text-shadow: 0 2px 24px rgba(0,0,0,.4);
+    }
+    .hero__title em {
+      font-style: normal;
+      color: var(--gold);
+    }
+    .hero__sub {
+      font-family: 'Open Sans', sans-serif;
+      font-size: clamp(15px, 1.6vw, 18px);
+      font-weight: 300;
+      color: rgba(255,255,255,.8);
+      max-width: 500px;
+      margin-bottom: 36px;
+      line-height: 1.65;
+    }
+    .hero__ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+    .hero__scroll-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,.4);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: bobDown 2.4s ease-in-out infinite;
+    }
+    .hero__scroll-hint svg { width: 20px; height: 20px; }
+    @keyframes bobDown {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ─── OFFERS STRIP ─── */
+    .offers {
+      padding: 72px 0;
+      background: var(--bg-surface);
+    }
+    .offers__header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .offers__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .offer-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      cursor: pointer;
+    }
+    .offer-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--gold);
+      box-shadow: 0 16px 48px rgba(0,0,0,.5);
+    }
+    .offer-card__img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      transition: transform .4s;
+    }
+    .offer-card:hover .offer-card__img { transform: scale(1.04); }
+    .offer-card__img-wrap { overflow: hidden; }
+    .offer-card__body { padding: 24px; }
+    .offer-card__tag {
+      font-family: 'Oswald', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .offer-card__title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .offer-card__desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .offer-card__link {
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap .15s;
+    }
+    .offer-card:hover .offer-card__link { gap: 10px; }
+
+    /* ─── PARK LANDS ─── */
+    .lands {
+      padding: 80px 0 90px;
+      background: var(--bg-deep);
+      overflow: hidden;
+    }
+    .lands__header {
+      margin-bottom: 48px;
+    }
+    .lands__carousel-wrap {
+      position: relative;
+    }
+    .lands__carousel {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      padding: 0 24px;
+      padding-right: max(24px, calc((100vw - 1240px) / 2 + 24px));
+      padding-left: max(24px, calc((100vw - 1240px) / 2 + 24px));
+    }
+    .lands__carousel::-webkit-scrollbar { display: none; }
+    .land-card {
+      flex: 0 0 320px;
+      scroll-snap-align: start;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      height: 420px;
+    }
+    .land-card__bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: transform .4s;
+    }
+    .land-card:hover .land-card__bg { transform: scale(1.06); }
+    .land-card__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.2) 55%, transparent 100%);
+    }
+    .land-card__body {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 28px 24px;
+      z-index: 2;
+    }
+    .land-card__number {
+      font-family: 'Oswald', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .land-card__name {
+      font-family: 'Oswald', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .land-card__desc {
+      font-size: 13px;
+      color: rgba(255,255,255,.7);
+      line-height: 1.5;
+    }
+    .land-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+    }
+    .land-card:hover .land-card__cta { opacity: 1; transform: translateY(0); }
+    .lands__nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 36px;
+    }
+    .lands__nav-btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .lands__nav-btn:hover { background: var(--gold); border-color: var(--gold); color: #0a0a0f; }
+    .lands__nav-btn svg { width: 18px; height: 18px; }
+
+    /* Land card BG colours (fallback when no image) */
+    .land--plaza    .land-card__bg { background: linear-gradient(135deg,#1a0a2e,#3d1a6e); }
+    .land--bedrock  .land-card__bg { background: linear-gradient(135deg,#2e1a0a,#7a4010); }
+    .land--dynamite .land-card__bg { background: linear-gradient(135deg,#2e0a0a,#8a1010); }
+    .land--cartoon  .land-card__bg { background: linear-gradient(135deg,#0a2e2e,#0a5c5c); }
+    .land--gotham   .land-card__bg { background: linear-gradient(135deg,#0a0a1e,#1a1a5e); }
+    .land--metro    .land-card__bg { background: linear-gradient(135deg,#1a2e0a,#2a6020); }
+
+    /* ─── PARK MAP SECTION ─── */
+    .park-map {
+      padding: 80px 0;
+      background: var(--bg-surface);
+    }
+    .park-map__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .park-map__content {}
+    .park-map__visual {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      height: 380px;
+    }
+    .park-map__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .park-map__visual-badge {
+      position: absolute;
+      top: 20px; right: 20px;
+      background: var(--gold);
+      color: #0a0a0f;
+      font-family: 'Oswald', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+    }
+    .park-map__desc {
+      color: var(--text-muted);
+      margin: 16px 0 32px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .park-map__stats {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 36px;
+    }
+    .park-map__stat {}
+    .park-map__stat-num {
+      font-family: 'Oswald', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .park-map__stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── CHARACTERS BAND ─── */
+    .characters-band {
+      padding: 60px 0;
+      background: linear-gradient(135deg, #0f0f20, #1a0a2e);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .characters-band__inner {
+      display: flex;
+      align-items: center;
+      gap: 48px;
+    }
+    .characters-band__text { flex-shrink: 0; max-width: 320px; }
+    .characters-band__desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin: 12px 0 28px;
+      line-height: 1.65;
+    }
+    .characters-band__scroll {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex: 1;
+      padding-bottom: 4px;
+    }
+    .characters-band__scroll::-webkit-scrollbar { display: none; }
+    .char-chip {
+      flex-shrink: 0;
+      width: 110px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .char-chip__img-wrap {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin: 0 auto 10px;
+      border: 2px solid var(--border);
+      transition: border-color .2s, transform .2s;
+      background: var(--bg-card);
+    }
+    .char-chip:hover .char-chip__img-wrap { border-color: var(--gold); transform: scale(1.06); }
+    .char-chip__img { width: 100%; height: 100%; object-fit: cover; }
+    .char-chip__name {
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color .2s;
+    }
+    .char-chip:hover .char-chip__name { color: var(--gold); }
+
+    /* ─── TICKETS SECTION ─── */
+    .tickets {
+      padding: 80px 0;
+      background: var(--bg-deep);
+    }
+    .tickets__header { text-align: center; margin-bottom: 52px; }
+    .tickets__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .ticket-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      text-align: center;
+      position: relative;
+      transition: transform .2s, border-color .2s;
+    }
+    .ticket-card:hover { transform: translateY(-4px); }
+    .ticket-card--featured {
+      border-color: var(--gold);
+      background: linear-gradient(160deg, #1e1a0a, var(--bg-card));
+    }
+    .ticket-card__badge {
+      position: absolute;
+      top: -13px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold);
+      color: #0a0a0f;
+      font-family: 'Oswald', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 24px;
+    }
+    .ticket-card__name {
+      font-family: 'Oswald', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .ticket-card__price {
+      font-family: 'Oswald', sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      margin: 20px 0 4px;
+    }
+    .ticket-card__price-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .ticket-card__features {
+      list-style: none;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .ticket-card__features li {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ticket-card__features li::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    /* ─── SUPPORT SECTION ─── */
+    .support {
+      padding: 64px 0;
+      background: var(--bg-surface);
+    }
+    .support__inner {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    .support-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color .2s;
+    }
+    .support-card:hover { border-color: var(--gold); }
+    .support-card__icon {
+      width: 48px; height: 48px;
+      background: rgba(245,166,35,.12);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      color: var(--gold);
+    }
+    .support-card__icon svg { width: 22px; height: 22px; }
+    .support-card__title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .support-card__desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .support-card__action {
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    /* ─── NEWSLETTER ─── */
+    .newsletter {
+      padding: 72px 0;
+      background: linear-gradient(135deg, #0d0d20, #150a28);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    .newsletter__title {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(26px, 3.5vw, 38px);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .newsletter__sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 36px;
+    }
+    .newsletter__form {
+      display: flex;
+      gap: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .newsletter__input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Open Sans', sans-serif;
+      font-size: 15px;
+      padding: 13px 18px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .newsletter__input::placeholder { color: var(--text-dim); }
+    .newsletter__input:focus { border-color: var(--gold); }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      background: #06060d;
+      border-top: 1px solid var(--border);
+      padding: 64px 0 32px;
+    }
+    .footer__top {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 56px;
+    }
+    .footer__brand-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin: 16px 0 28px;
+    }
+    .footer__socials {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .footer__social {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .footer__social:hover { background: var(--gold); border-color: var(--gold); color: #0a0a0f; }
+    .footer__social svg { width: 16px; height: 16px; }
+    .footer__col-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .footer__links { list-style: none; }
+    .footer__links li { margin-bottom: 12px; }
+    .footer__links a {
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color .15s;
+    }
+    .footer__links a:hover { color: var(--gold); }
+    .footer__bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer__copy {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .footer__legal {
+      display: flex;
+      gap: 24px;
+    }
+    .footer__legal a {
+      font-size: 13px;
+      color: var(--text-dim);
+      transition: color .15s;
+    }
+    .footer__legal a:hover { color: var(--text-muted); }
+
+    /* ─── AEP PERSONALIZATION BAR (demo only) ─── */
+    .aep-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: rgba(9,9,15,.96);
+      border: 1px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      min-width: 260px;
+      max-width: 320px;
+      backdrop-filter: blur(12px);
+      display: none;
+    }
+    .aep-bar.visible { display: block; }
+    .aep-bar__label {
+      font-family: 'Oswald', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .aep-bar__msg {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .aep-bar__close {
+      position: absolute;
+      top: 8px; right: 10px;
+      background: none; border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1024px) {
+      .offers__grid { grid-template-columns: repeat(2, 1fr); }
+      .tickets__grid { grid-template-columns: repeat(2, 1fr); }
+      .park-map__inner { grid-template-columns: 1fr; }
+      .park-map__visual { order: -1; }
+      .footer__top { grid-template-columns: 1fr 1fr; }
+      .characters-band__inner { flex-direction: column; }
+      .characters-band__text { max-width: 100%; }
+    }
+    @media (max-width: 768px) {
+      .nav__links { display: none; }
+      .nav__menu-toggle { display: flex; }
+      .offers__grid { grid-template-columns: 1fr; }
+      .support__inner { grid-template-columns: 1fr; }
+      .tickets__grid { grid-template-columns: 1fr; max-width: 360px; }
+      .park-map__stats { flex-wrap: wrap; gap: 20px; }
+      .footer__top { grid-template-columns: 1fr; }
+      .newsletter__form { flex-direction: column; }
+      .footer__bottom { flex-direction: column; align-items: flex-start; }
+      .hero__content { margin-left: 0; padding: 0 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ANNOUNCEMENT BAR -->
+  <div class="announcement-bar" role="banner">
+    NOW OPEN — 9:00am to 7:00pm GST &nbsp;|&nbsp; <strong>30% off tickets with Emirates NBD</strong>
+    <a href="#">Shop Offers →</a>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="Warner Bros. World Abu Dhabi home">
+        <div class="nav__logo-shield" aria-hidden="true">WB</div>
+        <div class="nav__logo-text">
+          Warner Bros. World™
+          <span>Abu Dhabi</span>
+        </div>
+      </a>
+
+      <ul class="nav__links" role="list">
+        <li><a href="#visit">Plan Your Visit</a></li>
+        <li><a href="#lands">Explore</a></li>
+        <li><a href="#tickets">Tickets</a></li>
+        <li><a href="#events">Events</a></li>
+      </ul>
+
+      <div class="nav__actions">
+        <!-- Search -->
+        <button class="nav__icon-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        <!-- Language -->
+        <button class="nav__icon-btn" aria-label="Language: English">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </button>
+        <a href="#tickets" class="btn btn-gold">Buy Now</a>
+        <button class="nav__menu-toggle" aria-label="Open menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" aria-label="Hero">
+    <div class="hero__bg" id="heroBg"></div>
+    <div class="hero__overlay" aria-hidden="true"></div>
+    <div class="hero__overlay-bottom" aria-hidden="true"></div>
+    <div class="hero__content">
+      <div class="hero__open-badge">
+        <span class="hero__open-dot"></span>
+        Open Today · 9:00am – 7:00pm
+      </div>
+      <h1 class="hero__title">
+        Experience<br>
+        <em>Everything</em><br>
+        You've Imagined
+      </h1>
+      <p class="hero__sub">
+        Enter Warner Bros. World™ Abu Dhabi and get transported to six awesome worlds on Yas Island — the world's biggest indoor theme park.
+      </p>
+      <div class="hero__ctas">
+        <a href="#tickets" class="btn btn-gold">Buy Tickets</a>
+        <a href="#lands" class="btn btn-outline">Explore the Park</a>
+      </div>
+    </div>
+    <div class="hero__scroll-hint" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+      Scroll
+    </div>
+  </section>
+
+  <!-- OFFERS -->
+  <section class="offers" id="offers" aria-labelledby="offers-heading">
+    <div class="container">
+      <div class="offers__header">
+        <p class="section-label">Featured Offers</p>
+        <h2 class="section-title" id="offers-heading">Deals Worth Imagining</h2>
+      </div>
+      <div class="offers__grid">
+
+        <article class="offer-card">
+          <div class="offer-card__img-wrap">
+            <img class="offer-card__img"
+              src="https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&q=80"
+              alt="Emirates NBD discount offer" loading="lazy">
+          </div>
+          <div class="offer-card__body">
+            <p class="offer-card__tag">Bank Offer</p>
+            <h3 class="offer-card__title">Emirates NBD Offer</h3>
+            <p class="offer-card__desc">Enjoy 30% discount on Single Day Tickets and exclusive benefits when you pay with Emirates NBD.</p>
+            <a href="#tickets" class="offer-card__link">
+              Shop Now
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="offer-card">
+          <div class="offer-card__img-wrap">
+            <img class="offer-card__img"
+              src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80"
+              alt="VIP Experience package" loading="lazy">
+          </div>
+          <div class="offer-card__body">
+            <p class="offer-card__tag">Premium</p>
+            <h3 class="offer-card__title">VIP Experience</h3>
+            <p class="offer-card__desc">Indulge in the ultimate VIP experience — priority access to all lands, dedicated host, and exclusive character encounters.</p>
+            <a href="#tickets" class="offer-card__link">
+              Discover More
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="offer-card">
+          <div class="offer-card__img-wrap">
+            <img class="offer-card__img"
+              src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80"
+              alt="Etihad Airways super vacation" loading="lazy">
+          </div>
+          <div class="offer-card__body">
+            <p class="offer-card__tag">Travel Deal</p>
+            <h3 class="offer-card__title">Buckle Up for a Super Vacation</h3>
+            <p class="offer-card__desc">Fly with Etihad Airways and unlock a bundled theme park package at a superhero-sized value.</p>
+            <a href="#tickets" class="offer-card__link">
+              View Package
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PARK LANDS -->
+  <section class="lands" id="lands" aria-labelledby="lands-heading">
+    <div class="lands__header container">
+      <p class="section-label">Six Themed Worlds</p>
+      <h2 class="section-title" id="lands-heading">Explore the Lands</h2>
+    </div>
+    <div class="lands__carousel-wrap">
+      <div class="lands__carousel" id="landsCarousel" role="list">
+
+        <div class="land-card land--plaza" role="listitem" tabindex="0" aria-label="Warner Bros. Plaza">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 01</p>
+            <h3 class="land-card__name">Warner Bros. Plaza</h3>
+            <p class="land-card__desc">The grand entrance — a Hollywood golden-age boulevard alive with characters and entertainment.</p>
+            <span class="land-card__cta">
+              Explore →
+            </span>
+          </div>
+        </div>
+
+        <div class="land-card land--bedrock" role="listitem" tabindex="0" aria-label="Bedrock">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 02</p>
+            <h3 class="land-card__name">Bedrock</h3>
+            <p class="land-card__desc">Step back to the stone age with Fred, Wilma, and the Flintstones in a prehistoric family adventure.</p>
+            <span class="land-card__cta">Explore →</span>
+          </div>
+        </div>
+
+        <div class="land-card land--dynamite" role="listitem" tabindex="0" aria-label="Dynamite Gulch">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 03</p>
+            <h3 class="land-card__name">Dynamite Gulch</h3>
+            <p class="land-card__desc">High-octane rides and wild west thrills with Wile E. Coyote and Road Runner.</p>
+            <span class="land-card__cta">Explore →</span>
+          </div>
+        </div>
+
+        <div class="land-card land--cartoon" role="listitem" tabindex="0" aria-label="Cartoon Junction">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 04</p>
+            <h3 class="land-card__name">Cartoon Junction</h3>
+            <p class="land-card__desc">Where Bugs Bunny, Tweety, and friends bring colour and laughter to every corner.</p>
+            <span class="land-card__cta">Explore →</span>
+          </div>
+        </div>
+
+        <div class="land-card land--gotham" role="listitem" tabindex="0" aria-label="Gotham City">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 05</p>
+            <h3 class="land-card__name">Gotham City</h3>
+            <p class="land-card__desc">Enter Batman's world — dark skylines, the Batmobile, and Gotham's most notorious villains.</p>
+            <span class="land-card__cta">Explore →</span>
+          </div>
+        </div>
+
+        <div class="land-card land--metro" role="listitem" tabindex="0" aria-label="Metropolis">
+          <div class="land-card__bg" style="background-image: url('https://images.unsplash.com/photo-1499346030926-9a72daac6c63?w=600&q=80')"></div>
+          <div class="land-card__overlay"></div>
+          <div class="land-card__body">
+            <p class="land-card__number">Land 06</p>
+            <h3 class="land-card__name">Metropolis</h3>
+            <p class="land-card__desc">Soar with Superman above the city of tomorrow in this futuristic DC universe experience.</p>
+            <span class="land-card__cta">Explore →</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="lands__nav container">
+        <button class="lands__nav-btn" id="landsPrev" aria-label="Previous lands">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="lands__nav-btn" id="landsNext" aria-label="Next lands">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARK MAP -->
+  <section class="park-map" id="visit" aria-labelledby="park-map-heading">
+    <div class="container">
+      <div class="park-map__inner">
+        <div class="park-map__content">
+          <p class="section-label">Navigate the Park</p>
+          <h2 class="section-title" id="park-map-heading">Download the Park Map</h2>
+          <p class="park-map__desc">
+            Plan your perfect day with our interactive park map. Discover ride locations, character meet-and-greet spots, dining, and show schedules across all six themed lands.
+          </p>
+          <div class="park-map__stats">
+            <div class="park-map__stat">
+              <div class="park-map__stat-num">6</div>
+              <div class="park-map__stat-label">Themed Lands</div>
+            </div>
+            <div class="park-map__stat">
+              <div class="park-map__stat-num">29</div>
+              <div class="park-map__stat-label">Rides & Attractions</div>
+            </div>
+            <div class="park-map__stat">
+              <div class="park-map__stat-num">50+</div>
+              <div class="park-map__stat-label">Dining & Retail</div>
+            </div>
+          </div>
+          <a href="#" class="btn btn-gold">
+            Download Map (PDF)
+          </a>
+        </div>
+        <div class="park-map__visual">
+          <img class="park-map__img"
+            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80"
+            alt="Aerial view of the theme park" loading="lazy">
+          <div class="park-map__visual-badge">Yas Island, Abu Dhabi</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHARACTERS BAND -->
+  <section class="characters-band" aria-labelledby="chars-heading">
+    <div class="container">
+      <div class="characters-band__inner">
+        <div class="characters-band__text">
+          <p class="section-label">Meet the Gang</p>
+          <h2 class="section-title" id="chars-heading">Iconic Characters Await</h2>
+          <p class="characters-band__desc">
+            From the streets of Gotham to the skies of Metropolis — come face to face with over 60 iconic Warner Bros. characters across all six worlds.
+          </p>
+          <a href="#" class="btn btn-outline">View All Characters</a>
+        </div>
+        <div class="characters-band__scroll" role="list" aria-label="Character list">
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=160&q=80" alt="Batman" loading="lazy">
+            </div>
+            <p class="char-chip__name">Batman</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1620503374956-c942862f0372?w=160&q=80" alt="Superman" loading="lazy">
+            </div>
+            <p class="char-chip__name">Superman</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=160&q=80" alt="Bugs Bunny" loading="lazy">
+            </div>
+            <p class="char-chip__name">Bugs Bunny</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1504253163759-c23fccaebb55?w=160&q=80" alt="Wonder Woman" loading="lazy">
+            </div>
+            <p class="char-chip__name">Wonder Woman</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1555679427-c8f582b0e2f5?w=160&q=80" alt="The Flintstones" loading="lazy">
+            </div>
+            <p class="char-chip__name">Fred Flintstone</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1546776310-eef45dd6d63c?w=160&q=80" alt="Tweety" loading="lazy">
+            </div>
+            <p class="char-chip__name">Tweety</p>
+          </div>
+          <div class="char-chip" role="listitem">
+            <div class="char-chip__img-wrap">
+              <img class="char-chip__img" src="https://images.unsplash.com/photo-1614680376408-81e91ffe3db7?w=160&q=80" alt="The Joker" loading="lazy">
+            </div>
+            <p class="char-chip__name">The Joker</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TICKETS -->
+  <section class="tickets" id="tickets" aria-labelledby="tickets-heading">
+    <div class="container">
+      <div class="tickets__header">
+        <p class="section-label">Get Your Tickets</p>
+        <h2 class="section-title" id="tickets-heading">Choose Your Adventure</h2>
+      </div>
+      <div class="tickets__grid">
+
+        <div class="ticket-card">
+          <h3 class="ticket-card__name">Child</h3>
+          <p style="font-size:13px;color:var(--text-muted)">Ages 3–11 &amp; under 105cm</p>
+          <div class="ticket-card__price">AED 245</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Full park access — all 6 lands</li>
+            <li>All rides &amp; attractions included</li>
+            <li>Live entertainment shows</li>
+            <li>Character meet &amp; greet access</li>
+          </ul>
+          <a href="#" class="btn btn-outline" style="width:100%;text-align:center">Buy Child Ticket</a>
+        </div>
+
+        <div class="ticket-card ticket-card--featured">
+          <div class="ticket-card__badge">Most Popular</div>
+          <h3 class="ticket-card__name">Adult</h3>
+          <p style="font-size:13px;color:var(--text-muted)">Ages 12+ &amp; 105cm+</p>
+          <div class="ticket-card__price">AED 295</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Full park access — all 6 lands</li>
+            <li>All rides &amp; attractions included</li>
+            <li>Live entertainment shows</li>
+            <li>Character meet &amp; greet access</li>
+          </ul>
+          <a href="#" class="btn btn-gold" style="width:100%;text-align:center">Buy Adult Ticket</a>
+        </div>
+
+        <div class="ticket-card">
+          <h3 class="ticket-card__name">VIP</h3>
+          <p style="font-size:13px;color:var(--text-muted)">Ultimate experience package</p>
+          <div class="ticket-card__price">AED 599</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Everything in Adult ticket</li>
+            <li>Dedicated VIP host</li>
+            <li>Priority access all attractions</li>
+            <li>Premium dining credit included</li>
+          </ul>
+          <a href="#" class="btn btn-outline" style="width:100%;text-align:center">Buy VIP Ticket</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SUPPORT -->
+  <section class="support" id="support" aria-labelledby="support-heading">
+    <div class="container">
+      <div style="text-align:center;margin-bottom:48px">
+        <p class="section-label">We're Here to Help</p>
+        <h2 class="section-title" id="support-heading">Got a Question?</h2>
+      </div>
+      <div class="support__inner">
+
+        <div class="support-card">
+          <div class="support-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.58 3.41 2 2 0 0 1 3.55 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.88-.88a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/>
+            </svg>
+          </div>
+          <h3 class="support-card__title">Call Us</h3>
+          <p class="support-card__desc">Speak to our guest experience team. Available daily 9:00am – 7:00pm GST.</p>
+          <a href="tel:600511115" class="support-card__action">600 511 115</a>
+        </div>
+
+        <div class="support-card">
+          <div class="support-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <h3 class="support-card__title">Email Us</h3>
+          <p class="support-card__desc">Send us your question and we'll respond within one business day.</p>
+          <a href="mailto:guest@wbworldabudhabi.com" class="support-card__action">Send a Message</a>
+        </div>
+
+        <div class="support-card">
+          <div class="support-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3 class="support-card__title">WhatsApp</h3>
+          <p class="support-card__desc">Chat with us instantly via WhatsApp — get fast answers to your park questions.</p>
+          <a href="#" class="support-card__action">Chat on WhatsApp</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter" id="newsletter" aria-labelledby="newsletter-heading">
+    <div class="container">
+      <p class="section-label" style="text-align:center">Stay in the Loop</p>
+      <h2 class="newsletter__title" id="newsletter-heading">Never Miss a Magic Moment</h2>
+      <p class="newsletter__sub">Be the first to hear about new attractions, events, and exclusive offers.</p>
+      <form class="newsletter__form" onsubmit="handleNewsletterSubmit(event)" novalidate>
+        <input
+          type="email"
+          class="newsletter__input"
+          placeholder="Your email address"
+          aria-label="Email address"
+          required>
+        <button type="submit" class="btn btn-gold">Subscribe</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer" aria-label="Site footer">
+    <div class="container">
+      <div class="footer__top">
+        <div>
+          <div class="nav__logo" style="margin-bottom:16px">
+            <div class="nav__logo-shield">WB</div>
+            <div class="nav__logo-text">
+              Warner Bros. World™
+              <span>Abu Dhabi</span>
+            </div>
+          </div>
+          <p class="footer__brand-desc">
+            Warner Bros. World™ Abu Dhabi is the world's largest fully indoor theme park, located on Yas Island, Abu Dhabi, UAE. Six immersive lands — one extraordinary world.
+          </p>
+          <div class="footer__socials">
+            <!-- WhatsApp -->
+            <a href="#" class="footer__social" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            </a>
+            <!-- Facebook -->
+            <a href="#" class="footer__social" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <!-- Instagram -->
+            <a href="#" class="footer__social" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+            </a>
+            <!-- Twitter/X -->
+            <a href="#" class="footer__social" aria-label="Twitter / X">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <!-- YouTube -->
+            <a href="#" class="footer__social" aria-label="YouTube">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+            </a>
+            <!-- TikTok -->
+            <a href="#" class="footer__social" aria-label="TikTok">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">About the Park</h3>
+          <ul class="footer__links">
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Park History</a></li>
+            <li><a href="#">Sustainability</a></li>
+            <li><a href="#">Press Room</a></li>
+            <li><a href="#">Careers</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">Explore the Park</h3>
+          <ul class="footer__links">
+            <li><a href="#lands">Warner Bros. Plaza</a></li>
+            <li><a href="#lands">Bedrock</a></li>
+            <li><a href="#lands">Dynamite Gulch</a></li>
+            <li><a href="#lands">Cartoon Junction</a></li>
+            <li><a href="#lands">Gotham City</a></li>
+            <li><a href="#lands">Metropolis</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">Support</h3>
+          <ul class="footer__links">
+            <li><a href="#">FAQs</a></li>
+            <li><a href="#">Plan Your Visit</a></li>
+            <li><a href="#">Accessibility</a></li>
+            <li><a href="#">Guest Services</a></li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p class="footer__copy">
+          © 2025 Warner Bros. Entertainment Inc. All rights reserved. Warner Bros. World™ Abu Dhabi is operated under license.
+        </p>
+        <div class="footer__legal">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Use</a>
+          <a href="#">Cookie Settings</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- AEP PERSONALIZATION BADGE (demo) -->
+  <div class="aep-bar" id="aepBar" role="status" aria-live="polite">
+    <button class="aep-bar__close" onclick="document.getElementById('aepBar').classList.remove('visible')" aria-label="Close">×</button>
+    <p class="aep-bar__label">AEP Personalisation Active</p>
+    <p class="aep-bar__msg" id="aepBarMsg">Welcome back! You have unused park credit. <strong>View your offers →</strong></p>
+  </div>
+
+  <script>
+    // ── Hero parallax BG load
+    const heroBg = document.getElementById('heroBg');
+    const img = new Image();
+    img.onload = () => heroBg.classList.add('loaded');
+    img.src = heroBg.style.backgroundImage?.replace(/url\(['"]?(.*?)['"]?\)/, '$1') || '';
+
+    // ── Lands carousel nav
+    const carousel = document.getElementById('landsCarousel');
+    const CARD_W = 320 + 20; // card width + gap
+    document.getElementById('landsNext').addEventListener('click', () => {
+      carousel.scrollBy({ left: CARD_W * 2, behavior: 'smooth' });
+    });
+    document.getElementById('landsPrev').addEventListener('click', () => {
+      carousel.scrollBy({ left: -CARD_W * 2, behavior: 'smooth' });
+    });
+
+    // ── Newsletter
+    function handleNewsletterSubmit(e) {
+      e.preventDefault();
+      const input = e.target.querySelector('input');
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Subscribed ✓';
+      btn.style.background = '#2ecc71';
+      input.value = '';
+      setTimeout(() => { btn.textContent = 'Subscribe'; btn.style.background = ''; }, 3000);
+    }
+
+    // ── AEP demo bar (shown after 4s if user hasn't dismissed)
+    setTimeout(() => {
+      if (!sessionStorage.getItem('aepBarDismissed')) {
+        document.getElementById('aepBar').classList.add('visible');
+      }
+    }, 4000);
+    document.getElementById('aepBar').querySelector('.aep-bar__close')
+      .addEventListener('click', () => sessionStorage.setItem('aepBarDismissed', '1'));
+
+    // ── Intersection observer for subtle fade-in on scroll
+    const fadeEls = document.querySelectorAll('.offer-card, .land-card, .ticket-card, .support-card');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = '';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    fadeEls.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity .5s ease, transform .5s ease';
+      io.observe(el);
+    });
+  </script>
+
+</body>
+</html>
+```
+
+---
+
+## Images to Replace
+
+The implementation uses Unsplash stock photos as placeholders. For the real build, replace each `src` URL with the correct branded asset:
+
+| Placeholder used | Intended image |
+|---|---|
+| `photo-1540575467063` | Hero — full park interior wide shot |
+| `photo-1541872703-74c5e44368f9` | Emirates NBD offer card |
+| `photo-1551632811-561732d1e306` | VIP Experience card |
+| `photo-1436491865332-7a61a109cc05` | Etihad Airways card |
+| Land cards (6 cards) | Each themed land's hero photography |
+| `photo-1519167758481` | Park aerial/map section image |
+| Character chips (7 chips) | Official character renders/photos |
+
+---
+
+## AEP Web SDK Integration (optional — for demo)
+
+To wire up Adobe Experience Platform personalization, add the Alloy Web SDK snippet **before** the closing `</head>` tag:
+
+```html
+<!-- Adobe Experience Platform Web SDK -->
+<script>
+  !function(n,o){o.forEach(function(o){n[o]||((n.__alloyNS=n.__alloyNS||[]).push(o),
+  n[o]=function(){var u=arguments;return new Promise(function(i,l){n[o].q.push([i,l,u])})},
+  n[o].q=[])})}(window,["alloy"]);
+</script>
+<script async src="https://cdn1.adoberesources.net/alloy/2.21.0/alloy.min.js"></script>
+<script>
+  alloy("configure", {
+    datastreamId: "YOUR_DATASTREAM_ID",
+    orgId: "YOUR_ORG_ID@AdobeOrg",
+    onBeforeEventSend: function(options) {
+      // Add page context
+      options.xdm["web"] = options.xdm["web"] || {};
+      options.xdm["web"]["webPageDetails"] = {
+        name: "WB World Abu Dhabi - Home",
+        siteSection: "Theme Park Home"
+      };
+    }
+  });
+
+  // Track page view
+  alloy("sendEvent", {
+    xdm: {
+      eventType: "web.webpagedetails.pageViews",
+      web: { webPageDetails: { URL: window.location.href } }
+    }
+  });
+
+  // Fire personalization request — populate #aepBarMsg with offer from AJO
+  alloy("sendEvent", {
+    xdm: { eventType: "decisioning.propositionDisplay" },
+    decisionScopes: ["wb-world-home-banner"]
+  }).then(({ propositions }) => {
+    if (propositions && propositions[0]?.items[0]?.data?.content) {
+      document.getElementById('aepBarMsg').innerHTML =
+        propositions[0].items[0].data.content;
+    }
+  });
+</script>
+```
+
+Replace `YOUR_DATASTREAM_ID` and `YOUR_ORG_ID` with values from your AEP sandbox.
+
+---
+
+## File Placement in This Repo
+
+Save the HTML file to:
+```
+web/profile-viewer/wb-world-abu-dhabi/index.html
+```
+
+And add a rewrite rule in `firebase.json` if you want it served at a clean URL:
+```json
+{
+  "source": "/wb-world",
+  "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+}
+```
