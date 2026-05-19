@@ -519,6 +519,7 @@
                 },
                 {
                   label: 'WB World — Website Replica',
+                  inDevelopment: true,
                   href: 'wb-world-abu-dhabi/index.html',
                   navHideKey: 'miralWbworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
@@ -527,6 +528,7 @@
                 },
                 {
                   label: 'SeaWorld — Website Replica',
+                  inDevelopment: true,
                   href: 'seaworld-abu-dhabi/index.html',
                   navHideKey: 'miralSeaworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
