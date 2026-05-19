@@ -482,6 +482,46 @@
           ],
         },
         {
+          id: 'demoMiral',
+          label: 'Miral',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'miralWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'WB World Yas Island (in development)',
+                  href: 'miral/wbworld-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'miralWbworldDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+                {
+                  label: 'SeaWorld Yas Island (in development)',
+                  href: 'miral/seaworld-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'miralSeaworldDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 14c1.5 2 3.5 3 4 3s2.5-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+                {
+                  label: 'Ferrari World Yas Island (in development)',
+                  href: 'miral/ferrariworld-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'miralFerrariworldDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 16l7-12 7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoDonate',
           label: 'Donate',
           demoCustomer: true,
@@ -600,14 +640,27 @@
   /* ── Helpers ── */
 
   function currentFile() {
+    try {
+      var p = String(window.location.pathname || '').replace(/\\/g, '/');
+      var needle = '/profile-viewer/';
+      var i = p.indexOf(needle);
+      if (i !== -1) {
+        var tail = p.slice(i + needle.length).replace(/^\/+/, '');
+        if (tail) return tail;
+      }
+    } catch (e) {}
     return (window.location.pathname || '').split('/').pop() || '';
   }
 
-  /** When this page lives under _archive/firebase-hosting-legacy/, nav hrefs must step up to profile-viewer root. */
+  /**
+   * Prefix relative nav hrefs when the page is not at profile-viewer root
+   * (e.g. miral/*.html → ../home.html).
+   */
   function navHrefPrefix() {
     try {
       var p = String(window.location.pathname || '').replace(/\\/g, '/');
       if (p.indexOf('/_archive/firebase-hosting-legacy/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/miral/') !== -1) return '../';
     } catch (e) {}
     return '';
   }
@@ -1005,7 +1058,9 @@
     var brand = mk('div', 'dashboard-sidebar-brand');
     var markEl = mk('span', 'dashboard-sidebar-mark', { 'aria-hidden': 'true' });
     markEl.innerHTML =
-      '<img class="dashboard-sidebar-mark-img" src="images/adobe-brand-mark.png" alt="" width="32" height="32" decoding="async" draggable="false" />';
+      '<img class="dashboard-sidebar-mark-img" src="' +
+      navHrefPrefix() +
+      'images/adobe-brand-mark.png" alt="" width="32" height="32" decoding="async" draggable="false" />';
     var titles = mk('div', 'dashboard-sidebar-titles');
     var nameEl = mk('span', 'dashboard-sidebar-name');
     nameEl.textContent = 'AEP';

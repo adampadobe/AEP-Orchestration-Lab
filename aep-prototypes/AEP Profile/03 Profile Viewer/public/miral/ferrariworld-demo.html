@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferrari World Yas Island (lab) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="miral-theme-parks-demo.css?v=20260519-miral">
+  <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260519-miral-profile">
+  <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="miral-park-demo-page home-dashboard-concierge" data-miral-park="ferrariworld">
+  <div class="miral-park-demo-top-anchor" id="miralDemoTopAnchor">
+    <div class="miral-park-demo-id-banner" role="region" aria-label="Adobe CDP demo controls">
+      <div class="miral-park-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div class="miral-sdk-config-fields mod-sdk-config-fields" id="miralSdkConfigFields">
+                  <div class="form-row">
+                    <label for="miralTagsCompany">Tags company</label>
+                    <select id="miralTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="miralTagsProperty">Tags property</label>
+                    <input
+                      id="miralTagsProperty"
+                      type="text"
+                      list="miralTagsPropertyList"
+                      placeholder="Type to filter properties"
+                      autocomplete="off"
+                    >
+                    <datalist id="miralTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="miralTagsEnvironment">Tags environment</label>
+                    <select id="miralTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="miral-park-demo-id-actions">
+                    <button type="button" id="miralInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div class="miral-sdk-summary miral-sdk-summary--below-env-grid" id="miralSdkConfigSummary" hidden>
+                <span id="miralSdkConfigSummaryText"></span>
+                <button type="button" id="miralChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+            </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="miralNs">Namespace</label>
+              <select id="miralNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="miral-park-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="miral-park-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="miral-park-demo-script-preview">Selected script: <code id="miralSelectedScript">None</code></p>
+      <p id="miralMessage" class="miral-park-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="miral-park-demo-disclaimer">
+        Lab recreation for Adobe CDP / first-party identity stitching (Miral multi-brand). Official consumer site:
+        <a href="https://www.ferrariworldabudhabi.com/" target="_blank" rel="noopener noreferrer">ferrariworldabudhabi.com</a>.
+        Same Tags Web property across all three pages models one data collection strategy, multiple brands.
+      </p>
+    </div>
+  </div>
+
+  <main class="miral-park-site miral-park-site--ferrariworld" aria-label="Ferrari World Yas Island — lab recreation">
+    <header class="miral-park-site__masthead">
+      <p class="miral-park-site__brand">Ferrari World Yas Island, Abu Dhabi</p>
+      <p class="miral-park-site__masthead-meta">Yas Theme Parks</p>
+    </header>
+    <section class="miral-park-site__hero" aria-labelledby="fwHeroTitle">
+      <p class="miral-park-site__hero-kicker">Find that Ferrari feeling</p>
+      <h1 class="miral-park-site__hero-title" id="fwHeroTitle">Welcome to Ferrari World Yas Island</h1>
+      <p class="miral-park-site__hero-lede">
+        Love speed? Gear up for the ride of your life — home to record-breaking coasters, the iconic red roof, and over 40 attractions. Celebrate life’s wins and nurture the spirit of champions when you visit Ferrari World Abu Dhabi.
+      </p>
+      <div class="miral-park-site__cta-row">
+        <a class="miral-park-site__cta miral-park-site__cta--primary" href="https://www.ferrariworldabudhabi.com/en/booking" target="_blank" rel="noopener noreferrer">Popular tickets</a>
+        <a class="miral-park-site__cta" href="https://www.ferrariworldabudhabi.com/en/tickets/yas-island-theme-parks" target="_blank" rel="noopener noreferrer">Multi-park tickets</a>
+      </div>
+    </section>
+    <section class="miral-park-site__tiles" aria-label="Highlights">
+      <article class="miral-park-site__tile">
+        <h3>Fast fun</h3>
+        <p>Feel the thrill of what it’s like to be a Scuderia Ferrari driver with world-class coasters and simulators.</p>
+      </article>
+      <article class="miral-park-site__tile">
+        <h3>Family fun</h3>
+        <p>Rides and experiences for young ones and families — stitch journeys when guests also visit WB World or SeaWorld.</p>
+      </article>
+      <article class="miral-park-site__tile">
+        <h3>VIP experience</h3>
+        <p>Premium access and first-class hospitality — mirror of the live park’s VIP positioning.</p>
+      </article>
+    </section>
+    <section class="miral-park-site__lands" aria-labelledby="fwLandsHeading">
+      <h2 id="fwLandsHeading">Zones</h2>
+      <div class="miral-park-site__land-chips" role="list">
+        <span class="miral-park-site__chip" role="listitem">Fast fun</span>
+        <span class="miral-park-site__chip" role="listitem">Family fun</span>
+        <span class="miral-park-site__chip" role="listitem">For little champions</span>
+        <span class="miral-park-site__chip" role="listitem">Italian flavours</span>
+      </div>
+    </section>
+    <footer class="miral-park-site__footer">
+      <p><strong>Cross-brand lab navigation</strong> — same ECID when you inject the same Tags property on each page (first party on this host).</p>
+      <nav class="miral-park-site__footer-nav" aria-label="Sister Yas Island park demos">
+        <a href="wbworld-demo.html">Warner Bros. World Yas Island</a>
+        <a href="seaworld-demo.html">SeaWorld Yas Island</a>
+        <span>Ferrari World Yas Island</span>
+      </nav>
+    </footer>
+  </main>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page miral-park-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+            <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="../firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="../aep-global-sandbox.js"></script>
+  <script src="../aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="../email-cache.js"></script>
+  <script src="../identity-picker.js"></script>
+  <script src="../email-engagement-metrics.js"></script>
+  <script src="../aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
+  <script src="../demo-tags-injection.js?v=20260515-web-push-toggle"></script>
+  <script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="../aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="miral-theme-parks-demo.js?v=20260519-miral"></script>
+  <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="../aep-lab-nav.js?v=20260519-miral-parks"></script>
+</body>
+</html>

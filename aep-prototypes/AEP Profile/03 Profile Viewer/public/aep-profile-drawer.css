@@ -26,6 +26,7 @@
 body.aep-profile-drawer-open .aep-profile-drawer,
 body.donate-demo-page--profile-open .aep-profile-drawer,
 body.race-page--profile-open .aep-profile-drawer,
+body.miral-park-demo-page--profile-open .aep-profile-drawer,
 .aep-profile-drawer:focus-within {
   transform: translateY(0);
 }

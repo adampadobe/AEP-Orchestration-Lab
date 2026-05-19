@@ -27,6 +27,9 @@
     'mobile-demo.html': { name: 'Mobile simulator (FNB)' },
     'mobile-demo-apalmer.html': { name: 'Mobile simulator (apalmer · Etihad)' },
     'premier-inn-demo.html': { name: 'Premier Inn (demo)' },
+    'miral/wbworld-demo.html': { name: 'Miral · WB World Yas Island (demo)' },
+    'miral/seaworld-demo.html': { name: 'Miral · SeaWorld Yas Island (demo)' },
+    'miral/ferrariworld-demo.html': { name: 'Miral · Ferrari World Yas Island (demo)' },
     'oldmutual-demo.html': { name: 'Old Mutual (demo)' },
     'oldmutual-wealth.html': { name: 'Old Mutual Wealth (demo)' },
     'events-trigger.html': { name: 'Events trigger' },
@@ -132,6 +135,21 @@
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10h16v10H4z"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M4 14h16"/></svg>',
     },
+    'miral/wbworld-demo.html': {
+      label: 'Miral · WB World (demo)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h5"/></svg>',
+    },
+    'miral/seaworld-demo.html': {
+      label: 'Miral · SeaWorld (demo)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11z"/><path d="M8 14c1.5 2 3.5 3 4 3s2.5-1 4-3"/></svg>',
+    },
+    'miral/ferrariworld-demo.html': {
+      label: 'Miral · Ferrari World (demo)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 16l7-12 7 12"/><path d="M8.5 13h7"/></svg>',
+    },
     'oldmutual-demo.html': {
       label: 'Old Mutual (demo)',
       svg:
@@ -178,7 +196,13 @@
     '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
 
   function getPageFileName() {
-    var path = String(window.location.pathname || '').replace(/\/$/, '');
+    var path = String(window.location.pathname || '').replace(/\/$/, '').replace(/\\/g, '/');
+    var needle = '/profile-viewer/';
+    var i = path.indexOf(needle);
+    if (i !== -1) {
+      var tail = path.slice(i + needle.length).replace(/^\/+/, '');
+      if (tail) return tail.toLowerCase();
+    }
     var seg = path.split('/').pop() || '';
     if (!seg || seg === '') return 'index.html';
     if (seg.indexOf('.') === -1) return 'index.html';
