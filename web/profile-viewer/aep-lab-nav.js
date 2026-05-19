@@ -517,6 +517,22 @@
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 16l7-12 7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
+                {
+                  label: 'WB World — Website Replica',
+                  href: 'wb-world-abu-dhabi/index.html',
+                  navHideKey: 'miralWbworldWebsite',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3c-2.5 4-2.5 14 0 18M12 3c2.5 4 2.5 14 0 18M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+                {
+                  label: 'SeaWorld — Website Replica',
+                  href: 'seaworld-abu-dhabi/index.html',
+                  navHideKey: 'miralSeaworldWebsite',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3c-2.5 4-2.5 14 0 18M12 3c2.5 4 2.5 14 0 18M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
               ],
             },
           ],
@@ -661,6 +677,8 @@
       var p = String(window.location.pathname || '').replace(/\\/g, '/');
       if (p.indexOf('/_archive/firebase-hosting-legacy/') !== -1) return '../';
       if (p.indexOf('/profile-viewer/miral/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/wb-world-abu-dhabi/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/seaworld-abu-dhabi/') !== -1) return '../';
     } catch (e) {}
     return '';
   }
