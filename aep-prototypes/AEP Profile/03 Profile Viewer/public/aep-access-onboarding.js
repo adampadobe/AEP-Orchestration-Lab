@@ -6,6 +6,9 @@
   /** True while the lab gate should block the shell (between show() and hide()). */
   var gateInteractionLockActive = false;
   var gateDomObserver = null;
+  var gateEnforcerTimer = null;
+  var gateLayerAttrObserver = null;
+  var dialogWrapAttrObserver = null;
   var gateRecoverScheduled = null;
   var gateLayerElRef = null;
   var dialogWrapElRef = null;
@@ -264,15 +267,40 @@
 
   function startGateDomObserver() {
     if (gateDomObserver || typeof MutationObserver === 'undefined') return;
+
+    // Watches document.body childList — catches element deletion
     gateDomObserver = new MutationObserver(function () {
       if (!gateInteractionLockActive) return;
       var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
       var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
       if (!gate || !dialog || !document.body.contains(gate) || !document.body.contains(dialog)) {
         scheduleGateDomRecovery();
+        return;
       }
+      // Re-show if hidden attribute was set on either element
+      if (gate.hidden) gate.hidden = false;
+      if (dialog.hidden) dialog.hidden = false;
     });
     gateDomObserver.observe(document.body, { childList: true, subtree: false });
+
+    // Also watch the elements themselves for hidden/style attribute tampering
+    function replaceAttrObserver(prev, el) {
+      if (prev) {
+        prev.disconnect();
+      }
+      if (!el || typeof MutationObserver === 'undefined') return null;
+      var elObs = new MutationObserver(function () {
+        if (!gateInteractionLockActive) return;
+        if (el.hidden) el.hidden = false;
+      });
+      elObs.observe(el, { attributes: true, attributeFilter: ['hidden', 'style'] });
+      return elObs;
+    }
+
+    var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+    var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
+    gateLayerAttrObserver = replaceAttrObserver(gateLayerAttrObserver, gate);
+    dialogWrapAttrObserver = replaceAttrObserver(dialogWrapAttrObserver, dialog);
   }
 
   function stopGateDomObserver() {
@@ -280,9 +308,39 @@
       clearTimeout(gateRecoverScheduled);
       gateRecoverScheduled = null;
     }
+    if (gateLayerAttrObserver) {
+      gateLayerAttrObserver.disconnect();
+      gateLayerAttrObserver = null;
+    }
+    if (dialogWrapAttrObserver) {
+      dialogWrapAttrObserver.disconnect();
+      dialogWrapAttrObserver = null;
+    }
     if (gateDomObserver) {
       gateDomObserver.disconnect();
       gateDomObserver = null;
+    }
+  }
+
+  function startGateEnforcer() {
+    if (gateEnforcerTimer) return;
+    gateEnforcerTimer = setInterval(function () {
+      if (!gateInteractionLockActive) {
+        stopGateEnforcer();
+        return;
+      }
+      var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
+      var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
+      if (gate && gate.hidden) gate.hidden = false;
+      if (dialog && dialog.hidden) dialog.hidden = false;
+      applyShellInteractionLock();
+    }, 400);
+  }
+
+  function stopGateEnforcer() {
+    if (gateEnforcerTimer) {
+      clearInterval(gateEnforcerTimer);
+      gateEnforcerTimer = null;
     }
   }
 
@@ -727,6 +785,7 @@
   function hide() {
     gateInteractionLockActive = false;
     stopGateDomObserver();
+    stopGateEnforcer();
     clearShellInteractionLock();
     var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
     var overlay = dialogWrapElRef || document.getElementById(OVERLAY_ID);
@@ -748,6 +807,7 @@
     enforceGateLayerOrder(gate, overlay);
     applyShellInteractionLock();
     startGateDomObserver();
+    startGateEnforcer();
     document.body.classList.add('aep-access-onboarding-open');
     syncRadiosFromScope();
     try {
