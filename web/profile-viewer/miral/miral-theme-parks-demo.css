@@ -320,6 +320,22 @@
   color: var(--dash-text-secondary);
 }
 
+.miral-park-site__footer-note {
+  margin-top: 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.miral-park-site__footer-note a {
+  font-weight: 600;
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.miral-park-site__footer-note a:hover {
+  text-decoration: underline;
+}
+
 .miral-park-site__footer-nav {
   display: flex;
   flex-wrap: wrap;

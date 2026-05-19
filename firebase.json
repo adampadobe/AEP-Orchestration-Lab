@@ -874,6 +874,14 @@
       {
         "source": "/wb-world/**",
         "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld/**",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
       }
     ],
     "headers": [
@@ -932,6 +940,33 @@
       },
       {
         "source": "/profile-viewer/wb-world-abu-dhabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/seaworld-abu-dhabi/**",
         "headers": [
           {
             "key": "Cache-Control",
