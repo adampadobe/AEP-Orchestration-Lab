@@ -9,6 +9,7 @@
   var STORAGE_KEY = 'aepHomeDashboardLayoutBg';
   var SIDEBAR_STORAGE_KEY = 'aepHomeDashboardSidebarTheme';
   var wrapSelector = '.dashboard-main-wrap--layout';
+  var homeLayoutDrawerWired = false;
 
   var DEFAULT = {
     type: 'image',
@@ -219,11 +220,13 @@
   }
 
   function wireDrawer() {
+    if (homeLayoutDrawerWired) return;
     var btn = document.getElementById('homeLayoutEditBtn');
     var drawer = document.getElementById('homeLayoutDrawer');
     var backdrop = document.getElementById('homeLayoutBackdrop');
     var closeBtn = document.getElementById('homeLayoutDrawerClose');
     if (!btn || !drawer || !backdrop) return;
+    homeLayoutDrawerWired = true;
 
     hydrateVisualSwatches(drawer);
 
@@ -344,4 +347,7 @@
   } else {
     boot();
   }
+  try {
+    global.addEventListener('aep-deferred-dashboard-mounted', boot);
+  } catch (_e) {}
 })(typeof window !== 'undefined' ? window : this);

@@ -207,10 +207,15 @@
     if (reg) reg.innerHTML = f.registerBlurb;
   }
 
-  var specks = document.querySelectorAll('.map-egg-speck');
-  if (!specks.length) return;
+  var mapEggDomWired = false;
 
-  var overlay = document.createElement('div');
+  function wireMaraudersFromSpecks() {
+    var specks = document.querySelectorAll('.map-egg-speck');
+    if (!specks.length) return;
+    if (mapEggDomWired) return;
+    mapEggDomWired = true;
+
+    var overlay = document.createElement('div');
   overlay.className = 'map-egg-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
@@ -558,4 +563,17 @@
       closeEgg();
     }
   });
+  }
+
+  function scheduleMaraudersEggInit() {
+    wireMaraudersFromSpecks();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleMaraudersEggInit);
+  } else {
+    scheduleMaraudersEggInit();
+  }
+  try {
+    window.addEventListener('aep-deferred-dashboard-mounted', scheduleMaraudersEggInit);
+  } catch (_e2) {}
 })();

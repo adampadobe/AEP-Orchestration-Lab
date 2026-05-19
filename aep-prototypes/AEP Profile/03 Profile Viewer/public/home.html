@@ -3,20 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <!-- Bump BUILD below when gate or deferred shell changes (one-shot cache-bust for stale home.html). -->
+  <script>(function(){var BUILD='20260519c';try{window.__AEP_HOME_HTML_BUILD=BUILD;}catch(e0){}try{var s=window.sessionStorage,k='aepHomeHtmlBuild',rK='aepHomeHtmlBuildReloading',prev=s.getItem(k);if(prev==null||prev===''){s.setItem(k,BUILD);return;}if(prev===BUILD)return;var href=String(window.location.href||'');if(href.indexOf('_aepcb=')!==-1){if(s.getItem(rK)==='1'){try{s.removeItem(rK);}catch(e1){}s.setItem(k,BUILD);return;}s.setItem(k,BUILD);s.setItem(rK,'1');window.location.reload();return;}s.setItem(k,BUILD);var path=window.location.pathname||'',q=window.location.search||'';window.location.replace(path+q+(q?'&':'?')+'_aepcb='+Date.now());}catch(e2){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260518b">
+  <link rel="stylesheet" href="home.css?v=20260519a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
 <body class="home-page home-dashboard-concierge home-dashboard-ajo">
-  <div class="dashboard-shell">
+  <div class="dashboard-shell" id="aepDashboardShell">
+    <div id="aepDashboardMount" class="aep-dashboard-mount aep-dashboard-mount--pending" aria-live="polite">
+      <p class="aep-dashboard-mount-placeholder dashboard-muted">Loading…</p>
+    </div>
+  </div>
+
+  <template id="aepDeferredDashboardShell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap dashboard-main-wrap--layout">
@@ -188,117 +196,121 @@
         </div>
       </main>
     </div>
-  </div>
+  </template>
 
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260518d"></script>
-  <script src="aep-access-onboarding.js?v=20260519a"></script>
+  <script src="aep-access-onboarding.js?v=20260519b"></script>
   <script>
     (function () {
       if (!window.AepAccessScope) return;
       if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.init === 'function') {
         window.AepAccessOnboarding.init();
       }
-      var openBtn = document.getElementById('aepAccessModeOpenBtn');
-      var statusEl = document.getElementById('aepAccessModeStatus');
-      var summaryEl = document.getElementById('aepAccessModeSummary');
-      var toggleWrap = document.getElementById('aepAccessModeToggleWrap');
-      var btnSandbox = document.getElementById('aepAccessToggleSandbox');
-      var btnWorkspace = document.getElementById('aepAccessToggleWorkspace');
+      function initHomeAccessModePanel() {
+        var openBtn = document.getElementById('aepAccessModeOpenBtn');
+        var statusEl = document.getElementById('aepAccessModeStatus');
+        var summaryEl = document.getElementById('aepAccessModeSummary');
+        var toggleWrap = document.getElementById('aepAccessModeToggleWrap');
+        var btnSandbox = document.getElementById('aepAccessToggleSandbox');
+        var btnWorkspace = document.getElementById('aepAccessToggleWorkspace');
+        if (!summaryEl || !statusEl) return;
 
-      function syncToggleUi() {
-        if (!toggleWrap || !btnSandbox || !btnWorkspace) return;
-        var hasMode = window.AepAccessScope.hasExplicitMode();
-        toggleWrap.hidden = !hasMode;
-        if (!hasMode) return;
-        var mode = window.AepAccessScope.getAccessMode();
-        var isSandbox = mode === 'sandbox';
-        btnSandbox.setAttribute('class', isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
-        btnWorkspace.setAttribute('class', !isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
-        btnSandbox.setAttribute('aria-pressed', isSandbox ? 'true' : 'false');
-        btnWorkspace.setAttribute('aria-pressed', !isSandbox ? 'true' : 'false');
-      }
-
-      function trySwitchAccessMode(target) {
-        var cur = window.AepAccessScope.getAccessMode();
-        if (cur === target) return;
-        var msg =
-          target === 'sandbox'
-            ? 'Switch to Adobe sandbox? No-sandbox tools stay idle until you switch back. Your saved workspace keys are kept.'
-            : 'Switch to no Adobe sandbox? Sandbox-backed tools will follow workspace scope until you switch again.';
-        if (!window.confirm(msg)) return;
-        if (target === 'sandbox') {
-          window.AepAccessScope.setAccessMode('sandbox');
-          return;
+        function syncToggleUi() {
+          if (!toggleWrap || !btnSandbox || !btnWorkspace) return;
+          var hasMode = window.AepAccessScope.hasExplicitMode();
+          toggleWrap.hidden = !hasMode;
+          if (!hasMode) return;
+          var mode = window.AepAccessScope.getAccessMode();
+          var isSandbox = mode === 'sandbox';
+          btnSandbox.setAttribute('class', isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
+          btnWorkspace.setAttribute('class', !isSandbox ? 'dashboard-btn-primary' : 'dashboard-btn-outline');
+          btnSandbox.setAttribute('aria-pressed', isSandbox ? 'true' : 'false');
+          btnWorkspace.setAttribute('aria-pressed', !isSandbox ? 'true' : 'false');
         }
-        var slug = window.AepAccessScope.getWorkspaceSlug();
-        if (!slug) {
-          try {
-            window.__aepOnboardingPreferWorkspace = true;
-          } catch (_e) {}
-          if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
-            window.AepAccessOnboarding.open();
+
+        function trySwitchAccessMode(target) {
+          var cur = window.AepAccessScope.getAccessMode();
+          if (cur === target) return;
+          var msg =
+            target === 'sandbox'
+              ? 'Switch to Adobe sandbox? No-sandbox tools stay idle until you switch back. Your saved workspace keys are kept.'
+              : 'Switch to no Adobe sandbox? Sandbox-backed tools will follow workspace scope until you switch again.';
+          if (!window.confirm(msg)) return;
+          if (target === 'sandbox') {
+            window.AepAccessScope.setAccessMode('sandbox');
+            return;
           }
-          return;
+          var slug = window.AepAccessScope.getWorkspaceSlug();
+          if (!slug) {
+            try {
+              window.__aepOnboardingPreferWorkspace = true;
+            } catch (_e) {}
+            if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
+              window.AepAccessOnboarding.open();
+            }
+            return;
+          }
+          window.AepAccessScope.setAccessMode('workspace');
         }
-        window.AepAccessScope.setAccessMode('workspace');
-      }
 
-      function syncUi() {
-        var scope = window.AepAccessScope.getScope();
-        summaryEl.textContent = scope.mode === 'workspace'
-          ? ('No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured'))
-          : 'Adobe sandbox mode';
-        syncToggleUi();
-      }
-      function refreshAccessStatusHint() {
-        if (!window.AepAccessScope.hasExplicitMode()) {
-          statusEl.textContent = 'Choose your access mode to continue.';
-        } else if (
-          window.AepAccessOnboarding &&
-          typeof window.AepAccessOnboarding.hasAdobeLabFirebaseSession === 'function' &&
-          !window.AepAccessOnboarding.hasAdobeLabFirebaseSession()
-        ) {
-          statusEl.textContent = 'Sign in with Adobe @adobe.com (Login in Configure access mode).';
-        } else {
-          statusEl.textContent = '';
+        function syncUi() {
+          var scope = window.AepAccessScope.getScope();
+          summaryEl.textContent = scope.mode === 'workspace'
+            ? ('No-sandbox workspace: ' + (scope.workspaceName || scope.scopeId || 'not configured'))
+            : 'Adobe sandbox mode';
+          syncToggleUi();
         }
-      }
-      if (btnSandbox) {
-        btnSandbox.addEventListener('click', function () {
-          trySwitchAccessMode('sandbox');
-        });
-      }
-      if (btnWorkspace) {
-        btnWorkspace.addEventListener('click', function () {
-          trySwitchAccessMode('workspace');
-        });
-      }
-      if (openBtn) {
-        openBtn.addEventListener('click', function () {
-          if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
-            window.AepAccessOnboarding.open();
+        function refreshAccessStatusHint() {
+          if (!window.AepAccessScope.hasExplicitMode()) {
+            statusEl.textContent = 'Choose your access mode to continue.';
+          } else if (
+            window.AepAccessOnboarding &&
+            typeof window.AepAccessOnboarding.hasAdobeLabFirebaseSession === 'function' &&
+            !window.AepAccessOnboarding.hasAdobeLabFirebaseSession()
+          ) {
+            statusEl.textContent = 'Sign in with Adobe @adobe.com (Login in Configure access mode).';
+          } else {
             statusEl.textContent = '';
           }
+        }
+        if (btnSandbox) {
+          btnSandbox.addEventListener('click', function () {
+            trySwitchAccessMode('sandbox');
+          });
+        }
+        if (btnWorkspace) {
+          btnWorkspace.addEventListener('click', function () {
+            trySwitchAccessMode('workspace');
+          });
+        }
+        if (openBtn) {
+          openBtn.addEventListener('click', function () {
+            if (window.AepAccessOnboarding && typeof window.AepAccessOnboarding.open === 'function') {
+              window.AepAccessOnboarding.open();
+              statusEl.textContent = '';
+            }
+          });
+        }
+        window.addEventListener('aep-access-scope-change', function () {
+          syncUi();
+          refreshAccessStatusHint();
         });
-      }
-      window.addEventListener('aep-access-scope-change', function () {
+        window.addEventListener('aep-lab-email-session-updated', refreshAccessStatusHint);
+        window.addEventListener('aep-lab-google-session-updated', refreshAccessStatusHint);
         syncUi();
         refreshAccessStatusHint();
-      });
-      window.addEventListener('aep-lab-email-session-updated', refreshAccessStatusHint);
-      window.addEventListener('aep-lab-google-session-updated', refreshAccessStatusHint);
-      syncUi();
-      refreshAccessStatusHint();
+      }
+      window.addEventListener('aep-deferred-dashboard-mounted', initHomeAccessModePanel, { once: true });
     })();
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="home-layout.js?v=20260416a"></script>
-  <script defer src="aep-lab-nav.js?v=20260514-customer-demos-nav"></script>
-  <script defer src="marauders-map-egg.js?v=20260420"></script>
+  <script defer src="home-layout.js?v=20260519a"></script>
+  <script defer src="aep-lab-nav.js?v=20260519a"></script>
+  <script defer src="marauders-map-egg.js?v=20260519a"></script>
 </body>
 </html>

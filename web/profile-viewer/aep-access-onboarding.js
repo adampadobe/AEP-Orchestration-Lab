@@ -3,6 +3,12 @@
 
   var OVERLAY_ID = 'aepAccessOnboardingOverlay';
   var GATE_LAYER_ID = 'aepAccessOnboardingGateLayer';
+  /** Home dashboard markup lives in an inert <template> until the lab gate clears (see home.html). */
+  var DEFERRED_HOME_DASHBOARD_TEMPLATE_ID = 'aepDeferredDashboardShell';
+  var DEFERRED_HOME_DASHBOARD_MOUNT_ID = 'aepDashboardMount';
+  /** Fired on window after the deferred home dashboard fragment is inserted (one rAF). */
+  var DEFERRED_HOME_DASHBOARD_MOUNTED_EVENT = 'aep-deferred-dashboard-mounted';
+  var didMountDeferredHomeDashboard = false;
   /** True while the lab gate should block the shell (between show() and hide()). */
   var gateInteractionLockActive = false;
   var gateDomObserver = null;
@@ -728,7 +734,10 @@
       !!labSessionJustExpired || !!(reauthPending && explicitMode && needsFirebase);
 
     var shouldOpen = !!labSessionJustExpired || shouldAutoOpenOnboarding();
-    if (!shouldOpen) return;
+    if (!shouldOpen) {
+      mountDeferredHomeDashboardIfNeeded();
+      return;
+    }
 
     if (!useExpiredShell) clearForceOpenFlag();
 
@@ -795,6 +804,30 @@
     setOnboardingCopyVariant('default', { force: true });
     setMsg('', '');
     setUiStep(1);
+    mountDeferredHomeDashboardIfNeeded();
+  }
+
+  /**
+   * Inserts the real home dashboard from <template id="aepDeferredDashboardShell"> into #aepDashboardMount.
+   * Client-side UX / casual DevTools bypass only: the HTML document is still public (view-source, saved offline,
+   * etc.) and does not replace server-side API authentication.
+   */
+  function mountDeferredHomeDashboardIfNeeded() {
+    if (didMountDeferredHomeDashboard) return;
+    var mount = document.getElementById(DEFERRED_HOME_DASHBOARD_MOUNT_ID);
+    var tpl = document.getElementById(DEFERRED_HOME_DASHBOARD_TEMPLATE_ID);
+    if (!mount || !tpl || !tpl.content) return;
+    didMountDeferredHomeDashboard = true;
+    try {
+      mount.classList.remove('aep-dashboard-mount--pending');
+    } catch (_c) {}
+    mount.textContent = '';
+    mount.appendChild(document.importNode(tpl.content, true));
+    requestAnimationFrame(function () {
+      try {
+        global.dispatchEvent(new CustomEvent(DEFERRED_HOME_DASHBOARD_MOUNTED_EVENT));
+      } catch (_ev) {}
+    });
   }
 
   function show() {

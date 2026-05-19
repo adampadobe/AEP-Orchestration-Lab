@@ -769,6 +769,26 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   padding: 0;
 }
 
+/* Home deferred gate: #aepDashboardMount wraps the sidebar + main row after lab auth (see home.html). */
+#aepDashboardMount {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+#aepDashboardMount.aep-dashboard-mount--pending {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#aepDashboardMount:not(.aep-dashboard-mount--pending) {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
 .dashboard-sidebar {
   --sidebar-w: 240px;
   --sidebar-w-collapsed: 56px;
@@ -2077,6 +2097,10 @@ body.home-dashboard-concierge .aep-access-mode-actions-row {
 
 @media (max-width: 768px) {
   .dashboard-shell {
+    flex-direction: column;
+  }
+
+  #aepDashboardMount:not(.aep-dashboard-mount--pending) {
     flex-direction: column;
   }
 

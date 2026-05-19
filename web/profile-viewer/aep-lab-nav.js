@@ -1087,6 +1087,10 @@
     init();
   }
 
+  try {
+    window.addEventListener('aep-deferred-dashboard-mounted', init);
+  } catch (e3) {}
+
   window.addEventListener('aep-global-sandbox-change', function () {
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
