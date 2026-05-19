@@ -866,6 +866,14 @@
           "functionId": "clientJourneyV2Pptx",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/wb-world",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/wb-world/**",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
       }
     ],
     "headers": [
