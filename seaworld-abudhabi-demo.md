@@ -1,0 +1,1852 @@
+# SeaWorld® Yas Island Abu Dhabi — Demo Site Build Spec
+
+> **Cursor instructions:** Create the file `seaworld-abu-dhabi.html` exactly as specified below. It is a single self-contained HTML page that faithfully reproduces the visual design, layout, typography, color scheme, and content structure of the SeaWorld Yas Island Abu Dhabi website. No external frameworks (no Bootstrap, no Tailwind). All CSS is in a `<style>` block in `<head>`. All JS is in a `<script>` block before `</body>`. The page must be fully responsive. Use Google Fonts `Nunito` (headings/display) and `Inter` (body). For hero/section background images use the Unsplash source URLs listed — they are free to use and load without API keys.
+
+---
+
+## Design System
+
+| Token | Value |
+|---|---|
+| `--ocean-deep` | `#003a6b` |
+| `--ocean-mid` | `#0077b6` |
+| `--ocean-bright` | `#00a8e8` |
+| `--teal` | `#00b4d8` |
+| `--teal-light` | `#caf0f8` |
+| `--bg` | `#ffffff` |
+| `--bg-wash` | `#f0f7fc` |
+| `--bg-card` | `#ffffff` |
+| `--border` | `#d0e8f5` |
+| `--text` | `#0d1f2d` |
+| `--text-muted` | `#4a6274` |
+| `--text-dim` | `#94aab8` |
+| `--green` | `#00b894` |
+| `--radius` | `16px` |
+| `--radius-sm` | `8px` |
+| `--nav-h` | `76px` |
+| `--shadow` | `0 4px 24px rgba(0,58,107,.1)` |
+| `--shadow-lg` | `0 12px 48px rgba(0,58,107,.16)` |
+
+**Fonts:**
+```
+https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap
+```
+
+---
+
+## Full HTML Implementation
+
+Create `seaworld-abu-dhabi.html` with the following complete content:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeaWorld® Yas Island Abu Dhabi — Over 100 Animal Experiences</title>
+  <meta name="description" content="SeaWorld Yas Island, Abu Dhabi. Over 100 animal experiences and presentations. Every ticket supports the Yas SeaWorld Research & Rescue Center.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ocean-deep:   #003a6b;
+      --ocean-mid:    #0077b6;
+      --ocean-bright: #00a8e8;
+      --teal:         #00b4d8;
+      --teal-light:   #caf0f8;
+      --bg:           #ffffff;
+      --bg-wash:      #f0f7fc;
+      --bg-card:      #ffffff;
+      --border:       #d0e8f5;
+      --text:         #0d1f2d;
+      --text-muted:   #4a6274;
+      --text-dim:     #94aab8;
+      --green:        #00b894;
+      --radius:       16px;
+      --radius-sm:    8px;
+      --nav-h:        76px;
+      --shadow:       0 4px 24px rgba(0,58,107,.10);
+      --shadow-lg:    0 12px 48px rgba(0,58,107,.16);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ─── UTILITY ─── */
+    .container { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    .btn {
+      display: inline-block;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      padding: 13px 30px;
+      border-radius: 50px;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-ocean {
+      background: var(--ocean-mid);
+      color: #fff;
+    }
+    .btn-ocean:hover { background: var(--ocean-deep); box-shadow: 0 8px 24px rgba(0,119,182,.35); }
+    .btn-teal {
+      background: var(--teal);
+      color: #fff;
+    }
+    .btn-teal:hover { background: var(--ocean-bright); box-shadow: 0 8px 24px rgba(0,180,216,.35); }
+    .btn-outline {
+      background: transparent;
+      color: var(--ocean-mid);
+      border: 2px solid var(--ocean-mid);
+    }
+    .btn-outline:hover { background: var(--ocean-mid); color: #fff; }
+    .btn-white {
+      background: #fff;
+      color: var(--ocean-deep);
+    }
+    .btn-white:hover { background: var(--teal-light); }
+    .section-label {
+      font-family: 'Nunito', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(26px, 4vw, 42px);
+      font-weight: 900;
+      line-height: 1.15;
+      color: var(--ocean-deep);
+    }
+    .section-title.light { color: #fff; }
+
+    /* ─── ANNOUNCEMENT BAR ─── */
+    .announce-bar {
+      background: var(--ocean-deep);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      padding: 10px 16px;
+      letter-spacing: .2px;
+    }
+    .announce-bar a {
+      color: var(--teal-light);
+      text-decoration: underline;
+      margin-left: 8px;
+    }
+
+    /* ─── NAVIGATION ─── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      height: var(--nav-h);
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 12px rgba(0,58,107,.06);
+    }
+    .nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 20px;
+    }
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .nav__logo-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ocean-mid), var(--teal));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav__logo-mark svg { width: 26px; height: 26px; color: #fff; }
+    .nav__logo-text {
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.2;
+      color: var(--ocean-deep);
+    }
+    .nav__logo-text span {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      list-style: none;
+    }
+    .nav__links a {
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 8px 13px;
+      border-radius: var(--radius-sm);
+      transition: color .15s, background .15s;
+      white-space: nowrap;
+    }
+    .nav__links a:hover { color: var(--ocean-mid); background: var(--bg-wash); }
+    .nav__actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .nav__icon-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--bg-wash);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s;
+      color: var(--text-muted);
+    }
+    .nav__icon-btn:hover { background: var(--teal-light); color: var(--ocean-mid); }
+    .nav__icon-btn svg { width: 17px; height: 17px; }
+    .nav__menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--ocean-deep);
+      padding: 4px;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .hero__bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80');
+      background-size: cover;
+      background-position: center 40%;
+      transform: scale(1.04);
+      transition: transform 8s ease-out;
+    }
+    .hero__bg.loaded { transform: scale(1); }
+    .hero__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        110deg,
+        rgba(0,30,60,.78) 0%,
+        rgba(0,50,90,.5) 45%,
+        rgba(0,100,180,.15) 100%
+      );
+    }
+    .hero__overlay-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 220px;
+      background: linear-gradient(to top, rgba(255,255,255,.95), transparent);
+    }
+    .hero__content {
+      position: relative;
+      z-index: 2;
+      max-width: 660px;
+      padding: 0 24px;
+      margin-left: max(24px, calc((100vw - 1240px) / 2 + 24px));
+    }
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,180,216,.2);
+      border: 1px solid rgba(0,180,216,.5);
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #caf0f8;
+      margin-bottom: 22px;
+    }
+    .hero__eyebrow-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:.5; transform:scale(.8); }
+    }
+    .hero__title {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(36px, 5.5vw, 68px);
+      font-weight: 900;
+      line-height: 1.05;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 20px rgba(0,0,0,.3);
+    }
+    .hero__title em {
+      font-style: normal;
+      color: var(--teal);
+    }
+    .hero__sub {
+      font-size: clamp(15px, 1.6vw, 18px);
+      font-weight: 400;
+      color: rgba(255,255,255,.85);
+      max-width: 520px;
+      margin-bottom: 36px;
+      line-height: 1.65;
+    }
+    .hero__ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .hero__conservation {
+      position: absolute;
+      bottom: 56px;
+      right: max(24px, calc((100vw - 1240px) / 2 + 24px));
+      z-index: 2;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      max-width: 300px;
+      box-shadow: var(--shadow);
+    }
+    .hero__conservation-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ocean-deep);
+      margin-bottom: 5px;
+    }
+    .hero__conservation-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .hero__conservation-icon {
+      width: 28px; height: 28px;
+      background: var(--teal-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+      color: var(--ocean-mid);
+    }
+    .hero__conservation-icon svg { width: 16px; height: 16px; }
+
+    /* ─── ONE OCEAN PLEDGE ─── */
+    .pledge {
+      padding: 64px 0;
+      background: var(--bg-wash);
+      border-top: 1px solid var(--border);
+    }
+    .pledge__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 32px;
+    }
+    .pledge-item {
+      text-align: center;
+      padding: 32px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .pledge-item:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+    .pledge-item__icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--teal-light);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+      color: var(--ocean-mid);
+    }
+    .pledge-item__icon svg { width: 26px; height: 26px; }
+    .pledge-item__num {
+      font-family: 'Nunito', sans-serif;
+      font-size: 40px;
+      font-weight: 900;
+      color: var(--ocean-mid);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .pledge-item__label {
+      font-family: 'Nunito', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--ocean-deep);
+      margin-bottom: 8px;
+    }
+    .pledge-item__desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ─── FLEXIBILITY STRIP ─── */
+    .flex-strip {
+      padding: 40px 0;
+      background: linear-gradient(135deg, var(--ocean-mid), var(--teal));
+    }
+    .flex-strip__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .flex-strip__text {}
+    .flex-strip__title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .flex-strip__sub {
+      font-size: 14px;
+      color: rgba(255,255,255,.85);
+    }
+
+    /* ─── WHAT'S ON ─── */
+    .whats-on {
+      padding: 80px 0;
+      background: var(--bg);
+    }
+    .whats-on__header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 48px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .event-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: box-shadow .2s, transform .2s;
+      cursor: pointer;
+    }
+    .event-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-5px); }
+    .event-card__img-wrap { overflow: hidden; height: 200px; }
+    .event-card__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .4s;
+    }
+    .event-card:hover .event-card__img { transform: scale(1.05); }
+    .event-card__body { padding: 24px; }
+    .event-card__tag {
+      display: inline-block;
+      font-family: 'Nunito', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--ocean-mid);
+      background: var(--teal-light);
+      padding: 4px 10px;
+      border-radius: 50px;
+      margin-bottom: 12px;
+    }
+    .event-card__title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--ocean-deep);
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+    .event-card__desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+    .event-card__link {
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ocean-mid);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: gap .15s;
+    }
+    .event-card:hover .event-card__link { gap: 9px; }
+
+    /* ─── REALMS ─── */
+    .realms {
+      padding: 80px 0 90px;
+      background: var(--bg-wash);
+      overflow: hidden;
+    }
+    .realms__header { margin-bottom: 48px; }
+    .realms__carousel {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      padding: 0 max(24px, calc((100vw - 1240px) / 2 + 24px));
+      padding-bottom: 8px;
+    }
+    .realms__carousel::-webkit-scrollbar { display: none; }
+    .realm-card {
+      flex: 0 0 290px;
+      scroll-snap-align: start;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      height: 400px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: box-shadow .2s;
+    }
+    .realm-card:hover { box-shadow: var(--shadow-lg); }
+    .realm-card__bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: transform .4s;
+    }
+    .realm-card:hover .realm-card__bg { transform: scale(1.06); }
+    .realm-card__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,20,50,.9) 0%, rgba(0,20,50,.3) 50%, transparent 100%);
+    }
+    .realm-card__body {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 24px 20px;
+      z-index: 2;
+    }
+    .realm-card__num {
+      font-family: 'Nunito', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 5px;
+    }
+    .realm-card__name {
+      font-family: 'Nunito', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .realm-card__desc {
+      font-size: 13px;
+      color: rgba(255,255,255,.75);
+      line-height: 1.5;
+    }
+    .realm-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 12px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--teal);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .2s, transform .2s;
+    }
+    .realm-card:hover .realm-card__cta { opacity: 1; transform: translateY(0); }
+
+    /* Realm bg colour fallbacks */
+    .realm--ocean    .realm-card__bg { background: linear-gradient(160deg,#003a6b,#0077b6); }
+    .realm--endless  .realm-card__bg { background: linear-gradient(160deg,#00637a,#00b4d8); }
+    .realm--icy      .realm-card__bg { background: linear-gradient(160deg,#1a3a5c,#4a90a0); }
+    .realm--tropical .realm-card__bg { background: linear-gradient(160deg,#005c6b,#00b894); }
+    .realm--rocky    .realm-card__bg { background: linear-gradient(160deg,#3a4a5c,#6a8a9c); }
+    .realm--deep     .realm-card__bg { background: linear-gradient(160deg,#0a1a40,#1a2a80); }
+    .realm--wadden   .realm-card__bg { background: linear-gradient(160deg,#1a4a2a,#3a9a6a); }
+
+    .realms__nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 36px;
+    }
+    .realms__nav-btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .realms__nav-btn:hover { background: var(--ocean-mid); border-color: var(--ocean-mid); color: #fff; }
+    .realms__nav-btn svg { width: 18px; height: 18px; }
+
+    /* ─── ENCOUNTERS ─── */
+    .encounters {
+      padding: 80px 0;
+      background: var(--bg);
+    }
+    .encounters__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .encounters__media {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      height: 480px;
+    }
+    .encounters__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .encounters__badge {
+      position: absolute;
+      bottom: 20px; left: 20px;
+      background: rgba(255,255,255,.94);
+      backdrop-filter: blur(8px);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+    }
+    .encounters__badge-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ocean-deep);
+    }
+    .encounters__badge-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .encounters__content {}
+    .encounters__desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin: 16px 0 32px;
+      line-height: 1.7;
+    }
+    .encounters__list {
+      list-style: none;
+      margin-bottom: 36px;
+    }
+    .encounters__list li {
+      font-size: 15px;
+      color: var(--text);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .encounters__list li::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+    }
+
+    /* ─── RESEARCH & RESCUE ─── */
+    .rescue {
+      padding: 80px 0;
+      background: linear-gradient(135deg, #001f40 0%, #003a6b 50%, #005c8a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .rescue::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,180,216,.15), transparent 70%);
+    }
+    .rescue__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .rescue__content {}
+    .rescue__desc {
+      color: rgba(255,255,255,.8);
+      font-size: 15px;
+      margin: 16px 0 32px;
+      line-height: 1.7;
+    }
+    .rescue__alert {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .rescue__alert-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .rescue__alert-title::before {
+      content: '🐠';
+      font-size: 20px;
+    }
+    .rescue__alert-text {
+      font-size: 14px;
+      color: rgba(255,255,255,.75);
+      margin-bottom: 12px;
+    }
+    .rescue__alert-phone {
+      font-family: 'Nunito', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--teal);
+    }
+    .rescue__media {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      height: 440px;
+    }
+    .rescue__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .rescue__media-caption {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,20,50,.8), transparent);
+      padding: 24px 20px 20px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+    }
+
+    /* ─── TICKETS ─── */
+    .tickets {
+      padding: 80px 0;
+      background: var(--bg-wash);
+    }
+    .tickets__header { text-align: center; margin-bottom: 52px; }
+    .tickets__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .ticket-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      text-align: center;
+      position: relative;
+      transition: box-shadow .2s, transform .2s, border-color .2s;
+    }
+    .ticket-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+    .ticket-card--featured {
+      border-color: var(--ocean-mid);
+      background: linear-gradient(160deg, #f0f7fc, #fff);
+    }
+    .ticket-card__badge {
+      position: absolute;
+      top: -14px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--ocean-mid);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      white-space: nowrap;
+    }
+    .ticket-card__name {
+      font-family: 'Nunito', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--ocean-deep);
+      margin-bottom: 4px;
+    }
+    .ticket-card__sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .ticket-card__price {
+      font-family: 'Nunito', sans-serif;
+      font-size: 44px;
+      font-weight: 900;
+      color: var(--ocean-mid);
+      line-height: 1;
+    }
+    .ticket-card__price-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 6px 0 28px;
+    }
+    .ticket-card__features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+    .ticket-card__features li {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .ticket-card__features li::before {
+      content: '✓';
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    /* ─── PARTNERS ─── */
+    .partners {
+      padding: 52px 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .partners__label {
+      text-align: center;
+      font-family: 'Nunito', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 36px;
+    }
+    .partners__logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 64px;
+      flex-wrap: wrap;
+    }
+    .partner-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      opacity: .6;
+      transition: opacity .2s;
+    }
+    .partner-item:hover { opacity: 1; }
+    .partner-item__logo {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .partner-item__logo-text {
+      font-family: 'Nunito', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--ocean-deep);
+      letter-spacing: -1px;
+    }
+    .partner-item__label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ─── NEWSLETTER ─── */
+    .newsletter {
+      padding: 72px 0;
+      background: var(--bg-wash);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .newsletter__title {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(24px, 3.5vw, 36px);
+      font-weight: 900;
+      color: var(--ocean-deep);
+      margin-bottom: 10px;
+    }
+    .newsletter__sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 32px;
+    }
+    .newsletter__form {
+      display: flex;
+      gap: 12px;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .newsletter__input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 50px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      padding: 13px 20px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .newsletter__input::placeholder { color: var(--text-dim); }
+    .newsletter__input:focus { border-color: var(--ocean-mid); }
+    .newsletter__privacy {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 14px;
+    }
+    .newsletter__privacy a { color: var(--ocean-mid); text-decoration: underline; }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      background: var(--ocean-deep);
+      color: #fff;
+      padding: 64px 0 32px;
+    }
+    .footer__top {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 52px;
+    }
+    .footer__brand-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.65;
+      margin: 16px 0 28px;
+    }
+    .footer__socials {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .footer__social {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.7);
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .footer__social:hover { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .footer__social svg { width: 16px; height: 16px; }
+    .footer__col-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 20px;
+    }
+    .footer__links { list-style: none; }
+    .footer__links li { margin-bottom: 12px; }
+    .footer__links a {
+      font-size: 14px;
+      color: rgba(255,255,255,.6);
+      transition: color .15s;
+    }
+    .footer__links a:hover { color: #fff; }
+    .footer__bottom {
+      border-top: 1px solid rgba(255,255,255,.12);
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer__copy {
+      font-size: 13px;
+      color: rgba(255,255,255,.4);
+    }
+    .footer__legal {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer__legal a {
+      font-size: 13px;
+      color: rgba(255,255,255,.4);
+      transition: color .15s;
+    }
+    .footer__legal a:hover { color: rgba(255,255,255,.75); }
+
+    /* ─── AEP PERSONALIZATION BADGE (demo) ─── */
+    .aep-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: rgba(0,58,107,.97);
+      border: 1px solid var(--teal);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      min-width: 260px;
+      max-width: 320px;
+      backdrop-filter: blur(12px);
+      color: #fff;
+      display: none;
+    }
+    .aep-bar.visible { display: block; }
+    .aep-bar__label {
+      font-family: 'Nunito', sans-serif;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 6px;
+    }
+    .aep-bar__msg { font-size: 14px; color: #fff; line-height: 1.45; }
+    .aep-bar__close {
+      position: absolute;
+      top: 8px; right: 10px;
+      background: none; border: none;
+      color: rgba(255,255,255,.4);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1024px) {
+      .pledge__inner { grid-template-columns: repeat(2, 1fr); }
+      .events-grid { grid-template-columns: repeat(2, 1fr); }
+      .tickets__grid { grid-template-columns: repeat(2, 1fr); }
+      .encounters__inner { grid-template-columns: 1fr; }
+      .rescue__inner { grid-template-columns: 1fr; }
+      .footer__top { grid-template-columns: 1fr 1fr; }
+      .hero__conservation { display: none; }
+    }
+    @media (max-width: 768px) {
+      .nav__links { display: none; }
+      .nav__menu-toggle { display: flex; }
+      .pledge__inner { grid-template-columns: 1fr; }
+      .events-grid { grid-template-columns: 1fr; }
+      .tickets__grid { grid-template-columns: 1fr; max-width: 380px; }
+      .partners__logos { gap: 32px; }
+      .footer__top { grid-template-columns: 1fr; }
+      .newsletter__form { flex-direction: column; }
+      .footer__bottom { flex-direction: column; align-items: flex-start; }
+      .hero__content { margin-left: 0; padding: 0 24px; }
+      .flex-strip__inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ANNOUNCEMENT BAR -->
+  <div class="announce-bar" role="banner">
+    🐋 Flexibility for Every Visit — Simple changes &amp; flexible refunds until 31 May
+    <a href="#tickets">View Tickets →</a>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="SeaWorld Yas Island Abu Dhabi home">
+        <div class="nav__logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 16.5c-2.5 1.5-5.5 1.5-8 0S4 13 2 12c2-1 4-3.5 8-4.5s7 .5 9 3-1 4.5-1 6z"/>
+            <circle cx="16" cy="10" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="nav__logo-text">
+          SeaWorld®
+          <span>Yas Island, Abu Dhabi</span>
+        </div>
+      </a>
+
+      <ul class="nav__links" role="list">
+        <li><a href="#visit">Plan Your Visit</a></li>
+        <li><a href="#realms">Explore</a></li>
+        <li><a href="#rescue">Research &amp; Rescue</a></li>
+        <li><a href="#events">Events</a></li>
+        <li><a href="#tickets">Tickets &amp; Offers</a></li>
+      </ul>
+
+      <div class="nav__actions">
+        <button class="nav__icon-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        <button class="nav__icon-btn" aria-label="My account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </button>
+        <button class="nav__icon-btn" aria-label="Language: English">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </button>
+        <a href="#tickets" class="btn btn-ocean">Buy Now</a>
+        <button class="nav__menu-toggle" aria-label="Open menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" aria-label="Hero banner">
+    <div class="hero__bg" id="heroBg"></div>
+    <div class="hero__overlay" aria-hidden="true"></div>
+    <div class="hero__overlay-bottom" aria-hidden="true"></div>
+    <div class="hero__content">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
+        Now Open on Yas Island
+      </div>
+      <h1 class="hero__title">
+        One Ocean,<br>
+        <em>Infinite</em><br>
+        Wonders
+      </h1>
+      <p class="hero__sub">
+        Get ready for over 100 animal experiences and presentations, and learn all about the One Ocean that connects us all.
+      </p>
+      <div class="hero__ctas">
+        <a href="#tickets" class="btn btn-teal">Buy Tickets</a>
+        <a href="#realms" class="btn btn-white">Explore the Park</a>
+      </div>
+    </div>
+    <div class="hero__conservation" role="complementary" aria-label="Conservation pledge">
+      <div class="hero__conservation-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <p class="hero__conservation-title">Conservation at Heart</p>
+      <p class="hero__conservation-text">Every ticket purchased supports the Yas SeaWorld Research & Rescue Center.</p>
+    </div>
+  </section>
+
+  <!-- PLEDGE STATS -->
+  <section class="pledge" aria-labelledby="pledge-heading">
+    <div class="container">
+      <div class="pledge__inner">
+
+        <div class="pledge-item">
+          <div class="pledge-item__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <div class="pledge-item__num">100+</div>
+          <div class="pledge-item__label">Animal Experiences</div>
+          <p class="pledge-item__desc">Presentations, encounters, and live experiences across all seven realms of the park.</p>
+        </div>
+
+        <div class="pledge-item">
+          <div class="pledge-item__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div class="pledge-item__num">1</div>
+          <div class="pledge-item__label">One Ocean</div>
+          <p class="pledge-item__desc">The world's oceans are connected. Explore, learn, and help protect what unites us all.</p>
+        </div>
+
+        <div class="pledge-item">
+          <div class="pledge-item__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="pledge-item__num">7</div>
+          <div class="pledge-item__label">Themed Realms</div>
+          <p class="pledge-item__desc">From icy polar waters to vibrant tropical reefs — seven immersive ocean worlds await.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FLEXIBILITY STRIP -->
+  <div class="flex-strip" role="complementary">
+    <div class="container">
+      <div class="flex-strip__inner">
+        <div class="flex-strip__text">
+          <p class="flex-strip__title">Flexibility for Every Visit</p>
+          <p class="flex-strip__sub">Enjoy stress-free ticket buying with simple changes and flexible refund options until 31 May.</p>
+        </div>
+        <a href="#tickets" class="btn btn-white">View Flexible Tickets</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT'S ON -->
+  <section class="whats-on" id="events" aria-labelledby="events-heading">
+    <div class="container">
+      <div class="whats-on__header">
+        <div>
+          <p class="section-label">Latest at the Park</p>
+          <h2 class="section-title" id="events-heading">What's On</h2>
+        </div>
+        <a href="#" class="btn btn-outline">View All Events</a>
+      </div>
+      <div class="events-grid">
+
+        <article class="event-card">
+          <div class="event-card__img-wrap">
+            <img class="event-card__img"
+              src="https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=600&q=80"
+              alt="Dolphin presentation" loading="lazy">
+          </div>
+          <div class="event-card__body">
+            <span class="event-card__tag">Live Show</span>
+            <h3 class="event-card__title">Dolphin Discoveries Presentation</h3>
+            <p class="event-card__desc">Watch our marine team showcase the intelligence and agility of Atlantic bottlenose dolphins in a spectacular live presentation.</p>
+            <a href="#" class="event-card__link">
+              Learn More
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="event-card">
+          <div class="event-card__img-wrap">
+            <img class="event-card__img"
+              src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80"
+              alt="Orca experience" loading="lazy">
+          </div>
+          <div class="event-card__body">
+            <span class="event-card__tag">Special Event</span>
+            <h3 class="event-card__title">Orca Encounter Experience</h3>
+            <p class="event-card__desc">Get up close with our magnificent orcas in an educational and awe-inspiring encounter unlike anything else in the region.</p>
+            <a href="#" class="event-card__link">
+              Learn More
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="event-card">
+          <div class="event-card__img-wrap">
+            <img class="event-card__img"
+              src="https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=600&q=80"
+              alt="Penguin feeding" loading="lazy">
+          </div>
+          <div class="event-card__body">
+            <span class="event-card__tag">Encounter</span>
+            <h3 class="event-card__title">Penguin Feeding &amp; Meet</h3>
+            <p class="event-card__desc">Meet our Gentoo and King penguins behind the scenes — watch feeding time and learn about life in the icy polar realm.</p>
+            <a href="#" class="event-card__link">
+              Learn More
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- REALMS CAROUSEL -->
+  <section class="realms" id="realms" aria-labelledby="realms-heading">
+    <div class="realms__header container">
+      <p class="section-label">Seven Immersive Worlds</p>
+      <h2 class="section-title" id="realms-heading">Explore the Realms</h2>
+    </div>
+    <div class="realms__carousel" id="realmsCarousel" role="list">
+
+      <div class="realm-card realm--ocean" role="listitem" tabindex="0" aria-label="One Ocean">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 01</p>
+          <h3 class="realm-card__name">One Ocean</h3>
+          <p class="realm-card__desc">The heart of the park — a gateway to all oceans, celebrating the single body of water that connects our world.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--endless" role="listitem" tabindex="0" aria-label="Endless Ocean">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1504472478235-9bc48ba4d60f?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 02</p>
+          <h3 class="realm-card__name">Endless Ocean</h3>
+          <p class="realm-card__desc">Dive into the world of sharks and rays — a vast underwater realm of open-water predators.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--icy" role="listitem" tabindex="0" aria-label="Icy Waters">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1517783999520-f068d7431a60?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 03</p>
+          <h3 class="realm-card__name">Icy Waters</h3>
+          <p class="realm-card__desc">Venture into the polar extremes — meet penguins, beluga whales, and walruses in their icy habitat.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--tropical" role="listitem" tabindex="0" aria-label="Tropical Ocean">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1530053969600-caed2596d242?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 04</p>
+          <h3 class="realm-card__name">Tropical Ocean</h3>
+          <p class="realm-card__desc">Swim alongside clownfish, sea turtles, and technicolour reef creatures in a living coral paradise.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--rocky" role="listitem" tabindex="0" aria-label="Rocky Point">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 05</p>
+          <h3 class="realm-card__name">Rocky Point</h3>
+          <p class="realm-card__desc">The rugged coastline home of sea lions, otters, and playful marine mammals that love the shore.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--deep" role="listitem" tabindex="0" aria-label="The Deep">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1550781989-b8f7e7c8e5e5?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 06</p>
+          <h3 class="realm-card__name">The Deep</h3>
+          <p class="realm-card__desc">Descend into the mysterious abyss — bioluminescent creatures and deep-sea wonders never before seen in the UAE.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+      <div class="realm-card realm--wadden" role="listitem" tabindex="0" aria-label="The Wadden">
+        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1572948780608-c4aa8af9c267?w=600&q=80')"></div>
+        <div class="realm-card__overlay"></div>
+        <div class="realm-card__body">
+          <p class="realm-card__num">Realm 07</p>
+          <h3 class="realm-card__name">The Wadden</h3>
+          <p class="realm-card__desc">A tidal wetland realm teeming with shorebirds, wading creatures, and the drama of the intertidal zone.</p>
+          <span class="realm-card__cta">Explore →</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="realms__nav container">
+      <button class="realms__nav-btn" id="realmsPrev" aria-label="Previous realms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="realms__nav-btn" id="realmsNext" aria-label="Next realms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ENCOUNTERS -->
+  <section class="encounters" id="encounters" aria-labelledby="encounters-heading">
+    <div class="container">
+      <div class="encounters__inner">
+        <div class="encounters__media">
+          <img class="encounters__img"
+            src="https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=800&q=80"
+            alt="SeaWorld Encounters — up-close animal experience" loading="lazy">
+          <div class="encounters__badge">
+            <div class="encounters__badge-title">SeaWorld Encounters</div>
+            <div class="encounters__badge-sub">Book your personal encounter today</div>
+          </div>
+        </div>
+        <div class="encounters__content">
+          <p class="section-label">Up-Close &amp; Personal</p>
+          <h2 class="section-title" id="encounters-heading">SeaWorld Encounters</h2>
+          <p class="encounters__desc">
+            Go beyond the exhibits with a personalised animal encounter. Work alongside our marine experts, get in the water, and create memories that last a lifetime.
+          </p>
+          <ul class="encounters__list">
+            <li>Dolphin Swim &amp; Interaction Experience</li>
+            <li>Beluga Whale Encounter</li>
+            <li>Penguin VIP Behind the Scenes</li>
+            <li>Shark Dive — Endless Ocean</li>
+            <li>Sea Lion Trainer for a Day</li>
+          </ul>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <a href="#" class="btn btn-ocean">Book an Encounter</a>
+            <a href="#" class="btn btn-outline">Discover More</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESEARCH & RESCUE -->
+  <section class="rescue" id="rescue" aria-labelledby="rescue-heading">
+    <div class="container">
+      <div class="rescue__inner">
+        <div class="rescue__content">
+          <p class="section-label" style="color:var(--teal)">Yas SeaWorld Research &amp; Rescue</p>
+          <h2 class="section-title light" id="rescue-heading">Conservation in Action</h2>
+          <p class="rescue__desc">
+            The Yas SeaWorld Research &amp; Rescue Center is one of the most advanced marine animal rescue facilities in the world. Every ticket sold directly funds this vital work.
+          </p>
+          <div class="rescue__alert">
+            <div class="rescue__alert-title">Spotted an animal in distress?</div>
+            <p class="rescue__alert-text">We're ready to help any marine animal that's sick or injured. Contact our 24/7 rescue line:</p>
+            <a href="tel:00971565030060" class="rescue__alert-phone">056 503 0060</a>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <a href="#" class="btn btn-teal">Learn About Our Work</a>
+            <a href="#" class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.4)">Science Talks</a>
+          </div>
+        </div>
+        <div class="rescue__media">
+          <img class="rescue__img"
+            src="https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=800&q=80"
+            alt="Marine rescue team at work" loading="lazy">
+          <div class="rescue__media-caption">Yas SeaWorld Research &amp; Rescue Center — Yas Island, Abu Dhabi</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TICKETS -->
+  <section class="tickets" id="tickets" aria-labelledby="tickets-heading">
+    <div class="container">
+      <div class="tickets__header">
+        <p class="section-label">Plan Your Day</p>
+        <h2 class="section-title" id="tickets-heading">Tickets &amp; Offers</h2>
+        <p style="color:var(--text-muted);margin-top:10px;font-size:15px">All tickets include full park access, live presentations, and support conservation.</p>
+      </div>
+      <div class="tickets__grid">
+
+        <div class="ticket-card">
+          <h3 class="ticket-card__name">Child</h3>
+          <p class="ticket-card__sub">Ages 3–11 · Under 105cm</p>
+          <div class="ticket-card__price">AED 225</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Full park access — all 7 realms</li>
+            <li>Live presentations included</li>
+            <li>Animal encounters (viewing)</li>
+            <li>Supports conservation research</li>
+          </ul>
+          <a href="#" class="btn btn-outline" style="width:100%;text-align:center">Buy Child Ticket</a>
+        </div>
+
+        <div class="ticket-card ticket-card--featured">
+          <div class="ticket-card__badge">Most Popular</div>
+          <h3 class="ticket-card__name">Adult</h3>
+          <p class="ticket-card__sub">Ages 12+ · 105cm+</p>
+          <div class="ticket-card__price">AED 275</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Full park access — all 7 realms</li>
+            <li>Live presentations included</li>
+            <li>Animal encounters (viewing)</li>
+            <li>Supports conservation research</li>
+          </ul>
+          <a href="#" class="btn btn-ocean" style="width:100%;text-align:center">Buy Adult Ticket</a>
+        </div>
+
+        <div class="ticket-card">
+          <h3 class="ticket-card__name">VIP Experience</h3>
+          <p class="ticket-card__sub">Ultimate park package</p>
+          <div class="ticket-card__price">AED 549</div>
+          <p class="ticket-card__price-label">per person · single day</p>
+          <ul class="ticket-card__features">
+            <li>Everything in Adult ticket</li>
+            <li>1 premium animal encounter</li>
+            <li>Priority access &amp; dedicated host</li>
+            <li>Dining credit included</li>
+          </ul>
+          <a href="#" class="btn btn-outline" style="width:100%;text-align:center">Buy VIP Ticket</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PARTNERS -->
+  <section class="partners" aria-label="Official partners">
+    <div class="container">
+      <p class="partners__label">Our Official Partners</p>
+      <div class="partners__logos">
+        <div class="partner-item">
+          <div class="partner-item__logo">
+            <span class="partner-item__logo-text" style="color:#e31837">Coca‑Cola</span>
+          </div>
+          <p class="partner-item__label">Official Soft Drinks Partner</p>
+        </div>
+        <div class="partner-item">
+          <div class="partner-item__logo">
+            <span class="partner-item__logo-text" style="color:#003a6b">Emirates NBD</span>
+          </div>
+          <p class="partner-item__label">Official Banking Partner</p>
+        </div>
+        <div class="partner-item">
+          <div class="partner-item__logo">
+            <span class="partner-item__logo-text" style="color:#bd8b13">Etihad</span>
+          </div>
+          <p class="partner-item__label">Official Airline Partner</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter" id="newsletter" aria-labelledby="newsletter-heading">
+    <div class="container">
+      <p class="section-label" style="text-align:center">Stay Connected</p>
+      <h2 class="newsletter__title" id="newsletter-heading">Dive Deeper with SeaWorld</h2>
+      <p class="newsletter__sub">Be the first to hear about new animals, events, conservation news, and exclusive offers.</p>
+      <form class="newsletter__form" onsubmit="handleNewsletterSubmit(event)" novalidate>
+        <input
+          type="email"
+          class="newsletter__input"
+          placeholder="Your email address"
+          aria-label="Email address"
+          required>
+        <button type="submit" class="btn btn-ocean">Sign Up</button>
+      </form>
+      <p class="newsletter__privacy">
+        By signing up you agree to our <a href="#">Privacy Policy</a>. You can unsubscribe at any time.
+      </p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer" aria-label="Site footer">
+    <div class="container">
+      <div class="footer__top">
+        <div>
+          <div class="nav__logo" style="margin-bottom:16px">
+            <div class="nav__logo-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 16.5c-2.5 1.5-5.5 1.5-8 0S4 13 2 12c2-1 4-3.5 8-4.5s7 .5 9 3-1 4.5-1 6z"/>
+                <circle cx="16" cy="10" r="1" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="nav__logo-text" style="color:#fff">
+              SeaWorld®
+              <span style="color:rgba(255,255,255,.55)">Yas Island, Abu Dhabi</span>
+            </div>
+          </div>
+          <p class="footer__brand-desc">
+            SeaWorld® Yas Island Abu Dhabi — an immersive ocean park dedicated to inspiring guests with the wonders of the natural world and the importance of marine conservation.
+          </p>
+          <div class="footer__socials">
+            <!-- Facebook -->
+            <a href="#" class="footer__social" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <!-- Instagram -->
+            <a href="#" class="footer__social" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+            </a>
+            <!-- Twitter/X -->
+            <a href="#" class="footer__social" aria-label="Twitter / X">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <!-- YouTube -->
+            <a href="#" class="footer__social" aria-label="YouTube">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+            </a>
+            <!-- TikTok -->
+            <a href="#" class="footer__social" aria-label="TikTok">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z"/></svg>
+            </a>
+            <!-- WhatsApp -->
+            <a href="#" class="footer__social" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">About</h3>
+          <ul class="footer__links">
+            <li><a href="#">Park Overview</a></li>
+            <li><a href="#">FAQs</a></li>
+            <li><a href="#">Partnerships</a></li>
+            <li><a href="#">News</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">People of Determination</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">Explore</h3>
+          <ul class="footer__links">
+            <li><a href="#realms">The Seven Realms</a></li>
+            <li><a href="#encounters">Encounters</a></li>
+            <li><a href="#">Rides &amp; Thrills</a></li>
+            <li><a href="#">Dining</a></li>
+            <li><a href="#">Shopping</a></li>
+            <li><a href="#rescue">Research &amp; Rescue</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="footer__col-title">Legal</h3>
+          <ul class="footer__links">
+            <li><a href="#">Terms &amp; Conditions</a></li>
+            <li><a href="#">Ticket Terms</a></li>
+            <li><a href="#">Park Entry Terms</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cookies Policy</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p class="footer__copy">
+          © 2025 SeaWorld Parks &amp; Entertainment. SeaWorld® Yas Island Abu Dhabi is operated under license on Yas Island.
+        </p>
+        <div class="footer__legal">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Use</a>
+          <a href="#">Cookie Settings</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- AEP PERSONALIZATION BADGE (demo) -->
+  <div class="aep-bar" id="aepBar" role="status" aria-live="polite">
+    <button class="aep-bar__close" onclick="document.getElementById('aepBar').classList.remove('visible')" aria-label="Close">×</button>
+    <p class="aep-bar__label">AEP Personalisation Active</p>
+    <p class="aep-bar__msg" id="aepBarMsg">Welcome back! You have a saved dolphin encounter. <strong>Resume booking →</strong></p>
+  </div>
+
+  <script>
+    // ── Hero parallax BG load
+    const heroBg = document.getElementById('heroBg');
+    heroBg.style.backgroundImage = "url('https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80')";
+    const img = new Image();
+    img.onload = () => heroBg.classList.add('loaded');
+    img.src = 'https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80';
+
+    // ── Realms carousel nav
+    const carousel = document.getElementById('realmsCarousel');
+    const CARD_W = 290 + 20;
+    document.getElementById('realmsNext').addEventListener('click', () => {
+      carousel.scrollBy({ left: CARD_W * 2, behavior: 'smooth' });
+    });
+    document.getElementById('realmsPrev').addEventListener('click', () => {
+      carousel.scrollBy({ left: -CARD_W * 2, behavior: 'smooth' });
+    });
+
+    // ── Newsletter
+    function handleNewsletterSubmit(e) {
+      e.preventDefault();
+      const input = e.target.querySelector('input');
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Subscribed ✓';
+      btn.style.background = '#00b894';
+      input.value = '';
+      setTimeout(() => { btn.textContent = 'Sign Up'; btn.style.background = ''; }, 3000);
+    }
+
+    // ── AEP demo bar
+    setTimeout(() => {
+      if (!sessionStorage.getItem('seaworldAepBarDismissed')) {
+        document.getElementById('aepBar').classList.add('visible');
+      }
+    }, 4000);
+    document.getElementById('aepBar').querySelector('.aep-bar__close')
+      .addEventListener('click', () => sessionStorage.setItem('seaworldAepBarDismissed', '1'));
+
+    // ── Scroll fade-in
+    const fadeEls = document.querySelectorAll(
+      '.event-card, .realm-card, .ticket-card, .pledge-item'
+    );
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = '';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    fadeEls.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(18px)';
+      el.style.transition = 'opacity .5s ease, transform .5s ease';
+      io.observe(el);
+    });
+  </script>
+
+</body>
+</html>
+```
+
+---
+
+## Images to Replace
+
+| Placeholder | Intended image |
+|---|---|
+| `photo-1582553955270` | Hero — wide underwater/park shot |
+| `photo-1559827291-72ee739d0d9a` | Dolphin presentation |
+| `photo-1544551763-46a013bb70d5` | Orca encounter |
+| `photo-1583212292454-1fe6229603b7` | Penguin feeding |
+| Realm cards (7 cards) | Each realm's signature environment |
+| `photo-1608501078713` | Encounters section feature image |
+| Rescue section | Marine rescue team / research center |
+
+---
+
+## AEP Web SDK Integration (optional — for demo)
+
+Add this **before** the closing `</head>` tag to wire up Adobe Experience Platform:
+
+```html
+<!-- Adobe Experience Platform Web SDK -->
+<script>
+  !function(n,o){o.forEach(function(o){n[o]||((n.__alloyNS=n.__alloyNS||[]).push(o),
+  n[o]=function(){var u=arguments;return new Promise(function(i,l){n[o].q.push([i,l,u])})},
+  n[o].q=[])})}(window,["alloy"]);
+</script>
+<script async src="https://cdn1.adoberesources.net/alloy/2.21.0/alloy.min.js"></script>
+<script>
+  alloy("configure", {
+    datastreamId: "YOUR_DATASTREAM_ID",
+    orgId: "YOUR_ORG_ID@AdobeOrg",
+    onBeforeEventSend: function(options) {
+      options.xdm["web"] = options.xdm["web"] || {};
+      options.xdm["web"]["webPageDetails"] = {
+        name: "SeaWorld Abu Dhabi - Home",
+        siteSection: "Theme Park Home"
+      };
+    }
+  });
+
+  alloy("sendEvent", {
+    xdm: {
+      eventType: "web.webpagedetails.pageViews",
+      web: { webPageDetails: { URL: window.location.href } }
+    }
+  });
+
+  // Personalise the AEP bar offer from AJO decision scope
+  alloy("sendEvent", {
+    xdm: { eventType: "decisioning.propositionDisplay" },
+    decisionScopes: ["seaworld-home-banner"]
+  }).then(({ propositions }) => {
+    if (propositions && propositions[0]?.items[0]?.data?.content) {
+      document.getElementById('aepBarMsg').innerHTML =
+        propositions[0].items[0].data.content;
+    }
+  });
+</script>
+```
+
+Replace `YOUR_DATASTREAM_ID` and `YOUR_ORG_ID` with values from your AEP sandbox.
+
+---
+
+## File Placement in This Repo
+
+```
+web/profile-viewer/seaworld-abu-dhabi/index.html
+```
+
+Add a Firebase rewrite in `firebase.json` for a clean URL:
+```json
+{
+  "source": "/seaworld",
+  "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+}
+```
