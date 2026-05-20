@@ -28,6 +28,16 @@
   var authStarted = false;
   var authMonitorStarted = false;
   var tokenHealthTimer = null;
+  var accountStaleTimer = null;
+  var accountProbeInFlight = false;
+  var lastAccountProbeAttemptAt = 0;
+  var ACCOUNT_PROBE_MIN_MS = 60000;
+  /**
+   * Belt-and-suspenders: `onIdTokenChanged` only runs when the SDK rotates the ID token. If an admin
+   * deletes/disables the account, the old JWT can remain valid until expiry — `user.reload()` talks to
+   * the Identity Toolkit user record and fails fast with `auth/user-not-found` / `auth/user-disabled`.
+   */
+  var STALE_ACCOUNT_INTERVAL_MS = 5 * 60 * 1000;
   var forcedLogoutInProgress = false;
   var FORCED_LOGOUT_EVENT = 'aep-access-forced-logout';
   var FORCE_ONBOARDING_FLAG = 'aepAccessForceOnboarding';
@@ -185,6 +195,11 @@
       localStorage.removeItem('aepLabGoogleVerifiedAt');
       localStorage.removeItem('aepLabEmailReauthPending');
       localStorage.removeItem('aepLabGoogleReauthPending');
+      // Session hold keys — keep in sync with aep-access-onboarding.js (SS_SIGNUP_PENDING_*).
+      if (global.sessionStorage) {
+        global.sessionStorage.removeItem('aepLabSignupPendingAwaitingApproval');
+        global.sessionStorage.removeItem('aepLabSignupPendingHoldKind');
+      }
     } catch (_e) {}
   }
 
@@ -194,7 +209,10 @@
     clearTimeout(pushTimer);
     lastKnownScopeId = null;
     var currentScope = getScope();
-    var pendingAdobeLockout = String((detail && detail.code) || '') === 'auth/user-disabled';
+    var sessionErrCode = String((detail && detail.code) || '');
+    // Disabled or deleted Firebase Auth users: clear lab gate like legacy user-disabled handling.
+    var pendingAdobeLockout =
+      sessionErrCode === 'auth/user-disabled' || sessionErrCode === 'auth/user-not-found';
     var isWorkspaceScope = currentScope && currentScope.scopeType === 'workspace';
 
     if (pendingAdobeLockout) {
@@ -253,15 +271,47 @@
     }, detail || {}));
   }
 
+  function probeSignedInUserStillValid(user, meta) {
+    if (!user || forcedLogoutInProgress || accountProbeInFlight) return Promise.resolve();
+    accountProbeInFlight = true;
+    return user
+      .reload()
+      .then(function () {
+        // Email/password lab users: force a token round-trip so `auth/id-token-revoked` and similar
+        // surface without waiting for a passive refresh. Anonymous users skip `getIdToken(true)` to
+        // avoid extra securetoken traffic (reload() already validated the account).
+        var hasEmail = !!user.email;
+        return hasEmail ? user.getIdToken(true) : user.getIdToken(false);
+      })
+      .catch(function (error) {
+        var code = getErrorCode(error);
+        if (isAuthSessionErrorCode(code)) {
+          handleAuthFailure(
+            error,
+            Object.assign({ source: (meta && meta.source) || 'auth-account-probe' }, meta || {}),
+          );
+        }
+      })
+      .finally(function () {
+        accountProbeInFlight = false;
+      });
+  }
+
+  function maybeProbeUserAccountOnToken(user) {
+    if (forcedLogoutInProgress || !user) return;
+    var now = Date.now();
+    if (now - lastAccountProbeAttemptAt < ACCOUNT_PROBE_MIN_MS) return;
+    lastAccountProbeAttemptAt = now;
+    probeSignedInUserStillValid(user, { source: 'on-id-token-changed' });
+  }
+
   function monitorActiveSession(auth) {
     if (authMonitorStarted || !auth) return;
     authMonitorStarted = true;
     auth.onIdTokenChanged(function (user) {
       if (forcedLogoutInProgress) return;
       if (!user) return;
-      // Do not call getIdToken(true) here. That forces a securetoken.googleapis.com refresh on
-      // every ID-token rotation and races with other work (Alloy web push, SW updates), producing
-      // noisy 400s in DevTools. This callback already indicates Firebase issued a new token.
+      maybeProbeUserAccountOnToken(user);
     });
     tokenHealthTimer = global.setInterval(function () {
       if (forcedLogoutInProgress) return;
@@ -272,6 +322,12 @@
         handleAuthFailure(error, { source: 'auth-health-poll' });
       });
     }, AUTH_POLL_MS);
+    accountStaleTimer = global.setInterval(function () {
+      if (forcedLogoutInProgress) return;
+      var u = auth.currentUser;
+      if (!u) return;
+      probeSignedInUserStillValid(u, { source: 'auth-account-stale-interval' });
+    }, STALE_ACCOUNT_INTERVAL_MS);
   }
 
   function pushReplaceForScope(scope) {
