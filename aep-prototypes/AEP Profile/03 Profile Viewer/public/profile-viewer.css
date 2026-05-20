@@ -1711,11 +1711,27 @@ body.profile-generation-page.audience-membership-page #audienceResults .audience
   border-top: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));
 }
 
-/* Audience Membership tab */
+/* Audience Membership tab — stacked fallback; grid when .aep-audience-viewer-cols is present */
 .profile-viewer-page .profile-audience-wrapper {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.profile-viewer-page .profile-audience-wrapper.aep-audience-viewer-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Two audience blocks: side-by-side from 992px; single block stays one column */
+@media (min-width: 992px) {
+  .profile-viewer-page .profile-audience-wrapper.aep-audience-viewer-cols:has(> .audience-section:not(:only-child)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+    row-gap: 1.5rem;
+  }
 }
 
 .profile-viewer-page .audience-section {

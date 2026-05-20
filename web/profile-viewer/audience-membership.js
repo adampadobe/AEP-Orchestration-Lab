@@ -101,7 +101,7 @@ function renderAudiences(data) {
   if (audienceEmptyEl) audienceEmptyEl.hidden = true;
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'profile-audience-wrapper';
+  wrapper.className = 'profile-audience-wrapper aep-audience-viewer-cols';
 
   if (realized.length > 0) {
     const section = document.createElement('div');
