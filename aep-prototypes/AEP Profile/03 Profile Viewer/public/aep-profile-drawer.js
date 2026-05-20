@@ -79,6 +79,39 @@
   let audiencesModalOpen = false;
   /** @type {HTMLElement | null} */
   let audiencesModalLastFocus;
+  /** Identity graph modal (large graph + approximate timeline slider) */
+  let identityGraphModalBackdrop = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalPanel = null;
+  /** @type {HTMLButtonElement | null} */
+  let identityGraphModalClose = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalSummary = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalGraphWrap = null;
+  /** @type {SVGSVGElement | null} */
+  let identityGraphModalSvg = null;
+  /** @type {HTMLInputElement | null} */
+  let identityGraphModalSlider = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalTimeLabel = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalReadout = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalDiff = null;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalDisclaimer = null;
+  let identityGraphModalOpen = false;
+  /** @type {HTMLElement | null} */
+  let identityGraphModalLastFocus = null;
+  /** @type {HTMLButtonElement | null} */
+  let profileDrawerIdentityGraphModalBadge = null;
+  /** @type {HTMLButtonElement | null} */
+  let profileDrawerIdentityGraphHeadingOpenBtn = null;
+  /** Cached timeline for the open modal scrubber */
+  let identityGraphModalTimelineModel = null;
+  let identityGraphModalLastSliderMs = null;
+  let identityGraphModalLegendPrevMs = null;
   let journeyControlsBound = false;
   let profileDrawerThemeUiBound = false;
 
@@ -345,7 +378,9 @@ function updateProfileDrawer(profile) {
   updateMarketingConsentCheckboxes(source);
   renderAudienceList(source ? source.audiences : null);
   renderEventTimeline(source ? source.events : null);
+  ensureProfileDrawerIdentityGraphHeadingRow();
   renderIdentityGraph(source);
+  updateProfileDrawerIdentityGraphModalBadgeCount();
 }
 
 const IDENTITY_GRAPH_PALETTE = [
@@ -467,23 +502,47 @@ function setIdentityGraphZoom(k) {
   if (g) g.setAttribute('transform', `translate(160,160) scale(${identityGraphScale}) translate(-160,-160)`);
 }
 
-function renderIdentityGraph(source) {
-  if (!identityGraphSvg) return;
+/**
+ * @param {SVGSVGElement | null} svg
+ * @param {Record<string, unknown> | null} source
+ * @param {{
+ *   hubCx?: number,
+ *   hubCy?: number,
+ *   sceneScale?: number,
+ *   querySelectorRoot?: Element | null,
+ *   staticRender?: boolean,
+ *   updateDrawerPrevKeys?: boolean,
+ * }} [opts]
+ */
+function renderIdentityGraphForTarget(svg, source, opts) {
+  const o = opts || {};
+  const hubCx = o.hubCx != null ? Number(o.hubCx) : 160;
+  const hubCy = o.hubCy != null ? Number(o.hubCy) : 160;
+  const sceneScale = o.sceneScale != null && Number.isFinite(Number(o.sceneScale)) ? Number(o.sceneScale) : identityGraphScale;
+  const root = o.querySelectorRoot || svg;
+  const staticRender = !!o.staticRender;
+  const updateDrawerPrevKeys = o.updateDrawerPrevKeys !== false && !staticRender;
+
+  if (!svg) return;
 
   if (!source) {
-    while (identityGraphSvg.firstChild) identityGraphSvg.removeChild(identityGraphSvg.firstChild);
-    lastIdentityGraphKeys = new Set();
-    lastIdentityGraphEmail = '';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (updateDrawerPrevKeys) {
+      lastIdentityGraphKeys = new Set();
+      lastIdentityGraphEmail = '';
+    }
     return;
   }
 
-  const emailNow = String(source.email || '').trim().toLowerCase();
-  if (emailNow && emailNow !== lastIdentityGraphEmail) {
-    lastIdentityGraphKeys = new Set();
-    lastIdentityGraphEmail = emailNow;
+  if (updateDrawerPrevKeys && svg === identityGraphSvg) {
+    const emailNow = String(source.email || '').trim().toLowerCase();
+    if (emailNow && emailNow !== lastIdentityGraphEmail) {
+      lastIdentityGraphKeys = new Set();
+      lastIdentityGraphEmail = emailNow;
+    }
   }
 
-  while (identityGraphSvg.firstChild) identityGraphSvg.removeChild(identityGraphSvg.firstChild);
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const rawIdentities = Array.isArray(source.identities) ? source.identities : [];
   const identities = realIdentitiesForGraph(rawIdentities);
@@ -491,17 +550,19 @@ function renderIdentityGraph(source) {
 
   const scene = document.createElementNS(SVG_NS, 'g');
   scene.setAttribute('data-identity-scene', '1');
-  scene.setAttribute('transform', `translate(160,160) scale(${identityGraphScale}) translate(-160,-160)`);
-  identityGraphSvg.appendChild(scene);
+  scene.setAttribute(
+    'transform',
+    `translate(${hubCx},${hubCy}) scale(${sceneScale}) translate(${-hubCx},${-hubCy})`,
+  );
+  svg.appendChild(scene);
 
-  const cx = 160;
-  const cy = 160;
   const n = identities.length;
-  const positions = layoutIdentityGraphPositions(n, cx, cy);
+  const positions = layoutIdentityGraphPositions(n, hubCx, hubCy);
 
-  const prevKeys = lastIdentityGraphKeys;
   const currentKeys = new Set(identities.map((e) => identityStableKey(e)));
-  const anyNewIdentity = prevKeys.size > 0 && identities.some((e) => !prevKeys.has(identityStableKey(e)));
+  const prevKeys = staticRender ? currentKeys : lastIdentityGraphKeys;
+  const anyNewIdentity =
+    !staticRender && prevKeys.size > 0 && identities.some((e) => !prevKeys.has(identityStableKey(e)));
 
   const edges = document.createElementNS(SVG_NS, 'g');
   edges.setAttribute('class', 'ig-edges');
@@ -531,8 +592,8 @@ function renderIdentityGraph(source) {
     const key = identityStableKey(identities[idx]);
     const isNew = prevKeys.size > 0 && !prevKeys.has(key);
     const line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('x1', String(cx));
-    line.setAttribute('y1', String(cy));
+    line.setAttribute('x1', String(hubCx));
+    line.setAttribute('y1', String(hubCy));
     line.setAttribute('x2', String(p.x));
     line.setAttribute('y2', String(p.y));
     line.setAttribute('stroke', stroke);
@@ -596,7 +657,7 @@ function renderIdentityGraph(source) {
   scene.appendChild(outerG);
 
   const hub = document.createElementNS(SVG_NS, 'g');
-  hub.setAttribute('transform', `translate(${cx}, ${cy})`);
+  hub.setAttribute('transform', `translate(${hubCx}, ${hubCy})`);
 
   const hubScale = document.createElementNS(SVG_NS, 'g');
   hubScale.setAttribute('class', 'aep-ig-hub-scale');
@@ -621,8 +682,8 @@ function renderIdentityGraph(source) {
 
   if (n === 0) {
     const hint = document.createElementNS(SVG_NS, 'text');
-    hint.setAttribute('x', String(cx));
-    hint.setAttribute('y', String(cy + 72));
+    hint.setAttribute('x', String(hubCx));
+    hint.setAttribute('y', String(hubCy + 72));
     hint.setAttribute('text-anchor', 'middle');
     hint.setAttribute('fill', 'rgba(255,255,255,0.45)');
     hint.setAttribute('font-size', '11');
@@ -630,27 +691,42 @@ function renderIdentityGraph(source) {
     scene.appendChild(hint);
   }
 
-  if (n > 0) {
+  if (n > 0 && updateDrawerPrevKeys) {
     lastIdentityGraphKeys = new Set(currentKeys);
   }
 
-  requestAnimationFrame(() => {
+  if (!staticRender && n > 0) {
     requestAnimationFrame(() => {
-      identityGraphSvg.querySelectorAll('.aep-ig-node-new').forEach((el, i) => {
-        el.style.transitionDelay = `${Math.min(i, 14) * 0.05}s`;
-        el.classList.add('aep-ig-node-in');
+      requestAnimationFrame(() => {
+        if (!root) return;
+        root.querySelectorAll('.aep-ig-node-new').forEach((el, i) => {
+          el.style.transitionDelay = `${Math.min(i, 14) * 0.05}s`;
+          el.classList.add('aep-ig-node-in');
+        });
+        root.querySelectorAll('.aep-ig-edge-new').forEach((el, i) => {
+          el.style.transitionDelay = `${0.04 + Math.min(i, 20) * 0.025}s`;
+          el.classList.add('aep-ig-edge-in');
+        });
+        const hubEls = root.querySelectorAll('.aep-ig-hub-scale');
+        if (prevKeys.size === 0 && n > 0) {
+          hubEls.forEach((el) => el.classList.add('aep-ig-hub-in'));
+        } else if (anyNewIdentity) {
+          hubEls.forEach((el) => el.classList.add('aep-ig-hub-linked-new'));
+        }
       });
-      identityGraphSvg.querySelectorAll('.aep-ig-edge-new').forEach((el, i) => {
-        el.style.transitionDelay = `${0.04 + Math.min(i, 20) * 0.025}s`;
-        el.classList.add('aep-ig-edge-in');
-      });
-      const hubEls = identityGraphSvg.querySelectorAll('.aep-ig-hub-scale');
-      if (prevKeys.size === 0 && n > 0) {
-        hubEls.forEach((el) => el.classList.add('aep-ig-hub-in'));
-      } else if (anyNewIdentity) {
-        hubEls.forEach((el) => el.classList.add('aep-ig-hub-linked-new'));
-      }
     });
+  }
+}
+
+function renderIdentityGraph(source) {
+  if (!identityGraphSvg) return;
+  renderIdentityGraphForTarget(identityGraphSvg, source, {
+    staticRender: false,
+    updateDrawerPrevKeys: true,
+    hubCx: 160,
+    hubCy: 160,
+    sceneScale: identityGraphScale,
+    querySelectorRoot: identityGraphSvg,
   });
 }
 
@@ -919,6 +995,7 @@ function openAudiencesModal() {
   ensureAudiencesModalDom();
   if (!audiencesModalBackdrop || !audiencesModalPanel) return;
   closeProfileDrawerEventsStoryModal();
+  closeIdentityGraphModal();
 
   audiencesModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
   renderAudiencesModalContent();
@@ -943,6 +1020,359 @@ function closeAudiencesModal() {
   if (profileDrawerAudiencesModalBadge) profileDrawerAudiencesModalBadge.setAttribute('aria-expanded', 'false');
   const ret = audiencesModalLastFocus;
   audiencesModalLastFocus = null;
+  if (ret && typeof ret.focus === 'function') {
+    try {
+      ret.focus();
+    } catch {
+      /* noop */
+    }
+  }
+}
+
+function getProfileDrawerIdentityGraphHeadEl() {
+  if (!identityGraphSvg) return null;
+  const col =
+    identityGraphSvg.closest('.aep-profile-drawer-col--graph') ||
+    identityGraphSvg.closest('[aria-label="Identity graph"]') ||
+    identityGraphSvg.closest('.aep-profile-drawer-col');
+  return col ? col.querySelector('.aep-profile-drawer-graph-head') : null;
+}
+
+function getProfileDrawerIdentityGraphHeadingRow() {
+  const head = getProfileDrawerIdentityGraphHeadEl();
+  return head && head.classList.contains('aep-profile-drawer-identity-graph-heading-row') ? head : null;
+}
+
+function updateProfileDrawerIdentityGraphModalBadgeCount() {
+  ensureProfileDrawerIdentityGraphHeadingRow();
+  if (!profileDrawerIdentityGraphModalBadge) return;
+  const ids = lastLookedUpProfile && Array.isArray(lastLookedUpProfile.identities) ? lastLookedUpProfile.identities : [];
+  const n = realIdentitiesForGraph(ids).length;
+  profileDrawerIdentityGraphModalBadge.textContent = String(n);
+}
+
+function ensureProfileDrawerIdentityGraphHeadingRow() {
+  if (!identityGraphSvg) return;
+  if (getProfileDrawerIdentityGraphHeadingRow()) {
+    const row = /** @type {HTMLElement} */ (getProfileDrawerIdentityGraphHeadingRow());
+    if (!profileDrawerIdentityGraphModalBadge) {
+      const b = row.querySelector('.aep-profile-drawer-identity-graph-modal-badge');
+      if (b) profileDrawerIdentityGraphModalBadge = /** @type {HTMLButtonElement} */ (b);
+    }
+    if (!profileDrawerIdentityGraphHeadingOpenBtn) {
+      const t = row.querySelector('.aep-profile-drawer-identity-graph-heading-open');
+      if (t) profileDrawerIdentityGraphHeadingOpenBtn = /** @type {HTMLButtonElement} */ (t);
+    }
+    return;
+  }
+  const head = getProfileDrawerIdentityGraphHeadEl();
+  if (!head) return;
+  const h2 = head.querySelector('h2.aep-profile-drawer-panel-heading');
+  const zoomWrap = head.querySelector('.aep-profile-drawer-graph-zoom');
+  if (!h2 || !zoomWrap) return;
+
+  head.classList.add('aep-profile-drawer-identity-graph-heading-row');
+
+  const titleBtn = document.createElement('button');
+  titleBtn.type = 'button';
+  titleBtn.className =
+    'aep-profile-drawer-panel-heading aep-profile-drawer-identity-graph-heading-open';
+  if (h2.id) titleBtn.id = h2.id;
+  titleBtn.setAttribute('aria-haspopup', 'dialog');
+  titleBtn.setAttribute('aria-controls', 'aepProfileDrawerIdentityGraphDialog');
+  titleBtn.title = 'Open identity graph — linked identifiers over time (approximate from experience events)';
+  titleBtn.textContent = (h2.textContent || 'IDENTITY GRAPH').trim() || 'IDENTITY GRAPH';
+
+  const badge = document.createElement('button');
+  badge.type = 'button';
+  badge.className =
+    'aep-profile-drawer-identity-graph-modal-badge aep-profile-drawer-events-story-badge';
+  badge.id = 'profileDrawerIdentityGraphModalOpen';
+  badge.setAttribute('aria-haspopup', 'dialog');
+  badge.setAttribute('aria-controls', 'aepProfileDrawerIdentityGraphDialog');
+  badge.setAttribute('aria-expanded', 'false');
+  badge.title = 'Open expanded identity graph';
+  badge.textContent = '0';
+
+  const actions = document.createElement('div');
+  actions.className = 'aep-profile-drawer-identity-graph-head-actions';
+  actions.appendChild(badge);
+  actions.appendChild(zoomWrap);
+
+  h2.replaceWith(titleBtn);
+  head.appendChild(actions);
+
+  profileDrawerIdentityGraphHeadingOpenBtn = titleBtn;
+  profileDrawerIdentityGraphModalBadge = badge;
+
+  function openFromIdentityHeading(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    openIdentityGraphModal();
+  }
+  titleBtn.addEventListener('click', openFromIdentityHeading);
+  badge.addEventListener('click', openFromIdentityHeading);
+
+  updateProfileDrawerIdentityGraphModalBadgeCount();
+}
+
+function ensureIdentityGraphModalDom() {
+  ensureProfileDrawerThemeToggle();
+  if (identityGraphModalBackdrop && identityGraphModalPanel) return;
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'aepProfileDrawerIdentityGraphBackdrop';
+  backdrop.className = 'aep-profile-drawer-identity-graph-modal-backdrop';
+  backdrop.hidden = true;
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  const panel = document.createElement('div');
+  panel.id = 'aepProfileDrawerIdentityGraphDialog';
+  panel.className = 'aep-profile-drawer-identity-graph-modal-dialog';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'aepProfileDrawerIdentityGraphTitle');
+  panel.tabIndex = -1;
+
+  const head = document.createElement('div');
+  head.className = 'aep-profile-drawer-identity-graph-modal-head';
+  const ttl = document.createElement('h2');
+  ttl.id = 'aepProfileDrawerIdentityGraphTitle';
+  ttl.className = 'aep-profile-drawer-identity-graph-modal-title';
+  ttl.textContent = 'Identity graph';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'aep-profile-drawer-identity-graph-modal-close';
+  closeBtn.setAttribute('aria-label', 'Close identity graph');
+  closeBtn.textContent = '\u00d7';
+  head.appendChild(ttl);
+  head.appendChild(closeBtn);
+
+  const summary = document.createElement('div');
+  summary.className = 'aep-profile-drawer-identity-graph-modal-summary';
+  summary.id = 'aepProfileDrawerIdentityGraphSummary';
+  summary.setAttribute('aria-live', 'polite');
+
+  const graphWrap = document.createElement('div');
+  graphWrap.className = 'aep-profile-drawer-identity-graph-modal-graph-wrap';
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'aep-profile-drawer-graph-svg aep-profile-drawer-identity-graph-modal-svg');
+  svg.id = 'identityGraphModalSvg';
+  svg.setAttribute('viewBox', '0 0 320 320');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.setAttribute('aria-hidden', 'true');
+  graphWrap.appendChild(svg);
+
+  const controls = document.createElement('div');
+  controls.className = 'aep-profile-drawer-identity-graph-modal-controls';
+
+  const sliderLabel = document.createElement('label');
+  sliderLabel.className = 'aep-profile-drawer-identity-graph-modal-slider-label';
+  sliderLabel.setAttribute('for', 'aepIdentityGraphModalSlider');
+  sliderLabel.textContent = 'How identities built';
+
+  const sliderRow = document.createElement('div');
+  sliderRow.className = 'aep-profile-drawer-identity-graph-modal-slider-row';
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.id = 'aepIdentityGraphModalSlider';
+  slider.className = 'aep-profile-drawer-identity-graph-modal-slider';
+  slider.setAttribute('aria-label', 'Scrub time to show linked identifiers as of that moment');
+  sliderRow.appendChild(slider);
+
+  const timeLabel = document.createElement('div');
+  timeLabel.className = 'aep-profile-drawer-identity-graph-modal-time-label';
+  timeLabel.setAttribute('aria-live', 'polite');
+
+  const disclaimer = document.createElement('p');
+  disclaimer.className = 'aep-profile-drawer-identity-graph-modal-disclaimer';
+  disclaimer.textContent =
+    'Approximate timeline from experience events in this lab; exact identity link times require UPS identity history.';
+
+  const readout = document.createElement('p');
+  readout.className = 'aep-profile-drawer-identity-graph-modal-readout';
+  readout.setAttribute('aria-live', 'polite');
+
+  const diff = document.createElement('p');
+  diff.className = 'aep-profile-drawer-identity-graph-modal-diff';
+  diff.setAttribute('aria-live', 'polite');
+
+  controls.appendChild(sliderLabel);
+  controls.appendChild(sliderRow);
+  controls.appendChild(timeLabel);
+  controls.appendChild(disclaimer);
+  controls.appendChild(readout);
+  controls.appendChild(diff);
+
+  panel.appendChild(head);
+  panel.appendChild(summary);
+  panel.appendChild(graphWrap);
+  panel.appendChild(controls);
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+
+  identityGraphModalBackdrop = backdrop;
+  identityGraphModalPanel = panel;
+  identityGraphModalClose = closeBtn;
+  identityGraphModalSummary = summary;
+  identityGraphModalGraphWrap = graphWrap;
+  identityGraphModalSvg = svg;
+  identityGraphModalSlider = slider;
+  identityGraphModalTimeLabel = timeLabel;
+  identityGraphModalReadout = readout;
+  identityGraphModalDiff = diff;
+  identityGraphModalDisclaimer = disclaimer;
+
+  function onBackdropDown(e) {
+    if (e.target === backdrop) closeIdentityGraphModal();
+  }
+  backdrop.addEventListener('mousedown', onBackdropDown);
+  closeBtn.addEventListener('click', function () {
+    closeIdentityGraphModal();
+  });
+
+  slider.addEventListener('input', function () {
+    const v = parseInt(String(slider.value), 10);
+    renderIdentityGraphModalAt(v);
+  });
+
+  panel.addEventListener('keydown', function (e) {
+    if (!identityGraphModalOpen || e.key !== 'Tab') return;
+    const focusables = [identityGraphModalClose, identityGraphModalSlider].filter(function (el) {
+      return el && !(el.disabled === true);
+    });
+    if (focusables.length < 2) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+function renderIdentityGraphModalAt(ms) {
+  if (!identityGraphModalSvg || !lastLookedUpProfile || !identityGraphModalTimelineModel) return;
+  const m = identityGraphModalTimelineModel;
+  const t = Math.min(m.timelineMaxMs, Math.max(m.timelineMinMs, Number(ms) || 0));
+  const prevT = identityGraphModalLegendPrevMs;
+
+  const vis = identityGraphVisibleIdentitiesAtMs(m, t);
+  const subset = { ...lastLookedUpProfile, identities: vis };
+  renderIdentityGraphForTarget(identityGraphModalSvg, subset, {
+    staticRender: true,
+    updateDrawerPrevKeys: false,
+    hubCx: 160,
+    hubCy: 160,
+    sceneScale: 1,
+    querySelectorRoot: identityGraphModalSvg,
+  });
+
+  if (identityGraphModalTimeLabel) {
+    identityGraphModalTimeLabel.textContent = `As of ${formatIdentityGraphModalAsOf(t)}`;
+  }
+  if (identityGraphModalReadout) {
+    identityGraphModalReadout.textContent =
+      vis.length === 0
+        ? 'No linked identifiers visible at this moment (try moving the slider toward the present).'
+        : `Visible identifiers: ${vis
+            .map((e) => {
+              const lab = identityGraphLabel(e.namespace);
+              const v0 = String(e.value || '');
+              const short = v0.length > 36 ? `${v0.slice(0, 34)}…` : v0;
+              return `${lab} ${short}`;
+            })
+            .join(' · ')}.`;
+  }
+  if (identityGraphModalDiff) {
+    if (prevT != null && Math.abs(prevT - t) > 0.5) {
+      const prevVis = identityGraphVisibleIdentitiesAtMs(m, prevT);
+      const prevK = new Set(prevVis.map((e) => identityStableKey(e)));
+      const curK = new Set(vis.map((e) => identityStableKey(e)));
+      const added = vis.filter((e) => !prevK.has(identityStableKey(e)));
+      const removed = prevVis.filter((e) => !curK.has(identityStableKey(e)));
+      const parts = [];
+      if (added.length) {
+        parts.push(`Added vs previous: ${added.map((e) => identityGraphLabel(e.namespace)).join(', ')}.`);
+      }
+      if (removed.length) {
+        parts.push(`Hidden vs previous: ${removed.map((e) => identityGraphLabel(e.namespace)).join(', ')}.`);
+      }
+      identityGraphModalDiff.textContent =
+        parts.join(' ') || 'Same visible identifiers as the previous slider position.';
+    } else {
+      identityGraphModalDiff.textContent = '';
+    }
+  }
+
+  identityGraphModalLegendPrevMs = t;
+  identityGraphModalLastSliderMs = t;
+}
+
+function openIdentityGraphModal() {
+  ensureIdentityGraphModalDom();
+  if (!identityGraphModalBackdrop || !identityGraphModalPanel) return;
+  closeProfileDrawerEventsStoryModal();
+  closeAudiencesModal();
+
+  identityGraphModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
+  identityGraphModalLegendPrevMs = null;
+
+  const evList =
+    lastLookedUpProfile &&
+    Array.isArray(lastLookedUpProfile.eventsStory) &&
+    lastLookedUpProfile.eventsStory.length > 0
+      ? lastLookedUpProfile.eventsStory
+      : lastLookedUpProfile && Array.isArray(lastLookedUpProfile.events)
+        ? lastLookedUpProfile.events
+        : [];
+  identityGraphModalTimelineModel = buildIdentityTimelineModel(lastLookedUpProfile, evList);
+
+  appendPersonaSummaryDom(identityGraphModalSummary);
+
+  const span = identityGraphModalTimelineModel.timelineMaxMs - identityGraphModalTimelineModel.timelineMinMs;
+  const step = Math.max(1, Math.round(span / 800));
+  if (identityGraphModalSlider) {
+    identityGraphModalSlider.min = String(Math.round(identityGraphModalTimelineModel.timelineMinMs));
+    identityGraphModalSlider.max = String(Math.round(identityGraphModalTimelineModel.timelineMaxMs));
+    identityGraphModalSlider.step = String(step);
+    identityGraphModalSlider.value = String(Math.round(identityGraphModalTimelineModel.timelineMaxMs));
+  }
+
+  renderIdentityGraphModalAt(identityGraphModalTimelineModel.timelineMaxMs);
+
+  identityGraphModalBackdrop.hidden = false;
+  identityGraphModalBackdrop.setAttribute('aria-hidden', 'false');
+  identityGraphModalOpen = true;
+  document.body.classList.add('aep-profile-drawer-identity-graph-modal-open');
+  if (profileDrawerIdentityGraphModalBadge) {
+    profileDrawerIdentityGraphModalBadge.setAttribute('aria-expanded', 'true');
+  }
+
+  window.setTimeout(function () {
+    if (identityGraphModalClose) identityGraphModalClose.focus();
+  }, 0);
+}
+
+function closeIdentityGraphModal() {
+  if (!identityGraphModalBackdrop) return;
+  identityGraphModalBackdrop.hidden = true;
+  identityGraphModalBackdrop.setAttribute('aria-hidden', 'true');
+  identityGraphModalOpen = false;
+  identityGraphModalTimelineModel = null;
+  identityGraphModalLegendPrevMs = null;
+  identityGraphModalLastSliderMs = null;
+  document.body.classList.remove('aep-profile-drawer-identity-graph-modal-open');
+  if (profileDrawerIdentityGraphModalBadge) {
+    profileDrawerIdentityGraphModalBadge.setAttribute('aria-expanded', 'false');
+  }
+  const ret = identityGraphModalLastFocus;
+  identityGraphModalLastFocus = null;
   if (ret && typeof ret.focus === 'function') {
     try {
       ret.focus();
@@ -2095,6 +2525,7 @@ function openProfileDrawerEventsStoryModal() {
   ensureProfileDrawerEventsStoryModal();
   if (!eventsStoryModalBackdrop || !eventsStoryModalPanel || !profileDrawerEventsStoryBadge) return;
   closeAudiencesModal();
+  closeIdentityGraphModal();
 
   eventsStoryModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
   renderProfileDrawerEventsStoryModalContent();
@@ -2129,6 +2560,13 @@ function closeProfileDrawerEventsStoryModal() {
 }
 
 function onProfileDrawerEventsStoryKeydown(e) {
+  if (identityGraphModalOpen) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeIdentityGraphModal();
+    }
+    return;
+  }
   if (audiencesModalOpen) {
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -2230,6 +2668,196 @@ function eventTimestampMsForDrawer(ev) {
   if (!ev || ev.timestamp == null) return null;
   const t = typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10);
   return Number.isFinite(t) ? t : null;
+}
+
+function profileLastModifiedMs(profile) {
+  const p = profile || null;
+  const v = p && p.lastModifiedAt;
+  if (v == null || v === '') return null;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const d = new Date(v);
+  const ms = d.getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Flattened experience-event rows + channel heuristics → possible identity fragments (no UPS link timestamps).
+ * @param {Record<string, unknown>} ev
+ * @param {string} profileEmailLower
+ * @returns {Array<{ namespace: string, value: string }>}
+ */
+function extractIdentityHintsFromExperienceEvent(ev, profileEmailLower) {
+  const hints = [];
+  const rows = Array.isArray(ev && ev.rows) ? ev.rows : [];
+  const em = String(profileEmailLower || '').trim().toLowerCase();
+
+  for (const r of rows) {
+    const p = String(r.path || '').toLowerCase();
+    const val = String(r.value || '').trim();
+    if (!val) continue;
+    if (p.includes('identitymap')) {
+      const m = p.match(/identitymap\.([^.]+)/);
+      if (m && /\.(id|xid)$/i.test(p)) {
+        hints.push({ namespace: m[1], value: val });
+      }
+    }
+    if (p.includes('ecid') && /\d/.test(val)) {
+      const dig = val.replace(/\D/g, '');
+      if (dig.length >= 10) hints.push({ namespace: 'ECID', value: dig });
+    }
+    if ((p.includes('email') || p.includes('mail')) && val.includes('@') && val.length < 320) {
+      hints.push({ namespace: 'Email', value: val });
+    }
+    if (
+      (p.includes('phone') || p.includes('mobile') || p.includes('sms')) &&
+      /^\+?[\d\s().-]{8,32}$/.test(val)
+    ) {
+      hints.push({ namespace: 'Phone', value: val });
+    }
+  }
+
+  const msgKind = aepProfileDrawerMessageChannelKind(ev);
+  if (msgKind === 'email' && em) {
+    hints.push({ namespace: 'Email', value: em });
+  }
+  if (msgKind === 'push') {
+    for (const r of rows) {
+      const p = String(r.path || '').toLowerCase();
+      if (!p.includes('push') && !p.includes('token')) continue;
+      const val = String(r.value || '').trim();
+      if (val.length >= 8 && val.length < 400) {
+        hints.push({ namespace: 'Push', value: val });
+        break;
+      }
+    }
+  }
+
+  const typeRaw = String((ev && ev.eventType) || (ev && ev.eventName) || '')
+    .trim()
+    .toLowerCase();
+  if (typeRaw.startsWith('web') || typeRaw.includes('web.')) {
+    for (const r of rows) {
+      const p = String(r.path || '').toLowerCase();
+      if (!p.includes('ecid')) continue;
+      const val = String(r.value || '').trim();
+      const dig = val.replace(/\D/g, '');
+      if (dig.length >= 10) hints.push({ namespace: 'ECID', value: dig });
+    }
+  }
+
+  const dedup = new Map();
+  for (const h of hints) {
+    const k = identityStableKey(h);
+    if (!dedup.has(k)) dedup.set(k, h);
+  }
+  return Array.from(dedup.values());
+}
+
+/**
+ * Build slider bounds + first-seen ms per stable identity key (inferred from events; consent-only ids at timeline end).
+ * @param {Record<string, unknown> | null} profile
+ * @param {unknown[] | null} events
+ */
+function buildIdentityTimelineModel(profile, events) {
+  const now = Date.now();
+  const profileIdentities = realIdentitiesForGraph(
+    profile && Array.isArray(profile.identities) ? profile.identities : [],
+  );
+  const emailLo =
+    profile && profile.email != null ? String(profile.email).trim().toLowerCase() : '';
+
+  const story = Array.isArray(events) ? events.slice() : [];
+  story.sort((a, b) => (eventTimestampMsForDrawer(a) || 0) - (eventTimestampMsForDrawer(b) || 0));
+
+  /** @type {Map<string, { firstSeenMs: number, synthetic: boolean }>} */
+  const firstSeen = new Map();
+
+  function recordAt(entry, ts) {
+    if (!entry || ts == null || !Number.isFinite(ts)) return;
+    const list = realIdentitiesForGraph([entry]);
+    if (!list.length) return;
+    const ent = list[0];
+    const k = identityStableKey(ent);
+    const prev = firstSeen.get(k);
+    if (!prev || ts < prev.firstSeenMs) {
+      firstSeen.set(k, { firstSeenMs: ts, synthetic: false });
+    }
+  }
+
+  for (const ev of story) {
+    const ts = eventTimestampMsForDrawer(ev);
+    if (ts == null) continue;
+    for (const h of extractIdentityHintsFromExperienceEvent(ev, emailLo)) {
+      recordAt(h, ts);
+    }
+  }
+
+  const eventTimes = story.map((e) => eventTimestampMsForDrawer(e)).filter((t) => t != null && Number.isFinite(t));
+  const lastEvTs = eventTimes.length ? Math.max.apply(null, eventTimes) : null;
+  const lm = profileLastModifiedMs(profile);
+  let timelineMaxMs = Math.max(now, lastEvTs || 0, lm || 0);
+  if (!Number.isFinite(timelineMaxMs) || timelineMaxMs <= 0) timelineMaxMs = now;
+
+  for (const ent of profileIdentities) {
+    const k = identityStableKey(ent);
+    if (!firstSeen.has(k)) {
+      firstSeen.set(k, { firstSeenMs: timelineMaxMs, synthetic: true });
+    }
+  }
+
+  let timelineMinMs = timelineMaxMs;
+  for (const ev of story) {
+    const ts = eventTimestampMsForDrawer(ev);
+    if (ts != null && ts < timelineMinMs) timelineMinMs = ts;
+  }
+  for (const rec of firstSeen.values()) {
+    if (rec.firstSeenMs < timelineMinMs) timelineMinMs = rec.firstSeenMs;
+  }
+  if (!Number.isFinite(timelineMinMs) || timelineMinMs >= timelineMaxMs) {
+    timelineMinMs = timelineMaxMs - 86400000;
+  }
+
+  const byKey = new Map();
+  for (const ent of profileIdentities) {
+    const k = identityStableKey(ent);
+    byKey.set(k, { entry: ent, ...(firstSeen.get(k) || { firstSeenMs: timelineMaxMs, synthetic: true }) });
+  }
+
+  return {
+    timelineMinMs,
+    timelineMaxMs,
+    byKey,
+    profileIdentities,
+    hasEventSignal: story.length > 0,
+  };
+}
+
+function identityGraphVisibleIdentitiesAtMs(model, ms) {
+  if (!model || !model.byKey || !Array.isArray(model.profileIdentities)) return [];
+  const t = Number(ms);
+  if (!Number.isFinite(t)) return [];
+  const out = [];
+  for (const ent of model.profileIdentities) {
+    const k = identityStableKey(ent);
+    const rec = model.byKey.get(k);
+    const fs = rec && rec.firstSeenMs != null ? rec.firstSeenMs : model.timelineMaxMs;
+    if (fs <= t) out.push(ent);
+  }
+  return out;
+}
+
+function formatIdentityGraphModalAsOf(ms) {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }
 
 function isDrawerApplicationLoginEvent(ev) {
@@ -2682,6 +3310,7 @@ function init(config) {
   _config = config || {};
   cacheDomRefs();
   ensureProfileDrawerThemeToggle();
+  ensureProfileDrawerIdentityGraphHeadingRow();
 
   if (!eventsStoryModalKeydownBound) {
     eventsStoryModalKeydownBound = true;
