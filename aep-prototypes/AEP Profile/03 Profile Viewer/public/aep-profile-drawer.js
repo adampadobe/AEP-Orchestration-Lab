@@ -487,9 +487,6 @@ function renderIdentityGraph(source) {
 
   const rawIdentities = Array.isArray(source.identities) ? source.identities : [];
   const identities = realIdentitiesForGraph(rawIdentities);
-  const first = source && source.firstName ? String(source.firstName).trim() : '';
-  const last = source && source.lastName ? String(source.lastName).trim() : '';
-  const displayName = source ? `${first} ${last}`.trim() || 'Profile' : 'Look up profile';
   const avatarSrc = avatarSrcForProfile(source || null);
 
   const scene = document.createElementNS(SVG_NS, 'g');
@@ -618,16 +615,6 @@ function renderIdentityGraph(source) {
   wrap.appendChild(img);
   fo.appendChild(wrap);
   hubScale.appendChild(fo);
-
-  const nameEl = document.createElementNS(SVG_NS, 'text');
-  nameEl.setAttribute('text-anchor', 'middle');
-  nameEl.setAttribute('y', '52');
-  nameEl.setAttribute('fill', '#e2e8f0');
-  nameEl.setAttribute('font-size', '11');
-  nameEl.setAttribute('font-weight', '600');
-  const maxName = displayName.length > 22 ? `${displayName.slice(0, 20)}…` : displayName;
-  nameEl.textContent = maxName;
-  hubScale.appendChild(nameEl);
 
   hub.appendChild(hubScale);
   scene.appendChild(hub);
@@ -860,14 +847,26 @@ function renderAudiencesModalContent() {
   const aud = lastLookedUpProfile && lastLookedUpProfile.audiences;
   const { current, exited } = audienceSlicesFromPayload(aud);
 
-  function appendSection(titleText, list, opts) {
+  /** One column: section heading + scrollable list body (used inside two-column grid). */
+  function appendAudiencesColumn(parent, titleText, list, opts) {
     const exitedSection = opts && opts.exitedSection;
+    const col = document.createElement('div');
+    col.className = 'aep-profile-drawer-audiences-modal-column';
+
     const wrap = document.createElement('section');
     wrap.className = 'aep-profile-drawer-audiences-modal-section';
+
     const h3 = document.createElement('h3');
     h3.className = 'aep-profile-drawer-audiences-modal-section-title';
+    h3.id = exitedSection
+      ? 'aepProfileDrawerAudiencesExitedHeading'
+      : 'aepProfileDrawerAudiencesCurrentHeading';
     h3.textContent = titleText;
+    wrap.setAttribute('aria-labelledby', h3.id);
     wrap.appendChild(h3);
+
+    const columnBody = document.createElement('div');
+    columnBody.className = 'aep-profile-drawer-audiences-modal-column-body';
 
     if (!list.length) {
       const empty = document.createElement('p');
@@ -875,40 +874,45 @@ function renderAudiencesModalContent() {
       empty.textContent = exitedSection
         ? 'No exited audience history in this payload.'
         : 'No current audience memberships in this payload.';
-      wrap.appendChild(empty);
-      audiencesModalBody.appendChild(wrap);
-      return;
+      columnBody.appendChild(empty);
+    } else {
+      const ul = document.createElement('ul');
+      ul.className = 'aep-profile-drawer-audiences-modal-list';
+      list.forEach((row) => {
+        const li = document.createElement('li');
+        li.className = exitedSection ? 'aep-profile-drawer-audiences-modal-li aep-profile-drawer-audiences-modal-li--exited' : 'aep-profile-drawer-audiences-modal-li';
+        const name = row && row.name ? String(row.name) : 'Unnamed audience';
+        const strong = document.createElement('strong');
+        strong.className = 'aep-profile-drawer-audiences-modal-li-name';
+        strong.textContent = name;
+        li.appendChild(strong);
+        const segId = row && row.segmentId != null ? String(row.segmentId).trim() : '';
+        const lqt = formatAudienceQualificationTime(row && row.lastQualificationTime);
+        const metaParts = [];
+        if (segId) metaParts.push(`ID ${segId}`);
+        if (lqt) metaParts.push(`Last qualification ${lqt}`);
+        if (metaParts.length) {
+          const meta = document.createElement('span');
+          meta.className = 'aep-profile-drawer-audiences-modal-li-meta';
+          meta.textContent = metaParts.join(' · ');
+          li.appendChild(meta);
+        }
+        ul.appendChild(li);
+      });
+      columnBody.appendChild(ul);
     }
 
-    const ul = document.createElement('ul');
-    ul.className = 'aep-profile-drawer-audiences-modal-list';
-    list.forEach((row) => {
-      const li = document.createElement('li');
-      li.className = exitedSection ? 'aep-profile-drawer-audiences-modal-li aep-profile-drawer-audiences-modal-li--exited' : 'aep-profile-drawer-audiences-modal-li';
-      const name = row && row.name ? String(row.name) : 'Unnamed audience';
-      const strong = document.createElement('strong');
-      strong.className = 'aep-profile-drawer-audiences-modal-li-name';
-      strong.textContent = name;
-      li.appendChild(strong);
-      const segId = row && row.segmentId != null ? String(row.segmentId).trim() : '';
-      const lqt = formatAudienceQualificationTime(row && row.lastQualificationTime);
-      const metaParts = [];
-      if (segId) metaParts.push(`ID ${segId}`);
-      if (lqt) metaParts.push(`Last qualification ${lqt}`);
-      if (metaParts.length) {
-        const meta = document.createElement('span');
-        meta.className = 'aep-profile-drawer-audiences-modal-li-meta';
-        meta.textContent = metaParts.join(' · ');
-        li.appendChild(meta);
-      }
-      ul.appendChild(li);
-    });
-    wrap.appendChild(ul);
-    audiencesModalBody.appendChild(wrap);
+    wrap.appendChild(columnBody);
+    col.appendChild(wrap);
+    parent.appendChild(col);
   }
 
-  appendSection('Current', current, { exitedSection: false });
-  appendSection('Exited / historical', exited, { exitedSection: true });
+  const columns = document.createElement('div');
+  columns.className = 'aep-profile-drawer-audiences-modal-columns';
+  audiencesModalBody.appendChild(columns);
+
+  appendAudiencesColumn(columns, 'Current audiences', current, { exitedSection: false });
+  appendAudiencesColumn(columns, 'Exited audiences', exited, { exitedSection: true });
 }
 
 function openAudiencesModal() {
