@@ -675,7 +675,7 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   }
 }
 
-/* Events column: heading row + count badge opens horizontal journey modal */
+/* Events column: heading row + count badge opens persona journey modal (vertical timeline) */
 .aep-profile-drawer-events-heading-row {
   display: flex;
   align-items: flex-start;
@@ -797,13 +797,12 @@ body.aep-profile-drawer-events-story-open {
 .aep-profile-drawer-events-story-track {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
-  align-items: stretch;
-  gap: 0.35rem;
-  padding: 1.25rem 1.1rem 1.4rem;
-  scroll-snap-type: x proximity;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.65rem 1.1rem 1.15rem;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -816,70 +815,235 @@ body.aep-profile-drawer-events-story-open {
   max-width: 36rem;
 }
 
-.aep-profile-drawer-events-story-chevron {
-  flex-shrink: 0;
-  align-self: center;
-  color: rgba(236, 236, 236, 0.35);
-  font-size: 1.25rem;
-  font-weight: 700;
-  padding: 0 0.1rem;
-  user-select: none;
+/* Persona strip above timeline (ties modal to drawer profile) */
+.aep-profile-drawer-journey-summary {
+  padding: 0.55rem 1.25rem 0.85rem;
+  border-bottom: 1px solid rgba(236, 236, 236, 0.12);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #ececec;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.25rem;
 }
 
-.aep-profile-drawer-events-story-card {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  width: min(220px, 72vw);
+.aep-profile-drawer-journey-persona-name {
+  color: #fffffe;
+  font-weight: 800;
+}
+
+.aep-profile-drawer-journey-persona-sep {
+  color: #bfc3c9;
+  font-weight: 500;
+}
+
+.aep-profile-drawer-journey-persona-email {
+  color: #ececec;
+  word-break: break-all;
+}
+
+.aep-profile-drawer-journey-persona-ecid {
+  color: #bfc3c9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Step-through controls */
+.aep-profile-drawer-journey-controls {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.55rem 1.25rem 0.65rem;
+  border-bottom: 1px solid rgba(236, 236, 236, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.aep-profile-drawer-journey-btn {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 254, 0.28);
+  background: rgba(79, 134, 255, 0.22);
+  color: #fffffe;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-journey-btn:hover:not(:disabled) {
+  background: rgba(79, 134, 255, 0.36);
+}
+
+.aep-profile-drawer-journey-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.aep-profile-drawer-journey-btn--ghost {
+  background: rgba(255, 255, 254, 0.06);
+  border-color: rgba(255, 255, 254, 0.18);
+}
+
+.aep-profile-drawer-journey-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 254, 0.12);
+}
+
+.aep-profile-drawer-journey-meta {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #bfc3c9;
+}
+
+/* Vertical timeline: one row per clock instant */
+.aep-profile-drawer-journey-instant {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.aep-profile-drawer-journey-instant--off {
+  display: none;
+}
+
+.aep-profile-drawer-journey-rail {
+  flex: 0 0 14px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  padding-top: 0.35rem;
+}
+
+.aep-profile-drawer-journey-rail::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: -10px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgba(236, 236, 236, 0.2);
+  border-radius: 1px;
+}
+
+.aep-profile-drawer-journey-instant--last .aep-profile-drawer-journey-rail::after {
+  display: none;
+}
+
+.aep-profile-drawer-journey-dot {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #4f86ff;
+  border: 2px solid rgba(255, 255, 254, 0.85);
+  box-shadow: 0 0 0 2px rgba(79, 134, 255, 0.25);
+}
+
+.aep-profile-drawer-journey-instant-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.65rem;
-  padding: 1rem 0.85rem;
+  align-items: flex-start;
+}
+
+.aep-profile-drawer-journey-time {
+  flex: 0 0 min(140px, 32%);
+  min-width: 0;
+}
+
+.aep-profile-drawer-journey-time-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fffffe;
+  line-height: 1.25;
+}
+
+.aep-profile-drawer-journey-time-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: #bfc3c9;
+}
+
+.aep-profile-drawer-journey-cards {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.aep-profile-drawer-journey-card {
+  flex: 1 1 160px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
   border-radius: 10px;
   border: 1px solid rgba(236, 236, 236, 0.16);
   background: rgba(255, 255, 254, 0.05);
   box-sizing: border-box;
 }
 
-.aep-profile-drawer-events-story-card-thumb {
-  width: 52px;
-  height: 52px;
-  align-self: center;
-  margin: 0 auto;
+.aep-profile-drawer-journey-card-thumb {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
-.aep-profile-drawer-events-story-card-thumb.aep-profile-drawer-event-thumb--svg-inline svg {
-  width: 26px;
-  height: 26px;
+.aep-profile-drawer-journey-card-thumb.aep-profile-drawer-event-thumb--svg-inline svg {
+  width: 22px;
+  height: 22px;
 }
 
-.aep-profile-drawer-events-story-card-body {
-  text-align: center;
+.aep-profile-drawer-journey-card-body {
+  min-width: 0;
+  text-align: left;
 }
 
-.aep-profile-drawer-events-story-card-time {
-  display: block;
-  font-size: 0.72rem;
-  color: #bfc3c9;
-  margin-bottom: 0.25rem;
+.aep-profile-drawer-journey-touchpoint {
+  display: inline-block;
+  margin-bottom: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fffffe;
+  background: rgba(79, 134, 255, 0.28);
+  border: 1px solid rgba(79, 134, 255, 0.45);
 }
 
-.aep-profile-drawer-events-story-card-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.92rem;
+.aep-profile-drawer-journey-card-title {
+  margin: 0;
+  font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.25;
   color: #fffffe;
 }
 
-.aep-profile-drawer-events-story-channel {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #fffffe;
-  background: rgba(79, 134, 255, 0.28);
-  border: 1px solid rgba(79, 134, 255, 0.45);
+.aep-profile-drawer-journey-touchpoints-hint {
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0.35rem 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #bfc3c9;
+  border-top: 1px dashed rgba(236, 236, 236, 0.18);
+}
+
+.aep-profile-drawer-journey-touchpoints-hint--off {
+  display: none;
 }
