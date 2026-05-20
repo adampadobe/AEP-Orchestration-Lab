@@ -612,14 +612,9 @@ function renderIdentityGraph(source) {
   const wrap = document.createElementNS(XHTML_NS, 'div');
   wrap.setAttribute('xmlns', XHTML_NS);
   wrap.className = 'aep-ig-avatar-wrap';
-  wrap.style.cssText =
-    'width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto;box-sizing:border-box;box-shadow:0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(147,197,253,0.85);';
   const img = document.createElementNS(XHTML_NS, 'img');
   img.setAttribute('src', avatarSrc);
-  img.setAttribute('width', '80');
-  img.setAttribute('height', '80');
   img.setAttribute('alt', '');
-  img.style.cssText = 'display:block;width:80px;height:80px;object-fit:cover;';
   wrap.appendChild(img);
   fo.appendChild(wrap);
   hubScale.appendChild(fo);
