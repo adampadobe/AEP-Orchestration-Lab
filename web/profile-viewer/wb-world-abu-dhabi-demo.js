@@ -75,8 +75,9 @@ const wbworldTagsInjection =
           subscribeAfterInject: wbworldWebPushOnInjectDesired,
           requestPermissionOnInject: wbworldWebPushOnInjectDesired,
         },
-        onEcidResolved: function () {
-          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('wbworld');
+        brandConcierge: {
+          enabled: function () { return !!(wbworldBcOnInjectToggle && wbworldBcOnInjectToggle.checked); },
+          styleKey: function () { return wbworldBcStyleSelect ? wbworldBcStyleSelect.value : 'miral'; },
         },
       })
     : null;

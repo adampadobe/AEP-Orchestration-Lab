@@ -75,8 +75,9 @@ const seaworldTagsInjection =
           subscribeAfterInject: seaworldWebPushOnInjectDesired,
           requestPermissionOnInject: seaworldWebPushOnInjectDesired,
         },
-        onEcidResolved: function () {
-          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('seaworld');
+        brandConcierge: {
+          enabled: function () { return !!(seaworldBcOnInjectToggle && seaworldBcOnInjectToggle.checked); },
+          styleKey: function () { return seaworldBcStyleSelect ? seaworldBcStyleSelect.value : 'miral'; },
         },
       })
     : null;
