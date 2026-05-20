@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@alexmorgan — TikTok</title>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../home.css?v=20260520" />
+  <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
+  <link rel="stylesheet" href="tiktok.css?v=20260520" />
+</head>
+<body class="social-tiktok-page home-dashboard-concierge">
+
+<!-- ══════════════════════════════════════════════════════════════
+     AEP LAB OVERLAY
+     ══════════════════════════════════════════════════════════════ -->
+<div class="dashboard-shell">
+  <aside class="dashboard-sidebar" id="dashSidebar"></aside>
+  <div class="dashboard-main-wrap" style="display:none;"></div>
+</div>
+
+<!-- ── Slide-down identity + SDK banner ───────────────────────── -->
+<div class="social-tiktok-demo-top-anchor">
+  <div class="social-tiktok-demo-id-banner">
+    <div class="social-tiktok-demo-id-inner">
+      <div class="tiktok-sdk-config-fields mod-sdk-config-fields" id="tiktokSdkConfigFields" hidden>
+        <div class="form-row">
+          <label for="tiktokTagsCompany">IMS Org</label>
+          <input type="text" id="tiktokTagsCompany" class="form-control" placeholder="org@AdobeOrg" />
+        </div>
+        <div class="form-row">
+          <label for="tiktokTagsProperty">Tags property</label>
+          <input type="text" id="tiktokTagsProperty" class="form-control" list="tiktokTagsPropertyList" placeholder="paste embed URL" />
+          <datalist id="tiktokTagsPropertyList"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="tiktokTagsEnvironment">Environment</label>
+          <select id="tiktokTagsEnvironment" class="form-control">
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+            <option value="development">Development</option>
+          </select>
+        </div>
+      </div>
+      <div class="mod-sdk-summary--below-env-grid" id="tiktokSdkConfigSummary" hidden></div>
+      <div class="social-tiktok-demo-id-actions">
+        <div class="form-row">
+          <label for="customerEmailTiktok">Customer identifier</label>
+          <input type="email" id="customerEmailTiktok" class="form-control" placeholder="customer@example.com" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <label for="generatorTargetTiktok">Event target</label>
+          <select id="generatorTargetTiktok" class="form-control"></select>
+        </div>
+        <button class="btn btn-primary btn-lookup" id="queryProfileBtnTiktok" type="button">Look up profile</button>
+        <button class="btn btn-secondary btn-lookup" id="injectSdkBtnTiktok" type="button">Inject Tags</button>
+        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
+          <input type="checkbox" id="tiktokWebPushOnInjectToggle" />Push
+        </label>
+        <button class="btn btn-outline btn-lookup" id="tiktokWebPushRetryBtn" type="button" title="Retry web push">&#x1F514;</button>
+        <button class="btn btn-ghost btn-lookup" id="tiktokChangeSdkConfigBtn" type="button" style="margin-left:auto;">⚙ Config</button>
+      </div>
+    </div>
+    <div class="social-tiktok-demo-script-preview">
+      <span id="tiktokSelectedScript"></span>
+    </div>
+    <div id="infoEcidTiktok" class="social-tiktok-demo-ecid-hint" hidden></div>
+  </div>
+  <p id="tiktokMessage" class="social-tiktok-demo-message" hidden></p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TIKTOK MOCK PAGE
+     ══════════════════════════════════════════════════════════════ -->
+<div class="tt-mock">
+
+  <!-- ── Top navigation bar ──────────────────────────────────── -->
+  <header class="tt-header">
+    <!-- Logo -->
+    <a href="#" class="tt-logo">
+      <svg viewBox="0 0 48 48" width="36" height="36" fill="none">
+        <path d="M39.5 15.9c-3.6-.3-6.8-2.3-8.6-5.3V31a11.5 11.5 0 11-11.5-11.5c.4 0 .8 0 1.2.1v5.6a5.9 5.9 0 100 11.8 5.9 5.9 0 005.9-5.9V4h5.5a14.1 14.1 0 0013.3 12v-.1h-5.8z" fill="white"/>
+        <path d="M39.5 15.9c-3.6-.3-6.8-2.3-8.6-5.3V31a11.5 11.5 0 11-11.5-11.5c.4 0 .8 0 1.2.1v5.6a5.9 5.9 0 100 11.8 5.9 5.9 0 005.9-5.9V4h5.5a14.1 14.1 0 0013.3 12v-.1h-5.8z" fill="#FE2C55" opacity="0.5"/>
+        <path d="M39.5 15.9c-3.6-.3-6.8-2.3-8.6-5.3V31a11.5 11.5 0 11-11.5-11.5c.4 0 .8 0 1.2.1v5.6a5.9 5.9 0 100 11.8 5.9 5.9 0 005.9-5.9V4h5.5a14.1 14.1 0 0013.3 12v-.1h-5.8z" fill="#25F4EE" opacity="0.4" transform="translate(-2,2)"/>
+      </svg>
+      <span class="tt-logo-text">TikTok</span>
+    </a>
+
+    <!-- Search -->
+    <div class="tt-header-search">
+      <input type="text" class="tt-search-input" placeholder="Search" value="alexmorgan" />
+      <div class="tt-search-divider"></div>
+      <button class="tt-search-btn">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+      </button>
+    </div>
+
+    <!-- Right actions -->
+    <div class="tt-header-actions">
+      <button class="tt-upload-btn">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v10M8 9l4-4 4 4M5 19h14"/></svg>
+        Upload
+      </button>
+      <button class="tt-header-icon-btn" title="Inbox">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+      </button>
+      <div class="tt-header-avatar">
+        <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Page body: left nav + main content ──────────────────── -->
+  <div class="tt-body">
+
+    <!-- ── LEFT NAVIGATION ─────────────────────────────────── -->
+    <nav class="tt-sidenav">
+      <a href="#" class="tt-nav-item tt-nav-item--active">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>For You</span>
+      </a>
+      <a href="#" class="tt-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>Following</span>
+      </a>
+      <a href="#" class="tt-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+        <span>Explore</span>
+      </a>
+      <a href="#" class="tt-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14H5a2 2 0 01-2-2v-2a2 2 0 012-2h10z"/></svg>
+        <span>LIVE</span>
+      </a>
+
+      <div class="tt-nav-divider"></div>
+
+      <div class="tt-nav-section-title">Suggested accounts</div>
+      <a href="#" class="tt-nav-user">
+        <div class="tt-nav-user-avatar"><img src="https://i.pravatar.cc/40?img=11" alt="jamiechen" /></div>
+        <div class="tt-nav-user-info">
+          <div class="tt-nav-user-handle">@jamiechen</div>
+          <div class="tt-nav-user-name">Jamie Chen</div>
+        </div>
+      </a>
+      <a href="#" class="tt-nav-user">
+        <div class="tt-nav-user-avatar"><img src="https://i.pravatar.cc/40?img=33" alt="rileypark" /></div>
+        <div class="tt-nav-user-info">
+          <div class="tt-nav-user-handle">@rileypark</div>
+          <div class="tt-nav-user-name">Riley Park</div>
+        </div>
+      </a>
+      <a href="#" class="tt-nav-user">
+        <div class="tt-nav-user-avatar"><img src="https://i.pravatar.cc/40?img=44" alt="danakimruns" /></div>
+        <div class="tt-nav-user-info">
+          <div class="tt-nav-user-handle">@danakimruns</div>
+          <div class="tt-nav-user-name">Dana Kim</div>
+        </div>
+      </a>
+      <a href="#" class="tt-nav-see-more">See all</a>
+
+      <div class="tt-nav-divider"></div>
+
+      <div class="tt-nav-footer">
+        <a href="#">About</a> · <a href="#">Newsroom</a> · <a href="#">Contact</a> · <a href="#">Careers</a>
+        <br/><a href="#">Creator Portal</a> · <a href="#">Community Guidelines</a>
+        <br/><a href="#">Privacy</a> · <a href="#">Terms</a>
+        <br/>© 2025 TikTok
+      </div>
+    </nav>
+
+    <!-- ── PROFILE MAIN ─────────────────────────────────────── -->
+    <main class="tt-main">
+
+      <!-- Profile header -->
+      <div class="tt-profile-header">
+        <div class="tt-profile-avatar-wrap">
+          <img class="tt-profile-avatar" src="https://i.pravatar.cc/200?img=47" alt="Alex Morgan" />
+        </div>
+
+        <div class="tt-profile-info">
+          <div class="tt-profile-username">@alexmorgan</div>
+          <div class="tt-profile-displayname">Alex Morgan</div>
+
+          <div class="tt-profile-actions">
+            <button class="tt-btn-follow">Follow</button>
+            <button class="tt-btn-message">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+              Message
+            </button>
+            <button class="tt-btn-icon-only" title="More options">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div class="tt-stats">
+            <div class="tt-stat">
+              <span class="tt-stat-num">248</span>
+              <span class="tt-stat-label">Following</span>
+            </div>
+            <div class="tt-stat">
+              <span class="tt-stat-num">84.2K</span>
+              <span class="tt-stat-label">Followers</span>
+            </div>
+            <div class="tt-stat">
+              <span class="tt-stat-num">1.3M</span>
+              <span class="tt-stat-label">Likes</span>
+            </div>
+          </div>
+
+          <!-- Bio -->
+          <div class="tt-profile-bio">
+            ✈️ Travel &amp; outdoor life<br/>
+            🏔️ Half Dome survivor<br/>
+            ☕ Coffee before trails<br/>
+            📍 San Francisco → Everywhere
+          </div>
+          <div class="tt-profile-link">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path stroke="currentColor" stroke-width="2" d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            linktr.ee/alexmorgan
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile tabs -->
+      <div class="tt-tabs">
+        <div class="tt-tab tt-tab--active">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+          Videos
+        </div>
+        <div class="tt-tab">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          Liked
+        </div>
+        <div class="tt-tab">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>
+          Reposts
+        </div>
+      </div>
+
+      <!-- Video grid -->
+      <div class="tt-video-grid">
+
+        <!-- Video 1 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=300&q=70" alt="Kyoto vlog" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                2.1M
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">Kyoto in cherry blossom season 🌸 #travel #japan #kyoto</div>
+        </div>
+
+        <!-- Video 2 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=300&q=70" alt="Trail run" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                891K
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">6am sunrise trail run hits different every time 🌅 #running #trailrunning</div>
+        </div>
+
+        <!-- Video 3 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=300&q=70" alt="Travel" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                3.4M
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">POV: solo trip to Iceland and I'm NEVER coming back 🇮🇸 #iceland #solotravel</div>
+        </div>
+
+        <!-- Video 4 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&q=70" alt="Half Dome" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                5.2M
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">I hiked Half Dome and this is the full unfiltered story 🏔️ #halfdome #yosemite #hiking</div>
+        </div>
+
+        <!-- Video 5 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&q=70" alt="Coffee routine" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                412K
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">My 5am morning routine before a big hike ☕ #morningroutine #hiking #wellness</div>
+        </div>
+
+        <!-- Video 6 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&q=70" alt="Night sky" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                1.7M
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">Milky Way at 3000m with no light pollution 🌌 #nightsky #astrophotography #nature</div>
+        </div>
+
+        <!-- Video 7 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=300&q=70" alt="Camping" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                667K
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">Solo camping gear breakdown for 2025 ⛺ #camping #gearreview #outdoors</div>
+        </div>
+
+        <!-- Video 8 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=300&q=70" alt="Forest" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                980K
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">Forest bathing (Shinrin-yoku) changed me 🌲 #forest #mindfulness #nature</div>
+        </div>
+
+        <!-- Video 9 -->
+        <div class="tt-video-thumb">
+          <div class="tt-video-img-wrap">
+            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&q=70" alt="Mountain sunrise" />
+            <div class="tt-video-overlay">
+              <div class="tt-video-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="tt-video-views">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                2.9M
+              </div>
+            </div>
+          </div>
+          <div class="tt-video-caption">Woke up at 4am for this summit sunrise and it was WORTH IT 🌄 #mountainlife #sunrise</div>
+        </div>
+
+      </div><!-- /tt-video-grid -->
+    </main>
+  </div><!-- /tt-body -->
+</div><!-- /tt-mock -->
+
+<!-- ── AEP scripts ─────────────────────────────────────────────── -->
+<script src="../aep-lab-nav.js?v=20260520-social-tiktok"></script>
+<script src="../aep-identity-picker.js" defer></script>
+<script src="../aep-profile-drawer.js" defer></script>
+<script src="../aep-tags-injection.js" defer></script>
+<script src="../aep-web-push.js" defer></script>
+<script src="../aep-demo-generator-targets.js" defer></script>
+<script src="../aep-theme.js" defer></script>
+<script src="tiktok-demo.js" defer></script>
+
+</body>
+</html>

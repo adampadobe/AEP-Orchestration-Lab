@@ -62,6 +62,7 @@
   let eventsStoryModalLastFocus;
   let eventsStoryModalKeydownBound = false;
   let journeyControlsBound = false;
+  let profileDrawerThemeUiBound = false;
 
   /** @type {Array<{ instantMs: number | null, events: Record<string, unknown>[] }>} */
   let journeyModalGroups = [];
@@ -1016,6 +1017,99 @@ function getProfileDrawerEventsHeadingRow() {
   return prev && prev.classList && prev.classList.contains('aep-profile-drawer-events-heading-row') ? prev : null;
 }
 
+  const PROFILE_DRAWER_THEME_SLOT = 'data-aep-profile-drawer-theme-slot';
+
+  function syncProfileDrawerThemeToggleVisuals() {
+    const mode =
+      global.AepTheme && typeof global.AepTheme.getMode === 'function'
+        ? global.AepTheme.getMode()
+        : document.documentElement.getAttribute('data-aep-theme') === 'dark'
+          ? 'dark'
+          : 'light';
+    const dark = mode === 'dark';
+    document.querySelectorAll('.aep-profile-drawer-theme-toggle').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+      const ico = btn.querySelector('.aep-profile-drawer-theme-toggle-ico');
+      if (ico) {
+        ico.textContent = dark ? '\u2600' : '\u25D1';
+      }
+    });
+  }
+
+  /** Mirrors `aep-theme.js` when `AepTheme` is not on the page (demo-only scripts). */
+  function toggleProfileDrawerThemeWithoutGlobal() {
+    const LS = 'aepTheme';
+    let mode = 'light';
+    try {
+      mode = global.localStorage.getItem(LS) === 'dark' ? 'dark' : 'light';
+    } catch {
+      /* ignore */
+    }
+    const next = mode === 'dark' ? 'light' : 'dark';
+    try {
+      global.localStorage.setItem(LS, next);
+      global.localStorage.setItem('aep-decisioning-theme', next);
+    } catch {
+      /* ignore */
+    }
+    const root = document.documentElement;
+    if (next === 'dark') root.setAttribute('data-aep-theme', 'dark');
+    else root.removeAttribute('data-aep-theme');
+    try {
+      global.dispatchEvent(new CustomEvent('aep-theme-change', { detail: { mode: next } }));
+    } catch {
+      /* ignore */
+    }
+    syncProfileDrawerThemeToggleVisuals();
+  }
+
+  function onProfileDrawerThemeToggleClick(e) {
+    e.preventDefault();
+    if (global.AepTheme && typeof global.AepTheme.toggle === 'function') {
+      global.AepTheme.toggle();
+      return;
+    }
+    toggleProfileDrawerThemeWithoutGlobal();
+  }
+
+  function bindProfileDrawerThemeUiOnce() {
+    if (profileDrawerThemeUiBound) return;
+    profileDrawerThemeUiBound = true;
+    global.addEventListener('aep-theme-change', function () {
+      syncProfileDrawerThemeToggleVisuals();
+    });
+    global.addEventListener('storage', function (ev) {
+      if (ev.key === 'aepTheme') syncProfileDrawerThemeToggleVisuals();
+    });
+  }
+
+  /** Idempotent: tiny theme control on the drawer chrome (see `aep-profile-drawer-theme-slot` CSS). */
+  function ensureProfileDrawerThemeToggle() {
+    cacheDomRefs();
+    const drawer = profileDrawer;
+    if (!drawer || drawer.querySelector(`[${PROFILE_DRAWER_THEME_SLOT}="1"]`)) return;
+
+    bindProfileDrawerThemeUiOnce();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'aep-profile-drawer-theme-slot';
+    wrap.setAttribute(PROFILE_DRAWER_THEME_SLOT, '1');
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'aep-profile-drawer-theme-toggle';
+    const ico = document.createElement('span');
+    ico.className = 'aep-profile-drawer-theme-toggle-ico';
+    ico.setAttribute('aria-hidden', 'true');
+    btn.appendChild(ico);
+    btn.addEventListener('click', onProfileDrawerThemeToggleClick);
+
+    wrap.appendChild(btn);
+    drawer.appendChild(wrap);
+    syncProfileDrawerThemeToggleVisuals();
+  }
+
 function ensureProfileDrawerEventsHeadingRow() {
   if (!profileDrawerEvents) return;
   const existing = getProfileDrawerEventsHeadingRow();
@@ -1136,6 +1230,7 @@ function bindJourneyControlsOnce() {
 }
 
 function ensureProfileDrawerEventsStoryModal() {
+  ensureProfileDrawerThemeToggle();
   if (eventsStoryModalBackdrop && eventsStoryModalPanel) {
     migratePersonaJourneyModalChromeIfNeeded();
     bindJourneyControlsOnce();
@@ -1162,17 +1257,12 @@ function ensureProfileDrawerEventsStoryModal() {
   ttl.id = 'aepProfileDrawerEventsStoryTitle';
   ttl.className = 'aep-profile-drawer-events-story-title';
   ttl.textContent = 'Persona journey';
-  const sub = document.createElement('p');
-  sub.className = 'aep-profile-drawer-events-story-sub';
-  sub.textContent =
-    'Horizontal timeline (oldest on the left) — parallel events at the same instant sit side by side in one column. Step through to grow the story left to right, or reveal the full journey.';
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'aep-profile-drawer-events-story-close';
   closeBtn.setAttribute('aria-label', 'Close journey');
   closeBtn.textContent = '\u00d7';
   head.appendChild(ttl);
-  head.appendChild(sub);
   head.appendChild(closeBtn);
 
   const summary = document.createElement('div');
@@ -2067,6 +2157,7 @@ function initAepProfileDrawerHover() {
 function init(config) {
   _config = config || {};
   cacheDomRefs();
+  ensureProfileDrawerThemeToggle();
 
   if (!eventsStoryModalKeydownBound) {
     eventsStoryModalKeydownBound = true;

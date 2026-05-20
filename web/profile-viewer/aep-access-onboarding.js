@@ -192,6 +192,8 @@
       '.aep-access-onb-gate[hidden]{display:none !important;}' +
       '.aep-access-onb-overlay{position:fixed;inset:0;z-index:14000;display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:none;}' +
       '.aep-access-onb-overlay[hidden]{display:none !important;}' +
+      'body.aep-access-gate-active #aepAccessOnboardingGateLayer{display:block!important;visibility:visible!important;}' +
+      'body.aep-access-gate-active #aepAccessOnboardingOverlay{display:flex!important;visibility:visible!important;}' +
       '.aep-access-onb-card{position:relative;z-index:1;width:min(640px,100%);pointer-events:auto;background:var(--dash-surface);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:22px;}' +
       '.dashboard-main.aep-access-gate-locked{pointer-events:none;user-select:none;}' +
       '.aep-access-onb-kicker{margin:0 0 6px;color:var(--dash-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}' +
@@ -245,6 +247,32 @@
     }
   }
 
+  function isGateLockElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+    try {
+      if (el === gateLayerElRef || el === dialogWrapElRef) return true;
+    } catch (_e) {}
+    return el.id === GATE_LAYER_ID || el.id === OVERLAY_ID;
+  }
+
+  /**
+   * DevTools can set inline `display:none` / `visibility:hidden` on the gate layer; the `hidden` attribute alone
+   * does not undo that. While the interaction lock is active, strip hiding inline display/visibility and clear `hidden`.
+   */
+  function normalizeGateElementVisibility(el) {
+    if (!gateInteractionLockActive || !el) return;
+    if (!isGateLockElement(el)) return;
+    try {
+      el.hidden = false;
+      var st = el.style;
+      if (!st || typeof st.getPropertyValue !== 'function') return;
+      var disp = String(st.getPropertyValue('display') || '').trim().toLowerCase();
+      if (disp === 'none') st.removeProperty('display');
+      var vis = String(st.getPropertyValue('visibility') || '').trim().toLowerCase();
+      if (vis === 'hidden' || vis === 'collapse') st.removeProperty('visibility');
+    } catch (_e2) {}
+  }
+
   function enforceGateLayerOrder(gate, dialog) {
     if (!gate || !dialog || !document.body) return;
     if (!document.body.contains(gate)) document.body.appendChild(gate);
@@ -263,6 +291,8 @@
     enforceGateLayerOrder(gate, dialog);
     gate.hidden = false;
     dialog.hidden = false;
+    normalizeGateElementVisibility(gate);
+    normalizeGateElementVisibility(dialog);
   }
 
   function scheduleGateDomRecovery() {
@@ -283,9 +313,11 @@
         scheduleGateDomRecovery();
         return;
       }
-      // Re-show if hidden attribute was set on either element
+      // Re-show if hidden attribute was set on either element; strip inline display/visibility tampering.
       if (gate.hidden) gate.hidden = false;
       if (dialog.hidden) dialog.hidden = false;
+      normalizeGateElementVisibility(gate);
+      normalizeGateElementVisibility(dialog);
     });
     gateDomObserver.observe(document.body, { childList: true, subtree: false });
 
@@ -297,7 +329,7 @@
       if (!el || typeof MutationObserver === 'undefined') return null;
       var elObs = new MutationObserver(function () {
         if (!gateInteractionLockActive) return;
-        if (el.hidden) el.hidden = false;
+        normalizeGateElementVisibility(el);
       });
       elObs.observe(el, { attributes: true, attributeFilter: ['hidden', 'style'] });
       return elObs;
@@ -338,7 +370,9 @@
       var gate = gateLayerElRef || document.getElementById(GATE_LAYER_ID);
       var dialog = dialogWrapElRef || document.getElementById(OVERLAY_ID);
       if (gate && gate.hidden) gate.hidden = false;
+      if (gate) normalizeGateElementVisibility(gate);
       if (dialog && dialog.hidden) dialog.hidden = false;
+      if (dialog) normalizeGateElementVisibility(dialog);
       applyShellInteractionLock();
     }, 400);
   }
@@ -800,6 +834,7 @@
     var overlay = dialogWrapElRef || document.getElementById(OVERLAY_ID);
     if (gate) gate.hidden = true;
     if (overlay) overlay.hidden = true;
+    document.body.classList.remove('aep-access-gate-active');
     document.body.classList.remove('aep-access-onboarding-open');
     setOnboardingCopyVariant('default', { force: true });
     setMsg('', '');
@@ -814,6 +849,10 @@
    */
   function mountDeferredHomeDashboardIfNeeded() {
     if (didMountDeferredHomeDashboard) return;
+    // Do not mount real dashboard markup while pending approval or the gate lock is on (session reload / race).
+    // Pending flows rely on sessionStorage + step1HoldMode + show()/hide(); we skip getLabAccessStatus here to avoid extra token/API work.
+    if (isPendingApprovalRefreshHoldActive() || step1HoldMode) return;
+    if (gateInteractionLockActive) return;
     var mount = document.getElementById(DEFERRED_HOME_DASHBOARD_MOUNT_ID);
     var tpl = document.getElementById(DEFERRED_HOME_DASHBOARD_TEMPLATE_ID);
     if (!mount || !tpl || !tpl.content) return;
@@ -837,10 +876,13 @@
     gateInteractionLockActive = true;
     if (gate) gate.hidden = false;
     overlay.hidden = false;
+    if (gate) normalizeGateElementVisibility(gate);
+    normalizeGateElementVisibility(overlay);
     enforceGateLayerOrder(gate, overlay);
     applyShellInteractionLock();
     startGateDomObserver();
     startGateEnforcer();
+    document.body.classList.add('aep-access-gate-active');
     document.body.classList.add('aep-access-onboarding-open');
     syncRadiosFromScope();
     try {

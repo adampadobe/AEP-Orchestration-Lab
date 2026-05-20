@@ -1162,17 +1162,12 @@ function ensureProfileDrawerEventsStoryModal() {
   ttl.id = 'aepProfileDrawerEventsStoryTitle';
   ttl.className = 'aep-profile-drawer-events-story-title';
   ttl.textContent = 'Persona journey';
-  const sub = document.createElement('p');
-  sub.className = 'aep-profile-drawer-events-story-sub';
-  sub.textContent =
-    'Horizontal timeline (oldest on the left) — parallel events at the same instant sit side by side in one column. Step through to grow the story left to right, or reveal the full journey.';
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'aep-profile-drawer-events-story-close';
   closeBtn.setAttribute('aria-label', 'Close journey');
   closeBtn.textContent = '\u00d7';
   head.appendChild(ttl);
-  head.appendChild(sub);
   head.appendChild(closeBtn);
 
   const summary = document.createElement('div');
