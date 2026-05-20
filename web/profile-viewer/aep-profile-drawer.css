@@ -725,9 +725,10 @@ body.aep-profile-drawer-events-story-open {
   inset: 0;
   z-index: 4000;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: center;
-  padding: min(3vw, 1.5rem);
+  padding: clamp(12px, 2.5vh, 24px) 20px;
   background: rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
 }
@@ -737,7 +738,8 @@ body.aep-profile-drawer-events-story-open {
 }
 
 .aep-profile-drawer-events-story-dialog {
-  width: min(1120px, 100%);
+  width: 100%;
+  max-width: none;
   max-height: min(86vh, 900px);
   display: flex;
   flex-direction: column;
