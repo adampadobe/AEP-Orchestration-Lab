@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="../home.css?v=20260520-ferrari-replica">
   <link rel="stylesheet" href="../ferrari-world-abu-dhabi-demo.css?v=20260520-brand-demo">
   <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="../brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260521-drawer-consent-fields">
   <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c">
@@ -1264,6 +1265,12 @@
                       <option value="army">Army Recruitment</option>
                     </select>
                   </div>
+                  <div class="form-row aep-bc-launcher-row" role="group" aria-label="BC launcher visibility">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="ferrariworldBcLauncherToggle" />
+                      <span>Show Brand Concierge launcher on page</span>
+                    </label>
+                  </div>
                 </div>
                 <div class="form-row">
                   <label for="generatorTarget">Event destination</label>
@@ -2066,6 +2073,17 @@
   <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="../aep-lab-nav.js?v=20260520-ferrari-world-replica2"></script>
 
-  <div id="brand-concierge-mount"></div>
+  <div id="brand-concierge-mount-host" aria-live="polite">
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
+    <div id="brand-concierge-mount"></div>
+  </div>
+  <button type="button" id="ferrariworldBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
+    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
+      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
+    </svg>
+    Ask
+  </button>
+  <script src="../brand-concierge-controls.js?v=20260520-bc-controls"></script>
 </body>
 </html>

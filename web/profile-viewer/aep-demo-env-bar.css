@@ -182,3 +182,46 @@
   color: var(--dash-text);
   cursor: pointer;
 }
+
+/* BC launcher visibility toggle row */
+.aep-bc-launcher-row {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-top: 0.1rem;
+}
+
+/* Floating park-branded Ask button — hidden by default, shown via .aep-bc-launcher-on on body */
+.aep-bc-park-launcher {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 7400;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+
+.aep-bc-park-launcher:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.32);
+}
+
+.aep-bc-park-launcher:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 3px;
+}
+
+.aep-bc-launcher-on .aep-bc-park-launcher {
+  display: inline-flex;
+}
