@@ -491,24 +491,6 @@
               label: 'Web',
               items: [
                 {
-                  label: 'WB World Yas Island (in development)',
-                  href: 'miral/wbworld-demo.html',
-                  inDevelopment: true,
-                  navHideKey: 'miralWbworldDemo',
-                  demoMeta: { owners: ['apalmer'] },
-                  ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                },
-                {
-                  label: 'SeaWorld Yas Island (in development)',
-                  href: 'miral/seaworld-demo.html',
-                  inDevelopment: true,
-                  navHideKey: 'miralSeaworldDemo',
-                  demoMeta: { owners: ['apalmer'] },
-                  ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 14c1.5 2 3.5 3 4 3s2.5-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                },
-                {
                   label: 'Ferrari World Yas Island (in development)',
                   href: 'miral/ferrariworld-demo.html',
                   inDevelopment: true,
@@ -518,22 +500,22 @@
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 16l7-12 7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
                 {
-                  label: 'WB World — Website Replica (in development)',
+                  label: 'WB World Yas Island (in development)',
                   inDevelopment: true,
                   href: 'wb-world-abu-dhabi/index.html',
                   navHideKey: 'miralWbworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
                   ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3c-2.5 4-2.5 14 0 18M12 3c2.5 4 2.5 14 0 18M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
                 {
-                  label: 'SeaWorld — Website Replica (in development)',
+                  label: 'SeaWorld Yas Island (in development)',
                   inDevelopment: true,
                   href: 'seaworld-abu-dhabi/index.html',
                   navHideKey: 'miralSeaworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
                   ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3c-2.5 4-2.5 14 0 18M12 3c2.5 4 2.5 14 0 18M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 14c1.5 2 3.5 3 4 3s2.5-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
               ],
             },
