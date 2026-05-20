@@ -526,13 +526,17 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 
 Embedded demos and **site-clone** pages (e.g. Old Mutual, MOD, Race for Life) that use **Adobe Tags injection** and **`POST /api/events/generator`** must share one **canonical strip**:
 
-- **Environment:** `#sandboxSelect`, Tags fields inside a **single** `#…SdkConfigFields` wrapper (company, property, environment, inject), **`#generatorTarget` (Event destination) as a sibling** of that wrapper (not inside it — so it remains visible after inject), SDK summary + “Change SDK config”, then **`AepDemoEnvBar`** compact row (`#aepDemoEnvCompact`, `#aepDemoEnvExpandBtn`).
-- **Profile lookup:** `#aepDemoProfileSection` with namespace + identifier + actions.
-- **Stable ids:** `aepDemoEnvSection`, `aepDemoEnvEditor`, `aepDemoEnvConfigGrid` (see `web/profile-viewer/mod-demo.html` or `oldmutual-demo.html`).
+- **Layout:** add `aep-demo-id-inner` alongside your brand-prefixed class on the id-inner `<div>` — this opts into the standard **two-column grid** (env config `1fr` left, profile lookup `300px` right, 20px gutters) from `aep-demo-env-bar.css`. No per-page layout CSS needed.
+- **Environment:** `#sandboxSelect`, Tags fields inside a **single** `#…SdkConfigFields` wrapper (company, property, environment, inject, web push toggle, BC on-inject toggle, BC launcher toggle), **`#generatorTarget` (Event destination) as a sibling** of that wrapper (not inside it — so it remains visible after inject), SDK summary + “Change SDK config”, then **`AepDemoEnvBar`** compact row (`#aepDemoEnvCompact`, `#aepDemoEnvExpandBtn`).
+- **Profile lookup:** `#aepDemoProfileSection` with namespace + identifier + actions — right column of the grid.
+- **Stable ids:** `aepDemoEnvSection`, `aepDemoEnvEditor`, `aepDemoEnvConfigGrid` (see `web/profile-viewer/etihad-demo.html`).
+- **Brand Concierge launcher:** place `#brand-concierge-mount-host` (with dismiss button + `#brand-concierge-mount`), a branded `.aep-bc-park-launcher` button, and `brand-concierge-controls.js` at the bottom of `<body>`. In the demo CSS, hide both with `:not(.aep-bc-launcher-on)` so the panel never appears unless the user enables it via the launcher toggle.
 
-**Scripts:** include `demo-tags-injection.js`, **`aep-demo-env-bar.js`** (`AepDemoEnvStrip.initStandardEnvBar`), and **`aep-demo-generator-targets.js`**; Firebase compat + `firebase-database-config.js` when using Tags. **CSS:** `aep-demo-env-bar.css`. If the page does not load `home.css`, map `--dash-*` fallbacks on a local wrapper (see `oldmutual-demo.css` → `.om-aep-controls--lab-strip`).
+**Scripts (in order):** Firebase compat + `firebase-database-config.js`, `aep-global-sandbox.js`, `aep-lab-sandbox-sync.js`, `email-cache.js`, `identity-picker.js`, `email-engagement-metrics.js`, `aep-profile-drawer.js`, **`aep-demo-web-push.js`**, `demo-tags-injection.js`, **`aep-demo-env-bar.js`**, **`aep-demo-generator-targets.js`**, **`brand-concierge-styles-bundle.js`**, **`brand-concierge-toggle.js`**, then the demo-specific JS. After `aep-lab-nav.js`: the BC mount host + launcher + `brand-concierge-controls.js`.
 
-**Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — follow when adding or migrating a demo with this strip.
+**CSS (load order):** `style.css` → `home.css` → `{brand}-demo.css` → `aep-demo-env-bar.css` → `brand-concierge-controls.css` → `aep-profile-drawer.css` → `aep-theme.css`. If the page does not load `home.css`, define `--dash-*` fallbacks on a local wrapper (see `oldmutual-demo.css`).
+
+**Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — canonical HTML structure, full CSS template, and JS wiring patterns for new demos.
 
 ### Feature-specific CSS
 
