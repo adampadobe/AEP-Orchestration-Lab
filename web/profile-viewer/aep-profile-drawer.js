@@ -4,6 +4,7 @@
  * Include aep-profile-drawer.css and email-engagement-metrics.js before this script.
  * Optional: identity-picker.js + aep-global-sandbox.js for namespace + sandbox query params.
  * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a persona journey modal (horizontal LTR timeline + step-through).
+ * Audiences column: heading row + count badge open an Audiences modal (current vs exited membership from the same payload as the list).
  */
 (function (global) {
   'use strict';
@@ -43,6 +44,10 @@
 
   /** Clickable count badge (top-right of events column) — opens persona journey modal */
   let profileDrawerEventsStoryBadge;
+  /** Audiences heading row: count badge — opens audiences modal */
+  let profileDrawerAudiencesModalBadge;
+  /** @type {HTMLButtonElement | null} */
+  let profileDrawerAudiencesHeadingOpenBtn;
   /** @type {HTMLElement | null} */
   let eventsStoryModalBackdrop;
   /** @type {HTMLElement | null} */
@@ -61,6 +66,19 @@
   /** @type {HTMLElement | null} */
   let eventsStoryModalLastFocus;
   let eventsStoryModalKeydownBound = false;
+  /** @type {HTMLElement | null} */
+  let audiencesModalBackdrop;
+  /** @type {HTMLElement | null} */
+  let audiencesModalPanel;
+  /** @type {HTMLElement | null} */
+  let audiencesModalClose;
+  /** @type {HTMLElement | null} */
+  let audiencesModalSummary;
+  /** @type {HTMLElement | null} */
+  let audiencesModalBody;
+  let audiencesModalOpen = false;
+  /** @type {HTMLElement | null} */
+  let audiencesModalLastFocus;
   let journeyControlsBound = false;
   let profileDrawerThemeUiBound = false;
 
@@ -654,11 +672,294 @@ function renderIdentityGraph(source) {
   });
 }
 
-function renderAudienceList(audiences) {
+function getProfileDrawerAudiencesHeadingRow() {
+  if (!profileDrawerAudiences) return null;
+  const prev = profileDrawerAudiences.previousElementSibling;
+  return prev && prev.classList && prev.classList.contains('aep-profile-drawer-audiences-heading-row') ? prev : null;
+}
+
+function ensureProfileDrawerAudiencesHeadingRow() {
   if (!profileDrawerAudiences) return;
-  profileDrawerAudiences.innerHTML = '';
+  const existing = getProfileDrawerAudiencesHeadingRow();
+  if (existing) {
+    if (!profileDrawerAudiencesModalBadge) {
+      const b = existing.querySelector('.aep-profile-drawer-audiences-modal-badge');
+      if (b) profileDrawerAudiencesModalBadge = b;
+    }
+    if (!profileDrawerAudiencesHeadingOpenBtn) {
+      const t = existing.querySelector('.aep-profile-drawer-audiences-heading-open');
+      if (t) profileDrawerAudiencesHeadingOpenBtn = t;
+    }
+    return;
+  }
+  const prev = profileDrawerAudiences.previousElementSibling;
+  if (!prev || prev.tagName !== 'H2' || !prev.classList.contains('aep-profile-drawer-panel-heading')) return;
+
+  const row = document.createElement('div');
+  row.className = 'aep-profile-drawer-audiences-heading-row';
+
+  const titleBtn = document.createElement('button');
+  titleBtn.type = 'button';
+  titleBtn.className =
+    'aep-profile-drawer-panel-heading aep-profile-drawer-audiences-heading-open';
+  if (prev.id) titleBtn.id = prev.id;
+  titleBtn.setAttribute('aria-haspopup', 'dialog');
+  titleBtn.setAttribute('aria-controls', 'aepProfileDrawerAudiencesDialog');
+  titleBtn.title = 'Open full audiences list — current and exited (from last profile payload)';
+  titleBtn.textContent = 'AUDIENCES';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'aep-profile-drawer-audiences-modal-badge';
+  btn.id = 'profileDrawerAudiencesModalOpen';
+  btn.setAttribute('aria-haspopup', 'dialog');
+  btn.setAttribute('aria-controls', 'aepProfileDrawerAudiencesDialog');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.title = 'Open full audiences list — current and exited (from last profile payload)';
+  btn.textContent = '0';
+
+  row.appendChild(titleBtn);
+  row.appendChild(btn);
+  prev.replaceWith(row);
+  profileDrawerAudiencesModalBadge = btn;
+  profileDrawerAudiencesHeadingOpenBtn = titleBtn;
+
+  function openFromAudiencesHeading(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    openAudiencesModal();
+  }
+  titleBtn.addEventListener('click', openFromAudiencesHeading);
+  btn.addEventListener('click', openFromAudiencesHeading);
+}
+
+function audienceSlicesFromPayload(audiences) {
   const current = audiences && Array.isArray(audiences.realized) ? audiences.realized : [];
   const exited = audiences && Array.isArray(audiences.exited) ? audiences.exited : [];
+  return { current, exited };
+}
+
+function updateProfileDrawerAudiencesModalBadgeCount() {
+  ensureProfileDrawerAudiencesHeadingRow();
+  if (!profileDrawerAudiencesModalBadge) return;
+  const aud = lastLookedUpProfile && lastLookedUpProfile.audiences;
+  const { current, exited } = audienceSlicesFromPayload(aud);
+  const n = current.length + exited.length;
+  profileDrawerAudiencesModalBadge.textContent = String(n);
+}
+
+function formatAudienceQualificationTime(value) {
+  if (value == null || value === '') return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+function ensureAudiencesModalDom() {
+  ensureProfileDrawerThemeToggle();
+  if (audiencesModalBackdrop && audiencesModalPanel) return;
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'aepProfileDrawerAudiencesBackdrop';
+  backdrop.className = 'aep-profile-drawer-audiences-modal-backdrop';
+  backdrop.hidden = true;
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  const panel = document.createElement('div');
+  panel.id = 'aepProfileDrawerAudiencesDialog';
+  panel.className = 'aep-profile-drawer-audiences-modal-dialog';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'aepProfileDrawerAudiencesTitle');
+  panel.tabIndex = -1;
+
+  const head = document.createElement('div');
+  head.className = 'aep-profile-drawer-audiences-modal-head';
+  const ttl = document.createElement('h2');
+  ttl.id = 'aepProfileDrawerAudiencesTitle';
+  ttl.className = 'aep-profile-drawer-audiences-modal-title';
+  ttl.textContent = 'Audiences';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'aep-profile-drawer-audiences-modal-close';
+  closeBtn.setAttribute('aria-label', 'Close audiences');
+  closeBtn.textContent = '\u00d7';
+  head.appendChild(ttl);
+  head.appendChild(closeBtn);
+
+  const summary = document.createElement('div');
+  summary.className = 'aep-profile-drawer-audiences-modal-summary';
+  summary.id = 'aepProfileDrawerAudiencesSummary';
+  summary.setAttribute('aria-live', 'polite');
+
+  const body = document.createElement('div');
+  body.className = 'aep-profile-drawer-audiences-modal-body';
+  body.setAttribute('role', 'region');
+  body.setAttribute('aria-label', 'Audience membership lists');
+  body.tabIndex = 0;
+
+  panel.appendChild(head);
+  panel.appendChild(summary);
+  panel.appendChild(body);
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+
+  audiencesModalBackdrop = backdrop;
+  audiencesModalPanel = panel;
+  audiencesModalClose = closeBtn;
+  audiencesModalSummary = summary;
+  audiencesModalBody = body;
+
+  function onBackdropDown(e) {
+    if (e.target === backdrop) closeAudiencesModal();
+  }
+  backdrop.addEventListener('mousedown', onBackdropDown);
+  closeBtn.addEventListener('click', function () {
+    closeAudiencesModal();
+  });
+
+  panel.addEventListener('keydown', function (e) {
+    if (!audiencesModalOpen || e.key !== 'Tab') return;
+    const list = [audiencesModalClose, audiencesModalBody].filter(function (el) {
+      return el && !(el.disabled === true);
+    });
+    if (list.length < 2) return;
+    const first = list[0];
+    const last = list[list.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+function renderAudiencesModalContent() {
+  ensureAudiencesModalDom();
+  if (!audiencesModalBody || !audiencesModalSummary) return;
+  audiencesModalBody.innerHTML = '';
+
+  if (!lastLookedUpProfile) {
+    audiencesModalSummary.textContent = '';
+    const p = document.createElement('p');
+    p.className = 'aep-profile-drawer-audiences-modal-empty';
+    p.textContent = 'No profile loaded yet. Look up a profile to see audience membership from the lab payload.';
+    audiencesModalBody.appendChild(p);
+    return;
+  }
+
+  appendPersonaSummaryDom(audiencesModalSummary);
+
+  const aud = lastLookedUpProfile && lastLookedUpProfile.audiences;
+  const { current, exited } = audienceSlicesFromPayload(aud);
+
+  function appendSection(titleText, list, opts) {
+    const exitedSection = opts && opts.exitedSection;
+    const wrap = document.createElement('section');
+    wrap.className = 'aep-profile-drawer-audiences-modal-section';
+    const h3 = document.createElement('h3');
+    h3.className = 'aep-profile-drawer-audiences-modal-section-title';
+    h3.textContent = titleText;
+    wrap.appendChild(h3);
+
+    if (!list.length) {
+      const empty = document.createElement('p');
+      empty.className = 'aep-profile-drawer-audiences-modal-empty';
+      empty.textContent = exitedSection
+        ? 'No exited audience history in this payload.'
+        : 'No current audience memberships in this payload.';
+      wrap.appendChild(empty);
+      audiencesModalBody.appendChild(wrap);
+      return;
+    }
+
+    const ul = document.createElement('ul');
+    ul.className = 'aep-profile-drawer-audiences-modal-list';
+    list.forEach((row) => {
+      const li = document.createElement('li');
+      li.className = exitedSection ? 'aep-profile-drawer-audiences-modal-li aep-profile-drawer-audiences-modal-li--exited' : 'aep-profile-drawer-audiences-modal-li';
+      const name = row && row.name ? String(row.name) : 'Unnamed audience';
+      const strong = document.createElement('strong');
+      strong.className = 'aep-profile-drawer-audiences-modal-li-name';
+      strong.textContent = name;
+      li.appendChild(strong);
+      const segId = row && row.segmentId != null ? String(row.segmentId).trim() : '';
+      const lqt = formatAudienceQualificationTime(row && row.lastQualificationTime);
+      const metaParts = [];
+      if (segId) metaParts.push(`ID ${segId}`);
+      if (lqt) metaParts.push(`Last qualification ${lqt}`);
+      if (metaParts.length) {
+        const meta = document.createElement('span');
+        meta.className = 'aep-profile-drawer-audiences-modal-li-meta';
+        meta.textContent = metaParts.join(' · ');
+        li.appendChild(meta);
+      }
+      ul.appendChild(li);
+    });
+    wrap.appendChild(ul);
+    audiencesModalBody.appendChild(wrap);
+  }
+
+  appendSection('Current', current, { exitedSection: false });
+  appendSection('Exited / historical', exited, { exitedSection: true });
+}
+
+function openAudiencesModal() {
+  ensureAudiencesModalDom();
+  if (!audiencesModalBackdrop || !audiencesModalPanel) return;
+  closeProfileDrawerEventsStoryModal();
+
+  audiencesModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
+  renderAudiencesModalContent();
+
+  audiencesModalBackdrop.hidden = false;
+  audiencesModalBackdrop.setAttribute('aria-hidden', 'false');
+  audiencesModalOpen = true;
+  document.body.classList.add('aep-profile-drawer-audiences-modal-open');
+  if (profileDrawerAudiencesModalBadge) profileDrawerAudiencesModalBadge.setAttribute('aria-expanded', 'true');
+
+  window.setTimeout(function () {
+    if (audiencesModalClose) audiencesModalClose.focus();
+  }, 0);
+}
+
+function closeAudiencesModal() {
+  if (!audiencesModalBackdrop) return;
+  audiencesModalBackdrop.hidden = true;
+  audiencesModalBackdrop.setAttribute('aria-hidden', 'true');
+  audiencesModalOpen = false;
+  document.body.classList.remove('aep-profile-drawer-audiences-modal-open');
+  if (profileDrawerAudiencesModalBadge) profileDrawerAudiencesModalBadge.setAttribute('aria-expanded', 'false');
+  const ret = audiencesModalLastFocus;
+  audiencesModalLastFocus = null;
+  if (ret && typeof ret.focus === 'function') {
+    try {
+      ret.focus();
+    } catch {
+      /* noop */
+    }
+  }
+}
+
+function renderAudienceList(audiences) {
+  if (!profileDrawerAudiences) return;
+  ensureProfileDrawerAudiencesHeadingRow();
+  profileDrawerAudiences.innerHTML = '';
+  const { current, exited } = audienceSlicesFromPayload(audiences);
+
+  updateProfileDrawerAudiencesModalBadgeCount();
 
   if (current.length === 0 && exited.length === 0) {
     const li = document.createElement('li');
@@ -1794,6 +2095,7 @@ function renderProfileDrawerEventsStoryModalContent() {
 function openProfileDrawerEventsStoryModal() {
   ensureProfileDrawerEventsStoryModal();
   if (!eventsStoryModalBackdrop || !eventsStoryModalPanel || !profileDrawerEventsStoryBadge) return;
+  closeAudiencesModal();
 
   eventsStoryModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
   renderProfileDrawerEventsStoryModalContent();
@@ -1828,6 +2130,13 @@ function closeProfileDrawerEventsStoryModal() {
 }
 
 function onProfileDrawerEventsStoryKeydown(e) {
+  if (audiencesModalOpen) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeAudiencesModal();
+    }
+    return;
+  }
   if (!eventsStoryModalOpen) return;
   const tag = e.target && e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
