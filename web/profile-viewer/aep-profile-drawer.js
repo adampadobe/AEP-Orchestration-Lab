@@ -805,21 +805,6 @@ function updateProfileDrawerAudiencesModalBadgeCount() {
   profileDrawerAudiencesModalBadge.textContent = String(n);
 }
 
-function formatAudienceQualificationTime(value) {
-  if (value == null || value === '') return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-}
-
 function ensureAudiencesModalDom() {
   ensureProfileDrawerThemeToggle();
   if (audiencesModalBackdrop && audiencesModalPanel) return;
@@ -961,17 +946,10 @@ function renderAudiencesModalContent() {
         strong.className = 'aep-profile-drawer-audiences-modal-li-name';
         strong.textContent = name;
         li.appendChild(strong);
-        const segId = row && row.segmentId != null ? String(row.segmentId).trim() : '';
-        const lqt = formatAudienceQualificationTime(row && row.lastQualificationTime);
-        const metaParts = [];
-        if (segId) metaParts.push(`ID ${segId}`);
-        if (lqt) metaParts.push(`Last qualification ${lqt}`);
-        if (metaParts.length) {
-          const meta = document.createElement('span');
-          meta.className = 'aep-profile-drawer-audiences-modal-li-meta';
-          meta.textContent = metaParts.join(' · ');
-          li.appendChild(meta);
-        }
+        const timeEl = document.createElement('span');
+        timeEl.className = 'aep-profile-drawer-audiences-modal-li-meta';
+        timeEl.textContent = formatEventTimelineDate(row && row.lastQualificationTime);
+        li.appendChild(timeEl);
         ul.appendChild(li);
       });
       columnBody.appendChild(ul);
