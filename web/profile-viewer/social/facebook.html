@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Alex Morgan — Facebook</title>
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
-  <!-- Dashboard shell styles -->
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../home.css?v=20260520" />
   <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
-  <!-- Facebook mock styles -->
+  <link rel="stylesheet" href="facebook-home.css?v=20260520" />
   <style>
-    /* ── Facebook colour tokens ─────────────────────────── */
+    /* ── Facebook colour tokens ────────────────────────────── */
     :root {
       --fb-blue:       #1877f2;
       --fb-blue-dark:  #166fe5;
@@ -27,14 +26,8 @@
       --fb-topbar-h:   56px;
     }
 
-    /* ── Reset for the mock layer ────────────────────────── */
-    .fb-mock * { box-sizing: border-box; }
-    .fb-mock a { text-decoration: none; color: inherit; }
-    .fb-mock button { cursor: pointer; border: none; background: none; font-family: inherit; }
-    .fb-mock img { display: block; }
-
-    /* ── Outer wrapper — sits behind the AEP overlay ─────── */
-    .fb-mock {
+    /* ── App wrapper ─────────────────────────────────────────── */
+    .fb-app {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       font-size: 15px;
       color: var(--fb-text);
@@ -42,86 +35,25 @@
       min-height: 100vh;
       padding-top: var(--fb-topbar-h);
     }
+    .fb-app * { box-sizing: border-box; }
+    .fb-app a { text-decoration: none; color: inherit; }
+    .fb-app button { cursor: pointer; border: none; background: none; font-family: inherit; }
+    .fb-app img { display: block; }
 
-    /* ── Top navigation bar ──────────────────────────────── */
-    .fb-topbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: var(--fb-topbar-h);
-      background: var(--fb-surface);
-      border-bottom: 1px solid var(--fb-border);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      z-index: 200;
-      gap: 8px;
-    }
-    .fb-topbar-logo {
-      flex-shrink: 0;
-      font-size: 26px;
-      font-weight: 900;
-      color: var(--fb-blue);
-      letter-spacing: -1px;
-    }
-    .fb-topbar-search {
-      display: flex;
-      align-items: center;
-      background: var(--fb-bg);
-      border-radius: 50px;
-      padding: 8px 12px;
-      gap: 6px;
-      min-width: 240px;
-      color: var(--fb-secondary);
-      font-size: 15px;
-    }
-    .fb-topbar-search svg { flex-shrink: 0; }
-    .fb-topbar-nav {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      gap: 4px;
-    }
-    .fb-topbar-nav-item {
-      width: 112px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      color: var(--fb-secondary);
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-    .fb-topbar-nav-item:hover { background: var(--fb-hover); }
-    .fb-topbar-nav-item.active {
-      color: var(--fb-blue);
-      border-bottom: 3px solid var(--fb-blue);
-    }
-    .fb-topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .fb-topbar-avatar {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      overflow: hidden;
-      cursor: pointer;
-    }
-    .fb-topbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .fb-topbar-icon-btn {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      background: var(--fb-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--fb-text);
-    }
-    .fb-topbar-icon-btn:hover { filter: brightness(0.92); }
+    /* ── View switching ──────────────────────────────────────── */
+    .fb-view { display: none; }
+    .fb-app[data-fb-view="home"]    .fb-view--home    { display: block; }
+    .fb-app[data-fb-view="profile"] .fb-view--profile { display: block; }
 
-    /* ── Profile cover + info ─────────────────────────────── */
+    /* ── Active nav tab state ────────────────────────────────── */
+    .fbh-nav-tab { border-bottom: 3px solid transparent; }
+    .fb-app[data-fb-view="home"]    .fbh-nav-tab[data-fb-nav="home"]    { color: var(--fb-blue); border-bottom-color: var(--fb-blue); }
+    .fb-app[data-fb-view="profile"] .fbh-nav-tab[data-fb-nav="profile"] { color: var(--fb-blue); border-bottom-color: var(--fb-blue); }
+
+    /* ── Clickable nav elements ──────────────────────────────── */
+    [data-fb-nav] { cursor: pointer; }
+
+    /* ── Profile header ──────────────────────────────────────── */
     .fb-profile-header {
       max-width: 940px;
       margin: 0 auto;
@@ -234,7 +166,7 @@
       cursor: pointer;
     }
 
-    /* ── Profile nav tabs ────────────────────────────────── */
+    /* ── Profile nav tabs ─────────────────────────────────────── */
     .fb-profile-nav {
       display: flex;
       gap: 4px;
@@ -258,7 +190,7 @@
       border-radius: 0;
     }
 
-    /* ── 3-column layout ─────────────────────────────────── */
+    /* ── 2-column profile body ────────────────────────────────── */
     .fb-body {
       max-width: 940px;
       margin: 16px auto 0;
@@ -269,7 +201,7 @@
       align-items: start;
     }
 
-    /* ── Left column cards ───────────────────────────────── */
+    /* ── Left column cards ────────────────────────────────────── */
     .fb-card {
       background: var(--fb-surface);
       border-radius: var(--fb-radius);
@@ -348,7 +280,7 @@
       line-height: 1.2;
     }
 
-    /* ── Right column: feed ──────────────────────────────── */
+    /* ── Profile right column: posts ─────────────────────────── */
     .fb-post {
       background: var(--fb-surface);
       border-radius: var(--fb-radius);
@@ -370,10 +302,7 @@
     }
     .fb-post-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .fb-post-meta { flex: 1; }
-    .fb-post-author {
-      font-size: 15px;
-      font-weight: 700;
-    }
+    .fb-post-author { font-size: 15px; font-weight: 700; }
     .fb-post-time {
       font-size: 13px;
       color: var(--fb-secondary);
@@ -456,7 +385,7 @@
     }
     .fb-post-action-btn:hover { background: var(--fb-hover); }
 
-    /* ── Compose box ─────────────────────────────────────── */
+    /* ── Profile compose box ──────────────────────────────────── */
     .fb-compose {
       background: var(--fb-surface);
       border-radius: var(--fb-radius);
@@ -501,634 +430,702 @@
     }
     .fb-compose-action:hover { background: var(--fb-hover); }
 
-    /* ── AEP demo overlay — same pattern as ferrari/seaworld ─ */
-    .social-facebook-demo-page .dashboard-shell {
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      pointer-events: none;
-      display: flex;
-    }
-    .social-facebook-demo-page .dashboard-sidebar {
-      pointer-events: auto;
-    }
-    .social-facebook-demo-page .dashboard-main-wrap {
-      display: none;
-    }
-
-    .social-facebook-demo-top-anchor {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 6500;
-      pointer-events: none;
-    }
-    .social-facebook-demo-top-anchor::before {
-      content: "";
-      display: block;
-      height: 14px;
-      pointer-events: auto;
-    }
-    .social-facebook-demo-id-banner {
-      pointer-events: auto;
-      background: var(--dash-surface);
-      border-bottom: 1px solid var(--dash-border);
-      box-shadow: var(--dash-shadow);
-      transform: translateY(calc(-100% - 14px));
-      transition: transform 0.2s ease;
-    }
-    .social-facebook-demo-top-anchor:hover .social-facebook-demo-id-banner,
-    .social-facebook-demo-top-anchor:focus-within .social-facebook-demo-id-banner {
-      transform: translateY(0);
-    }
-    .social-facebook-demo-id-inner {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0.65rem 1rem 0.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
-    }
-    .social-facebook-demo-id-inner .facebook-sdk-config-fields.mod-sdk-config-fields {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 0.65rem 1rem;
-    }
-    .social-facebook-demo-id-inner .form-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      min-width: 0;
-    }
-    .social-facebook-demo-id-inner label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--dash-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .social-facebook-demo-id-inner .sandbox-select,
-    .social-facebook-demo-id-inner input[type="text"],
-    .social-facebook-demo-id-inner select {
-      min-width: 10rem;
-    }
-    .social-facebook-demo-id-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .facebook-sdk-summary {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.8rem;
-      color: var(--dash-text-secondary);
-    }
-    .facebook-sdk-summary .btn-lookup {
-      padding: 0.35rem 0.7rem;
-      font-size: 0.78rem;
-    }
-    .social-facebook-demo-ecid-hint {
-      font-size: 0.8rem;
-      color: var(--dash-text-secondary);
-    }
-    .social-facebook-demo-script-preview {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1rem 0.25rem;
-      color: var(--dash-text-secondary);
-      font-size: 0.8rem;
-    }
-    .social-facebook-demo-script-preview code { color: var(--dash-text); }
-    .social-facebook-demo-message {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1rem 0.6rem;
-      font-size: 0.85rem;
-      color: var(--dash-text-secondary);
-    }
-    .social-facebook-demo-message--success { color: var(--dash-success-text); }
-    .social-facebook-demo-message--error   { color: var(--dash-error-text); }
-
-    @media (min-width: 769px) {
-      body.social-facebook-demo-page .dashboard-sidebar {
-        position: fixed;
-        left: 0; top: 0; bottom: 0;
-        width: 238px;
-        z-index: 7000;
-        transform: translateX(-100%);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        box-shadow: none;
-      }
-      body.social-facebook-demo-page--nav-open .dashboard-sidebar,
-      body.social-facebook-demo-page .dashboard-sidebar:focus-within {
-        transform: translateX(0);
-        box-shadow: 8px 0 32px rgba(15,23,42,0.14);
-      }
-    }
+    /* ── Responsive ───────────────────────────────────────────── */
     @media (max-width: 768px) {
-      body.social-facebook-demo-page .dashboard-sidebar {
-        position: relative;
-        left: auto; top: auto; bottom: auto;
-        transform: none;
-        z-index: auto;
-        box-shadow: none;
-      }
-      .fb-topbar-nav { display: none; }
-      .fb-topbar-search { min-width: 0; flex: 1; }
       .fb-body { grid-template-columns: 1fr; }
       .fb-left-col { display: none; }
     }
   </style>
 </head>
-<body class="social-facebook-demo-page home-dashboard-concierge">
+<body class="social-facebook-home-page home-dashboard-concierge">
 
 <!-- ── AEP demo shell (hidden main-wrap, flyout sidebar) ──────────── -->
 <div class="dashboard-shell">
-  <aside class="dashboard-sidebar" id="dashboardSidebar"></aside>
-  <div class="dashboard-main-wrap">
-    <header class="dashboard-topbar"></header>
-    <main class="dashboard-main"></main>
-  </div>
+  <aside class="dashboard-sidebar" id="dashSidebar"></aside>
+  <div class="dashboard-main-wrap" style="display:none;"></div>
 </div>
 
-<!-- ── AEP hover-reveal config banner ────────────────────────────── -->
-<div class="social-facebook-demo-top-anchor">
-  <div class="social-facebook-demo-id-banner">
-    <div class="social-facebook-demo-id-inner">
-      <!-- AEP environment strip -->
-      <div id="facebookSdkConfigSummary" class="mod-sdk-summary mod-sdk-summary--below-env-grid">
-        <div class="facebook-sdk-summary" id="facebookSdkConfigSummaryText">
-          <button class="btn btn-lookup" id="facebookChangeSdkConfigBtn" type="button">Configure</button>
-        </div>
-      </div>
-      <div id="facebookSdkConfigFields" class="facebook-sdk-config-fields mod-sdk-config-fields" style="display:none">
+<!-- ── Slide-down identity + SDK banner ───────────────────────────── -->
+<div class="social-facebook-home-demo-top-anchor">
+  <div class="social-facebook-home-demo-id-banner">
+    <div class="social-facebook-home-demo-id-inner">
+      <div class="ferrariworld-sdk-config-fields mod-sdk-config-fields" id="facebookHomeSdkConfigFields" hidden>
         <div class="form-row">
-          <label for="facebookTagsCompany">Company</label>
-          <input type="text" id="facebookTagsCompany" class="form-input" placeholder="e.g. facebook-demo" autocomplete="off" />
+          <label for="facebookHomeTagsCompany">IMS Org</label>
+          <input type="text" id="facebookHomeTagsCompany" class="form-control" placeholder="org@AdobeOrg" />
         </div>
         <div class="form-row">
-          <label for="facebookTagsProperty">Tags property</label>
-          <input type="text" id="facebookTagsProperty" class="form-input" placeholder="Tags launch URL" autocomplete="off" list="facebookTagsPropertyList" />
-          <datalist id="facebookTagsPropertyList"></datalist>
+          <label for="facebookHomeTagsProperty">Tags property</label>
+          <input type="text" id="facebookHomeTagsProperty" class="form-control" list="facebookHomeTagsPropertyList" placeholder="paste embed URL" />
+          <datalist id="facebookHomeTagsPropertyList"></datalist>
         </div>
         <div class="form-row">
-          <label for="facebookTagsEnvironment">Environment</label>
-          <select id="facebookTagsEnvironment" class="form-input">
+          <label for="facebookHomeTagsEnvironment">Environment</label>
+          <select id="facebookHomeTagsEnvironment" class="form-control">
             <option value="production">Production</option>
             <option value="staging">Staging</option>
-            <option value="development" selected>Development</option>
+            <option value="development">Development</option>
           </select>
         </div>
+      </div>
+      <div class="mod-sdk-summary--below-env-grid" id="facebookHomeSdkConfigSummary" hidden></div>
+      <div class="social-facebook-home-demo-id-actions">
         <div class="form-row">
-          <label for="generatorTarget">Event target</label>
-          <select id="generatorTarget" class="form-input sandbox-select"></select>
+          <label for="customerEmailHome">Customer identifier</label>
+          <input type="email" id="customerEmailHome" class="form-control" placeholder="customer@example.com" autocomplete="off" />
         </div>
-      </div>
-
-      <!-- Identity / email row -->
-      <div class="social-facebook-demo-id-actions">
-        <div class="form-row" style="flex:1;max-width:22rem;">
-          <label for="customerEmail">Customer email / ID</label>
-          <input type="text" id="customerEmail" class="form-input" placeholder="visitor@example.com" autocomplete="off" />
+        <div class="form-row">
+          <label for="generatorTargetHome">Event target</label>
+          <select id="generatorTargetHome" class="form-control"></select>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:0.5rem;padding-bottom:1px;">
-          <button class="btn btn-primary btn-lookup" id="queryProfileBtn" type="button">Look up profile</button>
-          <button class="btn btn-secondary btn-lookup" id="injectSdkBtn" type="button">Inject Tags</button>
-          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
-            <input type="checkbox" id="facebookWebPushOnInjectToggle" />Push
-          </label>
-          <button class="btn btn-outline btn-lookup" id="facebookWebPushRetryBtn" type="button" title="Retry web push subscription">&#x1F514;</button>
-        </div>
+        <button class="btn btn-primary btn-lookup" id="queryProfileBtnHome" type="button">Look up profile</button>
+        <button class="btn btn-secondary btn-lookup" id="injectSdkBtnHome" type="button">Inject Tags</button>
+        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
+          <input type="checkbox" id="facebookHomeWebPushOnInjectToggle" />Push
+        </label>
+        <button class="btn btn-outline btn-lookup" id="facebookHomeWebPushRetryBtn" type="button" title="Retry web push">&#x1F514;</button>
+        <button class="btn btn-ghost btn-lookup" id="facebookHomeChangeSdkConfigBtn" type="button" style="margin-left:auto;">&#x2699; Config</button>
       </div>
-      <div class="social-facebook-demo-script-preview">
-        <span id="facebookSelectedScript"></span>
-      </div>
-      <div id="infoEcid" class="social-facebook-demo-ecid-hint" hidden></div>
     </div>
-    <p id="facebookMessage" class="social-facebook-demo-message" hidden></p>
+    <div class="social-facebook-home-demo-script-preview">
+      <span id="facebookHomeSelectedScript"></span>
+    </div>
+    <div id="infoEcidHome" class="social-facebook-home-demo-ecid-hint" hidden></div>
   </div>
+  <p id="facebookHomeMessage" class="social-facebook-home-demo-message" hidden></p>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
-     FACEBOOK MOCK PAGE
+     FACEBOOK — single-page app wrapper (home feed + profile)
+     data-fb-view="home" | "profile"
      ══════════════════════════════════════════════════════════════ -->
-<div class="fb-mock">
+<div class="fb-app" data-fb-view="home">
 
-  <!-- Top navigation -->
-  <nav class="fb-topbar">
-    <div class="fb-topbar-logo">f</div>
-    <div class="fb-topbar-search">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
-      Search Facebook
-    </div>
-    <div class="fb-topbar-nav">
-      <div class="fb-topbar-nav-item">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path stroke="currentColor" stroke-width="1.8" d="M9 21V12h6v9"/></svg>
+  <!-- ── Shared top navigation bar ────────────────────────────── -->
+  <nav class="fbh-topbar">
+    <div class="fbh-topbar-left">
+      <div class="fbh-logo">
+        <svg viewBox="0 0 36 36" fill="#1877f2" width="40" height="40"><path d="M36 18C36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.985 6.584 16.425 15.188 17.787V23.203H10.62V18h4.568v-3.967c0-4.508 2.685-6.996 6.79-6.996 1.967 0 4.024.351 4.024.351v4.426h-2.267c-2.234 0-2.93 1.387-2.93 2.81V18h4.99l-.798 5.203h-4.192v12.584C29.416 34.425 36 26.985 36 18z"/></svg>
       </div>
-      <div class="fb-topbar-nav-item">
+      <div class="fbh-search">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="#65676b" stroke-width="2.2"/><path stroke="#65676b" stroke-width="2.2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+        <span>Search Facebook</span>
+      </div>
+    </div>
+
+    <div class="fbh-topbar-nav">
+      <div class="fbh-nav-tab" data-fb-nav="home" title="Home">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+      <div class="fbh-nav-tab" title="Friends">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h0"/><circle cx="17" cy="17" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M14 17h6M17 14v6"/></svg>
       </div>
-      <div class="fb-topbar-nav-item active">
+      <div class="fbh-nav-tab" data-fb-nav="profile" title="Profile">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M4 20v-1a8 8 0 0116 0v1"/></svg>
       </div>
-      <div class="fb-topbar-nav-item">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+      <div class="fbh-nav-tab" title="Watch">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+      </div>
+      <div class="fbh-nav-tab" title="Marketplace">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9h18l-2 11H5L3 9zM3 9l2-4h14l2 4"/><path stroke="currentColor" stroke-width="1.8" d="M12 9v11M8 9l1 11M16 9l-1 11"/></svg>
       </div>
     </div>
-    <div class="fb-topbar-actions">
-      <div class="fb-topbar-icon-btn">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2.5 2.5"/></svg>
+
+    <div class="fbh-topbar-right">
+      <div class="fbh-icon-btn" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </div>
-      <div class="fb-topbar-icon-btn">
+      <div class="fbh-icon-btn" title="Messenger">
         <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
       </div>
-      <div class="fb-topbar-icon-btn">
+      <div class="fbh-icon-btn fbh-notif-btn" title="Notifications">
         <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="fbh-badge">9</span>
       </div>
-      <div class="fb-topbar-avatar">
+      <div class="fbh-topbar-avatar" data-fb-nav="profile" title="Profile">
         <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
       </div>
     </div>
   </nav>
 
-  <!-- Profile header -->
-  <div class="fb-profile-header">
-    <!-- Cover photo -->
-    <div class="fb-cover-wrap">
-      <img
-        class="fb-cover-img"
-        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=940&q=80"
-        alt="Cover photo — mountain landscape"
-      />
-      <div class="fb-cover-gradient"></div>
-      <div class="fb-cover-edit-btn">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/><path stroke="currentColor" stroke-width="1.8" d="M3 21h18"/></svg>
-        Edit cover photo
+  <!-- ════════════════════════════════════════════════════════════
+       VIEW: HOME FEED
+       ════════════════════════════════════════════════════════════ -->
+  <div class="fb-view fb-view--home">
+    <div class="fbh-body">
+
+      <!-- ── LEFT SIDEBAR ──────────────────────────────────────── -->
+      <aside class="fbh-left">
+        <div class="fbh-left-profile" data-fb-nav="profile" style="cursor:pointer;">
+          <div class="fbh-left-avatar">
+            <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+          </div>
+          <span class="fbh-left-name">Alex Morgan</span>
+        </div>
+
+        <div class="fbh-left-divider"></div>
+
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--friends">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h0M16 11a4 4 0 110 8M19 15h-6"/></svg>
+          </div>
+          <span>Friends</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--groups">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h6a6 6 0 016 6v1"/></svg>
+          </div>
+          <span>Groups</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--marketplace">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9h18l-2 11H5L3 9zM3 9l2-4h14l2 4"/></svg>
+          </div>
+          <span>Marketplace</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--watch">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+          </div>
+          <span>Watch</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--memories">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M12 22s8-4.5 8-11.8A8 8 0 004 10.2C4 17.5 12 22 12 22z"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <span>Memories</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--saved">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg>
+          </div>
+          <span>Saved</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--events">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <span>Events</span>
+        </a>
+
+        <div class="fbh-left-divider"></div>
+        <div class="fbh-left-section-title">Your shortcuts</div>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--group-thumb">
+            <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=44&q=70" alt="" />
+          </div>
+          <span>Travel Enthusiasts &#x2708;&#xFE0F;</span>
+        </a>
+        <a href="#" class="fbh-left-item">
+          <div class="fbh-left-icon fbh-left-icon--group-thumb">
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=44&q=70" alt="" />
+          </div>
+          <span>SF Hiking Crew</span>
+        </a>
+      </aside>
+
+      <!-- ── CENTRE FEED ────────────────────────────────────────── -->
+      <main class="fbh-feed">
+
+        <!-- Stories row -->
+        <div class="fbh-stories">
+          <div class="fbh-story fbh-story--create">
+            <div class="fbh-story-img-wrap">
+              <img src="https://i.pravatar.cc/120?img=47" alt="" />
+              <div class="fbh-story-create-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+            </div>
+            <span class="fbh-story-label">Create story</span>
+          </div>
+          <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=120&q=70')">
+            <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=11" alt="Jamie Chen" /></div>
+            <span class="fbh-story-label">Jamie Chen</span>
+          </div>
+          <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1501854140801-50d01698950b?w=120&q=70')">
+            <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=22" alt="Sam Torres" /></div>
+            <span class="fbh-story-label">Sam Torres</span>
+          </div>
+          <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1519681393784-d120267933ba?w=120&q=70')">
+            <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=33" alt="Riley Park" /></div>
+            <span class="fbh-story-label">Riley Park</span>
+          </div>
+          <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=70')">
+            <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=44" alt="Dana Kim" /></div>
+            <span class="fbh-story-label">Dana Kim</span>
+          </div>
+          <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&q=70')">
+            <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=55" alt="Jordan Lee" /></div>
+            <span class="fbh-story-label">Jordan Lee</span>
+          </div>
+        </div>
+
+        <!-- Create post box -->
+        <div class="fbh-card fbh-create-post">
+          <div class="fbh-create-post-top">
+            <div class="fbh-create-avatar">
+              <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+            </div>
+            <div class="fbh-create-input">What's on your mind, Alex?</div>
+          </div>
+          <div class="fbh-create-post-divider"></div>
+          <div class="fbh-create-post-actions">
+            <button class="fbh-create-action">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#e94235" stroke-width="1.8"/><path stroke="#e94235" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+              Live video
+            </button>
+            <button class="fbh-create-action">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#45bd62" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" fill="#45bd62"/><path stroke="#45bd62" stroke-width="1.8" d="M21 15l-5-5L5 21"/></svg>
+              Photo/video
+            </button>
+            <button class="fbh-create-action">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#f7b928" stroke-width="1.8"/><path stroke="#f7b928" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+              Feeling/activity
+            </button>
+          </div>
+        </div>
+
+        <!-- Post 1 -->
+        <div class="fbh-card fbh-post">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=11" alt="Jamie Chen" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Jamie Chen</div>
+              <div class="fbh-post-time">2 h &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text">Just got back from an incredible week in Kyoto! The cherry blossoms were in full bloom and everything was absolutely magical. If you haven't been, add it to your list immediately!</div>
+          <div class="fbh-post-img-wrap"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80" alt="Kyoto cherry blossoms" /></div>
+          <div class="fbh-post-reactions-row">
+            <div class="fbh-reactions-left">
+              <span class="fbh-emoji-chip">&#128077;</span><span class="fbh-emoji-chip">&#10084;&#65039;</span><span class="fbh-emoji-chip">&#128558;</span>
+              <span class="fbh-reaction-count">Alex and 214 others</span>
+            </div>
+            <div class="fbh-reactions-right"><span>38 comments</span> &middot; <span>12 shares</span></div>
+          </div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+          </div>
+        </div>
+
+        <!-- AD INJECTION SLOT 1 -->
+        <div class="fbh-card fbh-post fbh-ad-slot" id="fbAdSlot1" data-ad-slot="feed-1">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=80&q=70" alt="Adobe" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Adobe <span class="fbh-verified">&#10003;</span></div>
+              <div class="fbh-post-time fbh-sponsored">Sponsored &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text">Turn your creativity into impact. Adobe Creative Cloud gives you all the tools you need. <strong>Get 2 months free</strong> when you subscribe today.</div>
+          <div class="fbh-post-img-wrap"><img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80" alt="Adobe Creative Cloud" /></div>
+          <div class="fbh-ad-cta-strip">
+            <div class="fbh-ad-cta-text">
+              <div class="fbh-ad-cta-domain">adobe.com</div>
+              <div class="fbh-ad-cta-headline">Adobe Creative Cloud &mdash; Get 2 months free</div>
+              <div class="fbh-ad-cta-sub">All your creative apps in one place.</div>
+            </div>
+            <button class="fbh-ad-cta-btn">Learn more</button>
+          </div>
+          <div class="fbh-ad-badge"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2 2"/></svg> AEP Ad Slot &mdash; <code>id="fbAdSlot1"</code></div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-ad-cta-btn fbh-ad-cta-btn--feed">Learn more</button>
+          </div>
+        </div>
+
+        <!-- Post 2 -->
+        <div class="fbh-card fbh-post">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=33" alt="Riley Park" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Riley Park</div>
+              <div class="fbh-post-time">4 h &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text">Coffee + good book + Sunday morning = perfection. Nothing like slowing down after a crazy week.</div>
+          <div class="fbh-post-img-wrap fbh-post-img-wrap--grid2">
+            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&q=70" alt="Coffee" />
+            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=70" alt="Book" />
+          </div>
+          <div class="fbh-post-reactions-row">
+            <div class="fbh-reactions-left">
+              <span class="fbh-emoji-chip">&#128077;</span><span class="fbh-emoji-chip">&#10084;&#65039;</span>
+              <span class="fbh-reaction-count">74 reactions</span>
+            </div>
+            <div class="fbh-reactions-right"><span>11 comments</span></div>
+          </div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+          </div>
+        </div>
+
+        <!-- Post 3 -->
+        <div class="fbh-card fbh-post">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=44" alt="Dana Kim" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Dana Kim</div>
+              <div class="fbh-post-time">Yesterday &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text">Trail run at 6am hit different this morning. 18C, no crowds, just you and the mountain. Who's joining the crew next weekend?</div>
+          <div class="fbh-post-img-wrap"><img src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=600&q=80" alt="Trail running at sunrise" /></div>
+          <div class="fbh-post-reactions-row">
+            <div class="fbh-reactions-left">
+              <span class="fbh-emoji-chip">&#128077;</span><span class="fbh-emoji-chip">&#10084;&#65039;</span><span class="fbh-emoji-chip">&#128170;</span>
+              <span class="fbh-reaction-count">Jordan, Alex and 98 others</span>
+            </div>
+            <div class="fbh-reactions-right"><span>29 comments</span> &middot; <span>4 shares</span></div>
+          </div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+          </div>
+        </div>
+
+        <!-- AD INJECTION SLOT 2 -->
+        <div class="fbh-card fbh-post fbh-ad-slot" id="fbAdSlot2" data-ad-slot="feed-2">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=80&q=70" alt="Nike" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Nike Running <span class="fbh-verified">&#10003;</span></div>
+              <div class="fbh-post-time fbh-sponsored">Sponsored &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text">Built for the trail. The new <strong>Nike Pegasus Trail 5</strong> features ReactX foam for maximum cushion on every surface. Your next personal best starts here.</div>
+          <div class="fbh-post-img-wrap"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80" alt="Nike trail shoes" /></div>
+          <div class="fbh-ad-cta-strip">
+            <div class="fbh-ad-cta-text">
+              <div class="fbh-ad-cta-domain">nike.com</div>
+              <div class="fbh-ad-cta-headline">Nike Pegasus Trail 5 &mdash; Shop Now</div>
+              <div class="fbh-ad-cta-sub">Free shipping on orders over $75.</div>
+            </div>
+            <button class="fbh-ad-cta-btn">Shop now</button>
+          </div>
+          <div class="fbh-ad-badge"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2 2"/></svg> AEP Ad Slot &mdash; <code>id="fbAdSlot2"</code></div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-ad-cta-btn fbh-ad-cta-btn--feed">Shop now</button>
+          </div>
+        </div>
+
+        <!-- Post 4 -->
+        <div class="fbh-card fbh-post">
+          <div class="fbh-post-header">
+            <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=55" alt="Jordan Lee" />
+            <div class="fbh-post-meta">
+              <div class="fbh-post-author">Jordan Lee</div>
+              <div class="fbh-post-time">2 d &middot; <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="fbh-post-options"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fbh-post-text" style="font-size:22px;text-align:center;padding:20px 32px;line-height:1.5;">
+            Just accepted an offer at a new company!! So incredibly excited for this next chapter. Thanks to everyone who supported me during the job search.
+          </div>
+          <div class="fbh-post-reactions-row">
+            <div class="fbh-reactions-left">
+              <span class="fbh-emoji-chip">&#10084;&#65039;</span><span class="fbh-emoji-chip">&#128077;</span><span class="fbh-emoji-chip">&#127881;</span>
+              <span class="fbh-reaction-count">312 reactions</span>
+            </div>
+            <div class="fbh-reactions-right"><span>87 comments</span> &middot; <span>14 shares</span></div>
+          </div>
+          <div class="fbh-post-divider"></div>
+          <div class="fbh-post-action-bar">
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+            <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ── RIGHT SIDEBAR ──────────────────────────────────────── -->
+      <aside class="fbh-right">
+        <div class="fbh-right-section">
+          <div class="fbh-right-title">Sponsored</div>
+          <div class="fbh-rail-ad fbh-ad-slot" id="fbAdSlotRail1" data-ad-slot="rail-1">
+            <img class="fbh-rail-ad-img" src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=160&q=70" alt="Headphones" />
+            <div class="fbh-rail-ad-body">
+              <div class="fbh-rail-ad-title">Sony WH-1000XM5</div>
+              <div class="fbh-rail-ad-sub">sony.com &middot; Best-in-class noise cancellation.</div>
+              <button class="fbh-rail-ad-btn">Shop now</button>
+            </div>
+            <div class="fbh-ad-badge fbh-ad-badge--rail">AEP Rail Slot <code>fbAdSlotRail1</code></div>
+          </div>
+          <div class="fbh-rail-ad fbh-ad-slot" id="fbAdSlotRail2" data-ad-slot="rail-2">
+            <img class="fbh-rail-ad-img" src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=160&q=70" alt="Furniture" />
+            <div class="fbh-rail-ad-body">
+              <div class="fbh-rail-ad-title">West Elm &mdash; Summer Sale</div>
+              <div class="fbh-rail-ad-sub">westelm.com &middot; Up to 40% off outdoor furniture.</div>
+              <button class="fbh-rail-ad-btn">Learn more</button>
+            </div>
+            <div class="fbh-ad-badge fbh-ad-badge--rail">AEP Rail Slot <code>fbAdSlotRail2</code></div>
+          </div>
+        </div>
+
+        <div class="fbh-right-section fbh-right-section--birthdays">
+          <div class="fbh-right-title">Birthdays</div>
+          <div class="fbh-birthday-item">
+            <div class="fbh-birthday-icon">&#127874;</div>
+            <div><strong>Sam Torres</strong> and <strong>2 others</strong> have birthdays today.</div>
+          </div>
+        </div>
+
+        <div class="fbh-right-section">
+          <div class="fbh-contacts-header">
+            <div class="fbh-right-title">Contacts</div>
+            <div class="fbh-contacts-icons">
+              <div class="fbh-contact-icon-btn" title="Search"><svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg></div>
+              <div class="fbh-contact-icon-btn" title="More"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+            </div>
+          </div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=11" alt="Jamie Chen" /></div><span>Jamie Chen</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=22" alt="Sam Torres" /></div><span>Sam Torres</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=33" alt="Riley Park" /></div><span>Riley Park</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=44" alt="Dana Kim" /></div><span>Dana Kim</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=55" alt="Jordan Lee" /></div><span>Jordan Lee</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=66" alt="Casey Reyes" /></div><span>Casey Reyes</span></div>
+          <div class="fbh-contact"><div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=77" alt="Morgan Liu" /></div><span>Morgan Liu</span></div>
+        </div>
+
+        <div class="fbh-right-footer">Privacy &middot; Terms &middot; Advertising &middot; Cookies &middot; More &middot; Meta &copy; 2025</div>
+      </aside>
+
+    </div><!-- /fbh-body -->
+  </div><!-- /fb-view--home -->
+
+  <!-- ════════════════════════════════════════════════════════════
+       VIEW: PROFILE
+       ════════════════════════════════════════════════════════════ -->
+  <div class="fb-view fb-view--profile" style="background:var(--fb-bg);min-height:calc(100vh - 56px);">
+
+    <div class="fb-profile-header">
+      <div class="fb-cover-wrap">
+        <img class="fb-cover-img" src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=940&q=80" alt="Cover photo" />
+        <div class="fb-cover-gradient"></div>
+        <div class="fb-cover-edit-btn">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/><path stroke="currentColor" stroke-width="1.8" d="M3 21h18"/></svg>
+          Edit cover photo
+        </div>
+      </div>
+
+      <div class="fb-profile-info-bar">
+        <div class="fb-avatar-row">
+          <div class="fb-profile-avatar">
+            <img src="https://i.pravatar.cc/200?img=47" alt="Alex Morgan profile photo" />
+          </div>
+          <div class="fb-profile-name-actions">
+            <div class="fb-profile-name">Alex Morgan</div>
+            <div class="fb-profile-friend-count">
+              <span class="fb-friend-stacks">
+                <img src="https://i.pravatar.cc/24?img=12" alt="" />
+                <img src="https://i.pravatar.cc/24?img=33" alt="" />
+                <img src="https://i.pravatar.cc/24?img=58" alt="" />
+              </span>
+              <strong>487 friends</strong>
+            </div>
+            <div class="fb-profile-actions">
+              <button class="fb-btn fb-btn-primary">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
+                Add to story
+              </button>
+              <button class="fb-btn fb-btn-secondary">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/></svg>
+                Edit profile
+              </button>
+              <div class="fb-btn-icon-only">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="fb-profile-nav">
+          <div class="fb-profile-nav-tab active">Posts</div>
+          <div class="fb-profile-nav-tab">About</div>
+          <div class="fb-profile-nav-tab">Friends</div>
+          <div class="fb-profile-nav-tab">Photos</div>
+          <div class="fb-profile-nav-tab">Videos</div>
+          <div class="fb-profile-nav-tab">More &#9660;</div>
+        </nav>
       </div>
     </div>
 
-    <!-- Avatar + name + actions -->
-    <div class="fb-profile-info-bar">
-      <div class="fb-avatar-row">
-        <div class="fb-profile-avatar">
-          <img src="https://i.pravatar.cc/200?img=47" alt="Alex Morgan profile photo" />
-        </div>
-        <div class="fb-profile-name-actions">
-          <div class="fb-profile-name">Alex Morgan</div>
-          <div class="fb-profile-friend-count">
-            <span class="fb-friend-stacks">
-              <img src="https://i.pravatar.cc/24?img=12" alt="" />
-              <img src="https://i.pravatar.cc/24?img=33" alt="" />
-              <img src="https://i.pravatar.cc/24?img=58" alt="" />
-            </span>
-            <strong>487 friends</strong>
+    <div class="fb-body">
+      <div class="fb-left-col">
+        <div class="fb-card">
+          <div class="fb-card-title">Intro</div>
+          <div class="fb-intro-bio">Travel enthusiast &middot; Coffee lover &middot; Weekend hiker</div>
+          <div class="fb-intro-item">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+            Lives in <strong>&nbsp;San Francisco, CA</strong>
           </div>
-          <div class="fb-profile-actions">
-            <button class="fb-btn fb-btn-primary">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
-              Add to story
-            </button>
-            <button class="fb-btn fb-btn-secondary">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/></svg>
-              Edit profile
-            </button>
-            <div class="fb-btn-icon-only">
-              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          <div class="fb-intro-item">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/></svg>
+            From <strong>&nbsp;Portland, OR</strong>
+          </div>
+          <div class="fb-intro-item">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 16.92V19a2 2 0 01-2 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h2.07a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Works at <strong>&nbsp;Horizon Digital</strong>
+          </div>
+          <div class="fb-intro-item">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 10v4M2 10v4M12 2a10 10 0 000 20M12 2a10 10 0 010 20M2 12h20"/></svg>
+            Followed by <strong>&nbsp;1.2K people</strong>
+          </div>
+          <div class="fb-edit-detail-btn">Edit details</div>
+          <div class="fb-edit-detail-btn" style="margin-top:6px;">Add hobbies</div>
+          <div class="fb-edit-detail-btn" style="margin-top:6px;">Add featured</div>
+        </div>
+
+        <div class="fb-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="fb-card-title" style="margin-bottom:0;">Photos</div>
+            <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all photos</a>
+          </div>
+          <div class="fb-photos-grid">
+            <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1455218873509-8097305ee378?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=120&q=70" alt="" />
+            <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=120&q=70" alt="" />
+          </div>
+        </div>
+
+        <div class="fb-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+              <div class="fb-card-title" style="margin-bottom:2px;">Friends</div>
+              <div style="font-size:15px;color:var(--fb-secondary);">487 friends</div>
             </div>
+            <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all friends</a>
+          </div>
+          <div class="fb-friends-grid">
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=11" alt="Jamie Chen" /><span>Jamie Chen</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=22" alt="Sam Torres" /><span>Sam Torres</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=33" alt="Riley Park" /><span>Riley Park</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=44" alt="Dana Kim" /><span>Dana Kim</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=55" alt="Jordan Lee" /><span>Jordan Lee</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=66" alt="Casey Reyes" /><span>Casey Reyes</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=7" alt="Morgan Wu" /><span>Morgan Wu</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=18" alt="Taylor Rowe" /><span>Taylor Rowe</span></div>
+            <div class="fb-friend-thumb"><img src="https://i.pravatar.cc/90?img=29" alt="Drew Scott" /><span>Drew Scott</span></div>
           </div>
         </div>
       </div>
 
-      <!-- Profile nav tabs -->
-      <nav class="fb-profile-nav">
-        <div class="fb-profile-nav-tab active">Posts</div>
-        <div class="fb-profile-nav-tab">About</div>
-        <div class="fb-profile-nav-tab">Friends</div>
-        <div class="fb-profile-nav-tab">Photos</div>
-        <div class="fb-profile-nav-tab">Videos</div>
-        <div class="fb-profile-nav-tab">More ▾</div>
-      </nav>
+      <div class="fb-right-col">
+        <div class="fb-compose">
+          <div class="fb-compose-top">
+            <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="" /></div>
+            <div class="fb-compose-input">What's on your mind, Alex?</div>
+          </div>
+          <div class="fb-compose-actions">
+            <div class="fb-compose-action" style="color:#e2454b;"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg> Live video</div>
+            <div class="fb-compose-action" style="color:#45bd62;"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 9h18M9 21V9"/></svg> Photo/video</div>
+            <div class="fb-compose-action" style="color:#f5c518;"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg> Feeling/activity</div>
+          </div>
+        </div>
+
+        <div class="fb-post">
+          <div class="fb-post-header">
+            <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+            <div class="fb-post-meta">
+              <div class="fb-post-author">Alex Morgan</div>
+              <div class="fb-post-time"><span>2 hours ago</span></div>
+            </div>
+            <div class="fb-post-options"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fb-post-body">Just got back from an incredible weekend in Yosemite! The views were absolutely breathtaking. Already planning the next trip &mdash; thinking the Pacific Coast Highway? Drop your recommendations below!</div>
+          <img class="fb-post-img" src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=940&q=80" alt="Yosemite mountains" />
+          <div class="fb-post-reactions">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="fb-reaction-chips"><div class="fb-reaction-chip like">&#128077;</div><div class="fb-reaction-chip love">&#10084;&#65039;</div><div class="fb-reaction-chip haha">&#128514;</div></div>
+              <span>Sarah, Jamie and 214 others</span>
+            </div>
+            <div style="display:flex;gap:12px;"><span>47 comments</span><span>12 shares</span></div>
+          </div>
+          <div class="fb-post-actions">
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</div>
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</div>
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</div>
+          </div>
+        </div>
+
+        <div class="fb-post">
+          <div class="fb-post-header">
+            <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+            <div class="fb-post-meta">
+              <div class="fb-post-author">Alex Morgan</div>
+              <div class="fb-post-time"><span>May 14</span></div>
+            </div>
+            <div class="fb-post-options"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+          </div>
+          <div class="fb-post-body" style="font-size:24px;line-height:1.5;text-align:center;padding:24px 40px;">
+            Officially finished the Half Dome hike!! 17 miles and 4,800 ft of elevation gain. My legs may never recover but it was 100% worth it.
+          </div>
+          <div class="fb-post-reactions">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="fb-reaction-chips"><div class="fb-reaction-chip like">&#128077;</div><div class="fb-reaction-chip love">&#10084;&#65039;</div><div class="fb-reaction-chip haha">&#128514;</div></div>
+              <span>Jordan and 156 others</span>
+            </div>
+            <div style="display:flex;gap:12px;"><span>63 comments</span><span>7 shares</span></div>
+          </div>
+          <div class="fb-post-actions">
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</div>
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</div>
+            <div class="fb-post-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </div><!-- /fb-view--profile -->
 
-  <!-- 2-column body -->
-  <div class="fb-body">
+</div><!-- /fb-app -->
 
-    <!-- Left column -->
-    <div class="fb-left-col">
+<!-- ── In-page view switcher ──────────────────────────────────────── -->
+<script>
+(function () {
+  var app = document.querySelector('.fb-app');
+  if (!app) return;
+  function switchView(view) {
+    app.setAttribute('data-fb-view', view);
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, '', location.pathname + (view === 'profile' ? '#profile' : '')); } catch (e) {}
+  }
+  document.querySelectorAll('[data-fb-nav]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      switchView(el.getAttribute('data-fb-nav'));
+    });
+  });
+  var hash = (location.hash || '').replace('#', '');
+  if (hash === 'profile') switchView('profile');
+})();
+</script>
 
-      <!-- Intro card -->
-      <div class="fb-card">
-        <div class="fb-card-title">Intro</div>
-        <div class="fb-intro-bio">☀️ Travel enthusiast · Coffee lover · Weekend hiker</div>
-        <div class="fb-intro-item">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          Lives in <strong>&nbsp;San Francisco, CA</strong>
-        </div>
-        <div class="fb-intro-item">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/></svg>
-          From <strong>&nbsp;Portland, OR</strong>
-        </div>
-        <div class="fb-intro-item">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 16.92V19a2 2 0 01-2 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h2.07a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-          Works at <strong>&nbsp;Horizon Digital</strong>
-        </div>
-        <div class="fb-intro-item">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 10v4M2 10v4M12 2a10 10 0 000 20M12 2a10 10 0 010 20M2 12h20"/></svg>
-          Followed by <strong>&nbsp;1.2K people</strong>
-        </div>
-        <div class="fb-edit-detail-btn">Edit details</div>
-        <div class="fb-edit-detail-btn" style="margin-top:6px;">Add hobbies</div>
-        <div class="fb-edit-detail-btn" style="margin-top:6px;">Add featured</div>
-      </div>
-
-      <!-- Photos card -->
-      <div class="fb-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div class="fb-card-title" style="margin-bottom:0;">Photos</div>
-          <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all photos</a>
-        </div>
-        <div class="fb-photos-grid">
-          <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1455218873509-8097305ee378?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=120&q=70" alt="" />
-          <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=120&q=70" alt="" />
-        </div>
-      </div>
-
-      <!-- Friends card -->
-      <div class="fb-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div>
-            <div class="fb-card-title" style="margin-bottom:2px;">Friends</div>
-            <div style="font-size:15px;color:var(--fb-secondary);">487 friends</div>
-          </div>
-          <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all friends</a>
-        </div>
-        <div class="fb-friends-grid">
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=11" alt="Jamie Chen" />
-            <span>Jamie Chen</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=22" alt="Sam Torres" />
-            <span>Sam Torres</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=33" alt="Riley Park" />
-            <span>Riley Park</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=44" alt="Dana Kim" />
-            <span>Dana Kim</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=55" alt="Jordan Lee" />
-            <span>Jordan Lee</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=66" alt="Casey Reyes" />
-            <span>Casey Reyes</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=7" alt="Morgan Wu" />
-            <span>Morgan Wu</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=18" alt="Taylor Rowe" />
-            <span>Taylor Rowe</span>
-          </div>
-          <div class="fb-friend-thumb">
-            <img src="https://i.pravatar.cc/90?img=29" alt="Drew Scott" />
-            <span>Drew Scott</span>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /fb-left-col -->
-
-    <!-- Right column: feed -->
-    <div class="fb-right-col">
-
-      <!-- Compose box -->
-      <div class="fb-compose">
-        <div class="fb-compose-top">
-          <div class="fb-post-avatar">
-            <img src="https://i.pravatar.cc/80?img=47" alt="" />
-          </div>
-          <div class="fb-compose-input">What's on your mind, Alex?</div>
-        </div>
-        <div class="fb-compose-actions">
-          <div class="fb-compose-action" style="color:#e2454b;">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
-            Live video
-          </div>
-          <div class="fb-compose-action" style="color:#45bd62;">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 9h18M9 21V9"/></svg>
-            Photo/video
-          </div>
-          <div class="fb-compose-action" style="color:#f5c518;">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
-            Feeling/activity
-          </div>
-        </div>
-      </div>
-
-      <!-- Post 1 — travel photo -->
-      <div class="fb-post">
-        <div class="fb-post-header">
-          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
-          <div class="fb-post-meta">
-            <div class="fb-post-author">Alex Morgan</div>
-            <div class="fb-post-time">
-              <span>2 hours ago</span>
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M2 12h20"/><path stroke="currentColor" stroke-width="1.8" d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-            </div>
-          </div>
-          <div class="fb-post-options">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          </div>
-        </div>
-        <div class="fb-post-body">Just got back from an incredible weekend in Yosemite! 🏔️ The views were absolutely breathtaking. Already planning the next trip — thinking the Pacific Coast Highway? Drop your recommendations below! 👇</div>
-        <img class="fb-post-img" src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=940&q=80" alt="Yosemite mountains" />
-        <div class="fb-post-reactions">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div class="fb-reaction-chips">
-              <div class="fb-reaction-chip like">👍</div>
-              <div class="fb-reaction-chip love">❤️</div>
-              <div class="fb-reaction-chip haha">😂</div>
-            </div>
-            <span>Sarah, Jamie and 214 others</span>
-          </div>
-          <div style="display:flex;gap:12px;">
-            <span>47 comments</span>
-            <span>12 shares</span>
-          </div>
-        </div>
-        <div class="fb-post-actions">
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
-            Like
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
-            Comment
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-            Share
-          </div>
-        </div>
-      </div>
-
-      <!-- Post 2 — friend shares location check-in -->
-      <div class="fb-post">
-        <div class="fb-post-header">
-          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
-          <div class="fb-post-meta">
-            <div class="fb-post-author">Alex Morgan</div>
-            <div class="fb-post-time"><span>Yesterday at 7:34 PM</span></div>
-          </div>
-          <div class="fb-post-options">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          </div>
-        </div>
-        <div class="fb-post-body">
-          📍 Checked in at <strong>Blue Bottle Coffee, SOMA</strong><br/>
-          Nothing better than a flat white to kick off a Monday morning. Also — finally got a window seat! 🪟☕
-        </div>
-        <div class="fb-post-reactions">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div class="fb-reaction-chips">
-              <div class="fb-reaction-chip like">👍</div>
-              <div class="fb-reaction-chip haha">😂</div>
-            </div>
-            <span>Chloe and 38 others</span>
-          </div>
-          <span>8 comments</span>
-        </div>
-        <div class="fb-post-actions">
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
-            Like
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
-            Comment
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-            Share
-          </div>
-        </div>
-      </div>
-
-      <!-- Post 3 — 2-photo grid -->
-      <div class="fb-post">
-        <div class="fb-post-header">
-          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
-          <div class="fb-post-meta">
-            <div class="fb-post-author">Alex Morgan</div>
-            <div class="fb-post-time"><span>May 17 · </span><span>San Francisco, CA</span></div>
-          </div>
-          <div class="fb-post-options">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          </div>
-        </div>
-        <div class="fb-post-body">Weekend farmers market haul 🌿🍓 There is genuinely nothing better than fresh strawberries in May. Highly recommend hitting up the Ferry Building if you're in the city this weekend!</div>
-        <div class="fb-post-2grid">
-          <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=470&q=80" alt="Farmers market" />
-          <img src="https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=470&q=80" alt="Fresh produce" />
-        </div>
-        <div class="fb-post-reactions">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div class="fb-reaction-chips">
-              <div class="fb-reaction-chip like">👍</div>
-              <div class="fb-reaction-chip love">❤️</div>
-            </div>
-            <span>91 reactions</span>
-          </div>
-          <div style="display:flex;gap:12px;">
-            <span>22 comments</span>
-            <span>5 shares</span>
-          </div>
-        </div>
-        <div class="fb-post-actions">
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
-            Like
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
-            Comment
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-            Share
-          </div>
-        </div>
-      </div>
-
-      <!-- Post 4 — text only, life update -->
-      <div class="fb-post">
-        <div class="fb-post-header">
-          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
-          <div class="fb-post-meta">
-            <div class="fb-post-author">Alex Morgan</div>
-            <div class="fb-post-time"><span>May 14</span></div>
-          </div>
-          <div class="fb-post-options">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          </div>
-        </div>
-        <div class="fb-post-body" style="font-size:24px;line-height:1.5;text-align:center;padding:24px 40px;">
-          Officially finished the Half Dome hike!! 🏆 17 miles and 4,800 ft of elevation gain. My legs may never recover but it was 100% worth it.
-        </div>
-        <div class="fb-post-reactions">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div class="fb-reaction-chips">
-              <div class="fb-reaction-chip like">👍</div>
-              <div class="fb-reaction-chip love">❤️</div>
-              <div class="fb-reaction-chip haha">😂</div>
-            </div>
-            <span>Jordan and 156 others</span>
-          </div>
-          <div style="display:flex;gap:12px;">
-            <span>63 comments</span>
-            <span>7 shares</span>
-          </div>
-        </div>
-        <div class="fb-post-actions">
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
-            Like
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
-            Comment
-          </div>
-          <div class="fb-post-action-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-            Share
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /fb-right-col -->
-  </div><!-- /fb-body -->
-
-</div><!-- /fb-mock -->
-
-<!-- ── AEP scripts ────────────────────────────────────────────────── -->
+<!-- ── AEP scripts ─────────────────────────────────────────────────── -->
 <script src="../aep-lab-nav.js?v=20260520-social-facebook"></script>
 <script src="../aep-identity-picker.js" defer></script>
 <script src="../aep-profile-drawer.js?v=20260520-audiences-modal" defer></script>
@@ -1136,7 +1133,7 @@
 <script src="../aep-web-push.js" defer></script>
 <script src="../aep-demo-generator-targets.js" defer></script>
 <script src="../aep-theme.js" defer></script>
-<script src="facebook-demo.js" defer></script>
+<script src="facebook-home-demo.js" defer></script>
 
 </body>
 </html>
