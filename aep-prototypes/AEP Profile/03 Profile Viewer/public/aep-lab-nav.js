@@ -491,31 +491,31 @@
               label: 'Web',
               items: [
                 {
-                  label: 'WB World Yas Island (in development)',
-                  href: 'miral/wbworld-demo.html',
+                  label: 'Ferrari World Yas Island (in development)',
+                  href: 'ferrari-world-abu-dhabi/index.html',
                   inDevelopment: true,
-                  navHideKey: 'miralWbworldDemo',
+                  navHideKey: 'miralFerrariworldDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 16l7-12 7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+                {
+                  label: 'WB World Yas Island (in development)',
+                  inDevelopment: true,
+                  href: 'wb-world-abu-dhabi/index.html',
+                  navHideKey: 'miralWbworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
                 {
                   label: 'SeaWorld Yas Island (in development)',
-                  href: 'miral/seaworld-demo.html',
                   inDevelopment: true,
-                  navHideKey: 'miralSeaworldDemo',
+                  href: 'seaworld-abu-dhabi/index.html',
+                  navHideKey: 'miralSeaworldWebsite',
                   demoMeta: { owners: ['apalmer'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 14c1.5 2 3.5 3 4 3s2.5-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                },
-                {
-                  label: 'Ferrari World Yas Island (in development)',
-                  href: 'miral/ferrariworld-demo.html',
-                  inDevelopment: true,
-                  navHideKey: 'miralFerrariworldDemo',
-                  demoMeta: { owners: ['apalmer'] },
-                  ico:
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 16l7-12 7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
                 },
               ],
             },
@@ -607,6 +607,46 @@
             },
           ],
         },
+        {
+          id: 'demoSocial',
+          label: 'Social',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'socialWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Facebook — Profile',
+                  href: 'social/facebook.html',
+                  inDevelopment: true,
+                  navHideKey: 'socialFacebookDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+                {
+                  label: 'Facebook — Home feed',
+                  href: 'social/facebook-home.html',
+                  inDevelopment: true,
+                  navHideKey: 'socialFacebookHomeDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+                {
+                  label: 'TikTok — Profile',
+                  href: 'social/tiktok.html',
+                  inDevelopment: true,
+                  navHideKey: 'socialTiktokDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 12a4 4 0 100 8 4 4 0 000-8zm0 0V4h4a4 4 0 004 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   ];
@@ -661,6 +701,10 @@
       var p = String(window.location.pathname || '').replace(/\\/g, '/');
       if (p.indexOf('/_archive/firebase-hosting-legacy/') !== -1) return '../';
       if (p.indexOf('/profile-viewer/miral/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/wb-world-abu-dhabi/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/seaworld-abu-dhabi/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/ferrari-world-abu-dhabi/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/social/') !== -1) return '../';
     } catch (e) {}
     return '';
   }

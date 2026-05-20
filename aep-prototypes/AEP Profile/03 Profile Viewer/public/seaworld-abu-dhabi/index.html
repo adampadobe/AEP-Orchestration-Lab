@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -11,6 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap&v=20260220sw" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../home.css?v=20260519-wb-sw-replicas">
+  <link rel="stylesheet" href="../seaworld-abu-dhabi-demo.css?v=20260519-brand-demo">
+  <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260520-profile-drawer-ecid-full">
+  <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -229,7 +237,7 @@
     .hero__bg {
       position: absolute;
       inset: 0;
-      background-image: url('https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80');
+      background-image: url('https://static.myconnect.ae/-/media/yasconnect/project/swad/home/sw-selfie-desktop.jpg');
       background-size: cover;
       background-position: center 40%;
       transform: scale(1.04);
@@ -1019,42 +1027,6 @@
     }
     .footer__legal a:hover { color: rgba(255,255,255,.75); }
 
-    /* ─── AEP PERSONALIZATION BADGE (demo) ─── */
-    .aep-bar {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      background: rgba(0,58,107,.97);
-      border: 1px solid var(--teal);
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      min-width: 260px;
-      max-width: 320px;
-      backdrop-filter: blur(12px);
-      color: #fff;
-      display: none;
-    }
-    .aep-bar.visible { display: block; }
-    .aep-bar__label {
-      font-family: 'Nunito', sans-serif;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--teal);
-      margin-bottom: 6px;
-    }
-    .aep-bar__msg { font-size: 14px; color: #fff; line-height: 1.45; }
-    .aep-bar__close {
-      position: absolute;
-      top: 8px; right: 10px;
-      background: none; border: none;
-      color: rgba(255,255,255,.4);
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-    }
 
     /* ─── RESPONSIVE ─── */
     @media (max-width: 1024px) {
@@ -1081,7 +1053,107 @@
     }
   </style>
 </head>
-<body>
+<body class="seaworld-abu-dhabi-demo-page home-dashboard-concierge">
+
+  <div class="seaworld-abu-dhabi-demo-top-anchor" id="seaworldDemoTopAnchor">
+    <section class="seaworld-abu-dhabi-demo-id-banner" aria-label="SeaWorld Abu Dhabi demo identity controls">
+      <div class="seaworld-abu-dhabi-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="seaworldSdkConfigFields" class="seaworld-sdk-config-fields mod-sdk-config-fields">
+                  <div class="form-row">
+                    <label for="seaworldTagsCompany">Tags company</label>
+                    <select id="seaworldTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="seaworldTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="seaworldTagsProperty"
+                      aria-label="Tags property"
+                      placeholder="Select property"
+                      list="seaworldTagsPropertyList"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <datalist id="seaworldTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="seaworldTagsEnvironment">Tags environment</label>
+                    <select id="seaworldTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="seaworld-abu-dhabi-demo-id-actions">
+                    <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="seaworldWebPushOnInjectToggle" />
+                      <span>
+                        Register web push when injecting Tags
+                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="aep-demo-web-push-retry">
+                    <button type="button" id="seaworldWebPushRetryBtn" class="btn-lookup">
+                      Register web push now
+                    </button>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div id="seaworldSdkConfigSummary" class="seaworld-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="seaworldSdkConfigSummaryText"></span>
+                <button type="button" id="seaworldChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="seaworldNs">Namespace</label>
+              <select id="seaworldNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="seaworld-abu-dhabi-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="seaworld-abu-dhabi-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="seaworld-abu-dhabi-demo-script-preview">Selected script: <code id="seaworldSelectedScript">None</code></p>
+      <p id="seaworldMessage" class="seaworld-abu-dhabi-demo-message" role="status" aria-live="polite" hidden></p>
+    </section>
+  </div>
 
   <!-- ANNOUNCEMENT BAR -->
   <div class="announce-bar" role="banner">
@@ -1093,16 +1165,12 @@
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav__inner">
       <a href="/" class="nav__logo" aria-label="SeaWorld Yas Island Abu Dhabi home">
-        <div class="nav__logo-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 16.5c-2.5 1.5-5.5 1.5-8 0S4 13 2 12c2-1 4-3.5 8-4.5s7 .5 9 3-1 4.5-1 6z"/>
-            <circle cx="16" cy="10" r="1" fill="currentColor"/>
-          </svg>
-        </div>
-        <div class="nav__logo-text">
-          SeaWorld®
-          <span>Yas Island, Abu Dhabi</span>
-        </div>
+        <img
+          src="https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-color-new.png"
+          alt="SeaWorld Abu Dhabi"
+          height="44"
+          style="height:44px;width:auto;"
+        >
       </a>
 
       <ul class="nav__links" role="list">
@@ -1249,7 +1317,7 @@
         <article class="event-card">
           <div class="event-card__img-wrap">
             <img class="event-card__img"
-              src="https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=600&q=80"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/dolphinecounter1-medium.jpg"
               alt="Dolphin presentation" loading="lazy">
           </div>
           <div class="event-card__body">
@@ -1266,8 +1334,8 @@
         <article class="event-card">
           <div class="event-card__img-wrap">
             <img class="event-card__img"
-              src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80"
-              alt="Orca experience" loading="lazy">
+              src="https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/expeditions/seaventure/seaventure-medium.jpg"
+              alt="SeaVenture experience" loading="lazy">
           </div>
           <div class="event-card__body">
             <span class="event-card__tag">Special Event</span>
@@ -1283,7 +1351,7 @@
         <article class="event-card">
           <div class="event-card__img-wrap">
             <img class="event-card__img"
-              src="https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=600&q=80"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/expeditions/penguin-encounter/penguin.png"
               alt="Penguin feeding" loading="lazy">
           </div>
           <div class="event-card__body">
@@ -1310,7 +1378,7 @@
     <div class="realms__carousel" id="realmsCarousel" role="list">
 
       <div class="realm-card realm--ocean" role="listitem" tabindex="0" aria-label="One Ocean">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/one-ocean-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 01</p>
@@ -1321,7 +1389,7 @@
       </div>
 
       <div class="realm-card realm--endless" role="listitem" tabindex="0" aria-label="Endless Ocean">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1504472478235-9bc48ba4d60f?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/endless-ocean/endlessocean-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 02</p>
@@ -1332,7 +1400,7 @@
       </div>
 
       <div class="realm-card realm--icy" role="listitem" tabindex="0" aria-label="Icy Waters">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1517783999520-f068d7431a60?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/icy-waters-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 03</p>
@@ -1343,7 +1411,7 @@
       </div>
 
       <div class="realm-card realm--tropical" role="listitem" tabindex="0" aria-label="Tropical Ocean">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1530053969600-caed2596d242?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/tropical-ocean-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 04</p>
@@ -1354,7 +1422,7 @@
       </div>
 
       <div class="realm-card realm--rocky" role="listitem" tabindex="0" aria-label="Rocky Point">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/rocky-point-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 05</p>
@@ -1365,7 +1433,7 @@
       </div>
 
       <div class="realm-card realm--deep" role="listitem" tabindex="0" aria-label="The Deep">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1550781989-b8f7e7c8e5e5?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/the-deep/thedeep-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 06</p>
@@ -1376,7 +1444,7 @@
       </div>
 
       <div class="realm-card realm--wadden" role="listitem" tabindex="0" aria-label="The Wadden">
-        <div class="realm-card__bg" style="background-image:url('https://images.unsplash.com/photo-1572948780608-c4aa8af9c267?w=600&q=80')"></div>
+        <div class="realm-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/swad/explore/realms/the-wadden/wadden-medium.jpg')"></div>
         <div class="realm-card__overlay"></div>
         <div class="realm-card__body">
           <p class="realm-card__num">Realm 07</p>
@@ -1403,7 +1471,7 @@
       <div class="encounters__inner">
         <div class="encounters__media">
           <img class="encounters__img"
-            src="https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=800&q=80"
+            src="https://static.myconnect.ae/-/media/yasconnect/project/swad/home/sw-encounters.jpg"
             alt="SeaWorld Encounters — up-close animal experience" loading="lazy">
           <div class="encounters__badge">
             <div class="encounters__badge-title">SeaWorld Encounters</div>
@@ -1454,8 +1522,8 @@
         </div>
         <div class="rescue__media">
           <img class="rescue__img"
-            src="https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=800&q=80"
-            alt="Marine rescue team at work" loading="lazy">
+            src="https://static.myconnect.ae/-/media/yasconnect/project/swad/rescue/yas-research-rescue-medium.jpg"
+            alt="Yas SeaWorld Research and Rescue Center" loading="lazy">
           <div class="rescue__media-caption">Yas SeaWorld Research &amp; Rescue Center — Yas Island, Abu Dhabi</div>
         </div>
       </div>
@@ -1572,17 +1640,14 @@
     <div class="container">
       <div class="footer__top">
         <div>
-          <div class="nav__logo" style="margin-bottom:16px">
-            <div class="nav__logo-mark">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 16.5c-2.5 1.5-5.5 1.5-8 0S4 13 2 12c2-1 4-3.5 8-4.5s7 .5 9 3-1 4.5-1 6z"/>
-                <circle cx="16" cy="10" r="1" fill="currentColor"/>
-              </svg>
-            </div>
-            <div class="nav__logo-text" style="color:#fff">
-              SeaWorld®
-              <span style="color:rgba(255,255,255,.55)">Yas Island, Abu Dhabi</span>
-            </div>
+          <div style="margin-bottom:16px">
+            <img
+              src="https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-white-new.png"
+              alt="SeaWorld Abu Dhabi"
+              height="44"
+              style="height:44px;width:auto;"
+              loading="lazy"
+            >
           </div>
           <p class="footer__brand-desc">
             SeaWorld® Yas Island Abu Dhabi — an immersive ocean park dedicated to inspiring guests with the wonders of the natural world and the importance of marine conservation.
@@ -1664,20 +1729,14 @@
     </div>
   </footer>
 
-  <!-- AEP PERSONALIZATION BADGE (demo) -->
-  <div class="aep-bar" id="aepBar" role="status" aria-live="polite">
-    <button class="aep-bar__close" onclick="document.getElementById('aepBar').classList.remove('visible')" aria-label="Close">×</button>
-    <p class="aep-bar__label">AEP Personalisation Active</p>
-    <p class="aep-bar__msg" id="aepBarMsg">Welcome back! You have a saved dolphin encounter. <strong>Resume booking →</strong></p>
-  </div>
-
   <script>
-    // ── Hero parallax BG load
+    // ── Hero BG load
     const heroBg = document.getElementById('heroBg');
-    heroBg.style.backgroundImage = "url('https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80')";
+    const heroSrc = 'https://static.myconnect.ae/-/media/yasconnect/project/swad/home/sw-selfie-desktop.jpg';
+    heroBg.style.backgroundImage = "url('" + heroSrc + "')";
     const img = new Image();
     img.onload = () => heroBg.classList.add('loaded');
-    img.src = 'https://images.unsplash.com/photo-1582553955270-a7de65f5b1ec?w=1800&q=80';
+    img.src = heroSrc;
 
     // ── Realms carousel nav
     const carousel = document.getElementById('realmsCarousel');
@@ -1700,15 +1759,6 @@
       setTimeout(() => { btn.textContent = 'Sign Up'; btn.style.background = ''; }, 3000);
     }
 
-    // ── AEP demo bar
-    setTimeout(() => {
-      if (!sessionStorage.getItem('seaworldAepBarDismissed')) {
-        document.getElementById('aepBar').classList.add('visible');
-      }
-    }, 4000);
-    document.getElementById('aepBar').querySelector('.aep-bar__close')
-      .addEventListener('click', () => sessionStorage.setItem('seaworldAepBarDismissed', '1'));
-
     // ── Scroll fade-in
     const fadeEls = document.querySelectorAll(
       '.event-card, .realm-card, .ticket-card, .pledge-item'
@@ -1729,6 +1779,102 @@
       io.observe(el);
     });
   </script>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page seaworld-abu-dhabi-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+            <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="../firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="../aep-global-sandbox.js"></script>
+  <script src="../aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="../email-cache.js"></script>
+  <script src="../identity-picker.js"></script>
+  <script src="../email-engagement-metrics.js"></script>
+  <script src="../aep-profile-drawer.js?v=20260520-profile-drawer-ecid-full"></script>
+  <script src="../demo-tags-injection.js?v=20260515-web-push-toggle"></script>
+  <script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="../aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="../seaworld-abu-dhabi-demo.js?v=20260519-brand-demo"></script>
+  <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="../aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
 
 </body>
 </html>

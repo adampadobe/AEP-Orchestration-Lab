@@ -839,6 +839,13 @@ body.aep-profile-drawer-events-story-open {
   font-variant-numeric: tabular-nums;
 }
 
+/* Full ECID in journey modal persona strip — wrap on narrow widths */
+.aep-profile-drawer-journey-persona-ecid--full {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 /* Step-through controls */
 .aep-profile-drawer-journey-controls {
   display: flex;
@@ -1331,6 +1338,12 @@ html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-name {
 html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-sep,
 html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-ecid {
   color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-ecid--full {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-email {

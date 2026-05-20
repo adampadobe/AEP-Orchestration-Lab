@@ -1600,8 +1600,9 @@ function appendPersonaSummaryDom(el) {
     sep2.textContent = ' · ';
     el.appendChild(sep2);
     const ec = document.createElement('span');
-    ec.className = 'aep-profile-drawer-journey-persona-ecid';
-    ec.textContent = `ECID ${ecidRaw.slice(0, 4)}…${ecidRaw.slice(-4)}`;
+    ec.className =
+      'aep-profile-drawer-journey-persona-ecid aep-profile-drawer-journey-persona-ecid--full';
+    ec.textContent = `ECID ${ecidRaw}`;
     el.appendChild(ec);
   }
 }
