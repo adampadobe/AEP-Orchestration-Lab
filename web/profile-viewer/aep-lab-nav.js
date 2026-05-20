@@ -492,7 +492,7 @@
               items: [
                 {
                   label: 'Ferrari World Yas Island (in development)',
-                  href: 'miral/ferrariworld-demo.html',
+                  href: 'ferrari-world-abu-dhabi/index.html',
                   inDevelopment: true,
                   navHideKey: 'miralFerrariworldDemo',
                   demoMeta: { owners: ['apalmer'] },
@@ -663,6 +663,7 @@
       if (p.indexOf('/profile-viewer/miral/') !== -1) return '../';
       if (p.indexOf('/profile-viewer/wb-world-abu-dhabi/') !== -1) return '../';
       if (p.indexOf('/profile-viewer/seaworld-abu-dhabi/') !== -1) return '../';
+      if (p.indexOf('/profile-viewer/ferrari-world-abu-dhabi/') !== -1) return '../';
     } catch (e) {}
     return '';
   }

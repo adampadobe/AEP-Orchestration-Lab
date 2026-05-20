@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Ferrari World Abu Dhabi — World's Largest Indoor Theme Park</title>
+  <meta name="description" content="Ferrari World Abu Dhabi — the world's largest indoor theme park on Yas Island. Home of Formula Rossa, the world's fastest roller coaster.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap&v=20260520fw" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../home.css?v=20260520-ferrari-replica">
+  <link rel="stylesheet" href="../ferrari-world-abu-dhabi-demo.css?v=20260520-brand-demo">
+  <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260519-miral-profile">
+  <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --fw-red:        #da291c;
+      --fw-red-dark:   #a51e14;
+      --fw-red-light:  #f5e0de;
+      --fw-yellow:     #ffc107;
+      --fw-black:      #0d0d0d;
+      --fw-dark:       #1a1a1a;
+      --fw-dark-mid:   #2c2c2c;
+      --fw-gray:       #f5f5f5;
+      --fw-gray-mid:   #e8e8e8;
+      --fw-border:     #dddddd;
+      --fw-text:       #1a1a1a;
+      --fw-text-muted: #666666;
+      --fw-text-dim:   #999999;
+      --fw-white:      #ffffff;
+      --fw-radius:     4px;
+      --fw-radius-md:  8px;
+      --fw-nav-h:      80px;
+      --fw-shadow:     0 2px 16px rgba(0,0,0,.12);
+      --fw-shadow-lg:  0 8px 40px rgba(0,0,0,.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--fw-white);
+      color: var(--fw-text);
+      font-family: 'Open Sans', Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ─── UTILITY ─── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    .btn {
+      display: inline-block;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      border-radius: var(--fw-radius);
+      cursor: pointer;
+      border: none;
+      transition: background .15s, transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-red {
+      background: var(--fw-red);
+      color: #fff;
+    }
+    .btn-red:hover { background: var(--fw-red-dark); box-shadow: 0 6px 20px rgba(218,41,28,.35); }
+    .btn-outline-white {
+      background: transparent;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.7);
+    }
+    .btn-outline-white:hover { background: rgba(255,255,255,.15); border-color: #fff; }
+    .btn-outline-dark {
+      background: transparent;
+      color: var(--fw-dark);
+      border: 2px solid var(--fw-dark);
+    }
+    .btn-outline-dark:hover { background: var(--fw-dark); color: #fff; }
+    .btn-white {
+      background: #fff;
+      color: var(--fw-red);
+    }
+    .btn-white:hover { background: var(--fw-gray); }
+
+    .section-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: Impact, 'Arial Narrow', sans-serif;
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 400;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      color: var(--fw-dark);
+    }
+    .section-title.light { color: #fff; }
+
+    /* ─── TOP BAR ─── */
+    .top-bar {
+      background: var(--fw-black);
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .3px;
+      padding: 8px 0;
+    }
+    .top-bar__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .top-bar__hours {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .top-bar__hours-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-bar__hours-item svg { width: 13px; height: 13px; opacity: .7; flex-shrink: 0; }
+    .top-bar__lang {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .top-bar__lang a {
+      color: rgba(255,255,255,.55);
+      font-size: 11px;
+      letter-spacing: .5px;
+      transition: color .15s;
+    }
+    .top-bar__lang a:hover,
+    .top-bar__lang a.active { color: #fff; }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      height: var(--fw-nav-h);
+      background: var(--fw-black);
+    }
+    .nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 16px;
+    }
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .nav__logo img {
+      height: 52px;
+      width: auto;
+    }
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      list-style: none;
+      flex: 1;
+      justify-content: center;
+    }
+    .nav__links a {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.75);
+      padding: 10px 14px;
+      transition: color .15s, background .15s;
+      white-space: nowrap;
+      display: block;
+    }
+    .nav__links a:hover { color: #fff; background: rgba(255,255,255,.07); }
+    .nav__links a.active { color: var(--fw-yellow); }
+    .nav__actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .nav__icon-btn {
+      width: 36px; height: 36px;
+      border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: rgba(255,255,255,.7);
+      transition: color .15s, background .15s;
+      background: transparent;
+      border: none;
+    }
+    .nav__icon-btn:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .nav__icon-btn svg { width: 18px; height: 18px; }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      height: 92vh;
+      min-height: 560px;
+      max-height: 900px;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+    .hero__bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center 30%;
+      transform: scale(1.04);
+      transition: transform 8s ease-out;
+    }
+    .hero__bg.loaded { transform: scale(1); }
+    .hero__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,.82) 0%,
+        rgba(0,0,0,.45) 40%,
+        rgba(0,0,0,.12) 70%,
+        transparent 100%
+      );
+    }
+    .hero__overlay-top {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,.5) 0%,
+        transparent 30%
+      );
+    }
+    .hero__content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      padding: 0 0 80px;
+    }
+    .hero__content-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--fw-red);
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .hero__title {
+      font-family: Impact, 'Arial Narrow', sans-serif;
+      font-size: clamp(42px, 7vw, 88px);
+      font-weight: 400;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      line-height: 1.0;
+      color: #fff;
+      margin-bottom: 18px;
+      text-shadow: 0 2px 30px rgba(0,0,0,.4);
+    }
+    .hero__title em {
+      font-style: normal;
+      color: var(--fw-yellow);
+    }
+    .hero__sub {
+      font-size: clamp(14px, 1.5vw, 17px);
+      font-weight: 400;
+      color: rgba(255,255,255,.82);
+      max-width: 540px;
+      margin-bottom: 36px;
+      line-height: 1.65;
+    }
+    .hero__ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .hero__badge {
+      position: absolute;
+      top: 40px;
+      right: max(24px, calc((100vw - 1200px) / 2 + 24px));
+      z-index: 2;
+      background: var(--fw-red);
+      color: #fff;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .hero__badge-num {
+      font-family: Impact, sans-serif;
+      font-size: 36px;
+      line-height: 1;
+      display: block;
+    }
+    .hero__badge-text {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      opacity: .9;
+    }
+
+    /* ─── QUICK LINKS ─── */
+    .quick-links {
+      background: var(--fw-dark);
+      padding: 0;
+      border-bottom: 3px solid var(--fw-red);
+    }
+    .quick-links__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .quick-link-item {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 28px 32px;
+      border-right: 1px solid rgba(255,255,255,.1);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .quick-link-item:last-child { border-right: none; }
+    .quick-link-item:hover { background: rgba(255,255,255,.06); }
+    .quick-link-item__icon {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .quick-link-item__body {}
+    .quick-link-item__title {
+      font-family: Impact, sans-serif;
+      font-size: 20px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    .quick-link-item__sub {
+      font-size: 12px;
+      color: rgba(255,255,255,.5);
+      font-weight: 500;
+    }
+    .quick-link-item__arrow {
+      margin-left: auto;
+      color: var(--fw-red);
+      flex-shrink: 0;
+    }
+    .quick-link-item__arrow svg { width: 20px; height: 20px; }
+
+    /* ─── STATS STRIP ─── */
+    .stats-strip {
+      background: var(--fw-red);
+      padding: 40px 0;
+    }
+    .stats-strip__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      text-align: center;
+    }
+    .stat-item__num {
+      font-family: Impact, sans-serif;
+      font-size: clamp(36px, 4vw, 52px);
+      letter-spacing: 1px;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-item__label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.75);
+    }
+
+    /* ─── EXPERIENCES TABS ─── */
+    .experiences {
+      padding: 80px 0;
+      background: var(--fw-white);
+    }
+    .experiences__header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .experiences__tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 48px;
+      border-bottom: 2px solid var(--fw-gray-mid);
+    }
+    .tab-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 40px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--fw-text-muted);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--fw-dark); }
+    .tab-btn.active { color: var(--fw-red); border-bottom-color: var(--fw-red); }
+    .tab-btn__icon {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .experience-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid var(--fw-border);
+      overflow: hidden;
+      border-radius: var(--fw-radius-md);
+    }
+    .experience-showcase__img-wrap {
+      overflow: hidden;
+      height: 480px;
+    }
+    .experience-showcase__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .5s;
+    }
+    .experience-showcase:hover .experience-showcase__img { transform: scale(1.04); }
+    .experience-showcase__body {
+      padding: 56px 48px;
+      background: var(--fw-black);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .experience-showcase__kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--fw-yellow);
+      margin-bottom: 14px;
+    }
+    .experience-showcase__title {
+      font-family: Impact, sans-serif;
+      font-size: clamp(28px, 3vw, 40px);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+      margin-bottom: 18px;
+      line-height: 1.1;
+    }
+    .experience-showcase__desc {
+      font-size: 14px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* ─── 4-GRID ─── */
+    .four-grid {
+      padding: 80px 0;
+      background: var(--fw-gray);
+    }
+    .four-grid__header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .four-grid__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .grid-card {
+      background: var(--fw-white);
+      border-radius: var(--fw-radius-md);
+      overflow: hidden;
+      box-shadow: var(--fw-shadow);
+      transition: box-shadow .2s, transform .2s;
+      cursor: pointer;
+    }
+    .grid-card:hover { box-shadow: var(--fw-shadow-lg); transform: translateY(-4px); }
+    .grid-card__img-wrap { overflow: hidden; height: 200px; }
+    .grid-card__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .4s;
+    }
+    .grid-card:hover .grid-card__img { transform: scale(1.06); }
+    .grid-card__body { padding: 20px; }
+    .grid-card__tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      background: var(--fw-red-light);
+      padding: 4px 10px;
+      border-radius: 2px;
+      margin-bottom: 10px;
+    }
+    .grid-card__title {
+      font-family: Impact, sans-serif;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--fw-dark);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .grid-card__desc {
+      font-size: 13px;
+      color: var(--fw-text-muted);
+      line-height: 1.55;
+    }
+
+    /* ─── ARTICLE CARDS ─── */
+    .articles {
+      padding: 80px 0;
+      background: var(--fw-white);
+    }
+    .articles__header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .articles__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .article-card {
+      background: var(--fw-white);
+      border: 1px solid var(--fw-border);
+      border-radius: var(--fw-radius-md);
+      overflow: hidden;
+      transition: box-shadow .2s, transform .2s;
+      cursor: pointer;
+    }
+    .article-card:hover { box-shadow: var(--fw-shadow-lg); transform: translateY(-4px); }
+    .article-card__img-wrap { overflow: hidden; height: 220px; }
+    .article-card__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .4s;
+    }
+    .article-card:hover .article-card__img { transform: scale(1.05); }
+    .article-card__body { padding: 24px; }
+    .article-card__tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      margin-bottom: 12px;
+    }
+    .article-card__title {
+      font-family: Impact, sans-serif;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--fw-dark);
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+    .article-card__desc {
+      font-size: 13px;
+      color: var(--fw-text-muted);
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+    .article-card__link {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: gap .15s;
+    }
+    .article-card:hover .article-card__link { gap: 9px; }
+
+    /* ─── HIGHLIGHTS GRID ─── */
+    .highlights {
+      padding: 80px 0 90px;
+      background: var(--fw-gray);
+    }
+    .highlights__header { margin-bottom: 40px; }
+    .highlights__grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+      height: 560px;
+    }
+    .highlight-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--fw-radius-md);
+      cursor: pointer;
+    }
+    .highlight-card--main {
+      grid-row: 1 / 3;
+    }
+    .highlight-card__bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: transform .5s;
+    }
+    .highlight-card:hover .highlight-card__bg { transform: scale(1.05); }
+    .highlight-card__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 55%);
+    }
+    .highlight-card__body {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 24px 20px;
+      z-index: 2;
+    }
+    .highlight-card__tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--fw-yellow);
+      margin-bottom: 6px;
+    }
+    .highlight-card__title {
+      font-family: Impact, sans-serif;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .highlight-card--main .highlight-card__title {
+      font-size: clamp(22px, 2.5vw, 30px);
+    }
+
+    /* ─── NEWSLETTER ─── */
+    .newsletter {
+      background: var(--fw-black);
+      padding: 80px 0;
+    }
+    .newsletter__inner {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .newsletter__logo { margin: 0 auto 28px; }
+    .newsletter__title {
+      font-family: Impact, sans-serif;
+      font-size: clamp(28px, 4vw, 40px);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .newsletter__sub {
+      font-size: 14px;
+      color: rgba(255,255,255,.6);
+      line-height: 1.65;
+      margin-bottom: 36px;
+    }
+    .newsletter__form {
+      display: flex;
+      gap: 0;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .newsletter__input {
+      flex: 1;
+      height: 50px;
+      padding: 0 18px;
+      border: none;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      font-size: 14px;
+      font-family: 'Open Sans', sans-serif;
+      outline: none;
+      border-radius: var(--fw-radius) 0 0 var(--fw-radius);
+    }
+    .newsletter__input::placeholder { color: rgba(255,255,255,.35); }
+    .newsletter__input:focus { background: rgba(255,255,255,.16); }
+    .newsletter__submit {
+      height: 50px;
+      padding: 0 28px;
+      background: var(--fw-red);
+      color: #fff;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: 'Open Sans', sans-serif;
+      border-radius: 0 var(--fw-radius) var(--fw-radius) 0;
+      transition: background .15s;
+    }
+    .newsletter__submit:hover { background: var(--fw-red-dark); }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      background: var(--fw-dark);
+      padding: 60px 0 0;
+    }
+    .footer__grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 48px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      gap: 48px;
+    }
+    .footer__brand-logo { margin-bottom: 20px; }
+    .footer__brand-logo img { height: 48px; width: auto; filter: brightness(0) invert(1); opacity: .85; }
+    .footer__brand-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,.45);
+      line-height: 1.65;
+      margin-bottom: 24px;
+    }
+    .footer__partner-logos {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .footer__partner-logos img {
+      height: 30px;
+      width: auto;
+      filter: brightness(0) invert(1);
+      opacity: .4;
+    }
+    .footer__col-title {
+      font-family: Impact, sans-serif;
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .footer__links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .footer__links a {
+      font-size: 13px;
+      color: rgba(255,255,255,.45);
+      transition: color .15s;
+    }
+    .footer__links a:hover { color: #fff; }
+    .footer__socials {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .footer__social {
+      width: 34px; height: 34px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.55);
+      transition: background .15s, color .15s;
+    }
+    .footer__social:hover { background: var(--fw-red); color: #fff; }
+    .footer__social svg { width: 14px; height: 14px; }
+    .footer__app-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .footer__app-links img {
+      height: 34px;
+      width: auto;
+      filter: brightness(0) invert(1);
+      opacity: .6;
+    }
+    .footer__app-links img:hover { opacity: 1; }
+    .footer__bottom {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 20px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .footer__copy {
+      font-size: 12px;
+      color: rgba(255,255,255,.3);
+    }
+    .footer__legal {
+      display: flex;
+      gap: 20px;
+    }
+    .footer__legal a {
+      font-size: 12px;
+      color: rgba(255,255,255,.3);
+      transition: color .15s;
+    }
+    .footer__legal a:hover { color: rgba(255,255,255,.7); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 960px) {
+      .four-grid__grid { grid-template-columns: repeat(2, 1fr); }
+      .quick-links__inner { grid-template-columns: 1fr; }
+      .quick-link-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,.1); }
+      .quick-link-item:last-child { border-bottom: none; }
+      .stats-strip__inner { grid-template-columns: repeat(2, 1fr); }
+      .footer__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav__links { display: none; }
+      .experiences__tabs { overflow-x: auto; }
+      .tab-btn { padding: 16px 24px; }
+      .experience-showcase { grid-template-columns: 1fr; }
+      .experience-showcase__img-wrap { height: 260px; }
+      .experience-showcase__body { padding: 32px 24px; }
+      .highlights__grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; height: auto; }
+      .highlight-card--main { grid-row: auto; height: 280px; }
+      .highlight-card { height: 200px; }
+      .articles__grid { grid-template-columns: 1fr; }
+      .footer__grid { grid-template-columns: 1fr; gap: 32px; }
+      .newsletter__form { flex-direction: column; }
+      .newsletter__input { border-radius: var(--fw-radius); }
+      .newsletter__submit { border-radius: var(--fw-radius); height: 46px; }
+    }
+  </style>
+</head>
+<body class="ferrari-world-abu-dhabi-demo-page home-dashboard-concierge">
+
+  <div class="ferrari-world-abu-dhabi-demo-top-anchor" id="ferrariworldDemoTopAnchor">
+    <section class="ferrari-world-abu-dhabi-demo-id-banner" aria-label="Ferrari World Abu Dhabi demo identity controls">
+      <div class="ferrari-world-abu-dhabi-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="ferrariworldSdkConfigFields" class="ferrariworld-sdk-config-fields mod-sdk-config-fields">
+                  <div class="form-row">
+                    <label for="ferrariworldTagsCompany">Tags company</label>
+                    <select id="ferrariworldTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="ferrariworldTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="ferrariworldTagsProperty"
+                      aria-label="Tags property"
+                      placeholder="Select property"
+                      list="ferrariworldTagsPropertyList"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <datalist id="ferrariworldTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="ferrariworldTagsEnvironment">Tags environment</label>
+                    <select id="ferrariworldTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="ferrari-world-abu-dhabi-demo-id-actions">
+                    <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="ferrariworldWebPushOnInjectToggle" />
+                      <span>
+                        Register web push when injecting Tags
+                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="aep-demo-web-push-retry">
+                    <button type="button" id="ferrariworldWebPushRetryBtn" class="btn-lookup">
+                      Register web push now
+                    </button>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div id="ferrariworldSdkConfigSummary" class="ferrariworld-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="ferrariworldSdkConfigSummaryText"></span>
+                <button type="button" id="ferrariworldChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="ferrariworldNs">Namespace</label>
+              <select id="ferrariworldNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="ferrari-world-abu-dhabi-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="ferrari-world-abu-dhabi-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="ferrari-world-abu-dhabi-demo-script-preview">Selected script: <code id="ferrariworldSelectedScript">None</code></p>
+      <p id="ferrariworldMessage" class="ferrari-world-abu-dhabi-demo-message" role="status" aria-live="polite" hidden></p>
+    </section>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar__inner">
+      <div class="top-bar__hours">
+        <div class="top-bar__hours-item">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Open Daily: 11:00 AM – 8:00 PM
+        </div>
+        <div class="top-bar__hours-item">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Yas Island, Abu Dhabi
+        </div>
+      </div>
+      <div class="top-bar__lang">
+        <a href="#" class="active">EN</a>
+        <a href="#">AR</a>
+        <a href="#">ZH</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="Ferrari World Abu Dhabi home">
+        <img
+          src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/header/fwad_new_header.png?w=320"
+          alt="Ferrari World Abu Dhabi"
+          height="52"
+        >
+      </a>
+      <ul class="nav__links">
+        <li><a href="#experiences">Experiences</a></li>
+        <li><a href="#rides">Rides &amp; Thrills</a></li>
+        <li><a href="#tickets">Tickets</a></li>
+        <li><a href="#dining">Dining</a></li>
+        <li><a href="#plan">Plan Your Visit</a></li>
+        <li><a href="#groups">Groups &amp; Events</a></li>
+      </ul>
+      <div class="nav__actions">
+        <button class="nav__icon-btn" aria-label="Search">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <a href="#tickets" class="btn btn-red" style="padding:10px 22px;font-size:11px;letter-spacing:1.5px;">Buy Tickets</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="hero" aria-label="Hero">
+    <div class="hero__bg" id="heroBg"></div>
+    <div class="hero__overlay" aria-hidden="true"></div>
+    <div class="hero__overlay-top" aria-hidden="true"></div>
+    <div class="hero__content">
+      <div class="hero__content-inner">
+        <div class="hero__eyebrow">Yas Island, Abu Dhabi</div>
+        <h1 class="hero__title">World's Largest<br><em>Indoor</em> Theme Park</h1>
+        <p class="hero__sub">Home of Formula Rossa — the world's fastest roller coaster. Over 37 rides, 20+ dining options and unlimited thrills under one iconic red roof.</p>
+        <div class="hero__ctas">
+          <a href="#tickets" class="btn btn-red">Buy Tickets</a>
+          <a href="#experiences" class="btn btn-outline-white">Explore Experiences</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero__badge" aria-label="10 year anniversary">
+      <span class="hero__badge-num">10</span>
+      <span class="hero__badge-text">Years of Thrills</span>
+    </div>
+  </section>
+
+  <!-- QUICK LINKS -->
+  <section class="quick-links" aria-label="Ticket types">
+    <div class="quick-links__inner">
+      <div class="quick-link-item">
+        <img
+          class="quick-link-item__icon"
+          src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/tickets/single.png"
+          alt="Single park ticket"
+          loading="lazy"
+        >
+        <div class="quick-link-item__body">
+          <div class="quick-link-item__title">Single Park</div>
+          <div class="quick-link-item__sub">One park, unlimited thrills</div>
+        </div>
+        <span class="quick-link-item__arrow" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </span>
+      </div>
+      <div class="quick-link-item">
+        <img
+          class="quick-link-item__icon"
+          src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/tickets/multipark.png"
+          alt="Multi-park ticket"
+          loading="lazy"
+        >
+        <div class="quick-link-item__body">
+          <div class="quick-link-item__title">Multi-Park Pass</div>
+          <div class="quick-link-item__sub">Ferrari World + more Yas parks</div>
+        </div>
+        <span class="quick-link-item__arrow" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </span>
+      </div>
+      <div class="quick-link-item">
+        <img
+          class="quick-link-item__icon"
+          src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/tickets/annual.png"
+          alt="Annual pass"
+          loading="lazy"
+        >
+        <div class="quick-link-item__body">
+          <div class="quick-link-item__title">Annual Pass</div>
+          <div class="quick-link-item__sub">Unlimited visits all year</div>
+        </div>
+        <span class="quick-link-item__arrow" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS STRIP -->
+  <section class="stats-strip" aria-label="Park statistics">
+    <div class="stats-strip__inner">
+      <div class="stat-item">
+        <div class="stat-item__num">200,000+</div>
+        <div class="stat-item__label">Sq Metres</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__num">37+</div>
+        <div class="stat-item__label">Rides &amp; Attractions</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__num">240<span style="font-size:.55em">km/h</span></div>
+        <div class="stat-item__label">Formula Rossa Speed</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__num">20+</div>
+        <div class="stat-item__label">Dining Experiences</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCES TABS -->
+  <section class="experiences" id="experiences" aria-label="Experiences">
+    <div class="container">
+      <div class="experiences__header">
+        <p class="section-kicker">What's Inside</p>
+        <h2 class="section-title">Ferrari World Experiences</h2>
+      </div>
+
+      <div class="experiences__tabs" role="tablist" aria-label="Experience categories">
+        <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-mission" id="tab-mission">
+          <img class="tab-btn__icon" src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/icons/f1icon.png" alt="" loading="lazy">
+          Mission Ferrari
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-family" id="tab-family">
+          <img class="tab-btn__icon" src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/icons/familyfun-2.png" alt="" loading="lazy">
+          Family Fun
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-champions" id="tab-champions">
+          <img class="tab-btn__icon" src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/icons/forlittlechampions-2.png" alt="" loading="lazy">
+          Little Champions
+        </button>
+      </div>
+
+      <div class="tab-panel active" id="panel-mission" role="tabpanel" aria-labelledby="tab-mission">
+        <div class="experience-showcase">
+          <div class="experience-showcase__img-wrap">
+            <img
+              class="experience-showcase__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/rides/mission-ferrari/mission-ferrari-carousel1.jpg"
+              alt="Mission Ferrari ride experience"
+              loading="lazy"
+            >
+          </div>
+          <div class="experience-showcase__body">
+            <div class="experience-showcase__kicker">Signature Experience</div>
+            <h3 class="experience-showcase__title">Mission Ferrari</h3>
+            <p class="experience-showcase__desc">A groundbreaking attraction combining flying theatre, launch coaster, simulators and live action sets. This multi-stage experience is like no other in the world — a complete immersive story set inside the Ferrari universe.</p>
+            <a href="#tickets" class="btn btn-red">Explore This Experience</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-family" role="tabpanel" aria-labelledby="tab-family">
+        <div class="experience-showcase">
+          <div class="experience-showcase__img-wrap">
+            <img
+              class="experience-showcase__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/rides/family-fun/family-fun-carousel1.jpg"
+              alt="Family Fun rides"
+              loading="lazy"
+            >
+          </div>
+          <div class="experience-showcase__body">
+            <div class="experience-showcase__kicker">For the Whole Family</div>
+            <h3 class="experience-showcase__title">Family Fun Zone</h3>
+            <p class="experience-showcase__desc">From moderate thrills to gentle spins, the Family Fun zone brings everyone together. Enjoy the Driving with the Champion simulator, the Benno's Great Race and plenty more rides designed for all ages and riders.</p>
+            <a href="#tickets" class="btn btn-red">Explore This Experience</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-champions" role="tabpanel" aria-labelledby="tab-champions">
+        <div class="experience-showcase">
+          <div class="experience-showcase__img-wrap">
+            <img
+              class="experience-showcase__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/rides/little-champions/little-champion1.jpg"
+              alt="Little Champions junior rides"
+              loading="lazy"
+            >
+          </div>
+          <div class="experience-showcase__body">
+            <div class="experience-showcase__kicker">Junior Drivers</div>
+            <h3 class="experience-showcase__title">Little Champions</h3>
+            <p class="experience-showcase__desc">A dedicated zone designed for the youngest Ferrari fans. Kids can ride, race and explore in a safe environment built to their scale — sparking the passion for speed that lasts a lifetime.</p>
+            <a href="#tickets" class="btn btn-red">Explore This Experience</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4-GRID -->
+  <section class="four-grid" id="rides" aria-label="Park highlights">
+    <div class="container">
+      <div class="four-grid__header">
+        <div>
+          <p class="section-kicker">Park Highlights</p>
+          <h2 class="section-title">Iconic Attractions</h2>
+        </div>
+        <a href="#experiences" class="btn btn-outline-dark" style="font-size:11px;letter-spacing:1.5px;">View All Rides</a>
+      </div>
+      <div class="four-grid__grid">
+        <div class="grid-card">
+          <div class="grid-card__img-wrap">
+            <img
+              class="grid-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/rides/formula-rossa/fr.jpg"
+              alt="Formula Rossa"
+              loading="lazy"
+            >
+          </div>
+          <div class="grid-card__body">
+            <span class="grid-card__tag">Thrill</span>
+            <h3 class="grid-card__title">Formula Rossa</h3>
+            <p class="grid-card__desc">0 to 240 km/h in 4.9 seconds. The world's fastest roller coaster delivers the ultimate adrenaline rush.</p>
+          </div>
+        </div>
+        <div class="grid-card">
+          <div class="grid-card__img-wrap">
+            <img
+              class="grid-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/experiences/article-1.jpg"
+              alt="Ferrari Racing Legends"
+              loading="lazy"
+            >
+          </div>
+          <div class="grid-card__body">
+            <span class="grid-card__tag">Experience</span>
+            <h3 class="grid-card__title">Racing Legends</h3>
+            <p class="grid-card__desc">A dark ride through seven decades of Ferrari motorsport glory — from the 1940s to today's Formula One.</p>
+          </div>
+        </div>
+        <div class="grid-card">
+          <div class="grid-card__img-wrap">
+            <img
+              class="grid-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/experiences/1492x840_0008_driving-experience.jpg"
+              alt="Driving Experience"
+              loading="lazy"
+            >
+          </div>
+          <div class="grid-card__body">
+            <span class="grid-card__tag">VIP</span>
+            <h3 class="grid-card__title">Driving Experience</h3>
+            <p class="grid-card__desc">Get behind the wheel of a real Ferrari and feel what it means to drive the world's most iconic sports car.</p>
+          </div>
+        </div>
+        <div class="grid-card">
+          <div class="grid-card__img-wrap">
+            <img
+              class="grid-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/cards/yicardimage970x545.png"
+              alt="Yas Island Card"
+              loading="lazy"
+            >
+          </div>
+          <div class="grid-card__body">
+            <span class="grid-card__tag">Offer</span>
+            <h3 class="grid-card__title">Yas Island Card</h3>
+            <p class="grid-card__desc">Unlock exclusive discounts across all Yas Island parks, hotels and dining with the annual Yas Island Card.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARTICLE CARDS -->
+  <section class="articles" id="plan" aria-label="Latest news and articles">
+    <div class="container">
+      <div class="articles__header">
+        <div>
+          <p class="section-kicker">Latest from Ferrari World</p>
+          <h2 class="section-title">News &amp; Stories</h2>
+        </div>
+        <a href="#" class="btn btn-outline-dark" style="font-size:11px;letter-spacing:1.5px;">View All Articles</a>
+      </div>
+      <div class="articles__grid">
+        <div class="article-card">
+          <div class="article-card__img-wrap">
+            <img
+              class="article-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/articles/fwad-article-en.jpg"
+              alt="Ferrari World 10th Anniversary"
+              loading="lazy"
+            >
+          </div>
+          <div class="article-card__body">
+            <span class="article-card__tag">Anniversary</span>
+            <h3 class="article-card__title">Celebrating 10 Years of Thrills</h3>
+            <p class="article-card__desc">A decade of unforgettable moments, record-breaking rides and millions of smiles. Here's how we're marking the milestone in style.</p>
+            <a href="#" class="article-card__link">Read More <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          </div>
+        </div>
+        <div class="article-card">
+          <div class="article-card__img-wrap">
+            <img
+              class="article-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/articles/fwad-card-teaser1.jpg"
+              alt="New attraction teaser"
+              loading="lazy"
+            >
+          </div>
+          <div class="article-card__body">
+            <span class="article-card__tag">New Attraction</span>
+            <h3 class="article-card__title">Mission Ferrari — The Next Level</h3>
+            <p class="article-card__desc">Our most ambitious attraction yet has just had a major update. Faster, louder, more immersive than ever. Are you ready?</p>
+            <a href="#" class="article-card__link">Read More <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          </div>
+        </div>
+        <div class="article-card">
+          <div class="article-card__img-wrap">
+            <img
+              class="article-card__img"
+              src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/cards/vip-card.jpg"
+              alt="VIP experiences"
+              loading="lazy"
+            >
+          </div>
+          <div class="article-card__body">
+            <span class="article-card__tag">VIP</span>
+            <h3 class="article-card__title">Ultimate VIP Packages</h3>
+            <p class="article-card__desc">Skip the queues, access exclusive lounges and get behind the wheel of a real Ferrari. Discover our premium experience packages.</p>
+            <a href="#" class="article-card__link">Read More <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGHLIGHTS GRID -->
+  <section class="highlights" id="dining" aria-label="Park highlights grid">
+    <div class="container">
+      <div class="highlights__header">
+        <p class="section-kicker">Explore More</p>
+        <h2 class="section-title">More to Discover</h2>
+      </div>
+      <div class="highlights__grid">
+        <div class="highlight-card highlight-card--main">
+          <div class="highlight-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/fwad/images/seo-image.jpg')"></div>
+          <div class="highlight-card__overlay"></div>
+          <div class="highlight-card__body">
+            <span class="highlight-card__tag">Dining</span>
+            <h3 class="highlight-card__title">Ferrari-Themed Dining</h3>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/fwad/images/group-card-image.jpg')"></div>
+          <div class="highlight-card__overlay"></div>
+          <div class="highlight-card__body">
+            <span class="highlight-card__tag">Groups</span>
+            <h3 class="highlight-card__title">Group Bookings</h3>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/fwad/images/1492x840-shopping-min.jpg')"></div>
+          <div class="highlight-card__overlay"></div>
+          <div class="highlight-card__body">
+            <span class="highlight-card__tag">Shopping</span>
+            <h3 class="highlight-card__title">Ferrari Store</h3>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-card__bg" style="background-image:url('https://static.myconnect.ae/-/media/yasconnect/project/fwad/images/winterfest-card.jpg')"></div>
+          <div class="highlight-card__overlay"></div>
+          <div class="highlight-card__body">
+            <span class="highlight-card__tag">Events</span>
+            <h3 class="highlight-card__title">Winterfest</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter" aria-label="Newsletter signup">
+    <div class="newsletter__inner">
+      <div class="newsletter__logo">
+        <img
+          src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/header/fwad_new_header.png?w=200"
+          alt="Ferrari World Abu Dhabi"
+          height="44"
+          style="margin:0 auto;filter:brightness(0) invert(1);opacity:.75;"
+          loading="lazy"
+        >
+      </div>
+      <h2 class="newsletter__title">Stay in the Fast Lane</h2>
+      <p class="newsletter__sub">Get first access to new attractions, exclusive offers and event announcements from Ferrari World Abu Dhabi.</p>
+      <form class="newsletter__form" onsubmit="handleNewsletterSubmit(event)" novalidate>
+        <input class="newsletter__input" type="email" placeholder="Enter your email address" aria-label="Email address">
+        <button class="newsletter__submit" type="submit">Sign Up</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-logo">
+          <img
+            src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/header/fwad_new_header.png?w=200"
+            alt="Ferrari World Abu Dhabi"
+            loading="lazy"
+          >
+        </div>
+        <p class="footer__brand-desc">
+          Ferrari World Abu Dhabi — the world's largest indoor theme park, home to Formula Rossa, the world's fastest roller coaster, and over 37 thrilling attractions on Yas Island.
+        </p>
+        <div class="footer__socials">
+          <a href="#" class="footer__social" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a href="#" class="footer__social" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          </a>
+          <a href="#" class="footer__social" aria-label="Twitter / X">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="#" class="footer__social" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+          </a>
+          <a href="#" class="footer__social" aria-label="TikTok">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z"/></svg>
+          </a>
+        </div>
+        <div class="footer__app-links" style="margin-top:20px;">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/footer/appstore.png" alt="Download on the App Store" loading="lazy">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/footer/googleplay.png" alt="Get it on Google Play" loading="lazy">
+        </div>
+      </div>
+
+      <div>
+        <h3 class="footer__col-title">Plan Your Visit</h3>
+        <ul class="footer__links">
+          <li><a href="#">Opening Hours</a></li>
+          <li><a href="#">Getting There</a></li>
+          <li><a href="#">Park Map</a></li>
+          <li><a href="#">FAQs</a></li>
+          <li><a href="#">Accessibility</a></li>
+          <li><a href="#">Dress Code</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="footer__col-title">Explore</h3>
+        <ul class="footer__links">
+          <li><a href="#rides">Rides &amp; Attractions</a></li>
+          <li><a href="#dining">Dining</a></li>
+          <li><a href="#">Shopping</a></li>
+          <li><a href="#">Events</a></li>
+          <li><a href="#experiences">Driving Experiences</a></li>
+          <li><a href="#">Ferrari Store</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="footer__col-title">Yas Island</h3>
+        <ul class="footer__links">
+          <li><a href="#">Yas Waterworld</a></li>
+          <li><a href="#">Warner Bros. World</a></li>
+          <li><a href="#">SeaWorld Abu Dhabi</a></li>
+          <li><a href="#">Clymb Abu Dhabi</a></li>
+          <li><a href="#">Yas Mall</a></li>
+          <li><a href="#">Yas Hotels</a></li>
+        </ul>
+        <div class="footer__partner-logos" style="margin-top:24px;">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/footer/yas_island_logo.png" alt="Yas Island" loading="lazy">
+          <img src="https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/footer/miral_lang.png" alt="Miral" loading="lazy">
+        </div>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 Ferrari World Abu Dhabi. Ferrari name, logo and all associated marks are trademarks of Ferrari S.p.A.</p>
+      <div class="footer__legal">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="#">Cookie Settings</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ── Hero BG load
+    const heroBg = document.getElementById('heroBg');
+    const heroSrc = 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/experiences/10-year-anniversary/fwad_1366x342en.jpg';
+    heroBg.style.backgroundImage = "url('" + heroSrc + "')";
+    heroBg.style.backgroundPosition = 'center 25%';
+    const heroImg = new Image();
+    heroImg.onload = () => heroBg.classList.add('loaded');
+    heroImg.src = heroSrc;
+
+    // ── Experience tabs
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(function(p) {
+          p.classList.remove('active');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        const panelId = btn.getAttribute('aria-controls');
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
+      });
+    });
+
+    // ── Newsletter
+    function handleNewsletterSubmit(e) {
+      e.preventDefault();
+      const input = e.target.querySelector('input');
+      const btn = e.target.querySelector('button');
+      const orig = btn.textContent;
+      btn.textContent = 'Subscribed ✓';
+      btn.style.background = '#2ecc71';
+      input.value = '';
+      setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 3000);
+    }
+
+    // ── Scroll fade-in
+    const fadeEls = document.querySelectorAll('.grid-card, .article-card, .stat-item, .highlight-card');
+    const io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = '';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    fadeEls.forEach(function(el) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(16px)';
+      el.style.transition = 'opacity .45s ease, transform .45s ease';
+      io.observe(el);
+    });
+  </script>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page ferrari-world-abu-dhabi-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+            <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="../firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="../aep-global-sandbox.js"></script>
+  <script src="../aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="../email-cache.js"></script>
+  <script src="../identity-picker.js"></script>
+  <script src="../email-engagement-metrics.js"></script>
+  <script src="../aep-profile-drawer.js?v=20260513-drawer-identity-recents"></script>
+  <script src="../demo-tags-injection.js?v=20260515-web-push-toggle"></script>
+  <script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="../aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="../ferrari-world-abu-dhabi-demo.js?v=20260520-brand-demo"></script>
+  <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="../aep-lab-nav.js?v=20260520-ferrari-world-replica"></script>
+
+</body>
+</html>
