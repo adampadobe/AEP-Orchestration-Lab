@@ -1126,7 +1126,6 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   margin-bottom: 0.35rem;
 }
 
-.aep-profile-drawer-identity-graph-modal-disclaimer,
 .aep-profile-drawer-identity-graph-modal-readout,
 .aep-profile-drawer-identity-graph-modal-diff {
   margin: 0.35rem 0 0;
@@ -2023,7 +2022,6 @@ html:not([data-aep-theme='dark']) .aep-profile-drawer-identity-graph-modal-time-
   color: rgba(15, 23, 42, 0.9);
 }
 
-html:not([data-aep-theme='dark']) .aep-profile-drawer-identity-graph-modal-disclaimer,
 html:not([data-aep-theme='dark']) .aep-profile-drawer-identity-graph-modal-diff {
   color: rgba(71, 85, 105, 0.88);
 }

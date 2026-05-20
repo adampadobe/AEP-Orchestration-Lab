@@ -100,8 +100,6 @@
   let identityGraphModalReadout = null;
   /** @type {HTMLElement | null} */
   let identityGraphModalDiff = null;
-  /** @type {HTMLElement | null} */
-  let identityGraphModalDisclaimer = null;
   let identityGraphModalOpen = false;
   /** @type {HTMLElement | null} */
   let identityGraphModalLastFocus = null;
@@ -1185,11 +1183,6 @@ function ensureIdentityGraphModalDom() {
   timeLabel.className = 'aep-profile-drawer-identity-graph-modal-time-label';
   timeLabel.setAttribute('aria-live', 'polite');
 
-  const disclaimer = document.createElement('p');
-  disclaimer.className = 'aep-profile-drawer-identity-graph-modal-disclaimer';
-  disclaimer.textContent =
-    'Approximate timeline from experience events in this lab when available; identifiers without matching event hints appear only at the latest time. Exact identity link times require UPS identity history.';
-
   const readout = document.createElement('p');
   readout.className = 'aep-profile-drawer-identity-graph-modal-readout';
   readout.setAttribute('aria-live', 'polite');
@@ -1201,7 +1194,6 @@ function ensureIdentityGraphModalDom() {
   controls.appendChild(sliderLabel);
   controls.appendChild(sliderRow);
   controls.appendChild(timeLabel);
-  controls.appendChild(disclaimer);
   controls.appendChild(readout);
   controls.appendChild(diff);
 
@@ -1222,7 +1214,6 @@ function ensureIdentityGraphModalDom() {
   identityGraphModalTimeLabel = timeLabel;
   identityGraphModalReadout = readout;
   identityGraphModalDiff = diff;
-  identityGraphModalDisclaimer = disclaimer;
 
   function onBackdropDown(e) {
     if (e.target === backdrop) closeIdentityGraphModal();
