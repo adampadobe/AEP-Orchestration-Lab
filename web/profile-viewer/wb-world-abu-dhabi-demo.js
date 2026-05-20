@@ -34,6 +34,22 @@ function wbworldWebPushOnInjectDesired() {
   return !!(wbworldWebPushOnInjectToggle && wbworldWebPushOnInjectToggle.checked);
 }
 
+// Brand Concierge toggle
+const wbworldBcOnInjectToggle = document.getElementById('wbworldBcOnInjectToggle');
+const wbworldBcStyleSelect = document.getElementById('wbworldBcStyleSelect');
+(function initWbworldBcToggle() {
+  if (!wbworldBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('wbworld') : { enabled: false, styleKey: 'miral' };
+  wbworldBcOnInjectToggle.checked = !!prefs.enabled;
+  if (wbworldBcStyleSelect && prefs.styleKey) wbworldBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('wbworld', !!(wbworldBcOnInjectToggle && wbworldBcOnInjectToggle.checked), wbworldBcStyleSelect ? wbworldBcStyleSelect.value : 'miral');
+  }
+  wbworldBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (wbworldBcStyleSelect) wbworldBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const wbworldTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -58,6 +74,9 @@ const wbworldTagsInjection =
           enabled: true,
           subscribeAfterInject: wbworldWebPushOnInjectDesired,
           requestPermissionOnInject: wbworldWebPushOnInjectDesired,
+        },
+        onEcidResolved: function () {
+          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('wbworld');
         },
       })
     : null;
