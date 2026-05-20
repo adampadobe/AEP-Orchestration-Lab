@@ -31,6 +31,47 @@ const modMessage = document.getElementById('modMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+
+// Brand Concierge launcher visibility toggle
+const navigatorBcLauncherToggle = document.getElementById('navigatorBcLauncherToggle');
+const navigatorBcLauncher = document.getElementById('navigatorBcLauncher');
+(function initNavigatorBcLauncher() {
+  const LAUNCHER_KEY = 'navigatorBcLauncherVisible';
+  if (!navigatorBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      navigatorBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  navigatorBcLauncherToggle.addEventListener('change', function () {
+    const on = navigatorBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (navigatorBcLauncher) {
+    navigatorBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge on-inject toggle
+const navigatorBcOnInjectToggle = document.getElementById('navigatorBcOnInjectToggle');
+const navigatorBcStyleSelect = document.getElementById('navigatorBcStyleSelect');
+(function initNavigatorBcToggle() {
+  if (!navigatorBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('navigatorGlobalDemo') : { enabled: false, styleKey: 'miral' };
+  navigatorBcOnInjectToggle.checked = !!prefs.enabled;
+  if (navigatorBcStyleSelect && prefs.styleKey) navigatorBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('navigatorGlobalDemo', !!(navigatorBcOnInjectToggle && navigatorBcOnInjectToggle.checked), navigatorBcStyleSelect ? navigatorBcStyleSelect.value : 'miral');
+  }
+  navigatorBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (navigatorBcStyleSelect) navigatorBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const navigatorTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -55,6 +96,10 @@ const navigatorTagsInjection =
          * Avoids a second ECID in the Navigator iframe vs parent #infoEcid + generator payloads.
          */
         iframeIds: [],
+        brandConcierge: {
+          enabled: function () { return !!(navigatorBcOnInjectToggle && navigatorBcOnInjectToggle.checked); },
+          styleKey: function () { return (navigatorBcStyleSelect && navigatorBcStyleSelect.value) || 'miral'; },
+        },
       })
     : null;
 

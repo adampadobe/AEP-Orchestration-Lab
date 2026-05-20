@@ -364,3 +364,29 @@ body.mod-demo-page:not(.aep-bc-panel-dismissed) .mod-demo-ask-float {
     transition: none;
   }
 }
+
+/* ── Brand Concierge launcher — Navigator Global demo ────────── */
+.navigator-global-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.navigator-global-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.navigator-global-demo-page .aep-bc-park-launcher {
+  background: var(--dash-blue);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+}
+.navigator-global-demo-page .aep-bc-park-launcher:hover {
+  background: #1d4ed8;
+}
+
+/* ── Brand Concierge launcher — MOD demo ─────────────────────── */
+.mod-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.mod-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.mod-demo-page .aep-bc-park-launcher {
+  background: #3d5a2a;
+  box-shadow: 0 4px 20px rgba(61,90,42,0.35);
+}
+.mod-demo-page .aep-bc-park-launcher:hover {
+  background: #2d4420;
+}

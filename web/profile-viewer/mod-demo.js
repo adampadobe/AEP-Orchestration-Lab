@@ -13,6 +13,47 @@ const modMessage = document.getElementById('modMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+
+// Brand Concierge launcher visibility toggle
+const modBcLauncherToggle = document.getElementById('modBcLauncherToggle');
+const modBcLauncher = document.getElementById('modBcLauncher');
+(function initModBcLauncher() {
+  const LAUNCHER_KEY = 'modBcLauncherVisible';
+  if (!modBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      modBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  modBcLauncherToggle.addEventListener('change', function () {
+    const on = modBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (modBcLauncher) {
+    modBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge on-inject toggle
+const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
+const modBcStyleSelect = document.getElementById('modBcStyleSelect');
+(function initModBcToggle() {
+  if (!modBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'miral' };
+  modBcOnInjectToggle.checked = !!prefs.enabled;
+  if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('modDemo', !!(modBcOnInjectToggle && modBcOnInjectToggle.checked), modBcStyleSelect ? modBcStyleSelect.value : 'miral');
+  }
+  modBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const modTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -37,6 +78,10 @@ const modTagsInjection =
          * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
          */
         iframeIds: [],
+        brandConcierge: {
+          enabled: function () { return !!(modBcOnInjectToggle && modBcOnInjectToggle.checked); },
+          styleKey: function () { return (modBcStyleSelect && modBcStyleSelect.value) || 'miral'; },
+        },
       })
     : null;
 
