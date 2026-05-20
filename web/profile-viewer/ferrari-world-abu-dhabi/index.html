@@ -993,6 +993,208 @@
       .hero__content-inner { padding: 0 20px; }
       .discover-grid__grid { grid-template-columns: 1fr; }
     }
+
+    /* ── FORMULA ROSSA SPOTLIGHT ── */
+    .fr-spotlight {
+      position: relative;
+      background: var(--fw-black);
+      overflow: hidden;
+    }
+    .fr-spotlight__bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://static.myconnect.ae/-/media/yasconnect/project/fwad/home/thumbnails/formula-rossa-thumbnail.jpg');
+      background-size: cover;
+      background-position: center 40%;
+      filter: brightness(.28);
+    }
+    .fr-spotlight__inner {
+      position: relative;
+      z-index: 2;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 96px 40px;
+    }
+    .fr-spotlight__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--fw-red);
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      margin-bottom: 24px;
+    }
+    .fr-spotlight__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(56px, 9vw, 112px);
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: .88;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .fr-spotlight__sub {
+      font-size: 17px;
+      color: rgba(255,255,255,.6);
+      max-width: 500px;
+      margin-bottom: 56px;
+      line-height: 1.6;
+    }
+    .fr-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid rgba(255,255,255,.18);
+      margin-bottom: 48px;
+    }
+    .fr-stat {
+      padding: 32px 24px;
+      border-right: 1px solid rgba(255,255,255,.18);
+    }
+    .fr-stat:last-child { border-right: none; }
+    .fr-stat__num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(40px, 4.5vw, 64px);
+      font-weight: 800;
+      color: var(--fw-red);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .fr-stat__unit {
+      font-size: 22px;
+      font-weight: 600;
+      color: rgba(255,255,255,.6);
+      margin-left: 3px;
+    }
+    .fr-stat__label {
+      font-family: 'Barlow', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      margin-top: 6px;
+    }
+    .fr-stat__note {
+      font-size: 12px;
+      color: rgba(255,255,255,.35);
+      margin-top: 4px;
+    }
+    .fr-spotlight__cta { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    /* ── FERRARI WORLD TICKET PRICING ── */
+    .fw-tickets {
+      background: var(--fw-gray);
+      padding: 96px 40px;
+    }
+    .fw-tickets__inner { max-width: 1200px; margin: 0 auto; }
+    .fw-tickets__kicker {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      margin-bottom: 10px;
+    }
+    .fw-tickets__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--fw-text);
+      margin-bottom: 48px;
+    }
+    .fw-tickets__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .fw-ticket-card {
+      background: #fff;
+      border: 2px solid var(--fw-border);
+      padding: 40px 32px;
+      position: relative;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .fw-ticket-card:hover { box-shadow: var(--fw-shadow-lg); transform: translateY(-4px); }
+    .fw-ticket-card--featured { border-color: var(--fw-red); }
+    .fw-ticket-card__badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--fw-red);
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      white-space: nowrap;
+    }
+    .fw-ticket-card__type {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--fw-text);
+      margin-bottom: 4px;
+    }
+    .fw-ticket-card__sub { font-size: 13px; color: var(--fw-text-muted); margin-bottom: 24px; }
+    .fw-ticket-card__price {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 60px;
+      font-weight: 800;
+      color: var(--fw-text);
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    .fw-ticket-card__currency {
+      font-size: 22px;
+      font-weight: 600;
+      vertical-align: top;
+      margin-top: 8px;
+      display: inline-block;
+    }
+    .fw-ticket-card__per { font-size: 12px; color: var(--fw-text-muted); margin-bottom: 28px; }
+    .fw-ticket-card__features {
+      list-style: none;
+      margin-bottom: 32px;
+    }
+    .fw-ticket-card__features li {
+      font-size: 14px;
+      color: var(--fw-text-mid);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--fw-gray-mid);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fw-ticket-card__features li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--fw-red);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    @media (max-width: 900px) {
+      .fr-stats { grid-template-columns: repeat(2, 1fr); }
+      .fr-stat:nth-child(2) { border-right: none; }
+      .fr-stat { border-bottom: 1px solid rgba(255,255,255,.18); }
+      .fw-tickets__grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .fr-spotlight__inner { padding: 64px 20px; }
+      .fw-tickets { padding: 64px 20px; }
+    }
   </style>
 </head>
 <body class="ferrari-world-abu-dhabi-demo-page home-dashboard-concierge">
@@ -1143,8 +1345,8 @@
     <div class="hero__gradient" aria-hidden="true"></div>
     <div class="hero__content">
       <div class="hero__content-inner">
-        <p class="hero__eyebrow">Yas Island, Abu Dhabi</p>
-        <h1 class="hero__title">Flexibility<br>For Every<br>Visit</h1>
+        <div class="hero__open-badge" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.9);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:6px 14px;margin-bottom:20px;"><span style="width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;"></span>Open Today &middot; 11:00am &ndash; 8:00pm</div>
+        <h1 class="hero__title">Find That<br>Ferrari<br>Feeling</h1>
         <div class="hero__ctas">
           <a href="#tickets" class="btn btn-red" data-miral-ticket="single-day">Buy Tickets</a>
           <button class="hero__play" type="button" aria-label="Watch video">
@@ -1214,7 +1416,7 @@
         <p class="welcome__kicker">World's Largest Indoor Theme Park</p>
         <h2 class="welcome__title">Welcome to Ferrari World Abu Dhabi</h2>
         <p class="welcome__text">
-          Step inside the iconic red roof and discover a world where the spirit of Ferrari comes alive. Home to over 37 exhilarating rides and attractions — including Formula Rossa, the world's fastest roller coaster — Ferrari World Abu Dhabi on Yas Island is an unforgettable experience for every member of the family.
+          Step inside the iconic red roof and discover a world where the spirit of Ferrari comes alive. Home to over 40 record-breaking rides and attractions — including Formula Rossa, the world's fastest roller coaster — Ferrari World Abu Dhabi on Yas Island is an unforgettable experience for every member of the family.
         </p>
         <a href="#tickets" class="btn btn-red" data-miral-ticket="single-day">Buy Tickets</a>
       </div>
@@ -1289,6 +1491,42 @@
           <span class="dg-card__label">Yas Island</span>
           <h3 class="dg-card__title">Discover More Theme Parks</h3>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMULA ROSSA SPOTLIGHT -->
+  <section class="fr-spotlight" aria-labelledby="fr-spotlight-heading">
+    <div class="fr-spotlight__bg" aria-hidden="true"></div>
+    <div class="fr-spotlight__inner">
+      <div class="fr-spotlight__badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Fast Fun
+      </div>
+      <h2 class="fr-spotlight__title" id="fr-spotlight-heading">Formula<br>Rossa</h2>
+      <p class="fr-spotlight__sub">The World's Fastest Roller Coaster Launch — blasted from 0 to 240&nbsp;km/h in 4.9&nbsp;seconds. A record no one has broken since.</p>
+      <div class="fr-stats" role="list" aria-label="Formula Rossa ride specifications">
+        <div class="fr-stat" role="listitem">
+          <div class="fr-stat__num">240<span class="fr-stat__unit">km/h</span></div>
+          <div class="fr-stat__label">Top Speed</div>
+        </div>
+        <div class="fr-stat" role="listitem">
+          <div class="fr-stat__num">52<span class="fr-stat__unit">m</span></div>
+          <div class="fr-stat__label">Peak Height</div>
+        </div>
+        <div class="fr-stat" role="listitem">
+          <div class="fr-stat__num">4.8<span class="fr-stat__unit">G</span></div>
+          <div class="fr-stat__label">G-Force</div>
+        </div>
+        <div class="fr-stat" role="listitem">
+          <div class="fr-stat__num">4.9<span class="fr-stat__unit">sec</span></div>
+          <div class="fr-stat__label">0&ndash;240 km/h</div>
+          <div class="fr-stat__note">Height: 140&ndash;195&nbsp;cm</div>
+        </div>
+      </div>
+      <div class="fr-spotlight__cta">
+        <a href="#fw-ticket-prices" class="btn btn-red" data-miral-ticket="single-day">Buy Tickets</a>
+        <a href="#" class="btn btn-outline-white">Explore All Rides</a>
       </div>
     </div>
   </section>
@@ -1434,6 +1672,60 @@
     </div>
   </section>
 
+  <!-- TICKET PRICES -->
+  <section class="fw-tickets" id="fw-ticket-prices" aria-labelledby="fw-tickets-heading">
+    <div class="fw-tickets__inner">
+      <p class="fw-tickets__kicker">Plan Your Visit</p>
+      <h2 class="fw-tickets__title" id="fw-tickets-heading">Tickets &amp; Prices</h2>
+      <div class="fw-tickets__grid">
+
+        <div class="fw-ticket-card">
+          <div class="fw-ticket-card__type">Child</div>
+          <div class="fw-ticket-card__sub">Ages 3&ndash;11 &amp; Under 120&nbsp;cm</div>
+          <div class="fw-ticket-card__price"><span class="fw-ticket-card__currency">AED&nbsp;</span>325</div>
+          <div class="fw-ticket-card__per">per person &middot; single day</div>
+          <ul class="fw-ticket-card__features">
+            <li>Full park access &mdash; 40+ attractions</li>
+            <li>All rides &amp; experiences included</li>
+            <li>Ferrari Store access</li>
+            <li>Themed dining &amp; restaurants</li>
+          </ul>
+          <a href="#" class="btn btn-outline-dark" style="width:100%;text-align:center;padding:13px">Buy Child Ticket</a>
+        </div>
+
+        <div class="fw-ticket-card fw-ticket-card--featured">
+          <div class="fw-ticket-card__badge">Most Popular</div>
+          <div class="fw-ticket-card__type">Adult</div>
+          <div class="fw-ticket-card__sub">Ages 12+ &amp; 120&nbsp;cm+</div>
+          <div class="fw-ticket-card__price"><span class="fw-ticket-card__currency">AED&nbsp;</span>395</div>
+          <div class="fw-ticket-card__per">per person &middot; single day</div>
+          <ul class="fw-ticket-card__features">
+            <li>Full park access &mdash; 40+ attractions</li>
+            <li>Formula Rossa &amp; all thrill rides</li>
+            <li>Mission Ferrari experience</li>
+            <li>Ferrari Store &amp; dining access</li>
+          </ul>
+          <a href="#" class="btn btn-red" style="width:100%;text-align:center;padding:13px" data-miral-ticket="single-day">Buy Adult Ticket</a>
+        </div>
+
+        <div class="fw-ticket-card">
+          <div class="fw-ticket-card__type">VIP</div>
+          <div class="fw-ticket-card__sub">The Ultimate Ferrari Experience</div>
+          <div class="fw-ticket-card__price"><span class="fw-ticket-card__currency">AED&nbsp;</span>695</div>
+          <div class="fw-ticket-card__per">per person &middot; single day</div>
+          <ul class="fw-ticket-card__features">
+            <li>Everything in Adult ticket</li>
+            <li>Dedicated VIP host all day</li>
+            <li>Skip-the-line priority access</li>
+            <li>Ferrari Driving Experience</li>
+          </ul>
+          <a href="#" class="btn btn-outline-dark" style="width:100%;text-align:center;padding:13px" data-miral-ticket="vip">Buy VIP Ticket</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- DISCOVER CAROUSEL -->
   <section class="discover-carousel" id="dining" aria-label="Discover more at the park">
     <div class="discover-carousel__header">
@@ -1464,7 +1756,7 @@
         >
         <div class="dc-card__overlay" aria-hidden="true"></div>
         <div class="dc-card__label">Rides</div>
-        <h3 class="dc-card__title">37+ Rides &amp;<br>Attractions</h3>
+        <h3 class="dc-card__title">40+ Rides &amp;<br>Attractions</h3>
       </div>
       <div class="dc-card">
         <img
@@ -1559,7 +1851,7 @@
           >
         </div>
         <p class="site-footer__desc">
-          Ferrari World Abu Dhabi — the world's largest indoor theme park on Yas Island. Home to Formula Rossa, the world's fastest roller coaster, and over 37 thrilling attractions.
+          Ferrari World Abu Dhabi — the world's largest indoor theme park on Yas Island. Home to Formula Rossa, the world's fastest roller coaster, and over 40 record-breaking attractions.
         </p>
         <div class="site-footer__socials">
           <a href="#" class="site-footer__social" aria-label="Facebook">
