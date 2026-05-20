@@ -5,6 +5,7 @@
  * Optional: identity-picker.js + aep-global-sandbox.js for namespace + sandbox query params.
  * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a persona journey modal (horizontal LTR timeline + step-through).
  * Audiences column: heading row + count badge open an Audiences modal (current vs exited membership from the same payload as the list).
+ * Identity graph column: heading row + count badge open an Identity graph modal (large graph + approximate timeline slider from experience events).
  */
 (function (global) {
   'use strict';
@@ -1187,7 +1188,7 @@ function ensureIdentityGraphModalDom() {
   const disclaimer = document.createElement('p');
   disclaimer.className = 'aep-profile-drawer-identity-graph-modal-disclaimer';
   disclaimer.textContent =
-    'Approximate timeline from experience events in this lab; exact identity link times require UPS identity history.';
+    'Approximate timeline from experience events in this lab when available; identifiers without matching event hints appear only at the latest time. Exact identity link times require UPS identity history.';
 
   const readout = document.createElement('p');
   readout.className = 'aep-profile-drawer-identity-graph-modal-readout';
