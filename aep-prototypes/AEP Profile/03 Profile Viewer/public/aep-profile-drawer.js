@@ -3,6 +3,7 @@
  * Expects element ids profileDrawer*, identityGraph*, profileHoverZone.
  * Include aep-profile-drawer.css and email-engagement-metrics.js before this script.
  * Optional: identity-picker.js + aep-global-sandbox.js for namespace + sandbox query params.
+ * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a horizontal journey modal (channels + timeline).
  */
 (function (global) {
   'use strict';
@@ -39,6 +40,24 @@
   let identityGraphSvg;
   let identityGraphZoomIn;
   let identityGraphZoomOut;
+
+  /** Clickable count badge (top-right of events column) — opens horizontal journey modal */
+  let profileDrawerEventsStoryBadge;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalBackdrop;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalPanel;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalTrack;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalClose;
+  let eventsStoryModalOpen = false;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalLastFocus;
+  let eventsStoryModalKeydownBound = false;
+
+  /** Max events in the horizontal “story” scroller (same fetch as drawer, deeper slice). */
+  const DRAWER_EVENTS_STORY_MAX = 48;
 
   function getSandboxParam() {
     if (typeof global.AepGlobalSandbox !== 'undefined' && typeof global.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -892,10 +911,302 @@ function aepProfileDrawerMessageChannelKind(ev) {
   return null;
 }
 
+/** Human-readable channel for journey modal (aligned with drawer sub-line logic). */
+function formatDrawerEventChannelDisplay(ev) {
+  const msgKind = aepProfileDrawerMessageChannelKind(ev);
+  if (msgKind === 'email') return 'Email';
+  if (msgKind === 'push') return 'Push';
+  const typeRaw = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase();
+  if (typeRaw.startsWith('mobile')) return 'Mobile app';
+  if (typeRaw.startsWith('insurance')) return 'Insurance';
+  if (typeRaw.startsWith('web')) return 'Web';
+  return 'Web';
+}
+
+/**
+ * @param {HTMLDivElement} thumb
+ * @param {Record<string, unknown>} ev
+ * @param {string} [thumbRootClass] optional extra root class (e.g. story card sizing)
+ */
+function fillDrawerEventThumbElement(thumb, ev, thumbRootClass) {
+  thumb.className = thumbRootClass || 'aep-profile-drawer-event-thumb';
+  const thumbSpec = eventThumbForEvent(ev);
+  if (thumbSpec.svg) {
+    thumb.classList.add('aep-profile-drawer-event-thumb--svg-inline');
+    if (thumbSpec.variant) {
+      thumb.classList.add(`aep-profile-drawer-event-thumb--${thumbSpec.variant}`);
+    }
+    thumb.innerHTML = thumbSpec.svg;
+    thumb.style.backgroundImage = 'none';
+  } else {
+    thumb.style.backgroundImage = thumbSpec.url || 'none';
+  }
+  if (thumbSpec.variant === 'message-feedback') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--message-feedback');
+  }
+  if (thumbSpec.variant === 'message-tracking') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--message-tracking');
+  }
+  if (thumbSpec.variant === 'event-web') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--event-web');
+  }
+  if (thumbSpec.variant === 'event-mobile') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--event-mobile');
+  }
+  if (thumbSpec.variant === 'application-launch') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--application-launch');
+  }
+  if (thumbSpec.variant === 'event-login') {
+    thumb.classList.add('aep-profile-drawer-event-thumb--event-login');
+  }
+}
+
+function getProfileDrawerEventsHeadingRow() {
+  if (!profileDrawerEvents) return null;
+  const prev = profileDrawerEvents.previousElementSibling;
+  return prev && prev.classList && prev.classList.contains('aep-profile-drawer-events-heading-row') ? prev : null;
+}
+
+function ensureProfileDrawerEventsHeadingRow() {
+  if (!profileDrawerEvents) return;
+  const existing = getProfileDrawerEventsHeadingRow();
+  if (existing) {
+    if (!profileDrawerEventsStoryBadge) {
+      const btn = existing.querySelector('.aep-profile-drawer-events-story-badge');
+      if (btn) profileDrawerEventsStoryBadge = btn;
+    }
+    return;
+  }
+  const prev = profileDrawerEvents.previousElementSibling;
+  if (!prev || prev.tagName !== 'H2' || !prev.classList.contains('aep-profile-drawer-panel-heading')) return;
+
+  const row = document.createElement('div');
+  row.className = 'aep-profile-drawer-events-heading-row';
+  const title = document.createElement('h2');
+  title.className = 'aep-profile-drawer-panel-heading aep-profile-drawer-events-heading-title';
+  if (prev.id) title.id = prev.id;
+  title.textContent = 'LAST EVENTS';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'aep-profile-drawer-events-story-badge';
+  btn.id = 'profileDrawerEventsStoryOpen';
+  btn.setAttribute('aria-haspopup', 'dialog');
+  btn.setAttribute('aria-controls', 'aepProfileDrawerEventsStoryDialog');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.title = 'Open experience timeline — scroll the journey left to right';
+  btn.textContent = '0';
+
+  row.appendChild(title);
+  row.appendChild(btn);
+  prev.replaceWith(row);
+  profileDrawerEventsStoryBadge = btn;
+
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (btn.disabled) return;
+    openProfileDrawerEventsStoryModal();
+  });
+}
+
+function updateProfileDrawerEventsStoryBadgeCount(displayedCount) {
+  ensureProfileDrawerEventsHeadingRow();
+  if (!profileDrawerEventsStoryBadge) return;
+  const n = typeof displayedCount === 'number' && Number.isFinite(displayedCount) ? Math.max(0, displayedCount) : 0;
+  profileDrawerEventsStoryBadge.textContent = String(n);
+  const hasStory =
+    lastLookedUpProfile &&
+    ((Array.isArray(lastLookedUpProfile.eventsStory) && lastLookedUpProfile.eventsStory.length > 0) ||
+      (Array.isArray(lastLookedUpProfile.events) && lastLookedUpProfile.events.length > 0));
+  profileDrawerEventsStoryBadge.disabled = !hasStory && n === 0;
+  profileDrawerEventsStoryBadge.setAttribute('aria-disabled', !hasStory && n === 0 ? 'true' : 'false');
+}
+
+function ensureProfileDrawerEventsStoryModal() {
+  if (eventsStoryModalBackdrop && eventsStoryModalPanel) return;
+  const backdrop = document.createElement('div');
+  backdrop.id = 'aepProfileDrawerEventsStoryBackdrop';
+  backdrop.className = 'aep-profile-drawer-events-story-backdrop';
+  backdrop.hidden = true;
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  const panel = document.createElement('div');
+  panel.id = 'aepProfileDrawerEventsStoryDialog';
+  panel.className = 'aep-profile-drawer-events-story-dialog';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'aepProfileDrawerEventsStoryTitle');
+  panel.tabIndex = -1;
+
+  const head = document.createElement('div');
+  head.className = 'aep-profile-drawer-events-story-head';
+  const ttl = document.createElement('h2');
+  ttl.id = 'aepProfileDrawerEventsStoryTitle';
+  ttl.className = 'aep-profile-drawer-events-story-title';
+  ttl.textContent = 'Experience timeline';
+  const sub = document.createElement('p');
+  sub.className = 'aep-profile-drawer-events-story-sub';
+  sub.textContent = 'Oldest to newest — channels show where each behaviour was captured.';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'aep-profile-drawer-events-story-close';
+  closeBtn.setAttribute('aria-label', 'Close timeline');
+  closeBtn.textContent = '\u00d7';
+  head.appendChild(ttl);
+  head.appendChild(sub);
+  head.appendChild(closeBtn);
+
+  const track = document.createElement('div');
+  track.className = 'aep-profile-drawer-events-story-track';
+  track.setAttribute('role', 'region');
+  track.setAttribute('aria-label', 'Experience events in time order');
+  track.tabIndex = 0;
+
+  panel.appendChild(head);
+  panel.appendChild(track);
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+
+  eventsStoryModalBackdrop = backdrop;
+  eventsStoryModalPanel = panel;
+  eventsStoryModalTrack = track;
+  eventsStoryModalClose = closeBtn;
+
+  function onBackdropDown(e) {
+    if (e.target === backdrop) closeProfileDrawerEventsStoryModal();
+  }
+  backdrop.addEventListener('mousedown', onBackdropDown);
+  closeBtn.addEventListener('click', function () {
+    closeProfileDrawerEventsStoryModal();
+  });
+}
+
+function eventsChronologicalForStoryModal(events) {
+  const arr = Array.isArray(events) ? events.slice() : [];
+  arr.sort((a, b) => {
+    const at = eventTimestampMsForDrawer(a) || 0;
+    const bt = eventTimestampMsForDrawer(b) || 0;
+    return at - bt;
+  });
+  return arr;
+}
+
+function renderProfileDrawerEventsStoryModalContent() {
+  ensureProfileDrawerEventsStoryModal();
+  if (!eventsStoryModalTrack) return;
+  eventsStoryModalTrack.innerHTML = '';
+
+  const src =
+    lastLookedUpProfile && Array.isArray(lastLookedUpProfile.eventsStory) && lastLookedUpProfile.eventsStory.length
+      ? lastLookedUpProfile.eventsStory
+      : lastLookedUpProfile && Array.isArray(lastLookedUpProfile.events)
+        ? lastLookedUpProfile.events
+        : [];
+  const ordered = eventsChronologicalForStoryModal(src);
+
+  if (!ordered.length) {
+    const empty = document.createElement('p');
+    empty.className = 'aep-profile-drawer-events-story-empty';
+    empty.textContent = 'No experience events loaded yet. Look up a profile to see the journey.';
+    eventsStoryModalTrack.appendChild(empty);
+    return;
+  }
+
+  ordered.forEach((ev, idx) => {
+    if (idx > 0) {
+      const chev = document.createElement('span');
+      chev.className = 'aep-profile-drawer-events-story-chevron';
+      chev.setAttribute('aria-hidden', 'true');
+      chev.textContent = '→';
+      eventsStoryModalTrack.appendChild(chev);
+    }
+
+    const card = document.createElement('article');
+    card.className = 'aep-profile-drawer-events-story-card';
+
+    const thumb = document.createElement('div');
+    fillDrawerEventThumbElement(
+      thumb,
+      ev,
+      'aep-profile-drawer-event-thumb aep-profile-drawer-events-story-card-thumb',
+    );
+
+    const body = document.createElement('div');
+    body.className = 'aep-profile-drawer-events-story-card-body';
+
+    const timeEl = document.createElement('time');
+    timeEl.className = 'aep-profile-drawer-events-story-card-time';
+    timeEl.setAttribute('datetime', '');
+    timeEl.textContent = formatEventTimelineDate(ev && ev.timestamp);
+
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'aep-profile-drawer-events-story-card-title';
+    titleEl.textContent = normalizeEventName(ev && ev.eventName);
+
+    const pill = document.createElement('span');
+    pill.className = 'aep-profile-drawer-events-story-channel';
+    pill.textContent = formatDrawerEventChannelDisplay(ev);
+
+    body.appendChild(timeEl);
+    body.appendChild(titleEl);
+    body.appendChild(pill);
+    card.appendChild(thumb);
+    card.appendChild(body);
+    eventsStoryModalTrack.appendChild(card);
+  });
+}
+
+function openProfileDrawerEventsStoryModal() {
+  ensureProfileDrawerEventsStoryModal();
+  if (!eventsStoryModalBackdrop || !eventsStoryModalPanel || !profileDrawerEventsStoryBadge) return;
+
+  eventsStoryModalLastFocus = /** @type {HTMLElement} */ (document.activeElement);
+  renderProfileDrawerEventsStoryModalContent();
+
+  eventsStoryModalBackdrop.hidden = false;
+  eventsStoryModalBackdrop.setAttribute('aria-hidden', 'false');
+  eventsStoryModalOpen = true;
+  profileDrawerEventsStoryBadge.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('aep-profile-drawer-events-story-open');
+
+  window.setTimeout(function () {
+    if (eventsStoryModalPanel) eventsStoryModalPanel.focus();
+  }, 0);
+}
+
+function closeProfileDrawerEventsStoryModal() {
+  if (!eventsStoryModalBackdrop || !profileDrawerEventsStoryBadge) return;
+  eventsStoryModalBackdrop.hidden = true;
+  eventsStoryModalBackdrop.setAttribute('aria-hidden', 'true');
+  eventsStoryModalOpen = false;
+  profileDrawerEventsStoryBadge.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('aep-profile-drawer-events-story-open');
+  const ret = eventsStoryModalLastFocus;
+  eventsStoryModalLastFocus = null;
+  if (ret && typeof ret.focus === 'function') {
+    try {
+      ret.focus();
+    } catch {
+      /* noop */
+    }
+  }
+}
+
+function onProfileDrawerEventsStoryKeydown(e) {
+  if (!eventsStoryModalOpen) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeProfileDrawerEventsStoryModal();
+  }
+}
+
 function renderEventTimeline(events) {
   if (!profileDrawerEvents) return;
+  ensureProfileDrawerEventsHeadingRow();
   profileDrawerEvents.innerHTML = '';
   const list = Array.isArray(events) ? events.slice(0, 5) : [];
+  updateProfileDrawerEventsStoryBadgeCount(list.length);
   if (!list.length) {
     const p = document.createElement('p');
     p.textContent = 'No events found for this profile';
@@ -908,36 +1219,7 @@ function renderEventTimeline(events) {
     item.className = 'aep-profile-drawer-event-item';
 
     const thumb = document.createElement('div');
-    thumb.className = 'aep-profile-drawer-event-thumb';
-    const thumbSpec = eventThumbForEvent(ev);
-    if (thumbSpec.svg) {
-      thumb.classList.add('aep-profile-drawer-event-thumb--svg-inline');
-      if (thumbSpec.variant) {
-        thumb.classList.add(`aep-profile-drawer-event-thumb--${thumbSpec.variant}`);
-      }
-      thumb.innerHTML = thumbSpec.svg;
-      thumb.style.backgroundImage = 'none';
-    } else {
-      thumb.style.backgroundImage = thumbSpec.url || 'none';
-    }
-    if (thumbSpec.variant === 'message-feedback') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--message-feedback');
-    }
-    if (thumbSpec.variant === 'message-tracking') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--message-tracking');
-    }
-    if (thumbSpec.variant === 'event-web') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--event-web');
-    }
-    if (thumbSpec.variant === 'event-mobile') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--event-mobile');
-    }
-    if (thumbSpec.variant === 'application-launch') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--application-launch');
-    }
-    if (thumbSpec.variant === 'event-login') {
-      thumb.classList.add('aep-profile-drawer-event-thumb--event-login');
-    }
+    fillDrawerEventThumbElement(thumb, ev);
 
     const textWrap = document.createElement('div');
     const timeEl = document.createElement('span');
@@ -1173,6 +1455,7 @@ async function loadProfileDataForDrawer(email, options) {
     ]);
     const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
     const events = eventsForTimeline.slice(0, 5);
+    const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
     const engagementH = resolveEngagementMetricsHoursBack(opts);
     let emailSendsLast24h;
     let pushSendsLast24h;
@@ -1232,6 +1515,7 @@ async function loadProfileDataForDrawer(email, options) {
       identities,
       audiences,
       events,
+      eventsStory,
       emailSendsLast24h,
       pushSendsLast24h,
       engagementMetricsHoursBack: engagementH,
@@ -1283,7 +1567,8 @@ async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
   const eventsAll = await fetchProfileEventsList(id, namespaceOverride);
   const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
   const events = eventsForTimeline.slice(0, 5);
-  patchLastProfileOrUpdate({ events });
+  const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
+  patchLastProfileOrUpdate({ events, eventsStory });
 }
 
 /** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
@@ -1431,6 +1716,11 @@ function initAepProfileDrawerHover() {
 function init(config) {
   _config = config || {};
   cacheDomRefs();
+
+  if (!eventsStoryModalKeydownBound) {
+    eventsStoryModalKeydownBound = true;
+    document.addEventListener('keydown', onProfileDrawerEventsStoryKeydown);
+  }
 
   if (identityGraphZoomIn) {
     identityGraphZoomIn.addEventListener('click', () => setIdentityGraphZoom(identityGraphScale + 0.12));

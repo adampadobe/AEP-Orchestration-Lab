@@ -674,3 +674,210 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
     transition: none;
   }
 }
+
+/* Events column: heading row + count badge opens horizontal journey modal */
+.aep-profile-drawer-events-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.aep-profile-drawer-events-heading-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.aep-profile-drawer-events-story-badge {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(255, 255, 254, 0.35);
+  border-radius: 999px;
+  background: rgba(79, 134, 255, 0.22);
+  color: #fffffe;
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-events-story-badge:hover:not(:disabled) {
+  background: rgba(79, 134, 255, 0.38);
+  border-color: rgba(255, 255, 254, 0.5);
+}
+
+.aep-profile-drawer-events-story-badge:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+body.aep-profile-drawer-events-story-open {
+  overflow: hidden;
+}
+
+.aep-profile-drawer-events-story-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: min(3vw, 1.5rem);
+  background: rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-events-story-backdrop[hidden] {
+  display: none !important;
+}
+
+.aep-profile-drawer-events-story-dialog {
+  width: min(1120px, 100%);
+  max-height: min(86vh, 900px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #2c2c2c;
+  border: 1px solid rgba(236, 236, 236, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  outline: none;
+}
+
+.aep-profile-drawer-events-story-head {
+  position: relative;
+  padding: 1.1rem 3rem 1rem 1.25rem;
+  border-bottom: 1px solid rgba(236, 236, 236, 0.12);
+}
+
+.aep-profile-drawer-events-story-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fffffe;
+}
+
+.aep-profile-drawer-events-story-sub {
+  margin: 0.4rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #bfc3c9;
+}
+
+.aep-profile-drawer-events-story-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 254, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 254, 0.06);
+  color: #fffffe;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-events-story-close:hover {
+  background: rgba(255, 255, 254, 0.12);
+}
+
+.aep-profile-drawer-events-story-track {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 1.25rem 1.1rem 1.4rem;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.aep-profile-drawer-events-story-empty {
+  margin: 0;
+  align-self: center;
+  padding: 1rem 1.25rem;
+  color: #ececec;
+  font-size: 0.95rem;
+  max-width: 36rem;
+}
+
+.aep-profile-drawer-events-story-chevron {
+  flex-shrink: 0;
+  align-self: center;
+  color: rgba(236, 236, 236, 0.35);
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0 0.1rem;
+  user-select: none;
+}
+
+.aep-profile-drawer-events-story-card {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  width: min(220px, 72vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(236, 236, 236, 0.16);
+  background: rgba(255, 255, 254, 0.05);
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-events-story-card-thumb {
+  width: 52px;
+  height: 52px;
+  align-self: center;
+  margin: 0 auto;
+}
+
+.aep-profile-drawer-events-story-card-thumb.aep-profile-drawer-event-thumb--svg-inline svg {
+  width: 26px;
+  height: 26px;
+}
+
+.aep-profile-drawer-events-story-card-body {
+  text-align: center;
+}
+
+.aep-profile-drawer-events-story-card-time {
+  display: block;
+  font-size: 0.72rem;
+  color: #bfc3c9;
+  margin-bottom: 0.25rem;
+}
+
+.aep-profile-drawer-events-story-card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fffffe;
+}
+
+.aep-profile-drawer-events-story-channel {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fffffe;
+  background: rgba(79, 134, 255, 0.28);
+  border: 1px solid rgba(79, 134, 255, 0.45);
+}
