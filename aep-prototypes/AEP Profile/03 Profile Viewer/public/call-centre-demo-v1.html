@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="call-center-demo.css?v=20260515-banking-dark-dash-remap">
-  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260520-audiences-modal-no-id">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-drawer-consent-fields">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
 </head>
@@ -669,7 +669,11 @@
                         <span id="profileDrawerChurnScore">—</span>
                       </div>
                       <div class="aep-profile-drawer-identity-row">
-                        <strong>Loyalty Status</strong>
+            <strong title="_demoemea.scoring.npsScore">NPS score</strong>
+            <span id="profileDrawerNpsScore">—</span>
+          </div>
+                      <div class="aep-profile-drawer-identity-row">
+<strong>Loyalty Status</strong>
                         <span id="profileDrawerLoyalty">Unknown</span>
                       </div>
                       <div class="aep-profile-drawer-identity-row">
@@ -992,7 +996,7 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
-  <script src="aep-profile-drawer.js?v=20260520-audiences-modal-no-id"></script>
+  <script src="aep-profile-drawer.js?v=20260520-drawer-nps"></script>
   <script src="call-center-demo-apalmer.js?v=20260515-profile-gen-industry"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>

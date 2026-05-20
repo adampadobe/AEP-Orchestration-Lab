@@ -26,6 +26,7 @@
   let profileDrawerDesktopId;
   let profileDrawerPropensityScore;
   let profileDrawerChurnScore;
+  let profileDrawerNpsScore;
   let profileDrawerLoyalty;
   let profileDrawerAudiences;
   let profileDrawerMessageSentValue;
@@ -151,6 +152,7 @@
     profileDrawerDesktopId = document.getElementById('profileDrawerDesktopId');
     profileDrawerPropensityScore = document.getElementById('profileDrawerPropensityScore');
     profileDrawerChurnScore = document.getElementById('profileDrawerChurnScore');
+    profileDrawerNpsScore = document.getElementById('profileDrawerNpsScore');
     profileDrawerLoyalty = document.getElementById('profileDrawerLoyalty');
     profileDrawerAudiences = document.getElementById('profileDrawerAudiences');
     profileDrawerMessageSentValue = document.getElementById('profileDrawerMessageSentValue');
@@ -201,6 +203,48 @@ function setDrawerValue(el, value, fallback) {
   if (!el) return;
   const shown = value == null || value === '' ? fallback : String(value);
   el.textContent = shown;
+}
+
+/**
+ * Ensures `#profileDrawerNpsScore` lives in its own identity row immediately after the churn row
+ * (ECID → propensity → churn → NPS → …). Creates the row if the span is missing.
+ */
+function ensureProfileDrawerNpsRowAfterChurn() {
+  const churnEl = document.getElementById('profileDrawerChurnScore');
+  const churnRow = churnEl && churnEl.closest('.aep-profile-drawer-identity-row');
+  let npsEl = document.getElementById('profileDrawerNpsScore');
+  if (!churnRow || !churnRow.parentNode) return;
+
+  if (!npsEl) {
+    const row = document.createElement('div');
+    row.className = 'aep-profile-drawer-identity-row';
+    row.setAttribute('data-aep-drawer-nps-row', '1');
+    const strong = document.createElement('strong');
+    strong.setAttribute('title', '_demoemea.scoring.npsScore (fallback: scoring.npsScore)');
+    strong.textContent = 'NPS score';
+    const span = document.createElement('span');
+    span.id = 'profileDrawerNpsScore';
+    span.textContent = '—';
+    row.appendChild(strong);
+    row.appendChild(span);
+    churnRow.parentNode.insertBefore(row, churnRow.nextSibling);
+    profileDrawerNpsScore = span;
+    return;
+  }
+
+  const npsRow = npsEl.closest('.aep-profile-drawer-identity-row');
+  if (!npsRow || !npsRow.parentNode) return;
+  if (churnRow.nextSibling !== npsRow) {
+    churnRow.parentNode.insertBefore(npsRow, churnRow.nextSibling);
+  }
+}
+
+/** @param {unknown} raw @returns {number | null} */
+function normalizeDrawerNpsScore(raw) {
+  if (raw == null || raw === '') return null;
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(Math.min(10, Math.max(0, n)));
 }
 
 /** Human-readable line for drawer debug — raw value from /api/profile/consent `gender`. */
@@ -311,6 +355,8 @@ function formatEngagementMetricsRangeHint(hours) {
 }
 
 function updateProfileDrawer(profile) {
+  cacheDomRefs();
+  ensureProfileDrawerNpsRowAfterChurn();
   const source = profile || null;
   const first = source && source.firstName ? String(source.firstName).trim() : '';
   const last = source && source.lastName ? String(source.lastName).trim() : '';
@@ -327,6 +373,15 @@ function updateProfileDrawer(profile) {
   setDrawerValue(profileDrawerDesktopId, source ? source.ecid : null, '—');
   setDrawerValue(profileDrawerPropensityScore, source ? source.propensityScore : null, '—');
   setDrawerValue(profileDrawerChurnScore, source ? source.churnPrediction : null, '—');
+  const npsNorm = source ? normalizeDrawerNpsScore(source.npsScore) : null;
+  const npsRow = profileDrawerNpsScore ? profileDrawerNpsScore.closest('.aep-profile-drawer-identity-row') : null;
+  if (npsRow) {
+    npsRow.hidden = npsNorm == null;
+  }
+  if (profileDrawerNpsScore) {
+    if (npsNorm == null) profileDrawerNpsScore.textContent = '—';
+    else profileDrawerNpsScore.textContent = String(npsNorm);
+  }
   setDrawerValue(profileDrawerLoyalty, source ? source.loyaltyStatus : null, 'Unknown');
   if (profileDrawerMessageSentValue) {
     if (!source || source.emailSendsLast24h === undefined) {
@@ -3063,6 +3118,7 @@ async function loadProfileDataForDrawer(email, options) {
       city: data.city != null && data.city !== '' ? data.city : null,
       propensityScore: data.propensityScore != null && data.propensityScore !== '' ? data.propensityScore : null,
       churnPrediction: data.churnPrediction != null && data.churnPrediction !== '' ? data.churnPrediction : null,
+      npsScore: normalizeDrawerNpsScore(data.npsScore),
       loyaltyStatus: data.loyaltyStatus != null && data.loyaltyStatus !== '' ? data.loyaltyStatus : null,
       email: data.email != null && data.email !== '' ? data.email : null,
       customerLifetimeValue:

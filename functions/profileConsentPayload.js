@@ -1,5 +1,8 @@
 /**
  * GET /api/profile/consent response shape (mirrors Express server.js).
+ *
+ * `npsScore`: integer **0–10** (standard NPS likelihood scale) when present, else `null`.
+ * Sourced from `_demoemea.scoring.npsScore` first, then `scoring.npsScore` / flattened paths.
  */
 const {
   flattenEntityToTableRows,
@@ -466,6 +469,120 @@ function collectProfileRootCandidates(response) {
   return roots;
 }
 
+/**
+ * Mobile number for CUSTOMER PROFILE phone line (not marketing `channels.phone`).
+ * Aligns with Profile Core v2 `mobilePhone.number` and common tenant paths.
+ */
+function getMobilePhoneForConsent(entity, response) {
+  let mobile = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const candidates = [
+      get(root, 'mobilePhone.number'),
+      root?.mobilePhone?.number,
+      get(root, '_demoemea.mobilePhone.number'),
+      root?._demoemea?.mobilePhone?.number,
+      get(root, 'person.mobilePhone.number'),
+      root?.person?.mobilePhone?.number,
+      get(root, '_demoemea.person.mobilePhone.number'),
+      get(root, 'identification.core.mobilePhone'),
+      get(root, '_demoemea.identification.core.mobilePhone'),
+    ];
+    for (const v of candidates) {
+      const s = stringifyConsentScalar(v);
+      if (s) {
+        mobile = s;
+        break;
+      }
+    }
+    if (mobile) break;
+  }
+  if (mobile == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const pl = String(row.path || '').toLowerCase();
+        if (pl.includes('consent') || pl.includes('optinout')) continue;
+        if (pl.includes('marketing') && pl.includes('phone') && pl.includes('val')) continue;
+        if (
+          (pl.includes('mobilephone') && pl.includes('number')) ||
+          pl.endsWith('mobilephone.number') ||
+          (pl.includes('identification') && pl.includes('mobilephone'))
+        ) {
+          const s = stringifyConsentScalar(row.value);
+          if (s && s.length <= 48) {
+            mobile = s;
+            break;
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return mobile;
+}
+
+/** @param {unknown} v @returns {number | null} */
+function clampNpsScoreInt(v) {
+  if (v == null || v === '') return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(Math.min(10, Math.max(0, n)));
+}
+
+/**
+ * NPS 0–10: `_demoemea.scoring.npsScore` first, then `scoring.npsScore`, then flattened rows
+ * whose path matches `nps` + score-like segments (`npsScore`, `npsscore`, `scoring` + `nps`).
+ */
+function getNpsScoreForConsent(entity, response) {
+  let nps = /** @type {number | null} */ (null);
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const v =
+      get(root, '_demoemea.scoring.npsScore') ??
+      root?._demoemea?.scoring?.npsScore ??
+      get(root, 'scoring.npsScore') ??
+      root?.scoring?.npsScore;
+    const c = clampNpsScoreInt(v);
+    if (c != null) {
+      nps = c;
+      break;
+    }
+  }
+  if (nps == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const pl = String(row.path || '').toLowerCase();
+        if (!pl.includes('nps')) continue;
+        const scoreLike =
+          pl.includes('npsscore') ||
+          pl.includes('npscore') ||
+          (pl.includes('score') && !pl.includes('passenger')) ||
+          (pl.includes('scoring') && pl.includes('nps'));
+        if (!scoreLike) continue;
+        const c = clampNpsScoreInt(row.value);
+        if (c != null) {
+          nps = c;
+          break;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return nps;
+}
+
 function getDemoemeaScoringForConsent(entity, response) {
   let propensityScore = null;
   let churnPrediction = null;
@@ -672,6 +789,8 @@ function buildConsentGetPayload(email, response) {
   ecid = ensureSingleEcid(ecid);
   const identities = collectIdentitiesForGraph(entity, flatRows);
   const { propensityScore, churnPrediction } = getDemoemeaScoringForConsent(entity, response);
+  const phone = getMobilePhoneForConsent(entity, response);
+  const npsScore = getNpsScoreForConsent(entity, response);
   const loyaltyStatus = getDemoemeaLoyaltyLevelForConsent(entity, response);
   const customerLifetimeValue = getCustomerLifetimeValueForConsent(entity, response);
   const { age: profileAge, city: homeCity } = getProfileAgeAndHomeCityForConsent(entity, response);
@@ -685,8 +804,10 @@ function buildConsentGetPayload(email, response) {
     gender: gender || null,
     age: profileAge ?? null,
     city: homeCity ?? null,
+    phone: phone ?? null,
     propensityScore: propensityScore ?? null,
     churnPrediction: churnPrediction ?? null,
+    npsScore: npsScore ?? null,
     loyaltyStatus: loyaltyStatus ?? null,
     customerLifetimeValue: customerLifetimeValue ?? null,
     lastModifiedAt: lastModifiedAt ?? null,
