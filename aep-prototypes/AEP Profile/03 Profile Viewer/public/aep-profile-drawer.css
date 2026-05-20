@@ -675,7 +675,7 @@ body.miral-park-demo-page--profile-open .aep-profile-drawer,
   }
 }
 
-/* Events column: heading row + count badge opens persona journey modal (vertical timeline) */
+/* Events column: heading row + count badge opens persona journey modal (horizontal LTR timeline) */
 .aep-profile-drawer-events-heading-row {
   display: flex;
   align-items: flex-start;
@@ -797,13 +797,11 @@ body.aep-profile-drawer-events-story-open {
 .aep-profile-drawer-events-story-track {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0.65rem 1.1rem 1.15rem;
-  -webkit-overflow-scrolling: touch;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem 0.95rem;
+  overflow: hidden;
 }
 
 .aep-profile-drawer-events-story-empty {
@@ -897,41 +895,144 @@ body.aep-profile-drawer-events-story-open {
   color: #bfc3c9;
 }
 
-/* Vertical timeline: one row per clock instant */
-.aep-profile-drawer-journey-instant {
+/* Horizontal LTR timeline strip (oldest left → newest right) */
+.aep-profile-drawer-journey-strip {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
   align-items: stretch;
-  gap: 0.55rem;
-  margin-bottom: 0.75rem;
+  gap: 0.35rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15rem 0.1rem 0.35rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.aep-profile-drawer-journey-instant {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  min-width: min(196px, 44vw);
+  max-width: 280px;
 }
 
 .aep-profile-drawer-journey-instant--off {
   display: none;
 }
 
-.aep-profile-drawer-journey-rail {
-  flex: 0 0 14px;
+.aep-profile-drawer-journey-connector {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: rgba(236, 236, 236, 0.38);
+  padding: 0 0.12rem;
+  user-select: none;
+}
+
+.aep-profile-drawer-journey-connector--off {
+  visibility: hidden;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+.aep-profile-drawer-journey-time {
+  flex: 0 0 auto;
+  width: 100%;
+  text-align: center;
+}
+
+.aep-profile-drawer-journey-time-label {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #fffffe;
+  line-height: 1.25;
+}
+
+.aep-profile-drawer-journey-time-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.68rem;
+  color: #bfc3c9;
+}
+
+.aep-profile-drawer-journey-cards {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.aep-profile-drawer-journey-card {
+  flex: 1 1 104px;
+  min-width: 92px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid rgba(236, 236, 236, 0.16);
+  background: rgba(255, 255, 254, 0.05);
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-journey-card-thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.aep-profile-drawer-journey-card-thumb.aep-profile-drawer-event-thumb--svg-inline svg {
+  width: 20px;
+  height: 20px;
+}
+
+.aep-profile-drawer-journey-card-body {
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.aep-profile-drawer-journey-touchpoint {
+  display: inline-block;
+  margin-bottom: 0.15rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fffffe;
+  background: rgba(79, 134, 255, 0.28);
+  border: 1px solid rgba(79, 134, 255, 0.45);
+}
+
+.aep-profile-drawer-journey-card-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fffffe;
+}
+
+.aep-profile-drawer-journey-spine-node {
+  margin-top: auto;
+  padding-top: 0.3rem;
+  border-top: 2px solid rgba(236, 236, 236, 0.22);
   display: flex;
   justify-content: center;
-  position: relative;
-  padding-top: 0.35rem;
-}
-
-.aep-profile-drawer-journey-rail::after {
-  content: '';
-  position: absolute;
-  top: 14px;
-  bottom: -10px;
-  left: 50%;
-  width: 2px;
-  transform: translateX(-50%);
-  background: rgba(236, 236, 236, 0.2);
-  border-radius: 1px;
-}
-
-.aep-profile-drawer-journey-instant--last .aep-profile-drawer-journey-rail::after {
-  display: none;
 }
 
 .aep-profile-drawer-journey-dot {
@@ -945,103 +1046,16 @@ body.aep-profile-drawer-events-story-open {
   box-shadow: 0 0 0 2px rgba(79, 134, 255, 0.25);
 }
 
-.aep-profile-drawer-journey-instant-body {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  align-items: flex-start;
-}
-
-.aep-profile-drawer-journey-time {
-  flex: 0 0 min(140px, 32%);
-  min-width: 0;
-}
-
-.aep-profile-drawer-journey-time-label {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #fffffe;
-  line-height: 1.25;
-}
-
-.aep-profile-drawer-journey-time-meta {
-  margin: 0.25rem 0 0;
-  font-size: 0.72rem;
-  color: #bfc3c9;
-}
-
-.aep-profile-drawer-journey-cards {
-  flex: 1 1 200px;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  align-items: stretch;
-}
-
-.aep-profile-drawer-journey-card {
-  flex: 1 1 160px;
-  max-width: 100%;
-  display: flex;
-  flex-direction: row;
-  gap: 0.55rem;
-  padding: 0.65rem 0.7rem;
-  border-radius: 10px;
-  border: 1px solid rgba(236, 236, 236, 0.16);
-  background: rgba(255, 255, 254, 0.05);
-  box-sizing: border-box;
-}
-
-.aep-profile-drawer-journey-card-thumb {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-}
-
-.aep-profile-drawer-journey-card-thumb.aep-profile-drawer-event-thumb--svg-inline svg {
-  width: 22px;
-  height: 22px;
-}
-
-.aep-profile-drawer-journey-card-body {
-  min-width: 0;
-  text-align: left;
-}
-
-.aep-profile-drawer-journey-touchpoint {
-  display: inline-block;
-  margin-bottom: 0.2rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #fffffe;
-  background: rgba(79, 134, 255, 0.28);
-  border: 1px solid rgba(79, 134, 255, 0.45);
-}
-
-.aep-profile-drawer-journey-card-title {
-  margin: 0;
-  font-size: 0.86rem;
-  font-weight: 700;
-  line-height: 1.25;
-  color: #fffffe;
-}
-
 .aep-profile-drawer-journey-touchpoints-hint {
-  margin: 0.35rem 0 0;
-  padding: 0.55rem 0.35rem 0;
-  font-size: 0.78rem;
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.25rem 0;
+  font-size: 0.76rem;
   line-height: 1.4;
   color: #bfc3c9;
   border-top: 1px dashed rgba(236, 236, 236, 0.18);
+  box-sizing: border-box;
 }
 
 .aep-profile-drawer-journey-touchpoints-hint--off {

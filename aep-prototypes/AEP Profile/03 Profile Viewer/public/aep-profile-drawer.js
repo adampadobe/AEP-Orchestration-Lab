@@ -3,7 +3,7 @@
  * Expects element ids profileDrawer*, identityGraph*, profileHoverZone.
  * Include aep-profile-drawer.css and email-engagement-metrics.js before this script.
  * Optional: identity-picker.js + aep-global-sandbox.js for namespace + sandbox query params.
- * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a persona journey modal (vertical cross-channel timeline, step-through).
+ * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a persona journey modal (horizontal LTR timeline + step-through).
  */
 (function (global) {
   'use strict';
@@ -1043,7 +1043,7 @@ function ensureProfileDrawerEventsHeadingRow() {
   btn.setAttribute('aria-haspopup', 'dialog');
   btn.setAttribute('aria-controls', 'aepProfileDrawerEventsStoryDialog');
   btn.setAttribute('aria-expanded', 'false');
-  btn.title = 'Open persona journey — vertical cross-channel timeline';
+  btn.title = 'Open persona journey — horizontal timeline (left to right)';
   btn.textContent = '0';
 
   row.appendChild(title);
@@ -1165,7 +1165,7 @@ function ensureProfileDrawerEventsStoryModal() {
   const sub = document.createElement('p');
   sub.className = 'aep-profile-drawer-events-story-sub';
   sub.textContent =
-    'Vertical timeline by time — parallel events at the same instant sit side by side. Step through from the first moment or reveal the full journey.';
+    'Horizontal timeline (oldest on the left) — parallel events at the same instant sit side by side in one column. Step through to grow the story left to right, or reveal the full journey.';
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'aep-profile-drawer-events-story-close';
@@ -1215,7 +1215,7 @@ function ensureProfileDrawerEventsStoryModal() {
   const track = document.createElement('div');
   track.className = 'aep-profile-drawer-events-story-track';
   track.setAttribute('role', 'region');
-  track.setAttribute('aria-label', 'Experience events by time');
+  track.setAttribute('aria-label', 'Experience timeline left to right');
   track.tabIndex = 0;
 
   panel.appendChild(head);
@@ -1324,13 +1324,22 @@ function uniqueJourneyTouchpoints(events) {
 
 function applyJourneyStepVisibility() {
   if (!eventsStoryModalTrack) return;
-  const rows = eventsStoryModalTrack.querySelectorAll('.aep-profile-drawer-journey-instant');
+  const strip = eventsStoryModalTrack.querySelector('.aep-profile-drawer-journey-strip');
+  const rows = strip ? strip.querySelectorAll('.aep-profile-drawer-journey-instant') : [];
   rows.forEach((row) => {
     const i = parseInt(row.getAttribute('data-journey-instant') || '-1', 10);
     const show = Number.isFinite(i) && i <= journeyModalStep;
     row.classList.toggle('aep-profile-drawer-journey-instant--off', !show);
     row.setAttribute('aria-hidden', show ? 'false' : 'true');
   });
+  if (strip) {
+    strip.querySelectorAll('.aep-profile-drawer-journey-connector').forEach((el) => {
+      const beforeIdx = parseInt(el.getAttribute('data-journey-connector-before') || '-1', 10);
+      const show = Number.isFinite(beforeIdx) && beforeIdx >= 1 && beforeIdx <= journeyModalStep;
+      el.classList.toggle('aep-profile-drawer-journey-connector--off', !show);
+      el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+  }
   const hint = eventsStoryModalTrack.querySelector('.aep-profile-drawer-journey-touchpoints-hint');
   if (hint) {
     const showHint =
@@ -1353,12 +1362,14 @@ function applyJourneyStepVisibility() {
   if (eventsStoryModalStepMeta) {
     const total = journeyModalGroups.length || 0;
     eventsStoryModalStepMeta.textContent =
-      total === 0 ? '' : `Moment ${journeyModalStep + 1} of ${total} · cumulative (each step adds the next clock instant)`;
+      total === 0
+        ? ''
+        : `Moment ${journeyModalStep + 1} of ${total} · timeline grows left to right (cumulative)`;
   }
-  const active = eventsStoryModalTrack.querySelector(`[data-journey-instant="${journeyModalStep}"]`);
+  const active = strip && strip.querySelector(`[data-journey-instant="${journeyModalStep}"]`);
   if (active && typeof active.scrollIntoView === 'function') {
     try {
-      active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      active.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' });
     } catch {
       active.scrollIntoView(true);
     }
@@ -1395,28 +1406,35 @@ function renderProfileDrawerEventsStoryModalContent() {
   journeyModalGroups = groupJourneyInstantsByTimestampMs(ordered);
   journeyModalStep = 0;
 
+  const strip = document.createElement('div');
+  strip.className = 'aep-profile-drawer-journey-strip';
+  strip.setAttribute('role', 'list');
+
   journeyModalGroups.forEach((g, idx) => {
-    const row = document.createElement('section');
-    row.className = 'aep-profile-drawer-journey-instant';
-    if (idx === journeyModalGroups.length - 1) row.classList.add('aep-profile-drawer-journey-instant--last');
-    row.setAttribute('data-journey-instant', String(idx));
+    if (idx > 0) {
+      const conn = document.createElement('span');
+      conn.className = 'aep-profile-drawer-journey-connector';
+      conn.setAttribute('data-journey-connector-before', String(idx));
+      conn.setAttribute('aria-hidden', 'true');
+      conn.textContent = '\u2192';
+      strip.appendChild(conn);
+    }
 
-    const rail = document.createElement('div');
-    rail.className = 'aep-profile-drawer-journey-rail';
-    const dot = document.createElement('span');
-    dot.className = 'aep-profile-drawer-journey-dot';
-    rail.appendChild(dot);
+    const col = document.createElement('section');
+    col.className = 'aep-profile-drawer-journey-instant';
+    col.setAttribute('data-journey-instant', String(idx));
+    col.setAttribute('role', 'listitem');
 
-    const timeCol = document.createElement('div');
-    timeCol.className = 'aep-profile-drawer-journey-time';
+    const timeBlock = document.createElement('header');
+    timeBlock.className = 'aep-profile-drawer-journey-time';
     const timeP = document.createElement('p');
     timeP.className = 'aep-profile-drawer-journey-time-label';
     timeP.textContent = g.instantMs == null ? '—' : formatEventTimelineDate(g.instantMs);
     const cnt = document.createElement('p');
     cnt.className = 'aep-profile-drawer-journey-time-meta';
-    cnt.textContent = g.events.length > 1 ? `${g.events.length} parallel events` : 'Single event';
-    timeCol.appendChild(timeP);
-    timeCol.appendChild(cnt);
+    cnt.textContent = g.events.length > 1 ? `${g.events.length} parallel` : 'Single event';
+    timeBlock.appendChild(timeP);
+    timeBlock.appendChild(cnt);
 
     const cardsWrap = document.createElement('div');
     cardsWrap.className = 'aep-profile-drawer-journey-cards';
@@ -1444,15 +1462,19 @@ function renderProfileDrawerEventsStoryModalContent() {
       cardsWrap.appendChild(card);
     });
 
-    const main = document.createElement('div');
-    main.className = 'aep-profile-drawer-journey-instant-body';
-    main.appendChild(timeCol);
-    main.appendChild(cardsWrap);
+    const spine = document.createElement('div');
+    spine.className = 'aep-profile-drawer-journey-spine-node';
+    const dot = document.createElement('span');
+    dot.className = 'aep-profile-drawer-journey-dot';
+    spine.appendChild(dot);
 
-    row.appendChild(rail);
-    row.appendChild(main);
-    eventsStoryModalTrack.appendChild(row);
+    col.appendChild(timeBlock);
+    col.appendChild(cardsWrap);
+    col.appendChild(spine);
+    strip.appendChild(col);
   });
+
+  eventsStoryModalTrack.appendChild(strip);
 
   const touches = uniqueJourneyTouchpoints(ordered);
   const hint = document.createElement('p');
