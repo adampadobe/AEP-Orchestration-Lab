@@ -1125,6 +1125,26 @@
 })();
 </script>
 
+<!-- ── Miral cross-site retargeting ──────────────────────────────── -->
+<script src="../miral-cross-site-events.js?v=20260520-cdp-demo"></script>
+<script>
+(function () {
+  if (typeof window.MiralCrossSite === 'undefined') return;
+  var slots = [
+    { id: 'fbAdSlot1',     slotKey: 'feed-1' },
+    { id: 'fbAdSlot2',     slotKey: 'feed-2' },
+    { id: 'fbAdSlotRail1', slotKey: 'rail-1' },
+    { id: 'fbAdSlotRail2', slotKey: 'rail-2' },
+  ];
+  slots.forEach(function (s) {
+    var el = document.getElementById(s.id);
+    if (!el) return;
+    var html = window.MiralCrossSite.getAdForSlot(s.slotKey);
+    if (html) el.innerHTML = html;
+  });
+})();
+</script>
+
 <!-- ── AEP scripts ─────────────────────────────────────────────────── -->
 <script src="../aep-lab-nav.js?v=20260520-social-facebook"></script>
 <script src="../aep-identity-picker.js" defer></script>
