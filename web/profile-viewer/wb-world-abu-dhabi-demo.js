@@ -34,6 +34,30 @@ function wbworldWebPushOnInjectDesired() {
   return !!(wbworldWebPushOnInjectToggle && wbworldWebPushOnInjectToggle.checked);
 }
 
+// Brand Concierge launcher visibility toggle
+const wbworldBcLauncherToggle = document.getElementById('wbworldBcLauncherToggle');
+const wbworldBcLauncher = document.getElementById('wbworldBcLauncher');
+(function initWbworldBcLauncher() {
+  const LAUNCHER_KEY = 'wbworldBcLauncherVisible';
+  if (!wbworldBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      wbworldBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  wbworldBcLauncherToggle.addEventListener('change', function () {
+    const on = wbworldBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (wbworldBcLauncher) {
+    wbworldBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
 // Brand Concierge toggle
 const wbworldBcOnInjectToggle = document.getElementById('wbworldBcOnInjectToggle');
 const wbworldBcStyleSelect = document.getElementById('wbworldBcStyleSelect');

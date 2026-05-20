@@ -16,6 +16,63 @@ const ADMIRAL_XDM_TENANT_KEY = '_demoemea';
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
+const ADMIRAL_WEB_PUSH_ON_INJECT_KEY = 'admiralWebPushOnInjectToggle';
+const admiralWebPushOnInjectToggle = document.getElementById('admiralWebPushOnInjectToggle');
+if (admiralWebPushOnInjectToggle) {
+  try {
+    if (localStorage.getItem(ADMIRAL_WEB_PUSH_ON_INJECT_KEY) === '1') admiralWebPushOnInjectToggle.checked = true;
+  } catch { /* noop */ }
+  admiralWebPushOnInjectToggle.addEventListener('change', function () {
+    try {
+      localStorage.setItem(ADMIRAL_WEB_PUSH_ON_INJECT_KEY, admiralWebPushOnInjectToggle.checked ? '1' : '0');
+    } catch { /* noop */ }
+  });
+}
+
+function admiralWebPushOnInjectDesired() {
+  return !!(admiralWebPushOnInjectToggle && admiralWebPushOnInjectToggle.checked);
+}
+
+// Brand Concierge launcher visibility toggle
+const admiralBcLauncherToggle = document.getElementById('admiralBcLauncherToggle');
+const admiralBcLauncher = document.getElementById('admiralBcLauncher');
+(function initAdmiralBcLauncher() {
+  const LAUNCHER_KEY = 'admiralBcLauncherVisible';
+  if (!admiralBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      admiralBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  admiralBcLauncherToggle.addEventListener('change', function () {
+    const on = admiralBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (admiralBcLauncher) {
+    admiralBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge toggle
+const admiralBcOnInjectToggle = document.getElementById('admiralBcOnInjectToggle');
+const admiralBcStyleSelect = document.getElementById('admiralBcStyleSelect');
+(function initAdmiralBcToggle() {
+  if (!admiralBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('admiral') : { enabled: false, styleKey: 'miral' };
+  admiralBcOnInjectToggle.checked = !!prefs.enabled;
+  if (admiralBcStyleSelect && prefs.styleKey) admiralBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('admiral', !!(admiralBcOnInjectToggle && admiralBcOnInjectToggle.checked), admiralBcStyleSelect ? admiralBcStyleSelect.value : 'miral');
+  }
+  admiralBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (admiralBcStyleSelect) admiralBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const admiralTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -41,8 +98,29 @@ const admiralTagsInjection =
          * `syncEcidFromAlloy` + `_demoemea` sendEvent, so UPS and #infoEcid no longer line up.
          */
         iframeIds: [],
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: admiralWebPushOnInjectDesired,
+          requestPermissionOnInject: admiralWebPushOnInjectDesired,
+        },
+        brandConcierge: {
+          enabled: function () { return !!(admiralBcOnInjectToggle && admiralBcOnInjectToggle.checked); },
+          styleKey: function () { return admiralBcStyleSelect ? admiralBcStyleSelect.value : 'miral'; },
+        },
       })
     : null;
+
+const admiralWebPushRetryBtn = document.getElementById('admiralWebPushRetryBtn');
+if (admiralWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
+  admiralWebPushRetryBtn.addEventListener('click', function () {
+    void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'admiral' }).then(function (ok) {
+      setAdmiralMessage(
+        ok ? 'Web push subscription sent.' : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
+        ok ? 'success' : 'error',
+      );
+    });
+  });
+}
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';

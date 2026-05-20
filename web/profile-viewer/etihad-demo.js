@@ -74,6 +74,46 @@ function etihadWebPushOnInjectDesired() {
   return !!(etihadWebPushOnInjectToggle && etihadWebPushOnInjectToggle.checked);
 }
 
+// Brand Concierge launcher visibility toggle
+const etihadBcLauncherToggle = document.getElementById('etihadBcLauncherToggle');
+const etihadBcLauncher = document.getElementById('etihadBcLauncher');
+(function initEtihadBcLauncher() {
+  const LAUNCHER_KEY = 'etihadBcLauncherVisible';
+  if (!etihadBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      etihadBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  etihadBcLauncherToggle.addEventListener('change', function () {
+    const on = etihadBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (etihadBcLauncher) {
+    etihadBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge toggle
+const etihadBcOnInjectToggle = document.getElementById('etihadBcOnInjectToggle');
+const etihadBcStyleSelect = document.getElementById('etihadBcStyleSelect');
+(function initEtihadBcToggle() {
+  if (!etihadBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('etihad') : { enabled: false, styleKey: 'miral' };
+  etihadBcOnInjectToggle.checked = !!prefs.enabled;
+  if (etihadBcStyleSelect && prefs.styleKey) etihadBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('etihad', !!(etihadBcOnInjectToggle && etihadBcOnInjectToggle.checked), etihadBcStyleSelect ? etihadBcStyleSelect.value : 'miral');
+  }
+  etihadBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (etihadBcStyleSelect) etihadBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const etihadTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -98,6 +138,10 @@ const etihadTagsInjection =
           enabled: true,
           subscribeAfterInject: etihadWebPushOnInjectDesired,
           requestPermissionOnInject: etihadWebPushOnInjectDesired,
+        },
+        brandConcierge: {
+          enabled: function () { return !!(etihadBcOnInjectToggle && etihadBcOnInjectToggle.checked); },
+          styleKey: function () { return etihadBcStyleSelect ? etihadBcStyleSelect.value : 'miral'; },
         },
       })
     : null;

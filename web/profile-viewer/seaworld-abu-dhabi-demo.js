@@ -34,6 +34,30 @@ function seaworldWebPushOnInjectDesired() {
   return !!(seaworldWebPushOnInjectToggle && seaworldWebPushOnInjectToggle.checked);
 }
 
+// Brand Concierge launcher visibility toggle
+const seaworldBcLauncherToggle = document.getElementById('seaworldBcLauncherToggle');
+const seaworldBcLauncher = document.getElementById('seaworldBcLauncher');
+(function initSeaworldBcLauncher() {
+  const LAUNCHER_KEY = 'seaworldBcLauncherVisible';
+  if (!seaworldBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      seaworldBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  seaworldBcLauncherToggle.addEventListener('change', function () {
+    const on = seaworldBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (seaworldBcLauncher) {
+    seaworldBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
 // Brand Concierge toggle
 const seaworldBcOnInjectToggle = document.getElementById('seaworldBcOnInjectToggle');
 const seaworldBcStyleSelect = document.getElementById('seaworldBcStyleSelect');
