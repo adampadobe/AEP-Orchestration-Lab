@@ -161,3 +161,24 @@
   flex: 1 1 12rem;
   min-width: 8rem;
 }
+
+/* Brand Concierge toggle (shared across demo park pages) */
+.aep-bc-toggle-row {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-top: 0.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.aep-bc-style-select {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  cursor: pointer;
+}
