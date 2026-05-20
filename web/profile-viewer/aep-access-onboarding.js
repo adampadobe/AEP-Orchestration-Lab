@@ -194,7 +194,8 @@
       '.aep-access-onb-overlay[hidden]{display:none !important;}' +
       'body.aep-access-gate-active #aepAccessOnboardingGateLayer{display:block!important;visibility:visible!important;}' +
       'body.aep-access-gate-active #aepAccessOnboardingOverlay{display:flex!important;visibility:visible!important;}' +
-      '.aep-access-onb-card{position:relative;z-index:1;width:min(640px,100%);pointer-events:auto;background:var(--dash-surface);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:22px;}' +
+      '.aep-access-onb-card{position:relative;z-index:1;width:min(640px,100%);pointer-events:auto;background:var(--dash-surface);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:22px 80px;}' +
+      '@media (max-width:640px){.aep-access-onb-card{padding-left:16px;padding-right:16px;}}' +
       '.dashboard-main.aep-access-gate-locked{pointer-events:none;user-select:none;}' +
       '.aep-access-onb-kicker{margin:0 0 6px;color:var(--dash-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}' +
       '.aep-access-onb-title{margin:0 0 10px;font-size:24px;line-height:1.2;}' +
