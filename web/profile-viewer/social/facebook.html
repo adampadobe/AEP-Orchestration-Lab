@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alex Morgan — Facebook</title>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <!-- Dashboard shell styles -->
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../home.css?v=20260520" />
+  <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
+  <!-- Facebook mock styles -->
+  <style>
+    /* ── Facebook colour tokens ─────────────────────────── */
+    :root {
+      --fb-blue:       #1877f2;
+      --fb-blue-dark:  #166fe5;
+      --fb-green:      #42b72a;
+      --fb-bg:         #f0f2f5;
+      --fb-surface:    #ffffff;
+      --fb-border:     #dadde1;
+      --fb-text:       #050505;
+      --fb-secondary:  #65676b;
+      --fb-hover:      #f2f2f2;
+      --fb-hover-blue: #e7f3ff;
+      --fb-radius:     8px;
+      --fb-topbar-h:   56px;
+    }
+
+    /* ── Reset for the mock layer ────────────────────────── */
+    .fb-mock * { box-sizing: border-box; }
+    .fb-mock a { text-decoration: none; color: inherit; }
+    .fb-mock button { cursor: pointer; border: none; background: none; font-family: inherit; }
+    .fb-mock img { display: block; }
+
+    /* ── Outer wrapper — sits behind the AEP overlay ─────── */
+    .fb-mock {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      color: var(--fb-text);
+      background: var(--fb-bg);
+      min-height: 100vh;
+      padding-top: var(--fb-topbar-h);
+    }
+
+    /* ── Top navigation bar ──────────────────────────────── */
+    .fb-topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--fb-topbar-h);
+      background: var(--fb-surface);
+      border-bottom: 1px solid var(--fb-border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 200;
+      gap: 8px;
+    }
+    .fb-topbar-logo {
+      flex-shrink: 0;
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--fb-blue);
+      letter-spacing: -1px;
+    }
+    .fb-topbar-search {
+      display: flex;
+      align-items: center;
+      background: var(--fb-bg);
+      border-radius: 50px;
+      padding: 8px 12px;
+      gap: 6px;
+      min-width: 240px;
+      color: var(--fb-secondary);
+      font-size: 15px;
+    }
+    .fb-topbar-search svg { flex-shrink: 0; }
+    .fb-topbar-nav {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+    }
+    .fb-topbar-nav-item {
+      width: 112px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--fb-secondary);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .fb-topbar-nav-item:hover { background: var(--fb-hover); }
+    .fb-topbar-nav-item.active {
+      color: var(--fb-blue);
+      border-bottom: 3px solid var(--fb-blue);
+    }
+    .fb-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fb-topbar-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .fb-topbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .fb-topbar-icon-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--fb-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--fb-text);
+    }
+    .fb-topbar-icon-btn:hover { filter: brightness(0.92); }
+
+    /* ── Profile cover + info ─────────────────────────────── */
+    .fb-profile-header {
+      max-width: 940px;
+      margin: 0 auto;
+    }
+    .fb-cover-wrap {
+      position: relative;
+      background: #c5cae9;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+    }
+    .fb-cover-img {
+      width: 100%;
+      height: 350px;
+      object-fit: cover;
+    }
+    .fb-cover-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.35) 100%);
+    }
+    .fb-cover-edit-btn {
+      position: absolute;
+      bottom: 12px; right: 12px;
+      background: var(--fb-surface);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+    .fb-profile-info-bar {
+      background: var(--fb-surface);
+      padding: 0 16px 12px;
+      border-bottom: 1px solid var(--fb-border);
+    }
+    .fb-avatar-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      padding-top: 0;
+      margin-top: -36px;
+    }
+    .fb-profile-avatar {
+      width: 168px; height: 168px;
+      border-radius: 50%;
+      border: 5px solid var(--fb-surface);
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #e0e0e0;
+    }
+    .fb-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .fb-profile-name-actions {
+      flex: 1;
+      padding-bottom: 12px;
+    }
+    .fb-profile-name {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+    }
+    .fb-profile-friend-count {
+      font-size: 15px;
+      color: var(--fb-secondary);
+      margin-top: 2px;
+    }
+    .fb-profile-friend-count strong { color: var(--fb-text); }
+    .fb-friend-stacks {
+      display: inline-flex;
+      margin-right: 4px;
+    }
+    .fb-friend-stacks img {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--fb-surface);
+      margin-left: -6px;
+      object-fit: cover;
+    }
+    .fb-friend-stacks img:first-child { margin-left: 0; }
+    .fb-profile-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .fb-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.1s;
+    }
+    .fb-btn:hover { filter: brightness(0.95); }
+    .fb-btn-primary { background: var(--fb-blue); color: #fff; }
+    .fb-btn-secondary { background: var(--fb-bg); color: var(--fb-text); }
+    .fb-btn-icon-only {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      background: var(--fb-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* ── Profile nav tabs ────────────────────────────────── */
+    .fb-profile-nav {
+      display: flex;
+      gap: 4px;
+      border-top: 1px solid var(--fb-border);
+      margin-top: 8px;
+      padding-top: 4px;
+      background: var(--fb-surface);
+    }
+    .fb-profile-nav-tab {
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--fb-secondary);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .fb-profile-nav-tab:hover { background: var(--fb-hover); }
+    .fb-profile-nav-tab.active {
+      color: var(--fb-blue);
+      border-bottom: 3px solid var(--fb-blue);
+      border-radius: 0;
+    }
+
+    /* ── 3-column layout ─────────────────────────────────── */
+    .fb-body {
+      max-width: 940px;
+      margin: 16px auto 0;
+      display: grid;
+      grid-template-columns: 312px 1fr;
+      gap: 16px;
+      padding: 0 0 40px;
+      align-items: start;
+    }
+
+    /* ── Left column cards ───────────────────────────────── */
+    .fb-card {
+      background: var(--fb-surface);
+      border-radius: var(--fb-radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .fb-card-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .fb-intro-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: var(--fb-text);
+      font-size: 15px;
+    }
+    .fb-intro-item svg { color: var(--fb-secondary); flex-shrink: 0; }
+    .fb-intro-bio {
+      font-size: 15px;
+      text-align: center;
+      color: var(--fb-text);
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--fb-border);
+    }
+    .fb-edit-detail-btn {
+      width: 100%;
+      padding: 8px;
+      background: var(--fb-bg);
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .fb-edit-detail-btn:hover { background: var(--fb-border); }
+
+    .fb-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .fb-photos-grid img {
+      width: 100%; aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .fb-friends-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .fb-friend-thumb {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .fb-friend-thumb img {
+      width: 100%; aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .fb-friend-thumb span {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* ── Right column: feed ──────────────────────────────── */
+    .fb-post {
+      background: var(--fb-surface);
+      border-radius: var(--fb-radius);
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .fb-post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+    }
+    .fb-post-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .fb-post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .fb-post-meta { flex: 1; }
+    .fb-post-author {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .fb-post-time {
+      font-size: 13px;
+      color: var(--fb-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .fb-post-options {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fb-secondary);
+      cursor: pointer;
+    }
+    .fb-post-options:hover { background: var(--fb-hover); }
+    .fb-post-body {
+      padding: 0 16px 12px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--fb-text);
+    }
+    .fb-post-img {
+      width: 100%;
+      max-height: 500px;
+      object-fit: cover;
+    }
+    .fb-post-2grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+    .fb-post-2grid img {
+      width: 100%; height: 250px;
+      object-fit: cover;
+    }
+    .fb-post-reactions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      font-size: 15px;
+      color: var(--fb-secondary);
+      border-top: 1px solid var(--fb-border);
+    }
+    .fb-reaction-chips {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .fb-reaction-chip {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .fb-reaction-chip.like  { background: var(--fb-blue); }
+    .fb-reaction-chip.love  { background: #f33e58; }
+    .fb-reaction-chip.haha  { background: #f7b928; }
+    .fb-post-actions {
+      display: flex;
+      border-top: 1px solid var(--fb-border);
+      padding: 4px 8px;
+    }
+    .fb-post-action-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--fb-secondary);
+      cursor: pointer;
+    }
+    .fb-post-action-btn:hover { background: var(--fb-hover); }
+
+    /* ── Compose box ─────────────────────────────────────── */
+    .fb-compose {
+      background: var(--fb-surface);
+      border-radius: var(--fb-radius);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .fb-compose-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .fb-compose-input {
+      flex: 1;
+      background: var(--fb-bg);
+      border-radius: 50px;
+      padding: 10px 16px;
+      font-size: 17px;
+      color: var(--fb-secondary);
+      cursor: pointer;
+    }
+    .fb-compose-input:hover { background: var(--fb-border); }
+    .fb-compose-actions {
+      display: flex;
+      border-top: 1px solid var(--fb-border);
+      padding-top: 10px;
+      gap: 4px;
+    }
+    .fb-compose-action {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fb-secondary);
+      cursor: pointer;
+    }
+    .fb-compose-action:hover { background: var(--fb-hover); }
+
+    /* ── AEP demo overlay — same pattern as ferrari/seaworld ─ */
+    .social-facebook-demo-page .dashboard-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      pointer-events: none;
+      display: flex;
+    }
+    .social-facebook-demo-page .dashboard-sidebar {
+      pointer-events: auto;
+    }
+    .social-facebook-demo-page .dashboard-main-wrap {
+      display: none;
+    }
+
+    .social-facebook-demo-top-anchor {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 6500;
+      pointer-events: none;
+    }
+    .social-facebook-demo-top-anchor::before {
+      content: "";
+      display: block;
+      height: 14px;
+      pointer-events: auto;
+    }
+    .social-facebook-demo-id-banner {
+      pointer-events: auto;
+      background: var(--dash-surface);
+      border-bottom: 1px solid var(--dash-border);
+      box-shadow: var(--dash-shadow);
+      transform: translateY(calc(-100% - 14px));
+      transition: transform 0.2s ease;
+    }
+    .social-facebook-demo-top-anchor:hover .social-facebook-demo-id-banner,
+    .social-facebook-demo-top-anchor:focus-within .social-facebook-demo-id-banner {
+      transform: translateY(0);
+    }
+    .social-facebook-demo-id-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0.65rem 1rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+    .social-facebook-demo-id-inner .facebook-sdk-config-fields.mod-sdk-config-fields {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.65rem 1rem;
+    }
+    .social-facebook-demo-id-inner .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+    .social-facebook-demo-id-inner label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--dash-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .social-facebook-demo-id-inner .sandbox-select,
+    .social-facebook-demo-id-inner input[type="text"],
+    .social-facebook-demo-id-inner select {
+      min-width: 10rem;
+    }
+    .social-facebook-demo-id-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .facebook-sdk-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--dash-text-secondary);
+    }
+    .facebook-sdk-summary .btn-lookup {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.78rem;
+    }
+    .social-facebook-demo-ecid-hint {
+      font-size: 0.8rem;
+      color: var(--dash-text-secondary);
+    }
+    .social-facebook-demo-script-preview {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1rem 0.25rem;
+      color: var(--dash-text-secondary);
+      font-size: 0.8rem;
+    }
+    .social-facebook-demo-script-preview code { color: var(--dash-text); }
+    .social-facebook-demo-message {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1rem 0.6rem;
+      font-size: 0.85rem;
+      color: var(--dash-text-secondary);
+    }
+    .social-facebook-demo-message--success { color: var(--dash-success-text); }
+    .social-facebook-demo-message--error   { color: var(--dash-error-text); }
+
+    @media (min-width: 769px) {
+      body.social-facebook-demo-page .dashboard-sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        width: 238px;
+        z-index: 7000;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: none;
+      }
+      body.social-facebook-demo-page--nav-open .dashboard-sidebar,
+      body.social-facebook-demo-page .dashboard-sidebar:focus-within {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(15,23,42,0.14);
+      }
+    }
+    @media (max-width: 768px) {
+      body.social-facebook-demo-page .dashboard-sidebar {
+        position: relative;
+        left: auto; top: auto; bottom: auto;
+        transform: none;
+        z-index: auto;
+        box-shadow: none;
+      }
+      .fb-topbar-nav { display: none; }
+      .fb-topbar-search { min-width: 0; flex: 1; }
+      .fb-body { grid-template-columns: 1fr; }
+      .fb-left-col { display: none; }
+    }
+  </style>
+</head>
+<body class="social-facebook-demo-page home-dashboard-concierge">
+
+<!-- ── AEP demo shell (hidden main-wrap, flyout sidebar) ──────────── -->
+<div class="dashboard-shell">
+  <aside class="dashboard-sidebar" id="dashboardSidebar"></aside>
+  <div class="dashboard-main-wrap">
+    <header class="dashboard-topbar"></header>
+    <main class="dashboard-main"></main>
+  </div>
+</div>
+
+<!-- ── AEP hover-reveal config banner ────────────────────────────── -->
+<div class="social-facebook-demo-top-anchor">
+  <div class="social-facebook-demo-id-banner">
+    <div class="social-facebook-demo-id-inner">
+      <!-- AEP environment strip -->
+      <div id="facebookSdkConfigSummary" class="mod-sdk-summary mod-sdk-summary--below-env-grid">
+        <div class="facebook-sdk-summary" id="facebookSdkConfigSummaryText">
+          <button class="btn btn-lookup" id="facebookChangeSdkConfigBtn" type="button">Configure</button>
+        </div>
+      </div>
+      <div id="facebookSdkConfigFields" class="facebook-sdk-config-fields mod-sdk-config-fields" style="display:none">
+        <div class="form-row">
+          <label for="facebookTagsCompany">Company</label>
+          <input type="text" id="facebookTagsCompany" class="form-input" placeholder="e.g. facebook-demo" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <label for="facebookTagsProperty">Tags property</label>
+          <input type="text" id="facebookTagsProperty" class="form-input" placeholder="Tags launch URL" autocomplete="off" list="facebookTagsPropertyList" />
+          <datalist id="facebookTagsPropertyList"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="facebookTagsEnvironment">Environment</label>
+          <select id="facebookTagsEnvironment" class="form-input">
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+            <option value="development" selected>Development</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="generatorTarget">Event target</label>
+          <select id="generatorTarget" class="form-input sandbox-select"></select>
+        </div>
+      </div>
+
+      <!-- Identity / email row -->
+      <div class="social-facebook-demo-id-actions">
+        <div class="form-row" style="flex:1;max-width:22rem;">
+          <label for="customerEmail">Customer email / ID</label>
+          <input type="text" id="customerEmail" class="form-input" placeholder="visitor@example.com" autocomplete="off" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:0.5rem;padding-bottom:1px;">
+          <button class="btn btn-primary btn-lookup" id="queryProfileBtn" type="button">Look up profile</button>
+          <button class="btn btn-secondary btn-lookup" id="injectSdkBtn" type="button">Inject Tags</button>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
+            <input type="checkbox" id="facebookWebPushOnInjectToggle" />Push
+          </label>
+          <button class="btn btn-outline btn-lookup" id="facebookWebPushRetryBtn" type="button" title="Retry web push subscription">&#x1F514;</button>
+        </div>
+      </div>
+      <div class="social-facebook-demo-script-preview">
+        <span id="facebookSelectedScript"></span>
+      </div>
+      <div id="infoEcid" class="social-facebook-demo-ecid-hint" hidden></div>
+    </div>
+    <p id="facebookMessage" class="social-facebook-demo-message" hidden></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FACEBOOK MOCK PAGE
+     ══════════════════════════════════════════════════════════════ -->
+<div class="fb-mock">
+
+  <!-- Top navigation -->
+  <nav class="fb-topbar">
+    <div class="fb-topbar-logo">f</div>
+    <div class="fb-topbar-search">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+      Search Facebook
+    </div>
+    <div class="fb-topbar-nav">
+      <div class="fb-topbar-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path stroke="currentColor" stroke-width="1.8" d="M9 21V12h6v9"/></svg>
+      </div>
+      <div class="fb-topbar-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h0"/><circle cx="17" cy="17" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M14 17h6M17 14v6"/></svg>
+      </div>
+      <div class="fb-topbar-nav-item active">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M4 20v-1a8 8 0 0116 0v1"/></svg>
+      </div>
+      <div class="fb-topbar-nav-item">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+      </div>
+    </div>
+    <div class="fb-topbar-actions">
+      <div class="fb-topbar-icon-btn">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2.5 2.5"/></svg>
+      </div>
+      <div class="fb-topbar-icon-btn">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+      </div>
+      <div class="fb-topbar-icon-btn">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </div>
+      <div class="fb-topbar-avatar">
+        <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+      </div>
+    </div>
+  </nav>
+
+  <!-- Profile header -->
+  <div class="fb-profile-header">
+    <!-- Cover photo -->
+    <div class="fb-cover-wrap">
+      <img
+        class="fb-cover-img"
+        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=940&q=80"
+        alt="Cover photo — mountain landscape"
+      />
+      <div class="fb-cover-gradient"></div>
+      <div class="fb-cover-edit-btn">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/><path stroke="currentColor" stroke-width="1.8" d="M3 21h18"/></svg>
+        Edit cover photo
+      </div>
+    </div>
+
+    <!-- Avatar + name + actions -->
+    <div class="fb-profile-info-bar">
+      <div class="fb-avatar-row">
+        <div class="fb-profile-avatar">
+          <img src="https://i.pravatar.cc/200?img=47" alt="Alex Morgan profile photo" />
+        </div>
+        <div class="fb-profile-name-actions">
+          <div class="fb-profile-name">Alex Morgan</div>
+          <div class="fb-profile-friend-count">
+            <span class="fb-friend-stacks">
+              <img src="https://i.pravatar.cc/24?img=12" alt="" />
+              <img src="https://i.pravatar.cc/24?img=33" alt="" />
+              <img src="https://i.pravatar.cc/24?img=58" alt="" />
+            </span>
+            <strong>487 friends</strong>
+          </div>
+          <div class="fb-profile-actions">
+            <button class="fb-btn fb-btn-primary">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
+              Add to story
+            </button>
+            <button class="fb-btn fb-btn-secondary">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 2.828L11.828 14H9v-3z"/></svg>
+              Edit profile
+            </button>
+            <div class="fb-btn-icon-only">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile nav tabs -->
+      <nav class="fb-profile-nav">
+        <div class="fb-profile-nav-tab active">Posts</div>
+        <div class="fb-profile-nav-tab">About</div>
+        <div class="fb-profile-nav-tab">Friends</div>
+        <div class="fb-profile-nav-tab">Photos</div>
+        <div class="fb-profile-nav-tab">Videos</div>
+        <div class="fb-profile-nav-tab">More ▾</div>
+      </nav>
+    </div>
+  </div>
+
+  <!-- 2-column body -->
+  <div class="fb-body">
+
+    <!-- Left column -->
+    <div class="fb-left-col">
+
+      <!-- Intro card -->
+      <div class="fb-card">
+        <div class="fb-card-title">Intro</div>
+        <div class="fb-intro-bio">☀️ Travel enthusiast · Coffee lover · Weekend hiker</div>
+        <div class="fb-intro-item">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+          Lives in <strong>&nbsp;San Francisco, CA</strong>
+        </div>
+        <div class="fb-intro-item">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/></svg>
+          From <strong>&nbsp;Portland, OR</strong>
+        </div>
+        <div class="fb-intro-item">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 16.92V19a2 2 0 01-2 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h2.07a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          Works at <strong>&nbsp;Horizon Digital</strong>
+        </div>
+        <div class="fb-intro-item">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M22 10v4M2 10v4M12 2a10 10 0 000 20M12 2a10 10 0 010 20M2 12h20"/></svg>
+          Followed by <strong>&nbsp;1.2K people</strong>
+        </div>
+        <div class="fb-edit-detail-btn">Edit details</div>
+        <div class="fb-edit-detail-btn" style="margin-top:6px;">Add hobbies</div>
+        <div class="fb-edit-detail-btn" style="margin-top:6px;">Add featured</div>
+      </div>
+
+      <!-- Photos card -->
+      <div class="fb-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="fb-card-title" style="margin-bottom:0;">Photos</div>
+          <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all photos</a>
+        </div>
+        <div class="fb-photos-grid">
+          <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1455218873509-8097305ee378?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=120&q=70" alt="" />
+          <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=120&q=70" alt="" />
+        </div>
+      </div>
+
+      <!-- Friends card -->
+      <div class="fb-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <div class="fb-card-title" style="margin-bottom:2px;">Friends</div>
+            <div style="font-size:15px;color:var(--fb-secondary);">487 friends</div>
+          </div>
+          <a href="#" style="color:var(--fb-blue);font-size:15px;font-weight:600;">See all friends</a>
+        </div>
+        <div class="fb-friends-grid">
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=11" alt="Jamie Chen" />
+            <span>Jamie Chen</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=22" alt="Sam Torres" />
+            <span>Sam Torres</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=33" alt="Riley Park" />
+            <span>Riley Park</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=44" alt="Dana Kim" />
+            <span>Dana Kim</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=55" alt="Jordan Lee" />
+            <span>Jordan Lee</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=66" alt="Casey Reyes" />
+            <span>Casey Reyes</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=7" alt="Morgan Wu" />
+            <span>Morgan Wu</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=18" alt="Taylor Rowe" />
+            <span>Taylor Rowe</span>
+          </div>
+          <div class="fb-friend-thumb">
+            <img src="https://i.pravatar.cc/90?img=29" alt="Drew Scott" />
+            <span>Drew Scott</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /fb-left-col -->
+
+    <!-- Right column: feed -->
+    <div class="fb-right-col">
+
+      <!-- Compose box -->
+      <div class="fb-compose">
+        <div class="fb-compose-top">
+          <div class="fb-post-avatar">
+            <img src="https://i.pravatar.cc/80?img=47" alt="" />
+          </div>
+          <div class="fb-compose-input">What's on your mind, Alex?</div>
+        </div>
+        <div class="fb-compose-actions">
+          <div class="fb-compose-action" style="color:#e2454b;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+            Live video
+          </div>
+          <div class="fb-compose-action" style="color:#45bd62;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 9h18M9 21V9"/></svg>
+            Photo/video
+          </div>
+          <div class="fb-compose-action" style="color:#f5c518;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+            Feeling/activity
+          </div>
+        </div>
+      </div>
+
+      <!-- Post 1 — travel photo -->
+      <div class="fb-post">
+        <div class="fb-post-header">
+          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+          <div class="fb-post-meta">
+            <div class="fb-post-author">Alex Morgan</div>
+            <div class="fb-post-time">
+              <span>2 hours ago</span>
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M2 12h20"/><path stroke="currentColor" stroke-width="1.8" d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            </div>
+          </div>
+          <div class="fb-post-options">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fb-post-body">Just got back from an incredible weekend in Yosemite! 🏔️ The views were absolutely breathtaking. Already planning the next trip — thinking the Pacific Coast Highway? Drop your recommendations below! 👇</div>
+        <img class="fb-post-img" src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=940&q=80" alt="Yosemite mountains" />
+        <div class="fb-post-reactions">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="fb-reaction-chips">
+              <div class="fb-reaction-chip like">👍</div>
+              <div class="fb-reaction-chip love">❤️</div>
+              <div class="fb-reaction-chip haha">😂</div>
+            </div>
+            <span>Sarah, Jamie and 214 others</span>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <span>47 comments</span>
+            <span>12 shares</span>
+          </div>
+        </div>
+        <div class="fb-post-actions">
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+            Like
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+            Comment
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+            Share
+          </div>
+        </div>
+      </div>
+
+      <!-- Post 2 — friend shares location check-in -->
+      <div class="fb-post">
+        <div class="fb-post-header">
+          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+          <div class="fb-post-meta">
+            <div class="fb-post-author">Alex Morgan</div>
+            <div class="fb-post-time"><span>Yesterday at 7:34 PM</span></div>
+          </div>
+          <div class="fb-post-options">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fb-post-body">
+          📍 Checked in at <strong>Blue Bottle Coffee, SOMA</strong><br/>
+          Nothing better than a flat white to kick off a Monday morning. Also — finally got a window seat! 🪟☕
+        </div>
+        <div class="fb-post-reactions">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="fb-reaction-chips">
+              <div class="fb-reaction-chip like">👍</div>
+              <div class="fb-reaction-chip haha">😂</div>
+            </div>
+            <span>Chloe and 38 others</span>
+          </div>
+          <span>8 comments</span>
+        </div>
+        <div class="fb-post-actions">
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+            Like
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+            Comment
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+            Share
+          </div>
+        </div>
+      </div>
+
+      <!-- Post 3 — 2-photo grid -->
+      <div class="fb-post">
+        <div class="fb-post-header">
+          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+          <div class="fb-post-meta">
+            <div class="fb-post-author">Alex Morgan</div>
+            <div class="fb-post-time"><span>May 17 · </span><span>San Francisco, CA</span></div>
+          </div>
+          <div class="fb-post-options">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fb-post-body">Weekend farmers market haul 🌿🍓 There is genuinely nothing better than fresh strawberries in May. Highly recommend hitting up the Ferry Building if you're in the city this weekend!</div>
+        <div class="fb-post-2grid">
+          <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=470&q=80" alt="Farmers market" />
+          <img src="https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=470&q=80" alt="Fresh produce" />
+        </div>
+        <div class="fb-post-reactions">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="fb-reaction-chips">
+              <div class="fb-reaction-chip like">👍</div>
+              <div class="fb-reaction-chip love">❤️</div>
+            </div>
+            <span>91 reactions</span>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <span>22 comments</span>
+            <span>5 shares</span>
+          </div>
+        </div>
+        <div class="fb-post-actions">
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+            Like
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+            Comment
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+            Share
+          </div>
+        </div>
+      </div>
+
+      <!-- Post 4 — text only, life update -->
+      <div class="fb-post">
+        <div class="fb-post-header">
+          <div class="fb-post-avatar"><img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" /></div>
+          <div class="fb-post-meta">
+            <div class="fb-post-author">Alex Morgan</div>
+            <div class="fb-post-time"><span>May 14</span></div>
+          </div>
+          <div class="fb-post-options">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fb-post-body" style="font-size:24px;line-height:1.5;text-align:center;padding:24px 40px;">
+          Officially finished the Half Dome hike!! 🏆 17 miles and 4,800 ft of elevation gain. My legs may never recover but it was 100% worth it.
+        </div>
+        <div class="fb-post-reactions">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="fb-reaction-chips">
+              <div class="fb-reaction-chip like">👍</div>
+              <div class="fb-reaction-chip love">❤️</div>
+              <div class="fb-reaction-chip haha">😂</div>
+            </div>
+            <span>Jordan and 156 others</span>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <span>63 comments</span>
+            <span>7 shares</span>
+          </div>
+        </div>
+        <div class="fb-post-actions">
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+            Like
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+            Comment
+          </div>
+          <div class="fb-post-action-btn">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+            Share
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /fb-right-col -->
+  </div><!-- /fb-body -->
+
+</div><!-- /fb-mock -->
+
+<!-- ── AEP scripts ────────────────────────────────────────────────── -->
+<script src="../aep-lab-nav.js?v=20260520-social-facebook"></script>
+<script src="../aep-identity-picker.js" defer></script>
+<script src="../aep-profile-drawer.js" defer></script>
+<script src="../aep-tags-injection.js" defer></script>
+<script src="../aep-web-push.js" defer></script>
+<script src="../aep-demo-generator-targets.js" defer></script>
+<script src="../aep-theme.js" defer></script>
+<script src="facebook-demo.js" defer></script>
+
+</body>
+</html>
