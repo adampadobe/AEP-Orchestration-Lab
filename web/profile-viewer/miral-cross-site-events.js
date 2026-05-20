@@ -300,10 +300,10 @@
   // WB World retargeting — user showed interest but no purchase
   function buildWbWorldOfferAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/header/wbw_logo_footer.png',
+      avatar: '../wb-world-abu-dhabi/images/logo.png',
       brand: 'Warner Bros. World™ Abu Dhabi',
       text: 'You left the magic behind! Come back and step into <strong>Gotham City, Bedrock and more</strong> — exclusive offer for returning visitors: <strong>20% off Single Day Tickets</strong> this weekend.',
-      img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/offers/etihad/warner_gotham_etihad.jpg',
+      img: '../wb-world-abu-dhabi/images/gotham-etihad.jpg',
       imgAlt: 'Warner Bros. World Yas Island — Gotham City',
       domain: 'wbworldabudhabi.com',
       headline: 'Warner Bros. World™ — 20% Off This Weekend',
@@ -316,10 +316,10 @@
   // WB World booking completion — user captured email but didn't book
   function buildWbWorldBookingAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/header/wbw_logo_footer.png',
+      avatar: '../wb-world-abu-dhabi/images/logo.png',
       brand: 'Warner Bros. World™ Abu Dhabi',
       text: 'Your exclusive offer is waiting! You showed interest in <strong>Warner Bros. World™</strong> on Yas Island. Complete your booking now — your personalised deal expires soon.',
-      img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/productdetail/vip-experience/wbw_vip_card.jpg',
+      img: '../wb-world-abu-dhabi/images/vip-experience.jpg',
       imgAlt: 'Warner Bros. World VIP Experience',
       domain: 'wbworldabudhabi.com',
       headline: 'Complete Your WB World Booking',
@@ -332,10 +332,10 @@
   // Ferrari World retargeting
   function buildFerrariWorldAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/header/fwad_new_header.png?w=160',
+      avatar: '../ferrari-world-abu-dhabi/images/logo-sm.png',
       brand: 'Ferrari World Abu Dhabi',
       text: 'The world\'s fastest roller coaster is calling. <strong>Formula Rossa</strong> hits 240 km/h — experience it at Ferrari World Abu Dhabi, Yas Island. Ready to feel the rush?',
-      img: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/home/thumbnails/formula-rossa-thumbnail.jpg',
+      img: '../ferrari-world-abu-dhabi/images/formula-rossa.jpg',
       imgAlt: 'Formula Rossa — Ferrari World Abu Dhabi',
       domain: 'ferrariworldabudhabi.com',
       headline: 'Ferrari World Abu Dhabi — Book Your Visit',
@@ -348,10 +348,10 @@
   // SeaWorld retargeting
   function buildSeaWorldAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-color-new.png',
+      avatar: '../seaworld-abu-dhabi/images/logo-color.png',
       brand: 'SeaWorld Abu Dhabi',
       text: 'Get up close with <strong>dolphins, orcas and penguins</strong> at SeaWorld Abu Dhabi — the world\'s first SeaWorld outside the US. Book a Dolphin Discovery experience today.',
-      img: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/dolphinecounter1-medium.jpg',
+      img: '../seaworld-abu-dhabi/images/dolphin-encounter.jpg',
       imgAlt: 'Dolphin Discovery — SeaWorld Abu Dhabi',
       domain: 'seaworldabudhabi.com',
       headline: 'SeaWorld Abu Dhabi — Book an Encounter',
@@ -372,21 +372,21 @@
 
     var opts = {
       ferrariworld: {
-        img: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/home/thumbnails/formula-rossa-thumbnail.jpg',
+        img: '../ferrari-world-abu-dhabi/images/formula-rossa.jpg',
         imgAlt: 'Formula Rossa — Ferrari World',
         title: 'Ferrari World Abu Dhabi',
         sub: 'ferrariworldabudhabi.com · World\'s fastest coaster',
         cta: 'Explore',
       },
       wbworld: {
-        img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/home/wbw-friends-and-family-746x421-1.jpg',
+        img: '../wb-world-abu-dhabi/images/friends-family.jpg',
         imgAlt: 'Warner Bros. World Yas Island',
         title: 'Warner Bros. World™',
         sub: 'wbworldabudhabi.com · 6 immersive lands',
         cta: 'Explore',
       },
       seaworld: {
-        img: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/home/sw-encounters.jpg',
+        img: '../seaworld-abu-dhabi/images/encounters.jpg',
         imgAlt: 'SeaWorld Abu Dhabi encounters',
         title: 'SeaWorld Abu Dhabi',
         sub: 'seaworldabudhabi.com · Dolphin encounters',
