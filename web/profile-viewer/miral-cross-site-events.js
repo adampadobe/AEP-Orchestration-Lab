@@ -303,8 +303,8 @@
       avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/header/wbw_logo_footer.png',
       brand: 'Warner Bros. World™ Abu Dhabi',
       text: 'You left the magic behind! Come back and step into <strong>Gotham City, Bedrock and more</strong> — exclusive offer for returning visitors: <strong>20% off Single Day Tickets</strong> this weekend.',
-      img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/plaza-2019.jpg',
-      imgAlt: 'Warner Bros. World Yas Island',
+      img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/offers/etihad/warner_gotham_etihad.jpg',
+      imgAlt: 'Warner Bros. World Yas Island — Gotham City',
       domain: 'wbworldabudhabi.com',
       headline: 'Warner Bros. World™ — 20% Off This Weekend',
       sub: 'Six immersive lands on Yas Island, Abu Dhabi.',
@@ -332,14 +332,14 @@
   // Ferrari World retargeting
   function buildFerrariWorldAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://www.ferrariworldabudhabi.com/favicon.ico',
+      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/common/header/fwad_new_header.png?w=160',
       brand: 'Ferrari World Abu Dhabi',
       text: 'The world\'s fastest roller coaster is calling. <strong>Formula Rossa</strong> hits 240 km/h — experience it at Ferrari World Abu Dhabi, Yas Island. Ready to feel the rush?',
-      img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80',
-      imgAlt: 'Ferrari World Abu Dhabi',
+      img: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/home/thumbnails/formula-rossa-thumbnail.jpg',
+      imgAlt: 'Formula Rossa — Ferrari World Abu Dhabi',
       domain: 'ferrariworldabudhabi.com',
       headline: 'Ferrari World Abu Dhabi — Book Your Visit',
-      sub: '37+ rides &amp; attractions on Yas Island.',
+      sub: '40+ rides &amp; attractions on Yas Island.',
       cta: 'Book tickets',
       slotLabel: slotLabel,
     });
@@ -348,11 +348,11 @@
   // SeaWorld retargeting
   function buildSeaWorldAd(slotLabel) {
     return buildFeedAd({
-      avatar: 'https://www.seaworldabudhabi.com/favicon.ico',
+      avatar: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/common/header/english-color-new.png',
       brand: 'SeaWorld Abu Dhabi',
       text: 'Get up close with <strong>dolphins, orcas and penguins</strong> at SeaWorld Abu Dhabi — the world\'s first SeaWorld outside the US. Book a Dolphin Discovery experience today.',
-      img: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=600&q=80',
-      imgAlt: 'SeaWorld Abu Dhabi dolphin encounter',
+      img: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/20230724/dolphinecounter1-medium.jpg',
+      imgAlt: 'Dolphin Discovery — SeaWorld Abu Dhabi',
       domain: 'seaworldabudhabi.com',
       headline: 'SeaWorld Abu Dhabi — Book an Encounter',
       sub: 'One Ocean. Countless discoveries.',
@@ -372,22 +372,22 @@
 
     var opts = {
       ferrariworld: {
-        img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=160&q=70',
-        imgAlt: 'Ferrari World',
+        img: 'https://static.myconnect.ae/-/media/yasconnect/project/fwad/home/thumbnails/formula-rossa-thumbnail.jpg',
+        imgAlt: 'Formula Rossa — Ferrari World',
         title: 'Ferrari World Abu Dhabi',
         sub: 'ferrariworldabudhabi.com · World\'s fastest coaster',
         cta: 'Explore',
       },
       wbworld: {
-        img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/carousel-preview/test/cartoon-junction-2019.jpg',
-        imgAlt: 'WB World',
+        img: 'https://static.myconnect.ae/-/media/yasconnect/project/wbw/home/wbw-friends-and-family-746x421-1.jpg',
+        imgAlt: 'Warner Bros. World Yas Island',
         title: 'Warner Bros. World™',
         sub: 'wbworldabudhabi.com · 6 immersive lands',
         cta: 'Explore',
       },
       seaworld: {
-        img: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=160&q=70',
-        imgAlt: 'SeaWorld Abu Dhabi',
+        img: 'https://static.myconnect.ae/-/media/yasconnect/project/swad/home/sw-encounters.jpg',
+        imgAlt: 'SeaWorld Abu Dhabi encounters',
         title: 'SeaWorld Abu Dhabi',
         sub: 'seaworldabudhabi.com · Dolphin encounters',
         cta: 'Explore',
