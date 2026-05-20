@@ -1212,6 +1212,7 @@ function migratePersonaJourneyModalChromeIfNeeded() {
   eventsStoryModalSummary = summary;
   eventsStoryModalControlsWrap = nav;
   eventsStoryModalStepMeta = meta;
+  ensureProfileDrawerJourneyFilterRow();
 }
 
 function bindJourneyControlsOnce() {
@@ -1233,6 +1234,7 @@ function ensureProfileDrawerEventsStoryModal() {
   ensureProfileDrawerThemeToggle();
   if (eventsStoryModalBackdrop && eventsStoryModalPanel) {
     migratePersonaJourneyModalChromeIfNeeded();
+    ensureProfileDrawerJourneyFilterRow();
     bindJourneyControlsOnce();
     return;
   }
@@ -1323,6 +1325,8 @@ function ensureProfileDrawerEventsStoryModal() {
   eventsStoryModalControlsWrap = nav;
   eventsStoryModalStepMeta = meta;
 
+  ensureProfileDrawerJourneyFilterRow();
+
   function onBackdropDown(e) {
     if (e.target === backdrop) closeProfileDrawerEventsStoryModal();
   }
@@ -1362,6 +1366,203 @@ function groupJourneyInstantsByTimestampMs(sortedAsc) {
     }
   }
   return groups;
+}
+
+/** `datetime-local` string → epoch ms in local timezone (invalid → null). */
+function parseDatetimeLocalToMs(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  const ms = new Date(s).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function formatDatetimeLocalFromDate(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
+function getProfileDrawerJourneyFilterWrap() {
+  return eventsStoryModalPanel ? eventsStoryModalPanel.querySelector('.aep-profile-drawer-journey-filter') : null;
+}
+
+/**
+ * When `active`, `startMs` is finite; `endMs` may be null (no upper bound).
+ * Filtering requires a parseable start (per UX); "All" clears both inputs → inactive.
+ */
+function getJourneyStoryWindowBoundsFromUi() {
+  const wrap = getProfileDrawerJourneyFilterWrap();
+  if (!wrap) return { active: false, startMs: null, endMs: null };
+  const startEl = wrap.querySelector('[data-journey-window-field="from"]');
+  const untilEl = wrap.querySelector('[data-journey-window-field="until"]');
+  const startRaw = startEl && startEl.value != null ? String(startEl.value).trim() : '';
+  const untilRaw = untilEl && untilEl.value != null ? String(untilEl.value).trim() : '';
+  const startMs = startRaw ? parseDatetimeLocalToMs(startRaw) : null;
+  const endParsed = untilRaw ? parseDatetimeLocalToMs(untilRaw) : null;
+  const active = startMs != null && Number.isFinite(startMs);
+  const endMs =
+    active && endParsed != null && Number.isFinite(endParsed) ? endParsed : active ? null : null;
+  return {
+    active,
+    startMs: active ? startMs : null,
+    endMs,
+  };
+}
+
+/** Keep events whose timestamp lies in [startMs, endMs]; `endMs` null → no upper bound. Excludes non-finite timestamps. */
+function filterEventsByJourneyWindow(orderedAsc, startMs, endMs) {
+  if (startMs == null || !Number.isFinite(startMs)) return orderedAsc;
+  const hasEnd = endMs != null && Number.isFinite(endMs);
+  return orderedAsc.filter((ev) => {
+    const ts = eventTimestampMsForDrawer(ev);
+    if (ts == null || !Number.isFinite(ts)) return false;
+    if (ts < startMs) return false;
+    if (hasEnd && ts > endMs) return false;
+    return true;
+  });
+}
+
+function applyJourneyStoryWindowPreset(preset) {
+  const wrap = getProfileDrawerJourneyFilterWrap();
+  if (!wrap) return;
+  const startEl = wrap.querySelector('[data-journey-window-field="from"]');
+  const untilEl = wrap.querySelector('[data-journey-window-field="until"]');
+  if (!startEl || !untilEl) return;
+  const nowMs = Date.now();
+  const now = new Date(nowMs);
+  if (preset === 'all') {
+    startEl.value = '';
+    untilEl.value = '';
+    return;
+  }
+  if (preset === 'today') {
+    const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    startEl.value = formatDatetimeLocalFromDate(sod);
+    untilEl.value = formatDatetimeLocalFromDate(eod);
+    return;
+  }
+  if (preset === 'last-hour') {
+    startEl.value = formatDatetimeLocalFromDate(new Date(nowMs - 60 * 60 * 1000));
+    untilEl.value = formatDatetimeLocalFromDate(new Date(nowMs));
+    return;
+  }
+  if (preset === 'next-hour') {
+    startEl.value = formatDatetimeLocalFromDate(new Date(nowMs));
+    untilEl.value = formatDatetimeLocalFromDate(new Date(nowMs + 60 * 60 * 1000));
+  }
+}
+
+function bindJourneyFilterUiOnce() {
+  const wrap = getProfileDrawerJourneyFilterWrap();
+  if (!wrap || wrap.getAttribute('data-journey-filter-bound') === '1') return;
+  wrap.setAttribute('data-journey-filter-bound', '1');
+  wrap.addEventListener('click', function (e) {
+    const chip = e.target && e.target.closest && e.target.closest('[data-journey-window-preset]');
+    if (chip) {
+      const preset = chip.getAttribute('data-journey-window-preset') || 'all';
+      applyJourneyStoryWindowPreset(preset);
+      renderProfileDrawerEventsStoryModalContent();
+      return;
+    }
+    const applyBtn = e.target && e.target.closest && e.target.closest('[data-journey-window-action="apply"]');
+    if (applyBtn) {
+      e.preventDefault();
+      renderProfileDrawerEventsStoryModalContent();
+    }
+  });
+}
+
+/** Idempotent: compact story window row between journey playback controls and the horizontal strip. */
+function ensureProfileDrawerJourneyFilterRow() {
+  if (!eventsStoryModalPanel || !eventsStoryModalTrack) return;
+  if (getProfileDrawerJourneyFilterWrap()) {
+    bindJourneyFilterUiOnce();
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'aep-profile-drawer-journey-filter';
+  wrap.setAttribute('role', 'group');
+  wrap.setAttribute('aria-label', 'Story time window');
+
+  const row = document.createElement('div');
+  row.className = 'aep-profile-drawer-journey-filter-row';
+
+  const lab = document.createElement('span');
+  lab.className = 'aep-profile-drawer-journey-filter-label';
+  lab.textContent = 'Story from';
+
+  const startIn = document.createElement('input');
+  startIn.type = 'datetime-local';
+  startIn.className = 'aep-profile-drawer-journey-filter-input';
+  startIn.setAttribute('data-journey-window-field', 'from');
+  startIn.setAttribute('aria-label', 'Story window start');
+
+  const sep = document.createElement('span');
+  sep.className = 'aep-profile-drawer-journey-filter-sep';
+  sep.textContent = 'until';
+
+  const untilIn = document.createElement('input');
+  untilIn.type = 'datetime-local';
+  untilIn.className = 'aep-profile-drawer-journey-filter-input';
+  untilIn.setAttribute('data-journey-window-field', 'until');
+  untilIn.setAttribute('aria-label', 'Story window end (optional; empty means no upper bound)');
+
+  const applyBtn = document.createElement('button');
+  applyBtn.type = 'button';
+  applyBtn.className = 'aep-profile-drawer-journey-filter-apply';
+  applyBtn.setAttribute('data-journey-window-action', 'apply');
+  applyBtn.textContent = 'Apply';
+
+  row.appendChild(lab);
+  row.appendChild(startIn);
+  row.appendChild(sep);
+  row.appendChild(untilIn);
+  row.appendChild(applyBtn);
+
+  const presets = document.createElement('div');
+  presets.className = 'aep-profile-drawer-journey-filter-presets';
+
+  function addChip(preset, label, title) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'aep-profile-drawer-journey-filter-chip';
+    b.setAttribute('data-journey-window-preset', preset);
+    b.textContent = label;
+    b.title = title;
+    presets.appendChild(b);
+  }
+
+  addChip(
+    'all',
+    'All',
+    'Show the full event chronology (no time window). Clears start and end fields.',
+  );
+  addChip(
+    'today',
+    'Today',
+    'Local calendar day: from local midnight through end of day (23:59:59.999 inclusive).',
+  );
+  addChip(
+    'last-hour',
+    'Last hour',
+    'Rolling window: events from one hour ago through now (inclusive on both ends).',
+  );
+  addChip(
+    'next-hour',
+    'Next hour',
+    'Rolling window: events from now through one hour ahead (inclusive on both ends).',
+  );
+
+  wrap.appendChild(row);
+  wrap.appendChild(presets);
+
+  eventsStoryModalPanel.insertBefore(wrap, eventsStoryModalTrack);
+  bindJourneyFilterUiOnce();
 }
 
 function appendPersonaSummaryDom(el) {
@@ -1468,6 +1669,7 @@ function applyJourneyStepVisibility() {
 
 function renderProfileDrawerEventsStoryModalContent() {
   ensureProfileDrawerEventsStoryModal();
+  ensureProfileDrawerJourneyFilterRow();
   if (!eventsStoryModalTrack || !eventsStoryModalSummary) return;
   eventsStoryModalTrack.innerHTML = '';
   appendPersonaSummaryDom(eventsStoryModalSummary);
@@ -1479,6 +1681,8 @@ function renderProfileDrawerEventsStoryModalContent() {
         ? lastLookedUpProfile.events
         : [];
   const ordered = sortEventsChronologicalAsc(src);
+  const win = getJourneyStoryWindowBoundsFromUi();
+  const storyEvents = win.active ? filterEventsByJourneyWindow(ordered, win.startMs, win.endMs) : ordered;
 
   if (!ordered.length) {
     const empty = document.createElement('p');
@@ -1491,9 +1695,20 @@ function renderProfileDrawerEventsStoryModalContent() {
     if (eventsStoryModalStepMeta) eventsStoryModalStepMeta.textContent = '';
     return;
   }
+  if (!storyEvents.length) {
+    const empty = document.createElement('p');
+    empty.className = 'aep-profile-drawer-events-story-empty';
+    empty.textContent = 'No events in this window. Adjust the story range or choose All.';
+    eventsStoryModalTrack.appendChild(empty);
+    if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = true;
+    journeyModalGroups = [];
+    journeyModalStep = 0;
+    if (eventsStoryModalStepMeta) eventsStoryModalStepMeta.textContent = '';
+    return;
+  }
   if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = false;
 
-  journeyModalGroups = groupJourneyInstantsByTimestampMs(ordered);
+  journeyModalGroups = groupJourneyInstantsByTimestampMs(storyEvents);
   journeyModalStep = 0;
 
   const strip = document.createElement('div');
@@ -1566,7 +1781,7 @@ function renderProfileDrawerEventsStoryModalContent() {
 
   eventsStoryModalTrack.appendChild(strip);
 
-  const touches = uniqueJourneyTouchpoints(ordered);
+  const touches = uniqueJourneyTouchpoints(storyEvents);
   const hint = document.createElement('p');
   hint.className = 'aep-profile-drawer-journey-touchpoints-hint';
   hint.textContent = touches.length ? `Touchpoints in this journey: ${touches.join(', ')}.` : '';

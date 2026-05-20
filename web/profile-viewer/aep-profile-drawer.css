@@ -728,7 +728,7 @@ body.aep-profile-drawer-events-story-open {
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  padding: clamp(12px, 2.5vh, 24px) 20px;
+  padding: clamp(12px, 2.5vh, 24px) 80px;
   background: rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
 }
@@ -886,6 +886,95 @@ body.aep-profile-drawer-events-story-open {
   font-size: 0.8rem;
   line-height: 1.35;
   color: #bfc3c9;
+}
+
+/* Story time window (modal) — between playback controls and horizontal strip */
+.aep-profile-drawer-journey-filter {
+  padding: 0.45rem 1.25rem 0.55rem;
+  border-bottom: 1px solid rgba(236, 236, 236, 0.12);
+  background: rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.aep-profile-drawer-journey-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.aep-profile-drawer-journey-filter-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #bfc3c9;
+  flex: 0 0 auto;
+}
+
+.aep-profile-drawer-journey-filter-sep {
+  font-size: 0.78rem;
+  color: #bfc3c9;
+  flex: 0 0 auto;
+}
+
+.aep-profile-drawer-journey-filter-input {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 12.5rem;
+  padding: 0.32rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 254, 0.22);
+  background: rgba(255, 255, 254, 0.06);
+  color: #fffffe;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-journey-filter-input:focus {
+  outline: 2px solid rgba(79, 134, 255, 0.55);
+  outline-offset: 1px;
+}
+
+.aep-profile-drawer-journey-filter-apply {
+  flex: 0 0 auto;
+  padding: 0.32rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 254, 0.28);
+  background: rgba(79, 134, 255, 0.22);
+  color: #fffffe;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-journey-filter-apply:hover {
+  background: rgba(79, 134, 255, 0.36);
+}
+
+.aep-profile-drawer-journey-filter-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.aep-profile-drawer-journey-filter-chip {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 254, 0.2);
+  background: rgba(255, 255, 254, 0.06);
+  color: #ececec;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-journey-filter-chip:hover {
+  background: rgba(255, 255, 254, 0.12);
 }
 
 /* Horizontal LTR timeline strip (oldest left → newest right) */
@@ -1053,4 +1142,302 @@ body.aep-profile-drawer-events-story-open {
 
 .aep-profile-drawer-journey-touchpoints-hint--off {
   display: none;
+}
+
+/* --- Drawer theme toggle (JS: `ensureProfileDrawerThemeToggle`; uses `AepTheme.toggle` when present) --- */
+.aep-profile-drawer-theme-slot {
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  z-index: 3225;
+  pointer-events: auto;
+}
+
+.aep-profile-drawer-theme-toggle {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(236, 236, 236, 0.28);
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 254, 0.96);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.aep-profile-drawer-theme-toggle:focus-visible {
+  outline: 2px solid rgba(79, 134, 255, 0.75);
+  outline-offset: 2px;
+}
+
+.aep-profile-drawer-theme-toggle-ico {
+  font-size: 15px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Light theme: drawer + persona journey modal (matches `html` without `data-aep-theme="dark"`) */
+html:not([data-aep-theme='dark']) .aep-profile-drawer {
+  background: rgba(248, 250, 252, 0.98);
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.12);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-col,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-block {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-panel-heading,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-col h2:not(.aep-profile-drawer-panel-heading) {
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-identity-row strong,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-card-fields strong,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-event-title {
+  color: rgba(15, 23, 42, 0.94);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-identity-row span,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-col p,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-card-consent,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-audiences li,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events p {
+  color: rgba(51, 65, 85, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer .aep-profile-drawer-card-consent label,
+html:not([data-aep-theme='dark']) .aep-profile-drawer .aep-profile-drawer-card-consent .aep-profile-drawer-consent-label {
+  color: rgba(51, 65, 85, 0.92) !important;
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-audience-exited,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-email-sends-subheading,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-event-time,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-event-sub {
+  color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-email-sends-count {
+  color: rgba(15, 23, 42, 0.94);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-email-sends-unit {
+  color: rgba(51, 65, 85, 0.9);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-event-item::before {
+  background: rgba(15, 23, 42, 0.14);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-event-thumb {
+  border-color: rgba(15, 23, 42, 0.18);
+  background-color: rgba(226, 232, 240, 0.95);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-zoom-btn {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(15, 23, 42, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-zoom-btn:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-graph-viewport {
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.98) 0%, rgba(226, 232, 240, 0.55) 72%);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-graph-svg text {
+  fill: rgba(15, 23, 42, 0.9) !important;
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-badge {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(59, 130, 246, 0.14);
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-badge:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(15, 23, 42, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+/* Persona journey modal — light */
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-backdrop {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-dialog {
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.18);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-head {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-title {
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-close {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.75);
+  color: rgba(15, 23, 42, 0.85);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-close:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-events-story-empty {
+  color: rgba(51, 65, 85, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-summary {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  color: rgba(51, 65, 85, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-name {
+  color: rgba(15, 23, 42, 0.94);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-sep,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-ecid {
+  color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-persona-email {
+  color: rgba(51, 65, 85, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-controls {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(241, 245, 249, 0.65);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-btn {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(15, 23, 42, 0.9);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-btn--ghost {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-btn--ghost:hover:not(:disabled) {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-meta {
+  color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(241, 245, 249, 0.45);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-label,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-sep {
+  color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-input {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-apply {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(15, 23, 42, 0.9);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-apply:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-chip {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(51, 65, 85, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-filter-chip:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-time-label {
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-time-meta {
+  color: rgba(71, 85, 105, 0.88);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-connector {
+  color: rgba(15, 23, 42, 0.22);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-card {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-touchpoint {
+  color: rgba(15, 23, 42, 0.9);
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-card-title {
+  color: rgba(15, 23, 42, 0.92);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-spine-node {
+  border-top: 2px solid rgba(15, 23, 42, 0.12);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-dot {
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+html:not([data-aep-theme='dark']) .aep-profile-drawer-journey-touchpoints-hint {
+  color: rgba(71, 85, 105, 0.88);
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
 }
