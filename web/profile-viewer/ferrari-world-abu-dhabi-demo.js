@@ -75,8 +75,9 @@ const ferrariworldTagsInjection =
           subscribeAfterInject: ferrariworldWebPushOnInjectDesired,
           requestPermissionOnInject: ferrariworldWebPushOnInjectDesired,
         },
-        onEcidResolved: function () {
-          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('ferrariworld');
+        brandConcierge: {
+          enabled: function () { return !!(ferrariworldBcOnInjectToggle && ferrariworldBcOnInjectToggle.checked); },
+          styleKey: function () { return ferrariworldBcStyleSelect ? ferrariworldBcStyleSelect.value : 'miral'; },
         },
       })
     : null;
