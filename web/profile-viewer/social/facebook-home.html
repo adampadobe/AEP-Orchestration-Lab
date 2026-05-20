@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facebook — Home</title>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../home.css?v=20260520" />
+  <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
+  <link rel="stylesheet" href="facebook-home.css?v=20260520" />
+</head>
+<body class="social-facebook-home-page home-dashboard-concierge">
+
+<!-- ══════════════════════════════════════════════════════════════
+     AEP LAB OVERLAY — hovers over the Facebook mock page
+     ══════════════════════════════════════════════════════════════ -->
+<div class="dashboard-shell">
+  <aside class="dashboard-sidebar" id="dashSidebar"></aside>
+  <div class="dashboard-main-wrap" style="display:none;"></div>
+</div>
+
+<!-- ── Slide-down identity + SDK banner ───────────────────────── -->
+<div class="social-facebook-home-demo-top-anchor">
+  <div class="social-facebook-home-demo-id-banner">
+    <div class="social-facebook-home-demo-id-inner">
+      <div class="ferrariworld-sdk-config-fields mod-sdk-config-fields" id="facebookHomeSdkConfigFields" hidden>
+        <div class="form-row">
+          <label for="facebookHomeTagsCompany">IMS Org</label>
+          <input type="text" id="facebookHomeTagsCompany" class="form-control" placeholder="org@AdobeOrg" />
+        </div>
+        <div class="form-row">
+          <label for="facebookHomeTagsProperty">Tags property</label>
+          <input type="text" id="facebookHomeTagsProperty" class="form-control" list="facebookHomeTagsPropertyList" placeholder="paste embed URL" />
+          <datalist id="facebookHomeTagsPropertyList"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="facebookHomeTagsEnvironment">Environment</label>
+          <select id="facebookHomeTagsEnvironment" class="form-control">
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+            <option value="development">Development</option>
+          </select>
+        </div>
+      </div>
+      <div class="mod-sdk-summary--below-env-grid" id="facebookHomeSdkConfigSummary" hidden></div>
+      <div class="social-facebook-home-demo-id-actions">
+        <div class="form-row">
+          <label for="customerEmailHome">Customer identifier</label>
+          <input type="email" id="customerEmailHome" class="form-control" placeholder="customer@example.com" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <label for="generatorTargetHome">Event target</label>
+          <select id="generatorTargetHome" class="form-control"></select>
+        </div>
+        <button class="btn btn-primary btn-lookup" id="queryProfileBtnHome" type="button">Look up profile</button>
+        <button class="btn btn-secondary btn-lookup" id="injectSdkBtnHome" type="button">Inject Tags</button>
+        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
+          <input type="checkbox" id="facebookHomeWebPushOnInjectToggle" />Push
+        </label>
+        <button class="btn btn-outline btn-lookup" id="facebookHomeWebPushRetryBtn" type="button" title="Retry web push">&#x1F514;</button>
+        <button class="btn btn-ghost btn-lookup" id="facebookHomeChangeSdkConfigBtn" type="button" style="margin-left:auto;">⚙ Config</button>
+      </div>
+    </div>
+    <div class="social-facebook-home-demo-script-preview">
+      <span id="facebookHomeSelectedScript"></span>
+    </div>
+    <div id="infoEcidHome" class="social-facebook-home-demo-ecid-hint" hidden></div>
+  </div>
+  <p id="facebookHomeMessage" class="social-facebook-home-demo-message" hidden></p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FACEBOOK HOME / NEWS FEED MOCK
+     ══════════════════════════════════════════════════════════════ -->
+<div class="fbh-mock">
+
+  <!-- ── Top navigation bar ──────────────────────────────────── -->
+  <nav class="fbh-topbar">
+    <!-- Left: logo + search -->
+    <div class="fbh-topbar-left">
+      <div class="fbh-logo">
+        <svg viewBox="0 0 36 36" fill="#1877f2" width="40" height="40"><path d="M36 18C36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.985 6.584 16.425 15.188 17.787V23.203H10.62V18h4.568v-3.967c0-4.508 2.685-6.996 6.79-6.996 1.967 0 4.024.351 4.024.351v4.426h-2.267c-2.234 0-2.93 1.387-2.93 2.81V18h4.99l-.798 5.203h-4.192v12.584C29.416 34.425 36 26.985 36 18z"/></svg>
+      </div>
+      <div class="fbh-search">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="#65676b" stroke-width="2.2"/><path stroke="#65676b" stroke-width="2.2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+        <span>Search Facebook</span>
+      </div>
+    </div>
+
+    <!-- Centre: nav tabs -->
+    <div class="fbh-topbar-nav">
+      <a href="facebook-home.html" class="fbh-nav-tab active" title="Home">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </a>
+      <a href="#" class="fbh-nav-tab" title="Friends">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h0"/><circle cx="17" cy="17" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M14 17h6M17 14v6"/></svg>
+      </a>
+      <a href="facebook.html" class="fbh-nav-tab" title="Profile">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M4 20v-1a8 8 0 0116 0v1"/></svg>
+      </a>
+      <a href="#" class="fbh-nav-tab" title="Watch">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+      </a>
+      <a href="#" class="fbh-nav-tab" title="Marketplace">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9h18l-2 11H5L3 9zM3 9l2-4h14l2 4"/><path stroke="currentColor" stroke-width="1.8" d="M12 9v11M8 9l1 11M16 9l-1 11"/></svg>
+      </a>
+    </div>
+
+    <!-- Right: action buttons + avatar -->
+    <div class="fbh-topbar-right">
+      <div class="fbh-icon-btn" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </div>
+      <div class="fbh-icon-btn" title="Messenger">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+      </div>
+      <div class="fbh-icon-btn fbh-notif-btn" title="Notifications">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="fbh-badge">9</span>
+      </div>
+      <div class="fbh-topbar-avatar">
+        <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Three-column body ──────────────────────────────────── -->
+  <div class="fbh-body">
+
+    <!-- ── LEFT SIDEBAR ─────────────────────────────────────── -->
+    <aside class="fbh-left">
+      <!-- User mini-profile -->
+      <a href="facebook.html" class="fbh-left-profile">
+        <div class="fbh-left-avatar">
+          <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+        </div>
+        <span class="fbh-left-name">Alex Morgan</span>
+      </a>
+
+      <div class="fbh-left-divider"></div>
+
+      <!-- Shortcuts -->
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--friends">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h0M16 11a4 4 0 110 8M19 15h-6"/></svg>
+        </div>
+        <span>Friends</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--groups">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M3 21v-1a6 6 0 016-6h6a6 6 0 016 6v1"/></svg>
+        </div>
+        <span>Groups</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--marketplace">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M3 9h18l-2 11H5L3 9zM3 9l2-4h14l2 4"/></svg>
+        </div>
+        <span>Marketplace</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--watch">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+        </div>
+        <span>Watch</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--memories">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M12 22s8-4.5 8-11.8A8 8 0 004 10.2C4 17.5 12 22 12 22z"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        </div>
+        <span>Memories</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--saved">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg>
+        </div>
+        <span>Saved</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--events">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <span>Events</span>
+      </a>
+
+      <div class="fbh-left-divider"></div>
+      <div class="fbh-left-section-title">Your shortcuts</div>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--group-thumb">
+          <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=44&q=70" alt="" />
+        </div>
+        <span>Travel Enthusiasts ✈️</span>
+      </a>
+      <a href="#" class="fbh-left-item">
+        <div class="fbh-left-icon fbh-left-icon--group-thumb">
+          <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=44&q=70" alt="" />
+        </div>
+        <span>SF Hiking Crew</span>
+      </a>
+    </aside>
+
+    <!-- ── CENTRE FEED ─────────────────────────────────────── -->
+    <main class="fbh-feed">
+
+      <!-- Stories row -->
+      <div class="fbh-stories">
+        <!-- Create story -->
+        <div class="fbh-story fbh-story--create">
+          <div class="fbh-story-img-wrap">
+            <img src="https://i.pravatar.cc/120?img=47" alt="" />
+            <div class="fbh-story-create-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+          <span class="fbh-story-label">Create story</span>
+        </div>
+
+        <!-- Friend stories -->
+        <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=120&q=70')">
+          <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=11" alt="Jamie Chen" /></div>
+          <span class="fbh-story-label">Jamie Chen</span>
+        </div>
+        <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1501854140801-50d01698950b?w=120&q=70')">
+          <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=22" alt="Sam Torres" /></div>
+          <span class="fbh-story-label">Sam Torres</span>
+        </div>
+        <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1519681393784-d120267933ba?w=120&q=70')">
+          <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=33" alt="Riley Park" /></div>
+          <span class="fbh-story-label">Riley Park</span>
+        </div>
+        <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=70')">
+          <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=44" alt="Dana Kim" /></div>
+          <span class="fbh-story-label">Dana Kim</span>
+        </div>
+        <div class="fbh-story" style="--story-bg:url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&q=70')">
+          <div class="fbh-story-avatar"><img src="https://i.pravatar.cc/40?img=55" alt="Jordan Lee" /></div>
+          <span class="fbh-story-label">Jordan Lee</span>
+        </div>
+      </div>
+
+      <!-- Create post box -->
+      <div class="fbh-card fbh-create-post">
+        <div class="fbh-create-post-top">
+          <div class="fbh-create-avatar">
+            <img src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+          </div>
+          <div class="fbh-create-input">What's on your mind, Alex?</div>
+        </div>
+        <div class="fbh-create-post-divider"></div>
+        <div class="fbh-create-post-actions">
+          <button class="fbh-create-action">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#e94235" stroke-width="1.8"/><path stroke="#e94235" stroke-width="1.8" d="M10 9l5 3-5 3V9z"/></svg>
+            Live video
+          </button>
+          <button class="fbh-create-action">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#45bd62" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" fill="#45bd62"/><path stroke="#45bd62" stroke-width="1.8" d="M21 15l-5-5L5 21"/></svg>
+            Photo/video
+          </button>
+          <button class="fbh-create-action">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#f7b928" stroke-width="1.8"/><path stroke="#f7b928" stroke-width="1.8" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+            Feeling/activity
+          </button>
+        </div>
+      </div>
+
+      <!-- ── POST 1 ─────────────────────────────────────────── -->
+      <div class="fbh-card fbh-post">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=11" alt="Jamie Chen" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Jamie Chen</div>
+            <div class="fbh-post-time">2 h · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text">Just got back from an incredible week in Kyoto 🇯🇵 The cherry blossoms were in full bloom and everything was absolutely magical. If you haven't been, add it to your list immediately!</div>
+        <div class="fbh-post-img-wrap">
+          <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80" alt="Kyoto cherry blossoms" />
+        </div>
+        <div class="fbh-post-reactions-row">
+          <div class="fbh-reactions-left">
+            <span class="fbh-emoji-chip">👍</span><span class="fbh-emoji-chip">❤️</span><span class="fbh-emoji-chip">😮</span>
+            <span class="fbh-reaction-count">Alex and 214 others</span>
+          </div>
+          <div class="fbh-reactions-right">
+            <span>38 comments</span> · <span>12 shares</span>
+          </div>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           AD INJECTION SLOT #1 — Sponsored post in feed
+           AEP will replace / inject ad content here at runtime
+           ══════════════════════════════════════════════════════ -->
+      <div class="fbh-card fbh-post fbh-ad-slot" id="fbAdSlot1" data-ad-slot="feed-1">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=80&q=70" alt="Adobe" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Adobe <span class="fbh-verified">✓</span></div>
+            <div class="fbh-post-time fbh-sponsored">Sponsored · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text">Turn your creativity into impact. Adobe Creative Cloud gives you all the tools you need — Photoshop, Illustrator, Premiere Pro and more. <strong>Get 2 months free</strong> when you subscribe today. 🎨</div>
+        <div class="fbh-post-img-wrap">
+          <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80" alt="Adobe Creative Cloud" />
+        </div>
+        <div class="fbh-ad-cta-strip">
+          <div class="fbh-ad-cta-text">
+            <div class="fbh-ad-cta-domain">adobe.com</div>
+            <div class="fbh-ad-cta-headline">Adobe Creative Cloud — Get 2 months free</div>
+            <div class="fbh-ad-cta-sub">All your creative apps in one place.</div>
+          </div>
+          <button class="fbh-ad-cta-btn">Learn more</button>
+        </div>
+        <div class="fbh-ad-badge">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2 2"/></svg>
+          AEP Ad Slot — <code>id="fbAdSlot1"</code>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-ad-cta-btn fbh-ad-cta-btn--feed">Learn more</button>
+        </div>
+      </div>
+
+      <!-- ── POST 2 ─────────────────────────────────────────── -->
+      <div class="fbh-card fbh-post">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=33" alt="Riley Park" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Riley Park</div>
+            <div class="fbh-post-time">4 h · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text">Coffee + good book + Sunday morning = perfection ☕📖 Nothing like slowing down after a crazy week.</div>
+        <div class="fbh-post-img-wrap fbh-post-img-wrap--grid2">
+          <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&q=70" alt="Coffee" />
+          <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=70" alt="Book" />
+        </div>
+        <div class="fbh-post-reactions-row">
+          <div class="fbh-reactions-left">
+            <span class="fbh-emoji-chip">👍</span><span class="fbh-emoji-chip">❤️</span>
+            <span class="fbh-reaction-count">74 reactions</span>
+          </div>
+          <div class="fbh-reactions-right">
+            <span>11 comments</span>
+          </div>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+        </div>
+      </div>
+
+      <!-- ── POST 3 ─────────────────────────────────────────── -->
+      <div class="fbh-card fbh-post">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=44" alt="Dana Kim" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Dana Kim</div>
+            <div class="fbh-post-time">Yesterday · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text">Trail run at 6am hit different this morning 🌅 18°C, no crowds, just you and the mountain. If you're not doing your long runs at sunrise, you're missing out. Who's joining the crew next weekend?</div>
+        <div class="fbh-post-img-wrap">
+          <img src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=600&q=80" alt="Trail running at sunrise" />
+        </div>
+        <div class="fbh-post-reactions-row">
+          <div class="fbh-reactions-left">
+            <span class="fbh-emoji-chip">👍</span><span class="fbh-emoji-chip">❤️</span><span class="fbh-emoji-chip">💪</span>
+            <span class="fbh-reaction-count">Jordan, Alex and 98 others</span>
+          </div>
+          <div class="fbh-reactions-right">
+            <span>29 comments</span> · <span>4 shares</span>
+          </div>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           AD INJECTION SLOT #2 — Second sponsored post in feed
+           ══════════════════════════════════════════════════════ -->
+      <div class="fbh-card fbh-post fbh-ad-slot" id="fbAdSlot2" data-ad-slot="feed-2">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=80&q=70" alt="Nike" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Nike Running <span class="fbh-verified">✓</span></div>
+            <div class="fbh-post-time fbh-sponsored">Sponsored · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text">Built for the trail. The new <strong>Nike Pegasus Trail 5</strong> features ReactX foam for maximum cushion on every surface. Whether you're doing sunrise miles or mountain ultras — your next personal best starts here. 🏃</div>
+        <div class="fbh-post-img-wrap">
+          <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80" alt="Nike trail shoes" />
+        </div>
+        <div class="fbh-ad-cta-strip">
+          <div class="fbh-ad-cta-text">
+            <div class="fbh-ad-cta-domain">nike.com</div>
+            <div class="fbh-ad-cta-headline">Nike Pegasus Trail 5 — Shop Now</div>
+            <div class="fbh-ad-cta-sub">Free shipping on orders over $75.</div>
+          </div>
+          <button class="fbh-ad-cta-btn">Shop now</button>
+        </div>
+        <div class="fbh-ad-badge">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M12 8v4l2 2"/></svg>
+          AEP Ad Slot — <code>id="fbAdSlot2"</code>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-ad-cta-btn fbh-ad-cta-btn--feed">Shop now</button>
+        </div>
+      </div>
+
+      <!-- ── POST 4 ─────────────────────────────────────────── -->
+      <div class="fbh-card fbh-post">
+        <div class="fbh-post-header">
+          <img class="fbh-post-avatar" src="https://i.pravatar.cc/80?img=55" alt="Jordan Lee" />
+          <div class="fbh-post-meta">
+            <div class="fbh-post-author">Jordan Lee</div>
+            <div class="fbh-post-time">2 d · <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+          </div>
+          <div class="fbh-post-options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
+        </div>
+        <div class="fbh-post-text" style="font-size:22px;text-align:center;padding:20px 32px;line-height:1.5;">
+          Just accepted an offer at a new company!! 🎉🥳 So incredibly excited for this next chapter. Thanks to everyone who supported me during the job search — you know who you are ❤️
+        </div>
+        <div class="fbh-post-reactions-row">
+          <div class="fbh-reactions-left">
+            <span class="fbh-emoji-chip">❤️</span><span class="fbh-emoji-chip">👍</span><span class="fbh-emoji-chip">🎉</span>
+            <span class="fbh-reaction-count">312 reactions</span>
+          </div>
+          <div class="fbh-reactions-right">
+            <span>87 comments</span> · <span>14 shares</span>
+          </div>
+        </div>
+        <div class="fbh-post-divider"></div>
+        <div class="fbh-post-action-bar">
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke="currentColor" stroke-width="1.8" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg> Like</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg> Comment</button>
+          <button class="fbh-action-btn"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg> Share</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ── RIGHT SIDEBAR ──────────────────────────────────── -->
+    <aside class="fbh-right">
+
+      <!-- Sponsored section -->
+      <div class="fbh-right-section">
+        <div class="fbh-right-title">Sponsored</div>
+
+        <!-- Right-rail ad slot 1 -->
+        <div class="fbh-rail-ad fbh-ad-slot" id="fbAdSlotRail1" data-ad-slot="rail-1">
+          <img class="fbh-rail-ad-img" src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=160&q=70" alt="Headphones" />
+          <div class="fbh-rail-ad-body">
+            <div class="fbh-rail-ad-title">Sony WH-1000XM5</div>
+            <div class="fbh-rail-ad-sub">sony.com · Best-in-class noise cancellation. Free shipping today.</div>
+            <button class="fbh-rail-ad-btn">Shop now</button>
+          </div>
+          <div class="fbh-ad-badge fbh-ad-badge--rail">AEP Rail Slot <code>fbAdSlotRail1</code></div>
+        </div>
+
+        <!-- Right-rail ad slot 2 -->
+        <div class="fbh-rail-ad fbh-ad-slot" id="fbAdSlotRail2" data-ad-slot="rail-2">
+          <img class="fbh-rail-ad-img" src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=160&q=70" alt="Furniture" />
+          <div class="fbh-rail-ad-body">
+            <div class="fbh-rail-ad-title">West Elm — Summer Sale</div>
+            <div class="fbh-rail-ad-sub">westelm.com · Up to 40% off outdoor furniture this week.</div>
+            <button class="fbh-rail-ad-btn">Learn more</button>
+          </div>
+          <div class="fbh-ad-badge fbh-ad-badge--rail">AEP Rail Slot <code>fbAdSlotRail2</code></div>
+        </div>
+      </div>
+
+      <!-- Birthdays -->
+      <div class="fbh-right-section fbh-right-section--birthdays">
+        <div class="fbh-right-title">Birthdays</div>
+        <div class="fbh-birthday-item">
+          <div class="fbh-birthday-icon">🎂</div>
+          <div><strong>Sam Torres</strong> and <strong>2 others</strong> have birthdays today.</div>
+        </div>
+      </div>
+
+      <!-- Contacts -->
+      <div class="fbh-right-section">
+        <div class="fbh-contacts-header">
+          <div class="fbh-right-title">Contacts</div>
+          <div class="fbh-contacts-icons">
+            <div class="fbh-contact-icon-btn" title="Search">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 17l3.5 3.5"/></svg>
+            </div>
+            <div class="fbh-contact-icon-btn" title="More">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=11" alt="Jamie Chen" /></div>
+          <span>Jamie Chen</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=22" alt="Sam Torres" /></div>
+          <span>Sam Torres</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=33" alt="Riley Park" /></div>
+          <span>Riley Park</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=44" alt="Dana Kim" /></div>
+          <span>Dana Kim</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=55" alt="Jordan Lee" /></div>
+          <span>Jordan Lee</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar fbh-contact-online"><img src="https://i.pravatar.cc/36?img=66" alt="Casey Reyes" /></div>
+          <span>Casey Reyes</span>
+        </div>
+        <div class="fbh-contact">
+          <div class="fbh-contact-avatar"><img src="https://i.pravatar.cc/36?img=77" alt="Morgan Liu" /></div>
+          <span>Morgan Liu</span>
+        </div>
+      </div>
+
+      <div class="fbh-right-footer">
+        Privacy · Terms · Advertising · Cookies · More · Meta © 2025
+      </div>
+    </aside>
+
+  </div><!-- /fbh-body -->
+</div><!-- /fbh-mock -->
+
+<!-- ── AEP scripts ─────────────────────────────────────────────── -->
+<script src="../aep-lab-nav.js?v=20260520-social-facebook-home"></script>
+<script src="../aep-identity-picker.js" defer></script>
+<script src="../aep-profile-drawer.js" defer></script>
+<script src="../aep-tags-injection.js" defer></script>
+<script src="../aep-web-push.js" defer></script>
+<script src="../aep-demo-generator-targets.js" defer></script>
+<script src="../aep-theme.js" defer></script>
+<script src="facebook-home-demo.js" defer></script>
+
+</body>
+</html>

@@ -3,7 +3,7 @@
  * Expects element ids profileDrawer*, identityGraph*, profileHoverZone.
  * Include aep-profile-drawer.css and email-engagement-metrics.js before this script.
  * Optional: identity-picker.js + aep-global-sandbox.js for namespace + sandbox query params.
- * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a horizontal journey modal (channels + timeline).
+ * Events column: first run replaces the "LAST 5 EVENTS" heading with LAST EVENTS + a count badge; badge opens a persona journey modal (horizontal LTR timeline + step-through).
  */
 (function (global) {
   'use strict';
@@ -41,7 +41,7 @@
   let identityGraphZoomIn;
   let identityGraphZoomOut;
 
-  /** Clickable count badge (top-right of events column) — opens horizontal journey modal */
+  /** Clickable count badge (top-right of events column) — opens persona journey modal */
   let profileDrawerEventsStoryBadge;
   /** @type {HTMLElement | null} */
   let eventsStoryModalBackdrop;
@@ -51,12 +51,24 @@
   let eventsStoryModalTrack;
   /** @type {HTMLElement | null} */
   let eventsStoryModalClose;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalSummary;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalControlsWrap;
+  /** @type {HTMLElement | null} */
+  let eventsStoryModalStepMeta;
   let eventsStoryModalOpen = false;
   /** @type {HTMLElement | null} */
   let eventsStoryModalLastFocus;
   let eventsStoryModalKeydownBound = false;
+  let journeyControlsBound = false;
 
-  /** Max events in the horizontal “story” scroller (same fetch as drawer, deeper slice). */
+  /** @type {Array<{ instantMs: number | null, events: Record<string, unknown>[] }>} */
+  let journeyModalGroups = [];
+  /** Cumulative step: rows with index <= step are visible (0 = first instant only). */
+  let journeyModalStep = 0;
+
+  /** Max events in the journey modal (same fetch as drawer, deeper slice). */
   const DRAWER_EVENTS_STORY_MAX = 48;
 
   function getSandboxParam() {
@@ -923,6 +935,43 @@ function formatDrawerEventChannelDisplay(ev) {
   return 'Web';
 }
 
+/** Lowercase blob of event head + flattened row paths/values for touchpoint inference. */
+function journeyInferenceBlob(ev) {
+  const e = ev && typeof ev === 'object' ? ev : {};
+  const rows = Array.isArray(e.rows) ? e.rows : [];
+  const fromRows = rows.map((r) => `${r.path || ''} ${r.value || ''}`).join(' ').toLowerCase();
+  const head = `${e.eventType || ''} ${e.eventName || ''}`.toLowerCase();
+  return `${head} ${fromRows}`;
+}
+
+/** Cross-channel touchpoint label for the persona journey modal (richer than drawer sub-line). */
+function formatJourneyTouchpoint(ev) {
+  const msgKind = aepProfileDrawerMessageChannelKind(ev);
+  if (msgKind === 'email') return 'Marketing email';
+  if (msgKind === 'push') return 'Push notification';
+  const blob = journeyInferenceBlob(ev);
+  if (
+    /call[\s_-]?cent(er|re)|contact[\s_-]?cent(er|re)|callcent|screen[\s_-]?pop|hotdesk|agentdesktop|voice[\s_-]?call|ivr|telephony|genesys|twilio|niceincontact/.test(
+      blob,
+    )
+  ) {
+    return 'Contact centre';
+  }
+  if (/crm|salesforce|service[\s_-]?cloud|case\.|ticketing|zendesk|servicenow/.test(blob)) {
+    return 'CRM / service';
+  }
+  if (/kiosk|pos|in[\s_-]?store|branch\.|retail[\s_-]?store/.test(blob)) {
+    return 'In-store / kiosk';
+  }
+  const typeRaw = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase();
+  if (typeRaw.startsWith('mobile')) return 'Mobile app';
+  if (typeRaw.startsWith('application')) return 'Application';
+  if (typeRaw.startsWith('insurance')) return 'Insurance journey';
+  if (typeRaw.startsWith('web')) return 'Web experience';
+  if (blob.includes('server') || blob.includes('batch') || blob.includes('datafeed')) return 'Server / batch';
+  return 'Digital touchpoint';
+}
+
 /**
  * @param {HTMLDivElement} thumb
  * @param {Record<string, unknown>} ev
@@ -994,7 +1043,7 @@ function ensureProfileDrawerEventsHeadingRow() {
   btn.setAttribute('aria-haspopup', 'dialog');
   btn.setAttribute('aria-controls', 'aepProfileDrawerEventsStoryDialog');
   btn.setAttribute('aria-expanded', 'false');
-  btn.title = 'Open experience timeline — scroll the journey left to right';
+  btn.title = 'Open persona journey — horizontal timeline (left to right)';
   btn.textContent = '0';
 
   row.appendChild(title);
@@ -1023,8 +1072,76 @@ function updateProfileDrawerEventsStoryBadgeCount(displayedCount) {
   profileDrawerEventsStoryBadge.setAttribute('aria-disabled', !hasStory && n === 0 ? 'true' : 'false');
 }
 
+function migratePersonaJourneyModalChromeIfNeeded() {
+  if (!eventsStoryModalPanel || !eventsStoryModalTrack) return;
+  if (eventsStoryModalPanel.querySelector('.aep-profile-drawer-journey-controls')) return;
+  const trackEl = eventsStoryModalTrack;
+  const summary = document.createElement('div');
+  summary.className = 'aep-profile-drawer-journey-summary';
+  summary.id = 'aepProfileDrawerJourneySummary';
+  summary.setAttribute('aria-live', 'polite');
+
+  const nav = document.createElement('nav');
+  nav.className = 'aep-profile-drawer-journey-controls';
+  nav.setAttribute('aria-label', 'Journey playback');
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'aep-profile-drawer-journey-btn';
+  prevBtn.setAttribute('data-journey-action', 'prev');
+  prevBtn.textContent = 'Previous moment';
+
+  const meta = document.createElement('span');
+  meta.className = 'aep-profile-drawer-journey-meta';
+  meta.id = 'aepProfileDrawerJourneyStepMeta';
+  meta.setAttribute('role', 'status');
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'aep-profile-drawer-journey-btn';
+  nextBtn.setAttribute('data-journey-action', 'next');
+  nextBtn.textContent = 'Next moment';
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'aep-profile-drawer-journey-btn aep-profile-drawer-journey-btn--ghost';
+  allBtn.setAttribute('data-journey-action', 'showall');
+  allBtn.textContent = 'Show full journey';
+
+  nav.appendChild(prevBtn);
+  nav.appendChild(meta);
+  nav.appendChild(nextBtn);
+  nav.appendChild(allBtn);
+
+  eventsStoryModalPanel.insertBefore(summary, trackEl);
+  eventsStoryModalPanel.insertBefore(nav, trackEl);
+  eventsStoryModalSummary = summary;
+  eventsStoryModalControlsWrap = nav;
+  eventsStoryModalStepMeta = meta;
+}
+
+function bindJourneyControlsOnce() {
+  if (journeyControlsBound || !eventsStoryModalControlsWrap) return;
+  journeyControlsBound = true;
+  eventsStoryModalControlsWrap.addEventListener('click', function (e) {
+    const btn = e.target && e.target.closest && e.target.closest('[data-journey-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-journey-action');
+    const maxIdx = Math.max(0, journeyModalGroups.length - 1);
+    if (action === 'prev') journeyModalStep = Math.max(0, journeyModalStep - 1);
+    else if (action === 'next') journeyModalStep = Math.min(maxIdx, journeyModalStep + 1);
+    else if (action === 'showall') journeyModalStep = maxIdx;
+    applyJourneyStepVisibility();
+  });
+}
+
 function ensureProfileDrawerEventsStoryModal() {
-  if (eventsStoryModalBackdrop && eventsStoryModalPanel) return;
+  if (eventsStoryModalBackdrop && eventsStoryModalPanel) {
+    migratePersonaJourneyModalChromeIfNeeded();
+    bindJourneyControlsOnce();
+    return;
+  }
+
   const backdrop = document.createElement('div');
   backdrop.id = 'aepProfileDrawerEventsStoryBackdrop';
   backdrop.className = 'aep-profile-drawer-events-story-backdrop';
@@ -1044,26 +1161,61 @@ function ensureProfileDrawerEventsStoryModal() {
   const ttl = document.createElement('h2');
   ttl.id = 'aepProfileDrawerEventsStoryTitle';
   ttl.className = 'aep-profile-drawer-events-story-title';
-  ttl.textContent = 'Experience timeline';
-  const sub = document.createElement('p');
-  sub.className = 'aep-profile-drawer-events-story-sub';
-  sub.textContent = 'Oldest to newest — channels show where each behaviour was captured.';
+  ttl.textContent = 'Persona journey';
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'aep-profile-drawer-events-story-close';
-  closeBtn.setAttribute('aria-label', 'Close timeline');
+  closeBtn.setAttribute('aria-label', 'Close journey');
   closeBtn.textContent = '\u00d7';
   head.appendChild(ttl);
-  head.appendChild(sub);
   head.appendChild(closeBtn);
+
+  const summary = document.createElement('div');
+  summary.className = 'aep-profile-drawer-journey-summary';
+  summary.id = 'aepProfileDrawerJourneySummary';
+  summary.setAttribute('aria-live', 'polite');
+
+  const nav = document.createElement('nav');
+  nav.className = 'aep-profile-drawer-journey-controls';
+  nav.setAttribute('aria-label', 'Journey playback');
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'aep-profile-drawer-journey-btn';
+  prevBtn.setAttribute('data-journey-action', 'prev');
+  prevBtn.textContent = 'Previous moment';
+
+  const meta = document.createElement('span');
+  meta.className = 'aep-profile-drawer-journey-meta';
+  meta.id = 'aepProfileDrawerJourneyStepMeta';
+  meta.setAttribute('role', 'status');
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'aep-profile-drawer-journey-btn';
+  nextBtn.setAttribute('data-journey-action', 'next');
+  nextBtn.textContent = 'Next moment';
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'aep-profile-drawer-journey-btn aep-profile-drawer-journey-btn--ghost';
+  allBtn.setAttribute('data-journey-action', 'showall');
+  allBtn.textContent = 'Show full journey';
+
+  nav.appendChild(prevBtn);
+  nav.appendChild(meta);
+  nav.appendChild(nextBtn);
+  nav.appendChild(allBtn);
 
   const track = document.createElement('div');
   track.className = 'aep-profile-drawer-events-story-track';
   track.setAttribute('role', 'region');
-  track.setAttribute('aria-label', 'Experience events in time order');
+  track.setAttribute('aria-label', 'Experience timeline left to right');
   track.tabIndex = 0;
 
   panel.appendChild(head);
+  panel.appendChild(summary);
+  panel.appendChild(nav);
   panel.appendChild(track);
   backdrop.appendChild(panel);
   document.body.appendChild(backdrop);
@@ -1072,6 +1224,9 @@ function ensureProfileDrawerEventsStoryModal() {
   eventsStoryModalPanel = panel;
   eventsStoryModalTrack = track;
   eventsStoryModalClose = closeBtn;
+  eventsStoryModalSummary = summary;
+  eventsStoryModalControlsWrap = nav;
+  eventsStoryModalStepMeta = meta;
 
   function onBackdropDown(e) {
     if (e.target === backdrop) closeProfileDrawerEventsStoryModal();
@@ -1080,22 +1235,147 @@ function ensureProfileDrawerEventsStoryModal() {
   closeBtn.addEventListener('click', function () {
     closeProfileDrawerEventsStoryModal();
   });
+
+  bindJourneyControlsOnce();
 }
 
-function eventsChronologicalForStoryModal(events) {
+function sortEventsChronologicalAsc(events) {
   const arr = Array.isArray(events) ? events.slice() : [];
   arr.sort((a, b) => {
-    const at = eventTimestampMsForDrawer(a) || 0;
-    const bt = eventTimestampMsForDrawer(b) || 0;
+    const at = eventTimestampMsForDrawer(a);
+    const bt = eventTimestampMsForDrawer(b);
+    const aNull = at == null || !Number.isFinite(at);
+    const bNull = bt == null || !Number.isFinite(bt);
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
     return at - bt;
   });
   return arr;
 }
 
+/** One row per clock instant; same millisecond → one instant with multiple parallel events. */
+function groupJourneyInstantsByTimestampMs(sortedAsc) {
+  const groups = [];
+  for (const ev of sortedAsc) {
+    const ms = eventTimestampMsForDrawer(ev);
+    const prev = groups[groups.length - 1];
+    if (ms != null && Number.isFinite(ms) && prev && prev.instantMs === ms) {
+      prev.events.push(ev);
+    } else {
+      groups.push({ instantMs: ms != null && Number.isFinite(ms) ? ms : null, events: [ev] });
+    }
+  }
+  return groups;
+}
+
+function appendPersonaSummaryDom(el) {
+  if (!el) return;
+  el.textContent = '';
+  const p = lastLookedUpProfile;
+  if (!p) {
+    el.textContent = 'Load a profile to anchor this journey to the attributes shown in the drawer.';
+    return;
+  }
+  const first = p.firstName != null ? String(p.firstName).trim() : '';
+  const last = p.lastName != null ? String(p.lastName).trim() : '';
+  const name = `${first} ${last}`.trim() || 'Person';
+  const strong = document.createElement('strong');
+  strong.className = 'aep-profile-drawer-journey-persona-name';
+  strong.textContent = name;
+  el.appendChild(strong);
+  const email = p.email != null ? String(p.email).trim() : '';
+  if (email) {
+    const sep = document.createElement('span');
+    sep.className = 'aep-profile-drawer-journey-persona-sep';
+    sep.setAttribute('aria-hidden', 'true');
+    sep.textContent = ' · ';
+    el.appendChild(sep);
+    const em = document.createElement('span');
+    em.className = 'aep-profile-drawer-journey-persona-email';
+    em.textContent = email;
+    el.appendChild(em);
+  }
+  const ecidRaw = p.ecid != null ? String(p.ecid).replace(/\D/g, '') : '';
+  if (ecidRaw.length >= 10) {
+    const sep2 = document.createElement('span');
+    sep2.className = 'aep-profile-drawer-journey-persona-sep';
+    sep2.setAttribute('aria-hidden', 'true');
+    sep2.textContent = ' · ';
+    el.appendChild(sep2);
+    const ec = document.createElement('span');
+    ec.className = 'aep-profile-drawer-journey-persona-ecid';
+    ec.textContent = `ECID ${ecidRaw.slice(0, 4)}…${ecidRaw.slice(-4)}`;
+    el.appendChild(ec);
+  }
+}
+
+function uniqueJourneyTouchpoints(events) {
+  const arr = Array.isArray(events) ? events : [];
+  const set = new Set();
+  arr.forEach((ev) => set.add(formatJourneyTouchpoint(ev)));
+  return Array.from(set);
+}
+
+function applyJourneyStepVisibility() {
+  if (!eventsStoryModalTrack) return;
+  const strip = eventsStoryModalTrack.querySelector('.aep-profile-drawer-journey-strip');
+  const rows = strip ? strip.querySelectorAll('.aep-profile-drawer-journey-instant') : [];
+  rows.forEach((row) => {
+    const i = parseInt(row.getAttribute('data-journey-instant') || '-1', 10);
+    const show = Number.isFinite(i) && i <= journeyModalStep;
+    row.classList.toggle('aep-profile-drawer-journey-instant--off', !show);
+    row.setAttribute('aria-hidden', show ? 'false' : 'true');
+  });
+  if (strip) {
+    strip.querySelectorAll('.aep-profile-drawer-journey-connector').forEach((el) => {
+      const beforeIdx = parseInt(el.getAttribute('data-journey-connector-before') || '-1', 10);
+      const show = Number.isFinite(beforeIdx) && beforeIdx >= 1 && beforeIdx <= journeyModalStep;
+      el.classList.toggle('aep-profile-drawer-journey-connector--off', !show);
+      el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+  }
+  const hint = eventsStoryModalTrack.querySelector('.aep-profile-drawer-journey-touchpoints-hint');
+  if (hint) {
+    const showHint =
+      journeyModalGroups.length > 0 && journeyModalStep >= Math.max(0, journeyModalGroups.length - 1);
+    hint.classList.toggle('aep-profile-drawer-journey-touchpoints-hint--off', !showHint);
+  }
+  const maxIdx = Math.max(0, journeyModalGroups.length - 1);
+  const root = eventsStoryModalControlsWrap;
+  if (root) {
+    const prev = root.querySelector('[data-journey-action="prev"]');
+    const next = root.querySelector('[data-journey-action="next"]');
+    const all = root.querySelector('[data-journey-action="showall"]');
+    if (prev) prev.disabled = journeyModalStep <= 0;
+    if (next) next.disabled = journeyModalStep >= maxIdx;
+    if (all) {
+      all.hidden = journeyModalGroups.length <= 1;
+      all.disabled = journeyModalStep >= maxIdx;
+    }
+  }
+  if (eventsStoryModalStepMeta) {
+    const total = journeyModalGroups.length || 0;
+    eventsStoryModalStepMeta.textContent =
+      total === 0
+        ? ''
+        : `Moment ${journeyModalStep + 1} of ${total} · timeline grows left to right (cumulative)`;
+  }
+  const active = strip && strip.querySelector(`[data-journey-instant="${journeyModalStep}"]`);
+  if (active && typeof active.scrollIntoView === 'function') {
+    try {
+      active.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' });
+    } catch {
+      active.scrollIntoView(true);
+    }
+  }
+}
+
 function renderProfileDrawerEventsStoryModalContent() {
   ensureProfileDrawerEventsStoryModal();
-  if (!eventsStoryModalTrack) return;
+  if (!eventsStoryModalTrack || !eventsStoryModalSummary) return;
   eventsStoryModalTrack.innerHTML = '';
+  appendPersonaSummaryDom(eventsStoryModalSummary);
 
   const src =
     lastLookedUpProfile && Array.isArray(lastLookedUpProfile.eventsStory) && lastLookedUpProfile.eventsStory.length
@@ -1103,58 +1383,101 @@ function renderProfileDrawerEventsStoryModalContent() {
       : lastLookedUpProfile && Array.isArray(lastLookedUpProfile.events)
         ? lastLookedUpProfile.events
         : [];
-  const ordered = eventsChronologicalForStoryModal(src);
+  const ordered = sortEventsChronologicalAsc(src);
 
   if (!ordered.length) {
     const empty = document.createElement('p');
     empty.className = 'aep-profile-drawer-events-story-empty';
     empty.textContent = 'No experience events loaded yet. Look up a profile to see the journey.';
     eventsStoryModalTrack.appendChild(empty);
+    if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = true;
+    journeyModalGroups = [];
+    journeyModalStep = 0;
+    if (eventsStoryModalStepMeta) eventsStoryModalStepMeta.textContent = '';
     return;
   }
+  if (eventsStoryModalControlsWrap) eventsStoryModalControlsWrap.hidden = false;
 
-  ordered.forEach((ev, idx) => {
+  journeyModalGroups = groupJourneyInstantsByTimestampMs(ordered);
+  journeyModalStep = 0;
+
+  const strip = document.createElement('div');
+  strip.className = 'aep-profile-drawer-journey-strip';
+  strip.setAttribute('role', 'list');
+
+  journeyModalGroups.forEach((g, idx) => {
     if (idx > 0) {
-      const chev = document.createElement('span');
-      chev.className = 'aep-profile-drawer-events-story-chevron';
-      chev.setAttribute('aria-hidden', 'true');
-      chev.textContent = '→';
-      eventsStoryModalTrack.appendChild(chev);
+      const conn = document.createElement('span');
+      conn.className = 'aep-profile-drawer-journey-connector';
+      conn.setAttribute('data-journey-connector-before', String(idx));
+      conn.setAttribute('aria-hidden', 'true');
+      conn.textContent = '\u2192';
+      strip.appendChild(conn);
     }
 
-    const card = document.createElement('article');
-    card.className = 'aep-profile-drawer-events-story-card';
+    const col = document.createElement('section');
+    col.className = 'aep-profile-drawer-journey-instant';
+    col.setAttribute('data-journey-instant', String(idx));
+    col.setAttribute('role', 'listitem');
 
-    const thumb = document.createElement('div');
-    fillDrawerEventThumbElement(
-      thumb,
-      ev,
-      'aep-profile-drawer-event-thumb aep-profile-drawer-events-story-card-thumb',
-    );
+    const timeBlock = document.createElement('header');
+    timeBlock.className = 'aep-profile-drawer-journey-time';
+    const timeP = document.createElement('p');
+    timeP.className = 'aep-profile-drawer-journey-time-label';
+    timeP.textContent = g.instantMs == null ? '—' : formatEventTimelineDate(g.instantMs);
+    const cnt = document.createElement('p');
+    cnt.className = 'aep-profile-drawer-journey-time-meta';
+    cnt.textContent = g.events.length > 1 ? `${g.events.length} parallel` : 'Single event';
+    timeBlock.appendChild(timeP);
+    timeBlock.appendChild(cnt);
 
-    const body = document.createElement('div');
-    body.className = 'aep-profile-drawer-events-story-card-body';
+    const cardsWrap = document.createElement('div');
+    cardsWrap.className = 'aep-profile-drawer-journey-cards';
+    g.events.forEach((ev) => {
+      const card = document.createElement('article');
+      card.className = 'aep-profile-drawer-journey-card';
+      const thumb = document.createElement('div');
+      fillDrawerEventThumbElement(
+        thumb,
+        ev,
+        'aep-profile-drawer-event-thumb aep-profile-drawer-journey-card-thumb',
+      );
+      const body = document.createElement('div');
+      body.className = 'aep-profile-drawer-journey-card-body';
+      const tp = document.createElement('span');
+      tp.className = 'aep-profile-drawer-journey-touchpoint';
+      tp.textContent = formatJourneyTouchpoint(ev);
+      const h3 = document.createElement('h3');
+      h3.className = 'aep-profile-drawer-journey-card-title';
+      h3.textContent = normalizeEventName(ev && ev.eventName);
+      body.appendChild(tp);
+      body.appendChild(h3);
+      card.appendChild(thumb);
+      card.appendChild(body);
+      cardsWrap.appendChild(card);
+    });
 
-    const timeEl = document.createElement('time');
-    timeEl.className = 'aep-profile-drawer-events-story-card-time';
-    timeEl.setAttribute('datetime', '');
-    timeEl.textContent = formatEventTimelineDate(ev && ev.timestamp);
+    const spine = document.createElement('div');
+    spine.className = 'aep-profile-drawer-journey-spine-node';
+    const dot = document.createElement('span');
+    dot.className = 'aep-profile-drawer-journey-dot';
+    spine.appendChild(dot);
 
-    const titleEl = document.createElement('h3');
-    titleEl.className = 'aep-profile-drawer-events-story-card-title';
-    titleEl.textContent = normalizeEventName(ev && ev.eventName);
-
-    const pill = document.createElement('span');
-    pill.className = 'aep-profile-drawer-events-story-channel';
-    pill.textContent = formatDrawerEventChannelDisplay(ev);
-
-    body.appendChild(timeEl);
-    body.appendChild(titleEl);
-    body.appendChild(pill);
-    card.appendChild(thumb);
-    card.appendChild(body);
-    eventsStoryModalTrack.appendChild(card);
+    col.appendChild(timeBlock);
+    col.appendChild(cardsWrap);
+    col.appendChild(spine);
+    strip.appendChild(col);
   });
+
+  eventsStoryModalTrack.appendChild(strip);
+
+  const touches = uniqueJourneyTouchpoints(ordered);
+  const hint = document.createElement('p');
+  hint.className = 'aep-profile-drawer-journey-touchpoints-hint';
+  hint.textContent = touches.length ? `Touchpoints in this journey: ${touches.join(', ')}.` : '';
+  eventsStoryModalTrack.appendChild(hint);
+
+  applyJourneyStepVisibility();
 }
 
 function openProfileDrawerEventsStoryModal() {
@@ -1195,9 +1518,32 @@ function closeProfileDrawerEventsStoryModal() {
 
 function onProfileDrawerEventsStoryKeydown(e) {
   if (!eventsStoryModalOpen) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
   if (e.key === 'Escape') {
     e.preventDefault();
     closeProfileDrawerEventsStoryModal();
+    return;
+  }
+  const maxIdx = Math.max(0, journeyModalGroups.length - 1);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (journeyModalStep >= maxIdx) return;
+    e.preventDefault();
+    journeyModalStep = Math.min(maxIdx, journeyModalStep + 1);
+    applyJourneyStepVisibility();
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (journeyModalStep <= 0) return;
+    e.preventDefault();
+    journeyModalStep = Math.max(0, journeyModalStep - 1);
+    applyJourneyStepVisibility();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    journeyModalStep = maxIdx;
+    applyJourneyStepVisibility();
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    journeyModalStep = 0;
+    applyJourneyStepVisibility();
   }
 }
 
