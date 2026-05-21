@@ -250,6 +250,34 @@ function sandboxQs() {
   return '';
 }
 
+const MIRAL_PARK_IDS_FB = ['ferrariworld', 'wbworld', 'seaworld'];
+
+/** Pull Miral park ids from one API event (eventType, eventName, flattened rows). */
+function inferMiralParksFromProfileEvent(ev) {
+  if (!ev || typeof ev !== 'object') return [];
+  const parts = [];
+  if (ev.eventType) parts.push(String(ev.eventType));
+  if (ev.eventName) parts.push(String(ev.eventName));
+  if (Array.isArray(ev.rows)) {
+    for (let i = 0; i < ev.rows.length; i++) {
+      const r = ev.rows[i];
+      if (!r) continue;
+      const path = String(r.path || '').toLowerCase();
+      if (path.indexOf('miral') !== -1 || path.indexOf('demoemea') !== -1) {
+        if (r.value != null) parts.push(String(r.value));
+        parts.push(path);
+      }
+    }
+  }
+  const blob = parts.join(' ').toLowerCase();
+  const out = [];
+  for (let j = 0; j < MIRAL_PARK_IDS_FB.length; j++) {
+    const p = MIRAL_PARK_IDS_FB[j];
+    if (blob.indexOf(p) !== -1 && out.indexOf(p) === -1) out.push(p);
+  }
+  return out;
+}
+
 async function pollProfileForMiralAdHint() {
   if (typeof window.MiralCrossSite === 'undefined') return;
   const ecidEl = document.getElementById('infoEcid');
@@ -265,11 +293,24 @@ async function pollProfileForMiralAdHint() {
     events.sort(function (a, b) {
       return (Number(b && b.timestamp) || 0) - (Number(a && a.timestamp) || 0);
     });
-    const top = events[0];
-    const et = String((top && (top.eventType || top.eventName)) || '').trim();
-    if (!et) return;
+    const slice = events.slice(0, 12);
+    const mergedInf = [];
+    for (let k = 0; k < slice.length; k++) {
+      const inf = inferMiralParksFromProfileEvent(slice[k]);
+      for (let m = 0; m < inf.length; m++) {
+        if (mergedInf.indexOf(inf[m]) === -1) mergedInf.push(inf[m]);
+      }
+    }
+    let digest = slice
+      .map(function (e) {
+        return [String((e && e.eventType) || ''), String((e && e.eventName) || '')].join(' ');
+      })
+      .join(' ')
+      .trim();
+    if (!digest && mergedInf.length) digest = mergedInf.join(' ');
+    if (!digest && mergedInf.length === 0) return;
     if (typeof window.MiralCrossSite.applyProfileEventHint === 'function') {
-      window.MiralCrossSite.applyProfileEventHint(et);
+      window.MiralCrossSite.applyProfileEventHint(digest, mergedInf);
     }
     if (typeof window.MiralCrossSite.refreshMiralFacebookSlots === 'function') {
       window.MiralCrossSite.refreshMiralFacebookSlots();

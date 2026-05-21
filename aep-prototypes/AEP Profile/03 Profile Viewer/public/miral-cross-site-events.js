@@ -613,6 +613,33 @@
   /** Canonical Yas Island park ids for cross-sell ordering. */
   var MIRAL_PARK_ORDER = ['ferrariworld', 'wbworld', 'seaworld'];
 
+  function uniqueMiralParkList(arr) {
+    var out = [];
+    if (!Array.isArray(arr)) return out;
+    for (var i = 0; i < arr.length; i++) {
+      var p = String(arr[i] || '').trim().toLowerCase();
+      if (!p || MIRAL_PARK_ORDER.indexOf(p) === -1) continue;
+      if (out.indexOf(p) !== -1) continue;
+      out.push(p);
+    }
+    return out;
+  }
+
+  function mergeParkLists(a, b) {
+    return uniqueMiralParkList(([]).concat(a || [], b || []));
+  }
+
+  /** Parks whose ids appear in a profile-hint string (Miral eventType / digest). */
+  function inferMiralParkIdsFromHint(hintRaw) {
+    var h = String(hintRaw || '').toLowerCase();
+    var out = [];
+    for (var i = 0; i < MIRAL_PARK_ORDER.length; i++) {
+      var p = MIRAL_PARK_ORDER[i];
+      if (h.indexOf(p) !== -1) out.push(p);
+    }
+    return out;
+  }
+
   /**
    * Single "primary" cross-sell park from legacy heuristics (attraction/ticket story).
    * Used as the first preference when building an ordered candidate list.
@@ -707,34 +734,42 @@
 
   function getAdForSlot(slotId) {
     var s = getState();
-    var sites = s.sitesVisited || [];
-    if (sites.length === 0) return null; // user never visited a Miral park
+    var sites = Array.isArray(s.sitesVisited) ? s.sitesVisited : [];
+    var hintRaw = String(s.profileAdHint || '').toLowerCase();
+    var fromApiParks = uniqueMiralParkList(s.profileAdInferredParks);
+    var fromHintParks = inferMiralParkIdsFromHint(hintRaw);
+    var profileParks = mergeParkLists(fromApiParks, fromHintParks);
+    var effectiveSites = mergeParkLists(sites, profileParks);
+
+    if (effectiveSites.length === 0) return null;
 
     var topBrand = s.topBrand || '';
     var emailCaptured = !!s.emailCaptured;
 
     if (slotId === 'feed-1' || slotId === 'feed-2') {
-      // Optional: Facebook lab polls `/api/profile/events` and sets `profileAdHint`
-      // (latest eventType) so feed slots can echo the visitor's last in-sandbox behaviour.
-      var hintRaw = String(s.profileAdHint || '').toLowerCase();
+      // Facebook lab polls `/api/profile/events` → `profileAdHint` + optional `profileAdInferredParks`
+      // so feed slots reflect in-sandbox behaviour even when this browser has no `sitesVisited` yet.
       if (hintRaw) {
-        if (hintRaw.indexOf('ferrariworld') !== -1 && sites.indexOf('ferrariworld') !== -1) {
+        if (hintRaw.indexOf('ferrariworld') !== -1 && effectiveSites.indexOf('ferrariworld') !== -1) {
           return buildFerrariWorldAd(slotId);
         }
-        if (hintRaw.indexOf('wbworld') !== -1 && sites.indexOf('wbworld') !== -1) {
+        if (hintRaw.indexOf('wbworld') !== -1 && effectiveSites.indexOf('wbworld') !== -1) {
           return emailCaptured ? buildWbWorldBookingAd(slotId) : buildWbWorldOfferAd(slotId);
         }
-        if (hintRaw.indexOf('seaworld') !== -1 && sites.indexOf('seaworld') !== -1) {
+        if (hintRaw.indexOf('seaworld') !== -1 && effectiveSites.indexOf('seaworld') !== -1) {
           return buildSeaWorldAd(slotId);
         }
       }
       if (topBrand === 'wbworld' && emailCaptured) return buildWbWorldBookingAd(slotId);
       if (topBrand === 'wbworld') return buildWbWorldOfferAd(slotId);
-      if (sites.indexOf('seaworld') !== -1) return buildSeaWorldAd(slotId);
-      if (sites.indexOf('ferrariworld') !== -1) return buildFerrariWorldAd(slotId);
+      if (effectiveSites.indexOf('seaworld') !== -1) return buildSeaWorldAd(slotId);
+      if (effectiveSites.indexOf('ferrariworld') !== -1) return buildFerrariWorldAd(slotId);
+      if (effectiveSites.indexOf('wbworld') !== -1) {
+        return emailCaptured ? buildWbWorldBookingAd(slotId) : buildWbWorldOfferAd(slotId);
+      }
     }
     if (slotId === 'rail-1' || slotId === 'rail-2') {
-      return buildMiralCrossSellRailAd(sites, topBrand, slotId);
+      return buildMiralCrossSellRailAd(effectiveSites, topBrand, slotId);
     }
     return null;
   }
@@ -797,10 +832,19 @@
     });
   }
 
-  function applyProfileEventHint(hint) {
+  /**
+   * @param {string} hint Space-joined recent `eventType` / `eventName` (or digest) for substring matching.
+   * @param {string[]=} inferredParks Parks detected from event bodies (e.g. `public.miralParkId` rows); merged with hint in `getAdForSlot`.
+   */
+  function applyProfileEventHint(hint, inferredParks) {
     var h = String(hint || '').trim();
-    if (!h) return;
-    setState({ profileAdHint: h });
+    var updates = {};
+    if (h) updates.profileAdHint = h;
+    if (Array.isArray(inferredParks)) {
+      updates.profileAdInferredParks = uniqueMiralParkList(inferredParks);
+    }
+    if (Object.keys(updates).length === 0) return;
+    setState(updates);
   }
 
   window.MiralCrossSite = {

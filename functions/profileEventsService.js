@@ -109,6 +109,15 @@ async function getEventsFromQueryService(email, sandboxName, token, clientId, or
   return Array.isArray(rows) ? rows : [];
 }
 
+/** XDM / Query row root `eventType` (e.g. Miral lab `ferrariworld.pageView`). */
+function extractEventTypeFromEntity(entity) {
+  if (!entity || typeof entity !== 'object') return '';
+  const raw = entity.eventType ?? entity.eventTypeId ?? entity['xdm:eventType'] ?? entity['@type'];
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  return s;
+}
+
 function deriveEventName(entity) {
   if (!entity || typeof entity !== 'object') return 'Experience event';
   const e = entity;
@@ -136,7 +145,7 @@ function deriveEventName(entity) {
 
 function eventRowToEventPayload(row, index) {
   if (!row || typeof row !== 'object') {
-    return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [], channel: null };
+    return { entityId: String(index), timestamp: null, eventType: '', eventName: 'Event', rows: [], channel: null };
   }
   const tsRaw = row.timestamp ?? row._id ?? row.eventTimestamp;
   const timestamp = tsRaw == null ? null : typeof tsRaw === 'number' ? tsRaw : new Date(tsRaw).getTime();
@@ -161,9 +170,16 @@ function eventRowToEventPayload(row, index) {
     }))
     .sort((a, b) => (a.path || '').localeCompare(b.path || ''));
   const channel = deriveEventChannel(row, rows) || null;
+  const eventType =
+    row.eventType != null && String(row.eventType).trim()
+      ? String(row.eventType).trim()
+      : etStr && !isPageView
+        ? etStr
+        : extractEventTypeFromEntity(row);
   return {
     entityId: String(row._id ?? index),
     timestamp: isNaN(timestamp) ? null : timestamp,
+    eventType,
     eventName: String(eventName),
     rows,
     channel,
@@ -178,9 +194,11 @@ function extractExperienceEventsFromProfileResponse(response) {
     const tsMs = ts == null ? null : typeof ts === 'number' ? ts : new Date(ts).getTime();
     const rows = flattenEntityToTableRows(entity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
     const channel = deriveEventChannel(entity, rows) || null;
+    const eventType = extractEventTypeFromEntity(entity);
     out.push({
       entityId: item.entityId ?? item.id ?? '',
       timestamp: isNaN(tsMs) ? null : tsMs,
+      eventType,
       eventName: deriveEventName(entity),
       rows,
       channel,
@@ -364,9 +382,11 @@ function mapExperienceEventChildrenToPayload(children) {
           : null;
     const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
     const channel = deriveEventChannel(eventEntity, rows) || null;
+    const eventType = extractEventTypeFromEntity(eventEntity);
     return {
       entityId: child.entityId || child.id || '',
       timestamp: ts,
+      eventType,
       eventName: deriveEventName(eventEntity),
       rows,
       channel,
