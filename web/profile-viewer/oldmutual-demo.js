@@ -66,6 +66,46 @@ const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'omNs');
 
+// Brand Concierge launcher visibility toggle
+const omBcLauncherToggle = document.getElementById('omBcLauncherToggle');
+const omBcLauncher = document.getElementById('omBcLauncher');
+(function initOmBcLauncher() {
+  const LAUNCHER_KEY = 'omBcLauncherVisible';
+  if (!omBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      omBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  omBcLauncherToggle.addEventListener('change', function () {
+    const on = omBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (omBcLauncher) {
+    omBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge on-inject toggle
+const omBcOnInjectToggle = document.getElementById('omBcOnInjectToggle');
+const omBcStyleSelect = document.getElementById('omBcStyleSelect');
+(function initOmBcToggle() {
+  if (!omBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('oldMutualPersonal') : { enabled: false, styleKey: 'miral' };
+  omBcOnInjectToggle.checked = !!prefs.enabled;
+  if (omBcStyleSelect && prefs.styleKey) omBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('oldMutualPersonal', !!(omBcOnInjectToggle && omBcOnInjectToggle.checked), omBcStyleSelect ? omBcStyleSelect.value : 'miral');
+  }
+  omBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (omBcStyleSelect) omBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
 const generatorTargetSelect = document.getElementById('generatorTarget');
@@ -247,6 +287,10 @@ function buildOmTagsInjectionConfig() {
     getEmail,
     /** Parent shell only — see `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md` (no Launch in embedded iframes). */
     iframeIds: [],
+    brandConcierge: {
+      enabled: function () { return !!(omBcOnInjectToggle && omBcOnInjectToggle.checked); },
+      styleKey: function () { return (omBcStyleSelect && omBcStyleSelect.value) || 'miral'; },
+    },
   };
 }
 

@@ -1069,3 +1069,16 @@ a.om-tab-pill:hover {
 .oldmutual-demo-page .aep-profile-drawer:focus-within {
   transform: translate(-50%, 0) scale(var(--om-drawer-scale));
 }
+
+/* ── Brand Concierge launcher ─────────────────────────────────── */
+.oldmutual-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.oldmutual-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.oldmutual-demo-page .aep-bc-park-launcher {
+  background: #00a878;
+  box-shadow: 0 4px 20px rgba(0,168,120,0.35);
+}
+.oldmutual-demo-page .aep-bc-park-launcher:hover {
+  background: #007a58;
+}

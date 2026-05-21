@@ -29,6 +29,47 @@ const raceMessage = document.getElementById('raceMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+
+// Brand Concierge launcher visibility toggle
+const raceBcLauncherToggle = document.getElementById('raceBcLauncherToggle');
+const raceBcLauncher = document.getElementById('raceBcLauncher');
+(function initRaceBcLauncher() {
+  const LAUNCHER_KEY = 'raceBcLauncherVisible';
+  if (!raceBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      raceBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  raceBcLauncherToggle.addEventListener('change', function () {
+    const on = raceBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (raceBcLauncher) {
+    raceBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge on-inject toggle
+const raceBcOnInjectToggle = document.getElementById('raceBcOnInjectToggle');
+const raceBcStyleSelect = document.getElementById('raceBcStyleSelect');
+(function initRaceBcToggle() {
+  if (!raceBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('raceForLifeDemo') : { enabled: false, styleKey: 'miral' };
+  raceBcOnInjectToggle.checked = !!prefs.enabled;
+  if (raceBcStyleSelect && prefs.styleKey) raceBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('raceForLifeDemo', !!(raceBcOnInjectToggle && raceBcOnInjectToggle.checked), raceBcStyleSelect ? raceBcStyleSelect.value : 'miral');
+  }
+  raceBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (raceBcStyleSelect) raceBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const raceTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -52,6 +93,10 @@ const raceTagsInjection =
          * Parent shell only (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`) — Launch + #infoEcid stay on one document with generator ECID.
          */
         iframeIds: [],
+        brandConcierge: {
+          enabled: function () { return !!(raceBcOnInjectToggle && raceBcOnInjectToggle.checked); },
+          styleKey: function () { return (raceBcStyleSelect && raceBcStyleSelect.value) || 'miral'; },
+        },
       })
     : null;
 

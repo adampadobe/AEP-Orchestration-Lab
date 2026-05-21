@@ -28,6 +28,46 @@ const presetsSingle = document.getElementById('donatePresetsSingle');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
+// Brand Concierge launcher visibility toggle
+const donateBcLauncherToggle = document.getElementById('donateBcLauncherToggle');
+const donateBcLauncher = document.getElementById('donateBcLauncher');
+(function initDonateBcLauncher() {
+  const LAUNCHER_KEY = 'donateBcLauncherVisible';
+  if (!donateBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      donateBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  donateBcLauncherToggle.addEventListener('change', function () {
+    const on = donateBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (donateBcLauncher) {
+    donateBcLauncher.addEventListener('click', function () {
+      document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge on-inject toggle
+const donateBcOnInjectToggle = document.getElementById('donateBcOnInjectToggle');
+const donateBcStyleSelect = document.getElementById('donateBcStyleSelect');
+(function initDonateBcToggle() {
+  if (!donateBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('donateDemo') : { enabled: false, styleKey: 'miral' };
+  donateBcOnInjectToggle.checked = !!prefs.enabled;
+  if (donateBcStyleSelect && prefs.styleKey) donateBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('donateDemo', !!(donateBcOnInjectToggle && donateBcOnInjectToggle.checked), donateBcStyleSelect ? donateBcStyleSelect.value : 'miral');
+  }
+  donateBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (donateBcStyleSelect) donateBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const donateTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
