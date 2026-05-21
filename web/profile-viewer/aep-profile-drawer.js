@@ -130,7 +130,16 @@
     return '';
   }
 
-  function getNamespaceForDrawer() {
+  function getNamespaceForDrawer(valueHint) {
+    // If a value is supplied, infer the namespace from its shape — this avoids
+    // sending an email-shaped string with namespace=ecid (and vice versa),
+    // which the UPS API rejects with "Invalid ECID.". The dropdown is only
+    // a default fallback for ambiguous values.
+    const v = String(valueHint == null ? '' : valueHint).trim();
+    if (v) {
+      if (v.indexOf('@') !== -1) return 'email';
+      if (/^\d{10,}$/.test(v)) return 'ecid';
+    }
     const id = _config.emailInputId || 'customerEmail';
     if (typeof global.AepIdentityPicker !== 'undefined' && typeof global.AepIdentityPicker.getNamespace === 'function') {
       return global.AepIdentityPicker.getNamespace(id);
@@ -1461,7 +1470,7 @@ function renderAudienceList(audiences) {
 
 async function fetchAudienceMembership(email) {
   if (!email) return null;
-  const ns = getNamespaceForDrawer();
+  const ns = getNamespaceForDrawer(email);
   try {
     const res = await fetch(
       '/api/profile/audiences?identifier=' +
@@ -3041,7 +3050,7 @@ async function fetchProfileEventsList(email, namespaceOverride) {
   const ns =
     namespaceOverride != null && String(namespaceOverride).trim()
       ? String(namespaceOverride).trim().toLowerCase()
-      : getNamespaceForDrawer();
+      : getNamespaceForDrawer(email);
   try {
     const res = await fetch(
       '/api/profile/events?identifier=' +
@@ -3131,7 +3140,7 @@ async function loadProfileDataForDrawer(email, options) {
         ? _config.messageSetter
         : null;
 
-  const ns = getNamespaceForDrawer();
+  const ns = getNamespaceForDrawer(emailTrim);
   try {
     const res = await fetch(
       '/api/profile/consent?identifier=' +
