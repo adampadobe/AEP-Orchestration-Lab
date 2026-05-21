@@ -5,9 +5,28 @@
  * Stores a lightweight behaviour state in localStorage so the Facebook demo
  * page can read it and inject the right retargeting ad.
  *
+ * **Stable eventType values (AJO / rules):** do not rename without a migration plan.
+ *   Park-scoped verbs (lowercase park id + dot + camelCase), no `miral.` prefix:
+ *   - {parkId}.pageView — e.g. ferrariworld.pageView
+ *   - {parkId}.attractionView — e.g. ferrariworld.attractionView
+ *   - {parkId}.ticketIntent — e.g. wbworld.ticketIntent
+ *   - newsletter.signup (email capture). Talk track PDF may say “emailCapture”; the
+ *     stable generator eventType remains newsletter.signup — use public.miralEmailCapturePark
+ *     for the originating park id (ferrariworld | wbworld | seaworld).
+ *
+ * **Attraction impressions:** primary path matches the Miral CDP demo script — an
+ * IntersectionObserver fires when ~25% of a `[data-miral-attraction]` root is visible.
+ * Clicks still work as a fallback (deduped per `data-miral-attraction` id per page load).
+ * Attraction differentiation: `eventType` ({park}.attractionView), `viewName` (“… — Attraction view: …”),
+ * and `public` (`miralParkDisplayName`, `miralAttractionName`, `miralAttractionId`, `miralAttractionCategory`).
+ *
+ * **Page view + ECID:** `trackPageView` runs after a short defer; `retryPageView()` (from
+ * DemoTagsInjection after ECID resolves) only POSTs if the initial page view never reached
+ * `/api/events/generator` — avoids duplicate `{parkId}.pageView` rows when ECID was already present.
+ *
  * Usage (HTML pages):
  *   Add data-miral-attraction="fw:formula-rossa" data-miral-attraction-name="Formula Rossa"
- *   to sections you want tracked via IntersectionObserver.
+ *   to ONE scrollable root per logical attraction (duplicate ids on multiple nodes create duplicate story risk).
  *   Add data-miral-ticket="single-day" to Buy Tickets buttons.
  *   Load this script AFTER the park-specific demo.js.
  *
@@ -18,6 +37,15 @@
   'use strict';
 
   var STORAGE_KEY = 'miralCrossSiteState';
+
+  /** True once a {parkId}.pageView POST was accepted (had ECID) for this document. */
+  var pageViewDeliveredThisDocument = false;
+
+  /** Attraction ids that already produced a successful attractionView POST this document. */
+  var attractionDeliveredById = Object.create(null);
+
+  /** parkId|ticketType — at most one ticketIntent per combo per load (reduces duplicate CTAs). */
+  var ticketIntentDelivered = Object.create(null);
 
   // All custom events go through /api/events/generator — the same CF proxy that
   // Etihad and Premier Inn demos use. The CF resolves the targetId server-side
@@ -53,6 +81,39 @@
       url: 'seaworld-abu-dhabi/index.html',
     },
   };
+
+  var PARK_DISPLAY = {
+    ferrariworld: 'Ferrari World Yas Island',
+    wbworld: 'Warner Bros. World Yas Island',
+    seaworld: 'SeaWorld Abu Dhabi',
+  };
+
+  function resolveParkDisplayName(parkId) {
+    return PARK_DISPLAY[parkId] || parkId;
+  }
+
+  /** Interest category for `public.miralAttractionCategory` (AJO / profile facets). */
+  function miralInterestCategory(attractionId) {
+    var id = String(attractionId || '').toLowerCase();
+    if (id.indexOf('vip') !== -1) return 'Premium experience';
+    if (id.indexOf('formula') !== -1 || id.indexOf('rossa') !== -1) return 'Thrill ride';
+    if (id.indexOf('buy-ticket') !== -1) return 'Booking page';
+    if (id.indexOf('gotham') !== -1 || id.indexOf('plaza') !== -1 || id.indexOf('bedrock') !== -1 || id.indexOf('metropolis') !== -1 || id.indexOf('cartoon') !== -1) return 'Themed land';
+    if (id.indexOf('offer') !== -1 || id.indexOf('nbd') !== -1) return 'Partner offer';
+    if (id.indexOf('dolphin') !== -1 || id.indexOf('penguin') !== -1 || id.indexOf('orca') !== -1) return 'Animal encounter';
+    if (id.indexOf('ocean') !== -1 || id.indexOf('realm') !== -1) return 'Realm';
+    return 'Attraction interest';
+  }
+
+  function buildAttractionViewTitle(parkId, attractionId, attractionName) {
+    var parkDisplay = resolveParkDisplayName(parkId);
+    var raw = String(attractionName || attractionId || 'Attraction').trim();
+    return parkDisplay + ' — Attraction view: ' + raw;
+  }
+
+  function buildTicketIntentTitle(parkId, ticketType) {
+    return resolveParkDisplayName(parkId) + ' — Ticket intent: ' + String(ticketType || 'single-day');
+  }
 
   // ── State helpers ────────────────────────────────────────────────────────
 
@@ -143,14 +204,20 @@
 
   function fireEvent(eventType, viewName, viewUrl, extra) {
     var ecid = getEcid();
-    if (!ecid) return;
+    if (!ecid) return false;
+    var pub = {};
+    if (extra && extra.public && typeof extra.public === 'object') {
+      for (var pk in extra.public) {
+        if (Object.prototype.hasOwnProperty.call(extra.public, pk)) pub[pk] = extra.public[pk];
+      }
+    }
     var body = {
       targetId: getTargetId(),
       eventType: eventType,
       viewName: viewName || document.title,
       viewUrl: viewUrl || window.location.pathname,
       channel: 'web',
-      public: {},
+      public: pub,
       xdmTenantKey: '_demoemea',
       identityMapEcidKey: 'ECID',
       ecid: ecid,
@@ -165,6 +232,7 @@
       body: JSON.stringify(postBody),
       keepalive: true,
     }).catch(function () {});
+    return true;
   }
 
   // ── Behaviour tracking ───────────────────────────────────────────────────
@@ -176,14 +244,58 @@
       sites = sites.concat([parkId]);
       setState({ sitesVisited: sites });
     }
-    fireEvent(
-      'miral.' + parkId + '.pageView',
-      parkName + ' — page view',
-      window.location.pathname
+    if (pageViewDeliveredThisDocument) return true;
+    var sent = fireEvent(
+      parkId + '.pageView',
+      parkName + ' — Page view',
+      window.location.pathname,
+      {
+        public: {
+          miralParkId: parkId,
+          miralParkDisplayName: parkName,
+          miralEventSurface: 'miral-lab-demo',
+          miralTrackingSource: 'pageInit',
+        },
+      }
     );
+    if (sent) pageViewDeliveredThisDocument = true;
+    return sent;
   }
 
-  function trackAttractionView(parkId, attractionId, attractionName) {
+  function trackAttractionView(parkId, a, b, c, d) {
+    var attractionId;
+    var attractionName;
+    var trackingSource;
+    if (typeof a === 'string' && /^(fw|wb|sw):/.test(a) && typeof b === 'string') {
+      attractionId = a;
+      attractionName = b;
+      trackingSource = c;
+    } else {
+      attractionId = b;
+      attractionName = c;
+      trackingSource = d;
+    }
+    var src = trackingSource || 'click';
+    var parkDisplay = resolveParkDisplayName(parkId);
+    var nameRaw = String(attractionName || attractionId || '').trim();
+    var title = buildAttractionViewTitle(parkId, attractionId, attractionName);
+    var sent = fireEvent(
+      parkId + '.attractionView',
+      title,
+      window.location.pathname + '#' + attractionId,
+      {
+        public: {
+          miralParkId: parkId,
+          miralParkDisplayName: parkDisplay,
+          miralAttractionId: attractionId,
+          miralAttractionName: nameRaw || attractionId,
+          miralAttractionCategory: miralInterestCategory(attractionId),
+          miralEventSurface: 'miral-lab-demo',
+          miralTrackingSource: src,
+        },
+      }
+    );
+    if (!sent) return false;
     var s = getState();
     var interests = s.attractionInterests || [];
     if (interests.indexOf(attractionId) === -1) {
@@ -191,23 +303,35 @@
       var topBrand = resolveTopBrand(interests);
       setState({ attractionInterests: interests, topBrand: topBrand });
     }
-    fireEvent(
-      'miral.' + parkId + '.attractionView',
-      attractionName,
-      window.location.pathname + '#' + attractionId
-    );
+    return true;
   }
 
   function trackTicketIntent(parkId, ticketType) {
+    var tt = String(ticketType || 'single-day').trim();
+    var dedupeKey = parkId + '|' + tt;
+    if (ticketIntentDelivered[dedupeKey]) return false;
+    var title = buildTicketIntentTitle(parkId, tt);
+    var sent = fireEvent(
+      parkId + '.ticketIntent',
+      title,
+      window.location.pathname,
+      {
+        public: {
+          miralParkId: parkId,
+          miralParkDisplayName: resolveParkDisplayName(parkId),
+          miralTicketType: tt,
+          miralEventSurface: 'miral-lab-demo',
+          miralTrackingSource: 'ctaClick',
+        },
+      }
+    );
+    if (!sent) return false;
+    ticketIntentDelivered[dedupeKey] = true;
     var s = getState();
     var intents = s.ticketIntentSites || [];
     if (intents.indexOf(parkId) === -1) intents = intents.concat([parkId]);
     setState({ ticketIntentSites: intents, lastTicketIntentBrand: parkId });
-    fireEvent(
-      'miral.' + parkId + '.ticketIntent',
-      ticketType + ' ticket — purchase intent',
-      window.location.pathname
-    );
+    return true;
   }
 
   function trackEmailCapture(parkId, email) {
@@ -219,10 +343,14 @@
       var body = {
         targetId: getTargetId(),
         eventType: 'newsletter.signup',
-        viewName: 'Newsletter sign-up — ' + parkId,
+        viewName: resolveParkDisplayName(parkId) + ' — Newsletter sign-up',
         viewUrl: window.location.pathname,
         channel: 'web',
-        public: {},
+        public: {
+          miralEmailCapturePark: parkId,
+          miralEventSurface: 'miral-lab-demo',
+          miralTrackingSource: 'newsletterForm',
+        },
         xdmTenantKey: '_demoemea',
         identityMapEcidKey: 'ECID',
         ecid: ecid,
@@ -274,7 +402,7 @@
     style.textContent = [
       '[data-miral-attraction]{cursor:pointer;position:relative;}',
       '[data-miral-attraction]::after{',
-      '  content:"🎯 Track";',
+      '  content:"View";',
       '  position:absolute;top:10px;right:10px;',
       '  background:rgba(0,0,0,0.72);color:#fff;',
       '  font:700 11px/1 sans-serif;letter-spacing:.5px;text-transform:uppercase;',
@@ -283,24 +411,69 @@
       '}',
       '[data-miral-attraction]:hover::after{opacity:1;}',
       '[data-miral-attraction]:active{outline:2px solid rgba(255,60,0,.7);}',
-      '[data-miral-attraction--fired]::after{content:"✓ Tracked";opacity:.6 !important;}',
+      '[data-miral-attraction--fired]::after{content:"✓ Sent";opacity:.6 !important;}',
     ].join('');
     document.head.appendChild(style);
   }
 
   // ── Page-level initialisation ────────────────────────────────────────────
 
+  /**
+   * Try to POST one attractionView for an element (dedupes by miralAttraction id
+   * after a successful send). Used by IntersectionObserver, click fallback, and
+   * post-ECID visibility flush.
+   */
+  function miralTryAttractionFromElement(parkRef, el, trackingSource) {
+    if (!parkRef || !el) return false;
+    var aId = el.getAttribute('data-miral-attraction');
+    if (!aId) return false;
+    if (attractionDeliveredById[aId]) return false;
+    var aName = el.getAttribute('data-miral-attraction-name') || aId;
+    var ok = trackAttractionView(parkRef.id, parkRef.name, aId, aName, trackingSource);
+    if (ok) {
+      attractionDeliveredById[aId] = true;
+      el.setAttribute('data-miral-attraction--fired', '1');
+    }
+    return ok;
+  }
+
+  /** After ECID resolves, catch sections already on-screen that missed the first IO cycle. */
+  function flushVisibleAttractions(parkRef, reason) {
+    if (!parkRef) return;
+    var src = reason || 'ecidFlush';
+    document.querySelectorAll('[data-miral-attraction]').forEach(function (el) {
+      var aid = el.getAttribute('data-miral-attraction');
+      if (!aid || attractionDeliveredById[aid]) return;
+      var rect = el.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      var top = Math.max(rect.top, 0);
+      var bottom = Math.min(rect.bottom, vh);
+      var visibleH = Math.max(0, bottom - top);
+      var ratio = rect.height > 0 ? visibleH / rect.height : 0;
+      if (ratio < 0.2) return;
+      miralTryAttractionFromElement(parkRef, el, src);
+    });
+  }
+
   function initPageTracking(park) {
     injectTrackingStyles();
     trackPageView(park.id, park.name);
 
-    // Click listeners on [data-miral-attraction] elements
+    var attractionIo = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting || entry.intersectionRatio < 0.22) return;
+            if (miralTryAttractionFromElement(park, entry.target, 'intersection')) {
+              attractionIo.unobserve(entry.target);
+            }
+          });
+        }, { threshold: [0, 0.12, 0.22, 0.35, 0.5], rootMargin: '0px 0px -6% 0px' })
+      : null;
+
     document.querySelectorAll('[data-miral-attraction]').forEach(function (el) {
+      if (attractionIo) attractionIo.observe(el);
       el.addEventListener('click', function () {
-        var aId = el.getAttribute('data-miral-attraction');
-        var aName = el.getAttribute('data-miral-attraction-name') || aId;
-        trackAttractionView(park.id, aId, aName);
-        el.setAttribute('data-miral-attraction--fired', '1');
+        miralTryAttractionFromElement(park, el, 'click');
       });
     });
 
@@ -512,17 +685,29 @@
   }
 
   /**
-   * Re-fires the page-view event for the current park once an ECID is available.
-   * Call this from DemoTagsInjection's onEcidResolved hook so the page-view
-   * reaches AEP even though it fired before Tags was injected on page load.
+   * Re-fires the page-view once an ECID is available if the deferred init never
+   * reached `/api/events/generator`. Also flushes visible attraction roots that
+   * may have crossed the viewport before ECID existed (IntersectionObserver gap).
    */
   function retryPageView() {
     if (!park) return;
-    fireEvent(
-      'miral.' + park.id + '.pageView',
-      park.name + ' — page view',
-      window.location.pathname
-    );
+    if (!pageViewDeliveredThisDocument) {
+      var sent = fireEvent(
+        park.id + '.pageView',
+        park.name + ' — Page view',
+        window.location.pathname,
+        {
+          public: {
+            miralParkId: park.id,
+            miralParkDisplayName: park.name,
+            miralEventSurface: 'miral-lab-demo',
+            miralTrackingSource: 'ecidReady',
+          },
+        }
+      );
+      if (sent) pageViewDeliveredThisDocument = true;
+    }
+    flushVisibleAttractions(park, 'ecidReady');
   }
 
   window.MiralCrossSite = {
@@ -535,6 +720,9 @@
     trackTicketIntent: trackTicketIntent,
     trackEmailCapture: trackEmailCapture,
     retryPageView: retryPageView,
+    flushVisibleAttractions: function () {
+      flushVisibleAttractions(park, 'manual');
+    },
     getAdForSlot: getAdForSlot,
     // Kept as a no-op for backward compat — events now route via /api/events/generator
     // which resolves the datastream server-side from targetId presets.

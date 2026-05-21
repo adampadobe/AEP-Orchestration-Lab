@@ -130,7 +130,16 @@
     return '';
   }
 
-  function getNamespaceForDrawer() {
+  function getNamespaceForDrawer(valueHint) {
+    // If a value is supplied, infer the namespace from its shape — this avoids
+    // sending an email-shaped string with namespace=ecid (and vice versa),
+    // which the UPS API rejects with "Invalid ECID.". The dropdown is only
+    // a default fallback for ambiguous values.
+    const v = String(valueHint == null ? '' : valueHint).trim();
+    if (v) {
+      if (v.indexOf('@') !== -1) return 'email';
+      if (/^\d{10,}$/.test(v)) return 'ecid';
+    }
     const id = _config.emailInputId || 'customerEmail';
     if (typeof global.AepIdentityPicker !== 'undefined' && typeof global.AepIdentityPicker.getNamespace === 'function') {
       return global.AepIdentityPicker.getNamespace(id);
@@ -198,6 +207,28 @@ function aepProfileImageCssUrl(filename) {
 
 /** @type {Record<string, unknown> | null} */
 let lastLookedUpProfile = null;
+
+/** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
+let _lastLoadedIdentifier = null;
+
+/** Auto-poll handle — polls events every 1 s while a profile is loaded */
+let _eventsPollInterval = null;
+const EVENTS_POLL_MS = 1000;
+
+function startEventsPoll() {
+  stopEventsPoll();
+  _eventsPollInterval = setInterval(function () {
+    const ecid = lastLookedUpProfile && lastLookedUpProfile.ecid ? String(lastLookedUpProfile.ecid) : '';
+    const id = ecid || _lastLoadedIdentifier || '';
+    if (!id) return;
+    const ns = ecid ? 'ecid' : undefined;
+    void refreshDrawerEventsForIdentity(id, ns);
+  }, EVENTS_POLL_MS);
+}
+
+function stopEventsPoll() {
+  if (_eventsPollInterval) { clearInterval(_eventsPollInterval); _eventsPollInterval = null; }
+}
 
 function setDrawerValue(el, value, fallback) {
   if (!el) return;
@@ -1439,7 +1470,7 @@ function renderAudienceList(audiences) {
 
 async function fetchAudienceMembership(email) {
   if (!email) return null;
-  const ns = getNamespaceForDrawer();
+  const ns = getNamespaceForDrawer(email);
   try {
     const res = await fetch(
       '/api/profile/audiences?identifier=' +
@@ -1948,17 +1979,27 @@ function getProfileDrawerEventsHeadingRow() {
     refreshIco.textContent = '↻';
     refreshBtn.appendChild(refreshIco);
     refreshBtn.addEventListener('click', function () {
-      const email = typeof _config.emailGetter === 'function'
+      const fromInput = typeof _config.emailGetter === 'function'
         ? _config.emailGetter()
         : (() => { const el = document.getElementById(_config.emailInputId || 'customerEmail'); return el ? el.value : ''; })();
-      const id = String(email || '').trim();
+      const profileEcid = lastLookedUpProfile && lastLookedUpProfile.ecid ? String(lastLookedUpProfile.ecid) : '';
+      const id = String(fromInput || profileEcid || _lastLoadedIdentifier || '').trim();
       if (!id) return;
       refreshBtn.classList.add('aep-profile-drawer-refresh-btn--spinning');
+      const spinTimeout = setTimeout(function () {
+        refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
+      }, 800);
       refreshBtn.addEventListener('animationend', function onEnd() {
+        clearTimeout(spinTimeout);
         refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
         refreshBtn.removeEventListener('animationend', onEnd);
       });
-      void loadProfileDataForDrawer(id, { updateMessage: false });
+      // If id is an ECID (all digits), look up by ecid namespace; otherwise full profile reload by email
+      if (/^\d{10,}$/.test(id)) {
+        void refreshDrawerEventsForIdentity(id, 'ecid');
+      } else {
+        void loadProfileDataForDrawer(id, { updateMessage: false });
+      }
     });
 
     // Theme toggle button
@@ -3009,7 +3050,7 @@ async function fetchProfileEventsList(email, namespaceOverride) {
   const ns =
     namespaceOverride != null && String(namespaceOverride).trim()
       ? String(namespaceOverride).trim().toLowerCase()
-      : getNamespaceForDrawer();
+      : getNamespaceForDrawer(email);
   try {
     const res = await fetch(
       '/api/profile/events?identifier=' +
@@ -3090,6 +3131,8 @@ async function loadProfileDataForDrawer(email, options) {
   const emailTrim = String(email || '').trim();
   if (!emailTrim) return false;
 
+  _lastLoadedIdentifier = emailTrim;
+
   const messageFn =
     typeof opts.onUserMessage === 'function'
       ? opts.onUserMessage
@@ -3097,7 +3140,7 @@ async function loadProfileDataForDrawer(email, options) {
         ? _config.messageSetter
         : null;
 
-  const ns = getNamespaceForDrawer();
+  const ns = getNamespaceForDrawer(emailTrim);
   try {
     const res = await fetch(
       '/api/profile/consent?identifier=' +
@@ -3238,6 +3281,7 @@ async function loadProfileDataForDrawer(email, options) {
     };
 
     updateProfileDrawer(lastLookedUpProfile);
+    startEventsPoll();
 
     if (data.found && typeof _config.getSelectedGeneratorTarget === 'function') {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
@@ -3359,7 +3403,9 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
   });
+  _lastLoadedIdentifier = ecid;
   void refreshDrawerEventsForIdentity(ecid, 'ecid');
+  startEventsPoll();
 
   if (typeof _config.afterBrowserEcidApplied === 'function') {
     try {
@@ -3403,6 +3449,7 @@ function initAepProfileDrawerHover() {
       const email = String(drawerGetEmail() || '').trim();
       if (email) loadProfileDataForDrawer(email, { updateMessage: false });
     }
+    if (!next) stopEventsPoll();
     drawerOpenState = next;
   }
 
@@ -3434,6 +3481,7 @@ function init(config) {
   cacheDomRefs();
   ensureProfileDrawerThemeToggle();
   ensureProfileDrawerIdentityGraphHeadingRow();
+  window.addEventListener('beforeunload', stopEventsPoll, { once: true });
 
   if (!eventsStoryModalKeydownBound) {
     eventsStoryModalKeydownBound = true;
