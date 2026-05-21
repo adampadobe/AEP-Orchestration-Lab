@@ -1588,6 +1588,51 @@ body.aep-profile-drawer-identity-graph-modal-open {
   bottom: 5px;
   z-index: 3225;
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aep-profile-drawer-refresh-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(236, 236, 236, 0.28);
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 254, 0.96);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.aep-profile-drawer-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.aep-profile-drawer-refresh-btn:focus-visible {
+  outline: 2px solid rgba(79, 134, 255, 0.75);
+  outline-offset: 2px;
+}
+
+.aep-profile-drawer-refresh-ico {
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+  display: block;
+}
+
+@keyframes aep-drawer-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.aep-profile-drawer-refresh-btn--spinning .aep-profile-drawer-refresh-ico {
+  animation: aep-drawer-spin 0.6s linear;
 }
 
 .aep-profile-drawer-theme-toggle {

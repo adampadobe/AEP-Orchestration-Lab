@@ -1936,6 +1936,32 @@ function getProfileDrawerEventsHeadingRow() {
     wrap.className = 'aep-profile-drawer-theme-slot';
     wrap.setAttribute(PROFILE_DRAWER_THEME_SLOT, '1');
 
+    // Refresh button
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'aep-profile-drawer-refresh-btn';
+    refreshBtn.setAttribute('aria-label', 'Refresh profile');
+    refreshBtn.title = 'Refresh profile';
+    const refreshIco = document.createElement('span');
+    refreshIco.className = 'aep-profile-drawer-refresh-ico';
+    refreshIco.setAttribute('aria-hidden', 'true');
+    refreshIco.textContent = '↻';
+    refreshBtn.appendChild(refreshIco);
+    refreshBtn.addEventListener('click', function () {
+      const email = typeof _config.emailGetter === 'function'
+        ? _config.emailGetter()
+        : (() => { const el = document.getElementById(_config.emailInputId || 'customerEmail'); return el ? el.value : ''; })();
+      const id = String(email || '').trim();
+      if (!id) return;
+      refreshBtn.classList.add('aep-profile-drawer-refresh-btn--spinning');
+      refreshBtn.addEventListener('animationend', function onEnd() {
+        refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
+        refreshBtn.removeEventListener('animationend', onEnd);
+      });
+      void loadProfileDataForDrawer(id, { updateMessage: false });
+    });
+
+    // Theme toggle button
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'aep-profile-drawer-theme-toggle';
@@ -1945,6 +1971,7 @@ function getProfileDrawerEventsHeadingRow() {
     btn.appendChild(ico);
     btn.addEventListener('click', onProfileDrawerThemeToggleClick);
 
+    wrap.appendChild(refreshBtn);
     wrap.appendChild(btn);
     drawer.appendChild(wrap);
     syncProfileDrawerThemeToggleVisuals();
