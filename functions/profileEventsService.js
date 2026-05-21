@@ -112,8 +112,12 @@ function deriveEventName(entity) {
   if (!entity || typeof entity !== 'object') return 'Experience event';
   const e = entity;
   const eventType = e.eventType || e.eventTypeId;
-  if (eventType) return String(eventType);
+  const etStr = eventType != null ? String(eventType) : '';
+  const low = etStr.toLowerCase();
+  const isPageView = low.includes('pageviews') && low.includes('web');
   const webName = get(e, 'web.webPageDetails.name') || get(e, 'web.webPageDetails.URL');
+  if (isPageView && webName) return String(webName);
+  if (eventType) return etStr;
   if (webName) return String(webName);
   const implName = get(e, 'implementationDetails.name') || get(e, 'implementationDetails.environment');
   if (implName) return String(implName);
@@ -133,8 +137,13 @@ function eventRowToEventPayload(row, index) {
   if (!row || typeof row !== 'object') return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [] };
   const tsRaw = row.timestamp ?? row._id ?? row.eventTimestamp;
   const timestamp = tsRaw == null ? null : typeof tsRaw === 'number' ? tsRaw : new Date(tsRaw).getTime();
-  const eventName =
-    row.eventType ?? row.name ?? row._type ?? row['@type'] ?? deriveEventName(row) ?? 'Event';
+  const etCandidate = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? '';
+  const etStr = etCandidate != null ? String(etCandidate) : '';
+  const low = etStr.toLowerCase();
+  const isPageView = low.includes('pageviews') && low.includes('web');
+  const webName = get(row, 'web.webPageDetails.name') || get(row, 'web.webPageDetails.URL');
+  const fallback = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? deriveEventName(row) ?? 'Event';
+  const eventName = isPageView && webName ? String(webName) : fallback;
   const pathToAttr = (path) => {
     const last = path.split(/[._]/).filter(Boolean).pop() || path;
     return last.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim() || last;

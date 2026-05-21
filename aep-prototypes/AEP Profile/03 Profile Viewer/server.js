@@ -2262,8 +2262,12 @@ function deriveEventName(entity) {
   if (!entity || typeof entity !== 'object') return 'Experience event';
   const e = entity;
   const eventType = e.eventType || e.eventTypeId;
-  if (eventType) return String(eventType);
+  const etStr = eventType != null ? String(eventType) : '';
+  const low = etStr.toLowerCase();
+  const isPageView = low.includes('pageviews') && low.includes('web');
   const webName = get(e, 'web.webPageDetails.name') || get(e, 'web.webPageDetails.URL');
+  if (isPageView && webName) return String(webName);
+  if (eventType) return etStr;
   if (webName) return String(webName);
   const implName = get(e, 'implementationDetails.name') || get(e, 'implementationDetails.environment');
   if (implName) return String(implName);
@@ -2505,8 +2509,13 @@ function eventRowToEventPayload(row, index) {
   if (!row || typeof row !== 'object') return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [] };
   const tsRaw = row.timestamp ?? row._id ?? row.eventTimestamp;
   const timestamp = tsRaw == null ? null : (typeof tsRaw === 'number' ? tsRaw : new Date(tsRaw).getTime());
-  const eventName =
-    row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? deriveEventName(row) ?? 'Event';
+  const etCandidate = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? '';
+  const etStr = etCandidate != null ? String(etCandidate) : '';
+  const low = etStr.toLowerCase();
+  const isPageView = low.includes('pageviews') && low.includes('web');
+  const webName = get(row, 'web.webPageDetails.name') || get(row, 'web.webPageDetails.URL');
+  const fallback = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? deriveEventName(row) ?? 'Event';
+  const eventName = isPageView && webName ? String(webName) : fallback;
   const pathToAttr = (path) => {
     const last = path.split(/[._]/).filter(Boolean).pop() || path;
     return last.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim() || last;
@@ -3793,6 +3802,53 @@ function mergeGeneratorInteractionDetailsChannel(_demoemea, channelIn) {
   _demoemea.interactionDetails.core.channel = ch;
 }
 
+function isWebPageViewEventType(eventType) {
+  if (eventType == null) return false;
+  const et = typeof eventType === 'string' ? eventType.trim().toLowerCase() : String(eventType).trim().toLowerCase();
+  return et.includes('pageviews') && et.includes('web');
+}
+
+/**
+ * Map generator POST fields to XDM `web.webPageDetails` (viewName/viewUrl plus pageName / webPageDetailsName from bank demos).
+ * Browser sends document.title via those fields; server fallback only when still blank.
+ */
+function resolveGeneratorWebPageDetailsFromBody(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const first = (keys) => {
+    for (const k of keys) {
+      if (!Object.prototype.hasOwnProperty.call(b, k)) continue;
+      if (b[k] == null) continue;
+      const s = String(b[k]).trim();
+      if (s) return s;
+    }
+    return '';
+  };
+  const name = first(['viewName', 'pageName', 'webPageDetailsName', 'pageTitle']);
+  const URL = first(['viewUrl', 'pageUrl', 'webPageDetailsUrl', 'URL', 'url']);
+  const viewName = first(['viewName', 'pageName', 'webPageDetailsName']) || name;
+  return { name: name || viewName, URL, viewName: viewName || name };
+}
+
+/** Ensure web page view events always carry `web.webPageDetails` so UPS / drawer show a title, not only channel. */
+function ensureWebPageDetailsOnPageViewEvent(xdm, body) {
+  if (!xdm || typeof xdm !== 'object') return;
+  if (!isWebPageViewEventType(xdm.eventType)) return;
+  const det = resolveGeneratorWebPageDetailsFromBody(body);
+  const prev =
+    xdm.web && typeof xdm.web === 'object' && xdm.web.webPageDetails && typeof xdm.web.webPageDetails === 'object'
+      ? xdm.web.webPageDetails
+      : {};
+  const name = (
+    det.name ||
+    String(prev.name || '').trim() ||
+    String(prev.viewName || '').trim() ||
+    'AEP lab demo'
+  ).trim();
+  const URL = (det.URL || String(prev.URL || '').trim() || '').trim();
+  const viewName = (det.viewName || String(prev.viewName || '').trim() || name).trim() || name;
+  xdm.web = { webPageDetails: { URL, name, viewName } };
+}
+
 /**
  * Shared XDM for Event Generator. `minimal` is donation-style: no `web`; still includes `identityMap` (Edge EXEG-0306 requires a primary identity).
  * @param {Record<string, unknown>} reqBody
@@ -3846,7 +3902,12 @@ function buildEventGeneratorXdm(reqBody, options = {}) {
       eventType,
       timestamp: now,
     };
+    const det = resolveGeneratorWebPageDetailsFromBody(body);
+    if (det.name || det.URL) {
+      xdm.web = { webPageDetails: { URL: det.URL, name: det.name, viewName: det.viewName || det.name } };
+    }
     syncXdmDemoemeaLowercaseAlias(xdm);
+    ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
   }
 
@@ -3876,22 +3937,22 @@ function buildEventGeneratorXdm(reqBody, options = {}) {
     if (!xdm._demoemea.identification.core) xdm._demoemea.identification.core = {};
     xdm._demoemea.identification.core.email = emailInteract;
   }
-  const viewName = body.viewName != null ? String(body.viewName).trim() : '';
-  const viewUrl = body.viewUrl != null ? String(body.viewUrl).trim() : '';
-  if (viewName || viewUrl) {
+  const detFull = resolveGeneratorWebPageDetailsFromBody(body);
+  if (detFull.name || detFull.URL) {
     xdm.web = {
       webPageDetails: {
-        URL: viewUrl,
-        name: viewName,
-        viewName: viewName,
+        URL: detFull.URL,
+        name: detFull.name,
+        viewName: detFull.viewName || detFull.name,
       },
     };
-  } else {
+  } else if (!isWebPageViewEventType(xdm.eventType)) {
     delete xdm.web;
   }
   mergeGeneratorPublicIntoDemoemea(xdm._demoemea, body.public);
   mergeGeneratorInteractionDetailsChannel(xdm._demoemea, body.channel);
   syncXdmDemoemeaLowercaseAlias(xdm);
+  ensureWebPageDetailsOnPageViewEvent(xdm, body);
   return xdm;
 }
 

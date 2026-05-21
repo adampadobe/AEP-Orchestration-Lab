@@ -635,6 +635,9 @@
         dtLog('syncEcidFromAlloy: skip sendEvent — no ECID for _demoemea.identification.core (schema requires ecid)');
         return;
       }
+      // Lab: strip query from URL; human title from document.title (see mirror POST fields).
+      const pageUrlNoQuery =
+        global.location && global.location.href ? String(global.location.href).split('?')[0] : '';
       try {
         await alloyFn('sendEvent', {
           xdm: Object.assign(
@@ -643,7 +646,7 @@
               web: {
                 webPageDetails: {
                   name: pageName,
-                  URL: (global.location && global.location.href) || '',
+                  URL: pageUrlNoQuery,
                 },
               },
             },
@@ -664,7 +667,7 @@
      * Mirror the same anonymous page view through the lab generator so the timeline populates like
      * Premier Inn hotel.* / post-lookup application.login traffic.
      */
-    async function mirrorAnonymousPageViewToGeneratorIfConfigured(ecidDigits) {
+    async function mirrorAnonymousPageViewToGeneratorIfConfigured(ecidDigits, mirrorOpts) {
       if (!getSelectedGeneratorTarget) {
         dtLog('mirrorPageViewGenerator: skip — no getSelectedGeneratorTarget in DemoTagsInjection.init');
         return;
@@ -676,12 +679,20 @@
       }
       const id = normaliseEcidDigits(ecidDigits);
       if (!id) return;
+      const mo = mirrorOpts || {};
+      const suffix = String(mo.pageNameSuffix || '').trim();
+      // Match Edge sendEvent: document.title + optional suffix (human page label in UPS / drawer).
       const baseTitle = (global.document && global.document.title) || 'AEP lab demo';
+      const pageName = suffix ? baseTitle + suffix : baseTitle;
+      const pageUrl =
+        (global.location && global.location.href ? String(global.location.href).split('?')[0] : '') || '';
       const body = {
         targetId: target.id,
         eventType: 'web.webPageDetails.pageViews',
-        viewName: baseTitle + ' · Lab (generator mirror)',
-        viewUrl: (global.location && global.location.href ? global.location.href.split('?')[0] : '') || '',
+        pageName: pageName,
+        viewName: pageName,
+        viewUrl: pageUrl,
+        pageUrl: pageUrl,
         channel: 'Web',
         ecid: id,
         xdmTenantKey: '_demoemea',
@@ -769,7 +780,9 @@
           ecid: ecid,
           pageNameSuffix: ' · AEP lab (anonymous ECID)',
         });
-        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
+        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid, {
+          pageNameSuffix: ' · AEP lab (anonymous ECID)',
+        });
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,

@@ -130,3 +130,27 @@ test('buildEventGeneratorXdm infers web channel for hotel.* when channel omitted
   assert.equal(xdm.interactionDetails.core.channel, 'web');
   assert.equal(xdm.channel['@type'], 'https://ns.adobe.com/xdm/channel-types/web');
 });
+
+test('buildEventGeneratorXdm maps pageName to web.webPageDetails for web page view events', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'web.webpagedetails.pageViews',
+    ecid,
+    pageName: 'FNB Home',
+    channel: 'Web',
+  });
+  assert.ok(xdm.web && xdm.web.webPageDetails);
+  assert.equal(xdm.web.webPageDetails.name, 'FNB Home');
+  assert.equal(xdm.web.webPageDetails.viewName, 'FNB Home');
+});
+
+test('buildEventGeneratorXdm fills default web page title for page view when body omits name/URL', () => {
+  const ecid = '03976612467829823963241934423837679452';
+  const xdm = buildEventGeneratorXdm({
+    eventType: 'web.webPageDetails.pageViews',
+    ecid,
+    channel: 'Web',
+  });
+  assert.ok(xdm.web && xdm.web.webPageDetails);
+  assert.equal(xdm.web.webPageDetails.name, 'AEP lab demo');
+});

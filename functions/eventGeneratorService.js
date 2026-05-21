@@ -215,6 +215,53 @@ function normalizeInteractionDetailsChannel(raw) {
   return low;
 }
 
+function isWebPageViewEventType(eventType) {
+  if (eventType == null) return false;
+  const et = typeof eventType === 'string' ? eventType.trim().toLowerCase() : String(eventType).trim().toLowerCase();
+  return et.includes('pageviews') && et.includes('web');
+}
+
+/**
+ * Map generator POST fields to XDM `web.webPageDetails` (viewName/viewUrl plus pageName / webPageDetailsName from bank demos).
+ * Browser sends document.title via those fields; server fallback only when still blank.
+ */
+function resolveGeneratorWebPageDetailsFromBody(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const first = (keys) => {
+    for (const k of keys) {
+      if (!Object.prototype.hasOwnProperty.call(b, k)) continue;
+      if (b[k] == null) continue;
+      const s = String(b[k]).trim();
+      if (s) return s;
+    }
+    return '';
+  };
+  const name = first(['viewName', 'pageName', 'webPageDetailsName', 'pageTitle']);
+  const URL = first(['viewUrl', 'pageUrl', 'webPageDetailsUrl', 'URL', 'url']);
+  const viewName = first(['viewName', 'pageName', 'webPageDetailsName']) || name;
+  return { name: name || viewName, URL, viewName: viewName || name };
+}
+
+/** Ensure web page view events always carry `web.webPageDetails` so UPS / drawer show a title, not only channel. */
+function ensureWebPageDetailsOnPageViewEvent(xdm, body) {
+  if (!xdm || typeof xdm !== 'object') return;
+  if (!isWebPageViewEventType(xdm.eventType)) return;
+  const det = resolveGeneratorWebPageDetailsFromBody(body);
+  const prev =
+    xdm.web && typeof xdm.web === 'object' && xdm.web.webPageDetails && typeof xdm.web.webPageDetails === 'object'
+      ? xdm.web.webPageDetails
+      : {};
+  const name = (
+    det.name ||
+    String(prev.name || '').trim() ||
+    String(prev.viewName || '').trim() ||
+    'AEP lab demo'
+  ).trim();
+  const URL = (det.URL || String(prev.URL || '').trim() || '').trim();
+  const viewName = (det.viewName || String(prev.viewName || '').trim() || name).trim() || name;
+  xdm.web = { webPageDetails: { URL, name, viewName } };
+}
+
 /**
  * Effective channel for generator XDM: explicit `body.channel`, else infer `web` for hospitality
  * (`hotel.*` event types or `public` keys like hotel*) so AJO / UPS "Channel" columns stay populated.
@@ -426,15 +473,15 @@ function buildEventGeneratorXdm(reqBody, options) {
       eventType,
       timestamp: now,
     };
-    const vName = body.viewName != null ? String(body.viewName).trim() : '';
-    const vUrl = body.viewUrl != null ? String(body.viewUrl).trim() : '';
-    if (vName || vUrl) {
-      xdm.web = { webPageDetails: { URL: vUrl, name: vName, viewName: vName } };
+    const det = resolveGeneratorWebPageDetailsFromBody(body);
+    if (det.name || det.URL) {
+      xdm.web = { webPageDetails: { URL: det.URL, name: det.name, viewName: det.viewName || det.name } };
     }
     alignExperienceEventFieldGroupPayloads(xdm, tenantKey, effectiveChannel);
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+    ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
   }
 
@@ -465,14 +512,14 @@ function buildEventGeneratorXdm(reqBody, options) {
       eventType,
       timestamp: now,
     };
-    const viewName = body.viewName != null ? String(body.viewName).trim() : '';
-    const viewUrl = body.viewUrl != null ? String(body.viewUrl).trim() : '';
-    if (viewName || viewUrl) {
-      xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName: viewName } };
+    const detDs = resolveGeneratorWebPageDetailsFromBody(body);
+    if (detDs.name || detDs.URL) {
+      xdm.web = { webPageDetails: { URL: detDs.URL, name: detDs.name, viewName: detDs.viewName || detDs.name } };
     }
     alignExperienceEventFieldGroupPayloads(xdm, '_demosystem5', effectiveChannel);
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
     normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+    ensureWebPageDetailsOnPageViewEvent(xdm, body);
     return xdm;
   }
 
@@ -520,11 +567,10 @@ function buildEventGeneratorXdm(reqBody, options) {
     if (!xdm._demoemea.identification) xdm._demoemea.identification = {};
     xdm._demoemea.identification.core = { email: em };
   }
-  const viewName = body.viewName != null ? String(body.viewName).trim() : '';
-  const viewUrl = body.viewUrl != null ? String(body.viewUrl).trim() : '';
-  if (viewName || viewUrl) {
-    xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName: viewName } };
-  } else {
+  const detFull = resolveGeneratorWebPageDetailsFromBody(body);
+  if (detFull.name || detFull.URL) {
+    xdm.web = { webPageDetails: { URL: detFull.URL, name: detFull.name, viewName: detFull.viewName || detFull.name } };
+  } else if (!isWebPageViewEventType(xdm.eventType)) {
     delete xdm.web;
   }
   mergeGeneratorPublicIntoTenant(xdm._demoemea, body.public);
@@ -537,6 +583,7 @@ function buildEventGeneratorXdm(reqBody, options) {
   alignExperienceEventFieldGroupPayloads(xdm, '_demoemea', effectiveChannel);
   syncXdmDemoemeaLowercaseAlias(xdm);
   normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
+  ensureWebPageDetailsOnPageViewEvent(xdm, body);
   return xdm;
 }
 

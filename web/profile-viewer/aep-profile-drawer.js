@@ -1467,6 +1467,91 @@ function normalizeEventName(name) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Lowercase path with underscores as dots (matches `aepProfileDrawerMessageChannelKind`). */
+function aepDrawerNormalizeEventRowPath(path) {
+  return String(path || '')
+    .toLowerCase()
+    .replace(/_/g, '.');
+}
+
+/** Head blob from eventType + eventName for coarse XDM matching. */
+function aepDrawerEventHeadTypeBlob(ev) {
+  const a = String((ev && ev.eventType) || '').trim();
+  const b = String((ev && ev.eventName) || '').trim();
+  return `${a} ${b}`.toLowerCase().replace(/\s+/g, '');
+}
+
+/** True when this is an Adobe Experience Event web page view (XDM event type / name variants). */
+function isAdobeWebPageViewExperienceEvent(ev) {
+  const blob = aepDrawerEventHeadTypeBlob(ev);
+  if (!blob) return false;
+  if (blob.includes('webpagedetails') && blob.includes('pageview')) return true;
+  return /web\.webpagedetails\.pageviews/i.test(
+    `${String((ev && ev.eventType) || '').trim()} ${String((ev && ev.eventName) || '').trim()}`,
+  );
+}
+
+function aepDrawerTrimEventTitleSnippet(s, maxLen) {
+  const t = String(s || '').trim();
+  if (!t) return '';
+  const m = typeof maxLen === 'number' && maxLen > 8 ? maxLen : 96;
+  return t.length <= m ? t : `${t.slice(0, m - 1)}\u2026`;
+}
+
+/**
+ * First non-empty page label from flattened event rows (name / pageName / URL).
+ * @param {unknown[] | undefined} rows
+ */
+function deriveWebPageviewTitleSnippetFromRows(rows) {
+  if (!Array.isArray(rows)) return '';
+  /** @type {{ rank: number, value: string }[]} */
+  const found = [];
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') continue;
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (!p.includes('webpagedetails')) continue;
+    const v = String(r.value == null ? '' : r.value).trim();
+    if (!v) continue;
+    if (p.endsWith('.name') || p.endsWith('.pagename')) {
+      found.push({ rank: 0, value: v });
+    } else if (p.includes('pagename')) {
+      found.push({ rank: 1, value: v });
+    } else if (p.endsWith('.url') || p.endsWith('.uri')) {
+      found.push({ rank: 2, value: v });
+    }
+  }
+  found.sort((a, b) => a.rank - b.rank || 0);
+  const pick = found[0];
+  if (!pick) return '';
+  let out = pick.value;
+  if (pick.rank >= 2 && /^https?:\/\//i.test(out)) {
+    try {
+      const u = new URL(out);
+      const path = u.pathname && u.pathname !== '/' ? u.pathname : '';
+      out = `${u.hostname || ''}${path}` || out;
+    } catch {
+      /* keep full URL string */
+    }
+  }
+  return aepDrawerTrimEventTitleSnippet(out, 88);
+}
+
+/**
+ * Human-readable primary label for an experience event (drawer list + journey cards).
+ * Web page views: `Web Pageview — <page name>` with en dash; otherwise {@link normalizeEventName}.
+ * @param {Record<string, unknown> | null | undefined} ev
+ */
+function formatExperienceEventDisplayTitle(ev) {
+  if (isAdobeWebPageViewExperienceEvent(ev)) {
+    const snippet = deriveWebPageviewTitleSnippetFromRows(ev && ev.rows);
+    if (snippet) {
+      return `Web Pageview \u2014 ${snippet}`;
+    }
+    return 'Web Pageview';
+  }
+  return normalizeEventName(ev && ev.eventName);
+}
+
 function formatEventTimelineDate(value) {
   const ts = typeof value === 'number' ? value : Number(value);
   const d = Number.isFinite(ts) ? new Date(ts) : new Date(value);
@@ -2515,7 +2600,7 @@ function renderProfileDrawerEventsStoryModalContent() {
       tp.textContent = formatJourneyTouchpoint(ev);
       const h3 = document.createElement('h3');
       h3.className = 'aep-profile-drawer-journey-card-title';
-      h3.textContent = normalizeEventName(ev && ev.eventName);
+      h3.textContent = formatExperienceEventDisplayTitle(ev);
       body.appendChild(tp);
       body.appendChild(h3);
       card.appendChild(thumb);
@@ -2656,26 +2741,11 @@ function renderEventTimeline(events) {
 
     const titleEl = document.createElement('strong');
     titleEl.className = 'aep-profile-drawer-event-title';
-    titleEl.textContent = normalizeEventName(ev && ev.eventName);
+    titleEl.textContent = formatExperienceEventDisplayTitle(ev);
 
     const subEl = document.createElement('span');
     subEl.className = 'aep-profile-drawer-event-sub';
-    const evLabel = normalizeEventName(ev && ev.eventName).toUpperCase();
-    const typeRaw = String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase();
-    const msgKind = aepProfileDrawerMessageChannelKind(ev);
-    const channelTag =
-      msgKind === 'email'
-        ? 'email'
-        : msgKind === 'push'
-          ? 'push'
-          : typeRaw.startsWith('mobile')
-            ? 'MOBILE'
-            : typeRaw.startsWith('insurance')
-              ? 'INSURANCE'
-            : typeRaw.startsWith('web')
-              ? 'WEB'
-              : 'WEB';
-    subEl.textContent = `${evLabel} - ${channelTag}`;
+    subEl.textContent = formatDrawerEventChannelDisplay(ev);
 
     textWrap.appendChild(timeEl);
     textWrap.appendChild(titleEl);
