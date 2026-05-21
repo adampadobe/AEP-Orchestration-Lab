@@ -202,9 +202,9 @@ let lastLookedUpProfile = null;
 /** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
 let _lastLoadedIdentifier = null;
 
-/** Auto-poll handle — polls events every 15 s while a profile is loaded */
+/** Auto-poll handle — polls events every 1 s while a profile is loaded */
 let _eventsPollInterval = null;
-const EVENTS_POLL_MS = 15000;
+const EVENTS_POLL_MS = 1000;
 
 function startEventsPoll() {
   stopEventsPoll();
@@ -1973,10 +1973,10 @@ function getProfileDrawerEventsHeadingRow() {
       const fromInput = typeof _config.emailGetter === 'function'
         ? _config.emailGetter()
         : (() => { const el = document.getElementById(_config.emailInputId || 'customerEmail'); return el ? el.value : ''; })();
-      const id = String(fromInput || _lastLoadedIdentifier || '').trim();
+      const profileEcid = lastLookedUpProfile && lastLookedUpProfile.ecid ? String(lastLookedUpProfile.ecid) : '';
+      const id = String(fromInput || profileEcid || _lastLoadedIdentifier || '').trim();
       if (!id) return;
       refreshBtn.classList.add('aep-profile-drawer-refresh-btn--spinning');
-      // Fallback timeout in case animationend doesn't fire (e.g. reduced-motion)
       const spinTimeout = setTimeout(function () {
         refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
       }, 800);
@@ -1985,7 +1985,12 @@ function getProfileDrawerEventsHeadingRow() {
         refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
         refreshBtn.removeEventListener('animationend', onEnd);
       });
-      void loadProfileDataForDrawer(id, { updateMessage: false });
+      // If id is an ECID (all digits), look up by ecid namespace; otherwise full profile reload by email
+      if (/^\d{10,}$/.test(id)) {
+        void refreshDrawerEventsForIdentity(id, 'ecid');
+      } else {
+        void loadProfileDataForDrawer(id, { updateMessage: false });
+      }
     });
 
     // Theme toggle button
@@ -3389,7 +3394,9 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
   });
+  _lastLoadedIdentifier = ecid;
   void refreshDrawerEventsForIdentity(ecid, 'ecid');
+  startEventsPoll();
 
   if (typeof _config.afterBrowserEcidApplied === 'function') {
     try {
