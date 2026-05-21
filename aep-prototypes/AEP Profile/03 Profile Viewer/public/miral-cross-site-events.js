@@ -19,6 +19,13 @@
 
   var STORAGE_KEY = 'miralCrossSiteState';
 
+  // All custom events go through /api/events/generator — the same CF proxy that
+  // Etihad and Premier Inn demos use. The CF resolves the targetId server-side
+  // (presets in functions/event-generator-targets.json + Firestore) and applies
+  // server-to-server IMS auth before hitting Edge Network. This is the only
+  // proven path that lands custom eventTypes on AEP profiles.
+  var DEFAULT_TARGET_ID = 'lab-event-tool-edge';
+
   // ECID may be stored under any of these prefixes depending on which park demo
   // was active when Tags was injected.
   var ECID_KEYS = [
@@ -68,6 +75,49 @@
     } catch (e) { /* noop */ }
   }
 
+  /** Same sandbox key shape as `demo-tags-injection.js` / `aep-demo-web-push.js`. */
+  function getSandboxKey() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      var raw = String(window.AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase();
+      return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+    }
+    return '__default__';
+  }
+
+  function readStorageMap(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /**
+   * DemoTagsInjection stores the resolved ECID per sandbox under
+   * `{storagePrefix}LastResolvedEcidBySandbox` (JSON map). Legacy Miral pages used
+   * flat keys like `wbworldecid`; without reading the map, `fireEvent` no-ops after inject.
+   */
+  function readTagsInjectionEcidForPrefix(prefix) {
+    var p = String(prefix || '').trim();
+    if (!p) return null;
+    var map = readStorageMap(p + 'LastResolvedEcidBySandbox');
+    var id = map[getSandboxKey()];
+    if (id && String(id).trim()) return String(id).trim();
+    return null;
+  }
+
+  function getEcidFromInfoBanner() {
+    var el = document.getElementById('infoEcid');
+    if (!el) return null;
+    var t = String(el.textContent || '').trim();
+    if (!t || t === '\u2014' || t === '-') return null;
+    if (/^\d{10,}$/.test(t)) return t;
+    return null;
+  }
+
   function getEcid() {
     for (var i = 0; i < ECID_KEYS.length; i++) {
       try {
@@ -75,24 +125,27 @@
         if (v) return v;
       } catch (e) { /* noop */ }
     }
-    return null;
+    var p = detectPark();
+    if (p && p.id) {
+      var fromTags = readTagsInjectionEcidForPrefix(p.id);
+      if (fromTags) return fromTags;
+    }
+    return getEcidFromInfoBanner();
   }
 
-  function getGeneratorTarget() {
+  function getTargetId() {
     var sel = document.getElementById('generatorTarget');
-    if (!sel || !sel.value) return null;
-    return { id: sel.value };
+    if (sel && sel.value) return sel.value;
+    return DEFAULT_TARGET_ID;
   }
 
   // ── Event firing ─────────────────────────────────────────────────────────
 
   function fireEvent(eventType, viewName, viewUrl, extra) {
     var ecid = getEcid();
-    var target = getGeneratorTarget();
-    if (!target || !ecid) return; // silently no-op until Tags is injected
-
+    if (!ecid) return;
     var body = {
-      targetId: target.id,
+      targetId: getTargetId(),
       eventType: eventType,
       viewName: viewName || document.title,
       viewUrl: viewUrl || window.location.pathname,
@@ -103,11 +156,14 @@
       ecid: ecid,
     };
     if (extra && extra.email) body.email = extra.email;
-
+    var postBody = typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+      ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+      : body;
     fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(postBody),
+      keepalive: true,
     }).catch(function () {});
   }
 
@@ -157,12 +213,11 @@
   function trackEmailCapture(parkId, email) {
     setState({ emailCaptured: true, capturedEmail: email, emailCaptureSource: parkId });
     var ecid = getEcid();
-    var target = getGeneratorTarget();
 
     // Fire the newsletter.signup event (carries both ECID + email for AEP stitching)
-    if (target && ecid) {
+    if (ecid) {
       var body = {
-        targetId: target.id,
+        targetId: getTargetId(),
         eventType: 'newsletter.signup',
         viewName: 'Newsletter sign-up — ' + parkId,
         viewUrl: window.location.pathname,
@@ -173,12 +228,14 @@
         ecid: ecid,
         email: email,
       };
+      var postBody = typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+        ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+        : body;
       fetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(postBody),
       }).catch(function () {});
-
     }
 
     // Stitch email → ECID via alloy (same path as the profile viewer Query Profile button
@@ -208,9 +265,33 @@
     return top;
   }
 
+  // ── Tracking affordance styles ───────────────────────────────────────────
+
+  function injectTrackingStyles() {
+    if (document.getElementById('miral-tracking-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'miral-tracking-styles';
+    style.textContent = [
+      '[data-miral-attraction]{cursor:pointer;position:relative;}',
+      '[data-miral-attraction]::after{',
+      '  content:"🎯 Track";',
+      '  position:absolute;top:10px;right:10px;',
+      '  background:rgba(0,0,0,0.72);color:#fff;',
+      '  font:700 11px/1 sans-serif;letter-spacing:.5px;text-transform:uppercase;',
+      '  padding:5px 9px;border-radius:4px;',
+      '  opacity:0;transition:opacity .18s;pointer-events:none;z-index:99;',
+      '}',
+      '[data-miral-attraction]:hover::after{opacity:1;}',
+      '[data-miral-attraction]:active{outline:2px solid rgba(255,60,0,.7);}',
+      '[data-miral-attraction--fired]::after{content:"✓ Tracked";opacity:.6 !important;}',
+    ].join('');
+    document.head.appendChild(style);
+  }
+
   // ── Page-level initialisation ────────────────────────────────────────────
 
   function initPageTracking(park) {
+    injectTrackingStyles();
     trackPageView(park.id, park.name);
 
     // Click listeners on [data-miral-attraction] elements
@@ -219,6 +300,7 @@
         var aId = el.getAttribute('data-miral-attraction');
         var aName = el.getAttribute('data-miral-attraction-name') || aId;
         trackAttractionView(park.id, aId, aName);
+        el.setAttribute('data-miral-attraction--fired', '1');
       });
     });
 
@@ -454,6 +536,9 @@
     trackEmailCapture: trackEmailCapture,
     retryPageView: retryPageView,
     getAdForSlot: getAdForSlot,
+    // Kept as a no-op for backward compat — events now route via /api/events/generator
+    // which resolves the datastream server-side from targetId presets.
+    setDatastreamId: function () {},
     resetState: function () {
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
     },

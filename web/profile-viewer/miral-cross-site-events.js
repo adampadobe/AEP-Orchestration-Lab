@@ -75,6 +75,49 @@
     } catch (e) { /* noop */ }
   }
 
+  /** Same sandbox key shape as `demo-tags-injection.js` / `aep-demo-web-push.js`. */
+  function getSandboxKey() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      var raw = String(window.AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase();
+      return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+    }
+    return '__default__';
+  }
+
+  function readStorageMap(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /**
+   * DemoTagsInjection stores the resolved ECID per sandbox under
+   * `{storagePrefix}LastResolvedEcidBySandbox` (JSON map). Legacy Miral pages used
+   * flat keys like `wbworldecid`; without reading the map, `fireEvent` no-ops after inject.
+   */
+  function readTagsInjectionEcidForPrefix(prefix) {
+    var p = String(prefix || '').trim();
+    if (!p) return null;
+    var map = readStorageMap(p + 'LastResolvedEcidBySandbox');
+    var id = map[getSandboxKey()];
+    if (id && String(id).trim()) return String(id).trim();
+    return null;
+  }
+
+  function getEcidFromInfoBanner() {
+    var el = document.getElementById('infoEcid');
+    if (!el) return null;
+    var t = String(el.textContent || '').trim();
+    if (!t || t === '\u2014' || t === '-') return null;
+    if (/^\d{10,}$/.test(t)) return t;
+    return null;
+  }
+
   function getEcid() {
     for (var i = 0; i < ECID_KEYS.length; i++) {
       try {
@@ -82,7 +125,12 @@
         if (v) return v;
       } catch (e) { /* noop */ }
     }
-    return null;
+    var p = detectPark();
+    if (p && p.id) {
+      var fromTags = readTagsInjectionEcidForPrefix(p.id);
+      if (fromTags) return fromTags;
+    }
+    return getEcidFromInfoBanner();
   }
 
   function getTargetId() {
@@ -180,10 +228,13 @@
         ecid: ecid,
         email: email,
       };
+      var postBody = typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+        ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+        : body;
       fetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(postBody),
       }).catch(function () {});
     }
 
