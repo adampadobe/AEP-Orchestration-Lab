@@ -1,14 +1,14 @@
 /**
- * TikTok profile demo — profile lookup + Tags injection + optional web push + flyout lab nav.
+ * TikTok profile demo — canonical lab strip (sandbox, Tags inject, event destination, profile lookup).
  */
 
-const customerEmail = document.getElementById('customerEmailTiktok');
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmailTiktok');
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmailTiktok', 'tiktokNs');
+const customerEmail = document.getElementById('customerEmail');
+if (typeof attachEmailDatalist === 'function' && customerEmail) attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined' && customerEmail) AepIdentityPicker.init('customerEmail', 'tiktokNs');
 
-const queryProfileBtn = document.getElementById('queryProfileBtnTiktok');
+const queryProfileBtn = document.getElementById('queryProfileBtn');
 const tiktokMessage = document.getElementById('tiktokMessage');
-const generatorTargetSelect = document.getElementById('generatorTargetTiktok');
+const generatorTargetSelect = document.getElementById('generatorTarget');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
@@ -18,11 +18,15 @@ const tiktokWebPushToggle = document.getElementById('tiktokWebPushOnInjectToggle
 if (tiktokWebPushToggle) {
   try {
     if (localStorage.getItem(TIKTOK_WEB_PUSH_KEY) === '1') tiktokWebPushToggle.checked = true;
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   tiktokWebPushToggle.addEventListener('change', function () {
     try {
       localStorage.setItem(TIKTOK_WEB_PUSH_KEY, tiktokWebPushToggle.checked ? '1' : '0');
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   });
 }
 
@@ -36,12 +40,12 @@ const tiktokTagsInjection =
         storagePrefix: 'tiktok',
         identityEventType: 'tiktok.identity.stitch',
         messageSetter: setTiktokMessage,
-        infoEcidId: 'infoEcidTiktok',
+        infoEcidId: 'infoEcid',
         tagsCompanyId: 'tiktokTagsCompany',
         tagsPropertyInputId: 'tiktokTagsProperty',
         tagsPropertyListId: 'tiktokTagsPropertyList',
         tagsEnvironmentId: 'tiktokTagsEnvironment',
-        injectButtonId: 'injectSdkBtnTiktok',
+        injectButtonId: 'injectSdkBtn',
         selectedScriptId: 'tiktokSelectedScript',
         configFieldsId: 'tiktokSdkConfigFields',
         configSummaryId: 'tiktokSdkConfigSummary',
@@ -95,7 +99,9 @@ async function loadGeneratorTargets() {
     typeof window.AepDemoGeneratorTargets !== 'undefined' &&
     window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
   ) {
-    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {
+      preferredId: 'lab-event-tool-edge',
+    });
     return;
   }
   try {
@@ -160,7 +166,10 @@ queryProfileBtn &&
   let hideTimer = null;
 
   function clearHideTimer() {
-    if (hideTimer) { window.clearTimeout(hideTimer); hideTimer = null; }
+    if (hideTimer) {
+      window.clearTimeout(hideTimer);
+      hideTimer = null;
+    }
   }
 
   function setFlyoutOpen(open) {
@@ -169,20 +178,38 @@ queryProfileBtn &&
 
   function scheduleClose() {
     clearHideTimer();
-    hideTimer = window.setTimeout(function () { setFlyoutOpen(false); hideTimer = null; }, 450);
+    hideTimer = window.setTimeout(function () {
+      setFlyoutOpen(false);
+      hideTimer = null;
+    }, 450);
   }
 
   function onPointerMove(e) {
     if (mq.matches) return;
-    if (e.clientX <= 24) { clearHideTimer(); setFlyoutOpen(true); return; }
+    if (e.clientX <= 24) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
     const r = sidebar.getBoundingClientRect();
     const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    if (over) { clearHideTimer(); setFlyoutOpen(true); return; }
+    if (over) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
     if (body.classList.contains('social-tiktok-page--nav-open')) scheduleClose();
   }
 
-  sidebar.addEventListener('mouseenter', function () { if (!mq.matches) { clearHideTimer(); setFlyoutOpen(true); } });
-  sidebar.addEventListener('mouseleave', function () { if (!mq.matches) scheduleClose(); });
+  sidebar.addEventListener('mouseenter', function () {
+    if (!mq.matches) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+    }
+  });
+  sidebar.addEventListener('mouseleave', function () {
+    if (!mq.matches) scheduleClose();
+  });
   document.addEventListener('mousemove', onPointerMove, { passive: true });
   mq.addEventListener('change', function () {
     clearHideTimer();
@@ -192,7 +219,7 @@ queryProfileBtn &&
 })();
 
 DemoProfileDrawer.init({
-  emailInputId: 'customerEmailTiktok',
+  emailInputId: 'customerEmail',
   profileOpenClass: 'social-tiktok-page--profile-open',
   viewName: 'TikTok profile demo',
   emailGetter: getEmail,

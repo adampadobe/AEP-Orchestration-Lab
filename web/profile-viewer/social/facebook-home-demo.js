@@ -1,14 +1,15 @@
 /**
- * Facebook Home (News Feed) demo — profile lookup + Tags injection + optional web push + flyout lab nav.
+ * Facebook Home (News Feed) demo — canonical lab strip (sandbox, Tags inject, event destination,
+ * profile lookup) + optional Miral feed/rail refresh from `/api/profile/events` polling by ECID.
  */
 
-const customerEmail = document.getElementById('customerEmailHome');
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmailHome');
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmailHome', 'facebookNs');
+const customerEmail = document.getElementById('customerEmail');
+if (typeof attachEmailDatalist === 'function' && customerEmail) attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined' && customerEmail) AepIdentityPicker.init('customerEmail', 'facebookHomeNs');
 
-const queryProfileBtn = document.getElementById('queryProfileBtnHome');
+const queryProfileBtn = document.getElementById('queryProfileBtn');
 const facebookHomeMessage = document.getElementById('facebookHomeMessage');
-const generatorTargetSelect = document.getElementById('generatorTargetHome');
+const generatorTargetSelect = document.getElementById('generatorTarget');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
@@ -18,11 +19,15 @@ const facebookHomeWebPushToggle = document.getElementById('facebookHomeWebPushOn
 if (facebookHomeWebPushToggle) {
   try {
     if (localStorage.getItem(FACEBOOK_HOME_WEB_PUSH_KEY) === '1') facebookHomeWebPushToggle.checked = true;
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   facebookHomeWebPushToggle.addEventListener('change', function () {
     try {
       localStorage.setItem(FACEBOOK_HOME_WEB_PUSH_KEY, facebookHomeWebPushToggle.checked ? '1' : '0');
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   });
 }
 
@@ -36,12 +41,12 @@ const facebookHomeTagsInjection =
         storagePrefix: 'facebookHome',
         identityEventType: 'facebook.home.identity.stitch',
         messageSetter: setFacebookHomeMessage,
-        infoEcidId: 'infoEcidHome',
+        infoEcidId: 'infoEcid',
         tagsCompanyId: 'facebookHomeTagsCompany',
         tagsPropertyInputId: 'facebookHomeTagsProperty',
         tagsPropertyListId: 'facebookHomeTagsPropertyList',
         tagsEnvironmentId: 'facebookHomeTagsEnvironment',
-        injectButtonId: 'injectSdkBtnHome',
+        injectButtonId: 'injectSdkBtn',
         selectedScriptId: 'facebookHomeSelectedScript',
         configFieldsId: 'facebookHomeSdkConfigFields',
         configSummaryId: 'facebookHomeSdkConfigSummary',
@@ -54,6 +59,9 @@ const facebookHomeTagsInjection =
           enabled: true,
           subscribeAfterInject: facebookHomeWebPushOnInjectDesired,
           requestPermissionOnInject: facebookHomeWebPushOnInjectDesired,
+        },
+        onEcidResolved: function () {
+          void pollProfileForMiralAdHint();
         },
       })
     : null;
@@ -95,7 +103,9 @@ async function loadGeneratorTargets() {
     typeof window.AepDemoGeneratorTargets !== 'undefined' &&
     window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
   ) {
-    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {
+      preferredId: 'lab-event-tool-edge',
+    });
     return;
   }
   try {
@@ -148,6 +158,7 @@ queryProfileBtn &&
         : null;
     const stitched = await facebookHomeTagsInjection.stitchAfterProfileLookup(profile, email);
     if (stitched) setFacebookHomeMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    void pollProfileForMiralAdHint();
   });
 
 (function initFacebookHomeDemoFlyoutSidebar() {
@@ -160,7 +171,10 @@ queryProfileBtn &&
   let hideTimer = null;
 
   function clearHideTimer() {
-    if (hideTimer) { window.clearTimeout(hideTimer); hideTimer = null; }
+    if (hideTimer) {
+      window.clearTimeout(hideTimer);
+      hideTimer = null;
+    }
   }
 
   function setFlyoutOpen(open) {
@@ -169,20 +183,38 @@ queryProfileBtn &&
 
   function scheduleClose() {
     clearHideTimer();
-    hideTimer = window.setTimeout(function () { setFlyoutOpen(false); hideTimer = null; }, 450);
+    hideTimer = window.setTimeout(function () {
+      setFlyoutOpen(false);
+      hideTimer = null;
+    }, 450);
   }
 
   function onPointerMove(e) {
     if (mq.matches) return;
-    if (e.clientX <= 24) { clearHideTimer(); setFlyoutOpen(true); return; }
+    if (e.clientX <= 24) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
     const r = sidebar.getBoundingClientRect();
     const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    if (over) { clearHideTimer(); setFlyoutOpen(true); return; }
+    if (over) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+      return;
+    }
     if (body.classList.contains('social-facebook-home-page--nav-open')) scheduleClose();
   }
 
-  sidebar.addEventListener('mouseenter', function () { if (!mq.matches) { clearHideTimer(); setFlyoutOpen(true); } });
-  sidebar.addEventListener('mouseleave', function () { if (!mq.matches) scheduleClose(); });
+  sidebar.addEventListener('mouseenter', function () {
+    if (!mq.matches) {
+      clearHideTimer();
+      setFlyoutOpen(true);
+    }
+  });
+  sidebar.addEventListener('mouseleave', function () {
+    if (!mq.matches) scheduleClose();
+  });
   document.addEventListener('mousemove', onPointerMove, { passive: true });
   mq.addEventListener('change', function () {
     clearHideTimer();
@@ -192,7 +224,7 @@ queryProfileBtn &&
 })();
 
 DemoProfileDrawer.init({
-  emailInputId: 'customerEmailHome',
+  emailInputId: 'customerEmail',
   profileOpenClass: 'social-facebook-home-page--profile-open',
   viewName: 'Facebook Home demo',
   emailGetter: getEmail,
@@ -209,3 +241,45 @@ DemoProfileDrawer.init({
     selectedScriptCodeId: 'facebookHomeSelectedScript',
   });
 })();
+
+function sandboxQs() {
+  if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    const s = String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+    if (s) return '&sandbox=' + encodeURIComponent(s);
+  }
+  return '';
+}
+
+async function pollProfileForMiralAdHint() {
+  if (typeof window.MiralCrossSite === 'undefined') return;
+  const ecidEl = document.getElementById('infoEcid');
+  const ecid = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+  if (!ecid || ecid === '—' || ecid === '-' || !/^\d{10,}$/.test(ecid)) return;
+  try {
+    const res = await fetch(
+      '/api/profile/events?identifier=' + encodeURIComponent(ecid) + '&namespace=ecid' + sandboxQs(),
+    );
+    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    const events = Array.isArray(data.events) ? data.events : [];
+    events.sort(function (a, b) {
+      return (Number(b && b.timestamp) || 0) - (Number(a && a.timestamp) || 0);
+    });
+    const top = events[0];
+    const et = String((top && (top.eventType || top.eventName)) || '').trim();
+    if (!et) return;
+    if (typeof window.MiralCrossSite.applyProfileEventHint === 'function') {
+      window.MiralCrossSite.applyProfileEventHint(et);
+    }
+    if (typeof window.MiralCrossSite.refreshMiralFacebookSlots === 'function') {
+      window.MiralCrossSite.refreshMiralFacebookSlots();
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+window.setInterval(function () {
+  void pollProfileForMiralAdHint();
+}, 15000);
+void pollProfileForMiralAdHint();

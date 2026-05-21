@@ -7,7 +7,10 @@
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../home.css?v=20260520" />
+  <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260521-stacked-layout" />
+  <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260521-refresh-btn-lightfix" />
   <link rel="stylesheet" href="../aep-theme.css?v=20260520" />
+  <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c" />
   <link rel="stylesheet" href="tiktok.css?v=20260520" />
 </head>
 <body class="social-tiktok-page home-dashboard-concierge">
@@ -20,54 +23,94 @@
   <div class="dashboard-main-wrap" style="display:none;"></div>
 </div>
 
-<!-- ── Slide-down identity + SDK banner ───────────────────────── -->
+<!-- ── Lab strip (canonical ids) ───────────────────────────── -->
 <div class="social-tiktok-demo-top-anchor">
-  <div class="social-tiktok-demo-id-banner">
-    <div class="social-tiktok-demo-id-inner">
-      <div class="tiktok-sdk-config-fields mod-sdk-config-fields" id="tiktokSdkConfigFields" hidden>
-        <div class="form-row">
-          <label for="tiktokTagsCompany">IMS Org</label>
-          <input type="text" id="tiktokTagsCompany" class="form-control" placeholder="org@AdobeOrg" />
+  <section class="social-tiktok-demo-id-banner" aria-label="AEP lab — TikTok demo">
+    <div class="social-tiktok-demo-id-inner aep-demo-id-inner">
+      <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+        <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+          <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+            <span class="aep-demo-env-kicker">Environment</span>
+            <div class="aep-demo-env-editor-grid">
+              <div class="form-row">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+              <div id="tiktokSdkConfigFields" class="tiktok-sdk-config-fields mod-sdk-config-fields">
+                <div class="form-row">
+                  <label for="tiktokTagsCompany">Tags company</label>
+                  <select id="tiktokTagsCompany" aria-label="Tags company"></select>
+                </div>
+                <div class="form-row">
+                  <label for="tiktokTagsProperty">Tags property</label>
+                  <input type="text" id="tiktokTagsProperty" aria-label="Tags property" placeholder="Select property" list="tiktokTagsPropertyList" autocomplete="off" spellcheck="false" />
+                  <datalist id="tiktokTagsPropertyList"></datalist>
+                </div>
+                <div class="form-row">
+                  <label for="tiktokTagsEnvironment">Tags environment</label>
+                  <select id="tiktokTagsEnvironment" aria-label="Tags environment"></select>
+                </div>
+                <div class="social-tiktok-demo-id-actions">
+                  <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                </div>
+                <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                  <label class="aep-demo-web-push-label">
+                    <input type="checkbox" id="tiktokWebPushOnInjectToggle" />
+                    <span>Register web push when injecting Tags
+                      <span class="aep-demo-web-push-hint">Runs after inject; the browser may ask for notification permission.</span>
+                    </span>
+                  </label>
+                </div>
+                <div class="aep-demo-web-push-retry">
+                  <button type="button" id="tiktokWebPushRetryBtn" class="btn-lookup">Register web push now</button>
+                  <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="generatorTarget">Event destination</label>
+                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+              </div>
+            </div>
+            <div id="tiktokSdkConfigSummary" class="tiktok-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+              <span id="tiktokSdkConfigSummaryText"></span>
+              <button type="button" id="tiktokChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+            </div>
+          </div>
+          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+          </div>
         </div>
-        <div class="form-row">
-          <label for="tiktokTagsProperty">Tags property</label>
-          <input type="text" id="tiktokTagsProperty" class="form-control" list="tiktokTagsPropertyList" placeholder="paste embed URL" />
-          <datalist id="tiktokTagsPropertyList"></datalist>
+      </section>
+      <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+        <span class="aep-demo-env-kicker">Profile lookup</span>
+        <div class="aep-demo-profile-section-grid">
+          <div class="form-row">
+            <label for="tiktokNs">Namespace</label>
+            <select id="tiktokNs" class="sandbox-select" aria-label="Identity namespace">
+              <option value="email">Email</option>
+              <option value="ecid">ECID</option>
+              <option value="crmId">CRM ID</option>
+              <option value="loyaltyId">Loyalty ID</option>
+              <option value="phone">Phone</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="customerEmail">Identifier value</label>
+            <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="social-tiktok-demo-id-actions">
+            <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+            <span class="social-tiktok-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+          </div>
         </div>
-        <div class="form-row">
-          <label for="tiktokTagsEnvironment">Environment</label>
-          <select id="tiktokTagsEnvironment" class="form-control">
-            <option value="production">Production</option>
-            <option value="staging">Staging</option>
-            <option value="development">Development</option>
-          </select>
-        </div>
-      </div>
-      <div class="mod-sdk-summary--below-env-grid" id="tiktokSdkConfigSummary" hidden></div>
-      <div class="social-tiktok-demo-id-actions">
-        <div class="form-row">
-          <label for="customerEmailTiktok">Customer identifier</label>
-          <input type="email" id="customerEmailTiktok" class="form-control" placeholder="customer@example.com" autocomplete="off" />
-        </div>
-        <div class="form-row">
-          <label for="generatorTargetTiktok">Event target</label>
-          <select id="generatorTargetTiktok" class="form-control"></select>
-        </div>
-        <button class="btn btn-primary btn-lookup" id="queryProfileBtnTiktok" type="button">Look up profile</button>
-        <button class="btn btn-secondary btn-lookup" id="injectSdkBtnTiktok" type="button">Inject Tags</button>
-        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:500;padding-bottom:2px;cursor:pointer;">
-          <input type="checkbox" id="tiktokWebPushOnInjectToggle" />Push
-        </label>
-        <button class="btn btn-outline btn-lookup" id="tiktokWebPushRetryBtn" type="button" title="Retry web push">&#x1F514;</button>
-        <button class="btn btn-ghost btn-lookup" id="tiktokChangeSdkConfigBtn" type="button" style="margin-left:auto;">⚙ Config</button>
-      </div>
+      </section>
     </div>
-    <div class="social-tiktok-demo-script-preview">
-      <span id="tiktokSelectedScript"></span>
-    </div>
-    <div id="infoEcidTiktok" class="social-tiktok-demo-ecid-hint" hidden></div>
-  </div>
-  <p id="tiktokMessage" class="social-tiktok-demo-message" hidden></p>
+    <p class="social-tiktok-demo-script-preview">Selected script: <code id="tiktokSelectedScript">None</code></p>
+    <p id="tiktokMessage" class="social-tiktok-demo-message" role="status" aria-live="polite" hidden></p>
+  </section>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -400,15 +443,91 @@
   </div><!-- /tt-body -->
 </div><!-- /tt-mock -->
 
+<div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+<aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+  <div class="aep-profile-drawer-inner">
+    <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+      <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+      <div class="aep-profile-drawer-avatar-ring">
+        <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+      </div>
+      <div class="aep-profile-drawer-card-fields">
+        <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+        <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+        <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+        <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+        <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+        <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+        <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+      </div>
+      <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+        <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+        <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+        <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+      </div>
+    </section>
+    <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+      <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+      <div class="aep-profile-drawer-identity-fields">
+        <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>
+        <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>
+        <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>
+        <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.npsScore">NPS score</strong><span id="profileDrawerNpsScore">—</span></div>
+        <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+      </div>
+    </section>
+    <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+      <div class="aep-profile-drawer-graph-head">
+        <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+        <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+          <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+          <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+        <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      </div>
+    </div>
+    <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+        <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+        <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences"><li>No audience membership loaded</li></ul>
+      </div>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+        <div class="aep-profile-drawer-message-sent-heading-row">
+          <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+          <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+        </div>
+        <div class="aep-profile-drawer-email-sends-body">
+          <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+          <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+        </div>
+      </div>
+    </div>
+    <div class="aep-profile-drawer-col">
+      <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+      <div class="aep-profile-drawer-events" id="profileDrawerEvents"><p>No events found for this profile</p></div>
+    </div>
+  </div>
+</aside>
+
 <!-- ── AEP scripts ─────────────────────────────────────────────── -->
-<script src="../aep-lab-nav.js?v=20260520-social-tiktok"></script>
-<script src="../aep-identity-picker.js" defer></script>
-<script src="../aep-profile-drawer.js?v=20260521-ns-autodetect" defer></script>
-<script src="../aep-tags-injection.js" defer></script>
-<script src="../aep-web-push.js" defer></script>
-<script src="../aep-demo-generator-targets.js" defer></script>
-<script src="../aep-theme.js" defer></script>
-<script src="tiktok-demo.js" defer></script>
+<script src="../firebase-database-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="../aep-global-sandbox.js"></script>
+<script src="../aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+<script src="../email-cache.js"></script>
+<script src="../identity-picker.js"></script>
+<script src="../email-engagement-metrics.js"></script>
+<script src="../aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+<script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
+<script src="../demo-tags-injection.js?v=20260521-demo-tags"></script>
+<script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+<script src="../aep-demo-generator-targets.js?v=20260508"></script>
+<script defer src="../aep-lab-nav.js?v=20260520-social-tiktok"></script>
+<script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
+<script defer src="tiktok-demo.js?v=20260522-social-canonical-strip"></script>
 
 </body>
 </html>

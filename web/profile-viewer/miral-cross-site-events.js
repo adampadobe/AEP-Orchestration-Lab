@@ -714,6 +714,20 @@
     var emailCaptured = !!s.emailCaptured;
 
     if (slotId === 'feed-1' || slotId === 'feed-2') {
+      // Optional: Facebook lab polls `/api/profile/events` and sets `profileAdHint`
+      // (latest eventType) so feed slots can echo the visitor's last in-sandbox behaviour.
+      var hintRaw = String(s.profileAdHint || '').toLowerCase();
+      if (hintRaw) {
+        if (hintRaw.indexOf('ferrariworld') !== -1 && sites.indexOf('ferrariworld') !== -1) {
+          return buildFerrariWorldAd(slotId);
+        }
+        if (hintRaw.indexOf('wbworld') !== -1 && sites.indexOf('wbworld') !== -1) {
+          return emailCaptured ? buildWbWorldBookingAd(slotId) : buildWbWorldOfferAd(slotId);
+        }
+        if (hintRaw.indexOf('seaworld') !== -1 && sites.indexOf('seaworld') !== -1) {
+          return buildSeaWorldAd(slotId);
+        }
+      }
       if (topBrand === 'wbworld' && emailCaptured) return buildWbWorldBookingAd(slotId);
       if (topBrand === 'wbworld') return buildWbWorldOfferAd(slotId);
       if (sites.indexOf('seaworld') !== -1) return buildSeaWorldAd(slotId);
@@ -768,6 +782,27 @@
     flushVisibleAttractions(park, 'ecidReady');
   }
 
+  function refreshMiralFacebookSlots() {
+    var slots = [
+      { id: 'fbAdSlot1', slotKey: 'feed-1' },
+      { id: 'fbAdSlot2', slotKey: 'feed-2' },
+      { id: 'fbAdSlotRail1', slotKey: 'rail-1' },
+      { id: 'fbAdSlotRail2', slotKey: 'rail-2' },
+    ];
+    slots.forEach(function (s) {
+      var el = document.getElementById(s.id);
+      if (!el) return;
+      var html = getAdForSlot(s.slotKey);
+      if (html) el.innerHTML = html;
+    });
+  }
+
+  function applyProfileEventHint(hint) {
+    var h = String(hint || '').trim();
+    if (!h) return;
+    setState({ profileAdHint: h });
+  }
+
   window.MiralCrossSite = {
     getState: getState,
     setState: setState,
@@ -782,6 +817,8 @@
       flushVisibleAttractions(park, 'manual');
     },
     getAdForSlot: getAdForSlot,
+    refreshMiralFacebookSlots: refreshMiralFacebookSlots,
+    applyProfileEventHint: applyProfileEventHint,
     // Kept as a no-op for backward compat — events now route via /api/events/generator
     // which resolves the datastream server-side from targetId presets.
     setDatastreamId: function () {},
