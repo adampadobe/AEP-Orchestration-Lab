@@ -199,9 +199,9 @@
       }).catch(function () {});
     }
 
-    // Load the profile into the drawer so the lab operator can see the stitched profile
-    if (typeof window.DemoProfileDrawer !== 'undefined' && typeof window.DemoProfileDrawer.loadProfileDataForDrawer === 'function') {
-      window.DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: false });
+    // Open the drawer and load the matching profile so the lab operator sees it
+    if (typeof window.DemoProfileDrawer !== 'undefined' && typeof window.DemoProfileDrawer.openDrawerAndLoad === 'function') {
+      window.DemoProfileDrawer.openDrawerAndLoad(email);
     }
   }
 

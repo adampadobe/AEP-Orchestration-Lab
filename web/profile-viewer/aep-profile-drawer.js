@@ -3436,9 +3436,16 @@ function init(config) {
   }
 }
 
+async function openDrawerAndLoad(email) {
+  const openClass = (_config && _config.profileOpenClass) || 'aep-profile-drawer-open';
+  document.body.classList.add(openClass);
+  if (email) await loadProfileDataForDrawer(email, { updateMessage: false });
+}
+
 const api = {
   init,
   loadProfileDataForDrawer,
+  openDrawerAndLoad,
   updateProfileDrawer,
   getLastLookedUpProfile: () => lastLookedUpProfile,
   getLastProfile: () => lastLookedUpProfile,
