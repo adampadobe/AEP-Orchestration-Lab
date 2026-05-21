@@ -90,9 +90,12 @@
     var ecid = getEcid();
 
     // Primary path: alloy ("sendEvent") via the injected Tags SDK.
-    // This is the same path page views use — no server auth, no Firestore,
-    // works in incognito, identity is managed by alloy automatically.
+    // Mirrors the XDM data element shape the Tags page-view rule uses so
+    // _demoemea.identification.core.ecid passes schema validation at the Edge.
     if (typeof alloy === 'function') {
+      var identCore = {};
+      if (ecid) identCore.ecid = ecid;
+      if (extra && extra.email) identCore.email = extra.email;
       var xdm = {
         eventType: eventType,
         web: {
@@ -100,6 +103,10 @@
             name: viewName || document.title,
             URL: viewUrl ? (window.location.origin + viewUrl) : window.location.href,
           },
+        },
+        _demoemea: {
+          identification: { core: identCore },
+          interactionDetails: { core: { channel: 'web' } },
         },
       };
       if (extra && extra.email) {
