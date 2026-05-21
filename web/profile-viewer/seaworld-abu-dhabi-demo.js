@@ -105,6 +105,10 @@ const seaworldTagsInjection =
         },
         onEcidResolved: function () {
           if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();
+          var _ft2 = getSelectedGeneratorTarget();
+          if (_ft2 && (_ft2.dataStreamId || _ft2.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
+            window.MiralCrossSite.setDatastreamId(_ft2.dataStreamId || _ft2.datastreamId);
+          }
           if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('seaworld');
           var ecidEl = document.getElementById('infoEcid');
           var ecid = ecidEl ? String(ecidEl.textContent || '').trim() : '';
@@ -155,6 +159,10 @@ async function loadGeneratorTargets() {
     window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
   ) {
     generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, { preferredId: 'lab-event-tool-edge' });
+    const _ft = getSelectedGeneratorTarget();
+    if (_ft && (_ft.dataStreamId || _ft.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
+      window.MiralCrossSite.setDatastreamId(_ft.dataStreamId || _ft.datastreamId);
+    }
     return;
   }
   try {
