@@ -3,9 +3,6 @@
 .aep-demo-env-section {
   width: 100%;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--dash-border);
-  padding-bottom: 0.55rem;
-  margin-bottom: 0.1rem;
 }
 
 .aep-demo-env-collapsible {
@@ -82,7 +79,13 @@
 .aep-demo-profile-section {
   width: 100%;
   box-sizing: border-box;
-  padding-top: 0.45rem;
+}
+
+/* Divider between config section and profile lookup when stacked */
+.aep-demo-env-section + .aep-demo-profile-section {
+  border-top: 1px solid var(--dash-border);
+  margin-top: 1.25rem;
+  padding-top: 1rem;
 }
 
 .aep-demo-profile-section-grid {
@@ -226,16 +229,16 @@
   display: inline-flex;
 }
 
-/* ── Standard two-column env-bar layout ─────────────────────────
+/* ── Standard stacked env-bar layout ────────────────────────────
    Add class "aep-demo-id-inner" to any demo id-inner div to opt
-   into the standard. Individual demo CSS overrides still apply.  */
+   into the standard. Config section stacks above profile lookup,
+   separated by a divider. Individual demo CSS overrides still apply. */
 .aep-demo-id-inner {
   max-width: none;
   margin: 0;
   padding: 0.75rem 20px 0.6rem;
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 0 2rem;
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -246,23 +249,6 @@
   gap: 0.45rem 0.85rem;
 }
 
-.aep-demo-id-inner .aep-demo-web-push-row,
-.aep-demo-id-inner .aep-bc-toggle-row,
-.aep-demo-id-inner .aep-bc-launcher-row {
-  flex: 0 0 auto;
-  padding-top: 0;
-}
-
-.aep-demo-id-inner .aep-demo-web-push-retry {
-  flex: 0 0 auto;
-  margin-top: 0;
-}
-
-.aep-demo-id-inner .aep-demo-web-push-retry-hint,
-.aep-demo-id-inner .aep-demo-web-push-hint {
-  display: none;
-}
-
 .aep-demo-id-inner .mod-sdk-summary--below-env-grid {
   width: 100%;
   margin-top: 0.35rem;
@@ -270,7 +256,6 @@
 
 @media (max-width: 768px) {
   .aep-demo-id-inner {
-    grid-template-columns: 1fr;
     padding: 0.6rem 12px;
   }
 }
