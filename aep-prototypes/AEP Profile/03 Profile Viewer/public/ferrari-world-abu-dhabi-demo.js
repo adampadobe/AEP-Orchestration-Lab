@@ -268,3 +268,11 @@ DemoProfileDrawer.init({
     selectedScriptCodeId: 'ferrariworldSelectedScript',
   });
 })();
+
+window.AepDemoParkStitch = window.AepDemoParkStitch || {};
+window.AepDemoParkStitch.stitch = function (email, ecid) {
+  if (ferrariworldTagsInjection && typeof ferrariworldTagsInjection.stitchAfterProfileLookup === 'function') {
+    var fakeProfile = ecid ? { ecid: ecid } : null;
+    void ferrariworldTagsInjection.stitchAfterProfileLookup(fakeProfile, email);
+  }
+};
