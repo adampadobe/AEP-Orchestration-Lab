@@ -88,9 +88,30 @@
 
   function fireEvent(eventType, viewName, viewUrl, extra) {
     var ecid = getEcid();
-    var target = getGeneratorTarget();
-    if (!target || !ecid) return; // silently no-op until Tags is injected
 
+    // Primary path: alloy ("sendEvent") via the injected Tags SDK.
+    // This is the same path page views use — no server auth, no Firestore,
+    // works in incognito, identity is managed by alloy automatically.
+    if (typeof alloy === 'function') {
+      var xdm = {
+        eventType: eventType,
+        web: {
+          webPageDetails: {
+            name: viewName || document.title,
+            URL: viewUrl ? (window.location.origin + viewUrl) : window.location.href,
+          },
+        },
+      };
+      if (extra && extra.email) {
+        xdm.identityMap = { Email: [{ id: extra.email, primary: false, authenticatedState: 'authenticated' }] };
+      }
+      alloy('sendEvent', { xdm: xdm }).catch(function () {});
+      return;
+    }
+
+    // Fallback: Event Tool via server proxy (used before Tags is injected).
+    var target = getGeneratorTarget();
+    if (!target || !ecid) return;
     var body = {
       targetId: target.id,
       eventType: eventType,
@@ -103,13 +124,13 @@
       ecid: ecid,
     };
     if (extra && extra.email) body.email = extra.email;
-
-    // keepalive: true keeps the request alive even if the page navigates away
-    // (important for ticket-intent clicks that go to booking.html)
+    var postBody = typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
+      ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
+      : body;
     fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(postBody),
       keepalive: true,
     }).catch(function () {});
   }
