@@ -8,6 +8,7 @@ const {
   getProfileEcid,
   appendProfileAccessMergePolicyIfConfigured,
 } = require('./profileTableHelpers');
+const { deriveEventChannel } = require('./profileEventChannel');
 
 const QUERY_SERVICE_BASE = 'https://platform.adobe.io/data/foundation/query';
 const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
@@ -134,7 +135,9 @@ function deriveEventName(entity) {
 }
 
 function eventRowToEventPayload(row, index) {
-  if (!row || typeof row !== 'object') return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [] };
+  if (!row || typeof row !== 'object') {
+    return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [], channel: null };
+  }
   const tsRaw = row.timestamp ?? row._id ?? row.eventTimestamp;
   const timestamp = tsRaw == null ? null : typeof tsRaw === 'number' ? tsRaw : new Date(tsRaw).getTime();
   const etCandidate = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? '';
@@ -157,11 +160,13 @@ function eventRowToEventPayload(row, index) {
       path,
     }))
     .sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+  const channel = deriveEventChannel(row, rows) || null;
   return {
     entityId: String(row._id ?? index),
     timestamp: isNaN(timestamp) ? null : timestamp,
     eventName: String(eventName),
     rows,
+    channel,
   };
 }
 
@@ -172,11 +177,13 @@ function extractExperienceEventsFromProfileResponse(response) {
     const ts = item.timestamp ?? entity?.timestamp;
     const tsMs = ts == null ? null : typeof ts === 'number' ? ts : new Date(ts).getTime();
     const rows = flattenEntityToTableRows(entity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+    const channel = deriveEventChannel(entity, rows) || null;
     out.push({
       entityId: item.entityId ?? item.id ?? '',
       timestamp: isNaN(tsMs) ? null : tsMs,
       eventName: deriveEventName(entity),
       rows,
+      channel,
     });
   };
 
@@ -356,11 +363,13 @@ function mapExperienceEventChildrenToPayload(children) {
           ? new Date(eventEntity.timestamp).getTime()
           : null;
     const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+    const channel = deriveEventChannel(eventEntity, rows) || null;
     return {
       entityId: child.entityId || child.id || '',
       timestamp: ts,
       eventName: deriveEventName(eventEntity),
       rows,
+      channel,
     };
   });
 }

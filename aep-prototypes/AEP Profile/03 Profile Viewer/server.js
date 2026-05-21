@@ -15,6 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const requireCjs = createRequire(import.meta.url);
 /** Canonical streaming path routing + language mirror (keep in sync with Firebase `functions/profileStreamingCore.js`). */
 const profileStreamingCore = requireCjs(join(__dirname, '../../../functions/profileStreamingCore.js'));
+const { deriveEventChannel } = requireCjs(join(__dirname, '../../../functions/profileEventChannel.js'));
 dotenv.config({ path: join(__dirname, '.env') });
 
 /** Journey names cache (AJO system schema workaround). Loaded from journey-names.json if present. */
@@ -2197,11 +2198,13 @@ function extractExperienceEventsFromProfileResponse(response) {
     const ts = item.timestamp ?? entity?.timestamp;
     const tsMs = ts == null ? null : (typeof ts === 'number' ? ts : new Date(ts).getTime());
     const rows = flattenEntityToTableRows(entity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+    const channel = deriveEventChannel(entity, rows) || null;
     out.push({
       entityId: item.entityId ?? item.id ?? '',
       timestamp: isNaN(tsMs) ? null : tsMs,
       eventName: deriveEventName(entity),
       rows,
+      channel,
     });
   };
 
@@ -2504,9 +2507,11 @@ async function getEventsFromQueryService(email, sandboxOverride) {
   return Array.isArray(rows) ? rows : [];
 }
 
-/** Turn a flat event row (key-value from Query Service) into { eventName, timestamp, rows } for the Events tab. */
+/** Turn a flat event row (key-value from Query Service) into { eventName, timestamp, rows, channel } for the Events tab. */
 function eventRowToEventPayload(row, index) {
-  if (!row || typeof row !== 'object') return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [] };
+  if (!row || typeof row !== 'object') {
+    return { entityId: String(index), timestamp: null, eventName: 'Event', rows: [], channel: null };
+  }
   const tsRaw = row.timestamp ?? row._id ?? row.eventTimestamp;
   const timestamp = tsRaw == null ? null : (typeof tsRaw === 'number' ? tsRaw : new Date(tsRaw).getTime());
   const etCandidate = row.eventType ?? row.name ?? row._type ?? row['eventType'] ?? row['@type'] ?? '';
@@ -2529,11 +2534,13 @@ function eventRowToEventPayload(row, index) {
       path,
     }))
     .sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+  const channel = deriveEventChannel(row, rows) || null;
   return {
     entityId: String(row._id ?? index),
     timestamp: isNaN(timestamp) ? null : timestamp,
     eventName: String(eventName),
     rows,
+    channel,
   };
 }
 
@@ -2739,11 +2746,13 @@ app.get('/api/profile/events', async (req, res) => {
         const eventEntity = child.entity || child;
         const ts = child.timestamp != null ? child.timestamp : (eventEntity.timestamp ? new Date(eventEntity.timestamp).getTime() : null);
         const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+        const channel = deriveEventChannel(eventEntity, rows) || null;
         return {
           entityId: child.entityId || child.id || '',
           timestamp: ts,
           eventName: deriveEventName(eventEntity),
           rows,
+          channel,
         };
       });
     }

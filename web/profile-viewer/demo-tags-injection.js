@@ -778,11 +778,8 @@
         await sendDemoemeaWebPageViewToEdge(alloyFn, {
           phase: 'post-ecid-anonymous',
           ecid: ecid,
-          pageNameSuffix: ' · AEP lab (anonymous ECID)',
         });
-        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid, {
-          pageNameSuffix: ' · AEP lab (anonymous ECID)',
-        });
+        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,
