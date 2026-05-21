@@ -202,6 +202,25 @@ let lastLookedUpProfile = null;
 /** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
 let _lastLoadedIdentifier = null;
 
+/** Auto-poll handle — polls events every 15 s while a profile is loaded */
+let _eventsPollInterval = null;
+const EVENTS_POLL_MS = 15000;
+
+function startEventsPoll() {
+  stopEventsPoll();
+  _eventsPollInterval = setInterval(function () {
+    const ecid = lastLookedUpProfile && lastLookedUpProfile.ecid ? String(lastLookedUpProfile.ecid) : '';
+    const id = ecid || _lastLoadedIdentifier || '';
+    if (!id) return;
+    const ns = ecid ? 'ecid' : undefined;
+    void refreshDrawerEventsForIdentity(id, ns);
+  }, EVENTS_POLL_MS);
+}
+
+function stopEventsPoll() {
+  if (_eventsPollInterval) { clearInterval(_eventsPollInterval); _eventsPollInterval = null; }
+}
+
 function setDrawerValue(el, value, fallback) {
   if (!el) return;
   const shown = value == null || value === '' ? fallback : String(value);
@@ -3248,6 +3267,7 @@ async function loadProfileDataForDrawer(email, options) {
     };
 
     updateProfileDrawer(lastLookedUpProfile);
+    startEventsPoll();
 
     if (data.found && typeof _config.getSelectedGeneratorTarget === 'function') {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
@@ -3413,6 +3433,7 @@ function initAepProfileDrawerHover() {
       const email = String(drawerGetEmail() || '').trim();
       if (email) loadProfileDataForDrawer(email, { updateMessage: false });
     }
+    if (!next) stopEventsPoll();
     drawerOpenState = next;
   }
 
@@ -3444,6 +3465,7 @@ function init(config) {
   cacheDomRefs();
   ensureProfileDrawerThemeToggle();
   ensureProfileDrawerIdentityGraphHeadingRow();
+  window.addEventListener('beforeunload', stopEventsPoll, { once: true });
 
   if (!eventsStoryModalKeydownBound) {
     eventsStoryModalKeydownBound = true;
