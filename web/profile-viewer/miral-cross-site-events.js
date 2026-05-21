@@ -19,6 +19,10 @@
 
   var STORAGE_KEY = 'miralCrossSiteState';
 
+  // Datastreamid set by each park's demo.js after generator targets load.
+  // Used to route custom events through /api/events/edge (same path as event-tool.html).
+  var _datastreamId = null;
+
   // ECID may be stored under any of these prefixes depending on which park demo
   // was active when Tags was injected.
   var ECID_KEYS = [
@@ -89,25 +93,25 @@
   function fireEvent(eventType, viewName, viewUrl, extra) {
     var ecid = getEcid();
 
-    // Primary path: alloy ("sendEvent") via the injected Tags SDK.
-    // XDM matches event-tool.html's proven working payload: explicit ECID in
-    // identityMap + _experience.campaign.orchestration.eventID. No web.webPageDetails
-    // or _demoemea — those are not what this datastream's schema needs for custom events.
-    if (typeof alloy === 'function') {
-      var xdm = {
+    // Primary path: /api/events/edge — public Cloud Function with server-side IMS auth.
+    // Same mechanism as event-tool.html which provably lands events. No Firebase auth
+    // required. datastreamId is set by each park's demo.js after targets load.
+    if (ecid && _datastreamId) {
+      var edgeBody = {
+        datastreamId: _datastreamId,
         eventType: eventType,
-        _id: String(Date.now()),
-        timestamp: new Date().toISOString(),
-        _experience: { campaign: { orchestration: { eventID: '' } } },
+        ecid: ecid,
+        viewName: viewName || document.title,
+        viewUrl: viewUrl || window.location.pathname,
+        channel: 'web',
       };
-      if (ecid) {
-        xdm.identityMap = { ECID: [{ id: ecid, primary: true, authenticatedState: 'ambiguous' }] };
-      }
-      if (extra && extra.email) {
-        xdm.identityMap = xdm.identityMap || {};
-        xdm.identityMap.Email = [{ id: extra.email, primary: false, authenticatedState: 'authenticated' }];
-      }
-      alloy('sendEvent', { xdm: xdm }).catch(function () {});
+      if (extra && extra.email) edgeBody.email = extra.email;
+      fetch('/api/events/edge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edgeBody),
+        keepalive: true,
+      }).catch(function () {});
       return;
     }
 
@@ -505,6 +509,7 @@
     trackEmailCapture: trackEmailCapture,
     retryPageView: retryPageView,
     getAdForSlot: getAdForSlot,
+    setDatastreamId: function (id) { _datastreamId = id ? String(id).trim() : null; },
     resetState: function () {
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
     },
