@@ -31,7 +31,8 @@
  *   Load this script AFTER the park-specific demo.js.
  *
  * Facebook page reads window.MiralCrossSite.getAdForSlot(slotId) to obtain
- * brand-personalised ad HTML for each slot.
+ * brand-personalised ad HTML for each slot. Rail slots `rail-1` / `rail-2` each
+ * resolve a distinct cross-sell park when the candidate list allows it.
  */
 (function () {
   'use strict';
@@ -609,14 +610,62 @@
     });
   }
 
-  // Miral cross-sell rail ad — promotes a different park
-  function buildMiralCrossSellRailAd(sites, topBrand, slotLabel) {
-    // Promote the park the user hasn't visited yet (or visited least)
+  /** Canonical Yas Island park ids for cross-sell ordering. */
+  var MIRAL_PARK_ORDER = ['ferrariworld', 'wbworld', 'seaworld'];
+
+  /**
+   * Single "primary" cross-sell park from legacy heuristics (attraction/ticket story).
+   * Used as the first preference when building an ordered candidate list.
+   */
+  function computePrimaryCrossSellPark(sites, topBrand) {
     var promote = 'ferrariworld';
     if (sites.indexOf('ferrariworld') !== -1 && sites.indexOf('wbworld') === -1) promote = 'wbworld';
     else if (sites.indexOf('wbworld') !== -1 && sites.indexOf('seaworld') === -1) promote = 'seaworld';
     else if (topBrand === 'wbworld') promote = 'seaworld';
     else if (topBrand === 'ferrariworld') promote = 'wbworld';
+    return promote;
+  }
+
+  /**
+   * Ordered parks for rail-1 / rail-2: prefer primary heuristic, then other
+   * unvisited parks (canonical order), then recent visits (reverse of sitesVisited)
+   * so the second rail can show another brand when only one park remains unvisited.
+   */
+  function buildCrossSellCandidateParks(sites, topBrand) {
+    var sitesArr = Array.isArray(sites) ? sites : [];
+    var primary = computePrimaryCrossSellPark(sitesArr, topBrand);
+    var unvisited = MIRAL_PARK_ORDER.filter(function (p) { return sitesArr.indexOf(p) === -1; });
+    var candidates = [];
+    function pushUnique(p) {
+      if (!p || candidates.indexOf(p) !== -1) return;
+      candidates.push(p);
+    }
+    pushUnique(primary);
+    unvisited.forEach(function (p) { pushUnique(p); });
+    if (candidates.length < 2) {
+      for (var i = sitesArr.length - 1; i >= 0; i--) {
+        pushUnique(sitesArr[i]);
+        if (candidates.length >= 2) break;
+      }
+    }
+    if (candidates.length < 2) {
+      MIRAL_PARK_ORDER.forEach(function (p) { pushUnique(p); });
+    }
+    return candidates;
+  }
+
+  function pickCrossSellParkForRail(slotId, sites, topBrand) {
+    var list = buildCrossSellCandidateParks(sites, topBrand);
+    var wantSecond = slotId === 'rail-2';
+    var parkId = wantSecond ? (list[1] || list[0]) : list[0];
+    var useSecondaryCopy = wantSecond && list.length === 1;
+    return { parkId: parkId, useSecondaryCopy: useSecondaryCopy };
+  }
+
+  // Miral cross-sell rail ad — promotes a different park per slot when possible
+  function buildMiralCrossSellRailAd(sites, topBrand, slotId) {
+    var pick = pickCrossSellParkForRail(slotId, sites, topBrand);
+    var promote = pick.parkId || 'wbworld';
 
     var opts = {
       ferrariworld: {
@@ -642,7 +691,16 @@
       },
     };
     var o = opts[promote] || opts.wbworld;
-    return buildRailAd({ img: o.img, imgAlt: o.imgAlt, title: o.title, sub: o.sub, cta: o.cta, slotLabel: slotLabel });
+    if (pick.useSecondaryCopy) {
+      o = {
+        img: o.img,
+        imgAlt: o.imgAlt,
+        title: o.title,
+        sub: o.sub + ' · Multi-park Yas Island tips',
+        cta: 'View offers',
+      };
+    }
+    return buildRailAd({ img: o.img, imgAlt: o.imgAlt, title: o.title, sub: o.sub, cta: o.cta, slotLabel: slotId });
   }
 
   // ── Public API ───────────────────────────────────────────────────────────
