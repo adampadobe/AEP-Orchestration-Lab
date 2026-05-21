@@ -13,6 +13,7 @@
   var BC_MAIN_JS =
     'https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js';
   var LOG_TAG = '[AepBcToggle]';
+  var _lastStyleKey = null;
 
   function log() {
     try {
@@ -61,8 +62,29 @@
    * Sets window.styleConfiguration from window.aepBcStyles[styleKey] then waits
    * for alloy + window.adobe.concierge to be available before bootstrapping.
    */
+  /**
+   * Reopen the BC panel after the widget's own X button closed it.
+   * Removes our CSS-dismissed state, calls the native open API if available,
+   * or re-bootstraps if the widget destroyed its DOM.
+   */
+  function reopen(styleKey) {
+    document.body.classList.remove('aep-bc-panel-dismissed');
+    var key = styleKey || _lastStyleKey || 'miral';
+    if (global.adobe && global.adobe.concierge && typeof global.adobe.concierge.open === 'function') {
+      global.adobe.concierge.open();
+      return;
+    }
+    var mount = document.getElementById('brand-concierge-mount');
+    if (mount && mount.children.length === 0) {
+      log('mount empty after widget close — re-bootstrapping');
+      global.__aepBcToggleBootstrapped = false;
+      enable(key);
+    }
+  }
+
   function enable(styleKey, onDone) {
     var key = styleKey || 'miral';
+    _lastStyleKey = key;
     var styles = global.aepBcStyles;
 
     if (styles && styles[key]) {
@@ -132,6 +154,7 @@
 
   global.AepBcToggle = {
     enable: enable,
+    reopen: reopen,
     enableIfPrefsSet: enableIfPrefsSet,
     savePrefs: savePrefs,
     loadPrefs: loadPrefs,

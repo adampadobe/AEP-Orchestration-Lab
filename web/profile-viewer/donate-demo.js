@@ -47,7 +47,7 @@ const donateBcLauncher = document.getElementById('donateBcLauncher');
   });
   if (donateBcLauncher) {
     donateBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();

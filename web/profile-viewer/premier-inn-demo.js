@@ -58,7 +58,7 @@ const premierInnBcLauncher = document.getElementById('premierInnBcLauncher');
   });
   if (premierInnBcLauncher) {
     premierInnBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();

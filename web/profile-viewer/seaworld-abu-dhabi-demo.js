@@ -53,7 +53,7 @@ const seaworldBcLauncher = document.getElementById('seaworldBcLauncher');
   });
   if (seaworldBcLauncher) {
     seaworldBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();

@@ -52,7 +52,7 @@ const admiralBcLauncher = document.getElementById('admiralBcLauncher');
   });
   if (admiralBcLauncher) {
     admiralBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();
