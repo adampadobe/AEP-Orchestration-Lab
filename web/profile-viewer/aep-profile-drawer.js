@@ -199,6 +199,9 @@ function aepProfileImageCssUrl(filename) {
 /** @type {Record<string, unknown> | null} */
 let lastLookedUpProfile = null;
 
+/** Last identifier (email or ECID) used to load the drawer — used by the refresh button */
+let _lastLoadedIdentifier = null;
+
 function setDrawerValue(el, value, fallback) {
   if (!el) return;
   const shown = value == null || value === '' ? fallback : String(value);
@@ -1948,13 +1951,18 @@ function getProfileDrawerEventsHeadingRow() {
     refreshIco.textContent = '↻';
     refreshBtn.appendChild(refreshIco);
     refreshBtn.addEventListener('click', function () {
-      const email = typeof _config.emailGetter === 'function'
+      const fromInput = typeof _config.emailGetter === 'function'
         ? _config.emailGetter()
         : (() => { const el = document.getElementById(_config.emailInputId || 'customerEmail'); return el ? el.value : ''; })();
-      const id = String(email || '').trim();
+      const id = String(fromInput || _lastLoadedIdentifier || '').trim();
       if (!id) return;
       refreshBtn.classList.add('aep-profile-drawer-refresh-btn--spinning');
+      // Fallback timeout in case animationend doesn't fire (e.g. reduced-motion)
+      const spinTimeout = setTimeout(function () {
+        refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
+      }, 800);
       refreshBtn.addEventListener('animationend', function onEnd() {
+        clearTimeout(spinTimeout);
         refreshBtn.classList.remove('aep-profile-drawer-refresh-btn--spinning');
         refreshBtn.removeEventListener('animationend', onEnd);
       });
@@ -3089,6 +3097,8 @@ async function loadProfileDataForDrawer(email, options) {
   const opts = options || {};
   const emailTrim = String(email || '').trim();
   if (!emailTrim) return false;
+
+  _lastLoadedIdentifier = emailTrim;
 
   const messageFn =
     typeof opts.onUserMessage === 'function'
