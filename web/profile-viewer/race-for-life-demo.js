@@ -49,7 +49,7 @@ const raceBcLauncher = document.getElementById('raceBcLauncher');
   });
   if (raceBcLauncher) {
     raceBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();

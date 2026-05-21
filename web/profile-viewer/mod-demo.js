@@ -33,7 +33,7 @@ const modBcLauncher = document.getElementById('modBcLauncher');
   });
   if (modBcLauncher) {
     modBcLauncher.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
     });
   }
 })();
@@ -308,7 +308,7 @@ DemoProfileDrawer.init({
     }
 
     floatBtn.addEventListener('click', function () {
-      document.body.classList.remove('aep-bc-panel-dismissed');
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
       syncBrandConciergeChrome();
       floatBtn.setAttribute('aria-expanded', 'true');
       var host = document.getElementById('brand-concierge-mount-host');
