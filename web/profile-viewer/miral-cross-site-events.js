@@ -104,10 +104,13 @@
     };
     if (extra && extra.email) body.email = extra.email;
 
+    // keepalive: true keeps the request alive even if the page navigates away
+    // (important for ticket-intent clicks that go to booking.html)
     fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      keepalive: true,
     }).catch(function () {});
   }
 
@@ -208,9 +211,33 @@
     return top;
   }
 
+  // ── Tracking affordance styles ───────────────────────────────────────────
+
+  function injectTrackingStyles() {
+    if (document.getElementById('miral-tracking-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'miral-tracking-styles';
+    style.textContent = [
+      '[data-miral-attraction]{cursor:pointer;position:relative;}',
+      '[data-miral-attraction]::after{',
+      '  content:"🎯 Track";',
+      '  position:absolute;top:10px;right:10px;',
+      '  background:rgba(0,0,0,0.72);color:#fff;',
+      '  font:700 11px/1 sans-serif;letter-spacing:.5px;text-transform:uppercase;',
+      '  padding:5px 9px;border-radius:4px;',
+      '  opacity:0;transition:opacity .18s;pointer-events:none;z-index:99;',
+      '}',
+      '[data-miral-attraction]:hover::after{opacity:1;}',
+      '[data-miral-attraction]:active{outline:2px solid rgba(255,60,0,.7);}',
+      '[data-miral-attraction--fired]::after{content:"✓ Tracked";opacity:.6 !important;}',
+    ].join('');
+    document.head.appendChild(style);
+  }
+
   // ── Page-level initialisation ────────────────────────────────────────────
 
   function initPageTracking(park) {
+    injectTrackingStyles();
     trackPageView(park.id, park.name);
 
     // Click listeners on [data-miral-attraction] elements
@@ -219,6 +246,7 @@
         var aId = el.getAttribute('data-miral-attraction');
         var aName = el.getAttribute('data-miral-attraction-name') || aId;
         trackAttractionView(park.id, aId, aName);
+        el.setAttribute('data-miral-attraction--fired', '1');
       });
     });
 
