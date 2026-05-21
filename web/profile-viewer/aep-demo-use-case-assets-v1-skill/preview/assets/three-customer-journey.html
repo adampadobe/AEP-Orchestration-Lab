@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three Ireland — 5G Upsell Customer Journey</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand:       #1B3F8B;
+  --brand-dark:  #122A63;
+  --brand-light: #EEF2FB;
+  --brand-mid:   #C8D3EE;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.slide {
+  display: flex;
+  width: 1280px;
+  height: 740px;
+  background: #f7f7f7;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+/* ── LEFT PANEL ── */
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f7f7f7;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.header {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  padding: 14px 28px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.client-logo { height: 30px; object-fit: contain; }
+
+.header-divider { width: 1px; height: 22px; background: #ddd; flex-shrink: 0; }
+
+.header-title { font-size: 15px; font-weight: 700; color: #111; }
+
+.header-sub { font-size: 11px; color: #999; margin-left: auto; font-style: italic; }
+
+/* ── JOURNEY MAP ── */
+.journey-map-container {
+  flex: 1;
+  padding: 32px 48px 36px;
+  display: flex;
+  align-items: center;
+}
+
+.journey-svg { width: 100%; height: auto; overflow: visible; }
+
+/* ── Node styles ── */
+.node-circle {
+  fill: #fff;
+  stroke: #ccc;
+  stroke-width: 2;
+  r: 18;
+  transition: fill 0.3s, stroke 0.3s;
+  cursor: pointer;
+}
+
+@keyframes nodePulse {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(27,63,139,0)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(27,63,139,0.65)); }
+}
+
+.node-active .node-circle {
+  fill: var(--brand);
+  stroke: var(--brand);
+  animation: nodePulse 1.5s ease-in-out infinite;
+}
+
+.node-label {
+  font-size: 11px;
+  fill: #333;
+  text-anchor: middle;
+  pointer-events: none;
+  font-weight: 700;
+}
+
+.node-active .node-label { fill: var(--brand); font-weight: 700; }
+
+.node-emoji {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+}
+
+.journey-base { fill: none; stroke: #ddd; stroke-width: 2.5; stroke-linecap: round; }
+
+.journey-active {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.journey-active.visible { opacity: 1; transition: opacity 0.6s ease; }
+
+/* ── Narrative captions ── */
+.node-narrative {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.node-narrative text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  font-size: 9.5px;
+  fill: #444;
+  font-weight: 500;
+}
+.node-narrative.visible { opacity: 1; }
+
+/* ── Device overlays ── */
+.device-node {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.device-node.visible { opacity: 1; }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  flex: 0 0 22%;
+  background: var(--brand);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 18px 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* dot-grid overlay */
+.right-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.adobe-wordmark {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-family: Arial Black, Arial, sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: #FA0F00;
+  letter-spacing: -0.5px;
+  z-index: 1;
+}
+
+/* ── Persona profile ── */
+.persona-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.95);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800;
+  color: var(--brand-dark);
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  position: relative; z-index: 1;
+}
+.persona-name {
+  font-size: 15px; font-weight: 800;
+  margin-top: 7px;
+  position: relative; z-index: 1;
+}
+.persona-sub {
+  font-size: 10px; opacity: 0.6;
+  margin-top: 2px;
+  position: relative; z-index: 1;
+}
+.persona-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; width: 100%;
+  margin-top: 12px;
+  position: relative; z-index: 1;
+  flex-shrink: 0;
+}
+.stat-cell {
+  background: rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 8px 8px 7px;
+}
+.stat-label {
+  font-size: 7.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  opacity: 0.5; margin-bottom: 3px;
+}
+.stat-value { font-size: 10.5px; font-weight: 700; line-height: 1.35; }
+.persona-tags {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  width: 100%; margin-top: 10px;
+  justify-content: center;
+  position: relative; z-index: 1;
+  flex-shrink: 0;
+}
+.persona-tag {
+  background: rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 3px 8px;
+  font-size: 8.5px; font-weight: 600;
+}
+.panel-divider {
+  width: 100%; height: 1px;
+  background: rgba(255,255,255,0.15);
+  flex-shrink: 0; margin: 10px 0;
+  position: relative; z-index: 1;
+}
+
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left-panel">
+    <div class="header">
+      <img class="client-logo" src="https://logo.clearbit.com/three.ie" alt="Three Ireland"
+           onerror="this.style.display='none'; document.getElementById('logo-fb').style.display='inline'">
+      <span id="logo-fb" style="display:none; font-weight:900; font-size:18px; color:#1B3F8B;">Three</span>
+      <div class="header-divider"></div>
+      <span class="header-title">Adobe Experience Platform</span>
+      <span class="header-sub">5G Upsell &middot; Customer Journey</span>
+    </div>
+
+    <div class="journey-map-container">
+      <svg class="journey-svg" viewBox="-20 -145 1080 640" id="journey-svg">
+
+        <!-- Base path -->
+        <path class="journey-base"
+          d="M 40,265 C 88,265 137,70 185,70
+             C 233,70 282,265 330,265
+             C 383,265 437,70 490,70
+             C 542,70 593,265 645,265
+             C 697,265 748,70 800,70
+             C 850,70 900,265 950,265"/>
+
+        <!-- Active trail -->
+        <path class="journey-active" id="active-seg"/>
+
+        <!-- Node 0 — 5G Signal Detected (bottom) -->
+        <g class="node-group" id="node-0" onclick="goTo(1)" style="cursor:pointer">
+          <circle class="node-circle" cx="40" cy="265" r="18"/>
+          <foreignObject x="24" y="249" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">📡</div>
+          </foreignObject>
+          <text class="node-label" x="40" y="302">5G Signal</text>
+          <text class="node-label" x="40" y="313">Detected</text>
+        </g>
+
+        <!-- Node 1 — Website Visit (top) -->
+        <g class="node-group" id="node-1" onclick="goTo(2)" style="cursor:pointer">
+          <circle class="node-circle" cx="185" cy="70" r="18"/>
+          <foreignObject x="169" y="54" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">🌐</div>
+          </foreignObject>
+          <text class="node-label" x="185" y="34">Website</text>
+          <text class="node-label" x="185" y="44">Visit</text>
+        </g>
+
+        <!-- Node 2 — Plan Browsing (bottom) -->
+        <g class="node-group" id="node-2" onclick="goTo(3)" style="cursor:pointer">
+          <circle class="node-circle" cx="330" cy="265" r="18"/>
+          <foreignObject x="314" y="249" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">📱</div>
+          </foreignObject>
+          <text class="node-label" x="330" y="302">Plan</text>
+          <text class="node-label" x="330" y="313">Browsing</text>
+        </g>
+
+        <!-- Node 3 — Abandons Upgrade (top) -->
+        <g class="node-group" id="node-3" onclick="goTo(4)" style="cursor:pointer">
+          <circle class="node-circle" cx="490" cy="70" r="18"/>
+          <foreignObject x="474" y="54" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">⏸️</div>
+          </foreignObject>
+          <text class="node-label" x="490" y="34">Abandons</text>
+          <text class="node-label" x="490" y="44">Upgrade</text>
+        </g>
+
+        <!-- Node 4 — Push Notification (bottom) -->
+        <g class="node-group" id="node-4" onclick="goTo(5)" style="cursor:pointer">
+          <circle class="node-circle" cx="645" cy="265" r="18"/>
+          <foreignObject x="629" y="249" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">🔔</div>
+          </foreignObject>
+          <text class="node-label" x="645" y="302">Push</text>
+          <text class="node-label" x="645" y="313">Notification</text>
+        </g>
+
+        <!-- Node 5 — Returns & Upgrades (top) -->
+        <g class="node-group" id="node-5" onclick="goTo(6)" style="cursor:pointer">
+          <circle class="node-circle" cx="800" cy="70" r="18"/>
+          <foreignObject x="784" y="54" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">✅</div>
+          </foreignObject>
+          <text class="node-label" x="800" y="34">Returns &amp;</text>
+          <text class="node-label" x="800" y="44">Upgrades</text>
+        </g>
+
+        <!-- Node 6 — Welcome & Analytics (bottom) -->
+        <g class="node-group" id="node-6" onclick="goTo(7)" style="cursor:pointer">
+          <circle class="node-circle" cx="950" cy="265" r="18"/>
+          <foreignObject x="934" y="249" width="32" height="32" style="pointer-events:none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="node-emoji">🎉</div>
+          </foreignObject>
+          <text class="node-label" x="950" y="302">Welcome</text>
+          <text class="node-label" x="950" y="313">&amp; Analytics</text>
+        </g>
+
+        <!-- Narrative captions (fade in on active step) -->
+        <g class="node-narrative" id="narrative-0">
+          <text text-anchor="middle" x="40" y="342">Ciarán is on a legacy plan</text>
+          <text text-anchor="middle" x="40" y="353">5G device, high data usage</text>
+          <text text-anchor="middle" x="40" y="364">RT-CDP flags him for upgrade</text>
+        </g>
+        <g class="node-narrative" id="narrative-1">
+          <text text-anchor="end" x="162" y="-58">Ciarán visits Three.ie</text>
+          <text text-anchor="end" x="162" y="-47">AJO serves a 5G homepage hero</text>
+          <text text-anchor="end" x="162" y="-36">matched to his device &amp; plan</text>
+        </g>
+        <g class="node-narrative" id="narrative-2">
+          <text text-anchor="middle" x="330" y="342">Ciarán browses 5G plans</text>
+          <text text-anchor="middle" x="330" y="353">dwell time &amp; clicks stream live</text>
+          <text text-anchor="middle" x="330" y="364">high-intent segment activates</text>
+        </g>
+        <g class="node-narrative" id="narrative-3">
+          <text text-anchor="middle" x="490" y="-17">Ciarán leaves without upgrading</text>
+          <text text-anchor="middle" x="490" y="-6">RT-CDP captures the signal</text>
+          <text text-anchor="middle" x="490" y="5">AJO journey triggered</text>
+        </g>
+        <g class="node-narrative" id="narrative-4">
+          <text text-anchor="end" x="647" y="377">Personalised push to Ciarán</text>
+          <text text-anchor="end" x="647" y="388">&#8364;5/mo 5G upgrade offer</text>
+          <text text-anchor="end" x="647" y="399">timed &amp; tailored by AJO</text>
+        </g>
+        <g class="node-narrative" id="narrative-5">
+          <text text-anchor="end" x="777" y="-58">Ciarán taps — returns to Three.ie</text>
+          <text text-anchor="end" x="777" y="-47">completes the upgrade</text>
+          <text text-anchor="end" x="777" y="-36">RT-CDP profile updated</text>
+        </g>
+        <g class="node-narrative" id="narrative-6">
+          <text text-anchor="middle" x="950" y="342">Welcome to 5G sent via AJO</text>
+          <text text-anchor="middle" x="950" y="353">CJA captures full attribution</text>
+          <text text-anchor="middle" x="950" y="364">journey closed, segment updated</text>
+        </g>
+
+        <!-- Device overlays -->
+
+        <!-- Node 1: Laptop — Website Visit -->
+        <foreignObject class="device-node" id="device-1" x="170" y="-95" width="130" height="96">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:130px;height:96px;">
+            <div style="position:absolute;left:2.67%;top:2.73%;width:94.67%;height:67.27%;overflow:hidden;border-radius:1px;background:#000;z-index:1;"></div>
+            <svg viewBox="0 0 300 220" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lap1-lgLidAl" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="#EBEBEB"/>
+                  <stop offset="18%"  stop-color="#D8D8D8"/>
+                  <stop offset="60%"  stop-color="#CCCCCC"/>
+                  <stop offset="100%" stop-color="#C0C0C0"/>
+                </linearGradient>
+                <linearGradient id="lap1-lgLidSheen" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%"   stop-color="rgba(255,255,255,0.22)"/>
+                  <stop offset="10%"  stop-color="rgba(255,255,255,0)"/>
+                  <stop offset="90%"  stop-color="rgba(255,255,255,0)"/>
+                  <stop offset="100%" stop-color="rgba(255,255,255,0.14)"/>
+                </linearGradient>
+                <linearGradient id="lap1-lgHingeCyl" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="#888888"/>
+                  <stop offset="38%"  stop-color="#CECECE"/>
+                  <stop offset="62%"  stop-color="#B8B8B8"/>
+                  <stop offset="100%" stop-color="#848484"/>
+                </linearGradient>
+                <mask id="lap1-lid-mask">
+                  <rect x="0" y="0" width="300" height="162" fill="white"/>
+                  <rect x="8" y="6" width="284" height="148" rx="2" fill="black"/>
+                </mask>
+              </defs>
+              <rect x="110" y="170" width="80" height="26" rx="5" fill="#CBCBCB" stroke="#B8B8B8" stroke-width="0.6"/>
+              <rect x="111" y="171" width="78" height="3.5" rx="4" fill="rgba(255,255,255,0.38)"/>
+              <rect x="12" y="159" width="276" height="5" rx="1.5" fill="url(#lap1-lgHingeCyl)"/>
+              <rect x="12" y="159" width="276" height="1.2" fill="rgba(255,255,255,0.48)"/>
+              <rect x="0" y="0" width="300" height="162" rx="6" fill="url(#lap1-lgLidAl)" mask="url(#lap1-lid-mask)"/>
+              <rect x="0" y="0" width="300" height="162" rx="6" fill="url(#lap1-lgLidSheen)" mask="url(#lap1-lid-mask)"/>
+              <rect x="0.4" y="0.4" width="299.2" height="161.2" rx="6" fill="none" stroke="#C4C4C4" stroke-width="0.7"/>
+              <rect x="2" y="0.5" width="296" height="2.5" rx="6" fill="rgba(255,255,255,0.78)"/>
+              <rect x="8" y="6" width="284" height="148" rx="2" fill="none" stroke="rgba(0,0,0,0.30)" stroke-width="1.5"/>
+              <rect x="133" y="0" width="34" height="8" rx="4" fill="#1A1A1A"/>
+              <circle cx="150" cy="4" r="2" fill="#222222"/>
+              <circle cx="149.3" cy="3.3" r="0.8" fill="rgba(255,255,255,0.14)"/>
+            </svg>
+          </div>
+        </foreignObject>
+
+        <!-- Node 4: Phone — Push Notification -->
+        <svg class="device-node" id="device-4" x="655" y="328" width="58" height="120" viewBox="0 0 220 455" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="ph4-phoneBody" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#0E0E10"/>
+              <stop offset="20%"  stop-color="#1C1C1E"/>
+              <stop offset="80%"  stop-color="#1C1C1E"/>
+              <stop offset="100%" stop-color="#0E0E10"/>
+            </linearGradient>
+            <linearGradient id="ph4-sideFrame" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#2A2A2C"/>
+              <stop offset="25%"  stop-color="#6C6C70"/>
+              <stop offset="50%"  stop-color="#9A9A9E"/>
+              <stop offset="75%"  stop-color="#6C6C70"/>
+              <stop offset="100%" stop-color="#2A2A2C"/>
+            </linearGradient>
+            <clipPath id="ph4-screenClip">
+              <rect x="9" y="9" width="202" height="437" rx="39"/>
+            </clipPath>
+          </defs>
+          <rect x="2" y="2" width="216" height="451" rx="46" fill="url(#ph4-phoneBody)"/>
+          <rect x="2" y="2" width="216" height="451" rx="46" fill="none" stroke="url(#ph4-sideFrame)" stroke-width="3.5"/>
+          <rect x="9" y="9" width="202" height="437" rx="39" fill="white"/>
+          <g clip-path="url(#ph4-screenClip)">
+            <rect x="9" y="9" width="202" height="437" fill="#0a0a14"/>
+          </g>
+          <rect x="70" y="16" width="80" height="28" rx="14" fill="#111"/>
+          <circle cx="138" cy="30" r="7"   fill="#0D0D0D"/>
+          <circle cx="138" cy="30" r="3.5" fill="#181818"/>
+          <circle cx="136" cy="28" r="1.4" fill="rgba(255,255,255,0.10)"/>
+          <circle cx="106" cy="30" r="2.5" fill="#1A1A1A"/>
+          <rect x="-0.5" y="82"  width="5" height="22" rx="2.5" fill="#252528"/>
+          <rect x="-0.5" y="116" width="5" height="42" rx="2.5" fill="#252528"/>
+          <rect x="-0.5" y="167" width="5" height="42" rx="2.5" fill="#252528"/>
+          <rect x="215.5" y="130" width="5" height="58" rx="2.5" fill="#252528"/>
+          <rect x="73" y="440" width="74" height="5" rx="2.5" fill="#666" opacity="0.35"/>
+          <rect x="2" y="2" width="216" height="451" rx="46" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        </svg>
+
+        <!-- Node 5: Laptop — Returns & Upgrades -->
+        <foreignObject class="device-node" id="device-5" x="785" y="-95" width="130" height="96">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:130px;height:96px;">
+            <div style="position:absolute;left:2.67%;top:2.73%;width:94.67%;height:67.27%;overflow:hidden;border-radius:1px;background:#000;z-index:1;"></div>
+            <svg viewBox="0 0 300 220" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lap5-lgLidAl" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="#EBEBEB"/>
+                  <stop offset="18%"  stop-color="#D8D8D8"/>
+                  <stop offset="60%"  stop-color="#CCCCCC"/>
+                  <stop offset="100%" stop-color="#C0C0C0"/>
+                </linearGradient>
+                <linearGradient id="lap5-lgLidSheen" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%"   stop-color="rgba(255,255,255,0.22)"/>
+                  <stop offset="10%"  stop-color="rgba(255,255,255,0)"/>
+                  <stop offset="90%"  stop-color="rgba(255,255,255,0)"/>
+                  <stop offset="100%" stop-color="rgba(255,255,255,0.14)"/>
+                </linearGradient>
+                <linearGradient id="lap5-lgHingeCyl" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="#888888"/>
+                  <stop offset="38%"  stop-color="#CECECE"/>
+                  <stop offset="62%"  stop-color="#B8B8B8"/>
+                  <stop offset="100%" stop-color="#848484"/>
+                </linearGradient>
+                <mask id="lap5-lid-mask">
+                  <rect x="0" y="0" width="300" height="162" fill="white"/>
+                  <rect x="8" y="6" width="284" height="148" rx="2" fill="black"/>
+                </mask>
+              </defs>
+              <rect x="110" y="170" width="80" height="26" rx="5" fill="#CBCBCB" stroke="#B8B8B8" stroke-width="0.6"/>
+              <rect x="111" y="171" width="78" height="3.5" rx="4" fill="rgba(255,255,255,0.38)"/>
+              <rect x="12" y="159" width="276" height="5" rx="1.5" fill="url(#lap5-lgHingeCyl)"/>
+              <rect x="12" y="159" width="276" height="1.2" fill="rgba(255,255,255,0.48)"/>
+              <rect x="0" y="0" width="300" height="162" rx="6" fill="url(#lap5-lgLidAl)" mask="url(#lap5-lid-mask)"/>
+              <rect x="0" y="0" width="300" height="162" rx="6" fill="url(#lap5-lgLidSheen)" mask="url(#lap5-lid-mask)"/>
+              <rect x="0.4" y="0.4" width="299.2" height="161.2" rx="6" fill="none" stroke="#C4C4C4" stroke-width="0.7"/>
+              <rect x="2" y="0.5" width="296" height="2.5" rx="6" fill="rgba(255,255,255,0.78)"/>
+              <rect x="8" y="6" width="284" height="148" rx="2" fill="none" stroke="rgba(0,0,0,0.30)" stroke-width="1.5"/>
+              <rect x="133" y="0" width="34" height="8" rx="4" fill="#1A1A1A"/>
+              <circle cx="150" cy="4" r="2" fill="#222222"/>
+              <circle cx="149.3" cy="3.3" r="0.8" fill="rgba(255,255,255,0.14)"/>
+            </svg>
+          </div>
+        </foreignObject>
+
+      </svg>
+    </div>
+  </div><!-- end left-panel -->
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+    <div class="adobe-wordmark">Adobe</div>
+
+    <div class="persona-avatar">C</div>
+    <div class="persona-name">Ciarán Murphy</div>
+    <div class="persona-sub">34 &middot; Dublin, Ireland</div>
+
+    <div class="persona-stats">
+      <div class="stat-cell">
+        <div class="stat-label">Device</div>
+        <div class="stat-value">Samsung Galaxy S23</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Plan</div>
+        <div class="stat-value">Legacy 80GB<br>&euro;25/mo</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Data Usage</div>
+        <div class="stat-value">avg 74 GB/mo</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Tenure</div>
+        <div class="stat-value">5 yrs &middot; since 2019</div>
+      </div>
+    </div>
+
+    <div class="persona-tags">
+      <span class="persona-tag">High data user</span>
+      <span class="persona-tag">5G eligible</span>
+      <span class="persona-tag">Price-sensitive</span>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const TOTAL_NODES = 7;
+
+const pathSegs = [
+  '',
+  'M 40,265 C 88,265 137,70 185,70',
+  'M 40,265 C 88,265 137,70 185,70 C 233,70 282,265 330,265',
+  'M 40,265 C 88,265 137,70 185,70 C 233,70 282,265 330,265 C 383,265 437,70 490,70',
+  'M 40,265 C 88,265 137,70 185,70 C 233,70 282,265 330,265 C 383,265 437,70 490,70 C 542,70 593,265 645,265',
+  'M 40,265 C 88,265 137,70 185,70 C 233,70 282,265 330,265 C 383,265 437,70 490,70 C 542,70 593,265 645,265 C 697,265 748,70 800,70',
+  'M 40,265 C 88,265 137,70 185,70 C 233,70 282,265 330,265 C 383,265 437,70 490,70 C 542,70 593,265 645,265 C 697,265 748,70 800,70 C 850,70 900,265 950,265',
+];
+
+const slides = [
+  {
+    counter: 'Overview',
+    name: 'Three Ireland<br>5G Upsell Journey',
+    activeNode: -1,
+    desc: 'Three Ireland identifies 5G-eligible customers and orchestrates a personalised upgrade journey — from data signal to conversion — using Real-Time CDP and Journey Optimizer.',
+  },
+  {
+    counter: 'Step 1 of 7',
+    name: '5G Signal<br>Detected',
+    activeNode: 0,
+    desc: 'RT-CDP detects that Ciarán has a 5G-capable device on a legacy plan with consistently high data usage. A "5G Upgrade Eligible" segment is built and activated.',
+  },
+  {
+    counter: 'Step 2 of 7',
+    name: 'Website Visit',
+    activeNode: 1,
+    desc: 'Ciarán visits Three.ie. AJO fires a web personalisation action — the homepage hero is replaced with a targeted 5G message matched to his device and current plan.',
+  },
+  {
+    counter: 'Step 3 of 7',
+    name: 'Plan Browsing',
+    activeNode: 2,
+    desc: 'Ciarán browses the 5G plans page. Session behaviour — dwell time, plans viewed — streams to RT-CDP in real time, elevating him to a high-intent upgrade segment.',
+  },
+  {
+    counter: 'Step 4 of 7',
+    name: 'Abandons<br>Upgrade',
+    activeNode: 3,
+    desc: 'Ciarán leaves without upgrading. RT-CDP captures the abandonment signal and triggers an AJO journey. Generic marketing is suppressed while the journey runs.',
+  },
+  {
+    counter: 'Step 5 of 7',
+    name: 'Push<br>Notification',
+    activeNode: 4,
+    desc: 'A personalised push arrives: "Your device supports 5G — upgrade for just €5/mo extra." Timed and personalised using his device model and current plan data.',
+  },
+  {
+    counter: 'Step 6 of 7',
+    name: 'Returns &amp;<br>Upgrades',
+    activeNode: 5,
+    desc: 'Ciarán taps the notification, returns to Three.ie, and completes the upgrade. The conversion event fires into RT-CDP, closing the journey and updating his profile.',
+  },
+  {
+    counter: 'Step 7 of 7',
+    name: 'Welcome &amp;<br>Analytics',
+    activeNode: 6,
+    desc: 'A welcome to 5G message is sent via AJO. Customer Journey Analytics captures full attribution — from first homepage visit to conversion — powering future campaigns.',
+  },
+];
+
+let current = 0;
+let autoAnimationActive = false;
+let autoTimers = [];
+
+function clearAutoTimers() {
+  autoTimers.forEach(clearTimeout);
+  autoTimers = [];
+}
+
+function resetNodes() {
+  for (let n = 0; n < TOTAL_NODES; n++) {
+    document.getElementById('node-' + n).classList.remove('node-active');
+    document.getElementById('narrative-' + n).classList.remove('visible');
+  }
+  ['device-1', 'device-4', 'device-5'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+}
+
+function updatePanel(s) {
+  current = slides.indexOf(s);
+}
+
+function autoAnimate() {
+  clearAutoTimers();
+  autoAnimationActive = true;
+  resetNodes();
+
+  const seg = document.getElementById('active-seg');
+  seg.style.transition = 'none';
+  seg.style.strokeDasharray = '';
+  seg.style.strokeDashoffset = '';
+  seg.style.opacity = '1';
+  seg.setAttribute('d', pathSegs[6]);
+  seg.getBoundingClientRect();
+
+  const totalLen = seg.getTotalLength();
+
+  // Measure cumulative length at each node using a detached path
+  const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const cumLens = [0];
+  for (let n = 1; n < TOTAL_NODES; n++) {
+    tmp.setAttribute('d', pathSegs[n]);
+    cumLens.push(tmp.getTotalLength());
+  }
+
+  const totalDuration = 8000;
+  updatePanel(slides[0]);
+
+  // Short pause then start the continuous line draw
+  autoTimers.push(setTimeout(() => {
+    if (!autoAnimationActive) return;
+    seg.style.strokeDasharray = totalLen + ' ' + totalLen;
+    seg.style.strokeDashoffset = String(totalLen);
+    seg.getBoundingClientRect();
+    seg.style.transition = `stroke-dashoffset ${totalDuration}ms linear`;
+    seg.style.strokeDashoffset = '0';
+  }, 500));
+
+  // Schedule node activations timed to when the line reaches each node
+  for (let n = 0; n < TOTAL_NODES; n++) {
+    const nodeTime = 500 + (cumLens[n] / totalLen) * totalDuration + 80;
+
+    autoTimers.push(setTimeout(() => {
+      if (!autoAnimationActive) return;
+      for (let i = 0; i < n; i++) {
+        document.getElementById('node-' + i).classList.remove('node-active');
+      }
+      document.getElementById('node-' + n).classList.add('node-active');
+      updatePanel(slides[n + 1]);
+
+      // Narrative and device fade in just after node lights up
+      autoTimers.push(setTimeout(() => {
+        if (!autoAnimationActive) return;
+        document.getElementById('narrative-' + n).classList.add('visible');
+        const deviceMap = { 1: 'device-1', 4: 'device-4', 5: 'device-5' };
+        if (n in deviceMap) document.getElementById(deviceMap[n]).classList.add('visible');
+      }, 300));
+
+    }, nodeTime));
+  }
+
+  autoTimers.push(setTimeout(() => { autoAnimationActive = false; }, 500 + totalDuration + 500));
+}
+
+function renderContent() {
+  const s = slides[current];
+  for (let n = 0; n < TOTAL_NODES; n++) {
+    const g = document.getElementById('node-' + n);
+    if (s.activeNode === n) g.classList.add('node-active');
+  }
+  if (s.activeNode >= 0) {
+    document.getElementById('narrative-' + s.activeNode).classList.add('visible');
+    const deviceMap = { 1: 'device-1', 4: 'device-4', 5: 'device-5' };
+    if (s.activeNode in deviceMap) {
+      document.getElementById(deviceMap[s.activeNode]).classList.add('visible');
+    }
+    const seg = document.getElementById('active-seg');
+    if (s.activeNode > 0) {
+      seg.setAttribute('d', pathSegs[s.activeNode]);
+      seg.style.strokeDasharray = '';
+      seg.style.strokeDashoffset = '';
+      seg.style.opacity = '1';
+    } else {
+      seg.removeAttribute('d');
+      seg.style.opacity = '0';
+    }
+  }
+}
+
+function goTo(idx) {
+  autoAnimationActive = false;
+  current = Math.max(0, Math.min(slides.length - 1, idx));
+
+  const seg = document.getElementById('active-seg');
+  seg.style.transition = 'none';
+  seg.style.strokeDasharray = '';
+  seg.style.strokeDashoffset = '';
+  seg.style.opacity = '';
+  seg.removeAttribute('d');
+  resetNodes();
+
+  if (current === 0) {
+    autoAnimate();
+  } else {
+    renderContent();
+  }
+}
+
+
+autoAnimate();
+</script>
+</body>
+</html>

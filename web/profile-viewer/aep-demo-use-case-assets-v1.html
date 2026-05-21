@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo use case card + journey (skill v1) &mdash; AEP Orchestration Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="aep-demo-use-case-assets-v1.css?v=20260521a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="ducskill-v1-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Orchestration Lab</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Claude / Cursor skill bundle for combined HTML deliverable">Claude skill</span>
+          <a href="https://github.com/adampadobe/AEP-Orchestration-Lab" class="dashboard-topbar-link" target="_blank" rel="noopener">Repo</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">🏠</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main duc1-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="duc1Banner">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="duc1Banner" class="dashboard-hero-title">Demo use case card + journey (skill v1)</h2>
+              <p class="dashboard-hero-subtitle">
+                Colleague-delivered <strong>aep-demo-use-case</strong> workflow: a guided conversation in Cursor or Claude Code,
+                then a <strong>single self-contained HTML file</strong> with a use case card screen and a seven-node customer journey
+                (product video embedded as base64 in the generated output). This page is the lab hub: download the skill bundle,
+                open reference HTML in the browser, and read how it differs from the Vertex-powered demo deck.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <details class="duc1-skill-callout" aria-labelledby="duc1SkillTitle">
+          <summary class="duc1-skill-summary">
+            <span class="duc1-skill-summary-left">
+              <span class="duc1-skill-eyebrow">For Claude / Cursor users</span>
+              <span id="duc1SkillTitle" class="duc1-skill-title">Download the skill bundle (ZIP)</span>
+            </span>
+            <span class="duc1-skill-summary-right">
+              <span class="duc1-skill-summary-label">Show</span>
+              <span class="duc1-skill-summary-chevron" aria-hidden="true"></span>
+            </span>
+          </summary>
+          <div class="duc1-skill-callout-inner">
+            <p class="duc1-skill-copy">
+              The ZIP mirrors the repo skill at <code>.cursor/skills/aep-demo-use-case-assets-v1/</code> &mdash; <code>SKILL.md</code>,
+              <code>assets/</code> (HTML templates, logos, product MP4s), and <code>references/</code> rule files. Import the folder
+              into Cursor <strong>Skills</strong> or unzip for Claude Code.
+            </p>
+            <div class="duc1-skill-actions">
+              <a class="duc1-skill-btn" href="aep-demo-use-case-assets-v1-skill/aep-demo-use-case-assets-v1.zip" download="aep-demo-use-case-assets-v1.zip">
+                Download skill ZIP
+              </a>
+              <a class="duc1-skill-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/.cursor/skills/aep-demo-use-case-assets-v1" target="_blank" rel="noopener">
+                View tracked skill tree on GitHub
+              </a>
+            </div>
+          </div>
+        </details>
+
+        <section class="duc1-panel" aria-labelledby="duc1PreviewTitle">
+          <h3 id="duc1PreviewTitle" class="duc1-panel-title">Hosted previews (static HTML + references)</h3>
+          <p class="duc1-panel-desc">
+            These copies omit the large <code>.mp4</code> binaries so the lab stays fast; the downloadable ZIP includes the videos for local runs and base64 embedding.
+            Templates still show <code>{{PLACEHOLDER}}</code> tokens until an agent fills them.
+          </p>
+          <ul class="duc1-link-list">
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/use-case-template.html" target="_blank" rel="noopener">use-case-template.html</a> &mdash; canonical base for generated deliverables</li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-use-case-card.html" target="_blank" rel="noopener">three-use-case-card.html</a> &mdash; card layout reference</li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-customer-journey.html" target="_blank" rel="noopener">three-customer-journey.html</a> &mdash; journey reference</li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-use-case-picker.html" target="_blank" rel="noopener">three-use-case-picker.html</a> &mdash; picker reference</li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/card-html-rules.md" target="_blank" rel="noopener">card-html-rules.md</a></li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/journey-html-rules.md" target="_blank" rel="noopener">journey-html-rules.md</a></li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/picker-html-rules.md" target="_blank" rel="noopener">picker-html-rules.md</a></li>
+            <li><a href="aep-demo-use-case-assets-v1-skill/preview/SKILL.md" target="_blank" rel="noopener">SKILL.md</a> (raw markdown in browser)</li>
+          </ul>
+        </section>
+
+        <section class="duc1-panel" aria-labelledby="duc1PptxTitle">
+          <h3 id="duc1PptxTitle" class="duc1-panel-title">PowerPoint (.pptx)</h3>
+          <p class="duc1-panel-desc">
+            This Claude skill produces <strong>HTML only</strong> (no PPTX). For a generated deck and PPTX download inside the lab,
+            use <a href="demo-use-case-asset.html">Demo use case assets (in development)</a> (Vertex + brand scrape) or
+            <a href="client-journey-asset-v2.html">Client journey assets</a> (journey map + one-pager PPTX).
+          </p>
+        </section>
+
+        <p class="duc1-note" role="note">
+          <strong>Backend:</strong> Generation is meant to run inside an AI assistant with WebSearch and file tools &mdash; there is no Cloud Function for this skill.
+          The HTML previews here are static; broken video <code>src</code> in the template until you substitute filenames and embed per <code>SKILL.md</code>.
+        </p>
+      </main>
+    </div>
+  </div>
+
+  <script src="aep-access-scope.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260507-scope"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260521-demo-use-case-skill-v1"></script>
+</body>
+</html>

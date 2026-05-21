@@ -1,0 +1,216 @@
+/**
+ * Demo use case assets (Claude skill v1) — hub page only.
+ * Light/dark via --dash-* tokens only.
+ */
+
+body.home-dashboard-concierge.ducskill-v1-page {
+  background: var(--dash-bg);
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 2vw, 1.5rem) 2rem;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-callout {
+  border: 1px solid var(--dash-blue);
+  border-radius: var(--dash-radius, 16px);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.8rem 1.15rem;
+  list-style: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--dash-hover) 0%, var(--dash-surface) 58%);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary::-webkit-details-marker {
+  display: none;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  color: var(--dash-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary-chevron {
+  display: inline-block;
+  font-size: 0.72rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-summary-chevron::before {
+  content: '\25B8';
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-callout[open] .duc1-skill-summary-chevron {
+  transform: rotate(90deg);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-callout[open] .duc1-skill-summary-label::after {
+  content: ' less';
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-callout:not([open]) .duc1-skill-summary-label::after {
+  content: ' details';
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-callout-inner {
+  padding: 0.25rem 1.15rem 1rem;
+  border-top: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dash-blue);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-copy {
+  margin: 0.35rem 0 0.75rem;
+  max-width: 70ch;
+  color: var(--dash-text-secondary);
+  line-height: 1.45;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-copy code {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-blue);
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-btn:hover,
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-btn:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-link {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-link:hover,
+body.home-dashboard-concierge.ducskill-v1-page .duc1-skill-link:focus-visible {
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius, 16px);
+  background: var(--dash-surface);
+  padding: 1rem 1.15rem 1.15rem;
+  box-shadow: var(--dash-shadow);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-panel-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-panel-desc {
+  margin: 0 0 0.75rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.45;
+  max-width: 72ch;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-link-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.6;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-link-list a {
+  color: var(--dash-blue);
+  font-weight: 600;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-link-list a:hover,
+body.home-dashboard-concierge.ducskill-v1-page .duc1-link-list a:focus-visible {
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-note {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 72ch;
+}
+
+body.home-dashboard-concierge.ducskill-v1-page .duc1-note strong {
+  color: var(--dash-text);
+}
