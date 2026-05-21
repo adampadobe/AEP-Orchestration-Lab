@@ -91,8 +91,7 @@
   margin: 0 auto;
   padding: 0.75rem 20px 0.6rem;
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 0 2rem;
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -101,23 +100,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem 0.85rem;
-}
-
-.mod-demo-id-inner .aep-demo-web-push-row,
-.mod-demo-id-inner .aep-bc-toggle-row,
-.mod-demo-id-inner .aep-bc-launcher-row {
-  flex: 0 0 auto;
-  padding-top: 0;
-}
-
-.mod-demo-id-inner .aep-demo-web-push-retry {
-  flex: 0 0 auto;
-  margin-top: 0;
-}
-
-.mod-demo-id-inner .aep-demo-web-push-retry-hint,
-.mod-demo-id-inner .aep-demo-web-push-hint {
-  display: none;
 }
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
@@ -221,7 +203,6 @@
   }
 
   .mod-demo-id-inner {
-    grid-template-columns: 1fr;
     padding: 0.6rem 12px;
   }
 }
