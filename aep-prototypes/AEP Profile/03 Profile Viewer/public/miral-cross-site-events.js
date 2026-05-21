@@ -213,27 +213,14 @@
   function initPageTracking(park) {
     trackPageView(park.id, park.name);
 
-    // IntersectionObserver on [data-miral-attraction] elements
-    if (typeof IntersectionObserver !== 'undefined') {
-      var seen = {};
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-          var el = entry.target;
-          var aId = el.getAttribute('data-miral-attraction');
-          if (aId && !seen[aId]) {
-            seen[aId] = true;
-            io.unobserve(el);
-            var aName = el.getAttribute('data-miral-attraction-name') || aId;
-            trackAttractionView(park.id, aId, aName);
-          }
-        });
-      }, { threshold: 0.3 });
-
-      document.querySelectorAll('[data-miral-attraction]').forEach(function (el) {
-        io.observe(el);
+    // Click listeners on [data-miral-attraction] elements
+    document.querySelectorAll('[data-miral-attraction]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var aId = el.getAttribute('data-miral-attraction');
+        var aName = el.getAttribute('data-miral-attraction-name') || aId;
+        trackAttractionView(park.id, aId, aName);
       });
-    }
+    });
 
     // Click listeners on [data-miral-ticket] elements
     document.querySelectorAll('[data-miral-ticket]').forEach(function (el) {
