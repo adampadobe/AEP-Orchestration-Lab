@@ -1760,13 +1760,15 @@ html:not([data-aep-theme='dark']) .aep-profile-drawer-audiences-modal-badge:hove
   border-color: rgba(15, 23, 42, 0.2);
 }
 
-html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle {
+html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-refresh-btn {
   border-color: rgba(15, 23, 42, 0.16);
   background: rgba(255, 255, 255, 0.82);
   color: rgba(15, 23, 42, 0.88);
 }
 
-html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle:hover {
+html:not([data-aep-theme='dark']) .aep-profile-drawer-theme-toggle:hover,
+html:not([data-aep-theme='dark']) .aep-profile-drawer-refresh-btn:hover {
   background: rgba(241, 245, 249, 0.95);
 }
 
