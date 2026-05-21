@@ -436,6 +436,20 @@
     setTimeout(function () { initPageTracking(park); }, 800);
   }
 
+  /**
+   * Re-fires the page-view event for the current park once an ECID is available.
+   * Call this from DemoTagsInjection's onEcidResolved hook so the page-view
+   * reaches AEP even though it fired before Tags was injected on page load.
+   */
+  function retryPageView() {
+    if (!park) return;
+    fireEvent(
+      'miral.' + park.id + '.pageView',
+      park.name + ' — page view',
+      window.location.pathname
+    );
+  }
+
   window.MiralCrossSite = {
     getState: getState,
     setState: setState,
@@ -445,6 +459,7 @@
     trackAttractionView: trackAttractionView,
     trackTicketIntent: trackTicketIntent,
     trackEmailCapture: trackEmailCapture,
+    retryPageView: retryPageView,
     getAdForSlot: getAdForSlot,
     resetState: function () {
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }

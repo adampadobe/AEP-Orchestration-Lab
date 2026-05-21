@@ -103,6 +103,10 @@ const ferrariworldTagsInjection =
           enabled: function () { return !!(ferrariworldBcOnInjectToggle && ferrariworldBcOnInjectToggle.checked); },
           styleKey: function () { return ferrariworldBcStyleSelect ? ferrariworldBcStyleSelect.value : 'miral'; },
         },
+        onEcidResolved: function () {
+          if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();
+          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('ferrariworld');
+        },
       })
     : null;
 
@@ -143,7 +147,7 @@ async function loadGeneratorTargets() {
     typeof window.AepDemoGeneratorTargets !== 'undefined' &&
     window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
   ) {
-    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {});
+    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, { preferredId: 'lab-event-tool-edge' });
     return;
   }
   try {
