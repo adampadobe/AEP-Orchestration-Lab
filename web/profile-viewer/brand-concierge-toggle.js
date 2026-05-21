@@ -58,14 +58,11 @@
   }
 
   /**
-   * Enable Brand Concierge immediately with the given style key.
-   * Sets window.styleConfiguration from window.aepBcStyles[styleKey] then waits
-   * for alloy + window.adobe.concierge to be available before bootstrapping.
-   */
-  /**
    * Reopen the BC panel after the widget's own X button closed it.
    * Removes our CSS-dismissed state, calls the native open API if available,
-   * or re-bootstraps if the widget destroyed its DOM.
+   * or tears down the mount and re-bootstraps so the panel reliably reappears.
+   * The widget keeps its DOM when closed (children.length stays > 0), so we
+   * cannot gate on that — always re-mount when there is no native open API.
    */
   function reopen(styleKey) {
     document.body.classList.remove('aep-bc-panel-dismissed');
@@ -75,12 +72,16 @@
       return;
     }
     var mount = document.getElementById('brand-concierge-mount');
-    if (mount && mount.children.length === 0) {
-      log('mount empty after widget close — re-bootstrapping');
-      global.__aepBcToggleBootstrapped = false;
-      enable(key);
-    }
+    if (mount) mount.innerHTML = '';
+    global.__aepBcToggleBootstrapped = false;
+    enable(key);
   }
+
+  /**
+   * Enable Brand Concierge immediately with the given style key.
+   * Sets window.styleConfiguration from window.aepBcStyles[styleKey] then waits
+   * for alloy + window.adobe.concierge to be available before bootstrapping.
+   */
 
   function enable(styleKey, onDone) {
     var key = styleKey || 'miral';
