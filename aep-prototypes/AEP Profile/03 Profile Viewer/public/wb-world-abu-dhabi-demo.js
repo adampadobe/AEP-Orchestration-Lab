@@ -268,3 +268,13 @@ DemoProfileDrawer.init({
     selectedScriptCodeId: 'wbworldSelectedScript',
   });
 })();
+
+// Exposed so miral-cross-site-events.js can trigger an identity stitch via alloy
+// (same path as stitchAfterProfileLookup used by the profile viewer Query Profile button)
+window.AepDemoParkStitch = window.AepDemoParkStitch || {};
+window.AepDemoParkStitch.stitch = function (email, ecid) {
+  if (wbworldTagsInjection && typeof wbworldTagsInjection.stitchAfterProfileLookup === 'function') {
+    var fakeProfile = ecid ? { ecid: ecid } : null;
+    void wbworldTagsInjection.stitchAfterProfileLookup(fakeProfile, email);
+  }
+};

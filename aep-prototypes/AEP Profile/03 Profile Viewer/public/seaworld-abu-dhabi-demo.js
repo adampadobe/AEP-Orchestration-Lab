@@ -268,3 +268,11 @@ DemoProfileDrawer.init({
     selectedScriptCodeId: 'seaworldSelectedScript',
   });
 })();
+
+window.AepDemoParkStitch = window.AepDemoParkStitch || {};
+window.AepDemoParkStitch.stitch = function (email, ecid) {
+  if (seaworldTagsInjection && typeof seaworldTagsInjection.stitchAfterProfileLookup === 'function') {
+    var fakeProfile = ecid ? { ecid: ecid } : null;
+    void seaworldTagsInjection.stitchAfterProfileLookup(fakeProfile, email);
+  }
+};

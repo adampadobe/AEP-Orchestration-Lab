@@ -179,24 +179,12 @@
         body: JSON.stringify(body),
       }).catch(function () {});
 
-      // Also fire the park identity stitch event so AEP links email → ECID
-      var stitchBody = {
-        targetId: target.id,
-        eventType: parkId + '.identity.stitch',
-        viewName: 'Newsletter identity stitch — ' + parkId,
-        viewUrl: window.location.pathname,
-        channel: 'web',
-        public: {},
-        xdmTenantKey: '_demoemea',
-        identityMapEcidKey: 'ECID',
-        ecid: ecid,
-        email: email,
-      };
-      fetch('/api/events/generator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stitchBody),
-      }).catch(function () {});
+    }
+
+    // Stitch email → ECID via alloy (same path as the profile viewer Query Profile button
+    // and Etihad login — goes through the injected Tags SDK to Edge Network)
+    if (typeof window.AepDemoParkStitch !== 'undefined' && typeof window.AepDemoParkStitch.stitch === 'function') {
+      window.AepDemoParkStitch.stitch(email, ecid);
     }
 
     // Open the drawer and load the matching profile so the lab operator sees it
