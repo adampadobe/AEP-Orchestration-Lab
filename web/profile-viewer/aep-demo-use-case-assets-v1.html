@@ -9,12 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260507b">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="aep-demo-use-case-assets-v1.css?v=20260521a">
+  <link rel="stylesheet" href="aep-demo-use-case-assets-v1.css?v=20260521b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="ducskill-v1-page home-dashboard-concierge">
+<body class="ducskill-v1-page client-journey-v2-page home-dashboard-concierge">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -28,16 +29,17 @@
         </div>
       </header>
 
-      <main class="dashboard-main duc1-main app-page">
+      <main class="dashboard-main cjv2-main app-page">
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="duc1Banner">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="duc1Banner" class="dashboard-hero-title">Demo use case card + journey (skill v1)</h2>
               <p class="dashboard-hero-subtitle">
-                Colleague-delivered <strong>aep-demo-use-case</strong> workflow: a guided conversation in Cursor or Claude Code,
-                then a <strong>single self-contained HTML file</strong> with a use case card screen and a seven-node customer journey
-                (product video embedded as base64 in the generated output). This page is the lab hub: download the skill bundle,
-                open reference HTML in the browser, and read how it differs from the Vertex-powered demo deck.
+                Fill in the brief below, then <strong>Generate</strong> to merge the same placeholders as the
+                <code>aep-demo-use-case-assets-v1</code> skill into
+                <code>use-case-template.html</code> (loaded from this lab). Output is a <strong>single self-contained HTML</strong> file:
+                preview here, download, or copy. Embed hero video and Adobe logo via <strong>local file pickers</strong> or
+                <strong>direct URLs</strong> (URLs must allow CORS from this origin, or use files / paste a <code>data:video/mp4;base64,</code> string).
               </p>
             </header>
           </div>
@@ -71,22 +73,348 @@
           </div>
         </details>
 
-        <section class="duc1-panel" aria-labelledby="duc1PreviewTitle">
-          <h3 id="duc1PreviewTitle" class="duc1-panel-title">Hosted previews (static HTML + references)</h3>
-          <p class="duc1-panel-desc">
-            These copies omit the large <code>.mp4</code> binaries so the lab stays fast; the downloadable ZIP includes the videos for local runs and base64 embedding.
-            Templates still show <code>{{PLACEHOLDER}}</code> tokens until an agent fills them.
+        <section class="cjv2-panel" aria-labelledby="duc1FormTitle">
+          <h2 id="duc1FormTitle" class="cjv2-panel-title">1. Brief &mdash; maps to <code>{{PLACEHOLDER}}</code> tokens</h2>
+          <p class="cjv2-panel-desc">
+            Required: <strong>client name</strong> and <strong>journey title</strong> (shown as the journey subtitle). Optional fields fall back to sensible demo defaults.
+            Brand palette is derived from <strong>brand colour</strong> unless you edit advanced CSS vars in the skill workflow elsewhere.
           </p>
-          <ul class="duc1-link-list">
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/use-case-template.html" target="_blank" rel="noopener">use-case-template.html</a> &mdash; canonical base for generated deliverables</li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-use-case-card.html" target="_blank" rel="noopener">three-use-case-card.html</a> &mdash; card layout reference</li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-customer-journey.html" target="_blank" rel="noopener">three-customer-journey.html</a> &mdash; journey reference</li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/assets/three-use-case-picker.html" target="_blank" rel="noopener">three-use-case-picker.html</a> &mdash; picker reference</li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/card-html-rules.md" target="_blank" rel="noopener">card-html-rules.md</a></li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/journey-html-rules.md" target="_blank" rel="noopener">journey-html-rules.md</a></li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/references/picker-html-rules.md" target="_blank" rel="noopener">picker-html-rules.md</a></li>
-            <li><a href="aep-demo-use-case-assets-v1-skill/preview/SKILL.md" target="_blank" rel="noopener">SKILL.md</a> (raw markdown in browser)</li>
-          </ul>
+
+          <form id="duc1Form" novalidate>
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">Client name <span class="cjv2-req">*</span></span>
+                <input type="text" id="duc1ClientName" name="clientName" required autocomplete="organization" spellcheck="false" placeholder="HSBC">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Journey title (subtitle) <span class="cjv2-req">*</span></span>
+                <input type="text" id="duc1JourneyTitle" name="journeyTitle" required autocomplete="off" spellcheck="false" placeholder="Personalised onboarding · customer journey">
+              </label>
+
+              <label class="cjv2-field">
+                <span class="cjv2-label">Client logo URL <small>(optional if you upload a file)</small></span>
+                <input type="url" id="duc1ClientLogoUrl" name="clientLogoUrl" autocomplete="off" spellcheck="false" placeholder="https://logo.clearbit.com/hsbc.com">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Client logo file <small>(PNG / SVG / JPEG)</small></span>
+                <input type="file" id="duc1ClientLogoFile" accept="image/*">
+              </label>
+
+              <label class="cjv2-field">
+                <span class="cjv2-label">Use case type</span>
+                <select id="duc1UseCaseType" name="useCaseType">
+                  <option value="Retention" selected>Retention</option>
+                  <option value="Acquisition">Acquisition</option>
+                  <option value="Upsell">Upsell</option>
+                  <option value="Cross-sell">Cross-sell</option>
+                </select>
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Brand colour (hex)</span>
+                <div class="cjv2-color-row">
+                  <input type="text" id="duc1BrandColor" name="brandColor" maxlength="7" autocomplete="off" spellcheck="false" placeholder="DB0011" value="DB0011">
+                  <input type="color" id="duc1BrandColorPicker" class="cjv2-color-picker" aria-label="Pick brand colour" title="Pick brand colour" value="#DB0011">
+                </div>
+              </label>
+            </div>
+
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Adobe products <small>one per line &rarr; tech pills</small></span>
+              <textarea id="duc1Products" name="products" rows="3" spellcheck="false" placeholder="Real-Time CDP&#10;Journey Optimizer"></textarea>
+            </label>
+
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Use case statement <small>HTML allowed &mdash; wrap the client in <code>&lt;span class=&quot;client-name&quot;&gt;…&lt;/span&gt;</code></small></span>
+              <textarea id="duc1UcStatementHtml" name="ucStatementHtml" rows="3" spellcheck="true" placeholder="I want every &lt;span class=&quot;client-name&quot;&gt;HSBC&lt;/span&gt; customer to feel recognised from the first tap."></textarea>
+            </label>
+
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Value grid <small>four lines (one benefit per line)</small></span>
+              <textarea id="duc1ValueGrid" name="valueGrid" rows="4" spellcheck="true" placeholder="Unify profiles in real time&#10;Orchestrate journeys with AJO&#10;Measure outcomes in CJA&#10;Iterate faster with governed data"></textarea>
+            </label>
+
+            <fieldset class="cjv2-fieldset">
+              <legend class="cjv2-legend">Hero product (laptop video)</legend>
+              <div class="cjv2-radio-row">
+                <label class="cjv2-radio">
+                  <input type="radio" name="duc1HeroProduct" value="AJO" checked>
+                  <strong>Journey Optimizer</strong>
+                  <span>Uses AJO row below for URL / file</span>
+                </label>
+                <label class="cjv2-radio">
+                  <input type="radio" name="duc1HeroProduct" value="RT-CDP">
+                  <strong>Real-Time CDP</strong>
+                  <span>Uses RT-CDP row</span>
+                </label>
+                <label class="cjv2-radio">
+                  <input type="radio" name="duc1HeroProduct" value="CJA">
+                  <strong>Customer Journey Analytics</strong>
+                  <span>Uses CJA row</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <p class="duc1-video-hint cjv2-panel-desc">
+              Priority per hero row: <strong>advanced paste</strong> (full <code>data:video/…</code> or raw base64) wins, then <strong>file</strong>, then <strong>URL</strong>.
+              Cross-origin MP4 URLs often fail without <code>Access-Control-Allow-Origin</code>; use a local file or host the asset on this same origin.
+            </p>
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Advanced &mdash; hero video data URL / base64 <small>(optional)</small></span>
+              <textarea id="duc1VideoDataUrlPaste" name="videoDataUrl" rows="2" spellcheck="false" placeholder="data:video/mp4;base64,AAA… or paste base64 only"></textarea>
+            </label>
+            <label class="cjv2-field duc1-checkbox-field">
+              <input type="checkbox" id="duc1SkipVideo" name="skipVideo">
+              <span class="cjv2-label">Generate without embedded hero video <small>(laptop screen empty)</small></span>
+            </label>
+
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">AJO video URL</span>
+                <input type="url" id="duc1VideoAjoUrl" autocomplete="off" spellcheck="false" placeholder="https://…/AJO-Video.mp4">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">AJO video file (.mp4)</span>
+                <input type="file" id="duc1VideoAjoFile" accept="video/mp4,video/*">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">RT-CDP video URL</span>
+                <input type="url" id="duc1VideoRtcdpUrl" autocomplete="off" spellcheck="false" placeholder="https://…/RT-CDP-Video.mp4">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">RT-CDP video file (.mp4)</span>
+                <input type="file" id="duc1VideoRtcdpFile" accept="video/mp4,video/*">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">CJA video URL</span>
+                <input type="url" id="duc1VideoCjaUrl" autocomplete="off" spellcheck="false" placeholder="https://…/CJA.mp4">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">CJA video file (.mp4)</span>
+                <input type="file" id="duc1VideoCjaFile" accept="video/mp4,video/*">
+              </label>
+            </div>
+
+            <h3 class="duc1-subheading">Push notification (card phone)</h3>
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">App icon letter</span>
+                <input type="text" id="duc1NotifLetter" maxlength="2" autocomplete="off" value="H">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">App name</span>
+                <input type="text" id="duc1NotifApp" autocomplete="off" value="HSBC BANK">
+              </label>
+              <label class="cjv2-field cjv2-field--wide">
+                <span class="cjv2-label">Notification title</span>
+                <input type="text" id="duc1NotifTitle" autocomplete="off" value="Set up your savings goal">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Body line 1 <small>(keep short for SVG)</small></span>
+                <input type="text" id="duc1NotifL1" autocomplete="off" value="We matched you to a better rate.">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Body line 2</span>
+                <input type="text" id="duc1NotifL2" autocomplete="off" value="Tap to confirm in under a minute.">
+              </label>
+            </div>
+
+            <h3 class="duc1-subheading">Footer metrics</h3>
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 1 value</span>
+                <input type="text" id="duc1M1v" autocomplete="off" value="54M+">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 1 label</span>
+                <input type="text" id="duc1M1l" autocomplete="off" value="Active customers">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 2 value</span>
+                <input type="text" id="duc1M2v" autocomplete="off" value="£20.4B">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 2 label</span>
+                <input type="text" id="duc1M2l" autocomplete="off" value="Annual revenue">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 3 value</span>
+                <input type="text" id="duc1M3v" autocomplete="off" value="32">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Metric 3 label</span>
+                <input type="text" id="duc1M3l" autocomplete="off" value="Markets worldwide">
+              </label>
+            </div>
+
+            <h3 class="duc1-subheading">Journey persona strip</h3>
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">Initial</span>
+                <input type="text" id="duc1PersonaInitial" maxlength="3" autocomplete="off" value="J">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Persona name</span>
+                <input type="text" id="duc1PersonaName" autocomplete="name" value="James Thornton">
+              </label>
+              <label class="cjv2-field cjv2-field--wide">
+                <span class="cjv2-label">Persona subtitle</span>
+                <input type="text" id="duc1PersonaSub" autocomplete="off" value="29 · London, UK · New customer">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Device</span>
+                <input type="text" id="duc1PersonaDevice" autocomplete="off" value="iPhone 15">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Stat 2 label</span>
+                <input type="text" id="duc1Ps2l" autocomplete="off" value="Account">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Stat 2 value</span>
+                <input type="text" id="duc1Ps2v" autocomplete="off" value="HSBC Advance">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Stat 3 label</span>
+                <input type="text" id="duc1Ps3l" autocomplete="off" value="App usage">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Stat 3 value</span>
+                <input type="text" id="duc1Ps3v" autocomplete="off" value="4× / week">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Tenure</span>
+                <input type="text" id="duc1PersonaTenure" autocomplete="off" value="14 days · new">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Tag 1</span>
+                <input type="text" id="duc1Tag1" autocomplete="off" value="High intent">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Tag 2</span>
+                <input type="text" id="duc1Tag2" autocomplete="off" value="Mobile-first">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Tag 3</span>
+                <input type="text" id="duc1Tag3" autocomplete="off" value="London">
+              </label>
+            </div>
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Persona narrative</span>
+              <textarea id="duc1PersonaNarr" rows="2" spellcheck="true">James is consolidating everyday banking after a competitor campaign. RT-CDP unifies signals; AJO times nudges; CJA proves lift.</textarea>
+            </label>
+
+            <details class="duc1-nodes-details">
+              <summary class="duc1-nodes-summary"><strong>Journey nodes 0&ndash;6</strong> &mdash; emoji / labels / three narrative lines each</summary>
+              <div class="duc1-nodes-body">
+                <p class="duc1-nodes-intro cjv2-panel-desc">Use HTML entities for emoji (e.g. <code>&amp;#127968;</code>) or paste a single character. Lines map to <code>{{N0_EMOJI}}</code> &hellip; <code>{{N6_NAR_3}}</code> in the template.</p>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 0 (bottom)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N0Emoji" spellcheck="false" value="&#127968;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N0L1" value="Signal"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N0L2" value="RT-CDP"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N0Nar1" value="James opens the app."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N0Nar2" value="RT-CDP resolves identity."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N0Nar3" value="Profile updates in real time."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 1 (top)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N1Emoji" spellcheck="false" value="&#128188;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N1L1" value="Browse"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N1L2" value="Personalised web"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N1Nar1" value="James explores savings."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N1Nar2" value="AJO serves next-best content."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N1Nar3" value="Intent signals stream to CJA."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 2 (bottom)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N2Emoji" spellcheck="false" value="&#128200;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N2L1" value="Compare"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N2L2" value="Offers"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N2Nar1" value="James compares tiers."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N2Nar2" value="CJA attributes browsing."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N2Nar3" value="Segments refine in RT-CDP."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 3 (top)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N3Emoji" spellcheck="false" value="&#128683;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N3L1" value="Friction"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N3L2" value="Abandonment"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N3Nar1" value="James pauses checkout."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N3Nar2" value="RT-CDP captures the exit."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N3Nar3" value="AJO listens for return."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 4 (bottom)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N4Emoji" spellcheck="false" value="&#128241;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N4L1" value="Re-engage"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N4L2" value="Push"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N4Nar1" value="James gets a timely push."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N4Nar2" value="AJO sends the reminder."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N4Nar3" value="He returns the same day."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 5 (top)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N5Emoji" spellcheck="false" value="&#9989;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N5L1" value="Convert"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N5L2" value="Goal set"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N5Nar1" value="James confirms the goal."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N5Nar2" value="Journey updates in AJO."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N5Nar3" value="CJA credits the journey."></label>
+                  </div>
+                </div>
+                <div class="duc1-node-block">
+                  <h4 class="duc1-node-title">Node 6 (bottom)</h4>
+                  <div class="cjv2-grid-2">
+                    <label class="cjv2-field"><span class="cjv2-label">Emoji</span><input type="text" id="duc1N6Emoji" spellcheck="false" value="&#127881;"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 1</span><input type="text" id="duc1N6L1" value="Loyalty"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Label line 2</span><input type="text" id="duc1N6L2" value="Next best"></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 1</span><input type="text" id="duc1N6Nar1" value="James saves automatically."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 2</span><input type="text" id="duc1N6Nar2" value="RT-CDP enriches the profile."></label>
+                    <label class="cjv2-field"><span class="cjv2-label">Narrative 3</span><input type="text" id="duc1N6Nar3" value="Marketing sees uplift in CJA."></label>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div class="cjv2-actions">
+              <button type="submit" id="duc1GenerateBtn" class="cjv2-btn cjv2-btn-primary">Generate HTML</button>
+              <button type="reset" class="cjv2-btn cjv2-btn-secondary">Reset form</button>
+              <span id="duc1GenStatus" class="cjv2-status" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
+
+        <section class="cjv2-panel cjv2-panel-output" id="duc1Output" hidden aria-labelledby="duc1OutTitle">
+          <h2 id="duc1OutTitle" class="cjv2-panel-title">2. Output</h2>
+          <div class="cjv2-output-actions">
+            <button type="button" id="duc1DownloadHtmlBtn" class="cjv2-btn cjv2-btn-secondary">Download HTML</button>
+            <button type="button" id="duc1OpenNewTabBtn" class="cjv2-btn cjv2-btn-secondary">Open in new tab</button>
+            <button type="button" id="duc1CopyHtmlBtn" class="cjv2-btn cjv2-btn-secondary">Copy HTML</button>
+          </div>
+          <div class="cjv2-iframe-wrap" id="duc1PreviewMount">
+            <div class="cjv2-fullscreen-toolbar" aria-label="Preview display">
+              <button
+                type="button"
+                id="duc1FullscreenBtn"
+                class="aep-fullscreen-btn cjv2-fullscreen-btn"
+                data-target="duc1PreviewMount"
+                aria-pressed="false"
+                aria-label="Enter full screen"
+                title="Enter full screen"
+              ></button>
+            </div>
+            <iframe id="duc1HtmlPreview" title="Generated use case HTML preview"></iframe>
+          </div>
         </section>
 
         <section class="duc1-panel" aria-labelledby="duc1PptxTitle">
@@ -99,8 +427,9 @@
         </section>
 
         <p class="duc1-note" role="note">
-          <strong>Backend:</strong> Generation is meant to run inside an AI assistant with WebSearch and file tools &mdash; there is no Cloud Function for this skill.
-          The HTML previews here are static; broken video <code>src</code> in the template until you substitute filenames and embed per <code>SKILL.md</code>.
+          <strong>Backend:</strong> There is no Cloud Function for this skill path &mdash; generation runs entirely in your browser.
+          The canonical template is fetched from <code>aep-demo-use-case-assets-v1-skill/preview/assets/use-case-template.html</code> (same tree as the ZIP).
+          Very large MP4 base64 strings can make the tab slow; prefer trimming video length for live demos.
         </p>
       </main>
     </div>
@@ -112,6 +441,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260507-scope"></script>
+  <script src="aep-demo-use-case-assets-v1.js?v=20260521b"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260521-demo-use-case-skill-v1"></script>
