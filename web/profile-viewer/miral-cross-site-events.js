@@ -19,9 +19,12 @@
 
   var STORAGE_KEY = 'miralCrossSiteState';
 
-  // Datastreamid set by each park's demo.js after generator targets load.
-  // Used to route custom events through /api/events/edge (same path as event-tool.html).
-  var _datastreamId = null;
+  // All custom events go through /api/events/generator — the same CF proxy that
+  // Etihad and Premier Inn demos use. The CF resolves the targetId server-side
+  // (presets in functions/event-generator-targets.json + Firestore) and applies
+  // server-to-server IMS auth before hitting Edge Network. This is the only
+  // proven path that lands custom eventTypes on AEP profiles.
+  var DEFAULT_TARGET_ID = 'lab-event-tool-edge';
 
   // ECID may be stored under any of these prefixes depending on which park demo
   // was active when Tags was injected.
@@ -82,44 +85,19 @@
     return null;
   }
 
-  function getGeneratorTarget() {
+  function getTargetId() {
     var sel = document.getElementById('generatorTarget');
-    if (!sel || !sel.value) return null;
-    return { id: sel.value };
+    if (sel && sel.value) return sel.value;
+    return DEFAULT_TARGET_ID;
   }
 
   // ── Event firing ─────────────────────────────────────────────────────────
 
   function fireEvent(eventType, viewName, viewUrl, extra) {
     var ecid = getEcid();
-
-    // Primary path: /api/events/edge — public Cloud Function with server-side IMS auth.
-    // Same mechanism as event-tool.html which provably lands events. No Firebase auth
-    // required. datastreamId is set by each park's demo.js after targets load.
-    if (ecid && _datastreamId) {
-      var edgeBody = {
-        datastreamId: _datastreamId,
-        eventType: eventType,
-        ecid: ecid,
-        viewName: viewName || document.title,
-        viewUrl: viewUrl || window.location.pathname,
-        channel: 'web',
-      };
-      if (extra && extra.email) edgeBody.email = extra.email;
-      fetch('/api/events/edge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edgeBody),
-        keepalive: true,
-      }).catch(function () {});
-      return;
-    }
-
-    // Fallback: Event Tool via server proxy (used before Tags is injected).
-    var target = getGeneratorTarget();
-    if (!target || !ecid) return;
+    if (!ecid) return;
     var body = {
-      targetId: target.id,
+      targetId: getTargetId(),
       eventType: eventType,
       viewName: viewName || document.title,
       viewUrl: viewUrl || window.location.pathname,
@@ -187,12 +165,11 @@
   function trackEmailCapture(parkId, email) {
     setState({ emailCaptured: true, capturedEmail: email, emailCaptureSource: parkId });
     var ecid = getEcid();
-    var target = getGeneratorTarget();
 
     // Fire the newsletter.signup event (carries both ECID + email for AEP stitching)
-    if (target && ecid) {
+    if (ecid) {
       var body = {
-        targetId: target.id,
+        targetId: getTargetId(),
         eventType: 'newsletter.signup',
         viewName: 'Newsletter sign-up — ' + parkId,
         viewUrl: window.location.pathname,
@@ -208,7 +185,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).catch(function () {});
-
     }
 
     // Stitch email → ECID via alloy (same path as the profile viewer Query Profile button
@@ -509,7 +485,9 @@
     trackEmailCapture: trackEmailCapture,
     retryPageView: retryPageView,
     getAdForSlot: getAdForSlot,
-    setDatastreamId: function (id) { _datastreamId = id ? String(id).trim() : null; },
+    // Kept as a no-op for backward compat — events now route via /api/events/generator
+    // which resolves the datastream server-side from targetId presets.
+    setDatastreamId: function () {},
     resetState: function () {
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
     },
