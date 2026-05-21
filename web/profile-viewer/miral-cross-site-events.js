@@ -90,27 +90,22 @@
     var ecid = getEcid();
 
     // Primary path: alloy ("sendEvent") via the injected Tags SDK.
-    // Mirrors the XDM data element shape the Tags page-view rule uses so
-    // _demoemea.identification.core.ecid passes schema validation at the Edge.
+    // XDM matches event-tool.html's proven working payload: explicit ECID in
+    // identityMap + _experience.campaign.orchestration.eventID. No web.webPageDetails
+    // or _demoemea — those are not what this datastream's schema needs for custom events.
     if (typeof alloy === 'function') {
-      var identCore = {};
-      if (ecid) identCore.ecid = ecid;
-      if (extra && extra.email) identCore.email = extra.email;
       var xdm = {
         eventType: eventType,
-        web: {
-          webPageDetails: {
-            name: viewName || document.title,
-            URL: viewUrl ? (window.location.origin + viewUrl) : window.location.href,
-          },
-        },
-        _demoemea: {
-          identification: { core: identCore },
-          interactionDetails: { core: { channel: 'web' } },
-        },
+        _id: String(Date.now()),
+        timestamp: new Date().toISOString(),
+        _experience: { campaign: { orchestration: { eventID: '' } } },
       };
+      if (ecid) {
+        xdm.identityMap = { ECID: [{ id: ecid, primary: true, authenticatedState: 'ambiguous' }] };
+      }
       if (extra && extra.email) {
-        xdm.identityMap = { Email: [{ id: extra.email, primary: false, authenticatedState: 'authenticated' }] };
+        xdm.identityMap = xdm.identityMap || {};
+        xdm.identityMap.Email = [{ id: extra.email, primary: false, authenticatedState: 'authenticated' }];
       }
       alloy('sendEvent', { xdm: xdm }).catch(function () {});
       return;
