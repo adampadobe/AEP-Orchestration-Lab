@@ -158,25 +158,51 @@
     setState({ emailCaptured: true, capturedEmail: email, emailCaptureSource: parkId });
     var ecid = getEcid();
     var target = getGeneratorTarget();
-    if (!target || !ecid) return;
 
-    var body = {
-      targetId: target.id,
-      eventType: 'miral.' + parkId + '.emailCapture',
-      viewName: 'Email capture — ' + parkId,
-      viewUrl: window.location.pathname,
-      channel: 'web',
-      public: {},
-      xdmTenantKey: '_demoemea',
-      identityMapEcidKey: 'ECID',
-      ecid: ecid,
-      email: email,
-    };
-    fetch('/api/events/generator', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).catch(function () {});
+    // Fire the newsletter.signup event (carries both ECID + email for AEP stitching)
+    if (target && ecid) {
+      var body = {
+        targetId: target.id,
+        eventType: 'newsletter.signup',
+        viewName: 'Newsletter sign-up — ' + parkId,
+        viewUrl: window.location.pathname,
+        channel: 'web',
+        public: {},
+        xdmTenantKey: '_demoemea',
+        identityMapEcidKey: 'ECID',
+        ecid: ecid,
+        email: email,
+      };
+      fetch('/api/events/generator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).catch(function () {});
+
+      // Also fire the park identity stitch event so AEP links email → ECID
+      var stitchBody = {
+        targetId: target.id,
+        eventType: parkId + '.identity.stitch',
+        viewName: 'Newsletter identity stitch — ' + parkId,
+        viewUrl: window.location.pathname,
+        channel: 'web',
+        public: {},
+        xdmTenantKey: '_demoemea',
+        identityMapEcidKey: 'ECID',
+        ecid: ecid,
+        email: email,
+      };
+      fetch('/api/events/generator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stitchBody),
+      }).catch(function () {});
+    }
+
+    // Load the profile into the drawer so the lab operator can see the stitched profile
+    if (typeof window.DemoProfileDrawer !== 'undefined' && typeof window.DemoProfileDrawer.loadProfileDataForDrawer === 'function') {
+      window.DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: false });
+    }
   }
 
   function resolveTopBrand(interests) {
@@ -228,17 +254,9 @@
       });
     });
 
-    // WB World newsletter email capture
-    if (park.id === 'wbworld') {
-      var newsletter = document.querySelector('.newsletter__form');
-      if (newsletter) {
-        newsletter.addEventListener('submit', function () {
-          var emailInput = newsletter.querySelector('input[type="email"]');
-          var email = emailInput && emailInput.value.trim();
-          if (email) trackEmailCapture('wbworld', email);
-        });
-      }
-    }
+    // Newsletter / sign-up email capture is called from each page's inline submit
+    // handler (handleNewsletterSubmit / handleSignupSubmit) via MiralCrossSite.trackEmailCapture
+    // so the email is captured before the input is cleared.
   }
 
   // ── Facebook ad builders ─────────────────────────────────────────────────

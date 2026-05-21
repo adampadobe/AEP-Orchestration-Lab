@@ -1021,9 +1021,13 @@
       var input = e.target.querySelector('input');
       var btn = e.target.querySelector('button');
       var orig = btn.textContent;
+      var email = input ? input.value.trim() : '';
+      if (email && typeof window.MiralCrossSite !== 'undefined') {
+        window.MiralCrossSite.trackEmailCapture('ferrariworld', email);
+      }
       btn.textContent = 'Subscribed ✓';
       btn.style.background = '#2ecc71';
-      input.value = '';
+      if (input) input.value = '';
       setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 3200);
     }
   </script>
@@ -1123,7 +1127,7 @@
   <script src="../brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="../brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
   <script src="../ferrari-world-abu-dhabi-demo.js?v=20260521-miral-datastream"></script>
-  <script src="../miral-cross-site-events.js?v=20260521-miral-datastream"></script>
+  <script src="../miral-cross-site-events.js?v=20260521-newsletter-signup"></script>
   <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="../aep-lab-nav.js?v=20260520-ferrari-world-replica2"></script>
