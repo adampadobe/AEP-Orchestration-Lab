@@ -89,18 +89,17 @@
 .mod-demo-id-inner {
   max-width: var(--mod-demo-content-max);
   margin: 0 auto;
-  padding: 0.65rem 1rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
+  padding: 0.75rem 20px 0.6rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
 }
 
 .mod-demo-id-inner .mod-sdk-config-fields {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.65rem 1rem;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
 }
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
@@ -204,8 +203,7 @@
   }
 
   .mod-demo-id-inner {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 0.6rem 12px;
   }
 }
 
@@ -346,4 +344,30 @@ body.mod-demo-page:not(.aep-bc-panel-dismissed) .mod-demo-ask-float {
   .mod-demo-page .mod-demo-ask-float:hover {
     transition: none;
   }
+}
+
+/* ── Brand Concierge launcher — Navigator Global demo ────────── */
+.navigator-global-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.navigator-global-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.navigator-global-demo-page .aep-bc-park-launcher {
+  background: var(--dash-blue);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+}
+.navigator-global-demo-page .aep-bc-park-launcher:hover {
+  background: #1d4ed8;
+}
+
+/* ── Brand Concierge launcher — MOD demo ─────────────────────── */
+.mod-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.mod-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.mod-demo-page .aep-bc-park-launcher {
+  background: #3d5a2a;
+  box-shadow: 0 4px 20px rgba(61,90,42,0.35);
+}
+.mod-demo-page .aep-bc-park-launcher:hover {
+  background: #2d4420;
 }

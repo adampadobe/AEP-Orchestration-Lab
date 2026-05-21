@@ -606,3 +606,16 @@ body.race-page section.race-find {
     grid-column: 1 / -1;
   }
 }
+
+/* ── Brand Concierge launcher ─────────────────────────────────── */
+.race-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.race-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+.race-page .aep-bc-park-launcher {
+  background: #e6007e;
+  box-shadow: 0 4px 20px rgba(230,0,126,0.35);
+}
+.race-page .aep-bc-park-launcher:hover {
+  background: #bf005e;
+}

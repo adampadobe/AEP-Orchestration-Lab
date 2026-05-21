@@ -7,8 +7,9 @@
   <title>Etihad (demo) - AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="etihad-demo.css?v=20260512-web-push-strip">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260512-web-push-strip">
+  <link rel="stylesheet" href="etihad-demo.css?v=20260520-env-bar-std">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
+  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-drawer-consent-fields">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -16,7 +17,7 @@
 <body class="etihad-demo-page home-dashboard-concierge">
   <div class="etihad-demo-top-anchor" id="etihadDemoTopAnchor">
     <section class="etihad-demo-id-banner" aria-label="Etihad demo identity controls">
-      <div class="etihad-demo-id-inner">
+      <div class="etihad-demo-id-inner aep-demo-id-inner">
         <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
           <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
             <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
@@ -67,6 +68,23 @@
                       Register web push now
                     </button>
                     <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                  </div>
+                  <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="etihadBcOnInjectToggle" />
+                      <span>Enable Brand Concierge when injecting Tags</span>
+                    </label>
+                    <select id="etihadBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+                      <option value="miral">Miral</option>
+                      <option value="generic">Generic (DemoEfficiency)</option>
+                      <option value="army">Army Recruitment</option>
+                    </select>
+                  </div>
+                  <div class="form-row aep-bc-launcher-row" role="group" aria-label="BC launcher visibility">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="etihadBcLauncherToggle" />
+                      <span>Show Brand Concierge launcher on page</span>
+                    </label>
                   </div>
                 </div>
                 <div class="form-row">
@@ -214,9 +232,23 @@
   <script src="demo-tags-injection.js?v=20260521-demo-tags"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
+  <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
   <script src="etihad-demo.js?v=20260515-concierge-modal-fake"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
+  <div id="brand-concierge-mount-host" aria-live="polite">
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
+    <div id="brand-concierge-mount"></div>
+  </div>
+  <button type="button" id="etihadBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
+    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
+      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
+    </svg>
+    Ask
+  </button>
+  <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
 </body>
 </html>
