@@ -311,6 +311,18 @@
       return true;
     }
 
+    /** Optional `cfg.brandConcierge` — bootstraps Brand Concierge after ECID resolves. Requires brand-concierge-styles-bundle.js + brand-concierge-toggle.js loaded before this script. */
+    function resolveBrandConciergeCfg() {
+      if (!cfg.brandConcierge) return null;
+      const bc = typeof cfg.brandConcierge === 'object' ? cfg.brandConcierge : {};
+      const enabledVal = bc.enabled;
+      const enabled = typeof enabledVal === 'function' ? (function () { try { return !!enabledVal(); } catch (_e) { return false; } })() : enabledVal === true;
+      if (!enabled) return null;
+      const styleKeyVal = bc.styleKey;
+      const styleKey = typeof styleKeyVal === 'function' ? (function () { try { return String(styleKeyVal() || 'miral'); } catch (_e) { return 'miral'; } })() : String(styleKeyVal || 'miral');
+      return { styleKey };
+    }
+
     /** Optional `cfg.webPush` — registers Adobe Alloy SW and, after successful ECID sync, calls `sendPushSubscriptionIfReady` when `AepDemoWebPush` is loaded. */
     function coerceWebPushFlag(value) {
       if (typeof value === 'function') {
@@ -787,6 +799,11 @@
           }, 8000);
         }
         if (typeof cfg.onEcidResolved === 'function') cfg.onEcidResolved(ecid);
+        const bcCfg = resolveBrandConciergeCfg();
+        if (bcCfg && global.AepBcToggle && typeof global.AepBcToggle.enable === 'function') {
+          dtLog('syncEcidFromAlloy: enabling Brand Concierge', { styleKey: bcCfg.styleKey });
+          global.AepBcToggle.enable(bcCfg.styleKey);
+        }
         setMessage('ECID resolved from Web SDK and linked to drawer context.', 'success');
         return ecid;
       } catch (err) {

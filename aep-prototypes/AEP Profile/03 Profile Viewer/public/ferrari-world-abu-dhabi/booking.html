@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Buy Tickets — Ferrari World Abu Dhabi</title>
+  <meta name="description" content="Book Ferrari World Abu Dhabi tickets online. Single Day, 2-Park, 3-Park and 4-Park options. Save up to 10% when you book online.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../home.css?v=20260520-ferrari-replica">
+  <link rel="stylesheet" href="../ferrari-world-abu-dhabi-demo.css?v=20260520-env-bar-std">
+  <link rel="stylesheet" href="../aep-demo-env-bar.css?v=20260521-stacked-layout">
+  <link rel="stylesheet" href="../brand-concierge-controls.css?v=20260520-bc-controls">
+  <link rel="stylesheet" href="../aep-profile-drawer.css?v=20260521-drawer-consent-fields">
+  <link rel="stylesheet" href="../aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="../aep-theme-palettes.css?v=20260416c">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --fw-red:        #da291c;
+      --fw-red-dark:   #b52116;
+      --fw-black:      #000000;
+      --fw-dark:       #111111;
+      --fw-dark-mid:   #1e1e1e;
+      --fw-gray:       #f4f4f4;
+      --fw-gray-mid:   #e5e5e5;
+      --fw-border:     #d8d8d8;
+      --fw-text:       #111111;
+      --fw-text-mid:   #444444;
+      --fw-text-muted: #777777;
+      --fw-white:      #ffffff;
+      --fw-nav-h:      74px;
+      --fw-shadow:     0 2px 12px rgba(0,0,0,.1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--fw-white);
+      color: var(--fw-text);
+      font-family: 'Barlow', Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ── HOURS BAR ── */
+    .hours-bar {
+      background: var(--fw-dark-mid);
+      color: rgba(255,255,255,.7);
+      font-family: 'Barlow', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .5px;
+      padding: 9px 0;
+      text-align: center;
+      cursor: pointer;
+    }
+    .hours-bar span { color: #fff; font-weight: 600; }
+    .hours-bar .arrow { color: var(--fw-red); margin-left: 6px; }
+
+    /* ── SITE NAV ── */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      background: var(--fw-black);
+      height: var(--fw-nav-h);
+      border-bottom: 2px solid rgba(255,255,255,.06);
+    }
+    .site-nav__inner {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 8px;
+    }
+    .site-nav__logo { flex-shrink: 0; margin-right: 16px; }
+    .site-nav__logo img { height: 48px; width: auto; }
+    .site-nav__links {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      flex: 1;
+      gap: 0;
+    }
+    .site-nav__links a {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.72);
+      padding: 8px 14px;
+      white-space: nowrap;
+      transition: color .15s;
+    }
+    .site-nav__links a:hover { color: #fff; }
+    .site-nav__links a.active { color: #fff; }
+    .site-nav__links .chevron { font-size: 9px; opacity: .55; }
+    .site-nav__right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    .site-nav__lang {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,.6);
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+    .site-nav__icon {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.6);
+      background: none; border: none; cursor: pointer;
+    }
+    .site-nav__icon svg { width: 18px; height: 18px; }
+    .site-nav__cart-badge {
+      position: relative;
+    }
+    .site-nav__cart-count {
+      position: absolute;
+      top: 2px; right: 2px;
+      background: var(--fw-red);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .site-nav__buy {
+      background: var(--fw-red);
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .site-nav__buy:hover { background: var(--fw-red-dark); }
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb {
+      background: var(--fw-white);
+      border-bottom: 1px solid var(--fw-border);
+      padding: 10px 0;
+    }
+    .breadcrumb__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--fw-text-muted);
+      font-family: 'Barlow', sans-serif;
+    }
+    .breadcrumb__inner a { color: var(--fw-text-muted); text-decoration: underline; }
+    .breadcrumb__inner a:hover { color: var(--fw-text); }
+    .breadcrumb__inner .sep { opacity: .4; }
+    .breadcrumb__current {
+      font-weight: 600;
+      color: var(--fw-text);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: .5px;
+    }
+
+    /* ── TICKET TABS ── */
+    .ticket-tabs-bar {
+      background: var(--fw-white);
+      border-bottom: 2px solid var(--fw-border);
+    }
+    .ticket-tabs {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .ticket-tabs::-webkit-scrollbar { display: none; }
+    .ticket-tab {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--fw-text-muted);
+      padding: 14px 20px;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      margin-bottom: -2px;
+      transition: color .15s;
+    }
+    .ticket-tab:hover { color: var(--fw-text); }
+    .ticket-tab.active {
+      color: var(--fw-red);
+      border-bottom-color: var(--fw-red);
+    }
+
+    /* ── BOOKING LAYOUT ── */
+    .booking-layout {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── TICKET LIST ── */
+    .ticket-list { display: flex; flex-direction: column; gap: 0; }
+
+    .ticket-card {
+      background: var(--fw-white);
+      border: 1px solid var(--fw-border);
+      border-bottom: none;
+      display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .ticket-card:last-child {
+      border-bottom: 1px solid var(--fw-border);
+    }
+
+    /* Checkered racing stripe at card bottom */
+    .ticket-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 6px;
+      background-image: repeating-linear-gradient(
+        90deg,
+        #111 0px, #111 8px,
+        #fff 8px, #fff 16px
+      );
+      opacity: .18;
+    }
+
+    .ticket-card__img {
+      width: 110px;
+      height: 100%;
+      min-height: 130px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .ticket-card__img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Multi-park carousel indicator */
+    .ticket-card__img--carousel {
+      position: relative;
+    }
+    .ticket-card__img--carousel .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,.45);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 2;
+    }
+    .ticket-card__img--carousel .carousel-arrow--left { left: 4px; }
+    .ticket-card__img--carousel .carousel-arrow--right { right: 4px; }
+
+    .ticket-card__body {
+      padding: 18px 20px 22px;
+      min-width: 0;
+    }
+    .ticket-card__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--fw-red);
+      margin-bottom: 4px;
+    }
+    .ticket-card__validity {
+      font-size: 12px;
+      color: var(--fw-text-muted);
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+    .ticket-card__desc {
+      font-size: 13px;
+      color: var(--fw-text-mid);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .ticket-card__park-logos {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .ticket-card__park-logo {
+      height: 20px;
+      width: auto;
+      object-fit: contain;
+      opacity: .85;
+    }
+
+    .ticket-card__price-col {
+      padding: 18px 20px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+      min-width: 180px;
+      gap: 8px;
+    }
+    .ticket-card__price-wrap {
+      text-align: right;
+    }
+    .ticket-card__price-info {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .ticket-card__info-icon {
+      width: 18px; height: 18px;
+      border: 1.5px solid var(--fw-text-muted);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--fw-text-muted);
+      flex-shrink: 0;
+      cursor: default;
+    }
+    .ticket-card__price-label {
+      font-size: 11px;
+      color: var(--fw-text-muted);
+      font-weight: 500;
+      text-align: right;
+    }
+    .ticket-card__price {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--fw-dark);
+      letter-spacing: .5px;
+      line-height: 1.1;
+    }
+    .ticket-card__price .currency {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .ticket-card__saving {
+      font-size: 12px;
+      color: var(--fw-text-muted);
+      text-align: right;
+      margin-top: 2px;
+    }
+    .ticket-card__saving strong {
+      color: var(--fw-text-mid);
+    }
+    .btn-select-date {
+      background: var(--fw-red);
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 11px 18px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+      width: 100%;
+    }
+    .btn-select-date:hover { background: var(--fw-red-dark); }
+    .btn-select-date:active { transform: scale(.98); }
+
+    /* ── CART WIDGET ── */
+    .cart-widget {
+      background: var(--fw-white);
+      border: 1px solid var(--fw-border);
+    }
+    .cart-widget__head {
+      background: var(--fw-dark);
+      color: #fff;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .cart-widget__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .cart-widget__body {
+      padding: 24px 20px;
+      text-align: center;
+    }
+    .cart-widget__empty {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--fw-text-muted);
+      margin-bottom: 20px;
+    }
+    .btn-checkout {
+      background: var(--fw-gray-mid);
+      color: var(--fw-text-muted);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 13px 24px;
+      border: none;
+      cursor: not-allowed;
+      width: 100%;
+    }
+
+    /* ── SIGN UP SECTION ── */
+    .signup-section {
+      background: var(--fw-white);
+      border-top: 1px solid var(--fw-border);
+      padding: 56px 24px;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .signup-section__accent {
+      width: 2px;
+      height: 32px;
+      background: var(--fw-red);
+      margin: 0 auto 16px;
+    }
+    .signup-section__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--fw-dark);
+      margin-bottom: 20px;
+    }
+    .signup-form {
+      display: flex;
+      align-items: center;
+      max-width: 480px;
+      margin: 0 auto 12px;
+      border: 1px solid var(--fw-border);
+    }
+    .signup-form input {
+      flex: 1;
+      border: none;
+      padding: 14px 16px;
+      font-family: 'Barlow', sans-serif;
+      font-size: 14px;
+      outline: none;
+      color: var(--fw-text);
+      background: var(--fw-white);
+    }
+    .signup-form input::placeholder { color: #aaa; }
+    .signup-form button {
+      background: var(--fw-dark);
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 14px 24px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .signup-form button:hover { background: #333; }
+    .signup-section__note {
+      font-size: 12px;
+      color: var(--fw-text-muted);
+    }
+    .signup-section__note a { color: var(--fw-text-mid); text-decoration: underline; }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      background: #111;
+      color: rgba(255,255,255,.7);
+      padding: 48px 24px 24px;
+    }
+    .site-footer__grid {
+      max-width: 1200px;
+      margin: 0 auto 32px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+    }
+    .site-footer__col-head {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .site-footer__links { list-style: none; }
+    .site-footer__links li { margin-bottom: 8px; }
+    .site-footer__links a {
+      font-size: 13px;
+      color: rgba(255,255,255,.6);
+      transition: color .15s;
+    }
+    .site-footer__links a:hover { color: #fff; }
+    .site-footer__bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .site-footer__logos {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-right: auto;
+    }
+    .site-footer__logos img { height: 28px; width: auto; opacity: .85; }
+    .site-footer__social {
+      display: flex;
+      gap: 10px;
+    }
+    .site-footer__social a {
+      width: 34px; height: 34px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.6);
+      transition: border-color .15s, color .15s;
+    }
+    .site-footer__social a:hover { border-color: #fff; color: #fff; }
+    .site-footer__social svg { width: 14px; height: 14px; }
+    .site-footer__copyright {
+      width: 100%;
+      font-size: 11px;
+      color: rgba(255,255,255,.35);
+      margin-top: 12px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .booking-layout { grid-template-columns: 1fr; }
+      .cart-widget { order: -1; }
+      .site-footer__grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .ticket-card { grid-template-columns: 80px 1fr; }
+      .ticket-card__price-col { grid-column: 1 / -1; flex-direction: row; align-items: center; padding-top: 0; }
+      .site-footer__grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="ferrari-world-abu-dhabi-demo-page home-dashboard-concierge">
+
+  <!-- DEMO PANEL -->
+  <div class="ferrari-world-abu-dhabi-demo-top-anchor" id="ferrariworldDemoTopAnchor">
+    <section class="ferrari-world-abu-dhabi-demo-id-banner" aria-label="Ferrari World Abu Dhabi demo identity controls">
+      <div class="ferrari-world-abu-dhabi-demo-id-inner aep-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="ferrariworldSdkConfigFields" class="ferrariworld-sdk-config-fields mod-sdk-config-fields">
+                  <div class="form-row">
+                    <label for="ferrariworldTagsCompany">Tags company</label>
+                    <select id="ferrariworldTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="ferrariworldTagsProperty">Tags property</label>
+                    <input type="text" id="ferrariworldTagsProperty" aria-label="Tags property" placeholder="Select property" list="ferrariworldTagsPropertyList" autocomplete="off" spellcheck="false">
+                    <datalist id="ferrariworldTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="ferrariworldTagsEnvironment">Tags environment</label>
+                    <select id="ferrariworldTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="ferrari-world-abu-dhabi-demo-id-actions">
+                    <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="ferrariworldWebPushOnInjectToggle" />
+                      <span>Register web push when injecting Tags<span class="aep-demo-web-push-hint"> Runs after a successful inject; the browser will ask for notification permission when this is on.</span></span>
+                    </label>
+                  </div>
+                  <div class="aep-demo-web-push-retry">
+                    <button type="button" id="ferrariworldWebPushRetryBtn" class="btn-lookup">Register web push now</button>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                  </div>
+                  <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="ferrariworldBcOnInjectToggle" />
+                      <span>Enable Brand Concierge when injecting Tags</span>
+                    </label>
+                    <select id="ferrariworldBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+                      <option value="miral">Miral / Ferrari World</option>
+                      <option value="generic">Generic (DemoEfficiency)</option>
+                      <option value="army">Army Recruitment</option>
+                    </select>
+                  </div>
+                  <div class="form-row aep-bc-launcher-row" role="group" aria-label="BC launcher visibility">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="ferrariworldBcLauncherToggle" />
+                      <span>Show Brand Concierge launcher on page</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div id="ferrariworldSdkConfigSummary" class="ferrariworld-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="ferrariworldSdkConfigSummaryText"></span>
+                <button type="button" id="ferrariworldChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+            </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="ferrariworldNs">Namespace</label>
+              <select id="ferrariworldNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="ferrari-world-abu-dhabi-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+            </div>
+            <div>
+              <span class="ferrari-world-abu-dhabi-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="ferrari-world-abu-dhabi-demo-script-preview">Selected script: <code id="ferrariworldSelectedScript">None</code></p>
+      <p id="ferrariworldMessage" class="ferrari-world-abu-dhabi-demo-message" role="status" aria-live="polite" hidden></p>
+    </section>
+  </div>
+
+  <!-- HOURS BAR -->
+  <div class="hours-bar">
+    <span>OPEN TODAY</span>: 12:00 PM – 8:00 PM
+    <span class="arrow">›</span>
+    View Park Hours
+  </div>
+
+  <!-- SITE NAV -->
+  <nav class="site-nav" role="navigation" aria-label="Main navigation">
+    <div class="site-nav__inner">
+      <a href="index.html" class="site-nav__logo" aria-label="Ferrari World Abu Dhabi home">
+        <img src="images/logo.png" alt="Ferrari World Abu Dhabi" height="48">
+      </a>
+      <ul class="site-nav__links">
+        <li><a href="index.html#plan">Plan Your Visit <span class="chevron">▾</span></a></li>
+        <li><a href="index.html#explore">Explore <span class="chevron">▾</span></a></li>
+        <li><a href="index.html#experiences">Signature Experiences <span class="chevron">▾</span></a></li>
+        <li><a href="booking.html" class="active">Tickets <span class="chevron">▾</span></a></li>
+        <li><a href="#">Offers</a></li>
+        <li><a href="#">Events</a></li>
+        <li><a href="#">Groups</a></li>
+      </ul>
+      <div class="site-nav__right">
+        <span class="site-nav__lang">EN <span style="font-size:9px;opacity:.55">▾</span></span>
+        <button class="site-nav__icon" aria-label="Search">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <button class="site-nav__icon site-nav__cart-badge" aria-label="Cart">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </button>
+        <button class="site-nav__icon" aria-label="My Account">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <button class="site-nav__buy" aria-label="Buy tickets" onclick="window.scrollTo({top:document.querySelector('.booking-layout').offsetTop-80,behavior:'smooth'})">BUY NOW</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <div class="breadcrumb__inner">
+      <a href="index.html">Home</a>
+      <span class="sep">›</span>
+      <span class="breadcrumb__current">Buy Tickets</span>
+    </div>
+  </div>
+
+  <!-- TICKET TABS -->
+  <div class="ticket-tabs-bar">
+    <div class="ticket-tabs" role="tablist">
+      <button class="ticket-tab active" role="tab" aria-selected="true">General Admission</button>
+      <button class="ticket-tab" role="tab" aria-selected="false">Offers</button>
+      <button class="ticket-tab" role="tab" aria-selected="false">Annual Passes</button>
+      <button class="ticket-tab" role="tab" aria-selected="false">Experiences</button>
+      <button class="ticket-tab" role="tab" aria-selected="false">Extras</button>
+    </div>
+  </div>
+
+  <!-- BOOKING LAYOUT -->
+  <div class="booking-layout">
+
+    <!-- TICKET LIST -->
+    <div class="ticket-list" role="tabpanel" aria-label="General Admission tickets">
+
+      <!-- Single Day Ticket -->
+      <div class="ticket-card" data-miral-attraction="fw:buy-tickets" data-miral-attraction-name="Buy Tickets Page — Ferrari World">
+        <div class="ticket-card__img">
+          <img src="images/single-day-ticket.jpg" alt="Ferrari World single day ticket" loading="lazy">
+        </div>
+        <div class="ticket-card__body">
+          <div class="ticket-card__title">Single Day Ticket</div>
+          <div class="ticket-card__validity">Buy online, save up to 10%</div>
+          <div class="ticket-card__desc">Enjoy unlimited all-day access to all rides and experiences.</div>
+        </div>
+        <div class="ticket-card__price-col">
+          <div class="ticket-card__price-wrap">
+            <div class="ticket-card__price-info">
+              <span class="ticket-card__info-icon">i</span>
+              <span class="ticket-card__price-label">Online Price</span>
+            </div>
+            <div class="ticket-card__price"><span class="currency">AED</span> 345</div>
+          </div>
+          <button class="btn-select-date" data-miral-ticket="single-day" aria-label="Select a date for Single Day Ticket">SELECT A DATE</button>
+        </div>
+      </div>
+
+      <!-- 2 Park Ticket -->
+      <div class="ticket-card">
+        <div class="ticket-card__img ticket-card__img--carousel">
+          <img src="images/formula-rossa.jpg" alt="2 Park Ticket" loading="lazy" id="img2Park">
+          <button class="carousel-arrow carousel-arrow--left" aria-label="Previous" onclick="rotateCard2Park(-1)">‹</button>
+          <button class="carousel-arrow carousel-arrow--right" aria-label="Next" onclick="rotateCard2Park(1)">›</button>
+        </div>
+        <div class="ticket-card__body">
+          <div class="ticket-card__title">2 Park Ticket</div>
+          <div class="ticket-card__validity">Valid for 6 Days</div>
+          <div class="ticket-card__desc">Enjoy access to any 2 Yas Theme Parks. Visit the second park anytime within <strong>6 days</strong> of your first visit.</div>
+          <div class="ticket-card__park-logos">
+            <img class="ticket-card__park-logo" src="../wb-world-abu-dhabi/images/logo.png" alt="Warner Bros. World" onerror="this.style.display='none'">
+            <img class="ticket-card__park-logo" src="../seaworld-abu-dhabi/images/logo-color.png" alt="SeaWorld Abu Dhabi" onerror="this.style.display='none'">
+            <img class="ticket-card__park-logo" src="images/logo-sm.png" alt="Ferrari World Abu Dhabi">
+          </div>
+        </div>
+        <div class="ticket-card__price-col">
+          <div class="ticket-card__price-wrap">
+            <div class="ticket-card__price-info">
+              <span class="ticket-card__info-icon">i</span>
+              <span class="ticket-card__price-label">Price (Per Person)</span>
+            </div>
+            <div class="ticket-card__price"><span class="currency">AED</span> 475</div>
+            <div class="ticket-card__saving">Save up to <strong>AED 245</strong></div>
+          </div>
+          <button class="btn-select-date" data-miral-ticket="2-park" aria-label="Select a date for 2 Park Ticket">SELECT A DATE</button>
+        </div>
+      </div>
+
+      <!-- 3 Park Ticket -->
+      <div class="ticket-card">
+        <div class="ticket-card__img ticket-card__img--carousel">
+          <img src="images/driving-experience.jpg" alt="3 Park Ticket" loading="lazy" id="img3Park">
+          <button class="carousel-arrow carousel-arrow--left" aria-label="Previous" onclick="rotateCard3Park(-1)">‹</button>
+          <button class="carousel-arrow carousel-arrow--right" aria-label="Next" onclick="rotateCard3Park(1)">›</button>
+        </div>
+        <div class="ticket-card__body">
+          <div class="ticket-card__title">3 Park Ticket</div>
+          <div class="ticket-card__validity">Valid for 6 Days</div>
+          <div class="ticket-card__desc">Access any 3 Yas Theme Parks. Visit the remaining parks within <strong>6 days</strong> of your first visit.</div>
+          <div class="ticket-card__park-logos">
+            <img class="ticket-card__park-logo" src="images/logo-sm.png" alt="Ferrari World Abu Dhabi">
+            <img class="ticket-card__park-logo" src="../wb-world-abu-dhabi/images/logo.png" alt="Warner Bros. World" onerror="this.style.display='none'">
+            <img class="ticket-card__park-logo" src="../seaworld-abu-dhabi/images/logo-color.png" alt="SeaWorld Abu Dhabi" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="ticket-card__price-col">
+          <div class="ticket-card__price-wrap">
+            <div class="ticket-card__price-info">
+              <span class="ticket-card__info-icon">i</span>
+              <span class="ticket-card__price-label">Price (Per Person)</span>
+            </div>
+            <div class="ticket-card__price"><span class="currency">AED</span> 575</div>
+            <div class="ticket-card__saving">Save up to <strong>AED 490</strong></div>
+          </div>
+          <button class="btn-select-date" data-miral-ticket="3-park" aria-label="Select a date for 3 Park Ticket">SELECT A DATE</button>
+        </div>
+      </div>
+
+      <!-- 4 Park Ticket -->
+      <div class="ticket-card">
+        <div class="ticket-card__img ticket-card__img--carousel">
+          <img src="images/groups.jpg" alt="4 Park Ticket" loading="lazy" id="img4Park">
+          <button class="carousel-arrow carousel-arrow--left" aria-label="Previous" onclick="rotateCard4Park(-1)">‹</button>
+          <button class="carousel-arrow carousel-arrow--right" aria-label="Next" onclick="rotateCard4Park(1)">›</button>
+        </div>
+        <div class="ticket-card__body">
+          <div class="ticket-card__title">4 Park Ticket</div>
+          <div class="ticket-card__validity">Valid for 6 Days</div>
+          <div class="ticket-card__desc">Explore all 4 Yas Theme Parks. Visit any park within <strong>6 days</strong> of your first visit.</div>
+          <div class="ticket-card__park-logos">
+            <img class="ticket-card__park-logo" src="images/logo-sm.png" alt="Ferrari World Abu Dhabi">
+            <img class="ticket-card__park-logo" src="../wb-world-abu-dhabi/images/logo.png" alt="Warner Bros. World" onerror="this.style.display='none'">
+            <img class="ticket-card__park-logo" src="../seaworld-abu-dhabi/images/logo-color.png" alt="SeaWorld Abu Dhabi" onerror="this.style.display='none'">
+            <img class="ticket-card__park-logo" src="images/yas-island-logo.png" alt="Yas Island" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="ticket-card__price-col">
+          <div class="ticket-card__price-wrap">
+            <div class="ticket-card__price-info">
+              <span class="ticket-card__info-icon">i</span>
+              <span class="ticket-card__price-label">Price (Per Person)</span>
+            </div>
+            <div class="ticket-card__price"><span class="currency">AED</span> 675</div>
+            <div class="ticket-card__saving">Save up to <strong>AED 685</strong></div>
+          </div>
+          <button class="btn-select-date" data-miral-ticket="4-park" aria-label="Select a date for 4 Park Ticket">SELECT A DATE</button>
+        </div>
+      </div>
+
+    </div><!-- /ticket-list -->
+
+    <!-- MY CART -->
+    <div class="cart-widget" aria-label="Shopping cart">
+      <div class="cart-widget__head">
+        <div class="cart-widget__title">My Cart</div>
+      </div>
+      <div class="cart-widget__body">
+        <div class="cart-widget__empty">There are no tickets in your cart</div>
+        <button class="btn-checkout" disabled aria-disabled="true">Checkout</button>
+      </div>
+    </div>
+
+  </div><!-- /booking-layout -->
+
+  <!-- SIGN UP -->
+  <div class="signup-section">
+    <div class="signup-section__accent"></div>
+    <h2 class="signup-section__title">Sign Up</h2>
+    <form class="signup-form" onsubmit="handleSignupSubmit(event)">
+      <input type="email" placeholder="Enter your email address*" aria-label="Email address">
+      <button type="submit">Sign up</button>
+    </form>
+    <p class="signup-section__note">
+      Stay up-to-date with the latest news and offers by email. You can opt-out easily. Learn more in our
+      <a href="#">Privacy Policy</a>
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="site-footer__grid">
+      <div>
+        <div class="site-footer__col-head">About the Park</div>
+        <ul class="site-footer__links">
+          <li><a href="#">Park Overview</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Discover Yas Island</a></li>
+          <li><a href="#">Our Partners</a></li>
+          <li><a href="#">Awards</a></li>
+          <li><a href="#">People of Determination</a></li>
+          <li><a href="#">Careers</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="site-footer__col-head">Explore the Park</div>
+        <ul class="site-footer__links">
+          <li><a href="#">Zones</a></li>
+          <li><a href="#">Rides and Attractions</a></li>
+          <li><a href="#">Signature Experiences</a></li>
+          <li><a href="#">Dining</a></li>
+          <li><a href="#">Shopping</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="site-footer__col-head">Tickets</div>
+        <ul class="site-footer__links">
+          <li><a href="#">General Admission</a></li>
+          <li><a href="#">Yas Annual Pass</a></li>
+          <li><a href="#">Offers</a></li>
+          <li><a href="#">Extras and Gift Vouchers</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="site-footer__col-head">Support</div>
+        <ul class="site-footer__links">
+          <li><a href="#">Contact Us</a></li>
+          <li><a href="#">Terms and Conditions</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Cookies Policy</a></li>
+          <li><a href="#">Supplier Registration</a></li>
+          <li><a href="#">Sitemap</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="site-footer__bottom">
+      <div class="site-footer__logos">
+        <img src="images/yas-island-logo.png" alt="Yas Island" onerror="this.style.display='none'">
+        <img src="images/miral-lang.png" alt="Miral" onerror="this.style.display='none'">
+      </div>
+      <div class="site-footer__social">
+        <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+        <a href="#" aria-label="X / Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+        <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></a>
+      </div>
+      <p class="site-footer__copyright">COPYRIGHT &copy;2026 MIRAL EXPERIENCES LLC</p>
+    </div>
+  </footer>
+
+  <script>
+    // Ticket tab switching
+    document.querySelectorAll('.ticket-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.ticket-tab').forEach(function(t) {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+      });
+    });
+
+    // Simple carousel for multi-park tickets
+    var carouselImgs2 = ['images/formula-rossa.jpg', '../wb-world-abu-dhabi/images/friends-family.jpg', '../seaworld-abu-dhabi/images/encounters.jpg'];
+    var carouselImgs3 = ['images/driving-experience.jpg', '../wb-world-abu-dhabi/images/gotham-etihad.jpg', '../seaworld-abu-dhabi/images/dolphin-encounter.jpg'];
+    var carouselImgs4 = ['images/groups.jpg', '../wb-world-abu-dhabi/images/vip-experience.jpg', '../seaworld-abu-dhabi/images/encounters.jpg', 'images/vip-experience.jpg'];
+    var idx2 = 0, idx3 = 0, idx4 = 0;
+    function rotateCard2Park(dir) { idx2 = (idx2 + dir + carouselImgs2.length) % carouselImgs2.length; var el = document.getElementById('img2Park'); if (el) el.src = carouselImgs2[idx2]; }
+    function rotateCard3Park(dir) { idx3 = (idx3 + dir + carouselImgs3.length) % carouselImgs3.length; var el = document.getElementById('img3Park'); if (el) el.src = carouselImgs3[idx3]; }
+    function rotateCard4Park(dir) { idx4 = (idx4 + dir + carouselImgs4.length) % carouselImgs4.length; var el = document.getElementById('img4Park'); if (el) el.src = carouselImgs4[idx4]; }
+
+    // Sign up form
+    function handleSignupSubmit(e) {
+      e.preventDefault();
+      var input = e.target.querySelector('input');
+      var btn = e.target.querySelector('button');
+      var orig = btn.textContent;
+      btn.textContent = 'Subscribed ✓';
+      btn.style.background = '#2ecc71';
+      input.value = '';
+      setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 3200);
+    }
+  </script>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page ferrari-world-abu-dhabi-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="Customer profile photo" width="124" height="124" loading="lazy" decoding="async" />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row"><strong>ECID</strong><span id="profileDrawerDesktopId">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong><span id="profileDrawerPropensityScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong><span id="profileDrawerChurnScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong title="_demoemea.scoring.npsScore">NPS score</strong><span id="profileDrawerNpsScore">—</span></div>
+          <div class="aep-profile-drawer-identity-row"><strong>Loyalty Status</strong><span id="profileDrawerLoyalty">Unknown</span></div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg class="aep-profile-drawer-graph-svg" id="identityGraphSvg" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent" aria-labelledby="profileDrawerMessageSentHeading">
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerMessageSentUnit"></span></p>
+            <p class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite"><span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span class="aep-profile-drawer-email-sends-unit" id="profileDrawerPushSentUnit"></span></p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="../firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="../aep-global-sandbox.js"></script>
+  <script src="../aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="../email-cache.js"></script>
+  <script src="../identity-picker.js"></script>
+  <script src="../email-engagement-metrics.js"></script>
+  <script src="../aep-profile-drawer.js?v=20260521-drawer-web-pageview"></script>
+  <script src="../demo-tags-injection.js?v=20260521-demo-tags"></script>
+  <script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="../aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="../brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
+  <script src="../brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
+  <script src="../ferrari-world-abu-dhabi-demo.js?v=20260521-miral-datastream"></script>
+  <script src="../miral-cross-site-events.js?v=20260521-miral-datastream"></script>
+  <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="../aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="../aep-lab-nav.js?v=20260520-ferrari-world-replica2"></script>
+
+  <div id="brand-concierge-mount-host" aria-live="polite">
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
+    <div id="brand-concierge-mount"></div>
+  </div>
+  <button type="button" id="ferrariworldBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
+    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
+      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
+    </svg>
+    Ask
+  </button>
+  <script src="../brand-concierge-controls.js?v=20260520-bc-controls"></script>
+</body>
+</html>

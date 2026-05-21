@@ -3,9 +3,6 @@
 .aep-demo-env-section {
   width: 100%;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--dash-border);
-  padding-bottom: 0.55rem;
-  margin-bottom: 0.1rem;
 }
 
 .aep-demo-env-collapsible {
@@ -82,7 +79,13 @@
 .aep-demo-profile-section {
   width: 100%;
   box-sizing: border-box;
-  padding-top: 0.45rem;
+}
+
+/* Divider between config section and profile lookup when stacked */
+.aep-demo-env-section + .aep-demo-profile-section {
+  border-top: 1px solid var(--dash-border);
+  margin-top: 1.25rem;
+  padding-top: 1rem;
 }
 
 .aep-demo-profile-section-grid {
@@ -160,4 +163,99 @@
   line-height: 1.3;
   flex: 1 1 12rem;
   min-width: 8rem;
+}
+
+/* Brand Concierge toggle (shared across demo park pages) */
+.aep-bc-toggle-row {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-top: 0.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.aep-bc-style-select {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+/* BC launcher visibility toggle row */
+.aep-bc-launcher-row {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-top: 0.1rem;
+}
+
+/* Floating park-branded Ask button — hidden by default, shown via .aep-bc-launcher-on on body */
+.aep-bc-park-launcher {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 7400;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+
+.aep-bc-park-launcher:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.32);
+}
+
+.aep-bc-park-launcher:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 3px;
+}
+
+.aep-bc-launcher-on .aep-bc-park-launcher {
+  display: inline-flex;
+}
+
+/* ── Standard stacked env-bar layout ────────────────────────────
+   Add class "aep-demo-id-inner" to any demo id-inner div to opt
+   into the standard. Config section stacks above profile lookup,
+   separated by a divider. Individual demo CSS overrides still apply. */
+.aep-demo-id-inner {
+  max-width: none;
+  margin: 0;
+  padding: 0.75rem 20px 0.6rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.aep-demo-id-inner .mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
+}
+
+.aep-demo-id-inner .mod-sdk-summary--below-env-grid {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 768px) {
+  .aep-demo-id-inner {
+    padding: 0.6rem 12px;
+  }
 }

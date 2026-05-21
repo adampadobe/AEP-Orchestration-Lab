@@ -39,6 +39,46 @@ function premierInnWebPushOnInjectDesired() {
   return !!(premierInnWebPushOnInjectToggle && premierInnWebPushOnInjectToggle.checked);
 }
 
+// Brand Concierge launcher visibility toggle
+const premierInnBcLauncherToggle = document.getElementById('premierInnBcLauncherToggle');
+const premierInnBcLauncher = document.getElementById('premierInnBcLauncher');
+(function initPremierInnBcLauncher() {
+  const LAUNCHER_KEY = 'premierInnBcLauncherVisible';
+  if (!premierInnBcLauncherToggle) return;
+  try {
+    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
+      premierInnBcLauncherToggle.checked = true;
+      document.body.classList.add('aep-bc-launcher-on');
+    }
+  } catch { /* noop */ }
+  premierInnBcLauncherToggle.addEventListener('change', function () {
+    const on = premierInnBcLauncherToggle.checked;
+    document.body.classList.toggle('aep-bc-launcher-on', on);
+    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  });
+  if (premierInnBcLauncher) {
+    premierInnBcLauncher.addEventListener('click', function () {
+      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
+    });
+  }
+})();
+
+// Brand Concierge toggle
+const premierInnBcOnInjectToggle = document.getElementById('premierInnBcOnInjectToggle');
+const premierInnBcStyleSelect = document.getElementById('premierInnBcStyleSelect');
+(function initPremierInnBcToggle() {
+  if (!premierInnBcOnInjectToggle) return;
+  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('premierInn') : { enabled: false, styleKey: 'miral' };
+  premierInnBcOnInjectToggle.checked = !!prefs.enabled;
+  if (premierInnBcStyleSelect && prefs.styleKey) premierInnBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs('premierInn', !!(premierInnBcOnInjectToggle && premierInnBcOnInjectToggle.checked), premierInnBcStyleSelect ? premierInnBcStyleSelect.value : 'miral');
+  }
+  premierInnBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (premierInnBcStyleSelect) premierInnBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
     ? window.DemoTagsInjection.init({
@@ -64,6 +104,10 @@ const premierInnTagsInjection =
           enabled: true,
           subscribeAfterInject: premierInnWebPushOnInjectDesired,
           requestPermissionOnInject: premierInnWebPushOnInjectDesired,
+        },
+        brandConcierge: {
+          enabled: function () { return !!(premierInnBcOnInjectToggle && premierInnBcOnInjectToggle.checked); },
+          styleKey: function () { return premierInnBcStyleSelect ? premierInnBcStyleSelect.value : 'miral'; },
         },
       })
     : null;

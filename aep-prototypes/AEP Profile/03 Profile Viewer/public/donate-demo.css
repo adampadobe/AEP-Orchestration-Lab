@@ -677,3 +677,19 @@
 }
 
 /* Profile drawer styles are in aep-profile-drawer.css (shared with race-for-life-demo) */
+
+/* ── Brand Concierge launcher ─────────────────────────────────── */
+
+.donate-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.donate-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+
+.donate-demo-page .aep-bc-park-launcher {
+  background: #e6007e;
+  box-shadow: 0 4px 20px rgba(230, 0, 126, 0.35);
+}
+
+.donate-demo-page .aep-bc-park-launcher:hover {
+  background: #bf005e;
+}
