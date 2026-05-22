@@ -320,10 +320,11 @@
   <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
 
   <script>
+    /* Brand Concierge Edge route (not /ee) — https://edge.adobedc.net/brand-concierge/nld2/conversations */
     alloy("configure", {
       defaultConsent: "in",
-      edgeDomain: "edge-int.adobedc.net",
-      edgeBasePath: "ee",
+      edgeDomain: "edge.adobedc.net",
+      edgeBasePath: "brand-concierge/nld2/conversations",
       datastreamId: "cf7272a7-f634-4bdf-9ce6-fa31ac0c6416",
       orgId: "BF9C27AA6464801C0A495FD0@AdobeOrg",
       debugEnabled: true,
