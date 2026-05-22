@@ -10,115 +10,120 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260521-stacked-layout">
+  <link rel="stylesheet" href="mod-demo.css?v=20260522-env-wide">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
-  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="mod-demo-page home-dashboard-concierge aep-bc-panel-dismissed">
+<body class="mod-demo-page">
   <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner">
-        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div class="mod-sdk-config-fields" id="modSdkConfigFields">
-                  <div class="form-row">
-                    <label for="modTagsCompany">Tags company</label>
-                    <select id="modTagsCompany" aria-label="Tags company"></select>
+        <div class="mod-demo-env-layout">
+          <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+            <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+              <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+                <div class="mod-demo-env-toolbar">
+                  <span class="aep-demo-env-kicker mod-demo-env-kicker">Environment</span>
+                  <div class="aep-demo-env-editor-grid mod-demo-env-fields">
+                    <div class="form-row mod-demo-env-field mod-demo-env-field--sandbox">
+                      <label for="sandboxSelect">Sandbox</label>
+                      <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                        <option value="">Loading sandboxes…</option>
+                      </select>
+                    </div>
+                    <div class="mod-sdk-config-fields mod-demo-tags-block" id="modSdkConfigFields">
+                      <div class="form-row mod-demo-env-field">
+                        <label for="modTagsCompany">Tags company</label>
+                        <select id="modTagsCompany" aria-label="Tags company"></select>
+                      </div>
+                      <div class="form-row mod-demo-env-field mod-demo-env-field--property">
+                        <label for="modTagsProperty">Tags property</label>
+                        <input
+                          id="modTagsProperty"
+                          type="text"
+                          list="modTagsPropertyList"
+                          placeholder="Type to filter properties"
+                          autocomplete="off"
+                        >
+                        <datalist id="modTagsPropertyList"></datalist>
+                      </div>
+                      <div class="form-row mod-demo-env-field">
+                        <label for="modTagsEnvironment">Tags environment</label>
+                        <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+                      </div>
+                      <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--inject">
+                        <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                      </div>
+                    </div>
+                    <div class="form-row mod-demo-env-field mod-demo-env-field--destination">
+                      <label for="generatorTarget">Event destination</label>
+                      <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                    </div>
                   </div>
-                  <div class="form-row">
-                    <label for="modTagsProperty">Tags property</label>
-                    <input
-                      id="modTagsProperty"
-                      type="text"
-                      list="modTagsPropertyList"
-                      placeholder="Type to filter properties"
-                      autocomplete="off"
-                    >
-                    <datalist id="modTagsPropertyList"></datalist>
+                  <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
+                    <span id="modSdkConfigSummaryText"></span>
+                    <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
                   </div>
-                  <div class="form-row">
-                    <label for="modTagsEnvironment">Tags environment</label>
-                    <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+                  <div class="mod-demo-bc-prefs" role="group" aria-labelledby="modBcPrefsHeading">
+                    <span class="mod-demo-bc-prefs__heading" id="modBcPrefsHeading">Show Brand Concierge</span>
+                    <div class="mod-demo-bc-prefs__options">
+                      <label class="mod-demo-bc-prefs__option">
+                        <input type="checkbox" id="modBcFullScreenToggle" />
+                        <span>Full Screen</span>
+                      </label>
+                      <label class="mod-demo-bc-prefs__option">
+                        <input type="checkbox" id="modBcModalToggle" />
+                        <span>Modal</span>
+                      </label>
+                      <label class="mod-demo-bc-prefs__option">
+                        <input type="checkbox" id="modBcInjectedToggle" />
+                        <span>Injected</span>
+                      </label>
+                    </div>
                   </div>
-                  <div class="mod-demo-id-actions">
-                    <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-                  </div>
-                  <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
-                    <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="modBcOnInjectToggle" />
-                      <span>Enable Brand Concierge when injecting Tags</span>
-                    </label>
-                    <select id="modBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
-                      <option value="miral">Miral</option>
-                      <option value="generic">Generic (DemoEfficiency)</option>
-                      <option value="army">Army Recruitment</option>
-                    </select>
-                  </div>
-                  <div class="form-row aep-bc-launcher-row" role="group" aria-label="BC launcher visibility">
-                    <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="modBcLauncherToggle" />
-                      <span>Show Brand Concierge launcher on page</span>
-                    </label>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
                 </div>
               </div>
-              <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
-                <span id="modSdkConfigSummaryText"></span>
-                <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+                <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+                <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
               </div>
             </div>
-          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-          </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid">
-            <div class="form-row">
-              <label for="modNs">Namespace</label>
-              <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
+          </section>
+          <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+            <span class="aep-demo-env-kicker mod-demo-env-kicker">Profile lookup</span>
+            <div class="aep-demo-profile-section-grid mod-demo-profile-fields">
+              <div class="form-row mod-demo-env-field">
+                <label for="modNs">Namespace</label>
+                <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+                  <option value="email">Email</option>
+                  <option value="ecid">ECID</option>
+                  <option value="crmId">CRM ID</option>
+                  <option value="loyaltyId">Loyalty ID</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
+              <div class="form-row mod-demo-env-field mod-demo-env-field--identifier">
+                <label for="customerEmail">Identifier value</label>
+                <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--lookup">
+                <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+                <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+              </div>
             </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="mod-demo-id-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
+        <div class="mod-demo-env-meta">
+          <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
+          <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+        </div>
+        <p class="mod-demo-disclaimer">
+          Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
+        </p>
       </div>
-      <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
-      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">
-        Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
-      </p>
     </div>
   </div>
 
@@ -279,148 +284,10 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="mod-demo.js?v=20260513-drawer-mirror"></script>
+  <script src="styleConfigurations-mod-demo-army.js?v=20260508-army-bc-v3"></script>
+  <script src="mod-demo.js?v=20260522-env-bc-prefs"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
-
-  <!-- Brand Concierge (integration guide pattern on this page; Army theme via styleConfigurations-mod-demo-army.js) -->
-  <script src="styleConfigurations-mod-demo-army.js?v=20260508-army-bc-v3"></script>
-  <script>
-    !function (n, o) {
-      o.forEach(function (o) {
-        n[o] || ((n.__alloyNS = n.__alloyNS ||
-          []).push(o), n[o] = function () {
-            var u = arguments; return new Promise(
-              function (i, l) { n[o].q.push([i, l, u]) })
-          }, n[o].q = [])
-      })
-    }
-    (window, ["alloy"]);
-  </script>
-
-  <style>
-    .bc-card__image {
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-    }
-    /* Lab shell: panel position + size over the Army iframe */
-    #brand-concierge-mount-host {
-      width: min(420px, calc(100vw - 32px));
-      max-height: min(720px, calc(100vh - 32px));
-      pointer-events: auto;
-      background: transparent;
-    }
-    html[data-aep-theme='dark'] #brand-concierge-mount-host {
-      color-scheme: dark;
-    }
-  </style>
-
-  <!-- Alloy BC uses edgeDomain + /brand-concierge/conversations (edgeBasePath is ignored for sendConversationEvent). -->
-  <script>
-    (function () {
-      var from = "https://edge.adobedc.net/brand-concierge/conversations";
-      var to = "https://edge.adobedc.net/brand-concierge/nld2/conversations";
-      var voiceFrom = "https://edge.adobedc.net/brand-concierge-voice/conversations";
-      var voiceTo = "https://edge.adobedc.net/brand-concierge-voice/nld2/conversations";
-      function rewrite(url) {
-        if (typeof url !== "string") return url;
-        if (url.indexOf(from) === 0) return to + url.slice(from.length);
-        if (url.indexOf(voiceFrom) === 0) return voiceTo + url.slice(voiceFrom.length);
-        return url;
-      }
-      var nativeFetch = window.fetch;
-      if (typeof nativeFetch !== "function") return;
-      window.fetch = function (input, init) {
-        if (typeof input === "string") {
-          input = rewrite(input);
-        } else if (input && typeof input.url === "string") {
-          var next = rewrite(input.url);
-          if (next !== input.url) input = new Request(next, input);
-        }
-        return nativeFetch.call(this, input, init);
-      };
-    })();
-  </script>
-
-  <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
-  <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
-
-  <script>
-    alloy("configure", {
-      defaultConsent: "in",
-      edgeDomain: "edge.adobedc.net",
-      edgeBasePath: "ee",
-      datastreamId: "cf7272a7-f634-4bdf-9ce6-fa31ac0c6416",
-      orgId: "BF9C27AA6464801C0A495FD0@AdobeOrg",
-      debugEnabled: true,
-      idMigrationEnabled: false,
-      thirdPartyCookiesEnabled: false,
-      prehidingStyle: ".personalization-container { opacity: 0 !important }",
-    });
-
-    alloy("sendEvent", {});
-  </script>
-
-  <button
-    type="button"
-    id="modDemoAskFloat"
-    class="mod-demo-ask-float"
-    aria-haspopup="dialog"
-    aria-expanded="false"
-    aria-controls="brand-concierge-mount-host"
-  >
-    <span class="mod-demo-ask-float__sparkles" aria-hidden="true">
-      <svg class="mod-demo-ask-float__sparkles-svg" viewBox="0 0 40 40" width="36" height="36" focusable="false">
-        <defs>
-          <linearGradient id="modDemoAskFloatSparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" class="mod-demo-ask-float__grad-stop-a" />
-            <stop offset="50%" class="mod-demo-ask-float__grad-stop-b" />
-            <stop offset="100%" class="mod-demo-ask-float__grad-stop-c" />
-          </linearGradient>
-        </defs>
-        <path
-          fill="none"
-          stroke="url(#modDemoAskFloatSparkleGrad)"
-          stroke-width="1.75"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z"
-        />
-        <path class="mod-demo-ask-float__sparkle-dot mod-demo-ask-float__sparkle-dot--sm" d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" />
-        <path class="mod-demo-ask-float__sparkle-dot mod-demo-ask-float__sparkle-dot--xs" d="M14 30l0.45 1.4 1.5 0.45-1.5 0.45L14 34l-0.45-1.4-1.5-0.45 1.5-0.45L14 30z" />
-      </svg>
-    </span>
-    <span class="mod-demo-ask-float__label">Ask a question</span>
-  </button>
-
-  <button type="button" id="aepBcReopenBtn" class="aep-bc-reopen-btn" hidden aria-label="Open Brand Concierge">
-    <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
-  </button>
-
-  <div id="brand-concierge-mount-host" aria-live="polite">
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">
-      x
-    </button>
-    <!-- Agent mount target (selector: #brand-concierge-mount) -->
-    <div id="brand-concierge-mount"></div>
-  </div>
-  <button type="button" id="modBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
-    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
-      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
-    </svg>
-    Ask
-  </button>
-
-  <script>
-    window.adobe.concierge.bootstrap({
-      instanceName: "alloy",
-      stylingConfigurations: window.styleConfiguration,
-      selector: "#brand-concierge-mount",
-      stickySession: false
-    });
-  </script>
-  <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
 </body>
 </html>

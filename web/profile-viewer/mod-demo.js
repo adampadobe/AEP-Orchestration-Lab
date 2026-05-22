@@ -14,44 +14,56 @@ const modMessage = document.getElementById('modMessage');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-// Brand Concierge launcher visibility toggle
-const modBcLauncherToggle = document.getElementById('modBcLauncherToggle');
-const modBcLauncher = document.getElementById('modBcLauncher');
-(function initModBcLauncher() {
-  const LAUNCHER_KEY = 'modBcLauncherVisible';
-  if (!modBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      modBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  modBcLauncherToggle.addEventListener('change', function () {
-    const on = modBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (modBcLauncher) {
-    modBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
+// Brand Concierge display prefs (env bar) — persisted for next BC integration pass
+const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
+const modBcModalToggle = document.getElementById('modBcModalToggle');
+const modBcInjectedToggle = document.getElementById('modBcInjectedToggle');
+const MOD_BC_PREFS_KEY = 'modDemoBcDisplayPrefs';
 
-// Brand Concierge on-inject toggle
-const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
-const modBcStyleSelect = document.getElementById('modBcStyleSelect');
-(function initModBcToggle() {
-  if (!modBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'miral' };
-  modBcOnInjectToggle.checked = !!prefs.enabled;
-  if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('modDemo', !!(modBcOnInjectToggle && modBcOnInjectToggle.checked), modBcStyleSelect ? modBcStyleSelect.value : 'miral');
+function loadModBcDisplayPrefs() {
+  try {
+    const raw = localStorage.getItem(MOD_BC_PREFS_KEY);
+    if (!raw) return { fullScreen: false, modal: false, injected: false };
+    const p = JSON.parse(raw);
+    return {
+      fullScreen: !!p.fullScreen,
+      modal: !!p.modal,
+      injected: !!p.injected,
+    };
+  } catch {
+    return { fullScreen: false, modal: false, injected: false };
   }
-  modBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveBcPrefs);
+}
+
+function saveModBcDisplayPrefs() {
+  try {
+    localStorage.setItem(
+      MOD_BC_PREFS_KEY,
+      JSON.stringify({
+        fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
+        modal: !!(modBcModalToggle && modBcModalToggle.checked),
+        injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
+      }),
+    );
+  } catch { /* noop */ }
+  if (typeof AepBcToggle !== 'undefined' && modBcInjectedToggle) {
+    AepBcToggle.savePrefs('modDemo', modBcInjectedToggle.checked, 'army');
+  }
+}
+
+(function initModBcDisplayPrefs() {
+  const prefs = loadModBcDisplayPrefs();
+  if (modBcInjectedToggle) {
+    const legacy =
+      typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : null;
+    modBcInjectedToggle.checked = legacy && legacy.enabled ? !!legacy.enabled : prefs.injected;
+  }
+  if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
+  if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
+  [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
+    if (el) el.addEventListener('change', saveModBcDisplayPrefs);
+  });
+  saveModBcDisplayPrefs();
 })();
 
 const modTagsInjection =
@@ -79,8 +91,8 @@ const modTagsInjection =
          */
         iframeIds: [],
         brandConcierge: {
-          enabled: function () { return !!(modBcOnInjectToggle && modBcOnInjectToggle.checked); },
-          styleKey: function () { return (modBcStyleSelect && modBcStyleSelect.value) || 'miral'; },
+          enabled: function () { return !!(modBcInjectedToggle && modBcInjectedToggle.checked); },
+          styleKey: function () { return 'army'; },
         },
       })
     : null;
@@ -290,52 +302,3 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-/**
- * “Ask a question” / FAB: show Brand Concierge host. This script runs before #modDemoAskFloat
- * exists in the DOM — bind after DOMContentLoaded so the click handler is actually attached.
- */
-(function setupModDemoAskOpensBrandConcierge() {
-  function bind() {
-    var floatBtn = document.getElementById('modDemoAskFloat');
-    if (!floatBtn) return;
-
-    function syncBrandConciergeChrome() {
-      var dismissed = document.body.classList.contains('aep-bc-panel-dismissed');
-      var reopenBtn = document.getElementById('aepBcReopenBtn');
-      var dismissBtn = document.getElementById('aepBcDismissBtn');
-      if (reopenBtn) reopenBtn.hidden = !dismissed;
-      if (dismissBtn) dismissBtn.hidden = dismissed;
-    }
-
-    floatBtn.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-      syncBrandConciergeChrome();
-      floatBtn.setAttribute('aria-expanded', 'true');
-      var host = document.getElementById('brand-concierge-mount-host');
-      if (host && typeof host.focus === 'function') {
-        try {
-          host.focus({ preventScroll: false });
-        } catch (e) {
-          /* ignore */
-        }
-      }
-    });
-
-    document.body.addEventListener(
-      'click',
-      function (ev) {
-        var t = ev.target;
-        if (t && (t.id === 'aepBcDismissBtn' || (t.closest && t.closest('#aepBcDismissBtn')))) {
-          floatBtn.setAttribute('aria-expanded', 'false');
-        }
-      },
-      true,
-    );
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind);
-  } else {
-    bind();
-  }
-})();
