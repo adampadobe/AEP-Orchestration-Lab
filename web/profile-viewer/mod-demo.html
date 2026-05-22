@@ -316,15 +316,41 @@
     }
   </style>
 
+  <!-- Alloy BC uses edgeDomain + /brand-concierge/conversations (edgeBasePath is ignored for sendConversationEvent). -->
+  <script>
+    (function () {
+      var from = "https://edge.adobedc.net/brand-concierge/conversations";
+      var to = "https://edge.adobedc.net/brand-concierge/nld2/conversations";
+      var voiceFrom = "https://edge.adobedc.net/brand-concierge-voice/conversations";
+      var voiceTo = "https://edge.adobedc.net/brand-concierge-voice/nld2/conversations";
+      function rewrite(url) {
+        if (typeof url !== "string") return url;
+        if (url.indexOf(from) === 0) return to + url.slice(from.length);
+        if (url.indexOf(voiceFrom) === 0) return voiceTo + url.slice(voiceFrom.length);
+        return url;
+      }
+      var nativeFetch = window.fetch;
+      if (typeof nativeFetch !== "function") return;
+      window.fetch = function (input, init) {
+        if (typeof input === "string") {
+          input = rewrite(input);
+        } else if (input && typeof input.url === "string") {
+          var next = rewrite(input.url);
+          if (next !== input.url) input = new Request(next, input);
+        }
+        return nativeFetch.call(this, input, init);
+      };
+    })();
+  </script>
+
   <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
   <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
 
   <script>
-    /* Brand Concierge Edge route (not /ee) — https://edge.adobedc.net/brand-concierge/nld2/conversations */
     alloy("configure", {
       defaultConsent: "in",
       edgeDomain: "edge.adobedc.net",
-      edgeBasePath: "brand-concierge/nld2/conversations",
+      edgeBasePath: "ee",
       datastreamId: "cf7272a7-f634-4bdf-9ce6-fa31ac0c6416",
       orgId: "BF9C27AA6464801C0A495FD0@AdobeOrg",
       debugEnabled: true,
