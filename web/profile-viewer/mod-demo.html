@@ -10,24 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260522-env-wide">
+  <link rel="stylesheet" href="mod-demo.css?v=20260522-env-strip">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="mod-demo-page">
+<body class="mod-demo-page home-dashboard-concierge">
   <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner">
-        <div class="mod-demo-env-layout">
-          <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-            <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-              <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-                <div class="mod-demo-env-toolbar">
-                  <span class="aep-demo-env-kicker mod-demo-env-kicker">Environment</span>
-                  <div class="aep-demo-env-editor-grid mod-demo-env-fields">
+        <section class="aep-demo-env-section mod-demo-env-shell" id="aepDemoEnvSection" aria-label="Lab environment and profile">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <div class="mod-demo-env-row mod-demo-env-row--primary">
+                <div class="mod-demo-env-cluster mod-demo-env-cluster--config" aria-label="AEP environment">
+                  <span class="aep-demo-env-kicker">Environment</span>
+                  <div class="mod-demo-env-cluster__fields">
                     <div class="form-row mod-demo-env-field mod-demo-env-field--sandbox">
                       <label for="sandboxSelect">Sandbox</label>
                       <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
@@ -63,63 +63,63 @@
                       <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
                     </div>
                   </div>
-                  <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
-                    <span id="modSdkConfigSummaryText"></span>
-                    <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+                </div>
+                <div class="mod-demo-env-cluster mod-demo-env-cluster--bc" role="group" aria-labelledby="modBcPrefsHeading">
+                  <span class="mod-demo-bc-prefs__heading" id="modBcPrefsHeading">Show Brand Concierge</span>
+                  <div class="mod-demo-bc-prefs__options">
+                    <label class="mod-demo-bc-prefs__option">
+                      <input type="checkbox" id="modBcFullScreenToggle" />
+                      <span>Full Screen</span>
+                    </label>
+                    <label class="mod-demo-bc-prefs__option">
+                      <input type="checkbox" id="modBcModalToggle" />
+                      <span>Modal</span>
+                    </label>
+                    <label class="mod-demo-bc-prefs__option">
+                      <input type="checkbox" id="modBcInjectedToggle" />
+                      <span>Injected</span>
+                    </label>
                   </div>
-                  <div class="mod-demo-bc-prefs" role="group" aria-labelledby="modBcPrefsHeading">
-                    <span class="mod-demo-bc-prefs__heading" id="modBcPrefsHeading">Show Brand Concierge</span>
-                    <div class="mod-demo-bc-prefs__options">
-                      <label class="mod-demo-bc-prefs__option">
-                        <input type="checkbox" id="modBcFullScreenToggle" />
-                        <span>Full Screen</span>
-                      </label>
-                      <label class="mod-demo-bc-prefs__option">
-                        <input type="checkbox" id="modBcModalToggle" />
-                        <span>Modal</span>
-                      </label>
-                      <label class="mod-demo-bc-prefs__option">
-                        <input type="checkbox" id="modBcInjectedToggle" />
-                        <span>Injected</span>
-                      </label>
+                </div>
+                <div class="mod-demo-env-cluster mod-demo-env-cluster--profile" id="aepDemoProfileSection" aria-label="Profile lookup">
+                  <span class="aep-demo-env-kicker">Profile lookup</span>
+                  <div class="mod-demo-env-cluster__fields mod-demo-profile-fields">
+                    <div class="form-row mod-demo-env-field">
+                      <label for="modNs">Namespace</label>
+                      <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+                        <option value="email">Email</option>
+                        <option value="ecid">ECID</option>
+                        <option value="crmId">CRM ID</option>
+                        <option value="loyaltyId">Loyalty ID</option>
+                        <option value="phone">Phone</option>
+                      </select>
+                    </div>
+                    <div class="form-row mod-demo-env-field mod-demo-env-field--identifier">
+                      <label for="customerEmail">Identifier value</label>
+                      <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--lookup">
+                      <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+                      <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-                <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-                <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+              <div class="mod-demo-env-row mod-demo-env-row--secondary">
+                <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
+                  <span id="modSdkConfigSummaryText"></span>
+                  <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+                </div>
+                <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
+                <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
               </div>
             </div>
-          </section>
-          <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-            <span class="aep-demo-env-kicker mod-demo-env-kicker">Profile lookup</span>
-            <div class="aep-demo-profile-section-grid mod-demo-profile-fields">
-              <div class="form-row mod-demo-env-field">
-                <label for="modNs">Namespace</label>
-                <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-                  <option value="email">Email</option>
-                  <option value="ecid">ECID</option>
-                  <option value="crmId">CRM ID</option>
-                  <option value="loyaltyId">Loyalty ID</option>
-                  <option value="phone">Phone</option>
-                </select>
-              </div>
-              <div class="form-row mod-demo-env-field mod-demo-env-field--identifier">
-                <label for="customerEmail">Identifier value</label>
-                <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-              </div>
-              <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--lookup">
-                <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-                <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
             </div>
-          </section>
-        </div>
-        <div class="mod-demo-env-meta">
-          <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
-          <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-        </div>
+          </div>
+        </section>
         <p class="mod-demo-disclaimer">
           Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
         </p>
