@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260522-env-strip">
+  <link rel="stylesheet" href="mod-demo-bc.css?v=20260522-army-bc">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -136,6 +137,52 @@
     sandbox="allow-same-origin allow-forms allow-popups"
     loading="eager"
   ></iframe>
+
+  <!-- army-mod-home: inline injected BC (visible when Injected is checked) -->
+  <section
+    id="modDemoBcInjectedPanel"
+    class="mod-demo-bc-injected army-bc-inline"
+    hidden
+    aria-label="Army recruitment assistant"
+  >
+    <div id="modDemoBcInjectMount" class="army-bc-inline__mount"></div>
+  </section>
+
+  <!-- army-mod-home-3: modal BC (FAB + dialog when Modal is checked) -->
+  <button
+    type="button"
+    id="aepBcReopenBtn"
+    class="aep-bc-reopen-btn"
+    hidden
+    aria-label="Open Brand Concierge"
+    aria-expanded="false"
+    aria-controls="aepBcModal"
+  >
+    <img
+      src="https://contenthosting.web.app/logos/adobe_icon_146235.webp"
+      alt=""
+      width="48"
+      height="48"
+      decoding="async"
+    />
+  </button>
+  <div
+    id="aepBcModal"
+    class="aep-bc-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="aepBcModalTitle"
+    hidden
+  >
+    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
+    <div class="aep-bc-modal__dialog">
+      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">
+        &times;
+      </button>
+      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
+      <div id="modDemoBcModalMount" class="aep-bc-modal__mount"></div>
+    </div>
+  </div>
 
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -282,10 +329,8 @@
   <script src="demo-tags-injection.js?v=20260521-demo-tags"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
-  <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="styleConfigurations-mod-demo-army.js?v=20260508-army-bc-v3"></script>
-  <script src="mod-demo.js?v=20260522-env-bc-prefs"></script>
+  <script src="mod-demo.js?v=20260523-army-bc-modes"></script>
+  <script src="mod-demo-bc.js?v=20260523-army-bc-modes"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

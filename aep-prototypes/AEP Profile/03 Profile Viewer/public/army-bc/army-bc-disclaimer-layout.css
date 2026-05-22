@@ -1,0 +1,55 @@
+/* Pages 1 & 3 popup: disclaimer below input, centred, transparent on gradient */
+.army-bc-inline #brand-concierge-mount .input-section,
+.aep-bc-modal #brand-concierge-mount .input-section {
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.army-bc-inline #brand-concierge-mount .input-container,
+.aep-bc-modal #brand-concierge-mount .input-container {
+  position: relative;
+  flex-wrap: wrap;
+  overflow: visible !important;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: var(--content-width-desktop, 768px);
+}
+
+.army-bc-inline #brand-concierge-mount .input-container .disclaimer-message,
+.aep-bc-modal #brand-concierge-mount .input-container .disclaimer-message,
+.army-bc-inline #brand-concierge-mount .disclaimer-message.army-bc-disclaimer-external,
+.aep-bc-modal #brand-concierge-mount .disclaimer-message.army-bc-disclaimer-external {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(100%, var(--content-width-desktop, 768px));
+  max-width: var(--content-width-desktop, 768px);
+  flex: none !important;
+  order: unset !important;
+  margin: 0 !important;
+  padding: 0.25rem 0.5rem !important;
+  text-align: center !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.army-bc-inline #brand-concierge-mount .disclaimer-message.army-bc-disclaimer-external,
+.aep-bc-modal #brand-concierge-mount .disclaimer-message.army-bc-disclaimer-external {
+  position: static;
+  transform: none;
+  left: auto;
+  display: block !important;
+  margin: 0.5rem auto 0.75rem !important;
+}
+
+.army-bc-inline #brand-concierge-mount .disclaimer-link,
+.aep-bc-modal #brand-concierge-mount .disclaimer-link {
+  color: inherit;
+}

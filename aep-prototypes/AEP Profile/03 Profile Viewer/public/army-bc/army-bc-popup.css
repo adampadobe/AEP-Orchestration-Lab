@@ -1,0 +1,127 @@
+/* Page 3: floating reopen button + centered Brand Concierge modal */
+.aep-bc-reopen-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.aep-bc-reopen-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.34);
+}
+
+.aep-bc-reopen-btn:focus-visible {
+  outline: 3px solid #4b75ff;
+  outline-offset: 3px;
+}
+
+.aep-bc-reopen-btn img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+body.aep-bc-modal-open {
+  overflow: hidden;
+}
+
+.aep-bc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  box-sizing: border-box;
+}
+
+.aep-bc-modal.is-open {
+  display: flex;
+}
+
+.aep-bc-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.aep-bc-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(920px, 100%);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  border-radius: 16px;
+  background: linear-gradient(
+    122.87deg,
+    #e1e9ff 20.72%,
+    #efe3fa 34.96%,
+    #f5dff8 42.08%,
+    #fcdcf5 49.2%,
+    #ffdec3 91.6%
+  );
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+}
+
+.aep-bc-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #131313;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aep-bc-modal__close:hover {
+  background: #fff;
+}
+
+.aep-bc-modal__mount,
+.aep-bc-modal #brand-concierge-mount {
+  position: relative !important;
+  inset: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 520px !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0;
+  pointer-events: auto !important;
+}
+
+.aep-bc-modal #brand-concierge-mount > * {
+  pointer-events: auto;
+}
+
+.aep-bc-modal .bc-card__image {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}

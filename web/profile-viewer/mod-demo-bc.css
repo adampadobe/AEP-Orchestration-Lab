@@ -1,0 +1,37 @@
+/* Army BC — injected panel overlay on MOD demo (army-mod-home pattern) */
+.mod-demo-bc-injected.army-bc-inline {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7200;
+  max-height: min(72vh, 720px);
+  overflow-y: auto;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  pointer-events: auto;
+}
+
+.mod-demo-bc-injected .army-bc-inline__mount,
+.mod-demo-bc-injected #modDemoBcInjectMount {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: 920px !important;
+  min-height: min(480px, 60vh) !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 auto;
+  pointer-events: auto !important;
+}
+
+/* Modal mount — army-mod-home-3 pattern (popup.css handles chrome) */
+#modDemoBcModalMount.aep-bc-modal__mount,
+#modDemoBcModalMount {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  min-height: 480px !important;
+  height: auto !important;
+  max-height: none !important;
+  pointer-events: auto !important;
+}

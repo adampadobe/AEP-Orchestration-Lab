@@ -1,0 +1,8 @@
+/*
+ * Modal only: keep scroll inside BC chat history, not the dialog shell.
+ * Do not style #brand-concierge-mount > * — BC injects a <style> child and
+ * display:flex on it can render token CSS as visible page text.
+ */
+.aep-bc-modal .aep-bc-modal__dialog {
+  overflow: hidden;
+}

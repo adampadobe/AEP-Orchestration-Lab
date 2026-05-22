@@ -46,24 +46,28 @@ function saveModBcDisplayPrefs() {
       }),
     );
   } catch { /* noop */ }
-  if (typeof AepBcToggle !== 'undefined' && modBcInjectedToggle) {
-    AepBcToggle.savePrefs('modDemo', modBcInjectedToggle.checked, 'army');
+}
+
+function syncModDemoBcFromPrefs() {
+  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.sync === 'function') {
+    window.ModDemoBc.sync();
   }
 }
 
 (function initModBcDisplayPrefs() {
   const prefs = loadModBcDisplayPrefs();
-  if (modBcInjectedToggle) {
-    const legacy =
-      typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : null;
-    modBcInjectedToggle.checked = legacy && legacy.enabled ? !!legacy.enabled : prefs.injected;
-  }
+  if (modBcInjectedToggle) modBcInjectedToggle.checked = prefs.injected;
   if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
   if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
   [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
-    if (el) el.addEventListener('change', saveModBcDisplayPrefs);
+    if (!el) return;
+    el.addEventListener('change', function () {
+      saveModBcDisplayPrefs();
+      syncModDemoBcFromPrefs();
+    });
   });
   saveModBcDisplayPrefs();
+  syncModDemoBcFromPrefs();
 })();
 
 const modTagsInjection =
@@ -90,10 +94,6 @@ const modTagsInjection =
          * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
          */
         iframeIds: [],
-        brandConcierge: {
-          enabled: function () { return !!(modBcInjectedToggle && modBcInjectedToggle.checked); },
-          styleKey: function () { return 'army'; },
-        },
       })
     : null;
 
