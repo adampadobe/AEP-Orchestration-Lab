@@ -83,6 +83,8 @@
 }
 
 /* Lab strip stays light even when the page theme is dark */
+html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-banner,
+html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
 .mod-demo-page .mod-demo-id-banner,
 .mod-demo-page .mod-demo-id-inner {
   --dash-bg: #f4f6f8;

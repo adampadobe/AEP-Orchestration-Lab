@@ -1,5 +1,6 @@
 /**
- * MOD (British Army) demo â€” profile lookup + flyout lab nav; saved homepage in iframe.
+ * MOD (British Army) demo — profile lookup + flyout lab nav; saved homepage in iframe.
+ * Lab strip: web push + Tags inject aligned with Etihad (`etihad-demo.html`); BC modes in `mod-demo-bc.js`.
  */
 
 const customerEmail = document.getElementById('customerEmail');
@@ -13,6 +14,27 @@ const modMessage = document.getElementById('modMessage');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
+
+const MOD_WEB_PUSH_ON_INJECT_KEY = 'modDemoWebPushOnInjectToggle';
+const modWebPushOnInjectToggle = document.getElementById('modWebPushOnInjectToggle');
+if (modWebPushOnInjectToggle) {
+  try {
+    if (localStorage.getItem(MOD_WEB_PUSH_ON_INJECT_KEY) === '1') modWebPushOnInjectToggle.checked = true;
+  } catch {
+    /* noop */
+  }
+  modWebPushOnInjectToggle.addEventListener('change', function () {
+    try {
+      localStorage.setItem(MOD_WEB_PUSH_ON_INJECT_KEY, modWebPushOnInjectToggle.checked ? '1' : '0');
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+function modWebPushOnInjectDesired() {
+  return !!(modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked);
+}
 
 // Brand Concierge display prefs (env bar) — persisted for next BC integration pass
 const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
@@ -94,8 +116,27 @@ const modTagsInjection =
          * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
          */
         iframeIds: [],
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: modWebPushOnInjectDesired,
+          requestPermissionOnInject: modWebPushOnInjectDesired,
+        },
       })
     : null;
+
+const modWebPushRetryBtn = document.getElementById('modWebPushRetryBtn');
+if (modWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
+  modWebPushRetryBtn.addEventListener('click', function () {
+    void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'modDemo' }).then(function (ok) {
+      setModMessage(
+        ok
+          ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'
+          : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
+        ok ? 'success' : 'error',
+      );
+    });
+  });
+}
 
 function getEmail() {
   return (customerEmail && customerEmail.value) || '';

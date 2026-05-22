@@ -21,7 +21,7 @@
   <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
-      <div class="mod-demo-id-inner">
+      <div class="mod-demo-id-inner aep-demo-id-inner">
         <section class="aep-demo-env-section mod-demo-env-shell" id="aepDemoEnvSection" aria-label="Lab environment and profile">
           <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
             <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
@@ -57,6 +57,21 @@
                       </div>
                       <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--inject">
                         <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                      </div>
+                      <div class="form-row mod-demo-env-field aep-demo-web-push-row" role="group" aria-label="Web push">
+                        <label class="aep-demo-web-push-label">
+                          <input type="checkbox" id="modWebPushOnInjectToggle" />
+                          <span>
+                            Register web push when injecting Tags
+                            <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                          </span>
+                        </label>
+                      </div>
+                      <div class="mod-demo-env-field aep-demo-web-push-retry">
+                        <button type="button" id="modWebPushRetryBtn" class="btn-lookup">
+                          Register web push now
+                        </button>
+                        <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
                       </div>
                     </div>
                     <div class="form-row mod-demo-env-field mod-demo-env-field--destination">
@@ -321,15 +336,16 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
   <script src="demo-tags-injection.js?v=20260521-demo-tags"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="mod-demo.js?v=20260523-army-bc-modes"></script>
+  <script src="mod-demo.js?v=20260523-army-web-push"></script>
   <script src="mod-demo-bc.js?v=20260523-army-bc-modes"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
