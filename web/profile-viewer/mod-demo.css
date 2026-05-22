@@ -219,6 +219,16 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   width: min(12rem, 100%);
 }
 
+.mod-demo-id-inner .aep-bc-toggle-row.mod-demo-bc-inject-row {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-top: 0.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
 .mod-demo-env-field--lookup {
   flex: 1 1 12rem;
 }

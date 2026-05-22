@@ -13,7 +13,7 @@
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
   var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
-  var reopenBtn = document.getElementById('aepBcReopenBtn');
+  var reopenBtn = document.getElementById('modArmyBcFab');
   var bcModal = document.getElementById('aepBcModal');
 
   var coreReady = null;

@@ -1,5 +1,5 @@
 (function () {
-  var btn = document.getElementById('aepBcReopenBtn');
+  var btn = document.getElementById('modArmyBcFab') || document.getElementById('aepBcReopenBtn');
   var modal = document.getElementById('aepBcModal');
   if (!btn || !modal) return;
 

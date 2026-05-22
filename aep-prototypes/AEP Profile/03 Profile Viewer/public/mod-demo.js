@@ -36,7 +36,28 @@ function modWebPushOnInjectDesired() {
   return !!(modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked);
 }
 
-// Brand Concierge display prefs (env bar) — persisted for next BC integration pass
+// Brand Concierge when injecting Tags (Etihad pattern)
+const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
+const modBcStyleSelect = document.getElementById('modBcStyleSelect');
+(function initModBcOnInjectToggle() {
+  if (!modBcOnInjectToggle) return;
+  const prefs =
+    typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'army' };
+  modBcOnInjectToggle.checked = !!prefs.enabled;
+  if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
+  function saveBcPrefs() {
+    if (typeof AepBcToggle === 'undefined') return;
+    AepBcToggle.savePrefs(
+      'modDemo',
+      !!(modBcOnInjectToggle && modBcOnInjectToggle.checked),
+      modBcStyleSelect ? modBcStyleSelect.value : 'army',
+    );
+  }
+  modBcOnInjectToggle.addEventListener('change', saveBcPrefs);
+  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveBcPrefs);
+})();
+
+// Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
 const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
 const modBcModalToggle = document.getElementById('modBcModalToggle');
 const modBcInjectedToggle = document.getElementById('modBcInjectedToggle');
@@ -120,6 +141,14 @@ const modTagsInjection =
           enabled: true,
           subscribeAfterInject: modWebPushOnInjectDesired,
           requestPermissionOnInject: modWebPushOnInjectDesired,
+        },
+        brandConcierge: {
+          enabled: function () {
+            return !!(modBcOnInjectToggle && modBcOnInjectToggle.checked);
+          },
+          styleKey: function () {
+            return modBcStyleSelect ? modBcStyleSelect.value : 'army';
+          },
         },
       })
     : null;
