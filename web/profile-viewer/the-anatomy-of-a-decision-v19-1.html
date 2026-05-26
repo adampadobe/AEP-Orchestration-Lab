@@ -4795,7 +4795,7 @@ return '<div class="'+cls+'" data-jid="'+j.id+'" onclick="sfClickJourney(\''+j.i
 (contribHtml?'<div class="sf-contrib">'+contribHtml+'</div>':'')+'</div>'+
 '<div class="sf-j-score-wrap"><div class="sf-j-score">'+(hasAttrs?j.score.toFixed(0):'—')+'</div>'+
 '<div class="sf-j-bar"><div class="sf-j-bar-fill" style="width:'+(hasAttrs?pct:0)+'%"></div></div>'+
-'<div class="sf-j-multiplier">\u00D7'+j.bankValue.toFixed(2)+' value</div></div></div>';
+'<div class="sf-j-multiplier">\u00D7'+j.bankValue.toFixed(2)+' '+(window.__AEP_SF_VALUE_MULT_LABEL||'value')+'</div></div></div>';
 }).join('');
 
 // Update formula builder firing states + score expression + simulate card statuses
@@ -5187,12 +5187,48 @@ document.querySelectorAll('.sf-email-container').forEach(c=>c.classList.remove('
 document.querySelectorAll('#sfEmailConnectors [data-ec]').forEach(el=>el.classList.remove('active'));
 }
 
-sfRender();
+window.SF_ATTRS=SF_ATTRS;
+window.SF_FEATURES=SF_FEATURES;
+window.SF_STRATEGY=SF_STRATEGY;
+window.SF_JOURNEYS=SF_JOURNEYS;
+window.SF_PATHS=SF_PATHS;
+window.sfActive=sfActive;
+try{
+  window.__AEP_SF_ATTRS_BASE=JSON.parse(JSON.stringify(SF_ATTRS));
+  window.__AEP_SF_FEATURES_BASE=JSON.parse(JSON.stringify(SF_FEATURES));
+  window.__AEP_SF_STRATEGY_BASE=JSON.parse(JSON.stringify(SF_STRATEGY));
+  window.__AEP_SF_JOURNEYS_BASE=JSON.parse(JSON.stringify(SF_JOURNEYS));
+  window.__AEP_SF_PATHS_BASE=JSON.parse(JSON.stringify(SF_PATHS));
+}catch(e){}
 
-try {
-  window.__AEP_SF_JOURNEYS_BASE = JSON.parse(JSON.stringify(SF_JOURNEYS));
-  window.__AEP_SF_PATHS_BASE = JSON.parse(JSON.stringify(SF_PATHS));
-} catch (e) {}
+function sfResetFlowUiForIndustry(){
+sfActive.clear();
+sfExpandedJourney=null;
+sfSelectedPath=null;
+sfSimContext.lever='none';
+sfSimContext.bankBoost='none';
+sfSimContext.urgency='none';
+sfSimContext.channelStrategy='auto';
+document.querySelectorAll('.sf-attr.active').forEach(function(el){el.classList.remove('active');});
+var hint=document.getElementById('sfHint');
+if(hint)hint.style.display='block';
+['sfPhase3Panel','sfPhase4Panel','sfPhase5Panel'].forEach(function(id){
+var el=document.getElementById(id);
+if(el)el.classList.add('locked');
+});
+['sfPhase2','sfPhase3','sfPhase4','sfPhase5'].forEach(function(id){
+var el=document.getElementById(id);
+if(el)el.classList.remove('active');
+});
+document.querySelectorAll('.sf-journey.expanded,.sf-journey.selected').forEach(function(el){
+el.classList.remove('expanded','selected');
+});
+if(typeof sfRender==='function')sfRender();
+if(typeof sfDrawConnectors==='function')setTimeout(sfDrawConnectors,60);
+}
+window.sfResetFlowUiForIndustry=sfResetFlowUiForIndustry;
+
+sfRender();
 
 /* ═══ SMOOTH NAV ═══ */
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
@@ -5203,10 +5239,14 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
-<script src="ajo-pipeline-industry-labels.js?v=20260517b"></script>
-<script src="ajo-pipeline-industry-stages456-labels.js?v=20260517b"></script>
-<script src="ajo-pipeline-industry-decisioning-controls.js?v=20260517b"></script>
-<script src="ajo-pipeline-industry-apply.js?v=20260517b"></script>
+<script src="ajo-pipeline-industry-labels.js?v=20260526c"></script>
+<script src="ajo-pipeline-industry-flow-labels.js?v=20260526c"></script>
+<script src="ajo-pipeline-industry-stages456-labels.js?v=20260526c"></script>
+<script src="ajo-pipeline-industry-decisioning-controls.js?v=20260526c"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260526c"></script>
+<script>
+if(typeof window.aepPipelineCaptureFlowBaseline==='function')window.aepPipelineCaptureFlowBaseline();
+</script>
 <script>
 (function () {
   try {
