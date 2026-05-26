@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260522-env-strip">
+  <link rel="stylesheet" href="mod-demo.css?v=20260523-etihad-env-bar">
   <link rel="stylesheet" href="mod-demo-bc.css?v=20260522-army-bc">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
@@ -23,123 +23,77 @@
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner aep-demo-id-inner">
-        <section class="aep-demo-env-section mod-demo-env-shell" id="aepDemoEnvSection" aria-label="Lab environment and profile">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
           <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
             <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <div class="mod-demo-env-row mod-demo-env-row--primary">
-                <div class="mod-demo-env-cluster mod-demo-env-cluster--config" aria-label="AEP environment">
-                  <span class="aep-demo-env-kicker">Environment</span>
-                  <div class="mod-demo-env-cluster__fields">
-                    <div class="form-row mod-demo-env-field mod-demo-env-field--sandbox">
-                      <label for="sandboxSelect">Sandbox</label>
-                      <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                        <option value="">Loading sandboxes…</option>
-                      </select>
-                    </div>
-                    <div class="mod-sdk-config-fields mod-demo-tags-block" id="modSdkConfigFields">
-                      <div class="form-row mod-demo-env-field">
-                        <label for="modTagsCompany">Tags company</label>
-                        <select id="modTagsCompany" aria-label="Tags company"></select>
-                      </div>
-                      <div class="form-row mod-demo-env-field mod-demo-env-field--property">
-                        <label for="modTagsProperty">Tags property</label>
-                        <input
-                          id="modTagsProperty"
-                          type="text"
-                          list="modTagsPropertyList"
-                          placeholder="Type to filter properties"
-                          autocomplete="off"
-                        >
-                        <datalist id="modTagsPropertyList"></datalist>
-                      </div>
-                      <div class="form-row mod-demo-env-field">
-                        <label for="modTagsEnvironment">Tags environment</label>
-                        <select id="modTagsEnvironment" aria-label="Tags environment"></select>
-                      </div>
-                      <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--inject">
-                        <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-                      </div>
-                      <div class="form-row mod-demo-env-field aep-demo-web-push-row" role="group" aria-label="Web push">
-                        <label class="aep-demo-web-push-label">
-                          <input type="checkbox" id="modWebPushOnInjectToggle" />
-                          <span>
-                            Register web push when injecting Tags
-                            <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
-                          </span>
-                        </label>
-                      </div>
-                      <div class="mod-demo-env-field aep-demo-web-push-retry">
-                        <button type="button" id="modWebPushRetryBtn" class="btn-lookup">
-                          Register web push now
-                        </button>
-                        <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
-                      </div>
-                      <div class="form-row aep-bc-toggle-row mod-demo-bc-inject-row" role="group" aria-label="Brand Concierge">
-                        <label class="aep-demo-web-push-label">
-                          <input type="checkbox" id="modBcOnInjectToggle" />
-                          <span>Enable Brand Concierge when injecting Tags</span>
-                        </label>
-                        <select id="modBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
-                          <option value="miral">Miral</option>
-                          <option value="generic">Generic (DemoEfficiency)</option>
-                          <option value="army" selected>Army Recruitment</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="form-row mod-demo-env-field mod-demo-env-field--destination">
-                      <label for="generatorTarget">Event destination</label>
-                      <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                    </div>
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div id="modSdkConfigFields" class="mod-sdk-config-fields mod-demo-tags-block">
+                  <div class="form-row mod-demo-tags-company-row" hidden>
+                    <label for="modTagsCompany">Tags company</label>
+                    <select id="modTagsCompany" aria-label="Tags company"></select>
+                  </div>
+                  <div class="form-row">
+                    <label for="modTagsProperty">Tags property</label>
+                    <input
+                      type="text"
+                      id="modTagsProperty"
+                      aria-label="Tags property"
+                      placeholder="Select property"
+                      list="modTagsPropertyList"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <datalist id="modTagsPropertyList"></datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="modTagsEnvironment">Tags environment</label>
+                    <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+                  </div>
+                  <div class="mod-demo-id-actions">
+                    <button type="button" id="modInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                  </div>
+                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="modWebPushOnInjectToggle" />
+                      <span>
+                        Register web push when injecting Tags
+                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="aep-demo-web-push-retry">
+                    <button type="button" id="modWebPushRetryBtn" class="btn-lookup">
+                      Register web push now
+                    </button>
+                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
+                  </div>
+                  <div class="form-row aep-bc-toggle-row mod-demo-bc-inject-row" role="group" aria-label="Brand Concierge">
+                    <label class="aep-demo-web-push-label">
+                      <input type="checkbox" id="modBcOnInjectToggle" />
+                      <span>Enable Brand Concierge when injecting Tags</span>
+                    </label>
+                    <select id="modBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+                      <option value="miral">Miral</option>
+                      <option value="generic">Generic (DemoEfficiency)</option>
+                      <option value="army" selected>Army Recruitment</option>
+                    </select>
                   </div>
                 </div>
-                <div class="mod-demo-env-cluster mod-demo-env-cluster--bc" role="group" aria-labelledby="modBcPrefsHeading">
-                  <span class="mod-demo-bc-prefs__heading" id="modBcPrefsHeading">Show Brand Concierge</span>
-                  <div class="mod-demo-bc-prefs__options">
-                    <label class="mod-demo-bc-prefs__option">
-                      <input type="checkbox" id="modBcFullScreenToggle" />
-                      <span>Full Screen</span>
-                    </label>
-                    <label class="mod-demo-bc-prefs__option">
-                      <input type="checkbox" id="modBcModalToggle" />
-                      <span>Modal</span>
-                    </label>
-                    <label class="mod-demo-bc-prefs__option">
-                      <input type="checkbox" id="modBcInjectedToggle" />
-                      <span>Injected</span>
-                    </label>
-                  </div>
-                </div>
-                <div class="mod-demo-env-cluster mod-demo-env-cluster--profile" id="aepDemoProfileSection" aria-label="Profile lookup">
-                  <span class="aep-demo-env-kicker">Profile lookup</span>
-                  <div class="mod-demo-env-cluster__fields mod-demo-profile-fields">
-                    <div class="form-row mod-demo-env-field">
-                      <label for="modNs">Namespace</label>
-                      <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-                        <option value="email">Email</option>
-                        <option value="ecid">ECID</option>
-                        <option value="crmId">CRM ID</option>
-                        <option value="loyaltyId">Loyalty ID</option>
-                        <option value="phone">Phone</option>
-                      </select>
-                    </div>
-                    <div class="form-row mod-demo-env-field mod-demo-env-field--identifier">
-                      <label for="customerEmail">Identifier value</label>
-                      <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-                    </div>
-                    <div class="mod-demo-id-actions mod-demo-env-field mod-demo-env-field--lookup">
-                      <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-                      <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-                    </div>
-                  </div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
                 </div>
               </div>
-              <div class="mod-demo-env-row mod-demo-env-row--secondary">
-                <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="modSdkConfigSummary" hidden>
-                  <span id="modSdkConfigSummaryText"></span>
-                  <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-                </div>
-                <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
-                <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+              <div id="modSdkConfigSummary" class="mod-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="modSdkConfigSummaryText"></span>
+                <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
               </div>
             </div>
             <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
@@ -148,10 +102,52 @@
             </div>
           </div>
         </section>
-        <p class="mod-demo-disclaimer">
-          Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
-        </p>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="modNs">Namespace</label>
+              <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="mod-demo-id-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+          <div class="mod-demo-bc-prefs" role="group" aria-labelledby="modBcPrefsHeading">
+            <span class="mod-demo-bc-prefs__heading" id="modBcPrefsHeading">Show Brand Concierge</span>
+            <div class="mod-demo-bc-prefs__options">
+              <label class="mod-demo-bc-prefs__option">
+                <input type="checkbox" id="modBcFullScreenToggle" />
+                <span>Full Screen</span>
+              </label>
+              <label class="mod-demo-bc-prefs__option">
+                <input type="checkbox" id="modBcModalToggle" />
+                <span>Modal</span>
+              </label>
+              <label class="mod-demo-bc-prefs__option">
+                <input type="checkbox" id="modBcInjectedToggle" />
+                <span>Injected</span>
+              </label>
+            </div>
+          </div>
+        </section>
       </div>
+      <p class="mod-demo-script-preview">Selected script: <code id="modSelectedScript">None</code></p>
+      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="mod-demo-disclaimer">
+        Embedded snapshot (saved HTML + local CSS mirror). Hero images load from <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">army.mod.uk</a> media CDN. Not affiliated with the Ministry of Defence.
+      </p>
     </div>
   </div>
 
@@ -211,6 +207,7 @@
     </div>
   </div>
 
+  <div class="mod-demo-sidebar-hover-zone" id="modDemoSidebarHoverZone" aria-hidden="true"></div>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
     <div class="dashboard-main-wrap">
@@ -354,13 +351,13 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="demo-tags-injection.js?v=20260521-demo-tags"></script>
+  <script src="demo-tags-injection.js?v=20260523-hide-tags-company"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="mod-demo.js?v=20260523-bc-tags-web-push"></script>
-  <script src="mod-demo-bc.js?v=20260523-bc-tags-web-push"></script>
+  <script src="mod-demo.js?v=20260523-etihad-env-bar"></script>
+  <script src="mod-demo-bc.js?v=20260523-etihad-env-bar"></script>
   <div id="brand-concierge-mount-host" aria-live="polite">
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
     <div id="brand-concierge-mount"></div>

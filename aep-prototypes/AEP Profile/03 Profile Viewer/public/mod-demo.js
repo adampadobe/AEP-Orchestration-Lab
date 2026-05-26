@@ -137,6 +137,7 @@ const modTagsInjection =
          * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
          */
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: modWebPushOnInjectDesired,
@@ -321,9 +322,18 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
     }, 450);
   }
 
+  const topAnchor = document.getElementById('modDemoTopAnchor');
+  const sidebarZone = document.getElementById('modDemoSidebarHoverZone');
+
+  function pointerInTopChromeBand(clientY) {
+    if (!topAnchor) return false;
+    const r = topAnchor.getBoundingClientRect();
+    return clientY <= r.bottom + 6;
+  }
+
   function onPointerMove(e) {
     if (mq.matches) return;
-    if (e.clientX <= 24) {
+    if (e.clientX <= 20 && !pointerInTopChromeBand(e.clientY)) {
       clearHideTimer();
       setFlyoutOpen(true);
       return;
@@ -351,6 +361,18 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   sidebar.addEventListener('mouseleave', function () {
     if (!mq.matches) scheduleClose();
   });
+
+  if (sidebarZone) {
+    sidebarZone.addEventListener('mouseenter', function () {
+      if (!mq.matches) {
+        clearHideTimer();
+        setFlyoutOpen(true);
+      }
+    });
+    sidebarZone.addEventListener('mouseleave', function () {
+      if (!mq.matches) scheduleClose();
+    });
+  }
 
   document.addEventListener('mousemove', onPointerMove, { passive: true });
 

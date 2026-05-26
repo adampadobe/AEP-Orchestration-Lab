@@ -209,6 +209,7 @@
 
     const iframeIds = Array.isArray(cfg.iframeIds) ? cfg.iframeIds : [];
     const iframes = iframeIds.map(byId).filter(Boolean);
+    const hideTagsCompanyUi = cfg.hideTagsCompanyUi === true;
 
     const setMessage = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
     const getSelectedGeneratorTarget =
@@ -510,6 +511,19 @@
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
 
+        if (hideTagsCompanyUi && Array.isArray(items) && items.length > 0) {
+          const pickId = String(
+            (tagsCompanySelect.value && tagsCompanySelect.value.trim()) ||
+              (items[0] && items[0].id ? items[0].id : ''),
+          ).trim();
+          if (pickId) {
+            tagsCompanySelect.value = pickId;
+            setTagsCompanyRowVisible(false);
+            await loadTagsProperties(pickId);
+            setMessage('Tags companies loaded.', 'success');
+            return;
+          }
+        }
         if (Array.isArray(items) && items.length === 1) {
           const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
           if (onlyId) {
@@ -519,7 +533,7 @@
             return;
           }
         }
-        setTagsCompanyRowVisible(true);
+        setTagsCompanyRowVisible(!hideTagsCompanyUi);
         setMessage('Tags companies loaded.', 'success');
       } catch (err) {
         setTagsCompanyRowVisible(true);
