@@ -66,7 +66,7 @@ function sanitiseModBcStyleConfigUrl(raw) {
   if (!v) return MOD_BC_DEFAULT_STYLE_URL;
   if (/^javascript:/i.test(v)) return MOD_BC_DEFAULT_STYLE_URL;
   if (/^https?:\/\//i.test(v)) return v;
-  if (/^[a-z0-9_./-]+\.js$/i.test(v)) return v;
+  if (/^[a-z0-9_./-]+\.(js|json)$/i.test(v)) return v;
   return MOD_BC_DEFAULT_STYLE_URL;
 }
 

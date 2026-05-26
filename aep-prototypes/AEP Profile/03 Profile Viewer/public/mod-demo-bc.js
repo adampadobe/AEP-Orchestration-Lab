@@ -141,23 +141,63 @@
     doc.querySelectorAll('script[src]').forEach(function (existing) {
       var href = String(existing.getAttribute('src') || '').replace(/\?.*$/, '');
       if (!href) return;
-      if (href === base || href.indexOf('styleConfigurations') >= 0) {
+      if (
+        href === base ||
+        href.indexOf('styleConfigurations') >= 0 ||
+        href.indexOf('styling-config') >= 0 ||
+        href.indexOf('mod-styling') >= 0
+      ) {
         if (existing.parentNode) existing.parentNode.removeChild(existing);
       }
     });
   }
 
-  function loadStyleConfigScript(src, win, doc) {
-    return new Promise(function (resolve, reject) {
-      var url = resolveAssetUrl(src);
-      if (!url) {
-        reject(new Error('Brand Concierge style configuration URL is empty'));
-        return;
+  function parseStyleConfigFromText(text) {
+    var t = String(text || '').trim();
+    if (!t) return null;
+    var assignMatch = t.match(/window\.styleConfiguration\s*=\s*([\s\S]+?)\s*;?\s*$/);
+    if (assignMatch) {
+      try {
+        return new Function('return (' + assignMatch[1] + ')')();
+      } catch (_e) {
+        /* fall through */
       }
-      removeStyleConfigurationScripts(doc, url);
-      clearStyleConfiguration(win);
-      var busted =
-        url + (url.indexOf('?') >= 0 ? '&' : '?') + 'modDemoBc=' + String(Date.now());
+    }
+    if (t.charAt(0) === '{') {
+      try {
+        return JSON.parse(t);
+      } catch (_e) {
+        /* fall through */
+      }
+    }
+    return null;
+  }
+
+  async function loadStyleConfigScript(src, win, doc) {
+    var url = resolveAssetUrl(src);
+    if (!url) {
+      throw new Error('Brand Concierge style configuration URL is empty');
+    }
+    removeStyleConfigurationScripts(doc, url);
+    clearStyleConfiguration(win);
+    var busted = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'modDemoBc=' + String(Date.now());
+
+    try {
+      var res = await fetch(busted, { credentials: 'same-origin', cache: 'no-store' });
+      if (res.ok) {
+        var text = await res.text();
+        var cfg = parseStyleConfigFromText(text);
+        if (cfg && typeof cfg === 'object') {
+          win.styleConfiguration = cfg;
+          console.info('[mod-demo-bc] style configuration loaded (fetch):', url);
+          return url;
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('[mod-demo-bc] fetch style config failed, trying script tag', fetchErr);
+    }
+
+    return new Promise(function (resolve, reject) {
       var s = doc.createElement('script');
       s.src = busted;
       s.async = false;
@@ -165,7 +205,12 @@
       s.setAttribute('data-mod-demo-bc-style-config', '1');
       s.onload = function () {
         if (!win.styleConfiguration) {
-          reject(new Error('Style script did not set window.styleConfiguration: ' + url));
+          reject(
+            new Error(
+              'Style URL did not set window.styleConfiguration. Use a .js file with window.styleConfiguration = { ... }, or bare JSON / .json export: ' +
+                url,
+            ),
+          );
           return;
         }
         resolve(url);
