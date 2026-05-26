@@ -102,11 +102,14 @@ body.aep-bc-modal-open {
 }
 
 .aep-bc-modal__mount,
-.aep-bc-modal #brand-concierge-mount {
+.aep-bc-modal #brand-concierge-mount,
+.aep-bc-modal #modDemoBcModalMount {
   position: relative !important;
   inset: auto !important;
   right: auto !important;
   bottom: auto !important;
+  left: auto !important;
+  top: auto !important;
   width: 100% !important;
   max-width: none !important;
   min-height: 520px !important;
@@ -114,9 +117,25 @@ body.aep-bc-modal-open {
   max-height: none !important;
   margin: 0;
   pointer-events: auto !important;
+  overflow: hidden;
+  contain: layout paint;
 }
 
-.aep-bc-modal #brand-concierge-mount > * {
+/* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
+.aep-bc-modal #brand-concierge-mount > div,
+.aep-bc-modal #modDemoBcModalMount > div {
+  position: relative !important;
+  inset: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(68vh, 620px) !important;
+  margin: 0 !important;
   pointer-events: auto;
 }
 

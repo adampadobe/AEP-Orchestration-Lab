@@ -260,6 +260,16 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   display: flex;
 }
 
+/* Modal open: keep Army iframe visible; only dim via popup backdrop (not a solid page fill) */
+.mod-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.mod-demo-page.aep-bc-modal-open #brand-concierge-mount-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 .mod-demo-bc-prefs__options {
   display: flex;
   flex-wrap: wrap;

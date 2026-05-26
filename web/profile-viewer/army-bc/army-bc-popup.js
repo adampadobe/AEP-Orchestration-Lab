@@ -32,6 +32,10 @@
       document.body.classList.add('aep-bc-modal-open');
       var closeBtn = modal.querySelector('.aep-bc-modal__close');
       if (closeBtn) closeBtn.focus();
+      if (typeof global.repositionArmyBcDisclaimer === 'function') {
+        var mount = modal.querySelector('#brand-concierge-mount, #modDemoBcModalMount');
+        if (mount) global.repositionArmyBcDisclaimer(mount);
+      }
     }
 
     function closeModal() {
