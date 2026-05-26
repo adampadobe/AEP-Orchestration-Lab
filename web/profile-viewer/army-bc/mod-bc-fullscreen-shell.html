@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Army Brand Concierge — full screen</title>
+    <link rel="stylesheet" href="../mod-demo-assets/army-home-snapshot_files/main.css" />
+    <link rel="stylesheet" href="army-bc-inline.css" />
+    <link rel="stylesheet" href="army-bc-disclaimer-layout.css" />
+    <link rel="stylesheet" href="army-bc-scroll-fix.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--dash-bg, #0d1117);
+      }
+      .mod-bc-fullscreen-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+      }
+      .mod-bc-fullscreen-shell .main-page-layout__header {
+        flex: 0 0 auto;
+        z-index: 2;
+      }
+      .mod-bc-fullscreen-shell .army-bc-inline.mod-demo-army-bc-inline--fullscreen {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+    </style>
+    <script src="styleConfigurations-6a0992.js" data-mod-bc-style-config="1"></script>
+    <script>
+      !(function (n, o) {
+        o.forEach(function (o) {
+          n[o] ||
+            ((n.__alloyNS = n.__alloyNS || []).push(o),
+            (n[o] = function () {
+              var u = arguments;
+              return new Promise(function (i, l) {
+                n[o].q.push([i, l, u]);
+              });
+            }),
+            (n[o].q = []));
+        });
+      })(window, ['alloy']);
+    </script>
+    <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
+    <script src="https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
+    <script src="army-bc-edge-path.js"></script>
+    <script>
+      if (typeof applyArmyBcEdgePathPatches === 'function') {
+        applyArmyBcEdgePathPatches(window);
+      }
+      alloy('configure', {
+        defaultConsent: 'in',
+        edgeDomain: 'edge.adobedc.net',
+        edgeBasePath: 'ee',
+        datastreamId: 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416',
+        orgId: 'BF9C27AA6464801C0A495FD0@AdobeOrg',
+        debugEnabled: true,
+        idMigrationEnabled: false,
+        thirdPartyCookiesEnabled: false,
+        prehidingStyle: '.personalization-container { opacity: 0 !important }',
+      });
+      alloy('sendEvent', {});
+    </script>
+    <style>
+      .bc-card__image {
+        background-size: cover !important;
+        background-position: center !important;
+      }
+    </style>
+  </head>
+  <body class="mod-bc-fullscreen-shell-page">
+    <div class="mod-bc-fullscreen-shell">
+      <header class="main-page-layout__header">
+        <div class="site-header">
+          <a class="site-header__logo logo-svg current" aria-current="page" href="https://www.army.mod.uk/">
+            <span class="visually-hidden">British Army</span>
+          </a>
+          <div class="site-header__actions">
+            <button type="button" class="site-header__btn site-header__btn--search">
+              <span class="site-header__btn-text">Search</span>
+              <i class="site-header__btn-icon" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="site-header__btn site-header__btn--menu">
+              <span class="site-header__btn-text">Menu</span>
+              <i class="site-header__btn-icon" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+      <section class="army-bc-inline mod-demo-army-bc-inline--fullscreen" aria-label="Army recruitment assistant">
+        <div id="brand-concierge-mount" class="army-bc-inline__mount"></div>
+      </section>
+    </div>
+    <script src="army-bc-scroll-fix.js"></script>
+    <script src="army-bc-disclaimer-layout.js"></script>
+    <script>
+      window.adobe.concierge
+        .bootstrap({
+          instanceName: 'alloy',
+          stylingConfigurations: window.styleConfiguration,
+          selector: '#brand-concierge-mount',
+          stickySession: false,
+        })
+        .then(function () {
+          window.__modDemoBcBootstrapped = true;
+          if (typeof applyArmyBcEdgePathPatches === 'function') {
+            applyArmyBcEdgePathPatches(window);
+          }
+        });
+    </script>
+  </body>
+</html>

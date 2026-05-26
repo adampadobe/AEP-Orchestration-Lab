@@ -69,26 +69,29 @@
 
   function captureNativeFetch(targetWin) {
     if (!targetWin || typeof targetWin.fetch !== 'function') return;
-    if (!targetWin.__armyBcNativeFetch) {
+    if (!targetWin.fetch.__armyBcPatched) {
       targetWin.__armyBcNativeFetch = targetWin.fetch.bind(targetWin);
     }
   }
 
   function patchFetch(targetWin, deployment) {
     if (!targetWin || typeof targetWin.fetch !== 'function') return;
+    if (targetWin.fetch.__armyBcPatched) return;
     captureNativeFetch(targetWin);
     var nativeFetch = targetWin.__armyBcNativeFetch;
-    targetWin.fetch = function (input, init) {
+    var patchedFetch = function (input, init) {
       if (typeof input === 'string') {
         input = rewriteUrl(input, deployment);
       } else if (input && typeof input.url === 'string') {
         var next = rewriteUrl(input.url, deployment);
         if (next !== input.url) {
-          input = new Request(next, input);
+          input = new targetWin.Request(next, input);
         }
       }
       return nativeFetch.call(targetWin, input, init);
     };
+    patchedFetch.__armyBcPatched = true;
+    targetWin.fetch = patchedFetch;
     targetWin.__armyBcFetchPathPatched = true;
   }
 
@@ -107,6 +110,77 @@
     targetWin.__armyBcXhrPathPatched = true;
   }
 
+  function patchRequest(targetWin, deployment) {
+    if (!targetWin || !targetWin.Request || targetWin.__armyBcRequestPathPatched) return;
+    var NativeRequest = targetWin.Request;
+    targetWin.Request = function (input, init) {
+      if (typeof input === 'string') {
+        input = rewriteUrl(input, deployment);
+      } else if (input && typeof input.url === 'string') {
+        var next = rewriteUrl(input.url, deployment);
+        if (next !== input.url) {
+          input = new NativeRequest(next, input);
+        }
+      }
+      return new NativeRequest(input, init);
+    };
+    targetWin.Request.prototype = NativeRequest.prototype;
+    targetWin.__armyBcRequestPathPatched = true;
+  }
+
+  function patchSendBeacon(targetWin, deployment) {
+    if (!targetWin || !targetWin.navigator || targetWin.__armyBcBeaconPathPatched) return;
+    if (typeof targetWin.navigator.sendBeacon !== 'function') return;
+    var native = targetWin.navigator.sendBeacon.bind(targetWin.navigator);
+    targetWin.navigator.sendBeacon = function (url, data) {
+      return native(rewriteUrl(url, deployment), data);
+    };
+    targetWin.__armyBcBeaconPathPatched = true;
+  }
+
+  function wrapAlloyInstance(targetWin, name, deployment) {
+    var fn = targetWin[name];
+    if (typeof fn !== 'function' || fn.__armyBcEdgeAlloyWrapped) return;
+    var native = fn;
+    var wrapped = function (command) {
+      patchFetch(targetWin, deployment);
+      var args = Array.prototype.slice.call(arguments, 1);
+      return native.apply(targetWin, [command].concat(args));
+    };
+    Object.keys(native).forEach(function (key) {
+      try {
+        wrapped[key] = native[key];
+      } catch (_e) {
+        /* read-only */
+      }
+    });
+    wrapped.__armyBcEdgeAlloyWrapped = true;
+    targetWin[name] = wrapped;
+  }
+
+  function patchAlloy(targetWin, deployment) {
+    if (!targetWin) return;
+    wrapAlloyInstance(targetWin, 'alloy', deployment);
+    (targetWin.__alloyNS || []).forEach(function (name) {
+      wrapAlloyInstance(targetWin, name, deployment);
+    });
+  }
+
+  function patchConciergeBootstrap(targetWin, deployment) {
+    if (!targetWin.adobe || !targetWin.adobe.concierge || typeof targetWin.adobe.concierge.bootstrap !== 'function') {
+      return;
+    }
+    if (targetWin.adobe.concierge.bootstrap.__armyBcEdgeBootstrapPatched) return;
+    var orig = targetWin.adobe.concierge.bootstrap.bind(targetWin.adobe.concierge);
+    targetWin.adobe.concierge.bootstrap = async function (config) {
+      applyArmyBcEdgePathPatches(targetWin);
+      var out = await orig(config);
+      patchAlloy(targetWin, deployment);
+      return out;
+    };
+    targetWin.adobe.concierge.bootstrap.__armyBcEdgeBootstrapPatched = true;
+  }
+
   function applyArmyBcEdgePathPatches(targetWin) {
     var w = targetWin || win;
     var deployment = resolveDeployment(w);
@@ -114,6 +188,10 @@
     captureNativeFetch(w);
     patchFetch(w, deployment);
     patchXhr(w, deployment);
+    patchRequest(w, deployment);
+    patchSendBeacon(w, deployment);
+    patchAlloy(w, deployment);
+    patchConciergeBootstrap(w, deployment);
     w.ARMY_BC_EDGE = {
       deploymentSlug: deployment,
       rewriteUrl: function (url) {

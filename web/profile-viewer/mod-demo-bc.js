@@ -13,6 +13,8 @@
   var IFRAME_INLINE_SECTION_ID = 'modDemoArmyBcInline';
   var IFRAME_MOUNT_SELECTOR = '#brand-concierge-mount';
   var MODAL_MOUNT_SELECTOR = '#aepBcModal #brand-concierge-mount';
+  var DEFAULT_FRAME_SRC = 'mod-demo-assets/army-home-snapshot.html';
+  var FULLSCREEN_FRAME_SRC = BASE + 'mod-bc-fullscreen-shell.html';
 
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
@@ -61,6 +63,57 @@
     }
   }
 
+  function getFrameSrcPath() {
+    var frame = getModDemoFrame();
+    if (!frame) return '';
+    var src = frame.getAttribute('src') || '';
+    return src.split('?')[0];
+  }
+
+  function isFullscreenFrameLoaded() {
+    return getFrameSrcPath().indexOf('mod-bc-fullscreen-shell.html') >= 0;
+  }
+
+  function waitForFrameLoad(frame) {
+    return new Promise(function (resolve) {
+      if (!frame) {
+        resolve();
+        return;
+      }
+      try {
+        var doc = frame.contentDocument;
+        if (doc && doc.readyState === 'complete') {
+          resolve();
+          return;
+        }
+      } catch (_e) {
+        /* cross-origin guard */
+      }
+      frame.addEventListener('load', function () {
+        resolve();
+      }, { once: true });
+    });
+  }
+
+  async function ensureFrameSrcForMode(fullscreen) {
+    var frame = getModDemoFrame();
+    if (!frame) return;
+    var target = fullscreen ? FULLSCREEN_FRAME_SRC : DEFAULT_FRAME_SRC;
+    var current = getFrameSrcPath();
+    if (current.indexOf(target) >= 0) {
+      await waitForFrameLoad(frame);
+      return;
+    }
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
+    await new Promise(function (resolve) {
+      frame.addEventListener('load', function () {
+        resolve();
+      }, { once: true });
+      frame.src = target;
+    });
+  }
+
   function unloadStyleConfigScripts(doc) {
     var root = doc || document;
     root.querySelectorAll('script[data-mod-demo-bc-style-config="1"]').forEach(function (s) {
@@ -95,10 +148,11 @@
     }
   }
 
-  function loadScript(src, doc) {
+  function loadScript(src, doc, marker) {
     var targetDoc = doc || document;
     var key = String(src);
-    if (targetDoc.querySelector('script[data-mod-demo-bc="' + key + '"]')) {
+    var attr = marker ? 'data-mod-demo-bc-' + marker : 'data-mod-demo-bc';
+    if (targetDoc.querySelector('script[' + attr + '="' + key + '"]')) {
       return Promise.resolve();
     }
     return new Promise(function (resolve, reject) {
@@ -106,6 +160,9 @@
       s.src = key;
       s.async = false;
       s.setAttribute('data-mod-demo-bc', key);
+      if (marker) {
+        s.setAttribute('data-mod-demo-bc-' + marker, key);
+      }
       s.onload = function () {
         resolve();
       };
@@ -266,8 +323,9 @@
 
   async function ensureAlloyJs(win, doc) {
     installAlloyStub(win);
-    if (typeof win.alloy === 'function') return;
-    await loadScript(ALLOY_JS, doc);
+    if (!doc.querySelector('script[data-mod-demo-bc-alloy="1"]')) {
+      await loadScript(ALLOY_JS, doc, 'alloy');
+    }
     await waitFor(
       function () {
         return typeof win.alloy === 'function';
@@ -278,10 +336,9 @@
   }
 
   async function ensureConciergeAgent(win, doc) {
-    if (win.adobe && win.adobe.concierge && typeof win.adobe.concierge.bootstrap === 'function') {
-      return;
+    if (!doc.querySelector('script[data-mod-demo-bc-concierge="1"]')) {
+      await loadScript(BC_MAIN_JS, doc, 'concierge');
     }
-    await loadScript(BC_MAIN_JS, doc);
     await waitFor(
       function () {
         return !!(
@@ -391,20 +448,19 @@
     return msg.indexOf('already been configured') >= 0;
   }
 
-  async function configureAlloyOnce(win) {
+  async function configureAlloyOnce(win, doc) {
     if (!win) return;
-    if (win.__modDemoBcAlloyConfigured) return;
-    installAlloyStub(win);
+    if (win.__modDemoBcAlloyConfiguredWin === win) return;
     if (typeof win.alloy !== 'function') {
       throw new Error('Alloy is not available');
     }
     try {
       await win.alloy('configure', ALLOY_CONFIG);
       await win.alloy('sendEvent', {});
-      win.__modDemoBcAlloyConfigured = true;
+      win.__modDemoBcAlloyConfiguredWin = win;
     } catch (err) {
       if (isAlloyAlreadyConfiguredError(err)) {
-        win.__modDemoBcAlloyConfigured = true;
+        win.__modDemoBcAlloyConfiguredWin = win;
         return;
       }
       throw err;
@@ -487,12 +543,18 @@
     try {
       await win.adobe.concierge.bootstrap(bootOpts);
       win.__modDemoBcBootstrapped = true;
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
       scheduleDisclaimerReposition(win.document);
     } catch (err) {
       clearMountInDoc(win.document, selector);
       try {
         await win.adobe.concierge.bootstrap(bootOpts);
         win.__modDemoBcBootstrapped = true;
+        if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+          win.applyArmyBcEdgePathPatches(win);
+        }
         scheduleDisclaimerReposition(win.document);
         return;
       } catch (retryErr) {
@@ -502,6 +564,9 @@
         ) {
           win.adobe.concierge.open();
           win.__modDemoBcBootstrapped = true;
+          if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+            win.applyArmyBcEdgePathPatches(win);
+          }
           scheduleDisclaimerReposition(win.document);
           return;
         }
@@ -528,10 +593,11 @@
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), global, document);
       loadedParentStyleUrl = loadedStyle || styleUrl;
       console.info('[mod-demo-bc] loaded style configuration:', loadedParentStyleUrl);
+      await ensureEdgePathPatches(global, document);
       await ensureAlloyJs(global, document);
       await ensureEdgePathPatches(global, document);
       await ensureConciergeAgent(global, document);
-      await configureAlloyOnce(global);
+      await configureAlloyOnce(global, document);
 
       await loadArmyBcHelperScripts(global, document);
     })().catch(function (err) {
@@ -569,10 +635,11 @@
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
       loadedIframeStyleUrl = loadedStyle || styleUrl;
       console.info('[mod-demo-bc] loaded style configuration (iframe):', loadedIframeStyleUrl);
+      await ensureEdgePathPatches(win, doc);
       await ensureAlloyJs(win, doc);
       await ensureEdgePathPatches(win, doc);
       await ensureConciergeAgent(win, doc);
-      await configureAlloyOnce(win);
+      await configureAlloyOnce(win, doc);
 
       await loadArmyBcHelperScripts(win, doc);
     })().catch(function (err) {
@@ -631,13 +698,61 @@
     activeMode = 'modal';
   }
 
-  async function bootstrapIframeInjected(fullscreen) {
+  function isFullscreenShellBootstrapped(doc, win) {
+    if (!doc || !win) return false;
+    if (win.__modDemoBcBootstrapped) return true;
+    var mount = doc.querySelector(IFRAME_MOUNT_SELECTOR);
+    return !!(mount && mount.childElementCount > 0);
+  }
+
+  async function bootstrapIframeFullscreen() {
+    await ensureFrameSrcForMode(true);
+    var doc = getIframeDoc();
+    if (!doc) throw new Error('MOD fullscreen iframe is not ready');
+    var win = doc.defaultView;
+    if (!win) throw new Error('MOD fullscreen window is not ready');
+
+    if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+      win.applyArmyBcEdgePathPatches(win);
+    } else {
+      await ensureEdgePathPatches(win, doc);
+    }
+
+    var styleUrl = resolveAssetUrl(getStyleConfigUrl());
+    var usesCustomStyle = styleUrl.indexOf('styleConfigurations-6a0992') < 0;
+    var shellLive = isFullscreenShellBootstrapped(doc, win);
+
+    if (usesCustomStyle || !shellLive) {
+      await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
+      if (!win.styleConfiguration) {
+        throw new Error('Style configuration missing in fullscreen shell');
+      }
+      await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration, {
+        allowConciergeOpenOnRetry: false,
+      });
+    } else {
+      win.__modDemoBcBootstrapped = true;
+      await loadArmyBcHelperScripts(win, doc);
+      scheduleDisclaimerReposition(doc);
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
+    }
+
+    activeMode = 'fullscreen';
+  }
+
+  async function bootstrapIframeInjected() {
+    await ensureFrameSrcForMode(false);
     var doc = getIframeDoc();
     if (!doc) throw new Error('MOD site iframe is not ready');
     var win = doc.defaultView;
     await ensureIframeCore();
-    ensureIframeInlineSection(doc, fullscreen);
-    await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration);
+    teardownIframeInlineSection(doc);
+    ensureIframeInlineSection(doc, false);
+    await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
     var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
     if (section && typeof section.scrollIntoView === 'function') {
       try {
@@ -646,7 +761,7 @@
         section.scrollIntoView();
       }
     }
-    activeMode = fullscreen ? 'fullscreen' : 'injected';
+    activeMode = 'injected';
   }
 
   async function loadModalAssets() {
@@ -699,6 +814,9 @@
       closeBcModal();
       setModalFabArmed(false);
     }
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('mod-demo-bc-fullscreen-armed', isFullScreenOn());
+    }
     var doc = getIframeDoc();
     if (doc && !isInjectedOn() && !isFullScreenOn()) {
       teardownIframeInlineSection(doc);
@@ -740,10 +858,14 @@
         await bootstrapParent(MODAL_MOUNT_SELECTOR);
         closeBcModal();
         setModalFabArmed(true);
-      } else if (wantFullScreen || wantInjected) {
+      } else if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
-        await bootstrapIframeInjected(wantFullScreen);
+        await bootstrapIframeFullscreen();
+      } else if (wantInjected) {
+        closeBcModal();
+        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        await bootstrapIframeInjected();
       }
       reportBcStatus('');
     } catch (e) {
@@ -777,6 +899,8 @@
       loadedIframeStyleUrl = null;
       if (isInjectedOn() || isFullScreenOn()) {
         void sync();
+      } else if (isFullscreenFrameLoaded()) {
+        teardownIframeInlineSection(getIframeDoc());
       }
     });
   }
