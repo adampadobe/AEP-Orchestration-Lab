@@ -245,13 +245,19 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   line-height: 1.2;
 }
 
-/* No corner Tags-BC mount or army FAB on MOD demo */
-.mod-demo-page #brand-concierge-mount-host,
-.mod-demo-page #modArmyBcFab,
-.mod-demo-page .aep-bc-reopen-btn.mod-army-bc-fab {
+/* Hide Tags-inject corner BC; army-mod-home-3 FAB shown only in modal mode */
+.mod-demo-page #brand-concierge-mount-host {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.mod-demo-page #modDemoBcFab.mod-demo-bc-fab {
+  display: none;
+}
+
+.mod-demo-page.mod-demo-bc-modal-armed #modDemoBcFab.mod-demo-bc-fab {
+  display: flex;
 }
 
 .mod-demo-bc-prefs__options {

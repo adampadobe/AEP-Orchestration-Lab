@@ -18,6 +18,7 @@
   var fullScreenToggle = document.getElementById('modBcFullScreenToggle');
   var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
   var bcModal = document.getElementById('aepBcModal');
+  var bcFab = document.getElementById('modDemoBcFab');
 
   var parentCoreReady = null;
   var iframeCoreReady = null;
@@ -668,24 +669,37 @@
   }
 
   function closeBcModal() {
+    if (global.ArmyBcPopup && typeof global.ArmyBcPopup.close === 'function') {
+      global.ArmyBcPopup.close();
+      return;
+    }
     if (!bcModal) return;
     bcModal.classList.remove('is-open');
     bcModal.setAttribute('hidden', '');
     document.body.classList.remove('aep-bc-modal-open');
+    if (bcFab) bcFab.setAttribute('aria-expanded', 'false');
   }
 
-  function openBcModal() {
-    if (!bcModal) return;
-    bcModal.classList.add('is-open');
-    bcModal.removeAttribute('hidden');
-    document.body.classList.add('aep-bc-modal-open');
-    var closeBtn = bcModal.querySelector('.aep-bc-modal__close');
-    if (closeBtn) closeBtn.focus();
+  function setModalFabArmed(armed) {
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('mod-demo-bc-modal-armed', !!armed);
+    }
+    if (bcFab) bcFab.hidden = !armed;
+  }
+
+  async function ensureModalPopupUi() {
+    await loadModalAssets();
+    if (typeof global.initArmyBcPopup === 'function') {
+      global.initArmyBcPopup();
+    }
   }
 
   function updateChromeVisibility() {
     if (injectedPanel) injectedPanel.hidden = true;
-    if (!isModalOn()) closeBcModal();
+    if (!isModalOn()) {
+      closeBcModal();
+      setModalFabArmed(false);
+    }
     var doc = getIframeDoc();
     if (doc && !isInjectedOn() && !isFullScreenOn()) {
       teardownIframeInlineSection(doc);
@@ -723,9 +737,10 @@
       if (wantModal) {
         var iframeDocModal = getIframeDoc();
         if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
-        await loadModalAssets();
+        await ensureModalPopupUi();
         await bootstrapParent('#modDemoBcModalMount');
-        openBcModal();
+        closeBcModal();
+        setModalFabArmed(true);
       } else if (wantFullScreen || wantInjected) {
         closeBcModal();
         clearMountInDoc(document, '#modDemoBcModalMount');
@@ -755,16 +770,6 @@
     });
   }
 
-  function bindModalClose() {
-    if (!bcModal) return;
-    bcModal.querySelectorAll('[data-aep-bc-close]').forEach(function (el) {
-      el.addEventListener('click', closeBcModal);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && bcModal.classList.contains('is-open')) closeBcModal();
-    });
-  }
-
   function bindIframeLoad() {
     var frame = getModDemoFrame();
     if (!frame) return;
@@ -778,7 +783,6 @@
   }
 
   bindToggles();
-  bindModalClose();
   bindIframeLoad();
   global.ModDemoBc = { sync: sync, invalidateCore: invalidateCore };
 
