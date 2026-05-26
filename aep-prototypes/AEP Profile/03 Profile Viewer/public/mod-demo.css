@@ -166,13 +166,102 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   align-self: flex-end;
 }
 
+.mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block .mod-demo-bc-env-pair {
+  flex: 1 1 100%;
+  width: 100%;
+  align-self: stretch;
+}
+
+.mod-demo-bc-env-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: 1.25rem;
+  row-gap: 0.25rem;
+  align-items: start;
+  flex: 1 1 100%;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row,
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row {
+  display: contents;
+  margin: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
+  line-height: 1.25;
+  display: block;
+  margin: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-hint {
+  margin: 0;
+  max-width: none;
+}
+
+@media (max-width: 52rem) {
+  .mod-demo-bc-env-pair {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input,
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
 .mod-demo-bc-style-url-row {
   flex: 1 1 100%;
   min-width: min(100%, 28rem);
 }
 
 .mod-demo-bc-style-url-input {
-  width: min(100%, 36rem);
+  width: 100%;
+  max-width: 100%;
+}
+
+.mod-demo-bc-datastream-input {
+  width: 100%;
   max-width: 100%;
 }
 
@@ -245,13 +334,34 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   line-height: 1.2;
 }
 
-/* No corner Tags-BC mount or army FAB on MOD demo */
-.mod-demo-page #brand-concierge-mount-host,
-.mod-demo-page #modArmyBcFab,
-.mod-demo-page .aep-bc-reopen-btn.mod-army-bc-fab {
+/* Hide Tags-inject corner BC; army-mod-home-3 FAB shown only in modal mode */
+.mod-demo-page #brand-concierge-mount-host {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.mod-demo-page #modDemoBcFab.mod-demo-bc-fab {
+  display: none;
+}
+
+.mod-demo-page.mod-demo-bc-modal-armed #modDemoBcFab.mod-demo-bc-fab {
+  display: flex;
+}
+
+/* Modal open: keep Army iframe visible; only dim via popup backdrop (not a solid page fill) */
+.mod-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.mod-demo-page.aep-bc-modal-open #brand-concierge-mount-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Full screen BC mode: same Army home snapshot iframe, BC fills viewport below site header */
+.mod-demo-page.mod-demo-bc-fullscreen-armed .mod-demo-site-frame {
+  z-index: 1;
 }
 
 .mod-demo-bc-prefs__options {

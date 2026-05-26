@@ -28,8 +28,23 @@
    * short timeout, so we call the Cloud Function URL directly — same pattern
    * as `brand-scraper.js` (CLASSIFY_URL).
    */
-  var BRAND_SCRAPER_FUNCTIONS_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
-  var BRAND_SCRAPER_CLASSIFY_URL = BRAND_SCRAPER_FUNCTIONS_BASE + '/brandScraperClassify';
+  function aepLabCloudFunctionsOrigin() {
+    try {
+      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
+        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+    var pid = 'aep-orchestration-lab';
+    try {
+      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
+        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
+      }
+    } catch (_e2) {}
+    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  }
+  function brandScraperClassifyDirectUrl() {
+    return aepLabCloudFunctionsOrigin() + '/brandScraperClassify';
+  }
 
   // Persist view + sort preferences per-browser so switching pages
   // or reloading keeps the user's last choice.
@@ -1323,7 +1338,7 @@
     setStatus('Classifying images for ' + scrapeId + '… (this can take 1–3 minutes)', '');
     setManualMsg('Downloading images to GCS and classifying with Gemini vision…');
     try {
-      var url = BRAND_SCRAPER_CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
+      var url = brandScraperClassifyDirectUrl() + '?sandbox=' + encodeURIComponent(sb);
       var r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

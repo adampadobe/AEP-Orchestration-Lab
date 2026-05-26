@@ -5,10 +5,25 @@
   // + export endpoints run longer, so hit the Cloud Functions direct URLs
   // (cloudfunctions.net is stable regardless of revision hash).
   // List/get/delete are fast and still go via /api/*.
-  const FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
-  const ANALYZE_URL = FN_BASE + '/brandScraperAnalyze';
-  const CLASSIFY_URL = FN_BASE + '/brandScraperClassify';
-  const EXPORT_URL = FN_BASE + '/brandScraperExport';
+  // Base URL follows `window.firebaseDatabaseConfig.projectId` when set (see
+  // firebase-database-config.js); optional `window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__` wins.
+  function aepLabCloudFunctionsOrigin() {
+    try {
+      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
+        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+    var pid = 'aep-orchestration-lab';
+    try {
+      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
+        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
+      }
+    } catch (_e2) {}
+    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  }
+  function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
+  function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
+  function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
@@ -2042,7 +2057,7 @@
         }
         return { ...runOptions };
       })();
-      const retryResp = await scopedFetch(ANALYZE_URL, {
+      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2197,7 +2212,7 @@
     setStatus('Downloading images to GCS and classifying with Gemini vision \u2026', 'info');
     startProgress(30000, ['Downloading images', 'Classifying with Gemini vision', 'Generating signed URLs', 'Updating scrape']);
     try {
-      const url = withScopeQuery(CLASSIFY_URL);
+      const url = withScopeQuery(directCfClassifyUrl());
       const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(url, {
         method: 'POST',
@@ -2246,7 +2261,7 @@
     setStatus('Building export kit ZIP (brand guidelines + personas + campaigns + segments + images) \u2026', 'info');
     startProgress(8000, ['Serialising scrape', 'Packaging images', 'Uploading ZIP to GCS', 'Generating signed URL']);
     try {
-      const url = withScopeQuery(EXPORT_URL);
+      const url = withScopeQuery(directCfExportUrl());
       const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(url, {
         method: 'POST',
@@ -2388,7 +2403,7 @@
 
     try {
       pendingAsyncScrapeId = null;
-      const analyzeUrl = withScopeQuery(ANALYZE_URL);
+      const analyzeUrl = withScopeQuery(directCfAnalyzeUrl());
       const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(analyzeUrl, {
         method: 'POST',
@@ -2526,9 +2541,9 @@
 
   // Capability → function-URL map for the traffic-light health checks.
   const HEALTHCHECK_URLS = {
-    analyze: ANALYZE_URL,
-    classify: CLASSIFY_URL,
-    export: EXPORT_URL,
+    get analyze() { return directCfAnalyzeUrl(); },
+    get classify() { return directCfClassifyUrl(); },
+    get export() { return directCfExportUrl(); },
   };
 
   async function pingFunction(url) {

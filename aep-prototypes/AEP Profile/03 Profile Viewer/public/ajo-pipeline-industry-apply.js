@@ -12,6 +12,10 @@
  * Decisioning controls (cascade view): `decisioningControls` on industry packs or
  * `window.AEP_PIPELINE_DECISIONING_CONTROLS` — chips + `SCENARIOS` mini-cards 01–06; `fsi` restores
  * `__AEP_DC_BASE_SNAPSHOT` baseline from the anatomy HTML.
+ * Toolbar key `fsi`: restores every captured HTML baseline (Sarah Reynolds mortgage demo) and does not
+ * apply overrides from `AEP_PIPELINE_INDUSTRY_LABELS.fsi`.
+ * Flow Analysis (#viewFlow): `flowAnalysis` on industry packs (ajo-pipeline-industry-flow-labels.js)
+ * retunes profile signals, simulate cards, message controls, and flow email preview.
  */
 (function () {
   function migrateIndustryKey(k) {
@@ -498,6 +502,57 @@
     set('.branch.b-propensity .branch-detail', b.propensity);
     var card = document.querySelector('.branch.b-agentic .branch-card-body');
     if (card && b.agenticBody) card.innerHTML = b.agenticBody;
+  }
+
+  function ensurePipelineProfileBaseline() {
+    if (window.__AEP_PIPELINE_PROFILE_BASE) return;
+    try {
+      var avatars = [];
+      document.querySelectorAll('.sf-avatar, .profile-avatar-lg').forEach(function (el) {
+        avatars.push(el.textContent);
+      });
+      var names = [];
+      document.querySelectorAll('.sf-name, .profile-center-name').forEach(function (el) {
+        names.push(el.textContent);
+      });
+      var meta = document.querySelector('.sf-meta');
+      var csub = document.querySelector('.profile-center-sub');
+      var hp = document.querySelector('.hero > p');
+      window.__AEP_PIPELINE_PROFILE_BASE = {
+        avatars: avatars,
+        names: names,
+        meta: meta ? meta.textContent : '',
+        centerSub: csub ? csub.textContent : '',
+        heroP: hp ? hp.textContent : '',
+      };
+    } catch (e) {
+      window.__AEP_PIPELINE_PROFILE_BASE = {
+        avatars: [],
+        names: [],
+        meta: '',
+        centerSub: '',
+        heroP: '',
+      };
+    }
+  }
+
+  function restorePipelineProfileBaseline() {
+    var b = window.__AEP_PIPELINE_PROFILE_BASE;
+    if (!b) return;
+    var avatars = document.querySelectorAll('.sf-avatar, .profile-avatar-lg');
+    avatars.forEach(function (el, i) {
+      if (b.avatars[i] != null) el.textContent = b.avatars[i];
+    });
+    var names = document.querySelectorAll('.sf-name, .profile-center-name');
+    names.forEach(function (el, i) {
+      if (b.names[i] != null) el.textContent = b.names[i];
+    });
+    var meta = document.querySelector('.sf-meta');
+    if (meta && b.meta != null) meta.textContent = b.meta;
+    var csub = document.querySelector('.profile-center-sub');
+    if (csub && b.centerSub != null) csub.textContent = b.centerSub;
+    var hp = document.querySelector('.hero > p');
+    if (hp && b.heroP != null) hp.textContent = b.heroP;
   }
 
   function applyProfileHub(ph) {
@@ -1146,33 +1201,526 @@
     if (typeof window.__AEP_CASCADE_RENDER === 'function') window.__AEP_CASCADE_RENDER();
   }
 
-  function resetFlowUiAfterIndustryChange() {
-    try {
-      sfExpandedJourney = null;
-      sfSelectedPath = null;
-    } catch (e) {
-      /* globals may not exist in other embed contexts */
-    }
+  var SF_ATTR_SID_ORDER = [
+    'mortgage_need',
+    'refi_intent',
+    'rewards_interest',
+    'debt_consolidation',
+    'savings_growth',
+    'family_protection',
+    'school_savings',
+    'churn_risk',
+    'mobile_first',
+  ];
 
-    var pi = document.getElementById('sfPathsIntro');
-    if (pi) pi.style.display = '';
-    var ci = document.getElementById('sfChannelsIntro');
-    if (ci) ci.style.display = '';
-    ['sfPhase3Panel', 'sfPhase4Panel', 'sfPhase5Panel'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.classList.add('locked');
+  function sfAttrColorToVar(color) {
+    var map = {
+      red: 'var(--accent)',
+      amber: 'var(--amber)',
+      teal: 'var(--teal)',
+      blue: 'var(--blue)',
+      coral: 'var(--coral)',
+    };
+    return map[color] || 'var(--accent)';
+  }
+
+  function buildSfAttrRow(a) {
+    var tone = a.iconColor || sfAttrColorToVar(a.color || 'red');
+    return (
+      '<div class="sf-attr" data-sid="' +
+      escapeHtml(a.sid) +
+      '" onclick="sfToggle(this)">' +
+      '<div class="sf-attr-icon" style="color:' +
+      tone +
+      '">' +
+      escapeHtml(a.icon) +
+      '</div>' +
+      '<div class="sf-attr-text"><div class="sf-attr-name">' +
+      escapeHtml(a.name) +
+      '</div><div class="sf-attr-detail">' +
+      escapeHtml(a.detail) +
+      '</div></div>' +
+      '<div class="sf-attr-check">✓</div></div>'
+    );
+  }
+
+  function rebuildSfAttrsHtml(flow) {
+    var root = document.getElementById('sfAttrs');
+    if (!root || !flow) return;
+    var html = '';
+    var outerLabel = root.parentElement
+      ? root.parentElement.querySelector('.sf-section-label')
+      : null;
+    if (outerLabel && flow.sectionLabels && flow.sectionLabels.goals != null) {
+      outerLabel.textContent = flow.sectionLabels.goals;
+    }
+    SF_ATTR_SID_ORDER.forEach(function (sid) {
+      var row = (flow.attrs || []).find(function (a) {
+        return a.sid === sid;
+      });
+      if (row) html += buildSfAttrRow(row);
     });
-    ['sfPhase2', 'sfPhase3', 'sfPhase4', 'sfPhase5'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.classList.remove('active');
+    var agent = (flow.attrs || []).find(function (a) {
+      return a.sid === 'agent_intent';
     });
-    var jList = document.querySelectorAll('.sf-journey.expanded');
-    jList.forEach(function (el) {
-      el.classList.remove('expanded');
+    if (agent) {
+      var agentLabel = (flow.sectionLabels && flow.sectionLabels.agentic) || 'Agentic signals';
+      html +=
+        '<div class="sf-section-label" style="margin-top:14px">' +
+        escapeHtml(agentLabel) +
+        '<span class="sf-new-badge">NEW</span></div>';
+      html += buildSfAttrRow(agent);
+    }
+    var contact = (flow.attrs || []).find(function (a) {
+      return a.sid === 'email_cap';
     });
-    var jSel = document.querySelectorAll('.sf-journey.selected');
-    jSel.forEach(function (el) {
-      el.classList.remove('selected');
+    if (contact) {
+      var contactLabel = (flow.sectionLabels && flow.sectionLabels.contact) || 'Contact policy';
+      html +=
+        '<div class="sf-section-label" style="margin-top:14px">' +
+        escapeHtml(contactLabel) +
+        '</div>';
+      html += buildSfAttrRow(contact);
+    }
+    var b = window.__AEP_FLOW_ANALYSIS_BASE;
+    if (b && b.sfAttrsMpTail) {
+      html += b.sfAttrsMpTail;
+    }
+    root.innerHTML = html;
+    if (flow.sectionLabels && flow.sectionLabels.message != null) {
+      var mpHead = root.querySelector('.sf-section-label');
+      var mpLabels = root.querySelectorAll('.sf-section-label');
+      var msgLab = mpLabels.length ? mpLabels[mpLabels.length - 1] : null;
+      if (msgLab && msgLab.textContent.indexOf('Message') >= 0) {
+        msgLab.textContent = flow.sectionLabels.message;
+      }
+    }
+  }
+
+  function replaceSimButtons(cardSel, buttons) {
+    if (!buttons || !buttons.length) return;
+    var card = document.querySelector(cardSel);
+    if (!card) return;
+    var wrap = card.querySelector('.sf-sim-controls');
+    if (!wrap) return;
+    wrap.innerHTML = buttons
+      .map(function (b) {
+        var active = b.active ? ' active' : '';
+        return (
+          '<button type="button" class="sf-sim-btn' +
+          active +
+          '" onclick="sfSetSim(\'' +
+          escapeHtml(b.simKey) +
+          "','" +
+          escapeHtml(b.value) +
+          '\',this)">' +
+          escapeHtml(b.label) +
+          '</button>'
+        );
+      })
+      .join('');
+  }
+
+  function applyFlowFormula(flow) {
+    if (!flow || !flow.formula) return;
+    var f = flow.formula;
+    var nameEl = document.querySelector('[data-rule="bankValue"] .sf-fb-name');
+    var condEl = document.querySelector('[data-rule="bankValue"] .sf-fb-cond');
+    var opEl = document.querySelector('[data-rule="bankValue"] .sf-fb-op');
+    if (nameEl && f.valueRuleName != null) nameEl.textContent = f.valueRuleName;
+    if (condEl && f.valueCond != null) {
+      var span = condEl.querySelector('.sf-fb-cond-val');
+      var tail = span ? span.outerHTML : '';
+      condEl.innerHTML = f.valueCond + ' ' + tail;
+    }
+    if (opEl && f.valueOp != null) opEl.textContent = f.valueOp;
+    var bankTag = document.querySelector('[data-sim="bankBoost"] .sf-sim-tag');
+    if (bankTag && f.simBankTag != null) {
+      bankTag.innerHTML =
+        '<span class="sf-sim-dot"></span>' + escapeHtml(f.simBankTag);
+    }
+  }
+
+  function applyFlowMessageControls(flow) {
+    var mp = flow && flow.messagePersonalisation;
+    if (!mp) return;
+    var pills = document.getElementById('sfMpFeaturePills');
+    if (pills && mp.features && mp.features.length) {
+      pills.innerHTML = mp.features
+        .map(function (f) {
+          var active = f.active ? ' active' : '';
+          return (
+            '<button type="button" class="sf-mp-pill' +
+            active +
+            '" data-feature="' +
+            escapeHtml(f.key) +
+            '" onclick="sfSetDynamicFeature(\'' +
+            escapeHtml(f.key) +
+            '\',this)">' +
+            escapeHtml(f.label) +
+            '</button>'
+          );
+        })
+        .join('');
+    }
+    var mpBlocks = document.querySelectorAll('.sf-mp-control');
+    if (mpBlocks[0]) {
+      var lab0 = mpBlocks[0].querySelector('.sf-mp-label');
+      if (lab0 && mp.featureLabel != null) lab0.textContent = mp.featureLabel;
+      var hint0 = mpBlocks[0].querySelector('.sf-mp-hint');
+      if (hint0 && mp.featureHint != null) hint0.textContent = mp.featureHint;
+    }
+    if (mpBlocks[1]) {
+      var lab1 = mpBlocks[1].querySelector('.sf-mp-label');
+      if (lab1 && mp.sliderLabel != null) {
+        var valSpan = lab1.querySelector('#sfMpExpiryVal');
+        var valText = valSpan ? valSpan.textContent : '72h';
+        lab1.innerHTML =
+          escapeHtml(mp.sliderLabel) +
+          ' <span class="sf-mp-val" id="sfMpExpiryVal">' +
+          escapeHtml(valText) +
+          '</span>';
+      }
+      var hint1 = mpBlocks[1].querySelector('.sf-mp-hint');
+      if (hint1 && mp.sliderHint != null) hint1.textContent = mp.sliderHint;
+    }
+  }
+
+  function applyFlowEmailChrome(flow) {
+    var em = flow && flow.email;
+    if (!em) return;
+    var setText = function (sel, text) {
+      var el = document.querySelector(sel);
+      if (el && text != null) el.textContent = text;
+    };
+    setText('.sf-email-subject-bar', em.subject);
+    setText('.sf-email-logo', em.brand);
+    setText('.sf-email-logo-sub', em.brandSub);
+    if (em.greetingHtml != null) {
+      var greet = document.querySelector('.em-greeting');
+      if (greet) greet.innerHTML = em.greetingHtml;
+    }
+    if (em.profileBodyHtml != null) {
+      var pb = document.querySelector('.em-section[data-container="profile"] .em-body-text');
+      if (pb) pb.innerHTML = em.profileBodyHtml;
+    }
+    if (em.contextHtml != null) {
+      var ctx = document.querySelector('.em-section[data-container="context"]');
+      if (ctx) ctx.innerHTML = em.contextHtml;
+    }
+    if (em.crossSellHtml != null) {
+      var xs = document.querySelector('.em-section[data-container="decisioning"]');
+      if (xs) xs.innerHTML = em.crossSellHtml;
+    }
+    if (em.navHtml != null) {
+      var nav = document.querySelector('.sf-email-nav');
+      if (nav) nav.innerHTML = em.navHtml;
+    }
+  }
+
+  function applyFlowIntros(flow) {
+    if (!flow || !flow.intros) return;
+    var i = flow.intros;
+    var map = {
+      paths: 'sfPathsIntro',
+      channels: 'sfChannelsIntro',
+      sendTime: 'sfSendTimeIntro',
+      email: 'sfEmailIntro',
+    };
+    Object.keys(map).forEach(function (k) {
+      if (i[k] == null) return;
+      var el = document.getElementById(map[k]);
+      if (el) el.textContent = i[k];
+    });
+  }
+
+  function syncSfObjectInPlace(target, patch) {
+    if (!target || !patch) return;
+    Object.keys(target).forEach(function (k) {
+      delete target[k];
+    });
+    Object.keys(patch).forEach(function (k) {
+      target[k] = clone(patch[k]);
+    });
+  }
+
+  function restoreSfObjectInPlace(target, base) {
+    if (!target || !base) return;
+    Object.keys(target).forEach(function (k) {
+      delete target[k];
+    });
+    Object.keys(base).forEach(function (k) {
+      target[k] = clone(base[k]);
+    });
+  }
+
+  function attrMetaFromFlowAttrs(attrs) {
+    var meta = {};
+    (attrs || []).forEach(function (a) {
+      if (!a.sid) return;
+      meta[a.sid] = {
+        label: a.shortLabel || a.name,
+        color: a.color || 'red',
+      };
+    });
+    return meta;
+  }
+
+  function ensureFlowAnalysisBaseline() {
+    if (window.__AEP_FLOW_ANALYSIS_BASE) return;
+    try {
+      var sfAttrs = document.getElementById('sfAttrs');
+      var outerGoalsLabel = '';
+      var sfAttrsMpTail = '';
+      if (sfAttrs) {
+        var inner = sfAttrs.innerHTML;
+        var mpIdx = inner.indexOf('Message personalisation');
+        if (mpIdx >= 0) sfAttrsMpTail = inner.slice(mpIdx);
+        if (sfAttrs.parentElement) {
+          var outer = sfAttrs.parentElement.querySelector('.sf-section-label');
+          if (outer) outerGoalsLabel = outer.textContent;
+        }
+      }
+      var journeySim = document.querySelector('[data-sim="lever"]');
+      var bankSim = document.querySelector('[data-sim="bankBoost"]');
+      var urgSim = document.querySelector('[data-sim="urgency"]');
+      var chSim = document.querySelector('[data-sim="channelStrategy"]');
+      var mpPills = document.getElementById('sfMpFeaturePills');
+      var mpControls = [];
+      document.querySelectorAll('.sf-mp-control').forEach(function (el) {
+        mpControls.push(el.innerHTML);
+      });
+      var profileSection = document.querySelector('.em-section[data-container="profile"]');
+      var contextSection = document.querySelector('.em-section[data-container="context"]');
+      var decisionSection = document.querySelector('.em-section[data-container="decisioning"]');
+      window.__AEP_FLOW_ANALYSIS_BASE = {
+        sfAttrsHtml: sfAttrs ? sfAttrs.innerHTML : '',
+        outerGoalsLabel: outerGoalsLabel,
+        sfAttrsMpTail: sfAttrsMpTail,
+        sim: {
+          leverDesc: journeySim ? journeySim.querySelector('.sf-sim-desc').textContent : '',
+          leverButtons: journeySim
+            ? journeySim.querySelector('.sf-sim-controls').innerHTML
+            : '',
+          bankDesc: bankSim ? bankSim.querySelector('.sf-sim-desc').textContent : '',
+          bankButtons: bankSim ? bankSim.querySelector('.sf-sim-controls').innerHTML : '',
+          bankTag: bankSim ? bankSim.querySelector('.sf-sim-tag').innerHTML : '',
+          urgDesc: urgSim ? urgSim.querySelector('.sf-sim-desc').textContent : '',
+          urgButtons: urgSim ? urgSim.querySelector('.sf-sim-controls').innerHTML : '',
+          chDesc: chSim ? chSim.querySelector('.sf-sim-desc').textContent : '',
+          chButtons: chSim ? chSim.querySelector('.sf-sim-controls').innerHTML : '',
+          agenticDesc: document.querySelector('[data-sim="agentic"] .sf-sim-desc')
+            ? document.querySelector('[data-sim="agentic"] .sf-sim-desc').textContent
+            : '',
+        },
+        formula: {
+          valueRuleName: document.querySelector('[data-rule="bankValue"] .sf-fb-name')
+            ? document.querySelector('[data-rule="bankValue"] .sf-fb-name').textContent
+            : '',
+          valueCond: document.querySelector('[data-rule="bankValue"] .sf-fb-cond')
+            ? document.querySelector('[data-rule="bankValue"] .sf-fb-cond').innerHTML
+            : '',
+          valueOp: document.querySelector('[data-rule="bankValue"] .sf-fb-op')
+            ? document.querySelector('[data-rule="bankValue"] .sf-fb-op').textContent
+            : '',
+        },
+        mpPillsHtml: mpPills ? mpPills.innerHTML : '',
+        mpControls: mpControls,
+        intros: {
+          paths: document.getElementById('sfPathsIntro')
+            ? document.getElementById('sfPathsIntro').textContent
+            : '',
+          channels: document.getElementById('sfChannelsIntro')
+            ? document.getElementById('sfChannelsIntro').textContent
+            : '',
+          sendTime: document.getElementById('sfSendTimeIntro')
+            ? document.getElementById('sfSendTimeIntro').textContent
+            : '',
+          email: document.getElementById('sfEmailIntro')
+            ? document.getElementById('sfEmailIntro').textContent
+            : '',
+        },
+        email: {
+          subject: document.querySelector('.sf-email-subject-bar')
+            ? document.querySelector('.sf-email-subject-bar').textContent
+            : '',
+          brand: document.querySelector('.sf-email-logo')
+            ? document.querySelector('.sf-email-logo').textContent
+            : '',
+          brandSub: document.querySelector('.sf-email-logo-sub')
+            ? document.querySelector('.sf-email-logo-sub').textContent
+            : '',
+          greetingHtml: document.querySelector('.em-greeting')
+            ? document.querySelector('.em-greeting').innerHTML
+            : '',
+          profileBodyHtml: document.querySelector(
+            '.em-section[data-container="profile"] .em-body-text'
+          )
+            ? document.querySelector('.em-section[data-container="profile"] .em-body-text')
+                .innerHTML
+            : '',
+          contextHtml: contextSection ? contextSection.innerHTML : '',
+          crossSellHtml: decisionSection ? decisionSection.innerHTML : '',
+          navHtml: document.querySelector('.sf-email-nav')
+            ? document.querySelector('.sf-email-nav').innerHTML
+            : '',
+        },
+        valueMultLabel: window.__AEP_SF_VALUE_MULT_LABEL || 'value',
+      };
+    } catch (e) {
+      window.__AEP_FLOW_ANALYSIS_BASE = null;
+    }
+  }
+
+  function restoreFlowAnalysisBaseline() {
+    var b = window.__AEP_FLOW_ANALYSIS_BASE;
+    if (!b) return;
+    var sfAttrs = document.getElementById('sfAttrs');
+    if (sfAttrs && b.sfAttrsHtml != null) sfAttrs.innerHTML = b.sfAttrsHtml;
+    if (sfAttrs && sfAttrs.parentElement && b.outerGoalsLabel != null) {
+      var outer = sfAttrs.parentElement.querySelector('.sf-section-label');
+      if (outer) outer.textContent = b.outerGoalsLabel;
+    }
+    if (b.sim) {
+      var lever = document.querySelector('[data-sim="lever"]');
+      if (lever) {
+        var ld = lever.querySelector('.sf-sim-desc');
+        if (ld && b.sim.leverDesc != null) ld.textContent = b.sim.leverDesc;
+        var lb = lever.querySelector('.sf-sim-controls');
+        if (lb && b.sim.leverButtons != null) lb.innerHTML = b.sim.leverButtons;
+      }
+      var bank = document.querySelector('[data-sim="bankBoost"]');
+      if (bank) {
+        var bd = bank.querySelector('.sf-sim-desc');
+        if (bd && b.sim.bankDesc != null) bd.textContent = b.sim.bankDesc;
+        var bb = bank.querySelector('.sf-sim-controls');
+        if (bb && b.sim.bankButtons != null) bb.innerHTML = b.sim.bankButtons;
+        var bt = bank.querySelector('.sf-sim-tag');
+        if (bt && b.sim.bankTag != null) bt.innerHTML = b.sim.bankTag;
+      }
+      var urg = document.querySelector('[data-sim="urgency"]');
+      if (urg) {
+        var ud = urg.querySelector('.sf-sim-desc');
+        if (ud && b.sim.urgDesc != null) ud.textContent = b.sim.urgDesc;
+        var ub = urg.querySelector('.sf-sim-controls');
+        if (ub && b.sim.urgButtons != null) ub.innerHTML = b.sim.urgButtons;
+      }
+      var ch = document.querySelector('[data-sim="channelStrategy"]');
+      if (ch) {
+        var cd = ch.querySelector('.sf-sim-desc');
+        if (cd && b.sim.chDesc != null) cd.textContent = b.sim.chDesc;
+        var cb = ch.querySelector('.sf-sim-controls');
+        if (cb && b.sim.chButtons != null) cb.innerHTML = b.sim.chButtons;
+      }
+    }
+    if (b.formula) {
+      var nameEl = document.querySelector('[data-rule="bankValue"] .sf-fb-name');
+      var condEl = document.querySelector('[data-rule="bankValue"] .sf-fb-cond');
+      var opEl = document.querySelector('[data-rule="bankValue"] .sf-fb-op');
+      if (nameEl && b.formula.valueRuleName != null) nameEl.textContent = b.formula.valueRuleName;
+      if (condEl && b.formula.valueCond != null) condEl.innerHTML = b.formula.valueCond;
+      if (opEl && b.formula.valueOp != null) opEl.textContent = b.formula.valueOp;
+    }
+    var mpPills = document.getElementById('sfMpFeaturePills');
+    if (mpPills && b.mpPillsHtml != null) mpPills.innerHTML = b.mpPillsHtml;
+    if (b.mpControls) {
+      document.querySelectorAll('.sf-mp-control').forEach(function (el, i) {
+        if (b.mpControls[i] != null) el.innerHTML = b.mpControls[i];
+      });
+    }
+    applyFlowIntros({ intros: b.intros });
+    applyFlowEmailChrome({ email: b.email });
+    window.__AEP_SF_VALUE_MULT_LABEL = b.valueMultLabel || 'value';
+    if (window.SF_ATTRS && window.__AEP_SF_ATTRS_BASE) {
+      restoreSfObjectInPlace(window.SF_ATTRS, window.__AEP_SF_ATTRS_BASE);
+    }
+    if (window.SF_FEATURES && window.__AEP_SF_FEATURES_BASE) {
+      restoreSfObjectInPlace(window.SF_FEATURES, window.__AEP_SF_FEATURES_BASE);
+    }
+    if (window.SF_STRATEGY && window.__AEP_SF_STRATEGY_BASE) {
+      restoreSfObjectInPlace(window.SF_STRATEGY, window.__AEP_SF_STRATEGY_BASE);
+    }
+    if (typeof window.sfRenderDynamicCard === 'function') window.sfRenderDynamicCard();
+    if (typeof window.sfRenderSelectionCard === 'function') window.sfRenderSelectionCard();
+  }
+
+  function applyFlowAnalysis(flow) {
+    if (!flow) return;
+    rebuildSfAttrsHtml(flow);
+    var meta = flow.attrMeta || attrMetaFromFlowAttrs(flow.attrs);
+    if (window.SF_ATTRS && meta) {
+      Object.keys(meta).forEach(function (sid) {
+        if (!window.SF_ATTRS[sid]) window.SF_ATTRS[sid] = {};
+        if (meta[sid].label != null) window.SF_ATTRS[sid].label = meta[sid].label;
+        if (meta[sid].color != null) window.SF_ATTRS[sid].color = meta[sid].color;
+      });
+    }
+    if (window.SF_FEATURES && flow.features) {
+      syncSfObjectInPlace(window.SF_FEATURES, flow.features);
+    }
+    if (window.SF_STRATEGY && flow.strategy) {
+      syncSfObjectInPlace(window.SF_STRATEGY, flow.strategy);
+    }
+    if (flow.valueMultLabel != null) window.__AEP_SF_VALUE_MULT_LABEL = flow.valueMultLabel;
+    applyFlowFormula(flow);
+    applyFlowMessageControls(flow);
+    applyFlowIntros(flow);
+    applyFlowEmailChrome(flow);
+    var sim = flow.simulate;
+    if (sim) {
+      var lever = document.querySelector('[data-sim="lever"]');
+      if (lever && sim.leverDesc != null) lever.querySelector('.sf-sim-desc').textContent = sim.leverDesc;
+      replaceSimButtons('[data-sim="lever"]', sim.leverButtons);
+      var bank = document.querySelector('[data-sim="bankBoost"]');
+      if (bank && sim.bankDesc != null) bank.querySelector('.sf-sim-desc').textContent = sim.bankDesc;
+      replaceSimButtons('[data-sim="bankBoost"]', sim.bankBoostButtons);
+      var urg = document.querySelector('[data-sim="urgency"]');
+      if (urg && sim.urgencyDesc != null) urg.querySelector('.sf-sim-desc').textContent = sim.urgencyDesc;
+      replaceSimButtons('[data-sim="urgency"]', sim.urgencyButtons);
+      var ch = document.querySelector('[data-sim="channelStrategy"]');
+      if (ch && sim.channelDesc != null) ch.querySelector('.sf-sim-desc').textContent = sim.channelDesc;
+      replaceSimButtons('[data-sim="channelStrategy"]', sim.channelButtons);
+      var ag = document.querySelector('[data-sim="agentic"]');
+      if (ag && sim.agenticDesc != null) ag.querySelector('.sf-sim-desc').textContent = sim.agenticDesc;
+    }
+    if (flow.sectionLabels && flow.sectionLabels.message != null) {
+      document.querySelectorAll('#sfAttrs .sf-section-label').forEach(function (el) {
+        var next = el.nextElementSibling;
+        if (next && next.classList && next.classList.contains('sf-mp-control')) {
+          el.textContent = flow.sectionLabels.message;
+        }
+      });
+    }
+    if (typeof window.sfRenderDynamicCard === 'function') window.sfRenderDynamicCard();
+    if (typeof window.sfRenderSelectionCard === 'function') window.sfRenderSelectionCard();
+  }
+
+  function resetFlowUiAfterIndustryChange() {
+    if (typeof window.sfResetFlowUiForIndustry === 'function') {
+      window.sfResetFlowUiForIndustry();
+      return;
+    }
+  }
+
+  function assignSfJourneysFromBase() {
+    var target = window.SF_JOURNEYS;
+    var base = window.__AEP_SF_JOURNEYS_BASE;
+    if (!target || !base || !Array.isArray(base)) return;
+    target.length = 0;
+    for (var i = 0; i < base.length; i++) {
+      target.push(clone(base[i]));
+    }
+  }
+
+  function assignSfPathsFromBase() {
+    var target = window.SF_PATHS;
+    var base = window.__AEP_SF_PATHS_BASE;
+    if (!target || !base) return;
+    Object.keys(target).forEach(function (k) {
+      delete target[k];
+    });
+    Object.keys(base).forEach(function (k) {
+      target[k] = clone(base[k]);
     });
   }
 
@@ -1182,15 +1730,34 @@
     if (!packs || !window.__AEP_SF_JOURNEYS_BASE || !window.__AEP_SF_PATHS_BASE) return;
 
     ensureProfileHubBaseline();
+    ensurePipelineProfileBaseline();
     ensureBusinessImpactBaseline();
     ensureJourneyPrioritisationBaseline();
     ensureNextBestPathBaseline();
     ensureStages456Baseline();
+    ensureFlowAnalysisBaseline();
 
     document.body.setAttribute('data-dce-industry', key);
 
-    window.SF_JOURNEYS = clone(window.__AEP_SF_JOURNEYS_BASE);
-    window.SF_PATHS = clone(window.__AEP_SF_PATHS_BASE);
+    assignSfJourneysFromBase();
+    assignSfPathsFromBase();
+
+    if (key === 'fsi') {
+      restoreProfileHubBaseline();
+      restorePipelineProfileBaseline();
+      restoreBusinessImpactBaseline();
+      restoreJourneyPrioritisationBaseline();
+      restoreNextBestPathBaseline();
+      restoreStages456Baseline();
+      ensureDecisioningControlsBaseline();
+      restoreDecisioningControlsBaseline();
+      restoreFlowAnalysisBaseline();
+      resetFlowUiAfterIndustryChange();
+      if (typeof window.sfRender === 'function') window.sfRender();
+      if (typeof window.sfUpdateStepper === 'function') window.sfUpdateStepper();
+      if (typeof window.sfDrawConnectors === 'function') setTimeout(window.sfDrawConnectors, 40);
+      return;
+    }
 
     var labels = packs[key] || packs.media;
 
@@ -1287,6 +1854,12 @@
       }
     }
 
+    if (labels.flowAnalysis) {
+      applyFlowAnalysis(labels.flowAnalysis);
+    } else {
+      restoreFlowAnalysisBaseline();
+    }
+
     resetFlowUiAfterIndustryChange();
 
     if (typeof window.sfRender === 'function') window.sfRender();
@@ -1295,6 +1868,7 @@
   }
 
   window.aepPipelineApplyIndustry = aepPipelineApplyIndustry;
+  window.aepPipelineCaptureFlowBaseline = ensureFlowAnalysisBaseline;
 
   window.addEventListener('message', function (ev) {
     var d = ev.data;

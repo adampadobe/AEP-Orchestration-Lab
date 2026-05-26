@@ -10,13 +10,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-iframe-inject">
+  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-env-grid">
   <link rel="stylesheet" href="mod-demo-bc.css?v=20260526-bc-iframe-inject">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script src="army-bc/army-bc-edge-path.js"></script>
 </head>
 <body class="mod-demo-page home-dashboard-concierge">
   <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
@@ -85,18 +86,35 @@
                       <option value="army" selected>Army Recruitment</option>
                     </select>
                   </div>
-                  <div class="form-row mod-demo-bc-style-url-row">
-                    <label for="modBcStyleConfigUrl">Brand Concierge style configuration URL</label>
-                    <input
-                      type="text"
-                      id="modBcStyleConfigUrl"
-                      class="mod-demo-bc-style-url-input"
-                      aria-label="Brand Concierge style configuration script URL"
-                      placeholder="army-bc/styleConfigurations-6a0992.js"
-                      autocomplete="off"
-                      spellcheck="false"
-                    >
-                    <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                  <div class="mod-demo-bc-env-pair">
+                    <div class="form-row mod-demo-bc-style-url-row">
+                      <label for="modBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+                      <input
+                        type="text"
+                        id="modBcStyleConfigUrl"
+                        class="mod-demo-bc-style-url-input"
+                        aria-label="Brand Concierge style configuration script URL"
+                        placeholder="army-bc/styleConfigurations-6a0992.js"
+                        autocomplete="off"
+                        spellcheck="false"
+                      >
+                      <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
+                    <div class="form-row mod-demo-bc-datastream-row">
+                      <label for="modBcDatastreamId">Alloy datastream</label>
+                      <input
+                        type="text"
+                        id="modBcDatastreamId"
+                        class="mod-demo-bc-datastream-input"
+                        aria-label="Alloy datastream for Brand Concierge"
+                        placeholder="Select or search datastream"
+                        list="modBcDatastreamList"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                      <datalist id="modBcDatastreamList"></datalist>
+                      <p id="modBcDatastreamHint" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
                   </div>
                 </div>
                 <div class="form-row">
@@ -186,17 +204,26 @@
     loading="eager"
   ></iframe>
 
-  <!-- army-mod-home: inline injected BC (visible when Injected is checked) -->
-  <section
-    id="modDemoBcInjectedPanel"
-    class="mod-demo-bc-injected army-bc-inline"
+  <!-- army-mod-home-3: floating FAB opens modal (visible when Modal is checked) -->
+  <button
+    type="button"
+    id="modDemoBcFab"
+    class="aep-bc-reopen-btn mod-demo-bc-fab"
     hidden
-    aria-label="Army recruitment assistant"
+    aria-label="Open Brand Concierge"
+    aria-expanded="false"
+    aria-controls="aepBcModal"
   >
-    <div id="modDemoBcInjectMount" class="army-bc-inline__mount"></div>
-  </section>
+    <img
+      src="https://contenthosting.web.app/logos/adobe_icon_146235.webp"
+      alt=""
+      width="48"
+      height="48"
+      decoding="async"
+    />
+  </button>
 
-  <!-- army-mod-home-3: modal BC (dialog when Modal is checked; no corner FAB on MOD demo) -->
+  <!-- army-mod-home-3: modal BC shell (BC mounts in #modDemoBcModalMount when Modal is checked) -->
   <div
     id="aepBcModal"
     class="aep-bc-modal"
@@ -211,7 +238,7 @@
         &times;
       </button>
       <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
-      <div id="modDemoBcModalMount" class="aep-bc-modal__mount"></div>
+      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
     </div>
   </div>
 
@@ -359,16 +386,15 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="demo-tags-injection.js?v=20260526-bc-suppress-resume"></script>
+  <script src="demo-tags-injection.js?v=20260526-tags-prefs-persist"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
-  <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="mod-demo.js?v=20260526-bc-style-url-fix"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-live-edge-only"></script>
-  <div id="brand-concierge-mount-host" aria-live="polite">
+  <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+  <script src="mod-demo.js?v=20260526-mod-sandbox-env-flush"></script>
+  <script src="mod-demo-bc.js?v=20260526-bc-fs-center"></script>
+  <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
-    <div id="brand-concierge-mount"></div>
   </div>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

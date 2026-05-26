@@ -6,23 +6,51 @@
 
   var BASE = 'army-bc/';
   var PROFILE_VIEWER_PREFIX = '/profile-viewer/';
-  var DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
+  var DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
   var ORG_ID = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
   var EDGE_DEPLOYMENT = 'nld2';
   var IFRAME_ID = 'modDemoSiteFrame';
   var IFRAME_INLINE_SECTION_ID = 'modDemoArmyBcInline';
   var IFRAME_MOUNT_SELECTOR = '#brand-concierge-mount';
+  var IFRAME_INJECTED_MOUNT_SELECTOR = '#modDemoArmyBcInline #brand-concierge-mount';
+  var MODAL_MOUNT_SELECTOR = '#aepBcModal #brand-concierge-mount';
+  var DEFAULT_FRAME_SRC = 'mod-demo-assets/army-home-snapshot.html';
+  var SNAPSHOT_FS_LAYOUT_STYLE_ID = 'aep-mod-bc-fullscreen-layout';
+  var SNAPSHOT_FS_LAYOUT_CSS = [
+    'html.mod-demo-bc-fs-active,html.mod-demo-bc-fs-active body{height:100%!important;overflow:hidden!important;background-color:#2c2e31!important;}',
+    'html.mod-demo-bc-fs-active .pin-spacer,html.mod-demo-bc-fs-active .main-page-layout__body,html.mod-demo-bc-fs-active .main-page-layout__footer,html.mod-demo-bc-fs-active .exp-hero-banner{display:none!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-fs-active .main-page-layout__header{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:1200!important;pointer-events:auto!important;}',
+    'html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--home) .site-header__logo.logo-svg,html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--global-operations) .site-header__logo.logo-svg,html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--ranks-listing) .site-header__logo.logo-svg{visibility:visible!important;}',
+    'html.mod-demo-bc-fs-active .site-header{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;width:100%!important;box-sizing:border-box!important;padding:var(--site-header-spacer-y,1.5rem) 1.25rem 0.5rem!important;}',
+    'html.mod-demo-bc-fs-active .site-header__logo.logo-svg{display:block!important;height:var(--site-header-logo-height,76px)!important;width:6.25rem!important;margin:0 auto!important;background-repeat:no-repeat!important;background-position:center center!important;background-size:contain!important;}',
+    'html.mod-demo-bc-fs-active .site-header__actions{position:fixed!important;right:0.5rem!important;bottom:1.5rem!important;z-index:1210!important;flex-direction:column!important;pointer-events:auto!important;}',
+    'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen{position:fixed!important;top:var(--site-header-height,calc(var(--site-header-logo-height,76px) + 2rem))!important;left:0!important;right:0!important;bottom:0!important;z-index:1300!important;margin:0 auto!important;padding:clamp(0.75rem,2vw,1.25rem)!important;min-height:0!important;overflow:auto!important;display:flex!important;flex-direction:column!important;align-items:center!important;box-sizing:border-box!important;pointer-events:auto!important;background:linear-gradient(122.87deg,#e1e9ff 20.72%,#efe3fa 34.96%,#f5dff8 42.08%,#fcdcf5 49.2%,#ffdec3 91.6%)!important;}',
+    'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen .army-bc-inline__mount,html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen #brand-concierge-mount{width:100%!important;max-width:920px!important;margin-left:auto!important;margin-right:auto!important;min-height:min(540px,calc(100vh - var(--site-header-height,5rem) - 2rem))!important;pointer-events:auto!important;}',
+    'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
+  var SNAPSHOT_INJECTED_LAYOUT_STYLE_ID = 'aep-mod-bc-injected-layout';
+  var SNAPSHOT_INJECTED_LAYOUT_CSS = [
+    'html.mod-demo-bc-injected-active .pin-spacer{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .pin-spacer>.exp-content__block-container,html.mod-demo-bc-injected-active .pin-spacer>[x-ref="blockInner"]{position:relative!important;inset:auto!important;transform:none!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner{position:relative!important;height:auto!important;min-height:0!important;max-height:none!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner__media-bg,html.mod-demo-bc-injected-active .exp-hero-banner__media-container,html.mod-demo-bc-injected-active .exp-hero-banner__text-container,html.mod-demo-bc-injected-active .exp-hero-banner__footer-container{pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner__logo,html.mod-demo-bc-injected-active .exp-hero-banner__cta-btn{pointer-events:auto!important;}',
+    'html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline{position:relative!important;z-index:1300!important;isolation:isolate!important;pointer-events:auto!important;}',
+    'html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline #brand-concierge-mount,html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
 
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
   var fullScreenToggle = document.getElementById('modBcFullScreenToggle');
-  var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
   var bcModal = document.getElementById('aepBcModal');
+  var bcFab = document.getElementById('modDemoBcFab');
 
   var parentCoreReady = null;
   var iframeCoreReady = null;
   var loadedParentStyleUrl = null;
   var loadedIframeStyleUrl = null;
+  var loadedParentDatastreamId = null;
+  var loadedIframeDatastreamId = null;
   var activeMode = null;
   var cssLoaded = { shared: false, inline: false, modal: false };
 
@@ -36,6 +64,39 @@
       return global.ModDemoBcConfig.getStyleConfigUrl();
     }
     return DEFAULT_STYLE_CONFIG_URL;
+  }
+
+  function getDatastreamId() {
+    if (global.ModDemoBcConfig && typeof global.ModDemoBcConfig.getDatastreamId === 'function') {
+      return global.ModDemoBcConfig.getDatastreamId();
+    }
+    return DEFAULT_DATASTREAM_ID;
+  }
+
+  function setSnapshotInjectedLayout(doc, on) {
+    if (!doc || !doc.documentElement) return;
+    doc.documentElement.classList.toggle('mod-demo-bc-injected-active', !!on);
+    var styleEl = doc.getElementById(SNAPSHOT_INJECTED_LAYOUT_STYLE_ID);
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = SNAPSHOT_INJECTED_LAYOUT_STYLE_ID;
+      doc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = on ? SNAPSHOT_INJECTED_LAYOUT_CSS : '';
+    refreshSnapshotRuntimeFix(doc);
+  }
+
+  async function restoreModDemoSnapshotFrame() {
+    var doc = getIframeDoc();
+    if (doc) {
+      setSnapshotFullscreenLayout(doc, false);
+      setSnapshotInjectedLayout(doc, false);
+    }
+    if (!isLegacyFullscreenShellLoaded()) return;
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
+    loadedIframeDatastreamId = null;
+    await ensureSnapshotFrame();
   }
 
   function resolveAssetUrl(url) {
@@ -60,6 +121,107 @@
     }
   }
 
+  function getFrameSrcPath() {
+    var frame = getModDemoFrame();
+    if (!frame) return '';
+    var src = frame.getAttribute('src') || '';
+    return src.split('?')[0];
+  }
+
+  function isLegacyFullscreenShellLoaded() {
+    return getFrameSrcPath().indexOf('mod-bc-fullscreen-shell.html') >= 0;
+  }
+
+  function refreshSnapshotRuntimeFix(doc) {
+    if (!doc || !doc.body) return;
+    var styleEl = doc.getElementById('aep-mod-snapshot-runtime-fix');
+    if (!styleEl) return;
+    var fs = doc.documentElement.classList.contains('mod-demo-bc-fs-active');
+    var inj = doc.documentElement.classList.contains('mod-demo-bc-injected-active');
+    if (fs || inj) {
+      styleEl.textContent =
+        'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}';
+      return;
+    }
+    styleEl.textContent = [
+      'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}',
+      '.pin-spacer{width:100%!important;max-width:100%!important;left:0!important;right:0!important;padding:0!important;margin:0!important;transform:none!important;overflow:visible!important;}',
+      '.pin-spacer>.exp-content__block-container,.pin-spacer>[x-ref="blockInner"]{width:100%!important;max-width:100%!important;left:0!important;right:0!important;top:0!important;margin:0!important;transform:none!important;}',
+      '.exp-hero-banner__logo{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__cta-btn{position:fixed!important;top:18px!important;left:22px!important;transform:none!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__text-container,.exp-hero-banner__media-container,.exp-hero-banner__scroll-prompt{transform:none!important;}',
+    ].join('');
+  }
+
+  function setSnapshotFullscreenLayout(doc, on) {
+    if (!doc || !doc.documentElement) return;
+    doc.documentElement.classList.toggle('mod-demo-bc-fs-active', !!on);
+    var logo = doc.querySelector('.site-header__logo.logo-svg');
+    if (logo) {
+      if (on) logo.classList.add('logo-svg--dark');
+      else logo.classList.remove('logo-svg--dark');
+    }
+    var styleEl = doc.getElementById(SNAPSHOT_FS_LAYOUT_STYLE_ID);
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = SNAPSHOT_FS_LAYOUT_STYLE_ID;
+      doc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = on ? SNAPSHOT_FS_LAYOUT_CSS : '';
+    refreshSnapshotRuntimeFix(doc);
+    try {
+      doc.defaultView && doc.defaultView.scrollTo(0, 0);
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function waitForFrameLoad(frame) {
+    return new Promise(function (resolve) {
+      if (!frame) {
+        resolve();
+        return;
+      }
+      try {
+        var doc = frame.contentDocument;
+        if (doc && doc.readyState === 'complete') {
+          resolve();
+          return;
+        }
+      } catch (_e) {
+        /* cross-origin guard */
+      }
+      frame.addEventListener('load', function () {
+        resolve();
+      }, { once: true });
+    });
+  }
+
+  async function ensureSnapshotFrame() {
+    var frame = getModDemoFrame();
+    if (!frame) return;
+    var current = getFrameSrcPath();
+    var onSnapshot =
+      current.indexOf(DEFAULT_FRAME_SRC) >= 0 && current.indexOf('mod-bc-fullscreen-shell.html') < 0;
+    if (onSnapshot) {
+      await waitForFrameLoad(frame);
+      return;
+    }
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
+    loadedIframeDatastreamId = null;
+    await new Promise(function (resolve) {
+      frame.addEventListener(
+        'load',
+        function () {
+          resolve();
+        },
+        { once: true },
+      );
+      frame.src = DEFAULT_FRAME_SRC;
+    });
+  }
+
   function unloadStyleConfigScripts(doc) {
     var root = doc || document;
     root.querySelectorAll('script[data-mod-demo-bc-style-config="1"]').forEach(function (s) {
@@ -72,9 +234,12 @@
     iframeCoreReady = null;
     loadedParentStyleUrl = null;
     loadedIframeStyleUrl = null;
+    loadedParentDatastreamId = null;
+    loadedIframeDatastreamId = null;
     activeMode = null;
     global.__aepBcToggleBootstrapped = false;
     global.__modDemoBcBootstrapped = false;
+    global.__modDemoBcAlloyConfiguredWin = null;
     global.__armyBcForceLocal = false;
     unloadStyleConfigScripts(document);
     var iframeDoc = getIframeDoc();
@@ -82,7 +247,11 @@
       var iframeWin = iframeDoc.defaultView;
       if (iframeWin) {
         iframeWin.__modDemoBcBootstrapped = false;
+        iframeWin.__modDemoBcAlloyConfiguredWin = null;
         iframeWin.__armyBcForceLocal = false;
+        if (typeof iframeWin.resetModDemoInjectedBc === 'function') {
+          iframeWin.resetModDemoInjectedBc();
+        }
       }
       unloadStyleConfigScripts(iframeDoc);
       teardownIframeInlineSection(iframeDoc);
@@ -94,10 +263,11 @@
     }
   }
 
-  function loadScript(src, doc) {
+  function loadScript(src, doc, marker) {
     var targetDoc = doc || document;
     var key = String(src);
-    if (targetDoc.querySelector('script[data-mod-demo-bc="' + key + '"]')) {
+    var attr = marker ? 'data-mod-demo-bc-' + marker : 'data-mod-demo-bc';
+    if (targetDoc.querySelector('script[' + attr + '="' + key + '"]')) {
       return Promise.resolve();
     }
     return new Promise(function (resolve, reject) {
@@ -105,6 +275,9 @@
       s.src = key;
       s.async = false;
       s.setAttribute('data-mod-demo-bc', key);
+      if (marker) {
+        s.setAttribute('data-mod-demo-bc-' + marker, key);
+      }
       s.onload = function () {
         resolve();
       };
@@ -257,8 +430,7 @@
   }
 
   function teardownConflictingBcMounts() {
-    clearMountInDoc(document, '#brand-concierge-mount');
-    clearMountInDoc(document, '#modDemoBcModalMount');
+    clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
     global.__aepBcToggleBootstrapped = false;
     global.__brandConciergeBootstrapped = false;
     global.__modDemoBcBootstrapped = false;
@@ -266,8 +438,9 @@
 
   async function ensureAlloyJs(win, doc) {
     installAlloyStub(win);
-    if (typeof win.alloy === 'function') return;
-    await loadScript(ALLOY_JS, doc);
+    if (!doc.querySelector('script[data-mod-demo-bc-alloy="1"]')) {
+      await loadScript(ALLOY_JS, doc, 'alloy');
+    }
     await waitFor(
       function () {
         return typeof win.alloy === 'function';
@@ -278,10 +451,9 @@
   }
 
   async function ensureConciergeAgent(win, doc) {
-    if (win.adobe && win.adobe.concierge && typeof win.adobe.concierge.bootstrap === 'function') {
-      return;
+    if (!doc.querySelector('script[data-mod-demo-bc-concierge="1"]')) {
+      await loadScript(BC_MAIN_JS, doc, 'concierge');
     }
-    await loadScript(BC_MAIN_JS, doc);
     await waitFor(
       function () {
         return !!(
@@ -328,46 +500,17 @@
     }
   }
 
-  function rewriteBrandConciergeEdgeUrl(url, deployment) {
-    if (typeof url !== 'string' || url.indexOf('brand-concierge') === -1) return url;
-    var dep = deployment || EDGE_DEPLOYMENT;
-    if (url.indexOf('/brand-concierge/' + dep + '/conversations') !== -1) {
-      return url;
+  async function ensureEdgePathPatches(win, doc) {
+    if (!win || shouldUseLocalArmyBcCatalog(win)) return;
+    prepareArmyBcRuntime(win);
+    if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+      win.applyArmyBcEdgePathPatches(win);
+      return;
     }
-    if (url.indexOf('/brand-concierge-voice/' + dep + '/conversations') !== -1) {
-      return url;
+    await loadScript(resolveAssetUrl(BASE + 'army-bc-edge-path.js'), doc);
+    if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+      win.applyArmyBcEdgePathPatches(win);
     }
-    return url
-      .replace(
-        '/brand-concierge/conversations',
-        '/brand-concierge/' + dep + '/conversations',
-      )
-      .replace(
-        '/brand-concierge-voice/conversations',
-        '/brand-concierge-voice/' + dep + '/conversations',
-      );
-  }
-
-  function patchFetchForNld2(win) {
-    if (!win || win.__modDemoBcFetchPatched) return;
-    function rewrite(url) {
-      return rewriteBrandConciergeEdgeUrl(url, EDGE_DEPLOYMENT);
-    }
-    var nativeFetch = win.fetch;
-    if (typeof nativeFetch !== 'function') return;
-    win.fetch = function (input, init) {
-      if (typeof input === 'string') {
-        input = rewrite(input);
-      } else if (input && typeof input.url === 'string') {
-        var next = rewrite(input.url);
-        if (next !== input.url) input = new Request(next, input);
-      }
-      return nativeFetch.call(this, input, init);
-    };
-    win.__modDemoBcFetchPatched = true;
-    console.info(
-      '[mod-demo-bc] Edge fetch rewrite active → /brand-concierge/' + EDGE_DEPLOYMENT + '/conversations',
-    );
   }
 
   async function loadArmyBcHelperScripts(win, doc) {
@@ -403,37 +546,38 @@
     })(win, ['alloy']);
   }
 
-  var ALLOY_CONFIG = {
-    defaultConsent: 'in',
-    edgeDomain: 'edge.adobedc.net',
-    edgeBasePath: 'ee',
-    datastreamId: DATASTREAM_ID,
-    orgId: ORG_ID,
-    debugEnabled: true,
-    idMigrationEnabled: false,
-    thirdPartyCookiesEnabled: false,
-    prehidingStyle: '.personalization-container { opacity: 0 !important }',
-  };
+  function getAlloyConfig() {
+    return {
+      defaultConsent: 'in',
+      edgeDomain: 'edge.adobedc.net',
+      edgeBasePath: 'ee',
+      datastreamId: getDatastreamId(),
+      orgId: ORG_ID,
+      debugEnabled: true,
+      idMigrationEnabled: false,
+      thirdPartyCookiesEnabled: false,
+      prehidingStyle: '.personalization-container { opacity: 0 !important }',
+    };
+  }
 
   function isAlloyAlreadyConfiguredError(err) {
     var msg = String((err && err.message) || err);
     return msg.indexOf('already been configured') >= 0;
   }
 
-  async function configureAlloyOnce(win) {
+  async function configureAlloyOnce(win, doc) {
     if (!win) return;
-    if (win.__modDemoBcAlloyConfigured) return;
-    installAlloyStub(win);
+    if (win.__modDemoBcAlloyConfiguredWin === win) return;
     if (typeof win.alloy !== 'function') {
       throw new Error('Alloy is not available');
     }
     try {
-      await win.alloy('configure', ALLOY_CONFIG);
+      await win.alloy('configure', getAlloyConfig());
       await win.alloy('sendEvent', {});
-      win.__modDemoBcAlloyConfigured = true;
+      win.__modDemoBcAlloyConfiguredWin = win;
     } catch (err) {
       if (isAlloyAlreadyConfiguredError(err)) {
-        win.__modDemoBcAlloyConfigured = true;
+        win.__modDemoBcAlloyConfiguredWin = win;
         return;
       }
       throw err;
@@ -453,13 +597,33 @@
     el.hidden = false;
   }
 
+  function ensureBcCardImageStyles(doc) {
+    if (!doc || doc.getElementById('modDemoBcCardImageFix')) return;
+    var style = doc.createElement('style');
+    style.id = 'modDemoBcCardImageFix';
+    style.textContent =
+      '.bc-card__image { background-size: cover !important; background-position: center !important; }';
+    (doc.head || doc.documentElement).appendChild(style);
+  }
+
+  function findHeroInsertPoint(doc) {
+    var hero = doc.querySelector('.exp-hero-banner');
+    if (!hero) return null;
+    return (
+      hero.closest('[id^="pin-spacer"]') ||
+      hero.closest('.pin-spacer') ||
+      hero.closest('.exp-content__block-container') ||
+      hero
+    );
+  }
+
   function scheduleDisclaimerReposition(doc) {
     if (!doc) return;
     function run() {
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount, #modDemoBcModalMount').forEach(function (mount) {
-          global.repositionArmyBcDisclaimer(mount);
-        });
+        doc.querySelectorAll('#brand-concierge-mount').forEach(function (mount) {
+            global.repositionArmyBcDisclaimer(mount);
+          });
       }
     }
     run();
@@ -468,7 +632,11 @@
     });
   }
 
-  async function bootstrapConcierge(win, selector, stylingConfigurations) {
+  async function bootstrapConcierge(win, selector, stylingConfigurations, options) {
+    options = options || {};
+    if (!shouldUseLocalArmyBcCatalog(win)) {
+      await ensureEdgePathPatches(win, win.document);
+    }
     if (
       !win ||
       !win.adobe ||
@@ -492,18 +660,30 @@
     try {
       await win.adobe.concierge.bootstrap(bootOpts);
       win.__modDemoBcBootstrapped = true;
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
       scheduleDisclaimerReposition(win.document);
     } catch (err) {
       clearMountInDoc(win.document, selector);
       try {
         await win.adobe.concierge.bootstrap(bootOpts);
         win.__modDemoBcBootstrapped = true;
+        if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+          win.applyArmyBcEdgePathPatches(win);
+        }
         scheduleDisclaimerReposition(win.document);
         return;
       } catch (retryErr) {
-        if (typeof win.adobe.concierge.open === 'function') {
+        if (
+          options.allowConciergeOpenOnRetry !== false &&
+          typeof win.adobe.concierge.open === 'function'
+        ) {
           win.adobe.concierge.open();
           win.__modDemoBcBootstrapped = true;
+          if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+            win.applyArmyBcEdgePathPatches(win);
+          }
           scheduleDisclaimerReposition(win.document);
           return;
         }
@@ -514,14 +694,19 @@
 
   function ensureParentCore() {
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
-    if (parentCoreReady && loadedParentStyleUrl && loadedParentStyleUrl !== styleUrl) {
+    var datastreamId = getDatastreamId();
+    if (
+      parentCoreReady &&
+      ((loadedParentStyleUrl && loadedParentStyleUrl !== styleUrl) ||
+        (loadedParentDatastreamId && loadedParentDatastreamId !== datastreamId))
+    ) {
       parentCoreReady = null;
       loadedParentStyleUrl = null;
+      loadedParentDatastreamId = null;
     }
     if (parentCoreReady) return parentCoreReady;
     parentCoreReady = (async function () {
       prepareArmyBcRuntime(global);
-      patchFetchForNld2(global);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared');
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared');
       if (shouldUseLocalArmyBcCatalog(global)) {
@@ -530,10 +715,14 @@
 
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), global, document);
       loadedParentStyleUrl = loadedStyle || styleUrl;
+      loadedParentDatastreamId = datastreamId;
       console.info('[mod-demo-bc] loaded style configuration:', loadedParentStyleUrl);
+      console.info('[mod-demo-bc] alloy datastreamId:', loadedParentDatastreamId);
+      await ensureEdgePathPatches(global, document);
       await ensureAlloyJs(global, document);
+      await ensureEdgePathPatches(global, document);
       await ensureConciergeAgent(global, document);
-      await configureAlloyOnce(global);
+      await configureAlloyOnce(global, document);
 
       await loadArmyBcHelperScripts(global, document);
     })().catch(function (err) {
@@ -551,29 +740,39 @@
     }
     var win = doc.defaultView;
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
-    if (iframeCoreReady && loadedIframeStyleUrl && loadedIframeStyleUrl !== styleUrl) {
+    var datastreamId = getDatastreamId();
+    if (
+      iframeCoreReady &&
+      ((loadedIframeStyleUrl && loadedIframeStyleUrl !== styleUrl) ||
+        (loadedIframeDatastreamId && loadedIframeDatastreamId !== datastreamId))
+    ) {
       iframeCoreReady = null;
       loadedIframeStyleUrl = null;
+      loadedIframeDatastreamId = null;
       teardownIframeInlineSection(doc);
     }
     if (iframeCoreReady) return iframeCoreReady;
 
     iframeCoreReady = (async function () {
       prepareArmyBcRuntime(win);
-      patchFetchForNld2(win);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
+      ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared', doc);
       }
 
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
       loadedIframeStyleUrl = loadedStyle || styleUrl;
+      loadedIframeDatastreamId = datastreamId;
       console.info('[mod-demo-bc] loaded style configuration (iframe):', loadedIframeStyleUrl);
+      console.info('[mod-demo-bc] alloy datastreamId (iframe):', loadedIframeDatastreamId);
+      await ensureEdgePathPatches(win, doc);
       await ensureAlloyJs(win, doc);
+      await ensureEdgePathPatches(win, doc);
       await ensureConciergeAgent(win, doc);
-      await configureAlloyOnce(win);
+      await configureAlloyOnce(win, doc);
 
       await loadArmyBcHelperScripts(win, doc);
     })().catch(function (err) {
@@ -600,52 +799,108 @@
   function ensureIframeInlineSection(doc, fullscreen) {
     var existing = doc.getElementById(IFRAME_INLINE_SECTION_ID);
     if (existing) {
-      existing.classList.toggle('mod-demo-army-bc-inline--fullscreen', !!fullscreen);
+      existing.className = fullscreen
+        ? 'army-bc-inline mod-demo-army-bc-inline--fullscreen'
+        : 'army-bc-inline';
+      if (fullscreen) {
+        var header = doc.querySelector('.main-page-layout__header');
+        if (header && header.parentNode && existing.previousSibling !== header) {
+          header.parentNode.insertBefore(existing, header.nextSibling);
+        }
+      }
       return existing.querySelector(IFRAME_MOUNT_SELECTOR) || existing;
     }
-    var hero =
-      doc.querySelector('.exp-hero-banner') ||
-      doc.querySelector('.exp-content__block-container') ||
-      doc.body.firstElementChild;
     var section = doc.createElement('section');
     section.id = IFRAME_INLINE_SECTION_ID;
-    section.className = 'army-bc-inline mod-demo-army-bc-inline';
-    if (fullscreen) section.classList.add('mod-demo-army-bc-inline--fullscreen');
+    section.className = fullscreen
+      ? 'army-bc-inline mod-demo-army-bc-inline--fullscreen'
+      : 'army-bc-inline';
     section.setAttribute('aria-label', 'Army recruitment assistant');
     var mount = doc.createElement('div');
     mount.id = 'brand-concierge-mount';
     mount.className = 'army-bc-inline__mount';
     section.appendChild(mount);
-    if (hero && hero.parentNode) {
-      hero.parentNode.insertBefore(section, hero.nextSibling);
+    if (fullscreen) {
+      var siteHeader = doc.querySelector('.main-page-layout__header');
+      if (siteHeader && siteHeader.parentNode) {
+        siteHeader.parentNode.insertBefore(section, siteHeader.nextSibling);
+      } else {
+        doc.body.insertBefore(section, doc.body.firstChild);
+      }
     } else {
-      doc.body.insertBefore(section, doc.body.firstChild);
+      var anchor = findHeroInsertPoint(doc);
+      if (anchor && anchor.parentNode) {
+        anchor.parentNode.insertBefore(section, anchor.nextSibling);
+      } else {
+        doc.body.insertBefore(section, doc.body.firstChild);
+      }
     }
     return mount;
   }
 
   async function bootstrapParent(selector) {
     await ensureParentCore();
-    await bootstrapConcierge(global, selector, global.styleConfiguration);
+    await bootstrapConcierge(global, selector, global.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
     activeMode = 'modal';
   }
 
-  async function bootstrapIframeInjected(fullscreen) {
+  async function bootstrapIframeBcInline(fullscreen) {
+    await ensureSnapshotFrame();
     var doc = getIframeDoc();
     if (!doc) throw new Error('MOD site iframe is not ready');
     var win = doc.defaultView;
-    await ensureIframeCore();
-    ensureIframeInlineSection(doc, fullscreen);
-    await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration);
-    var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
-    if (section && typeof section.scrollIntoView === 'function') {
-      try {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (_e) {
-        section.scrollIntoView();
+    if (!win) throw new Error('MOD site iframe window is not ready');
+
+    setSnapshotFullscreenLayout(doc, !!fullscreen);
+    setSnapshotInjectedLayout(doc, !fullscreen);
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
+    teardownIframeInlineSection(doc);
+    setSnapshotInjectedLayout(doc, !fullscreen);
+    ensureIframeInlineSection(doc, !!fullscreen);
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
+    ensureBcCardImageStyles(doc);
+
+    if (typeof win.activateModDemoInjectedBc === 'function') {
+      await win.activateModDemoInjectedBc(
+        resolveAssetUrl(getStyleConfigUrl()),
+        IFRAME_INJECTED_MOUNT_SELECTOR,
+        getDatastreamId(),
+      );
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
+      scheduleDisclaimerReposition(doc);
+    } else {
+      await ensureIframeCore();
+      await bootstrapConcierge(win, IFRAME_INJECTED_MOUNT_SELECTOR, win.styleConfiguration, {
+        allowConciergeOpenOnRetry: false,
+      });
+    }
+
+    if (!fullscreen) {
+      var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
+      if (section && typeof section.scrollIntoView === 'function') {
+        try {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (_e) {
+          section.scrollIntoView();
+        }
       }
     }
     activeMode = fullscreen ? 'fullscreen' : 'injected';
+  }
+
+  async function bootstrapIframeFullscreen() {
+    await bootstrapIframeBcInline(true);
+  }
+
+  async function bootstrapIframeInjected() {
+    await bootstrapIframeBcInline(false);
   }
 
   async function loadModalAssets() {
@@ -668,27 +923,44 @@
   }
 
   function closeBcModal() {
+    if (global.ArmyBcPopup && typeof global.ArmyBcPopup.close === 'function') {
+      global.ArmyBcPopup.close();
+      return;
+    }
     if (!bcModal) return;
     bcModal.classList.remove('is-open');
     bcModal.setAttribute('hidden', '');
     document.body.classList.remove('aep-bc-modal-open');
+    if (bcFab) bcFab.setAttribute('aria-expanded', 'false');
   }
 
-  function openBcModal() {
-    if (!bcModal) return;
-    bcModal.classList.add('is-open');
-    bcModal.removeAttribute('hidden');
-    document.body.classList.add('aep-bc-modal-open');
-    var closeBtn = bcModal.querySelector('.aep-bc-modal__close');
-    if (closeBtn) closeBtn.focus();
+  function setModalFabArmed(armed) {
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('mod-demo-bc-modal-armed', !!armed);
+    }
+    if (bcFab) bcFab.hidden = !armed;
+  }
+
+  async function ensureModalPopupUi() {
+    await loadModalAssets();
+    if (typeof global.initArmyBcPopup === 'function') {
+      global.initArmyBcPopup();
+    }
   }
 
   function updateChromeVisibility() {
-    if (injectedPanel) injectedPanel.hidden = true;
-    if (!isModalOn()) closeBcModal();
+    if (!isModalOn()) {
+      closeBcModal();
+      setModalFabArmed(false);
+    }
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('mod-demo-bc-fullscreen-armed', isFullScreenOn());
+    }
     var doc = getIframeDoc();
-    if (doc && !isInjectedOn() && !isFullScreenOn()) {
-      teardownIframeInlineSection(doc);
+    if (doc) {
+      if (!isFullScreenOn()) setSnapshotFullscreenLayout(doc, false);
+      if (!isInjectedOn()) setSnapshotInjectedLayout(doc, false);
+      if (!isInjectedOn() && !isFullScreenOn()) teardownIframeInlineSection(doc);
     }
   }
 
@@ -709,9 +981,14 @@
     var wantFullScreen = isFullScreenOn();
 
     if (!wantInjected && !wantModal && !wantFullScreen) {
-      var iframeDoc = getIframeDoc();
-      if (iframeDoc) teardownIframeInlineSection(iframeDoc);
-      clearMountInDoc(document, '#modDemoBcModalMount');
+      var iframeDocOff = getIframeDoc();
+      if (iframeDocOff) {
+        setSnapshotFullscreenLayout(iframeDocOff, false);
+        setSnapshotInjectedLayout(iframeDocOff, false);
+        teardownIframeInlineSection(iframeDocOff);
+      }
+      await restoreModDemoSnapshotFrame();
+      clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       activeMode = null;
       reportBcStatus('');
       return;
@@ -720,16 +997,25 @@
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
     try {
       teardownConflictingBcMounts();
-      if (wantModal) {
-        var iframeDocModal = getIframeDoc();
-        if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
-        await loadModalAssets();
-        await bootstrapParent('#modDemoBcModalMount');
-        openBcModal();
-      } else if (wantFullScreen || wantInjected) {
+      if (wantFullScreen) {
         closeBcModal();
-        clearMountInDoc(document, '#modDemoBcModalMount');
-        await bootstrapIframeInjected(wantFullScreen);
+        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        await restoreModDemoSnapshotFrame();
+        await bootstrapIframeFullscreen();
+      } else {
+        await restoreModDemoSnapshotFrame();
+        if (wantModal) {
+          var iframeDocModal = getIframeDoc();
+          if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
+          await ensureModalPopupUi();
+          await bootstrapParent(MODAL_MOUNT_SELECTOR);
+          closeBcModal();
+          setModalFabArmed(true);
+        } else if (wantInjected) {
+          closeBcModal();
+          clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+          await bootstrapIframeInjected();
+        }
       }
       reportBcStatus('');
     } catch (e) {
@@ -755,16 +1041,6 @@
     });
   }
 
-  function bindModalClose() {
-    if (!bcModal) return;
-    bcModal.querySelectorAll('[data-aep-bc-close]').forEach(function (el) {
-      el.addEventListener('click', closeBcModal);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && bcModal.classList.contains('is-open')) closeBcModal();
-    });
-  }
-
   function bindIframeLoad() {
     var frame = getModDemoFrame();
     if (!frame) return;
@@ -773,14 +1049,21 @@
       loadedIframeStyleUrl = null;
       if (isInjectedOn() || isFullScreenOn()) {
         void sync();
+      } else {
+        void restoreModDemoSnapshotFrame().then(function () {
+          var iframeDoc = getIframeDoc();
+          if (iframeDoc) teardownIframeInlineSection(iframeDoc);
+        });
       }
     });
   }
 
   bindToggles();
-  bindModalClose();
   bindIframeLoad();
   global.ModDemoBc = { sync: sync, invalidateCore: invalidateCore };
+
+  prepareArmyBcRuntime(global);
+  void ensureEdgePathPatches(global, document);
 
   function scheduleInitialSync() {
     if (!isInjectedOn() && !isModalOn() && !isFullScreenOn()) return;

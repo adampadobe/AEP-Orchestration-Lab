@@ -17,9 +17,22 @@
   /** ~4.5MB — under typical 5MB localStorage practical limit */
   var MAX_PERSIST_CHARS = 4500000;
 
-  var FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
-  var GENERATE_URL = FN_BASE + '/clientJourneyV2Generate';
-  var REFINE_URL = FN_BASE + '/clientJourneyV2Refine';
+  function aepLabCloudFunctionsOrigin() {
+    try {
+      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
+        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+    var pid = 'aep-orchestration-lab';
+    try {
+      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
+        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
+      }
+    } catch (_e2) {}
+    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  }
+  function cjv2GenerateUrl() { return aepLabCloudFunctionsOrigin() + '/clientJourneyV2Generate'; }
+  function cjv2RefineUrl() { return aepLabCloudFunctionsOrigin() + '/clientJourneyV2Refine'; }
   var PPTX_URL = '/api/client-journey-v2/pptx';
   var IMPORT_LIST_URL = '/api/client-journey-v2/import/scrapes';
   var IMPORT_PROFILE_URL = '/api/client-journey-v2/import/profile';
@@ -1358,7 +1371,7 @@
     }, 4000);
 
     try {
-      var resp = await fetch(GENERATE_URL, {
+      var resp = await fetch(cjv2GenerateUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -1444,7 +1457,7 @@
     var startedAt = Date.now();
 
     try {
-      var resp = await fetch(REFINE_URL, {
+      var resp = await fetch(cjv2RefineUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

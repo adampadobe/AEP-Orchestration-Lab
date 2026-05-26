@@ -111,6 +111,43 @@ const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.ru
 
 const REGION = 'us-central1';
 
+/**
+ * Default public Hosting origin when deploy-time env does not set
+ * `LAB_HOSTING_ORIGIN`, `LAB_APPROVAL_BASE_URL`, or `HOSTING_ORIGIN`.
+ * See docs/FIREBASE_PROJECT_MIGRATION.md.
+ */
+const LEGACY_LAB_HOSTING_ORIGIN = 'https://aep-orchestration-lab.web.app';
+
+/**
+ * Origin string baked into lab-approval function `environmentVariables` at deploy.
+ * Override via deploy environment (same keys as runtime).
+ */
+function labHostingOriginForFunctionConfig() {
+  const explicit = String(
+    process.env.LAB_HOSTING_ORIGIN
+      || process.env.LAB_APPROVAL_BASE_URL
+      || process.env.HOSTING_ORIGIN
+      || '',
+  )
+    .trim()
+    .replace(/\/+$/, '');
+  return explicit || LEGACY_LAB_HOSTING_ORIGIN;
+}
+
+/**
+ * Origin for scheduled jobs that `fetch()` the live site (schema viewer CDN warm).
+ * In GCP, defaults to `https://${GCLOUD_PROJECT}.web.app` when unset.
+ */
+function labHostingOriginForScheduledFetch() {
+  const explicit = String(process.env.LAB_HOSTING_ORIGIN || process.env.HOSTING_ORIGIN || '')
+    .trim()
+    .replace(/\/+$/, '');
+  if (explicit) return explicit;
+  const pid = String(process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || '').trim();
+  if (pid) return `https://${pid}.web.app`;
+  return LEGACY_LAB_HOSTING_ORIGIN;
+}
+
 const PROFILE_FN_SECRETS = [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES];
 
 /** Firestore consent store — no Adobe secrets (same project Admin SDK). */
@@ -3329,7 +3366,7 @@ exports.labWorkspaceAuthRegister = onRequest(
     environmentVariables: {
       LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
       LAB_APPROVAL_MAILGUN_REGION: '',
-      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
     },
   },
@@ -3381,7 +3418,7 @@ exports.labLabAccessRequestApproval = onRequest(
     environmentVariables: {
       LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
       LAB_APPROVAL_MAILGUN_REGION: '',
-      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
     },
   },
@@ -3436,7 +3473,7 @@ exports.labLabAccessRequestApprovalSignup = onRequest(
     environmentVariables: {
       LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
       LAB_APPROVAL_MAILGUN_REGION: '',
-      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
     },
   },
@@ -3513,7 +3550,7 @@ exports.labWorkspaceAuthRegisterFromIdToken = onRequest(
     environmentVariables: {
       LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
       LAB_APPROVAL_MAILGUN_REGION: '',
-      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
     },
   },
@@ -3564,7 +3601,7 @@ exports.labWorkspaceAuthRegisterGoogle = onRequest(
     environmentVariables: {
       LAB_APPROVAL_NOTIFY_EMAIL: 'apalmer@adobe.com',
       LAB_APPROVAL_MAILGUN_REGION: '',
-      LAB_APPROVAL_BASE_URL: 'https://aep-orchestration-lab.web.app',
+      LAB_APPROVAL_BASE_URL: labHostingOriginForFunctionConfig(),
       LAB_APPROVAL_MAIL_FROM: '',
     },
   },
@@ -4310,7 +4347,6 @@ exports.journeyBrowseCacheRefresh = onSchedule(
 // for recently-accessed sandboxes.
 // ---------------------------------------------------------------------------
 
-const HOSTING_ORIGIN = 'https://aep-orchestration-lab.web.app';
 const WARM_ENDPOINTS = ['overview-stats', 'tenant-schemas', 'datasets', 'audiences'];
 
 exports.schemaViewerCacheWarm = onSchedule(
@@ -4321,12 +4357,13 @@ exports.schemaViewerCacheWarm = onSchedule(
     memory: '256MiB',
   },
   async () => {
+    const hostingOrigin = labHostingOriginForScheduledFetch();
     const sandboxes = await svCache.getRecentSandboxes();
     if (sandboxes.length === 0) return;
 
     for (const sandbox of sandboxes) {
       const urls = WARM_ENDPOINTS.map(
-        (ep) => `${HOSTING_ORIGIN}/api/schema-viewer/${ep}?sandbox=${encodeURIComponent(sandbox)}`,
+        (ep) => `${hostingOrigin}/api/schema-viewer/${ep}?sandbox=${encodeURIComponent(sandbox)}`,
       );
       await Promise.allSettled(
         urls.map((url) => fetch(url).catch(() => {})),

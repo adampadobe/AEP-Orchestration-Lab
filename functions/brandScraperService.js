@@ -31,7 +31,16 @@ async function crawlViaPlaywrightService(url, { maxPages, tagAudit: runTagAudit 
   return resp.data;
 }
 
-const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
+function brandScraperUserAgent() {
+  const explicit = String(process.env.LAB_HOSTING_ORIGIN || process.env.LAB_APPROVAL_BASE_URL || '')
+    .trim()
+    .replace(/\/+$/, '');
+  const origin = explicit
+    || (String(process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || '').trim()
+      ? `https://${String(process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT).trim()}.web.app`
+      : 'https://aep-orchestration-lab.web.app');
+  return `Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +${origin})`;
+}
 const REQUEST_TIMEOUT_MS = 15000;
 /** Default pages per crawl — keep small for fast “light pass”; user can raise or append deeper runs. */
 const MAX_PAGES = 3;
@@ -77,7 +86,7 @@ async function fetchWithTimeout(url, opts = {}) {
     const resp = await fetch(url, {
       redirect: 'follow',
       signal: ctrl.signal,
-      headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml' },
+      headers: { 'User-Agent': brandScraperUserAgent(), Accept: 'text/html,application/xhtml+xml' },
     });
     const contentType = resp.headers.get('content-type') || '';
     if (!resp.ok) {

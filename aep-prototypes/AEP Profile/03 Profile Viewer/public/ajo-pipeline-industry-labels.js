@@ -5,7 +5,8 @@
  * `journeyPrioritisation` drives Stage 2 (#s2) intro, funnel, formula term, and legend;
  * `rankedJourneys` drives the ranked journey rows, card title, and result banner copy.
  * `nextBestPath` drives Stage 3 (#s3): intro, AJO 101, mini-canvas, formula legend, ranked path cards, footer.
- * `fsi` omits `nextBestPath` so the iframe HTML baseline (mortgage demo) restores for that toolbar key.
+ * `fsi` pack is reference-only; `ajo-pipeline-industry-apply.js` restores the iframe HTML baseline
+ * (Sarah Reynolds mortgage demo) when the toolbar key is `fsi` — no label overrides are applied.
  * Stages 4–6 (#s4–#s6): `channelOptimisation`, `sendTimeOptimisation`, `messagePersonalisation`; `fsi` omits all three.
  * Load `ajo-pipeline-industry-stages456-labels.js` then `ajo-pipeline-industry-decisioning-controls.js`
  * immediately after this file so merges run before `ajo-pipeline-industry-apply.js`.
@@ -15,7 +16,7 @@
  */
 (function () {
   window.AEP_PIPELINE_INDUSTRY_LABELS = {
-    /** Default iframe copy stays FSI-shaped; hub cards override when FSI is selected */
+    /** Reference pack (not applied when toolbar is fsi — see ajo-pipeline-industry-apply.js). */
     fsi: {
       businessImpact: {
         sectionDesc:

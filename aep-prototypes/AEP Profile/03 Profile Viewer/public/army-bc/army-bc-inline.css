@@ -42,7 +42,11 @@
   background-repeat: no-repeat !important;
 }
 
-/* MOD demo full-screen injected mode (iframe) */
-.army-bc-inline.mod-demo-army-bc-inline--fullscreen {
-  min-height: 100vh;
+/* MOD demo full-screen mode (iframe) */
+html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen {
+  z-index: 1300;
+}
+
+html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline {
+  z-index: 1300;
 }

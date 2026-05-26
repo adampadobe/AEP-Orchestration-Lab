@@ -95,12 +95,22 @@ function sanitizeHostOrigin(v) {
   return s.replace(/\/+$/, '');
 }
 
+function defaultLabHostingOriginFromEnv() {
+  const explicit = String(process.env.LAB_HOSTING_ORIGIN || process.env.LAB_APPROVAL_BASE_URL || '')
+    .trim()
+    .replace(/\/+$/, '');
+  if (explicit) return explicit;
+  const pid = String(process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || '').trim();
+  if (pid) return `https://${pid}.web.app`;
+  return 'https://aep-orchestration-lab.web.app';
+}
+
 function resolveBaseUrl(inputOrigin, configuredBaseUrl) {
   const preferred = sanitizeHostOrigin(configuredBaseUrl);
   if (preferred) return preferred;
   const reqOrigin = sanitizeHostOrigin(inputOrigin);
   if (reqOrigin) return reqOrigin;
-  return 'https://aep-orchestration-lab.web.app';
+  return defaultLabHostingOriginFromEnv();
 }
 
 function approvalUrl(baseUrl, uid, token) {

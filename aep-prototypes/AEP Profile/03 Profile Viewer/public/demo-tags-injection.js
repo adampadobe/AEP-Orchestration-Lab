@@ -193,6 +193,9 @@
     const configuredStorageKey = storagePrefix + 'SdkConfiguredBySandbox';
     const pendingSessionKey = storagePrefix + 'PendingLaunchInject';
     const ecidBySandboxKey = storagePrefix + 'LastResolvedEcidBySandbox';
+    const companyStorageKey = storagePrefix + 'SelectedTagsCompanyBySandbox';
+    const propertyStorageKey = storagePrefix + 'SelectedTagsPropertyBySandbox';
+    const environmentStorageKey = storagePrefix + 'SelectedTagsEnvironmentBySandbox';
     const identityEventType = String(cfg.identityEventType || 'demo.identity.stitch');
 
     const injectSdkBtn = byId(cfg.injectButtonId);
@@ -257,6 +260,131 @@
     function readPersistedSelectedScriptUrl() {
       const map = readStorageMap(scriptStorageKey);
       return String(map[getSandboxKey()] || '').trim();
+    }
+
+    function persistTagsCompanyId(companyId) {
+      const map = readStorageMap(companyStorageKey);
+      const key = getSandboxKey();
+      if (!companyId) delete map[key];
+      else map[key] = String(companyId);
+      writeStorageMap(companyStorageKey, map);
+    }
+
+    function readPersistedTagsCompanyId() {
+      const map = readStorageMap(companyStorageKey);
+      return String(map[getSandboxKey()] || '').trim();
+    }
+
+    function persistTagsPropertySelection(propertyId, propertyLabel) {
+      const map = readStorageMap(propertyStorageKey);
+      const key = getSandboxKey();
+      if (!propertyId) delete map[key];
+      else {
+        map[key] = {
+          propertyId: String(propertyId),
+          propertyLabel: String(propertyLabel || ''),
+        };
+      }
+      writeStorageMap(propertyStorageKey, map);
+    }
+
+    function readPersistedTagsPropertySelection() {
+      const raw = readStorageMap(propertyStorageKey)[getSandboxKey()];
+      if (!raw || typeof raw !== 'object') return null;
+      return {
+        propertyId: String(raw.propertyId || '').trim(),
+        propertyLabel: String(raw.propertyLabel || '').trim(),
+      };
+    }
+
+    function persistTagsEnvironmentEncodedValue(encodedValue) {
+      const map = readStorageMap(environmentStorageKey);
+      const key = getSandboxKey();
+      if (!encodedValue) delete map[key];
+      else map[key] = String(encodedValue);
+      writeStorageMap(environmentStorageKey, map);
+    }
+
+    function readPersistedTagsEnvironmentEncodedValue() {
+      const map = readStorageMap(environmentStorageKey);
+      return String(map[getSandboxKey()] || '').trim();
+    }
+
+    function selectTagsEnvironmentByEncodedValue(encodedValue) {
+      if (!tagsEnvironmentSelect || !encodedValue) return false;
+      const target = String(encodedValue);
+      for (let i = 0; i < tagsEnvironmentSelect.options.length; i++) {
+        const opt = tagsEnvironmentSelect.options[i];
+        if (String(opt.value || '') === target) {
+          tagsEnvironmentSelect.selectedIndex = i;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function applyTagsEnvironmentOptionValue(encodedValue) {
+      const raw = String(encodedValue || '').trim();
+      if (!raw) return '';
+      let decoded = raw;
+      try {
+        decoded = decodeURIComponent(raw);
+      } catch (_e) {
+        decoded = raw;
+      }
+      const clean = sanitiseLaunchScriptUrl(decoded);
+      if (clean) {
+        renderSelectedScript(clean);
+        persistSelectedScriptUrl(clean);
+      }
+      return clean;
+    }
+
+    async function restorePersistedTagsEnvironmentSelection() {
+      const encoded = readPersistedTagsEnvironmentEncodedValue();
+      if (encoded && selectTagsEnvironmentByEncodedValue(encoded)) {
+        applyTagsEnvironmentOptionValue(encoded);
+        return;
+      }
+      const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+      if (!persistedScript || !tagsEnvironmentSelect) return;
+      for (let i = 0; i < tagsEnvironmentSelect.options.length; i++) {
+        const opt = tagsEnvironmentSelect.options[i];
+        let decoded = String(opt.value || '');
+        try {
+          decoded = decodeURIComponent(decoded);
+        } catch (_e) {
+          /* keep */
+        }
+        if (sanitiseLaunchScriptUrl(decoded) === persistedScript) {
+          tagsEnvironmentSelect.selectedIndex = i;
+          persistTagsEnvironmentEncodedValue(String(opt.value || ''));
+          renderSelectedScript(persistedScript);
+          return;
+        }
+      }
+    }
+
+    async function restorePersistedTagsPropertySelection() {
+      const rec = readPersistedTagsPropertySelection();
+      if (!rec || !rec.propertyId) return;
+      let hit =
+        allPropertyOptions.find(function (p) {
+          return String(p && p.id ? p.id : '') === rec.propertyId;
+        }) || null;
+      if (!hit && rec.propertyLabel) {
+        hit = findPropertyByLabel(rec.propertyLabel);
+      }
+      if (!hit || !hit.id) {
+        if (tagsPropertyInput && rec.propertyLabel) {
+          tagsPropertyInput.value = rec.propertyLabel;
+        }
+        return;
+      }
+      selectedPropertyId = String(hit.id);
+      if (tagsPropertyInput) tagsPropertyInput.value = propertyLabelFromItem(hit);
+      persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
+      await loadTagsEnvironments(selectedPropertyId);
     }
 
     function isSdkConfiguredForSandbox() {
@@ -522,6 +650,21 @@
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
 
+        const persistedCompanyId = readPersistedTagsCompanyId();
+        if (
+          persistedCompanyId &&
+          Array.isArray(items) &&
+          items.some(function (c) {
+            return String(c && c.id ? c.id : '') === persistedCompanyId;
+          })
+        ) {
+          tagsCompanySelect.value = persistedCompanyId;
+          if (hideTagsCompanyUi) setTagsCompanyRowVisible(false);
+          await loadTagsProperties(persistedCompanyId);
+          setMessage('Tags companies loaded (restored last property for this sandbox).', 'success');
+          return;
+        }
+
         if (hideTagsCompanyUi && Array.isArray(items) && items.length > 0) {
           const pickId = String(
             (tagsCompanySelect.value && tagsCompanySelect.value.trim()) ||
@@ -529,6 +672,7 @@
           ).trim();
           if (pickId) {
             tagsCompanySelect.value = pickId;
+            persistTagsCompanyId(pickId);
             setTagsCompanyRowVisible(false);
             await loadTagsProperties(pickId);
             setMessage('Tags companies loaded.', 'success');
@@ -539,6 +683,7 @@
           const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
           if (onlyId) {
             tagsCompanySelect.value = onlyId;
+            persistTagsCompanyId(onlyId);
             setTagsCompanyRowVisible(false);
             await loadTagsProperties(onlyId);
             return;
@@ -572,6 +717,7 @@
         renderPropertySuggestions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
+        await restorePersistedTagsPropertySelection();
         setMessage('Properties loaded.', 'success');
       } catch (err) {
         setMessage(err.message || 'Failed to load properties.', 'error');
@@ -601,6 +747,7 @@
           'Select environment'
         );
         syncSelectedScriptDisplayAfterTagsStructureChange();
+        await restorePersistedTagsEnvironmentSelection();
         setMessage('Environments loaded.', 'success');
       } catch (err) {
         setMessage(err.message || 'Failed to load environments.', 'error');
@@ -611,6 +758,7 @@
       const raw = tagsPropertyInput ? String(tagsPropertyInput.value || '').trim() : '';
       if (!raw) {
         selectedPropertyId = '';
+        persistTagsPropertySelection('', '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
@@ -618,6 +766,7 @@
       const hit = findPropertyByLabel(raw);
       if (!hit || !hit.id) {
         selectedPropertyId = '';
+        persistTagsPropertySelection('', '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
@@ -625,6 +774,7 @@
       const nextPropertyId = String(hit.id);
       if (nextPropertyId === selectedPropertyId) return;
       selectedPropertyId = nextPropertyId;
+      persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
       await loadTagsEnvironments(selectedPropertyId);
     }
 
@@ -978,6 +1128,7 @@
     if (tagsCompanySelect) {
       tagsCompanySelect.addEventListener('change', function () {
         const companyId = String(tagsCompanySelect.value || '').trim();
+        persistTagsCompanyId(companyId);
         void loadTagsProperties(companyId);
       });
     }
@@ -1017,6 +1168,7 @@
         });
         renderSelectedScript(clean);
         persistSelectedScriptUrl(clean);
+        persistTagsEnvironmentEncodedValue(raw);
       });
     }
 

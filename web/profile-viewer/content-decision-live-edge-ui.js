@@ -1178,7 +1178,23 @@
 
   // Bypass Firebase Hosting's 60s proxy timeout — the publish endpoint
   // polls Reactor builds which can take up to ~2 min.
-  var PUBLISH_URL = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net/edgeLaunchRulePublish';
+  function aepLabCloudFunctionsOrigin() {
+    try {
+      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
+        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+    var pid = 'aep-orchestration-lab';
+    try {
+      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
+        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
+      }
+    } catch (_e2) {}
+    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  }
+  function edgeLaunchRulePublishDirectUrl() {
+    return aepLabCloudFunctionsOrigin() + '/edgeLaunchRulePublish';
+  }
 
   function renderPublishResult(data) {
     var box = el('cdLabLaunchPreview');
@@ -1240,7 +1256,7 @@
     };
 
     try {
-      var res = await fetch(PUBLISH_URL, {
+      var res = await fetch(edgeLaunchRulePublishDirectUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

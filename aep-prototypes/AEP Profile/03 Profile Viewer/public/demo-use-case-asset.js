@@ -29,8 +29,23 @@
   // Same reasoning as client-journey: /api/* rewrites cap at 60s and
   // Vertex calls run 60-120s. Hit the Cloud Function URL directly for
   // /generate and use the rewrite for the fast PPTX render.
-  var FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
-  var GENERATE_URL = FN_BASE + '/demoUseCaseGenerate';
+  function aepLabCloudFunctionsOrigin() {
+    try {
+      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
+        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+    var pid = 'aep-orchestration-lab';
+    try {
+      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
+        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
+      }
+    } catch (_e2) {}
+    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  }
+  function demoUseCaseGenerateUrl() {
+    return aepLabCloudFunctionsOrigin() + '/demoUseCaseGenerate';
+  }
   var PPTX_URL = '/api/demo-use-case/pptx';
 
   // Closed Adobe products list — must stay in sync with ADOBE_PRODUCTS
@@ -1353,7 +1368,7 @@
     resultsSection.hidden = true;
     progress.start();
     try {
-      var resp = await fetch(GENERATE_URL, {
+      var resp = await fetch(demoUseCaseGenerateUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1429,7 +1444,7 @@
     setStatus(generateStatus, '', '');
     progress.start();
     try {
-      var resp = await fetch(GENERATE_URL, {
+      var resp = await fetch(demoUseCaseGenerateUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
