@@ -46,3 +46,7 @@
 .army-bc-inline.mod-demo-army-bc-inline--fullscreen {
   min-height: 100vh;
 }
+
+html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline {
+  z-index: 1300;
+}

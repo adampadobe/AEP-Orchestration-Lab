@@ -190,7 +190,9 @@
     var w = targetWin || win;
     var deployment = resolveDeployment(w);
     if (!deployment) return false;
-    captureNativeFetch(w);
+    if (w.fetch && !w.fetch.__armyBcPatched) {
+      captureNativeFetch(w);
+    }
     patchFetch(w, deployment);
     patchXhr(w, deployment);
     patchRequest(w, deployment);

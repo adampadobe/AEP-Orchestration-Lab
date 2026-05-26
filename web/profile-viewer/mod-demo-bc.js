@@ -27,6 +27,16 @@
     'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen{position:fixed!important;top:var(--site-header-height,calc(var(--site-header-logo-height,76px) + 1.3rem))!important;left:0!important;right:0!important;bottom:0!important;z-index:1100!important;margin:0!important;padding:clamp(0.75rem,2vw,1.25rem)!important;min-height:0!important;overflow:auto!important;background:linear-gradient(122.87deg,#e1e9ff 20.72%,#efe3fa 34.96%,#f5dff8 42.08%,#fcdcf5 49.2%,#ffdec3 91.6%)!important;}',
     'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen .army-bc-inline__mount,html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen #brand-concierge-mount{min-height:min(540px,calc(100vh - var(--site-header-height,5rem) - 2rem))!important;}',
   ].join('');
+  var SNAPSHOT_INJECTED_LAYOUT_STYLE_ID = 'aep-mod-bc-injected-layout';
+  var SNAPSHOT_INJECTED_LAYOUT_CSS = [
+    'html.mod-demo-bc-injected-active .pin-spacer{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .pin-spacer>.exp-content__block-container,html.mod-demo-bc-injected-active .pin-spacer>[x-ref="blockInner"]{position:relative!important;inset:auto!important;transform:none!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner{position:relative!important;height:auto!important;min-height:0!important;max-height:none!important;pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner__media-bg,html.mod-demo-bc-injected-active .exp-hero-banner__media-container,html.mod-demo-bc-injected-active .exp-hero-banner__text-container,html.mod-demo-bc-injected-active .exp-hero-banner__footer-container{pointer-events:none!important;}',
+    'html.mod-demo-bc-injected-active .exp-hero-banner__logo,html.mod-demo-bc-injected-active .exp-hero-banner__cta-btn{pointer-events:auto!important;}',
+    'html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline{position:relative!important;z-index:1300!important;isolation:isolate!important;pointer-events:auto!important;}',
+    'html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline #brand-concierge-mount,html.mod-demo-bc-injected-active #modDemoArmyBcInline.army-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
 
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
@@ -62,9 +72,24 @@
     return DEFAULT_DATASTREAM_ID;
   }
 
+  function setSnapshotInjectedLayout(doc, on) {
+    if (!doc || !doc.documentElement) return;
+    doc.documentElement.classList.toggle('mod-demo-bc-injected-active', !!on);
+    var styleEl = doc.getElementById(SNAPSHOT_INJECTED_LAYOUT_STYLE_ID);
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = SNAPSHOT_INJECTED_LAYOUT_STYLE_ID;
+      doc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = on ? SNAPSHOT_INJECTED_LAYOUT_CSS : '';
+  }
+
   async function restoreModDemoSnapshotFrame() {
     var doc = getIframeDoc();
-    if (doc) setSnapshotFullscreenLayout(doc, false);
+    if (doc) {
+      setSnapshotFullscreenLayout(doc, false);
+      setSnapshotInjectedLayout(doc, false);
+    }
     if (!isLegacyFullscreenShellLoaded()) return;
     iframeCoreReady = null;
     loadedIframeStyleUrl = null;
@@ -805,9 +830,11 @@
     if (!win) throw new Error('MOD site iframe window is not ready');
 
     setSnapshotFullscreenLayout(doc, !!fullscreen);
+    setSnapshotInjectedLayout(doc, !fullscreen);
     iframeCoreReady = null;
     loadedIframeStyleUrl = null;
     teardownIframeInlineSection(doc);
+    setSnapshotInjectedLayout(doc, !fullscreen);
     ensureIframeInlineSection(doc, !!fullscreen);
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
@@ -815,14 +842,14 @@
     ensureBcCardImageStyles(doc);
 
     if (typeof win.activateModDemoInjectedBc === 'function') {
-      if (typeof win.resetModDemoInjectedBc === 'function') {
-        win.resetModDemoInjectedBc();
-      }
       await win.activateModDemoInjectedBc(
         resolveAssetUrl(getStyleConfigUrl()),
         IFRAME_INJECTED_MOUNT_SELECTOR,
         getDatastreamId(),
       );
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
       scheduleDisclaimerReposition(doc);
     } else {
       await ensureIframeCore();
@@ -908,6 +935,7 @@
     var doc = getIframeDoc();
     if (doc) {
       if (!isFullScreenOn()) setSnapshotFullscreenLayout(doc, false);
+      if (!isInjectedOn()) setSnapshotInjectedLayout(doc, false);
       if (!isInjectedOn() && !isFullScreenOn()) teardownIframeInlineSection(doc);
     }
   }
@@ -932,6 +960,7 @@
       var iframeDocOff = getIframeDoc();
       if (iframeDocOff) {
         setSnapshotFullscreenLayout(iframeDocOff, false);
+        setSnapshotInjectedLayout(iframeDocOff, false);
         teardownIframeInlineSection(iframeDocOff);
       }
       await restoreModDemoSnapshotFrame();

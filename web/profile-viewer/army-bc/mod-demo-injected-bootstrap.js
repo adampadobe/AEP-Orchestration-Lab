@@ -282,10 +282,12 @@
 
     await ensureEdgePathPatches(win, doc);
 
+    var bootSelector = mount.id ? '#' + mount.id : selector;
+
     await win.adobe.concierge.bootstrap({
       instanceName: 'alloy',
       stylingConfigurations: win.styleConfiguration,
-      selector: selector,
+      selector: bootSelector,
       stickySession: false,
     });
 
@@ -304,5 +306,16 @@
     [100, 500, 1500, 3000, 6000].forEach(function (ms) {
       global.setTimeout(repatch, ms);
     });
+
+    if (!mount.__modDemoBcInjectedRepatchBound) {
+      mount.__modDemoBcInjectedRepatchBound = true;
+      mount.addEventListener(
+        'pointerdown',
+        function () {
+          repatch();
+        },
+        true,
+      );
+    }
   };
 })(typeof window !== 'undefined' ? window : this);
