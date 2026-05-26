@@ -3981,18 +3981,29 @@ exports.eventDatastreamsProxy = onRequest(
     catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
 
     try {
+      const sandbox = resolveSandboxFromQuery(req);
       const imsOrg = ADOBE_IMS_ORG.value();
       const result = await eventEdgeService.listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), imsOrg);
       if (result && result.errors) {
         res.status(200).json({
           ok: false,
+          sandbox,
           datastreams: [],
           discoveryErrors: result.errors,
-          note: 'Auto-discovery failed. Use manual datastream ID input.',
+          note: 'Auto-discovery failed. Paste a datastream UUID in the field.',
           imsOrg,
         });
       } else {
-        res.status(200).json({ ok: true, datastreams: Array.isArray(result) ? result : [], imsOrg });
+        let datastreams = Array.isArray(result) ? result : [];
+        if (sandbox && datastreams.length) {
+          const sLower = sandbox.toLowerCase();
+          const filtered = datastreams.filter((d) => {
+            const sn = String((d && d.sandbox) || '').trim().toLowerCase();
+            return !sn || sn === sLower;
+          });
+          if (filtered.length > 0) datastreams = filtered;
+        }
+        res.status(200).json({ ok: true, sandbox, datastreams, imsOrg });
       }
     } catch (e) {
       res.status(500).json({ error: String(e.message || e), datastreams: [], imsOrg: ADOBE_IMS_ORG.value() });

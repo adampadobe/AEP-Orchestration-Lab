@@ -128,6 +128,10 @@ function invalidateModDemoBcCore() {
 const MOD_BC_DATASTREAM_ID_KEY = 'modDemoBcDatastreamId';
 const MOD_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
 const modBcDatastreamId = document.getElementById('modBcDatastreamId');
+const modBcDatastreamList = document.getElementById('modBcDatastreamList');
+
+/** @type {Array<{ id: string, title: string, sandbox?: string }>} */
+let modBcAllDatastreamOptions = [];
 
 function sanitiseModBcDatastreamId(raw) {
   const v = String(raw || '').trim();
@@ -136,10 +140,36 @@ function sanitiseModBcDatastreamId(raw) {
   return MOD_BC_DEFAULT_DATASTREAM_ID;
 }
 
-function getModBcDatastreamId() {
-  if (modBcDatastreamId && modBcDatastreamId.value.trim()) {
-    return sanitiseModBcDatastreamId(modBcDatastreamId.value);
+function datastreamLabelFromItem(d) {
+  const title = String((d && d.title) || 'Unnamed').trim();
+  const id = String((d && d.id) || '').trim();
+  return title + ' (' + id + ')';
+}
+
+function findModBcDatastreamByLabel(label) {
+  const target = String(label || '').trim().toLowerCase();
+  if (!target) return null;
+  return (
+    modBcAllDatastreamOptions.find(function (d) {
+      return datastreamLabelFromItem(d).toLowerCase() === target;
+    }) || null
+  );
+}
+
+function resolveModBcDatastreamIdFromInput() {
+  const raw = modBcDatastreamId ? String(modBcDatastreamId.value || '').trim() : '';
+  if (!raw) return '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+    return raw.toLowerCase();
   }
+  const hit = findModBcDatastreamByLabel(raw);
+  if (hit && hit.id) return String(hit.id).toLowerCase();
+  return '';
+}
+
+function getModBcDatastreamId() {
+  const resolved = resolveModBcDatastreamIdFromInput();
+  if (resolved) return sanitiseModBcDatastreamId(resolved);
   try {
     const stored = localStorage.getItem(MOD_BC_DATASTREAM_ID_KEY);
     if (stored) return sanitiseModBcDatastreamId(stored);
@@ -149,10 +179,41 @@ function getModBcDatastreamId() {
   return MOD_BC_DEFAULT_DATASTREAM_ID;
 }
 
-function saveModBcDatastreamId() {
+function getModBcSandboxName() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+  }
+  const sel = document.getElementById('sandboxSelect');
+  if (sel && sel.value) return String(sel.value).trim();
+  return '';
+}
+
+function renderModBcDatastreamSuggestions(query) {
+  if (!modBcDatastreamList) return;
+  const q = String(query || '').trim().toLowerCase();
+  modBcDatastreamList.innerHTML = '';
+  const matches = modBcAllDatastreamOptions
+    .filter(function (d) {
+      if (!q) return true;
+      const label = datastreamLabelFromItem(d).toLowerCase();
+      const id = String(d.id || '').toLowerCase();
+      return label.indexOf(q) !== -1 || id.indexOf(q) !== -1;
+    })
+    .slice(0, 200);
+  matches.forEach(function (d) {
+    const opt = document.createElement('option');
+    opt.value = datastreamLabelFromItem(d);
+    modBcDatastreamList.appendChild(opt);
+  });
+}
+
+function applyModBcDatastreamInputToStoredId() {
   const id = getModBcDatastreamId();
-  if (modBcDatastreamId && modBcDatastreamId.value.trim() !== id) {
-    modBcDatastreamId.value = id;
+  const hit = modBcAllDatastreamOptions.find(function (d) {
+    return String(d.id || '').toLowerCase() === id;
+  });
+  if (modBcDatastreamId && hit) {
+    modBcDatastreamId.value = datastreamLabelFromItem(hit);
   }
   try {
     localStorage.setItem(MOD_BC_DATASTREAM_ID_KEY, id);
@@ -160,13 +221,83 @@ function saveModBcDatastreamId() {
     /* noop */
   }
   refreshModBcDatastreamHint();
+  return id;
+}
+
+function saveModBcDatastreamId() {
+  applyModBcDatastreamInputToStoredId();
 }
 
 function refreshModBcDatastreamHint() {
   const id = getModBcDatastreamId();
   const hint = document.getElementById('modBcDatastreamHint');
+  const sandbox = getModBcSandboxName();
+  if (!hint) return;
+  if (!modBcAllDatastreamOptions.length) {
+    hint.textContent = id
+      ? 'Alloy datastreamId (manual): ' + id + (sandbox ? ' · sandbox ' + sandbox : '')
+      : sandbox
+        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.'
+        : 'Paste a datastream UUID.';
+    return;
+  }
+  hint.textContent =
+    modBcAllDatastreamOptions.length +
+    ' datastream(s)' +
+    (sandbox ? ' for ' + sandbox : '') +
+    ' · selected ' +
+    id;
+}
+
+async function loadModBcDatastreams() {
+  const sandbox = getModBcSandboxName();
+  const hint = document.getElementById('modBcDatastreamHint');
   if (hint) {
-    hint.textContent = id ? 'Alloy configure datastreamId for Modal / Injected / Full Screen: ' + id : '';
+    hint.textContent = sandbox ? 'Loading datastreams for ' + sandbox + '…' : 'Loading datastreams…';
+  }
+  try {
+    const params = new URLSearchParams();
+    if (sandbox) params.set('sandbox', sandbox);
+    const res = await fetch('/api/events/datastreams?' + params.toString());
+    const data = await res.json().catch(function () {
+      return {};
+    });
+    modBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
+    renderModBcDatastreamSuggestions(modBcDatastreamId ? modBcDatastreamId.value : '');
+
+    let storedId = MOD_BC_DEFAULT_DATASTREAM_ID;
+    try {
+      const raw = localStorage.getItem(MOD_BC_DATASTREAM_ID_KEY);
+      if (raw) storedId = sanitiseModBcDatastreamId(raw);
+    } catch {
+      /* noop */
+    }
+
+    const hit = modBcAllDatastreamOptions.find(function (d) {
+      return String(d.id || '').toLowerCase() === storedId;
+    });
+    if (hit && modBcDatastreamId) {
+      modBcDatastreamId.value = datastreamLabelFromItem(hit);
+    } else if (modBcDatastreamId && !modBcDatastreamId.value.trim()) {
+      modBcDatastreamId.value = storedId;
+    }
+
+    if (hint) {
+      if (data.note && !modBcAllDatastreamOptions.length) {
+        hint.textContent = String(data.note);
+      } else {
+        refreshModBcDatastreamHint();
+      }
+    }
+  } catch (err) {
+    modBcAllDatastreamOptions = [];
+    renderModBcDatastreamSuggestions('');
+    if (hint) {
+      hint.textContent =
+        'Could not load datastreams' +
+        (err && err.message ? ': ' + err.message : '') +
+        '. Paste a datastream UUID.';
+    }
   }
 }
 
@@ -267,22 +398,30 @@ function syncModDemoBcFromPrefs() {
   refreshModBcStyleUrlHints();
 })();
 
-(function initModBcDatastreamId() {
+(function initModBcDatastreamPicker() {
   if (!modBcDatastreamId) return;
-  try {
-    const stored = localStorage.getItem(MOD_BC_DATASTREAM_ID_KEY);
-    modBcDatastreamId.value = stored ? sanitiseModBcDatastreamId(stored) : MOD_BC_DEFAULT_DATASTREAM_ID;
-  } catch {
-    modBcDatastreamId.value = MOD_BC_DEFAULT_DATASTREAM_ID;
-  }
-  function onDatastreamChange() {
+
+  function onDatastreamFieldChange() {
+    const prev = getModBcDatastreamId();
     saveModBcDatastreamId();
-    invalidateModDemoBcCore();
-    syncModDemoBcFromPrefs();
+    const next = getModBcDatastreamId();
+    if (prev !== next) {
+      invalidateModDemoBcCore();
+      syncModDemoBcFromPrefs();
+    }
   }
-  modBcDatastreamId.addEventListener('change', onDatastreamChange);
-  modBcDatastreamId.addEventListener('blur', onDatastreamChange);
-  refreshModBcDatastreamHint();
+
+  modBcDatastreamId.addEventListener('input', function () {
+    renderModBcDatastreamSuggestions(modBcDatastreamId.value);
+  });
+  modBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
+  modBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
+
+  window.addEventListener('aep-global-sandbox-change', function () {
+    void loadModBcDatastreams();
+  });
+
+  void loadModBcDatastreams();
 })();
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
