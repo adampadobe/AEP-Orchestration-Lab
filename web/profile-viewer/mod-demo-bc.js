@@ -16,7 +16,6 @@
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
   var fullScreenToggle = document.getElementById('modBcFullScreenToggle');
-  var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
   var bcModal = document.getElementById('aepBcModal');
   var bcFab = document.getElementById('modDemoBcFab');
 
@@ -454,13 +453,33 @@
     el.hidden = false;
   }
 
+  function ensureBcCardImageStyles(doc) {
+    if (!doc || doc.getElementById('modDemoBcCardImageFix')) return;
+    var style = doc.createElement('style');
+    style.id = 'modDemoBcCardImageFix';
+    style.textContent =
+      '.bc-card__image { background-size: cover !important; background-position: center !important; }';
+    (doc.head || doc.documentElement).appendChild(style);
+  }
+
+  function findHeroInsertPoint(doc) {
+    var hero = doc.querySelector('.exp-hero-banner');
+    if (!hero) return null;
+    return (
+      hero.closest('[id^="pin-spacer"]') ||
+      hero.closest('.pin-spacer') ||
+      hero.closest('.exp-content__block-container') ||
+      hero
+    );
+  }
+
   function scheduleDisclaimerReposition(doc) {
     if (!doc) return;
     function run() {
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
         doc.querySelectorAll('#brand-concierge-mount, #modDemoBcModalMount').forEach(function (mount) {
-          global.repositionArmyBcDisclaimer(mount);
-        });
+            global.repositionArmyBcDisclaimer(mount);
+          });
       }
     }
     run();
@@ -565,6 +584,7 @@
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
+      ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared', doc);
       }
@@ -601,24 +621,24 @@
   function ensureIframeInlineSection(doc, fullscreen) {
     var existing = doc.getElementById(IFRAME_INLINE_SECTION_ID);
     if (existing) {
-      existing.classList.toggle('mod-demo-army-bc-inline--fullscreen', !!fullscreen);
+      existing.className = fullscreen
+        ? 'army-bc-inline mod-demo-army-bc-inline--fullscreen'
+        : 'army-bc-inline';
       return existing.querySelector(IFRAME_MOUNT_SELECTOR) || existing;
     }
-    var hero =
-      doc.querySelector('.exp-hero-banner') ||
-      doc.querySelector('.exp-content__block-container') ||
-      doc.body.firstElementChild;
     var section = doc.createElement('section');
     section.id = IFRAME_INLINE_SECTION_ID;
-    section.className = 'army-bc-inline mod-demo-army-bc-inline';
-    if (fullscreen) section.classList.add('mod-demo-army-bc-inline--fullscreen');
+    section.className = fullscreen
+      ? 'army-bc-inline mod-demo-army-bc-inline--fullscreen'
+      : 'army-bc-inline';
     section.setAttribute('aria-label', 'Army recruitment assistant');
     var mount = doc.createElement('div');
     mount.id = 'brand-concierge-mount';
     mount.className = 'army-bc-inline__mount';
     section.appendChild(mount);
-    if (hero && hero.parentNode) {
-      hero.parentNode.insertBefore(section, hero.nextSibling);
+    var anchor = findHeroInsertPoint(doc);
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(section, anchor.nextSibling);
     } else {
       doc.body.insertBefore(section, doc.body.firstChild);
     }
@@ -695,7 +715,6 @@
   }
 
   function updateChromeVisibility() {
-    if (injectedPanel) injectedPanel.hidden = true;
     if (!isModalOn()) {
       closeBcModal();
       setModalFabArmed(false);
