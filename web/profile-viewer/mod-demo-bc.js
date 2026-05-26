@@ -12,6 +12,7 @@
   var IFRAME_ID = 'modDemoSiteFrame';
   var IFRAME_INLINE_SECTION_ID = 'modDemoArmyBcInline';
   var IFRAME_MOUNT_SELECTOR = '#brand-concierge-mount';
+  var IFRAME_INJECTED_MOUNT_SELECTOR = '#modDemoArmyBcInline #brand-concierge-mount';
   var MODAL_MOUNT_SELECTOR = '#aepBcModal #brand-concierge-mount';
   var DEFAULT_FRAME_SRC = 'mod-demo-assets/army-home-snapshot.html';
   var FULLSCREEN_FRAME_SRC = BASE + 'mod-bc-fullscreen-shell.html';
@@ -137,6 +138,9 @@
       if (iframeWin) {
         iframeWin.__modDemoBcBootstrapped = false;
         iframeWin.__armyBcForceLocal = false;
+        if (typeof iframeWin.resetModDemoInjectedBc === 'function') {
+          iframeWin.resetModDemoInjectedBc();
+        }
       }
       unloadStyleConfigScripts(iframeDoc);
       teardownIframeInlineSection(iframeDoc);
@@ -747,12 +751,27 @@
     var doc = getIframeDoc();
     if (!doc) throw new Error('MOD site iframe is not ready');
     var win = doc.defaultView;
-    await ensureIframeCore();
+    if (!win) throw new Error('MOD site iframe window is not ready');
+
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
     teardownIframeInlineSection(doc);
     ensureIframeInlineSection(doc, false);
-    await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration, {
-      allowConciergeOpenOnRetry: false,
-    });
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
+    ensureBcCardImageStyles(doc);
+
+    if (typeof win.activateModDemoInjectedBc === 'function') {
+      await win.activateModDemoInjectedBc(getStyleConfigUrl(), IFRAME_INJECTED_MOUNT_SELECTOR);
+      scheduleDisclaimerReposition(doc);
+    } else {
+      await ensureIframeCore();
+      await bootstrapConcierge(win, IFRAME_INJECTED_MOUNT_SELECTOR, win.styleConfiguration, {
+        allowConciergeOpenOnRetry: false,
+      });
+    }
+
     var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
     if (section && typeof section.scrollIntoView === 'function') {
       try {
