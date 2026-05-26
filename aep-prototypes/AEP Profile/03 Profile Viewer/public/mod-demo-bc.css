@@ -1,3 +1,11 @@
+/* Army BC — full-screen injected panel */
+.mod-demo-bc-injected.mod-demo-bc-injected--fullscreen.army-bc-inline {
+  max-height: none;
+  height: 100vh;
+  top: 0;
+  bottom: 0;
+}
+
 /* Army BC — injected panel overlay on MOD demo (army-mod-home pattern) */
 .mod-demo-bc-injected.army-bc-inline {
   position: fixed;

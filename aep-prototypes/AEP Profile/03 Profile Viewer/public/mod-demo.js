@@ -93,6 +93,15 @@ function saveModBcStyleConfigUrl() {
   } catch {
     /* noop */
   }
+  refreshModBcStyleUrlHints();
+}
+
+function refreshModBcStyleUrlHints() {
+  const url = getModBcStyleConfigUrl();
+  ['modBcFullScreenToggle', 'modBcModalToggle', 'modBcInjectedToggle'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('data-mod-bc-style-url', url);
+  });
 }
 
 function invalidateModDemoBcCore() {
@@ -173,6 +182,7 @@ function syncModDemoBcFromPrefs() {
   }
   modBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
   modBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+  refreshModBcStyleUrlHints();
 })();
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */

@@ -205,27 +205,23 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   display: none !important;
 }
 
-.mod-demo-bc-prefs--inline {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.75rem;
-  margin: 0;
-  padding: 0;
-  border: none;
-  flex: 0 1 auto;
+.mod-demo-bc-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   min-width: 0;
+  margin: 0;
+  flex: 0 1 auto;
+  align-self: flex-end;
 }
 
-.mod-demo-bc-prefs__heading {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.mod-demo-bc-prefs-field .mod-demo-bc-prefs__label {
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--dash-muted);
-  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   line-height: 1.2;
-  flex: 0 0 auto;
 }
 
 /* No corner Tags-BC mount or army FAB on MOD demo */

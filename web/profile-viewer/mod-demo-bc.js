@@ -12,6 +12,7 @@
 
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
+  var fullScreenToggle = document.getElementById('modBcFullScreenToggle');
   var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
   var reopenBtn = null;
   var bcModal = document.getElementById('aepBcModal');
@@ -30,16 +31,51 @@
     return DEFAULT_STYLE_CONFIG_URL;
   }
 
+  function unloadStyleConfigScripts() {
+    document.querySelectorAll('script[data-mod-demo-bc-style-config="1"]').forEach(function (s) {
+      if (s.parentNode) s.parentNode.removeChild(s);
+    });
+  }
+
   function invalidateCore() {
     coreReady = null;
     loadedStyleConfigUrl = null;
     activeSelector = null;
     global.__aepBcToggleBootstrapped = false;
+    unloadStyleConfigScripts();
     try {
       delete global.styleConfiguration;
     } catch (_e) {
       global.styleConfiguration = undefined;
     }
+  }
+
+  /** Loads styleConfigurations*.js (sets window.styleConfiguration) from env URL field. */
+  function loadStyleConfigScript(src) {
+    return new Promise(function (resolve, reject) {
+      var url = String(src || '').trim();
+      if (!url) {
+        reject(new Error('Brand Concierge style configuration URL is empty'));
+        return;
+      }
+      unloadStyleConfigScripts();
+      var s = document.createElement('script');
+      s.src = url;
+      s.async = false;
+      s.setAttribute('data-mod-demo-bc', url);
+      s.setAttribute('data-mod-demo-bc-style-config', '1');
+      s.onload = function () {
+        if (!global.styleConfiguration) {
+          reject(new Error('Style script did not set window.styleConfiguration: ' + url));
+          return;
+        }
+        resolve();
+      };
+      s.onerror = function () {
+        reject(new Error('Failed to load style configuration: ' + url));
+      };
+      document.head.appendChild(s);
+    });
   }
 
   function loadScript(src) {
@@ -128,7 +164,7 @@
       loadStylesheet(BASE + 'army-bc-local-fallback.css', 'shared');
       loadStylesheet(BASE + 'army-bc-scroll-fix.css', 'shared');
 
-      await loadScript(styleConfigUrl);
+      await loadStyleConfigScript(styleConfigUrl);
       loadedStyleConfigUrl = styleConfigUrl;
       installAlloyStub();
       await loadScript('https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js');
@@ -207,6 +243,10 @@
     return !!(modalToggle && modalToggle.checked);
   }
 
+  function isFullScreenOn() {
+    return !!(fullScreenToggle && fullScreenToggle.checked);
+  }
+
   function closeBcModal() {
     if (!bcModal) return;
     bcModal.classList.remove('is-open');
@@ -224,7 +264,11 @@
   }
 
   function updateChromeVisibility() {
-    if (injectedPanel) injectedPanel.hidden = !isInjectedOn() || isModalOn();
+    var showInlinePanel = (isInjectedOn() || isFullScreenOn()) && !isModalOn();
+    if (injectedPanel) {
+      injectedPanel.hidden = !showInlinePanel;
+      injectedPanel.classList.toggle('mod-demo-bc-injected--fullscreen', isFullScreenOn() && !isModalOn());
+    }
     if (!isModalOn()) closeBcModal();
   }
 
@@ -232,8 +276,9 @@
     updateChromeVisibility();
     var wantInjected = isInjectedOn();
     var wantModal = isModalOn();
+    var wantFullScreen = isFullScreenOn();
 
-    if (!wantInjected && !wantModal) {
+    if (!wantInjected && !wantModal && !wantFullScreen) {
       if (activeSelector) clearMount(activeSelector);
       activeSelector = null;
       return;
@@ -244,7 +289,7 @@
         await loadModalAssets();
         await bootstrap('#modDemoBcModalMount');
         openBcModal();
-      } else if (wantInjected) {
+      } else if (wantFullScreen || wantInjected) {
         await loadInjectedAssets();
         await bootstrap('#modDemoBcInjectMount');
       }
@@ -254,7 +299,7 @@
   }
 
   function bindToggles() {
-    [injectedToggle, modalToggle].forEach(function (el) {
+    [injectedToggle, modalToggle, fullScreenToggle].forEach(function (el) {
       if (!el) return;
       el.addEventListener('change', function () {
         sync();
