@@ -110,8 +110,20 @@ function syncModDemoBcFromPrefs() {
     });
   });
   saveModBcDisplayPrefs();
-  syncModDemoBcFromPrefs();
 })();
+
+/** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
+window.__modDemoSuppressBcEnable = true;
+const modInjectSdkBtn = document.getElementById('modInjectSdkBtn');
+if (modInjectSdkBtn) {
+  modInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__modDemoSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const modTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -149,6 +161,9 @@ const modTagsInjection =
           },
           styleKey: function () {
             return modBcStyleSelect ? modBcStyleSelect.value : 'army';
+          },
+          suppressEnable: function () {
+            return !!window.__modDemoSuppressBcEnable;
           },
         },
       })

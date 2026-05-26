@@ -111,16 +111,54 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   margin: 0;
   padding: 0.75rem clamp(12px, 2vw, 20px) 0.5rem;
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 1fr minmax(260px, 320px);
-  gap: 0 1.5rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
 }
 
-.mod-demo-id-inner .aep-demo-env-section + .aep-demo-profile-section {
-  border-top: none;
-  margin-top: 0;
-  padding-top: 0;
+.mod-demo-id-inner .aep-demo-env-section {
+  width: 100%;
+}
+
+.mod-demo-id-inner .aep-demo-profile-section {
+  width: 100%;
+  border-top: 1px solid var(--dash-border);
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+}
+
+.mod-demo-id-inner .aep-demo-profile-section-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.mod-demo-id-inner .aep-demo-profile-section-grid .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.mod-demo-id-inner .aep-demo-profile-section-grid label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mod-demo-id-inner .aep-demo-profile-section-grid .sandbox-select,
+.mod-demo-id-inner .aep-demo-profile-section-grid input[type='text'] {
+  min-width: 10rem;
+}
+
+.mod-demo-profile-actions {
+  flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block {
@@ -152,21 +190,35 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   display: none !important;
 }
 
-.mod-demo-bc-prefs {
-  margin-top: 0.65rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid var(--dash-border);
+.mod-demo-bc-prefs--row {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  border: none;
 }
 
 .mod-demo-bc-prefs__heading {
-  display: block;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dash-muted);
-  margin: 0 0 0.35rem;
+  margin: 0;
   line-height: 1.2;
+  flex: 0 0 auto;
+}
+
+/* No corner Tags-BC mount or army FAB on MOD demo */
+.mod-demo-page #brand-concierge-mount-host,
+.mod-demo-page #modArmyBcFab,
+.mod-demo-page .aep-bc-reopen-btn.mod-army-bc-fab {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .mod-demo-bc-prefs__options {
@@ -315,14 +367,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   }
 
   .mod-demo-id-inner.aep-demo-id-inner {
-    grid-template-columns: 1fr;
     padding: 0.6rem 12px;
-  }
-
-  .mod-demo-id-inner .aep-demo-env-section + .aep-demo-profile-section {
-    border-top: 1px solid var(--dash-border);
-    margin-top: 1rem;
-    padding-top: 0.85rem;
   }
 
   .mod-demo-sidebar-hover-zone {

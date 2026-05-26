@@ -13,7 +13,7 @@
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
   var injectedPanel = document.getElementById('modDemoBcInjectedPanel');
-  var reopenBtn = document.getElementById('modArmyBcFab');
+  var reopenBtn = null;
   var bcModal = document.getElementById('aepBcModal');
 
   var coreReady = null;
@@ -179,15 +179,25 @@
     return !!(modalToggle && modalToggle.checked);
   }
 
+  function closeBcModal() {
+    if (!bcModal) return;
+    bcModal.classList.remove('is-open');
+    bcModal.setAttribute('hidden', '');
+    document.body.classList.remove('aep-bc-modal-open');
+  }
+
+  function openBcModal() {
+    if (!bcModal) return;
+    bcModal.classList.add('is-open');
+    bcModal.removeAttribute('hidden');
+    document.body.classList.add('aep-bc-modal-open');
+    var closeBtn = bcModal.querySelector('.aep-bc-modal__close');
+    if (closeBtn) closeBtn.focus();
+  }
+
   function updateChromeVisibility() {
     if (injectedPanel) injectedPanel.hidden = !isInjectedOn() || isModalOn();
-    if (reopenBtn) reopenBtn.hidden = !isModalOn();
-    if (bcModal && !isModalOn()) {
-      bcModal.classList.remove('is-open');
-      bcModal.setAttribute('hidden', '');
-      document.body.classList.remove('aep-bc-modal-open');
-      if (reopenBtn) reopenBtn.setAttribute('aria-expanded', 'false');
-    }
+    if (!isModalOn()) closeBcModal();
   }
 
   async function sync() {
@@ -205,6 +215,7 @@
       if (wantModal) {
         await loadModalAssets();
         await bootstrap('#modDemoBcModalMount');
+        openBcModal();
       } else if (wantInjected) {
         await loadInjectedAssets();
         await bootstrap('#modDemoBcInjectMount');
@@ -226,13 +237,21 @@
   bindToggles();
   global.ModDemoBc = { sync: sync };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      updateChromeVisibility();
-      if (isInjectedOn() || isModalOn()) sync();
+  function bindModalClose() {
+    if (!bcModal) return;
+    bcModal.querySelectorAll('[data-aep-bc-close]').forEach(function (el) {
+      el.addEventListener('click', closeBcModal);
     });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && bcModal.classList.contains('is-open')) closeBcModal();
+    });
+  }
+
+  bindModalClose();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateChromeVisibility);
   } else {
     updateChromeVisibility();
-    if (isInjectedOn() || isModalOn()) sync();
   }
 })(typeof window !== 'undefined' ? window : this);

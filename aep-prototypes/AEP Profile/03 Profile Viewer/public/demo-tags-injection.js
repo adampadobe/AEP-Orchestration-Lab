@@ -321,7 +321,18 @@
       if (!enabled) return null;
       const styleKeyVal = bc.styleKey;
       const styleKey = typeof styleKeyVal === 'function' ? (function () { try { return String(styleKeyVal() || 'miral'); } catch (_e) { return 'miral'; } })() : String(styleKeyVal || 'miral');
-      return { styleKey };
+      const suppressVal = bc.suppressEnable;
+      const suppressEnable =
+        typeof suppressVal === 'function'
+          ? (function () {
+              try {
+                return !!suppressVal();
+              } catch (_e) {
+                return false;
+              }
+            })()
+          : suppressVal === true;
+      return { styleKey: styleKey, suppressEnable: suppressEnable };
     }
 
     /** Optional `cfg.webPush` — registers Adobe Alloy SW and, after successful ECID sync, calls `sendPushSubscriptionIfReady` when `AepDemoWebPush` is loaded. */
@@ -814,7 +825,12 @@
         }
         if (typeof cfg.onEcidResolved === 'function') cfg.onEcidResolved(ecid);
         const bcCfg = resolveBrandConciergeCfg();
-        if (bcCfg && global.AepBcToggle && typeof global.AepBcToggle.enable === 'function') {
+        if (
+          bcCfg &&
+          !bcCfg.suppressEnable &&
+          global.AepBcToggle &&
+          typeof global.AepBcToggle.enable === 'function'
+        ) {
           dtLog('syncEcidFromAlloy: enabling Brand Concierge', { styleKey: bcCfg.styleKey });
           global.AepBcToggle.enable(bcCfg.styleKey);
         }
