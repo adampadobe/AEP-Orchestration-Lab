@@ -27,6 +27,9 @@
   var cssLoaded = { shared: false, inline: false, modal: false };
 
   var DEFAULT_STYLE_CONFIG_URL = BASE + 'styleConfigurations-6a0992.js';
+  var BC_MAIN_JS =
+    'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js';
+  var ALLOY_JS = 'https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js';
 
   function getStyleConfigUrl() {
     if (global.ModDemoBcConfig && typeof global.ModDemoBcConfig.getStyleConfigUrl === 'function') {
@@ -123,6 +126,27 @@
     if (!doc) cssLoaded[key] = true;
   }
 
+  function clearStyleConfiguration(win) {
+    if (!win) return;
+    try {
+      delete win.styleConfiguration;
+    } catch (_e) {
+      win.styleConfiguration = undefined;
+    }
+  }
+
+  function removeStyleConfigurationScripts(doc, resolvedUrl) {
+    unloadStyleConfigScripts(doc);
+    var base = String(resolvedUrl || '').replace(/\?.*$/, '');
+    doc.querySelectorAll('script[src]').forEach(function (existing) {
+      var href = String(existing.getAttribute('src') || '').replace(/\?.*$/, '');
+      if (!href) return;
+      if (href === base || href.indexOf('styleConfigurations') >= 0) {
+        if (existing.parentNode) existing.parentNode.removeChild(existing);
+      }
+    });
+  }
+
   function loadStyleConfigScript(src, win, doc) {
     return new Promise(function (resolve, reject) {
       var url = resolveAssetUrl(src);
@@ -130,9 +154,12 @@
         reject(new Error('Brand Concierge style configuration URL is empty'));
         return;
       }
-      unloadStyleConfigScripts(doc);
+      removeStyleConfigurationScripts(doc, url);
+      clearStyleConfiguration(win);
+      var busted =
+        url + (url.indexOf('?') >= 0 ? '&' : '?') + 'modDemoBc=' + String(Date.now());
       var s = doc.createElement('script');
-      s.src = url;
+      s.src = busted;
       s.async = false;
       s.setAttribute('data-mod-demo-bc', url);
       s.setAttribute('data-mod-demo-bc-style-config', '1');
@@ -141,13 +168,67 @@
           reject(new Error('Style script did not set window.styleConfiguration: ' + url));
           return;
         }
-        resolve();
+        resolve(url);
       };
       s.onerror = function () {
         reject(new Error('Failed to load style configuration: ' + url));
       };
       (doc.head || doc.documentElement).appendChild(s);
     });
+  }
+
+  function delay(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  async function waitFor(predicate, maxMs, label) {
+    var start = Date.now();
+    while (Date.now() - start < maxMs) {
+      if (predicate()) return;
+      await delay(100);
+    }
+    throw new Error(label);
+  }
+
+  function teardownConflictingBcMounts() {
+    clearMountInDoc(document, '#brand-concierge-mount');
+    clearMountInDoc(document, '#modDemoBcModalMount');
+    global.__aepBcToggleBootstrapped = false;
+    global.__brandConciergeBootstrapped = false;
+    global.__modDemoBcBootstrapped = false;
+  }
+
+  async function ensureAlloyJs(win, doc) {
+    installAlloyStub(win);
+    if (typeof win.alloy === 'function') return;
+    await loadScript(ALLOY_JS, doc);
+    await waitFor(
+      function () {
+        return typeof win.alloy === 'function';
+      },
+      15000,
+      'Alloy did not become available (check Tags / Launch inject or network).',
+    );
+  }
+
+  async function ensureConciergeAgent(win, doc) {
+    if (win.adobe && win.adobe.concierge && typeof win.adobe.concierge.bootstrap === 'function') {
+      return;
+    }
+    await loadScript(BC_MAIN_JS, doc);
+    await waitFor(
+      function () {
+        return !!(
+          win.adobe &&
+          win.adobe.concierge &&
+          typeof win.adobe.concierge.bootstrap === 'function'
+        );
+      },
+      30000,
+      'Brand Concierge agent did not load (main.js).',
+    );
   }
 
   function patchFetchForNld2(win) {
@@ -252,22 +333,35 @@
     ) {
       throw new Error('Brand Concierge agent not available');
     }
+    if (!stylingConfigurations) {
+      throw new Error(
+        'Style configuration is missing. Set Brand Concierge style configuration URL in Environment (e.g. army-bc/styleConfigurations-6a0992.js).',
+      );
+    }
     clearMountInDoc(win.document, selector);
+    var bootOpts = {
+      instanceName: 'alloy',
+      stylingConfigurations: stylingConfigurations,
+      selector: selector,
+      stickySession: false,
+    };
     try {
-      await win.adobe.concierge.bootstrap({
-        instanceName: 'alloy',
-        stylingConfigurations: stylingConfigurations,
-        selector: selector,
-        stickySession: false,
-      });
+      await win.adobe.concierge.bootstrap(bootOpts);
       win.__modDemoBcBootstrapped = true;
     } catch (err) {
-      if (typeof win.adobe.concierge.open === 'function') {
-        win.adobe.concierge.open();
+      clearMountInDoc(win.document, selector);
+      try {
+        await win.adobe.concierge.bootstrap(bootOpts);
         win.__modDemoBcBootstrapped = true;
         return;
+      } catch (retryErr) {
+        if (typeof win.adobe.concierge.open === 'function') {
+          win.adobe.concierge.open();
+          win.__modDemoBcBootstrapped = true;
+          return;
+        }
+        throw retryErr;
       }
-      throw err;
     }
   }
 
@@ -284,14 +378,11 @@
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared');
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared');
 
-      await loadStyleConfigScript(getStyleConfigUrl(), global, document);
-      loadedParentStyleUrl = styleUrl;
-      installAlloyStub(global);
-      await loadScript('https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js');
-      await loadScript(
-        'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js',
-      );
-
+      var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), global, document);
+      loadedParentStyleUrl = loadedStyle || styleUrl;
+      console.info('[mod-demo-bc] loaded style configuration:', loadedParentStyleUrl);
+      await ensureAlloyJs(global, document);
+      await ensureConciergeAgent(global, document);
       await configureAlloyOnce(global);
 
       await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'));
@@ -327,15 +418,11 @@
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
 
-      await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
-      loadedIframeStyleUrl = styleUrl;
-      installAlloyStub(win);
-      await loadScript('https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js', doc);
-      await loadScript(
-        'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js',
-        doc,
-      );
-
+      var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
+      loadedIframeStyleUrl = loadedStyle || styleUrl;
+      console.info('[mod-demo-bc] loaded style configuration (iframe):', loadedIframeStyleUrl);
+      await ensureAlloyJs(win, doc);
+      await ensureConciergeAgent(win, doc);
       await configureAlloyOnce(win);
 
       await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'), doc);
@@ -483,7 +570,9 @@
       return;
     }
 
+    var styleUrl = resolveAssetUrl(getStyleConfigUrl());
     try {
+      teardownConflictingBcMounts();
       if (wantModal) {
         var iframeDocModal = getIframeDoc();
         if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
@@ -498,8 +587,13 @@
       reportBcStatus('');
     } catch (e) {
       console.error('[mod-demo-bc] sync failed', e);
+      var detail = String((e && e.message) || e);
       reportBcStatus(
-        'Brand Concierge could not load. Open the browser console for details, or refresh and try again.',
+        'Brand Concierge could not load (' +
+          detail +
+          '). Style URL: ' +
+          styleUrl +
+          '. If Tags is injected, try unchecking Enable Brand Concierge when injecting Tags, then toggle Modal again.',
         true,
       );
     }

@@ -96,8 +96,23 @@ function saveModBcStyleConfigUrl() {
   refreshModBcStyleUrlHints();
 }
 
+function getModBcStyleConfigResolvedUrl() {
+  const raw = getModBcStyleConfigUrl();
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.charAt(0) === '/') return raw;
+  const pageDir = window.location.pathname.replace(/\/[^/]*$/, '/');
+  return pageDir + raw.replace(/^\.\//, '');
+}
+
 function refreshModBcStyleUrlHints() {
   const url = getModBcStyleConfigUrl();
+  const resolved = getModBcStyleConfigResolvedUrl();
+  const hint = document.getElementById('modBcStyleConfigResolved');
+  if (hint) {
+    hint.textContent = resolved
+      ? 'Loaded for Modal / Injected / Full Screen: ' + resolved
+      : '';
+  }
   ['modBcFullScreenToggle', 'modBcModalToggle', 'modBcInjectedToggle'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.setAttribute('data-mod-bc-style-url', url);
