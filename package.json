@@ -24,6 +24,8 @@
     "deploy:check": "node scripts/predeploy-check.mjs",
     "deploy:stamp": "node scripts/build-version.mjs",
     "deploy:status": "node scripts/deploy-status.mjs",
+    "deploy:sandbox": "CF_RUNTIME_SERVICE_ACCOUNT=sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com npx -y firebase-tools@latest deploy --only functions,hosting -P sandbox",
+    "deploy:production": "npx -y firebase-tools@latest deploy --only functions,hosting -P production",
     "restore:decision-lab:kirkham-preset": "node scripts/restore-decision-lab-config.mjs kirkham --preset=race-for-life-retail",
     "mcp:aep-lab-adobe": "node tools/aep-lab-adobe-mcp/src/server.mjs",
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",

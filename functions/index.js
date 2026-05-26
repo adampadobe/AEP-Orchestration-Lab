@@ -5,6 +5,7 @@
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 
 const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
@@ -110,6 +111,45 @@ const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
 const REGION = 'us-central1';
+
+function readFirebaseConfigProjectId() {
+  const raw = String(process.env.FIREBASE_CONFIG || '').trim();
+  if (!raw) return '';
+  try {
+    return String(JSON.parse(raw).projectId || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Gen2 runtime identity. Adobe sandbox project `adbe-gcp0819` has no default
+ * `…-compute@developer.gserviceaccount.com`; Firebase would otherwise bind secrets
+ * to a non-existent SA. We use a user-managed SA there.
+ *
+ * Override any time: `CF_RUNTIME_SERVICE_ACCOUNT=…@….iam.gserviceaccount.com`
+ * (e.g. `npm run deploy:sandbox` sets it). Otherwise we detect the deploy target
+ * from `GCLOUD_PROJECT` / `GOOGLE_CLOUD_PROJECT` / `FIREBASE_CONFIG.projectId`.
+ */
+const TARGET_PROJECT_FOR_RUNTIME = String(
+  process.env.GCLOUD_PROJECT
+    || process.env.GCP_PROJECT
+    || process.env.GOOGLE_CLOUD_PROJECT
+    || readFirebaseConfigProjectId()
+    || '',
+).trim();
+const EXPLICIT_RUNTIME_SERVICE_ACCOUNT = String(process.env.CF_RUNTIME_SERVICE_ACCOUNT || '').trim();
+const SC_DEMO_SANDBOX_RUNTIME_SA =
+  'sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com';
+const RUNTIME_SERVICE_ACCOUNT =
+  EXPLICIT_RUNTIME_SERVICE_ACCOUNT
+  || (TARGET_PROJECT_FOR_RUNTIME === 'adbe-gcp0819' ? SC_DEMO_SANDBOX_RUNTIME_SA : '');
+if (RUNTIME_SERVICE_ACCOUNT) {
+  setGlobalOptions({
+    region: REGION,
+    serviceAccount: RUNTIME_SERVICE_ACCOUNT,
+  });
+}
 
 /**
  * Default public Hosting origin when deploy-time env does not set
