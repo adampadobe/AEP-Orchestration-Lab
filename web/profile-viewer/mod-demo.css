@@ -359,7 +359,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   pointer-events: none !important;
 }
 
-/* Full screen BC mode: iframe is the dedicated shell (header + BC only) */
+/* Full screen BC mode: same Army home snapshot iframe, BC fills viewport below site header */
 .mod-demo-page.mod-demo-bc-fullscreen-armed .mod-demo-site-frame {
   z-index: 1;
 }

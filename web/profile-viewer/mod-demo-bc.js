@@ -15,7 +15,18 @@
   var IFRAME_INJECTED_MOUNT_SELECTOR = '#modDemoArmyBcInline #brand-concierge-mount';
   var MODAL_MOUNT_SELECTOR = '#aepBcModal #brand-concierge-mount';
   var DEFAULT_FRAME_SRC = 'mod-demo-assets/army-home-snapshot.html';
-  var FULLSCREEN_FRAME_SRC = BASE + 'mod-bc-fullscreen-shell.html';
+  var SNAPSHOT_FS_LAYOUT_STYLE_ID = 'aep-mod-bc-fullscreen-layout';
+  var SNAPSHOT_FS_LAYOUT_CSS = [
+    'html.mod-demo-bc-fs-active,html.mod-demo-bc-fs-active body{height:100%!important;overflow:hidden!important;background-color:#2c2e31!important;}',
+    'html.mod-demo-bc-fs-active .main-page-layout__body,html.mod-demo-bc-fs-active .main-page-layout__footer,html.mod-demo-bc-fs-active .exp-hero-banner{display:none!important;}',
+    'html.mod-demo-bc-fs-active .main-page-layout__header{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:1200!important;}',
+    'html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--home) .site-header__logo.logo-svg,html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--global-operations) .site-header__logo.logo-svg,html.mod-demo-bc-fs-active .main-page-layout:has(.exp-content-theme--ranks-listing) .site-header__logo.logo-svg{visibility:visible!important;}',
+    'html.mod-demo-bc-fs-active .site-header{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;width:100%!important;box-sizing:border-box!important;padding:0.65rem 1.25rem!important;}',
+    'html.mod-demo-bc-fs-active .site-header__logo.logo-svg{display:block!important;height:var(--site-header-logo-height,76px)!important;width:6.25rem!important;background-repeat:no-repeat!important;background-position:left center!important;background-size:contain!important;}',
+    'html.mod-demo-bc-fs-active .site-header__actions{position:relative!important;right:auto!important;bottom:auto!important;flex-direction:row!important;}',
+    'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen{position:fixed!important;top:var(--site-header-height,calc(var(--site-header-logo-height,76px) + 1.3rem))!important;left:0!important;right:0!important;bottom:0!important;z-index:1100!important;margin:0!important;padding:clamp(0.75rem,2vw,1.25rem)!important;min-height:0!important;overflow:auto!important;background:linear-gradient(122.87deg,#e1e9ff 20.72%,#efe3fa 34.96%,#f5dff8 42.08%,#fcdcf5 49.2%,#ffdec3 91.6%)!important;}',
+    'html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen .army-bc-inline__mount,html.mod-demo-bc-fs-active #modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen #brand-concierge-mount{min-height:min(540px,calc(100vh - var(--site-header-height,5rem) - 2rem))!important;}',
+  ].join('');
 
   var injectedToggle = document.getElementById('modBcInjectedToggle');
   var modalToggle = document.getElementById('modBcModalToggle');
@@ -51,20 +62,14 @@
     return DEFAULT_DATASTREAM_ID;
   }
 
-  function getFullscreenFrameSrc() {
-    var params = new URLSearchParams();
-    params.set('modDatastreamId', getDatastreamId());
-    var styleUrl = String(getStyleConfigUrl() || '').trim();
-    if (styleUrl) params.set('modStyleConfigUrl', styleUrl);
-    return FULLSCREEN_FRAME_SRC + '?' + params.toString();
-  }
-
   async function restoreModDemoSnapshotFrame() {
-    if (!isFullscreenFrameLoaded()) return;
+    var doc = getIframeDoc();
+    if (doc) setSnapshotFullscreenLayout(doc, false);
+    if (!isLegacyFullscreenShellLoaded()) return;
     iframeCoreReady = null;
     loadedIframeStyleUrl = null;
     loadedIframeDatastreamId = null;
-    await ensureFrameSrcForMode(false);
+    await ensureSnapshotFrame();
   }
 
   function resolveAssetUrl(url) {
@@ -96,8 +101,30 @@
     return src.split('?')[0];
   }
 
-  function isFullscreenFrameLoaded() {
+  function isLegacyFullscreenShellLoaded() {
     return getFrameSrcPath().indexOf('mod-bc-fullscreen-shell.html') >= 0;
+  }
+
+  function setSnapshotFullscreenLayout(doc, on) {
+    if (!doc || !doc.documentElement) return;
+    doc.documentElement.classList.toggle('mod-demo-bc-fs-active', !!on);
+    var logo = doc.querySelector('.site-header__logo.logo-svg');
+    if (logo) {
+      if (on) logo.classList.add('logo-svg--dark');
+      else logo.classList.remove('logo-svg--dark');
+    }
+    var styleEl = doc.getElementById(SNAPSHOT_FS_LAYOUT_STYLE_ID);
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = SNAPSHOT_FS_LAYOUT_STYLE_ID;
+      doc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = on ? SNAPSHOT_FS_LAYOUT_CSS : '';
+    try {
+      doc.defaultView && doc.defaultView.scrollTo(0, 0);
+    } catch (_e) {
+      /* noop */
+    }
   }
 
   function waitForFrameLoad(frame) {
@@ -121,21 +148,13 @@
     });
   }
 
-  async function ensureFrameSrcForMode(fullscreen) {
+  async function ensureSnapshotFrame() {
     var frame = getModDemoFrame();
     if (!frame) return;
-    var target = fullscreen ? getFullscreenFrameSrc() : DEFAULT_FRAME_SRC;
     var current = getFrameSrcPath();
-    var currentFull = frame.getAttribute('src') || '';
-    var frameMatches =
-      current.indexOf(fullscreen ? 'mod-bc-fullscreen-shell.html' : DEFAULT_FRAME_SRC) >= 0;
-    var styleParamOk =
-      !fullscreen ||
-      currentFull.indexOf('modStyleConfigUrl=' + encodeURIComponent(String(getStyleConfigUrl() || ''))) >= 0;
-    var datastreamParamOk =
-      !fullscreen ||
-      currentFull.indexOf('modDatastreamId=' + encodeURIComponent(getDatastreamId())) >= 0;
-    if (frameMatches && datastreamParamOk && styleParamOk) {
+    var onSnapshot =
+      current.indexOf(DEFAULT_FRAME_SRC) >= 0 && current.indexOf('mod-bc-fullscreen-shell.html') < 0;
+    if (onSnapshot) {
       await waitForFrameLoad(frame);
       return;
     }
@@ -143,10 +162,14 @@
     loadedIframeStyleUrl = null;
     loadedIframeDatastreamId = null;
     await new Promise(function (resolve) {
-      frame.addEventListener('load', function () {
-        resolve();
-      }, { once: true });
-      frame.src = target;
+      frame.addEventListener(
+        'load',
+        function () {
+          resolve();
+        },
+        { once: true },
+      );
+      frame.src = DEFAULT_FRAME_SRC;
     });
   }
 
@@ -730,6 +753,12 @@
       existing.className = fullscreen
         ? 'army-bc-inline mod-demo-army-bc-inline--fullscreen'
         : 'army-bc-inline';
+      if (fullscreen) {
+        var header = doc.querySelector('.main-page-layout__header');
+        if (header && header.parentNode && existing.previousSibling !== header) {
+          header.parentNode.insertBefore(existing, header.nextSibling);
+        }
+      }
       return existing.querySelector(IFRAME_MOUNT_SELECTOR) || existing;
     }
     var section = doc.createElement('section');
@@ -742,11 +771,20 @@
     mount.id = 'brand-concierge-mount';
     mount.className = 'army-bc-inline__mount';
     section.appendChild(mount);
-    var anchor = findHeroInsertPoint(doc);
-    if (anchor && anchor.parentNode) {
-      anchor.parentNode.insertBefore(section, anchor.nextSibling);
+    if (fullscreen) {
+      var siteHeader = doc.querySelector('.main-page-layout__header');
+      if (siteHeader && siteHeader.parentNode) {
+        siteHeader.parentNode.insertBefore(section, siteHeader.nextSibling);
+      } else {
+        doc.body.insertBefore(section, doc.body.firstChild);
+      }
     } else {
-      doc.body.insertBefore(section, doc.body.firstChild);
+      var anchor = findHeroInsertPoint(doc);
+      if (anchor && anchor.parentNode) {
+        anchor.parentNode.insertBefore(section, anchor.nextSibling);
+      } else {
+        doc.body.insertBefore(section, doc.body.firstChild);
+      }
     }
     return mount;
   }
@@ -759,64 +797,18 @@
     activeMode = 'modal';
   }
 
-  function isFullscreenShellBootstrapped(doc, win) {
-    if (!doc || !win) return false;
-    if (win.__modDemoBcBootstrapped) return true;
-    var mount = doc.querySelector(IFRAME_MOUNT_SELECTOR);
-    return !!(mount && mount.childElementCount > 0);
-  }
-
-  async function bootstrapIframeFullscreen() {
-    await ensureFrameSrcForMode(true);
-    var doc = getIframeDoc();
-    if (!doc) throw new Error('MOD fullscreen iframe is not ready');
-    var win = doc.defaultView;
-    if (!win) throw new Error('MOD fullscreen window is not ready');
-
-    if (typeof win.applyArmyBcEdgePathPatches === 'function') {
-      win.applyArmyBcEdgePathPatches(win);
-    } else {
-      await ensureEdgePathPatches(win, doc);
-    }
-
-    var styleUrl = resolveAssetUrl(getStyleConfigUrl());
-    var datastreamId = getDatastreamId();
-    var usesCustomStyle = styleUrl.indexOf('styleConfigurations-6a0992') < 0;
-    var shellLive = isFullscreenShellBootstrapped(doc, win);
-    var datastreamMismatch =
-      !win.__modDemoBcDatastreamId || win.__modDemoBcDatastreamId !== datastreamId;
-
-    if (usesCustomStyle || !shellLive || datastreamMismatch) {
-      await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
-      if (!win.styleConfiguration) {
-        throw new Error('Style configuration missing in fullscreen shell');
-      }
-      await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration, {
-        allowConciergeOpenOnRetry: false,
-      });
-    } else {
-      win.__modDemoBcBootstrapped = true;
-      await loadArmyBcHelperScripts(win, doc);
-      scheduleDisclaimerReposition(doc);
-      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
-        win.applyArmyBcEdgePathPatches(win);
-      }
-    }
-
-    activeMode = 'fullscreen';
-  }
-
-  async function bootstrapIframeInjected() {
-    await ensureFrameSrcForMode(false);
+  async function bootstrapIframeBcInline(fullscreen) {
+    await ensureSnapshotFrame();
     var doc = getIframeDoc();
     if (!doc) throw new Error('MOD site iframe is not ready');
     var win = doc.defaultView;
     if (!win) throw new Error('MOD site iframe window is not ready');
 
+    setSnapshotFullscreenLayout(doc, !!fullscreen);
     iframeCoreReady = null;
     loadedIframeStyleUrl = null;
     teardownIframeInlineSection(doc);
-    ensureIframeInlineSection(doc, false);
+    ensureIframeInlineSection(doc, !!fullscreen);
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
@@ -839,15 +831,25 @@
       });
     }
 
-    var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
-    if (section && typeof section.scrollIntoView === 'function') {
-      try {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (_e) {
-        section.scrollIntoView();
+    if (!fullscreen) {
+      var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
+      if (section && typeof section.scrollIntoView === 'function') {
+        try {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (_e) {
+          section.scrollIntoView();
+        }
       }
     }
-    activeMode = 'injected';
+    activeMode = fullscreen ? 'fullscreen' : 'injected';
+  }
+
+  async function bootstrapIframeFullscreen() {
+    await bootstrapIframeBcInline(true);
+  }
+
+  async function bootstrapIframeInjected() {
+    await bootstrapIframeBcInline(false);
   }
 
   async function loadModalAssets() {
@@ -904,8 +906,9 @@
       document.body.classList.toggle('mod-demo-bc-fullscreen-armed', isFullScreenOn());
     }
     var doc = getIframeDoc();
-    if (doc && !isInjectedOn() && !isFullScreenOn()) {
-      teardownIframeInlineSection(doc);
+    if (doc) {
+      if (!isFullScreenOn()) setSnapshotFullscreenLayout(doc, false);
+      if (!isInjectedOn() && !isFullScreenOn()) teardownIframeInlineSection(doc);
     }
   }
 
@@ -927,7 +930,10 @@
 
     if (!wantInjected && !wantModal && !wantFullScreen) {
       var iframeDocOff = getIframeDoc();
-      if (iframeDocOff) teardownIframeInlineSection(iframeDocOff);
+      if (iframeDocOff) {
+        setSnapshotFullscreenLayout(iframeDocOff, false);
+        teardownIframeInlineSection(iframeDocOff);
+      }
       await restoreModDemoSnapshotFrame();
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       activeMode = null;
@@ -941,6 +947,7 @@
       if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        await restoreModDemoSnapshotFrame();
         await bootstrapIframeFullscreen();
       } else {
         await restoreModDemoSnapshotFrame();
