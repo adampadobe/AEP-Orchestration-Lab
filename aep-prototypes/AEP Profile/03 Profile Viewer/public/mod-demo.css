@@ -159,9 +159,9 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
 .mod-demo-profile-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.65rem 1rem;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   align-self: flex-end;
 }
@@ -211,8 +211,20 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   gap: 0.25rem;
   min-width: 0;
   margin: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-self: flex-end;
+}
+
+.mod-demo-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .mod-demo-bc-prefs-field .mod-demo-bc-prefs__label {

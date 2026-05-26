@@ -1,35 +1,19 @@
-/* Army BC — full-screen injected panel */
-.mod-demo-bc-injected.mod-demo-bc-injected--fullscreen.army-bc-inline {
-  max-height: none;
-  height: 100vh;
-  top: 0;
-  bottom: 0;
+/* Parent overlay mount — disabled; injected BC lives in iframe (army-mod-home pattern) */
+#modDemoBcInjectedPanel.mod-demo-bc-injected {
+  display: none !important;
 }
 
-/* Army BC — injected panel overlay on MOD demo (army-mod-home pattern) */
-.mod-demo-bc-injected.army-bc-inline {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 7200;
-  max-height: min(72vh, 720px);
-  overflow-y: auto;
-  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
-  pointer-events: auto;
+/* Injected BC inside army-home-snapshot iframe */
+#modDemoArmyBcInline.army-bc-inline,
+#modDemoArmyBcInline.mod-demo-army-bc-inline {
+  position: relative;
+  z-index: 25;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.mod-demo-bc-injected .army-bc-inline__mount,
-.mod-demo-bc-injected #modDemoBcInjectMount {
-  position: relative !important;
-  inset: auto !important;
-  width: 100% !important;
-  max-width: 920px !important;
-  min-height: min(480px, 60vh) !important;
-  height: auto !important;
-  max-height: none !important;
-  margin: 0 auto;
-  pointer-events: auto !important;
+#modDemoArmyBcInline.mod-demo-army-bc-inline--fullscreen {
+  min-height: 100vh;
 }
 
 /* Modal mount — army-mod-home-3 pattern (popup.css handles chrome) */

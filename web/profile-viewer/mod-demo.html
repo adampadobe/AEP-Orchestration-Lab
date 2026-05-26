@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-prefs-stack">
-  <link rel="stylesheet" href="mod-demo-bc.css?v=20260522-army-bc">
+  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-iframe-inject">
+  <link rel="stylesheet" href="mod-demo-bc.css?v=20260526-bc-iframe-inject">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -131,44 +131,38 @@
               <label for="customerEmail">Identifier value</label>
               <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
             </div>
-            <div class="mod-demo-id-actions mod-demo-profile-actions">
+            <div class="mod-demo-profile-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-            </div>
-            <div class="form-row mod-demo-bc-prefs-field" role="group" aria-labelledby="modBcPrefsHeading">
-              <span class="mod-demo-bc-prefs__label" id="modBcPrefsHeading">Show Brand Concierge</span>
-              <div class="mod-demo-bc-prefs__options">
-                <label class="mod-demo-bc-prefs__option">
-                  <input
-                    type="checkbox"
-                    id="modBcFullScreenToggle"
-                    data-mod-bc-style-from="modBcStyleConfigUrl"
-                    aria-describedby="modBcStyleConfigUrlHint"
-                  />
-                  <span>Full Screen</span>
-                </label>
-                <label class="mod-demo-bc-prefs__option">
-                  <input
-                    type="checkbox"
-                    id="modBcModalToggle"
-                    data-mod-bc-style-from="modBcStyleConfigUrl"
-                    aria-describedby="modBcStyleConfigUrlHint"
-                  />
-                  <span>Modal</span>
-                </label>
-                <label class="mod-demo-bc-prefs__option">
-                  <input
-                    type="checkbox"
-                    id="modBcInjectedToggle"
-                    data-mod-bc-style-from="modBcStyleConfigUrl"
-                    aria-describedby="modBcStyleConfigUrlHint"
-                  />
-                  <span>Injected</span>
-                </label>
+              <div class="mod-demo-bc-prefs-field" role="group" aria-labelledby="modBcPrefsHeading">
+                <span class="mod-demo-bc-prefs__label" id="modBcPrefsHeading">Show Brand Concierge</span>
+                <div class="mod-demo-bc-prefs__options">
+                  <label class="mod-demo-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="modBcFullScreenToggle"
+                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                    />
+                    <span>Full Screen</span>
+                  </label>
+                  <label class="mod-demo-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="modBcModalToggle"
+                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                    />
+                    <span>Modal</span>
+                  </label>
+                  <label class="mod-demo-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="modBcInjectedToggle"
+                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                    />
+                    <span>Injected</span>
+                  </label>
+                </div>
               </div>
-              <span id="modBcStyleConfigUrlHint" class="visually-hidden">
-                Each mode loads the script URL from Brand Concierge style configuration URL in Environment.
-              </span>
             </div>
           </div>
         </section>
@@ -187,7 +181,7 @@
     title="British Army — homepage snapshot (embedded)"
     src="mod-demo-assets/army-home-snapshot.html"
     referrerpolicy="no-referrer-when-downgrade"
-    sandbox="allow-same-origin allow-forms allow-popups"
+    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
     loading="eager"
   ></iframe>
 
@@ -369,8 +363,8 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="mod-demo.js?v=20260526-bc-prefs-stack"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-prefs-stack"></script>
+  <script src="mod-demo.js?v=20260526-bc-iframe-inject"></script>
+  <script src="mod-demo-bc.js?v=20260526-bc-iframe-inject"></script>
   <div id="brand-concierge-mount-host" aria-live="polite">
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
     <div id="brand-concierge-mount"></div>

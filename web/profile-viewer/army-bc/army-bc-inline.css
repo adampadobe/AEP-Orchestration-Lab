@@ -41,3 +41,8 @@
   background-position: center !important;
   background-repeat: no-repeat !important;
 }
+
+/* MOD demo full-screen injected mode (iframe) */
+.army-bc-inline.mod-demo-army-bc-inline--fullscreen {
+  min-height: 100vh;
+}
