@@ -71,9 +71,12 @@
     loadedIframeStyleUrl = null;
     activeMode = null;
     global.__aepBcToggleBootstrapped = false;
+    global.__modDemoBcBootstrapped = false;
     unloadStyleConfigScripts(document);
     var iframeDoc = getIframeDoc();
     if (iframeDoc) {
+      var iframeWin = iframeDoc.defaultView;
+      if (iframeWin) iframeWin.__modDemoBcBootstrapped = false;
       unloadStyleConfigScripts(iframeDoc);
       teardownIframeInlineSection(iframeDoc);
     }
@@ -190,6 +193,84 @@
     })(win, ['alloy']);
   }
 
+  var ALLOY_CONFIG = {
+    defaultConsent: 'in',
+    edgeDomain: 'edge.adobedc.net',
+    edgeBasePath: 'ee',
+    datastreamId: DATASTREAM_ID,
+    orgId: ORG_ID,
+    debugEnabled: true,
+    idMigrationEnabled: false,
+    thirdPartyCookiesEnabled: false,
+    prehidingStyle: '.personalization-container { opacity: 0 !important }',
+  };
+
+  function isAlloyAlreadyConfiguredError(err) {
+    var msg = String((err && err.message) || err);
+    return msg.indexOf('already been configured') >= 0;
+  }
+
+  async function configureAlloyOnce(win) {
+    if (!win) return;
+    if (win.__modDemoBcAlloyConfigured) return;
+    installAlloyStub(win);
+    if (typeof win.alloy !== 'function') {
+      throw new Error('Alloy is not available');
+    }
+    try {
+      await win.alloy('configure', ALLOY_CONFIG);
+      await win.alloy('sendEvent', {});
+      win.__modDemoBcAlloyConfigured = true;
+    } catch (err) {
+      if (isAlloyAlreadyConfiguredError(err)) {
+        win.__modDemoBcAlloyConfigured = true;
+        return;
+      }
+      throw err;
+    }
+  }
+
+  function reportBcStatus(text, isError) {
+    var el = document.getElementById('modMessage');
+    if (!el) return;
+    if (!text) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = text;
+    el.className = isError ? 'mod-demo-message mod-demo-message--error' : 'mod-demo-message';
+    el.hidden = false;
+  }
+
+  async function bootstrapConcierge(win, selector, stylingConfigurations) {
+    if (
+      !win ||
+      !win.adobe ||
+      !win.adobe.concierge ||
+      typeof win.adobe.concierge.bootstrap !== 'function'
+    ) {
+      throw new Error('Brand Concierge agent not available');
+    }
+    clearMountInDoc(win.document, selector);
+    try {
+      await win.adobe.concierge.bootstrap({
+        instanceName: 'alloy',
+        stylingConfigurations: stylingConfigurations,
+        selector: selector,
+        stickySession: false,
+      });
+      win.__modDemoBcBootstrapped = true;
+    } catch (err) {
+      if (typeof win.adobe.concierge.open === 'function') {
+        win.adobe.concierge.open();
+        win.__modDemoBcBootstrapped = true;
+        return;
+      }
+      throw err;
+    }
+  }
+
   function ensureParentCore() {
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
     if (parentCoreReady && loadedParentStyleUrl && loadedParentStyleUrl !== styleUrl) {
@@ -211,18 +292,7 @@
         'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js',
       );
 
-      await global.alloy('configure', {
-        defaultConsent: 'in',
-        edgeDomain: 'edge.adobedc.net',
-        edgeBasePath: 'ee',
-        datastreamId: DATASTREAM_ID,
-        orgId: ORG_ID,
-        debugEnabled: true,
-        idMigrationEnabled: false,
-        thirdPartyCookiesEnabled: false,
-        prehidingStyle: '.personalization-container { opacity: 0 !important }',
-      });
-      await global.alloy('sendEvent', {});
+      await configureAlloyOnce(global);
 
       await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'));
       await loadScript(resolveAssetUrl(BASE + 'army-bc-local-engine.js'));
@@ -266,18 +336,7 @@
         doc,
       );
 
-      await win.alloy('configure', {
-        defaultConsent: 'in',
-        edgeDomain: 'edge.adobedc.net',
-        edgeBasePath: 'ee',
-        datastreamId: DATASTREAM_ID,
-        orgId: ORG_ID,
-        debugEnabled: true,
-        idMigrationEnabled: false,
-        thirdPartyCookiesEnabled: false,
-        prehidingStyle: '.personalization-container { opacity: 0 !important }',
-      });
-      await win.alloy('sendEvent', {});
+      await configureAlloyOnce(win);
 
       await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'army-bc-local-engine.js'), doc);
@@ -333,20 +392,7 @@
 
   async function bootstrapParent(selector) {
     await ensureParentCore();
-    clearMountInDoc(document, selector);
-    if (
-      !global.adobe ||
-      !global.adobe.concierge ||
-      typeof global.adobe.concierge.bootstrap !== 'function'
-    ) {
-      throw new Error('Brand Concierge agent not available');
-    }
-    await global.adobe.concierge.bootstrap({
-      instanceName: 'alloy',
-      stylingConfigurations: global.styleConfiguration,
-      selector: selector,
-      stickySession: false,
-    });
+    await bootstrapConcierge(global, selector, global.styleConfiguration);
     activeMode = 'modal';
   }
 
@@ -356,16 +402,15 @@
     var win = doc.defaultView;
     await ensureIframeCore();
     ensureIframeInlineSection(doc, fullscreen);
-    clearMountInDoc(doc, IFRAME_MOUNT_SELECTOR);
-    if (!win.adobe || !win.adobe.concierge || typeof win.adobe.concierge.bootstrap !== 'function') {
-      throw new Error('Brand Concierge agent not available in iframe');
+    await bootstrapConcierge(win, IFRAME_MOUNT_SELECTOR, win.styleConfiguration);
+    var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
+    if (section && typeof section.scrollIntoView === 'function') {
+      try {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_e) {
+        section.scrollIntoView();
+      }
     }
-    await win.adobe.concierge.bootstrap({
-      instanceName: 'alloy',
-      stylingConfigurations: win.styleConfiguration,
-      selector: IFRAME_MOUNT_SELECTOR,
-      stickySession: false,
-    });
     activeMode = fullscreen ? 'fullscreen' : 'injected';
   }
 
@@ -413,7 +458,17 @@
     }
   }
 
+  var syncInFlight = null;
+
   async function sync() {
+    if (syncInFlight) return syncInFlight;
+    syncInFlight = syncInner().finally(function () {
+      syncInFlight = null;
+    });
+    return syncInFlight;
+  }
+
+  async function syncInner() {
     updateChromeVisibility();
     var wantInjected = isInjectedOn();
     var wantModal = isModalOn();
@@ -424,6 +479,7 @@
       if (iframeDoc) teardownIframeInlineSection(iframeDoc);
       clearMountInDoc(document, '#modDemoBcModalMount');
       activeMode = null;
+      reportBcStatus('');
       return;
     }
 
@@ -439,8 +495,13 @@
         clearMountInDoc(document, '#modDemoBcModalMount');
         await bootstrapIframeInjected(wantFullScreen);
       }
+      reportBcStatus('');
     } catch (e) {
       console.error('[mod-demo-bc] sync failed', e);
+      reportBcStatus(
+        'Brand Concierge could not load. Open the browser console for details, or refresh and try again.',
+        true,
+      );
     }
   }
 

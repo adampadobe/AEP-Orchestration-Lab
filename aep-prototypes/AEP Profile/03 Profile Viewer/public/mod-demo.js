@@ -154,12 +154,31 @@ function syncModDemoBcFromPrefs() {
 
 (function initModBcDisplayPrefs() {
   const prefs = loadModBcDisplayPrefs();
+  if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
+    prefs.injected = false;
+    prefs.fullScreen = false;
+  } else if (prefs.fullScreen && prefs.injected) {
+    prefs.injected = false;
+  }
   if (modBcInjectedToggle) modBcInjectedToggle.checked = prefs.injected;
   if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
   if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
   [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
+      if (el === modBcModalToggle && el.checked) {
+        if (modBcInjectedToggle) modBcInjectedToggle.checked = false;
+        if (modBcFullScreenToggle) modBcFullScreenToggle.checked = false;
+      }
+      if ((el === modBcInjectedToggle || el === modBcFullScreenToggle) && el.checked) {
+        if (modBcModalToggle) modBcModalToggle.checked = false;
+      }
+      if (el === modBcInjectedToggle && el.checked && modBcFullScreenToggle) {
+        modBcFullScreenToggle.checked = false;
+      }
+      if (el === modBcFullScreenToggle && el.checked && modBcInjectedToggle) {
+        modBcInjectedToggle.checked = false;
+      }
       saveModBcDisplayPrefs();
       syncModDemoBcFromPrefs();
     });
