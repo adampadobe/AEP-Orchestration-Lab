@@ -1,12 +1,14 @@
-(function () {
-  var SELECTOR =
-    '.army-bc-inline #brand-concierge-mount, .aep-bc-modal #brand-concierge-mount';
+(function (global) {
+  'use strict';
+
+  var MOUNT_SELECTOR =
+    '.army-bc-inline #brand-concierge-mount, .aep-bc-modal #brand-concierge-mount, #modDemoArmyBcInline #brand-concierge-mount, .mod-demo-army-bc-inline #brand-concierge-mount, #modDemoBcModalMount';
 
   function moveDisclaimer(mount) {
+    if (!mount) return false;
     var disclaimer = mount.querySelector('.disclaimer-message');
-    if (!disclaimer || disclaimer.dataset.armyBcDisclaimerMoved === '1') {
-      return !!disclaimer;
-    }
+    if (!disclaimer) return false;
+    if (disclaimer.dataset.armyBcDisclaimerMoved === '1') return true;
 
     var inputContainer = disclaimer.closest('.input-container');
     if (!inputContainer) {
@@ -31,8 +33,11 @@
     return true;
   }
 
-  function scan() {
-    var mounts = document.querySelectorAll(SELECTOR);
+  function scan(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var mounts = scope.querySelectorAll(
+      root && root.querySelector ? '#brand-concierge-mount, #modDemoBcModalMount' : MOUNT_SELECTOR,
+    );
     var done = true;
     mounts.forEach(function (mount) {
       if (!moveDisclaimer(mount)) done = false;
@@ -40,21 +45,42 @@
     return done;
   }
 
-  function observe() {
-    if (scan()) return;
+  function observe(root) {
+    if (scan(root)) return;
+
+    var scope = root && root.querySelectorAll ? root : document;
+    var targets = scope.querySelectorAll(
+      root && root.querySelector ? '#brand-concierge-mount, #modDemoBcModalMount' : MOUNT_SELECTOR,
+    );
+    if (!targets.length) return;
 
     var obs = new MutationObserver(function () {
-      if (scan()) obs.disconnect();
+      if (scan(root)) obs.disconnect();
     });
 
-    document.querySelectorAll(SELECTOR).forEach(function (mount) {
+    targets.forEach(function (mount) {
       obs.observe(mount, { childList: true, subtree: true });
     });
   }
 
+  global.repositionArmyBcDisclaimer = function (mountOrRoot) {
+    if (mountOrRoot && mountOrRoot.nodeType === 1) {
+      var el = mountOrRoot;
+      if (el.id === 'brand-concierge-mount' || el.id === 'modDemoBcModalMount') {
+        moveDisclaimer(el);
+        return;
+      }
+      scan(el);
+      return;
+    }
+    scan(mountOrRoot);
+  };
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', observe);
+    document.addEventListener('DOMContentLoaded', function () {
+      observe();
+    });
   } else {
     observe();
   }
-})();
+})(typeof window !== 'undefined' ? window : this);

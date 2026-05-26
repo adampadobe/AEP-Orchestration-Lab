@@ -152,6 +152,20 @@
     });
   }
 
+  function applyModDemoStyleConfigDefaults(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    if (!cfg.behavior || typeof cfg.behavior !== 'object') cfg.behavior = {};
+    if (!cfg.behavior.disclaimer || typeof cfg.behavior.disclaimer !== 'object') {
+      cfg.behavior.disclaimer = {};
+    }
+    cfg.behavior.disclaimer.attachWithInput = false;
+    return cfg;
+  }
+
+  function assignStyleConfiguration(win, cfg) {
+    win.styleConfiguration = applyModDemoStyleConfigDefaults(cfg);
+  }
+
   function parseStyleConfigFromText(text) {
     var t = String(text || '').trim();
     if (!t) return null;
@@ -188,7 +202,7 @@
         var text = await res.text();
         var cfg = parseStyleConfigFromText(text);
         if (cfg && typeof cfg === 'object') {
-          win.styleConfiguration = cfg;
+          assignStyleConfiguration(win, cfg);
           console.info('[mod-demo-bc] style configuration loaded (fetch):', url);
           return url;
         }
@@ -213,6 +227,7 @@
           );
           return;
         }
+        assignStyleConfiguration(win, win.styleConfiguration);
         resolve(url);
       };
       s.onerror = function () {
@@ -369,6 +384,21 @@
     el.hidden = false;
   }
 
+  function scheduleDisclaimerReposition(doc) {
+    if (!doc) return;
+    function run() {
+      if (typeof global.repositionArmyBcDisclaimer === 'function') {
+        doc.querySelectorAll('#brand-concierge-mount, #modDemoBcModalMount').forEach(function (mount) {
+          global.repositionArmyBcDisclaimer(mount);
+        });
+      }
+    }
+    run();
+    [100, 400, 1000, 2500].forEach(function (ms) {
+      setTimeout(run, ms);
+    });
+  }
+
   async function bootstrapConcierge(win, selector, stylingConfigurations) {
     if (
       !win ||
@@ -393,16 +423,19 @@
     try {
       await win.adobe.concierge.bootstrap(bootOpts);
       win.__modDemoBcBootstrapped = true;
+      scheduleDisclaimerReposition(win.document);
     } catch (err) {
       clearMountInDoc(win.document, selector);
       try {
         await win.adobe.concierge.bootstrap(bootOpts);
         win.__modDemoBcBootstrapped = true;
+        scheduleDisclaimerReposition(win.document);
         return;
       } catch (retryErr) {
         if (typeof win.adobe.concierge.open === 'function') {
           win.adobe.concierge.open();
           win.__modDemoBcBootstrapped = true;
+          scheduleDisclaimerReposition(win.document);
           return;
         }
         throw retryErr;
