@@ -291,6 +291,11 @@
     );
   }
 
+  function prepareArmyBcRuntime(win) {
+    if (!win) return;
+    win.__armyBcUseLocal = false;
+  }
+
   function patchFetchForNld2(win) {
     if (!win || win.__modDemoBcFetchPatched) return;
     var from = 'https://edge.adobedc.net/brand-concierge/conversations';
@@ -451,6 +456,7 @@
     }
     if (parentCoreReady) return parentCoreReady;
     parentCoreReady = (async function () {
+      prepareArmyBcRuntime(global);
       patchFetchForNld2(global);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared');
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared');
@@ -490,6 +496,7 @@
     if (iframeCoreReady) return iframeCoreReady;
 
     iframeCoreReady = (async function () {
+      prepareArmyBcRuntime(win);
       patchFetchForNld2(win);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared', doc);

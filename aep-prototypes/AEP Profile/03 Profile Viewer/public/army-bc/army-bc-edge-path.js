@@ -1,21 +1,20 @@
 /**
  * Rewrite Brand Concierge conversation URLs for deployment-specific Edge paths.
- * Alloy 2.32 calls: https://edge.adobedc.net/brand-concierge/conversations?...
- * Some datastreams need: https://edge.adobedc.net/brand-concierge/{deployment}/conversations?...
+ * Default (live Edge): /brand-concierge/nld2/conversations
+ * Local-only demo: skip rewrite when ?armyBcLocal=1
  *
- * Test: ?armyBcRemote=1&bcDeployment=nld2
- * Disable rewrite: ?bcDeployment= (empty) or omit bcDeployment without armyBcRemote
+ * Override deployment: ?bcDeployment=other-slug
  */
 (function () {
   var params = new URLSearchParams(window.location.search);
-  var remote = params.has('armyBcRemote');
+  var useLocal = params.has('armyBcLocal') || window.__armyBcUseLocal === true;
   var deploymentParam = params.get('bcDeployment');
   var deployment =
     deploymentParam !== null && deploymentParam !== ''
       ? deploymentParam
-      : remote
-        ? 'nld2'
-        : null;
+      : useLocal
+        ? null
+        : 'nld2';
 
   if (!deployment) return;
 
@@ -67,6 +66,6 @@
   console.info(
     '[army-bc-edge-path] BC conversations → /brand-concierge/' +
       deployment +
-      '/conversations (use ?armyBcRemote=1 to hit Edge, not local catalog)'
+      '/conversations (?armyBcLocal=1 to skip Edge and use local catalog)',
   );
 })();

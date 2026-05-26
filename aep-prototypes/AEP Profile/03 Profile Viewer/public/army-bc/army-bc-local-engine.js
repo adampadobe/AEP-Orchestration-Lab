@@ -1,5 +1,5 @@
 /**
- * Local Army BC response engine (default demo path until Edge datastream is ready).
+ * Local Army BC response engine (fallback when ?armyBcLocal=1 or Edge errors).
  */
 (function (global) {
   const CATALOG_URL = '/army-bc/army-role-catalog.json';

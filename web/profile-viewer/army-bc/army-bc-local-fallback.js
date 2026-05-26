@@ -1,12 +1,18 @@
 /**
- * Army BC demo: answer from local catalog (default until datastream is fixed).
- * BC chat uses onStreamResponse on sendConversationEvent — not only the returned promise.
- * Opt back into Edge chat with ?armyBcRemote=1
+ * Army BC: live Edge chat by default (Brand Concierge conversations API).
+ * Local catalog fallback when Edge fails or ?armyBcLocal=1.
+ * Legacy: ?armyBcRemote=1 still forces Edge (same as default).
  */
 (function () {
-  const REMOTE_PARAM = 'armyBcRemote';
-  const params = new URLSearchParams(window.location.search);
-  const useLocal = !params.has(REMOTE_PARAM);
+  function isUseLocal() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('armyBcLocal')) return true;
+    if (window.__armyBcForceLocal === true) return true;
+    if (window.__armyBcUseLocal === true) return true;
+    if (window.__armyBcUseLocal === false) return false;
+    if (params.has('armyBcRemote')) return false;
+    return false;
+  }
 
   function isBcConversationUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -45,18 +51,18 @@
   }
 
   function patchFetch() {
-    if (!useLocal || window.__armyBcFetchPatched) return;
+    if (window.__armyBcLocalFetchPatched) return;
     const native = window.fetch.bind(window);
     window.fetch = async function (input, init) {
       const url = typeof input === 'string' ? input : input?.url;
       const res = await native(input, init);
       if (res.status === 400 && (isInteractUrl(url) || isBcConversationUrl(url))) {
         window.__armyBcForceLocal = true;
-        console.warn('[army-bc-local] Edge returned 400 — using local catalog:', url);
+        console.warn('[army-bc-local] Edge returned 400 — local catalog on next turn:', url);
       }
       return res;
     };
-    window.__armyBcFetchPatched = true;
+    window.__armyBcLocalFetchPatched = true;
   }
 
   function wrapAlloy(instanceName) {
@@ -70,7 +76,7 @@
         return alloyFn.apply(window, [command].concat(args));
       }
       const payload = args[0];
-      if (useLocal && window.ArmyBcLocalEngine) {
+      if (isUseLocal() && window.ArmyBcLocalEngine) {
         return deliverLocalTurn(payload);
       }
       return alloyFn('sendConversationEvent', payload)
@@ -86,7 +92,10 @@
         })
         .catch(function (err) {
           console.warn('[army-bc-local] sendConversationEvent failed:', err);
-          return deliverLocalTurn(payload);
+          if (window.ArmyBcLocalEngine) {
+            return deliverLocalTurn(payload);
+          }
+          throw err;
         });
     };
 
@@ -150,8 +159,12 @@
     trackUserBubbles();
     const obs = new MutationObserver(trackUserBubbles);
     obs.observe(document.documentElement, { childList: true, subtree: true });
-    if (useLocal) {
-      console.info('[army-bc-local] Using local catalog (add ?armyBcRemote=1 for Edge chat)');
+    if (isUseLocal()) {
+      console.info('[army-bc-local] Using local catalog (?armyBcLocal=1).');
+    } else {
+      console.info(
+        '[army-bc-local] Using live Brand Concierge on Edge (add ?armyBcLocal=1 for local catalog only).',
+      );
     }
   }
 
