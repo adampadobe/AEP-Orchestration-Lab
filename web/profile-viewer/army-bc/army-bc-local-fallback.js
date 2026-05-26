@@ -56,7 +56,11 @@
     window.fetch = async function (input, init) {
       const url = typeof input === 'string' ? input : input?.url;
       const res = await native(input, init);
-      if (res.status === 400 && (isInteractUrl(url) || isBcConversationUrl(url))) {
+      if (
+        isUseLocal() &&
+        res.status === 400 &&
+        (isInteractUrl(url) || isBcConversationUrl(url))
+      ) {
         window.__armyBcForceLocal = true;
         console.warn('[army-bc-local] Edge returned 400 — local catalog on next turn:', url);
       }
@@ -92,7 +96,7 @@
         })
         .catch(function (err) {
           console.warn('[army-bc-local] sendConversationEvent failed:', err);
-          if (window.ArmyBcLocalEngine) {
+          if (isUseLocal() && window.ArmyBcLocalEngine) {
             return deliverLocalTurn(payload);
           }
           throw err;

@@ -75,11 +75,15 @@
     activeMode = null;
     global.__aepBcToggleBootstrapped = false;
     global.__modDemoBcBootstrapped = false;
+    global.__armyBcForceLocal = false;
     unloadStyleConfigScripts(document);
     var iframeDoc = getIframeDoc();
     if (iframeDoc) {
       var iframeWin = iframeDoc.defaultView;
-      if (iframeWin) iframeWin.__modDemoBcBootstrapped = false;
+      if (iframeWin) {
+        iframeWin.__modDemoBcBootstrapped = false;
+        iframeWin.__armyBcForceLocal = false;
+      }
       unloadStyleConfigScripts(iframeDoc);
       teardownIframeInlineSection(iframeDoc);
     }
@@ -291,22 +295,63 @@
     );
   }
 
+  function getArmyBcQuerySearch(win) {
+    var target = win || global;
+    try {
+      if (target.parent && target.parent !== target) {
+        try {
+          return target.parent.location.search || target.location.search || '';
+        } catch (_e) {
+          return target.location.search || '';
+        }
+      }
+      return target.location.search || '';
+    } catch (_e2) {
+      return '';
+    }
+  }
+
+  function shouldUseLocalArmyBcCatalog(win) {
+    try {
+      return new URLSearchParams(getArmyBcQuerySearch(win)).has('armyBcLocal');
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function prepareArmyBcRuntime(win) {
     if (!win) return;
-    win.__armyBcUseLocal = false;
+    var useLocal = shouldUseLocalArmyBcCatalog(win);
+    win.__armyBcUseLocal = useLocal;
+    if (!useLocal) {
+      win.__armyBcForceLocal = false;
+    }
+  }
+
+  function rewriteBrandConciergeEdgeUrl(url, deployment) {
+    if (typeof url !== 'string' || url.indexOf('brand-concierge') === -1) return url;
+    var dep = deployment || EDGE_DEPLOYMENT;
+    if (url.indexOf('/brand-concierge/' + dep + '/conversations') !== -1) {
+      return url;
+    }
+    if (url.indexOf('/brand-concierge-voice/' + dep + '/conversations') !== -1) {
+      return url;
+    }
+    return url
+      .replace(
+        '/brand-concierge/conversations',
+        '/brand-concierge/' + dep + '/conversations',
+      )
+      .replace(
+        '/brand-concierge-voice/conversations',
+        '/brand-concierge-voice/' + dep + '/conversations',
+      );
   }
 
   function patchFetchForNld2(win) {
     if (!win || win.__modDemoBcFetchPatched) return;
-    var from = 'https://edge.adobedc.net/brand-concierge/conversations';
-    var to = 'https://edge.adobedc.net/brand-concierge/' + EDGE_DEPLOYMENT + '/conversations';
-    var voiceFrom = 'https://edge.adobedc.net/brand-concierge-voice/conversations';
-    var voiceTo = 'https://edge.adobedc.net/brand-concierge-voice/' + EDGE_DEPLOYMENT + '/conversations';
     function rewrite(url) {
-      if (typeof url !== 'string') return url;
-      if (url.indexOf(from) === 0) return to + url.slice(from.length);
-      if (url.indexOf(voiceFrom) === 0) return voiceTo + url.slice(voiceFrom.length);
-      return url;
+      return rewriteBrandConciergeEdgeUrl(url, EDGE_DEPLOYMENT);
     }
     var nativeFetch = win.fetch;
     if (typeof nativeFetch !== 'function') return;
@@ -320,6 +365,25 @@
       return nativeFetch.call(this, input, init);
     };
     win.__modDemoBcFetchPatched = true;
+    console.info(
+      '[mod-demo-bc] Edge fetch rewrite active → /brand-concierge/' + EDGE_DEPLOYMENT + '/conversations',
+    );
+  }
+
+  async function loadArmyBcHelperScripts(win, doc) {
+    await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'), doc);
+    await loadScript(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.js'), doc);
+    if (shouldUseLocalArmyBcCatalog(win)) {
+      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-engine.js'), doc);
+      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-fallback.js'), doc);
+      console.info('[mod-demo-bc] Local catalog scripts loaded (?armyBcLocal=1)');
+    } else {
+      console.info(
+        '[mod-demo-bc] Live Edge mode — Alloy/BC not wrapped; expect network calls to edge.adobedc.net/brand-concierge/' +
+          EDGE_DEPLOYMENT +
+          '/conversations',
+      );
+    }
   }
 
   function installAlloyStub(win) {
@@ -459,8 +523,10 @@
       prepareArmyBcRuntime(global);
       patchFetchForNld2(global);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared');
-      loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared');
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared');
+      if (shouldUseLocalArmyBcCatalog(global)) {
+        loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared');
+      }
 
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), global, document);
       loadedParentStyleUrl = loadedStyle || styleUrl;
@@ -469,10 +535,7 @@
       await ensureConciergeAgent(global, document);
       await configureAlloyOnce(global);
 
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'));
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-engine.js'));
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-fallback.js'));
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.js'));
+      await loadArmyBcHelperScripts(global, document);
     })().catch(function (err) {
       parentCoreReady = null;
       console.error('[mod-demo-bc] parent core init failed', err);
@@ -499,9 +562,11 @@
       prepareArmyBcRuntime(win);
       patchFetchForNld2(win);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
+      if (shouldUseLocalArmyBcCatalog(win)) {
+        loadStylesheet(resolveAssetUrl(BASE + 'army-bc-local-fallback.css'), 'shared', doc);
+      }
 
       var loadedStyle = await loadStyleConfigScript(getStyleConfigUrl(), win, doc);
       loadedIframeStyleUrl = loadedStyle || styleUrl;
@@ -510,10 +575,7 @@
       await ensureConciergeAgent(win, doc);
       await configureAlloyOnce(win);
 
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-scroll-fix.js'), doc);
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-engine.js'), doc);
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-local-fallback.js'), doc);
-      await loadScript(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.js'), doc);
+      await loadArmyBcHelperScripts(win, doc);
     })().catch(function (err) {
       iframeCoreReady = null;
       console.error('[mod-demo-bc] iframe core init failed', err);
