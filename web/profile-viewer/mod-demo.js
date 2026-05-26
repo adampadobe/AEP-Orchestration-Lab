@@ -761,6 +761,13 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
       doc.head.appendChild(styleEl);
     }
 
+    const fs = root.classList.contains('mod-demo-bc-fs-active');
+    const inj = root.classList.contains('mod-demo-bc-injected-active');
+    if (fs || inj) {
+      styleEl.textContent =
+        'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}';
+      return;
+    }
     styleEl.textContent = [
       'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}',
       '.pin-spacer{width:100%!important;max-width:100%!important;left:0!important;right:0!important;padding:0!important;margin:0!important;transform:none!important;overflow:visible!important;}',
