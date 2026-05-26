@@ -71,13 +71,27 @@ function readModSandboxString(mapKey, legacyKey, normaliser, fallback) {
 }
 
 function writeModSandboxString(mapKey, value) {
+  writeModSandboxStringForKey(mapKey, getModSandboxKey(), value);
+}
+
+function writeModSandboxStringForKey(mapKey, sandboxKey, value) {
   const map = readModStorageMap(mapKey);
-  const key = getModSandboxKey();
+  const key = String(sandboxKey || '').trim() || '__default__';
   const v = String(value != null ? value : '').trim();
   if (!v) delete map[key];
   else map[key] = v;
   writeModStorageMap(mapKey, map);
 }
+
+function readModSandboxStringForKey(mapKey, sandboxKey, normaliser, fallback) {
+  const raw = readModStorageMap(mapKey)[String(sandboxKey || '').trim() || '__default__'];
+  const v = String(raw != null ? raw : '').trim();
+  if (!v) return fallback;
+  return normaliser ? normaliser(v) : v;
+}
+
+/** Sandbox key when env fields were last loaded or flushed (used to persist outgoing values on switch). */
+let modDemoEnvSandboxKey = getModSandboxKey();
 
 const MOD_WEB_PUSH_BY_SANDBOX_KEY = 'modDemoWebPushOnInjectBySandbox';
 const MOD_WEB_PUSH_ON_INJECT_KEY = 'modDemoWebPushOnInjectToggle';
@@ -152,22 +166,29 @@ function sanitiseModBcStyleConfigUrl(raw) {
   return MOD_BC_DEFAULT_STYLE_URL;
 }
 
+function readPersistedModBcStyleConfigUrl(sandboxKey) {
+  migrateLegacyModScalar(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, MOD_BC_STYLE_URL_KEY, sanitiseModBcStyleConfigUrl);
+  const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
+  const stored = readModSandboxStringForKey(
+    MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+    sk,
+    sanitiseModBcStyleConfigUrl,
+    '',
+  );
+  return stored || MOD_BC_DEFAULT_STYLE_URL;
+}
+
 function getModBcStyleConfigUrl() {
   if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
     return sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value);
   }
-  const stored = readModSandboxString(
-    MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
-    MOD_BC_STYLE_URL_KEY,
-    sanitiseModBcStyleConfigUrl,
-    '',
-  );
-  if (stored) return stored;
-  return MOD_BC_DEFAULT_STYLE_URL;
+  return readPersistedModBcStyleConfigUrl();
 }
 
 function saveModBcStyleConfigUrl() {
-  const url = getModBcStyleConfigUrl();
+  const url = modBcStyleConfigUrl
+    ? sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value)
+    : readPersistedModBcStyleConfigUrl();
   if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim() !== url) {
     modBcStyleConfigUrl.value = url;
   }
@@ -247,17 +268,22 @@ function resolveModBcDatastreamIdFromInput() {
   return '';
 }
 
-function getModBcDatastreamId() {
-  const resolved = resolveModBcDatastreamIdFromInput();
-  if (resolved) return sanitiseModBcDatastreamId(resolved);
-  const stored = readModSandboxString(
+function readPersistedModBcDatastreamId(sandboxKey) {
+  migrateLegacyModScalar(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, MOD_BC_DATASTREAM_ID_KEY, sanitiseModBcDatastreamId);
+  const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
+  const stored = readModSandboxStringForKey(
     MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
-    MOD_BC_DATASTREAM_ID_KEY,
+    sk,
     sanitiseModBcDatastreamId,
     '',
   );
-  if (stored) return stored;
-  return MOD_BC_DEFAULT_DATASTREAM_ID;
+  return stored || MOD_BC_DEFAULT_DATASTREAM_ID;
+}
+
+function getModBcDatastreamId() {
+  const resolved = resolveModBcDatastreamIdFromInput();
+  if (resolved) return sanitiseModBcDatastreamId(resolved);
+  return readPersistedModBcDatastreamId();
 }
 
 function renderModBcDatastreamSuggestions(query) {
@@ -333,15 +359,13 @@ async function loadModBcDatastreams() {
     modBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
     renderModBcDatastreamSuggestions(modBcDatastreamId ? modBcDatastreamId.value : '');
 
-    const storedId = getModBcDatastreamId();
+    const storedId = readPersistedModBcDatastreamId();
 
     const hit = modBcAllDatastreamOptions.find(function (d) {
       return String(d.id || '').toLowerCase() === storedId;
     });
-    if (hit && modBcDatastreamId) {
-      modBcDatastreamId.value = datastreamLabelFromItem(hit);
-    } else if (modBcDatastreamId && !modBcDatastreamId.value.trim()) {
-      modBcDatastreamId.value = storedId;
+    if (modBcDatastreamId) {
+      modBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
     }
 
     if (hint) {
@@ -405,14 +429,49 @@ function loadModBcDisplayPrefs() {
   return { fullScreen: false, modal: false, injected: false };
 }
 
-function saveModBcDisplayPrefs() {
+function saveModBcDisplayPrefs(sandboxKey) {
   const map = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY);
-  map[getModSandboxKey()] = {
+  const key = sandboxKey != null ? sandboxKey : getModSandboxKey();
+  map[key] = {
     fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
     modal: !!(modBcModalToggle && modBcModalToggle.checked),
     injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
   };
   writeModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY, map);
+}
+
+function flushModDemoEnvForSandboxKey(sandboxKey) {
+  const sk = String(sandboxKey || '').trim();
+  if (!sk) return;
+  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
+    writeModSandboxStringForKey(
+      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+      sk,
+      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
+    );
+  }
+  const dsFromInput = resolveModBcDatastreamIdFromInput();
+  if (dsFromInput) {
+    writeModSandboxStringForKey(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseModBcDatastreamId(dsFromInput));
+  } else if (modBcDatastreamId && modBcDatastreamId.value.trim()) {
+    writeModSandboxStringForKey(
+      MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
+      sk,
+      sanitiseModBcDatastreamId(modBcDatastreamId.value.trim()),
+    );
+  }
+  saveModBcDisplayPrefs(sk);
+  const map = readModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY);
+  map[sk] = modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked ? '1' : '0';
+  writeModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY, map);
+  if (typeof AepBcToggle !== 'undefined' && modBcOnInjectToggle) {
+    AepBcToggle.savePrefs(
+      'modDemo',
+      !!modBcOnInjectToggle.checked,
+      modBcStyleSelect ? modBcStyleSelect.value : 'army',
+      sk,
+    );
+  }
 }
 
 function applyModBcDisplayPrefsToUi() {
@@ -461,12 +520,19 @@ function syncModDemoBcFromPrefs() {
 
 (function initModBcStyleConfigUrl() {
   if (!modBcStyleConfigUrl) return;
-  modBcStyleConfigUrl.value = getModBcStyleConfigUrl();
+  modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
   function onStyleUrlChange() {
     saveModBcStyleConfigUrl();
     invalidateModDemoBcCore();
     syncModDemoBcFromPrefs();
   }
+  modBcStyleConfigUrl.addEventListener('input', function () {
+    writeModSandboxString(
+      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
+    );
+    refreshModBcStyleUrlHints();
+  });
   modBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
   modBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
   refreshModBcStyleUrlHints();
@@ -498,18 +564,25 @@ function applyModDemoEnvForCurrentSandbox() {
   applyModWebPushOnInjectToggle();
   applyModBcOnInjectPrefs();
   if (modBcStyleConfigUrl) {
-    modBcStyleConfigUrl.value = getModBcStyleConfigUrl();
+    modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
     refreshModBcStyleUrlHints();
   }
   applyModBcDisplayPrefsToUi();
   invalidateModDemoBcCore();
   syncModDemoBcFromPrefs();
   void loadModBcDatastreams();
+  modDemoEnvSandboxKey = getModSandboxKey();
 }
 
 window.addEventListener('aep-global-sandbox-change', function () {
+  if (modDemoEnvSandboxKey) {
+    flushModDemoEnvForSandboxKey(modDemoEnvSandboxKey);
+  }
+  modDemoEnvSandboxKey = getModSandboxKey();
   applyModDemoEnvForCurrentSandbox();
 });
+
+modDemoEnvSandboxKey = getModSandboxKey();
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
 window.__modDemoSuppressBcEnable = true;

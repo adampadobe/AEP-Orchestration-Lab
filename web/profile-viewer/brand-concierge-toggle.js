@@ -80,15 +80,23 @@
     }
   }
 
-  function savePrefs(storagePrefix, enabled, styleKey) {
+  function savePrefs(storagePrefix, enabled, styleKey, sandboxKeyOverride) {
     var map = readPrefsMap(storagePrefix);
-    map[getSandboxKey()] = { enabled: !!enabled, styleKey: styleKey || 'miral' };
+    var key =
+      sandboxKeyOverride != null && String(sandboxKeyOverride).trim()
+        ? String(sandboxKeyOverride).trim()
+        : getSandboxKey();
+    map[key] = { enabled: !!enabled, styleKey: styleKey || 'miral' };
     writePrefsMap(storagePrefix, map);
   }
 
-  function loadPrefs(storagePrefix) {
+  function loadPrefs(storagePrefix, sandboxKeyOverride) {
     var map = readPrefsMap(storagePrefix);
-    var entry = map[getSandboxKey()];
+    var key =
+      sandboxKeyOverride != null && String(sandboxKeyOverride).trim()
+        ? String(sandboxKeyOverride).trim()
+        : getSandboxKey();
+    var entry = map[key];
     if (!entry || typeof entry !== 'object') {
       return { enabled: false, styleKey: 'miral' };
     }
