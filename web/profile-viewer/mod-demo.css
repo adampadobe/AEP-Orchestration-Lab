@@ -364,6 +364,49 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   z-index: 1;
 }
 
+/* Parent-page BC overlay (injected + full screen) — same network stack as modal */
+.mod-demo-bc-frame-host {
+  position: fixed;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  pointer-events: auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  background: linear-gradient(
+    122.87deg,
+    var(--dash-surface-alt, #e1e9ff) 20.72%,
+    #efe3fa 34.96%,
+    #f5dff8 42.08%,
+    #fcdcf5 49.2%,
+    #ffdec3 91.6%
+  );
+}
+
+.mod-demo-bc-frame-host[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.mod-demo-bc-frame-mount {
+  width: 100%;
+  max-width: 920px;
+  min-height: min(540px, 100%);
+  flex: 1 1 auto;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.mod-demo-bc-frame-host #modDemoBcFrameMount.brand-concierge-mount,
+.mod-demo-bc-frame-host .mod-demo-bc-frame-mount {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 540px;
+}
+
 .mod-demo-bc-prefs__options {
   display: flex;
   flex-wrap: wrap;

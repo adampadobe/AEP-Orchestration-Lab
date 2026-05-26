@@ -14,7 +14,10 @@
   var IFRAME_MOUNT_SELECTOR = '#brand-concierge-mount';
   var IFRAME_INJECTED_MOUNT_SELECTOR = '#modDemoArmyBcInline #brand-concierge-mount';
   var MODAL_MOUNT_SELECTOR = '#aepBcModal #brand-concierge-mount';
+  var FRAME_OVERLAY_HOST_ID = 'modDemoBcFrameHost';
+  var FRAME_OVERLAY_MOUNT_SELECTOR = '#modDemoBcFrameMount';
   var DEFAULT_FRAME_SRC = 'mod-demo-assets/army-home-snapshot.html';
+  var bcFrameHostRepositionBound = false;
   var SNAPSHOT_FS_LAYOUT_STYLE_ID = 'aep-mod-bc-fullscreen-layout';
   var SNAPSHOT_FS_LAYOUT_CSS = [
     'html.mod-demo-bc-fs-active,html.mod-demo-bc-fs-active body{height:100%!important;overflow:hidden!important;background-color:#2c2e31!important;}',
@@ -242,6 +245,8 @@
     global.__modDemoBcAlloyConfiguredWin = null;
     global.__armyBcForceLocal = false;
     unloadStyleConfigScripts(document);
+    clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+    hideBcFrameHost();
     var iframeDoc = getIframeDoc();
     if (iframeDoc) {
       var iframeWin = iframeDoc.defaultView;
@@ -431,9 +436,78 @@
 
   function teardownConflictingBcMounts() {
     clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+    clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+    hideBcFrameHost();
     global.__aepBcToggleBootstrapped = false;
     global.__brandConciergeBootstrapped = false;
     global.__modDemoBcBootstrapped = false;
+  }
+
+  function hideBcFrameHost() {
+    var host = document.getElementById(FRAME_OVERLAY_HOST_ID);
+    if (host) host.hidden = true;
+  }
+
+  function positionBcFrameHost(fullscreen) {
+    var host = document.getElementById(FRAME_OVERLAY_HOST_ID);
+    var frame = getModDemoFrame();
+    if (!host || !frame) return;
+
+    var frameRect = frame.getBoundingClientRect();
+    var top = frameRect.top;
+    var doc = getIframeDoc();
+
+    if (doc) {
+      var anchor = fullscreen
+        ? doc.querySelector('.main-page-layout__header')
+        : doc.querySelector('.exp-hero-banner');
+      if (anchor) {
+        var anchorRect = anchor.getBoundingClientRect();
+        top = anchorRect.bottom;
+      }
+    }
+
+    if (top < frameRect.top) top = frameRect.top;
+    var height = Math.max(240, frameRect.bottom - top);
+
+    host.style.left = frameRect.left + 'px';
+    host.style.width = frameRect.width + 'px';
+    host.style.top = top + 'px';
+    host.style.height = height + 'px';
+    host.style.right = 'auto';
+    host.style.bottom = 'auto';
+  }
+
+  function showBcFrameHost(fullscreen) {
+    var host = document.getElementById(FRAME_OVERLAY_HOST_ID);
+    if (!host) return;
+    host.hidden = false;
+    host.classList.toggle('mod-demo-bc-frame-host--fullscreen', !!fullscreen);
+    host.classList.toggle('mod-demo-bc-frame-host--injected', !fullscreen);
+    positionBcFrameHost(!!fullscreen);
+  }
+
+  function onBcFrameHostReposition() {
+    if (!isInjectedOn() && !isFullScreenOn()) return;
+    positionBcFrameHost(isFullScreenOn());
+  }
+
+  function bindBcFrameHostReposition() {
+    onBcFrameHostReposition();
+    if (bcFrameHostRepositionBound) return;
+    bcFrameHostRepositionBound = true;
+    global.addEventListener('resize', onBcFrameHostReposition);
+    var frame = getModDemoFrame();
+    if (!frame) return;
+    frame.addEventListener('load', onBcFrameHostReposition);
+    try {
+      var win = frame.contentWindow;
+      if (win) {
+        win.addEventListener('scroll', onBcFrameHostReposition, { passive: true });
+      }
+    } catch (_e) {
+      /* noop */
+    }
   }
 
   async function ensureAlloyJs(win, doc) {
@@ -535,7 +609,7 @@
 
   function bindBcMountRepatch(win, doc) {
     if (!win || !doc) return;
-    doc.querySelectorAll('#brand-concierge-mount').forEach(function (mount) {
+    doc.querySelectorAll('#brand-concierge-mount, #modDemoBcFrameMount').forEach(function (mount) {
       if (mount.__modDemoBcRepatchBound) return;
       mount.__modDemoBcRepatchBound = true;
       mount.addEventListener(
@@ -661,9 +735,9 @@
     if (!doc) return;
     function run() {
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount').forEach(function (mount) {
-            global.repositionArmyBcDisclaimer(mount);
-          });
+        doc.querySelectorAll('#brand-concierge-mount, #modDemoBcFrameMount').forEach(function (mount) {
+          global.repositionArmyBcDisclaimer(mount);
+        });
       }
     }
     run();
@@ -898,45 +972,33 @@
     await ensureSnapshotFrame();
     var doc = getIframeDoc();
     if (!doc) throw new Error('MOD site iframe is not ready');
-    var win = doc.defaultView;
-    if (!win) throw new Error('MOD site iframe window is not ready');
 
     setSnapshotFullscreenLayout(doc, !!fullscreen);
     setSnapshotInjectedLayout(doc, !fullscreen);
-    iframeCoreReady = null;
-    loadedIframeStyleUrl = null;
     teardownIframeInlineSection(doc);
-    setSnapshotInjectedLayout(doc, !fullscreen);
-    ensureIframeInlineSection(doc, !!fullscreen);
-    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared', doc);
-    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared', doc);
-    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
-    ensureBcCardImageStyles(doc);
 
-    if (typeof win.resetModDemoInjectedBc === 'function') {
-      win.resetModDemoInjectedBc();
-    }
-    win.__modDemoBcBootstrapped = false;
-    win.__modDemoBcAlloyConfiguredWin = null;
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-disclaimer-layout.css'), 'shared');
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-scroll-fix.css'), 'shared');
+    loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline');
+    ensureBcCardImageStyles(document);
 
-    await ensureIframeCore();
-    var mountEl =
-      doc.querySelector(IFRAME_INJECTED_MOUNT_SELECTOR) || doc.querySelector(IFRAME_MOUNT_SELECTOR);
-    if (!mountEl) {
-      throw new Error('Brand Concierge mount not found in Army snapshot iframe');
-    }
-    await bootstrapConcierge(win, '#' + mountEl.id, win.styleConfiguration, {
+    showBcFrameHost(!!fullscreen);
+    bindBcFrameHostReposition();
+
+    await ensureParentCore();
+    await bootstrapConcierge(global, FRAME_OVERLAY_MOUNT_SELECTOR, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
+    scheduleDisclaimerReposition(document);
 
     if (!fullscreen) {
-      var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
-      if (section && typeof section.scrollIntoView === 'function') {
-        try {
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (_e) {
-          section.scrollIntoView();
+      try {
+        var hero = doc.querySelector('.exp-hero-banner');
+        if (hero && typeof hero.scrollIntoView === 'function') {
+          hero.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+      } catch (_e) {
+        /* noop */
       }
     }
     activeMode = fullscreen ? 'fullscreen' : 'injected';
@@ -1009,6 +1071,9 @@
       if (!isInjectedOn()) setSnapshotInjectedLayout(doc, false);
       if (!isInjectedOn() && !isFullScreenOn()) teardownIframeInlineSection(doc);
     }
+    if (!isInjectedOn() && !isFullScreenOn()) {
+      hideBcFrameHost();
+    }
   }
 
   var syncInFlight = null;
@@ -1036,6 +1101,8 @@
       }
       await restoreModDemoSnapshotFrame();
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+      clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+      hideBcFrameHost();
       activeMode = null;
       reportBcStatus('');
       return;

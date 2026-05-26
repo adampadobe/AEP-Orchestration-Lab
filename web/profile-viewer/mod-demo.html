@@ -194,6 +194,11 @@
     </div>
   </div>
 
+  <!-- Injected / full screen: BC runs on parent (same Edge path as modal), positioned over the Army iframe -->
+  <div id="modDemoBcFrameHost" class="mod-demo-bc-frame-host" hidden>
+    <div id="modDemoBcFrameMount" class="mod-demo-bc-frame-mount"></div>
+  </div>
+
   <iframe
     id="modDemoSiteFrame"
     class="mod-demo-site-frame"
@@ -392,7 +397,7 @@
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="mod-demo.js?v=20260526-mod-sandbox-env-flush"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-iframe-edge"></script>
+  <script src="mod-demo-bc.js?v=20260526-bc-parent-overlay"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>
