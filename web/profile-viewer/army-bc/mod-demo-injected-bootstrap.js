@@ -122,8 +122,9 @@
     }
   }
 
-  async function ensureCore(doc, win, styleUrl) {
+  async function ensureCore(doc, win, styleUrl, datastreamId) {
     var resolvedStyle = resolveAssetUrl(styleUrl);
+    var resolvedDatastream = datastreamId || resolveDatastreamId();
     if (corePromise && loadedStyleUrl && loadedStyleUrl !== resolvedStyle) {
       global.resetModDemoInjectedBc();
     }
@@ -142,6 +143,7 @@
         'Style configuration did not load in injected iframe',
       );
       loadedStyleUrl = resolvedStyle;
+      win.__modDemoBcLoadedDatastreamId = resolvedDatastream;
 
       installAlloyStub(win);
       await loadScript(ALLOY_JS, doc, 'alloy');
@@ -173,7 +175,7 @@
           defaultConsent: 'in',
           edgeDomain: 'edge.adobedc.net',
           edgeBasePath: 'ee',
-          datastreamId: DATASTREAM_ID,
+          datastreamId: resolvedDatastream,
           orgId: ORG_ID,
           debugEnabled: true,
           idMigrationEnabled: false,
@@ -207,14 +209,41 @@
     loadedStyleUrl = null;
     global.__modDemoBcBootstrapped = false;
     global.__modDemoBcAlloyConfiguredWin = null;
+    global.__modDemoBcLoadedDatastreamId = null;
   };
 
-  global.activateModDemoInjectedBc = async function (styleUrl, mountSelector) {
+  function resolveDatastreamId(override) {
+    if (override) return String(override).trim().toLowerCase();
+    try {
+      if (
+        global.parent &&
+        global.parent !== global &&
+        global.parent.ModDemoBcConfig &&
+        typeof global.parent.ModDemoBcConfig.getDatastreamId === 'function'
+      ) {
+        return global.parent.ModDemoBcConfig.getDatastreamId();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return DATASTREAM_ID;
+  }
+
+  global.activateModDemoInjectedBc = async function (styleUrl, mountSelector, datastreamId) {
     var doc = global.document;
     var win = global;
     var selector = mountSelector || DEFAULT_MOUNT_SELECTOR;
+    var resolvedDatastream = resolveDatastreamId(datastreamId);
 
-    await ensureCore(doc, win, styleUrl);
+    if (loadedStyleUrl && corePromise) {
+      var styleChanged = resolveAssetUrl(styleUrl) !== loadedStyleUrl;
+      var dsStored = win.__modDemoBcLoadedDatastreamId;
+      if (styleChanged || (dsStored && dsStored !== resolvedDatastream)) {
+        global.resetModDemoInjectedBc();
+      }
+    }
+
+    await ensureCore(doc, win, styleUrl, resolvedDatastream);
 
     var mount = doc.querySelector(selector);
     if (!mount) {

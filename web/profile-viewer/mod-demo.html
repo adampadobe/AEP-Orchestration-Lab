@@ -99,6 +99,19 @@
                     >
                     <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
                   </div>
+                  <div class="form-row mod-demo-bc-datastream-row">
+                    <label for="modBcDatastreamId">Alloy datastream ID</label>
+                    <input
+                      type="text"
+                      id="modBcDatastreamId"
+                      class="mod-demo-bc-datastream-input"
+                      aria-label="Alloy datastream ID for Brand Concierge"
+                      placeholder="cf7272a7-f634-4bdf-9ce6-fa31ac0c6416"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                    <p id="modBcDatastreamHint" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                  </div>
                 </div>
                 <div class="form-row">
                   <label for="generatorTarget">Event destination</label>
@@ -374,8 +387,8 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260521-bc-reopen-v2"></script>
-  <script src="mod-demo.js?v=20260526-bc-style-url-fix"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-injected-bootstrap"></script>
+  <script src="mod-demo.js?v=20260526-bc-datastream-env"></script>
+  <script src="mod-demo-bc.js?v=20260526-bc-datastream-env"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>
