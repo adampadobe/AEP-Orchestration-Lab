@@ -18,7 +18,29 @@
 
   var coreReady = null;
   var activeSelector = null;
+  var loadedStyleConfigUrl = null;
   var cssLoaded = { shared: false, inline: false, modal: false };
+
+  var DEFAULT_STYLE_CONFIG_URL = BASE + 'styleConfigurations-6a0992.js';
+
+  function getStyleConfigUrl() {
+    if (global.ModDemoBcConfig && typeof global.ModDemoBcConfig.getStyleConfigUrl === 'function') {
+      return global.ModDemoBcConfig.getStyleConfigUrl();
+    }
+    return DEFAULT_STYLE_CONFIG_URL;
+  }
+
+  function invalidateCore() {
+    coreReady = null;
+    loadedStyleConfigUrl = null;
+    activeSelector = null;
+    global.__aepBcToggleBootstrapped = false;
+    try {
+      delete global.styleConfiguration;
+    } catch (_e) {
+      global.styleConfiguration = undefined;
+    }
+  }
 
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
@@ -94,14 +116,20 @@
   }
 
   function ensureCore() {
+    var styleUrl = getStyleConfigUrl();
+    if (coreReady && loadedStyleConfigUrl && loadedStyleConfigUrl !== styleUrl) {
+      invalidateCore();
+    }
     if (coreReady) return coreReady;
     coreReady = (async function () {
+      var styleConfigUrl = getStyleConfigUrl();
       patchFetchForNld2();
       loadStylesheet(BASE + 'army-bc-disclaimer-layout.css', 'shared');
       loadStylesheet(BASE + 'army-bc-local-fallback.css', 'shared');
       loadStylesheet(BASE + 'army-bc-scroll-fix.css', 'shared');
 
-      await loadScript(BASE + 'styleConfigurations-6a0992.js');
+      await loadScript(styleConfigUrl);
+      loadedStyleConfigUrl = styleConfigUrl;
       installAlloyStub();
       await loadScript('https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js');
       await loadScript(
@@ -235,7 +263,7 @@
   }
 
   bindToggles();
-  global.ModDemoBc = { sync: sync };
+  global.ModDemoBc = { sync: sync, invalidateCore: invalidateCore };
 
   function bindModalClose() {
     if (!bcModal) return;

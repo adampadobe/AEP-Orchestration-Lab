@@ -157,8 +157,23 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
 }
 
 .mod-demo-profile-actions {
-  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
   align-self: flex-end;
+}
+
+.mod-demo-bc-style-url-row {
+  flex: 1 1 100%;
+  min-width: min(100%, 28rem);
+}
+
+.mod-demo-bc-style-url-input {
+  width: min(100%, 36rem);
+  max-width: 100%;
 }
 
 .mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block {
@@ -190,15 +205,16 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   display: none !important;
 }
 
-.mod-demo-bc-prefs--row {
-  flex: 1 1 100%;
-  display: flex;
+.mod-demo-bc-prefs--inline {
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.85rem;
-  margin: 0.15rem 0 0;
+  gap: 0.45rem 0.75rem;
+  margin: 0;
   padding: 0;
   border: none;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .mod-demo-bc-prefs__heading {

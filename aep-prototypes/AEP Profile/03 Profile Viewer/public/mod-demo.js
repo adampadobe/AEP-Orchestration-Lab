@@ -57,6 +57,52 @@ const modBcStyleSelect = document.getElementById('modBcStyleSelect');
   if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveBcPrefs);
 })();
 
+const MOD_BC_STYLE_URL_KEY = 'modDemoBcStyleConfigUrl';
+const MOD_BC_DEFAULT_STYLE_URL = 'army-bc/styleConfigurations-6a0992.js';
+const modBcStyleConfigUrl = document.getElementById('modBcStyleConfigUrl');
+
+function sanitiseModBcStyleConfigUrl(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return MOD_BC_DEFAULT_STYLE_URL;
+  if (/^javascript:/i.test(v)) return MOD_BC_DEFAULT_STYLE_URL;
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[a-z0-9_./-]+\.js$/i.test(v)) return v;
+  return MOD_BC_DEFAULT_STYLE_URL;
+}
+
+function getModBcStyleConfigUrl() {
+  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
+    return sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value);
+  }
+  try {
+    const stored = localStorage.getItem(MOD_BC_STYLE_URL_KEY);
+    if (stored) return sanitiseModBcStyleConfigUrl(stored);
+  } catch {
+    /* noop */
+  }
+  return MOD_BC_DEFAULT_STYLE_URL;
+}
+
+function saveModBcStyleConfigUrl() {
+  const url = getModBcStyleConfigUrl();
+  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim() !== url) {
+    modBcStyleConfigUrl.value = url;
+  }
+  try {
+    localStorage.setItem(MOD_BC_STYLE_URL_KEY, url);
+  } catch {
+    /* noop */
+  }
+}
+
+function invalidateModDemoBcCore() {
+  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.invalidateCore === 'function') {
+    window.ModDemoBc.invalidateCore();
+  }
+}
+
+window.ModDemoBcConfig = { getStyleConfigUrl: getModBcStyleConfigUrl };
+
 // Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
 const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
 const modBcModalToggle = document.getElementById('modBcModalToggle');
@@ -110,6 +156,23 @@ function syncModDemoBcFromPrefs() {
     });
   });
   saveModBcDisplayPrefs();
+})();
+
+(function initModBcStyleConfigUrl() {
+  if (!modBcStyleConfigUrl) return;
+  try {
+    const stored = localStorage.getItem(MOD_BC_STYLE_URL_KEY);
+    modBcStyleConfigUrl.value = stored ? sanitiseModBcStyleConfigUrl(stored) : MOD_BC_DEFAULT_STYLE_URL;
+  } catch {
+    modBcStyleConfigUrl.value = MOD_BC_DEFAULT_STYLE_URL;
+  }
+  function onStyleUrlChange() {
+    saveModBcStyleConfigUrl();
+    invalidateModDemoBcCore();
+    syncModDemoBcFromPrefs();
+  }
+  modBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+  modBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
 })();
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
