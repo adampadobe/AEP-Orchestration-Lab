@@ -76,8 +76,9 @@
 
   function patchFetch(targetWin, deployment) {
     if (!targetWin || typeof targetWin.fetch !== 'function') return;
-    captureNativeFetch(targetWin);
     if (targetWin.fetch.__armyBcPatched) return;
+    captureNativeFetch(targetWin);
+    if (!targetWin.__armyBcNativeFetch) return;
     var nativeFetch = targetWin.__armyBcNativeFetch;
     var patchedFetch = function (input, init) {
       if (typeof input === 'string') {

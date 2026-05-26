@@ -166,25 +166,88 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   align-self: flex-end;
 }
 
+.mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block .mod-demo-bc-env-pair {
+  flex: 1 1 100%;
+  width: 100%;
+  align-self: stretch;
+}
+
 .mod-demo-bc-env-pair {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.65rem 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: 1.25rem;
+  row-gap: 0.25rem;
+  align-items: start;
   flex: 1 1 100%;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row {
-  flex: 1 1 18rem;
-  min-width: min(100%, 16rem);
-  margin: 0;
-}
-
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row,
 .mod-demo-bc-env-pair .mod-demo-bc-datastream-row {
-  flex: 1 1 14rem;
-  min-width: min(100%, 12rem);
+  display: contents;
   margin: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
+  line-height: 1.25;
+  display: block;
+  margin: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-hint {
+  margin: 0;
+  max-width: none;
+}
+
+@media (max-width: 52rem) {
+  .mod-demo-bc-env-pair {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input,
+  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input,
+  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 .mod-demo-bc-style-url-row {

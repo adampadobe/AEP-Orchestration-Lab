@@ -152,6 +152,9 @@
       isolateFromParent(win);
       win.__modDemoBcAlloyConfiguredWin = null;
 
+      installAlloyStub(win);
+      await ensureEdgePathPatches(win, doc);
+
       await loadScript(resolvedStyle, doc, 'style');
       await waitFor(
         function () {
@@ -163,7 +166,7 @@
       loadedStyleUrl = resolvedStyle;
       win.__modDemoBcLoadedDatastreamId = resolvedDatastream;
 
-      installAlloyStub(win);
+      await refreshInjectedEdgePatches(win, doc);
       await loadScript(ALLOY_JS, doc, 'alloy');
       await waitFor(
         function () {
@@ -173,6 +176,7 @@
         'Alloy did not become available in injected iframe',
       );
 
+      await refreshInjectedEdgePatches(win, doc);
       await loadScript(BC_MAIN_JS, doc, 'concierge');
       await waitFor(
         function () {
@@ -186,7 +190,7 @@
         'Brand Concierge agent did not load in injected iframe',
       );
 
-      await ensureEdgePathPatches(win, doc);
+      await refreshInjectedEdgePatches(win, doc);
 
       try {
         await win.alloy('configure', {
@@ -216,6 +220,11 @@
       }
 
       await refreshInjectedEdgePatches(win, doc);
+      [50, 250, 1000].forEach(function (ms) {
+        global.setTimeout(function () {
+          refreshInjectedEdgePatches(win, doc);
+        }, ms);
+      });
     })().catch(function (err) {
       corePromise = null;
       throw err;
