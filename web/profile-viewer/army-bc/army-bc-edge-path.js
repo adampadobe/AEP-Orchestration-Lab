@@ -29,7 +29,7 @@
     return useLocal ? null : 'nld2';
   }
 
-  function rewriteUrl(url, deployment) {
+  function rewriteUrl(url, deployment, baseWin) {
     if (!deployment || !url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
       return url;
     }
@@ -47,7 +47,8 @@
       );
     if (next !== url) return next;
     try {
-      var u = new URL(url, win.location.href);
+      var w = baseWin || win;
+      var u = new URL(url, w.location.href);
       var parts = u.pathname.split('/').filter(Boolean);
       var bcIdx = parts.indexOf('brand-concierge');
       if (bcIdx === -1) {
@@ -82,9 +83,9 @@
     var nativeFetch = targetWin.__armyBcNativeFetch;
     var patchedFetch = function (input, init) {
       if (typeof input === 'string') {
-        input = rewriteUrl(input, deployment);
+        input = rewriteUrl(input, deployment, targetWin);
       } else if (input && typeof input.url === 'string') {
-        var next = rewriteUrl(input.url, deployment);
+        var next = rewriteUrl(input.url, deployment, targetWin);
         if (next !== input.url) {
           input = new targetWin.Request(next, input);
         }
@@ -105,7 +106,7 @@
     function patchedOpen(method, url) {
       var args = Array.prototype.slice.call(arguments);
       if (typeof url === 'string') {
-        args[1] = rewriteUrl(url, deployment);
+        args[1] = rewriteUrl(url, deployment, targetWin);
       }
       return nativeOpen.apply(this, args);
     }
@@ -120,9 +121,9 @@
     var NativeRequest = targetWin.Request;
     targetWin.Request = function (input, init) {
       if (typeof input === 'string') {
-        input = rewriteUrl(input, deployment);
+        input = rewriteUrl(input, deployment, targetWin);
       } else if (input && typeof input.url === 'string') {
-        var next = rewriteUrl(input.url, deployment);
+        var next = rewriteUrl(input.url, deployment, targetWin);
         if (next !== input.url) {
           input = new NativeRequest(next, input);
         }
@@ -138,7 +139,7 @@
     if (typeof targetWin.navigator.sendBeacon !== 'function') return;
     var native = targetWin.navigator.sendBeacon.bind(targetWin.navigator);
     targetWin.navigator.sendBeacon = function (url, data) {
-      return native(rewriteUrl(url, deployment), data);
+      return native(rewriteUrl(url, deployment, targetWin), data);
     };
     targetWin.__armyBcBeaconPathPatched = true;
   }
@@ -148,6 +149,7 @@
     if (typeof fn !== 'function' || fn.__armyBcEdgeAlloyWrapped) return;
     var native = fn;
     var wrapped = function (command) {
+      captureNativeFetch(targetWin);
       patchFetch(targetWin, deployment);
       var args = Array.prototype.slice.call(arguments, 1);
       return native.apply(targetWin, [command].concat(args));
@@ -180,7 +182,7 @@
     targetWin.adobe.concierge.bootstrap = async function (config) {
       applyArmyBcEdgePathPatches(targetWin);
       var out = await orig(config);
-      patchAlloy(targetWin, deployment);
+      applyArmyBcEdgePathPatches(targetWin);
       return out;
     };
     targetWin.adobe.concierge.bootstrap.__armyBcEdgeBootstrapPatched = true;
@@ -190,9 +192,7 @@
     var w = targetWin || win;
     var deployment = resolveDeployment(w);
     if (!deployment) return false;
-    if (w.fetch && !w.fetch.__armyBcPatched) {
-      captureNativeFetch(w);
-    }
+    captureNativeFetch(w);
     patchFetch(w, deployment);
     patchXhr(w, deployment);
     patchRequest(w, deployment);
@@ -202,7 +202,7 @@
     w.ARMY_BC_EDGE = {
       deploymentSlug: deployment,
       rewriteUrl: function (url) {
-        return rewriteUrl(url, deployment);
+        return rewriteUrl(url, deployment, w);
       },
     };
     console.info(

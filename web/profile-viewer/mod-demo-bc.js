@@ -507,10 +507,47 @@
       win.applyArmyBcEdgePathPatches(win);
       return;
     }
-    await loadScript(resolveAssetUrl(BASE + 'army-bc-edge-path.js'), doc);
+    await loadScript(resolveAssetUrl(BASE + 'army-bc-edge-path.js'), doc, 'edge-path');
     if (typeof win.applyArmyBcEdgePathPatches === 'function') {
       win.applyArmyBcEdgePathPatches(win);
     }
+  }
+
+  async function ensureEdgePathPatchesForLab(win, doc) {
+    await ensureEdgePathPatches(global, document);
+    if (win && win !== global && doc) {
+      await ensureEdgePathPatches(win, doc);
+    }
+  }
+
+  function scheduleEdgeRepatch(win) {
+    if (!win || shouldUseLocalArmyBcCatalog(win)) return;
+    function repatch() {
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
+    }
+    repatch();
+    [0, 50, 100, 250, 500, 1000, 2000, 4000, 8000].forEach(function (ms) {
+      setTimeout(repatch, ms);
+    });
+  }
+
+  function bindBcMountRepatch(win, doc) {
+    if (!win || !doc) return;
+    doc.querySelectorAll('#brand-concierge-mount').forEach(function (mount) {
+      if (mount.__modDemoBcRepatchBound) return;
+      mount.__modDemoBcRepatchBound = true;
+      mount.addEventListener(
+        'pointerdown',
+        function () {
+          if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+            win.applyArmyBcEdgePathPatches(win);
+          }
+        },
+        true,
+      );
+    });
   }
 
   async function loadArmyBcHelperScripts(win, doc) {
@@ -575,6 +612,9 @@
       await win.alloy('configure', getAlloyConfig());
       await win.alloy('sendEvent', {});
       win.__modDemoBcAlloyConfiguredWin = win;
+      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+        win.applyArmyBcEdgePathPatches(win);
+      }
     } catch (err) {
       if (isAlloyAlreadyConfiguredError(err)) {
         win.__modDemoBcAlloyConfiguredWin = win;
@@ -635,7 +675,7 @@
   async function bootstrapConcierge(win, selector, stylingConfigurations, options) {
     options = options || {};
     if (!shouldUseLocalArmyBcCatalog(win)) {
-      await ensureEdgePathPatches(win, win.document);
+      await ensureEdgePathPatchesForLab(win, win.document);
     }
     if (
       !win ||
@@ -663,6 +703,8 @@
       if (typeof win.applyArmyBcEdgePathPatches === 'function') {
         win.applyArmyBcEdgePathPatches(win);
       }
+      scheduleEdgeRepatch(win);
+      bindBcMountRepatch(win, win.document);
       scheduleDisclaimerReposition(win.document);
     } catch (err) {
       clearMountInDoc(win.document, selector);
@@ -672,6 +714,8 @@
         if (typeof win.applyArmyBcEdgePathPatches === 'function') {
           win.applyArmyBcEdgePathPatches(win);
         }
+        scheduleEdgeRepatch(win);
+        bindBcMountRepatch(win, win.document);
         scheduleDisclaimerReposition(win.document);
         return;
       } catch (retryErr) {
@@ -684,6 +728,8 @@
           if (typeof win.applyArmyBcEdgePathPatches === 'function') {
             win.applyArmyBcEdgePathPatches(win);
           }
+          scheduleEdgeRepatch(win);
+          bindBcMountRepatch(win, win.document);
           scheduleDisclaimerReposition(win.document);
           return;
         }
@@ -718,11 +764,12 @@
       loadedParentDatastreamId = datastreamId;
       console.info('[mod-demo-bc] loaded style configuration:', loadedParentStyleUrl);
       console.info('[mod-demo-bc] alloy datastreamId:', loadedParentDatastreamId);
-      await ensureEdgePathPatches(global, document);
+      await ensureEdgePathPatchesForLab(global, document);
       await ensureAlloyJs(global, document);
-      await ensureEdgePathPatches(global, document);
+      await ensureEdgePathPatchesForLab(global, document);
       await ensureConciergeAgent(global, document);
       await configureAlloyOnce(global, document);
+      await ensureEdgePathPatchesForLab(global, document);
 
       await loadArmyBcHelperScripts(global, document);
     })().catch(function (err) {
@@ -768,11 +815,12 @@
       loadedIframeDatastreamId = datastreamId;
       console.info('[mod-demo-bc] loaded style configuration (iframe):', loadedIframeStyleUrl);
       console.info('[mod-demo-bc] alloy datastreamId (iframe):', loadedIframeDatastreamId);
-      await ensureEdgePathPatches(win, doc);
+      await ensureEdgePathPatchesForLab(win, doc);
       await ensureAlloyJs(win, doc);
-      await ensureEdgePathPatches(win, doc);
+      await ensureEdgePathPatchesForLab(win, doc);
       await ensureConciergeAgent(win, doc);
       await configureAlloyOnce(win, doc);
+      await ensureEdgePathPatchesForLab(win, doc);
 
       await loadArmyBcHelperScripts(win, doc);
     })().catch(function (err) {
@@ -865,22 +913,21 @@
     loadStylesheet(resolveAssetUrl(BASE + 'army-bc-inline.css'), 'inline', doc);
     ensureBcCardImageStyles(doc);
 
-    if (typeof win.activateModDemoInjectedBc === 'function') {
-      await win.activateModDemoInjectedBc(
-        resolveAssetUrl(getStyleConfigUrl()),
-        IFRAME_INJECTED_MOUNT_SELECTOR,
-        getDatastreamId(),
-      );
-      if (typeof win.applyArmyBcEdgePathPatches === 'function') {
-        win.applyArmyBcEdgePathPatches(win);
-      }
-      scheduleDisclaimerReposition(doc);
-    } else {
-      await ensureIframeCore();
-      await bootstrapConcierge(win, IFRAME_INJECTED_MOUNT_SELECTOR, win.styleConfiguration, {
-        allowConciergeOpenOnRetry: false,
-      });
+    if (typeof win.resetModDemoInjectedBc === 'function') {
+      win.resetModDemoInjectedBc();
     }
+    win.__modDemoBcBootstrapped = false;
+    win.__modDemoBcAlloyConfiguredWin = null;
+
+    await ensureIframeCore();
+    var mountEl =
+      doc.querySelector(IFRAME_INJECTED_MOUNT_SELECTOR) || doc.querySelector(IFRAME_MOUNT_SELECTOR);
+    if (!mountEl) {
+      throw new Error('Brand Concierge mount not found in Army snapshot iframe');
+    }
+    await bootstrapConcierge(win, '#' + mountEl.id, win.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
 
     if (!fullscreen) {
       var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
