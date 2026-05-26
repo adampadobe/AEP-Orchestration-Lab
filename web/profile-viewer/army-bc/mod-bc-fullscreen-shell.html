@@ -16,6 +16,7 @@
         height: 100%;
         overflow: hidden;
         background: var(--dash-bg, #0d1117);
+        color: var(--dash-text, #e6edf3);
       }
       .mod-bc-fullscreen-shell {
         display: flex;
@@ -25,7 +26,48 @@
       }
       .mod-bc-fullscreen-shell .main-page-layout__header {
         flex: 0 0 auto;
-        z-index: 2;
+        z-index: 20;
+        position: relative;
+        background: var(--dash-surface, #161b22);
+        border-bottom: 1px solid var(--dash-border, #30363d);
+      }
+      .mod-bc-fullscreen-shell .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 1.25rem;
+        min-height: 3.5rem;
+        box-sizing: border-box;
+      }
+      .mod-bc-fullscreen-shell .site-header__logo.logo-svg {
+        display: block;
+        flex: 0 0 auto;
+        width: 7.5rem;
+        height: 2.5rem;
+        min-width: 7.5rem;
+        background-repeat: no-repeat;
+        background-position: left center;
+        background-size: contain;
+      }
+      .mod-bc-fullscreen-shell .site-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 0 0 auto;
+      }
+      .mod-bc-fullscreen-shell .site-header__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        border: 1px solid var(--dash-border, #30363d);
+        border-radius: var(--dash-radius-sm, 12px);
+        background: var(--dash-surface-alt, #21262d);
+        color: var(--dash-text, #e6edf3);
+        font: inherit;
+        font-size: 0.8125rem;
+        cursor: default;
       }
       .mod-bc-fullscreen-shell .army-bc-inline.mod-demo-army-bc-inline--fullscreen {
         flex: 1 1 auto;
@@ -33,7 +75,6 @@
         overflow: auto;
       }
     </style>
-    <script src="styleConfigurations-6a0992.js" data-mod-bc-style-config="1"></script>
     <script>
       !(function (n, o) {
         o.forEach(function (o) {
@@ -55,27 +96,76 @@
     <script>
       (function () {
         var DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
+        var DEFAULT_STYLE = 'styleConfigurations-6a0992.js';
+        var PREFIX = '/profile-viewer/';
         var params = new URLSearchParams(window.location.search);
         var datastreamId = params.get('modDatastreamId') || DEFAULT_DATASTREAM_ID;
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(datastreamId)) {
           datastreamId = DEFAULT_DATASTREAM_ID;
         }
         window.__modDemoBcDatastreamId = datastreamId.toLowerCase();
-        if (typeof applyArmyBcEdgePathPatches === 'function') {
-          applyArmyBcEdgePathPatches(window);
+
+        function resolveStyleUrl(raw) {
+          var u = String(raw || '').trim() || DEFAULT_STYLE;
+          if (/^https?:\/\//i.test(u)) return u;
+          if (u.charAt(0) === '/') return u;
+          return PREFIX + 'army-bc/' + u.replace(/^\.\//, '');
         }
-        alloy('configure', {
-          defaultConsent: 'in',
-          edgeDomain: 'edge.adobedc.net',
-          edgeBasePath: 'ee',
-          datastreamId: window.__modDemoBcDatastreamId,
-          orgId: 'BF9C27AA6464801C0A495FD0@AdobeOrg',
-          debugEnabled: true,
-          idMigrationEnabled: false,
-          thirdPartyCookiesEnabled: false,
-          prehidingStyle: '.personalization-container { opacity: 0 !important }',
+
+        var styleUrl = resolveStyleUrl(params.get('modStyleConfigUrl'));
+        var styleEl = document.createElement('script');
+        styleEl.src = styleUrl;
+        styleEl.async = false;
+        styleEl.setAttribute('data-mod-bc-style-config', '1');
+        document.head.appendChild(styleEl);
+
+        styleEl.addEventListener('load', function () {
+          if (typeof applyArmyBcEdgePathPatches === 'function') {
+            applyArmyBcEdgePathPatches(window);
+          }
+          alloy('configure', {
+            defaultConsent: 'in',
+            edgeDomain: 'edge.adobedc.net',
+            edgeBasePath: 'ee',
+            datastreamId: window.__modDemoBcDatastreamId,
+            orgId: 'BF9C27AA6464801C0A495FD0@AdobeOrg',
+            debugEnabled: true,
+            idMigrationEnabled: false,
+            thirdPartyCookiesEnabled: false,
+            prehidingStyle: '.personalization-container { opacity: 0 !important }',
+          })
+            .then(function () {
+              return alloy('sendEvent', {});
+            })
+            .then(function () {
+              if (!window.styleConfiguration) return;
+              return window.adobe.concierge.bootstrap({
+                instanceName: 'alloy',
+                stylingConfigurations: window.styleConfiguration,
+                selector: '#brand-concierge-mount',
+                stickySession: false,
+              });
+            })
+            .then(function () {
+              window.__modDemoBcBootstrapped = true;
+              if (typeof applyArmyBcEdgePathPatches === 'function') {
+                applyArmyBcEdgePathPatches(window);
+              }
+              [100, 500, 1500, 3000].forEach(function (ms) {
+                setTimeout(function () {
+                  if (typeof applyArmyBcEdgePathPatches === 'function') {
+                    applyArmyBcEdgePathPatches(window);
+                  }
+                }, ms);
+              });
+            })
+            .catch(function (err) {
+              console.error('[mod-bc-fullscreen-shell] init failed', err);
+            });
         });
-        alloy('sendEvent', {});
+        styleEl.addEventListener('error', function () {
+          console.error('[mod-bc-fullscreen-shell] failed to load style configuration', styleUrl);
+        });
       })();
     </script>
     <style>
@@ -110,20 +200,5 @@
     </div>
     <script src="army-bc-scroll-fix.js"></script>
     <script src="army-bc-disclaimer-layout.js"></script>
-    <script>
-      window.adobe.concierge
-        .bootstrap({
-          instanceName: 'alloy',
-          stylingConfigurations: window.styleConfiguration,
-          selector: '#brand-concierge-mount',
-          stickySession: false,
-        })
-        .then(function () {
-          window.__modDemoBcBootstrapped = true;
-          if (typeof applyArmyBcEdgePathPatches === 'function') {
-            applyArmyBcEdgePathPatches(window);
-          }
-        });
-    </script>
   </body>
 </html>

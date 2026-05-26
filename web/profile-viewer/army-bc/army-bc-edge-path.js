@@ -69,15 +69,15 @@
 
   function captureNativeFetch(targetWin) {
     if (!targetWin || typeof targetWin.fetch !== 'function') return;
-    if (!targetWin.fetch.__armyBcPatched) {
-      targetWin.__armyBcNativeFetch = targetWin.fetch.bind(targetWin);
-    }
+    var current = targetWin.fetch;
+    if (current.__armyBcPatched) return;
+    targetWin.__armyBcNativeFetch = current.bind(targetWin);
   }
 
   function patchFetch(targetWin, deployment) {
     if (!targetWin || typeof targetWin.fetch !== 'function') return;
-    if (targetWin.fetch.__armyBcPatched) return;
     captureNativeFetch(targetWin);
+    if (targetWin.fetch.__armyBcPatched) return;
     var nativeFetch = targetWin.__armyBcNativeFetch;
     var patchedFetch = function (input, init) {
       if (typeof input === 'string') {
@@ -96,17 +96,21 @@
   }
 
   function patchXhr(targetWin, deployment) {
-    if (!targetWin || targetWin.__armyBcXhrPathPatched) return;
+    if (!targetWin) return;
     var XHR = targetWin.XMLHttpRequest;
     if (!XHR || !XHR.prototype) return;
-    var nativeOpen = XHR.prototype.open;
-    XHR.prototype.open = function (method, url) {
+    if (XHR.prototype.open && XHR.prototype.open.__armyBcXhrOpenPatched) return;
+    var nativeOpen = XHR.prototype.open.__armyBcNativeOpen || XHR.prototype.open;
+    function patchedOpen(method, url) {
       var args = Array.prototype.slice.call(arguments);
       if (typeof url === 'string') {
         args[1] = rewriteUrl(url, deployment);
       }
       return nativeOpen.apply(this, args);
-    };
+    }
+    patchedOpen.__armyBcXhrOpenPatched = true;
+    patchedOpen.__armyBcNativeOpen = nativeOpen;
+    XHR.prototype.open = patchedOpen;
     targetWin.__armyBcXhrPathPatched = true;
   }
 

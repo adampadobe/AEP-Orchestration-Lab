@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-iframe-inject">
+  <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-env-pair">
   <link rel="stylesheet" href="mod-demo-bc.css?v=20260526-bc-iframe-inject">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
@@ -86,33 +86,35 @@
                       <option value="army" selected>Army Recruitment</option>
                     </select>
                   </div>
-                  <div class="form-row mod-demo-bc-style-url-row">
-                    <label for="modBcStyleConfigUrl">Brand Concierge style configuration URL</label>
-                    <input
-                      type="text"
-                      id="modBcStyleConfigUrl"
-                      class="mod-demo-bc-style-url-input"
-                      aria-label="Brand Concierge style configuration script URL"
-                      placeholder="army-bc/styleConfigurations-6a0992.js"
-                      autocomplete="off"
-                      spellcheck="false"
-                    >
-                    <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
-                  </div>
-                  <div class="form-row mod-demo-bc-datastream-row">
-                    <label for="modBcDatastreamId">Alloy datastream</label>
-                    <input
-                      type="text"
-                      id="modBcDatastreamId"
-                      class="mod-demo-bc-datastream-input"
-                      aria-label="Alloy datastream for Brand Concierge"
-                      placeholder="Select or search datastream"
-                      list="modBcDatastreamList"
-                      autocomplete="off"
-                      spellcheck="false"
-                    />
-                    <datalist id="modBcDatastreamList"></datalist>
-                    <p id="modBcDatastreamHint" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                  <div class="mod-demo-bc-env-pair">
+                    <div class="form-row mod-demo-bc-style-url-row">
+                      <label for="modBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+                      <input
+                        type="text"
+                        id="modBcStyleConfigUrl"
+                        class="mod-demo-bc-style-url-input"
+                        aria-label="Brand Concierge style configuration script URL"
+                        placeholder="army-bc/styleConfigurations-6a0992.js"
+                        autocomplete="off"
+                        spellcheck="false"
+                      >
+                      <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
+                    <div class="form-row mod-demo-bc-datastream-row">
+                      <label for="modBcDatastreamId">Alloy datastream</label>
+                      <input
+                        type="text"
+                        id="modBcDatastreamId"
+                        class="mod-demo-bc-datastream-input"
+                        aria-label="Alloy datastream for Brand Concierge"
+                        placeholder="Select or search datastream"
+                        list="modBcDatastreamList"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                      <datalist id="modBcDatastreamList"></datalist>
+                      <p id="modBcDatastreamHint" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
                   </div>
                 </div>
                 <div class="form-row">
@@ -390,7 +392,7 @@
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="mod-demo.js?v=20260526-mod-sandbox-env-flush"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-datastream-env"></script>
+  <script src="mod-demo-bc.js?v=20260526-bc-injected-frame-restore"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>

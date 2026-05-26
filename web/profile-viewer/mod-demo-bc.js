@@ -52,8 +52,19 @@
   }
 
   function getFullscreenFrameSrc() {
-    var ds = encodeURIComponent(getDatastreamId());
-    return FULLSCREEN_FRAME_SRC + '?modDatastreamId=' + ds;
+    var params = new URLSearchParams();
+    params.set('modDatastreamId', getDatastreamId());
+    var styleUrl = String(getStyleConfigUrl() || '').trim();
+    if (styleUrl) params.set('modStyleConfigUrl', styleUrl);
+    return FULLSCREEN_FRAME_SRC + '?' + params.toString();
+  }
+
+  async function restoreModDemoSnapshotFrame() {
+    if (!isFullscreenFrameLoaded()) return;
+    iframeCoreReady = null;
+    loadedIframeStyleUrl = null;
+    loadedIframeDatastreamId = null;
+    await ensureFrameSrcForMode(false);
   }
 
   function resolveAssetUrl(url) {
@@ -118,7 +129,13 @@
     var currentFull = frame.getAttribute('src') || '';
     var frameMatches =
       current.indexOf(fullscreen ? 'mod-bc-fullscreen-shell.html' : DEFAULT_FRAME_SRC) >= 0;
-    if (frameMatches && (!fullscreen || currentFull.indexOf('modDatastreamId=' + encodeURIComponent(getDatastreamId())) >= 0)) {
+    var styleParamOk =
+      !fullscreen ||
+      currentFull.indexOf('modStyleConfigUrl=' + encodeURIComponent(String(getStyleConfigUrl() || ''))) >= 0;
+    var datastreamParamOk =
+      !fullscreen ||
+      currentFull.indexOf('modDatastreamId=' + encodeURIComponent(getDatastreamId())) >= 0;
+    if (frameMatches && datastreamParamOk && styleParamOk) {
       await waitForFrameLoad(frame);
       return;
     }
@@ -806,7 +823,14 @@
     ensureBcCardImageStyles(doc);
 
     if (typeof win.activateModDemoInjectedBc === 'function') {
-      await win.activateModDemoInjectedBc(getStyleConfigUrl(), IFRAME_INJECTED_MOUNT_SELECTOR, getDatastreamId());
+      if (typeof win.resetModDemoInjectedBc === 'function') {
+        win.resetModDemoInjectedBc();
+      }
+      await win.activateModDemoInjectedBc(
+        resolveAssetUrl(getStyleConfigUrl()),
+        IFRAME_INJECTED_MOUNT_SELECTOR,
+        getDatastreamId(),
+      );
       scheduleDisclaimerReposition(doc);
     } else {
       await ensureIframeCore();
@@ -902,8 +926,9 @@
     var wantFullScreen = isFullScreenOn();
 
     if (!wantInjected && !wantModal && !wantFullScreen) {
-      var iframeDoc = getIframeDoc();
-      if (iframeDoc) teardownIframeInlineSection(iframeDoc);
+      var iframeDocOff = getIframeDoc();
+      if (iframeDocOff) teardownIframeInlineSection(iframeDocOff);
+      await restoreModDemoSnapshotFrame();
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       activeMode = null;
       reportBcStatus('');
@@ -913,21 +938,24 @@
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
     try {
       teardownConflictingBcMounts();
-      if (wantModal) {
-        var iframeDocModal = getIframeDoc();
-        if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
-        await ensureModalPopupUi();
-        await bootstrapParent(MODAL_MOUNT_SELECTOR);
-        closeBcModal();
-        setModalFabArmed(true);
-      } else if (wantFullScreen) {
+      if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
         await bootstrapIframeFullscreen();
-      } else if (wantInjected) {
-        closeBcModal();
-        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
-        await bootstrapIframeInjected();
+      } else {
+        await restoreModDemoSnapshotFrame();
+        if (wantModal) {
+          var iframeDocModal = getIframeDoc();
+          if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
+          await ensureModalPopupUi();
+          await bootstrapParent(MODAL_MOUNT_SELECTOR);
+          closeBcModal();
+          setModalFabArmed(true);
+        } else if (wantInjected) {
+          closeBcModal();
+          clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+          await bootstrapIframeInjected();
+        }
       }
       reportBcStatus('');
     } catch (e) {
@@ -961,8 +989,11 @@
       loadedIframeStyleUrl = null;
       if (isInjectedOn() || isFullScreenOn()) {
         void sync();
-      } else if (isFullscreenFrameLoaded()) {
-        teardownIframeInlineSection(getIframeDoc());
+      } else {
+        void restoreModDemoSnapshotFrame().then(function () {
+          var iframeDoc = getIframeDoc();
+          if (iframeDoc) teardownIframeInlineSection(iframeDoc);
+        });
       }
     });
   }

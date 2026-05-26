@@ -122,13 +122,31 @@
     }
   }
 
+  async function refreshInjectedEdgePatches(win, doc) {
+    await ensureEdgePathPatches(win, doc);
+    if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+      win.applyArmyBcEdgePathPatches(win);
+    }
+  }
+
   async function ensureCore(doc, win, styleUrl, datastreamId) {
     var resolvedStyle = resolveAssetUrl(styleUrl);
     var resolvedDatastream = datastreamId || resolveDatastreamId();
     if (corePromise && loadedStyleUrl && loadedStyleUrl !== resolvedStyle) {
       global.resetModDemoInjectedBc();
     }
-    if (corePromise) return corePromise;
+    if (
+      corePromise &&
+      win.__modDemoBcLoadedDatastreamId &&
+      win.__modDemoBcLoadedDatastreamId !== resolvedDatastream
+    ) {
+      global.resetModDemoInjectedBc();
+    }
+    if (corePromise) {
+      await corePromise;
+      await refreshInjectedEdgePatches(win, doc);
+      return;
+    }
 
     corePromise = (async function () {
       isolateFromParent(win);
@@ -196,6 +214,8 @@
         await loadScript(BASE + 'army-bc-local-engine.js', doc, 'local-engine');
         await loadScript(BASE + 'army-bc-local-fallback.js', doc, 'local-fallback');
       }
+
+      await refreshInjectedEdgePatches(win, doc);
     })().catch(function (err) {
       corePromise = null;
       throw err;
@@ -272,7 +292,7 @@
       }
     }
     repatch();
-    [100, 500, 1500].forEach(function (ms) {
+    [100, 500, 1500, 3000, 6000].forEach(function (ms) {
       global.setTimeout(repatch, ms);
     });
   };

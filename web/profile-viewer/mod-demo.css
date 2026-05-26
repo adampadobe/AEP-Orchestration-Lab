@@ -166,13 +166,39 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   align-self: flex-end;
 }
 
+.mod-demo-bc-env-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1.25rem;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-style-url-row {
+  flex: 1 1 18rem;
+  min-width: min(100%, 16rem);
+  margin: 0;
+}
+
+.mod-demo-bc-env-pair .mod-demo-bc-datastream-row {
+  flex: 1 1 14rem;
+  min-width: min(100%, 12rem);
+  margin: 0;
+}
+
 .mod-demo-bc-style-url-row {
   flex: 1 1 100%;
   min-width: min(100%, 28rem);
 }
 
 .mod-demo-bc-style-url-input {
-  width: min(100%, 36rem);
+  width: 100%;
+  max-width: 100%;
+}
+
+.mod-demo-bc-datastream-input {
+  width: 100%;
   max-width: 100%;
 }
 
