@@ -26,24 +26,73 @@
     return (prefix || 'aepBc') + 'BrandConciergePrefs';
   }
 
-  function savePrefs(storagePrefix, enabled, styleKey) {
+  function getSandboxKey() {
+    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+      var n = String(global.AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase();
+      if (n) return n.replace(/[^a-z0-9_-]/g, '_');
+    }
     try {
-      localStorage.setItem(
-        prefsKey(storagePrefix),
-        JSON.stringify({ enabled: !!enabled, styleKey: styleKey || 'miral' })
-      );
-    } catch (_e) {}
+      var el = global.document.getElementById('sandboxSelect');
+      if (el && el.value != null) {
+        var v = String(el.value).trim().toLowerCase();
+        if (v) return v.replace(/[^a-z0-9_-]/g, '_');
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '__default__';
+  }
+
+  function isFlatPrefsShape(p) {
+    if (!p || typeof p !== 'object') return false;
+    var keys = Object.keys(p);
+    return keys.length > 0 && keys.every(function (k) {
+      return k === 'enabled' || k === 'styleKey';
+    });
+  }
+
+  function readPrefsMap(storagePrefix) {
+    try {
+      var raw = global.localStorage.getItem(prefsKey(storagePrefix));
+      if (!raw) return {};
+      var p = JSON.parse(raw);
+      if (!p || typeof p !== 'object') return {};
+      if (isFlatPrefsShape(p)) {
+        var migrated = {};
+        migrated[getSandboxKey()] = {
+          enabled: !!p.enabled,
+          styleKey: p.styleKey || 'miral',
+        };
+        writePrefsMap(storagePrefix, migrated);
+        return migrated;
+      }
+      return p;
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function writePrefsMap(storagePrefix, map) {
+    try {
+      global.localStorage.setItem(prefsKey(storagePrefix), JSON.stringify(map || {}));
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function savePrefs(storagePrefix, enabled, styleKey) {
+    var map = readPrefsMap(storagePrefix);
+    map[getSandboxKey()] = { enabled: !!enabled, styleKey: styleKey || 'miral' };
+    writePrefsMap(storagePrefix, map);
   }
 
   function loadPrefs(storagePrefix) {
-    try {
-      var raw = localStorage.getItem(prefsKey(storagePrefix));
-      if (!raw) return { enabled: false, styleKey: 'miral' };
-      var p = JSON.parse(raw);
-      return { enabled: !!p.enabled, styleKey: p.styleKey || 'miral' };
-    } catch (_e) {
+    var map = readPrefsMap(storagePrefix);
+    var entry = map[getSandboxKey()];
+    if (!entry || typeof entry !== 'object') {
       return { enabled: false, styleKey: 'miral' };
     }
+    return { enabled: !!entry.enabled, styleKey: entry.styleKey || 'miral' };
   }
 
   function ensureMainJs() {

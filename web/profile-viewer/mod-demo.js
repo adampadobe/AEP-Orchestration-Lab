@@ -15,20 +15,94 @@ const modMessage = document.getElementById('modMessage');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-const MOD_WEB_PUSH_ON_INJECT_KEY = 'modDemoWebPushOnInjectToggle';
-const modWebPushOnInjectToggle = document.getElementById('modWebPushOnInjectToggle');
-if (modWebPushOnInjectToggle) {
+function readModStorageMap(key) {
   try {
-    if (localStorage.getItem(MOD_WEB_PUSH_ON_INJECT_KEY) === '1') modWebPushOnInjectToggle.checked = true;
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeModStorageMap(key, mapObj) {
+  try {
+    localStorage.setItem(key, JSON.stringify(mapObj || {}));
   } catch {
     /* noop */
   }
+}
+
+function getModBcSandboxName() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+  }
+  const sel = document.getElementById('sandboxSelect');
+  if (sel && sel.value) return String(sel.value).trim();
+  return '';
+}
+
+function getModSandboxKey() {
+  const raw = getModBcSandboxName().toLowerCase();
+  return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+}
+
+function migrateLegacyModScalar(mapKey, legacyKey, transform) {
+  const map = readModStorageMap(mapKey);
+  const sk = getModSandboxKey();
+  if (map[sk] != null && map[sk] !== '') return;
+  try {
+    const legacy = localStorage.getItem(legacyKey);
+    if (legacy == null || legacy === '') return;
+    map[sk] = transform ? transform(legacy) : legacy;
+    writeModStorageMap(mapKey, map);
+  } catch {
+    /* noop */
+  }
+}
+
+function readModSandboxString(mapKey, legacyKey, normaliser, fallback) {
+  migrateLegacyModScalar(mapKey, legacyKey, normaliser);
+  const raw = readModStorageMap(mapKey)[getModSandboxKey()];
+  const v = String(raw != null ? raw : '').trim();
+  if (!v) return fallback;
+  return normaliser ? normaliser(v) : v;
+}
+
+function writeModSandboxString(mapKey, value) {
+  const map = readModStorageMap(mapKey);
+  const key = getModSandboxKey();
+  const v = String(value != null ? value : '').trim();
+  if (!v) delete map[key];
+  else map[key] = v;
+  writeModStorageMap(mapKey, map);
+}
+
+const MOD_WEB_PUSH_BY_SANDBOX_KEY = 'modDemoWebPushOnInjectBySandbox';
+const MOD_WEB_PUSH_ON_INJECT_KEY = 'modDemoWebPushOnInjectToggle';
+const modWebPushOnInjectToggle = document.getElementById('modWebPushOnInjectToggle');
+
+function readModWebPushOnInject() {
+  migrateLegacyModScalar(MOD_WEB_PUSH_BY_SANDBOX_KEY, MOD_WEB_PUSH_ON_INJECT_KEY);
+  return readModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY)[getModSandboxKey()] === '1';
+}
+
+function writeModWebPushOnInject(on) {
+  const map = readModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY);
+  map[getModSandboxKey()] = on ? '1' : '0';
+  writeModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY, map);
+}
+
+function applyModWebPushOnInjectToggle() {
+  if (!modWebPushOnInjectToggle) return;
+  modWebPushOnInjectToggle.checked = readModWebPushOnInject();
+}
+
+if (modWebPushOnInjectToggle) {
+  applyModWebPushOnInjectToggle();
   modWebPushOnInjectToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(MOD_WEB_PUSH_ON_INJECT_KEY, modWebPushOnInjectToggle.checked ? '1' : '0');
-    } catch {
-      /* noop */
-    }
+    writeModWebPushOnInject(!!modWebPushOnInjectToggle.checked);
   });
 }
 
@@ -39,24 +113,32 @@ function modWebPushOnInjectDesired() {
 // Brand Concierge when injecting Tags (Etihad pattern)
 const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
 const modBcStyleSelect = document.getElementById('modBcStyleSelect');
-(function initModBcOnInjectToggle() {
+
+function applyModBcOnInjectPrefs() {
   if (!modBcOnInjectToggle) return;
   const prefs =
     typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'army' };
   modBcOnInjectToggle.checked = !!prefs.enabled;
   if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs(
-      'modDemo',
-      !!(modBcOnInjectToggle && modBcOnInjectToggle.checked),
-      modBcStyleSelect ? modBcStyleSelect.value : 'army',
-    );
-  }
-  modBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveBcPrefs);
+}
+
+function saveModBcOnInjectPrefs() {
+  if (typeof AepBcToggle === 'undefined') return;
+  AepBcToggle.savePrefs(
+    'modDemo',
+    !!(modBcOnInjectToggle && modBcOnInjectToggle.checked),
+    modBcStyleSelect ? modBcStyleSelect.value : 'army',
+  );
+}
+
+(function initModBcOnInjectToggle() {
+  if (!modBcOnInjectToggle) return;
+  applyModBcOnInjectPrefs();
+  modBcOnInjectToggle.addEventListener('change', saveModBcOnInjectPrefs);
+  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveModBcOnInjectPrefs);
 })();
 
+const MOD_BC_STYLE_URL_BY_SANDBOX_KEY = 'modDemoBcStyleConfigUrlBySandbox';
 const MOD_BC_STYLE_URL_KEY = 'modDemoBcStyleConfigUrl';
 const MOD_BC_DEFAULT_STYLE_URL = 'army-bc/styleConfigurations-6a0992.js';
 const modBcStyleConfigUrl = document.getElementById('modBcStyleConfigUrl');
@@ -74,12 +156,13 @@ function getModBcStyleConfigUrl() {
   if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
     return sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value);
   }
-  try {
-    const stored = localStorage.getItem(MOD_BC_STYLE_URL_KEY);
-    if (stored) return sanitiseModBcStyleConfigUrl(stored);
-  } catch {
-    /* noop */
-  }
+  const stored = readModSandboxString(
+    MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+    MOD_BC_STYLE_URL_KEY,
+    sanitiseModBcStyleConfigUrl,
+    '',
+  );
+  if (stored) return stored;
   return MOD_BC_DEFAULT_STYLE_URL;
 }
 
@@ -88,11 +171,7 @@ function saveModBcStyleConfigUrl() {
   if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim() !== url) {
     modBcStyleConfigUrl.value = url;
   }
-  try {
-    localStorage.setItem(MOD_BC_STYLE_URL_KEY, url);
-  } catch {
-    /* noop */
-  }
+  writeModSandboxString(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, url);
   refreshModBcStyleUrlHints();
 }
 
@@ -125,6 +204,7 @@ function invalidateModDemoBcCore() {
   }
 }
 
+const MOD_BC_DATASTREAM_BY_SANDBOX_KEY = 'modDemoBcDatastreamIdBySandbox';
 const MOD_BC_DATASTREAM_ID_KEY = 'modDemoBcDatastreamId';
 const MOD_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
 const modBcDatastreamId = document.getElementById('modBcDatastreamId');
@@ -170,22 +250,14 @@ function resolveModBcDatastreamIdFromInput() {
 function getModBcDatastreamId() {
   const resolved = resolveModBcDatastreamIdFromInput();
   if (resolved) return sanitiseModBcDatastreamId(resolved);
-  try {
-    const stored = localStorage.getItem(MOD_BC_DATASTREAM_ID_KEY);
-    if (stored) return sanitiseModBcDatastreamId(stored);
-  } catch {
-    /* noop */
-  }
+  const stored = readModSandboxString(
+    MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
+    MOD_BC_DATASTREAM_ID_KEY,
+    sanitiseModBcDatastreamId,
+    '',
+  );
+  if (stored) return stored;
   return MOD_BC_DEFAULT_DATASTREAM_ID;
-}
-
-function getModBcSandboxName() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
-  }
-  const sel = document.getElementById('sandboxSelect');
-  if (sel && sel.value) return String(sel.value).trim();
-  return '';
 }
 
 function renderModBcDatastreamSuggestions(query) {
@@ -215,11 +287,7 @@ function applyModBcDatastreamInputToStoredId() {
   if (modBcDatastreamId && hit) {
     modBcDatastreamId.value = datastreamLabelFromItem(hit);
   }
-  try {
-    localStorage.setItem(MOD_BC_DATASTREAM_ID_KEY, id);
-  } catch {
-    /* noop */
-  }
+  writeModSandboxString(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, id);
   refreshModBcDatastreamHint();
   return id;
 }
@@ -265,13 +333,7 @@ async function loadModBcDatastreams() {
     modBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
     renderModBcDatastreamSuggestions(modBcDatastreamId ? modBcDatastreamId.value : '');
 
-    let storedId = MOD_BC_DEFAULT_DATASTREAM_ID;
-    try {
-      const raw = localStorage.getItem(MOD_BC_DATASTREAM_ID_KEY);
-      if (raw) storedId = sanitiseModBcDatastreamId(raw);
-    } catch {
-      /* noop */
-    }
+    const storedId = getModBcDatastreamId();
 
     const hit = modBcAllDatastreamOptions.find(function (d) {
       return String(d.id || '').toLowerCase() === storedId;
@@ -310,43 +372,50 @@ window.ModDemoBcConfig = {
 const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
 const modBcModalToggle = document.getElementById('modBcModalToggle');
 const modBcInjectedToggle = document.getElementById('modBcInjectedToggle');
+const MOD_BC_PREFS_BY_SANDBOX_KEY = 'modDemoBcDisplayPrefsBySandbox';
 const MOD_BC_PREFS_KEY = 'modDemoBcDisplayPrefs';
 
-function loadModBcDisplayPrefs() {
-  try {
-    const raw = localStorage.getItem(MOD_BC_PREFS_KEY);
-    if (!raw) return { fullScreen: false, modal: false, injected: false };
-    const p = JSON.parse(raw);
-    return {
-      fullScreen: !!p.fullScreen,
-      modal: !!p.modal,
-      injected: !!p.injected,
-    };
-  } catch {
+function normaliseModBcDisplayPrefs(raw) {
+  if (!raw || typeof raw !== 'object') {
     return { fullScreen: false, modal: false, injected: false };
   }
+  return {
+    fullScreen: !!raw.fullScreen,
+    modal: !!raw.modal,
+    injected: !!raw.injected,
+  };
+}
+
+function loadModBcDisplayPrefs() {
+  migrateLegacyModScalar(MOD_BC_PREFS_BY_SANDBOX_KEY, MOD_BC_PREFS_KEY, function (legacy) {
+    try {
+      return JSON.parse(legacy);
+    } catch {
+      return null;
+    }
+  });
+  const raw = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY)[getModSandboxKey()];
+  if (raw && typeof raw === 'object') return normaliseModBcDisplayPrefs(raw);
+  try {
+    const flat = localStorage.getItem(MOD_BC_PREFS_KEY);
+    if (flat) return normaliseModBcDisplayPrefs(JSON.parse(flat));
+  } catch {
+    /* noop */
+  }
+  return { fullScreen: false, modal: false, injected: false };
 }
 
 function saveModBcDisplayPrefs() {
-  try {
-    localStorage.setItem(
-      MOD_BC_PREFS_KEY,
-      JSON.stringify({
-        fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
-        modal: !!(modBcModalToggle && modBcModalToggle.checked),
-        injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
-      }),
-    );
-  } catch { /* noop */ }
+  const map = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY);
+  map[getModSandboxKey()] = {
+    fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
+    modal: !!(modBcModalToggle && modBcModalToggle.checked),
+    injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
+  };
+  writeModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY, map);
 }
 
-function syncModDemoBcFromPrefs() {
-  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.sync === 'function') {
-    window.ModDemoBc.sync();
-  }
-}
-
-(function initModBcDisplayPrefs() {
+function applyModBcDisplayPrefsToUi() {
   const prefs = loadModBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
     prefs.injected = false;
@@ -357,6 +426,16 @@ function syncModDemoBcFromPrefs() {
   if (modBcInjectedToggle) modBcInjectedToggle.checked = prefs.injected;
   if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
   if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
+}
+
+function syncModDemoBcFromPrefs() {
+  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.sync === 'function') {
+    window.ModDemoBc.sync();
+  }
+}
+
+(function initModBcDisplayPrefs() {
+  applyModBcDisplayPrefsToUi();
   [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
@@ -382,12 +461,7 @@ function syncModDemoBcFromPrefs() {
 
 (function initModBcStyleConfigUrl() {
   if (!modBcStyleConfigUrl) return;
-  try {
-    const stored = localStorage.getItem(MOD_BC_STYLE_URL_KEY);
-    modBcStyleConfigUrl.value = stored ? sanitiseModBcStyleConfigUrl(stored) : MOD_BC_DEFAULT_STYLE_URL;
-  } catch {
-    modBcStyleConfigUrl.value = MOD_BC_DEFAULT_STYLE_URL;
-  }
+  modBcStyleConfigUrl.value = getModBcStyleConfigUrl();
   function onStyleUrlChange() {
     saveModBcStyleConfigUrl();
     invalidateModDemoBcCore();
@@ -417,12 +491,25 @@ function syncModDemoBcFromPrefs() {
   modBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
   modBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
 
-  window.addEventListener('aep-global-sandbox-change', function () {
-    void loadModBcDatastreams();
-  });
-
   void loadModBcDatastreams();
 })();
+
+function applyModDemoEnvForCurrentSandbox() {
+  applyModWebPushOnInjectToggle();
+  applyModBcOnInjectPrefs();
+  if (modBcStyleConfigUrl) {
+    modBcStyleConfigUrl.value = getModBcStyleConfigUrl();
+    refreshModBcStyleUrlHints();
+  }
+  applyModBcDisplayPrefsToUi();
+  invalidateModDemoBcCore();
+  syncModDemoBcFromPrefs();
+  void loadModBcDatastreams();
+}
+
+window.addEventListener('aep-global-sandbox-change', function () {
+  applyModDemoEnvForCurrentSandbox();
+});
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
 window.__modDemoSuppressBcEnable = true;
