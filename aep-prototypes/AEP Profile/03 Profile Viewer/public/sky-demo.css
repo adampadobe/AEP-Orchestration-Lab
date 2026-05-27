@@ -1,0 +1,41 @@
+/**
+ * Sky demo — site-clone iframe + lab strip (shell layout from mod-demo.css).
+ */
+
+.sky-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.sky-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+  display: none !important;
+}
+
+.sky-demo-page .aep-bc-park-launcher {
+  background: var(--dash-blue);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--dash-blue) 35%, transparent);
+}
+
+.sky-demo-page .aep-bc-park-launcher:hover {
+  background: color-mix(in srgb, var(--dash-blue) 88%, var(--dash-text));
+}
+
+.sky-demo-page .mod-demo-id-inner .sky-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
+}
+
+.sky-demo-page .mod-demo-id-inner .aep-demo-web-push-row,
+.sky-demo-page .mod-demo-id-inner .aep-bc-toggle-row,
+.sky-demo-page .mod-demo-id-inner .aep-bc-launcher-row {
+  flex: 0 0 auto;
+  padding-top: 0;
+}
+
+.sky-demo-page .mod-demo-id-inner .aep-demo-web-push-retry {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.sky-demo-page .mod-demo-id-inner .aep-demo-web-push-retry-hint,
+.sky-demo-page .mod-demo-id-inner .aep-demo-web-push-hint {
+  display: none;
+}
