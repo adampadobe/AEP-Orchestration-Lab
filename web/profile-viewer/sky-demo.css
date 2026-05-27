@@ -3,8 +3,12 @@
  */
 
 .sky-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.sky-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.sky-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
+}
+
+.sky-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
+  display: flex !important;
 }
 
 .sky-demo-page .aep-bc-park-launcher {

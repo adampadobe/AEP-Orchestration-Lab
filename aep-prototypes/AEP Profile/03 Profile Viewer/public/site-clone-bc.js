@@ -66,6 +66,11 @@
     'html.site-clone-bc-fs-active #siteCloneBcInline.site-clone-bc-inline--fullscreen #brand-concierge-mount *{pointer-events:auto!important;}',
   ].join('');
   var SNAPSHOT_INJECTED_LAYOUT_STYLE_ID = 'aep-mod-bc-injected-layout';
+  var SKY_INJECTED_LAYOUT_CSS = [
+    'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
   var SNAPSHOT_INJECTED_LAYOUT_CSS = [
     'html.site-clone-bc-injected-active .pin-spacer{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;pointer-events:none!important;}',
     'html.site-clone-bc-injected-active .pin-spacer>.exp-content__block-container,html.site-clone-bc-injected-active .pin-spacer>[x-ref="blockInner"]{position:relative!important;inset:auto!important;transform:none!important;pointer-events:none!important;}',
@@ -119,8 +124,16 @@
       styleEl.id = SNAPSHOT_INJECTED_LAYOUT_STYLE_ID;
       doc.head.appendChild(styleEl);
     }
-    styleEl.textContent = on ? SNAPSHOT_INJECTED_LAYOUT_CSS : '';
+    styleEl.textContent = on
+      ? snapshotLayout() === 'sky-home'
+        ? SKY_INJECTED_LAYOUT_CSS
+        : SNAPSHOT_INJECTED_LAYOUT_CSS
+      : '';
     refreshSnapshotRuntimeFix(doc);
+  }
+
+  function usesIframeInlineInject() {
+    return snapshotLayout() === 'sky-home' || !!cfg('injectBcInIframe', false);
   }
 
   async function restoreSiteCloneSnapshotFrame() {
@@ -753,7 +766,28 @@
     (doc.head || doc.documentElement).appendChild(style);
   }
 
+  function findSkyInjectAfterNode(doc) {
+    if (!doc) return null;
+    var main = doc.querySelector('main#app');
+    if (!main) return null;
+    var i;
+    for (i = 0; i < main.children.length; i++) {
+      var child = main.children[i];
+      if (
+        child &&
+        ((child.classList && child.classList.contains('box__Box-sc-1i8zs0c-0')) ||
+          (child.querySelector && child.querySelector('[data-test-id="trading-banner"]')))
+      ) {
+        return child;
+      }
+    }
+    return main.firstElementChild || main;
+  }
+
   function findHeroInsertPoint(doc) {
+    if (snapshotLayout() === 'sky-home') {
+      return findSkyInjectAfterNode(doc);
+    }
     var hero = doc.querySelector('.exp-hero-banner');
     if (!hero) return null;
     return (
@@ -970,7 +1004,10 @@
     section.className = fullscreen
       ? 'embed-bc-inline site-clone-bc-inline--fullscreen'
       : 'embed-bc-inline';
-    section.setAttribute('aria-label', 'Army recruitment assistant');
+    section.setAttribute(
+      'aria-label',
+      snapshotLayout() === 'sky-home' ? 'Brand Concierge assistant' : 'Army recruitment assistant',
+    );
     var mount = doc.createElement('div');
     mount.id = 'brand-concierge-mount';
     mount.className = 'embed-bc-inline__mount';
@@ -1001,10 +1038,34 @@
     activeMode = 'modal';
   }
 
-  async function bootstrapIframeBcInline(fullscreen) {
+  async function bootstrapIframeInlineInjected(doc) {
+    hideBcFrameHost();
+    clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+    setSnapshotFullscreenLayout(doc, false);
+    setSnapshotInjectedLayout(doc, true);
+    teardownIframeInlineSection(doc);
+    ensureIframeInlineSection(doc, false);
+    await ensureIframeCore();
+    var win = doc.defaultView;
+    await bootstrapConcierge(win, IFRAME_INJECTED_MOUNT_SELECTOR, win.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
+    scheduleDisclaimerReposition(doc);
+    try {
+      var section = doc.getElementById(IFRAME_INLINE_SECTION_ID);
+      if (section && typeof section.scrollIntoView === 'function') {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    activeMode = 'injected';
+  }
+
+  async function bootstrapIframeBcOverlay(fullscreen) {
     await ensureSnapshotFrame();
     var doc = getIframeDoc();
-    if (!doc) throw new Error('MOD site iframe is not ready');
+    if (!doc) throw new Error('Site iframe is not ready');
 
     setSnapshotFullscreenLayout(doc, !!fullscreen);
     setSnapshotInjectedLayout(doc, !fullscreen);
@@ -1035,6 +1096,19 @@
       }
     }
     activeMode = fullscreen ? 'fullscreen' : 'injected';
+  }
+
+  async function bootstrapIframeBcInline(fullscreen) {
+    await ensureSnapshotFrame();
+    var doc = getIframeDoc();
+    if (!doc) throw new Error('Site iframe is not ready');
+
+    if (usesIframeInlineInject() && !fullscreen) {
+      await bootstrapIframeInlineInjected(doc);
+      return;
+    }
+
+    await bootstrapIframeBcOverlay(fullscreen);
   }
 
   async function bootstrapIframeFullscreen() {
@@ -1158,6 +1232,9 @@
           await bootstrapParent(MODAL_MOUNT_SELECTOR);
           closeBcModal();
           setModalFabArmed(true);
+          if (typeof global.initArmyBcPopup === 'function') {
+            global.initArmyBcPopup();
+          }
         } else if (wantInjected) {
           closeBcModal();
           clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
