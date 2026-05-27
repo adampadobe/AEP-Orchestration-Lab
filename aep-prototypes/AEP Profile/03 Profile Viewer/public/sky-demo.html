@@ -12,11 +12,20 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260527-sky-demo">
   <link rel="stylesheet" href="sky-demo.css?v=20260527-sky-demo">
+  <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script>
+    window.SiteCloneBcPage = {
+      iframeId: 'skyDemoSiteFrame',
+      defaultFrameSrc: 'sky-demo-assets/sky-home-snapshot.html',
+      snapshotLayout: 'sky-home',
+    };
+  </script>
+  <script src="embed-bc/embed-bc-edge-path.js?v=20260527-site-clone-bc"></script>
 </head>
 <body class="mod-demo-page sky-demo-page home-dashboard-concierge aep-bc-panel-dismissed">
   <div class="mod-demo-top-anchor" id="skyDemoTopAnchor">
@@ -82,11 +91,35 @@
                       <option value="army">Army Recruitment</option>
                     </select>
                   </div>
-                  <div class="form-row aep-bc-launcher-row" role="group" aria-label="BC launcher visibility">
-                    <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="skyBcLauncherToggle" />
-                      <span>Show Brand Concierge launcher on page</span>
-                    </label>
+                  <div class="site-clone-bc-env-pair">
+                    <div class="form-row site-clone-bc-style-url-row">
+                      <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+                      <input
+                        type="text"
+                        id="siteCloneBcStyleConfigUrl"
+                        class="site-clone-bc-style-url-input"
+                        aria-label="Brand Concierge style configuration script URL"
+                        placeholder="embed-bc/styleConfigurations-6a0992.js"
+                        autocomplete="off"
+                        spellcheck="false"
+                      >
+                      <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
+                    <div class="form-row site-clone-bc-datastream-row">
+                      <label for="siteCloneBcDatastreamId">Alloy datastream</label>
+                      <input
+                        type="text"
+                        id="siteCloneBcDatastreamId"
+                        class="site-clone-bc-datastream-input"
+                        aria-label="Alloy datastream for Brand Concierge"
+                        placeholder="Select or search datastream"
+                        list="siteCloneBcDatastreamList"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                      <datalist id="siteCloneBcDatastreamList"></datalist>
+                      <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                    </div>
                   </div>
                 </div>
                 <div class="form-row">
@@ -122,9 +155,38 @@
               <label for="customerEmail">Identifier value</label>
               <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
             </div>
-            <div class="mod-demo-id-actions">
+            <div class="mod-demo-profile-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+              <div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">
+                <span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Show Brand Concierge</span>
+                <div class="site-clone-bc-prefs__options">
+                  <label class="site-clone-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="siteCloneBcFullScreenToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
+                    />
+                    <span>Full Screen</span>
+                  </label>
+                  <label class="site-clone-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="siteCloneBcModalToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
+                    />
+                    <span>Modal</span>
+                  </label>
+                  <label class="site-clone-bc-prefs__option">
+                    <input
+                      type="checkbox"
+                      id="siteCloneBcInjectedToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
+                    />
+                    <span>Injected</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -138,6 +200,10 @@
     </div>
   </div>
 
+  <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden>
+    <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
+  </div>
+
   <iframe
     id="skyDemoSiteFrame"
     class="mod-demo-site-frame"
@@ -147,6 +213,42 @@
     sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
     loading="eager"
   ></iframe>
+
+  <button
+    type="button"
+    id="siteCloneBcFab"
+    class="aep-bc-reopen-btn site-clone-bc-fab"
+    hidden
+    aria-label="Open Brand Concierge"
+    aria-expanded="false"
+    aria-controls="aepBcModal"
+  >
+    <img
+      src="https://contenthosting.web.app/logos/adobe_icon_146235.webp"
+      alt=""
+      width="48"
+      height="48"
+      decoding="async"
+    />
+  </button>
+
+  <div
+    id="aepBcModal"
+    class="aep-bc-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="aepBcModalTitle"
+    hidden
+  >
+    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
+    <div class="aep-bc-modal__dialog">
+      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">
+        &times;
+      </button>
+      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
+      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
+    </div>
+  </div>
 
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -296,46 +398,25 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+  <script>
+    window.SiteCloneDemoEnv = {
+      storagePrefix: 'skyDemo',
+      webPushBySandboxKey: 'skyDemoWebPushOnInjectBySandbox',
+      webPushLegacyKey: 'skyDemoWebPushOnInjectToggle',
+      webPushToggleId: 'skyWebPushOnInjectToggle',
+      bcOnInjectToggleId: 'skyBcOnInjectToggle',
+      bcStyleSelectId: 'skyBcStyleSelect',
+    };
+  </script>
+  <script src="site-clone-bc-env.js?v=20260527-site-clone-bc-env"></script>
   <script src="sky-demo.js?v=20260527-sky-demo"></script>
+  <script src="site-clone-bc.js?v=20260527-site-clone-bc"></script>
+  <div id="brand-concierge-mount-host" aria-live="polite" hidden>
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
+  </div>
+  <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260527-sky-demo"></script>
-
-  <script src="styleConfigurations.js?v=bc-4-hide-ai-chat-icon"></script>
-
-  <style>
-    .bc-card__image {
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-    }
-
-    #brand-concierge-mount-host {
-      width: min(420px, calc(100vw - 32px));
-      max-height: min(720px, calc(100vh - 32px));
-      pointer-events: auto;
-      background: transparent;
-    }
-
-    html[data-aep-theme="dark"] #brand-concierge-mount-host {
-      color-scheme: dark;
-    }
-  </style>
-
-  <button type="button" id="aepBcReopenBtn" class="aep-bc-reopen-btn" hidden aria-label="Open Brand Concierge">
-    <img src="assets/brand-concierge-launch.png" alt="" width="48" height="48" decoding="async" />
-  </button>
-
-  <div id="brand-concierge-mount-host" aria-live="polite">
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
-    <div id="brand-concierge-mount"></div>
-  </div>
-  <button type="button" id="skyBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
-    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
-      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
-    </svg>
-    Ask
-  </button>
-  <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
 </body>
 </html>

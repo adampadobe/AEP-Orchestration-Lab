@@ -1,6 +1,6 @@
 /**
  * MOD (British Army) demo — profile lookup + flyout lab nav; saved homepage in iframe.
- * Lab strip: web push + Tags inject aligned with Etihad (`etihad-demo.html`); BC modes in `mod-demo-bc.js`.
+ * Lab strip: web push + Tags inject; embed BC modes in `site-clone-bc.js`.
  */
 
 const customerEmail = document.getElementById('customerEmail');
@@ -34,7 +34,7 @@ function writeModStorageMap(key, mapObj) {
   }
 }
 
-function getModBcSandboxName() {
+function getSiteCloneBcSandboxName() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
     return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
   }
@@ -44,7 +44,7 @@ function getModBcSandboxName() {
 }
 
 function getModSandboxKey() {
-  const raw = getModBcSandboxName().toLowerCase();
+  const raw = getSiteCloneBcSandboxName().toLowerCase();
   return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
 }
 
@@ -90,9 +90,6 @@ function readModSandboxStringForKey(mapKey, sandboxKey, normaliser, fallback) {
   return normaliser ? normaliser(v) : v;
 }
 
-/** Sandbox key when env fields were last loaded or flushed (used to persist outgoing values on switch). */
-let modDemoEnvSandboxKey = getModSandboxKey();
-
 const MOD_WEB_PUSH_BY_SANDBOX_KEY = 'modDemoWebPushOnInjectBySandbox';
 const MOD_WEB_PUSH_ON_INJECT_KEY = 'modDemoWebPushOnInjectToggle';
 const modWebPushOnInjectToggle = document.getElementById('modWebPushOnInjectToggle');
@@ -124,474 +121,17 @@ function modWebPushOnInjectDesired() {
   return !!(modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked);
 }
 
-// Brand Concierge when injecting Tags (Etihad pattern)
 const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
 const modBcStyleSelect = document.getElementById('modBcStyleSelect');
 
-function applyModBcOnInjectPrefs() {
-  if (!modBcOnInjectToggle) return;
-  const prefs =
-    typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'army' };
-  modBcOnInjectToggle.checked = !!prefs.enabled;
-  if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
-}
-
-function saveModBcOnInjectPrefs() {
-  if (typeof AepBcToggle === 'undefined') return;
-  AepBcToggle.savePrefs(
-    'modDemo',
-    !!(modBcOnInjectToggle && modBcOnInjectToggle.checked),
-    modBcStyleSelect ? modBcStyleSelect.value : 'army',
-  );
-}
-
-(function initModBcOnInjectToggle() {
-  if (!modBcOnInjectToggle) return;
-  applyModBcOnInjectPrefs();
-  modBcOnInjectToggle.addEventListener('change', saveModBcOnInjectPrefs);
-  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveModBcOnInjectPrefs);
-})();
-
-const MOD_BC_STYLE_URL_BY_SANDBOX_KEY = 'modDemoBcStyleConfigUrlBySandbox';
-const MOD_BC_STYLE_URL_KEY = 'modDemoBcStyleConfigUrl';
-const MOD_BC_DEFAULT_STYLE_URL = 'army-bc/styleConfigurations-6a0992.js';
-const modBcStyleConfigUrl = document.getElementById('modBcStyleConfigUrl');
-
-function sanitiseModBcStyleConfigUrl(raw) {
-  const v = String(raw || '').trim();
-  if (!v) return MOD_BC_DEFAULT_STYLE_URL;
-  if (/^javascript:/i.test(v)) return MOD_BC_DEFAULT_STYLE_URL;
-  if (/^https?:\/\//i.test(v)) return v;
-  if (/^[a-z0-9_./-]+\.(js|json)$/i.test(v)) return v;
-  return MOD_BC_DEFAULT_STYLE_URL;
-}
-
-function readPersistedModBcStyleConfigUrl(sandboxKey) {
-  migrateLegacyModScalar(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, MOD_BC_STYLE_URL_KEY, sanitiseModBcStyleConfigUrl);
-  const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
-  const stored = readModSandboxStringForKey(
-    MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
-    sk,
-    sanitiseModBcStyleConfigUrl,
-    '',
-  );
-  return stored || MOD_BC_DEFAULT_STYLE_URL;
-}
-
-function getModBcStyleConfigUrl() {
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
-    return sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value);
-  }
-  return readPersistedModBcStyleConfigUrl();
-}
-
-function saveModBcStyleConfigUrl() {
-  const url = modBcStyleConfigUrl
-    ? sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value)
-    : readPersistedModBcStyleConfigUrl();
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim() !== url) {
-    modBcStyleConfigUrl.value = url;
-  }
-  writeModSandboxString(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, url);
-  refreshModBcStyleUrlHints();
-}
-
-function getModBcStyleConfigResolvedUrl() {
-  const raw = getModBcStyleConfigUrl();
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (raw.charAt(0) === '/') return raw;
-  const pageDir = window.location.pathname.replace(/\/[^/]*$/, '/');
-  return pageDir + raw.replace(/^\.\//, '');
-}
-
-function refreshModBcStyleUrlHints() {
-  const url = getModBcStyleConfigUrl();
-  const resolved = getModBcStyleConfigResolvedUrl();
-  const hint = document.getElementById('modBcStyleConfigResolved');
-  if (hint) {
-    hint.textContent = resolved
-      ? 'Loaded for Modal / Injected / Full Screen: ' + resolved
-      : '';
-  }
-  ['modBcFullScreenToggle', 'modBcModalToggle', 'modBcInjectedToggle'].forEach(function (id) {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute('data-mod-bc-style-url', url);
-  });
-}
-
-function invalidateModDemoBcCore() {
-  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.invalidateCore === 'function') {
-    window.ModDemoBc.invalidateCore();
-  }
-}
-
-const MOD_BC_DATASTREAM_BY_SANDBOX_KEY = 'modDemoBcDatastreamIdBySandbox';
-const MOD_BC_DATASTREAM_ID_KEY = 'modDemoBcDatastreamId';
-const MOD_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
-const modBcDatastreamId = document.getElementById('modBcDatastreamId');
-const modBcDatastreamList = document.getElementById('modBcDatastreamList');
-
-/** @type {Array<{ id: string, title: string, sandbox?: string }>} */
-let modBcAllDatastreamOptions = [];
-
-function sanitiseModBcDatastreamId(raw) {
-  const v = String(raw || '').trim();
-  if (!v) return MOD_BC_DEFAULT_DATASTREAM_ID;
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v.toLowerCase();
-  return MOD_BC_DEFAULT_DATASTREAM_ID;
-}
-
-function datastreamLabelFromItem(d) {
-  const title = String((d && d.title) || 'Unnamed').trim();
-  const id = String((d && d.id) || '').trim();
-  return title + ' (' + id + ')';
-}
-
-function findModBcDatastreamByLabel(label) {
-  const target = String(label || '').trim().toLowerCase();
-  if (!target) return null;
-  return (
-    modBcAllDatastreamOptions.find(function (d) {
-      return datastreamLabelFromItem(d).toLowerCase() === target;
-    }) || null
-  );
-}
-
-function resolveModBcDatastreamIdFromInput() {
-  const raw = modBcDatastreamId ? String(modBcDatastreamId.value || '').trim() : '';
-  if (!raw) return '';
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
-    return raw.toLowerCase();
-  }
-  const hit = findModBcDatastreamByLabel(raw);
-  if (hit && hit.id) return String(hit.id).toLowerCase();
-  return '';
-}
-
-function readPersistedModBcDatastreamId(sandboxKey) {
-  migrateLegacyModScalar(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, MOD_BC_DATASTREAM_ID_KEY, sanitiseModBcDatastreamId);
-  const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
-  const stored = readModSandboxStringForKey(
-    MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
-    sk,
-    sanitiseModBcDatastreamId,
-    '',
-  );
-  return stored || MOD_BC_DEFAULT_DATASTREAM_ID;
-}
-
-function getModBcDatastreamId() {
-  const resolved = resolveModBcDatastreamIdFromInput();
-  if (resolved) return sanitiseModBcDatastreamId(resolved);
-  return readPersistedModBcDatastreamId();
-}
-
-function renderModBcDatastreamSuggestions(query) {
-  if (!modBcDatastreamList) return;
-  const q = String(query || '').trim().toLowerCase();
-  modBcDatastreamList.innerHTML = '';
-  const matches = modBcAllDatastreamOptions
-    .filter(function (d) {
-      if (!q) return true;
-      const label = datastreamLabelFromItem(d).toLowerCase();
-      const id = String(d.id || '').toLowerCase();
-      return label.indexOf(q) !== -1 || id.indexOf(q) !== -1;
-    })
-    .slice(0, 200);
-  matches.forEach(function (d) {
-    const opt = document.createElement('option');
-    opt.value = datastreamLabelFromItem(d);
-    modBcDatastreamList.appendChild(opt);
-  });
-}
-
-function applyModBcDatastreamInputToStoredId() {
-  const id = getModBcDatastreamId();
-  const hit = modBcAllDatastreamOptions.find(function (d) {
-    return String(d.id || '').toLowerCase() === id;
-  });
-  if (modBcDatastreamId && hit) {
-    modBcDatastreamId.value = datastreamLabelFromItem(hit);
-  }
-  writeModSandboxString(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, id);
-  refreshModBcDatastreamHint();
-  return id;
-}
-
-function saveModBcDatastreamId() {
-  applyModBcDatastreamInputToStoredId();
-}
-
-function refreshModBcDatastreamHint() {
-  const id = getModBcDatastreamId();
-  const hint = document.getElementById('modBcDatastreamHint');
-  const sandbox = getModBcSandboxName();
-  if (!hint) return;
-  if (!modBcAllDatastreamOptions.length) {
-    hint.textContent = id
-      ? 'Alloy datastreamId (manual): ' + id + (sandbox ? ' · sandbox ' + sandbox : '')
-      : sandbox
-        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.'
-        : 'Paste a datastream UUID.';
-    return;
-  }
-  hint.textContent =
-    modBcAllDatastreamOptions.length +
-    ' datastream(s)' +
-    (sandbox ? ' for ' + sandbox : '') +
-    ' · selected ' +
-    id;
-}
-
-async function loadModBcDatastreams() {
-  const sandbox = getModBcSandboxName();
-  const hint = document.getElementById('modBcDatastreamHint');
-  if (hint) {
-    hint.textContent = sandbox ? 'Loading datastreams for ' + sandbox + '…' : 'Loading datastreams…';
-  }
-  try {
-    const params = new URLSearchParams();
-    if (sandbox) params.set('sandbox', sandbox);
-    const res = await fetch('/api/events/datastreams?' + params.toString());
-    const data = await res.json().catch(function () {
-      return {};
-    });
-    modBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
-    renderModBcDatastreamSuggestions(modBcDatastreamId ? modBcDatastreamId.value : '');
-
-    const storedId = readPersistedModBcDatastreamId();
-
-    const hit = modBcAllDatastreamOptions.find(function (d) {
-      return String(d.id || '').toLowerCase() === storedId;
-    });
-    if (modBcDatastreamId) {
-      modBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
-    }
-
-    if (hint) {
-      if (data.note && !modBcAllDatastreamOptions.length) {
-        hint.textContent = String(data.note);
-      } else {
-        refreshModBcDatastreamHint();
-      }
-    }
-  } catch (err) {
-    modBcAllDatastreamOptions = [];
-    renderModBcDatastreamSuggestions('');
-    if (hint) {
-      hint.textContent =
-        'Could not load datastreams' +
-        (err && err.message ? ': ' + err.message : '') +
-        '. Paste a datastream UUID.';
-    }
-  }
-}
-
-window.ModDemoBcConfig = {
-  getStyleConfigUrl: getModBcStyleConfigUrl,
-  getDatastreamId: getModBcDatastreamId,
-};
-
-// Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
-const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
-const modBcModalToggle = document.getElementById('modBcModalToggle');
-const modBcInjectedToggle = document.getElementById('modBcInjectedToggle');
-const MOD_BC_PREFS_BY_SANDBOX_KEY = 'modDemoBcDisplayPrefsBySandbox';
-const MOD_BC_PREFS_KEY = 'modDemoBcDisplayPrefs';
-
-function normaliseModBcDisplayPrefs(raw) {
-  if (!raw || typeof raw !== 'object') {
-    return { fullScreen: false, modal: false, injected: false };
-  }
-  return {
-    fullScreen: !!raw.fullScreen,
-    modal: !!raw.modal,
-    injected: !!raw.injected,
-  };
-}
-
-function loadModBcDisplayPrefs() {
-  migrateLegacyModScalar(MOD_BC_PREFS_BY_SANDBOX_KEY, MOD_BC_PREFS_KEY, function (legacy) {
-    try {
-      return JSON.parse(legacy);
-    } catch {
-      return null;
-    }
-  });
-  const raw = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY)[getModSandboxKey()];
-  if (raw && typeof raw === 'object') return normaliseModBcDisplayPrefs(raw);
-  try {
-    const flat = localStorage.getItem(MOD_BC_PREFS_KEY);
-    if (flat) return normaliseModBcDisplayPrefs(JSON.parse(flat));
-  } catch {
-    /* noop */
-  }
-  return { fullScreen: false, modal: false, injected: false };
-}
-
-function saveModBcDisplayPrefs(sandboxKey) {
-  const map = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY);
-  const key = sandboxKey != null ? sandboxKey : getModSandboxKey();
-  map[key] = {
-    fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
-    modal: !!(modBcModalToggle && modBcModalToggle.checked),
-    injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
-  };
-  writeModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY, map);
-}
-
-function flushModDemoEnvForSandboxKey(sandboxKey) {
-  const sk = String(sandboxKey || '').trim();
-  if (!sk) return;
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
-    writeModSandboxStringForKey(
-      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
-      sk,
-      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
-    );
-  }
-  const dsFromInput = resolveModBcDatastreamIdFromInput();
-  if (dsFromInput) {
-    writeModSandboxStringForKey(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseModBcDatastreamId(dsFromInput));
-  } else if (modBcDatastreamId && modBcDatastreamId.value.trim()) {
-    writeModSandboxStringForKey(
-      MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
-      sk,
-      sanitiseModBcDatastreamId(modBcDatastreamId.value.trim()),
-    );
-  }
-  saveModBcDisplayPrefs(sk);
-  const map = readModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY);
-  map[sk] = modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked ? '1' : '0';
-  writeModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY, map);
-  if (typeof AepBcToggle !== 'undefined' && modBcOnInjectToggle) {
-    AepBcToggle.savePrefs(
-      'modDemo',
-      !!modBcOnInjectToggle.checked,
-      modBcStyleSelect ? modBcStyleSelect.value : 'army',
-      sk,
-    );
-  }
-}
-
-function applyModBcDisplayPrefsToUi() {
-  const prefs = loadModBcDisplayPrefs();
-  if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
-    prefs.injected = false;
-    prefs.fullScreen = false;
-  } else if (prefs.fullScreen && prefs.injected) {
-    prefs.injected = false;
-  }
-  if (modBcInjectedToggle) modBcInjectedToggle.checked = prefs.injected;
-  if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
-  if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
-}
-
-function syncModDemoBcFromPrefs() {
-  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.sync === 'function') {
-    window.ModDemoBc.sync();
-  }
-}
-
-(function initModBcDisplayPrefs() {
-  applyModBcDisplayPrefsToUi();
-  [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
-    if (!el) return;
-    el.addEventListener('change', function () {
-      if (el === modBcModalToggle && el.checked) {
-        if (modBcInjectedToggle) modBcInjectedToggle.checked = false;
-        if (modBcFullScreenToggle) modBcFullScreenToggle.checked = false;
-      }
-      if ((el === modBcInjectedToggle || el === modBcFullScreenToggle) && el.checked) {
-        if (modBcModalToggle) modBcModalToggle.checked = false;
-      }
-      if (el === modBcInjectedToggle && el.checked && modBcFullScreenToggle) {
-        modBcFullScreenToggle.checked = false;
-      }
-      if (el === modBcFullScreenToggle && el.checked && modBcInjectedToggle) {
-        modBcInjectedToggle.checked = false;
-      }
-      saveModBcDisplayPrefs();
-      syncModDemoBcFromPrefs();
-    });
-  });
-  saveModBcDisplayPrefs();
-})();
-
-(function initModBcStyleConfigUrl() {
-  if (!modBcStyleConfigUrl) return;
-  modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
-  function onStyleUrlChange() {
-    saveModBcStyleConfigUrl();
-    invalidateModDemoBcCore();
-    syncModDemoBcFromPrefs();
-  }
-  modBcStyleConfigUrl.addEventListener('input', function () {
-    writeModSandboxString(
-      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
-      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
-    );
-    refreshModBcStyleUrlHints();
-  });
-  modBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
-  modBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
-  refreshModBcStyleUrlHints();
-})();
-
-(function initModBcDatastreamPicker() {
-  if (!modBcDatastreamId) return;
-
-  function onDatastreamFieldChange() {
-    const prev = getModBcDatastreamId();
-    saveModBcDatastreamId();
-    const next = getModBcDatastreamId();
-    if (prev !== next) {
-      invalidateModDemoBcCore();
-      syncModDemoBcFromPrefs();
-    }
-  }
-
-  modBcDatastreamId.addEventListener('input', function () {
-    renderModBcDatastreamSuggestions(modBcDatastreamId.value);
-  });
-  modBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
-  modBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
-
-  void loadModBcDatastreams();
-})();
-
-function applyModDemoEnvForCurrentSandbox() {
-  applyModWebPushOnInjectToggle();
-  applyModBcOnInjectPrefs();
-  if (modBcStyleConfigUrl) {
-    modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
-    refreshModBcStyleUrlHints();
-  }
-  applyModBcDisplayPrefsToUi();
-  invalidateModDemoBcCore();
-  syncModDemoBcFromPrefs();
-  void loadModBcDatastreams();
-  modDemoEnvSandboxKey = getModSandboxKey();
-}
-
-window.addEventListener('aep-global-sandbox-change', function () {
-  if (modDemoEnvSandboxKey) {
-    flushModDemoEnvForSandboxKey(modDemoEnvSandboxKey);
-  }
-  modDemoEnvSandboxKey = getModSandboxKey();
-  applyModDemoEnvForCurrentSandbox();
-});
-
-modDemoEnvSandboxKey = getModSandboxKey();
-
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
-window.__modDemoSuppressBcEnable = true;
+window.__siteCloneSuppressBcEnable = true;
 const modInjectSdkBtn = document.getElementById('modInjectSdkBtn');
 if (modInjectSdkBtn) {
   modInjectSdkBtn.addEventListener(
     'click',
     function () {
-      window.__modDemoSuppressBcEnable = false;
+      window.__siteCloneSuppressBcEnable = false;
     },
     true,
   );
@@ -635,7 +175,7 @@ const modTagsInjection =
             return modBcStyleSelect ? modBcStyleSelect.value : 'army';
           },
           suppressEnable: function () {
-            return !!window.__modDemoSuppressBcEnable;
+            return !!window.__siteCloneSuppressBcEnable;
           },
         },
       })

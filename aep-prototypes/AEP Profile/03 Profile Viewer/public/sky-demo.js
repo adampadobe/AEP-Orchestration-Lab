@@ -1,5 +1,5 @@
-/**
- * Sky demo — saved sky.com homepage in iframe + lab env strip (British Army / MOD pattern).
+﻿/**
+ * Sky demo ÔÇö saved sky.com homepage in iframe + lab env strip (British Army / MOD pattern).
  */
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
@@ -13,152 +13,24 @@ const skyMessage = document.getElementById('skyMessage');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-function readSkyStorageMap(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeSkyStorageMap(key, mapObj) {
-  try {
-    localStorage.setItem(key, JSON.stringify(mapObj || {}));
-  } catch {
-    /* noop */
-  }
-}
-
-function getSkySandboxKey() {
-  let name = '';
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-    name = String(window.AepGlobalSandbox.getSandboxName() || '').trim();
-  }
-  if (!name) {
-    const sel = document.getElementById('sandboxSelect');
-    if (sel && sel.value) name = String(sel.value).trim();
-  }
-  const raw = name.toLowerCase();
-  return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
-}
-
-function migrateLegacySkyScalar(mapKey, legacyKey) {
-  const map = readSkyStorageMap(mapKey);
-  const sk = getSkySandboxKey();
-  if (map[sk] != null && map[sk] !== '') return;
-  try {
-    const legacy = localStorage.getItem(legacyKey);
-    if (legacy == null || legacy === '') return;
-    map[sk] = legacy;
-    writeSkyStorageMap(mapKey, map);
-  } catch {
-    /* noop */
-  }
-}
-
-const SKY_WEB_PUSH_BY_SANDBOX_KEY = 'skyDemoWebPushOnInjectBySandbox';
-const SKY_WEB_PUSH_ON_INJECT_KEY = 'skyDemoWebPushOnInjectToggle';
-const skyWebPushOnInjectToggle = document.getElementById('skyWebPushOnInjectToggle');
-
-function readSkyWebPushOnInject() {
-  migrateLegacySkyScalar(SKY_WEB_PUSH_BY_SANDBOX_KEY, SKY_WEB_PUSH_ON_INJECT_KEY);
-  return readSkyStorageMap(SKY_WEB_PUSH_BY_SANDBOX_KEY)[getSkySandboxKey()] === '1';
-}
-
-function writeSkyWebPushOnInject(on) {
-  const map = readSkyStorageMap(SKY_WEB_PUSH_BY_SANDBOX_KEY);
-  map[getSkySandboxKey()] = on ? '1' : '0';
-  writeSkyStorageMap(SKY_WEB_PUSH_BY_SANDBOX_KEY, map);
-}
-
-function applySkyWebPushOnInjectToggle() {
-  if (!skyWebPushOnInjectToggle) return;
-  skyWebPushOnInjectToggle.checked = readSkyWebPushOnInject();
-}
-
-if (skyWebPushOnInjectToggle) {
-  applySkyWebPushOnInjectToggle();
-  skyWebPushOnInjectToggle.addEventListener('change', function () {
-    writeSkyWebPushOnInject(!!skyWebPushOnInjectToggle.checked);
-  });
-}
-
-function skyWebPushOnInjectDesired() {
-  return !!(skyWebPushOnInjectToggle && skyWebPushOnInjectToggle.checked);
-}
-
 const skyBcOnInjectToggle = document.getElementById('skyBcOnInjectToggle');
 const skyBcStyleSelect = document.getElementById('skyBcStyleSelect');
 
-function applySkyBcOnInjectPrefs() {
-  if (!skyBcOnInjectToggle) return;
-  const prefs =
-    typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('skyDemo') : { enabled: false, styleKey: 'miral' };
-  skyBcOnInjectToggle.checked = !!prefs.enabled;
-  if (skyBcStyleSelect && prefs.styleKey) skyBcStyleSelect.value = prefs.styleKey;
+function skyWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
+  }
+  const el = document.getElementById('skyWebPushOnInjectToggle');
+  return !!(el && el.checked);
 }
 
-function saveSkyBcOnInjectPrefs() {
-  if (typeof AepBcToggle === 'undefined') return;
-  AepBcToggle.savePrefs(
-    'skyDemo',
-    !!(skyBcOnInjectToggle && skyBcOnInjectToggle.checked),
-    skyBcStyleSelect ? skyBcStyleSelect.value : 'miral',
-  );
-}
-
-(function initSkyBcOnInjectToggle() {
-  if (!skyBcOnInjectToggle) return;
-  applySkyBcOnInjectPrefs();
-  skyBcOnInjectToggle.addEventListener('change', saveSkyBcOnInjectPrefs);
-  if (skyBcStyleSelect) skyBcStyleSelect.addEventListener('change', saveSkyBcOnInjectPrefs);
-})();
-
-const skyBcLauncherToggle = document.getElementById('skyBcLauncherToggle');
-const skyBcLauncher = document.getElementById('skyBcLauncher');
-(function initSkyBcLauncher() {
-  const LAUNCHER_KEY = 'skyDemoBcLauncherVisible';
-  if (!skyBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      skyBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch {
-    /* noop */
-  }
-  skyBcLauncherToggle.addEventListener('change', function () {
-    const on = skyBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try {
-      localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-  if (skyBcLauncher) {
-    skyBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen();
-      else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-window.addEventListener('aep-global-sandbox-change', function () {
-  applySkyWebPushOnInjectToggle();
-  applySkyBcOnInjectPrefs();
-});
-
-window.__skyDemoSuppressBcEnable = true;
+window.__siteCloneSuppressBcEnable = true;
 const skyInjectSdkBtn = document.getElementById('skyInjectSdkBtn');
 if (skyInjectSdkBtn) {
   skyInjectSdkBtn.addEventListener(
     'click',
     function () {
-      window.__skyDemoSuppressBcEnable = false;
+      window.__siteCloneSuppressBcEnable = false;
     },
     true,
   );
@@ -198,7 +70,7 @@ const skyTagsInjection =
             return skyBcStyleSelect ? skyBcStyleSelect.value : 'miral';
           },
           suppressEnable: function () {
-            return !!window.__skyDemoSuppressBcEnable;
+            return !!window.__siteCloneSuppressBcEnable;
           },
         },
       })

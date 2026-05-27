@@ -403,7 +403,21 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="mod-demo.js?v=20260526-mod-sandbox-env-flush"></script>
+  <script src="mod-demo.js?v=20260527-mod-site-clone-bc-env"></script>
+  <script>
+    window.SiteCloneDemoEnv = {
+      storagePrefix: 'modDemo',
+      webPushBySandboxKey: 'modDemoWebPushOnInjectBySandbox',
+      webPushLegacyKey: 'modDemoWebPushOnInjectToggle',
+      webPushToggleId: 'modWebPushOnInjectToggle',
+      bcOnInjectToggleId: 'modBcOnInjectToggle',
+      bcStyleSelectId: 'modBcStyleSelect',
+      applyWebPushToggle: function () {
+        if (typeof applyModWebPushOnInjectToggle === 'function') applyModWebPushOnInjectToggle();
+      },
+    };
+  </script>
+  <script src="site-clone-bc-env.js?v=20260527-site-clone-bc-env"></script>
   <script src="site-clone-bc.js?v=20260527-site-clone-bc"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>

@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="mod-demo.css?v=20260527-site-clone-bc">
-  <link rel="stylesheet" href="sky-demo.css?v=20260527-site-clone-bc">
+  <link rel="stylesheet" href="mod-demo.css?v=20260527-sky-demo">
+  <link rel="stylesheet" href="sky-demo.css?v=20260527-sky-demo">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
@@ -20,15 +20,14 @@
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <script>
     window.SiteCloneBcPage = {
-      iframeId: 'siteCloneDemoSiteFrame',
+      iframeId: 'skyDemoSiteFrame',
       defaultFrameSrc: 'sky-demo-assets/sky-home-snapshot.html',
       snapshotLayout: 'sky-home',
     };
   </script>
   <script src="embed-bc/embed-bc-edge-path.js?v=20260527-site-clone-bc"></script>
 </head>
-<body class="mod-demo-page sky-demo-page home-dashboard-concierge">
-  <!-- Lab identity strip: hover top edge to reveal (sits above embedded site snapshot) -->
+<body class="mod-demo-page sky-demo-page home-dashboard-concierge aep-bc-panel-dismissed">
   <div class="mod-demo-top-anchor" id="skyDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
       <div class="mod-demo-id-inner aep-demo-id-inner">
@@ -43,34 +42,34 @@
                     <option value="">Loading sandboxes…</option>
                   </select>
                 </div>
-                <div id="skySdkConfigFields" class="mod-sdk-config-fields mod-demo-tags-block">
+                <div id="skySdkConfigFields" class="sky-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block">
                   <div class="form-row mod-demo-tags-company-row" hidden>
-                    <label for="modTagsCompany">Tags company</label>
-                    <select id="modTagsCompany" aria-label="Tags company"></select>
+                    <label for="skyTagsCompany">Tags company</label>
+                    <select id="skyTagsCompany" aria-label="Tags company"></select>
                   </div>
                   <div class="form-row">
-                    <label for="modTagsProperty">Tags property</label>
+                    <label for="skyTagsProperty">Tags property</label>
                     <input
                       type="text"
-                      id="modTagsProperty"
+                      id="skyTagsProperty"
                       aria-label="Tags property"
                       placeholder="Select property"
-                      list="modTagsPropertyList"
+                      list="skyTagsPropertyList"
                       autocomplete="off"
                       spellcheck="false"
                     >
-                    <datalist id="modTagsPropertyList"></datalist>
+                    <datalist id="skyTagsPropertyList"></datalist>
                   </div>
                   <div class="form-row">
-                    <label for="modTagsEnvironment">Tags environment</label>
-                    <select id="modTagsEnvironment" aria-label="Tags environment"></select>
+                    <label for="skyTagsEnvironment">Tags environment</label>
+                    <select id="skyTagsEnvironment" aria-label="Tags environment"></select>
                   </div>
                   <div class="mod-demo-id-actions">
                     <button type="button" id="skyInjectSdkBtn" class="btn-lookup">Inject selected script</button>
                   </div>
                   <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
                     <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="modWebPushOnInjectToggle" />
+                      <input type="checkbox" id="skyWebPushOnInjectToggle" />
                       <span>
                         Register web push when injecting Tags
                         <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
@@ -78,20 +77,18 @@
                     </label>
                   </div>
                   <div class="aep-demo-web-push-retry">
-                    <button type="button" id="modWebPushRetryBtn" class="btn-lookup">
-                      Register web push now
-                    </button>
+                    <button type="button" id="skyWebPushRetryBtn" class="btn-lookup">Register web push now</button>
                     <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
                   </div>
-                  <div class="form-row aep-bc-toggle-row site-clone-bc-inject-row" role="group" aria-label="Brand Concierge">
+                  <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
                     <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="modBcOnInjectToggle" />
+                      <input type="checkbox" id="skyBcOnInjectToggle" />
                       <span>Enable Brand Concierge when injecting Tags</span>
                     </label>
-                    <select id="modBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
-                      <option value="miral">Miral</option>
+                    <select id="skyBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+                      <option value="miral" selected>Miral</option>
                       <option value="generic">Generic (DemoEfficiency)</option>
-                      <option value="army" selected>Army Recruitment</option>
+                      <option value="army">Army Recruitment</option>
                     </select>
                   </div>
                   <div class="site-clone-bc-env-pair">
@@ -132,7 +129,7 @@
               </div>
               <div id="skySdkConfigSummary" class="mod-sdk-summary mod-sdk-summary--below-env-grid" hidden>
                 <span id="skySdkConfigSummaryText"></span>
-                <button type="button" id="modChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+                <button type="button" id="skyChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
               </div>
             </div>
             <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
@@ -196,26 +193,27 @@
       </div>
       <p class="mod-demo-script-preview">Selected script: <code id="skySelectedScript">None</code></p>
       <p id="skyMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">Embedded snapshot (saved HTML + local asset folder). Imagery and fonts may load from <a href="https://www.sky.com/" target="_blank" rel="noopener">sky.com</a> CDNs. Not affiliated with Sky Group.</p>
+      <p class="mod-demo-disclaimer">
+        Embedded snapshot (saved HTML + local asset folder from browser export). Hero imagery and fonts may still load from
+        <a href="https://www.sky.com/" target="_blank" rel="noopener">sky.com</a> CDNs where the save did not include local copies. Not affiliated with Sky Group.
+      </p>
     </div>
   </div>
 
-  <!-- Injected / full screen: BC runs on parent (same Edge path as modal), positioned over the Army iframe -->
   <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden>
     <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
   </div>
 
   <iframe
-    id="siteCloneDemoSiteFrame"
+    id="skyDemoSiteFrame"
     class="mod-demo-site-frame"
     title="Sky — homepage snapshot (embedded)"
-    src="mod-demo-assets/army-home-snapshot.html"
+    src="sky-demo-assets/sky-home-snapshot.html"
     referrerpolicy="no-referrer-when-downgrade"
     sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
     loading="eager"
   ></iframe>
 
-  <!-- army-mod-home-3: floating FAB opens modal (visible when Modal is checked) -->
   <button
     type="button"
     id="siteCloneBcFab"
@@ -234,7 +232,6 @@
     />
   </button>
 
-  <!-- army-mod-home-3: modal BC shell (BC mounts in #modDemoBcModalMount when Modal is checked) -->
   <div
     id="aepBcModal"
     class="aep-bc-modal"
@@ -253,7 +250,6 @@
     </div>
   </div>
 
-  <div class="mod-demo-sidebar-hover-zone" id="modDemoSidebarHoverZone" aria-hidden="true"></div>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
     <div class="dashboard-main-wrap">
@@ -319,7 +315,7 @@
             <span id="profileDrawerNpsScore">—</span>
           </div>
           <div class="aep-profile-drawer-identity-row">
-<strong>Loyalty Status</strong>
+            <strong>Loyalty Status</strong>
             <span id="profileDrawerLoyalty">Unknown</span>
           </div>
         </div>
@@ -402,7 +398,18 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="sky-demo.js?v=20260527-site-clone-bc"></script>
+  <script>
+    window.SiteCloneDemoEnv = {
+      storagePrefix: 'skyDemo',
+      webPushBySandboxKey: 'skyDemoWebPushOnInjectBySandbox',
+      webPushLegacyKey: 'skyDemoWebPushOnInjectToggle',
+      webPushToggleId: 'skyWebPushOnInjectToggle',
+      bcOnInjectToggleId: 'skyBcOnInjectToggle',
+      bcStyleSelectId: 'skyBcStyleSelect',
+    };
+  </script>
+  <script src="site-clone-bc-env.js?v=20260527-site-clone-bc-env"></script>
+  <script src="sky-demo.js?v=20260527-sky-demo"></script>
   <script src="site-clone-bc.js?v=20260527-site-clone-bc"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
@@ -410,6 +417,6 @@
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260527-site-clone-bc"></script>
+  <script defer src="aep-lab-nav.js?v=20260527-sky-demo"></script>
 </body>
 </html>
