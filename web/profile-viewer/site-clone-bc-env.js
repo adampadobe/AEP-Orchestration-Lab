@@ -440,40 +440,6 @@ function saveSiteCloneBcDisplayPrefs(sandboxKey) {
   writeStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
 }
 
-function flushEnvForSandboxKey(sandboxKey) {
-  const sk = String(sandboxKey || '').trim();
-  if (!sk) return;
-  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim()) {
-    writeSandboxStringForKey(
-      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
-      sk,
-      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
-    );
-  }
-  const dsFromInput = resolveSiteCloneBcDatastreamIdFromInput();
-  if (dsFromInput) {
-    writeSandboxStringForKey(SC_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseSiteCloneBcDatastreamId(dsFromInput));
-  } else if (siteCloneBcDatastreamId && siteCloneBcDatastreamId.value.trim()) {
-    writeSandboxStringForKey(
-      SC_BC_DATASTREAM_BY_SANDBOX_KEY,
-      sk,
-      sanitiseSiteCloneBcDatastreamId(siteCloneBcDatastreamId.value.trim()),
-    );
-  }
-  saveSiteCloneBcDisplayPrefs(sk);
-  const map = readStorageMap(WEB_PUSH_BY_SANDBOX_KEY);
-  map[sk] = webPushOnInjectToggle && webPushOnInjectToggle.checked ? '1' : '0';
-  writeStorageMap(WEB_PUSH_BY_SANDBOX_KEY, map);
-  if (typeof AepBcToggle !== 'undefined' && bcOnInjectToggle) {
-    AepBcToggle.savePrefs(
-      'modDemo',
-      !!bcOnInjectToggle.checked,
-      bcStyleSelect ? bcStyleSelect.value : 'army',
-      sk,
-    );
-  }
-}
-
 function applySiteCloneBcDisplayPrefsToUi() {
   const prefs = loadSiteCloneBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
@@ -559,31 +525,6 @@ function syncSiteCloneBcFromPrefs() {
 
   void loadSiteCloneBcDatastreams();
 })();
-
-function applyEnvForCurrentSandbox() {
-  applyWebPushOnInjectToggle();
-  applySiteCloneBcOnInjectPrefs();
-  if (siteCloneBcStyleConfigUrl) {
-    siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
-    refreshSiteCloneBcStyleUrlHints();
-  }
-  applySiteCloneBcDisplayPrefsToUi();
-  invalidateSiteCloneBcCore();
-  syncSiteCloneBcFromPrefs();
-  void loadSiteCloneBcDatastreams();
-  envSandboxKey = getSandboxKey();
-}
-
-window.addEventListener('aep-global-sandbox-change', function () {
-  if (envSandboxKey) {
-    flushEnvForSandboxKey(envSandboxKey);
-  }
-  envSandboxKey = getSandboxKey();
-  applyEnvForCurrentSandbox();
-});
-
-envSandboxKey = getSandboxKey();
-
 
   function flushEnvForSandboxKey(sandboxKey) {
     const sk = String(sandboxKey || '').trim();

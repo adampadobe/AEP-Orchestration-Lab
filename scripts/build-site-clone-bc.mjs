@@ -89,10 +89,12 @@ const cfgHelper = `
   }
 `;
 
-bc = bc.replace(
-  "(function (global) {\n  'use strict';\n\n  var BASE",
-  `(function (global) {\n  'use strict';${cfgHelper}\n  var BASE`,
-);
+if (!bc.includes('function cfg(key, fallback)')) {
+  bc = bc.replace(
+    "(function (global) {\n  'use strict';\n\n  var BASE",
+    `(function (global) {\n  'use strict';${cfgHelper}\n  var BASE`,
+  );
+}
 
 bc = bc.replace("var BASE = 'embed-bc/';", "var BASE = cfg('embedBase', 'embed-bc/');");
 bc = bc.replace(
