@@ -43,3 +43,24 @@
 .sky-demo-page .mod-demo-id-inner .aep-demo-web-push-hint {
   display: none;
 }
+
+/* Full screen BC: span iframe width (not capped at 920px) */
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen .site-clone-bc-frame-mount,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount > *,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='concierge'],
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
+  max-width: none;
+}
