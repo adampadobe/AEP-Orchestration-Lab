@@ -415,6 +415,143 @@ curl -sS -w "\nHTTP:%{http_code}\n" -X POST \
 
 ---
 
+## Sandbox Firebase capabilities enabled (`adbe-gcp0819`)
+
+Use this checklist when bringing sandbox **parity** with production Firebase products used by Profile Viewer (Auth, Firestore, RTDB, Hosting, Functions). **Cloud Run public invoker** is separate — see [Org policy and public invoke](#org-policy-and-public-invoke-adobe-gcp) below; org policy may block `allUsers` regardless of APIs enabled.
+
+### Code inventory (what the repo actually uses)
+
+| Capability | Where |
+|------------|--------|
+| **Firestore Native** (Admin + rules) | `functions/adminFirestore.js` → database `aep-lab` when `GCLOUD_PROJECT=adbe-gcp0819` (or `FIRESTORE_DATABASE_ID` in `functions/.env.adbe-gcp0819`). Stores: lab access, workspace profiles, consent, schema cache, brand-scraper config, etc. |
+| **Firebase Auth** (email/password) | `web/profile-viewer/aep-access-onboarding.js`, `labWorkspaceAuthService.js` (ID token verification). |
+| **Realtime Database** (Web SDK) | `web/profile-viewer/firebase-database.js`, `aep-rtdb-lab-demos-seed.js`; `firebase-database-config.js` `databaseURL`. **Not** used for workspace signup (Firestore only). |
+| **Cloud Storage (GCS)** | Brand scraper / image hosting: `BRAND_SCRAPER_BUCKET` (default production bucket name in code); not Firebase Storage SDK in web. |
+| **Firebase Storage API / `storageBucket` in Web config** | Public field in `firebase-database-config.js`; optional until you use client Firebase Storage. |
+| **Secret Manager** (`defineSecret`) | Adobe IMS, Mailgun, Context7 — per-project; see [FIREBASE_PROJECT_MIGRATION.md](./FIREBASE_PROJECT_MIGRATION.md). |
+| **App Check** | Not required by current lab code (no references). |
+
+**Do not delete** Firestore `(default)` on `adbe-gcp0819` while it remains **Datastore mode** — it predates Native `aep-lab` and may be referenced by other GCP resources. Point Admin SDK and deploy env at **`aep-lab`** only.
+
+### Compare projects (repeatable)
+
+```bash
+# Enabled Firebase-related APIs
+for P in adbe-gcp0819 aep-orchestration-lab; do
+  echo "=== $P ==="
+  gcloud services list --enabled --project="$P" \
+    | grep -iE 'firebase|firestore|identity|storage|securetoken|cloudfunctions|run\.googleapis'
+done
+
+# Firestore databases (sandbox: Native aep-lab + Datastore default)
+gcloud firestore databases list --project=adbe-gcp0819
+gcloud firestore databases list --project=aep-orchestration-lab
+
+# RTDB instances
+npx -y firebase-tools@latest database:instances:list --project adbe-gcp0819
+npx -y firebase-tools@latest database:instances:list --project aep-orchestration-lab
+```
+
+### APIs to enable on sandbox (if missing)
+
+Most were already on; **May 2026** enablement added **`firebasestorage.googleapis.com`** explicitly:
+
+```bash
+gcloud services enable firebasestorage.googleapis.com --project=adbe-gcp0819
+```
+
+Batch (only services not yet enabled — skip failures for already-on APIs):
+
+```bash
+gcloud services enable \
+  firestore.googleapis.com \
+  firebase.googleapis.com \
+  identitytoolkit.googleapis.com \
+  securetoken.googleapis.com \
+  firebaserules.googleapis.com \
+  firebasestorage.googleapis.com \
+  firebasedatabase.googleapis.com \
+  cloudfunctions.googleapis.com \
+  run.googleapis.com \
+  --project=adbe-gcp0819
+```
+
+### Firestore Native `aep-lab`
+
+```bash
+# Create once (if missing) — us-east4 matches org preference for sandbox
+gcloud firestore databases create \
+  --database=aep-lab \
+  --location=us-east4 \
+  --type=firestore-native \
+  --project=adbe-gcp0819
+
+gcloud firestore databases list --project=adbe-gcp0819
+```
+
+Deploy functions with `FIRESTORE_DATABASE_ID=aep-lab` (`functions/.env.adbe-gcp0819`). Seed lab access: `node scripts/seed-sandbox-lab-access-approval.mjs you@adobe.com`.
+
+### Realtime Database (default instance)
+
+Production: `aep-orchestration-lab-default-rtdb`. Sandbox config expects `https://adbe-gcp0819-default-rtdb.firebaseio.com`.
+
+`firebase database:instances:create` fails until a **first** default instance exists. Create the **default** instance via REST (location `us-central1`):
+
+```bash
+ACCESS_TOKEN=$(gcloud auth print-access-token)
+curl -sS -X POST \
+  "https://firebasedatabase.googleapis.com/v1beta/projects/adbe-gcp0819/locations/us-central1/instances" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "x-goog-user-project: adbe-gcp0819" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"DEFAULT_DATABASE"}'
+```
+
+Then deploy RTDB rules:
+
+```bash
+npx -y firebase-tools@latest deploy --only database \
+  --project adbe-gcp0819 \
+  --config firebase.sandbox.json
+```
+
+Verify: `npx -y firebase-tools@latest database:instances:list --project adbe-gcp0819`.
+
+### Authentication
+
+Email/password for the Firebase project is configured via Identity Toolkit. Verify:
+
+```bash
+ACCESS_TOKEN=$(gcloud auth print-access-token)
+curl -sS \
+  "https://identitytoolkit.googleapis.com/admin/v2/projects/adbe-gcp0819/config" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "x-goog-user-project: adbe-gcp0819"
+```
+
+Expect `signIn.email.enabled: true` and `passwordRequired: true`. User export (sanity check CLI auth): `npx -y firebase-tools@latest auth:export /tmp/adbe-gcp0819-auth.json --project adbe-gcp0819` (requires Auth admin).
+
+### Firebase Storage (optional)
+
+`firebasestorage.googleapis.com` enabled on sandbox. Default bucket `gs://adbe-gcp0819.firebasestorage.app` is created when you **turn on Storage** in Firebase Console (same as production — production also has no `firebasestorage.app` bucket until Console setup). Brand-scraper assets use a **separate** GCS bucket (`BRAND_SCRAPER_BUCKET`); create e.g. `gs://adbe-gcp0819-brand-scrapes` and set env on deploy if you need that feature on sandbox.
+
+### Capability matrix (May 2026)
+
+| Capability | Production `aep-orchestration-lab` | Sandbox `adbe-gcp0819` | Action taken |
+|------------|-----------------------------------|-------------------------|--------------|
+| Firestore Native | `(default)` @ `nam5` | `aep-lab` @ `us-east4` | Native DB exists; **do not** delete Datastore `(default)` |
+| Firestore Datastore | — | `(default)` @ `us-east4` | Left in place; Admin SDK must not use it |
+| Firebase Auth email/password | Enabled | Enabled | Verified via Identity Toolkit API |
+| RTDB | `aep-orchestration-lab-default-rtdb` | `adbe-gcp0819-default-rtdb` @ `us-central1` | Created via REST; rules deployed |
+| Firebase APIs | Enabled set | Same + `firebasestorage.googleapis.com` | Enabled missing Storage API |
+| Cloud Functions / Run | Enabled | Enabled | No change |
+| Firebase Storage default bucket | Console-dependent | Not provisioned | Enable in Console if client Storage needed |
+| Brand-scraper GCS | `aep-orchestration-lab-brand-scrapes` | Not created | Set `BRAND_SCRAPER_BUCKET` + bucket when needed |
+| App Check | N/A | N/A | Not used by repo |
+| Cloud Run `allUsers` invoker | Works | **Org-blocked** | Documented only — `node scripts/sandbox-grant-cloud-run-public-invoker.mjs` after policy fix |
+
+---
+
 ## Related
 
 - Full migration steps (export/import, Auth, Snowflake VPC): [FIREBASE_PROJECT_MIGRATION.md](./FIREBASE_PROJECT_MIGRATION.md)
