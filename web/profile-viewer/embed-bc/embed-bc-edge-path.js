@@ -9,6 +9,56 @@
   'use strict';
   var win = global || window;
 
+  function resolveDatastreamConfigId(targetWin) {
+    var w = targetWin || win;
+    function readFrom(ctx) {
+      try {
+        if (ctx && ctx.SiteCloneBcConfig && typeof ctx.SiteCloneBcConfig.getDatastreamId === 'function') {
+          var id = String(ctx.SiteCloneBcConfig.getDatastreamId() || '')
+            .trim()
+            .toLowerCase();
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {
+            return id;
+          }
+        }
+      } catch (_e) {
+        /* noop */
+      }
+      return null;
+    }
+    try {
+      if (w.parent && w.parent !== w) {
+        var fromParent = readFrom(w.parent);
+        if (fromParent) return fromParent;
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return readFrom(w) || readFrom(win);
+  }
+
+  function rewriteConfigId(url, configId, baseWin) {
+    if (!configId || !url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
+      return url;
+    }
+    try {
+      var w = baseWin || win;
+      var u = new URL(url, w.location.href);
+      u.searchParams.set('configId', configId);
+      return u.toString();
+    } catch (_e) {
+      if (/[?&]configId=/i.test(url)) {
+        return url.replace(/([?&])configId=[^&]*/gi, '$1configId=' + encodeURIComponent(configId));
+      }
+      return url + (url.indexOf('?') !== -1 ? '&' : '?') + 'configId=' + encodeURIComponent(configId);
+    }
+  }
+
+  function applyConfigIdToBcUrl(url, baseWin) {
+    var configId = resolveDatastreamConfigId(baseWin);
+    return configId ? rewriteConfigId(url, configId, baseWin) : url;
+  }
+
   function resolveDeployment(targetWin) {
     var w = targetWin || win;
     var search = '';
@@ -30,42 +80,49 @@
   }
 
   function rewriteUrl(url, deployment, baseWin) {
-    if (!deployment || !url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
+    if (!url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
       return url;
     }
-    if (url.indexOf('/brand-concierge/' + deployment + '/conversations') !== -1) {
-      return url;
-    }
-    if (url.indexOf('/brand-concierge-voice/' + deployment + '/conversations') !== -1) {
-      return url;
-    }
-    var next = url
-      .replace('/brand-concierge/conversations', '/brand-concierge/' + deployment + '/conversations')
-      .replace(
-        '/brand-concierge-voice/conversations',
-        '/brand-concierge-voice/' + deployment + '/conversations',
-      );
-    if (next !== url) return next;
-    try {
-      var w = baseWin || win;
-      var u = new URL(url, w.location.href);
-      var parts = u.pathname.split('/').filter(Boolean);
-      var bcIdx = parts.indexOf('brand-concierge');
-      if (bcIdx === -1) {
-        bcIdx = parts.indexOf('brand-concierge-voice');
+    var next = url;
+    if (deployment) {
+      if (
+        url.indexOf('/brand-concierge/' + deployment + '/conversations') !== -1 ||
+        url.indexOf('/brand-concierge-voice/' + deployment + '/conversations') !== -1
+      ) {
+        next = url;
+      } else {
+        var pathRewritten = url
+          .replace('/brand-concierge/conversations', '/brand-concierge/' + deployment + '/conversations')
+          .replace(
+            '/brand-concierge-voice/conversations',
+            '/brand-concierge-voice/' + deployment + '/conversations',
+          );
+        if (pathRewritten !== url) {
+          next = pathRewritten;
+        } else {
+          try {
+            var w = baseWin || win;
+            var u = new URL(url, w.location.href);
+            var parts = u.pathname.split('/').filter(Boolean);
+            var bcIdx = parts.indexOf('brand-concierge');
+            if (bcIdx === -1) {
+              bcIdx = parts.indexOf('brand-concierge-voice');
+            }
+            if (bcIdx !== -1) {
+              var afterBc = parts[bcIdx + 1];
+              if (afterBc !== deployment && (afterBc === 'conversations' || afterBc === 'conversations-voice')) {
+                parts.splice(bcIdx + 1, 0, deployment);
+                u.pathname = '/' + parts.join('/');
+                next = u.toString();
+              }
+            }
+          } catch (err) {
+            console.warn('[embed-bc-edge-path] URL rewrite skipped:', err);
+          }
+        }
       }
-      if (bcIdx === -1) return url;
-      var afterBc = parts[bcIdx + 1];
-      if (afterBc === deployment) return url;
-      if (afterBc === 'conversations' || afterBc === 'conversations-voice') {
-        parts.splice(bcIdx + 1, 0, deployment);
-        u.pathname = '/' + parts.join('/');
-        return u.toString();
-      }
-    } catch (err) {
-      console.warn('[embed-bc-edge-path] URL rewrite skipped:', err);
     }
-    return url;
+    return applyConfigIdToBcUrl(next, baseWin);
   }
 
   function captureNativeFetch(targetWin) {

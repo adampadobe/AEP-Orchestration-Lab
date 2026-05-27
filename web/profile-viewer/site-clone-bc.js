@@ -290,6 +290,7 @@
     global.__aepBcToggleBootstrapped = false;
     global.__siteCloneBcBootstrapped = false;
     global.__siteCloneBcAlloyConfiguredWin = null;
+    global.__siteCloneBcAlloyDatastreamId = null;
     global.__embedBcForceLocal = false;
     unloadStyleConfigScripts(document);
     clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
@@ -300,6 +301,7 @@
       if (iframeWin) {
         iframeWin.__siteCloneBcBootstrapped = false;
         iframeWin.__siteCloneBcAlloyConfiguredWin = null;
+        iframeWin.__siteCloneBcAlloyDatastreamId = null;
         iframeWin.__embedBcForceLocal = false;
         if (typeof iframeWin.resetSiteCloneInjectedBc === 'function') {
           iframeWin.resetSiteCloneInjectedBc();
@@ -723,7 +725,16 @@
 
   async function configureAlloyOnce(win, doc) {
     if (!win) return;
-    if (win.__siteCloneBcAlloyConfiguredWin === win) return;
+    var desiredDatastreamId = getDatastreamId();
+    if (
+      win.__siteCloneBcAlloyConfiguredWin === win &&
+      win.__siteCloneBcAlloyDatastreamId === desiredDatastreamId
+    ) {
+      return;
+    }
+    if (win.__siteCloneBcAlloyConfiguredWin === win) {
+      win.__siteCloneBcAlloyConfiguredWin = null;
+    }
     if (typeof win.alloy !== 'function') {
       throw new Error('Alloy is not available');
     }
@@ -731,12 +742,14 @@
       await win.alloy('configure', getAlloyConfig());
       await win.alloy('sendEvent', {});
       win.__siteCloneBcAlloyConfiguredWin = win;
+      win.__siteCloneBcAlloyDatastreamId = desiredDatastreamId;
       if (typeof win.applyArmyBcEdgePathPatches === 'function') {
         win.applyArmyBcEdgePathPatches(win);
       }
     } catch (err) {
       if (isAlloyAlreadyConfiguredError(err)) {
         win.__siteCloneBcAlloyConfiguredWin = win;
+        win.__siteCloneBcAlloyDatastreamId = desiredDatastreamId;
         return;
       }
       throw err;

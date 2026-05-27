@@ -299,6 +299,10 @@ function readPersistedSiteCloneBcDatastreamId(sandboxKey) {
 function getSiteCloneBcDatastreamId() {
   const resolved = resolveSiteCloneBcDatastreamIdFromInput();
   if (resolved) return sanitiseSiteCloneBcDatastreamId(resolved);
+  const fromField = siteCloneBcDatastreamId
+    ? extractDatastreamUuidFromField(siteCloneBcDatastreamId.value)
+    : '';
+  if (fromField) return sanitiseSiteCloneBcDatastreamId(fromField);
   return readPersistedSiteCloneBcDatastreamId();
 }
 
@@ -535,17 +539,28 @@ function syncSiteCloneBcFromPrefs() {
   if (!siteCloneBcDatastreamId) return;
 
   function onDatastreamFieldChange() {
-    const prev = getSiteCloneBcDatastreamId();
+    const prev = lastBcDatastreamIdForLiveEdge || getSiteCloneBcDatastreamId();
     saveSiteCloneBcDatastreamId();
     const next = getSiteCloneBcDatastreamId();
+    lastBcDatastreamIdForLiveEdge = next;
     if (prev !== next) {
       invalidateSiteCloneBcCore();
       syncSiteCloneBcFromPrefs();
     }
   }
 
+  let lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
+
   siteCloneBcDatastreamId.addEventListener('input', function () {
     renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId.value);
+    if (sandboxEnvSwitching) return;
+    const next = getSiteCloneBcDatastreamId();
+    if (next && next !== lastBcDatastreamIdForLiveEdge) {
+      lastBcDatastreamIdForLiveEdge = next;
+      writeSandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, next);
+      invalidateSiteCloneBcCore();
+      syncSiteCloneBcFromPrefs();
+    }
   });
   siteCloneBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
   siteCloneBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
