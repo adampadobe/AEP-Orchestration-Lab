@@ -101,17 +101,9 @@ body.aep-bc-modal-open {
   background: #fff;
 }
 
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount,
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.aep-bc-modal.aep-bc-modal--surface-ready #brand-concierge-mount,
-.aep-bc-modal.aep-bc-modal--surface-ready #siteCloneBcModalMount {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.12s ease;
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount:empty,
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount:empty {
+  min-height: 520px;
 }
 
 .aep-bc-modal__mount,
@@ -130,28 +122,7 @@ body.aep-bc-modal-open {
   max-height: none !important;
   margin: 0;
   pointer-events: auto !important;
-  overflow: hidden;
-  contain: layout paint;
-  background: transparent !important;
-}
-
-/* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
-.aep-bc-modal #brand-concierge-mount > div,
-.aep-bc-modal #siteCloneBcModalMount > div {
-  position: relative !important;
-  inset: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-  top: auto !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: min(68vh, 620px) !important;
-  margin: 0 !important;
-  pointer-events: auto;
-  background: transparent !important;
+  overflow: visible;
 }
 
 .aep-bc-modal .bc-card__image {

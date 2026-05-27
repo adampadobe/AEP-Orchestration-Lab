@@ -70,11 +70,10 @@
     'linear-gradient(122.87deg,#e1e9ff 20.72%,#efe3fa 34.96%,#f5dff8 42.08%,#fcdcf5 49.2%,#ffdec3 91.6%)';
   var SKY_INJECTED_LAYOUT_CSS = [
     'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
-    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;border-radius:16px!important;overflow:hidden!important;background:' +
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;background:' +
       BC_SURFACE_GRADIENT +
       '!important;}',
-    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;background:transparent!important;}',
-    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount > div{background:transparent!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;border-radius:16px!important;overflow:visible!important;}',
     'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
   ].join('');
   var SKY_FS_LAYOUT_CSS = [
@@ -1001,7 +1000,7 @@
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-surface', 'inline', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-responses-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared', doc);
@@ -1137,7 +1136,7 @@
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-surface', 'inline');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-responses-fix', 'inline');
     ensureBcCardImageStyles(document);
 
     showBcFrameHost(!!fullscreen);
@@ -1187,7 +1186,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-surface', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-responses-fix', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
@@ -1297,6 +1296,7 @@
           if (iframeDocModal) teardownIframeInlineSection(iframeDocModal);
           await ensureModalPopupUi();
           await bootstrapParent(MODAL_MOUNT_SELECTOR);
+          markModalSurfaceReady(true);
           closeBcModal();
           setModalFabArmed(true);
           if (typeof global.initArmyBcPopup === 'function') {

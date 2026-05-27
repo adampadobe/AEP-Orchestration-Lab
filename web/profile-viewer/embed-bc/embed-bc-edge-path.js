@@ -54,7 +54,25 @@
     }
   }
 
+  function isBcConversationApiUrl(url) {
+    if (!url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
+      return false;
+    }
+    if (!/\/conversations/i.test(url)) {
+      return false;
+    }
+    try {
+      var u = new URL(url, 'https://edge.adobedc.net');
+      if (u.searchParams.has('configId')) return true;
+      if (u.searchParams.has('sessionId') && u.searchParams.has('requestId')) return true;
+      return false;
+    } catch (_e) {
+      return /[?&]configId=/i.test(url) || (/[?&]sessionId=/i.test(url) && /[?&]requestId=/i.test(url));
+    }
+  }
+
   function applyConfigIdToBcUrl(url, baseWin) {
+    if (!isBcConversationApiUrl(url)) return url;
     var configId = resolveDatastreamConfigId(baseWin);
     return configId ? rewriteConfigId(url, configId, baseWin) : url;
   }
