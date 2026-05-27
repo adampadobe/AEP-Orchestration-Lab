@@ -66,10 +66,15 @@
     'html.site-clone-bc-fs-active #siteCloneBcInline.site-clone-bc-inline--fullscreen #brand-concierge-mount *{pointer-events:auto!important;}',
   ].join('');
   var SNAPSHOT_INJECTED_LAYOUT_STYLE_ID = 'aep-mod-bc-injected-layout';
+  var BC_SURFACE_GRADIENT =
+    'linear-gradient(122.87deg,#e1e9ff 20.72%,#efe3fa 34.96%,#f5dff8 42.08%,#fcdcf5 49.2%,#ffdec3 91.6%)';
   var SKY_INJECTED_LAYOUT_CSS = [
     'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
-    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:flex!important;flex-direction:column!important;align-items:center!important;margin:clamp(1rem,3vw,2rem) auto!important;padding:0 clamp(1rem,4vw,2rem)!important;}',
-    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:min(720px,100%)!important;margin-left:auto!important;margin-right:auto!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;border-radius:16px!important;overflow:hidden!important;background:' +
+      BC_SURFACE_GRADIENT +
+      '!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;background:transparent!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount > div{background:transparent!important;}',
     'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
   ].join('');
   var SKY_FS_LAYOUT_CSS = [
@@ -289,7 +294,24 @@
     });
   }
 
+  function markModalSurfaceReady(ready) {
+    if (!bcModal) return;
+    bcModal.classList.toggle('aep-bc-modal--surface-ready', !!ready);
+  }
+
+  async function ensureModalReady() {
+    if (!isModalOn()) return;
+    await ensureModalPopupUi();
+    if (!global.__siteCloneBcBootstrapped) {
+      markModalSurfaceReady(false);
+      await bootstrapParent(MODAL_MOUNT_SELECTOR);
+    } else {
+      markModalSurfaceReady(true);
+    }
+  }
+
   function invalidateCore() {
+    markModalSurfaceReady(false);
     parentCoreReady = null;
     iframeCoreReady = null;
     loadedParentStyleUrl = null;
@@ -979,7 +1001,7 @@
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css'), 'inline', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-surface', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared', doc);
@@ -1070,10 +1092,13 @@
   }
 
   async function bootstrapParent(selector) {
+    var isModalMount = selector === MODAL_MOUNT_SELECTOR;
+    if (isModalMount) markModalSurfaceReady(false);
     await ensureParentCore();
     await bootstrapConcierge(global, selector, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
+    if (isModalMount) markModalSurfaceReady(true);
     activeMode = 'modal';
   }
 
@@ -1112,7 +1137,7 @@
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css'), 'inline');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-surface', 'inline');
     ensureBcCardImageStyles(document);
 
     showBcFrameHost(!!fullscreen);
@@ -1162,7 +1187,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css'), 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-surface', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
@@ -1326,7 +1351,11 @@
 
   bindToggles();
   bindIframeLoad();
-  global.SiteCloneBc = { sync: sync, invalidateCore: invalidateCore };
+  global.SiteCloneBc = {
+    sync: sync,
+    invalidateCore: invalidateCore,
+    ensureModalReady: ensureModalReady,
+  };
 
   prepareEmbedBcRuntime(global);
   void ensureEdgePathPatches(global, document);

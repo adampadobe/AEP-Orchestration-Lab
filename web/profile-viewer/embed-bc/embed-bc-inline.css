@@ -29,6 +29,13 @@
   margin: 0 auto;
   pointer-events: auto !important;
   z-index: 1;
+  background: transparent;
+}
+
+html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,
+html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount {
+  max-width: none !important;
+  margin: 0 !important;
 }
 
 .embed-bc-inline #brand-concierge-mount > * {

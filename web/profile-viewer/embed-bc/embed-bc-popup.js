@@ -25,7 +25,7 @@
 
     var closeTargets = modal.querySelectorAll('[data-aep-bc-close]');
 
-    function openModal() {
+    function revealModal() {
       modal.classList.add('is-open');
       modal.removeAttribute('hidden');
       btn.setAttribute('aria-expanded', 'true');
@@ -36,6 +36,19 @@
         var mount = modal.querySelector('#brand-concierge-mount, #siteCloneBcModalMount');
         if (mount) global.repositionArmyBcDisclaimer(mount);
       }
+    }
+
+    function openModal() {
+      if (global.SiteCloneBc && typeof global.SiteCloneBc.ensureModalReady === 'function') {
+        global.SiteCloneBc.ensureModalReady()
+          .then(revealModal)
+          .catch(function (err) {
+            console.warn('[embed-bc-popup] modal bootstrap failed', err);
+            revealModal();
+          });
+        return;
+      }
+      revealModal();
     }
 
     function closeModal() {

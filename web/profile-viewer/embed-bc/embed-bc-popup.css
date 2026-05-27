@@ -68,7 +68,7 @@ body.aep-bc-modal-open {
   z-index: 1;
   width: min(920px, 100%);
   max-height: min(90vh, 760px);
-  overflow: auto;
+  overflow: hidden;
   border-radius: 16px;
   background: linear-gradient(
     122.87deg,
@@ -101,6 +101,19 @@ body.aep-bc-modal-open {
   background: #fff;
 }
 
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount,
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.aep-bc-modal.aep-bc-modal--surface-ready #brand-concierge-mount,
+.aep-bc-modal.aep-bc-modal--surface-ready #siteCloneBcModalMount {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.12s ease;
+}
+
 .aep-bc-modal__mount,
 .aep-bc-modal #brand-concierge-mount,
 .aep-bc-modal #siteCloneBcModalMount {
@@ -119,6 +132,7 @@ body.aep-bc-modal-open {
   pointer-events: auto !important;
   overflow: hidden;
   contain: layout paint;
+  background: transparent !important;
 }
 
 /* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
@@ -137,6 +151,7 @@ body.aep-bc-modal-open {
   max-height: min(68vh, 620px) !important;
   margin: 0 !important;
   pointer-events: auto;
+  background: transparent !important;
 }
 
 .aep-bc-modal .bc-card__image {
