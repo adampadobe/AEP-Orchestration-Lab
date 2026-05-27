@@ -65,12 +65,22 @@
       : {};
   window.firebaseDatabaseConfig = Object.assign({}, defaults, overlay);
 
+  window.firebaseDatabaseConfigIsComplete = function firebaseDatabaseConfigIsComplete() {
+    var c = window.firebaseDatabaseConfig;
+    return !!(
+      c &&
+      String(c.apiKey || '').trim() &&
+      String(c.appId || '').trim() &&
+      String(c.messagingSenderId || '').trim()
+    );
+  };
+
   try {
     if (
       typeof location !== 'undefined' &&
       isSandboxHostingHostname(location.hostname) &&
       String(window.firebaseDatabaseConfig.projectId || '') === 'adbe-gcp0819' &&
-      !String(window.firebaseDatabaseConfig.apiKey || '').trim()
+      !window.firebaseDatabaseConfigIsComplete()
     ) {
       console.warn(
         '[sandbox] firebase-database-config: set apiKey (and appId/messagingSenderId) from Firebase Console → adbe-gcp0819 → Project settings → Your apps → Web, or assign window.__FIREBASE_CONFIG__ before this script.',

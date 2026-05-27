@@ -75,8 +75,20 @@
 
   function ensureFirebase() {
     if (typeof firebase === 'undefined' || !global.firebaseDatabaseConfig) return false;
+    if (
+      global.firebaseDatabaseConfigIsComplete &&
+      typeof global.firebaseDatabaseConfigIsComplete === 'function' &&
+      !global.firebaseDatabaseConfigIsComplete()
+    ) {
+      return false;
+    }
+    if (!String(global.firebaseDatabaseConfig.apiKey || '').trim()) return false;
     if (!firebase.apps.length) {
-      firebase.initializeApp(global.firebaseDatabaseConfig);
+      try {
+        firebase.initializeApp(global.firebaseDatabaseConfig);
+      } catch (_init) {
+        return false;
+      }
     }
     return true;
   }
