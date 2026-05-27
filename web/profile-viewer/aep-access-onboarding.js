@@ -1100,7 +1100,7 @@
       try {
         firebase.initializeApp(global.firebaseDatabaseConfig);
       } catch (_init) {
-        return null;
+        if (!firebase.apps.length) return null;
       }
     }
     return firebase.auth ? firebase.auth() : null;
@@ -1802,7 +1802,11 @@
 
     var auth = ensureFirebaseAuth();
     if (!auth) {
-      showFirebaseConfigErrorInMount();
+      show();
+      setMsg(
+        'Firebase Authentication could not start on this page. Hard-refresh (Shift+reload) and try again. If it persists, check the browser console.',
+        'err',
+      );
       maybeOpenOnboardingAfterAuthCheck(false);
       return;
     }
