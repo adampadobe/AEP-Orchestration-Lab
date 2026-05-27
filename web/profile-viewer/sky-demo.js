@@ -1,6 +1,7 @@
 /**
- * Sky demo — saved sky.com homepage in iframe + lab env strip (British Army / MOD pattern).
+ * Sky site-clone demo — lab strip + embed BC stack.
  */
+
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'skyNs');
@@ -32,32 +33,64 @@ function writeSkyStorageMap(key, mapObj) {
   }
 }
 
-function getSkySandboxKey() {
-  let name = '';
+function getSiteCloneBcSandboxName() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-    name = String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+    return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
   }
-  if (!name) {
-    const sel = document.getElementById('sandboxSelect');
-    if (sel && sel.value) name = String(sel.value).trim();
-  }
-  const raw = name.toLowerCase();
+  const sel = document.getElementById('sandboxSelect');
+  if (sel && sel.value) return String(sel.value).trim();
+  return '';
+}
+
+function getSkySandboxKey() {
+  const raw = getSiteCloneBcSandboxName().toLowerCase();
   return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
 }
 
-function migrateLegacySkyScalar(mapKey, legacyKey) {
+function migrateLegacySkyScalar(mapKey, legacyKey, transform) {
   const map = readSkyStorageMap(mapKey);
   const sk = getSkySandboxKey();
   if (map[sk] != null && map[sk] !== '') return;
   try {
     const legacy = localStorage.getItem(legacyKey);
     if (legacy == null || legacy === '') return;
-    map[sk] = legacy;
+    map[sk] = transform ? transform(legacy) : legacy;
     writeSkyStorageMap(mapKey, map);
   } catch {
     /* noop */
   }
 }
+
+function readSkySandboxString(mapKey, legacyKey, normaliser, fallback) {
+  migrateLegacySkyScalar(mapKey, legacyKey, normaliser);
+  const raw = readSkyStorageMap(mapKey)[getSkySandboxKey()];
+  const v = String(raw != null ? raw : '').trim();
+  if (!v) return fallback;
+  return normaliser ? normaliser(v) : v;
+}
+
+function writeSkySandboxString(mapKey, value) {
+  writeSkySandboxStringForKey(mapKey, getSkySandboxKey(), value);
+}
+
+function writeSkySandboxStringForKey(mapKey, sandboxKey, value) {
+  const map = readSkyStorageMap(mapKey);
+  const key = String(sandboxKey || '').trim() || '__default__';
+  const v = String(value != null ? value : '').trim();
+  if (!v) delete map[key];
+  else map[key] = v;
+  writeSkyStorageMap(mapKey, map);
+}
+
+function readSkySandboxStringForKey(mapKey, sandboxKey, normaliser, fallback) {
+  const raw = readSkyStorageMap(mapKey)[String(sandboxKey || '').trim() || '__default__'];
+  const v = String(raw != null ? raw : '').trim();
+  if (!v) return fallback;
+  return normaliser ? normaliser(v) : v;
+}
+
+/** Sandbox key when env fields were last loaded or flushed (used to persist outgoing values on switch). */
+let skyDemoEnvSandboxKey = getSkySandboxKey();
 
 const SKY_WEB_PUSH_BY_SANDBOX_KEY = 'skyDemoWebPushOnInjectBySandbox';
 const SKY_WEB_PUSH_ON_INJECT_KEY = 'skyDemoWebPushOnInjectToggle';
@@ -90,75 +123,474 @@ function skyWebPushOnInjectDesired() {
   return !!(skyWebPushOnInjectToggle && skyWebPushOnInjectToggle.checked);
 }
 
-const skyBcOnInjectToggle = document.getElementById('skyBcOnInjectToggle');
-const skyBcStyleSelect = document.getElementById('skyBcStyleSelect');
+// Brand Concierge when injecting Tags (Etihad pattern)
+const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
+const modBcStyleSelect = document.getElementById('modBcStyleSelect');
 
-function applySkyBcOnInjectPrefs() {
-  if (!skyBcOnInjectToggle) return;
+function applySiteCloneBcOnInjectPrefs() {
+  if (!modBcOnInjectToggle) return;
   const prefs =
-    typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('skyDemo') : { enabled: false, styleKey: 'miral' };
-  skyBcOnInjectToggle.checked = !!prefs.enabled;
-  if (skyBcStyleSelect && prefs.styleKey) skyBcStyleSelect.value = prefs.styleKey;
+    typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('skyDemo') : { enabled: false, styleKey: 'army' };
+  modBcOnInjectToggle.checked = !!prefs.enabled;
+  if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
 }
 
-function saveSkyBcOnInjectPrefs() {
+function saveSiteCloneBcOnInjectPrefs() {
   if (typeof AepBcToggle === 'undefined') return;
   AepBcToggle.savePrefs(
     'skyDemo',
-    !!(skyBcOnInjectToggle && skyBcOnInjectToggle.checked),
-    skyBcStyleSelect ? skyBcStyleSelect.value : 'miral',
+    !!(modBcOnInjectToggle && modBcOnInjectToggle.checked),
+    modBcStyleSelect ? modBcStyleSelect.value : 'army',
   );
 }
 
-(function initSkyBcOnInjectToggle() {
-  if (!skyBcOnInjectToggle) return;
-  applySkyBcOnInjectPrefs();
-  skyBcOnInjectToggle.addEventListener('change', saveSkyBcOnInjectPrefs);
-  if (skyBcStyleSelect) skyBcStyleSelect.addEventListener('change', saveSkyBcOnInjectPrefs);
+(function initSiteCloneBcOnInjectToggle() {
+  if (!modBcOnInjectToggle) return;
+  applySiteCloneBcOnInjectPrefs();
+  modBcOnInjectToggle.addEventListener('change', saveSiteCloneBcOnInjectPrefs);
+  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveSiteCloneBcOnInjectPrefs);
 })();
 
-const skyBcLauncherToggle = document.getElementById('skyBcLauncherToggle');
-const skyBcLauncher = document.getElementById('skyBcLauncher');
-(function initSkyBcLauncher() {
-  const LAUNCHER_KEY = 'skyDemoBcLauncherVisible';
-  if (!skyBcLauncherToggle) return;
+const SC_BC_STYLE_URL_BY_SANDBOX_KEY = 'siteCloneBcStyleConfigUrlBySandboxBySandbox';
+const SC_BC_STYLE_URL_KEY = 'siteCloneBcStyleConfigUrlBySandbox';
+const MOD_BC_DEFAULT_STYLE_URL = 'embed-bc/styleConfigurations-6a0992.js';
+const siteCloneBcStyleConfigUrl = document.getElementById('siteCloneBcStyleConfigUrl');
+
+function sanitiseSiteCloneBcStyleConfigUrl(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return MOD_BC_DEFAULT_STYLE_URL;
+  if (/^javascript:/i.test(v)) return MOD_BC_DEFAULT_STYLE_URL;
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[a-z0-9_./-]+\.(js|json)$/i.test(v)) return v;
+  return MOD_BC_DEFAULT_STYLE_URL;
+}
+
+function readPersistedSiteCloneBcStyleConfigUrl(sandboxKey) {
+  migrateLegacySkyScalar(SC_BC_STYLE_URL_BY_SANDBOX_KEY, SC_BC_STYLE_URL_KEY, sanitiseSiteCloneBcStyleConfigUrl);
+  const sk = sandboxKey != null ? sandboxKey : getSkySandboxKey();
+  const stored = readSkySandboxStringForKey(
+    SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+    sk,
+    sanitiseSiteCloneBcStyleConfigUrl,
+    '',
+  );
+  return stored || MOD_BC_DEFAULT_STYLE_URL;
+}
+
+function getSiteCloneBcStyleConfigUrl() {
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim()) {
+    return sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value);
+  }
+  return readPersistedSiteCloneBcStyleConfigUrl();
+}
+
+function saveSiteCloneBcStyleConfigUrl() {
+  const url = siteCloneBcStyleConfigUrl
+    ? sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value)
+    : readPersistedSiteCloneBcStyleConfigUrl();
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim() !== url) {
+    siteCloneBcStyleConfigUrl.value = url;
+  }
+  writeSkySandboxString(SC_BC_STYLE_URL_BY_SANDBOX_KEY, url);
+  refreshSiteCloneBcStyleUrlHints();
+}
+
+function getSiteCloneBcStyleConfigResolvedUrl() {
+  const raw = getSiteCloneBcStyleConfigUrl();
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.charAt(0) === '/') return raw;
+  const pageDir = window.location.pathname.replace(/\/[^/]*$/, '/');
+  return pageDir + raw.replace(/^\.\//, '');
+}
+
+function refreshSiteCloneBcStyleUrlHints() {
+  const url = getSiteCloneBcStyleConfigUrl();
+  const resolved = getSiteCloneBcStyleConfigResolvedUrl();
+  const hint = document.getElementById('siteCloneBcStyleConfigResolved');
+  if (hint) {
+    hint.textContent = resolved
+      ? 'Loaded for Modal / Injected / Full Screen: ' + resolved
+      : '';
+  }
+  ['siteCloneBcFullScreenToggle', 'siteCloneBcModalToggle', 'siteCloneBcInjectedToggle'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('data-site-clone-bc-style-url', url);
+  });
+}
+
+function invalidateSiteCloneBcCore() {
+  if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.invalidateCore === 'function') {
+    window.SiteCloneBc.invalidateCore();
+  }
+}
+
+const SC_BC_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandboxBySandbox';
+const SC_BC_DATASTREAM_ID_KEY = 'siteCloneBcDatastreamIdBySandbox';
+const MOD_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
+const siteCloneBcDatastreamId = document.getElementById('siteCloneBcDatastreamId');
+const siteCloneBcDatastreamList = document.getElementById('siteCloneBcDatastreamList');
+
+/** @type {Array<{ id: string, title: string, sandbox?: string }>} */
+let siteCloneBcAllDatastreamOptions = [];
+
+function sanitiseSiteCloneBcDatastreamId(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return MOD_BC_DEFAULT_DATASTREAM_ID;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v.toLowerCase();
+  return MOD_BC_DEFAULT_DATASTREAM_ID;
+}
+
+function datastreamLabelFromItem(d) {
+  const title = String((d && d.title) || 'Unnamed').trim();
+  const id = String((d && d.id) || '').trim();
+  return title + ' (' + id + ')';
+}
+
+function findSiteCloneBcDatastreamByLabel(label) {
+  const target = String(label || '').trim().toLowerCase();
+  if (!target) return null;
+  return (
+    siteCloneBcAllDatastreamOptions.find(function (d) {
+      return datastreamLabelFromItem(d).toLowerCase() === target;
+    }) || null
+  );
+}
+
+function resolveSiteCloneBcDatastreamIdFromInput() {
+  const raw = siteCloneBcDatastreamId ? String(siteCloneBcDatastreamId.value || '').trim() : '';
+  if (!raw) return '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+    return raw.toLowerCase();
+  }
+  const hit = findSiteCloneBcDatastreamByLabel(raw);
+  if (hit && hit.id) return String(hit.id).toLowerCase();
+  return '';
+}
+
+function readPersistedSiteCloneBcDatastreamId(sandboxKey) {
+  migrateLegacySkyScalar(SC_BC_DATASTREAM_BY_SANDBOX_KEY, SC_BC_DATASTREAM_ID_KEY, sanitiseSiteCloneBcDatastreamId);
+  const sk = sandboxKey != null ? sandboxKey : getSkySandboxKey();
+  const stored = readSkySandboxStringForKey(
+    SC_BC_DATASTREAM_BY_SANDBOX_KEY,
+    sk,
+    sanitiseSiteCloneBcDatastreamId,
+    '',
+  );
+  return stored || MOD_BC_DEFAULT_DATASTREAM_ID;
+}
+
+function getSiteCloneBcDatastreamId() {
+  const resolved = resolveSiteCloneBcDatastreamIdFromInput();
+  if (resolved) return sanitiseSiteCloneBcDatastreamId(resolved);
+  return readPersistedSiteCloneBcDatastreamId();
+}
+
+function renderSiteCloneBcDatastreamSuggestions(query) {
+  if (!siteCloneBcDatastreamList) return;
+  const q = String(query || '').trim().toLowerCase();
+  siteCloneBcDatastreamList.innerHTML = '';
+  const matches = siteCloneBcAllDatastreamOptions
+    .filter(function (d) {
+      if (!q) return true;
+      const label = datastreamLabelFromItem(d).toLowerCase();
+      const id = String(d.id || '').toLowerCase();
+      return label.indexOf(q) !== -1 || id.indexOf(q) !== -1;
+    })
+    .slice(0, 200);
+  matches.forEach(function (d) {
+    const opt = document.createElement('option');
+    opt.value = datastreamLabelFromItem(d);
+    siteCloneBcDatastreamList.appendChild(opt);
+  });
+}
+
+function applySiteCloneBcDatastreamInputToStoredId() {
+  const id = getSiteCloneBcDatastreamId();
+  const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
+    return String(d.id || '').toLowerCase() === id;
+  });
+  if (siteCloneBcDatastreamId && hit) {
+    siteCloneBcDatastreamId.value = datastreamLabelFromItem(hit);
+  }
+  writeSkySandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, id);
+  refreshSiteCloneBcDatastreamHint();
+  return id;
+}
+
+function saveSiteCloneBcDatastreamId() {
+  applySiteCloneBcDatastreamInputToStoredId();
+}
+
+function refreshSiteCloneBcDatastreamHint() {
+  const id = getSiteCloneBcDatastreamId();
+  const hint = document.getElementById('siteCloneBcDatastreamHint');
+  const sandbox = getSiteCloneBcSandboxName();
+  if (!hint) return;
+  if (!siteCloneBcAllDatastreamOptions.length) {
+    hint.textContent = id
+      ? 'Alloy datastreamId (manual): ' + id + (sandbox ? ' · sandbox ' + sandbox : '')
+      : sandbox
+        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.'
+        : 'Paste a datastream UUID.';
+    return;
+  }
+  hint.textContent =
+    siteCloneBcAllDatastreamOptions.length +
+    ' datastream(s)' +
+    (sandbox ? ' for ' + sandbox : '') +
+    ' · selected ' +
+    id;
+}
+
+async function loadSiteCloneBcDatastreams() {
+  const sandbox = getSiteCloneBcSandboxName();
+  const hint = document.getElementById('siteCloneBcDatastreamHint');
+  if (hint) {
+    hint.textContent = sandbox ? 'Loading datastreams for ' + sandbox + '…' : 'Loading datastreams…';
+  }
   try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      skyBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
+    const params = new URLSearchParams();
+    if (sandbox) params.set('sandbox', sandbox);
+    const res = await fetch('/api/events/datastreams?' + params.toString());
+    const data = await res.json().catch(function () {
+      return {};
+    });
+    siteCloneBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
+    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId ? siteCloneBcDatastreamId.value : '');
+
+    const storedId = readPersistedSiteCloneBcDatastreamId();
+
+    const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
+      return String(d.id || '').toLowerCase() === storedId;
+    });
+    if (siteCloneBcDatastreamId) {
+      siteCloneBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
     }
+
+    if (hint) {
+      if (data.note && !siteCloneBcAllDatastreamOptions.length) {
+        hint.textContent = String(data.note);
+      } else {
+        refreshSiteCloneBcDatastreamHint();
+      }
+    }
+  } catch (err) {
+    siteCloneBcAllDatastreamOptions = [];
+    renderSiteCloneBcDatastreamSuggestions('');
+    if (hint) {
+      hint.textContent =
+        'Could not load datastreams' +
+        (err && err.message ? ': ' + err.message : '') +
+        '. Paste a datastream UUID.';
+    }
+  }
+}
+
+window.SiteCloneBcConfig = {
+  getStyleConfigUrl: getSiteCloneBcStyleConfigUrl,
+  getDatastreamId: getSiteCloneBcDatastreamId,
+};
+
+// Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
+const siteCloneBcFullScreenToggle = document.getElementById('siteCloneBcFullScreenToggle');
+const siteCloneBcModalToggle = document.getElementById('siteCloneBcModalToggle');
+const siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
+const SC_BC_PREFS_BY_SANDBOX_KEY = 'siteCloneBcDisplayPrefsBySandbox';
+const SC_BC_PREFS_KEY = 'siteCloneBcDisplayPrefs';
+
+function normaliseModBcDisplayPrefs(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { fullScreen: false, modal: false, injected: false };
+  }
+  return {
+    fullScreen: !!raw.fullScreen,
+    modal: !!raw.modal,
+    injected: !!raw.injected,
+  };
+}
+
+function loadSiteCloneBcDisplayPrefs() {
+  migrateLegacySkyScalar(SC_BC_PREFS_BY_SANDBOX_KEY, SC_BC_PREFS_KEY, function (legacy) {
+    try {
+      return JSON.parse(legacy);
+    } catch {
+      return null;
+    }
+  });
+  const raw = readSkyStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY)[getSkySandboxKey()];
+  if (raw && typeof raw === 'object') return normaliseModBcDisplayPrefs(raw);
+  try {
+    const flat = localStorage.getItem(SC_BC_PREFS_KEY);
+    if (flat) return normaliseModBcDisplayPrefs(JSON.parse(flat));
   } catch {
     /* noop */
   }
-  skyBcLauncherToggle.addEventListener('change', function () {
-    const on = skyBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try {
-      localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-  if (skyBcLauncher) {
-    skyBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen();
-      else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
+  return { fullScreen: false, modal: false, injected: false };
+}
+
+function saveSiteCloneBcDisplayPrefs(sandboxKey) {
+  const map = readSkyStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
+  const key = sandboxKey != null ? sandboxKey : getSkySandboxKey();
+  map[key] = {
+    fullScreen: !!(siteCloneBcFullScreenToggle && siteCloneBcFullScreenToggle.checked),
+    modal: !!(siteCloneBcModalToggle && siteCloneBcModalToggle.checked),
+    injected: !!(siteCloneBcInjectedToggle && siteCloneBcInjectedToggle.checked),
+  };
+  writeSkyStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
+}
+
+function flushSkyDemoEnvForSandboxKey(sandboxKey) {
+  const sk = String(sandboxKey || '').trim();
+  if (!sk) return;
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim()) {
+    writeSkySandboxStringForKey(
+      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+      sk,
+      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
+    );
   }
+  const dsFromInput = resolveSiteCloneBcDatastreamIdFromInput();
+  if (dsFromInput) {
+    writeSkySandboxStringForKey(SC_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseSiteCloneBcDatastreamId(dsFromInput));
+  } else if (siteCloneBcDatastreamId && siteCloneBcDatastreamId.value.trim()) {
+    writeSkySandboxStringForKey(
+      SC_BC_DATASTREAM_BY_SANDBOX_KEY,
+      sk,
+      sanitiseSiteCloneBcDatastreamId(siteCloneBcDatastreamId.value.trim()),
+    );
+  }
+  saveSiteCloneBcDisplayPrefs(sk);
+  const map = readSkyStorageMap(SKY_WEB_PUSH_BY_SANDBOX_KEY);
+  map[sk] = skyWebPushOnInjectToggle && skyWebPushOnInjectToggle.checked ? '1' : '0';
+  writeSkyStorageMap(SKY_WEB_PUSH_BY_SANDBOX_KEY, map);
+  if (typeof AepBcToggle !== 'undefined' && modBcOnInjectToggle) {
+    AepBcToggle.savePrefs(
+      'skyDemo',
+      !!modBcOnInjectToggle.checked,
+      modBcStyleSelect ? modBcStyleSelect.value : 'army',
+      sk,
+    );
+  }
+}
+
+function applySiteCloneBcDisplayPrefsToUi() {
+  const prefs = loadSiteCloneBcDisplayPrefs();
+  if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
+    prefs.injected = false;
+    prefs.fullScreen = false;
+  } else if (prefs.fullScreen && prefs.injected) {
+    prefs.injected = false;
+  }
+  if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = prefs.injected;
+  if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = prefs.fullScreen;
+  if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = prefs.modal;
+}
+
+function syncSiteCloneBcFromPrefs() {
+  if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
+    window.SiteCloneBc.sync();
+  }
+}
+
+(function initSiteCloneBcDisplayPrefs() {
+  applySiteCloneBcDisplayPrefsToUi();
+  [siteCloneBcFullScreenToggle, siteCloneBcModalToggle, siteCloneBcInjectedToggle].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('change', function () {
+      if (el === siteCloneBcModalToggle && el.checked) {
+        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+      }
+      if ((el === siteCloneBcInjectedToggle || el === siteCloneBcFullScreenToggle) && el.checked) {
+        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+      }
+      if (el === siteCloneBcInjectedToggle && el.checked && siteCloneBcFullScreenToggle) {
+        siteCloneBcFullScreenToggle.checked = false;
+      }
+      if (el === siteCloneBcFullScreenToggle && el.checked && siteCloneBcInjectedToggle) {
+        siteCloneBcInjectedToggle.checked = false;
+      }
+      saveSiteCloneBcDisplayPrefs();
+      syncSiteCloneBcFromPrefs();
+    });
+  });
+  saveSiteCloneBcDisplayPrefs();
 })();
 
-window.addEventListener('aep-global-sandbox-change', function () {
+(function initSiteCloneBcStyleConfigUrl() {
+  if (!siteCloneBcStyleConfigUrl) return;
+  siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
+  function onStyleUrlChange() {
+    saveSiteCloneBcStyleConfigUrl();
+    invalidateSiteCloneBcCore();
+    syncSiteCloneBcFromPrefs();
+  }
+  siteCloneBcStyleConfigUrl.addEventListener('input', function () {
+    writeSkySandboxString(
+      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
+    );
+    refreshSiteCloneBcStyleUrlHints();
+  });
+  siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+  siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+  refreshSiteCloneBcStyleUrlHints();
+})();
+
+(function initSiteCloneBcDatastreamPicker() {
+  if (!siteCloneBcDatastreamId) return;
+
+  function onDatastreamFieldChange() {
+    const prev = getSiteCloneBcDatastreamId();
+    saveSiteCloneBcDatastreamId();
+    const next = getSiteCloneBcDatastreamId();
+    if (prev !== next) {
+      invalidateSiteCloneBcCore();
+      syncSiteCloneBcFromPrefs();
+    }
+  }
+
+  siteCloneBcDatastreamId.addEventListener('input', function () {
+    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId.value);
+  });
+  siteCloneBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
+  siteCloneBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
+
+  void loadSiteCloneBcDatastreams();
+})();
+
+function applySkyDemoEnvForCurrentSandbox() {
   applySkyWebPushOnInjectToggle();
-  applySkyBcOnInjectPrefs();
+  applySiteCloneBcOnInjectPrefs();
+  if (siteCloneBcStyleConfigUrl) {
+    siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
+    refreshSiteCloneBcStyleUrlHints();
+  }
+  applySiteCloneBcDisplayPrefsToUi();
+  invalidateSiteCloneBcCore();
+  syncSiteCloneBcFromPrefs();
+  void loadSiteCloneBcDatastreams();
+  skyDemoEnvSandboxKey = getSkySandboxKey();
+}
+
+window.addEventListener('aep-global-sandbox-change', function () {
+  if (skyDemoEnvSandboxKey) {
+    flushSkyDemoEnvForSandboxKey(skyDemoEnvSandboxKey);
+  }
+  skyDemoEnvSandboxKey = getSkySandboxKey();
+  applySkyDemoEnvForCurrentSandbox();
 });
 
-window.__skyDemoSuppressBcEnable = true;
+skyDemoEnvSandboxKey = getSkySandboxKey();
+
+/** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
+window.__siteCloneSuppressBcEnable = true;
 const skyInjectSdkBtn = document.getElementById('skyInjectSdkBtn');
 if (skyInjectSdkBtn) {
   skyInjectSdkBtn.addEventListener(
     'click',
     function () {
-      window.__skyDemoSuppressBcEnable = false;
+      window.__siteCloneSuppressBcEnable = false;
     },
     true,
   );
@@ -171,18 +603,22 @@ const skyTagsInjection =
         identityEventType: 'sky.identity.stitch',
         messageSetter: setSkyMessage,
         infoEcidId: 'infoEcid',
-        tagsCompanyId: 'skyTagsCompany',
-        tagsPropertyInputId: 'skyTagsProperty',
-        tagsPropertyListId: 'skyTagsPropertyList',
-        tagsEnvironmentId: 'skyTagsEnvironment',
+        tagsCompanyId: 'modTagsCompany',
+        tagsPropertyInputId: 'modTagsProperty',
+        tagsPropertyListId: 'modTagsPropertyList',
+        tagsEnvironmentId: 'modTagsEnvironment',
         injectButtonId: 'skyInjectSdkBtn',
-        selectedScriptId: 'skySelectedScript',
+        selectedScriptId: 'modSelectedScript',
         configFieldsId: 'skySdkConfigFields',
         configSummaryId: 'skySdkConfigSummary',
         configSummaryTextId: 'skySdkConfigSummaryText',
-        changeConfigButtonId: 'skyChangeSdkConfigBtn',
+        changeConfigButtonId: 'modChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
+        /**
+         * Parent shell only — same as Premier Inn / Admiral (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
+         * Avoids a second ECID in the MOD site iframe vs parent #infoEcid + generator / Edge.
+         */
         iframeIds: [],
         hideTagsCompanyUi: true,
         webPush: {
@@ -192,13 +628,13 @@ const skyTagsInjection =
         },
         brandConcierge: {
           enabled: function () {
-            return !!(skyBcOnInjectToggle && skyBcOnInjectToggle.checked);
+            return !!(modBcOnInjectToggle && modBcOnInjectToggle.checked);
           },
           styleKey: function () {
-            return skyBcStyleSelect ? skyBcStyleSelect.value : 'miral';
+            return modBcStyleSelect ? modBcStyleSelect.value : 'army';
           },
           suppressEnable: function () {
-            return !!window.__skyDemoSuppressBcEnable;
+            return !!window.__siteCloneSuppressBcEnable;
           },
         },
       })
@@ -210,7 +646,7 @@ if (skyWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
     void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'skyDemo' }).then(function (ok) {
       setSkyMessage(
         ok
-          ? 'Web push subscription sent.'
+          ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'
           : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
         ok ? 'success' : 'error',
       );
@@ -293,18 +729,67 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initSkyDemoEnvStrip() {
+(function initSkyDemoSandboxAndEnvBar() {
   if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
   AepDemoEnvStrip.initStandardEnvBar({
     summaryId: 'skySdkConfigSummary',
     fieldsId: 'skySdkConfigFields',
-    selectedScriptCodeId: 'skySelectedScript',
+    selectedScriptCodeId: 'modSelectedScript',
+  });
+})();
+
+(function normalizeSkySnapshotFrame() {
+  const frame = document.querySelector('.mod-demo-site-frame');
+  if (!frame) return;
+
+  function applySnapshotLayoutFix(doc) {
+    const root = doc.documentElement;
+    const body = doc.body;
+    if (!root || !body) return;
+
+    root.classList.remove('lenis', 'lenis-scrolling');
+    root.style.removeProperty('--viewport-width');
+    root.style.removeProperty('--viewport-height');
+    root.style.removeProperty('--scrollbar-width');
+    root.style.removeProperty('scroll-behavior');
+
+    let styleEl = doc.getElementById('aep-mod-snapshot-runtime-fix');
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = 'aep-mod-snapshot-runtime-fix';
+      doc.head.appendChild(styleEl);
+    }
+
+    const fs = root.classList.contains('mod-demo-bc-fs-active');
+    const inj = root.classList.contains('mod-demo-bc-injected-active');
+    if (fs || inj) {
+      styleEl.textContent =
+        'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}';
+      return;
+    }
+    styleEl.textContent = [
+      'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}',
+      '.pin-spacer{width:100%!important;max-width:100%!important;left:0!important;right:0!important;padding:0!important;margin:0!important;transform:none!important;overflow:visible!important;}',
+      '.pin-spacer>.exp-content__block-container,.pin-spacer>[x-ref=\"blockInner\"]{width:100%!important;max-width:100%!important;left:0!important;right:0!important;top:0!important;margin:0!important;transform:none!important;}',
+      '.exp-hero-banner__logo{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__cta-btn{position:fixed!important;top:18px!important;left:22px!important;transform:none!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__text-container,.exp-hero-banner__media-container,.exp-hero-banner__scroll-prompt{transform:none!important;}',
+    ].join('');
+  }
+
+  frame.addEventListener('load', function () {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    applySnapshotLayoutFix(doc);
+    try {
+      frame.contentWindow.scrollTo(0, 0);
+    } catch {}
   });
 })();
 
 (function initSkyDemoFlyoutSidebar() {
   const body = document.body;
-  if (!body.classList.contains('sky-demo-page')) return;
+  if (!body.classList.contains('mod-demo-page')) return;
   const sidebar = document.querySelector('.dashboard-sidebar');
   if (!sidebar) return;
 
@@ -330,9 +815,18 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
     }, 450);
   }
 
+  const topAnchor = document.getElementById('skyDemoTopAnchor');
+  const sidebarZone = document.getElementById('skyDemoSidebarHoverZone');
+
+  function pointerInTopChromeBand(clientY) {
+    if (!topAnchor) return false;
+    const r = topAnchor.getBoundingClientRect();
+    return clientY <= r.bottom + 6;
+  }
+
   function onPointerMove(e) {
     if (mq.matches) return;
-    if (e.clientX <= 24) {
+    if (e.clientX <= 20 && !pointerInTopChromeBand(e.clientY)) {
       clearHideTimer();
       setFlyoutOpen(true);
       return;
@@ -361,6 +855,18 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
     if (!mq.matches) scheduleClose();
   });
 
+  if (sidebarZone) {
+    sidebarZone.addEventListener('mouseenter', function () {
+      if (!mq.matches) {
+        clearHideTimer();
+        setFlyoutOpen(true);
+      }
+    });
+    sidebarZone.addEventListener('mouseleave', function () {
+      if (!mq.matches) scheduleClose();
+    });
+  }
+
   document.addEventListener('mousemove', onPointerMove, { passive: true });
 
   mq.addEventListener('change', function () {
@@ -380,3 +886,4 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
+

@@ -11,13 +11,20 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260526-bc-env-grid">
-  <link rel="stylesheet" href="mod-demo-bc.css?v=20260526-bc-iframe-inject">
+  <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <script src="army-bc/army-bc-edge-path.js?v=20260526-bc-iframe-edge"></script>
+  <script>
+    window.SiteCloneBcPage = {
+      iframeId: 'siteCloneDemoSiteFrame',
+      defaultFrameSrc: 'mod-demo-assets/army-home-snapshot.html',
+      snapshotLayout: 'british-army-home',
+    };
+  </script>
+  <script src="embed-bc/embed-bc-edge-path.js?v=20260527-site-clone-bc"></script>
 </head>
 <body class="mod-demo-page home-dashboard-concierge">
   <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
@@ -75,7 +82,7 @@
                     </button>
                     <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
                   </div>
-                  <div class="form-row aep-bc-toggle-row mod-demo-bc-inject-row" role="group" aria-label="Brand Concierge">
+                  <div class="form-row aep-bc-toggle-row site-clone-bc-inject-row" role="group" aria-label="Brand Concierge">
                     <label class="aep-demo-web-push-label">
                       <input type="checkbox" id="modBcOnInjectToggle" />
                       <span>Enable Brand Concierge when injecting Tags</span>
@@ -86,34 +93,34 @@
                       <option value="army" selected>Army Recruitment</option>
                     </select>
                   </div>
-                  <div class="mod-demo-bc-env-pair">
-                    <div class="form-row mod-demo-bc-style-url-row">
-                      <label for="modBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+                  <div class="site-clone-bc-env-pair">
+                    <div class="form-row site-clone-bc-style-url-row">
+                      <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
                       <input
                         type="text"
-                        id="modBcStyleConfigUrl"
-                        class="mod-demo-bc-style-url-input"
+                        id="siteCloneBcStyleConfigUrl"
+                        class="site-clone-bc-style-url-input"
                         aria-label="Brand Concierge style configuration script URL"
-                        placeholder="army-bc/styleConfigurations-6a0992.js"
+                        placeholder="embed-bc/styleConfigurations-6a0992.js"
                         autocomplete="off"
                         spellcheck="false"
                       >
-                      <p id="modBcStyleConfigResolved" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                      <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
                     </div>
-                    <div class="form-row mod-demo-bc-datastream-row">
-                      <label for="modBcDatastreamId">Alloy datastream</label>
+                    <div class="form-row site-clone-bc-datastream-row">
+                      <label for="siteCloneBcDatastreamId">Alloy datastream</label>
                       <input
                         type="text"
-                        id="modBcDatastreamId"
-                        class="mod-demo-bc-datastream-input"
+                        id="siteCloneBcDatastreamId"
+                        class="site-clone-bc-datastream-input"
                         aria-label="Alloy datastream for Brand Concierge"
                         placeholder="Select or search datastream"
-                        list="modBcDatastreamList"
+                        list="siteCloneBcDatastreamList"
                         autocomplete="off"
                         spellcheck="false"
                       />
-                      <datalist id="modBcDatastreamList"></datalist>
-                      <p id="modBcDatastreamHint" class="mod-demo-bc-style-url-hint" aria-live="polite"></p>
+                      <datalist id="siteCloneBcDatastreamList"></datalist>
+                      <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
                     </div>
                   </div>
                 </div>
@@ -153,30 +160,30 @@
             <div class="mod-demo-profile-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div class="mod-demo-bc-prefs-field" role="group" aria-labelledby="modBcPrefsHeading">
-                <span class="mod-demo-bc-prefs__label" id="modBcPrefsHeading">Show Brand Concierge</span>
-                <div class="mod-demo-bc-prefs__options">
-                  <label class="mod-demo-bc-prefs__option">
+              <div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">
+                <span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Show Brand Concierge</span>
+                <div class="site-clone-bc-prefs__options">
+                  <label class="site-clone-bc-prefs__option">
                     <input
                       type="checkbox"
-                      id="modBcFullScreenToggle"
-                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                      id="siteCloneBcFullScreenToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
                     />
                     <span>Full Screen</span>
                   </label>
-                  <label class="mod-demo-bc-prefs__option">
+                  <label class="site-clone-bc-prefs__option">
                     <input
                       type="checkbox"
-                      id="modBcModalToggle"
-                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                      id="siteCloneBcModalToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
                     />
                     <span>Modal</span>
                   </label>
-                  <label class="mod-demo-bc-prefs__option">
+                  <label class="site-clone-bc-prefs__option">
                     <input
                       type="checkbox"
-                      id="modBcInjectedToggle"
-                      data-mod-bc-style-from="modBcStyleConfigUrl"
+                      id="siteCloneBcInjectedToggle"
+                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
                     />
                     <span>Injected</span>
                   </label>
@@ -195,12 +202,12 @@
   </div>
 
   <!-- Injected / full screen: BC runs on parent (same Edge path as modal), positioned over the Army iframe -->
-  <div id="modDemoBcFrameHost" class="mod-demo-bc-frame-host" hidden>
-    <div id="modDemoBcFrameMount" class="mod-demo-bc-frame-mount"></div>
+  <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden>
+    <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
   </div>
 
   <iframe
-    id="modDemoSiteFrame"
+    id="siteCloneDemoSiteFrame"
     class="mod-demo-site-frame"
     title="British Army — homepage snapshot (embedded)"
     src="mod-demo-assets/army-home-snapshot.html"
@@ -212,8 +219,8 @@
   <!-- army-mod-home-3: floating FAB opens modal (visible when Modal is checked) -->
   <button
     type="button"
-    id="modDemoBcFab"
-    class="aep-bc-reopen-btn mod-demo-bc-fab"
+    id="siteCloneBcFab"
+    class="aep-bc-reopen-btn site-clone-bc-fab"
     hidden
     aria-label="Open Brand Concierge"
     aria-expanded="false"
@@ -397,7 +404,7 @@
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
   <script src="mod-demo.js?v=20260526-mod-sandbox-env-flush"></script>
-  <script src="mod-demo-bc.js?v=20260526-bc-parent-overlay"></script>
+  <script src="site-clone-bc.js?v=20260527-site-clone-bc"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>

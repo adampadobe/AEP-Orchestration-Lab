@@ -1,0 +1,75 @@
+/* Army / MOD demo: disclaimer below prompt box, centred */
+.embed-bc-inline #brand-concierge-mount .input-section,
+.aep-bc-modal #brand-concierge-mount .input-section,
+#siteCloneBcInline #brand-concierge-mount .input-section,
+.site-clone-bc-inline #brand-concierge-mount .input-section,
+#siteCloneBcModalMount .input-section {
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.embed-bc-inline #brand-concierge-mount .input-container,
+.aep-bc-modal #brand-concierge-mount .input-container,
+#siteCloneBcInline #brand-concierge-mount .input-container,
+.site-clone-bc-inline #brand-concierge-mount .input-container,
+#siteCloneBcModalMount .input-container {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  overflow: visible !important;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: var(--content-width-desktop, 768px);
+}
+
+/* Still inside input-container (attachWithInput): force new row below the prompt */
+.embed-bc-inline #brand-concierge-mount .input-container .disclaimer-message,
+.aep-bc-modal #brand-concierge-mount .input-container .disclaimer-message,
+#siteCloneBcInline #brand-concierge-mount .input-container .disclaimer-message,
+.site-clone-bc-inline #brand-concierge-mount .input-container .disclaimer-message,
+#siteCloneBcModalMount .input-container .disclaimer-message {
+  flex: 1 1 100% !important;
+  order: 99 !important;
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0.5rem 0 0 !important;
+  padding: 0.25rem 0.5rem !important;
+  text-align: center !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.embed-bc-inline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
+.aep-bc-modal #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
+#siteCloneBcInline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
+.site-clone-bc-inline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
+#siteCloneBcModalMount .disclaimer-message.embed-bc-disclaimer-external {
+  position: static;
+  transform: none;
+  left: auto;
+  display: block !important;
+  flex: none !important;
+  order: unset !important;
+  width: min(100%, var(--content-width-desktop, 768px));
+  max-width: var(--content-width-desktop, 768px);
+  margin: 0.5rem auto 0.75rem !important;
+  text-align: center !important;
+}
+
+.embed-bc-inline #brand-concierge-mount .disclaimer-link,
+.aep-bc-modal #brand-concierge-mount .disclaimer-link,
+#siteCloneBcInline #brand-concierge-mount .disclaimer-link,
+.site-clone-bc-inline #brand-concierge-mount .disclaimer-link,
+#siteCloneBcModalMount .disclaimer-link {
+  color: inherit;
+}

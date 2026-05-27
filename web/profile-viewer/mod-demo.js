@@ -1,6 +1,6 @@
 /**
  * MOD (British Army) demo — profile lookup + flyout lab nav; saved homepage in iframe.
- * Lab strip: web push + Tags inject aligned with Etihad (`etihad-demo.html`); BC modes in `mod-demo-bc.js`.
+ * Lab strip: web push + Tags inject; embed BC modes in `site-clone-bc.js`.
  */
 
 const customerEmail = document.getElementById('customerEmail');
@@ -34,7 +34,7 @@ function writeModStorageMap(key, mapObj) {
   }
 }
 
-function getModBcSandboxName() {
+function getSiteCloneBcSandboxName() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
     return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
   }
@@ -44,7 +44,7 @@ function getModBcSandboxName() {
 }
 
 function getModSandboxKey() {
-  const raw = getModBcSandboxName().toLowerCase();
+  const raw = getSiteCloneBcSandboxName().toLowerCase();
   return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
 }
 
@@ -128,7 +128,7 @@ function modWebPushOnInjectDesired() {
 const modBcOnInjectToggle = document.getElementById('modBcOnInjectToggle');
 const modBcStyleSelect = document.getElementById('modBcStyleSelect');
 
-function applyModBcOnInjectPrefs() {
+function applySiteCloneBcOnInjectPrefs() {
   if (!modBcOnInjectToggle) return;
   const prefs =
     typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('modDemo') : { enabled: false, styleKey: 'army' };
@@ -136,7 +136,7 @@ function applyModBcOnInjectPrefs() {
   if (modBcStyleSelect && prefs.styleKey) modBcStyleSelect.value = prefs.styleKey;
 }
 
-function saveModBcOnInjectPrefs() {
+function saveSiteCloneBcOnInjectPrefs() {
   if (typeof AepBcToggle === 'undefined') return;
   AepBcToggle.savePrefs(
     'modDemo',
@@ -145,19 +145,19 @@ function saveModBcOnInjectPrefs() {
   );
 }
 
-(function initModBcOnInjectToggle() {
+(function initSiteCloneBcOnInjectToggle() {
   if (!modBcOnInjectToggle) return;
-  applyModBcOnInjectPrefs();
-  modBcOnInjectToggle.addEventListener('change', saveModBcOnInjectPrefs);
-  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveModBcOnInjectPrefs);
+  applySiteCloneBcOnInjectPrefs();
+  modBcOnInjectToggle.addEventListener('change', saveSiteCloneBcOnInjectPrefs);
+  if (modBcStyleSelect) modBcStyleSelect.addEventListener('change', saveSiteCloneBcOnInjectPrefs);
 })();
 
-const MOD_BC_STYLE_URL_BY_SANDBOX_KEY = 'modDemoBcStyleConfigUrlBySandbox';
-const MOD_BC_STYLE_URL_KEY = 'modDemoBcStyleConfigUrl';
-const MOD_BC_DEFAULT_STYLE_URL = 'army-bc/styleConfigurations-6a0992.js';
-const modBcStyleConfigUrl = document.getElementById('modBcStyleConfigUrl');
+const SC_BC_STYLE_URL_BY_SANDBOX_KEY = 'siteCloneBcStyleConfigUrlBySandboxBySandbox';
+const SC_BC_STYLE_URL_KEY = 'siteCloneBcStyleConfigUrlBySandbox';
+const MOD_BC_DEFAULT_STYLE_URL = 'embed-bc/styleConfigurations-6a0992.js';
+const siteCloneBcStyleConfigUrl = document.getElementById('siteCloneBcStyleConfigUrl');
 
-function sanitiseModBcStyleConfigUrl(raw) {
+function sanitiseSiteCloneBcStyleConfigUrl(raw) {
   const v = String(raw || '').trim();
   if (!v) return MOD_BC_DEFAULT_STYLE_URL;
   if (/^javascript:/i.test(v)) return MOD_BC_DEFAULT_STYLE_URL;
@@ -166,75 +166,75 @@ function sanitiseModBcStyleConfigUrl(raw) {
   return MOD_BC_DEFAULT_STYLE_URL;
 }
 
-function readPersistedModBcStyleConfigUrl(sandboxKey) {
-  migrateLegacyModScalar(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, MOD_BC_STYLE_URL_KEY, sanitiseModBcStyleConfigUrl);
+function readPersistedSiteCloneBcStyleConfigUrl(sandboxKey) {
+  migrateLegacyModScalar(SC_BC_STYLE_URL_BY_SANDBOX_KEY, SC_BC_STYLE_URL_KEY, sanitiseSiteCloneBcStyleConfigUrl);
   const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
   const stored = readModSandboxStringForKey(
-    MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+    SC_BC_STYLE_URL_BY_SANDBOX_KEY,
     sk,
-    sanitiseModBcStyleConfigUrl,
+    sanitiseSiteCloneBcStyleConfigUrl,
     '',
   );
   return stored || MOD_BC_DEFAULT_STYLE_URL;
 }
 
-function getModBcStyleConfigUrl() {
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
-    return sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value);
+function getSiteCloneBcStyleConfigUrl() {
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim()) {
+    return sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value);
   }
-  return readPersistedModBcStyleConfigUrl();
+  return readPersistedSiteCloneBcStyleConfigUrl();
 }
 
-function saveModBcStyleConfigUrl() {
-  const url = modBcStyleConfigUrl
-    ? sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value)
-    : readPersistedModBcStyleConfigUrl();
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim() !== url) {
-    modBcStyleConfigUrl.value = url;
+function saveSiteCloneBcStyleConfigUrl() {
+  const url = siteCloneBcStyleConfigUrl
+    ? sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value)
+    : readPersistedSiteCloneBcStyleConfigUrl();
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim() !== url) {
+    siteCloneBcStyleConfigUrl.value = url;
   }
-  writeModSandboxString(MOD_BC_STYLE_URL_BY_SANDBOX_KEY, url);
-  refreshModBcStyleUrlHints();
+  writeModSandboxString(SC_BC_STYLE_URL_BY_SANDBOX_KEY, url);
+  refreshSiteCloneBcStyleUrlHints();
 }
 
-function getModBcStyleConfigResolvedUrl() {
-  const raw = getModBcStyleConfigUrl();
+function getSiteCloneBcStyleConfigResolvedUrl() {
+  const raw = getSiteCloneBcStyleConfigUrl();
   if (/^https?:\/\//i.test(raw)) return raw;
   if (raw.charAt(0) === '/') return raw;
   const pageDir = window.location.pathname.replace(/\/[^/]*$/, '/');
   return pageDir + raw.replace(/^\.\//, '');
 }
 
-function refreshModBcStyleUrlHints() {
-  const url = getModBcStyleConfigUrl();
-  const resolved = getModBcStyleConfigResolvedUrl();
-  const hint = document.getElementById('modBcStyleConfigResolved');
+function refreshSiteCloneBcStyleUrlHints() {
+  const url = getSiteCloneBcStyleConfigUrl();
+  const resolved = getSiteCloneBcStyleConfigResolvedUrl();
+  const hint = document.getElementById('siteCloneBcStyleConfigResolved');
   if (hint) {
     hint.textContent = resolved
       ? 'Loaded for Modal / Injected / Full Screen: ' + resolved
       : '';
   }
-  ['modBcFullScreenToggle', 'modBcModalToggle', 'modBcInjectedToggle'].forEach(function (id) {
+  ['siteCloneBcFullScreenToggle', 'siteCloneBcModalToggle', 'siteCloneBcInjectedToggle'].forEach(function (id) {
     const el = document.getElementById(id);
-    if (el) el.setAttribute('data-mod-bc-style-url', url);
+    if (el) el.setAttribute('data-site-clone-bc-style-url', url);
   });
 }
 
-function invalidateModDemoBcCore() {
-  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.invalidateCore === 'function') {
-    window.ModDemoBc.invalidateCore();
+function invalidateSiteCloneBcCore() {
+  if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.invalidateCore === 'function') {
+    window.SiteCloneBc.invalidateCore();
   }
 }
 
-const MOD_BC_DATASTREAM_BY_SANDBOX_KEY = 'modDemoBcDatastreamIdBySandbox';
-const MOD_BC_DATASTREAM_ID_KEY = 'modDemoBcDatastreamId';
+const SC_BC_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandboxBySandbox';
+const SC_BC_DATASTREAM_ID_KEY = 'siteCloneBcDatastreamIdBySandbox';
 const MOD_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
-const modBcDatastreamId = document.getElementById('modBcDatastreamId');
-const modBcDatastreamList = document.getElementById('modBcDatastreamList');
+const siteCloneBcDatastreamId = document.getElementById('siteCloneBcDatastreamId');
+const siteCloneBcDatastreamList = document.getElementById('siteCloneBcDatastreamList');
 
 /** @type {Array<{ id: string, title: string, sandbox?: string }>} */
-let modBcAllDatastreamOptions = [];
+let siteCloneBcAllDatastreamOptions = [];
 
-function sanitiseModBcDatastreamId(raw) {
+function sanitiseSiteCloneBcDatastreamId(raw) {
   const v = String(raw || '').trim();
   if (!v) return MOD_BC_DEFAULT_DATASTREAM_ID;
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v.toLowerCase();
@@ -247,50 +247,50 @@ function datastreamLabelFromItem(d) {
   return title + ' (' + id + ')';
 }
 
-function findModBcDatastreamByLabel(label) {
+function findSiteCloneBcDatastreamByLabel(label) {
   const target = String(label || '').trim().toLowerCase();
   if (!target) return null;
   return (
-    modBcAllDatastreamOptions.find(function (d) {
+    siteCloneBcAllDatastreamOptions.find(function (d) {
       return datastreamLabelFromItem(d).toLowerCase() === target;
     }) || null
   );
 }
 
-function resolveModBcDatastreamIdFromInput() {
-  const raw = modBcDatastreamId ? String(modBcDatastreamId.value || '').trim() : '';
+function resolveSiteCloneBcDatastreamIdFromInput() {
+  const raw = siteCloneBcDatastreamId ? String(siteCloneBcDatastreamId.value || '').trim() : '';
   if (!raw) return '';
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
     return raw.toLowerCase();
   }
-  const hit = findModBcDatastreamByLabel(raw);
+  const hit = findSiteCloneBcDatastreamByLabel(raw);
   if (hit && hit.id) return String(hit.id).toLowerCase();
   return '';
 }
 
-function readPersistedModBcDatastreamId(sandboxKey) {
-  migrateLegacyModScalar(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, MOD_BC_DATASTREAM_ID_KEY, sanitiseModBcDatastreamId);
+function readPersistedSiteCloneBcDatastreamId(sandboxKey) {
+  migrateLegacyModScalar(SC_BC_DATASTREAM_BY_SANDBOX_KEY, SC_BC_DATASTREAM_ID_KEY, sanitiseSiteCloneBcDatastreamId);
   const sk = sandboxKey != null ? sandboxKey : getModSandboxKey();
   const stored = readModSandboxStringForKey(
-    MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
+    SC_BC_DATASTREAM_BY_SANDBOX_KEY,
     sk,
-    sanitiseModBcDatastreamId,
+    sanitiseSiteCloneBcDatastreamId,
     '',
   );
   return stored || MOD_BC_DEFAULT_DATASTREAM_ID;
 }
 
-function getModBcDatastreamId() {
-  const resolved = resolveModBcDatastreamIdFromInput();
-  if (resolved) return sanitiseModBcDatastreamId(resolved);
-  return readPersistedModBcDatastreamId();
+function getSiteCloneBcDatastreamId() {
+  const resolved = resolveSiteCloneBcDatastreamIdFromInput();
+  if (resolved) return sanitiseSiteCloneBcDatastreamId(resolved);
+  return readPersistedSiteCloneBcDatastreamId();
 }
 
-function renderModBcDatastreamSuggestions(query) {
-  if (!modBcDatastreamList) return;
+function renderSiteCloneBcDatastreamSuggestions(query) {
+  if (!siteCloneBcDatastreamList) return;
   const q = String(query || '').trim().toLowerCase();
-  modBcDatastreamList.innerHTML = '';
-  const matches = modBcAllDatastreamOptions
+  siteCloneBcDatastreamList.innerHTML = '';
+  const matches = siteCloneBcAllDatastreamOptions
     .filter(function (d) {
       if (!q) return true;
       const label = datastreamLabelFromItem(d).toLowerCase();
@@ -301,33 +301,33 @@ function renderModBcDatastreamSuggestions(query) {
   matches.forEach(function (d) {
     const opt = document.createElement('option');
     opt.value = datastreamLabelFromItem(d);
-    modBcDatastreamList.appendChild(opt);
+    siteCloneBcDatastreamList.appendChild(opt);
   });
 }
 
-function applyModBcDatastreamInputToStoredId() {
-  const id = getModBcDatastreamId();
-  const hit = modBcAllDatastreamOptions.find(function (d) {
+function applySiteCloneBcDatastreamInputToStoredId() {
+  const id = getSiteCloneBcDatastreamId();
+  const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
     return String(d.id || '').toLowerCase() === id;
   });
-  if (modBcDatastreamId && hit) {
-    modBcDatastreamId.value = datastreamLabelFromItem(hit);
+  if (siteCloneBcDatastreamId && hit) {
+    siteCloneBcDatastreamId.value = datastreamLabelFromItem(hit);
   }
-  writeModSandboxString(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, id);
-  refreshModBcDatastreamHint();
+  writeModSandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, id);
+  refreshSiteCloneBcDatastreamHint();
   return id;
 }
 
-function saveModBcDatastreamId() {
-  applyModBcDatastreamInputToStoredId();
+function saveSiteCloneBcDatastreamId() {
+  applySiteCloneBcDatastreamInputToStoredId();
 }
 
-function refreshModBcDatastreamHint() {
-  const id = getModBcDatastreamId();
-  const hint = document.getElementById('modBcDatastreamHint');
-  const sandbox = getModBcSandboxName();
+function refreshSiteCloneBcDatastreamHint() {
+  const id = getSiteCloneBcDatastreamId();
+  const hint = document.getElementById('siteCloneBcDatastreamHint');
+  const sandbox = getSiteCloneBcSandboxName();
   if (!hint) return;
-  if (!modBcAllDatastreamOptions.length) {
+  if (!siteCloneBcAllDatastreamOptions.length) {
     hint.textContent = id
       ? 'Alloy datastreamId (manual): ' + id + (sandbox ? ' · sandbox ' + sandbox : '')
       : sandbox
@@ -336,16 +336,16 @@ function refreshModBcDatastreamHint() {
     return;
   }
   hint.textContent =
-    modBcAllDatastreamOptions.length +
+    siteCloneBcAllDatastreamOptions.length +
     ' datastream(s)' +
     (sandbox ? ' for ' + sandbox : '') +
     ' · selected ' +
     id;
 }
 
-async function loadModBcDatastreams() {
-  const sandbox = getModBcSandboxName();
-  const hint = document.getElementById('modBcDatastreamHint');
+async function loadSiteCloneBcDatastreams() {
+  const sandbox = getSiteCloneBcSandboxName();
+  const hint = document.getElementById('siteCloneBcDatastreamHint');
   if (hint) {
     hint.textContent = sandbox ? 'Loading datastreams for ' + sandbox + '…' : 'Loading datastreams…';
   }
@@ -356,28 +356,28 @@ async function loadModBcDatastreams() {
     const data = await res.json().catch(function () {
       return {};
     });
-    modBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
-    renderModBcDatastreamSuggestions(modBcDatastreamId ? modBcDatastreamId.value : '');
+    siteCloneBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
+    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId ? siteCloneBcDatastreamId.value : '');
 
-    const storedId = readPersistedModBcDatastreamId();
+    const storedId = readPersistedSiteCloneBcDatastreamId();
 
-    const hit = modBcAllDatastreamOptions.find(function (d) {
+    const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
       return String(d.id || '').toLowerCase() === storedId;
     });
-    if (modBcDatastreamId) {
-      modBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
+    if (siteCloneBcDatastreamId) {
+      siteCloneBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
     }
 
     if (hint) {
-      if (data.note && !modBcAllDatastreamOptions.length) {
+      if (data.note && !siteCloneBcAllDatastreamOptions.length) {
         hint.textContent = String(data.note);
       } else {
-        refreshModBcDatastreamHint();
+        refreshSiteCloneBcDatastreamHint();
       }
     }
   } catch (err) {
-    modBcAllDatastreamOptions = [];
-    renderModBcDatastreamSuggestions('');
+    siteCloneBcAllDatastreamOptions = [];
+    renderSiteCloneBcDatastreamSuggestions('');
     if (hint) {
       hint.textContent =
         'Could not load datastreams' +
@@ -387,17 +387,17 @@ async function loadModBcDatastreams() {
   }
 }
 
-window.ModDemoBcConfig = {
-  getStyleConfigUrl: getModBcStyleConfigUrl,
-  getDatastreamId: getModBcDatastreamId,
+window.SiteCloneBcConfig = {
+  getStyleConfigUrl: getSiteCloneBcStyleConfigUrl,
+  getDatastreamId: getSiteCloneBcDatastreamId,
 };
 
 // Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
-const modBcFullScreenToggle = document.getElementById('modBcFullScreenToggle');
-const modBcModalToggle = document.getElementById('modBcModalToggle');
-const modBcInjectedToggle = document.getElementById('modBcInjectedToggle');
-const MOD_BC_PREFS_BY_SANDBOX_KEY = 'modDemoBcDisplayPrefsBySandbox';
-const MOD_BC_PREFS_KEY = 'modDemoBcDisplayPrefs';
+const siteCloneBcFullScreenToggle = document.getElementById('siteCloneBcFullScreenToggle');
+const siteCloneBcModalToggle = document.getElementById('siteCloneBcModalToggle');
+const siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
+const SC_BC_PREFS_BY_SANDBOX_KEY = 'siteCloneBcDisplayPrefsBySandbox';
+const SC_BC_PREFS_KEY = 'siteCloneBcDisplayPrefs';
 
 function normaliseModBcDisplayPrefs(raw) {
   if (!raw || typeof raw !== 'object') {
@@ -410,18 +410,18 @@ function normaliseModBcDisplayPrefs(raw) {
   };
 }
 
-function loadModBcDisplayPrefs() {
-  migrateLegacyModScalar(MOD_BC_PREFS_BY_SANDBOX_KEY, MOD_BC_PREFS_KEY, function (legacy) {
+function loadSiteCloneBcDisplayPrefs() {
+  migrateLegacyModScalar(SC_BC_PREFS_BY_SANDBOX_KEY, SC_BC_PREFS_KEY, function (legacy) {
     try {
       return JSON.parse(legacy);
     } catch {
       return null;
     }
   });
-  const raw = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY)[getModSandboxKey()];
+  const raw = readModStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY)[getModSandboxKey()];
   if (raw && typeof raw === 'object') return normaliseModBcDisplayPrefs(raw);
   try {
-    const flat = localStorage.getItem(MOD_BC_PREFS_KEY);
+    const flat = localStorage.getItem(SC_BC_PREFS_KEY);
     if (flat) return normaliseModBcDisplayPrefs(JSON.parse(flat));
   } catch {
     /* noop */
@@ -429,38 +429,38 @@ function loadModBcDisplayPrefs() {
   return { fullScreen: false, modal: false, injected: false };
 }
 
-function saveModBcDisplayPrefs(sandboxKey) {
-  const map = readModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY);
+function saveSiteCloneBcDisplayPrefs(sandboxKey) {
+  const map = readModStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
   const key = sandboxKey != null ? sandboxKey : getModSandboxKey();
   map[key] = {
-    fullScreen: !!(modBcFullScreenToggle && modBcFullScreenToggle.checked),
-    modal: !!(modBcModalToggle && modBcModalToggle.checked),
-    injected: !!(modBcInjectedToggle && modBcInjectedToggle.checked),
+    fullScreen: !!(siteCloneBcFullScreenToggle && siteCloneBcFullScreenToggle.checked),
+    modal: !!(siteCloneBcModalToggle && siteCloneBcModalToggle.checked),
+    injected: !!(siteCloneBcInjectedToggle && siteCloneBcInjectedToggle.checked),
   };
-  writeModStorageMap(MOD_BC_PREFS_BY_SANDBOX_KEY, map);
+  writeModStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
 }
 
 function flushModDemoEnvForSandboxKey(sandboxKey) {
   const sk = String(sandboxKey || '').trim();
   if (!sk) return;
-  if (modBcStyleConfigUrl && modBcStyleConfigUrl.value.trim()) {
+  if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim()) {
     writeModSandboxStringForKey(
-      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
+      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
       sk,
-      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
+      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
     );
   }
-  const dsFromInput = resolveModBcDatastreamIdFromInput();
+  const dsFromInput = resolveSiteCloneBcDatastreamIdFromInput();
   if (dsFromInput) {
-    writeModSandboxStringForKey(MOD_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseModBcDatastreamId(dsFromInput));
-  } else if (modBcDatastreamId && modBcDatastreamId.value.trim()) {
+    writeModSandboxStringForKey(SC_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseSiteCloneBcDatastreamId(dsFromInput));
+  } else if (siteCloneBcDatastreamId && siteCloneBcDatastreamId.value.trim()) {
     writeModSandboxStringForKey(
-      MOD_BC_DATASTREAM_BY_SANDBOX_KEY,
+      SC_BC_DATASTREAM_BY_SANDBOX_KEY,
       sk,
-      sanitiseModBcDatastreamId(modBcDatastreamId.value.trim()),
+      sanitiseSiteCloneBcDatastreamId(siteCloneBcDatastreamId.value.trim()),
     );
   }
-  saveModBcDisplayPrefs(sk);
+  saveSiteCloneBcDisplayPrefs(sk);
   const map = readModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY);
   map[sk] = modWebPushOnInjectToggle && modWebPushOnInjectToggle.checked ? '1' : '0';
   writeModStorageMap(MOD_WEB_PUSH_BY_SANDBOX_KEY, map);
@@ -474,103 +474,103 @@ function flushModDemoEnvForSandboxKey(sandboxKey) {
   }
 }
 
-function applyModBcDisplayPrefsToUi() {
-  const prefs = loadModBcDisplayPrefs();
+function applySiteCloneBcDisplayPrefsToUi() {
+  const prefs = loadSiteCloneBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen)) {
     prefs.injected = false;
     prefs.fullScreen = false;
   } else if (prefs.fullScreen && prefs.injected) {
     prefs.injected = false;
   }
-  if (modBcInjectedToggle) modBcInjectedToggle.checked = prefs.injected;
-  if (modBcFullScreenToggle) modBcFullScreenToggle.checked = prefs.fullScreen;
-  if (modBcModalToggle) modBcModalToggle.checked = prefs.modal;
+  if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = prefs.injected;
+  if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = prefs.fullScreen;
+  if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = prefs.modal;
 }
 
-function syncModDemoBcFromPrefs() {
-  if (typeof window.ModDemoBc !== 'undefined' && typeof window.ModDemoBc.sync === 'function') {
-    window.ModDemoBc.sync();
+function syncSiteCloneBcFromPrefs() {
+  if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
+    window.SiteCloneBc.sync();
   }
 }
 
-(function initModBcDisplayPrefs() {
-  applyModBcDisplayPrefsToUi();
-  [modBcFullScreenToggle, modBcModalToggle, modBcInjectedToggle].forEach(function (el) {
+(function initSiteCloneBcDisplayPrefs() {
+  applySiteCloneBcDisplayPrefsToUi();
+  [siteCloneBcFullScreenToggle, siteCloneBcModalToggle, siteCloneBcInjectedToggle].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
-      if (el === modBcModalToggle && el.checked) {
-        if (modBcInjectedToggle) modBcInjectedToggle.checked = false;
-        if (modBcFullScreenToggle) modBcFullScreenToggle.checked = false;
+      if (el === siteCloneBcModalToggle && el.checked) {
+        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
       }
-      if ((el === modBcInjectedToggle || el === modBcFullScreenToggle) && el.checked) {
-        if (modBcModalToggle) modBcModalToggle.checked = false;
+      if ((el === siteCloneBcInjectedToggle || el === siteCloneBcFullScreenToggle) && el.checked) {
+        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
       }
-      if (el === modBcInjectedToggle && el.checked && modBcFullScreenToggle) {
-        modBcFullScreenToggle.checked = false;
+      if (el === siteCloneBcInjectedToggle && el.checked && siteCloneBcFullScreenToggle) {
+        siteCloneBcFullScreenToggle.checked = false;
       }
-      if (el === modBcFullScreenToggle && el.checked && modBcInjectedToggle) {
-        modBcInjectedToggle.checked = false;
+      if (el === siteCloneBcFullScreenToggle && el.checked && siteCloneBcInjectedToggle) {
+        siteCloneBcInjectedToggle.checked = false;
       }
-      saveModBcDisplayPrefs();
-      syncModDemoBcFromPrefs();
+      saveSiteCloneBcDisplayPrefs();
+      syncSiteCloneBcFromPrefs();
     });
   });
-  saveModBcDisplayPrefs();
+  saveSiteCloneBcDisplayPrefs();
 })();
 
-(function initModBcStyleConfigUrl() {
-  if (!modBcStyleConfigUrl) return;
-  modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
+(function initSiteCloneBcStyleConfigUrl() {
+  if (!siteCloneBcStyleConfigUrl) return;
+  siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
   function onStyleUrlChange() {
-    saveModBcStyleConfigUrl();
-    invalidateModDemoBcCore();
-    syncModDemoBcFromPrefs();
+    saveSiteCloneBcStyleConfigUrl();
+    invalidateSiteCloneBcCore();
+    syncSiteCloneBcFromPrefs();
   }
-  modBcStyleConfigUrl.addEventListener('input', function () {
+  siteCloneBcStyleConfigUrl.addEventListener('input', function () {
     writeModSandboxString(
-      MOD_BC_STYLE_URL_BY_SANDBOX_KEY,
-      sanitiseModBcStyleConfigUrl(modBcStyleConfigUrl.value),
+      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
     );
-    refreshModBcStyleUrlHints();
+    refreshSiteCloneBcStyleUrlHints();
   });
-  modBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
-  modBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
-  refreshModBcStyleUrlHints();
+  siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+  siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+  refreshSiteCloneBcStyleUrlHints();
 })();
 
-(function initModBcDatastreamPicker() {
-  if (!modBcDatastreamId) return;
+(function initSiteCloneBcDatastreamPicker() {
+  if (!siteCloneBcDatastreamId) return;
 
   function onDatastreamFieldChange() {
-    const prev = getModBcDatastreamId();
-    saveModBcDatastreamId();
-    const next = getModBcDatastreamId();
+    const prev = getSiteCloneBcDatastreamId();
+    saveSiteCloneBcDatastreamId();
+    const next = getSiteCloneBcDatastreamId();
     if (prev !== next) {
-      invalidateModDemoBcCore();
-      syncModDemoBcFromPrefs();
+      invalidateSiteCloneBcCore();
+      syncSiteCloneBcFromPrefs();
     }
   }
 
-  modBcDatastreamId.addEventListener('input', function () {
-    renderModBcDatastreamSuggestions(modBcDatastreamId.value);
+  siteCloneBcDatastreamId.addEventListener('input', function () {
+    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId.value);
   });
-  modBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
-  modBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
+  siteCloneBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
+  siteCloneBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
 
-  void loadModBcDatastreams();
+  void loadSiteCloneBcDatastreams();
 })();
 
 function applyModDemoEnvForCurrentSandbox() {
   applyModWebPushOnInjectToggle();
-  applyModBcOnInjectPrefs();
-  if (modBcStyleConfigUrl) {
-    modBcStyleConfigUrl.value = readPersistedModBcStyleConfigUrl();
-    refreshModBcStyleUrlHints();
+  applySiteCloneBcOnInjectPrefs();
+  if (siteCloneBcStyleConfigUrl) {
+    siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
+    refreshSiteCloneBcStyleUrlHints();
   }
-  applyModBcDisplayPrefsToUi();
-  invalidateModDemoBcCore();
-  syncModDemoBcFromPrefs();
-  void loadModBcDatastreams();
+  applySiteCloneBcDisplayPrefsToUi();
+  invalidateSiteCloneBcCore();
+  syncSiteCloneBcFromPrefs();
+  void loadSiteCloneBcDatastreams();
   modDemoEnvSandboxKey = getModSandboxKey();
 }
 
@@ -585,13 +585,13 @@ window.addEventListener('aep-global-sandbox-change', function () {
 modDemoEnvSandboxKey = getModSandboxKey();
 
 /** Suppress Tags-inject BC until the user clicks Inject (avoids BC popup on reload/resume). */
-window.__modDemoSuppressBcEnable = true;
+window.__siteCloneSuppressBcEnable = true;
 const modInjectSdkBtn = document.getElementById('modInjectSdkBtn');
 if (modInjectSdkBtn) {
   modInjectSdkBtn.addEventListener(
     'click',
     function () {
-      window.__modDemoSuppressBcEnable = false;
+      window.__siteCloneSuppressBcEnable = false;
     },
     true,
   );
@@ -635,7 +635,7 @@ const modTagsInjection =
             return modBcStyleSelect ? modBcStyleSelect.value : 'army';
           },
           suppressEnable: function () {
-            return !!window.__modDemoSuppressBcEnable;
+            return !!window.__siteCloneSuppressBcEnable;
           },
         },
       })
