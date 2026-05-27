@@ -33,13 +33,13 @@
 
   /** Public Web SDK fields for Firebase project adbe-gcp0819 (sandbox Hosting). */
   var sandboxDefaults = {
-    apiKey: '',
+    apiKey: 'AIzaSyBDUxirvFFmbBJhuYeNURpfO7uSMO8BGNE',
     authDomain: 'adbe-gcp0819.firebaseapp.com',
     databaseURL: 'https://adbe-gcp0819-default-rtdb.firebaseio.com',
     projectId: 'adbe-gcp0819',
     storageBucket: 'adbe-gcp0819.firebasestorage.app',
-    messagingSenderId: '',
-    appId: '',
+    messagingSenderId: '82276930773',
+    appId: '1:82276930773:web:de4b50ac0a72111ee13e5c',
   };
 
   function isSandboxHostingHostname(hostname) {
