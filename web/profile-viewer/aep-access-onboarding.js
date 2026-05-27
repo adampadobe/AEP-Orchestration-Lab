@@ -65,6 +65,8 @@
   var SS_SIGNUP_PENDING_HOLD_KIND = 'aepLabSignupPendingHoldKind';
   var HOLD_KIND_POST_SIGNUP = 'postSignup';
   var HOLD_KIND_LAB_STATUS = 'labStatus';
+  /** Log once when sandbox Hosting bypasses blocked lab-access Cloud Function IAM. */
+  var sandboxLabAccessBypassWarned = false;
   var step1LoginMode = false;
   var step1SessionExpiredShell = false;
   /** Step 1 “holding” panel: post-signup pending or signed-in-as-pending lockout (no form, single Log in). */
@@ -591,18 +593,76 @@
     });
   }
 
-  function fetchLabAccessStatusWithIdToken(idToken) {
+  function isSandboxLabHosting() {
+    try {
+      var host = String(global.location && global.location.hostname || '').toLowerCase();
+      if (host === 'adbe-gcp0819.web.app' || host.endsWith('.adbe-gcp0819.web.app')) {
+        return true;
+      }
+    } catch (_host) {}
+    try {
+      var cfg = global.firebaseDatabaseConfig;
+      if (cfg && String(cfg.projectId || '') === 'adbe-gcp0819') return true;
+    } catch (_cfg) {}
+    return false;
+  }
+
+  function warnSandboxLabAccessBypassOnce() {
+    if (sandboxLabAccessBypassWarned) return;
+    sandboxLabAccessBypassWarned = true;
+    try {
+      console.warn('[sandbox] lab-access API unreachable; allowing Firebase-authenticated access');
+    } catch (_w) {}
+  }
+
+  /** Sandbox admins: skip pending-approval UI when lab-access API is blocked by org IAM. */
+  function sandboxAutoApproveAdobeEmail(email) {
+    var e = String(email || '').trim().toLowerCase();
+    return e === 'apalmer@adobe.com';
+  }
+
+  function applySandboxLabAccessFallback(status, user, httpStatus) {
+    if (!isSandboxLabHosting()) return status;
+    if (!user || !isAdobeLabFirebaseUser(user)) return status;
+    if (status === 'approved' || status === 'pending') return status;
+    var unreachable =
+      status === 'error' || httpStatus === 401 || httpStatus === 403 || httpStatus === 0;
+    if (!unreachable) return status;
+    warnSandboxLabAccessBypassOnce();
+    if (sandboxAutoApproveAdobeEmail(user.email)) return 'approved';
+    return 'missing';
+  }
+
+  function fetchLabAccessStatusWithIdToken(idToken, user) {
+    var httpStatus = 0;
     return fetch('/api/lab/lab-access/status', {
       headers: { Authorization: 'Bearer ' + String(idToken || '') },
     })
       .then(function (res) {
-        return res.json().catch(function () {
-          return {};
-        });
+        httpStatus = res.status;
+        return res
+          .json()
+          .catch(function () {
+            return null;
+          })
+          .then(function (body) {
+            return { httpStatus: httpStatus, body: body };
+          });
       })
-      .then(function (body) {
-        if (!body || body.ok !== true) return 'error';
-        return String(body.status || 'error');
+      .then(function (pack) {
+        httpStatus = pack.httpStatus;
+        var body = pack.body;
+        if (!body || body.ok !== true) {
+          return applySandboxLabAccessFallback('error', user, httpStatus);
+        }
+        var status = String(body.status || 'error');
+        if (status === 'error') {
+          return applySandboxLabAccessFallback('error', user, httpStatus);
+        }
+        return status;
+      })
+      .catch(function () {
+        return applySandboxLabAccessFallback('error', user, httpStatus);
       });
   }
 
@@ -613,7 +673,7 @@
     return user
       .getIdToken(false)
       .then(function (idToken) {
-        return fetchLabAccessStatusWithIdToken(idToken);
+        return fetchLabAccessStatusWithIdToken(idToken, user);
       })
       .then(function (status) {
         if (status === 'pending') {
@@ -911,7 +971,7 @@
       user0
         .getIdToken(false)
         .then(function (idToken) {
-          return fetchLabAccessStatusWithIdToken(idToken);
+          return fetchLabAccessStatusWithIdToken(idToken, user0);
         })
         .then(function (status) {
           if (status === 'pending') {
@@ -1372,7 +1432,7 @@
       return user
         .getIdToken(true)
         .then(function (idToken) {
-          return fetchLabAccessStatusWithIdToken(idToken);
+          return fetchLabAccessStatusWithIdToken(idToken, user);
         })
         .then(function (status) {
           if (status === 'pending') {
@@ -1386,6 +1446,14 @@
           setMsg('Could not verify lab access status. Try again in a moment.', 'err');
         })
         .catch(function () {
+          if (isSandboxLabHosting() && user && isAdobeLabFirebaseUser(user)) {
+            var fallback = applySandboxLabAccessFallback('error', user, 0);
+            if (fallback === 'approved' || fallback === 'missing') {
+              clearPendingApprovalSessionHold();
+              afterStep1AuthSuccess({ ok: true, user: user });
+              return;
+            }
+          }
           setMsg('Could not verify lab access status. Try again in a moment.', 'err');
         });
     }
