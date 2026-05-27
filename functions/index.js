@@ -110,8 +110,6 @@ const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelSe
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
-const REGION = 'us-central1';
-
 function readFirebaseConfigProjectId() {
   const raw = String(process.env.FIREBASE_CONFIG || '').trim();
   if (!raw) return '';
@@ -121,6 +119,26 @@ function readFirebaseConfigProjectId() {
     return '';
   }
 }
+
+const SANDBOX_GCP_PROJECT_ID = 'adbe-gcp0819';
+const SANDBOX_FUNCTIONS_REGION = 'us-east4';
+const DEFAULT_FUNCTIONS_REGION = 'us-central1';
+
+function resolveFunctionsRegion() {
+  const fromEnv = String(process.env.CLOUD_FUNCTIONS_REGION || '').trim();
+  if (fromEnv) return fromEnv;
+  const projectId = String(
+    process.env.GCLOUD_PROJECT
+      || process.env.GCP_PROJECT
+      || process.env.GOOGLE_CLOUD_PROJECT
+      || readFirebaseConfigProjectId()
+      || '',
+  ).trim();
+  if (projectId === SANDBOX_GCP_PROJECT_ID) return SANDBOX_FUNCTIONS_REGION;
+  return DEFAULT_FUNCTIONS_REGION;
+}
+
+const REGION = resolveFunctionsRegion();
 
 /**
  * Gen2 runtime identity. Adobe sandbox project `adbe-gcp0819` has no default
@@ -143,7 +161,9 @@ const SC_DEMO_SANDBOX_RUNTIME_SA =
   'sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com';
 const RUNTIME_SERVICE_ACCOUNT =
   EXPLICIT_RUNTIME_SERVICE_ACCOUNT
-  || (TARGET_PROJECT_FOR_RUNTIME === 'adbe-gcp0819' ? SC_DEMO_SANDBOX_RUNTIME_SA : '');
+  || (TARGET_PROJECT_FOR_RUNTIME === SANDBOX_GCP_PROJECT_ID ? SC_DEMO_SANDBOX_RUNTIME_SA : '')
+  // Deploy analysis may not set GCLOUD_PROJECT/FIREBASE_CONFIG; `npm run deploy:sandbox` sets CLOUD_FUNCTIONS_REGION.
+  || (REGION === SANDBOX_FUNCTIONS_REGION ? SC_DEMO_SANDBOX_RUNTIME_SA : '');
 if (RUNTIME_SERVICE_ACCOUNT) {
   setGlobalOptions({
     region: REGION,
@@ -190,12 +210,27 @@ function labHostingOriginForScheduledFetch() {
 
 const PROFILE_FN_SECRETS = [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES];
 
+const { resolveFirestoreDatabaseId, SANDBOX_NATIVE_DATABASE_ID } = require('./adminFirestore');
+
+/** Baked into Gen2 env so runtime Admin SDK targets Native `aep-lab` on sandbox (not Datastore `(default)`). */
+function consentStoreRuntimeEnv() {
+  const dbId = String(
+    process.env.FIRESTORE_DATABASE_ID || resolveFirestoreDatabaseId() || '',
+  ).trim();
+  if (dbId) return { FIRESTORE_DATABASE_ID: dbId };
+  if (TARGET_PROJECT_FOR_RUNTIME === SANDBOX_GCP_PROJECT_ID) {
+    return { FIRESTORE_DATABASE_ID: SANDBOX_NATIVE_DATABASE_ID };
+  }
+  return {};
+}
+
 /** Firestore consent store — no Adobe secrets (same project Admin SDK). */
 const CONSENT_STORE_FN_OPTS = {
   region: REGION,
   invoker: 'public',
   timeoutSeconds: 30,
   memory: '256MiB',
+  environmentVariables: consentStoreRuntimeEnv(),
 };
 
 /**
@@ -208,13 +243,25 @@ const CONSENT_STORE_FN_OPTS = {
  * forces the static-IP path (the default `PRIVATE_RANGES_ONLY` would still
  * use Google's dynamic IPs for public Snowflake hostnames).
  */
+function resolveSnowflakeVpcConnector() {
+  const fromEnv = String(process.env.SNOWFLAKE_VPC_CONNECTOR || '').trim();
+  if (fromEnv) return fromEnv;
+  if (TARGET_PROJECT_FOR_RUNTIME === SANDBOX_GCP_PROJECT_ID) return 'disabled';
+  return 'snowflake-egress';
+}
+
+const SNOWFLAKE_VPC_CONNECTOR = resolveSnowflakeVpcConnector();
+const SNOWFLAKE_VPC_OPTS =
+  SNOWFLAKE_VPC_CONNECTOR && !/^(disabled|none|skip)$/i.test(SNOWFLAKE_VPC_CONNECTOR)
+    ? { vpcConnector: SNOWFLAKE_VPC_CONNECTOR, vpcConnectorEgressSettings: 'ALL_TRAFFIC' }
+    : {};
+
 const SNOWFLAKE_FN_OPTS = {
   region: REGION,
   invoker: 'public',
   timeoutSeconds: 60,
   memory: '512MiB',
-  vpcConnector: 'snowflake-egress',
-  vpcConnectorEgressSettings: 'ALL_TRAFFIC',
+  ...SNOWFLAKE_VPC_OPTS,
 };
 
 /** Long jobs: full Agentic phased generate + enrich (Python runner or heavy SQL). */

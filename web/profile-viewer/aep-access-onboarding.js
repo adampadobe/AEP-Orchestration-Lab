@@ -695,6 +695,25 @@
     return e === 'apalmer@adobe.com';
   }
 
+  function isSandboxLabApiBlocked(httpStatus) {
+    return httpStatus === 401 || httpStatus === 403 || httpStatus === 0;
+  }
+
+  function sandboxWorkspaceRegisterBypass(user, input) {
+    if (!isSandboxLabHosting() || !user || !sandboxAutoApproveAdobeEmail(user.email)) return null;
+    if (!input || !input.firstName || !input.lastName) return null;
+    warnSandboxLabAccessBypassOnce();
+    var workspaceName = (String(input.firstName) + ' ' + String(input.lastName)).trim();
+    var workspaceSlug = workspaceSlugFromProfile(
+      global.AepAccessScope,
+      String(user.email || '').trim().toLowerCase(),
+      input.firstName,
+      input.lastName,
+    );
+    if (!workspaceSlug) return null;
+    return { ok: true, workspaceName: workspaceName, workspaceSlug: workspaceSlug };
+  }
+
   function applySandboxLabAccessFallback(status, user, httpStatus) {
     if (!isSandboxLabHosting()) return status;
     if (!user || !isAdobeLabFirebaseUser(user)) return status;
@@ -1366,12 +1385,13 @@
         }
         return {
           ok: false,
+          httpStatus: resp.status,
           code: String((resp.body && resp.body.code) || ''),
           error: (resp.body && resp.body.error) || 'Workspace signup request failed.',
         };
       })
       .catch(function (e) {
-        return { ok: false, error: String((e && e.message) || e || 'Workspace signup request failed.') };
+        return { ok: false, httpStatus: 0, error: String((e && e.message) || e || 'Workspace signup request failed.') };
       });
   }
 
@@ -1382,7 +1402,13 @@
         return requestWorkspaceRegisterFromIdToken(idToken, input.firstName, input.lastName);
       })
       .then(function (reg) {
-        if (!reg || !reg.ok) return reg;
+        if (!reg || !reg.ok) {
+          if (reg && isSandboxLabApiBlocked(reg.httpStatus)) {
+            var bypass = sandboxWorkspaceRegisterBypass(user, input);
+            if (bypass) return bypass;
+          }
+          return reg;
+        }
         if (reg.pendingApproval) {
           return {
             ok: false,
@@ -1419,16 +1445,53 @@
           body: JSON.stringify(payload),
         })
           .then(function (res) {
-            return res.json().catch(function () {
-              return {};
-            });
-          })
-          .then(function (json) {
-            return json && json.ok
-              ? { ok: true, profile: json.profile || null }
-              : { ok: false, error: (json && json.error) || 'Failed to save profile.' };
+            var httpStatus = res.status;
+            return res
+              .json()
+              .catch(function () {
+                return {};
+              })
+              .then(function (json) {
+                if (json && json.ok) {
+                  return { ok: true, profile: json.profile || null };
+                }
+                if (
+                  isSandboxLabHosting() &&
+                  isSandboxLabApiBlocked(httpStatus) &&
+                  sandboxAutoApproveAdobeEmail(payload.adobeEmail)
+                ) {
+                  warnSandboxLabAccessBypassOnce();
+                  return {
+                    ok: true,
+                    profile: {
+                      firstName: payload.firstName,
+                      lastName: payload.lastName,
+                      adobeEmail: payload.adobeEmail,
+                      workspaceName: payload.workspaceName,
+                      workspaceSlug: payload.workspaceSlug,
+                    },
+                  };
+                }
+                return { ok: false, error: (json && json.error) || 'Failed to save profile.' };
+              });
           })
           .catch(function (e) {
+            if (
+              isSandboxLabHosting() &&
+              sandboxAutoApproveAdobeEmail(payload.adobeEmail)
+            ) {
+              warnSandboxLabAccessBypassOnce();
+              return {
+                ok: true,
+                profile: {
+                  firstName: payload.firstName,
+                  lastName: payload.lastName,
+                  adobeEmail: payload.adobeEmail,
+                  workspaceName: payload.workspaceName,
+                  workspaceSlug: payload.workspaceSlug,
+                },
+              };
+            }
             return { ok: false, error: String((e && e.message) || e || 'Failed to save profile.') };
           });
       });

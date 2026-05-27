@@ -376,6 +376,43 @@ Sandbox Gen2 functions use `invoker: 'public'` in code, but deploy **cannot** at
 
 `domain:adobe.com` on `roles/run.invoker` does **not** fix browser traffic (requests are still unauthenticated at the Cloud Run IAM layer).
 
+### Step 2 no-sandbox: “Workspace signup request failed.”
+
+**Client flow (Step 2 → Save):** `aep-access-onboarding.js` calls:
+
+1. `POST /api/lab/workspace-auth/register-from-id-token` with `{ idToken, firstName, lastName }` (Firebase ID token in JSON body).
+2. On success (not pending), `POST /api/lab/workspace-profile` with Bearer ID token and workspace fields.
+
+Handlers: `labWorkspaceAuthRegisterFromIdToken` and `labWorkspaceProfile` (`functions/labWorkspaceAuthService.js` + `labUserSandboxStore.js`). Both use **`getAdminFirestore()`** → Native database **`aep-lab`** on `adbe-gcp0819` (not Datastore `(default)`). **Realtime Database is not used** for this path (Auth + Firestore only).
+
+**Diagnose with curl** (no token — should be JSON `400`, not HTML):
+
+```bash
+curl -sS -w "\nHTTP:%{http_code}\n" -X POST \
+  "https://adbe-gcp0819.web.app/api/lab/workspace-auth/register-from-id-token" \
+  -H "Content-Type: application/json" \
+  -d '{"idToken":"invalid","firstName":"Test","lastName":"User"}'
+```
+
+| Symptom | Likely cause | Fix |
+|--------|----------------|-----|
+| **403** or **401** HTML “permission to get URL” | Same Cloud Run IAM block as lab-access (function never runs; client parses empty JSON → generic “Workspace signup request failed.”) | Org/project admin: allow public `roles/run.invoker` (see above), then `node scripts/sandbox-grant-cloud-run-public-invoker.mjs`. |
+| **400** JSON `Invalid or expired ID token` | IAM + Hosting OK | Retry in browser with a fresh Firebase session. |
+| **500** after IAM fixed | Firestore wrong DB or missing Native DB | Ensure `aep-lab` exists (`gcloud firestore databases list --project=adbe-gcp0819`). Redeploy functions so `FIRESTORE_DATABASE_ID=aep-lab` is on Gen2 env (`CONSENT_STORE_FN_OPTS` / `functions/.env.adbe-gcp0819`). |
+| Step 1 works, Step 2 fails (May 2026) | `lab-access/status` has a **sandbox client fallback** when the API is blocked; **register-from-id-token** did not | Redeploy Hosting with updated `aep-access-onboarding.js` (sandbox bypass for `apalmer@adobe.com` only — local scope until IAM is fixed). Full fix is still public invoker + server-side approval docs. |
+
+**Dependencies checklist (sandbox `adbe-gcp0819`, no-sandbox mode):**
+
+| Product | Required? | Notes |
+|---------|-----------|--------|
+| Firebase Auth | Yes | `@adobe.com` email/password (or Google) on project `adbe-gcp0819`. |
+| Firestore Native `aep-lab` | Yes | Collections `labWorkspaceAccessApprovals`, workspace profile docs via `labUserSandboxStore`. |
+| Firestore `(default)` Datastore mode | No | Do not point Admin SDK at `(default)` on this project. |
+| Realtime Database | No | Not used by workspace signup handlers. |
+| Cloud Storage | No | Not used on this path. |
+| Secret Manager (Mailgun) | Yes for approval email | `EASTER_EGG_MAILGUN_*` on register handlers; signup still writes Firestore if email fails. |
+| Cloud Run public invoker | Yes for browser `/api/*` | Org policy may block; see above. |
+
 ---
 
 ## Related
