@@ -38,6 +38,19 @@ html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-con
   margin: 0 !important;
 }
 
+html.site-clone-bc-injected-active #siteCloneBcInline .brand-concierge-container,
+html.site-clone-bc-injected-active #siteCloneBcInline .concierge-message,
+html.site-clone-bc-injected-active #siteCloneBcInline .message-content,
+.aep-bc-modal .brand-concierge-container,
+.aep-bc-modal .concierge-message,
+.aep-bc-modal .message-content,
+.site-clone-bc-frame-host .brand-concierge-container,
+.site-clone-bc-frame-host .concierge-message,
+.site-clone-bc-frame-host .message-content {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .embed-bc-inline #brand-concierge-mount > * {
   pointer-events: auto;
   width: 100%;

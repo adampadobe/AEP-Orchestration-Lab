@@ -37,44 +37,53 @@
     return readFrom(w) || readFrom(win);
   }
 
-  function rewriteConfigId(url, configId, baseWin) {
+  function normalizeFetchMethod(input, init) {
+    if (init && init.method) return String(init.method).toUpperCase();
+    if (input && typeof input === 'object' && input.method) return String(input.method).toUpperCase();
+    return 'GET';
+  }
+
+  function rewriteConfigId(url, configId, baseWin, method) {
     if (!configId || !url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
+      return url;
+    }
+    if (!/\/conversations/i.test(url)) {
       return url;
     }
     try {
       var w = baseWin || win;
       var u = new URL(url, w.location.href);
-      u.searchParams.set('configId', configId);
-      return u.toString();
-    } catch (_e) {
-      if (/[?&]configId=/i.test(url)) {
-        return url.replace(/([?&])configId=[^&]*/gi, '$1configId=' + encodeURIComponent(configId));
+      if (u.searchParams.has('configId')) {
+        u.searchParams.set('configId', configId);
+        return u.toString();
       }
-      return url + (url.indexOf('?') !== -1 ? '&' : '?') + 'configId=' + encodeURIComponent(configId);
+      if (method === 'POST') {
+        u.searchParams.set('configId', configId);
+        return u.toString();
+      }
+      return url;
+    } catch (_e) {
+      if (!/[?&]configId=/i.test(url)) {
+        if (method === 'POST') {
+          return (
+            url + (url.indexOf('?') !== -1 ? '&' : '?') + 'configId=' + encodeURIComponent(configId)
+          );
+        }
+        return url;
+      }
+      return url.replace(/([?&])configId=[^&]*/gi, '$1configId=' + encodeURIComponent(configId));
     }
   }
 
-  function isBcConversationApiUrl(url) {
+  function applyConfigIdToBcUrl(url, baseWin, method) {
     if (!url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
-      return false;
+      return url;
     }
     if (!/\/conversations/i.test(url)) {
-      return false;
+      return url;
     }
-    try {
-      var u = new URL(url, 'https://edge.adobedc.net');
-      if (u.searchParams.has('configId')) return true;
-      if (u.searchParams.has('sessionId') && u.searchParams.has('requestId')) return true;
-      return false;
-    } catch (_e) {
-      return /[?&]configId=/i.test(url) || (/[?&]sessionId=/i.test(url) && /[?&]requestId=/i.test(url));
-    }
-  }
-
-  function applyConfigIdToBcUrl(url, baseWin) {
-    if (!isBcConversationApiUrl(url)) return url;
     var configId = resolveDatastreamConfigId(baseWin);
-    return configId ? rewriteConfigId(url, configId, baseWin) : url;
+    return configId ? rewriteConfigId(url, configId, baseWin, method) : url;
   }
 
   function resolveDeployment(targetWin) {
@@ -97,7 +106,7 @@
     return useLocal ? null : 'nld2';
   }
 
-  function rewriteUrl(url, deployment, baseWin) {
+  function rewriteUrl(url, deployment, baseWin, method) {
     if (!url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
       return url;
     }
@@ -140,7 +149,7 @@
         }
       }
     }
-    return applyConfigIdToBcUrl(next, baseWin);
+    return applyConfigIdToBcUrl(next, baseWin, method);
   }
 
   function captureNativeFetch(targetWin) {
@@ -157,10 +166,11 @@
     if (!targetWin.__embedBcNativeFetch) return;
     var nativeFetch = targetWin.__embedBcNativeFetch;
     var patchedFetch = function (input, init) {
+      var method = normalizeFetchMethod(input, init);
       if (typeof input === 'string') {
-        input = rewriteUrl(input, deployment, targetWin);
+        input = rewriteUrl(input, deployment, targetWin, method);
       } else if (input && typeof input.url === 'string') {
-        var next = rewriteUrl(input.url, deployment, targetWin);
+        var next = rewriteUrl(input.url, deployment, targetWin, method);
         if (next !== input.url) {
           input = new targetWin.Request(next, input);
         }
@@ -181,7 +191,7 @@
     function patchedOpen(method, url) {
       var args = Array.prototype.slice.call(arguments);
       if (typeof url === 'string') {
-        args[1] = rewriteUrl(url, deployment, targetWin);
+        args[1] = rewriteUrl(url, deployment, targetWin, String(method || 'GET').toUpperCase());
       }
       return nativeOpen.apply(this, args);
     }
@@ -195,10 +205,11 @@
     if (!targetWin || !targetWin.Request || targetWin.__embedBcRequestPathPatched) return;
     var NativeRequest = targetWin.Request;
     targetWin.Request = function (input, init) {
+      var method = normalizeFetchMethod(input, init);
       if (typeof input === 'string') {
-        input = rewriteUrl(input, deployment, targetWin);
+        input = rewriteUrl(input, deployment, targetWin, method);
       } else if (input && typeof input.url === 'string') {
-        var next = rewriteUrl(input.url, deployment, targetWin);
+        var next = rewriteUrl(input.url, deployment, targetWin, method);
         if (next !== input.url) {
           input = new NativeRequest(next, input);
         }
@@ -214,7 +225,7 @@
     if (typeof targetWin.navigator.sendBeacon !== 'function') return;
     var native = targetWin.navigator.sendBeacon.bind(targetWin.navigator);
     targetWin.navigator.sendBeacon = function (url, data) {
-      return native(rewriteUrl(url, deployment, targetWin), data);
+      return native(rewriteUrl(url, deployment, targetWin, 'POST'), data);
     };
     targetWin.__embedBcBeaconPathPatched = true;
   }

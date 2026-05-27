@@ -553,14 +553,6 @@ function syncSiteCloneBcFromPrefs() {
 
   siteCloneBcDatastreamId.addEventListener('input', function () {
     renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId.value);
-    if (sandboxEnvSwitching) return;
-    const next = getSiteCloneBcDatastreamId();
-    if (next && next !== lastBcDatastreamIdForLiveEdge) {
-      lastBcDatastreamIdForLiveEdge = next;
-      writeSandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, next);
-      invalidateSiteCloneBcCore();
-      syncSiteCloneBcFromPrefs();
-    }
   });
   siteCloneBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
   siteCloneBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);

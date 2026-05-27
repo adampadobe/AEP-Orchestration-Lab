@@ -1000,7 +1000,7 @@
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-responses-fix', 'inline', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared', doc);
@@ -1136,7 +1136,7 @@
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-responses-fix', 'inline');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
     ensureBcCardImageStyles(document);
 
     showBcFrameHost(!!fullscreen);
@@ -1186,7 +1186,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-responses-fix', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-poll-fix', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
