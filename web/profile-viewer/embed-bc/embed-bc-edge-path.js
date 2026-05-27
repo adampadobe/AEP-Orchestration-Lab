@@ -9,81 +9,10 @@
   'use strict';
   var win = global || window;
 
-  function resolveDatastreamConfigId(targetWin) {
-    var w = targetWin || win;
-    function readFrom(ctx) {
-      try {
-        if (ctx && ctx.SiteCloneBcConfig && typeof ctx.SiteCloneBcConfig.getDatastreamId === 'function') {
-          var id = String(ctx.SiteCloneBcConfig.getDatastreamId() || '')
-            .trim()
-            .toLowerCase();
-          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {
-            return id;
-          }
-        }
-      } catch (_e) {
-        /* noop */
-      }
-      return null;
-    }
-    try {
-      if (w.parent && w.parent !== w) {
-        var fromParent = readFrom(w.parent);
-        if (fromParent) return fromParent;
-      }
-    } catch (_e2) {
-      /* noop */
-    }
-    return readFrom(w) || readFrom(win);
-  }
-
   function normalizeFetchMethod(input, init) {
     if (init && init.method) return String(init.method).toUpperCase();
     if (input && typeof input === 'object' && input.method) return String(input.method).toUpperCase();
     return 'GET';
-  }
-
-  function rewriteConfigId(url, configId, baseWin, method) {
-    if (!configId || !url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
-      return url;
-    }
-    if (!/\/conversations/i.test(url)) {
-      return url;
-    }
-    try {
-      var w = baseWin || win;
-      var u = new URL(url, w.location.href);
-      if (u.searchParams.has('configId')) {
-        u.searchParams.set('configId', configId);
-        return u.toString();
-      }
-      if (method === 'POST') {
-        u.searchParams.set('configId', configId);
-        return u.toString();
-      }
-      return url;
-    } catch (_e) {
-      if (!/[?&]configId=/i.test(url)) {
-        if (method === 'POST') {
-          return (
-            url + (url.indexOf('?') !== -1 ? '&' : '?') + 'configId=' + encodeURIComponent(configId)
-          );
-        }
-        return url;
-      }
-      return url.replace(/([?&])configId=[^&]*/gi, '$1configId=' + encodeURIComponent(configId));
-    }
-  }
-
-  function applyConfigIdToBcUrl(url, baseWin, method) {
-    if (!url || typeof url !== 'string' || url.indexOf('brand-concierge') === -1) {
-      return url;
-    }
-    if (!/\/conversations/i.test(url)) {
-      return url;
-    }
-    var configId = resolveDatastreamConfigId(baseWin);
-    return configId ? rewriteConfigId(url, configId, baseWin, method) : url;
   }
 
   function resolveDeployment(targetWin) {
@@ -149,7 +78,8 @@
         }
       }
     }
-    return applyConfigIdToBcUrl(next, baseWin, method);
+    /* configId must come from alloy('configure', { datastreamId }) — do not rewrite query params */
+    return next;
   }
 
   function captureNativeFetch(targetWin) {

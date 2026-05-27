@@ -323,6 +323,7 @@
     global.__siteCloneBcAlloyConfiguredWin = null;
     global.__siteCloneBcAlloyDatastreamId = null;
     global.__embedBcForceLocal = false;
+    unloadAlloyRuntime(global, document);
     unloadStyleConfigScripts(document);
     clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
     hideBcFrameHost();
@@ -334,6 +335,7 @@
         iframeWin.__siteCloneBcAlloyConfiguredWin = null;
         iframeWin.__siteCloneBcAlloyDatastreamId = null;
         iframeWin.__embedBcForceLocal = false;
+        unloadAlloyRuntime(iframeWin, iframeDoc);
         if (typeof iframeWin.resetSiteCloneInjectedBc === 'function') {
           iframeWin.resetSiteCloneInjectedBc();
         }
@@ -588,6 +590,31 @@
     }
   }
 
+  function unloadAlloyRuntime(win, doc) {
+    if (!win) return;
+    win.__siteCloneBcAlloyConfiguredWin = null;
+    win.__siteCloneBcAlloyDatastreamId = null;
+    try {
+      if (win.alloy && win.alloy.q) {
+        win.alloy.q.length = 0;
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    try {
+      delete win.alloy;
+    } catch (_e2) {
+      win.alloy = undefined;
+    }
+    win.__alloyNS = [];
+    if (doc) {
+      doc.querySelectorAll('script[data-site-clone-bc-alloy="1"]').forEach(function (s) {
+        if (s.parentNode) s.parentNode.removeChild(s);
+      });
+    }
+    installAlloyStub(win);
+  }
+
   async function ensureAlloyJs(win, doc) {
     installAlloyStub(win);
     if (!doc.querySelector('script[data-site-clone-bc-alloy="1"]')) {
@@ -763,8 +790,9 @@
     ) {
       return;
     }
-    if (win.__siteCloneBcAlloyConfiguredWin === win) {
-      win.__siteCloneBcAlloyConfiguredWin = null;
+    if (win.__siteCloneBcAlloyConfiguredWin === win && doc) {
+      unloadAlloyRuntime(win, doc);
+      await ensureAlloyJs(win, doc);
     }
     if (typeof win.alloy !== 'function') {
       throw new Error('Alloy is not available');
@@ -778,10 +806,22 @@
         win.applyArmyBcEdgePathPatches(win);
       }
     } catch (err) {
-      if (isAlloyAlreadyConfiguredError(err)) {
-        win.__siteCloneBcAlloyConfiguredWin = win;
-        win.__siteCloneBcAlloyDatastreamId = desiredDatastreamId;
-        return;
+      if (isAlloyAlreadyConfiguredError(err) && doc && !win.__siteCloneBcAlloyConfigureRetried) {
+        win.__siteCloneBcAlloyConfigureRetried = true;
+        try {
+          unloadAlloyRuntime(win, doc);
+          await ensureAlloyJs(win, doc);
+          await win.alloy('configure', getAlloyConfig());
+          await win.alloy('sendEvent', {});
+          win.__siteCloneBcAlloyConfiguredWin = win;
+          win.__siteCloneBcAlloyDatastreamId = desiredDatastreamId;
+          if (typeof win.applyArmyBcEdgePathPatches === 'function') {
+            win.applyArmyBcEdgePathPatches(win);
+          }
+          return;
+        } finally {
+          win.__siteCloneBcAlloyConfigureRetried = false;
+        }
       }
       throw err;
     }
@@ -1000,7 +1040,7 @@
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260527-bc-sse-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared', doc);
@@ -1136,7 +1176,7 @@
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260527-bc-sse-fix', 'inline');
     ensureBcCardImageStyles(document);
 
     showBcFrameHost(!!fullscreen);
@@ -1186,7 +1226,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-poll-fix', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260527-bc-sse-fix', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
