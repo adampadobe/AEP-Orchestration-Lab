@@ -5,15 +5,12 @@
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sky — LLM Optimizer (demo) – AEP Profile Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260528-sky-llm-v2">
-  <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm-v2">
+  <link rel="stylesheet" href="home.css?v=20260528-sky-llm-snapshot">
+  <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm-snapshot">
+  <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-snapshot">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
-  <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -70,18 +67,26 @@
       </div>
       <p id="skyLlmMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
       <p class="mod-demo-disclaimer">
-        Adobe LLM Optimizer recreated for <strong>sky.com</strong> (demo). Metrics are illustrative; use the left product menu for deep pages.
+        Overview uses the saved <strong>Adobe LLM Optimizer</strong> HTML export (pixel-faithful). Site shows <strong>sky.com</strong>; market labels are Sky UK competitors.
       </p>
     </div>
   </div>
+
+  <iframe
+    id="skyLlmOptimizerFrame"
+    class="mod-demo-site-frame sky-llm-optimizer-frame"
+    title="Adobe LLM Optimizer — Overview (Sky)"
+    src="sky-llm-snapshot/overview.html"
+    referrerpolicy="no-referrer-when-downgrade"
+    sandbox="allow-same-origin allow-scripts allow-forms"
+    loading="eager"
+  ></iframe>
 
   <div class="mod-demo-sidebar-hover-zone" aria-hidden="true"></div>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
     <div class="dashboard-main-wrap">
-      <main class="dashboard-main sky-llm-main-host app-page" id="skyLlmMain">
-        <div id="skyLlmApp" class="sky-llm-app-root" aria-live="polite"></div>
-      </main>
+      <main class="dashboard-main mod-demo-empty-main" aria-hidden="true"></main>
     </div>
   </div>
 
@@ -108,9 +113,9 @@
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="sky-llm-optimizer.js?v=20260528-sky-llm-v2"></script>
+  <script src="sky-llm-optimizer.js?v=20260528-sky-llm-snapshot"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260528-sky-llm-v2"></script>
+  <script defer src="aep-lab-nav.js?v=20260528-sky-llm-snapshot"></script>
 </body>
 </html>
