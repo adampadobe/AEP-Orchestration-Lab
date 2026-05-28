@@ -6,3 +6,9 @@
 .aep-bc-modal .aep-bc-modal__dialog {
   overflow: hidden;
 }
+
+.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
+.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}

@@ -950,7 +950,7 @@
     parentCoreReady = (async function () {
       prepareEmbedBcRuntime(global);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
       if (shouldUseLocalArmyBcCatalog(global)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared');
       }
@@ -999,7 +999,7 @@
     iframeCoreReady = (async function () {
       prepareEmbedBcRuntime(win);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
       if (shouldUseLocalArmyBcCatalog(win)) {
@@ -1135,7 +1135,7 @@
     teardownIframeInlineSection(doc);
 
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css'), 'shared');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
     ensureBcCardImageStyles(document);
 
@@ -1186,7 +1186,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260519-bc-poll-fix', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260528-bc-modal-scroll', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }

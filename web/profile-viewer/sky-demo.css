@@ -11,6 +11,17 @@
   display: flex !important;
 }
 
+/* Modal open: dim via backdrop; keep Sky snapshot visible underneath (not a solid page fill) */
+.sky-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.sky-demo-page.aep-bc-modal-open #brand-concierge-mount-host,
+.sky-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 .sky-demo-page .aep-bc-park-launcher {
   background: var(--dash-blue);
   box-shadow: 0 4px 20px color-mix(in srgb, var(--dash-blue) 35%, transparent);

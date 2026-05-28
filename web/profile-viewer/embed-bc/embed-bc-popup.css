@@ -57,15 +57,19 @@ body.aep-bc-modal-open {
 .aep-bc-modal__backdrop {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background: rgba(0, 0, 0, 0.55);
   border: none;
   padding: 0;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .aep-bc-modal__dialog {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   width: min(920px, 100%);
   max-height: min(90vh, 760px);
   overflow: hidden;
@@ -106,6 +110,12 @@ body.aep-bc-modal-open {
   min-height: 520px;
 }
 
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) .aep-bc-modal__mount,
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount,
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount {
+  min-height: 520px;
+}
+
 .aep-bc-modal__mount,
 .aep-bc-modal #brand-concierge-mount,
 .aep-bc-modal #siteCloneBcModalMount {
@@ -115,14 +125,52 @@ body.aep-bc-modal-open {
   bottom: auto !important;
   left: auto !important;
   top: auto !important;
+  flex: 1 1 auto;
   width: 100% !important;
   max-width: none !important;
-  min-height: 520px !important;
+  min-height: 0 !important;
   height: auto !important;
-  max-height: none !important;
+  max-height: 100% !important;
   margin: 0;
   pointer-events: auto !important;
-  overflow: visible;
+  overflow: hidden;
+  contain: layout paint;
+  background: transparent !important;
+}
+
+/* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
+.aep-bc-modal #brand-concierge-mount > div,
+.aep-bc-modal #siteCloneBcModalMount > div {
+  position: relative !important;
+  inset: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(68vh, 620px) !important;
+  margin: 0 !important;
+  pointer-events: auto;
+  background: transparent !important;
+}
+
+.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
+.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: min(62vh, 580px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 .aep-bc-modal .bc-card__image {
