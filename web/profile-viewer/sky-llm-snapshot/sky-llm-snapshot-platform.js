@@ -668,10 +668,15 @@
     var root = findSectionRoot('Market Tracking');
     if (!root) return;
     root.querySelectorAll('svg.recharts-surface').forEach(function (svg) {
-      Array.from(svg.querySelectorAll('path[stroke]')).forEach(function (p) {
+      var node = svg.parentElement;
+      for (var i = 0; i < 8 && node; i++) {
+        node.classList.add('sky-llm-chart-overflow');
+        node = node.parentElement;
+      }
+      Array.from(svg.querySelectorAll('g.recharts-line path')).forEach(function (p) {
         var d = p.getAttribute('d') || '';
         if (d.indexOf('M80,') === 0 && d.length > 40) {
-          state.bpLines.push({ path: p, targetD: d });
+          state.bpLines.push({ path: p, targetD: d, group: p.parentElement });
         }
       });
     });
@@ -722,6 +727,9 @@
     Object.keys(m).forEach(function (key) {
       if (state.metricNodes[key]) state.metricNodes[key].textContent = m[key];
     });
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.applyTrends) {
+      window.skyLlmSnapshotMarket.applyTrends(platformId, rangeId);
+    }
   }
 
   function marketWidths(rows) {
@@ -1011,6 +1019,9 @@
     ensureTooltip();
     applyDashboard({ animate: !state.ready });
     state.ready = true;
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
+      window.skyLlmSnapshotMarket.initMarketTracking();
+    }
   }
 
   document.addEventListener('click', hideTooltip);

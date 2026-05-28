@@ -59,6 +59,7 @@ const snapshotScripts = [
   '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-platform.js"></script>',
+  '<script src="./sky-llm-snapshot-market.js"></script>',
 ].join('\n');
 if (!html.includes('sky-llm-snapshot-platform.js')) {
   html = html.replace('</body>', `${snapshotScripts}\n</body>`);

@@ -252,3 +252,22 @@
 .sky-llm-sentiment-hit {
   cursor: default;
 }
+
+/* Prevent Recharts lines bleeding into adjacent cards */
+.sky-llm-chart-overflow,
+.sky-llm-chart-overflow .recharts-wrapper,
+.sky-llm-chart-overflow .recharts-responsive-container,
+.sky-llm-chart-overflow svg.recharts-surface {
+  overflow: hidden !important;
+  min-width: 0;
+}
+
+.sky-llm-select-others-host {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}

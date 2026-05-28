@@ -58,7 +58,27 @@
     }
   }
 
+  function ensureNavVisible() {
+    Object.keys(ROUTES).forEach(function (label) {
+      var el = document.querySelector('[role="link"][aria-label="' + label + '"]');
+      if (!el) return;
+      el.style.setProperty('opacity', '1', 'important');
+      el.style.setProperty('visibility', 'visible', 'important');
+      el.style.setProperty('pointer-events', 'auto', 'important');
+      el.removeAttribute('hidden');
+      var node = el;
+      for (var i = 0; i < 10 && node; i++) {
+        node.style.setProperty('opacity', '1', 'important');
+        node.style.setProperty('visibility', 'visible', 'important');
+        node.style.setProperty('display', node === el ? '' : node.style.display);
+        if (node.getAttribute && node.getAttribute('hidden') !== null) node.removeAttribute('hidden');
+        node = node.parentElement;
+      }
+    });
+  }
+
   function wireNav() {
+    ensureNavVisible();
     var file = currentFile();
     findNavLinks().forEach(function (item) {
       var target = ROUTES[item.label];
