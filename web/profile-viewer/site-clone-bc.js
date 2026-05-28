@@ -143,7 +143,8 @@
   }
 
   function usesIframeInlineInject() {
-    return snapshotLayout() === 'sky-home' || !!cfg('injectBcInIframe', false);
+    /* Parent-page overlay shares modal Alloy + edge-path patches; iframe-inline breaks conversations on Sky. */
+    return !!cfg('injectBcInIframe', false);
   }
 
   async function restoreSiteCloneSnapshotFrame() {
@@ -539,6 +540,10 @@
 
     if (doc) {
       var anchor = fullscreen ? getFullscreenLayoutHeader(doc) : getInjectedLayoutAnchor(doc);
+      if (!fullscreen && snapshotLayout() === 'sky-home') {
+        var skyHeroBlock = findSkyHeroBlockForInject(doc);
+        if (skyHeroBlock) anchor = skyHeroBlock;
+      }
       if (anchor) {
         var anchorRect = anchor.getBoundingClientRect();
         top = anchorRect.bottom;
