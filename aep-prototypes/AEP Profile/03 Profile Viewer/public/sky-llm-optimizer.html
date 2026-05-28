@@ -7,13 +7,13 @@
   <title>Sky — LLM Optimizer (demo) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260528-sky-llm">
-  <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm">
+  <link rel="stylesheet" href="home.css?v=20260528-sky-llm-v2">
+  <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm-v2">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
-  <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm">
+  <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -70,7 +70,7 @@
       </div>
       <p id="skyLlmMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
       <p class="mod-demo-disclaimer">
-        Adobe LLM Optimizer overview recreated for Sky (demo). Metrics and charts are illustrative; site property shows <strong>sky.com</strong>.
+        Adobe LLM Optimizer recreated for <strong>sky.com</strong> (demo). Metrics are illustrative; use the left product menu for deep pages.
       </p>
     </div>
   </div>
@@ -80,229 +80,7 @@
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
     <div class="dashboard-main-wrap">
       <main class="dashboard-main sky-llm-main-host app-page" id="skyLlmMain">
-        <div class="sky-llm-app" lang="en">
-          <header class="sky-llm-header">
-            <div class="sky-llm-header-brand">
-              <img src="https://www.adobe.com/favicon.ico" width="24" height="24" alt="" aria-hidden="true">
-              <span class="sky-llm-header-title">Adobe LLM Optimizer</span>
-            </div>
-            <div class="sky-llm-header-actions">
-              <div class="sky-llm-site-field">
-                <label for="skyLlmSiteInput">Site</label>
-                <input type="text" id="skyLlmSiteInput" value="sky.com" readonly aria-readonly="true">
-              </div>
-              <button type="button" class="sky-llm-btn">Share</button>
-              <button type="button" class="sky-llm-btn">Export to PDF</button>
-              <button type="button" class="sky-llm-btn sky-llm-btn--primary">Start Product Tour</button>
-              <button type="button" class="sky-llm-icon-btn" aria-label="Account">&#9786;</button>
-              <button type="button" class="sky-llm-icon-btn" aria-label="Help">?</button>
-            </div>
-          </header>
-
-          <div class="sky-llm-shell">
-            <div class="sky-llm-nav-hover-zone" id="skyLlmNavHoverZone" aria-hidden="true"></div>
-            <nav class="sky-llm-product-nav" id="skyLlmProductNav" aria-label="LLM Optimizer">
-              <a href="#" class="is-active">Overview</a>
-              <a href="#">Brand Presence</a>
-              <a href="#">Agentic Traffic</a>
-              <a href="#">Referral Traffic</a>
-              <a href="#">Opportunities</a>
-              <a href="#">Collaboration</a>
-              <a href="#">Customer Configuration</a>
-              <a href="#">Settings</a>
-              <div class="sky-llm-product-nav-footer">LLM Optimizer</div>
-            </nav>
-
-            <div class="sky-llm-main">
-              <header class="sky-llm-page-head">
-                <h1>
-                  <span aria-hidden="true">&#127968;</span>
-                  Overview
-                </h1>
-                <p>Get insights and recommendations across Brand Presence, Agentic Traffic, Referral Traffic and Opportunities for Sky TV, broadband and streaming categories across UK markets.</p>
-              </header>
-
-              <div class="sky-llm-filters">
-                <div class="sky-llm-filter">
-                  <label for="skyLlmDateRange">Date Range</label>
-                  <select id="skyLlmDateRange">
-                    <option selected>Last 7 Weeks</option>
-                    <option>Last 30 Days</option>
-                    <option>Last Quarter</option>
-                  </select>
-                </div>
-                <div class="sky-llm-filter">
-                  <label for="skyLlmPlatformTrigger">
-                    Platform
-                    <span class="sky-llm-info-icon" title="LLM platform used for brand visibility analysis">i</span>
-                  </label>
-                  <div class="sky-llm-platform-wrap">
-                    <button
-                      type="button"
-                      class="sky-llm-platform-trigger"
-                      id="skyLlmPlatformTrigger"
-                      aria-haspopup="listbox"
-                      aria-expanded="false"
-                      aria-controls="skyLlmPlatformMenu"
-                    >
-                      <span class="sky-llm-platform-trigger-text">
-                        <span class="sky-llm-platform-trigger-name" id="skyLlmPlatformTriggerName">ChatGPT (Free)</span>
-                      </span>
-                      <span class="sky-llm-platform-chevron" aria-hidden="true">&#9662;</span>
-                    </button>
-                    <ul class="sky-llm-platform-menu" id="skyLlmPlatformMenu" role="listbox" hidden></ul>
-                  </div>
-                </div>
-                <div class="sky-llm-filter">
-                  <label for="skyLlmCategory">Category</label>
-                  <select id="skyLlmCategory">
-                    <option selected>All Categories</option>
-                    <option>TV &amp; Entertainment</option>
-                    <option>Broadband</option>
-                    <option>Mobile</option>
-                  </select>
-                </div>
-                <div class="sky-llm-filter">
-                  <label for="skyLlmMarket">Market</label>
-                  <select id="skyLlmMarket">
-                    <option selected>All Markets</option>
-                    <option>United Kingdom</option>
-                    <option>Republic of Ireland</option>
-                  </select>
-                </div>
-                <button type="button" class="sky-llm-btn sky-llm-btn--apply" disabled>Apply Filters</button>
-              </div>
-
-              <div class="sky-llm-banner-row sky-llm-banner-row--split">
-                <article class="sky-llm-card sky-llm-visibility-banner">
-                  <div class="sky-llm-gauge" aria-hidden="true">Unavailable</div>
-                  <div class="sky-llm-banner-copy">
-                    <h2>Content visibility score unavailable</h2>
-                    <p>Your site has not been crawled during this audit period. Enable public search data to unlock the visibility score for sky.com.</p>
-                  </div>
-                </article>
-                <article class="sky-llm-card sky-llm-strip-banner">
-                  <h3>Next step to unlock more insights</h3>
-                  <div class="sky-llm-progress" aria-hidden="true"><span></span></div>
-                  <button type="button" class="sky-llm-btn sky-llm-btn--primary">Enable search public data</button>
-                  <a href="#" class="sky-llm-btn" style="border:none;background:transparent;color:var(--llmo-blue)">See all steps</a>
-                </article>
-              </div>
-
-              <article class="sky-llm-card sky-llm-strip-banner" style="margin-bottom:1rem">
-                <h3>Strengthen your prompting strategy</h3>
-                <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
-                  <button type="button" class="sky-llm-btn">Connect Google Search Console for query analysis</button>
-                  <button type="button" class="sky-llm-btn">Set up datasets</button>
-                </div>
-              </article>
-
-              <div class="sky-llm-metrics">
-                <article class="sky-llm-metric">
-                  <div class="sky-llm-metric-label">Visibility Score</div>
-                  <div class="sky-llm-metric-value"><span id="skyLlmMetricVisibility">36%</span> <span class="sky-llm-trend sky-llm-trend--down" aria-hidden="true">&#9660;</span></div>
-                </article>
-                <article class="sky-llm-metric">
-                  <div class="sky-llm-metric-label">Brand Mentions</div>
-                  <div class="sky-llm-metric-value"><span id="skyLlmMetricMentions">24</span> <span class="sky-llm-trend sky-llm-trend--down" aria-hidden="true">&#9660;</span></div>
-                </article>
-                <article class="sky-llm-metric">
-                  <div class="sky-llm-metric-label">Citability</div>
-                  <div class="sky-llm-metric-value"><span id="skyLlmMetricCitability">0</span> <span class="sky-llm-trend sky-llm-trend--down" aria-hidden="true">&#9660;</span></div>
-                </article>
-                <article class="sky-llm-metric">
-                  <div class="sky-llm-metric-label">Agentic Interactions</div>
-                  <div class="sky-llm-metric-value"><span id="skyLlmMetricAgentic">215</span> <span class="sky-llm-trend sky-llm-trend--up" aria-hidden="true">&#9650;</span></div>
-                </article>
-                <article class="sky-llm-metric">
-                  <div class="sky-llm-metric-label">Total Search Traffic from LLM</div>
-                  <div class="sky-llm-metric-value"><span id="skyLlmMetricTraffic">0</span></div>
-                </article>
-              </div>
-
-              <div class="sky-llm-charts-row">
-                <article class="sky-llm-card">
-                  <h3>Sentiment Distribution</h3>
-                  <svg class="sky-llm-chart-svg" viewBox="0 0 400 200" role="img" aria-label="Stacked sentiment by week">
-                    <line x1="50" y1="30" x2="50" y2="150" stroke="#ccc"/>
-                    <line x1="50" y1="150" x2="370" y2="150" stroke="#ccc"/>
-                    <text x="10" y="35" font-size="9" fill="#6e6e6e">100%</text>
-                    <text x="10" y="95" font-size="9" fill="#6e6e6e">50%</text>
-                    <text x="10" y="155" font-size="9" fill="#6e6e6e">0%</text>
-                    <rect x="90" y="70" width="50" height="80" fill="#e34850"/>
-                    <rect x="90" y="50" width="50" height="20" fill="#b3b3b3"/>
-                    <rect x="90" y="30" width="50" height="20" fill="#2d9d78"/>
-                    <rect x="180" y="80" width="50" height="70" fill="#e34850"/>
-                    <rect x="180" y="55" width="50" height="25" fill="#b3b3b3"/>
-                    <rect x="180" y="35" width="50" height="20" fill="#2d9d78"/>
-                    <rect x="270" y="75" width="50" height="75" fill="#e34850"/>
-                    <rect x="270" y="52" width="50" height="23" fill="#b3b3b3"/>
-                    <rect x="270" y="32" width="50" height="20" fill="#2d9d78"/>
-                    <text x="95" y="168" font-size="9" fill="#6e6e6e">May 5</text>
-                    <text x="178" y="168" font-size="9" fill="#6e6e6e">May 12</text>
-                    <text x="265" y="168" font-size="9" fill="#6e6e6e">May 19</text>
-                  </svg>
-                  <div class="sky-llm-legend">
-                    <span><i style="background:#e34850"></i> Negative</span>
-                    <span><i style="background:#b3b3b3"></i> Neutral</span>
-                    <span><i style="background:#2d9d78"></i> Positive</span>
-                  </div>
-                </article>
-                <article class="sky-llm-card">
-                  <h3>Market Comparison</h3>
-                  <div class="sky-llm-legend" style="margin-top:0;margin-bottom:0.5rem">
-                    <span><i style="background:#1473e6"></i> Positive</span>
-                    <span><i style="background:#e68619"></i> Negative</span>
-                  </div>
-                  <div class="sky-llm-market-list" id="skyLlmMarketChart"></div>
-                </article>
-              </div>
-
-              <div class="sky-llm-charts-row">
-                <article class="sky-llm-card">
-                  <h3>Traffic Trends</h3>
-                  <svg class="sky-llm-chart-svg" viewBox="0 0 400 180" role="img" aria-label="Referral traffic trend">
-                    <line x1="40" y1="20" x2="40" y2="140" stroke="#ccc"/>
-                    <line x1="40" y1="140" x2="380" y2="140" stroke="#ccc"/>
-                    <polyline fill="none" stroke="#1473e6" stroke-width="2" points="60,120 110,100 160,95 210,80 260,70 310,55 360,48"/>
-                    <circle cx="60" cy="120" r="3" fill="#1473e6"/>
-                    <circle cx="110" cy="100" r="3" fill="#1473e6"/>
-                    <circle cx="160" cy="95" r="3" fill="#1473e6"/>
-                    <circle cx="210" cy="80" r="3" fill="#1473e6"/>
-                    <circle cx="260" cy="70" r="3" fill="#1473e6"/>
-                    <circle cx="310" cy="55" r="3" fill="#1473e6"/>
-                    <circle cx="360" cy="48" r="3" fill="#1473e6"/>
-                    <text x="52" y="158" font-size="8" fill="#6e6e6e">May 5</text>
-                    <text x="250" y="158" font-size="8" fill="#6e6e6e">May 26</text>
-                  </svg>
-                </article>
-                <article class="sky-llm-card">
-                  <h3>Latest Opportunities</h3>
-                  <ul class="sky-llm-opportunities">
-                    <li>
-                      <a href="#">
-                        <span><strong>Add LLM-friendly Content</strong><span>Update robots.txt and structured data so Sky packages rank in AI answers.</span></span>
-                        <span class="sky-llm-chevron" aria-hidden="true">&#8250;</span>
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <span><strong>Rewrite Complex Content</strong><span>Use clearer layperson terms on broadband and TV bundle pages.</span></span>
-                        <span class="sky-llm-chevron" aria-hidden="true">&#8250;</span>
-                      </a>
-                    </li>
-                    <li>
-                      <a href="#">
-                        <span><strong>Agentic Traffic Trend Analysis</strong><span>Analyse which LLMs send traffic to sky.com vs Virgin Media and BT.</span></span>
-                        <span class="sky-llm-chevron" aria-hidden="true">&#8250;</span>
-                      </a>
-                    </li>
-                  </ul>
-                </article>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="skyLlmApp" class="sky-llm-app-root" aria-live="polite"></div>
       </main>
     </div>
   </div>
@@ -312,9 +90,6 @@
     <div class="aep-profile-drawer-inner">
       <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
         <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
-        <div class="aep-profile-drawer-avatar-ring">
-          <img id="profileDrawerAvatar" class="aep-profile-drawer-avatar" src="https://contenthosting.web.app/AEPProfile/avatar-female.png" alt="" width="124" height="124" loading="lazy" decoding="async">
-        </div>
         <div class="aep-profile-drawer-card-fields">
           <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
           <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
@@ -333,9 +108,9 @@
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="sky-llm-optimizer.js?v=20260528-sky-llm"></script>
+  <script src="sky-llm-optimizer.js?v=20260528-sky-llm-v2"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260528-sky-llm"></script>
+  <script defer src="aep-lab-nav.js?v=20260528-sky-llm-v2"></script>
 </body>
 </html>
