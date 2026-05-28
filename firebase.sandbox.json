@@ -1,0 +1,248 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "node scripts/predeploy-check.mjs"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "web",
+    "predeploy": [
+      "node scripts/predeploy-check.mjs"
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/profile-viewer/home.html",
+        "type": 302
+      },
+      {
+        "source": "/content-decision-live.html",
+        "destination": "/profile-viewer/content-decision-live.html",
+        "type": 301
+      },
+      {
+        "source": "/content-decision-live-edge.html",
+        "destination": "/profile-viewer/content-decision-live-edge.html",
+        "type": 301
+      },
+      {
+        "source": "/profile-viewer/aep-architecture-interactive.html",
+        "destination": "/profile-viewer/aep-architecture-apps.html",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": {
+          "functionId": "sandboxApiGateway",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/cdn/**",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/wb-world",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/wb-world/**",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld/**",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/scripts/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/api/brand-scraper/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "private, no-store, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/wb-world",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/wb-world/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/wb-world-abu-dhabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/seaworld-abu-dhabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.css",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/experimentation-accelerator*",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/home.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      }
+    ]
+  }
+}

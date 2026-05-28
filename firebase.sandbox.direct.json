@@ -1,0 +1,1046 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "node scripts/predeploy-check.mjs"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "web",
+    "predeploy": [
+      "node scripts/predeploy-check.mjs"
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/profile-viewer/home.html",
+        "type": 302
+      },
+      {
+        "source": "/content-decision-live.html",
+        "destination": "/profile-viewer/content-decision-live.html",
+        "type": 301
+      },
+      {
+        "source": "/content-decision-live-edge.html",
+        "destination": "/profile-viewer/content-decision-live-edge.html",
+        "type": 301
+      },
+      {
+        "source": "/profile-viewer/aep-architecture-interactive.html",
+        "destination": "/profile-viewer/aep-architecture-apps.html",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/aep",
+        "function": {
+          "functionId": "aepProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/edge-decisioning/preview-launch-rule",
+        "function": {
+          "functionId": "edgeLaunchRulePreview",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/edge-decisioning/apply-launch-rule",
+        "function": {
+          "functionId": "edgeLaunchRuleApply",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/edge-decisioning/publish-launch-rule",
+        "function": {
+          "functionId": "edgeLaunchRulePublish",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/edge-decisioning/cleanup-orphan-libraries",
+        "function": {
+          "functionId": "edgeLaunchRuleCleanup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/analyze",
+        "function": {
+          "functionId": "brandScraperAnalyze",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/scrapes/**",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/scrapes",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/model-config",
+        "function": {
+          "functionId": "brandScraperModelConfig",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey/generate",
+        "function": {
+          "functionId": "clientJourneyGenerate",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey/pptx",
+        "function": {
+          "functionId": "clientJourneyPptx",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/demo-use-case/generate",
+        "function": {
+          "functionId": "demoUseCaseGenerate",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/demo-use-case/pptx",
+        "function": {
+          "functionId": "demoUseCasePptx",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/image-hosting/library/**",
+        "function": {
+          "functionId": "imageHostingLibrary",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/image-hosting/library",
+        "function": {
+          "functionId": "imageHostingLibrary",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/cdn/**",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/ajo/live-activity",
+        "function": {
+          "functionId": "ajoLiveActivityProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/table",
+        "function": {
+          "functionId": "profileTableProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/ipad/event",
+        "function": {
+          "functionId": "ipadEventProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/attribute-ownership",
+        "function": {
+          "functionId": "profileAttributeOwnership",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sandboxes",
+        "function": {
+          "functionId": "sandboxesProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/audiences",
+        "function": {
+          "functionId": "profileAudiencesProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/consent",
+        "function": {
+          "functionId": "profileConsentProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/events",
+        "function": {
+          "functionId": "profileEventsProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/decisioning/treatment-name",
+        "function": {
+          "functionId": "decisioningTreatmentNameProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/campaign-name",
+        "function": {
+          "functionId": "campaignNameProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/journey-name",
+        "function": {
+          "functionId": "journeyNameProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/webhook-listener",
+        "function": {
+          "functionId": "webhookListenerProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/webhooks/**",
+        "function": {
+          "functionId": "sandboxWebhookTool",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/provisioning/tenant-schemas",
+        "function": {
+          "functionId": "provisioningTenantSchemas",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/provisioning/field-groups",
+        "function": {
+          "functionId": "provisioningFieldGroups",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/provisioning/tenant-schema/patch",
+        "function": {
+          "functionId": "provisioningTenantSchemaPatch",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-infra/status",
+        "function": {
+          "functionId": "consentInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-infra/ensure",
+        "function": {
+          "functionId": "consentInfraEnsure",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-infra/step",
+        "function": {
+          "functionId": "consentInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-infra/enable-profile",
+        "function": {
+          "functionId": "consentInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-infra/flow-lookup",
+        "function": {
+          "functionId": "consentInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent-connection",
+        "function": {
+          "functionId": "consentConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/status",
+        "function": {
+          "functionId": "genericProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/step",
+        "function": {
+          "functionId": "genericProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/enable-profile",
+        "function": {
+          "functionId": "genericProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "genericProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/generic-profile-connection",
+        "function": {
+          "functionId": "genericProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/status",
+        "function": {
+          "functionId": "travelProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/step",
+        "function": {
+          "functionId": "travelProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/enable-profile",
+        "function": {
+          "functionId": "travelProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/travel-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "travelProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/travel-profile-connection",
+        "function": {
+          "functionId": "travelProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/status",
+        "function": {
+          "functionId": "fsiProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/step",
+        "function": {
+          "functionId": "fsiProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/enable-profile",
+        "function": {
+          "functionId": "fsiProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "fsiProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/fsi-profile-connection",
+        "function": {
+          "functionId": "fsiProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/status",
+        "function": {
+          "functionId": "telecomProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/step",
+        "function": {
+          "functionId": "telecomProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/enable-profile",
+        "function": {
+          "functionId": "telecomProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "telecomProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-connection",
+        "function": {
+          "functionId": "telecomProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/status",
+        "function": {
+          "functionId": "retailProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/step",
+        "function": {
+          "functionId": "retailProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/enable-profile",
+        "function": {
+          "functionId": "retailProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "retailProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/retail-profile-connection",
+        "function": {
+          "functionId": "retailProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/status",
+        "function": {
+          "functionId": "mediaProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/step",
+        "function": {
+          "functionId": "mediaProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/enable-profile",
+        "function": {
+          "functionId": "mediaProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "mediaProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/media-profile-connection",
+        "function": {
+          "functionId": "mediaProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/status",
+        "function": {
+          "functionId": "sportsProfileInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/step",
+        "function": {
+          "functionId": "sportsProfileInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/enable-profile",
+        "function": {
+          "functionId": "sportsProfileInfraEnableProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "sportsProfileInfraFlowLookup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/sports-profile-connection",
+        "function": {
+          "functionId": "sportsProfileConnectionStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile-infra/status-all",
+        "function": {
+          "functionId": "profileInfraStatusAll",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/update",
+        "function": {
+          "functionId": "profileUpdateProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/profile/generate",
+        "function": {
+          "functionId": "profileGenerateProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/consent/legacy-update",
+        "function": {
+          "functionId": "consentManagerLegacyUpdate",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/audit-events",
+        "function": {
+          "functionId": "auditEventsProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/edge",
+        "function": {
+          "functionId": "eventEdgeProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/generator",
+        "function": {
+          "functionId": "eventGeneratorProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/generator-targets",
+        "function": {
+          "functionId": "eventGeneratorTargetsProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/config",
+        "function": {
+          "functionId": "eventConfigStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/catalog/config",
+        "function": {
+          "functionId": "catalogConfigStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/decision-lab/config",
+        "function": {
+          "functionId": "decisionLabConfigStore",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/arch-proposals",
+        "function": {
+          "functionId": "archProposals",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/arch-master",
+        "function": {
+          "functionId": "archMaster",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/sandbox-state",
+        "function": {
+          "functionId": "labUserSandboxState",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-profile",
+        "function": {
+          "functionId": "labWorkspaceProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-auth/register-from-id-token",
+        "function": {
+          "functionId": "labWorkspaceAuthRegisterFromIdToken",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/lab-access/request-approval",
+        "function": {
+          "functionId": "labLabAccessRequestApproval",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/lab-access/request-approval-signup",
+        "function": {
+          "functionId": "labLabAccessRequestApprovalSignup",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/lab-access/status",
+        "function": {
+          "functionId": "labLabAccessStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-auth/register-google",
+        "function": {
+          "functionId": "labWorkspaceAuthRegisterGoogle",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-auth/register",
+        "function": {
+          "functionId": "labWorkspaceAuthRegister",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/lab/workspace-auth/approve",
+        "function": {
+          "functionId": "labWorkspaceAuthApprove",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/config",
+        "function": {
+          "functionId": "snowflakeConfig",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/connection-test",
+        "function": {
+          "functionId": "snowflakeConnectionTest",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/generate-base-profiles",
+        "function": {
+          "functionId": "snowflakeGenerateBaseProfiles",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/query-profiles",
+        "function": {
+          "functionId": "snowflakeAgenticQueryProfiles",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/table-structure",
+        "function": {
+          "functionId": "snowflakeAgenticTableStructure",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/generate-full",
+        "function": {
+          "functionId": "snowflakeAgenticGenerateFull",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/snowflake/agentic/enrich-profiles",
+        "function": {
+          "functionId": "snowflakeAgenticEnrichProfiles",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/tags/reactor",
+        "function": {
+          "functionId": "tagsReactorProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/datastreams",
+        "function": {
+          "functionId": "eventDatastreamsProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/infra/status",
+        "function": {
+          "functionId": "eventInfraStatus",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/infra/step",
+        "function": {
+          "functionId": "eventInfraStep",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/events/infra/event-types",
+        "function": {
+          "functionId": "eventInfraEventTypes",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/journeys/cja-dataviews",
+        "function": {
+          "functionId": "journeysCjaDataviews",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/journeys/browse",
+        "function": {
+          "functionId": "journeysBrowse",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/easter-egg-found",
+        "function": {
+          "functionId": "easterEggNotify",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/schema-viewer/**",
+        "function": {
+          "functionId": "schemaViewerProxy",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/generate",
+        "function": {
+          "functionId": "clientJourneyV2Generate",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/refine",
+        "function": {
+          "functionId": "clientJourneyV2Refine",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/import/scrapes",
+        "function": {
+          "functionId": "clientJourneyV2ImportScrapes",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/import/profile",
+        "function": {
+          "functionId": "clientJourneyV2ImportProfile",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/pptx",
+        "function": {
+          "functionId": "clientJourneyV2Pptx",
+          "region": "us-east4"
+        }
+      },
+      {
+        "source": "/wb-world",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/wb-world/**",
+        "destination": "/profile-viewer/wb-world-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+      },
+      {
+        "source": "/seaworld/**",
+        "destination": "/profile-viewer/seaworld-abu-dhabi/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/scripts/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/alloyServiceWorker.min.js",
+        "headers": [
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/api/brand-scraper/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "private, no-store, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/wb-world",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/wb-world/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/wb-world-abu-dhabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/seaworld/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/seaworld-abu-dhabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/**/*.css",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/experimentation-accelerator*",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      },
+      {
+        "source": "/profile-viewer/home.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      }
+    ]
+  }
+}

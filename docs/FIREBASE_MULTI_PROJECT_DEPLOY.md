@@ -66,7 +66,7 @@ npm run deploy:production # uses firebase.json + us-central1
 | **production** (`-P production`) | `aep-orchestration-lab` | **`us-central1`** | `firebase.json` |
 | **sandbox** (`-P sandbox`) | `adbe-gcp0819` | **`us-east4`** (org-allowed US region; **not** `us-central1`) | `firebase.sandbox.json` |
 
-**Why two Firebase config files:** Hosting rewrites pin each `/api/*` route to a Functions **region**. Production stays on `firebase.json` with `"region": "us-central1"`. Sandbox deploy uses **`firebase.sandbox.json`** (same structure, all rewrite regions set to **`us-east4`**).
+**Why two Firebase config files:** Production stays on `firebase.json` with per-route `/api/*` rewrites in **`us-central1`**. Sandbox uses **`firebase.sandbox.json`**: a **single** Hosting rewrite `/api/**` → **`sandboxApiGateway`** in **`us-east4`**, which proxies to private Gen2 backends (see [Option 3 — API gateway](#option-3--single-public-api-gateway-sandbox) below). Per-route rewrites are preserved in **`firebase.sandbox.direct.json`** for reference and route generation.
 
 **Functions code:** `functions/index.js` resolves deploy/runtime region as:
 
@@ -342,11 +342,29 @@ High level only—align with org retention and compliance before acting.
 
 **What still unblocks Profile Viewer `/api/*` on sandbox:** org-approved **`allUsers:roles/run.invoker`** (or relax `run.managed.requireInvokerIam` + `--no-invoker-iam-check`), then `node scripts/sandbox-grant-cloud-run-public-invoker.mjs`. See [Org policy and public invoke](#org-policy-and-public-invoke-adobe-gcp) below.
 
-**When `sc-demo-sandbox-hosting-invoker` is useful:**
+**Implemented (Option 3):** see [Option 3 — API gateway](#option-3--single-public-api-gateway-sandbox) — one public `sandboxApiGateway` + private backends.
 
-- A **single** public `apiGateway` Gen2 function (`invoker: 'public'` / `allUsers` only on that one service) that uses this SA (via `roles/iam.serviceAccountUser` + ID token or client libraries) to call **private** backends.
-- Cloud Scheduler, Cloud Tasks, or CI calling Cloud Run with credentials for this SA.
-- **Not** a drop-in replacement for `allUsers` on every function behind Hosting rewrites.
+---
+
+## Option 3 — Single public API gateway (sandbox)
+
+When org policy blocks **`allUsers:roles/run.invoker`** on ~120 Gen2 Cloud Run services, use **one** public edge and keep backends private.
+
+```text
+Browser → Firebase Hosting (adbe-gcp0819.web.app)
+       → sandboxApiGateway  (only public / allUsers service)
+       → (as sc-demo-sandbox-hosting-invoker + Cloud Run ID token)
+       → private Gen2 function URLs (us-east4-…cloudfunctions.net/…)
+```
+
+| Piece | Detail |
+|-------|--------|
+| **Hosting** | `firebase.sandbox.json`: one rewrite `{ "source": "/api/**", "functionId": "sandboxApiGateway", "region": "us-east4" }`. Legacy per-route map: **`firebase.sandbox.direct.json`**. |
+| **Gateway code** | `functions/sandboxApiGateway.js` + generated `functions/sandboxApiGatewayRoutes.json` |
+| **Route table** | `npm run generate:sandbox-gateway-routes` (from `firebase.sandbox.direct.json`) |
+| **Gateway runtime SA** | `sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com` (`serviceAccount` on `exports.sandboxApiGateway` only) |
+| **Backend IAM** | `roles/run.invoker` for hosting-invoker on every Cloud Run service **except** `sandboxapigateway`: `npm run grant:sandbox-hosting-invoker` |
+| **Production** | Unchanged — `firebase.json` still uses direct `/api/*` rewrites; gateway export is gated on `REGION === us-east4` in `functions/index.js`. |
 
 ### Create hosting invoker SA (once)
 
@@ -369,14 +387,60 @@ gcloud run services add-iam-policy-binding lablabaccessstatus \
   --region=us-east4
 ```
 
-**All Gen2 services in `us-east4`:**
+**All Gen2 backends in `us-east4` (skips gateway):**
+
+```bash
+npm run grant:sandbox-hosting-invoker
+# Preview: node scripts/grant-sandbox-hosting-invoker-on-backends.mjs --dry-run
+```
+
+**Legacy (includes gateway — prefer command above):**
 
 ```bash
 node scripts/sandbox-grant-cloud-run-hosting-invoker.mjs
-# Preview: node scripts/sandbox-grant-cloud-run-hosting-invoker.mjs --dry-run
 ```
 
-### Verify (does not simulate Hosting)
+**Cloud Build / deploy SA** must be able to deploy a function **as** hosting-invoker:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com \
+  --project=adbe-gcp0819 \
+  --member="serviceAccount:sc-demo-sandbox-admin@adbe-gcp0819.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountUser
+```
+
+### Deploy gateway + hosting
+
+```bash
+npm run generate:sandbox-gateway-routes   # after editing firebase.sandbox.direct.json rewrites
+npm run deploy:sandbox                    # or deploy only sandboxApiGateway + hosting
+npm run grant:sandbox-hosting-invoker     # after backends exist
+```
+
+Optional: if org still blocks `allUsers` even on the **gateway**, ask for **one** exception on Cloud Run service `sandboxapigateway` only, or org relaxation of `run.managed.requireInvokerIam` plus deploy with **`--no-invoker-iam-check`** / `CF_INVOKER_IAM_DISABLED=true` for that function (firebase-tools patch may be required; see [Org policy and public invoke](#org-policy-and-public-invoke-adobe-gcp)).
+
+### Verify (Hosting path — should return JSON, not HTML 403)
+
+```bash
+curl -sS "https://adbe-gcp0819.web.app/api/lab/lab-access/status" \
+  -H "Authorization: Bearer invalid"
+curl -sS -X POST "https://adbe-gcp0819.web.app/api/aep" \
+  -H "Content-Type: application/json" \
+  -d '{"method":"GET","path":"/data/foundation/sandbox-management/sandboxes"}'
+```
+
+### What Thomasz / org admin must allow
+
+| Ask | Scope |
+|-----|--------|
+| **Public invoke on one Cloud Run service** | `sandboxapigateway` only (`allUsers:roles/run.invoker` **or** `invoker-iam-disabled` on that service) — **not** 120 services |
+| **Domain Restricted Sharing** | Exception or tag so **one** `allUsers` binding is allowed on the gateway service |
+| **Optional** | Relax `run.managed.requireInvokerIam` for project `adbe-gcp0819` if using IAM-disabled invoke on the gateway |
+
+Backends stay **private** (hosting-invoker SA only).
+
+### Verify (direct Cloud Run — does not simulate Hosting)
 
 **Hosting (browser path)** — unchanged until public invoker exists; expect **401/403 HTML** today:
 

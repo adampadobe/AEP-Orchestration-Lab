@@ -122,6 +122,8 @@ function readFirebaseConfigProjectId() {
 
 const SANDBOX_GCP_PROJECT_ID = 'adbe-gcp0819';
 const SANDBOX_FUNCTIONS_REGION = 'us-east4';
+const SC_DEMO_SANDBOX_HOSTING_INVOKER_SA =
+  'sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com';
 const DEFAULT_FUNCTIONS_REGION = 'us-central1';
 
 function resolveFunctionsRegion() {
@@ -5490,6 +5492,24 @@ exports.snowflakeAgenticEnrichProfiles = onRequest(SNOWFLAKE_AGENTIC_FN_OPTS, as
     res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
   }
 });
+
+/**
+ * Sandbox-only public API gateway (Option 3): Hosting → this function → private Gen2
+ * backends via hosting-invoker ID token. Wired in firebase.sandbox.json only.
+ */
+if (REGION === SANDBOX_FUNCTIONS_REGION) {
+  const { createHandler: createSandboxApiGatewayHandler } = require('./sandboxApiGateway');
+  exports.sandboxApiGateway = onRequest(
+    {
+      region: SANDBOX_FUNCTIONS_REGION,
+      invoker: 'public',
+      serviceAccount: SC_DEMO_SANDBOX_HOSTING_INVOKER_SA,
+      timeoutSeconds: 300,
+      memory: '512MiB',
+    },
+    createSandboxApiGatewayHandler(),
+  );
+}
 
 exports.snowflakeGenerateBaseProfiles = onRequest(
   { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 300, memory: '1GiB' },

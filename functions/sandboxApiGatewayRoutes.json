@@ -1,0 +1,583 @@
+{
+  "generatedAt": "2026-05-28T05:00:13.624Z",
+  "sourceConfig": "firebase.sandbox.direct.json",
+  "projectId": "adbe-gcp0819",
+  "defaultRegion": "us-east4",
+  "routes": [
+    {
+      "source": "/api/brand-scraper/scrapes/**",
+      "functionId": "brandScraperScrapes",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/image-hosting/library/**",
+      "functionId": "imageHostingLibrary",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/schema-viewer/**",
+      "functionId": "schemaViewerProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/webhooks/**",
+      "functionId": "sandboxWebhookTool",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/edge-decisioning/cleanup-orphan-libraries",
+      "functionId": "edgeLaunchRuleCleanup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/workspace-auth/register-from-id-token",
+      "functionId": "labWorkspaceAuthRegisterFromIdToken",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/lab-access/request-approval-signup",
+      "functionId": "labLabAccessRequestApprovalSignup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/edge-decisioning/preview-launch-rule",
+      "functionId": "edgeLaunchRulePreview",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/edge-decisioning/publish-launch-rule",
+      "functionId": "edgeLaunchRulePublish",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/generic-profile-infra/enable-profile",
+      "functionId": "genericProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/telecom-profile-infra/enable-profile",
+      "functionId": "telecomProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/travel-profile-infra/enable-profile",
+      "functionId": "travelProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/retail-profile-infra/enable-profile",
+      "functionId": "retailProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sports-profile-infra/enable-profile",
+      "functionId": "sportsProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/edge-decisioning/apply-launch-rule",
+      "functionId": "edgeLaunchRuleApply",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/media-profile-infra/enable-profile",
+      "functionId": "mediaProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/workspace-auth/register-google",
+      "functionId": "labWorkspaceAuthRegisterGoogle",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/generic-profile-infra/flow-lookup",
+      "functionId": "genericProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/telecom-profile-infra/flow-lookup",
+      "functionId": "telecomProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/agentic/table-structure",
+      "functionId": "snowflakeAgenticTableStructure",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/agentic/enrich-profiles",
+      "functionId": "snowflakeAgenticEnrichProfiles",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/provisioning/tenant-schema/patch",
+      "functionId": "provisioningTenantSchemaPatch",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/travel-profile-infra/flow-lookup",
+      "functionId": "travelProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/fsi-profile-infra/enable-profile",
+      "functionId": "fsiProfileInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/retail-profile-infra/flow-lookup",
+      "functionId": "retailProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sports-profile-infra/flow-lookup",
+      "functionId": "sportsProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/generate-base-profiles",
+      "functionId": "snowflakeGenerateBaseProfiles",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/agentic/query-profiles",
+      "functionId": "snowflakeAgenticQueryProfiles",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey-v2/import/scrapes",
+      "functionId": "clientJourneyV2ImportScrapes",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey-v2/import/profile",
+      "functionId": "clientJourneyV2ImportProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/media-profile-infra/flow-lookup",
+      "functionId": "mediaProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/lab-access/request-approval",
+      "functionId": "labLabAccessRequestApproval",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/agentic/generate-full",
+      "functionId": "snowflakeAgenticGenerateFull",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/fsi-profile-infra/flow-lookup",
+      "functionId": "fsiProfileInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-infra/enable-profile",
+      "functionId": "consentInfraEnableProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/generic-profile-infra/status",
+      "functionId": "genericProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/telecom-profile-infra/status",
+      "functionId": "telecomProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/attribute-ownership",
+      "functionId": "profileAttributeOwnership",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/provisioning/tenant-schemas",
+      "functionId": "provisioningTenantSchemas",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/travel-profile-infra/status",
+      "functionId": "travelProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/retail-profile-infra/status",
+      "functionId": "retailProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sports-profile-infra/status",
+      "functionId": "sportsProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/workspace-auth/register",
+      "functionId": "labWorkspaceAuthRegister",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/brand-scraper/model-config",
+      "functionId": "brandScraperModelConfig",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/decisioning/treatment-name",
+      "functionId": "decisioningTreatmentNameProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/generic-profile-infra/step",
+      "functionId": "genericProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/generic-profile-connection",
+      "functionId": "genericProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/telecom-profile-infra/step",
+      "functionId": "telecomProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/telecom-profile-connection",
+      "functionId": "telecomProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/media-profile-infra/status",
+      "functionId": "mediaProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/workspace-auth/approve",
+      "functionId": "labWorkspaceAuthApprove",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey-v2/generate",
+      "functionId": "clientJourneyV2Generate",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/provisioning/field-groups",
+      "functionId": "provisioningFieldGroups",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-infra/flow-lookup",
+      "functionId": "consentInfraFlowLookup",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/travel-profile-infra/step",
+      "functionId": "travelProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/travel-profile-connection",
+      "functionId": "travelProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/retail-profile-infra/step",
+      "functionId": "retailProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/retail-profile-connection",
+      "functionId": "retailProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sports-profile-infra/step",
+      "functionId": "sportsProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sports-profile-connection",
+      "functionId": "sportsProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/connection-test",
+      "functionId": "snowflakeConnectionTest",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/fsi-profile-infra/status",
+      "functionId": "fsiProfileInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/media-profile-infra/step",
+      "functionId": "mediaProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/media-profile-connection",
+      "functionId": "mediaProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile-infra/status-all",
+      "functionId": "profileInfraStatusAll",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/generator-targets",
+      "functionId": "eventGeneratorTargetsProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/infra/event-types",
+      "functionId": "eventInfraEventTypes",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey-v2/refine",
+      "functionId": "clientJourneyV2Refine",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey/generate",
+      "functionId": "clientJourneyGenerate",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/demo-use-case/generate",
+      "functionId": "demoUseCaseGenerate",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/fsi-profile-infra/step",
+      "functionId": "fsiProfileInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/fsi-profile-connection",
+      "functionId": "fsiProfileConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/journeys/cja-dataviews",
+      "functionId": "journeysCjaDataviews",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey-v2/pptx",
+      "functionId": "clientJourneyV2Pptx",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/brand-scraper/analyze",
+      "functionId": "brandScraperAnalyze",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/brand-scraper/scrapes",
+      "functionId": "brandScraperScrapes",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/image-hosting/library",
+      "functionId": "imageHostingLibrary",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent/legacy-update",
+      "functionId": "consentManagerLegacyUpdate",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/workspace-profile",
+      "functionId": "labWorkspaceProfile",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/lab-access/status",
+      "functionId": "labLabAccessStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-infra/status",
+      "functionId": "consentInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-infra/ensure",
+      "functionId": "consentInfraEnsure",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/client-journey/pptx",
+      "functionId": "clientJourneyPptx",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/decision-lab/config",
+      "functionId": "decisionLabConfigStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/infra/status",
+      "functionId": "eventInfraStatus",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/demo-use-case/pptx",
+      "functionId": "demoUseCasePptx",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-infra/step",
+      "functionId": "consentInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/consent-connection",
+      "functionId": "consentConnectionStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/datastreams",
+      "functionId": "eventDatastreamsProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/ajo/live-activity",
+      "functionId": "ajoLiveActivityProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/audiences",
+      "functionId": "profileAudiencesProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/lab/sandbox-state",
+      "functionId": "labUserSandboxState",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/infra/step",
+      "functionId": "eventInfraStep",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/webhook-listener",
+      "functionId": "webhookListenerProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/generate",
+      "functionId": "profileGenerateProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/generator",
+      "functionId": "eventGeneratorProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/snowflake/config",
+      "functionId": "snowflakeConfig",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/easter-egg-found",
+      "functionId": "easterEggNotify",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/consent",
+      "functionId": "profileConsentProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/journeys/browse",
+      "functionId": "journeysBrowse",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/events",
+      "functionId": "profileEventsProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/update",
+      "functionId": "profileUpdateProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/catalog/config",
+      "functionId": "catalogConfigStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/arch-proposals",
+      "functionId": "archProposals",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/profile/table",
+      "functionId": "profileTableProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/campaign-name",
+      "functionId": "campaignNameProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/config",
+      "functionId": "eventConfigStore",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/journey-name",
+      "functionId": "journeyNameProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/audit-events",
+      "functionId": "auditEventsProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/tags/reactor",
+      "functionId": "tagsReactorProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/events/edge",
+      "functionId": "eventEdgeProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/arch-master",
+      "functionId": "archMaster",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/ipad/event",
+      "functionId": "ipadEventProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/sandboxes",
+      "functionId": "sandboxesProxy",
+      "region": "us-east4"
+    },
+    {
+      "source": "/api/aep",
+      "functionId": "aepProxy",
+      "region": "us-east4"
+    }
+  ]
+}
