@@ -27,7 +27,9 @@
 #root path.recharts-line-curve,
 #root path.recharts-curve.recharts-line-curve,
 .sky-llm-market-chart-card path.recharts-curve,
-.sky-llm-market-chart-card path.recharts-line-curve {
+.sky-llm-market-chart-card path.recharts-line-curve,
+.sky-llm-line-chart-fit path.recharts-curve,
+.sky-llm-line-chart-fit path.recharts-line-curve {
   stroke-dasharray: none !important;
   stroke-dashoffset: 0 !important;
   opacity: 1 !important;
@@ -35,7 +37,8 @@
 }
 
 #root g.recharts-layer.recharts-line,
-.sky-llm-market-chart-card g.recharts-layer.recharts-line {
+.sky-llm-market-chart-card g.recharts-layer.recharts-line,
+.sky-llm-line-chart-fit g.recharts-layer.recharts-line {
   opacity: 1 !important;
   visibility: visible !important;
 }
@@ -57,22 +60,28 @@
   max-width: 100%;
 }
 
-/* URL Inspector / Agentic Traffic trend cards — clip lines inside the card */
-.sky-llm-contained-line-chart {
-  overflow: hidden !important;
+/* Wide frozen SVGs (URL Inspector, Agentic Traffic) — scale to card width; never clip strokes */
+.sky-llm-line-chart-fit {
   position: relative;
   min-width: 0;
+  max-width: 100%;
+  overflow: visible !important;
 }
 
-.sky-llm-contained-line-chart .recharts-wrapper,
-.sky-llm-contained-line-chart .recharts-responsive-container {
-  overflow: hidden !important;
-  max-width: 100%;
+.sky-llm-line-chart-fit .recharts-wrapper,
+.sky-llm-line-chart-fit .recharts-responsive-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
 }
 
-.sky-llm-contained-line-chart svg.recharts-surface {
-  max-width: 100%;
-  overflow: hidden;
+.sky-llm-line-chart-fit svg.recharts-surface {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 .sky-llm-market-chart-card path.sky-llm-market-line-hidden {

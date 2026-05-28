@@ -21,6 +21,25 @@
     'Disney+': '#8b5cf6',
   };
 
+  var STROKE_BY_CHART_VAR = {
+    'chart-line-orange': '#f97316',
+    'chart-line-purple': '#a855f7',
+    'chart-line-blue': '#3b82f6',
+    'chart-color-brand': '#e11d48',
+    'chart-color-magenta': '#d946ef',
+    'chart-color-orange': '#f97316',
+    'chart-color-purple': '#a855f7',
+    'chart-color-indigo': '#6366f1',
+    'chart-color-fuchsia': '#c026d3',
+  };
+
+  var FIT_CHART_TITLES = {
+    'Citation Attempts': 1,
+    'Referral Hits from LLMs': 1,
+    'Agentic Traffic Trends': 1,
+    'Traffic Trend': 1,
+  };
+
   var LEGACY_LABEL = {
     Adobe: 'Sky',
     Automattic: 'BT',
@@ -165,11 +184,19 @@
     return normalizeBrandName(raw);
   }
 
+  function strokeFromAttr(path) {
+    var raw = path.getAttribute('stroke') || '';
+    var match = raw.match(/var\(--([\w-]+)\)/);
+    if (match && STROKE_BY_CHART_VAR[match[1]]) return STROKE_BY_CHART_VAR[match[1]];
+    if (raw && raw.indexOf('var(') < 0) return raw;
+    return '';
+  }
+
   function unlockMarketPath(path) {
     if (!path) return;
     var group = path.closest(LINE_GROUP_SEL);
     var brand = brandFromPath(path);
-    var stroke = STROKE_BY_BRAND[brand];
+    var stroke = STROKE_BY_BRAND[brand] || strokeFromAttr(path);
 
     path.removeAttribute('stroke-dasharray');
     path.removeAttribute('stroke-dashoffset');
@@ -180,7 +207,10 @@
     path.style.opacity = '1';
     path.removeAttribute('stroke-opacity');
     path.classList.remove(HIDDEN_LINE_CLASS);
-    if (stroke) path.setAttribute('stroke', stroke);
+    if (stroke) {
+      path.setAttribute('stroke', stroke);
+      path.style.stroke = stroke;
+    }
 
     if (group) {
       group.style.removeProperty('display');
@@ -194,25 +224,55 @@
     document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
   }
 
-  function markContainedLineCharts() {
-    Object.keys(CONTAINED_CHART_TITLES).forEach(function (title) {
-      var block = findChartBlock(title);
-      if (block) markChartCard(block, title);
+  function findSimpleLineChartBlock(title) {
+    var head = Array.from(document.querySelectorAll('div, span, h2, h3')).find(function (n) {
+      return n.textContent.trim() === title && n.childElementCount === 0;
+    });
+    if (!head) return null;
+
+    var walk = head.parentElement;
+    for (var i = 0; i < 14 && walk; i++) {
+      var svgs = Array.from(walk.querySelectorAll('svg.recharts-surface[role="application"]')).filter(function (svg) {
+        return svg.querySelector('path.recharts-line-curve, path.recharts-curve');
+      });
+      if (svgs.length === 1) {
+        return { root: walk, svg: svgs[0] };
+      }
+      walk = walk.parentElement;
+    }
+    return null;
+  }
+
+  function fitLineChartSvg(svg) {
+    if (!svg) return;
+    svg.style.width = '100%';
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
+    svg.style.overflow = 'visible';
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    var wrap = svg.closest('.recharts-responsive-container') || svg.parentElement;
+    if (wrap) {
+      wrap.style.width = '100%';
+      wrap.style.maxWidth = '100%';
+      wrap.style.overflow = 'visible';
+    }
+  }
+
+  function markFitLineCharts() {
+    Object.keys(FIT_CHART_TITLES).forEach(function (title) {
+      var block = findSimpleLineChartBlock(title) || findChartBlock(title);
+      if (!block) return;
+      markChartCard(block, title);
+      fitLineChartSvg(block.svg);
     });
   }
 
-  var CONTAINED_CHART_TITLES = {
-    'Citation Attempts': 1,
-    'Referral Hits from LLMs': 1,
-    'Agentic Traffic Trends': 1,
-  };
-
   function markChartCard(block, chartTitle) {
     if (!block || !block.root) return;
-    var cardClass = CONTAINED_CHART_TITLES[chartTitle]
-      ? 'sky-llm-contained-line-chart'
-      : 'sky-llm-market-chart-card';
-    block.root.classList.add(cardClass);
+    block.root.classList.add('sky-llm-market-chart-card');
+    if (FIT_CHART_TITLES[chartTitle]) {
+      block.root.classList.add('sky-llm-line-chart-fit');
+    }
   }
 
   function isKnownBrand(name) {
@@ -652,9 +712,8 @@
   function boot() {
     cacheTrendNodes();
     ensureLinesVisible();
-    markContainedLineCharts();
+    markFitLineCharts();
     if (findSectionRoot('Market Tracking')) initMarketTracking();
-    else markContainedLineCharts();
   }
 
   if (document.readyState === 'loading') {
@@ -667,7 +726,12 @@
     window.setTimeout(function () {
       if (!marketState.ready && findSectionRoot('Market Tracking')) initMarketTracking();
       ensureLinesVisible();
-      markContainedLineCharts();
+      markFitLineCharts();
     }, ms);
+  });
+
+  window.addEventListener('resize', function () {
+    markFitLineCharts();
+    ensureLinesVisible();
   });
 })();
