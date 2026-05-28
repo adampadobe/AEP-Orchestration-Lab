@@ -113,3 +113,48 @@ export function applySkyBranding(html) {
 
   return html;
 }
+
+/** URL Inspector export — site field, cited URLs table, categories. */
+export function applyUrlInspectorBranding(html) {
+  html = applySkyBranding(html);
+
+  html = html.replace(/frescopa\.adobedemo\.com/gi, 'www.sky.com');
+  html = html.replace(/frescopa\.adobe-demo\.com/gi, 'www.sky.com');
+  html = html.replace(/frescopa\.coffee/gi, 'www.sky.com');
+  html = html.replace(/frescopacoffee\.com/gi, 'www.sky.com');
+  html = html.replace(/frescopa-coffee-/gi, 'sky-');
+  html = html.replace(/frescopa-/gi, 'sky-');
+
+  const urlMap = [
+    ['cold-brew-101', 'tv/sky-glass'],
+    ['cold-brew-31', 'tv/sky-glass'],
+    ['cold-brew', 'tv/sky-glass'],
+    ['certified-home-brewer', 'broadband/full-fibre'],
+    ['home-brewer', 'broadband'],
+    ['/blog/', '/tv/'],
+    ['/machines', '/tv/sky-q'],
+    ['/subscribe', '/broadband'],
+    ['premium_tv_broadband', 'tv-packages'],
+  ];
+  for (const [from, to] of urlMap) {
+    html = html.split(from).join(to);
+  }
+
+  html = html.replace(/www\.sky\.com\/sky-news/gi, 'www.sky.com/help/articles/sky-q-box-no-signal');
+  html = html.replace(/www\.sky\.com\/sky-certified/gi, 'www.sky.com/broadband/full-fibre');
+
+  html = html.replace(/>Coffee</g, '>TV<');
+  html = html.replace(/>Machines</g, '>Broadband<');
+  html = html.replace(/>Subscribe</g, '>Bundles<');
+  html = html.replace(/>Shop</g, '>Mobile<');
+  html = html.replace(/"Coffee"/g, '"TV"');
+  html = html.replace(/"Machines"/g, '"Broadband"');
+  html = html.replace(/Category:\s*Coffee/gi, 'Category: TV');
+  html = html.replace(/Page Content Type:\s*Blog/gi, 'Page Content Type: Article');
+
+  html = html.replace(/>(\s*)US(\s*)</g, '>$1UK$2<');
+  html = html.replace(/"US"/g, '"UK"');
+  html = html.replace(/Market:\s*US/gi, 'Market: UK');
+
+  return html;
+}

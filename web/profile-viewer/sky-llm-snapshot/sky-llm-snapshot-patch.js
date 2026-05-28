@@ -28,7 +28,9 @@
 
   function patchSiteField() {
     document.querySelectorAll('input').forEach(function (input) {
-      if (/wknd/i.test(input.value || '')) input.value = SITE;
+      var val = input.value || '';
+      if (/wknd/i.test(val)) input.value = SITE;
+      if (/frescopa/i.test(val)) input.value = SITE;
     });
     document.querySelectorAll('span, button').forEach(function (el) {
       if (!isLeafTextEl(el)) return;

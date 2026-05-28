@@ -9,7 +9,7 @@
     'Brand Presence': 'brand-presence.html',
     'Brand Claims': 'brand-claims.html',
     'Prompts Management': 'prompts-management.html',
-    'URL Inspector': 'overview.html',
+    'URL Inspector': 'url-inspector.html',
     'Agentic Traffic': 'overview.html',
     'Referral Traffic': 'overview.html',
     Opportunities: 'overview.html',
@@ -26,6 +26,7 @@
     'brand-presence.html': 'Brand Presence',
     'brand-claims.html': 'Brand Claims',
     'prompts-management.html': 'Prompts Management',
+    'url-inspector.html': 'URL Inspector',
   };
 
   function currentFile() {

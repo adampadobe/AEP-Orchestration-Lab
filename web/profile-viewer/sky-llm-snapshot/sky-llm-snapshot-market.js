@@ -192,8 +192,8 @@
 
   function ensureLinesVisible() {
     var root = findSectionRoot('Market Tracking');
-    if (!root) return;
-    root.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
+    var scope = root || document;
+    scope.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
   }
 
   function markChartCard(block) {
@@ -366,30 +366,9 @@
     if (entry.legendEl) entry.legendEl.classList.add(HIDDEN_LEGEND_CLASS);
   }
 
+  /** Keep all market lines visible — hiding paths caused flicker/disappear on frozen SVG. */
   function applyBrandVisibility() {
     ensureLinesVisible();
-    if (!marketState.entries.length) return;
-
-    showAllLines();
-
-    var talkTalkShown = { mentions: false, citations: false };
-
-    marketState.entries.forEach(function (entry) {
-      var show = false;
-      if (entry.name.indexOf('__extra_') === 0) {
-        show = false;
-      } else if (entry.name === 'Netflix' || entry.name === 'Disney+') {
-        show = false;
-      } else if (entry.name === 'TalkTalk') {
-        if (isSelected('TalkTalk') && !talkTalkShown[entry.chartKey]) {
-          show = true;
-          talkTalkShown[entry.chartKey] = true;
-        }
-      } else {
-        show = isSelected(entry.name);
-      }
-      setEntryVisible(entry, show);
-    });
   }
 
   function removeBrand(name) {
@@ -548,8 +527,6 @@
 
     buildSelectOthersPicker();
     ensureLinesVisible();
-    showAllLines();
-    applyBrandVisibility();
     marketState.ready = true;
   }
 
@@ -626,6 +603,7 @@
 
   function boot() {
     cacheTrendNodes();
+    ensureLinesVisible();
     if (findSectionRoot('Market Tracking')) initMarketTracking();
   }
 
@@ -638,13 +616,5 @@
   window.setTimeout(function () {
     if (!marketState.ready) initMarketTracking();
     ensureLinesVisible();
-    showAllLines();
-    applyBrandVisibility();
-  }, 1600);
-  [2200, 3200, 5000, 8000].forEach(function (ms) {
-    window.setTimeout(function () {
-      ensureLinesVisible();
-      if (marketState.ready) applyBrandVisibility();
-    }, ms);
-  });
+  }, 1800);
 })();

@@ -18,9 +18,10 @@
   stroke-dashoffset: 0 !important;
   opacity: 1 !important;
   visibility: visible !important;
+  display: inline !important;
 }
 
-.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
-  stroke-opacity: 0 !important;
-  opacity: 0 !important;
+.sky-llm-market-chart-card g.recharts-layer.recharts-line {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
