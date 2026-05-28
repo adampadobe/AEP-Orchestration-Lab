@@ -1,0 +1,60 @@
+/* Grouped sidebar nav — same on Overview and Brand Presence */
+nav[style*='flex-direction: column'],
+nav[class*='macro-static-VwL4yb'] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+nav button[type='button'][aria-label] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  color: rgb(41, 41, 41) !important;
+  --iconPrimary: rgb(41, 41, 41) !important;
+  background: transparent !important;
+  border: none !important;
+  width: 100%;
+  text-align: left;
+}
+
+nav button[type='button'][aria-label][aria-current='page'],
+nav button[type='button'][aria-label][data-current='true'] {
+  font-weight: 600;
+}
+
+/* Black vertical active indicator (matches Adobe LLM Optimizer) */
+[id^='org-nav-item-'].sky-llm-nav-active {
+  position: relative;
+}
+
+[id^='org-nav-item-'].sky-llm-nav-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: rgb(26, 26, 26);
+  border-radius: 1px;
+  z-index: 2;
+}
+
+/* Hide baked-in rails until JS marks active (avoids wrong page highlight) */
+nav .macro-dynamic-kn9iqo,
+nav .J1DOfn11,
+nav .HkNNfn11 {
+  display: none !important;
+}
+
+nav .sky-llm-nav-rail-native {
+  display: block !important;
+}
+
+[id^='org-sidebar-section-'] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

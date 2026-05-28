@@ -17,6 +17,7 @@ const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'brand-presence.html');
 
 const SNAPSHOT_SCRIPTS = [
+  '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
   '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
