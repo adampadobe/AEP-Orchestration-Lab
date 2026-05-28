@@ -714,31 +714,13 @@
     }
   }
 
-  function animateBrandPresenceLines(animate) {
-    var token = state.animToken;
-    var visible = state.bpLines.filter(isBpLineVisible);
-    var delay = 0;
-    visible.forEach(function (item, idx) {
-      if (!item.path) return;
-      if (animate) {
-        window.setTimeout(function () {
-          if (token !== state.animToken) return;
-          if (!isBpLineVisible(item)) return;
-          animateLinePath(item.path, item.targetD, ANIM_MS + 100, token);
-        }, idx * 35);
-        delay = idx * 35 + ANIM_MS + 120;
-      } else {
-        resetBpLinePath(item);
-      }
-    });
-    window.setTimeout(
-      function () {
-        if (token !== state.animToken) return;
-        state.bpLines.forEach(resetBpLinePath);
-        reapplyMarketLineFilter();
-      },
-      animate ? delay : 0,
-    );
+  /** Market Tracking lines are static SVG — dash-draw animation left them invisible. */
+  function animateBrandPresenceLines() {
+    state.bpLines.forEach(resetBpLinePath);
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.resetAllMarketLines) {
+      window.skyLlmSnapshotMarket.resetAllMarketLines();
+    }
+    reapplyMarketLineFilter();
   }
 
   function applyBrandPresenceDashboard(opts) {
@@ -758,11 +740,10 @@
           paintSentiment(sentiment, t);
         });
       }
-      animateBrandPresenceLines(true);
     } else {
       paintSentiment(sentiment, 1);
-      animateBrandPresenceLines(false);
     }
+    animateBrandPresenceLines();
   }
 
   function applyMetrics(platformId, rangeId) {
@@ -1060,7 +1041,7 @@
     buildPlatformPicker();
     buildDatePicker();
     ensureTooltip();
-    applyDashboard({ animate: !state.ready });
+    applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {

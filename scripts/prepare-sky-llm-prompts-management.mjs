@@ -1,5 +1,5 @@
 /**
- * Prepares Brand Claims saved HTML + copies BC assets into sky-llm-snapshot/assets/.
+ * Prepares Prompts Management saved HTML + copies PM assets into sky-llm-snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,14 +8,14 @@ import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
-  process.env.SKY_LLM_BC_SOURCE_HTML ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer BC.html');
+  process.env.SKY_LLM_PM_SOURCE_HTML ||
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer PM.html');
 const srcAssetsDir =
-  process.env.SKY_LLM_BC_SOURCE_ASSETS ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer BC_files');
+  process.env.SKY_LLM_PM_SOURCE_ASSETS ||
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer PM_files');
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const assetsDir = path.join(outDir, 'assets');
-const outHtml = path.join(outDir, 'brand-claims.html');
+const outHtml = path.join(outDir, 'prompts-management.html');
 
 const SNAPSHOT_ASSETS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
@@ -58,7 +58,7 @@ function copyAssets() {
 }
 
 function patchHtml(html) {
-  html = html.replace(/\.\/Adobe LLM Optimizer BC_files\//g, './assets/');
+  html = html.replace(/\.\/Adobe LLM Optimizer PM_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer BP_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer_files\//g, './assets/');
   html = html.replace(/\.download/g, '');

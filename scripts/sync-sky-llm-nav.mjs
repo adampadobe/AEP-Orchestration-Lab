@@ -14,8 +14,8 @@ const srcHtml =
     'Adobe LLM Optimizer New Overview.html',
   );
 const snapshotDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
-const targets = ['overview.html', 'brand-presence.html', 'brand-claims.html'].map((f) =>
-  path.join(snapshotDir, f),
+const targets = ['overview.html', 'brand-presence.html', 'brand-claims.html', 'prompts-management.html'].map(
+  (f) => path.join(snapshotDir, f),
 );
 
 function extractNav(html) {

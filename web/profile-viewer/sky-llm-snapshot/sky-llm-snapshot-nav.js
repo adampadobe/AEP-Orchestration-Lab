@@ -8,7 +8,7 @@
     Overview: 'overview.html',
     'Brand Presence': 'brand-presence.html',
     'Brand Claims': 'brand-claims.html',
-    'Prompts Management': 'brand-presence.html',
+    'Prompts Management': 'prompts-management.html',
     'URL Inspector': 'overview.html',
     'Agentic Traffic': 'overview.html',
     'Referral Traffic': 'overview.html',
@@ -25,6 +25,7 @@
     'overview.html': 'Overview',
     'brand-presence.html': 'Brand Presence',
     'brand-claims.html': 'Brand Claims',
+    'prompts-management.html': 'Prompts Management',
   };
 
   function currentFile() {

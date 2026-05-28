@@ -278,6 +278,16 @@
   overflow: visible;
 }
 
+.sky-llm-market-chart-card g.sky-llm-market-line-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden {
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+}
+
 .sky-llm-select-others-shell {
   position: relative;
 }

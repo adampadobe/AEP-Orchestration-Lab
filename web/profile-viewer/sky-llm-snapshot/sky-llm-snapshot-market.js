@@ -6,8 +6,12 @@
 
   var DEFAULT_SELECTED = ['Sky', 'BT', 'TalkTalk', 'Virgin Media'];
   var ALL_BRANDS = ['Sky', 'Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
+  var CHART_BRAND_ORDER = ['Sky', 'BT', 'TalkTalk', 'Virgin Media', 'Netflix', 'Disney+'];
+  var KNOWN_BRANDS = { Sky: 1, 'Virgin Media': 1, BT: 1, TalkTalk: 1, Netflix: 1, 'Disney+': 1 };
   var MAX_BRANDS = 5;
   var LINE_GROUP_SEL = 'g.recharts-line, g.recharts-layer.recharts-line';
+  var HIDDEN_LINE_CLASS = 'sky-llm-market-line-hidden';
+  var HIDDEN_LEGEND_CLASS = 'sky-llm-market-legend-hidden';
 
   var LEGACY_LABEL = {
     Adobe: 'Sky',
@@ -139,14 +143,20 @@
     }
   }
 
+  function isKnownBrand(name) {
+    return !!KNOWN_BRANDS[normalizeBrandName(name)];
+  }
+
   function resetLineGraphics(entry) {
     if (!entry) return;
     if (entry.group) {
+      entry.group.classList.remove(HIDDEN_LINE_CLASS);
       entry.group.style.removeProperty('display');
       entry.group.style.removeProperty('visibility');
       entry.group.style.removeProperty('opacity');
     }
     if (entry.path) {
+      entry.path.classList.remove(HIDDEN_LINE_CLASS);
       entry.path.style.removeProperty('display');
       entry.path.style.removeProperty('visibility');
       entry.path.style.removeProperty('opacity');
@@ -155,6 +165,7 @@
       if (entry.pathD) entry.path.setAttribute('d', entry.pathD);
     }
     if (entry.legendEl) {
+      entry.legendEl.classList.remove(HIDDEN_LEGEND_CLASS);
       entry.legendEl.style.removeProperty('display');
       entry.legendEl.style.removeProperty('visibility');
       entry.legendEl.style.removeProperty('opacity');
@@ -173,7 +184,7 @@
       var legendEl = legendItems[idx] || null;
       var textEl = legendEl && legendEl.querySelector('.recharts-legend-item-text');
       var name = normalizeBrandName(textEl && textEl.textContent);
-      if (!name) name = '__extra_' + chartKey + '_' + idx;
+      if (!isKnownBrand(name)) name = CHART_BRAND_ORDER[idx] || '__extra_' + chartKey + '_' + idx;
       var path = group.querySelector('path');
       var pathD = path ? path.getAttribute('d') : '';
 
@@ -269,9 +280,9 @@
       resetLineGraphics(entry);
       return;
     }
-    if (entry.group) entry.group.style.display = 'none';
-    if (entry.path) entry.path.style.display = 'none';
-    if (entry.legendEl) entry.legendEl.style.display = 'none';
+    if (entry.group) entry.group.classList.add(HIDDEN_LINE_CLASS);
+    if (entry.path) entry.path.classList.add(HIDDEN_LINE_CLASS);
+    if (entry.legendEl) entry.legendEl.classList.add(HIDDEN_LEGEND_CLASS);
   }
 
   function applyBrandVisibility() {
@@ -524,8 +535,9 @@
       if (!path) return true;
       var group = path.closest && path.closest('g.recharts-line, g.recharts-layer.recharts-line');
       if (!group) return true;
-      return group.style.display !== 'none';
+      return !group.classList.contains(HIDDEN_LINE_CLASS);
     },
+    resetAllMarketLines: showAllLines,
   };
 
   function boot() {
@@ -540,6 +552,12 @@
   }
   window.setTimeout(boot, 1200);
   window.setTimeout(function () {
-    if (marketState.ready) applyBrandVisibility();
-  }, 1800);
+    if (!marketState.ready) initMarketTracking();
+    showAllLines();
+    applyBrandVisibility();
+  }, 1600);
+  window.setTimeout(function () {
+    showAllLines();
+    applyBrandVisibility();
+  }, 2800);
 })();
