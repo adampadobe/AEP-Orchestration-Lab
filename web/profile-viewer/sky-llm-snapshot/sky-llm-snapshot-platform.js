@@ -685,20 +685,45 @@
     });
   }
 
+  function isBpLineVisible(item) {
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.isLineVisible) {
+      return window.skyLlmSnapshotMarket.isLineVisible(item.path);
+    }
+    if (!item.group) return true;
+    return item.group.style.display !== 'none';
+  }
+
+  function reapplyMarketLineFilter() {
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.applyBrandVisibility) {
+      window.skyLlmSnapshotMarket.applyBrandVisibility();
+    }
+  }
+
   function animateBrandPresenceLines(animate) {
     var token = state.animToken;
-    state.bpLines.forEach(function (item, idx) {
+    var visible = state.bpLines.filter(isBpLineVisible);
+    var delay = 0;
+    visible.forEach(function (item, idx) {
       if (!item.path) return;
       if (animate) {
         window.setTimeout(function () {
+          if (token !== state.animToken) return;
+          if (!isBpLineVisible(item)) return;
           animateLinePath(item.path, item.targetD, ANIM_MS + 100, token);
         }, idx * 35);
+        delay = idx * 35 + ANIM_MS + 120;
       } else {
         item.path.setAttribute('d', item.targetD);
         item.path.style.strokeDasharray = '';
         item.path.style.strokeDashoffset = '';
       }
     });
+    window.setTimeout(
+      function () {
+        if (token === state.animToken) reapplyMarketLineFilter();
+      },
+      animate ? delay : 0,
+    );
   }
 
   function applyBrandPresenceDashboard(opts) {
@@ -1026,6 +1051,7 @@
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
       }, 50);
+      window.setTimeout(reapplyMarketLineFilter, 900);
     }
   }
 

@@ -7,7 +7,7 @@
   var ROUTES = {
     Overview: 'overview.html',
     'Brand Presence': 'brand-presence.html',
-    'Brand Claims': 'brand-presence.html',
+    'Brand Claims': 'brand-claims.html',
     'Prompts Management': 'brand-presence.html',
     'URL Inspector': 'overview.html',
     'Agentic Traffic': 'overview.html',
@@ -24,6 +24,7 @@
   var PAGE_ACTIVE = {
     'overview.html': 'Overview',
     'brand-presence.html': 'Brand Presence',
+    'brand-claims.html': 'Brand Claims',
   };
 
   function currentFile() {

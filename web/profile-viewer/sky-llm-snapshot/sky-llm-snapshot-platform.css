@@ -253,10 +253,24 @@
   cursor: default;
 }
 
-/* Prevent Recharts lines bleeding into adjacent cards (wrapper only — not the SVG) */
-.sky-llm-chart-overflow {
+/* Prevent Recharts lines bleeding into adjacent cards */
+.sky-llm-market-chart-card {
+  overflow: hidden !important;
+  position: relative;
+  min-width: 0;
+}
+
+.sky-llm-chart-overflow,
+.sky-llm-market-chart-card .recharts-wrapper,
+.sky-llm-market-chart-card .recharts-responsive-container {
   overflow: hidden !important;
   min-width: 0;
+  max-width: 100%;
+}
+
+.sky-llm-market-chart-card svg.recharts-surface {
+  overflow: hidden !important;
+  max-width: 100%;
 }
 
 .sky-llm-select-others-shell {

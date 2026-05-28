@@ -8,7 +8,6 @@
   var ALL_BRANDS = ['Sky', 'Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
   var MAX_BRANDS = 5;
 
-  /** Legacy export labels still present in some snapshots */
   var LEGACY_LABEL = {
     Adobe: 'Sky',
     Automattic: 'BT',
@@ -79,10 +78,10 @@
   var marketState = {
     ready: false,
     selected: [],
-    linesByBrand: {},
+    entries: [],
     tagRows: {},
-    tagContainer: null,
     picker: null,
+    clipIds: {},
   };
 
   var trendState = { nodes: {} };
@@ -111,11 +110,11 @@
     });
     if (!heads.length) return null;
     var walk = heads[0].parentElement;
-    for (var i = 0; i < 14 && walk; i++) {
+    for (var i = 0; i < 16 && walk; i++) {
       var svgs = walk.querySelectorAll('svg.recharts-surface[role="application"]');
       for (var s = 0; s < svgs.length; s++) {
         var svg = svgs[s];
-        if (svg.querySelector('g.recharts-line, g.recharts-layer line, path.recharts-curve')) {
+        if (svg.querySelector('g.recharts-line path')) {
           return { root: walk, svg: svg };
         }
       }
@@ -124,36 +123,88 @@
     return null;
   }
 
-  function clampChartOverflow(svg) {
-    if (!svg) return;
-    var node = svg.parentElement;
-    for (var i = 0; i < 6 && node; i++) {
+  function markChartCard(block) {
+    if (!block || !block.root) return;
+    block.root.classList.add('sky-llm-market-chart-card');
+    var node = block.svg;
+    for (var i = 0; i < 10 && node; i++) {
       if (node.classList && node.classList.contains('recharts-wrapper')) {
         node.classList.add('sky-llm-chart-overflow');
-        break;
+      }
+      if (node.classList && node.classList.contains('recharts-responsive-container')) {
+        node.classList.add('sky-llm-chart-overflow');
       }
       node = node.parentElement;
     }
   }
 
-  function cacheChartLines(chartTitle, key) {
+  function ensureSvgPlotClip(svg, chartKey) {
+    if (!svg || svg.getAttribute('data-sky-plot-clip')) return;
+    svg.setAttribute('data-sky-plot-clip', '1');
+
+    var grid = svg.querySelector('g.recharts-cartesian-grid');
+    var x = 80;
+    var y = 55;
+    var w = 1330;
+    var h = 210;
+    if (grid) {
+      var line = grid.querySelector('line[x1="80"]');
+      if (line) {
+        x = parseFloat(line.getAttribute('x1') || '80');
+        y = parseFloat(line.getAttribute('y1') || '60') - 5;
+        w = parseFloat(line.getAttribute('width') || '1332');
+        h = parseFloat(line.getAttribute('height') || '186') + 30;
+      }
+    }
+
+    var clipId = 'sky-llm-plot-clip-' + chartKey;
+    marketState.clipIds[chartKey] = clipId;
+
+    var ns = 'http://www.w3.org/2000/svg';
+    var defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(ns, 'defs');
+      svg.insertBefore(defs, svg.firstChild);
+    }
+    var clip = document.createElementNS(ns, 'clipPath');
+    clip.setAttribute('id', clipId);
+    var rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', String(x));
+    rect.setAttribute('y', String(y));
+    rect.setAttribute('width', String(w));
+    rect.setAttribute('height', String(h));
+    clip.appendChild(rect);
+    defs.appendChild(clip);
+
+    svg.querySelectorAll('g.recharts-line').forEach(function (g) {
+      g.setAttribute('clip-path', 'url(#' + clipId + ')');
+    });
+    svg.style.overflow = 'hidden';
+  }
+
+  function cacheChartLines(chartTitle, chartKey) {
     var block = findChartBlock(chartTitle);
     if (!block) return;
-    clampChartOverflow(block.svg);
+    markChartCard(block);
+    ensureSvgPlotClip(block.svg, chartKey);
 
     var legendItems = Array.from(block.svg.querySelectorAll('.recharts-legend-item'));
     var lineGroups = Array.from(block.svg.querySelectorAll('g.recharts-line'));
 
-    legendItems.forEach(function (legendEl, idx) {
-      var textEl = legendEl.querySelector('.recharts-legend-item-text');
+    lineGroups.forEach(function (group, idx) {
+      var legendEl = legendItems[idx] || null;
+      var textEl = legendEl && legendEl.querySelector('.recharts-legend-item-text');
       var name = normalizeBrandName(textEl && textEl.textContent);
-      if (!name) return;
-      var group = lineGroups[idx];
-      if (!group) return;
+      if (!name) name = '__extra_' + chartKey + '_' + idx;
 
-      if (!marketState.linesByBrand[name]) marketState.linesByBrand[name] = {};
-      if (!marketState.linesByBrand[name][key]) marketState.linesByBrand[name][key] = [];
-      marketState.linesByBrand[name][key].push({ group: group, legendEl: legendEl });
+      marketState.entries.push({
+        name: name,
+        chartKey: chartKey,
+        group: group,
+        legendEl: legendEl,
+        path: group.querySelector('path'),
+        idx: idx,
+      });
     });
   }
 
@@ -162,10 +213,6 @@
     marketState.selected = [];
     var root = findSectionRoot('Market Tracking');
     if (!root) return;
-    marketState.tagContainer =
-      root.querySelector('[role="grid"]') ||
-      root.querySelector('[class*="tag"]') ||
-      root.querySelector('div[data-rac]');
 
     var rows = Array.from(root.querySelectorAll('[role="row"]')).filter(function (row) {
       return row.querySelector('button[aria-label="Remove"]');
@@ -174,14 +221,9 @@
     rows.forEach(function (row) {
       var span = row.querySelector('span[data-rsp-slot="text"]');
       var name = normalizeBrandName((span && span.textContent) || row.getAttribute('aria-label') || '');
-      if (!name) return;
-      if (name === 'Netflix') {
-        name = 'Virgin Media';
-        if (span) span.textContent = 'Virgin Media';
-        row.setAttribute('aria-label', 'Virgin Media');
-      }
+      if (!name || name.indexOf('__') === 0) return;
       if (marketState.selected.indexOf(name) >= 0) {
-        row.parentElement && row.parentElement.removeChild(row);
+        if (row.parentElement) row.parentElement.removeChild(row);
         return;
       }
       marketState.selected.push(name);
@@ -192,7 +234,8 @@
 
   function wireRemoveButton(row, name) {
     var removeBtn = row.querySelector('button[aria-label="Remove"]');
-    if (!removeBtn || removeBtn.dataset.skyLlmRemoveWired === '1') return;
+    if (!removeBtn) return;
+    if (removeBtn.dataset.skyLlmRemoveWired === '1') return;
     removeBtn.dataset.skyLlmRemoveWired = '1';
     removeBtn.addEventListener(
       'click',
@@ -209,11 +252,8 @@
     readTagRows();
     if (marketState.selected.length) return;
 
-    var template = null;
     var root = findSectionRoot('Market Tracking');
-    if (root) {
-      template = root.querySelector('[role="row"]');
-    }
+    var template = root && root.querySelector('[role="row"]');
     if (!template || !template.parentElement) {
       marketState.selected = DEFAULT_SELECTED.slice();
       return;
@@ -228,7 +268,6 @@
       var span = row.querySelector('span[data-rsp-slot="text"]');
       if (span) span.textContent = name;
       row.setAttribute('aria-label', name);
-      row.setAttribute('data-key', name);
       template.parentElement.appendChild(row);
       marketState.tagRows[name] = row;
       wireRemoveButton(row, name);
@@ -236,46 +275,62 @@
     marketState.selected = DEFAULT_SELECTED.slice();
   }
 
-  function setLineVisible(name, visible) {
-    var charts = marketState.linesByBrand[name];
-    if (!charts) return;
-    Object.keys(charts).forEach(function (key) {
-      charts[key].forEach(function (item) {
-        if (item.group) item.group.style.display = visible ? '' : 'none';
-        if (item.legendEl) item.legendEl.style.display = visible ? '' : 'none';
-      });
-    });
+  function isSelected(name) {
+    return marketState.selected.indexOf(name) >= 0;
+  }
+
+  function setEntryVisible(entry, visible) {
+    var v = visible ? '' : 'none';
+    if (entry.group) {
+      entry.group.style.display = v;
+      entry.group.style.visibility = visible ? 'visible' : 'hidden';
+    }
+    if (entry.path) entry.path.style.display = v;
+    if (entry.legendEl) entry.legendEl.style.display = v;
+    if (entry.dots) entry.dots.style.display = v;
   }
 
   function applyBrandVisibility() {
-    if (!Object.keys(marketState.linesByBrand).length) return;
+    if (!marketState.entries.length) return;
 
-    ALL_BRANDS.forEach(function (name) {
-      var show = marketState.selected.indexOf(name) >= 0;
-      if (name === 'Netflix' && marketState.selected.indexOf('Virgin Media') >= 0) show = false;
-      setLineVisible(name, show);
+    var talkTalkShown = { mentions: false, citations: false };
+
+    marketState.entries.forEach(function (entry) {
+      var show = false;
+      if (entry.name.indexOf('__extra_') === 0 || entry.name.indexOf('__orphan') === 0) {
+        show = false;
+      } else if (entry.name === 'Netflix' || entry.name === 'Disney+') {
+        show = false;
+      } else if (entry.name === 'TalkTalk') {
+        if (isSelected('TalkTalk') && !talkTalkShown[entry.chartKey]) {
+          show = true;
+          talkTalkShown[entry.chartKey] = true;
+        }
+      } else {
+        show = isSelected(entry.name);
+      }
+      setEntryVisible(entry, show);
     });
   }
 
   function removeBrand(name) {
-    if (marketState.selected.indexOf(name) < 0) return;
-    marketState.selected = marketState.selected.filter(function (b) {
-      return b !== name;
-    });
     var row = marketState.tagRows[name];
     if (row && row.parentElement) row.parentElement.removeChild(row);
     delete marketState.tagRows[name];
-    setLineVisible(name, false);
+    marketState.selected = marketState.selected.filter(function (b) {
+      return b !== name;
+    });
+    applyBrandVisibility();
     if (marketState.picker) marketState.picker.renderMenu();
   }
 
   function addBrand(name) {
-    if (marketState.selected.indexOf(name) >= 0) return;
-    if (marketState.selected.length >= MAX_BRANDS) return;
+    if (isSelected(name) || marketState.selected.length >= MAX_BRANDS) return;
 
     var template =
       marketState.tagRows[Object.keys(marketState.tagRows)[0]] ||
-      (findSectionRoot('Market Tracking') && findSectionRoot('Market Tracking').querySelector('[role="row"]'));
+      (findSectionRoot('Market Tracking') &&
+        findSectionRoot('Market Tracking').querySelector('[role="row"]'));
     if (!template || !template.parentElement) return;
 
     var row = template.cloneNode(true);
@@ -286,19 +341,17 @@
     var span = row.querySelector('span[data-rsp-slot="text"]');
     if (span) span.textContent = name;
     row.setAttribute('aria-label', name);
-    row.setAttribute('data-key', name);
     template.parentElement.appendChild(row);
     marketState.tagRows[name] = row;
     wireRemoveButton(row, name);
     marketState.selected.push(name);
-    setLineVisible(name, true);
-    if (name === 'Virgin Media') setLineVisible('Netflix', false);
+    applyBrandVisibility();
     if (marketState.picker) marketState.picker.renderMenu();
   }
 
   function availableBrands() {
     return ALL_BRANDS.filter(function (b) {
-      return marketState.selected.indexOf(b) < 0;
+      return !isSelected(b);
     });
   }
 
@@ -308,9 +361,10 @@
     var combos = Array.from(root.querySelectorAll('[role="combobox"]'));
     return (
       combos.find(function (el) {
-        var label = (el.getAttribute('aria-label') || '').toLowerCase();
-        return label.indexOf('select') >= 0;
-      }) || combos[0] || null
+        return (el.getAttribute('aria-label') || '').toLowerCase().indexOf('select') >= 0;
+      }) ||
+      combos[0] ||
+      null
     );
   }
 
@@ -358,16 +412,16 @@
         menu.appendChild(empty);
         return;
       }
-      avail.forEach(function (name) {
+      avail.forEach(function (brand) {
         var li = document.createElement('li');
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'sky-llm-date-option';
         btn.setAttribute('role', 'option');
-        btn.textContent = name;
+        btn.textContent = brand;
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          addBrand(name);
+          addBrand(brand);
           closeMenu();
         });
         li.appendChild(btn);
@@ -404,7 +458,8 @@
   function initMarketTracking() {
     if (!findSectionRoot('Market Tracking')) return;
 
-    marketState.linesByBrand = {};
+    marketState.entries = [];
+    marketState.clipIds = {};
     cacheChartLines('Brand Mentions', 'mentions');
     cacheChartLines('Brand Citations', 'citations');
 
@@ -429,8 +484,7 @@
         for (var c = 0; c < candidates.length; c++) {
           var el = candidates[c];
           if (el.childElementCount > 0) continue;
-          var t = el.textContent.trim();
-          if (/vs last week/i.test(t)) return el;
+          if (/vs last week/i.test(el.textContent)) return el;
         }
         walk = walk.parentElement;
       }
@@ -477,7 +531,14 @@
 
   window.skyLlmSnapshotMarket = {
     initMarketTracking: initMarketTracking,
+    applyBrandVisibility: applyBrandVisibility,
     applyTrends: applyTrends,
+    isLineVisible: function (path) {
+      if (!path) return true;
+      var group = path.closest && path.closest('g.recharts-line');
+      if (!group) return true;
+      return group.style.display !== 'none';
+    },
   };
 
   function boot() {
@@ -491,4 +552,7 @@
     boot();
   }
   window.setTimeout(boot, 1200);
+  window.setTimeout(function () {
+    if (marketState.ready) applyBrandVisibility();
+  }, 1600);
 })();
