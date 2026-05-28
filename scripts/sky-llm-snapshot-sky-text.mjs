@@ -1,11 +1,21 @@
 /**
  * Shared Sky UK text replacements for frozen LLM Optimizer snapshot HTML.
  */
-export function applySkyBranding(html) {
+export function applyCommonSiteBranding(html) {
+  html = html.replace(/sky\.adobedemo\.com/gi, 'sky.com');
+  html = html.replace(/frescopa\.adobedemo\.com/gi, 'sky.com');
+  html = html.replace(/frescopa\.adobe-demo\.com/gi, 'sky.com');
+  html = html.replace(/frescopa\.coffee/gi, 'sky.com');
   html = html.replace(/wknd-site-internal[^<"]*/gi, 'sky.com');
   html = html.replace(/wknd\.enablementadobe\.com/gi, 'sky.com');
   html = html.replace(/wknd-site-content-man[^<"]*/gi, 'sky.com');
   html = html.replace(/frescos\.adobe-demo\.com/gi, 'sky.com');
+  html = html.replace(/www\.sky\.com/gi, 'sky.com');
+  return html;
+}
+
+export function applySkyBranding(html) {
+  html = applyCommonSiteBranding(html);
 
   /* Coffee export brand names — replace before generic "coffee" → "TV and broadband". */
   html = html.replace(/frescopa\s+TV and broadband/gi, 'Sky');
@@ -118,10 +128,7 @@ export function applySkyBranding(html) {
 export function applyUrlInspectorBranding(html) {
   html = applySkyBranding(html);
 
-  html = html.replace(/frescopa\.adobedemo\.com/gi, 'www.sky.com');
-  html = html.replace(/frescopa\.adobe-demo\.com/gi, 'www.sky.com');
-  html = html.replace(/frescopa\.coffee/gi, 'www.sky.com');
-  html = html.replace(/frescopacoffee\.com/gi, 'www.sky.com');
+  html = html.replace(/frescopacoffee\.com/gi, 'sky.com');
   html = html.replace(/frescopa-coffee-/gi, 'sky-');
   html = html.replace(/frescopa-/gi, 'sky-');
 
@@ -140,8 +147,8 @@ export function applyUrlInspectorBranding(html) {
     html = html.split(from).join(to);
   }
 
-  html = html.replace(/www\.sky\.com\/sky-news/gi, 'www.sky.com/help/articles/sky-q-box-no-signal');
-  html = html.replace(/www\.sky\.com\/sky-certified/gi, 'www.sky.com/broadband/full-fibre');
+  html = html.replace(/sky\.com\/sky-news/gi, 'sky.com/help/articles/sky-q-box-no-signal');
+  html = html.replace(/sky\.com\/sky-certified/gi, 'sky.com/broadband/full-fibre');
 
   html = html.replace(/>Coffee</g, '>TV<');
   html = html.replace(/>Machines</g, '>Broadband<');
@@ -155,6 +162,37 @@ export function applyUrlInspectorBranding(html) {
   html = html.replace(/>(\s*)US(\s*)</g, '>$1UK$2<');
   html = html.replace(/"US"/g, '"UK"');
   html = html.replace(/Market:\s*US/gi, 'Market: UK');
+
+  return html;
+}
+
+/** Agentic Traffic export — site, categories, mover URLs. */
+export function applyAgenticTrafficBranding(html) {
+  html = applySkyBranding(html);
+
+  html = html.replace(/frescopacoffee\.com/gi, 'sky.com');
+  html = html.replace(/frescopa-coffee-/gi, 'sky-');
+  html = html.replace(/frescopa-/gi, 'sky-');
+
+  const urlMap = [
+    ['/blog/cold-brew', '/tv/sky-glass'],
+    ['/blog/', '/tv/'],
+    ['/machines', '/tv/sky-q'],
+    ['/subscribe', '/broadband'],
+    ['cold-brew-101', 'tv/sky-glass'],
+    ['home-brewer', 'broadband/full-fibre'],
+  ];
+  for (const [from, to] of urlMap) {
+    html = html.split(from).join(to);
+  }
+
+  html = html.replace(/>Coffee</g, '>TV<');
+  html = html.replace(/>Tea</g, '>Broadband<');
+  html = html.replace(/>Coffee Machine</g, '>Mobile<');
+  html = html.replace(/"Coffee"/g, '"TV"');
+  html = html.replace(/"Tea"/g, '"Broadband"');
+  html = html.replace(/"Coffee Machine"/g, '"Mobile"');
+  html = html.replace(/Category:\s*Coffee/gi, 'Category: TV');
 
   return html;
 }

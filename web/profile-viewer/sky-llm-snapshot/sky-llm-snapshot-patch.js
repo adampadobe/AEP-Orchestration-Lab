@@ -29,13 +29,16 @@
   function patchSiteField() {
     document.querySelectorAll('input').forEach(function (input) {
       var val = input.value || '';
-      if (/wknd/i.test(val)) input.value = SITE;
-      if (/frescopa/i.test(val)) input.value = SITE;
+      if (/wknd|frescopa|adobedemo|enablementadobe/i.test(val)) input.value = SITE;
+      if (/www\.sky\.com/i.test(val)) input.value = SITE;
     });
     document.querySelectorAll('span, button').forEach(function (el) {
       if (!isLeafTextEl(el)) return;
       var txt = (el.textContent || '').trim();
-      if (/wknd-site|wknd\.enablement/i.test(txt) && txt.length < 64) {
+      if (
+        (/wknd-site|wknd\.enablement|adobedemo|frescopa/i.test(txt) || /^www\.sky\.com$/i.test(txt)) &&
+        txt.length < 64
+      ) {
         el.textContent = SITE;
       }
     });

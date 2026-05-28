@@ -1,22 +1,22 @@
 /**
- * Prepares URL Inspector saved HTML + copies URL assets into sky-llm-snapshot/assets/.
+ * Prepares Agentic Traffic saved HTML + copies AT assets into sky-llm-snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyUrlInspectorBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { applyAgenticTrafficBranding } from './sky-llm-snapshot-sky-text.mjs';
 import { stripLineDash } from './sky-llm-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
-  process.env.SKY_LLM_URL_SOURCE_HTML ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer URL.html');
+  process.env.SKY_LLM_AT_SOURCE_HTML ||
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer AT.html');
 const srcAssetsDir =
-  process.env.SKY_LLM_URL_SOURCE_ASSETS ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer URL_files');
+  process.env.SKY_LLM_AT_SOURCE_ASSETS ||
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer AT_files');
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const assetsDir = path.join(outDir, 'assets');
-const outHtml = path.join(outDir, 'url-inspector.html');
+const outHtml = path.join(outDir, 'agentic-traffic.html');
 
 const SNAPSHOT_ASSETS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
@@ -53,19 +53,24 @@ function copyAssets() {
     const src = path.join(srcAssetsDir, name);
     if (!fs.statSync(src).isFile()) continue;
     const base = name.replace(/\.download$/i, '');
-    fs.copyFileSync(src, path.join(assetsDir, base));
-    n++;
+    const dest = path.join(assetsDir, base);
+    try {
+      fs.copyFileSync(src, dest);
+      n++;
+    } catch (err) {
+      console.warn('Skip asset (locked or unreadable):', base, err.code || err.message);
+    }
   }
   console.log('Copied', n, 'asset files to', assetsDir);
 }
 
 function patchHtml(html) {
-  html = html.replace(/\.\/Adobe LLM Optimizer URL_files\//g, './assets/');
+  html = html.replace(/\.\/Adobe LLM Optimizer AT_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer BP_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer_files\//g, './assets/');
   html = html.replace(/\.download/g, '');
   html = stripAuthScripts(html);
-  html = applyUrlInspectorBranding(html);
+  html = applyAgenticTrafficBranding(html);
   html = stripLineDash(html);
   html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
   html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-platform\.js"><\/script>/gi, '');

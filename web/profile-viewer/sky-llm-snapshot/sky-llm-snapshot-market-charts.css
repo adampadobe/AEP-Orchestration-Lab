@@ -1,7 +1,19 @@
 /**
- * Market Tracking line charts — frozen Recharts SVG ships with dash-array attributes
- * that hide strokes; force visible strokes and chart color tokens.
+ * Frozen Recharts line charts — dash-array attributes hide strokes; force visible lines.
  */
+#root {
+  --chart-color-brand: #e11d48;
+  --chart-color-magenta: #d946ef;
+  --chart-color-orange: #f97316;
+  --chart-color-purple: #a855f7;
+  --chart-color-indigo: #6366f1;
+  --chart-color-fuchsia: #c026d3;
+  --chart-color-cyan: #06b6d4;
+  --chart-line-blue: #3b82f6;
+  --chart-line-orange: #f97316;
+  --chart-line-purple: #a855f7;
+}
+
 .sky-llm-market-chart-card {
   --chart-color-brand: #e11d48;
   --chart-color-magenta: #d946ef;
@@ -12,16 +24,59 @@
   --chart-color-cyan: #06b6d4;
 }
 
+#root path.recharts-line-curve,
+#root path.recharts-curve.recharts-line-curve,
 .sky-llm-market-chart-card path.recharts-curve,
 .sky-llm-market-chart-card path.recharts-line-curve {
   stroke-dasharray: none !important;
   stroke-dashoffset: 0 !important;
   opacity: 1 !important;
   visibility: visible !important;
-  display: inline !important;
 }
 
+#root g.recharts-layer.recharts-line,
 .sky-llm-market-chart-card g.recharts-layer.recharts-line {
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+.sky-llm-market-chart-card {
+  overflow: visible !important;
+  position: relative;
+  min-width: 0;
+}
+
+.sky-llm-market-chart-card .recharts-wrapper,
+.sky-llm-market-chart-card .recharts-responsive-container {
+  overflow: visible !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sky-llm-market-chart-card svg.recharts-surface {
+  max-width: 100%;
+}
+
+/* URL Inspector / Agentic Traffic trend cards — clip lines inside the card */
+.sky-llm-contained-line-chart {
+  overflow: hidden !important;
+  position: relative;
+  min-width: 0;
+}
+
+.sky-llm-contained-line-chart .recharts-wrapper,
+.sky-llm-contained-line-chart .recharts-responsive-container {
+  overflow: hidden !important;
+  max-width: 100%;
+}
+
+.sky-llm-contained-line-chart svg.recharts-surface {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
+  stroke-opacity: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

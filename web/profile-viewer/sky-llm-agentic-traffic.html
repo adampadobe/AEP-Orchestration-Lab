@@ -2,11 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=sky-llm-optimizer.html#agentic-traffic">
-  <script>location.replace('sky-llm-optimizer.html#agentic-traffic');</script>
-  <title>Redirecting…</title>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sky — LLM Optimizer Agentic Traffic (demo) – AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260528-sky-llm-at">
+  <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm-at">
+  <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-at">
+  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body>
-  <p><a href="sky-llm-optimizer.html#agentic-traffic">Continue to Agentic Traffic</a></p>
+<body class="mod-demo-page sky-llm-optimizer-page home-dashboard-concierge">
+  <div class="mod-demo-top-anchor" id="skyLlmTopAnchor">
+    <div class="mod-demo-id-banner" role="region" aria-label="Lab environment">
+      <div class="mod-demo-id-inner aep-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div class="form-row" hidden>
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+            </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+            </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="skyLlmNs">Namespace</label>
+              <select id="skyLlmNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="mod-demo-profile-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p id="skyLlmMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="mod-demo-disclaimer">
+        <strong>Agentic Traffic</strong> for Sky UK (<a href="https://www.sky.com" rel="noopener noreferrer">sky.com</a>) — AI agent hits, response codes, and weekly trends from a frozen Adobe export. Use the in-app left nav to switch pages.
+      </p>
+    </div>
+  </div>
+
+  <iframe
+    id="skyLlmOptimizerFrame"
+    class="mod-demo-site-frame sky-llm-optimizer-frame"
+    title="Adobe LLM Optimizer — Agentic Traffic (Sky)"
+    src="sky-llm-snapshot/agentic-traffic.html"
+    referrerpolicy="no-referrer-when-downgrade"
+    sandbox="allow-same-origin allow-scripts allow-forms"
+    loading="eager"
+  ></iframe>
+
+  <div class="mod-demo-sidebar-hover-zone" aria-hidden="true"></div>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main mod-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="sky-llm-optimizer.js?v=20260528-sky-llm-at"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260528-sky-llm-at"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@
     'Brand Claims': 'brand-claims.html',
     'Prompts Management': 'prompts-management.html',
     'URL Inspector': 'url-inspector.html',
-    'Agentic Traffic': 'overview.html',
+    'Agentic Traffic': 'agentic-traffic.html',
     'Referral Traffic': 'overview.html',
     Opportunities: 'overview.html',
     'Brands Management': 'overview.html',
@@ -27,6 +27,7 @@
     'brand-claims.html': 'Brand Claims',
     'prompts-management.html': 'Prompts Management',
     'url-inspector.html': 'URL Inspector',
+    'agentic-traffic.html': 'Agentic Traffic',
   };
 
   function currentFile() {

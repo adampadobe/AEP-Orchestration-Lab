@@ -191,25 +191,28 @@
   }
 
   function ensureLinesVisible() {
-    var root = findSectionRoot('Market Tracking');
-    var scope = root || document;
-    scope.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
+    document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
   }
 
-  function markChartCard(block) {
+  function markContainedLineCharts() {
+    Object.keys(CONTAINED_CHART_TITLES).forEach(function (title) {
+      var block = findChartBlock(title);
+      if (block) markChartCard(block, title);
+    });
+  }
+
+  var CONTAINED_CHART_TITLES = {
+    'Citation Attempts': 1,
+    'Referral Hits from LLMs': 1,
+    'Agentic Traffic Trends': 1,
+  };
+
+  function markChartCard(block, chartTitle) {
     if (!block || !block.root) return;
-    block.root.classList.add('sky-llm-market-chart-card');
-    var node = block.svg;
-    for (var i = 0; i < 10 && node; i++) {
-      if (
-        node.classList &&
-        (node.classList.contains('recharts-wrapper') ||
-          node.classList.contains('recharts-responsive-container'))
-      ) {
-        node.classList.add('sky-llm-chart-overflow');
-      }
-      node = node.parentElement;
-    }
+    var cardClass = CONTAINED_CHART_TITLES[chartTitle]
+      ? 'sky-llm-contained-line-chart'
+      : 'sky-llm-market-chart-card';
+    block.root.classList.add(cardClass);
   }
 
   function isKnownBrand(name) {
@@ -243,7 +246,7 @@
   function cacheChartLines(chartTitle, chartKey) {
     var block = findChartBlock(chartTitle);
     if (!block) return;
-    markChartCard(block);
+    markChartCard(block, chartTitle);
 
     var legendItems = Array.from(block.svg.querySelectorAll('.recharts-legend-item'));
     var lineGroups = Array.from(block.svg.querySelectorAll(LINE_GROUP_SEL));
@@ -601,10 +604,30 @@
     resetAllMarketLines: showAllLines,
   };
 
+  function watchLineCurves() {
+    if (!window.MutationObserver) return;
+    var pending = false;
+    var observer = new MutationObserver(function () {
+      if (pending) return;
+      pending = true;
+      window.requestAnimationFrame(function () {
+        pending = false;
+        ensureLinesVisible();
+      });
+    });
+    observer.observe(document.documentElement, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'stroke-dasharray', 'stroke-dashoffset', 'd', 'stroke', 'class'],
+    });
+  }
+
   function boot() {
     cacheTrendNodes();
     ensureLinesVisible();
+    markContainedLineCharts();
     if (findSectionRoot('Market Tracking')) initMarketTracking();
+    else markContainedLineCharts();
   }
 
   if (document.readyState === 'loading') {
@@ -612,9 +635,12 @@
   } else {
     boot();
   }
-  window.setTimeout(boot, 1200);
-  window.setTimeout(function () {
-    if (!marketState.ready) initMarketTracking();
-    ensureLinesVisible();
-  }, 1800);
+  watchLineCurves();
+  [400, 1200, 1800, 3000, 5000].forEach(function (ms) {
+    window.setTimeout(function () {
+      if (!marketState.ready && findSectionRoot('Market Tracking')) initMarketTracking();
+      ensureLinesVisible();
+      markContainedLineCharts();
+    }, ms);
+  });
 })();

@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { stripLineDash } from './sky-llm-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -59,9 +61,7 @@ function patchHtml(html) {
   html = html.replace(/<script[^>]*src="\.\/assets\/web-vitals[^"]+"[^>]*><\/script>/gi, '');
   html = html.replace(/<script>window\.SAMPLE_PAGEVIEWS_AT_RATE[^<]*<\/script>/i, '');
 
-  html = html.replace(/wknd-site-internal[^<"]*/gi, 'sky.com');
-  html = html.replace(/wknd\.enablementadobe\.com/gi, 'sky.com');
-  html = html.replace(/wknd-site-content-man[^<"]*/gi, 'sky.com');
+  html = applySkyBranding(html);
 
   const axisLabelReplacements = [
     ['Adobe', 'Sky'],
@@ -79,14 +79,7 @@ function patchHtml(html) {
   }
   html = html.split('WKND').join('Virgin Media');
 
-  html = html.replace(
-    /(<path[^>]*class="[^"]*recharts-(?:line-)?curve[^"]*"[^>]*)\sstroke-dasharray="[^"]*"/g,
-    '$1',
-  );
-  html = html.replace(
-    /(<path[^>]*class="[^"]*recharts-(?:line-)?curve[^"]*"[^>]*)\sstroke-dashoffset="[^"]*"/g,
-    '$1',
-  );
+  html = stripLineDash(html);
 
   if (!html.includes('sky-llm-snapshot-market-charts.css')) {
     html = html.replace(
