@@ -606,6 +606,21 @@
                 },
               ],
             },
+            {
+              id: 'skyLlm',
+              label: 'LLM',
+              items: [
+                {
+                  label: 'LLM Optimizer (in development)',
+                  href: 'sky-llm-optimizer.html',
+                  inDevelopment: true,
+                  navHideKey: 'skyLlmOptimizer',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+                },
+              ],
+            },
           ],
         },
         {
