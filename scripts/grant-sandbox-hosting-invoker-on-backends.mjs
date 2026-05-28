@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Grant roles/run.invoker to sc-demo-sandbox-hosting-invoker on every Cloud Run
+ * Grant roles/run.invoker to sc-demo-sbx-host-invoker on every Cloud Run
  * service in the sandbox project EXCEPT the public API gateway (sandboxapigateway).
  *
  * Usage:
@@ -13,7 +13,7 @@ const PROJECT = process.env.SANDBOX_GCP_PROJECT || 'adbe-gcp0819';
 const REGION = process.env.CLOUD_FUNCTIONS_REGION || 'us-east4';
 const HOSTING_INVOKER_SA =
   process.env.HOSTING_INVOKER_SA ||
-  `sc-demo-sandbox-hosting-invoker@${PROJECT}.iam.gserviceaccount.com`;
+  `sc-demo-sbx-host-invoker@${PROJECT}.iam.gserviceaccount.com`;
 /** Cloud Run service id for exports.sandboxApiGateway (Gen2 lowercase name). */
 const GATEWAY_SERVICE_NAMES = new Set(
   (process.env.GATEWAY_RUN_SERVICE_NAMES || 'sandboxapigateway')

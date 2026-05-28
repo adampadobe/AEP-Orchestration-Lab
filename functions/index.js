@@ -123,7 +123,7 @@ function readFirebaseConfigProjectId() {
 const SANDBOX_GCP_PROJECT_ID = 'adbe-gcp0819';
 const SANDBOX_FUNCTIONS_REGION = 'us-east4';
 const SC_DEMO_SANDBOX_HOSTING_INVOKER_SA =
-  'sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com';
+  'sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com';
 const DEFAULT_FUNCTIONS_REGION = 'us-central1';
 
 function resolveFunctionsRegion() {

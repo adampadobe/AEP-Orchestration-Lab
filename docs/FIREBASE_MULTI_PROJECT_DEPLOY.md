@@ -148,7 +148,7 @@ Use **three** user-managed service accounts (runtime vs build vs optional server
 |------|-----------------|----------|
 | **Runtime** | `sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com` | Cloud Run / Gen2 execution (AEP, Firestore, secrets at runtime) |
 | **Build / CI deploy** | `sc-demo-sandbox-admin@adbe-gcp0819.iam.gserviceaccount.com` | Cloud Build (`buildConfig.serviceAccount`); optional automation deploy identity |
-| **Hosting invoker (optional)** | `sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com` | **Not** used by Firebase Hosting for `/api/*` rewrites — see [Hosting vs Cloud Run IAM](#hosting-vs-cloud-run-iam-browser-api) below. For gateway / server-to-server `roles/run.invoker` on backends. |
+| **Hosting invoker (optional)** | `sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com` | **Not** used by Firebase Hosting for `/api/*` rewrites — see [Hosting vs Cloud Run IAM](#hosting-vs-cloud-run-iam-browser-api) below. For gateway / server-to-server `roles/run.invoker` on backends. |
 
 **Who runs `firebase deploy`:** your user (**`apalmer@adobe.com`**) or, in CI,
 **`sc-demo-sandbox-admin`** — not the runtime SA.
@@ -322,7 +322,7 @@ High level only—align with org retention and compliance before acting.
 
 ### Research verdict (May 2026)
 
-**Creating `sc-demo-sandbox-hosting-invoker` and granting `roles/run.invoker` on Gen2 Cloud Run services does not fix browser `/api/*` on `adbe-gcp0819.web.app`.**
+**Creating `sc-demo-sbx-host-invoker` and granting `roles/run.invoker` on Gen2 Cloud Run services does not fix browser `/api/*` on `adbe-gcp0819.web.app`.**
 
 | Question | Answer |
 |----------|--------|
@@ -353,7 +353,7 @@ When org policy blocks **`allUsers:roles/run.invoker`** on ~120 Gen2 Cloud Run s
 ```text
 Browser → Firebase Hosting (adbe-gcp0819.web.app)
        → sandboxApiGateway  (only public / allUsers service)
-       → (as sc-demo-sandbox-hosting-invoker + Cloud Run ID token)
+       → (as sc-demo-sbx-host-invoker + Cloud Run ID token)
        → private Gen2 function URLs (us-east4-…cloudfunctions.net/…)
 ```
 
@@ -362,17 +362,17 @@ Browser → Firebase Hosting (adbe-gcp0819.web.app)
 | **Hosting** | `firebase.sandbox.json`: one rewrite `{ "source": "/api/**", "functionId": "sandboxApiGateway", "region": "us-east4" }`. Legacy per-route map: **`firebase.sandbox.direct.json`**. |
 | **Gateway code** | `functions/sandboxApiGateway.js` + generated `functions/sandboxApiGatewayRoutes.json` |
 | **Route table** | `npm run generate:sandbox-gateway-routes` (from `firebase.sandbox.direct.json`) |
-| **Gateway runtime SA** | `sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com` (`serviceAccount` on `exports.sandboxApiGateway` only) |
+| **Gateway runtime SA** | `sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com` (`serviceAccount` on `exports.sandboxApiGateway` only) |
 | **Backend IAM** | `roles/run.invoker` for hosting-invoker on every Cloud Run service **except** `sandboxapigateway`: `npm run grant:sandbox-hosting-invoker` |
 | **Production** | Unchanged — `firebase.json` still uses direct `/api/*` rewrites; gateway export is gated on `REGION === us-east4` in `functions/index.js`. |
 
 ### Create hosting invoker SA (once)
 
 ```bash
-gcloud iam service-accounts create sc-demo-sandbox-hosting-invoker \
+gcloud iam service-accounts create sc-demo-sbx-host-invoker \
   --project=adbe-gcp0819 \
   --display-name="Sandbox Hosting Cloud Run invoker"
-# Email: sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com
+# Email: sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com
 ```
 
 ### Grant `roles/run.invoker` on Cloud Run (Gen2 service names are lowercase)
@@ -381,7 +381,7 @@ gcloud iam service-accounts create sc-demo-sandbox-hosting-invoker \
 
 ```bash
 gcloud run services add-iam-policy-binding lablabaccessstatus \
-  --member="serviceAccount:sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com" \
+  --member="serviceAccount:sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com" \
   --role=roles/run.invoker \
   --project=adbe-gcp0819 \
   --region=us-east4
@@ -404,7 +404,7 @@ node scripts/sandbox-grant-cloud-run-hosting-invoker.mjs
 
 ```bash
 gcloud iam service-accounts add-iam-policy-binding \
-  sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com \
+  sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com \
   --project=adbe-gcp0819 \
   --member="serviceAccount:sc-demo-sandbox-admin@adbe-gcp0819.iam.gserviceaccount.com" \
   --role=roles/iam.serviceAccountUser
@@ -457,7 +457,7 @@ curl -sS -w "\nHTTP:%{http_code}\n" \
 SERVICE_URL=$(gcloud run services describe lablabaccessstatus \
   --project=adbe-gcp0819 --region=us-east4 --format='value(status.url)')
 TOKEN=$(gcloud auth print-identity-token \
-  --impersonate-service-account=sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com \
+  --impersonate-service-account=sc-demo-sbx-host-invoker@adbe-gcp0819.iam.gserviceaccount.com \
   --audiences="${SERVICE_URL}")
 curl -sS -w "\nHTTP:%{http_code}\n" \
   -H "Authorization: Bearer ${TOKEN}" \
