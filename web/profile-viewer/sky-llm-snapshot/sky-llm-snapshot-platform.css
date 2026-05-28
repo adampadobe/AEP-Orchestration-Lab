@@ -253,9 +253,9 @@
   cursor: default;
 }
 
-/* Prevent Recharts lines bleeding into adjacent cards */
+/* Keep chart cards contained without clipping Recharts line geometry */
 .sky-llm-market-chart-card {
-  overflow: hidden !important;
+  overflow: visible !important;
   position: relative;
   min-width: 0;
 }
@@ -263,7 +263,7 @@
 .sky-llm-chart-overflow,
 .sky-llm-market-chart-card .recharts-wrapper,
 .sky-llm-market-chart-card .recharts-responsive-container {
-  overflow: hidden !important;
+  overflow: visible !important;
   min-width: 0;
   max-width: 100%;
 }
@@ -278,7 +278,8 @@
   overflow: visible;
 }
 
-.sky-llm-market-chart-card g.sky-llm-market-line-hidden {
+.sky-llm-market-chart-card g.sky-llm-market-line-hidden path {
+  stroke-opacity: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }

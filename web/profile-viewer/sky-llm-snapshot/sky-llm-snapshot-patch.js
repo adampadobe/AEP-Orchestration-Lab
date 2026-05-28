@@ -5,6 +5,7 @@
   'use strict';
 
   var SITE = 'sky.com';
+  var BRAND_LABEL = 'Sky';
   var AXIS = {
     Adobe: 'Sky',
     WKND: 'Virgin Media',
@@ -36,10 +37,24 @@
     });
   }
 
+  function patchBrandSelectors() {
+    document.querySelectorAll('[role="combobox"], button, span, div').forEach(function (el) {
+      if (el.childElementCount > 4) return;
+      var txt = (el.textContent || '').trim();
+      if (/frescopa/i.test(txt)) {
+        el.textContent = txt.replace(/frescopa(\s+TV and broadband)?/gi, BRAND_LABEL);
+      }
+    });
+    document.querySelectorAll('input').forEach(function (input) {
+      if (/frescopa/i.test(input.value || '')) input.value = BRAND_LABEL;
+    });
+  }
+
   function run() {
     try {
       patchSiteField();
       patchAxisLabels();
+      patchBrandSelectors();
     } catch (e) {
       /* frozen snapshot */
     }

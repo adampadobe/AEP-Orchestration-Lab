@@ -663,63 +663,26 @@
     state.trafficLines.referral = paths[1] || null;
   }
 
-  function cacheBrandPresenceLines() {
-    state.bpLines = [];
+  function markMarketChartOverflow() {
     var root = findSectionRoot('Market Tracking');
     if (!root) return;
-    root.querySelectorAll('svg.recharts-surface').forEach(function (svg) {
-      var node = svg.parentElement;
-      for (var i = 0; i < 6 && node; i++) {
-        if (node.classList && node.classList.contains('recharts-wrapper')) {
-          node.classList.add('sky-llm-chart-overflow');
-          break;
-        }
-        node = node.parentElement;
-      }
-      Array.from(svg.querySelectorAll('g.recharts-line path, g.recharts-layer.recharts-line path')).forEach(
-        function (p) {
-          var d = p.getAttribute('d') || '';
-          if (d.indexOf('M80,') === 0 && d.length > 40) {
-            state.bpLines.push({ path: p, targetD: d, group: p.parentElement });
-          }
-        },
-      );
+    root.querySelectorAll('.recharts-wrapper, .recharts-responsive-container').forEach(function (node) {
+      node.classList.add('sky-llm-chart-overflow');
     });
   }
 
-  function resetBpLinePath(item) {
-    if (!item || !item.path) return;
-    item.path.setAttribute('d', item.targetD);
-    item.path.style.strokeDasharray = '';
-    item.path.style.strokeDashoffset = '';
-    item.path.style.removeProperty('display');
-    item.path.style.removeProperty('opacity');
-    if (item.group) {
-      item.group.style.removeProperty('display');
-      item.group.style.removeProperty('visibility');
-    }
-  }
-
-  function isBpLineVisible(item) {
-    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.isLineVisible) {
-      return window.skyLlmSnapshotMarket.isLineVisible(item.path);
-    }
-    if (!item.group) return true;
-    return item.group.style.display !== 'none';
-  }
-
   function reapplyMarketLineFilter() {
+    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.ensureLinesVisible) {
+      window.skyLlmSnapshotMarket.ensureLinesVisible();
+    }
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.applyBrandVisibility) {
       window.skyLlmSnapshotMarket.applyBrandVisibility();
     }
   }
 
-  /** Market Tracking lines are static SVG — dash-draw animation left them invisible. */
+  /** Market Tracking uses frozen SVG lines — never dash-animate them. */
   function animateBrandPresenceLines() {
-    state.bpLines.forEach(resetBpLinePath);
-    if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.resetAllMarketLines) {
-      window.skyLlmSnapshotMarket.resetAllMarketLines();
-    }
+    markMarketChartOverflow();
     reapplyMarketLineFilter();
   }
 
@@ -1033,7 +996,7 @@
     cacheMetricNodes();
     cacheSentimentColumns();
     if (state.pageKind === 'brand-presence') {
-      cacheBrandPresenceLines();
+      markMarketChartOverflow();
     } else {
       cacheMarketRows();
       cacheTrafficLines();

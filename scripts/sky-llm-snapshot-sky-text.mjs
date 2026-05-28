@@ -7,8 +7,13 @@ export function applySkyBranding(html) {
   html = html.replace(/wknd-site-content-man[^<"]*/gi, 'sky.com');
   html = html.replace(/frescos\.adobe-demo\.com/gi, 'sky.com');
 
+  /* Coffee export brand names — replace before generic "coffee" → "TV and broadband". */
+  html = html.replace(/frescopa\s+TV and broadband/gi, 'Sky');
+  html = html.replace(/frescopa/gi, 'Sky');
+  html = html.replace(/Frescopa/g, 'Sky');
   html = html.replace(/Prentice coffee/gi, 'Sky');
   html = html.replace(/Frescos coffee/gi, 'Sky');
+  html = html.replace(/Frescos(?![a-z])/gi, 'Sky');
   html = html.replace(/Nespresso coffee/gi, 'Sky');
   html = html.replace(/Nespresso/gi, 'Sky');
 
