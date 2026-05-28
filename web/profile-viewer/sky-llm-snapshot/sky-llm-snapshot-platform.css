@@ -278,7 +278,7 @@
   overflow: visible;
 }
 
-.sky-llm-market-chart-card g.sky-llm-market-line-hidden path {
+.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
   stroke-opacity: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;

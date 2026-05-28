@@ -1,0 +1,26 @@
+/**
+ * Market Tracking line charts — frozen Recharts SVG ships with dash-array attributes
+ * that hide strokes; force visible strokes and chart color tokens.
+ */
+.sky-llm-market-chart-card {
+  --chart-color-brand: #e11d48;
+  --chart-color-magenta: #d946ef;
+  --chart-color-orange: #f97316;
+  --chart-color-purple: #a855f7;
+  --chart-color-indigo: #6366f1;
+  --chart-color-fuchsia: #c026d3;
+  --chart-color-cyan: #06b6d4;
+}
+
+.sky-llm-market-chart-card path.recharts-curve,
+.sky-llm-market-chart-card path.recharts-line-curve {
+  stroke-dasharray: none !important;
+  stroke-dashoffset: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
+  stroke-opacity: 0 !important;
+  opacity: 0 !important;
+}

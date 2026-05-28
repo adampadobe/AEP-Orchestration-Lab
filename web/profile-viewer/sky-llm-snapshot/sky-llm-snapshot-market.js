@@ -12,6 +12,14 @@
   var LINE_GROUP_SEL = 'g.recharts-line, g.recharts-layer.recharts-line';
   var HIDDEN_LINE_CLASS = 'sky-llm-market-line-hidden';
   var HIDDEN_LEGEND_CLASS = 'sky-llm-market-legend-hidden';
+  var STROKE_BY_BRAND = {
+    Sky: '#d946ef',
+    BT: '#f97316',
+    TalkTalk: '#a855f7',
+    'Virgin Media': '#e11d48',
+    Netflix: '#6366f1',
+    'Disney+': '#8b5cf6',
+  };
 
   var LEGACY_LABEL = {
     Adobe: 'Sky',
@@ -152,25 +160,40 @@
     return null;
   }
 
+  function brandFromPath(path) {
+    var raw = path.getAttribute('name') || path.getAttribute('data-name') || '';
+    return normalizeBrandName(raw);
+  }
+
+  function unlockMarketPath(path) {
+    if (!path) return;
+    var group = path.closest(LINE_GROUP_SEL);
+    var brand = brandFromPath(path);
+    var stroke = STROKE_BY_BRAND[brand];
+
+    path.removeAttribute('stroke-dasharray');
+    path.removeAttribute('stroke-dashoffset');
+    path.style.strokeDasharray = 'none';
+    path.style.strokeDashoffset = '0';
+    path.style.removeProperty('display');
+    path.style.removeProperty('visibility');
+    path.style.opacity = '1';
+    path.removeAttribute('stroke-opacity');
+    path.classList.remove(HIDDEN_LINE_CLASS);
+    if (stroke) path.setAttribute('stroke', stroke);
+
+    if (group) {
+      group.style.removeProperty('display');
+      group.style.removeProperty('visibility');
+      group.style.opacity = '1';
+      group.classList.remove(HIDDEN_LINE_CLASS);
+    }
+  }
+
   function ensureLinesVisible() {
     var root = findSectionRoot('Market Tracking');
     if (!root) return;
-    root.querySelectorAll(LINE_GROUP_SEL + ' path[stroke]').forEach(function (path) {
-      var group = path.closest(LINE_GROUP_SEL);
-      path.style.strokeDasharray = '';
-      path.style.strokeDashoffset = '';
-      path.style.removeProperty('display');
-      path.style.removeProperty('visibility');
-      path.style.opacity = '1';
-      path.removeAttribute('stroke-opacity');
-      if (group) {
-        group.style.removeProperty('display');
-        group.style.removeProperty('visibility');
-        group.style.opacity = '1';
-        group.classList.remove(HIDDEN_LINE_CLASS);
-      }
-      if (path.classList) path.classList.remove(HIDDEN_LINE_CLASS);
-    });
+    root.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
   }
 
   function markChartCard(block) {
@@ -206,9 +229,7 @@
       entry.path.style.removeProperty('display');
       entry.path.style.removeProperty('visibility');
       entry.path.style.removeProperty('opacity');
-      entry.path.style.strokeDasharray = '';
-      entry.path.style.strokeDashoffset = '';
-      entry.path.removeAttribute('stroke-opacity');
+      unlockMarketPath(entry.path);
       if (entry.pathD) entry.path.setAttribute('d', entry.pathD);
     }
     if (entry.legendEl) {
@@ -230,12 +251,14 @@
     lineGroups.forEach(function (group, idx) {
       var legendEl = legendItems[idx] || null;
       var textEl = legendEl && legendEl.querySelector('.recharts-legend-item-text');
-      var name = normalizeBrandName(textEl && textEl.textContent);
-      if (!isKnownBrand(name)) name = CHART_BRAND_ORDER[idx] || '__extra_' + chartKey + '_' + idx;
       var path =
+        group.querySelector('path.recharts-line-curve') ||
         group.querySelector('path.recharts-curve') ||
         group.querySelector('path[stroke]') ||
         group.querySelector('path');
+      var name = normalizeBrandName(textEl && textEl.textContent);
+      if (!isKnownBrand(name) && path) name = brandFromPath(path);
+      if (!isKnownBrand(name)) name = CHART_BRAND_ORDER[idx] || '__extra_' + chartKey + '_' + idx;
       var pathD = path ? path.getAttribute('d') : '';
 
       marketState.entries.push({
@@ -294,15 +317,21 @@
   }
 
   function ensureDefaultTags() {
-    readTagRows();
-    if (marketState.selected.length) return;
-
     var root = findSectionRoot('Market Tracking');
-    var template = root && root.querySelector('[role="row"]');
-    if (!template || !template.parentElement) {
+    if (!root) return;
+
+    var template = root.querySelector('[role="row"]');
+    var host = template && template.parentElement;
+    if (!template || !host) {
       marketState.selected = DEFAULT_SELECTED.slice();
       return;
     }
+
+    Array.from(host.querySelectorAll('[role="row"]')).forEach(function (row) {
+      if (row.querySelector('button[aria-label="Remove"]')) host.removeChild(row);
+    });
+    marketState.tagRows = {};
+    marketState.selected = [];
 
     DEFAULT_SELECTED.forEach(function (name) {
       var row = template.cloneNode(true);
@@ -313,11 +342,11 @@
       var span = row.querySelector('span[data-rsp-slot="text"]');
       if (span) span.textContent = name;
       row.setAttribute('aria-label', name);
-      template.parentElement.appendChild(row);
+      host.appendChild(row);
       marketState.tagRows[name] = row;
+      marketState.selected.push(name);
       wireRemoveButton(row, name);
     });
-    marketState.selected = DEFAULT_SELECTED.slice();
   }
 
   function isSelected(name) {
@@ -612,7 +641,7 @@
     showAllLines();
     applyBrandVisibility();
   }, 1600);
-  [2200, 3200, 5000].forEach(function (ms) {
+  [2200, 3200, 5000, 8000].forEach(function (ms) {
     window.setTimeout(function () {
       ensureLinesVisible();
       if (marketState.ready) applyBrandVisibility();

@@ -19,6 +19,7 @@ const outHtml = path.join(outDir, 'brand-presence.html');
 const SNAPSHOT_SCRIPTS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+  '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">',
   '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-platform.js"></script>',
@@ -77,6 +78,22 @@ function patchHtml(html) {
     html = html.replace(new RegExp(`>(\\s*)${from}(\\s*)<`, 'g'), `>$1${to}$2<`);
   }
   html = html.split('WKND').join('Virgin Media');
+
+  html = html.replace(
+    /(<path[^>]*class="[^"]*recharts-(?:line-)?curve[^"]*"[^>]*)\sstroke-dasharray="[^"]*"/g,
+    '$1',
+  );
+  html = html.replace(
+    /(<path[^>]*class="[^"]*recharts-(?:line-)?curve[^"]*"[^>]*)\sstroke-dashoffset="[^"]*"/g,
+    '$1',
+  );
+
+  if (!html.includes('sky-llm-snapshot-market-charts.css')) {
+    html = html.replace(
+      '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+      '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">\n<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+    );
+  }
 
   if (!html.includes('sky-llm-snapshot-nav.js')) {
     html = html.replace('</body>', `${SNAPSHOT_SCRIPTS}\n</body>`);
