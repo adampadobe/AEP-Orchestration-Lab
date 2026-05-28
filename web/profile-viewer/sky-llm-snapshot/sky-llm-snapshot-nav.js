@@ -59,18 +59,26 @@
   }
 
   function ensureNavVisible() {
-    Object.keys(ROUTES).forEach(function (label) {
-      var el = document.querySelector('[role="link"][aria-label="' + label + '"]');
-      if (!el) return;
+    document.querySelectorAll('[role="link"][aria-label]').forEach(function (el) {
+      var label = (el.getAttribute('aria-label') || '').trim();
+      if (!ROUTES[label]) return;
       el.style.setProperty('opacity', '1', 'important');
       el.style.setProperty('visibility', 'visible', 'important');
       el.style.setProperty('pointer-events', 'auto', 'important');
+      el.style.setProperty('filter', 'none', 'important');
       el.removeAttribute('hidden');
-      var node = el;
-      for (var i = 0; i < 10 && node; i++) {
+      if (!el.getAttribute('aria-current') && el.getAttribute('data-current') !== 'true') {
+        el.style.setProperty('color', 'rgb(50, 50, 50)', 'important');
+        el.style.setProperty('--iconPrimary', 'rgb(50, 50, 50)', 'important');
+        el.style.setProperty('background-color', 'rgb(255, 255, 255)', 'important');
+        el.style.setProperty('border', '1px solid rgb(220, 220, 220)', 'important');
+      }
+      var node = el.parentElement;
+      for (var i = 0; i < 12 && node; i++) {
         node.style.setProperty('opacity', '1', 'important');
         node.style.setProperty('visibility', 'visible', 'important');
-        node.style.setProperty('display', node === el ? '' : node.style.display);
+        node.style.setProperty('max-height', 'none', 'important');
+        node.style.setProperty('overflow', 'visible', 'important');
         if (node.getAttribute && node.getAttribute('hidden') !== null) node.removeAttribute('hidden');
         node = node.parentElement;
       }

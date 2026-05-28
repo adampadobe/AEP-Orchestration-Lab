@@ -10,10 +10,10 @@
     WKND: 'Virgin Media',
     Automattic: 'BT',
     Contentful: 'TalkTalk',
-    Global: 'Netflix',
+    Global: 'Virgin Media',
     AEM: 'Disney+',
     Wix: 'TalkTalk',
-    Webflow: 'Netflix',
+    Webflow: 'Virgin Media',
   };
 
   function patchSiteField() {

@@ -669,8 +669,11 @@
     if (!root) return;
     root.querySelectorAll('svg.recharts-surface').forEach(function (svg) {
       var node = svg.parentElement;
-      for (var i = 0; i < 8 && node; i++) {
-        node.classList.add('sky-llm-chart-overflow');
+      for (var i = 0; i < 6 && node; i++) {
+        if (node.classList && node.classList.contains('recharts-wrapper')) {
+          node.classList.add('sky-llm-chart-overflow');
+          break;
+        }
         node = node.parentElement;
       }
       Array.from(svg.querySelectorAll('g.recharts-line path')).forEach(function (p) {
@@ -1020,7 +1023,9 @@
     applyDashboard({ animate: !state.ready });
     state.ready = true;
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
-      window.skyLlmSnapshotMarket.initMarketTracking();
+      window.setTimeout(function () {
+        window.skyLlmSnapshotMarket.initMarketTracking();
+      }, 50);
     }
   }
 

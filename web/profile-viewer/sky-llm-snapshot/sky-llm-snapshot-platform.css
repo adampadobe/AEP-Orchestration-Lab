@@ -253,13 +253,59 @@
   cursor: default;
 }
 
-/* Prevent Recharts lines bleeding into adjacent cards */
-.sky-llm-chart-overflow,
-.sky-llm-chart-overflow .recharts-wrapper,
-.sky-llm-chart-overflow .recharts-responsive-container,
-.sky-llm-chart-overflow svg.recharts-surface {
+/* Prevent Recharts lines bleeding into adjacent cards (wrapper only — not the SVG) */
+.sky-llm-chart-overflow {
   overflow: hidden !important;
   min-width: 0;
+}
+
+/* Overview export fades inactive sidebar routes — force full nav chrome */
+#root [role='link'][aria-label] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  filter: none !important;
+}
+
+#root [role='link'][aria-label]:not([aria-current='page']):not([data-current='true']) {
+  color: rgb(50, 50, 50) !important;
+  --iconPrimary: rgb(50, 50, 50) !important;
+  background-color: rgb(255, 255, 255) !important;
+  border: 1px solid rgb(220, 220, 220) !important;
+}
+
+#root [role='link'][aria-label][aria-current='page'],
+#root [role='link'][aria-label][data-current='true'] {
+  color: rgb(255, 255, 255) !important;
+  --iconPrimary: rgb(255, 255, 255) !important;
+  background-color: rgb(50, 50, 50) !important;
+  border-color: transparent !important;
+}
+
+.sky-llm-select-others-shell {
+  position: relative;
+}
+
+.sky-llm-select-others-shell > input[role='combobox'],
+.sky-llm-select-others-shell > button {
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.sky-llm-select-others-empty {
+  padding: 0.5rem 0.75rem;
+  color: #6e6e6e;
+  font-size: 0.875rem;
+  list-style: none;
 }
 
 .sky-llm-select-others-host {

@@ -4,8 +4,23 @@
 (function () {
   'use strict';
 
-  var UK_BRANDS = ['Sky', 'Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
+  var DEFAULT_SELECTED = ['Sky', 'BT', 'TalkTalk', 'Virgin Media'];
+  var ALL_BRANDS = ['Sky', 'Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
   var MAX_BRANDS = 5;
+
+  /** Legacy export labels still present in some snapshots */
+  var LEGACY_LABEL = {
+    Adobe: 'Sky',
+    Automattic: 'BT',
+    Contentful: 'TalkTalk',
+    Global: 'Netflix',
+    Webflow: 'Netflix',
+    Wix: 'TalkTalk',
+    WKND: 'Virgin Media',
+    AEM: 'Disney+',
+    'Drupal Association': 'Disney+',
+    Shopify: 'Disney+',
+  };
 
   var TRENDS_BASE = {
     'chatgpt-free': {
@@ -65,13 +80,17 @@
     ready: false,
     selected: [],
     linesByBrand: {},
-    legendByBrand: {},
     tagRows: {},
     tagContainer: null,
-    pickerHost: null,
+    picker: null,
   };
 
   var trendState = { nodes: {} };
+
+  function normalizeBrandName(raw) {
+    var t = (raw || '').trim();
+    return LEGACY_LABEL[t] || t;
+  }
 
   function findSectionRoot(title) {
     var heads = Array.from(document.querySelectorAll('div, span, h2, h3')).filter(function (n) {
@@ -79,8 +98,8 @@
     });
     if (!heads.length) return null;
     var root = heads[0].parentElement;
-    for (var i = 0; i < 10 && root; i++) {
-      if (root.querySelector('svg.recharts-surface')) return root;
+    for (var i = 0; i < 12 && root; i++) {
+      if (root.querySelector('svg.recharts-surface[role="application"]')) return root;
       root = root.parentElement;
     }
     return root;
@@ -92,9 +111,14 @@
     });
     if (!heads.length) return null;
     var walk = heads[0].parentElement;
-    for (var i = 0; i < 12 && walk; i++) {
-      var svg = walk.querySelector('svg.recharts-surface[role="application"]');
-      if (svg) return { root: walk, svg: svg };
+    for (var i = 0; i < 14 && walk; i++) {
+      var svgs = walk.querySelectorAll('svg.recharts-surface[role="application"]');
+      for (var s = 0; s < svgs.length; s++) {
+        var svg = svgs[s];
+        if (svg.querySelector('g.recharts-line, g.recharts-layer line, path.recharts-curve')) {
+          return { root: walk, svg: svg };
+        }
+      }
       walk = walk.parentElement;
     }
     return null;
@@ -103,36 +127,33 @@
   function clampChartOverflow(svg) {
     if (!svg) return;
     var node = svg.parentElement;
-    for (var i = 0; i < 10 && node; i++) {
-      node.classList.add('sky-llm-chart-overflow');
+    for (var i = 0; i < 6 && node; i++) {
+      if (node.classList && node.classList.contains('recharts-wrapper')) {
+        node.classList.add('sky-llm-chart-overflow');
+        break;
+      }
       node = node.parentElement;
     }
-    svg.style.overflow = 'hidden';
-  }
-
-  function brandFromLegend(text) {
-    var t = (text || '').trim();
-    if (t === 'Wix' || t === 'Webflow') return 'TalkTalk';
-    if (t === 'Adobe') return 'Sky';
-    if (t === 'Automattic') return 'BT';
-    if (t === 'Contentful') return 'TalkTalk';
-    return t;
   }
 
   function cacheChartLines(chartTitle, key) {
     var block = findChartBlock(chartTitle);
     if (!block) return;
     clampChartOverflow(block.svg);
-    var legends = Array.from(block.svg.querySelectorAll('.recharts-legend-item-text')).map(function (el) {
-      return brandFromLegend(el.textContent);
-    });
+
+    var legendItems = Array.from(block.svg.querySelectorAll('.recharts-legend-item'));
     var lineGroups = Array.from(block.svg.querySelectorAll('g.recharts-line'));
-    lineGroups.forEach(function (g, idx) {
-      var name = legends[idx];
+
+    legendItems.forEach(function (legendEl, idx) {
+      var textEl = legendEl.querySelector('.recharts-legend-item-text');
+      var name = normalizeBrandName(textEl && textEl.textContent);
       if (!name) return;
+      var group = lineGroups[idx];
+      if (!group) return;
+
       if (!marketState.linesByBrand[name]) marketState.linesByBrand[name] = {};
-      var path = g.querySelector('path');
-      if (path) marketState.linesByBrand[name][key] = { group: g, path: path, legendEl: block.svg.querySelectorAll('.recharts-legend-item')[idx] };
+      if (!marketState.linesByBrand[name][key]) marketState.linesByBrand[name][key] = [];
+      marketState.linesByBrand[name][key].push({ group: group, legendEl: legendEl });
     });
   }
 
@@ -145,51 +166,94 @@
       root.querySelector('[role="grid"]') ||
       root.querySelector('[class*="tag"]') ||
       root.querySelector('div[data-rac]');
-    var rows = Array.from(root.querySelectorAll('[role="row"][data-allows-removing="true"], [role="row"][aria-selected="true"]'));
-    if (!rows.length) {
-      rows = Array.from(root.querySelectorAll('[role="row"]')).filter(function (row) {
-        return row.querySelector('button[aria-label="Remove"]');
-      });
-    }
+
+    var rows = Array.from(root.querySelectorAll('[role="row"]')).filter(function (row) {
+      return row.querySelector('button[aria-label="Remove"]');
+    });
+
     rows.forEach(function (row) {
       var span = row.querySelector('span[data-rsp-slot="text"]');
-      var name = brandFromLegend((span && span.textContent) || row.getAttribute('aria-label') || '');
+      var name = normalizeBrandName((span && span.textContent) || row.getAttribute('aria-label') || '');
       if (!name) return;
+      if (name === 'Netflix') {
+        name = 'Virgin Media';
+        if (span) span.textContent = 'Virgin Media';
+        row.setAttribute('aria-label', 'Virgin Media');
+      }
       if (marketState.selected.indexOf(name) >= 0) {
-        row.remove();
+        row.parentElement && row.parentElement.removeChild(row);
         return;
       }
       marketState.selected.push(name);
       marketState.tagRows[name] = row;
-      var removeBtn = row.querySelector('button[aria-label="Remove"]');
-      if (removeBtn && removeBtn.dataset.skyLlmRemoveWired !== '1') {
-        removeBtn.dataset.skyLlmRemoveWired = '1';
-        removeBtn.addEventListener(
-          'click',
-          function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            removeBrand(name);
-          },
-          true,
-        );
-      }
+      wireRemoveButton(row, name);
     });
   }
 
+  function wireRemoveButton(row, name) {
+    var removeBtn = row.querySelector('button[aria-label="Remove"]');
+    if (!removeBtn || removeBtn.dataset.skyLlmRemoveWired === '1') return;
+    removeBtn.dataset.skyLlmRemoveWired = '1';
+    removeBtn.addEventListener(
+      'click',
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        removeBrand(name);
+      },
+      true,
+    );
+  }
+
+  function ensureDefaultTags() {
+    readTagRows();
+    if (marketState.selected.length) return;
+
+    var template = null;
+    var root = findSectionRoot('Market Tracking');
+    if (root) {
+      template = root.querySelector('[role="row"]');
+    }
+    if (!template || !template.parentElement) {
+      marketState.selected = DEFAULT_SELECTED.slice();
+      return;
+    }
+
+    DEFAULT_SELECTED.forEach(function (name) {
+      var row = template.cloneNode(true);
+      row.removeAttribute('id');
+      row.querySelectorAll('[id]').forEach(function (el) {
+        el.removeAttribute('id');
+      });
+      var span = row.querySelector('span[data-rsp-slot="text"]');
+      if (span) span.textContent = name;
+      row.setAttribute('aria-label', name);
+      row.setAttribute('data-key', name);
+      template.parentElement.appendChild(row);
+      marketState.tagRows[name] = row;
+      wireRemoveButton(row, name);
+    });
+    marketState.selected = DEFAULT_SELECTED.slice();
+  }
+
   function setLineVisible(name, visible) {
-    var entry = marketState.linesByBrand[name];
-    if (!entry) return;
-    Object.keys(entry).forEach(function (key) {
-      var item = entry[key];
-      if (item.group) item.group.style.display = visible ? '' : 'none';
-      if (item.legendEl) item.legendEl.style.display = visible ? '' : 'none';
+    var charts = marketState.linesByBrand[name];
+    if (!charts) return;
+    Object.keys(charts).forEach(function (key) {
+      charts[key].forEach(function (item) {
+        if (item.group) item.group.style.display = visible ? '' : 'none';
+        if (item.legendEl) item.legendEl.style.display = visible ? '' : 'none';
+      });
     });
   }
 
   function applyBrandVisibility() {
-    UK_BRANDS.forEach(function (name) {
-      setLineVisible(name, marketState.selected.indexOf(name) >= 0);
+    if (!Object.keys(marketState.linesByBrand).length) return;
+
+    ALL_BRANDS.forEach(function (name) {
+      var show = marketState.selected.indexOf(name) >= 0;
+      if (name === 'Netflix' && marketState.selected.indexOf('Virgin Media') >= 0) show = false;
+      setLineVisible(name, show);
     });
   }
 
@@ -202,48 +266,38 @@
     if (row && row.parentElement) row.parentElement.removeChild(row);
     delete marketState.tagRows[name];
     setLineVisible(name, false);
-    renderPickerMenu();
+    if (marketState.picker) marketState.picker.renderMenu();
   }
 
   function addBrand(name) {
     if (marketState.selected.indexOf(name) >= 0) return;
     if (marketState.selected.length >= MAX_BRANDS) return;
+
+    var template =
+      marketState.tagRows[Object.keys(marketState.tagRows)[0]] ||
+      (findSectionRoot('Market Tracking') && findSectionRoot('Market Tracking').querySelector('[role="row"]'));
+    if (!template || !template.parentElement) return;
+
+    var row = template.cloneNode(true);
+    row.removeAttribute('id');
+    row.querySelectorAll('[id]').forEach(function (el) {
+      el.removeAttribute('id');
+    });
+    var span = row.querySelector('span[data-rsp-slot="text"]');
+    if (span) span.textContent = name;
+    row.setAttribute('aria-label', name);
+    row.setAttribute('data-key', name);
+    template.parentElement.appendChild(row);
+    marketState.tagRows[name] = row;
+    wireRemoveButton(row, name);
     marketState.selected.push(name);
-    var template = Object.keys(marketState.tagRows).length
-      ? marketState.tagRows[Object.keys(marketState.tagRows)[0]]
-      : null;
-    if (template && template.parentElement) {
-      var row = template.cloneNode(true);
-      row.removeAttribute('id');
-      row.querySelectorAll('[id]').forEach(function (el) {
-        el.removeAttribute('id');
-      });
-      var span = row.querySelector('span[data-rsp-slot="text"]');
-      if (span) span.textContent = name;
-      row.setAttribute('aria-label', name);
-      row.setAttribute('data-key', name);
-      template.parentElement.appendChild(row);
-      marketState.tagRows[name] = row;
-      var removeBtn = row.querySelector('button[aria-label="Remove"]');
-      if (removeBtn) {
-        removeBtn.dataset.skyLlmRemoveWired = '1';
-        removeBtn.addEventListener(
-          'click',
-          function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            removeBrand(name);
-          },
-          true,
-        );
-      }
-    }
     setLineVisible(name, true);
-    renderPickerMenu();
+    if (name === 'Virgin Media') setLineVisible('Netflix', false);
+    if (marketState.picker) marketState.picker.renderMenu();
   }
 
   function availableBrands() {
-    return UK_BRANDS.filter(function (b) {
+    return ALL_BRANDS.filter(function (b) {
       return marketState.selected.indexOf(b) < 0;
     });
   }
@@ -251,48 +305,22 @@
   function findSelectOthersCombobox() {
     var root = findSectionRoot('Market Tracking');
     if (!root) return null;
-    return Array.from(root.querySelectorAll('[role="combobox"]')).find(function (el) {
-      var label = (el.getAttribute('aria-label') || '').toLowerCase();
-      var near = el.closest('div');
-      var text = near ? near.textContent : '';
-      return label.indexOf('select') >= 0 || text.indexOf('Select others') >= 0;
-    });
-  }
-
-  function renderPickerMenu() {
-    if (!marketState.pickerMenu) return;
-    marketState.pickerMenu.innerHTML = '';
-    var avail = availableBrands();
-    if (!avail.length) {
-      var empty = document.createElement('li');
-      empty.textContent = 'Maximum of 5 brands reached';
-      empty.style.padding = '0.5rem 0.75rem';
-      empty.style.color = '#6e6e6e';
-      marketState.pickerMenu.appendChild(empty);
-      return;
-    }
-    avail.forEach(function (name) {
-      var li = document.createElement('li');
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'sky-llm-date-option';
-      btn.textContent = name;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        addBrand(name);
-        marketState.pickerMenu.hidden = true;
-        marketState.pickerTrigger.setAttribute('aria-expanded', 'false');
-      });
-      li.appendChild(btn);
-      marketState.pickerMenu.appendChild(li);
-    });
+    var combos = Array.from(root.querySelectorAll('[role="combobox"]'));
+    return (
+      combos.find(function (el) {
+        var label = (el.getAttribute('aria-label') || '').toLowerCase();
+        return label.indexOf('select') >= 0;
+      }) || combos[0] || null
+    );
   }
 
   function buildSelectOthersPicker() {
     var combobox = findSelectOthersCombobox();
-    if (!combobox || combobox.parentElement.querySelector('.sky-llm-select-others-host')) return;
+    if (!combobox) return;
     var shell = combobox.parentElement;
-    shell.classList.add('sky-llm-platform-shell');
+    if (!shell || shell.querySelector('.sky-llm-select-others-host')) return;
+
+    shell.classList.add('sky-llm-select-others-shell');
     combobox.setAttribute('tabindex', '-1');
     Array.from(shell.querySelectorAll('button')).forEach(function (btn) {
       if (btn.getAttribute('aria-label') === 'Show suggestions') btn.style.display = 'none';
@@ -304,43 +332,89 @@
     var trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'sky-llm-date-trigger';
-    trigger.innerHTML =
-      '<span>Select others…</span><span class="sky-llm-date-trigger-chevron" aria-hidden="true">▼</span>';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', 'Select others');
+    trigger.innerHTML =
+      '<span>Select others</span><span class="sky-llm-date-trigger-chevron" aria-hidden="true">▼</span>';
 
     var menu = document.createElement('ul');
     menu.className = 'sky-llm-date-menu';
     menu.setAttribute('role', 'listbox');
     menu.hidden = true;
 
+    function closeMenu() {
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderMenu() {
+      menu.innerHTML = '';
+      var avail = availableBrands();
+      if (!avail.length) {
+        var empty = document.createElement('li');
+        empty.className = 'sky-llm-select-others-empty';
+        empty.textContent = 'Maximum of 5 brands reached. Remove some to add more.';
+        menu.appendChild(empty);
+        return;
+      }
+      avail.forEach(function (name) {
+        var li = document.createElement('li');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sky-llm-date-option';
+        btn.setAttribute('role', 'option');
+        btn.textContent = name;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          addBrand(name);
+          closeMenu();
+        });
+        li.appendChild(btn);
+        menu.appendChild(li);
+      });
+    }
+
     trigger.addEventListener('click', function (e) {
       e.stopPropagation();
-      renderPickerMenu();
-      menu.hidden = !menu.hidden;
-      trigger.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+      if (menu.hidden) {
+        renderMenu();
+        menu.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+      } else {
+        closeMenu();
+      }
+    });
+
+    host.addEventListener('click', function (e) {
+      e.stopPropagation();
     });
 
     host.appendChild(trigger);
     host.appendChild(menu);
     shell.insertBefore(host, combobox);
-    marketState.pickerHost = host;
-    marketState.pickerTrigger = trigger;
-    marketState.pickerMenu = menu;
-    renderPickerMenu();
+
+    marketState.picker = { renderMenu: renderMenu, closeMenu: closeMenu };
+
+    document.addEventListener('click', function () {
+      if (!menu.hidden) closeMenu();
+    });
   }
 
   function initMarketTracking() {
     if (!findSectionRoot('Market Tracking')) return;
+
     marketState.linesByBrand = {};
     cacheChartLines('Brand Mentions', 'mentions');
     cacheChartLines('Brand Citations', 'citations');
-    readTagRows();
+
+    ensureDefaultTags();
     if (!marketState.selected.length) {
-      marketState.selected = ['Sky', 'Virgin Media', 'BT', 'TalkTalk', 'Netflix'].slice(0, MAX_BRANDS);
+      marketState.selected = DEFAULT_SELECTED.slice();
     }
-    applyBrandVisibility();
+
     buildSelectOthersPicker();
+    applyBrandVisibility();
     marketState.ready = true;
   }
 
@@ -416,5 +490,5 @@
   } else {
     boot();
   }
-  window.setTimeout(boot, 900);
+  window.setTimeout(boot, 1200);
 })();
