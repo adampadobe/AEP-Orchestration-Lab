@@ -676,13 +676,28 @@
         }
         node = node.parentElement;
       }
-      Array.from(svg.querySelectorAll('g.recharts-line path')).forEach(function (p) {
-        var d = p.getAttribute('d') || '';
-        if (d.indexOf('M80,') === 0 && d.length > 40) {
-          state.bpLines.push({ path: p, targetD: d, group: p.parentElement });
-        }
-      });
+      Array.from(svg.querySelectorAll('g.recharts-line path, g.recharts-layer.recharts-line path')).forEach(
+        function (p) {
+          var d = p.getAttribute('d') || '';
+          if (d.indexOf('M80,') === 0 && d.length > 40) {
+            state.bpLines.push({ path: p, targetD: d, group: p.parentElement });
+          }
+        },
+      );
     });
+  }
+
+  function resetBpLinePath(item) {
+    if (!item || !item.path) return;
+    item.path.setAttribute('d', item.targetD);
+    item.path.style.strokeDasharray = '';
+    item.path.style.strokeDashoffset = '';
+    item.path.style.removeProperty('display');
+    item.path.style.removeProperty('opacity');
+    if (item.group) {
+      item.group.style.removeProperty('display');
+      item.group.style.removeProperty('visibility');
+    }
   }
 
   function isBpLineVisible(item) {
@@ -713,14 +728,14 @@
         }, idx * 35);
         delay = idx * 35 + ANIM_MS + 120;
       } else {
-        item.path.setAttribute('d', item.targetD);
-        item.path.style.strokeDasharray = '';
-        item.path.style.strokeDashoffset = '';
+        resetBpLinePath(item);
       }
     });
     window.setTimeout(
       function () {
-        if (token === state.animToken) reapplyMarketLineFilter();
+        if (token !== state.animToken) return;
+        state.bpLines.forEach(resetBpLinePath);
+        reapplyMarketLineFilter();
       },
       animate ? delay : 0,
     );
@@ -1050,8 +1065,9 @@
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
-      }, 50);
-      window.setTimeout(reapplyMarketLineFilter, 900);
+      }, 100);
+      window.setTimeout(reapplyMarketLineFilter, 950);
+      window.setTimeout(reapplyMarketLineFilter, 1900);
     }
   }
 

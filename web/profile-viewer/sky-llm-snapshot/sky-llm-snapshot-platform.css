@@ -269,8 +269,13 @@
 }
 
 .sky-llm-market-chart-card svg.recharts-surface {
-  overflow: hidden !important;
   max-width: 100%;
+}
+
+.sky-llm-market-chart-card .recharts-cartesian-grid,
+.sky-llm-market-chart-card .recharts-xAxis,
+.sky-llm-market-chart-card .recharts-yAxis {
+  overflow: visible;
 }
 
 .sky-llm-select-others-shell {
