@@ -14,14 +14,107 @@
     { id: 'google-overview', name: 'Google AI Overview', share: '1 % global market share', icon: 'google' },
   ];
 
-  var DATE_RANGES = [
-    { id: '4w', name: 'Last 4 Weeks', range: 'Apr 27 - May 24, 2026' },
-    { id: '2w', name: 'Last 2 Weeks', range: 'May 11 - May 24, 2026' },
-    { id: '1w', name: 'Last Week', range: 'May 18 - May 24, 2026' },
-    { id: 'custom', name: 'Custom Weeks', range: 'Select specific weeks to analyze' },
-  ];
-
   var RANGE_SCALE = { '4w': 1, '2w': 0.88, '1w': 0.76, custom: 1 };
+
+  function startOfDay(d) {
+    var x = new Date(d.getTime());
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
+
+  function addDays(d, days) {
+    var x = new Date(d.getTime());
+    x.setDate(x.getDate() + days);
+    return x;
+  }
+
+  function formatAdobeDate(d) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  /** Adobe-style range subtitle, e.g. "Apr 27 - May 28, 2026". */
+  function formatRangeLabel(start, end) {
+    if (start.getFullYear() !== end.getFullYear()) {
+      return (
+        formatAdobeDate(start) +
+        ', ' +
+        start.getFullYear() +
+        ' - ' +
+        formatAdobeDate(end) +
+        ', ' +
+        end.getFullYear()
+      );
+    }
+    return formatAdobeDate(start) + ' - ' + formatAdobeDate(end) + ', ' + end.getFullYear();
+  }
+
+  /** Sentiment x-axis label, e.g. "May 10, 2026". */
+  function formatSentimentAxisDate(d) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /** Rolling windows ending today (inclusive). Recomputed on each read. */
+  function getDateRanges() {
+    var today = startOfDay(new Date());
+    return [
+      {
+        id: '4w',
+        name: 'Last 4 Weeks',
+        start: addDays(today, -27),
+        end: today,
+        range: formatRangeLabel(addDays(today, -27), today),
+      },
+      {
+        id: '2w',
+        name: 'Last 2 Weeks',
+        start: addDays(today, -13),
+        end: today,
+        range: formatRangeLabel(addDays(today, -13), today),
+      },
+      {
+        id: '1w',
+        name: 'Last Week',
+        start: addDays(today, -6),
+        end: today,
+        range: formatRangeLabel(addDays(today, -6), today),
+      },
+      {
+        id: 'custom',
+        name: 'Custom Weeks',
+        start: addDays(today, -27),
+        end: today,
+        range: 'Select specific weeks to analyze',
+      },
+    ];
+  }
+
+  function getSelectedDateRange() {
+    var ranges = getDateRanges();
+    return (
+      ranges.find(function (d) {
+        return d.id === state.dateRangeId;
+      }) || ranges[0]
+    );
+  }
+
+  /** Three axis labels spread across the active date window. */
+  function getSentimentAxisDates(rangeId) {
+    var dr =
+      getDateRanges().find(function (d) {
+        return d.id === rangeId;
+      }) || getDateRanges()[0];
+    if (rangeId === 'custom') {
+      dr = getDateRanges()[0];
+    }
+    var spanDays = Math.max(0, Math.round((dr.end - dr.start) / 86400000));
+    var count = 3;
+    var labels = [];
+    for (var i = 0; i < count; i++) {
+      var offset = count === 1 ? spanDays : Math.round((spanDays * i) / (count - 1));
+      labels.push(formatSentimentAxisDate(addDays(dr.start, offset)));
+    }
+    return labels;
+  }
 
   var METRICS_BASE = {
     'chatgpt-free': { visibility: 36, mentions: 24, citations: 0, agentic: 215, referral: 0 },
@@ -152,6 +245,7 @@
     marketRows: [],
     sentimentColumns: [],
     sentimentDates: [],
+    sentimentDateEls: [],
     trafficLines: { agentic: null, referral: null },
     tooltip: null,
     animToken: 0,
@@ -484,11 +578,13 @@
 
     var dateTexts = Array.from(svg.querySelectorAll('text'))
       .filter(function (t) {
-        return /2026/.test(t.textContent || '');
+        var txt = (t.textContent || '').trim();
+        return /\b\d{1,2},\s*\d{4}\b/.test(txt) || /\b[A-Za-z]{3}\s+\d{1,2},\s*\d{4}\b/.test(txt);
       })
       .sort(function (a, b) {
         return Number(a.getAttribute('x') || 0) - Number(b.getAttribute('x') || 0);
       });
+    state.sentimentDateEls = dateTexts;
     state.sentimentDates = dateTexts.map(function (t) {
       return t.textContent.trim();
     });
@@ -612,6 +708,14 @@
     });
   }
 
+  function updateSentimentAxisLabels(rangeId) {
+    var labels = getSentimentAxisDates(rangeId);
+    state.sentimentDateEls.forEach(function (el, i) {
+      if (el && labels[i]) el.textContent = labels[i];
+    });
+    state.sentimentDates = labels;
+  }
+
   function applyTraffic(rangeId, animate) {
     var agenticD = TRAFFIC_LINES.agentic[rangeId] || TRAFFIC_LINES.agentic['4w'];
     var referralD = TRAFFIC_LINES.referral[rangeId] || TRAFFIC_LINES.referral['4w'];
@@ -645,6 +749,7 @@
     var sentiment = getSentiment(platformId, rangeId);
 
     applyMetrics(platformId, rangeId);
+    updateSentimentAxisLabels(rangeId);
 
     if (animate) {
       state.animToken += 1;
@@ -786,15 +891,13 @@
       optionClass: 'sky-llm-date-option',
       ariaLabel: 'Date Range',
       options: function () {
-        return DATE_RANGES;
+        return getDateRanges();
       },
       isSelected: function (d) {
         return d.id === state.dateRangeId;
       },
       renderTrigger: function () {
-        var d = DATE_RANGES.find(function (x) {
-          return x.id === state.dateRangeId;
-        });
+        var d = getSelectedDateRange();
         return (
           '<span>' +
           (d ? d.name : 'Last 4 Weeks') +
