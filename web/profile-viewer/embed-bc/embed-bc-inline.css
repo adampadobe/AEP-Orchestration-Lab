@@ -41,21 +41,14 @@ html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-con
 html.site-clone-bc-injected-active #siteCloneBcInline .brand-concierge-container,
 html.site-clone-bc-injected-active #siteCloneBcInline .concierge-message,
 html.site-clone-bc-injected-active #siteCloneBcInline .message-content,
-html.site-clone-bc-injected-active #siteCloneBcInline .message-content p,
-html.site-clone-bc-injected-active #siteCloneBcInline .message-content li,
 .aep-bc-modal .brand-concierge-container,
 .aep-bc-modal .concierge-message,
 .aep-bc-modal .message-content,
-.aep-bc-modal .message-content p,
-.aep-bc-modal .message-content li,
 .site-clone-bc-frame-host .brand-concierge-container,
 .site-clone-bc-frame-host .concierge-message,
-.site-clone-bc-frame-host .message-content,
-.site-clone-bc-frame-host .message-content p,
-.site-clone-bc-frame-host .message-content li {
+.site-clone-bc-frame-host .message-content {
   visibility: visible !important;
   opacity: 1 !important;
-  color: var(--message-concierge-text, #292929) !important;
 }
 
 .embed-bc-inline #brand-concierge-mount > * {

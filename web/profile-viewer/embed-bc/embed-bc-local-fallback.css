@@ -44,8 +44,7 @@
 }
 
 #brand-concierge-mount .concierge-message .message-content:not(.message-loading) {
-  animation: embed-bc-reveal 0.28s ease-out forwards;
-  color: var(--message-concierge-text, #292929);
+  animation: embed-bc-reveal 0.28s ease-out;
 }
 
 #brand-concierge-mount .bc-multimodal-carousel,
