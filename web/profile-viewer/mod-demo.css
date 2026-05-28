@@ -390,6 +390,19 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   pointer-events: none !important;
 }
 
+/* Injected overlay: only the BC panel captures input; page/iframe scroll continues below */
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  pointer-events: none;
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount {
+  pointer-events: auto;
+}
+
 .site-clone-bc-frame-mount {
   width: 100%;
   max-width: 920px;

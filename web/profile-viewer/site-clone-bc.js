@@ -551,14 +551,24 @@
     }
 
     if (top < frameRect.top) top = frameRect.top;
-    var height = Math.max(240, frameRect.bottom - top);
 
     host.style.left = frameRect.left + 'px';
     host.style.width = frameRect.width + 'px';
     host.style.top = top + 'px';
-    host.style.height = height + 'px';
     host.style.right = 'auto';
     host.style.bottom = 'auto';
+
+    if (fullscreen) {
+      var height = Math.max(240, frameRect.bottom - top);
+      host.style.height = height + 'px';
+      host.style.maxHeight = '';
+      host.style.overflow = '';
+    } else {
+      /* Injected: size to BC content — do not fill to iframe bottom (blocks page scroll). */
+      host.style.height = 'auto';
+      host.style.maxHeight = 'min(85vh, 720px)';
+      host.style.overflow = 'visible';
+    }
   }
 
   function showBcFrameHost(fullscreen) {

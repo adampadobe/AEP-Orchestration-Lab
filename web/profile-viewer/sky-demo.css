@@ -55,6 +55,21 @@
   display: none;
 }
 
+/* Injected: full banner width, scroll passes through outside the BC panel */
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 /* Full screen BC: span iframe width (not capped at 920px) */
 .sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
   align-items: stretch;
