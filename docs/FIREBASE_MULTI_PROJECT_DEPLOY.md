@@ -142,12 +142,13 @@ Some GCP projects **do not** have the default Compute Engine identity
 (project number **82276930773**) that account is **permanently missing** — do not
 use it for Gen2 Functions.
 
-Use **two** service accounts (runtime vs build/deploy are intentional):
+Use **three** user-managed service accounts (runtime vs build vs optional server invoke):
 
 | Role | Service account | Used for |
 |------|-----------------|----------|
 | **Runtime** | `sc-demo-sandbox-cf-runtime@adbe-gcp0819.iam.gserviceaccount.com` | Cloud Run / Gen2 execution (AEP, Firestore, secrets at runtime) |
 | **Build / CI deploy** | `sc-demo-sandbox-admin@adbe-gcp0819.iam.gserviceaccount.com` | Cloud Build (`buildConfig.serviceAccount`); optional automation deploy identity |
+| **Hosting invoker (optional)** | `sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com` | **Not** used by Firebase Hosting for `/api/*` rewrites — see [Hosting vs Cloud Run IAM](#hosting-vs-cloud-run-iam-browser-api) below. For gateway / server-to-server `roles/run.invoker` on backends. |
 
 **Who runs `firebase deploy`:** your user (**`apalmer@adobe.com`**) or, in CI,
 **`sc-demo-sandbox-admin`** — not the runtime SA.
@@ -314,6 +315,93 @@ High level only—align with org retention and compliance before acting.
 3. **Export / backups** — Final Firestore export, RTDB export, and GCS bucket copies to durable storage the org owns.
 4. **Billing and IAM** — Remove or downgrade billing linkage; remove human/service accounts from the old project when no longer needed.
 5. **DNS / bookmarks** — Custom domains and internal links updated to the new hostname; keep minimal **redirect** Hosting on the old project only if the org requires a transition period.
+
+---
+
+## Hosting vs Cloud Run IAM (browser `/api/*`)
+
+### Research verdict (May 2026)
+
+**Creating `sc-demo-sandbox-hosting-invoker` and granting `roles/run.invoker` on Gen2 Cloud Run services does not fix browser `/api/*` on `adbe-gcp0819.web.app`.**
+
+| Question | Answer |
+|----------|--------|
+| Can `firebase.json` / Hosting rewrites point at a **custom** invoker service account? | **No.** There is no Hosting config field for “invoke Gen2 functions as SA X.” Rewrites only name `functionId` + `region` (or `run.serviceId` for containers). |
+| Which principal does Firebase Hosting use when it forwards to Gen2 / Cloud Run? | **Not documented as a user-configurable SA.** Public Hosting rewrites expect the backend to allow **unauthenticated** invoke (`allUsers:roles/run.invoker` or `invoker-iam-disabled`). Community reports: granting various “Firebase” SAs `run.invoker` does **not** unlock “Require authentication” on Cloud Run behind Hosting ([Stack Overflow](https://stackoverflow.com/questions/78480578/firebase-hosting-cloud-run-how-to-authenticate)). |
+| Does the browser call Cloud Run with Google credentials? | **No.** The browser hits Hosting; Hosting’s edge forwards the request. At the **Cloud Run IAM** layer the hop is still **unauthenticated** unless `allUsers` (or IAM check disabled) allows invoke. A user’s `Authorization: Bearer <Firebase ID token>` is **application** auth inside the function — it is **not** a Cloud Run invoker identity. |
+| Does `curl` with SA impersonation prove Hosting works? | **No.** Impersonation tests **server-to-server** invoke only. |
+
+**Related Google-managed principals** (for other problems — not a substitute for `allUsers` on sandbox):
+
+| Principal | Role |
+|-----------|------|
+| `service-82276930773@gcf-admin-robot.iam.gserviceaccount.com` | Cloud Functions **service agent** (deploy / platform) |
+| `82276930773-compute@developer.gserviceaccount.com` | Default Gen2 runtime identity on many projects — **missing** on `adbe-gcp0819` (use **cf-runtime** instead) |
+| `service-82276930773@gcp-sa-firebase.iam.gserviceaccount.com` | Firebase management agent — not the Hosting→Cloud Run rewrite caller |
+| Eventarc / Pub/Sub agents | Needed for triggers — not for Hosting HTTP rewrites |
+
+**What still unblocks Profile Viewer `/api/*` on sandbox:** org-approved **`allUsers:roles/run.invoker`** (or relax `run.managed.requireInvokerIam` + `--no-invoker-iam-check`), then `node scripts/sandbox-grant-cloud-run-public-invoker.mjs`. See [Org policy and public invoke](#org-policy-and-public-invoke-adobe-gcp) below.
+
+**When `sc-demo-sandbox-hosting-invoker` is useful:**
+
+- A **single** public `apiGateway` Gen2 function (`invoker: 'public'` / `allUsers` only on that one service) that uses this SA (via `roles/iam.serviceAccountUser` + ID token or client libraries) to call **private** backends.
+- Cloud Scheduler, Cloud Tasks, or CI calling Cloud Run with credentials for this SA.
+- **Not** a drop-in replacement for `allUsers` on every function behind Hosting rewrites.
+
+### Create hosting invoker SA (once)
+
+```bash
+gcloud iam service-accounts create sc-demo-sandbox-hosting-invoker \
+  --project=adbe-gcp0819 \
+  --display-name="Sandbox Hosting Cloud Run invoker"
+# Email: sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com
+```
+
+### Grant `roles/run.invoker` on Cloud Run (Gen2 service names are lowercase)
+
+**One test service** (`labLabAccessStatus` → Cloud Run `lablabaccessstatus`):
+
+```bash
+gcloud run services add-iam-policy-binding lablabaccessstatus \
+  --member="serviceAccount:sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com" \
+  --role=roles/run.invoker \
+  --project=adbe-gcp0819 \
+  --region=us-east4
+```
+
+**All Gen2 services in `us-east4`:**
+
+```bash
+node scripts/sandbox-grant-cloud-run-hosting-invoker.mjs
+# Preview: node scripts/sandbox-grant-cloud-run-hosting-invoker.mjs --dry-run
+```
+
+### Verify (does not simulate Hosting)
+
+**Hosting (browser path)** — unchanged until public invoker exists; expect **401/403 HTML** today:
+
+```bash
+curl -sS -w "\nHTTP:%{http_code}\n" \
+  "https://adbe-gcp0819.web.app/api/lab/lab-access/status" \
+  -H "Authorization: Bearer invalid"
+```
+
+**Direct Cloud Run invoke as the hosting invoker SA** (proves IAM binding only):
+
+```bash
+# Requires: gcloud auth login + roles/iam.serviceAccountTokenCreator on the SA (or run as Owner)
+SERVICE_URL=$(gcloud run services describe lablabaccessstatus \
+  --project=adbe-gcp0819 --region=us-east4 --format='value(status.url)')
+TOKEN=$(gcloud auth print-identity-token \
+  --impersonate-service-account=sc-demo-sandbox-hosting-invoker@adbe-gcp0819.iam.gserviceaccount.com \
+  --audiences="${SERVICE_URL}")
+curl -sS -w "\nHTTP:%{http_code}\n" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  "${SERVICE_URL}"
+# With only the hosting-invoker binding (no allUsers): unauthenticated curl → 403; impersonated token → function runs (e.g. 405 on GET if POST-only).
+```
+
+Replace the URL with the Cloud Run service URL from `gcloud run services describe lablabaccessstatus --region=us-east4 --format='value(status.url)'` if the `cloudfunctions.net` host differs.
 
 ---
 
