@@ -1,9 +1,11 @@
-/* Army / MOD demo: disclaimer below prompt box, centred */
+/* Site-clone / embed BC: disclaimer below prompt box, centred (modal + injected overlay + inline) */
 .embed-bc-inline #brand-concierge-mount .input-section,
 .aep-bc-modal #brand-concierge-mount .input-section,
 #siteCloneBcInline #brand-concierge-mount .input-section,
 .site-clone-bc-inline #brand-concierge-mount .input-section,
-#siteCloneBcModalMount .input-section {
+#siteCloneBcModalMount .input-section,
+#siteCloneBcFrameMount .input-section,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-section {
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -14,7 +16,9 @@
 .aep-bc-modal #brand-concierge-mount .input-container,
 #siteCloneBcInline #brand-concierge-mount .input-container,
 .site-clone-bc-inline #brand-concierge-mount .input-container,
-#siteCloneBcModalMount .input-container {
+#siteCloneBcModalMount .input-container,
+#siteCloneBcFrameMount .input-container,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container {
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -30,7 +34,9 @@
 .aep-bc-modal #brand-concierge-mount .input-container .disclaimer-message,
 #siteCloneBcInline #brand-concierge-mount .input-container .disclaimer-message,
 .site-clone-bc-inline #brand-concierge-mount .input-container .disclaimer-message,
-#siteCloneBcModalMount .input-container .disclaimer-message {
+#siteCloneBcModalMount .input-container .disclaimer-message,
+#siteCloneBcFrameMount .input-container .disclaimer-message,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container .disclaimer-message {
   flex: 1 1 100% !important;
   order: 99 !important;
   position: static !important;
@@ -53,7 +59,9 @@
 .aep-bc-modal #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
 #siteCloneBcInline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
 .site-clone-bc-inline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
-#siteCloneBcModalMount .disclaimer-message.embed-bc-disclaimer-external {
+#siteCloneBcModalMount .disclaimer-message.embed-bc-disclaimer-external,
+#siteCloneBcFrameMount .disclaimer-message.embed-bc-disclaimer-external,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-message.embed-bc-disclaimer-external {
   position: static;
   transform: none;
   left: auto;
@@ -70,6 +78,8 @@
 .aep-bc-modal #brand-concierge-mount .disclaimer-link,
 #siteCloneBcInline #brand-concierge-mount .disclaimer-link,
 .site-clone-bc-inline #brand-concierge-mount .disclaimer-link,
-#siteCloneBcModalMount .disclaimer-link {
+#siteCloneBcModalMount .disclaimer-link,
+#siteCloneBcFrameMount .disclaimer-link,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-link {
   color: inherit;
 }

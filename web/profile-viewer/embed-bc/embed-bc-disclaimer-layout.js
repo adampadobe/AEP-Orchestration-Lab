@@ -2,7 +2,7 @@
   'use strict';
 
   var MOUNT_SELECTOR =
-    '.embed-bc-inline #brand-concierge-mount, .aep-bc-modal #brand-concierge-mount, #siteCloneBcInline #brand-concierge-mount, .site-clone-bc-inline #brand-concierge-mount, #siteCloneBcModalMount';
+    '.embed-bc-inline #brand-concierge-mount, .aep-bc-modal #brand-concierge-mount, #siteCloneBcInline #brand-concierge-mount, .site-clone-bc-inline #brand-concierge-mount, #siteCloneBcModalMount, #siteCloneBcFrameMount, .site-clone-bc-frame-host #siteCloneBcFrameMount';
 
   function moveDisclaimer(mount) {
     if (!mount) return false;
@@ -36,7 +36,9 @@
   function scan(root) {
     var scope = root && root.querySelectorAll ? root : document;
     var mounts = scope.querySelectorAll(
-      root && root.querySelector ? '#brand-concierge-mount, #siteCloneBcModalMount' : MOUNT_SELECTOR,
+      root && root.querySelector
+        ? '#brand-concierge-mount, #siteCloneBcModalMount, #siteCloneBcFrameMount'
+        : MOUNT_SELECTOR,
     );
     var done = true;
     mounts.forEach(function (mount) {
@@ -50,7 +52,9 @@
 
     var scope = root && root.querySelectorAll ? root : document;
     var targets = scope.querySelectorAll(
-      root && root.querySelector ? '#brand-concierge-mount, #siteCloneBcModalMount' : MOUNT_SELECTOR,
+      root && root.querySelector
+        ? '#brand-concierge-mount, #siteCloneBcModalMount, #siteCloneBcFrameMount'
+        : MOUNT_SELECTOR,
     );
     if (!targets.length) return;
 
@@ -66,7 +70,11 @@
   global.repositionArmyBcDisclaimer = function (mountOrRoot) {
     if (mountOrRoot && mountOrRoot.nodeType === 1) {
       var el = mountOrRoot;
-      if (el.id === 'brand-concierge-mount' || el.id === 'siteCloneBcModalMount') {
+      if (
+        el.id === 'brand-concierge-mount' ||
+        el.id === 'siteCloneBcModalMount' ||
+        el.id === 'siteCloneBcFrameMount'
+      ) {
         moveDisclaimer(el);
         return;
       }

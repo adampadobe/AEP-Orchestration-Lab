@@ -719,7 +719,10 @@
 
   async function loadArmyBcHelperScripts(win, doc) {
     await loadScript(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.js'), doc);
-    await loadScript(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.js'), doc);
+    await loadScript(
+      resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.js') + '?v=20260528-bc-disclaimer-frame',
+      doc,
+    );
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);
@@ -964,7 +967,7 @@
     if (parentCoreReady) return parentCoreReady;
     parentCoreReady = (async function () {
       prepareEmbedBcRuntime(global);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
       if (shouldUseLocalArmyBcCatalog(global)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared');
@@ -1013,7 +1016,7 @@
 
     iframeCoreReady = (async function () {
       prepareEmbedBcRuntime(win);
-      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared', doc);
+      loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared', doc);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline', doc);
       ensureBcCardImageStyles(doc);
@@ -1149,7 +1152,7 @@
     setSnapshotInjectedLayout(doc, !fullscreen);
     teardownIframeInlineSection(doc);
 
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css'), 'shared');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
     loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-inline.css') + '?v=20260519-bc-poll-fix', 'inline');
     ensureBcCardImageStyles(document);
