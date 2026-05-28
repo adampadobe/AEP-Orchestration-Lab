@@ -533,32 +533,55 @@
     marketState.ready = true;
   }
 
-  function findTrendNode(metricLabel) {
-    var labelNodes = Array.from(document.querySelectorAll('div, span, p')).filter(function (n) {
+  var TREND_LABELS = {
+    visibility: ['Visibility Score'],
+    mentions: ['Brand Mentions'],
+    citations: ['Citations'],
+    agentic: ['Agentic Interactions', 'Agentic Traffic'],
+    referral: ['Total Referral Traffic from LLMs', 'Referral Traffic'],
+  };
+
+  function findTrendInCard(root, labelEl) {
+    var candidates = [];
+    root.querySelectorAll('div, span, p').forEach(function (el) {
+      if (el === labelEl || el.childElementCount > 0) return;
+      if (!/vs last week/i.test(el.textContent || '')) return;
+      candidates.push(el);
+    });
+    return candidates[0] || null;
+  }
+
+  function findTrendNodeOne(metricLabel) {
+    var labelNodes = Array.from(document.querySelectorAll('div, span, p, h2, h3')).filter(function (n) {
       return n.childElementCount === 0 && n.textContent.trim() === metricLabel;
     });
     for (var i = 0; i < labelNodes.length; i++) {
       var walk = labelNodes[i].parentElement;
-      for (var d = 0; d < 8 && walk; d++) {
-        var candidates = walk.querySelectorAll('div, span, p');
-        for (var c = 0; c < candidates.length; c++) {
-          var el = candidates[c];
-          if (el.childElementCount > 0) continue;
-          if (/vs last week/i.test(el.textContent)) return el;
-        }
+      for (var d = 0; d < 10 && walk; d++) {
+        var trend = findTrendInCard(walk, labelNodes[i]);
+        if (trend) return trend;
         walk = walk.parentElement;
       }
     }
     return null;
   }
 
+  function findTrendNode(labelTexts) {
+    var labels = Array.isArray(labelTexts) ? labelTexts : [labelTexts];
+    for (var i = 0; i < labels.length; i++) {
+      var node = findTrendNodeOne(labels[i]);
+      if (node) return node;
+    }
+    return null;
+  }
+
   function cacheTrendNodes() {
     trendState.nodes = {
-      visibility: findTrendNode('Visibility Score'),
-      mentions: findTrendNode('Brand Mentions'),
-      citations: findTrendNode('Citations'),
-      agentic: findTrendNode('Agentic Interactions'),
-      referral: findTrendNode('Total Referral Traffic from LLMs'),
+      visibility: findTrendNode(TREND_LABELS.visibility),
+      mentions: findTrendNode(TREND_LABELS.mentions),
+      citations: findTrendNode(TREND_LABELS.citations),
+      agentic: findTrendNode(TREND_LABELS.agentic),
+      referral: findTrendNode(TREND_LABELS.referral),
     };
   }
 
@@ -607,7 +630,11 @@
   function watchLineCurves() {
     if (!window.MutationObserver) return;
     var pending = false;
-    var observer = new MutationObserver(function () {
+    var observer = new MutationObserver(function (mutations) {
+      var touchesText = mutations.some(function (m) {
+        return m.type === 'characterData' || (m.target && m.target.nodeType === 3);
+      });
+      if (touchesText) return;
       if (pending) return;
       pending = true;
       window.requestAnimationFrame(function () {

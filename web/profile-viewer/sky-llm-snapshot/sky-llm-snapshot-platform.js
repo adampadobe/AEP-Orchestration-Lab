@@ -237,6 +237,17 @@
   var MARKET_MENTION_MAX = 980;
   var MARKET_CITE_MAX = 160;
   var ANIM_MS = 720;
+  var OVERVIEW_AGENTIC_MULT = 137000;
+  var OVERVIEW_REFERRAL_BASE = 200000;
+  var OVERVIEW_REFERRAL_MULT = 90000;
+
+  var METRIC_LABELS = {
+    visibility: ['Visibility Score'],
+    mentions: ['Brand Mentions'],
+    citations: ['Citations'],
+    agentic: ['Agentic Interactions', 'Agentic Traffic'],
+    referral: ['Total Referral Traffic from LLMs', 'Referral Traffic'],
+  };
 
   var state = {
     platformId: 'chatgpt-free',
@@ -267,15 +278,36 @@
     return Math.max(0, Math.round(n * factor));
   }
 
+  function formatMetricNumber(n) {
+    return String(Math.max(0, Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function isMetricValueText(text) {
+    var t = (text || '').trim();
+    if (!t || /vs last week/i.test(t)) return false;
+    return /^[\d,]+(?:\.\d+)?%?$/.test(t);
+  }
+
   function getMetrics(platformId, rangeId) {
     var b = METRICS_BASE[platformId] || METRICS_BASE['chatgpt-free'];
     var f = RANGE_SCALE[rangeId] || 1;
+    if (state.pageKind === 'brand-presence') {
+      return {
+        visibility: formatMetricNumber(scaleInt(b.visibility, f)) + '%',
+        mentions: formatMetricNumber(scaleInt(b.mentions, f * 1.1)),
+        citations: formatMetricNumber(scaleInt(b.citations, f * 0.9)),
+        agentic: formatMetricNumber(scaleInt(b.agentic, f)),
+        referral: formatMetricNumber(scaleInt(b.referral, f * 1.15)),
+      };
+    }
     return {
-      visibility: scaleInt(b.visibility, f) + '%',
-      mentions: String(scaleInt(b.mentions, f * 1.1)),
-      citations: String(scaleInt(b.citations, f * 0.9)),
-      agentic: String(scaleInt(b.agentic, f)),
-      referral: String(scaleInt(b.referral, f * 1.15)),
+      visibility: formatMetricNumber(scaleInt(b.visibility, f)) + '%',
+      mentions: formatMetricNumber(scaleInt(b.mentions, f * 1.1)),
+      citations: formatMetricNumber(scaleInt(b.citations, f * 0.9)),
+      agentic: formatMetricNumber(scaleInt(b.agentic * OVERVIEW_AGENTIC_MULT, f)),
+      referral: formatMetricNumber(
+        scaleInt(b.referral * OVERVIEW_REFERRAL_MULT + OVERVIEW_REFERRAL_BASE, f * 1.15),
+      ),
     };
   }
 
@@ -328,22 +360,43 @@
     });
   }
 
-  function findMetricValueNode(labelText) {
+  function findMetricValueInCard(root, labelEl) {
+    var candidates = [];
+    root.querySelectorAll('div, span, p').forEach(function (el) {
+      if (el === labelEl || el.childElementCount > 0) return;
+      if (!isMetricValueText(el.textContent)) return;
+      if (el.closest('button')) return;
+      candidates.push(el);
+    });
+    if (!candidates.length) return null;
+    candidates.sort(function (a, b) {
+      var aLen = (a.textContent || '').replace(/[^\d]/g, '').length;
+      var bLen = (b.textContent || '').replace(/[^\d]/g, '').length;
+      return bLen - aLen;
+    });
+    return candidates[0];
+  }
+
+  function findMetricValueNodeOne(labelText) {
     var labelNodes = Array.from(document.querySelectorAll('div, span, p, h2, h3')).filter(function (n) {
       return n.childElementCount === 0 && n.textContent.trim() === labelText;
     });
     for (var i = 0; i < labelNodes.length; i++) {
       var walk = labelNodes[i].parentElement;
-      for (var d = 0; d < 6 && walk; d++) {
-        var candidates = walk.querySelectorAll('div, span, p');
-        for (var c = 0; c < candidates.length; c++) {
-          var el = candidates[c];
-          if (el.childElementCount > 0) continue;
-          var t = el.textContent.trim();
-          if (/^\d{1,3}%?$/.test(t) && el !== labelNodes[i]) return el;
-        }
+      for (var d = 0; d < 10 && walk; d++) {
+        var value = findMetricValueInCard(walk, labelNodes[i]);
+        if (value) return value;
         walk = walk.parentElement;
       }
+    }
+    return null;
+  }
+
+  function findMetricValueNode(labelTexts) {
+    var labels = Array.isArray(labelTexts) ? labelTexts : [labelTexts];
+    for (var i = 0; i < labels.length; i++) {
+      var node = findMetricValueNodeOne(labels[i]);
+      if (node) return node;
     }
     return null;
   }
@@ -502,11 +555,11 @@
 
   function cacheMetricNodes() {
     state.metricNodes = {
-      visibility: findMetricValueNode('Visibility Score'),
-      mentions: findMetricValueNode('Brand Mentions'),
-      citations: findMetricValueNode('Citations'),
-      agentic: findMetricValueNode('Agentic Interactions'),
-      referral: findMetricValueNode('Total Referral Traffic from LLMs'),
+      visibility: findMetricValueNode(METRIC_LABELS.visibility),
+      mentions: findMetricValueNode(METRIC_LABELS.mentions),
+      citations: findMetricValueNode(METRIC_LABELS.citations),
+      agentic: findMetricValueNode(METRIC_LABELS.agentic),
+      referral: findMetricValueNode(METRIC_LABELS.referral),
     };
   }
 
@@ -710,6 +763,7 @@
   }
 
   function applyMetrics(platformId, rangeId) {
+    cacheMetricNodes();
     var m = getMetrics(platformId, rangeId);
     Object.keys(m).forEach(function (key) {
       if (state.metricNodes[key]) state.metricNodes[key].textContent = m[key];
@@ -991,7 +1045,12 @@
   }
 
   function init() {
-    if (state.ready && document.querySelector('.sky-llm-platform-host')) return;
+    if (state.ready && document.querySelector('.sky-llm-platform-host')) {
+      state.pageKind = getPageKind();
+      cacheMetricNodes();
+      applyDashboard({ animate: false });
+      return;
+    }
     state.pageKind = getPageKind();
     cacheMetricNodes();
     cacheSentimentColumns();
