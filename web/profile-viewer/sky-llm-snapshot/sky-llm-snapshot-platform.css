@@ -1,10 +1,13 @@
-/* Platform picker — replaces native combobox inside the Spectrum field shell */
-.sky-llm-platform-shell {
+/* Shared filter pickers (Platform, Date Range) */
+.sky-llm-platform-shell,
+.sky-llm-date-shell {
   position: relative;
 }
 
 .sky-llm-platform-shell > input[role='combobox'],
-.sky-llm-platform-shell > button {
+.sky-llm-platform-shell > button,
+.sky-llm-date-shell > input[role='combobox'],
+.sky-llm-date-shell > button {
   position: absolute !important;
   inset: 0 !important;
   opacity: 0 !important;
@@ -20,7 +23,8 @@
   outline: none !important;
 }
 
-.sky-llm-platform-host {
+.sky-llm-platform-host,
+.sky-llm-date-host {
   position: relative;
   z-index: 1;
   display: flex;
@@ -30,7 +34,8 @@
   width: 100%;
 }
 
-.sky-llm-platform-trigger {
+.sky-llm-platform-trigger,
+.sky-llm-date-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,16 +57,19 @@
   text-align: left;
 }
 
-.sky-llm-platform-trigger:hover {
+.sky-llm-platform-trigger:hover,
+.sky-llm-date-trigger:hover {
   background: transparent;
 }
 
-.sky-llm-platform-trigger:focus-visible {
+.sky-llm-platform-trigger:focus-visible,
+.sky-llm-date-trigger:focus-visible {
   outline: 2px solid #1473e6;
   outline-offset: -2px;
 }
 
-.sky-llm-platform-trigger > span:first-child {
+.sky-llm-platform-trigger > span:first-child,
+.sky-llm-date-trigger > span:first-child {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -69,7 +77,8 @@
   white-space: nowrap;
 }
 
-.sky-llm-platform-trigger-chevron {
+.sky-llm-platform-trigger-chevron,
+.sky-llm-date-trigger-chevron {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,7 +95,8 @@
   line-height: 1;
 }
 
-.sky-llm-platform-menu {
+.sky-llm-platform-menu,
+.sky-llm-date-menu {
   position: absolute;
   top: calc(100% + 2px);
   left: 0;
@@ -103,11 +113,13 @@
   z-index: 50;
 }
 
-.sky-llm-platform-menu[hidden] {
+.sky-llm-platform-menu[hidden],
+.sky-llm-date-menu[hidden] {
   display: none;
 }
 
-.sky-llm-platform-option {
+.sky-llm-platform-option,
+.sky-llm-date-option {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -122,11 +134,14 @@
 }
 
 .sky-llm-platform-option:hover,
-.sky-llm-platform-option.is-selected {
+.sky-llm-platform-option.is-selected,
+.sky-llm-date-option:hover,
+.sky-llm-date-option.is-selected {
   background: #f0f0f0;
 }
 
-.sky-llm-platform-check {
+.sky-llm-platform-check,
+.sky-llm-date-check {
   width: 1rem;
   flex-shrink: 0;
   color: #1473e6;
@@ -136,7 +151,8 @@
   line-height: 1;
 }
 
-.sky-llm-platform-option.is-selected .sky-llm-platform-check {
+.sky-llm-platform-option.is-selected .sky-llm-platform-check,
+.sky-llm-date-option.is-selected .sky-llm-date-check {
   visibility: visible;
 }
 
@@ -147,17 +163,92 @@
   margin-top: 0.1rem;
 }
 
-.sky-llm-platform-copy strong {
+.sky-llm-platform-copy strong,
+.sky-llm-date-copy strong {
   display: block;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
 }
 
-.sky-llm-platform-copy span {
+.sky-llm-platform-copy span,
+.sky-llm-date-copy span {
   display: block;
   font-size: 12px;
   color: #6e6e6e;
   line-height: 1.3;
   margin-top: 0.1rem;
+}
+
+/* Chart hover tooltips */
+.sky-llm-chart-tooltip {
+  position: fixed;
+  z-index: 9999;
+  min-width: 10.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #222;
+  pointer-events: none;
+  line-height: 1.35;
+}
+
+.sky-llm-chart-tooltip[hidden] {
+  display: none;
+}
+
+.sky-llm-chart-tooltip-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 0.45rem;
+}
+
+.sky-llm-chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.sky-llm-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sky-llm-chart-tooltip-dot--mentions {
+  background: #3b82f6;
+}
+
+.sky-llm-chart-tooltip-dot--citations {
+  background: #f97316;
+}
+
+.sky-llm-chart-tooltip-dot--positive {
+  background: #047857;
+}
+
+.sky-llm-chart-tooltip-dot--neutral {
+  background: #4b5563;
+}
+
+.sky-llm-chart-tooltip-dot--negative {
+  background: #b91c1c;
+}
+
+.sky-llm-chart-tooltip-total {
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #eee;
+  font-weight: 700;
+}
+
+.sky-llm-market-hit,
+.sky-llm-sentiment-hit {
+  cursor: default;
 }

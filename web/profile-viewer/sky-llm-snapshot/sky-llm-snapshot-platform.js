@@ -1,5 +1,5 @@
 /**
- * Functional Platform picker + metric / chart updates on frozen overview snapshot.
+ * Sky LLM overview snapshot — Platform & Date Range pickers, chart updates, animations, tooltips.
  */
 (function () {
   'use strict';
@@ -14,70 +14,78 @@
     { id: 'google-overview', name: 'Google AI Overview', share: '1 % global market share', icon: 'google' },
   ];
 
-  var METRICS = {
-    'chatgpt-free': { visibility: '36%', mentions: '24', citations: '0', agentic: '215', referral: '0' },
-    gemini: { visibility: '41%', mentions: '31', citations: '2', agentic: '188', referral: '12' },
-    'google-ai-mode': { visibility: '38%', mentions: '27', citations: '1', agentic: '201', referral: '8' },
-    copilot: { visibility: '29%', mentions: '18', citations: '0', agentic: '142', referral: '4' },
-    'chatgpt-paid': { visibility: '44%', mentions: '35', citations: '3', agentic: '198', referral: '6' },
-    perplexity: { visibility: '33%', mentions: '22', citations: '4', agentic: '156', referral: '19' },
-    'google-overview': { visibility: '37%', mentions: '26', citations: '1', agentic: '175', referral: '5' },
+  var DATE_RANGES = [
+    { id: '4w', name: 'Last 4 Weeks', range: 'Apr 27 - May 24, 2026' },
+    { id: '2w', name: 'Last 2 Weeks', range: 'May 11 - May 24, 2026' },
+    { id: '1w', name: 'Last Week', range: 'May 18 - May 24, 2026' },
+    { id: 'custom', name: 'Custom Weeks', range: 'Select specific weeks to analyze' },
+  ];
+
+  var RANGE_SCALE = { '4w': 1, '2w': 0.88, '1w': 0.76, custom: 1 };
+
+  var METRICS_BASE = {
+    'chatgpt-free': { visibility: 36, mentions: 24, citations: 0, agentic: 215, referral: 0 },
+    gemini: { visibility: 41, mentions: 31, citations: 2, agentic: 188, referral: 12 },
+    'google-ai-mode': { visibility: 38, mentions: 27, citations: 1, agentic: 201, referral: 8 },
+    copilot: { visibility: 29, mentions: 18, citations: 0, agentic: 142, referral: 4 },
+    'chatgpt-paid': { visibility: 44, mentions: 35, citations: 3, agentic: 198, referral: 6 },
+    perplexity: { visibility: 33, mentions: 22, citations: 4, agentic: 156, referral: 19 },
+    'google-overview': { visibility: 37, mentions: 26, citations: 1, agentic: 175, referral: 5 },
   };
 
-  var MARKET = {
+  var MARKET_BASE = {
     'chatgpt-free': [
-      { name: 'Sky', cite: 72, mention: 18 },
-      { name: 'Virgin Media', cite: 65, mention: 22 },
-      { name: 'BT', cite: 58, mention: 28 },
-      { name: 'TalkTalk', cite: 42, mention: 30 },
-      { name: 'Netflix', cite: 48, mention: 24 },
+      { name: 'Sky', mentions: 118, citations: 38 },
+      { name: 'Virgin Media', mentions: 98, citations: 28 },
+      { name: 'BT', mentions: 86, citations: 24 },
+      { name: 'TalkTalk', mentions: 52, citations: 18 },
+      { name: 'Netflix', mentions: 64, citations: 22 },
     ],
     gemini: [
-      { name: 'Sky', cite: 78, mention: 15 },
-      { name: 'Virgin Media', cite: 68, mention: 20 },
-      { name: 'BT', cite: 60, mention: 26 },
-      { name: 'Disney+', cite: 52, mention: 22 },
-      { name: 'TalkTalk', cite: 40, mention: 32 },
+      { name: 'Sky', mentions: 124, citations: 32 },
+      { name: 'Virgin Media', mentions: 102, citations: 26 },
+      { name: 'BT', mentions: 88, citations: 22 },
+      { name: 'Disney+', mentions: 72, citations: 20 },
+      { name: 'TalkTalk', mentions: 48, citations: 16 },
     ],
     'google-ai-mode': [
-      { name: 'Sky', cite: 74, mention: 17 },
-      { name: 'Virgin Media', cite: 66, mention: 21 },
-      { name: 'BT', cite: 62, mention: 24 },
-      { name: 'Netflix', cite: 50, mention: 26 },
-      { name: 'TalkTalk', cite: 44, mention: 28 },
+      { name: 'Sky', mentions: 120, citations: 34 },
+      { name: 'Virgin Media', mentions: 100, citations: 27 },
+      { name: 'BT', mentions: 90, citations: 23 },
+      { name: 'Netflix', mentions: 68, citations: 21 },
+      { name: 'TalkTalk', mentions: 54, citations: 17 },
     ],
     copilot: [
-      { name: 'Sky', cite: 68, mention: 19 },
-      { name: 'BT', cite: 61, mention: 27 },
-      { name: 'Virgin Media', cite: 59, mention: 23 },
-      { name: 'TalkTalk', cite: 38, mention: 34 },
-      { name: 'Netflix', cite: 45, mention: 28 },
+      { name: 'Sky', mentions: 108, citations: 30 },
+      { name: 'BT', mentions: 92, citations: 28 },
+      { name: 'Virgin Media', mentions: 88, citations: 25 },
+      { name: 'TalkTalk', mentions: 44, citations: 14 },
+      { name: 'Netflix', mentions: 58, citations: 19 },
     ],
     'chatgpt-paid': [
-      { name: 'Sky', cite: 80, mention: 14 },
-      { name: 'Virgin Media', cite: 70, mention: 18 },
-      { name: 'BT', cite: 64, mention: 22 },
-      { name: 'Netflix', cite: 58, mention: 20 },
-      { name: 'Disney+', cite: 52, mention: 24 },
+      { name: 'Sky', mentions: 132, citations: 28 },
+      { name: 'Virgin Media', mentions: 110, citations: 24 },
+      { name: 'BT', mentions: 96, citations: 20 },
+      { name: 'Netflix', mentions: 78, citations: 22 },
+      { name: 'Disney+', mentions: 70, citations: 18 },
     ],
     perplexity: [
-      { name: 'Sky', cite: 71, mention: 16 },
-      { name: 'Virgin Media', cite: 64, mention: 22 },
-      { name: 'BT', cite: 55, mention: 28 },
-      { name: 'TalkTalk', cite: 41, mention: 31 },
-      { name: 'Netflix', cite: 47, mention: 27 },
+      { name: 'Sky', mentions: 112, citations: 36 },
+      { name: 'Virgin Media', mentions: 94, citations: 27 },
+      { name: 'BT', mentions: 80, citations: 22 },
+      { name: 'TalkTalk', mentions: 50, citations: 16 },
+      { name: 'Netflix', mentions: 62, citations: 20 },
     ],
     'google-overview': [
-      { name: 'Sky', cite: 73, mention: 18 },
-      { name: 'Virgin Media', cite: 67, mention: 21 },
-      { name: 'BT', cite: 60, mention: 25 },
-      { name: 'Netflix', cite: 48, mention: 27 },
-      { name: 'TalkTalk', cite: 43, mention: 29 },
+      { name: 'Sky', mentions: 116, citations: 35 },
+      { name: 'Virgin Media', mentions: 98, citations: 26 },
+      { name: 'BT', mentions: 86, citations: 23 },
+      { name: 'Netflix', mentions: 66, citations: 21 },
+      { name: 'TalkTalk', mentions: 52, citations: 18 },
     ],
   };
 
-  /** Stacked sentiment per date column: positive / neutral / negative (sum 100). */
-  var SENTIMENT = {
+  var SENTIMENT_BASE = {
     'chatgpt-free': [
       { pos: 33, neu: 67, neg: 0 },
       { pos: 26, neu: 70, neg: 4 },
@@ -115,18 +123,84 @@
     ],
   };
 
+  var TRAFFIC_LINES = {
+    agentic: {
+      '4w': 'M80,141.92C206,109.28,332,76.64,458,76.64C584,76.64,710,132.96,836,132.96C962,132.96,1088,129.12,1214,125.28',
+      '2w': 'M80,152.4C206,124.28,332,98.64,458,98.64C584,98.64,710,142.96,836,142.96C962,142.96,1088,139.12,1214,135.28',
+      '1w': 'M80,162.1C206,138.28,332,112.64,458,112.64C584,112.64,710,152.96,836,152.96C962,152.96,1088,149.12,1214,145.28',
+      custom: 'M80,141.92C206,109.28,332,76.64,458,76.64C584,76.64,710,132.96,836,132.96C962,132.96,1088,129.12,1214,125.28',
+    },
+    referral: {
+      '4w': 'M80,188C206,188,332,188,458,188C584,188,710,188,836,188C962,188,1088,188,1214,188',
+      '2w': 'M80,182C206,180,332,178,458,176C584,174,710,172,836,170C962,168,1088,166,1214,164',
+      '1w': 'M80,176C206,172,332,168,458,164C584,160,710,156,836,152C962,148,1088,144,1214,140',
+      custom: 'M80,188C206,188,332,188,458,188C584,188,710,188,836,188C962,188,1088,188,1214,188',
+    },
+  };
+
   var SENTIMENT_BASE_Y = 186;
   var SENTIMENT_TOP_Y = 20;
   var SENTIMENT_BAR_W = 40;
-  var MARKET_CITE_MAX = 980;
-  var MARKET_MENTION_MAX = 155;
+  var MARKET_MENTION_MAX = 980;
+  var MARKET_CITE_MAX = 160;
+  var ANIM_MS = 720;
 
   var state = {
     platformId: 'chatgpt-free',
+    dateRangeId: '4w',
     metricNodes: {},
     marketRows: [],
     sentimentColumns: [],
+    sentimentDates: [],
+    trafficLines: { agentic: null, referral: null },
+    tooltip: null,
+    animToken: 0,
+    ready: false,
   };
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function scaleInt(n, factor) {
+    return Math.max(0, Math.round(n * factor));
+  }
+
+  function getMetrics(platformId, rangeId) {
+    var b = METRICS_BASE[platformId] || METRICS_BASE['chatgpt-free'];
+    var f = RANGE_SCALE[rangeId] || 1;
+    return {
+      visibility: scaleInt(b.visibility, f) + '%',
+      mentions: String(scaleInt(b.mentions, f * 1.1)),
+      citations: String(scaleInt(b.citations, f * 0.9)),
+      agentic: String(scaleInt(b.agentic, f)),
+      referral: String(scaleInt(b.referral, f * 1.15)),
+    };
+  }
+
+  function getMarketRows(platformId, rangeId) {
+    var base = MARKET_BASE[platformId] || MARKET_BASE['chatgpt-free'];
+    var f = RANGE_SCALE[rangeId] || 1;
+    return base.map(function (row) {
+      return {
+        name: row.name,
+        mentions: scaleInt(row.mentions, f),
+        citations: scaleInt(row.citations, f),
+      };
+    });
+  }
+
+  function getSentiment(platformId, rangeId) {
+    var base = SENTIMENT_BASE[platformId] || SENTIMENT_BASE['chatgpt-free'];
+    var f = RANGE_SCALE[rangeId] || 1;
+    return base.map(function (col, idx) {
+      var bump = idx === 0 ? 2 : idx === 1 ? 0 : -2;
+      var pos = Math.min(55, Math.max(8, Math.round(col.pos * f + bump)));
+      var neg = Math.min(20, Math.max(0, Math.round(col.neg * f)));
+      var neu = Math.max(0, 100 - pos - neg);
+      return { pos: pos, neu: neu, neg: neg };
+    });
+  }
 
   function iconSvg(type) {
     if (type === 'openai') {
@@ -147,10 +221,9 @@
     return '';
   }
 
-  function findPlatformCombobox() {
+  function findCombobox(labelPart) {
     return Array.from(document.querySelectorAll('[role="combobox"]')).find(function (el) {
-      var label = (el.getAttribute('aria-label') || '').toLowerCase();
-      return label.indexOf('platform') >= 0;
+      return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(labelPart) >= 0;
     });
   }
 
@@ -166,9 +239,7 @@
           var el = candidates[c];
           if (el.childElementCount > 0) continue;
           var t = el.textContent.trim();
-          if (/^\d{1,3}%?$/.test(t) && el !== labelNodes[i]) {
-            return el;
-          }
+          if (/^\d{1,3}%?$/.test(t) && el !== labelNodes[i]) return el;
         }
         walk = walk.parentElement;
       }
@@ -201,10 +272,16 @@
     if (!root) return null;
     var svgs = root.querySelectorAll('svg.recharts-surface');
     for (var i = svgs.length - 1; i >= 0; i--) {
-      var barPaths = svgs[i].querySelectorAll('path[fill="#047857"], path[fill="#4B5563"]');
-      if (barPaths.length >= 2) return svgs[i];
+      if (svgs[i].querySelectorAll('path[fill="#047857"], path[fill="#4B5563"]').length >= 2) return svgs[i];
     }
     return svgs.length ? svgs[svgs.length - 1] : null;
+  }
+
+  function findTrafficChartSvg() {
+    var root = findSectionRoot('Traffic Trend');
+    if (!root) return null;
+    var svgs = root.querySelectorAll('svg.recharts-surface[role="application"]');
+    return svgs.length ? svgs[0] : root.querySelector('svg.recharts-surface');
   }
 
   function pathBarY(d) {
@@ -227,6 +304,93 @@
     return 'M ' + x + ',' + y + ' h ' + w + ' v 32 h -' + w + ' Z';
   }
 
+  function runAnim(token, duration, step, done) {
+    var start = performance.now();
+    function frame(now) {
+      if (token !== state.animToken) return;
+      var p = Math.min(1, (now - start) / duration);
+      step(easeOutCubic(p));
+      if (p < 1) requestAnimationFrame(frame);
+      else if (done) done();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateLinePath(path, targetD, duration, token) {
+    if (!path) return;
+    path.setAttribute('d', targetD);
+    var len = path.getTotalLength();
+    path.style.transition = 'none';
+    path.style.strokeDasharray = String(len);
+    path.style.strokeDashoffset = String(len);
+    runAnim(token, duration, function (t) {
+      path.style.strokeDashoffset = String(len * (1 - t));
+    });
+  }
+
+  function ensureTooltip() {
+    if (state.tooltip) return state.tooltip;
+    var el = document.createElement('div');
+    el.className = 'sky-llm-chart-tooltip';
+    el.hidden = true;
+    document.body.appendChild(el);
+    state.tooltip = el;
+    return el;
+  }
+
+  function showTooltip(html, clientX, clientY) {
+    var tip = ensureTooltip();
+    tip.innerHTML = html;
+    tip.hidden = false;
+    var pad = 14;
+    var rect = tip.getBoundingClientRect();
+    var left = clientX + pad;
+    var top = clientY + pad;
+    if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - pad;
+    if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - pad;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  function hideTooltip() {
+    if (state.tooltip) state.tooltip.hidden = true;
+  }
+
+  function marketTooltipHtml(row) {
+    var total = row.mentions + row.citations;
+    return (
+      '<div class="sky-llm-chart-tooltip-title">' +
+      row.name +
+      '</div>' +
+      '<div class="sky-llm-chart-tooltip-row"><span class="sky-llm-chart-tooltip-dot sky-llm-chart-tooltip-dot--mentions"></span>Mentions: ' +
+      row.mentions +
+      '</div>' +
+      '<div class="sky-llm-chart-tooltip-row"><span class="sky-llm-chart-tooltip-dot sky-llm-chart-tooltip-dot--citations"></span>Citations: ' +
+      row.citations +
+      '</div>' +
+      '<div class="sky-llm-chart-tooltip-total">Total: ' +
+      total +
+      '</div>'
+    );
+  }
+
+  function sentimentTooltipHtml(dateLabel, col) {
+    return (
+      '<div class="sky-llm-chart-tooltip-title">' +
+      dateLabel +
+      '</div>' +
+      '<div class="sky-llm-chart-tooltip-row"><span class="sky-llm-chart-tooltip-dot sky-llm-chart-tooltip-dot--positive"></span>Positive: ' +
+      col.pos +
+      ' %</div>' +
+      '<div class="sky-llm-chart-tooltip-row"><span class="sky-llm-chart-tooltip-dot sky-llm-chart-tooltip-dot--neutral"></span>Neutral: ' +
+      col.neu +
+      ' %</div>' +
+      '<div class="sky-llm-chart-tooltip-row"><span class="sky-llm-chart-tooltip-dot sky-llm-chart-tooltip-dot--negative"></span>Negative: ' +
+      col.neg +
+      ' %</div>'
+    );
+  }
+
   function cacheMetricNodes() {
     state.metricNodes = {
       visibility: findMetricValueNode('Visibility Score'),
@@ -245,14 +409,14 @@
     var paths = Array.from(svg.querySelectorAll('path')).filter(function (p) {
       return (p.getAttribute('d') || '').indexOf(' h ') >= 0;
     });
-    var citePaths = paths
+    var mentionPaths = paths
       .filter(function (p) {
         return p.getAttribute('fill') === '#3B82F6';
       })
       .sort(function (a, b) {
         return pathBarY(a.getAttribute('d')) - pathBarY(b.getAttribute('d'));
       });
-    var mentionPaths = paths
+    var citePaths = paths
       .filter(function (p) {
         return p.getAttribute('fill') === '#F97316';
       })
@@ -269,20 +433,65 @@
         return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
       });
 
-    citePaths.forEach(function (citePath, idx) {
-      state.marketRows.push({
-        citePath: citePath,
-        mentionPath: mentionPaths[idx] || null,
-        labelEl: labels[idx] || null,
-        y: pathBarY(citePath.getAttribute('d')),
+    var totals = Array.from(svg.querySelectorAll('text'))
+      .filter(function (t) {
+        return /^\d+$/.test((t.textContent || '').trim());
+      })
+      .sort(function (a, b) {
+        return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
       });
+
+    mentionPaths.forEach(function (mentionPath, idx) {
+      var row = {
+        mentionPath: mentionPath,
+        citePath: citePaths[idx] || null,
+        labelEl: labels[idx] || null,
+        totalEl: totals[idx] || null,
+        y: pathBarY(mentionPath.getAttribute('d')),
+        hitRect: null,
+        data: null,
+      };
+      if (!svg.querySelector('.sky-llm-market-hit[data-row="' + idx + '"]')) {
+        var hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        hit.setAttribute('class', 'sky-llm-market-hit');
+        hit.setAttribute('data-row', String(idx));
+        hit.setAttribute('x', '80');
+        hit.setAttribute('y', String(row.y - 6));
+        hit.setAttribute('width', '1120');
+        hit.setAttribute('height', '40');
+        hit.setAttribute('fill', 'transparent');
+        hit.addEventListener('mouseenter', function (e) {
+          if (row.data) showTooltip(marketTooltipHtml(row.data), e.clientX, e.clientY);
+        });
+        hit.addEventListener('mousemove', function (e) {
+          if (row.data && state.tooltip && !state.tooltip.hidden) {
+            showTooltip(marketTooltipHtml(row.data), e.clientX, e.clientY);
+          }
+        });
+        hit.addEventListener('mouseleave', hideTooltip);
+        svg.appendChild(hit);
+        row.hitRect = hit;
+      }
+      state.marketRows.push(row);
     });
   }
 
   function cacheSentimentColumns() {
     state.sentimentColumns = [];
+    state.sentimentDates = [];
     var svg = findSentimentChartSvg();
     if (!svg) return;
+
+    var dateTexts = Array.from(svg.querySelectorAll('text'))
+      .filter(function (t) {
+        return /2026/.test(t.textContent || '');
+      })
+      .sort(function (a, b) {
+        return Number(a.getAttribute('x') || 0) - Number(b.getAttribute('x') || 0);
+      });
+    state.sentimentDates = dateTexts.map(function (t) {
+      return t.textContent.trim();
+    });
 
     var byX = {};
     Array.from(svg.querySelectorAll('path')).forEach(function (p) {
@@ -291,7 +500,7 @@
       var fill = p.getAttribute('fill');
       if (fill !== '#047857' && fill !== '#4B5563' && fill !== '#B91C1C') return;
       var x = String(pathBarX(d));
-      if (!byX[x]) byX[x] = { x: Number(x), pos: null, neu: null, neg: null };
+      if (!byX[x]) byX[x] = { x: Number(x), pos: null, neu: null, neg: null, hitRect: null, data: null };
       if (fill === '#047857') byX[x].pos = p;
       else if (fill === '#4B5563') byX[x].neu = p;
       else byX[x].neg = p;
@@ -301,112 +510,181 @@
       .sort(function (a, b) {
         return Number(a) - Number(b);
       })
-      .map(function (key) {
-        return byX[key];
+      .map(function (key, idx) {
+        var col = byX[key];
+        if (!svg.querySelector('.sky-llm-sentiment-hit[data-col="' + idx + '"]')) {
+          var hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          hit.setAttribute('class', 'sky-llm-sentiment-hit');
+          hit.setAttribute('data-col', String(idx));
+          hit.setAttribute('x', String(col.x - 8));
+          hit.setAttribute('y', String(SENTIMENT_TOP_Y));
+          hit.setAttribute('width', String(SENTIMENT_BAR_W + 16));
+          hit.setAttribute('height', String(SENTIMENT_BASE_Y - SENTIMENT_TOP_Y));
+          hit.setAttribute('fill', 'transparent');
+          hit.addEventListener('mouseenter', function (e) {
+            if (col.data) {
+              var label = state.sentimentDates[idx] || 'Week';
+              showTooltip(sentimentTooltipHtml(label, col.data), e.clientX, e.clientY);
+            }
+          });
+          hit.addEventListener('mousemove', function (e) {
+            if (col.data && state.tooltip && !state.tooltip.hidden) {
+              var label = state.sentimentDates[idx] || 'Week';
+              showTooltip(sentimentTooltipHtml(label, col.data), e.clientX, e.clientY);
+            }
+          });
+          hit.addEventListener('mouseleave', hideTooltip);
+          svg.appendChild(hit);
+          col.hitRect = hit;
+        }
+        return col;
       });
   }
 
-  function applyMetrics(platformId) {
-    var m = METRICS[platformId] || METRICS['chatgpt-free'];
-    var map = {
-      visibility: m.visibility,
-      mentions: m.mentions,
-      citations: m.citations,
-      agentic: m.agentic,
-      referral: m.referral,
-    };
-    Object.keys(map).forEach(function (key) {
-      var node = state.metricNodes[key];
-      if (node) node.textContent = map[key];
+  function cacheTrafficLines() {
+    var svg = findTrafficChartSvg();
+    if (!svg) return;
+    var paths = Array.from(svg.querySelectorAll('path[stroke]')).filter(function (p) {
+      var d = p.getAttribute('d') || '';
+      return d.indexOf('M80,') === 0 && d.length > 40;
+    });
+    state.trafficLines.agentic = paths[0] || null;
+    state.trafficLines.referral = paths[1] || null;
+  }
+
+  function applyMetrics(platformId, rangeId) {
+    var m = getMetrics(platformId, rangeId);
+    Object.keys(m).forEach(function (key) {
+      if (state.metricNodes[key]) state.metricNodes[key].textContent = m[key];
     });
   }
 
-  function applyMarket(platformId) {
-    var rows = MARKET[platformId] || MARKET['chatgpt-free'];
-    rows.forEach(function (row, idx) {
+  function marketWidths(rows) {
+    var maxM = 1;
+    rows.forEach(function (r) {
+      if (r.mentions > maxM) maxM = r.mentions;
+    });
+    return rows.map(function (row) {
+      return {
+        row: row,
+        mentionW: (row.mentions / maxM) * MARKET_MENTION_MAX,
+        citeW: (row.citations / Math.max(row.mentions, 1)) * MARKET_CITE_MAX * 0.45 + row.citations * 1.2,
+      };
+    });
+  }
+
+  function paintMarket(rows, progress) {
+    var sized = marketWidths(rows);
+    var p = typeof progress === 'number' ? progress : 1;
+    sized.forEach(function (item, idx) {
       var cached = state.marketRows[idx];
-      if (!cached || !cached.citePath) return;
+      if (!cached || !cached.mentionPath) return;
       var y = cached.y;
-      var citeW = (row.cite / 100) * MARKET_CITE_MAX;
-      var mentionW = (row.mention / 100) * MARKET_MENTION_MAX;
-      cached.citePath.setAttribute('d', makeMarketPath(83, y, citeW));
-      if (cached.mentionPath) {
-        cached.mentionPath.setAttribute('d', makeMarketPath(83 + citeW, y, mentionW));
-      }
-      if (cached.labelEl) {
-        cached.labelEl.textContent = row.name.replace(/⭐\s*/g, '').trim();
-      }
+      var mw = item.mentionW * p;
+      var cw = item.citeW * p;
+      cached.mentionPath.setAttribute('d', makeMarketPath(83, y, mw));
+      if (cached.citePath) cached.citePath.setAttribute('d', makeMarketPath(83 + mw, y, cw));
+      if (cached.labelEl) cached.labelEl.textContent = item.row.name;
+      if (cached.totalEl) cached.totalEl.textContent = String(Math.round((item.row.mentions + item.row.citations) * p));
+      cached.data = item.row;
     });
   }
 
-  function applySentiment(platformId) {
-    var cols = SENTIMENT[platformId] || SENTIMENT['chatgpt-free'];
+  function paintSentiment(cols, progress) {
     var totalH = SENTIMENT_BASE_Y - SENTIMENT_TOP_Y;
-
+    var p = typeof progress === 'number' ? progress : 1;
     cols.forEach(function (seg, idx) {
       var column = state.sentimentColumns[idx];
       if (!column) return;
       var x = column.x;
-      var posH = (seg.pos / 100) * totalH;
-      var neuH = (seg.neu / 100) * totalH;
-      var negH = (seg.neg / 100) * totalH;
+      var posH = (seg.pos / 100) * totalH * p;
+      var neuH = (seg.neu / 100) * totalH * p;
+      var negH = (seg.neg / 100) * totalH * p;
       var posTop = SENTIMENT_BASE_Y - posH;
       var neuTop = posTop - neuH;
-      var negTop = SENTIMENT_TOP_Y;
-
-      if (column.pos) {
-        column.pos.setAttribute('d', makeStackPath(x, posTop, SENTIMENT_BASE_Y));
-      }
-      if (column.neu) {
-        column.neu.setAttribute('d', makeStackPath(x, neuTop, posTop));
-      }
+      if (column.pos) column.pos.setAttribute('d', makeStackPath(x, posTop, SENTIMENT_BASE_Y));
+      if (column.neu) column.neu.setAttribute('d', makeStackPath(x, neuTop, posTop));
       if (column.neg) {
-        if (negH > 0.5) {
-          column.neg.setAttribute('d', makeStackPath(x, negTop, neuTop));
-        } else {
-          column.neg.setAttribute('d', makeStackPath(x, negTop, negTop));
-        }
+        if (negH > 0.5) column.neg.setAttribute('d', makeStackPath(x, SENTIMENT_TOP_Y, neuTop));
+        else column.neg.setAttribute('d', makeStackPath(x, SENTIMENT_TOP_Y, SENTIMENT_TOP_Y));
       }
+      column.data = seg;
     });
   }
 
-  function applyPlatform(platformId) {
-    state.platformId = platformId;
-    applyMetrics(platformId);
-    applyMarket(platformId);
-    applySentiment(platformId);
+  function applyTraffic(rangeId, animate) {
+    var agenticD = TRAFFIC_LINES.agentic[rangeId] || TRAFFIC_LINES.agentic['4w'];
+    var referralD = TRAFFIC_LINES.referral[rangeId] || TRAFFIC_LINES.referral['4w'];
+    var token = state.animToken;
+    if (state.trafficLines.agentic) {
+      if (animate) animateLinePath(state.trafficLines.agentic, agenticD, ANIM_MS + 120, token);
+      else {
+        state.trafficLines.agentic.setAttribute('d', agenticD);
+        state.trafficLines.agentic.style.strokeDasharray = '';
+        state.trafficLines.agentic.style.strokeDashoffset = '';
+      }
+    }
+    if (state.trafficLines.referral) {
+      if (animate) {
+        window.setTimeout(function () {
+          animateLinePath(state.trafficLines.referral, referralD, ANIM_MS + 120, token);
+        }, 80);
+      } else {
+        state.trafficLines.referral.setAttribute('d', referralD);
+        state.trafficLines.referral.style.strokeDasharray = '';
+        state.trafficLines.referral.style.strokeDashoffset = '';
+      }
+    }
   }
 
-  function buildPicker(combobox) {
-    var shell = combobox.parentElement;
-    if (!shell || shell.querySelector('.sky-llm-platform-host')) return;
+  function applyDashboard(opts) {
+    var animate = opts && opts.animate;
+    var platformId = state.platformId;
+    var rangeId = state.dateRangeId;
+    var market = getMarketRows(platformId, rangeId);
+    var sentiment = getSentiment(platformId, rangeId);
 
-    shell.classList.add('sky-llm-platform-shell');
+    applyMetrics(platformId, rangeId);
+
+    if (animate) {
+      state.animToken += 1;
+      var token = state.animToken;
+      runAnim(token, ANIM_MS, function (t) {
+        paintMarket(market, t);
+        paintSentiment(sentiment, t);
+      });
+      applyTraffic(rangeId, true);
+    } else {
+      paintMarket(market, 1);
+      paintSentiment(sentiment, 1);
+      applyTraffic(rangeId, false);
+    }
+  }
+
+  function buildFilterPicker(combobox, config) {
+    var shell = combobox.parentElement;
+    if (!shell || shell.querySelector('.' + config.hostClass)) return;
+
+    shell.classList.add(config.shellClass);
     combobox.setAttribute('tabindex', '-1');
 
     var host = document.createElement('div');
-    host.className = 'sky-llm-platform-host';
+    host.className = config.hostClass;
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className = 'sky-llm-platform-trigger';
+    trigger.className = config.triggerClass;
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
-    trigger.setAttribute('aria-label', 'Platform');
+    trigger.setAttribute('aria-label', config.ariaLabel);
 
     var menu = document.createElement('ul');
-    menu.className = 'sky-llm-platform-menu';
+    menu.className = config.menuClass;
     menu.setAttribute('role', 'listbox');
     menu.hidden = true;
 
     function renderTrigger() {
-      var p = PLATFORMS.find(function (x) {
-        return x.id === state.platformId;
-      });
-      trigger.innerHTML =
-        '<span>' +
-        (p ? p.name : 'ChatGPT (Free)') +
-        '</span><span class="sky-llm-platform-trigger-chevron" aria-hidden="true">▼</span>';
+      trigger.innerHTML = config.renderTrigger();
     }
 
     function closeMenu() {
@@ -416,23 +694,16 @@
 
     function openMenu() {
       menu.innerHTML = '';
-      PLATFORMS.forEach(function (p) {
+      config.options().forEach(function (opt) {
         var li = document.createElement('li');
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'sky-llm-platform-option' + (p.id === state.platformId ? ' is-selected' : '');
+        btn.className = config.optionClass + (config.isSelected(opt) ? ' is-selected' : '');
         btn.setAttribute('role', 'option');
-        btn.innerHTML =
-          '<span class="sky-llm-platform-check" aria-hidden="true">✓</span>' +
-          iconSvg(p.icon) +
-          '<span class="sky-llm-platform-copy"><strong>' +
-          p.name +
-          '</strong><span>' +
-          p.share +
-          '</span></span>';
+        btn.innerHTML = config.renderOption(opt);
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          applyPlatform(p.id);
+          config.onSelect(opt);
           renderTrigger();
           closeMenu();
         });
@@ -448,31 +719,122 @@
       if (menu.hidden) openMenu();
       else closeMenu();
     });
-
     host.addEventListener('click', function (e) {
       e.stopPropagation();
-    });
-    document.addEventListener('click', function () {
-      closeMenu();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeMenu();
     });
 
     host.appendChild(trigger);
     host.appendChild(menu);
     shell.insertBefore(host, combobox);
     renderTrigger();
+
+    return { closeMenu: closeMenu };
+  }
+
+  function buildPlatformPicker() {
+    var combobox = findCombobox('platform');
+    if (!combobox) return;
+    buildFilterPicker(combobox, {
+      shellClass: 'sky-llm-platform-shell',
+      hostClass: 'sky-llm-platform-host',
+      triggerClass: 'sky-llm-platform-trigger',
+      menuClass: 'sky-llm-platform-menu',
+      optionClass: 'sky-llm-platform-option',
+      ariaLabel: 'Platform',
+      options: function () {
+        return PLATFORMS;
+      },
+      isSelected: function (p) {
+        return p.id === state.platformId;
+      },
+      renderTrigger: function () {
+        var p = PLATFORMS.find(function (x) {
+          return x.id === state.platformId;
+        });
+        return (
+          '<span>' +
+          (p ? p.name : 'ChatGPT (Free)') +
+          '</span><span class="sky-llm-platform-trigger-chevron" aria-hidden="true">▼</span>'
+        );
+      },
+      renderOption: function (p) {
+        return (
+          '<span class="sky-llm-platform-check" aria-hidden="true">✓</span>' +
+          iconSvg(p.icon) +
+          '<span class="sky-llm-platform-copy"><strong>' +
+          p.name +
+          '</strong><span>' +
+          p.share +
+          '</span></span>'
+        );
+      },
+      onSelect: function (p) {
+        state.platformId = p.id;
+        applyDashboard({ animate: true });
+      },
+    });
+  }
+
+  function buildDatePicker() {
+    var combobox = findCombobox('date range');
+    if (!combobox) return;
+    buildFilterPicker(combobox, {
+      shellClass: 'sky-llm-date-shell',
+      hostClass: 'sky-llm-date-host',
+      triggerClass: 'sky-llm-date-trigger',
+      menuClass: 'sky-llm-date-menu',
+      optionClass: 'sky-llm-date-option',
+      ariaLabel: 'Date Range',
+      options: function () {
+        return DATE_RANGES;
+      },
+      isSelected: function (d) {
+        return d.id === state.dateRangeId;
+      },
+      renderTrigger: function () {
+        var d = DATE_RANGES.find(function (x) {
+          return x.id === state.dateRangeId;
+        });
+        return (
+          '<span>' +
+          (d ? d.name : 'Last 4 Weeks') +
+          '</span><span class="sky-llm-date-trigger-chevron" aria-hidden="true">▼</span>'
+        );
+      },
+      renderOption: function (d) {
+        return (
+          '<span class="sky-llm-date-check" aria-hidden="true">✓</span>' +
+          '<span class="sky-llm-date-copy"><strong>' +
+          d.name +
+          '</strong><span>' +
+          d.range +
+          '</span></span>'
+        );
+      },
+      onSelect: function (d) {
+        state.dateRangeId = d.id;
+        applyDashboard({ animate: true });
+      },
+    });
   }
 
   function init() {
+    if (state.ready && document.querySelector('.sky-llm-platform-host')) return;
     cacheMetricNodes();
     cacheMarketRows();
     cacheSentimentColumns();
-    var combobox = findPlatformCombobox();
-    if (combobox) buildPicker(combobox);
-    applyPlatform(state.platformId);
+    cacheTrafficLines();
+    buildPlatformPicker();
+    buildDatePicker();
+    ensureTooltip();
+    applyDashboard({ animate: !state.ready });
+    state.ready = true;
   }
+
+  document.addEventListener('click', hideTooltip);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') hideTooltip();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
