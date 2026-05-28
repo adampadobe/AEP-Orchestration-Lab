@@ -54,9 +54,13 @@ for (const [from, to] of axisLabelReplacements) {
 // Recharts axis ticks sometimes escape the patterns above.
 html = html.split('WKND').join('Virgin Media');
 
-const patchScript = `<script src="./sky-llm-snapshot-patch.js"></script>`;
-if (!html.includes('sky-llm-snapshot-patch.js')) {
-  html = html.replace('</body>', `${patchScript}\n</body>`);
+const snapshotScripts = [
+  '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+  '<script src="./sky-llm-snapshot-patch.js"></script>',
+  '<script src="./sky-llm-snapshot-platform.js"></script>',
+].join('\n');
+if (!html.includes('sky-llm-snapshot-platform.js')) {
+  html = html.replace('</body>', `${snapshotScripts}\n</body>`);
 }
 
 fs.mkdirSync(outDir, { recursive: true });
