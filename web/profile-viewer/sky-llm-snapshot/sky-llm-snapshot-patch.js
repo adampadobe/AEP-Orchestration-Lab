@@ -12,6 +12,8 @@
     Contentful: 'TalkTalk',
     Global: 'Netflix',
     AEM: 'Disney+',
+    Wix: 'TalkTalk',
+    Webflow: 'Netflix',
   };
 
   function patchSiteField() {
@@ -28,7 +30,7 @@
   }
 
   function patchAxisLabels() {
-    document.querySelectorAll('text, tspan, span').forEach(function (el) {
+    document.querySelectorAll('text, tspan, span, button').forEach(function (el) {
       var txt = (el.textContent || '').trim();
       if (AXIS[txt]) el.textContent = AXIS[txt];
     });

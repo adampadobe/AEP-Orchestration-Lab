@@ -56,6 +56,7 @@ html = html.split('WKND').join('Virgin Media');
 
 const snapshotScripts = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+  '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-platform.js"></script>',
 ].join('\n');

@@ -247,10 +247,17 @@
     sentimentDates: [],
     sentimentDateEls: [],
     trafficLines: { agentic: null, referral: null },
+    bpLines: [],
+    pageKind: 'overview',
     tooltip: null,
     animToken: 0,
     ready: false,
   };
+
+  function getPageKind() {
+    if (findSectionRoot('Market Tracking')) return 'brand-presence';
+    return 'overview';
+  }
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
@@ -354,15 +361,23 @@
     return null;
   }
 
+  function findSectionRootAny(titles) {
+    for (var i = 0; i < titles.length; i++) {
+      var root = findSectionRoot(titles[i]);
+      if (root) return root;
+    }
+    return null;
+  }
+
   function findMarketChartSvg() {
-    var root = findSectionRoot('Market Comparison');
+    var root = findSectionRootAny(['Market Comparison', 'Market Tracking']);
     if (!root) return null;
     var svgs = root.querySelectorAll('svg.recharts-surface');
     return svgs.length ? svgs[svgs.length - 1] : null;
   }
 
   function findSentimentChartSvg() {
-    var root = findSectionRoot('Sentiment Distribution');
+    var root = findSectionRootAny(['Sentiment Distribution', 'Sentiment Analysis']);
     if (!root) return null;
     var svgs = root.querySelectorAll('svg.recharts-surface');
     for (var i = svgs.length - 1; i >= 0; i--) {
@@ -648,6 +663,60 @@
     state.trafficLines.referral = paths[1] || null;
   }
 
+  function cacheBrandPresenceLines() {
+    state.bpLines = [];
+    var root = findSectionRoot('Market Tracking');
+    if (!root) return;
+    root.querySelectorAll('svg.recharts-surface').forEach(function (svg) {
+      Array.from(svg.querySelectorAll('path[stroke]')).forEach(function (p) {
+        var d = p.getAttribute('d') || '';
+        if (d.indexOf('M80,') === 0 && d.length > 40) {
+          state.bpLines.push({ path: p, targetD: d });
+        }
+      });
+    });
+  }
+
+  function animateBrandPresenceLines(animate) {
+    var token = state.animToken;
+    state.bpLines.forEach(function (item, idx) {
+      if (!item.path) return;
+      if (animate) {
+        window.setTimeout(function () {
+          animateLinePath(item.path, item.targetD, ANIM_MS + 100, token);
+        }, idx * 35);
+      } else {
+        item.path.setAttribute('d', item.targetD);
+        item.path.style.strokeDasharray = '';
+        item.path.style.strokeDashoffset = '';
+      }
+    });
+  }
+
+  function applyBrandPresenceDashboard(opts) {
+    var animate = opts && opts.animate;
+    var platformId = state.platformId;
+    var rangeId = state.dateRangeId;
+    var sentiment = getSentiment(platformId, rangeId);
+
+    applyMetrics(platformId, rangeId);
+    updateSentimentAxisLabels(rangeId);
+
+    if (animate) {
+      state.animToken += 1;
+      var token = state.animToken;
+      if (state.sentimentColumns.length) {
+        runAnim(token, ANIM_MS, function (t) {
+          paintSentiment(sentiment, t);
+        });
+      }
+      animateBrandPresenceLines(true);
+    } else {
+      paintSentiment(sentiment, 1);
+      animateBrandPresenceLines(false);
+    }
+  }
+
   function applyMetrics(platformId, rangeId) {
     var m = getMetrics(platformId, rangeId);
     Object.keys(m).forEach(function (key) {
@@ -742,6 +811,11 @@
   }
 
   function applyDashboard(opts) {
+    if (state.pageKind === 'brand-presence') {
+      applyBrandPresenceDashboard(opts);
+      return;
+    }
+
     var animate = opts && opts.animate;
     var platformId = state.platformId;
     var rangeId = state.dateRangeId;
@@ -923,10 +997,15 @@
 
   function init() {
     if (state.ready && document.querySelector('.sky-llm-platform-host')) return;
+    state.pageKind = getPageKind();
     cacheMetricNodes();
-    cacheMarketRows();
     cacheSentimentColumns();
-    cacheTrafficLines();
+    if (state.pageKind === 'brand-presence') {
+      cacheBrandPresenceLines();
+    } else {
+      cacheMarketRows();
+      cacheTrafficLines();
+    }
     buildPlatformPicker();
     buildDatePicker();
     ensureTooltip();
