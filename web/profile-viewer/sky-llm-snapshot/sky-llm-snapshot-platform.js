@@ -1,5 +1,5 @@
 /**
- * Functional Platform picker + light metric updates on frozen overview snapshot.
+ * Functional Platform picker + metric / chart updates on frozen overview snapshot.
  */
 (function () {
   'use strict';
@@ -76,7 +76,57 @@
     ],
   };
 
-  var state = { platformId: 'chatgpt-free', metricNodes: {}, marketRows: [] };
+  /** Stacked sentiment per date column: positive / neutral / negative (sum 100). */
+  var SENTIMENT = {
+    'chatgpt-free': [
+      { pos: 33, neu: 67, neg: 0 },
+      { pos: 26, neu: 70, neg: 4 },
+      { pos: 15, neu: 85, neg: 0 },
+    ],
+    gemini: [
+      { pos: 38, neu: 58, neg: 4 },
+      { pos: 32, neu: 62, neg: 6 },
+      { pos: 22, neu: 72, neg: 6 },
+    ],
+    'google-ai-mode': [
+      { pos: 35, neu: 63, neg: 2 },
+      { pos: 28, neu: 68, neg: 4 },
+      { pos: 18, neu: 78, neg: 4 },
+    ],
+    copilot: [
+      { pos: 28, neu: 68, neg: 4 },
+      { pos: 22, neu: 72, neg: 6 },
+      { pos: 14, neu: 80, neg: 6 },
+    ],
+    'chatgpt-paid': [
+      { pos: 40, neu: 55, neg: 5 },
+      { pos: 34, neu: 60, neg: 6 },
+      { pos: 24, neu: 70, neg: 6 },
+    ],
+    perplexity: [
+      { pos: 30, neu: 65, neg: 5 },
+      { pos: 24, neu: 70, neg: 6 },
+      { pos: 16, neu: 78, neg: 6 },
+    ],
+    'google-overview': [
+      { pos: 34, neu: 62, neg: 4 },
+      { pos: 27, neu: 67, neg: 6 },
+      { pos: 17, neu: 79, neg: 4 },
+    ],
+  };
+
+  var SENTIMENT_BASE_Y = 186;
+  var SENTIMENT_TOP_Y = 20;
+  var SENTIMENT_BAR_W = 40;
+  var MARKET_CITE_MAX = 980;
+  var MARKET_MENTION_MAX = 155;
+
+  var state = {
+    platformId: 'chatgpt-free',
+    metricNodes: {},
+    marketRows: [],
+    sentimentColumns: [],
+  };
 
   function iconSvg(type) {
     if (type === 'openai') {
@@ -104,15 +154,6 @@
     });
   }
 
-  function findLabelledField(combobox) {
-    var node = combobox;
-    for (var i = 0; i < 8 && node; i++) {
-      if (node.querySelector && node.querySelector('label')) return node;
-      node = node.parentElement;
-    }
-    return combobox.parentElement;
-  }
-
   function findMetricValueNode(labelText) {
     var labelNodes = Array.from(document.querySelectorAll('div, span, p, h2, h3')).filter(function (n) {
       return n.childElementCount === 0 && n.textContent.trim() === labelText;
@@ -135,6 +176,57 @@
     return null;
   }
 
+  function findSectionRoot(title) {
+    var heads = Array.from(document.querySelectorAll('div, span, h2, h3')).filter(function (n) {
+      return n.textContent.trim() === title && n.childElementCount === 0;
+    });
+    if (!heads.length) return null;
+    var root = heads[0].parentElement;
+    for (var i = 0; i < 8 && root; i++) {
+      if (root.querySelector('svg.recharts-surface')) return root;
+      root = root.parentElement;
+    }
+    return null;
+  }
+
+  function findMarketChartSvg() {
+    var root = findSectionRoot('Market Comparison');
+    if (!root) return null;
+    var svgs = root.querySelectorAll('svg.recharts-surface');
+    return svgs.length ? svgs[svgs.length - 1] : null;
+  }
+
+  function findSentimentChartSvg() {
+    var root = findSectionRoot('Sentiment Distribution');
+    if (!root) return null;
+    var svgs = root.querySelectorAll('svg.recharts-surface');
+    for (var i = svgs.length - 1; i >= 0; i--) {
+      var barPaths = svgs[i].querySelectorAll('path[fill="#047857"], path[fill="#4B5563"]');
+      if (barPaths.length >= 2) return svgs[i];
+    }
+    return svgs.length ? svgs[svgs.length - 1] : null;
+  }
+
+  function pathBarY(d) {
+    var m = (d || '').match(/M\s*[\d.]+\s*,\s*([\d.]+)/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function pathBarX(d) {
+    var m = (d || '').match(/M\s*([\d.]+)\s*,/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function makeStackPath(x, yTop, yBottom) {
+    var x2 = x + SENTIMENT_BAR_W;
+    return 'M' + x + ',' + yTop + 'L ' + x2 + ',' + yTop + 'L ' + x2 + ',' + yBottom + 'L ' + x + ',' + yBottom + 'Z';
+  }
+
+  function makeMarketPath(x, y, width) {
+    var w = Math.max(0, width);
+    return 'M ' + x + ',' + y + ' h ' + w + ' v 32 h -' + w + ' Z';
+  }
+
   function cacheMetricNodes() {
     state.metricNodes = {
       visibility: findMetricValueNode('Visibility Score'),
@@ -145,45 +237,73 @@
     };
   }
 
-  function findMarketChartRoot() {
-    var heads = Array.from(document.querySelectorAll('div, span, h2, h3')).filter(function (n) {
-      return n.textContent.trim() === 'Market Comparison' && n.childElementCount === 0;
-    });
-    if (!heads.length) return null;
-    var root = heads[0].closest('div');
-    for (var i = 0; i < 6 && root; i++) {
-      if (root.querySelector('svg.recharts-surface')) return root;
-      root = root.parentElement;
-    }
-    return null;
-  }
-
   function cacheMarketRows() {
     state.marketRows = [];
-    var root = findMarketChartRoot();
-    if (!root) return;
-    var svg = root.querySelector('svg.recharts-surface');
+    var svg = findMarketChartSvg();
     if (!svg) return;
 
-    var labels = Array.from(svg.querySelectorAll('text')).filter(function (t) {
-      var txt = (t.textContent || '').trim();
-      return txt && txt.length < 24 && !/^\d+%?$/.test(txt) && txt !== 'Market Comparison';
+    var paths = Array.from(svg.querySelectorAll('path')).filter(function (p) {
+      return (p.getAttribute('d') || '').indexOf(' h ') >= 0;
+    });
+    var citePaths = paths
+      .filter(function (p) {
+        return p.getAttribute('fill') === '#3B82F6';
+      })
+      .sort(function (a, b) {
+        return pathBarY(a.getAttribute('d')) - pathBarY(b.getAttribute('d'));
+      });
+    var mentionPaths = paths
+      .filter(function (p) {
+        return p.getAttribute('fill') === '#F97316';
+      })
+      .sort(function (a, b) {
+        return pathBarY(a.getAttribute('d')) - pathBarY(b.getAttribute('d'));
+      });
+
+    var labels = Array.from(svg.querySelectorAll('text'))
+      .filter(function (t) {
+        var txt = (t.textContent || '').trim();
+        return txt && txt.length < 28 && !/^\d/.test(txt) && txt.indexOf('%') < 0;
+      })
+      .sort(function (a, b) {
+        return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
+      });
+
+    citePaths.forEach(function (citePath, idx) {
+      state.marketRows.push({
+        citePath: citePath,
+        mentionPath: mentionPaths[idx] || null,
+        labelEl: labels[idx] || null,
+        y: pathBarY(citePath.getAttribute('d')),
+      });
+    });
+  }
+
+  function cacheSentimentColumns() {
+    state.sentimentColumns = [];
+    var svg = findSentimentChartSvg();
+    if (!svg) return;
+
+    var byX = {};
+    Array.from(svg.querySelectorAll('path')).forEach(function (p) {
+      var d = p.getAttribute('d') || '';
+      if (d.indexOf('L') < 0) return;
+      var fill = p.getAttribute('fill');
+      if (fill !== '#047857' && fill !== '#4B5563' && fill !== '#B91C1C') return;
+      var x = String(pathBarX(d));
+      if (!byX[x]) byX[x] = { x: Number(x), pos: null, neu: null, neg: null };
+      if (fill === '#047857') byX[x].pos = p;
+      else if (fill === '#4B5563') byX[x].neu = p;
+      else byX[x].neg = p;
     });
 
-    labels.forEach(function (labelEl) {
-      var name = labelEl.textContent.trim();
-      var y = Number(labelEl.getAttribute('y')) || 0;
-      var bars = Array.from(svg.querySelectorAll('rect')).filter(function (r) {
-        var ry = Number(r.getAttribute('y')) || 0;
-        var h = Number(r.getAttribute('height')) || 0;
-        return Math.abs(ry - y) < 18 || Math.abs(ry + h - y) < 18;
+    state.sentimentColumns = Object.keys(byX)
+      .sort(function (a, b) {
+        return Number(a) - Number(b);
+      })
+      .map(function (key) {
+        return byX[key];
       });
-      if (bars.length >= 2) {
-        state.marketRows.push({ name: name, labelEl: labelEl, citeBar: bars[0], mentionBar: bars[1] });
-      } else if (bars.length === 1) {
-        state.marketRows.push({ name: name, labelEl: labelEl, citeBar: bars[0], mentionBar: null });
-      }
-    });
   }
 
   function applyMetrics(platformId) {
@@ -203,40 +323,49 @@
 
   function applyMarket(platformId) {
     var rows = MARKET[platformId] || MARKET['chatgpt-free'];
-    var root = findMarketChartRoot();
-    if (!root) return;
-    var svg = root.querySelector('svg.recharts-surface');
-    if (!svg) return;
-
-    var hBars = Array.from(svg.querySelectorAll('rect')).filter(function (r) {
-      return Number(r.getAttribute('width') || 0) > Number(r.getAttribute('height') || 0) * 2;
-    });
-    hBars.sort(function (a, b) {
-      return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
-    });
-
-    var labelTexts = Array.from(svg.querySelectorAll('text')).filter(function (t) {
-      var txt = (t.textContent || '').trim();
-      return txt && !/^\d/.test(txt) && txt.length < 20;
-    });
-    labelTexts.sort(function (a, b) {
-      return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
-    });
-
     rows.forEach(function (row, idx) {
-      if (labelTexts[idx]) labelTexts[idx].textContent = row.name;
-      var citeBar = hBars[idx * 2];
-      var mentionBar = hBars[idx * 2 + 1];
-      var baseX = citeBar ? Number(citeBar.getAttribute('x') || 80) : 80;
-      var maxW = 280;
-      if (citeBar) {
-        citeBar.setAttribute('width', String(Math.round((row.cite / 100) * maxW)));
-        citeBar.setAttribute('x', String(baseX));
+      var cached = state.marketRows[idx];
+      if (!cached || !cached.citePath) return;
+      var y = cached.y;
+      var citeW = (row.cite / 100) * MARKET_CITE_MAX;
+      var mentionW = (row.mention / 100) * MARKET_MENTION_MAX;
+      cached.citePath.setAttribute('d', makeMarketPath(83, y, citeW));
+      if (cached.mentionPath) {
+        cached.mentionPath.setAttribute('d', makeMarketPath(83 + citeW, y, mentionW));
       }
-      if (mentionBar) {
-        var citeW = citeBar ? Number(citeBar.getAttribute('width') || 0) : 0;
-        mentionBar.setAttribute('x', String(baseX + citeW));
-        mentionBar.setAttribute('width', String(Math.round((row.mention / 100) * maxW * 0.35)));
+      if (cached.labelEl) {
+        cached.labelEl.textContent = row.name.replace(/⭐\s*/g, '').trim();
+      }
+    });
+  }
+
+  function applySentiment(platformId) {
+    var cols = SENTIMENT[platformId] || SENTIMENT['chatgpt-free'];
+    var totalH = SENTIMENT_BASE_Y - SENTIMENT_TOP_Y;
+
+    cols.forEach(function (seg, idx) {
+      var column = state.sentimentColumns[idx];
+      if (!column) return;
+      var x = column.x;
+      var posH = (seg.pos / 100) * totalH;
+      var neuH = (seg.neu / 100) * totalH;
+      var negH = (seg.neg / 100) * totalH;
+      var posTop = SENTIMENT_BASE_Y - posH;
+      var neuTop = posTop - neuH;
+      var negTop = SENTIMENT_TOP_Y;
+
+      if (column.pos) {
+        column.pos.setAttribute('d', makeStackPath(x, posTop, SENTIMENT_BASE_Y));
+      }
+      if (column.neu) {
+        column.neu.setAttribute('d', makeStackPath(x, neuTop, posTop));
+      }
+      if (column.neg) {
+        if (negH > 0.5) {
+          column.neg.setAttribute('d', makeStackPath(x, negTop, neuTop));
+        } else {
+          column.neg.setAttribute('d', makeStackPath(x, negTop, negTop));
+        }
       }
     });
   }
@@ -245,13 +374,14 @@
     state.platformId = platformId;
     applyMetrics(platformId);
     applyMarket(platformId);
+    applySentiment(platformId);
   }
 
   function buildPicker(combobox) {
-    var field = findLabelledField(combobox);
-    if (!field || field.querySelector('.sky-llm-platform-host')) return;
+    var shell = combobox.parentElement;
+    if (!shell || shell.querySelector('.sky-llm-platform-host')) return;
 
-    combobox.classList.add('sky-llm-platform-native');
+    shell.classList.add('sky-llm-platform-shell');
     combobox.setAttribute('tabindex', '-1');
 
     var host = document.createElement('div');
@@ -262,6 +392,7 @@
     trigger.className = 'sky-llm-platform-trigger';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', 'Platform');
 
     var menu = document.createElement('ul');
     menu.className = 'sky-llm-platform-menu';
@@ -330,13 +461,14 @@
 
     host.appendChild(trigger);
     host.appendChild(menu);
-    field.insertBefore(host, combobox);
+    shell.insertBefore(host, combobox);
     renderTrigger();
   }
 
   function init() {
     cacheMetricNodes();
     cacheMarketRows();
+    cacheSentimentColumns();
     var combobox = findPlatformCombobox();
     if (combobox) buildPicker(combobox);
     applyPlatform(state.platformId);
