@@ -11,6 +11,10 @@ export function applySkyBranding(html) {
   html = html.replace(/frescopa\s+TV and broadband/gi, 'Sky');
   html = html.replace(/frescopa/gi, 'Sky');
   html = html.replace(/Frescopa/g, 'Sky');
+  html = html.replace(/Sweet Maria's/gi, 'BT');
+  html = html.replace(/Sweet Maria\u2019s/gi, 'BT');
+  html = html.replace(/Cropster/gi, 'TalkTalk');
+  html = html.replace(/Agtron/gi, 'Virgin Media');
   html = html.replace(/Prentice coffee/gi, 'Sky');
   html = html.replace(/Frescos coffee/gi, 'Sky');
   html = html.replace(/Frescos(?![a-z])/gi, 'Sky');

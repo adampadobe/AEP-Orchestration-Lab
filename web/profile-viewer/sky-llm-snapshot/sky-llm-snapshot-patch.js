@@ -1,5 +1,6 @@
 /**
- * Sky bespoke patches on the frozen LLM Optimizer overview snapshot (same-origin DOM).
+ * Sky bespoke patches on the frozen LLM Optimizer snapshot (same-origin DOM).
+ * Only touch leaf text nodes — never set textContent on parents (destroys React markup).
  */
 (function () {
   'use strict';
@@ -15,14 +16,22 @@
     AEM: 'Disney+',
     Wix: 'TalkTalk',
     Webflow: 'Virgin Media',
+    Frescopa: 'Sky',
+    'Sweet Maria\u2019s': 'BT',
+    Cropster: 'TalkTalk',
+    Agtron: 'Virgin Media',
   };
+
+  function isLeafTextEl(el) {
+    return el && el.childElementCount === 0;
+  }
 
   function patchSiteField() {
     document.querySelectorAll('input').forEach(function (input) {
       if (/wknd/i.test(input.value || '')) input.value = SITE;
     });
-    document.querySelectorAll('span, div, button').forEach(function (el) {
-      if (el.childElementCount > 2) return;
+    document.querySelectorAll('span, button').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
       var txt = (el.textContent || '').trim();
       if (/wknd-site|wknd\.enablement/i.test(txt) && txt.length < 64) {
         el.textContent = SITE;
@@ -31,20 +40,21 @@
   }
 
   function patchAxisLabels() {
-    document.querySelectorAll('text, tspan, span, button').forEach(function (el) {
+    document.querySelectorAll('text, tspan').forEach(function (el) {
       var txt = (el.textContent || '').trim();
       if (AXIS[txt]) el.textContent = AXIS[txt];
     });
-  }
-
-  function patchBrandSelectors() {
-    document.querySelectorAll('[role="combobox"], button, span, div').forEach(function (el) {
-      if (el.childElementCount > 4) return;
+    document.querySelectorAll('span, button').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
       var txt = (el.textContent || '').trim();
-      if (/frescopa/i.test(txt)) {
+      if (AXIS[txt]) el.textContent = AXIS[txt];
+      else if (/frescopa/i.test(txt)) {
         el.textContent = txt.replace(/frescopa(\s+TV and broadband)?/gi, BRAND_LABEL);
       }
     });
+  }
+
+  function patchBrandInputs() {
     document.querySelectorAll('input').forEach(function (input) {
       if (/frescopa/i.test(input.value || '')) input.value = BRAND_LABEL;
     });
@@ -54,7 +64,7 @@
     try {
       patchSiteField();
       patchAxisLabels();
-      patchBrandSelectors();
+      patchBrandInputs();
     } catch (e) {
       /* frozen snapshot */
     }
@@ -66,5 +76,4 @@
     run();
   }
   window.setTimeout(run, 400);
-  window.setTimeout(run, 1500);
 })();
