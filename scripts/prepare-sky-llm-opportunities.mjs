@@ -10,10 +10,10 @@ import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
   process.env.SKY_LLM_OP_SOURCE_HTML ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer Op.html');
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer Op 2.html');
 const srcAssetsDir =
   process.env.SKY_LLM_OP_SOURCE_ASSETS ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer Op_files');
+  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer Op 2_files');
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'opportunities.html');
@@ -65,6 +65,7 @@ function copyAssets() {
 }
 
 function patchHtml(html) {
+  html = html.replace(/\.\/Adobe LLM Optimizer Op 2_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer Op_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer URL_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer_files\//g, './assets/');

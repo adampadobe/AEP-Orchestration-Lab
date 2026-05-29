@@ -197,10 +197,13 @@ export function applyAgenticTrafficBranding(html) {
   return html;
 }
 
-/** Opportunities export — site, cited URLs, categories (same surface as URL Inspector). */
+/** Opportunities export — prioritized tasks, onsite/offsite filters (not URL Inspector charts). */
 export function applyOpportunitiesBranding(html) {
-  html = applyUrlInspectorBranding(html);
+  html = applySkyBranding(html);
+  html = html.replace(/frescopa\s+coffee/gi, 'Sky');
   html = html.replace(/frescopa\s+opportunities/gi, 'Sky opportunities');
   html = html.replace(/coffee\s+subscription/gi, 'TV and broadband bundle');
+  html = html.replace(/player gaps/gi, 'provider gaps');
+  html = html.replace(/frescopa/gi, 'Sky');
   return html;
 }
