@@ -246,6 +246,27 @@
   function normalizeLegendLayout() {
     document
       .querySelectorAll(
+        '.sky-llm-market-chart-card .recharts-default-legend, .sky-llm-line-chart-fit .recharts-default-legend',
+      )
+      .forEach(function (ul) {
+        var wrap = ul.closest('.recharts-legend-wrapper') || ul.parentElement;
+        if (wrap) {
+          wrap.style.position = 'relative';
+          wrap.style.left = '0';
+          wrap.style.right = '0';
+          wrap.style.width = '100%';
+          wrap.style.maxWidth = '100%';
+          wrap.style.marginLeft = 'auto';
+          wrap.style.marginRight = 'auto';
+          wrap.style.textAlign = 'center';
+          wrap.style.transform = 'none';
+        }
+        ul.style.textAlign = 'center';
+        ul.style.width = '100%';
+      });
+
+    document
+      .querySelectorAll(
         '.sky-llm-market-chart-card .recharts-legend-item svg.recharts-surface, .sky-llm-line-chart-fit .recharts-legend-item svg.recharts-surface',
       )
       .forEach(function (svg) {
@@ -375,6 +396,11 @@
       entry.group.style.removeProperty('display');
       entry.group.style.removeProperty('visibility');
       entry.group.style.removeProperty('opacity');
+      entry.group.querySelectorAll('circle').forEach(function (dot) {
+        dot.style.removeProperty('opacity');
+        dot.removeAttribute('fill-opacity');
+        dot.removeAttribute('stroke-opacity');
+      });
     }
     if (entry.path) {
       entry.path.classList.remove(HIDDEN_LINE_CLASS);
@@ -470,19 +496,36 @@
     });
   }
 
+  function prepareClonedTagRow(row, name) {
+    row.removeAttribute('id');
+    row.querySelectorAll('[id]').forEach(function (el) {
+      el.removeAttribute('id');
+    });
+    row.setAttribute('aria-label', name);
+    row.setAttribute('data-sky-llm-brand', name);
+    var span = row.querySelector('span[data-rsp-slot="text"]');
+    if (span) span.textContent = name;
+    var removeBtn = row.querySelector('button[aria-label="Remove"]');
+    if (removeBtn) delete removeBtn.dataset.skyLlmRemoveWired;
+    return row;
+  }
+
   function wireRemoveButton(row, name) {
     var removeBtn = row.querySelector('button[aria-label="Remove"]');
-    if (!removeBtn || removeBtn.dataset.skyLlmRemoveWired === '1') return;
+    if (!removeBtn) return;
+    row.setAttribute('data-sky-llm-brand', name);
     removeBtn.dataset.skyLlmRemoveWired = '1';
-    removeBtn.addEventListener(
-      'click',
-      function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        removeBrand(name);
-      },
-      true,
-    );
+    removeBtn.onclick = function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      removeBrand(row.getAttribute('data-sky-llm-brand') || name);
+    };
+  }
+
+  function rewireAllTagRows() {
+    Object.keys(marketState.tagRows).forEach(function (brand) {
+      wireRemoveButton(marketState.tagRows[brand], brand);
+    });
   }
 
   function ensureDefaultTags() {
@@ -503,19 +546,13 @@
     marketState.selected = [];
 
     DEFAULT_SELECTED.forEach(function (name) {
-      var row = template.cloneNode(true);
-      row.removeAttribute('id');
-      row.querySelectorAll('[id]').forEach(function (el) {
-        el.removeAttribute('id');
-      });
-      var span = row.querySelector('span[data-rsp-slot="text"]');
-      if (span) span.textContent = name;
-      row.setAttribute('aria-label', name);
+      var row = prepareClonedTagRow(template.cloneNode(true), name);
       host.appendChild(row);
       marketState.tagRows[name] = row;
       marketState.selected.push(name);
       wireRemoveButton(row, name);
     });
+    rewireAllTagRows();
   }
 
   function isSelected(name) {
@@ -532,6 +569,11 @@
       entry.group.classList.add(HIDDEN_LINE_CLASS);
       entry.group.style.opacity = '0';
       entry.group.style.visibility = 'hidden';
+      entry.group.querySelectorAll('circle').forEach(function (dot) {
+        dot.style.opacity = '0';
+        dot.setAttribute('fill-opacity', '0');
+        dot.setAttribute('stroke-opacity', '0');
+      });
     }
     if (entry.path) {
       entry.path.classList.add(HIDDEN_LINE_CLASS);
@@ -550,6 +592,7 @@
       setEntryVisible(entry, isSelected(entry.name));
     });
     syncLegendLabels();
+    normalizeLegendLayout();
   }
 
   function removeBrand(name) {
@@ -572,14 +615,7 @@
         findSectionRoot('Market Tracking').querySelector('[role="row"]'));
     if (!template || !template.parentElement) return;
 
-    var row = template.cloneNode(true);
-    row.removeAttribute('id');
-    row.querySelectorAll('[id]').forEach(function (el) {
-      el.removeAttribute('id');
-    });
-    var span = row.querySelector('span[data-rsp-slot="text"]');
-    if (span) span.textContent = name;
-    row.setAttribute('aria-label', name);
+    var row = prepareClonedTagRow(template.cloneNode(true), name);
     template.parentElement.appendChild(row);
     marketState.tagRows[name] = row;
     wireRemoveButton(row, name);
