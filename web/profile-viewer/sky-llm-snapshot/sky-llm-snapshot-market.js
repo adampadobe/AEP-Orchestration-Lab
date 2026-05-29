@@ -218,7 +218,9 @@
     path.style.strokeDashoffset = '0';
     path.style.removeProperty('display');
     path.style.removeProperty('visibility');
-    path.style.opacity = '1';
+    path.style.removeProperty('opacity');
+    path.style.removeProperty('stroke-opacity');
+    path.style.removeProperty('strokeOpacity');
     path.removeAttribute('stroke-opacity');
     path.classList.remove(HIDDEN_LINE_CLASS);
     if (stroke) {
@@ -244,6 +246,8 @@
   }
 
   function normalizeLegendLayout() {
+    placeLegendBelowCharts();
+
     document
       .querySelectorAll(
         '.sky-llm-market-chart-card .recharts-default-legend, .sky-llm-line-chart-fit .recharts-default-legend',
@@ -279,6 +283,24 @@
         svg.style.display = 'inline-block';
         svg.style.verticalAlign = 'middle';
         svg.style.marginRight = '4px';
+      });
+  }
+
+  /** Frozen exports render legend above the plot — move it directly under the chart SVG. */
+  function placeLegendBelowCharts() {
+    document
+      .querySelectorAll('.sky-llm-market-chart-card .recharts-wrapper, .sky-llm-line-chart-fit .recharts-wrapper')
+      .forEach(function (wrap) {
+        var svg = wrap.querySelector('svg.recharts-surface[role="application"]');
+        var legendUl = wrap.querySelector('.recharts-default-legend');
+        if (!svg || !legendUl) return;
+
+        var legendHost = legendUl.closest('.recharts-legend-wrapper') || legendUl.parentElement;
+        if (!legendHost || legendHost === svg) return;
+
+        if (svg.nextElementSibling !== legendHost) {
+          wrap.insertBefore(legendHost, svg.nextElementSibling);
+        }
       });
   }
 
@@ -407,6 +429,9 @@
       entry.path.style.removeProperty('display');
       entry.path.style.removeProperty('visibility');
       entry.path.style.removeProperty('opacity');
+      entry.path.style.removeProperty('stroke-opacity');
+      entry.path.style.removeProperty('strokeOpacity');
+      entry.path.removeAttribute('stroke-opacity');
       unlockMarketPath(entry.path);
       if (entry.pathD) entry.path.setAttribute('d', entry.pathD);
     }

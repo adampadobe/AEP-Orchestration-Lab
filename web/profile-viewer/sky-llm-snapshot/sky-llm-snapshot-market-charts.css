@@ -111,15 +111,29 @@
 }
 
 /* Compact inline legend — icon SVGs must stay 14×14, not scale with chart */
+.sky-llm-market-chart-card .recharts-wrapper,
+.sky-llm-line-chart-fit .recharts-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+.sky-llm-market-chart-card .recharts-wrapper > svg.recharts-surface[role='application'],
+.sky-llm-line-chart-fit .recharts-wrapper > svg.recharts-surface[role='application'] {
+  order: 1 !important;
+}
+
 .sky-llm-market-chart-card .recharts-legend-wrapper,
 .sky-llm-line-chart-fit .recharts-legend-wrapper,
 .sky-llm-market-chart-card .recharts-wrapper > div:has(.recharts-default-legend),
 .sky-llm-line-chart-fit .recharts-wrapper > div:has(.recharts-default-legend) {
+  order: 2 !important;
   position: relative !important;
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
+  margin: 8px 0 0 !important;
   margin-left: auto !important;
   margin-right: auto !important;
   text-align: center !important;
@@ -134,7 +148,7 @@
   align-items: center !important;
   gap: 4px 10px !important;
   width: 100% !important;
-  margin: 8px 0 0 !important;
+  margin: 0 !important;
   padding: 0 !important;
   text-align: center !important;
   line-height: 1.2 !important;
