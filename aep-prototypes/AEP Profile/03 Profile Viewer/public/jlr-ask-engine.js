@@ -176,6 +176,61 @@
     return 'Many JLR “electric” options are plug-in hybrid (PHEV), not fully battery-electric. I can show the closest matches below.';
   }
 
+  function filenameStem(filename) {
+    var base = String(filename || '')
+      .replace(/^.*[\\/]/, '')
+      .replace(/\.[^.]+$/, '');
+    return normalize(base).replace(/[\s_]+/g, '-');
+  }
+
+  function matchModelFromFilename(stem) {
+    if (!stem) return null;
+    var n = stem.replace(/_/g, '-');
+    var byId = {};
+    models.forEach(function (m) {
+      byId[m.id] = m;
+    });
+    var ids = models
+      .map(function (m) {
+        return m.id;
+      })
+      .sort(function (a, b) {
+        return b.length - a.length;
+      });
+    var i;
+    for (i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      if (n.indexOf(id) !== -1) return byId[id];
+      var compactId = id.replace(/-/g, '');
+      var compactStem = n.replace(/-/g, '');
+      if (compactStem.indexOf(compactId) !== -1) return byId[id];
+    }
+    if (/\bdefender\b/.test(n) || n.indexOf('defender') === 0) return byId['defender-110'] || null;
+    if (n.indexOf('velar') !== -1) return byId['range-rover-velar'] || null;
+    if (n.indexOf('evoque') !== -1) return byId['range-rover-evoque'] || null;
+    if (n.indexOf('discovery') !== -1 && n.indexOf('sport') !== -1) return byId['discovery-sport'] || null;
+    if (n.indexOf('discovery') !== -1) return byId['discovery'] || null;
+    if (n.indexOf('sport') !== -1 && (n.indexOf('range-rover') !== -1 || n.indexOf('rangerover') !== -1)) {
+      return byId['range-rover-sport'] || null;
+    }
+    if (n.indexOf('range-rover') !== -1 || n.indexOf('rangerover') !== -1) {
+      return byId['range-rover'] || null;
+    }
+    return null;
+  }
+
+  function modelToCard(model, colour) {
+    return {
+      id: model.id,
+      title: model.model,
+      subtitle: model.brandFamily,
+      description: buildCardSummary(model, colour),
+      imageUrl: model.heroImage,
+      pageUrl: model.pageUrl,
+      badge: model.isUsedOnly ? 'Approved used' : null,
+    };
+  }
+
   function buildIntro(text, filters, count) {
     if (!count) {
       return (
@@ -225,15 +280,7 @@
       }
 
       var top = ranked.slice(0, 3).map(function (r) {
-        return {
-          id: r.model.id,
-          title: r.model.model,
-          subtitle: r.model.brandFamily,
-          description: buildCardSummary(r.model, filters.colour),
-          imageUrl: r.model.heroImage,
-          pageUrl: r.model.pageUrl,
-          badge: r.model.isUsedOnly ? 'Approved used' : null,
-        };
+        return modelToCard(r.model, filters.colour);
       });
 
       return {
@@ -244,9 +291,63 @@
     });
   }
 
+  function queryFromFilename(filename) {
+    return loadModels().then(function () {
+      var stem = filenameStem(filename);
+      if (!stem) {
+        return {
+          intro:
+            'I could not read that file name. Try something like defender-red.jpg or range-rover-sport-grey.png.',
+          cards: [],
+          filters: {},
+        };
+      }
+
+      var colour = parseColourFilter(stem);
+      var model = matchModelFromFilename(stem);
+
+      if (!model) {
+        return query(stem.replace(/[-_]/g, ' ')).then(function (result) {
+          result.intro =
+            'I could not match a model from the file name "' +
+            String(filename || '').replace(/^.*[\\/]/, '') +
+            '". ' +
+            (result.intro || '');
+          return result;
+        });
+      }
+
+      var intro =
+        'Based on your image file name, this looks like a ' +
+        model.model +
+        (colour ? ' in ' + colour : '') +
+        '. Demo note: matching uses the file name only — image contents are not analysed.';
+      var related = models
+        .filter(function (m) {
+          if (m.id === model.id) return false;
+          if (m.isJaguar && !mentionsJaguar(stem)) return false;
+          if (model.id.indexOf('defender') === 0 && m.id.indexOf('defender') === 0) return true;
+          return normalize(m.brandFamily) === normalize(model.brandFamily) && m.id !== model.id;
+        })
+        .slice(0, 2);
+
+      var cards = [modelToCard(model, colour)];
+      related.forEach(function (m) {
+        cards.push(modelToCard(m, colour));
+      });
+
+      return {
+        intro: intro,
+        cards: cards.slice(0, 3),
+        filters: { colour: colour, includeJaguar: mentionsJaguar(stem) || model.isJaguar },
+      };
+    });
+  }
+
   global.JlrAskEngine = {
     loadModels: loadModels,
     query: query,
+    queryFromFilename: queryFromFilename,
     mentionsJaguar: mentionsJaguar,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

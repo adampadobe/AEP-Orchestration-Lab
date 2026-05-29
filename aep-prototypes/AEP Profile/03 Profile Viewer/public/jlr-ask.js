@@ -95,7 +95,7 @@
     var infoPop = el('div', 'jlr-ask__info-pop');
     infoPop.hidden = true;
     infoPop.textContent =
-      'Ask JLR uses the UK model catalogue in this demo. Responses are generated locally for reliability — not live Brand Concierge. Jaguar models appear only when you mention Jaguar.';
+      'Ask JLR uses the UK model catalogue in this demo. Responses are generated locally — not live Brand Concierge. Jaguar models appear only when you mention Jaguar. Drop an image file (e.g. defender-red.jpg) to match by file name.';
 
     var messages = el('div', 'jlr-ask__messages');
     messages.setAttribute('aria-live', 'polite');
@@ -104,7 +104,7 @@
     var avatar = el('div', 'jlr-ask__avatar', SPARKLE_SVG);
     var introBubble = el('div', 'jlr-ask__bubble jlr-ask__bubble--assistant');
     introBubble.textContent =
-      'Ask about Range Rover, Defender and Discovery — electric and hybrid options, colours, doors, and availability. Mention Jaguar to include approved-used Jaguar models.';
+      'Ask about Range Rover, Defender and Discovery — electric and hybrid options, colours, doors, and availability. Mention Jaguar to include approved-used Jaguar models. Or drop an image file named like defender-red.jpg to find a match.';
     intro.appendChild(avatar);
     intro.appendChild(introBubble);
     messages.appendChild(intro);
@@ -134,6 +134,12 @@
     panel.appendChild(header);
     panel.appendChild(infoPop);
     panel.appendChild(messages);
+
+    var dropOverlay = el('div', 'jlr-ask__drop-overlay');
+    dropOverlay.innerHTML =
+      '<div class="jlr-ask__drop-overlay-inner"><strong>Drop image to search</strong><span>File name drives the match — e.g. defender-red.jpg</span></div>';
+    panel.appendChild(dropOverlay);
+
     panel.appendChild(footer);
 
     var dock = el('div', 'jlr-ask__dock');
@@ -179,6 +185,24 @@
     function appendUserBubble(text) {
       var bubble = el('div', 'jlr-ask__bubble jlr-ask__bubble--user');
       bubble.textContent = text;
+      messages.appendChild(bubble);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function appendUserFileBubble(file) {
+      var bubble = el('div', 'jlr-ask__bubble jlr-ask__bubble--user jlr-ask__bubble--file');
+      var label = el('span', 'jlr-ask__file-label', '📎 ' + (file.name || 'image'));
+      bubble.appendChild(label);
+      if (file.type && file.type.indexOf('image/') === 0) {
+        var thumb = el('img', 'jlr-ask__file-thumb');
+        thumb.alt = '';
+        var objUrl = URL.createObjectURL(file);
+        thumb.src = objUrl;
+        window.setTimeout(function () {
+          URL.revokeObjectURL(objUrl);
+        }, 60000);
+        bubble.appendChild(thumb);
+      }
       messages.appendChild(bubble);
       messages.scrollTop = messages.scrollHeight;
     }
@@ -231,6 +255,63 @@
           });
       }, 450);
     }
+
+    function sendFile(file) {
+      if (!file || busy) return;
+      if (typeof JlrAskEngine === 'undefined' || typeof JlrAskEngine.queryFromFilename !== 'function') return;
+
+      setExpanded(true);
+      busy = true;
+      appendUserFileBubble(file);
+      dockInput.value = '';
+      panelInput.value = '';
+      var typingEl = appendTyping();
+
+      window.setTimeout(function () {
+        JlrAskEngine.queryFromFilename(file.name || '')
+          .then(function (result) {
+            if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+            appendAssistantReply(result.intro || 'Here is a match from your file name.', result.cards || []);
+          })
+          .catch(function () {
+            if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+            appendAssistantReply('Something went wrong reading that file name. Please try again.', []);
+          })
+          .finally(function () {
+            busy = false;
+          });
+      }, 550);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      root.classList.add('is-dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.currentTarget === root && !root.contains(e.relatedTarget)) {
+        root.classList.remove('is-dragover');
+      }
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      root.classList.remove('is-dragover');
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      var file = files[0];
+      sendFile(file);
+    }
+
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      root.addEventListener(evt, handleDragOver);
+    });
+    root.addEventListener('dragleave', handleDragLeave);
+    root.addEventListener('drop', handleDrop);
 
     function onDockFocus() {
       setExpanded(true);
