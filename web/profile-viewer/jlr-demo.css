@@ -90,3 +90,8 @@
 .jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
   max-width: none;
 }
+
+/* Leave room for Ask JLR dock at bottom of viewport */
+.jlr-demo-page .mod-demo-site-frame {
+  padding-bottom: 4.5rem;
+}
