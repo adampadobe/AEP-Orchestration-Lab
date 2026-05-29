@@ -28,8 +28,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "Current UK page says Range Rover available to build/order and in stock; electric waitlist also shown.",
       "pageUrl": "https://www.rangerover.com/en-gb/range-rover/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/LRGL_303103966_RR_Electric_T_D_250425_04",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/range-rover.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/LRGL_303103966_RR_Electric_T_D_250425_04"
     },
     {
       "id": "range-rover-sport",
@@ -58,8 +59,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "UK site lists S, SE, Dynamic SE, Battersea Edition, Autobiography and Twenty Edition / SV pages.",
       "pageUrl": "https://www.rangerover.com/en-gb/range-rover-sport/index.html",
-      "heroImage": "https://www.rangerover.com/content/dam/lrdx/global/l461/25my/int/L46125GL_303104068_THE_SPY_003_DX_ALT.jpg.res/JLRHASH7484BC0D50975E5EA582128315A3C3F2051F678E/L46125GL_303104068_THE_SPY_003_DX_ALT.jpg",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/range-rover-sport.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://www.rangerover.com/content/dam/lrdx/global/l461/25my/int/L46125GL_303104068_THE_SPY_003_DX_ALT.jpg.res/JLRHASH7484BC0D50975E5EA582128315A3C3F2051F678E/L46125GL_303104068_THE_SPY_003_DX_ALT.jpg"
     },
     {
       "id": "range-rover-velar",
@@ -88,8 +90,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "UK site lists S, Belgravia Edition, Belgravia Edition Satin and Autobiography; index page also references plug-in electric hybrid technology.",
       "pageUrl": "https://www.rangerover.com/en-gb/range-rover-velar/index.html",
-      "heroImage": "https://www.rangerover.com/content/dam/lrdx/global/l560/26my/L56026GL_303103980_035.jpg.res/JLRHASH177524E39287E3F321383260ECEA46C54194FC98/L56026GL_303103980_035.jpg",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/range-rover-velar.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://www.rangerover.com/content/dam/lrdx/global/l560/26my/L56026GL_303103980_035.jpg.res/JLRHASH177524E39287E3F321383260ECEA46C54194FC98/L56026GL_303103980_035.jpg"
     },
     {
       "id": "range-rover-evoque",
@@ -118,8 +121,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "UK site lists S, Hoxton Edition and Autobiography; Hoxton/Edition pages mention curated exterior paint choices.",
       "pageUrl": "https://www.rangerover.com/en-gb/range-rover-evoque/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/L55126GL_303103981_001",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/range-rover-evoque.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/L55126GL_303103981_001"
     },
     {
       "id": "defender-octa",
@@ -150,8 +154,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Official UK page describes it as the most powerful Defender ever made.",
       "pageUrl": "https://www.landrover.co.uk/defender/defender-octa/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/defender-octa.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK"
     },
     {
       "id": "defender-130",
@@ -182,8 +187,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Official UK page says shared epic adventures, with up to eight seats.",
       "pageUrl": "https://www.landrover.co.uk/defender/defender-130/index.html",
-      "heroImage": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_125.jpg.res/JLRHASH673EFB536D02F761697C5A6E9977041E2C62B241/L66326GL_303104383_125.jpg",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/defender-130.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_125.jpg.res/JLRHASH673EFB536D02F761697C5A6E9977041E2C62B241/L66326GL_303104383_125.jpg"
     },
     {
       "id": "defender-110",
@@ -214,8 +220,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Official UK page says load up, go anywhere, with up to seven seats.",
       "pageUrl": "https://www.landrover.co.uk/defender/defender-110/index.html",
-      "heroImage": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/defender-110.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg"
     },
     {
       "id": "defender-90",
@@ -244,8 +251,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "Official UK page describes compact proportions with the option of six seats.",
       "pageUrl": "https://www.landrover.co.uk/defender/defender-90/index.html",
-      "heroImage": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/defender-110.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg"
     },
     {
       "id": "discovery",
@@ -274,8 +282,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "Official UK page describes Discovery as the most versatile 7 seat SUV.",
       "pageUrl": "https://www.landrover.co.uk/discovery/discovery/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/L46226GL_303104584_001",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/discovery.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/L46226GL_303104584_001"
     },
     {
       "id": "discovery-sport",
@@ -306,8 +315,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Official UK page describes it as the compact seven-seat family SUV, with seven seats optional via Third Row pack and not available on PHEV models.",
       "pageUrl": "https://www.landrover.co.uk/discovery/discovery-sport/index.html",
-      "heroImage": "https://www.landrover.com/content/dam/lrdx/global/l550/26my/L55026GL_303104697_003.jpg.res/JLRHASH2875A6010D2A4B7EB108CE3BE5C6BDB050948AFB/L55026GL_303104697_003.jpg",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/discovery-sport.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l550/26my/L55026GL_303104697_003.jpg.res/JLRHASH2875A6010D2A4B7EB108CE3BE5C6BDB050948AFB/L55026GL_303104697_003.jpg"
     },
     {
       "id": "f-pace",
@@ -338,8 +348,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/f-pace/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X76124GL_303101393_006-1",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/f-pace.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X76124GL_303101393_006-1"
     },
     {
       "id": "e-pace",
@@ -370,8 +381,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/e-pace/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X54024GL_303101393_011",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/e-pace.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X54024GL_303101393_011"
     },
     {
       "id": "i-pace",
@@ -400,8 +412,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/i-pace/index-v2.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X59024GL_303101393_014",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/i-pace.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X59024GL_303101393_014"
     },
     {
       "id": "xe",
@@ -430,8 +443,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/xe/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X76024GL_303101393_001",
-      "imageStatus": "direct_image_url_found"
+      "heroImage": "jlr-demo-assets/catalogue/xe.jpg",
+      "imageStatus": "direct_image_url_found",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X76024GL_303101393_001"
     },
     {
       "id": "xf-saloon",
@@ -462,8 +476,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/xf/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X26024GL_303101393_009_DX",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/xf-saloon.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X26024GL_303101393_009_DX"
     },
     {
       "id": "xf-sportbrake",
@@ -494,8 +509,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/xf/index.html",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X26024GL_303101393_010_DX",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/xf-sportbrake.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X26024GL_303101393_010_DX"
     },
     {
       "id": "f-type-coup",
@@ -526,8 +542,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/f-type/index.html?nojs=false",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X15224GL_303101393_027",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/f-type-coup.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X15224GL_303101393_027"
     },
     {
       "id": "f-type-convertible",
@@ -558,8 +575,9 @@
       "colourSummary": "red, black, green, yellow, orange, white, grey, silver, blue",
       "notes": "Current Jaguar page states new sales of the current generation have ended; approved used and services remain available.",
       "pageUrl": "https://www.jaguar.co.uk/jaguar-range/f-type/index.html?nojs=false",
-      "heroImage": "https://jlr.scene7.com/is/image/jlr/X15224GL_303101393_028",
-      "imageStatus": "gallery_page_only"
+      "heroImage": "jlr-demo-assets/catalogue/f-type-convertible.jpg",
+      "imageStatus": "gallery_page_only",
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/X15224GL_303101393_028"
     }
   ]
 }

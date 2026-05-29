@@ -393,6 +393,29 @@
   display: block;
 }
 
+.jlr-ask__card-image.is-missing {
+  display: none;
+}
+
+.jlr-ask__card-image-wrap:has(.jlr-ask__card-image.is-missing) {
+  background:
+    linear-gradient(135deg, #dfe3e8 0%, #eef0f2 100%);
+  position: relative;
+}
+
+.jlr-ask__card-image-wrap:has(.jlr-ask__card-image.is-missing)::after {
+  content: 'Image unavailable';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--jlr-ask-muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
 .jlr-ask__card-body {
   padding: 0.65rem 0.75rem 0.65rem 0;
   display: flex;

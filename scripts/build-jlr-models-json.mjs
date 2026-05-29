@@ -4,6 +4,15 @@ import path from 'node:path';
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const csvPath = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/jlr_merged_availability_and_images.csv');
 const outPath = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/jlr-models.json');
+const catalogueDir = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/catalogue');
+
+function localHeroPath(id) {
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp']) {
+    const file = path.join(catalogueDir, `${id}${ext}`);
+    if (fs.existsSync(file)) return `jlr-demo-assets/catalogue/${id}${ext}`;
+  }
+  return null;
+}
 
 const raw = fs.readFileSync(csvPath, 'utf8');
 const lines = raw.trim().split(/\r?\n/);
@@ -59,8 +68,11 @@ for (let i = 1; i < lines.length; i++) {
     .map((c) => c.trim().toLowerCase())
     .filter(Boolean);
   const seats = parseInt(String(row.seats_or_passengers || '').trim(), 10) || null;
+  const id = slug(row.model_name || row.model);
+  const remoteHero = row.direct_image_url;
+  const localHero = localHeroPath(id);
   models.push({
-    id: slug(row.model_name || row.model),
+    id,
     brandFamily: row.brand_family,
     model: row.model_name || row.model,
     variant: row.variant_or_body_style,
@@ -78,7 +90,8 @@ for (let i = 1; i < lines.length; i++) {
     colourSummary: row.colour_summary,
     notes: row.notes,
     pageUrl: row.official_model_page_url,
-    heroImage: row.direct_image_url,
+    heroImage: localHero || remoteHero,
+    heroImageRemote: remoteHero,
     imageStatus: row.image_status,
   });
 }

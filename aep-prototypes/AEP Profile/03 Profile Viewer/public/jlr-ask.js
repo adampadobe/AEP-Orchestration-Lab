@@ -36,6 +36,12 @@
       img.alt = card.title || 'Vehicle';
       img.loading = 'lazy';
       img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.addEventListener('error', function onImgError() {
+        img.removeEventListener('error', onImgError);
+        img.classList.add('is-missing');
+        img.removeAttribute('src');
+      });
       imgWrap.appendChild(img);
       var body = el('div', 'jlr-ask__card-body');
       var titleRow = el('div', 'jlr-ask__card-title-row');
