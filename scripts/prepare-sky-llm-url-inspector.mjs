@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyUrlInspectorBranding } from './sky-llm-snapshot-sky-text.mjs';
-import { stripLineDash } from './sky-llm-snapshot-line-dash.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -67,6 +67,7 @@ function patchHtml(html) {
   html = stripAuthScripts(html);
   html = applyUrlInspectorBranding(html);
   html = stripLineDash(html);
+  html = repairRechartsResponsiveHtml(html);
   html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
   html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-platform\.js"><\/script>/gi, '');
   if (!html.includes('sky-llm-snapshot-nav.js')) {

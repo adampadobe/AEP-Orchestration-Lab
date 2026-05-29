@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
-import { stripLineDash } from './sky-llm-snapshot-line-dash.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -80,6 +80,7 @@ function patchHtml(html) {
   html = html.split('WKND').join('Virgin Media');
 
   html = stripLineDash(html);
+  html = repairRechartsResponsiveHtml(html);
 
   if (!html.includes('sky-llm-snapshot-market-charts.css')) {
     html = html.replace(

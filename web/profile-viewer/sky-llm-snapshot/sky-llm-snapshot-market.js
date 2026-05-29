@@ -221,6 +221,7 @@
   }
 
   function ensureLinesVisible() {
+    document.querySelectorAll('svg.recharts-surface[role="application"]').forEach(repairRechartsLayout);
     document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
   }
 
@@ -243,19 +244,62 @@
     return null;
   }
 
-  function fitLineChartSvg(svg) {
+  function repairRechartsLayout(svg) {
     if (!svg) return;
-    svg.style.width = '100%';
-    svg.style.maxWidth = '100%';
-    svg.style.height = 'auto';
-    svg.style.overflow = 'visible';
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    var wrap = svg.closest('.recharts-responsive-container') || svg.parentElement;
+    var container = svg.closest('.recharts-responsive-container');
+    if (!container) return;
+
+    var host = container.parentElement;
+    for (var i = 0; i < 12 && host; i++) {
+      if (host.clientWidth >= 80) break;
+      host = host.parentElement;
+    }
+    var parentW = container.parentElement ? container.parentElement.clientWidth : 0;
+    var width = host && host.clientWidth >= 80 ? host.clientWidth : parentW;
+
+    container.style.width = '100%';
+    container.style.minWidth = '100%';
+    container.style.height = 'auto';
+    container.style.minHeight = '300px';
+    container.style.overflow = 'visible';
+
+    container.querySelectorAll('div').forEach(function (div) {
+      if (div === container) return;
+      var sw = div.style.width || '';
+      var sh = div.style.height || '';
+      if (sw === '0px' || sw === '0' || sh === '0px' || sh === '0') {
+        div.style.width = '100%';
+        div.style.height = '100%';
+        div.style.minHeight = '300px';
+        div.style.overflow = 'visible';
+        div.classList.add('sky-llm-recharts-measure');
+      }
+    });
+
+    var wrap = svg.closest('.recharts-wrapper');
     if (wrap) {
-      wrap.style.width = '100%';
+      wrap.style.position = 'relative';
+      wrap.style.width = width > 80 ? width + 'px' : '100%';
       wrap.style.maxWidth = '100%';
+      wrap.style.height = 'auto';
       wrap.style.overflow = 'visible';
     }
+
+    var vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+    svg.style.display = 'block';
+    svg.style.width = '100%';
+    svg.style.maxWidth = '100%';
+    svg.style.overflow = 'visible';
+    if (vb.length === 4 && width > 80) {
+      svg.style.height = Math.round((width * vb[3]) / vb[2]) + 'px';
+    } else {
+      svg.style.height = 'auto';
+    }
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  }
+
+  function fitLineChartSvg(svg) {
+    repairRechartsLayout(svg);
   }
 
   function markFitLineCharts() {
@@ -273,6 +317,7 @@
     if (FIT_CHART_TITLES[chartTitle]) {
       block.root.classList.add('sky-llm-line-chart-fit');
     }
+    repairRechartsLayout(block.svg);
   }
 
   function isKnownBrand(name) {

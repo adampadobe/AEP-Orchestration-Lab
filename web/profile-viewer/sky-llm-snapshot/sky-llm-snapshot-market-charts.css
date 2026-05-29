@@ -49,15 +49,35 @@
   min-width: 0;
 }
 
-.sky-llm-market-chart-card .recharts-wrapper,
 .sky-llm-market-chart-card .recharts-responsive-container {
+  width: 100% !important;
+  min-height: 300px !important;
+  height: auto !important;
   overflow: visible !important;
-  min-width: 0;
-  max-width: 100%;
+}
+
+.sky-llm-market-chart-card .sky-llm-recharts-measure,
+.sky-llm-market-chart-card .recharts-responsive-container > div {
+  width: 100% !important;
+  min-height: 300px !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card .recharts-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
 }
 
 .sky-llm-market-chart-card svg.recharts-surface {
-  max-width: 100%;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  overflow: visible !important;
 }
 
 /* Wide frozen SVGs (URL Inspector, Agentic Traffic) — scale to card width; never clip strokes */
