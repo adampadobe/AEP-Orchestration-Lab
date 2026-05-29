@@ -624,6 +624,28 @@
           ],
         },
         {
+          id: 'demoJlr',
+          label: 'JLR',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'jlrWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'JLR (in development)',
+                  href: 'jlr-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'jlrDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M4 7h16v10H4z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 11h8M8 14h5" opacity="0.65"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoNavigator',
           label: 'Navigator Global',
           demoCustomer: true,

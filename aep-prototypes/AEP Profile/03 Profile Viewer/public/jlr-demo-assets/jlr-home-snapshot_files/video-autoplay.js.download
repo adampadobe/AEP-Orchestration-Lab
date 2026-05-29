@@ -1,0 +1,45 @@
+(function() {
+    function initAutoplay() {
+        if (typeof Vimeo === 'undefined' || typeof Vimeo.Player === 'undefined') {
+            setTimeout(initAutoplay, 100);
+            return;
+        }
+
+        var wrappers = document.querySelectorAll('.wistia_responsive_wrapper.autoplay-on-scroll');
+
+        wrappers.forEach(function(wrapper, index) {
+            var iframe = wrapper.querySelector('iframe[src*="vimeo.com"]');
+
+            if (!iframe) {
+                return;
+            }
+
+            var hasPlayed = false;
+
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting && !hasPlayed) {
+                        hasPlayed = true;
+
+                        var player = new Vimeo.Player(iframe);
+                        player.setVolume(0).then(function() {
+                            return player.play();
+                        }).catch(Boolean);
+
+                        observer.unobserve(wrapper);
+                    }
+                });
+            }, {
+                threshold: 0.25
+            });
+
+            observer.observe(wrapper);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAutoplay);
+    } else {
+        initAutoplay();
+    }
+})();

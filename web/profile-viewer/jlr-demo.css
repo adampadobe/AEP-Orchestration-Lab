@@ -1,0 +1,92 @@
+﻿/**
+ * JLR demo — site-clone iframe + lab strip (shell layout from mod-demo.css).
+ */
+
+.jlr-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.jlr-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none !important;
+}
+
+.jlr-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
+  display: flex !important;
+}
+
+/* Modal open: dim via backdrop; keep JLR snapshot visible underneath (not a solid page fill) */
+.jlr-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.jlr-demo-page.aep-bc-modal-open #brand-concierge-mount-host,
+.jlr-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.jlr-demo-page .aep-bc-park-launcher {
+  background: #0c121c;
+  box-shadow: 0 4px 20px color-mix(in srgb, #0c121c 35%, transparent);
+}
+
+.jlr-demo-page .aep-bc-park-launcher:hover {
+  background: color-mix(in srgb, #0c121c 88%, var(--dash-text));
+}
+
+.jlr-demo-page .mod-demo-id-inner .jlr-sdk-config-fields.mod-sdk-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.85rem;
+}
+
+.jlr-demo-page .mod-demo-id-inner .aep-demo-web-push-row,
+.jlr-demo-page .mod-demo-id-inner .aep-bc-toggle-row,
+.jlr-demo-page .mod-demo-id-inner .aep-bc-launcher-row {
+  flex: 0 0 auto;
+  padding-top: 0;
+}
+
+.jlr-demo-page .mod-demo-id-inner .aep-demo-web-push-retry {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.jlr-demo-page .mod-demo-id-inner .aep-demo-web-push-retry-hint,
+.jlr-demo-page .mod-demo-id-inner .aep-demo-web-push-hint {
+  display: none;
+}
+
+/* Injected: full banner width, scroll passes through outside the BC panel */
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Full screen BC: span iframe width (not capped at 920px) */
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen .site-clone-bc-frame-mount,
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount > *,
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='concierge'],
+.jlr-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
+  max-width: none;
+}

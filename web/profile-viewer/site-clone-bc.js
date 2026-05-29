@@ -17,9 +17,21 @@
     return String(cfg('snapshotLayout', 'british-army-home') || 'british-army-home');
   }
 
+  function isSkyHomeLayout() {
+    return snapshotLayout() === 'sky-home';
+  }
+
+  function isJlrHomeLayout() {
+    return snapshotLayout() === 'jlr-home';
+  }
+
+  function isModernSiteCloneLayout() {
+    return isSkyHomeLayout() || isJlrHomeLayout();
+  }
+
   function getInjectedLayoutAnchor(doc) {
     if (!doc) return null;
-    if (snapshotLayout() === 'sky-home') {
+    if (isSkyHomeLayout()) {
       return (
         doc.querySelector('#masthead-header') ||
         doc.querySelector('[data-test-id="header-template"]') ||
@@ -27,13 +39,19 @@
         doc.querySelector('main')
       );
     }
+    if (isJlrHomeLayout()) {
+      return doc.querySelector('.block.hero') || doc.querySelector('nav.nav-2024') || doc.querySelector('main');
+    }
     return doc.querySelector('.exp-hero-banner');
   }
 
   function getFullscreenLayoutHeader(doc) {
     if (!doc) return null;
-    if (snapshotLayout() === 'sky-home') {
+    if (isSkyHomeLayout()) {
       return doc.querySelector('#masthead-header') || doc.querySelector('[data-test-id="header-template"]');
+    }
+    if (isJlrHomeLayout()) {
+      return doc.querySelector('nav.nav-2024');
     }
     return doc.querySelector('.main-page-layout__header');
   }
@@ -81,6 +99,31 @@
     'html.site-clone-bc-fs-active main#app > *:not(#masthead-header):not([data-test-id="header-template"]){visibility:hidden!important;pointer-events:none!important;}',
     'html.site-clone-bc-fs-active #masthead-header,html.site-clone-bc-fs-active [data-test-id="header-template"]{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
   ].join('');
+  var JLR_INJECTED_LAYOUT_CSS = [
+    'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;background:' +
+      BC_SURFACE_GRADIENT +
+      '!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;border-radius:16px!important;overflow:visible!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
+  var JLR_FS_LAYOUT_CSS = [
+    'html.site-clone-bc-fs-active,html.site-clone-bc-fs-active body{overflow:hidden!important;}',
+    'html.site-clone-bc-fs-active nav.nav-2024{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-fs-active .block.hero,html.site-clone-bc-fs-active .page__container:not(:first-of-type),html.site-clone-bc-fs-active footer{display:none!important;pointer-events:none!important;}',
+  ].join('');
+
+  function injectedLayoutCssForSnapshot() {
+    if (isSkyHomeLayout()) return SKY_INJECTED_LAYOUT_CSS;
+    if (isJlrHomeLayout()) return JLR_INJECTED_LAYOUT_CSS;
+    return SNAPSHOT_INJECTED_LAYOUT_CSS;
+  }
+
+  function fullscreenLayoutCssForSnapshot() {
+    if (isSkyHomeLayout()) return SKY_FS_LAYOUT_CSS;
+    if (isJlrHomeLayout()) return JLR_FS_LAYOUT_CSS;
+    return SNAPSHOT_FS_LAYOUT_CSS;
+  }
   var SNAPSHOT_INJECTED_LAYOUT_CSS = [
     'html.site-clone-bc-injected-active .pin-spacer{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;pointer-events:none!important;}',
     'html.site-clone-bc-injected-active .pin-spacer>.exp-content__block-container,html.site-clone-bc-injected-active .pin-spacer>[x-ref="blockInner"]{position:relative!important;inset:auto!important;transform:none!important;pointer-events:none!important;}',
@@ -135,9 +178,7 @@
       doc.head.appendChild(styleEl);
     }
     styleEl.textContent = on
-      ? snapshotLayout() === 'sky-home'
-        ? SKY_INJECTED_LAYOUT_CSS
-        : SNAPSHOT_INJECTED_LAYOUT_CSS
+      ? injectedLayoutCssForSnapshot()
       : '';
     refreshSnapshotRuntimeFix(doc);
   }
@@ -229,9 +270,7 @@
       doc.head.appendChild(styleEl);
     }
     styleEl.textContent = on
-      ? snapshotLayout() === 'sky-home'
-        ? SKY_FS_LAYOUT_CSS
-        : SNAPSHOT_FS_LAYOUT_CSS
+      ? fullscreenLayoutCssForSnapshot()
       : '';
     refreshSnapshotRuntimeFix(doc);
     try {
@@ -540,9 +579,13 @@
 
     if (doc) {
       var anchor = fullscreen ? getFullscreenLayoutHeader(doc) : getInjectedLayoutAnchor(doc);
-      if (!fullscreen && snapshotLayout() === 'sky-home') {
+      if (!fullscreen && isSkyHomeLayout()) {
         var skyHeroBlock = findSkyHeroBlockForInject(doc);
         if (skyHeroBlock) anchor = skyHeroBlock;
+      }
+      if (!fullscreen && isJlrHomeLayout()) {
+        var jlrHeroBlock = findJlrHeroBlockForInject(doc);
+        if (jlrHeroBlock) anchor = jlrHeroBlock;
       }
       if (anchor) {
         var anchorRect = anchor.getBoundingClientRect();
@@ -849,6 +892,14 @@
     return null;
   }
 
+  function findJlrHeroBlockForInject(doc) {
+    if (!doc) return null;
+    var hero = doc.querySelector('.block.hero');
+    if (!hero) return null;
+    var container = hero.closest('.page__container');
+    return container || hero;
+  }
+
   function findSkyInjectAfterNode(doc) {
     if (!doc) return null;
     var heroBlock = findSkyHeroBlockForInject(doc);
@@ -858,8 +909,11 @@
   }
 
   function findHeroInsertPoint(doc) {
-    if (snapshotLayout() === 'sky-home') {
+    if (isSkyHomeLayout()) {
       return findSkyInjectAfterNode(doc);
+    }
+    if (isJlrHomeLayout()) {
+      return findJlrHeroBlockForInject(doc);
     }
     var hero = doc.querySelector('.exp-hero-banner');
     if (!hero) return null;
@@ -1084,7 +1138,7 @@
       : 'embed-bc-inline';
     section.setAttribute(
       'aria-label',
-      snapshotLayout() === 'sky-home' ? 'Brand Concierge assistant' : 'Army recruitment assistant',
+      isModernSiteCloneLayout() ? 'Brand Concierge assistant' : 'Army recruitment assistant',
     );
     var mount = doc.createElement('div');
     mount.id = 'brand-concierge-mount';
@@ -1168,9 +1222,10 @@
 
     if (!fullscreen) {
       try {
-        var scrollTarget =
-          snapshotLayout() === 'sky-home'
-            ? findSkyHeroBlockForInject(doc)
+        var scrollTarget = isSkyHomeLayout()
+          ? findSkyHeroBlockForInject(doc)
+          : isJlrHomeLayout()
+            ? findJlrHeroBlockForInject(doc)
             : doc.querySelector('.exp-hero-banner');
         if (scrollTarget && typeof scrollTarget.scrollIntoView === 'function') {
           scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
