@@ -162,11 +162,46 @@ const SC_BC_STYLE_URL_LEGACY_SCALAR = 'siteCloneBcStyleConfigUrl';
 const SC_BC_DEFAULT_STYLE_URL = 'embed-bc/styleConfigurations-6a0992.js';
 const siteCloneBcStyleConfigUrl = document.getElementById('siteCloneBcStyleConfigUrl');
 
+/** @type {Array<{ relPath: string, cdnUrl: string }>} */
+let siteCloneBcStyleConfigOptions = [];
+let styleConfigLoadGen = 0;
+
+function absoluteStyleConfigCdnUrl(cdnPath) {
+  const p = String(cdnPath || '').trim();
+  if (!p) return '';
+  if (/^https?:\/\//i.test(p)) return p;
+  const origin = global.location && global.location.origin ? global.location.origin : '';
+  return origin + p;
+}
+
+function normaliseStyleConfigPickerValue(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const u = new URL(v);
+      if (/^\/cdn\/.+\.js$/i.test(u.pathname)) return u.pathname;
+    } catch {
+      /* noop */
+    }
+    return v;
+  }
+  return v;
+}
+
+function isJsStyleConfigLibraryItem(item) {
+  if (!item || !item.relPath) return false;
+  if (/\.js$/i.test(item.relPath)) return true;
+  const ct = String(item.contentType || '').toLowerCase();
+  return ct.indexOf('javascript') !== -1;
+}
+
 function sanitiseSiteCloneBcStyleConfigUrl(raw) {
   const v = String(raw || '').trim();
   if (!v) return SC_BC_DEFAULT_STYLE_URL;
   if (/^javascript:/i.test(v)) return SC_BC_DEFAULT_STYLE_URL;
   if (/^https?:\/\//i.test(v)) return v;
+  if (/^\/cdn\//i.test(v)) return v;
   if (/^[a-z0-9_./-]+\.(js|json)$/i.test(v)) return v;
   return SC_BC_DEFAULT_STYLE_URL;
 }
@@ -192,9 +227,11 @@ function getSiteCloneBcStyleConfigUrl() {
 
 function saveSiteCloneBcStyleConfigUrl() {
   if (sandboxEnvSwitching) return;
-  const url = siteCloneBcStyleConfigUrl
+  let url = siteCloneBcStyleConfigUrl
     ? sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value)
     : readPersistedSiteCloneBcStyleConfigUrl();
+  const normalised = normaliseStyleConfigPickerValue(url);
+  if (normalised && /^\/cdn\//i.test(normalised)) url = normalised;
   if (siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.value.trim() !== url) {
     siteCloneBcStyleConfigUrl.value = url;
   }
@@ -215,14 +252,148 @@ function refreshSiteCloneBcStyleUrlHints() {
   const resolved = getSiteCloneBcStyleConfigResolvedUrl();
   const hint = document.getElementById('siteCloneBcStyleConfigResolved');
   if (hint) {
-    hint.textContent = resolved
-      ? 'Loaded for Modal / Injected / Full Screen: ' + resolved
-      : '';
+    if (!resolved) {
+      hint.textContent = '';
+    } else if (siteCloneBcStyleConfigOptions.length) {
+      hint.textContent =
+        siteCloneBcStyleConfigOptions.length +
+        ' hosted .js file(s) · loaded for Modal / Injected / Full Screen: ' +
+        resolved;
+    } else {
+      hint.textContent = 'Loaded for Modal / Injected / Full Screen: ' + resolved;
+    }
   }
   ['siteCloneBcFullScreenToggle', 'siteCloneBcModalToggle', 'siteCloneBcInjectedToggle'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.setAttribute('data-site-clone-bc-style-url', url);
   });
+}
+
+function renderSiteCloneBcStyleConfigSelect(persistedValue) {
+  if (!siteCloneBcStyleConfigUrl || siteCloneBcStyleConfigUrl.tagName !== 'SELECT') return;
+  const stored = normaliseStyleConfigPickerValue(persistedValue || readPersistedSiteCloneBcStyleConfigUrl());
+  siteCloneBcStyleConfigUrl.innerHTML = '';
+
+  const builtinGroup = document.createElement('optgroup');
+  builtinGroup.label = 'Built-in';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = SC_BC_DEFAULT_STYLE_URL;
+  defaultOpt.textContent = 'Default (styleConfigurations-6a0992.js)';
+  builtinGroup.appendChild(defaultOpt);
+  siteCloneBcStyleConfigUrl.appendChild(builtinGroup);
+
+  const libraryGroup = document.createElement('optgroup');
+  libraryGroup.label = 'Image hosting';
+  if (siteCloneBcStyleConfigOptions.length) {
+    siteCloneBcStyleConfigOptions.forEach(function (item) {
+      const opt = document.createElement('option');
+      opt.value = item.cdnUrl;
+      opt.textContent = item.relPath;
+      libraryGroup.appendChild(opt);
+    });
+  } else {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.disabled = true;
+    emptyOpt.textContent = 'No .js files in library';
+    libraryGroup.appendChild(emptyOpt);
+  }
+  siteCloneBcStyleConfigUrl.appendChild(libraryGroup);
+
+  let matched = '';
+  if (stored) {
+    const opts = siteCloneBcStyleConfigUrl.options;
+    for (let i = 0; i < opts.length; i++) {
+      const optVal = opts[i].value;
+      if (!optVal) continue;
+      if (optVal === stored || normaliseStyleConfigPickerValue(optVal) === stored) {
+        matched = optVal;
+        break;
+      }
+      if (/^https?:\/\//i.test(stored) && absoluteStyleConfigCdnUrl(optVal) === stored) {
+        matched = optVal;
+        break;
+      }
+    }
+  }
+
+  if (!matched && stored && stored !== SC_BC_DEFAULT_STYLE_URL) {
+    const customGroup = document.createElement('optgroup');
+    customGroup.label = 'Saved (not in library)';
+    const customOpt = document.createElement('option');
+    customOpt.value = stored;
+    customOpt.textContent = stored.replace(/^\/cdn\/[^/]+\//, '').replace(/^https?:\/\/[^/]+\/cdn\/[^/]+\//, '');
+    customGroup.appendChild(customOpt);
+    siteCloneBcStyleConfigUrl.appendChild(customGroup);
+    matched = stored;
+  }
+
+  siteCloneBcStyleConfigUrl.value = matched || SC_BC_DEFAULT_STYLE_URL;
+}
+
+function applySiteCloneBcStyleConfigFieldForSandbox(sandboxKey) {
+  if (!siteCloneBcStyleConfigUrl) return;
+  const stored = readPersistedSiteCloneBcStyleConfigUrl(sandboxKey);
+  if (siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
+    renderSiteCloneBcStyleConfigSelect(stored);
+  } else {
+    siteCloneBcStyleConfigUrl.value = stored;
+  }
+  refreshSiteCloneBcStyleUrlHints();
+}
+
+async function loadSiteCloneBcStyleConfigs() {
+  const loadGen = ++styleConfigLoadGen;
+  const sandbox = getSandboxDisplayName();
+  const sandboxKeyAtStart = getSandboxKey();
+  const hint = document.getElementById('siteCloneBcStyleConfigResolved');
+  if (hint && siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
+    hint.textContent = sandbox
+      ? 'Loading .js style configs from image hosting for ' + sandbox + '…'
+      : 'Loading .js style configs from image hosting…';
+  }
+  try {
+    const params = new URLSearchParams();
+    if (sandbox) params.set('sandbox', sandbox);
+    const res = await fetch('/api/image-hosting/library?' + params.toString(), { credentials: 'same-origin' });
+    const data = await res.json().catch(function () {
+      return {};
+    });
+    if (loadGen !== styleConfigLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    siteCloneBcStyleConfigOptions = items
+      .filter(isJsStyleConfigLibraryItem)
+      .map(function (item) {
+        return { relPath: String(item.relPath || ''), cdnUrl: String(item.cdnUrl || '') };
+      })
+      .filter(function (item) {
+        return item.cdnUrl && item.relPath;
+      });
+
+    applySiteCloneBcStyleConfigFieldForSandbox(sandboxKeyAtStart);
+
+    if (hint && siteCloneBcStyleConfigUrl && siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
+      if (data.error && !siteCloneBcStyleConfigOptions.length) {
+        hint.textContent = String(data.error);
+      } else if (!siteCloneBcStyleConfigOptions.length) {
+        hint.textContent =
+          'No .js files in image hosting for this sandbox — upload styling-config-*.js in Image hosting, or use the built-in default.';
+      } else {
+        refreshSiteCloneBcStyleUrlHints();
+      }
+    }
+  } catch (err) {
+    if (loadGen !== styleConfigLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
+    siteCloneBcStyleConfigOptions = [];
+    applySiteCloneBcStyleConfigFieldForSandbox(sandboxKeyAtStart);
+    if (hint) {
+      hint.textContent =
+        'Could not load image hosting library' +
+        (err && err.message ? ': ' + err.message : '') +
+        '. Using built-in default or saved value.';
+    }
+  }
 }
 
 function invalidateSiteCloneBcCore() {
@@ -516,22 +687,26 @@ function syncSiteCloneBcFromPrefs() {
 
 (function initSiteCloneBcStyleConfigUrl() {
   if (!siteCloneBcStyleConfigUrl) return;
-  siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
+  applySiteCloneBcStyleConfigFieldForSandbox();
   function onStyleUrlChange() {
     saveSiteCloneBcStyleConfigUrl();
     invalidateSiteCloneBcCore();
     syncSiteCloneBcFromPrefs();
   }
-  siteCloneBcStyleConfigUrl.addEventListener('input', function () {
-    if (sandboxEnvSwitching) return;
-    writeSandboxString(
-      SC_BC_STYLE_URL_BY_SANDBOX_KEY,
-      sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
-    );
-    refreshSiteCloneBcStyleUrlHints();
-  });
-  siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
-  siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+  if (siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
+    siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+  } else {
+    siteCloneBcStyleConfigUrl.addEventListener('input', function () {
+      if (sandboxEnvSwitching) return;
+      writeSandboxString(
+        SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+        sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
+      );
+      refreshSiteCloneBcStyleUrlHints();
+    });
+    siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+    siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+  }
   refreshSiteCloneBcStyleUrlHints();
 })();
 
@@ -594,13 +769,13 @@ function syncSiteCloneBcFromPrefs() {
     else applyWebPushOnInjectToggle();
     applyBcOnInjectPrefs();
     if (siteCloneBcStyleConfigUrl) {
-      siteCloneBcStyleConfigUrl.value = readPersistedSiteCloneBcStyleConfigUrl();
-      refreshSiteCloneBcStyleUrlHints();
+      applySiteCloneBcStyleConfigFieldForSandbox();
     }
     applySiteCloneBcDatastreamFieldForSandbox();
     applySiteCloneBcDisplayPrefsToUi();
     invalidateSiteCloneBcCore();
     syncSiteCloneBcFromPrefs();
+    void loadSiteCloneBcStyleConfigs();
     void loadSiteCloneBcDatastreams();
     envSandboxKey = getSandboxKey();
   }

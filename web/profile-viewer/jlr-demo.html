@@ -74,16 +74,12 @@
                     </div>
                     <div class="site-clone-bc-env-pair">
                       <div class="form-row site-clone-bc-style-url-row">
-                        <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
-                        <input
-                          type="text"
+                        <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration</label>
+                        <select
                           id="siteCloneBcStyleConfigUrl"
-                          class="site-clone-bc-style-url-input"
-                          aria-label="Brand Concierge style configuration script URL"
-                          placeholder="embed-bc/styleConfigurations-6a0992.js"
-                          autocomplete="off"
-                          spellcheck="false"
-                        >
+                          class="site-clone-bc-style-url-select site-clone-bc-style-url-input"
+                          aria-label="Brand Concierge style configuration script"
+                        ></select>
                         <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
                       </div>
                       <div class="form-row site-clone-bc-datastream-row">
@@ -411,7 +407,7 @@
       bcStyleSelectId: 'jlrBcStyleSelect',
     };
   </script>
-  <script src="site-clone-bc-env.js?v=20260519-bc-poll-fix"></script>
+  <script src="site-clone-bc-env.js?v=20260529-bc-style-picker"></script>
   <script src="jlr-demo.js?v=20260529-jlr-demo"></script>
   <script src="site-clone-bc.js?v=20260529-jlr-demo"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>

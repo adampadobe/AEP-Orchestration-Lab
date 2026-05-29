@@ -120,9 +120,21 @@
 }
 
 .site-clone-bc-style-url-input,
+.site-clone-bc-style-url-select,
 .site-clone-bc-datastream-input {
   width: 100%;
   max-width: 100%;
+}
+
+.site-clone-bc-style-url-select {
+  box-sizing: border-box;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font: inherit;
 }
 
 .site-clone-bc-style-url-hint {
