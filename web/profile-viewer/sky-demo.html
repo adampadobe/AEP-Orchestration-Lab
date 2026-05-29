@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-injected-scroll">
   <link rel="stylesheet" href="sky-demo.css?v=20260528-sky-injected-scroll">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
+  <link rel="stylesheet" href="site-clone-bc-env-strip.css?v=20260528-bc-env-strip">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -43,83 +44,85 @@
                     <option value="">Loading sandboxes…</option>
                   </select>
                 </div>
-                <div id="skySdkConfigFields" class="sky-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block">
+                <div id="skySdkConfigFields" class="sky-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block site-clone-bc-env-strip">
                   <div class="form-row mod-demo-tags-company-row" hidden>
                     <label for="skyTagsCompany">Tags company</label>
                     <select id="skyTagsCompany" aria-label="Tags company"></select>
                   </div>
-                  <div class="form-row">
-                    <label for="skyTagsProperty">Tags property</label>
-                    <input
-                      type="text"
-                      id="skyTagsProperty"
-                      aria-label="Tags property"
-                      placeholder="Select property"
-                      list="skyTagsPropertyList"
-                      autocomplete="off"
-                      spellcheck="false"
-                    >
-                    <datalist id="skyTagsPropertyList"></datalist>
-                  </div>
-                  <div class="form-row">
-                    <label for="skyTagsEnvironment">Tags environment</label>
-                    <select id="skyTagsEnvironment" aria-label="Tags environment"></select>
-                  </div>
-                  <div class="mod-demo-id-actions">
-                    <button type="button" id="skyInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-                  </div>
-                  <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
-                    <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="skyWebPushOnInjectToggle" />
-                      <span>
-                        Register web push when injecting Tags
-                        <span class="aep-demo-web-push-hint">Runs after a successful inject; the browser will ask for notification permission when this is on.</span>
-                      </span>
-                    </label>
-                  </div>
-                  <div class="aep-demo-web-push-retry">
-                    <button type="button" id="skyWebPushRetryBtn" class="btn-lookup">Register web push now</button>
-                    <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected and you only need to send the subscription again.</span>
-                  </div>
-                  <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
-                    <label class="aep-demo-web-push-label">
-                      <input type="checkbox" id="skyBcOnInjectToggle" />
-                      <span>Enable Brand Concierge when injecting Tags</span>
-                    </label>
-                    <select id="skyBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
-                      <option value="miral" selected>Miral</option>
-                      <option value="generic">Generic (DemoEfficiency)</option>
-                      <option value="army">Army Recruitment</option>
-                    </select>
-                  </div>
-                  <div class="site-clone-bc-env-pair">
-                    <div class="form-row site-clone-bc-style-url-row">
-                      <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
-                      <input
-                        type="text"
-                        id="siteCloneBcStyleConfigUrl"
-                        class="site-clone-bc-style-url-input"
-                        aria-label="Brand Concierge style configuration script URL"
-                        placeholder="embed-bc/styleConfigurations-6a0992.js"
-                        autocomplete="off"
-                        spellcheck="false"
-                      >
-                      <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                  <div class="site-clone-bc-env-strip__tags-row">
+                    <div class="site-clone-bc-env-strip__property-col">
+                      <div class="form-row">
+                        <label for="skyTagsProperty">Tags property</label>
+                        <input
+                          type="text"
+                          id="skyTagsProperty"
+                          aria-label="Tags property"
+                          placeholder="Select property"
+                          list="skyTagsPropertyList"
+                          autocomplete="off"
+                          spellcheck="false"
+                        >
+                        <datalist id="skyTagsPropertyList"></datalist>
+                      </div>
+                      <div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">
+                        <button type="button" id="skyInjectSdkBtn" class="btn-lookup">Inject selected script</button>
+                      </div>
                     </div>
-                    <div class="form-row site-clone-bc-datastream-row">
-                      <label for="siteCloneBcDatastreamId">Alloy datastream</label>
-                      <input
-                        type="text"
-                        id="siteCloneBcDatastreamId"
-                        class="site-clone-bc-datastream-input"
-                        aria-label="Alloy datastream for Brand Concierge"
-                        placeholder="Select or search datastream"
-                        list="siteCloneBcDatastreamList"
-                        autocomplete="off"
-                        spellcheck="false"
-                      />
-                      <datalist id="siteCloneBcDatastreamList"></datalist>
-                      <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                    <div class="form-row site-clone-bc-env-strip__environment-col">
+                      <label for="skyTagsEnvironment">Tags environment</label>
+                      <select id="skyTagsEnvironment" aria-label="Tags environment"></select>
+                    </div>
+                    <div class="site-clone-bc-env-pair">
+                      <div class="form-row site-clone-bc-style-url-row">
+                        <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+                        <input
+                          type="text"
+                          id="siteCloneBcStyleConfigUrl"
+                          class="site-clone-bc-style-url-input"
+                          aria-label="Brand Concierge style configuration script URL"
+                          placeholder="embed-bc/styleConfigurations-6a0992.js"
+                          autocomplete="off"
+                          spellcheck="false"
+                        >
+                        <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                      </div>
+                      <div class="form-row site-clone-bc-datastream-row">
+                        <label for="siteCloneBcDatastreamId">Alloy datastream</label>
+                        <input
+                          type="text"
+                          id="siteCloneBcDatastreamId"
+                          class="site-clone-bc-datastream-input"
+                          aria-label="Alloy datastream for Brand Concierge"
+                          placeholder="Select or search datastream"
+                          list="siteCloneBcDatastreamList"
+                          autocomplete="off"
+                          spellcheck="false"
+                        />
+                        <datalist id="siteCloneBcDatastreamList"></datalist>
+                        <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="site-clone-bc-env-strip__legacy-inject-toggles" aria-hidden="true">
+                    <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+                      <label class="aep-demo-web-push-label">
+                        <input type="checkbox" id="skyWebPushOnInjectToggle" />
+                        <span>Register web push when injecting Tags</span>
+                      </label>
+                    </div>
+                    <div class="aep-demo-web-push-retry">
+                      <button type="button" id="skyWebPushRetryBtn" class="btn-lookup">Register web push now</button>
+                    </div>
+                    <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
+                      <label class="aep-demo-web-push-label">
+                        <input type="checkbox" id="skyBcOnInjectToggle" />
+                        <span>Enable Brand Concierge when injecting Tags</span>
+                      </label>
+                      <select id="skyBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+                        <option value="miral" selected>Miral</option>
+                        <option value="generic">Generic (DemoEfficiency)</option>
+                        <option value="army">Army Recruitment</option>
+                      </select>
                     </div>
                   </div>
                 </div>

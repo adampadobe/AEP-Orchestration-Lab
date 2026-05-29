@@ -1,0 +1,184 @@
+/**
+ * Site-clone BC lab strip — Tags row + BC style/datastream layout.
+ * Include on any demo page that uses site-clone-bc-env.js + Modal/Injected/Full Screen toggles.
+ *
+ * Markup: see site-clone-bc-env-strip.fragment.html
+ */
+
+.site-clone-bc-env-strip.mod-demo-tags-block,
+.site-clone-bc-env-strip.mod-sdk-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.site-clone-bc-env-strip__legacy-inject-toggles {
+  display: none !important;
+}
+
+.site-clone-bc-env-strip__tags-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 2.2fr);
+  column-gap: 1rem;
+  row-gap: 0.35rem;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.site-clone-bc-env-strip__property-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.site-clone-bc-env-strip__property-col > .form-row {
+  margin: 0;
+  width: 100%;
+}
+
+.site-clone-bc-env-strip__inject-actions {
+  margin: 0;
+  padding: 0;
+}
+
+.site-clone-bc-env-strip__inject-actions .btn-lookup {
+  width: 100%;
+  max-width: 100%;
+}
+
+.site-clone-bc-env-strip__environment-col {
+  margin: 0;
+  min-width: 0;
+}
+
+.site-clone-bc-env-strip__tags-row .site-clone-bc-env-pair {
+  min-width: 0;
+  width: 100%;
+}
+
+.site-clone-bc-env-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  align-items: start;
+  box-sizing: border-box;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-row,
+.site-clone-bc-env-pair .site-clone-bc-datastream-row {
+  display: contents;
+  margin: 0;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-row > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-datastream-row > label {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-row > .site-clone-bc-style-url-input {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-datastream-row > .site-clone-bc-datastream-input {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-row > .site-clone-bc-style-url-hint {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-datastream-row > .site-clone-bc-style-url-hint {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-row > label,
+.site-clone-bc-env-pair .site-clone-bc-datastream-row > label {
+  line-height: 1.25;
+  display: block;
+  margin: 0;
+}
+
+.site-clone-bc-env-pair .site-clone-bc-style-url-hint {
+  margin: 0;
+  max-width: none;
+}
+
+.site-clone-bc-style-url-input,
+.site-clone-bc-datastream-input {
+  width: 100%;
+  max-width: 100%;
+}
+
+.site-clone-bc-style-url-hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+  line-height: 1.35;
+  max-width: min(100%, 36rem);
+  word-break: break-all;
+}
+
+@media (max-width: 56rem) {
+  .site-clone-bc-env-strip__tags-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .site-clone-bc-env-strip__property-col {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .site-clone-bc-env-strip__environment-col {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .site-clone-bc-env-strip__tags-row .site-clone-bc-env-pair {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 40rem) {
+  .site-clone-bc-env-strip__tags-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-clone-bc-env-strip__property-col,
+  .site-clone-bc-env-strip__environment-col,
+  .site-clone-bc-env-strip__tags-row .site-clone-bc-env-pair {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .site-clone-bc-env-pair {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .site-clone-bc-env-pair .site-clone-bc-style-url-row > label,
+  .site-clone-bc-env-pair .site-clone-bc-style-url-row > .site-clone-bc-style-url-input,
+  .site-clone-bc-env-pair .site-clone-bc-style-url-row > .site-clone-bc-style-url-hint,
+  .site-clone-bc-env-pair .site-clone-bc-datastream-row > label,
+  .site-clone-bc-env-pair .site-clone-bc-datastream-row > .site-clone-bc-datastream-input,
+  .site-clone-bc-env-pair .site-clone-bc-datastream-row > .site-clone-bc-style-url-hint {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

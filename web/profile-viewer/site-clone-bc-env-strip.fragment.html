@@ -1,0 +1,103 @@
+<!--
+  Site-clone BC environment strip — copy into a demo page Tags block.
+
+  Requires:
+  - aep-demo-env-bar.css (standard env grid)
+  - site-clone-bc-env-strip.css
+  - site-clone-bc-env.js + site-clone-bc.js
+  - DemoTagsInjection with configFieldsId pointing at {prefix}SdkConfigFields
+
+  Replace {prefix} with your demo prefix (e.g. sky, mod).
+  Stable ids used by site-clone-bc-env.js: siteCloneBcStyleConfigUrl, siteCloneBcDatastreamId,
+  siteCloneBcInjectedToggle, siteCloneBcModalToggle, siteCloneBcFullScreenToggle.
+-->
+<div
+  id="{prefix}SdkConfigFields"
+  class="{prefix}-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block site-clone-bc-env-strip"
+>
+  <div class="form-row mod-demo-tags-company-row" hidden>
+    <label for="{prefix}TagsCompany">Tags company</label>
+    <select id="{prefix}TagsCompany" aria-label="Tags company"></select>
+  </div>
+
+  <div class="site-clone-bc-env-strip__tags-row">
+    <div class="site-clone-bc-env-strip__property-col">
+      <div class="form-row">
+        <label for="{prefix}TagsProperty">Tags property</label>
+        <input
+          type="text"
+          id="{prefix}TagsProperty"
+          aria-label="Tags property"
+          placeholder="Select property"
+          list="{prefix}TagsPropertyList"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <datalist id="{prefix}TagsPropertyList"></datalist>
+      </div>
+      <div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">
+        <button type="button" id="{prefix}InjectSdkBtn" class="btn-lookup">Inject selected script</button>
+      </div>
+    </div>
+
+    <div class="form-row site-clone-bc-env-strip__environment-col">
+      <label for="{prefix}TagsEnvironment">Tags environment</label>
+      <select id="{prefix}TagsEnvironment" aria-label="Tags environment"></select>
+    </div>
+
+    <div class="site-clone-bc-env-pair">
+      <div class="form-row site-clone-bc-style-url-row">
+        <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration URL</label>
+        <input
+          type="text"
+          id="siteCloneBcStyleConfigUrl"
+          class="site-clone-bc-style-url-input"
+          aria-label="Brand Concierge style configuration script URL"
+          placeholder="embed-bc/styleConfigurations-6a0992.js"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+      </div>
+      <div class="form-row site-clone-bc-datastream-row">
+        <label for="siteCloneBcDatastreamId">Alloy datastream</label>
+        <input
+          type="text"
+          id="siteCloneBcDatastreamId"
+          class="site-clone-bc-datastream-input"
+          aria-label="Alloy datastream for Brand Concierge"
+          placeholder="Select or search datastream"
+          list="siteCloneBcDatastreamList"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <datalist id="siteCloneBcDatastreamList"></datalist>
+        <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Tags-inject toggles (hidden; BC uses Modal / Injected / Full Screen checkboxes) -->
+  <div class="site-clone-bc-env-strip__legacy-inject-toggles" aria-hidden="true">
+    <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
+      <label class="aep-demo-web-push-label">
+        <input type="checkbox" id="{prefix}WebPushOnInjectToggle" />
+        <span>Register web push when injecting Tags</span>
+      </label>
+    </div>
+    <div class="aep-demo-web-push-retry">
+      <button type="button" id="{prefix}WebPushRetryBtn" class="btn-lookup">Register web push now</button>
+    </div>
+    <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
+      <label class="aep-demo-web-push-label">
+        <input type="checkbox" id="{prefix}BcOnInjectToggle" />
+        <span>Enable Brand Concierge when injecting Tags</span>
+      </label>
+      <select id="{prefix}BcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
+        <option value="miral">Miral</option>
+        <option value="generic">Generic (DemoEfficiency)</option>
+        <option value="army">Army Recruitment</option>
+      </select>
+    </div>
+  </div>
+</div>
