@@ -376,6 +376,7 @@
       entry.group.style.removeProperty('visibility');
       entry.group.style.removeProperty('opacity');
     }
+    if (entry.path) {
       entry.path.classList.remove(HIDDEN_LINE_CLASS);
       entry.path.style.removeProperty('display');
       entry.path.style.removeProperty('visibility');
