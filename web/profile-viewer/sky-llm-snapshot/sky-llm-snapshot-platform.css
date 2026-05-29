@@ -268,7 +268,7 @@
   max-width: 100%;
 }
 
-.sky-llm-market-chart-card svg.recharts-surface {
+.sky-llm-market-chart-card svg.recharts-surface[role='application'] {
   max-width: 100%;
 }
 
@@ -285,7 +285,7 @@
 }
 
 .sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden {
-  opacity: 0.35 !important;
+  display: none !important;
   pointer-events: none !important;
 }
 

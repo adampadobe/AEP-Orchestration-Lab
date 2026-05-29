@@ -72,7 +72,7 @@
   position: relative !important;
 }
 
-.sky-llm-market-chart-card svg.recharts-surface {
+.sky-llm-market-chart-card svg.recharts-surface[role='application'] {
   display: block !important;
   width: 100% !important;
   height: auto !important;
@@ -96,7 +96,7 @@
   overflow: visible !important;
 }
 
-.sky-llm-line-chart-fit svg.recharts-surface {
+.sky-llm-line-chart-fit svg.recharts-surface[role='application'] {
   display: block;
   width: 100% !important;
   max-width: 100% !important;
@@ -107,5 +107,55 @@
 .sky-llm-market-chart-card path.sky-llm-market-line-hidden {
   stroke-opacity: 0 !important;
   opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Compact inline legend — icon SVGs must stay 14×14, not scale with chart */
+.sky-llm-market-chart-card .recharts-default-legend,
+.sky-llm-line-chart-fit .recharts-default-legend {
+  display: block !important;
+  width: 100% !important;
+  margin: 8px 0 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item,
+.sky-llm-line-chart-fit .recharts-legend-item {
+  display: inline-block !important;
+  margin: 0 10px 4px 0 !important;
+  vertical-align: middle !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item svg.recharts-surface,
+.sky-llm-line-chart-fit .recharts-legend-item svg.recharts-surface {
+  width: 14px !important;
+  height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 4px !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item-text,
+.sky-llm-line-chart-fit .recharts-legend-item-text {
+  font-size: 12px !important;
+  vertical-align: middle !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden,
+.sky-llm-line-chart-fit .recharts-legend-item.sky-llm-market-legend-hidden {
+  display: none !important;
+}
+
+.sky-llm-market-chart-card g.sky-llm-market-line-hidden,
+.sky-llm-line-chart-fit g.sky-llm-market-line-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
   pointer-events: none !important;
 }

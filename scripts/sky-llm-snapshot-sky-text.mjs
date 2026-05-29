@@ -112,7 +112,7 @@ export function applySkyBranding(html) {
     ['Contentful', 'TalkTalk'],
     ['Global', 'Netflix'],
     ['AEM', 'Disney+'],
-    ['Wix', 'TalkTalk'],
+    ['Wix', 'Disney+'],
     ['Webflow', 'Netflix'],
   ];
   for (const [from, to] of axisLabelReplacements) {

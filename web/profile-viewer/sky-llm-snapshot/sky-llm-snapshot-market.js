@@ -46,7 +46,7 @@
     Contentful: 'TalkTalk',
     Global: 'Netflix',
     Webflow: 'Netflix',
-    Wix: 'TalkTalk',
+    Wix: 'Disney+',
     WKND: 'Virgin Media',
     AEM: 'Disney+',
     'Drupal Association': 'Disney+',
@@ -192,6 +192,20 @@
     return '';
   }
 
+  function repairPathStroke(path) {
+    if (!path) return;
+    path.removeAttribute('stroke-dasharray');
+    path.removeAttribute('stroke-dashoffset');
+    path.style.strokeDasharray = 'none';
+    path.style.strokeDashoffset = '0';
+    if (!path.classList.contains(HIDDEN_LINE_CLASS)) {
+      path.style.removeProperty('display');
+      path.style.removeProperty('visibility');
+      path.style.opacity = '1';
+      path.removeAttribute('stroke-opacity');
+    }
+  }
+
   function unlockMarketPath(path) {
     if (!path) return;
     var group = path.closest(LINE_GROUP_SEL);
@@ -220,9 +234,38 @@
     }
   }
 
+  function findLegendItems(svg) {
+    var wrap = svg.closest('.recharts-wrapper');
+    if (wrap) {
+      var inWrap = wrap.querySelectorAll('.recharts-legend-item');
+      if (inWrap.length) return Array.from(inWrap);
+    }
+    return Array.from(svg.querySelectorAll('.recharts-legend-item'));
+  }
+
+  function normalizeLegendLayout() {
+    document
+      .querySelectorAll(
+        '.sky-llm-market-chart-card .recharts-legend-item svg.recharts-surface, .sky-llm-line-chart-fit .recharts-legend-item svg.recharts-surface',
+      )
+      .forEach(function (svg) {
+        svg.setAttribute('width', '14');
+        svg.setAttribute('height', '14');
+        svg.style.width = '14px';
+        svg.style.height = '14px';
+        svg.style.maxWidth = '14px';
+        svg.style.maxHeight = '14px';
+        svg.style.display = 'inline-block';
+        svg.style.verticalAlign = 'middle';
+        svg.style.marginRight = '4px';
+      });
+  }
+
   function ensureLinesVisible() {
     document.querySelectorAll('svg.recharts-surface[role="application"]').forEach(repairRechartsLayout);
-    document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(unlockMarketPath);
+    document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(repairPathStroke);
+    normalizeLegendLayout();
+    if (marketState.ready) applyBrandVisibility();
   }
 
   function findSimpleLineChartBlock(title) {
@@ -309,6 +352,7 @@
       markChartCard(block, title);
       fitLineChartSvg(block.svg);
     });
+    normalizeLegendLayout();
   }
 
   function markChartCard(block, chartTitle) {
@@ -332,7 +376,6 @@
       entry.group.style.removeProperty('visibility');
       entry.group.style.removeProperty('opacity');
     }
-    if (entry.path) {
       entry.path.classList.remove(HIDDEN_LINE_CLASS);
       entry.path.style.removeProperty('display');
       entry.path.style.removeProperty('visibility');
@@ -348,12 +391,29 @@
     }
   }
 
+  function syncLegendLabels() {
+    marketState.entries.forEach(function (entry) {
+      if (!entry.legendEl) return;
+      var textEl = entry.legendEl.querySelector('.recharts-legend-item-text');
+      if (textEl) {
+        textEl.textContent = entry.name;
+        if (STROKE_BY_BRAND[entry.name]) textEl.style.color = STROKE_BY_BRAND[entry.name];
+      }
+      var iconPath = entry.legendEl.querySelector('.recharts-legend-icon');
+      if (iconPath && STROKE_BY_BRAND[entry.name]) {
+        iconPath.setAttribute('stroke', STROKE_BY_BRAND[entry.name]);
+        iconPath.style.stroke = STROKE_BY_BRAND[entry.name];
+      }
+    });
+    normalizeLegendLayout();
+  }
+
   function cacheChartLines(chartTitle, chartKey) {
     var block = findChartBlock(chartTitle);
     if (!block) return;
     markChartCard(block, chartTitle);
 
-    var legendItems = Array.from(block.svg.querySelectorAll('.recharts-legend-item'));
+    var legendItems = findLegendItems(block.svg);
     var lineGroups = Array.from(block.svg.querySelectorAll(LINE_GROUP_SEL));
 
     lineGroups.forEach(function (group, idx) {
@@ -364,8 +424,8 @@
         group.querySelector('path.recharts-curve') ||
         group.querySelector('path[stroke]') ||
         group.querySelector('path');
-      var name = normalizeBrandName(textEl && textEl.textContent);
-      if (!isKnownBrand(name) && path) name = brandFromPath(path);
+      var name = path ? brandFromPath(path) : '';
+      if (!isKnownBrand(name)) name = normalizeBrandName(textEl && textEl.textContent);
       if (!isKnownBrand(name)) name = CHART_BRAND_ORDER[idx] || '__extra_' + chartKey + '_' + idx;
       var pathD = path ? path.getAttribute('d') : '';
 
@@ -467,16 +527,28 @@
       resetLineGraphics(entry);
       return;
     }
+    if (entry.group) {
+      entry.group.classList.add(HIDDEN_LINE_CLASS);
+      entry.group.style.opacity = '0';
+      entry.group.style.visibility = 'hidden';
+    }
     if (entry.path) {
       entry.path.classList.add(HIDDEN_LINE_CLASS);
       entry.path.setAttribute('stroke-opacity', '0');
+      entry.path.style.strokeOpacity = '0';
+      entry.path.style.opacity = '0';
     }
-    if (entry.legendEl) entry.legendEl.classList.add(HIDDEN_LEGEND_CLASS);
+    if (entry.legendEl) {
+      entry.legendEl.classList.add(HIDDEN_LEGEND_CLASS);
+      entry.legendEl.style.display = 'none';
+    }
   }
 
-  /** Keep all market lines visible — hiding paths caused flicker/disappear on frozen SVG. */
   function applyBrandVisibility() {
-    ensureLinesVisible();
+    marketState.entries.forEach(function (entry) {
+      setEntryVisible(entry, isSelected(entry.name));
+    });
+    syncLegendLabels();
   }
 
   function removeBrand(name) {
@@ -634,7 +706,8 @@
     }
 
     buildSelectOthersPicker();
-    ensureLinesVisible();
+    syncLegendLabels();
+    applyBrandVisibility();
     marketState.ready = true;
   }
 
@@ -758,6 +831,7 @@
     cacheTrendNodes();
     ensureLinesVisible();
     markFitLineCharts();
+    normalizeLegendLayout();
     if (findSectionRoot('Market Tracking')) initMarketTracking();
   }
 
@@ -778,5 +852,6 @@
   window.addEventListener('resize', function () {
     markFitLineCharts();
     ensureLinesVisible();
+    normalizeLegendLayout();
   });
 })();
