@@ -12,7 +12,7 @@
     'URL Inspector': 'url-inspector.html',
     'Agentic Traffic': 'agentic-traffic.html',
     'Referral Traffic': 'overview.html',
-    Opportunities: 'overview.html',
+    Opportunities: 'opportunities.html',
     'Brands Management': 'overview.html',
     Collaboration: 'overview.html',
     Settings: 'overview.html',
@@ -28,6 +28,7 @@
     'prompts-management.html': 'Prompts Management',
     'url-inspector.html': 'URL Inspector',
     'agentic-traffic.html': 'Agentic Traffic',
+    'opportunities.html': 'Opportunities',
   };
 
   function currentFile() {

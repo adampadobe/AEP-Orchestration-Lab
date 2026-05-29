@@ -21,6 +21,7 @@ const targets = [
   'prompts-management.html',
   'url-inspector.html',
   'agentic-traffic.html',
+  'opportunities.html',
 ].map((f) => path.join(snapshotDir, f));
 
 function extractNav(html) {

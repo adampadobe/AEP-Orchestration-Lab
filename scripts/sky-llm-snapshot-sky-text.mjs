@@ -196,3 +196,11 @@ export function applyAgenticTrafficBranding(html) {
 
   return html;
 }
+
+/** Opportunities export — site, cited URLs, categories (same surface as URL Inspector). */
+export function applyOpportunitiesBranding(html) {
+  html = applyUrlInspectorBranding(html);
+  html = html.replace(/frescopa\s+opportunities/gi, 'Sky opportunities');
+  html = html.replace(/coffee\s+subscription/gi, 'TV and broadband bundle');
+  return html;
+}
