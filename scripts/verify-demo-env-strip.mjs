@@ -56,6 +56,21 @@ const FORBIDDEN_CSS_PATTERNS = [
   { re: /grid-template-columns:\s*1fr\s+300px/, label: 'legacy two-column env strip grid (use aep-demo-id-inner / Sky stacked layout)' },
 ];
 
+/** Demo CSS that may customize embedded bars — not the standard site-clone id-inner stack. */
+const PROFILE_GRID_OVERRIDE_CSS_ALLOWLIST = new Set([
+  'mod-demo.css',
+  'race-for-life-demo.css',
+  'donate-demo.css',
+  'oldmutual-demo.css',
+  'social/facebook-home.css',
+  'social/tiktok.css',
+]);
+
+const PROFILE_GRID_OVERRIDE_FORBIDDEN = {
+  re: /\.aep-demo-profile-section-grid/,
+  label: 'per-demo aep-demo-profile-section-grid override (use aep-demo-env-bar.css Sky master)',
+};
+
 const FORBIDDEN_HTML_PATTERNS = [
   { re: /om-aep-env-editor-grid/, label: 'legacy om-aep-env-editor-grid class' },
   { re: /\bid="injectSdkBtn"/, label: 'unprefixed injectSdkBtn id in HTML' },
@@ -100,6 +115,9 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   if (!html.includes('aep-demo-id-inner')) {
     fail(`${rel}: missing aep-demo-id-inner on id-inner container`);
   }
+  if (!html.includes('mod-demo-profile-actions')) {
+    fail(`${rel}: profile lookup actions row must include mod-demo-profile-actions (Sky master)`);
+  }
   for (const { re, label } of FORBIDDEN_HTML_PATTERNS) {
     if (label && re.test(html)) fail(`${rel}: ${label}`);
   }
@@ -127,6 +145,9 @@ for (const cssFile of walkCss(pv)) {
   for (const { re, label } of FORBIDDEN_CSS_PATTERNS) {
     if (re.test(text)) fail(`${rel}: ${label}`);
   }
+  if (!PROFILE_GRID_OVERRIDE_CSS_ALLOWLIST.has(rel) && PROFILE_GRID_OVERRIDE_FORBIDDEN.re.test(text)) {
+    fail(`${rel}: ${PROFILE_GRID_OVERRIDE_FORBIDDEN.label}`);
+  }
 }
 
 const stripJs = fs.readFileSync(path.join(pv, 'shared/demo-env-strip.js'), 'utf8');
@@ -142,6 +163,11 @@ if (!stripCss.includes('.mod-demo-tags-company-row')) {
 const envBarJs = read('aep-demo-env-bar.js');
 if (!envBarJs.includes('launchScriptNotSet')) {
   fail('aep-demo-env-bar.js: must keep env editor expanded when Launch script is not set');
+}
+
+const envBarCss = read('aep-demo-env-bar.css');
+if (!/\.aep-demo-id-inner\s+\.mod-demo-profile-actions/.test(envBarCss)) {
+  fail('aep-demo-env-bar.css: missing .aep-demo-id-inner .mod-demo-profile-actions (Sky master profile lookup row)');
 }
 
 if (failed) {

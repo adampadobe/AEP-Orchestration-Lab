@@ -262,6 +262,42 @@
   gap: 0.65rem 1rem;
 }
 
+.aep-demo-id-inner .aep-demo-profile-section-grid .form-row {
+  margin: 0;
+}
+
+/* Profile lookup actions row — inline with namespace + identifier (Sky master) */
+.aep-demo-id-inner .mod-demo-profile-actions,
+.aep-demo-id-inner .aep-demo-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  align-self: flex-end;
+}
+
+.aep-demo-id-inner .mod-demo-ecid-hint,
+.aep-demo-id-inner .aep-demo-ecid-hint {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.aep-demo-id-inner .mod-sdk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.aep-demo-id-inner .mod-sdk-summary .btn-lookup {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
 .aep-demo-id-inner .mod-sdk-config-fields {
   display: flex;
   flex-wrap: wrap;
