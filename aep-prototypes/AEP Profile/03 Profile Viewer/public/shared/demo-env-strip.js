@@ -11,7 +11,8 @@
   var MOUNT_ATTR = 'data-demo-env-strip-mount';
   var PREFIX_ATTR = 'data-demo-env-strip-prefix';
   var MOUNTED_ATTR = 'data-demo-env-strip-mounted';
-  var CACHE_BUST = '20260601-env-strip';
+  var CACHE_BUST = '20260601-env-strip-mount-sync';
+  var MOUNTED_EVENT = 'aep-demo-env-strip-mounted';
 
   function esc(s) {
     return String(s || '')
@@ -185,6 +186,15 @@
     }
     var mounted = document.getElementById(prefix + 'SdkConfigFields');
     if (mounted) mounted.setAttribute(MOUNTED_ATTR, '1');
+    if (mounted) {
+      try {
+        global.dispatchEvent(
+          new CustomEvent(MOUNTED_EVENT, { detail: { prefix: prefix, mountId: prefix + 'SdkConfigFields' } }),
+        );
+      } catch (_e) {
+        /* noop */
+      }
+    }
     return { mounted: !!mounted };
   }
 
@@ -253,9 +263,9 @@
 
   global.DemoEnvStrip = api;
 
+  /** Mount hosts exist as soon as this script runs (bottom of body); do not wait for DOMContentLoaded only — DemoTagsInjection.init runs in later scripts in the same turn. */
+  autoMountFromDom();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', autoMountFromDom);
-  } else {
-    autoMountFromDom();
   }
 })(typeof window !== 'undefined' ? window : globalThis);

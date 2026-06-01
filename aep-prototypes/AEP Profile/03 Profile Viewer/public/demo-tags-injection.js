@@ -198,17 +198,37 @@
     const environmentStorageKey = storagePrefix + 'SelectedTagsEnvironmentBySandbox';
     const identityEventType = String(cfg.identityEventType || 'demo.identity.stitch');
 
-    const injectSdkBtn = byId(cfg.injectButtonId);
-    const selectedScriptEl = byId(cfg.selectedScriptId);
-    const tagsCompanySelect = byId(cfg.tagsCompanyId);
-    const tagsPropertyInput = byId(cfg.tagsPropertyInputId);
-    const tagsPropertyList = byId(cfg.tagsPropertyListId);
-    const tagsEnvironmentSelect = byId(cfg.tagsEnvironmentId);
-    const sdkConfigFields = byId(cfg.configFieldsId);
-    const sdkConfigSummary = byId(cfg.configSummaryId);
-    const sdkConfigSummaryText = byId(cfg.configSummaryTextId);
-    const changeSdkConfigBtn = byId(cfg.changeConfigButtonId);
-    const infoEcidEl = byId(cfg.infoEcidId);
+    let injectSdkBtn = byId(cfg.injectButtonId);
+    let selectedScriptEl = byId(cfg.selectedScriptId);
+    let tagsCompanySelect = byId(cfg.tagsCompanyId);
+    let tagsPropertyInput = byId(cfg.tagsPropertyInputId);
+    let tagsPropertyList = byId(cfg.tagsPropertyListId);
+    let tagsEnvironmentSelect = byId(cfg.tagsEnvironmentId);
+    let sdkConfigFields = byId(cfg.configFieldsId);
+    let sdkConfigSummary = byId(cfg.configSummaryId);
+    let sdkConfigSummaryText = byId(cfg.configSummaryTextId);
+    let changeSdkConfigBtn = byId(cfg.changeConfigButtonId);
+    let infoEcidEl = byId(cfg.infoEcidId);
+
+    /** Re-resolve after DemoEnvStrip mounts Tags fields (mount may run after this script on DOMContentLoaded). */
+    function refreshTagsDom() {
+      if (!injectSdkBtn && cfg.injectButtonId) injectSdkBtn = byId(cfg.injectButtonId);
+      if (!selectedScriptEl && cfg.selectedScriptId) selectedScriptEl = byId(cfg.selectedScriptId);
+      if (!tagsCompanySelect && cfg.tagsCompanyId) tagsCompanySelect = byId(cfg.tagsCompanyId);
+      if (!tagsPropertyInput && cfg.tagsPropertyInputId) tagsPropertyInput = byId(cfg.tagsPropertyInputId);
+      if (!tagsPropertyList && cfg.tagsPropertyListId) tagsPropertyList = byId(cfg.tagsPropertyListId);
+      if (!tagsEnvironmentSelect && cfg.tagsEnvironmentId) tagsEnvironmentSelect = byId(cfg.tagsEnvironmentId);
+      if (!sdkConfigFields && cfg.configFieldsId) sdkConfigFields = byId(cfg.configFieldsId);
+      if (!sdkConfigSummary && cfg.configSummaryId) sdkConfigSummary = byId(cfg.configSummaryId);
+      if (!sdkConfigSummaryText && cfg.configSummaryTextId) sdkConfigSummaryText = byId(cfg.configSummaryTextId);
+      if (!changeSdkConfigBtn && cfg.changeConfigButtonId) changeSdkConfigBtn = byId(cfg.changeConfigButtonId);
+      if (!infoEcidEl && cfg.infoEcidId) infoEcidEl = byId(cfg.infoEcidId);
+    }
+
+    function tagsDomReady() {
+      refreshTagsDom();
+      return !!(tagsCompanySelect && tagsPropertyInput && tagsEnvironmentSelect);
+    }
 
     const iframeIds = Array.isArray(cfg.iframeIds) ? cfg.iframeIds : [];
     const iframes = iframeIds.map(byId).filter(Boolean);
@@ -1125,112 +1145,152 @@
       }
     }
 
-    if (tagsCompanySelect) {
-      tagsCompanySelect.addEventListener('change', function () {
-        const companyId = String(tagsCompanySelect.value || '').trim();
-        persistTagsCompanyId(companyId);
-        void loadTagsProperties(companyId);
-      });
-    }
+    let tagsListenersBound = false;
+    function bindTagsListenersOnce() {
+      if (tagsListenersBound) return;
+      refreshTagsDom();
+      if (!tagsDomReady()) return;
+      tagsListenersBound = true;
 
-    if (tagsPropertyInput) {
-      tagsPropertyInput.addEventListener('input', function () {
-        renderPropertySuggestions(tagsPropertyInput.value || '');
-        void applyPropertySelectionFromInput();
-      });
-      tagsPropertyInput.addEventListener('change', function () {
-        void applyPropertySelectionFromInput();
-      });
-      tagsPropertyInput.addEventListener('blur', function () {
-        void applyPropertySelectionFromInput();
-      });
-    }
-
-    if (tagsEnvironmentSelect) {
-      tagsEnvironmentSelect.addEventListener('change', function () {
-        const raw = String(tagsEnvironmentSelect.value || '').trim();
-        let decoded = raw;
-        try {
-          decoded = decodeURIComponent(raw);
-        } catch {
-          decoded = raw;
-        }
-        const clean = sanitiseLaunchScriptUrl(decoded);
-        dtLog('tagsEnvironmentSelect: change', {
-          optionLabel:
-            tagsEnvironmentSelect.selectedIndex >= 0
-              ? String(tagsEnvironmentSelect.options[tagsEnvironmentSelect.selectedIndex].textContent || '').trim()
-              : '',
-          rawValueLen: raw.length,
-          decodedPreview: dtPreview(decoded),
-          sanitisedOk: !!clean,
-          sanitisedPreview: dtPreview(clean),
+      if (tagsCompanySelect) {
+        tagsCompanySelect.addEventListener('change', function () {
+          const companyId = String(tagsCompanySelect.value || '').trim();
+          persistTagsCompanyId(companyId);
+          void loadTagsProperties(companyId);
         });
-        renderSelectedScript(clean);
-        persistSelectedScriptUrl(clean);
-        persistTagsEnvironmentEncodedValue(raw);
-      });
-    }
+      }
 
-    if (injectSdkBtn) {
-      injectSdkBtn.addEventListener('click', function () {
-        dtLog('injectSdkBtn: click', { buttonId: cfg.injectButtonId });
-        injectSelectedScript();
-      });
-    }
+      if (tagsPropertyInput) {
+        tagsPropertyInput.addEventListener('input', function () {
+          renderPropertySuggestions(tagsPropertyInput.value || '');
+          void applyPropertySelectionFromInput();
+        });
+        tagsPropertyInput.addEventListener('change', function () {
+          void applyPropertySelectionFromInput();
+        });
+        tagsPropertyInput.addEventListener('blur', function () {
+          void applyPropertySelectionFromInput();
+        });
+      }
 
-    if (changeSdkConfigBtn) {
-      changeSdkConfigBtn.addEventListener('click', function () {
-        markSdkConfiguredForSandbox(false);
-        clearLastResolvedEcidForSandbox();
-        setSdkConfigExpanded(true);
-        setMessage('SDK config reopened for this sandbox.', '');
-      });
+      if (tagsEnvironmentSelect) {
+        tagsEnvironmentSelect.addEventListener('change', function () {
+          const raw = String(tagsEnvironmentSelect.value || '').trim();
+          let decoded = raw;
+          try {
+            decoded = decodeURIComponent(raw);
+          } catch {
+            decoded = raw;
+          }
+          const clean = sanitiseLaunchScriptUrl(decoded);
+          dtLog('tagsEnvironmentSelect: change', {
+            optionLabel:
+              tagsEnvironmentSelect.selectedIndex >= 0
+                ? String(tagsEnvironmentSelect.options[tagsEnvironmentSelect.selectedIndex].textContent || '').trim()
+                : '',
+            rawValueLen: raw.length,
+            decodedPreview: dtPreview(decoded),
+            sanitisedOk: !!clean,
+            sanitisedPreview: dtPreview(clean),
+          });
+          renderSelectedScript(clean);
+          persistSelectedScriptUrl(clean);
+          persistTagsEnvironmentEncodedValue(raw);
+        });
+      }
+
+      if (injectSdkBtn) {
+        injectSdkBtn.addEventListener('click', function () {
+          dtLog('injectSdkBtn: click', { buttonId: cfg.injectButtonId });
+          injectSelectedScript();
+        });
+      }
+
+      if (changeSdkConfigBtn) {
+        changeSdkConfigBtn.addEventListener('click', function () {
+          markSdkConfiguredForSandbox(false);
+          clearLastResolvedEcidForSandbox();
+          setSdkConfigExpanded(true);
+          setMessage('SDK config reopened for this sandbox.', '');
+        });
+      }
     }
 
     global.addEventListener('aep-global-sandbox-change', function () {
+      refreshTagsDom();
       applySandboxConfigState({ announceSandboxChange: true });
       void loadTagsCompanies();
     });
 
-    dtLog('init: boot', {
-      sandboxKey: getSandboxKey(),
-      iframeCount: iframes.length,
-      injectButtonId: cfg.injectButtonId,
-      pendingSessionKey: pendingSessionKey,
-    });
-    const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
-    if (pendingScriptInject) {
-      dtLog('init: post-reload pending inject branch', { preview: dtPreview(pendingScriptInject) });
-      renderSelectedScript(pendingScriptInject);
-      persistSelectedScriptUrl(pendingScriptInject);
-      void injectSelectedScriptNow(pendingScriptInject).finally(function () {
-        void loadTagsCompanies();
-      });
-    } else {
-      dtLog('init: no pending inject — applySandboxConfigState');
-      applySandboxConfigState();
-      const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      if (shouldResumeAnonymousSdkInjection() && persistedResume) {
-        dtLog('init: anonymous resume — auto-reinject persisted Launch script', {
-          sandboxKey: getSandboxKey(),
-          preview: dtPreview(persistedResume),
+    let tagsBootStarted = false;
+    function runTagsBoot() {
+      if (tagsBootStarted) return true;
+      refreshTagsDom();
+      if (!tagsDomReady()) {
+        dtLog('init: defer boot — Tags DOM not mounted yet', {
+          tagsCompanyId: cfg.tagsCompanyId,
+          tagsPropertyInputId: cfg.tagsPropertyInputId,
         });
-        const cachedEcid = readLastResolvedEcid();
-        if (cachedEcid && infoEcidEl) {
-          const cur = String(infoEcidEl.textContent || '').trim();
-          if (!cur || cur === '—' || cur === '-' || cur.length < 10) {
-            infoEcidEl.textContent = cachedEcid;
-            setMessage('Restoring Web SDK — last lab ECID shown until getIdentity refreshes.', '');
-          }
-        }
-        renderSelectedScript(persistedResume);
-        void injectSelectedScriptNow(persistedResume).finally(function () {
+        return false;
+      }
+      tagsBootStarted = true;
+      bindTagsListenersOnce();
+
+      dtLog('init: boot', {
+        sandboxKey: getSandboxKey(),
+        iframeCount: iframes.length,
+        injectButtonId: cfg.injectButtonId,
+        pendingSessionKey: pendingSessionKey,
+      });
+      const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
+      if (pendingScriptInject) {
+        dtLog('init: post-reload pending inject branch', { preview: dtPreview(pendingScriptInject) });
+        renderSelectedScript(pendingScriptInject);
+        persistSelectedScriptUrl(pendingScriptInject);
+        void injectSelectedScriptNow(pendingScriptInject).finally(function () {
           void loadTagsCompanies();
         });
       } else {
-        void loadTagsCompanies();
+        dtLog('init: no pending inject — applySandboxConfigState');
+        applySandboxConfigState();
+        const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+        if (shouldResumeAnonymousSdkInjection() && persistedResume) {
+          dtLog('init: anonymous resume — auto-reinject persisted Launch script', {
+            sandboxKey: getSandboxKey(),
+            preview: dtPreview(persistedResume),
+          });
+          const cachedEcid = readLastResolvedEcid();
+          if (cachedEcid && infoEcidEl) {
+            const cur = String(infoEcidEl.textContent || '').trim();
+            if (!cur || cur === '—' || cur === '-' || cur.length < 10) {
+              infoEcidEl.textContent = cachedEcid;
+              setMessage('Restoring Web SDK — last lab ECID shown until getIdentity refreshes.', '');
+            }
+          }
+          renderSelectedScript(persistedResume);
+          void injectSelectedScriptNow(persistedResume).finally(function () {
+            void loadTagsCompanies();
+          });
+        } else {
+          void loadTagsCompanies();
+        }
       }
+      return true;
+    }
+
+    function scheduleTagsBootRetry() {
+      function retry() {
+        if (runTagsBoot()) {
+          document.removeEventListener('DOMContentLoaded', retry);
+          global.removeEventListener('aep-demo-env-strip-mounted', retry);
+        }
+      }
+      document.addEventListener('DOMContentLoaded', retry);
+      global.addEventListener('aep-demo-env-strip-mounted', retry);
+    }
+
+    if (!runTagsBoot()) {
+      scheduleTagsBootRetry();
     }
 
     const webPushCfgEarly = resolveWebPushCfg();
