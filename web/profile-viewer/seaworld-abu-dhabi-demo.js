@@ -13,66 +13,28 @@ const generatorTargetSelect = document.getElementById('generatorTarget');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-const SEAWORLD_WEB_PUSH_ON_INJECT_KEY = 'seaworldWebPushOnInjectToggle';
-const seaworldWebPushOnInjectToggle = document.getElementById('seaworldWebPushOnInjectToggle');
-if (seaworldWebPushOnInjectToggle) {
-  try {
-    if (localStorage.getItem(SEAWORLD_WEB_PUSH_ON_INJECT_KEY) === '1') seaworldWebPushOnInjectToggle.checked = true;
-  } catch {
-    /* noop */
-  }
-  seaworldWebPushOnInjectToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(SEAWORLD_WEB_PUSH_ON_INJECT_KEY, seaworldWebPushOnInjectToggle.checked ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-}
-
-function seaworldWebPushOnInjectDesired() {
-  return !!(seaworldWebPushOnInjectToggle && seaworldWebPushOnInjectToggle.checked);
-}
-
-// Brand Concierge launcher visibility toggle
-const seaworldBcLauncherToggle = document.getElementById('seaworldBcLauncherToggle');
-const seaworldBcLauncher = document.getElementById('seaworldBcLauncher');
-(function initSeaworldBcLauncher() {
-  const LAUNCHER_KEY = 'seaworldBcLauncherVisible';
-  if (!seaworldBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      seaworldBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  seaworldBcLauncherToggle.addEventListener('change', function () {
-    const on = seaworldBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (seaworldBcLauncher) {
-    seaworldBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge toggle
 const seaworldBcOnInjectToggle = document.getElementById('seaworldBcOnInjectToggle');
 const seaworldBcStyleSelect = document.getElementById('seaworldBcStyleSelect');
-(function initSeaworldBcToggle() {
-  if (!seaworldBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('seaworld') : { enabled: false, styleKey: 'miral' };
-  seaworldBcOnInjectToggle.checked = !!prefs.enabled;
-  if (seaworldBcStyleSelect && prefs.styleKey) seaworldBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('seaworld', !!(seaworldBcOnInjectToggle && seaworldBcOnInjectToggle.checked), seaworldBcStyleSelect ? seaworldBcStyleSelect.value : 'miral');
+
+function seaworldWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  seaworldBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (seaworldBcStyleSelect) seaworldBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('seaworldWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const seaworldInjectSdkBtn = document.getElementById('seaworldInjectSdkBtn');
+if (seaworldInjectSdkBtn) {
+  seaworldInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const seaworldTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -85,7 +47,7 @@ const seaworldTagsInjection =
         tagsPropertyInputId: 'seaworldTagsProperty',
         tagsPropertyListId: 'seaworldTagsPropertyList',
         tagsEnvironmentId: 'seaworldTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'seaworldInjectSdkBtn',
         selectedScriptId: 'seaworldSelectedScript',
         configFieldsId: 'seaworldSdkConfigFields',
         configSummaryId: 'seaworldSdkConfigSummary',
@@ -94,6 +56,7 @@ const seaworldTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: seaworldWebPushOnInjectDesired,
@@ -102,6 +65,9 @@ const seaworldTagsInjection =
         brandConcierge: {
           enabled: function () { return !!(seaworldBcOnInjectToggle && seaworldBcOnInjectToggle.checked); },
           styleKey: function () { return seaworldBcStyleSelect ? seaworldBcStyleSelect.value : 'miral'; },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
         },
         onEcidResolved: function () {
           if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();

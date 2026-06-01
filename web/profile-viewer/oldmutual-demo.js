@@ -66,189 +66,27 @@ const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'omNs');
 
-// Brand Concierge launcher visibility toggle
-const omBcLauncherToggle = document.getElementById('omBcLauncherToggle');
-const omBcLauncher = document.getElementById('omBcLauncher');
-(function initOmBcLauncher() {
-  const LAUNCHER_KEY = 'omBcLauncherVisible';
-  if (!omBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      omBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  omBcLauncherToggle.addEventListener('change', function () {
-    const on = omBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (omBcLauncher) {
-    omBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge on-inject toggle
 const omBcOnInjectToggle = document.getElementById('omBcOnInjectToggle');
 const omBcStyleSelect = document.getElementById('omBcStyleSelect');
-(function initOmBcToggle() {
-  if (!omBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('oldMutualPersonal') : { enabled: false, styleKey: 'miral' };
-  omBcOnInjectToggle.checked = !!prefs.enabled;
-  if (omBcStyleSelect && prefs.styleKey) omBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('oldMutualPersonal', !!(omBcOnInjectToggle && omBcOnInjectToggle.checked), omBcStyleSelect ? omBcStyleSelect.value : 'miral');
+
+function omWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  omBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (omBcStyleSelect) omBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
-
-const queryProfileBtn = document.getElementById('queryProfileBtn');
-const infoEcid = document.getElementById('infoEcid');
-const generatorTargetSelect = document.getElementById('generatorTarget');
-const raceEventForm = document.getElementById('raceEventForm');
-const eventLocation = document.getElementById('eventLocation');
-const eventType = document.getElementById('eventType');
-const startDate = document.getElementById('startDate');
-const endDate = document.getElementById('endDate');
-const eventSubmitBtn = document.getElementById('eventSubmitBtn');
-const abandonedBasketBtn = document.getElementById('abandonedBasketBtn');
-const raceMessage = document.getElementById('raceMessage');
-const raceMessageRevealZone = document.getElementById('raceMessageRevealZone');
-
-/** @type {Array<{ id: string, label: string, transport: string }>} */
-let generatorTargets = [];
-
-/** Fires `form.abandon` after profile lookup unless submit or manual abandon happens first. */
-let abandonBasketTimerId = null;
-let raceMessageCloseTimerId = null;
-
-function clearAbandonBasketTimer() {
-  if (abandonBasketTimerId != null) {
-    window.clearTimeout(abandonBasketTimerId);
-    abandonBasketTimerId = null;
-  }
+  const el = document.getElementById('omWebPushOnInjectToggle');
+  return !!(el && el.checked);
 }
 
-/**
- * Business page only: after 10s, send `form.abandon` if a package radio is selected.
- * Timer resets whenever the user picks a different package or logs in after lookup.
- */
-function scheduleBusinessFormAbandonCountdown() {
-  if (!document.body || !document.body.classList.contains('oldmutual-business-page')) return;
-  clearAbandonBasketTimer();
-  abandonBasketTimerId = window.setTimeout(() => {
-    abandonBasketTimerId = null;
-    const pkg = getSelectedBusinessPackage();
-    if (!pkg) return;
-    void sendRaceEvent('form.abandon', true);
-  }, 10_000);
-}
-
-function scheduleAutoAbandonAfterLookup() {
-  if (!document.body || !document.body.classList.contains('oldmutual-business-page')) return;
-  scheduleBusinessFormAbandonCountdown();
-}
-
-function getEmail() {
-  return (customerEmail && customerEmail.value) || '';
-}
-
-function getSelectedBusinessPackage() {
-  try {
-    const selected = document.querySelector('input[name="businessPackage"]:checked');
-    return selected ? String(selected.value || '').trim() : '';
-  } catch (_) {
-    return '';
-  }
-}
-
-/** After Experience Events POST, re-fetch drawer data (Query Service lags; same pattern as post-login refresh). */
-function scheduleOmDrawerRefreshAfterEvent() {
-  if (!window.AepProfileDrawer) return;
-  const silent = { addEmailOnSuccess: false, onUserMessage: () => {} };
-  let email = getEmail().trim();
-  if (!email) {
-    try {
-      email = (sessionStorage.getItem(OM_SESSION_PROFILE_EMAIL_KEY) || '').trim();
-    } catch (_) {
-      email = '';
-    }
-  }
-  if (email && typeof window.AepProfileDrawer.loadProfileDataForDrawer === 'function') {
-    void window.AepProfileDrawer.loadProfileDataForDrawer(email, silent);
-    window.setTimeout(() => {
-      void window.AepProfileDrawer.loadProfileDataForDrawer(email, silent);
-    }, 2500);
-    return;
-  }
-  let ecid = getEcidForExperienceEvent();
-  if (!ecid) {
-    try {
-      const s = sessionStorage.getItem(OM_ANONYMOUS_ECID_KEY);
-      if (s && /^\d+$/.test(s) && s.length >= 10) ecid = s;
-    } catch (_) {
-      /* ignore */
-    }
-  }
-  if (ecid && typeof window.AepProfileDrawer.loadVisitorProfileDataForDrawer === 'function') {
-    void window.AepProfileDrawer.loadVisitorProfileDataForDrawer(ecid, silent);
-    window.setTimeout(() => {
-      void window.AepProfileDrawer.loadVisitorProfileDataForDrawer(ecid, silent);
-    }, 2500);
-  }
-}
-
-function setRaceMessagePeek(open) {
-  if (!document || !document.body) return;
-  if (!raceMessage || raceMessage.hidden) {
-    document.body.classList.remove('om-race-message-peek');
-    return;
-  }
-  document.body.classList.toggle('om-race-message-peek', !!open);
-}
-
-function clearRaceMessageCloseTimer() {
-  if (raceMessageCloseTimerId != null) {
-    window.clearTimeout(raceMessageCloseTimerId);
-    raceMessageCloseTimerId = null;
-  }
-}
-
-function scheduleRaceMessageClose() {
-  clearRaceMessageCloseTimer();
-  raceMessageCloseTimerId = window.setTimeout(() => {
-    raceMessageCloseTimerId = null;
-    setRaceMessagePeek(false);
-  }, 180);
-}
-
-function setRaceMessage(text, type) {
-  if (!raceMessage) return;
-  raceMessage.textContent = text || '';
-  raceMessage.className = 'race-message' + (type ? ' ' + type : '');
-  raceMessage.hidden = !text;
-  if (!text) setRaceMessagePeek(false);
-}
-
-if (raceMessageRevealZone && raceMessage) {
-  raceMessageRevealZone.addEventListener('mouseenter', () => {
-    clearRaceMessageCloseTimer();
-    setRaceMessagePeek(true);
-  });
-  raceMessageRevealZone.addEventListener('mouseleave', () => {
-    scheduleRaceMessageClose();
-  });
-  raceMessage.addEventListener('mouseenter', () => {
-    clearRaceMessageCloseTimer();
-    setRaceMessagePeek(true);
-  });
-  raceMessage.addEventListener('mouseleave', () => {
-    scheduleRaceMessageClose();
-  });
+window.__siteCloneSuppressBcEnable = true;
+const omInjectSdkBtn = document.getElementById('omInjectSdkBtn');
+if (omInjectSdkBtn) {
+  omInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
 }
 
 function buildOmTagsInjectionConfig() {
@@ -285,11 +123,19 @@ function buildOmTagsInjectionConfig() {
       return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
     },
     getEmail,
-    /** Parent shell only — see `docs/ANONYMOUS_EDGE_DEMO_PATTERN.md` (no Launch in embedded iframes). */
     iframeIds: [],
+    hideTagsCompanyUi: true,
+    webPush: {
+      enabled: true,
+      subscribeAfterInject: omWebPushOnInjectDesired,
+      requestPermissionOnInject: omWebPushOnInjectDesired,
+    },
     brandConcierge: {
       enabled: function () { return !!(omBcOnInjectToggle && omBcOnInjectToggle.checked); },
       styleKey: function () { return (omBcStyleSelect && omBcStyleSelect.value) || 'miral'; },
+      suppressEnable: function () {
+        return !!window.__siteCloneSuppressBcEnable;
+      },
     },
   };
 }

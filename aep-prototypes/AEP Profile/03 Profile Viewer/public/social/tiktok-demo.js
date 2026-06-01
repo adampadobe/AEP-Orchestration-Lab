@@ -45,7 +45,7 @@ const tiktokTagsInjection =
         tagsPropertyInputId: 'tiktokTagsProperty',
         tagsPropertyListId: 'tiktokTagsPropertyList',
         tagsEnvironmentId: 'tiktokTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'tiktokInjectSdkBtn',
         selectedScriptId: 'tiktokSelectedScript',
         configFieldsId: 'tiktokSdkConfigFields',
         configSummaryId: 'tiktokSdkConfigSummary',
@@ -54,6 +54,7 @@ const tiktokTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: tiktokWebPushOnInjectDesired,

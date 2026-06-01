@@ -79,11 +79,19 @@ After `brand-concierge-toggle.js`:
 |------|--------|
 | `sky-demo.html`, `jlr-demo.html`, `mod-demo.html` | **Done** — shared mount |
 | `premier-inn-demo.html`, `etihad-demo.html`, `admiral-demo.html` | **Done** — full site-clone strip + BC shell |
-| `navigator-global-demo.html` | Pending — old vertical strip |
-| `race-for-life-demo.html`, `donate-demo.html` | Pending — embedded bar layout |
-| `oldmutual-*.html` | Pending |
-| `social/facebook.html`, `social/tiktok.html` | Pending |
-| `ferrari-world-abu-dhabi/*`, `seaworld-abu-dhabi/*`, `wb-world-abu-dhabi/*` | Pending |
+| `navigator-global-demo.html` | **Done** — shared mount + site-clone BC |
+| `race-for-life-demo.html`, `donate-demo.html` | **Done** — embedded bar + shared mount |
+| `oldmutual-*.html` (4 pages) | **Done** — shared mount + `SiteCloneDemoEnv` per page variant |
+| `social/facebook.html`, `social/tiktok.html` | **Done** — shared mount |
+| `ferrari-world-abu-dhabi/*`, `seaworld-abu-dhabi/*`, `wb-world-abu-dhabi/*` | **Done** — shared mount + site-clone BC |
+
+### Intentionally not migrated (different UX / out of scope)
+
+| Page | Reason |
+|------|--------|
+| `fnb-*.html`, `fnb-demo.html` | Compact FNB header bar (email + generator only); not a lab env strip demo |
+| `call-center-demo.html`, `call-centre-demo-v1.html`, `call-center-demo-apalmer.html` | Agent desktop UI; no Tags/sandbox strip |
+| `sky-llm-*.html` | Sandbox + profile lookup only (snapshot viewers); no Tags injection surface |
 
 ## Verify + mirror
 

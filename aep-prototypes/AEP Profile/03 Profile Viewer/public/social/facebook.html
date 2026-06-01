@@ -463,37 +463,12 @@
                   <option value="">Loading sandboxes…</option>
                 </select>
               </div>
-              <div id="facebookHomeSdkConfigFields" class="facebook-home-sdk-config-fields mod-sdk-config-fields">
+              <div
+                  id="facebookHomeSdkConfigFieldsMount"
+                  data-demo-env-strip-mount="site-clone-tags"
+                  data-demo-env-strip-prefix="facebookHome"
+                ></div>
                 <div class="form-row">
-                  <label for="facebookHomeTagsCompany">Tags company</label>
-                  <select id="facebookHomeTagsCompany" aria-label="Tags company"></select>
-                </div>
-                <div class="form-row">
-                  <label for="facebookHomeTagsProperty">Tags property</label>
-                  <input type="text" id="facebookHomeTagsProperty" aria-label="Tags property" placeholder="Select property" list="facebookHomeTagsPropertyList" autocomplete="off" spellcheck="false" />
-                  <datalist id="facebookHomeTagsPropertyList"></datalist>
-                </div>
-                <div class="form-row">
-                  <label for="facebookHomeTagsEnvironment">Tags environment</label>
-                  <select id="facebookHomeTagsEnvironment" aria-label="Tags environment"></select>
-                </div>
-                <div class="social-facebook-home-demo-id-actions">
-                  <button type="button" id="injectSdkBtn" class="btn-lookup">Inject selected script</button>
-                </div>
-                <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
-                  <label class="aep-demo-web-push-label">
-                    <input type="checkbox" id="facebookHomeWebPushOnInjectToggle" />
-                    <span>Register web push when injecting Tags
-                      <span class="aep-demo-web-push-hint">Runs after inject; the browser may ask for notification permission.</span>
-                    </span>
-                  </label>
-                </div>
-                <div class="aep-demo-web-push-retry">
-                  <button type="button" id="facebookHomeWebPushRetryBtn" class="btn-lookup">Register web push now</button>
-                  <span class="aep-demo-web-push-retry-hint">Use if Tags is already injected.</span>
-                </div>
-              </div>
-              <div class="form-row">
                 <label for="generatorTarget">Event destination</label>
                 <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
               </div>
@@ -529,6 +504,7 @@
           <div class="social-facebook-home-demo-id-actions">
             <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
             <span class="social-facebook-home-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
           </div>
         </div>
       </section>
@@ -1182,7 +1158,8 @@
 <script src="../shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="../aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
 <script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
-<script src="../demo-tags-injection.js?v=20260521-demo-tags"></script>
+<script src="../shared/demo-env-strip.js?v=20260601-env-strip"></script>
+  <script src="../demo-tags-injection.js?v=20260521-demo-tags"></script>
 <script src="../aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
 <script src="../aep-demo-generator-targets.js?v=20260508"></script>
 <script src="../miral-cross-site-events.js?v=20260522-fb-profile-ecid-ads"></script>
@@ -1195,7 +1172,33 @@
 </script>
 <script defer src="../aep-lab-nav.js?v=20260520-social-facebook"></script>
 <script defer src="../aep-theme.js?v=20260421-fs-helper"></script>
-<script defer src="facebook-home-demo.js?v=20260522-fb-profile-ecid-ads"></script>
+<script>
+    window.SiteCloneDemoEnv = {
+      storagePrefix: 'facebookHome',
+      webPushBySandboxKey: 'facebookHomeWebPushOnInjectBySandbox',
+      webPushLegacyKey: 'facebookHomeWebPushOnInjectToggle',
+      webPushToggleId: 'facebookHomeWebPushOnInjectToggle',
+      bcOnInjectToggleId: 'facebookHomeBcOnInjectToggle',
+      bcStyleSelectId: 'facebookHomeBcStyleSelect',
+    };
+  </script>
+  <script src="../site-clone-bc-env.js?v=20260529-bc-style-picker"></script>
+  <script src="../brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
+  <script src="../brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+<script defer src="facebook-home-demo.js?v=20260601-env-strip"></script>
+<script src="../site-clone-bc.js?v=20260601-env-strip"></script>
 
+
+  <div id="aepBcModal" class="aep-bc-modal" role="dialog" aria-modal="true" aria-labelledby="aepBcModalTitle" hidden>
+    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
+    <div class="aep-bc-modal__dialog">
+      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">&times;</button>
+      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
+      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
+    </div>
+  </div>
+  <button type="button" id="siteCloneBcFab" class="aep-bc-reopen-btn site-clone-bc-fab" hidden aria-label="Open Brand Concierge" aria-expanded="false" aria-controls="aepBcModal">
+    <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
+  </button>
 </body>
 </html>

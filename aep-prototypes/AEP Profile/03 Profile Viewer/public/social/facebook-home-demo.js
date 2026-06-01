@@ -14,25 +14,12 @@ const generatorTargetSelect = document.getElementById('generatorTarget');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-const FACEBOOK_HOME_WEB_PUSH_KEY = 'facebookHomeWebPushOnInjectToggle';
-const facebookHomeWebPushToggle = document.getElementById('facebookHomeWebPushOnInjectToggle');
-if (facebookHomeWebPushToggle) {
-  try {
-    if (localStorage.getItem(FACEBOOK_HOME_WEB_PUSH_KEY) === '1') facebookHomeWebPushToggle.checked = true;
-  } catch {
-    /* noop */
-  }
-  facebookHomeWebPushToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(FACEBOOK_HOME_WEB_PUSH_KEY, facebookHomeWebPushToggle.checked ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-}
-
 function facebookHomeWebPushOnInjectDesired() {
-  return !!(facebookHomeWebPushToggle && facebookHomeWebPushToggle.checked);
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
+  }
+  const el = document.getElementById('facebookHomeWebPushOnInjectToggle');
+  return !!(el && el.checked);
 }
 
 const facebookHomeTagsInjection =
@@ -46,7 +33,7 @@ const facebookHomeTagsInjection =
         tagsPropertyInputId: 'facebookHomeTagsProperty',
         tagsPropertyListId: 'facebookHomeTagsPropertyList',
         tagsEnvironmentId: 'facebookHomeTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'facebookHomeInjectSdkBtn',
         selectedScriptId: 'facebookHomeSelectedScript',
         configFieldsId: 'facebookHomeSdkConfigFields',
         configSummaryId: 'facebookHomeSdkConfigSummary',
@@ -55,6 +42,7 @@ const facebookHomeTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: facebookHomeWebPushOnInjectDesired,

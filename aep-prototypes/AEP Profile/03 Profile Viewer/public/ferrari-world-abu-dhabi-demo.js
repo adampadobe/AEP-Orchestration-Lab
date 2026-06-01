@@ -13,66 +13,28 @@ const generatorTargetSelect = document.getElementById('generatorTarget');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-const FERRARIWORLD_WEB_PUSH_ON_INJECT_KEY = 'ferrariworldWebPushOnInjectToggle';
-const ferrariworldWebPushOnInjectToggle = document.getElementById('ferrariworldWebPushOnInjectToggle');
-if (ferrariworldWebPushOnInjectToggle) {
-  try {
-    if (localStorage.getItem(FERRARIWORLD_WEB_PUSH_ON_INJECT_KEY) === '1') ferrariworldWebPushOnInjectToggle.checked = true;
-  } catch {
-    /* noop */
-  }
-  ferrariworldWebPushOnInjectToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(FERRARIWORLD_WEB_PUSH_ON_INJECT_KEY, ferrariworldWebPushOnInjectToggle.checked ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-}
-
-function ferrariworldWebPushOnInjectDesired() {
-  return !!(ferrariworldWebPushOnInjectToggle && ferrariworldWebPushOnInjectToggle.checked);
-}
-
-// Brand Concierge launcher visibility toggle
-const ferrariworldBcLauncherToggle = document.getElementById('ferrariworldBcLauncherToggle');
-const ferrariworldBcLauncher = document.getElementById('ferrariworldBcLauncher');
-(function initFerrariworldBcLauncher() {
-  const LAUNCHER_KEY = 'ferrariworldBcLauncherVisible';
-  if (!ferrariworldBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      ferrariworldBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  ferrariworldBcLauncherToggle.addEventListener('change', function () {
-    const on = ferrariworldBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (ferrariworldBcLauncher) {
-    ferrariworldBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge toggle
 const ferrariworldBcOnInjectToggle = document.getElementById('ferrariworldBcOnInjectToggle');
 const ferrariworldBcStyleSelect = document.getElementById('ferrariworldBcStyleSelect');
-(function initFerrariworldBcToggle() {
-  if (!ferrariworldBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('ferrariworld') : { enabled: false, styleKey: 'miral' };
-  ferrariworldBcOnInjectToggle.checked = !!prefs.enabled;
-  if (ferrariworldBcStyleSelect && prefs.styleKey) ferrariworldBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('ferrariworld', !!(ferrariworldBcOnInjectToggle && ferrariworldBcOnInjectToggle.checked), ferrariworldBcStyleSelect ? ferrariworldBcStyleSelect.value : 'miral');
+
+function ferrariworldWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  ferrariworldBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (ferrariworldBcStyleSelect) ferrariworldBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('ferrariworldWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const ferrariworldInjectSdkBtn = document.getElementById('ferrariworldInjectSdkBtn');
+if (ferrariworldInjectSdkBtn) {
+  ferrariworldInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const ferrariworldTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -85,7 +47,7 @@ const ferrariworldTagsInjection =
         tagsPropertyInputId: 'ferrariworldTagsProperty',
         tagsPropertyListId: 'ferrariworldTagsPropertyList',
         tagsEnvironmentId: 'ferrariworldTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'ferrariworldInjectSdkBtn',
         selectedScriptId: 'ferrariworldSelectedScript',
         configFieldsId: 'ferrariworldSdkConfigFields',
         configSummaryId: 'ferrariworldSdkConfigSummary',
@@ -94,6 +56,7 @@ const ferrariworldTagsInjection =
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: ferrariworldWebPushOnInjectDesired,
@@ -102,6 +65,9 @@ const ferrariworldTagsInjection =
         brandConcierge: {
           enabled: function () { return !!(ferrariworldBcOnInjectToggle && ferrariworldBcOnInjectToggle.checked); },
           styleKey: function () { return ferrariworldBcStyleSelect ? ferrariworldBcStyleSelect.value : 'miral'; },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
         },
         onEcidResolved: function () {
           if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();

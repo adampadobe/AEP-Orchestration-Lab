@@ -28,45 +28,29 @@ const presetsSingle = document.getElementById('donatePresetsSingle');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-// Brand Concierge launcher visibility toggle
-const donateBcLauncherToggle = document.getElementById('donateBcLauncherToggle');
-const donateBcLauncher = document.getElementById('donateBcLauncher');
-(function initDonateBcLauncher() {
-  const LAUNCHER_KEY = 'donateBcLauncherVisible';
-  if (!donateBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      donateBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  donateBcLauncherToggle.addEventListener('change', function () {
-    const on = donateBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (donateBcLauncher) {
-    donateBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge on-inject toggle
 const donateBcOnInjectToggle = document.getElementById('donateBcOnInjectToggle');
 const donateBcStyleSelect = document.getElementById('donateBcStyleSelect');
-(function initDonateBcToggle() {
-  if (!donateBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('donateDemo') : { enabled: false, styleKey: 'miral' };
-  donateBcOnInjectToggle.checked = !!prefs.enabled;
-  if (donateBcStyleSelect && prefs.styleKey) donateBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('donateDemo', !!(donateBcOnInjectToggle && donateBcOnInjectToggle.checked), donateBcStyleSelect ? donateBcStyleSelect.value : 'miral');
+
+function donateWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  donateBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (donateBcStyleSelect) donateBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('donateWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const donateInjectSdkBtn = document.getElementById('donateInjectSdkBtn');
+if (donateInjectSdkBtn) {
+  donateInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
+
 
 const donateTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -91,6 +75,23 @@ const donateTagsInjection =
          * Parent shell only (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`) — Launch + #infoEcid stay on one document with generator ECID.
          */
         iframeIds: [],
+        hideTagsCompanyUi: true,
+        brandConcierge: {
+          enabled: function () {
+            return !!(donateBcOnInjectToggle && donateBcOnInjectToggle.checked);
+          },
+          styleKey: function () {
+            return donateBcStyleSelect ? donateBcStyleSelect.value : 'miral';
+          },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
+        },
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: donateWebPushOnInjectDesired,
+          requestPermissionOnInject: donateWebPushOnInjectDesired,
+        },
       })
     : null;
 

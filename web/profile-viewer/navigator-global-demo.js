@@ -32,45 +32,28 @@ const modMessage = document.getElementById('modMessage');
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-// Brand Concierge launcher visibility toggle
-const navigatorBcLauncherToggle = document.getElementById('navigatorBcLauncherToggle');
-const navigatorBcLauncher = document.getElementById('navigatorBcLauncher');
-(function initNavigatorBcLauncher() {
-  const LAUNCHER_KEY = 'navigatorBcLauncherVisible';
-  if (!navigatorBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      navigatorBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  navigatorBcLauncherToggle.addEventListener('change', function () {
-    const on = navigatorBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (navigatorBcLauncher) {
-    navigatorBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge on-inject toggle
 const navigatorBcOnInjectToggle = document.getElementById('navigatorBcOnInjectToggle');
 const navigatorBcStyleSelect = document.getElementById('navigatorBcStyleSelect');
-(function initNavigatorBcToggle() {
-  if (!navigatorBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('navigatorGlobalDemo') : { enabled: false, styleKey: 'miral' };
-  navigatorBcOnInjectToggle.checked = !!prefs.enabled;
-  if (navigatorBcStyleSelect && prefs.styleKey) navigatorBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('navigatorGlobalDemo', !!(navigatorBcOnInjectToggle && navigatorBcOnInjectToggle.checked), navigatorBcStyleSelect ? navigatorBcStyleSelect.value : 'miral');
+
+function navigatorWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  navigatorBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (navigatorBcStyleSelect) navigatorBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('navigatorWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const navigatorInjectSdkBtn = document.getElementById('navigatorInjectSdkBtn');
+if (navigatorInjectSdkBtn) {
+  navigatorInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const navigatorTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -96,9 +79,18 @@ const navigatorTagsInjection =
          * Avoids a second ECID in the Navigator iframe vs parent #infoEcid + generator payloads.
          */
         iframeIds: [],
+        hideTagsCompanyUi: true,
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: navigatorWebPushOnInjectDesired,
+          requestPermissionOnInject: navigatorWebPushOnInjectDesired,
+        },
         brandConcierge: {
           enabled: function () { return !!(navigatorBcOnInjectToggle && navigatorBcOnInjectToggle.checked); },
           styleKey: function () { return (navigatorBcStyleSelect && navigatorBcStyleSelect.value) || 'miral'; },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
         },
       })
     : null;
