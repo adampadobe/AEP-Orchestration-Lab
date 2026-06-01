@@ -46,84 +46,11 @@
                     <option value="">Loading sandboxes…</option>
                   </select>
                 </div>
-                <div id="jlrSdkConfigFields" class="jlr-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block site-clone-bc-env-strip">
-                  <div class="form-row mod-demo-tags-company-row" hidden>
-                    <label for="jlrTagsCompany">Tags company</label>
-                    <select id="jlrTagsCompany" aria-label="Tags company"></select>
-                  </div>
-                  <div class="site-clone-bc-env-strip__tags-row">
-                    <div class="site-clone-bc-env-strip__property-col">
-                      <div class="form-row">
-                        <label for="jlrTagsProperty">Tags property</label>
-                        <input
-                          type="text"
-                          id="jlrTagsProperty"
-                          aria-label="Tags property"
-                          placeholder="Select property"
-                          list="jlrTagsPropertyList"
-                          autocomplete="off"
-                          spellcheck="false"
-                        >
-                        <datalist id="jlrTagsPropertyList"></datalist>
-                      </div>
-                      <div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">
-                        <button type="button" id="jlrInjectSdkBtn" class="btn-lookup">Inject selected script</button>
-                      </div>
-                    </div>
-                    <div class="form-row site-clone-bc-env-strip__environment-col">
-                      <label for="jlrTagsEnvironment">Tags environment</label>
-                      <select id="jlrTagsEnvironment" aria-label="Tags environment"></select>
-                    </div>
-                    <div class="site-clone-bc-env-pair">
-                      <div class="form-row site-clone-bc-style-url-row">
-                        <label for="siteCloneBcStyleConfigUrl">Brand Concierge style configuration</label>
-                        <select
-                          id="siteCloneBcStyleConfigUrl"
-                          class="site-clone-bc-style-url-select site-clone-bc-style-url-input"
-                          aria-label="Brand Concierge style configuration script"
-                        ></select>
-                        <p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
-                      </div>
-                      <div class="form-row site-clone-bc-datastream-row">
-                        <label for="siteCloneBcDatastreamId">Alloy datastream</label>
-                        <input
-                          type="text"
-                          id="siteCloneBcDatastreamId"
-                          class="site-clone-bc-datastream-input"
-                          aria-label="Alloy datastream for Brand Concierge"
-                          placeholder="Select or search datastream"
-                          list="siteCloneBcDatastreamList"
-                          autocomplete="off"
-                          spellcheck="false"
-                        />
-                        <datalist id="siteCloneBcDatastreamList"></datalist>
-                        <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="site-clone-bc-env-strip__legacy-inject-toggles" aria-hidden="true">
-                    <div class="form-row aep-demo-web-push-row" role="group" aria-label="Web push">
-                      <label class="aep-demo-web-push-label">
-                        <input type="checkbox" id="jlrWebPushOnInjectToggle" />
-                        <span>Register web push when injecting Tags</span>
-                      </label>
-                    </div>
-                    <div class="aep-demo-web-push-retry">
-                      <button type="button" id="jlrWebPushRetryBtn" class="btn-lookup">Register web push now</button>
-                    </div>
-                    <div class="form-row aep-bc-toggle-row" role="group" aria-label="Brand Concierge">
-                      <label class="aep-demo-web-push-label">
-                        <input type="checkbox" id="jlrBcOnInjectToggle" />
-                        <span>Enable Brand Concierge when injecting Tags</span>
-                      </label>
-                      <select id="jlrBcStyleSelect" class="aep-bc-style-select" aria-label="Brand Concierge style">
-                        <option value="miral" selected>Miral</option>
-                        <option value="generic">Generic (DemoEfficiency)</option>
-                        <option value="army">Army Recruitment</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                <div
+                  id="jlrSdkConfigFieldsMount"
+                  data-demo-env-strip-mount="site-clone-tags"
+                  data-demo-env-strip-prefix="jlr"
+                ></div>
                 <div class="form-row">
                   <label for="generatorTarget">Event destination</label>
                   <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
@@ -160,35 +87,7 @@
             <div class="mod-demo-profile-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
               <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">
-                <span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Show Brand Concierge</span>
-                <div class="site-clone-bc-prefs__options">
-                  <label class="site-clone-bc-prefs__option">
-                    <input
-                      type="checkbox"
-                      id="siteCloneBcFullScreenToggle"
-                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
-                    />
-                    <span>Full Screen</span>
-                  </label>
-                  <label class="site-clone-bc-prefs__option">
-                    <input
-                      type="checkbox"
-                      id="siteCloneBcModalToggle"
-                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
-                    />
-                    <span>Modal</span>
-                  </label>
-                  <label class="site-clone-bc-prefs__option">
-                    <input
-                      type="checkbox"
-                      id="siteCloneBcInjectedToggle"
-                      data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl"
-                    />
-                    <span>Injected</span>
-                  </label>
-                </div>
-              </div>
+              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
             </div>
           </div>
         </section>
@@ -271,6 +170,7 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="shared/demo-env-strip.js?v=20260601-env-strip"></script>
   <script src="demo-tags-injection.js?v=20260526-tags-prefs-persist"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>

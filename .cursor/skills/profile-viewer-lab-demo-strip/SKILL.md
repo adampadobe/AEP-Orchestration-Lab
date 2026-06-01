@@ -26,7 +26,9 @@ description: >-
 
 ## HTML structure
 
-Use `etihad-demo.html` as the canonical reference. Key sections in order:
+Use **`sky-demo.html`** as the canonical reference (site-clone strip). Mount markup via **`shared/demo-env-strip.js`** — see `docs/demo-env-strip-standard.md`. Legacy `etihad-demo.html` vertical layout is retired for new iframe demos.
+
+Key sections in order:
 
 ```html
 <!-- Top anchor: hover-reveal banner pattern -->
@@ -374,7 +376,8 @@ Bump **`?v=YYYYMMDD-…`** on every `<link>` / `<script>` that references a chan
 
 ## References in repo
 
-- `web/profile-viewer/etihad-demo.html` + `etihad-demo.css` + `etihad-demo.js` — canonical reference implementation.
+- `web/profile-viewer/sky-demo.html` + `shared/demo-env-strip.js` — canonical env strip (Jun 2026).
+- `web/profile-viewer/etihad-demo.html` — migrated to site-clone mount; do not copy old vertical strip.
 - `web/profile-viewer/aep-demo-env-bar.css` — `.aep-demo-id-inner` shared grid utility.
 - `web/profile-viewer/brand-concierge-controls.css` / `brand-concierge-controls.js` — BC dismiss + reopen wiring.
 - `web/profile-viewer/mod-demo.html`, `oldmutual-demo.html` — site-clone variants with custom token overrides.

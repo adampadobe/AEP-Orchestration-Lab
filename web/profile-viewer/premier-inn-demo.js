@@ -18,66 +18,28 @@ const premierInnSiteFrame = document.getElementById('premierInnSiteFrame');
 /** Match Demo Website / global v1.1 style datasets (see Navigator `_demosystem5` for generator-only CTAs). */
 const PREMIER_INN_XDM_TENANT_KEY = '_demoemea';
 
-const PREMIER_INN_WEB_PUSH_ON_INJECT_KEY = 'premierInnWebPushOnInjectToggle';
-const premierInnWebPushOnInjectToggle = document.getElementById('premierInnWebPushOnInjectToggle');
-if (premierInnWebPushOnInjectToggle) {
-  try {
-    if (localStorage.getItem(PREMIER_INN_WEB_PUSH_ON_INJECT_KEY) === '1') premierInnWebPushOnInjectToggle.checked = true;
-  } catch {
-    /* noop */
-  }
-  premierInnWebPushOnInjectToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(PREMIER_INN_WEB_PUSH_ON_INJECT_KEY, premierInnWebPushOnInjectToggle.checked ? '1' : '0');
-    } catch {
-      /* noop */
-    }
-  });
-}
-
-function premierInnWebPushOnInjectDesired() {
-  return !!(premierInnWebPushOnInjectToggle && premierInnWebPushOnInjectToggle.checked);
-}
-
-// Brand Concierge launcher visibility toggle
-const premierInnBcLauncherToggle = document.getElementById('premierInnBcLauncherToggle');
-const premierInnBcLauncher = document.getElementById('premierInnBcLauncher');
-(function initPremierInnBcLauncher() {
-  const LAUNCHER_KEY = 'premierInnBcLauncherVisible';
-  if (!premierInnBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      premierInnBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  premierInnBcLauncherToggle.addEventListener('change', function () {
-    const on = premierInnBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (premierInnBcLauncher) {
-    premierInnBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge toggle
 const premierInnBcOnInjectToggle = document.getElementById('premierInnBcOnInjectToggle');
 const premierInnBcStyleSelect = document.getElementById('premierInnBcStyleSelect');
-(function initPremierInnBcToggle() {
-  if (!premierInnBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('premierInn') : { enabled: false, styleKey: 'miral' };
-  premierInnBcOnInjectToggle.checked = !!prefs.enabled;
-  if (premierInnBcStyleSelect && prefs.styleKey) premierInnBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('premierInn', !!(premierInnBcOnInjectToggle && premierInnBcOnInjectToggle.checked), premierInnBcStyleSelect ? premierInnBcStyleSelect.value : 'miral');
+
+function premierInnWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  premierInnBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (premierInnBcStyleSelect) premierInnBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('premierInnWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const premierInnInjectSdkBtn = document.getElementById('premierInnInjectSdkBtn');
+if (premierInnInjectSdkBtn) {
+  premierInnInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const premierInnTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -90,7 +52,7 @@ const premierInnTagsInjection =
         tagsPropertyInputId: 'premierInnTagsProperty',
         tagsPropertyListId: 'premierInnTagsPropertyList',
         tagsEnvironmentId: 'premierInnTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'premierInnInjectSdkBtn',
         selectedScriptId: 'premierInnSelectedScript',
         configFieldsId: 'premierInnSdkConfigFields',
         configSummaryId: 'premierInnSdkConfigSummary',
@@ -98,16 +60,23 @@ const premierInnTagsInjection =
         changeConfigButtonId: 'premierInnChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
-        /* Launch only on the parent shell: iframe + third-party cookies often mint a different ECID than the parent, while hotel.* events use parent #infoEcid via the generator — bad anonymous tracking. */
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: premierInnWebPushOnInjectDesired,
           requestPermissionOnInject: premierInnWebPushOnInjectDesired,
         },
         brandConcierge: {
-          enabled: function () { return !!(premierInnBcOnInjectToggle && premierInnBcOnInjectToggle.checked); },
-          styleKey: function () { return premierInnBcStyleSelect ? premierInnBcStyleSelect.value : 'miral'; },
+          enabled: function () {
+            return !!(premierInnBcOnInjectToggle && premierInnBcOnInjectToggle.checked);
+          },
+          styleKey: function () {
+            return premierInnBcStyleSelect ? premierInnBcStyleSelect.value : 'miral';
+          },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
         },
       })
     : null;

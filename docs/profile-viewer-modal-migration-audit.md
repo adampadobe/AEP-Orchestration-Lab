@@ -9,9 +9,9 @@
 |-----------|------|-------|
 | **Sky (chosen)** | `web/profile-viewer/sky-demo.html` | Full drawer markup with NPS row, em-dash placeholders, identity graph zoom, audiences/messages/events panels; aligned with site-clone BC + canonical env strip (`mod-demo` layout). |
 | JLR | `web/profile-viewer/jlr-demo.html` | Added on `origin/main` (kirkham); structurally identical site-clone drawer to Sky — migrated to shared mount in same pass. |
-| Etihad | `web/profile-viewer/etihad-demo.html` | Canonical env strip reference per skill; drawer used `-` vs `—` placeholders and slightly compressed HTML. Merged into Sky canonical shell. |
+| Etihad | `web/profile-viewer/etihad-demo.html` | Was env-strip reference in skill; **drawer** merged into Sky shell via `ProfileViewerModal`. **Top strip** now follows Sky via `shared/demo-env-strip.js` (see `docs/demo-env-strip-standard.md`). |
 
-**Decision:** **Sky** is the master reference. JLR on `main` matched Sky structurally; both now use `ProfileViewerModal.mount()`. Etihad’s env-strip patterns remain documented in `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`; drawer shell markup is centralized from Sky.
+**Decision:** **Sky** is the master reference for both **drawer** (`ProfileViewerModal`) and **top env strip** (`DemoEnvStrip`). JLR matches Sky structurally. Etihad/Admiral/Premier Inn iframe demos migrated from legacy vertical strip to site-clone mount (Jun 2026).
 
 ## Variant differences (pre-migration)
 

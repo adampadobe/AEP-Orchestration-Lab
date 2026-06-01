@@ -16,62 +16,28 @@ const ADMIRAL_XDM_TENANT_KEY = '_demoemea';
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
 
-const ADMIRAL_WEB_PUSH_ON_INJECT_KEY = 'admiralWebPushOnInjectToggle';
-const admiralWebPushOnInjectToggle = document.getElementById('admiralWebPushOnInjectToggle');
-if (admiralWebPushOnInjectToggle) {
-  try {
-    if (localStorage.getItem(ADMIRAL_WEB_PUSH_ON_INJECT_KEY) === '1') admiralWebPushOnInjectToggle.checked = true;
-  } catch { /* noop */ }
-  admiralWebPushOnInjectToggle.addEventListener('change', function () {
-    try {
-      localStorage.setItem(ADMIRAL_WEB_PUSH_ON_INJECT_KEY, admiralWebPushOnInjectToggle.checked ? '1' : '0');
-    } catch { /* noop */ }
-  });
-}
-
-function admiralWebPushOnInjectDesired() {
-  return !!(admiralWebPushOnInjectToggle && admiralWebPushOnInjectToggle.checked);
-}
-
-// Brand Concierge launcher visibility toggle
-const admiralBcLauncherToggle = document.getElementById('admiralBcLauncherToggle');
-const admiralBcLauncher = document.getElementById('admiralBcLauncher');
-(function initAdmiralBcLauncher() {
-  const LAUNCHER_KEY = 'admiralBcLauncherVisible';
-  if (!admiralBcLauncherToggle) return;
-  try {
-    if (localStorage.getItem(LAUNCHER_KEY) === '1') {
-      admiralBcLauncherToggle.checked = true;
-      document.body.classList.add('aep-bc-launcher-on');
-    }
-  } catch { /* noop */ }
-  admiralBcLauncherToggle.addEventListener('change', function () {
-    const on = admiralBcLauncherToggle.checked;
-    document.body.classList.toggle('aep-bc-launcher-on', on);
-    try { localStorage.setItem(LAUNCHER_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  });
-  if (admiralBcLauncher) {
-    admiralBcLauncher.addEventListener('click', function () {
-      if (typeof AepBcToggle !== 'undefined') AepBcToggle.reopen(); else document.body.classList.remove('aep-bc-panel-dismissed');
-    });
-  }
-})();
-
-// Brand Concierge toggle
 const admiralBcOnInjectToggle = document.getElementById('admiralBcOnInjectToggle');
 const admiralBcStyleSelect = document.getElementById('admiralBcStyleSelect');
-(function initAdmiralBcToggle() {
-  if (!admiralBcOnInjectToggle) return;
-  const prefs = typeof AepBcToggle !== 'undefined' ? AepBcToggle.loadPrefs('admiral') : { enabled: false, styleKey: 'miral' };
-  admiralBcOnInjectToggle.checked = !!prefs.enabled;
-  if (admiralBcStyleSelect && prefs.styleKey) admiralBcStyleSelect.value = prefs.styleKey;
-  function saveBcPrefs() {
-    if (typeof AepBcToggle === 'undefined') return;
-    AepBcToggle.savePrefs('admiral', !!(admiralBcOnInjectToggle && admiralBcOnInjectToggle.checked), admiralBcStyleSelect ? admiralBcStyleSelect.value : 'miral');
+
+function admiralWebPushOnInjectDesired() {
+  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+    return window.SiteCloneBcEnv.webPushOnInjectDesired();
   }
-  admiralBcOnInjectToggle.addEventListener('change', saveBcPrefs);
-  if (admiralBcStyleSelect) admiralBcStyleSelect.addEventListener('change', saveBcPrefs);
-})();
+  const el = document.getElementById('admiralWebPushOnInjectToggle');
+  return !!(el && el.checked);
+}
+
+window.__siteCloneSuppressBcEnable = true;
+const admiralInjectSdkBtn = document.getElementById('admiralInjectSdkBtn');
+if (admiralInjectSdkBtn) {
+  admiralInjectSdkBtn.addEventListener(
+    'click',
+    function () {
+      window.__siteCloneSuppressBcEnable = false;
+    },
+    true,
+  );
+}
 
 const admiralTagsInjection =
   typeof window.DemoTagsInjection !== 'undefined'
@@ -84,7 +50,7 @@ const admiralTagsInjection =
         tagsPropertyInputId: 'admiralTagsProperty',
         tagsPropertyListId: 'admiralTagsPropertyList',
         tagsEnvironmentId: 'admiralTagsEnvironment',
-        injectButtonId: 'injectSdkBtn',
+        injectButtonId: 'admiralInjectSdkBtn',
         selectedScriptId: 'admiralSelectedScript',
         configFieldsId: 'admiralSdkConfigFields',
         configSummaryId: 'admiralSdkConfigSummary',
@@ -92,20 +58,23 @@ const admiralTagsInjection =
         changeConfigButtonId: 'admiralChangeSdkConfigBtn',
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         getEmail: () => (customerEmail && customerEmail.value) || '',
-        /**
-         * Parent shell only — same pattern as Premier Inn (`docs/ANONYMOUS_EDGE_DEMO_PATTERN.md`).
-         * Injecting Launch into the iframe mints a different ECID / kndctr context than parent
-         * `syncEcidFromAlloy` + `_demoemea` sendEvent, so UPS and #infoEcid no longer line up.
-         */
         iframeIds: [],
+        hideTagsCompanyUi: true,
         webPush: {
           enabled: true,
           subscribeAfterInject: admiralWebPushOnInjectDesired,
           requestPermissionOnInject: admiralWebPushOnInjectDesired,
         },
         brandConcierge: {
-          enabled: function () { return !!(admiralBcOnInjectToggle && admiralBcOnInjectToggle.checked); },
-          styleKey: function () { return admiralBcStyleSelect ? admiralBcStyleSelect.value : 'miral'; },
+          enabled: function () {
+            return !!(admiralBcOnInjectToggle && admiralBcOnInjectToggle.checked);
+          },
+          styleKey: function () {
+            return admiralBcStyleSelect ? admiralBcStyleSelect.value : 'miral';
+          },
+          suppressEnable: function () {
+            return !!window.__siteCloneSuppressBcEnable;
+          },
         },
       })
     : null;

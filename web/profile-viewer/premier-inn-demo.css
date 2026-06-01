@@ -4,7 +4,7 @@
   width: 100%;
   height: 100%;
   border: 0;
-  z-index: 1;
+  z-index: 100;
   background: var(--dash-bg);
 }
 
@@ -14,9 +14,11 @@
 }
 
 .premier-inn-demo-page .dashboard-shell {
-  position: relative;
-  z-index: 2;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
   pointer-events: none;
+  display: flex;
 }
 
 .premier-inn-demo-page .dashboard-sidebar {
@@ -82,7 +84,8 @@
   align-items: start;
 }
 
-.premier-inn-demo-id-inner .premier-inn-sdk-config-fields.mod-sdk-config-fields {
+.premier-inn-demo-id-inner .premier-inn-sdk-config-fields.mod-sdk-config-fields,
+.premier-inn-demo-id-inner .site-clone-bc-env-strip.mod-sdk-config-fields {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -186,12 +189,7 @@
   color: var(--dash-error-text);
 }
 
-/* ── Brand Concierge launcher ─────────────────────────────────── */
-
-.premier-inn-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.premier-inn-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
-  display: none !important;
-}
+/* Site-clone BC shell: site-clone-bc.css + site-clone-bc-env-strip.css */
 
 @media (min-width: 769px) {
   body.premier-inn-demo-page .dashboard-sidebar {
