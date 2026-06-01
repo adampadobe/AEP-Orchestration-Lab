@@ -17,6 +17,9 @@ Read this fully before making your first change.
 5. [Directory map](#directory-map)
 6. [Light / dark theming system (critical)](#light--dark-theming-system)
 7. [Adding a new page](#adding-a-new-page)
+   - [Shared env bar — do not break](#shared-env-bar--do-not-break)
+   - [Shared profile drawer — do not break](#shared-profile-drawer--do-not-break)
+   - [Lab demo page PR checklist](#lab-demo-page-pr-checklist-copy-for-prs)
 8. [CSS rules and conventions](#css-rules-and-conventions)
 9. [Cloud Functions patterns](#cloud-functions-patterns)
 10. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
@@ -522,66 +525,101 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 3. Bump `home.css` / `aep-lab-nav.js` cache query on pages you touch if styles or nav data changed; run `npm run verify:profile-viewer-routes` and `npm run sync-profile-viewer-ui` when the Express mirror must stay aligned.
 4. Confirm light/dark themes and **Global values** hide keys for every new `navHideKey`; verify **Demos visibility** + **sandbox switch** for handles/sandboxes you care about.
 
-### Profile Viewer lab demos — environment strip (Sandbox, Tags, event destination)
+### Shared env bar — do not break
 
-Embedded demos and **site-clone** pages (Sky, JLR, MOD, Premier Inn, Etihad, Admiral, etc.) that use **Adobe Tags injection** and **`POST /api/events/generator`** must share one **canonical strip** — the **JLR/Sky site-clone pattern** (not the legacy Etihad vertical stack).
+**Site-clone** lab demos (Sky, JLR, MOD, Premier Inn, Etihad, Admiral, Miral parks, social, Old Mutual, etc.) that use **Adobe Tags injection** and **`POST /api/events/generator`** share one top strip. Treat it as a **shared component**: change behaviour in shared files, not per-demo forks.
 
-**Single source of truth:** `web/profile-viewer/shared/demo-env-strip.js` mounts Tags + BC prefs markup; **`shared/demo-env-bar.bundle.css`** + **`shared/demo-env-bar-bootstrap.js`** (`initLabDemoEnvBar`) unify env bar CSS and init. Master reference: **`sky-demo.html`**. Policy: **`docs/demo-env-strip-standard.md`**.
+| Layer | Single source of truth | Do not |
+|-------|------------------------|--------|
+| **CSS** | `web/profile-viewer/shared/demo-env-bar.bundle.css` only | Link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly on site-clone demo HTML |
+| **Init** | `shared/demo-env-bar-bootstrap.js` → **`initLabDemoEnvBar({ prefix })`** once in demo JS | Call `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
+| **Markup** | `shared/demo-env-strip.js` — mount points only | Paste inline Tags rows, copy `site-clone-bc-env-strip.fragment.html`, or duplicate `{prefix}SdkConfigFields` HTML |
 
-- **Layout:** add `aep-demo-id-inner` on the id-inner `<div>` for the **Sky stacked column** layout (via **`shared/demo-env-bar.bundle.css`**). Do **not** add per-demo `grid-template-columns: 1fr 300px`, `.aep-demo-env-*`, or `site-clone-bc-env-strip` overrides — zero HTML/CSS drift.
-- **Tags block:** mount with `data-demo-env-strip-mount="site-clone-tags"` and `data-demo-env-strip-prefix="{prefix}"` (see `shared/demo-env-strip.js`). Compact row: property + inject, environment, BC style URL + Alloy datastream. Company row stays in DOM but hidden; use `hideTagsCompanyUi: true` in `DemoTagsInjection.init`.
-- **Event destination:** `#generatorTarget` as a **sibling** of `#…SdkConfigFields` (stays visible after inject).
-- **Collapse:** call **`window.initLabDemoEnvBar({ prefix: '{prefix}' })`** once from demo JS (replaces per-demo `AepDemoEnvStrip.initStandardEnvBar` blocks).
-- **Profile lookup:** `#aepDemoProfileSection`; mount BC mode toggles with `data-demo-env-strip-mount="site-clone-bc-prefs"` (Full Screen / Modal / Injected).
-- **Iframe site-clone BC:** load **`shared/demo-env-bar.bundle.css`**, `site-clone-bc.css`, `site-clone-bc-env.js`, `site-clone-bc.js`; set `window.SiteCloneDemoEnv` + `window.SiteCloneBcPage`; inject id `{prefix}InjectSdkBtn`.
+**References:** master page [`web/profile-viewer/sky-demo.html`](web/profile-viewer/sky-demo.html); policy [`docs/demo-env-strip-standard.md`](docs/demo-env-strip-standard.md); verifier [`scripts/verify-demo-env-strip.mjs`](scripts/verify-demo-env-strip.mjs); agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
-**Scripts (in order):** Firebase compat + `firebase-database-config.js`, `aep-global-sandbox.js`, `aep-lab-sandbox-sync.js`, `email-cache.js`, `identity-picker.js`, `email-engagement-metrics.js`, **`shared/profile-viewer-modal.js`**, `aep-profile-drawer.js`, **`aep-demo-web-push.js`**, **`shared/demo-env-strip.js`**, **`shared/demo-env-bar-bootstrap.js`**, `demo-tags-injection.js`, **`aep-demo-env-bar.js`**, **`aep-demo-generator-targets.js`**, **`brand-concierge-styles-bundle.js`**, **`brand-concierge-toggle.js`**, `site-clone-bc-env.js`, demo JS (with **`initLabDemoEnvBar({ prefix })`**), **`site-clone-bc.js`**, then `brand-concierge-controls.js` + deferred theme/nav.
+**Stable DOM ids** (do not rename — `DemoTagsInjection`, `AepDemoEnvBar`, and site-clone BC depend on them):
 
-**CSS (load order):** `style.css` → `home.css` → `{brand}-demo.css` → **`site-clone-bc.css`** → **`shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle`** → `brand-concierge-controls.css` → `aep-profile-drawer.css` → **`shared/profile-viewer-modal.css`** → `aep-theme.css`.
+- Strip: `aepDemoEnvSection`, `aepDemoEnvEditor`, `aepDemoEnvConfigGrid`, `aepDemoEnvCompact`, `aepDemoEnvCompactText`, `aepDemoEnvExpandBtn`
+- Sandbox / events: `sandboxSelect`, `generatorTarget` (must stay a **sibling** of the Tags mount, not inside it)
+- Profile lookup column: `aepDemoProfileSection`, `customerEmail`, `queryProfileBtn`, `infoEcid`
+- After mount (per `{prefix}`): `{prefix}SdkConfigFields`, `{prefix}InjectSdkBtn`, `{prefix}SdkConfigSummary`, `{prefix}SelectedScript`; site-clone BC: `siteCloneBcStyleConfigUrl`, `siteCloneBcDatastreamId`, toggles from `data-demo-env-strip-mount="site-clone-bc-prefs"`
 
-**Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — wiring patterns; prefer mount over copying `site-clone-bc-env-strip.fragment.html`.
+**Mount contract (HTML only — no inline Tags block):**
 
-**Drift check:** `npm run verify:demo-env-strip` — fails on missing bundle/bootstrap, direct env-bar CSS links, legacy two-column env grids, forbidden selectors in demo CSS, missing mount/`aep-demo-id-inner`, unprefixed `injectSdkBtn`, direct `initStandardEnvBar`, or demos without `hideTagsCompanyUi: true`.
+```html
+<div class="{brand}-demo-id-inner aep-demo-id-inner">
+  …
+  <div id="{prefix}SdkConfigFieldsMount"
+       data-demo-env-strip-mount="site-clone-tags"
+       data-demo-env-strip-prefix="{prefix}"></div>
+  <div class="form-row"><label for="generatorTarget">Event destination</label>
+    <select id="generatorTarget">…</select></div>
+  …
+  <div class="… mod-demo-profile-actions">… queryProfileBtn …</div>
+  <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
+</div>
+```
 
-### Shared Profile Viewer modal — single source of truth
+`DemoTagsInjection.init` must use `hideTagsCompanyUi: true` and `injectButtonId: '{prefix}InjectSdkBtn'` (not unprefixed `injectSdkBtn`).
 
-Demo websites that show the **hover profile drawer** must **not** copy drawer HTML into page templates. Markup drifted across ~25 demos before centralisation (see `docs/profile-viewer-modal-migration-audit.md`).
+**Forbidden patterns** (`npm run verify:demo-env-strip` fails CI/local):
 
-**Where to edit**
+- Per-demo CSS touching `.aep-demo-env-*`, `#aepDemoProfileSection`, `.aep-demo-profile-section-grid`, `.site-clone-bc-env-strip`, or `grid-template-columns: 1fr 300px`
+- Inline env strip / Tags HTML, legacy `om-aep-env-editor-grid`, `id="injectSdkBtn"` without prefix
+- Missing `shared/demo-env-bar.bundle.css`, `shared/demo-env-bar-bootstrap.js`, `aep-demo-id-inner`, or `data-demo-env-strip-mount="site-clone-tags"`
 
-| Change | File |
-|--------|------|
-| Drawer shell markup (panels, ids, default placeholders) | `web/profile-viewer/shared/profile-viewer-modal.js` |
-| Mount host / layout hook | `web/profile-viewer/shared/profile-viewer-modal.css` |
-| Profile fetch, `/api/profile/table`, events, identity graph logic | `web/profile-viewer/aep-profile-drawer.js` |
-| Drawer visual styling (panels, graph, modals inside drawer) | `web/profile-viewer/aep-profile-drawer.css` |
+**Pre-merge:** `npm run verify:demo-env-strip`. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
 
-**How demo pages consume it**
+**Exceptions** (different UX — not site-clone bundle): `fnb-*.html`, `call-center-demo*.html`, `sky-llm-*.html`. See [Intentionally not migrated](docs/demo-env-strip-standard.md#migration-status) in `docs/demo-env-strip-standard.md`.
 
-1. Add a single mount point before scripts (no inline `#profileDrawer` block):
+**Scripts (site-clone slice, after profile modal + drawer):** `shared/demo-env-strip.js` → `shared/demo-env-bar-bootstrap.js` → `demo-tags-injection.js` → `aep-demo-env-bar.js` → `aep-demo-generator-targets.js` → … → demo JS calling **`initLabDemoEnvBar({ prefix })`** → `site-clone-bc.js`.
 
-   ```html
-   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
-   ```
+**CSS (site-clone slice):** `{brand}-demo.css` → `site-clone-bc.css` → **`shared/demo-env-bar.bundle.css`** → `brand-concierge-controls.css` → `aep-profile-drawer.css` → `shared/profile-viewer-modal.css` → `aep-theme.css` last.
 
-2. Load assets (adjust `../` depth for nested paths):
+### Shared profile drawer — do not break
 
-   ```html
-   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=YYYYMMDD">
-   …
-   <script src="shared/profile-viewer-modal.js?v=YYYYMMDD"></script>
-   <script src="aep-profile-drawer.js?v=…"></script>
-   ```
+Demo pages that show the **hover profile drawer** must use the shared shell. Drawer markup drifted across ~25 pages before centralisation — see [`docs/profile-viewer-modal-migration-audit.md`](docs/profile-viewer-modal-migration-audit.md).
 
-3. Keep existing `DemoProfileDrawer.init({ emailInputId, profileOpenClass, … })` in the demo JS. Optional: `ProfileViewerModal.setContext({ profileOpenClass: '…' })` before `open()` / `close()`.
+| Layer | Single source of truth | Do not |
+|-------|------------------------|--------|
+| **Markup** | `shared/profile-viewer-modal.js` injected into `#profileViewerModalMount` | Paste `<div class="aep-profile-drawer-hover-zone">…</div>` or `<aside id="profileDrawer">…</aside>` in demo HTML |
+| **Data / API** | `aep-profile-drawer.js` — **`DemoProfileDrawer.init({ … })`** | Duplicate drawer panel HTML or reimplement `/api/profile/table` wiring in demo HTML |
+| **Drawer chrome CSS** | `aep-profile-drawer.css` | Copy drawer panel rules into `{brand}-demo.css` |
+| **Mount layout** | `shared/profile-viewer-modal.css` | Override `#profileViewerModalMount` / `#profileDrawer` layout in per-demo CSS without a product reason |
 
-**Public API:** `window.ProfileViewerModal` — `mount()`, `open()`, `close()`, `setContext()`, `renderProfile(data)` (delegates to `DemoProfileDrawer.updateProfileDrawer`).
+**Consume on every new or touched demo:**
 
-**Rules**
+```html
+<div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+```
 
-- **Do not** paste `<aside id="profileDrawer">…</aside>` into new demo HTML.
-- **Do** keep profile lookup strip ids (`customerEmail`, `queryProfileBtn`, namespace select) per the lab demo strip skill.
-- Bump `?v=` on shared modal assets when you change them; run `npm run verify:profile-viewer-routes` and `npm run sync-profile-viewer-ui` before merge/deploy.
+```html
+<link rel="stylesheet" href="shared/profile-viewer-modal.css?v=YYYYMMDD">
+<script src="shared/profile-viewer-modal.js?v=YYYYMMDD"></script>
+<script src="aep-profile-drawer.js?v=…"></script>
+```
+
+Keep **`DemoProfileDrawer.init({ emailInputId: 'customerEmail', profileOpenClass: '{brand}-demo-page--profile-open', … })`** in demo JS. Optional: `ProfileViewerModal.setContext({ profileOpenClass: '…' })` before `open()` / `close()`. **`window.ProfileViewerModal`:** `mount()`, `open()`, `close()`, `setContext()`, `renderProfile(data)`.
+
+After `ProfileViewerModal.mount()`, stable ids include `#profileHoverZone`, `#profileDrawer`, `#profileDrawerName`, `#profileDrawerEmail`, `#profileDrawerEvents`, identity graph nodes — see `aep-profile-drawer.js` (do not rename without updating the data layer).
+
+**Pre-merge:** there is no dedicated drawer verifier yet. Before PR: ensure demo HTML has **`profileViewerModalMount`** and no inline `id="profileDrawer"` block (grep `web/profile-viewer` for `<aside class="aep-profile-drawer"` outside `shared/profile-viewer-modal.js`). Always run **`npm run verify:profile-viewer-routes`** when any `web/profile-viewer/` path changes; **`npm run sync-profile-viewer-ui`** when the Express mirror must match. One-shot migrator: `node scripts/migrate-profile-viewer-modal.mjs` (idempotent).
+
+### Lab demo page PR checklist (copy for PRs)
+
+Paste into PR description when adding or editing a **lab demo** under `web/profile-viewer/`:
+
+```markdown
+### Lab demo PR checklist
+- [ ] Site-clone strip: `shared/demo-env-bar.bundle.css` + `initLabDemoEnvBar({ prefix })` (no direct env-bar CSS / no `initStandardEnvBar`)
+- [ ] Tags markup: `data-demo-env-strip-mount="site-clone-tags"` only (no inline Tags HTML); `hideTagsCompanyUi: true`
+- [ ] Stable ids: `sandboxSelect`, `generatorTarget`, `aepDemoProfileSection`, `{prefix}InjectSdkBtn`, `customerEmail`, `queryProfileBtn`
+- [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
+- [ ] `DemoProfileDrawer.init` unchanged contract; drawer edits only in `shared/profile-viewer-modal.js` / `aep-profile-drawer.js`
+- [ ] `npm run verify:demo-env-strip` (site-clone demos)
+- [ ] `npm run verify:profile-viewer-routes` + `npm run sync-profile-viewer-ui` if `web/profile-viewer/` touched
+- [ ] Light + dark theme smoke on demo page
+```
 
 ### Feature-specific CSS
 
@@ -1005,6 +1043,7 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
 - [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes))
+- [ ] If you touched a **site-clone lab demo** (env strip / drawer): [Shared env bar](#shared-env-bar--do-not-break) + [Shared profile drawer](#shared-profile-drawer--do-not-break) — `npm run verify:demo-env-strip` passes; no inline `#profileDrawer` / Tags markup
 - [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
 - [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)
 - [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, re-`git status`, pulled if behind, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
@@ -1038,6 +1077,8 @@ submodule is set to a no-push dummy as a safety net.
 
 ## Further reading
 
+- `docs/demo-env-strip-standard.md` — site-clone env bar bundle, mounts, exceptions (FNB / call centre / Sky LLM)
+- `docs/profile-viewer-modal-migration-audit.md` — shared profile drawer migration and stable ids
 - `docs/AJO_CONTENT_TEMPLATE_API.md` — AJO HTML content templates: bearer auth, correct `Content-Type`, `/api/aep` and MCP notes
 - `docs/COLLEAGUE_PROFILE_VIEWER.md` — local Express setup, auth, sandbox selection
 - `docs/FIREBASE_STANDALONE_DEPLOY.md` — full deploy walkthrough with secrets
