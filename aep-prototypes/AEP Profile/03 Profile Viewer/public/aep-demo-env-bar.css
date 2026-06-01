@@ -229,17 +229,37 @@
   display: inline-flex;
 }
 
-/* ── Standard stacked env-bar layout ────────────────────────────
-   Add class "aep-demo-id-inner" to any demo id-inner div to opt
-   into the standard. Config section stacks above profile lookup,
-   separated by a divider. Individual demo CSS overrides still apply. */
+/* ── Standard stacked env-bar layout (Sky master) ───────────────
+   Add class "aep-demo-id-inner" on the id-inner div. Environment
+   stacks above profile lookup — no per-demo grid overrides. */
 .aep-demo-id-inner {
+  width: 100%;
   max-width: none;
   margin: 0;
-  padding: 0.75rem 20px 0.6rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
+  padding: 0.75rem clamp(12px, 2vw, 20px) 0.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.aep-demo-id-inner .aep-demo-env-section {
+  width: 100%;
+}
+
+.aep-demo-id-inner .aep-demo-profile-section {
+  width: 100%;
+  border-top: 1px solid var(--dash-border);
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+}
+
+.aep-demo-id-inner .aep-demo-profile-section-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
 }
 
 .aep-demo-id-inner .mod-sdk-config-fields {

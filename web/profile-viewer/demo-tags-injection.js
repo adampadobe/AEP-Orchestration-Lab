@@ -692,7 +692,7 @@
         setTagsCompanyRowVisible(!hideTagsCompanyUi);
         setMessage('Tags companies loaded.', 'success');
       } catch (err) {
-        setTagsCompanyRowVisible(true);
+        setTagsCompanyRowVisible(!hideTagsCompanyUi);
         setMessage(err.message || 'Failed to load Tags companies.', 'error');
       }
     }

@@ -72,72 +72,7 @@
   transform: translateY(0);
 }
 
-.etihad-demo-id-inner {
-  max-width: none;
-  margin: 0;
-  padding: 0.75rem 20px 0.6rem;
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 0 2rem;
-  align-items: start;
-}
-
-.etihad-demo-id-inner .etihad-sdk-config-fields.mod-sdk-config-fields {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.85rem;
-}
-
-.etihad-demo-id-inner .aep-demo-web-push-row,
-.etihad-demo-id-inner .aep-bc-toggle-row,
-.etihad-demo-id-inner .aep-bc-launcher-row {
-  flex: 0 0 auto;
-  padding-top: 0;
-}
-
-.etihad-demo-id-inner .aep-demo-web-push-retry {
-  flex: 0 0 auto;
-  margin-top: 0;
-}
-
-.etihad-demo-id-inner .aep-demo-web-push-retry-hint,
-.etihad-demo-id-inner .aep-demo-web-push-hint {
-  display: none;
-}
-
-.etihad-demo-id-inner .mod-sdk-summary--below-env-grid {
-  width: 100%;
-  margin-top: 0.35rem;
-}
-
-.etihad-demo-id-inner .form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.etihad-demo-id-inner label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--dash-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.etihad-demo-id-inner .sandbox-select,
-.etihad-demo-id-inner input[type="text"],
-.etihad-demo-id-inner select {
-  min-width: 10rem;
-}
-
-.etihad-demo-id-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
+/* Env strip layout: aep-demo-env-bar.css + site-clone-bc-env-strip.css (Sky master) */
 
 .etihad-sdk-summary {
   display: flex;
@@ -226,11 +161,6 @@
 
   body.etihad-demo-page--nav-open .dashboard-sidebar {
     transform: none;
-  }
-
-  .etihad-demo-id-inner {
-    grid-template-columns: 1fr;
-    padding: 0.6rem 12px;
   }
 }
 

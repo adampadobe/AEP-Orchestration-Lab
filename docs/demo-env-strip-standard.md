@@ -97,8 +97,25 @@ After `brand-concierge-toggle.js`:
 
 ```bash
 npm run verify:profile-viewer-routes
+npm run verify:demo-env-strip
 npm run sync-profile-viewer-ui
 ```
+
+### Drift guard (`verify:demo-env-strip`)
+
+CI/local script `scripts/verify-demo-env-strip.mjs` fails when:
+
+| Pattern | Why forbidden |
+|---------|----------------|
+| `grid-template-columns: 1fr 300px` in demo CSS | Legacy side-by-side env + profile layout (Premier Inn pre-fix) |
+| Inline `{prefix}SdkConfigFields` HTML | Markup must come from `shared/demo-env-strip.js` mount only |
+| `om-aep-env-editor-grid` | Old Mutual legacy grid class |
+| `injectSdkBtn` without prefix | Must be `{prefix}InjectSdkBtn` |
+| Site-clone demo JS without `hideTagsCompanyUi: true` | Tags company row stays hidden (CSS + JS) |
+
+**Tags company visibility:** row remains in DOM (`hidden` + `.mod-demo-tags-company-row { display: none !important }` in `site-clone-bc-env-strip.css`); `demo-tags-injection.js` auto-picks company when `hideTagsCompanyUi: true`.
+
+**Layout master:** `aep-demo-env-bar.css` `.aep-demo-id-inner` — flex column stack (Environment above Profile lookup). No per-demo env-strip CSS overrides.
 
 ## Related docs
 

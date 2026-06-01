@@ -17,6 +17,7 @@
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
     "verify:profile-viewer-routes": "node scripts/verify-profile-viewer-routes.mjs",
+    "verify:demo-env-strip": "node scripts/verify-demo-env-strip.mjs",
     "prepare:sky-llm-snapshot": "node scripts/prepare-sky-llm-snapshot.mjs",
     "prepare:sky-llm-brand-presence": "node scripts/prepare-sky-llm-brand-presence.mjs",
     "verify:experimentation-accelerator": "node scripts/verify-experimentation-accelerator-snapshot.mjs",

@@ -528,7 +528,7 @@ Embedded demos and **site-clone** pages (Sky, JLR, MOD, Premier Inn, Etihad, Adm
 
 **Single source of truth:** `web/profile-viewer/shared/demo-env-strip.js` mounts Tags + BC prefs markup. Master reference: **`sky-demo.html`**. Policy: **`docs/demo-env-strip-standard.md`**.
 
-- **Layout:** add `aep-demo-id-inner` on the id-inner `<div>` for the two-column grid (`aep-demo-env-bar.css`).
+- **Layout:** add `aep-demo-id-inner` on the id-inner `<div>` for the **Sky stacked column** layout (`aep-demo-env-bar.css`). Do **not** add per-demo `grid-template-columns: 1fr 300px` or other env-strip grid overrides — zero HTML/CSS drift.
 - **Tags block:** mount with `data-demo-env-strip-mount="site-clone-tags"` and `data-demo-env-strip-prefix="{prefix}"` (see `shared/demo-env-strip.js`). Compact row: property + inject, environment, BC style URL + Alloy datastream. Company row stays in DOM but hidden; use `hideTagsCompanyUi: true` in `DemoTagsInjection.init`.
 - **Event destination:** `#generatorTarget` as a **sibling** of `#…SdkConfigFields` (stays visible after inject).
 - **Collapse:** SDK summary + `AepDemoEnvStrip.initStandardEnvBar({ summaryId, fieldsId, selectedScriptCodeId })` for compact “Sandbox · Tags” row.
@@ -540,6 +540,8 @@ Embedded demos and **site-clone** pages (Sky, JLR, MOD, Premier Inn, Etihad, Adm
 **CSS (load order):** `style.css` → `home.css` → `{brand}-demo.css` → **`site-clone-bc.css`** → **`site-clone-bc-env-strip.css`** → `aep-demo-env-bar.css` → `brand-concierge-controls.css` → `aep-profile-drawer.css` → **`shared/profile-viewer-modal.css`** → `aep-theme.css`.
 
 **Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — wiring patterns; prefer mount over copying `site-clone-bc-env-strip.fragment.html`.
+
+**Drift check:** `npm run verify:demo-env-strip` — fails on legacy two-column env grids, missing mount/`aep-demo-id-inner`, unprefixed `injectSdkBtn`, or demos without `hideTagsCompanyUi: true`.
 
 ### Shared Profile Viewer modal — single source of truth
 
