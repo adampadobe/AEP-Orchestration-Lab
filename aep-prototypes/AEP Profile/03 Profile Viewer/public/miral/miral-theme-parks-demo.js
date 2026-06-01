@@ -138,14 +138,7 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initMiralDemoSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'miralSdkConfigSummary',
-    fieldsId: 'miralSdkConfigFields',
-    selectedScriptCodeId: 'miralSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'miral' });
 
 (function initMiralDemoFlyoutSidebar() {
   const body = document.body;

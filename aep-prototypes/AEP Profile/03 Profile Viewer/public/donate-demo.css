@@ -141,13 +141,13 @@
   gap: 0.65rem;
 }
 
-.donate-email-bar .aep-demo-profile-section-grid .form-row {
+.donate-email-bar .aep-demo-profile-section .form-row {
   margin: 0;
   flex: 1 1 220px;
   min-width: 200px;
 }
 
-.donate-email-bar .aep-demo-profile-section-grid label {
+.donate-email-bar .aep-demo-profile-section label {
   display: block;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -155,7 +155,7 @@
   margin-bottom: 0.35rem;
 }
 
-.donate-email-bar .aep-demo-env-editor-grid select.sandbox-select {
+.donate-email-bar select.sandbox-select {
   max-width: min(100%, 28rem);
 }
 

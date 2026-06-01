@@ -433,11 +433,4 @@ customerEmail && customerEmail.addEventListener('input', function () {
   }
 });
 
-(function initEtihadSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'etihadSdkConfigSummary',
-    fieldsId: 'etihadSdkConfigFields',
-    selectedScriptCodeId: 'etihadSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'etihad' });

@@ -506,11 +506,4 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initPremierInnSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'premierInnSdkConfigSummary',
-    fieldsId: 'premierInnSdkConfigFields',
-    selectedScriptCodeId: 'premierInnSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'premierInn' });

@@ -315,14 +315,7 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initDonateDemoSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'donateSdkConfigSummary',
-    fieldsId: 'donateSdkConfigFields',
-    selectedScriptCodeId: 'donateSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'donate' });
 
 syncPresetPanels();
 

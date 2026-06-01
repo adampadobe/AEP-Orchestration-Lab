@@ -149,7 +149,7 @@ body.oldmutual-demo-page {
   gap: 0.55rem;
 }
 
-.oldmutual-demo-page .om-aep-controls--lab-strip .aep-demo-env-section {
+.oldmutual-demo-page .om-aep-controls--lab-strip {
   border-bottom-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -233,7 +233,7 @@ body.oldmutual-demo-page {
 .oldmutual-business-page .om-aep-controls input[type='email'],
 .oldmutual-business-quote-thank-you-page .om-aep-controls input[type='email'],
 .oldmutual-wealth-page .om-aep-controls input[type='email'],
-.oldmutual-demo-page .om-aep-controls--lab-strip .aep-demo-profile-section-grid input[type='text'] {
+.oldmutual-demo-page .om-aep-controls--lab-strip .aep-demo-profile-section input[type='text'] {
   /* Override global style.css input flex */
   flex: 0 1 200px;
   min-width: 0;

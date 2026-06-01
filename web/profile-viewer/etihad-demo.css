@@ -72,7 +72,7 @@
   transform: translateY(0);
 }
 
-/* Env strip layout: aep-demo-env-bar.css + site-clone-bc-env-strip.css (Sky master) */
+/* Env strip layout: shared/demo-env-bar.bundle.css (Sky master) */
 
 .etihad-sdk-summary {
   display: flex;

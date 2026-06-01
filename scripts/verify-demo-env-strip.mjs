@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Guardrails: lab demo env strip must match Sky master (shared mount + CSS, no drift).
+ * Guardrails: lab demo env strip must match Sky master (shared mount + CSS bundle + bootstrap, no drift).
  * @see docs/demo-env-strip-standard.md
  */
 import fs from 'node:fs';
@@ -10,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const pv = path.join(root, 'web/profile-viewer');
+
+const BUNDLE_CSS = 'shared/demo-env-bar.bundle.css';
+const BUNDLE_BOOTSTRAP = 'shared/demo-env-bar-bootstrap.js';
 
 const SITE_CLONE_DEMO_HTML = [
   'sky-demo.html',
@@ -52,24 +55,20 @@ const SITE_CLONE_DEMO_JS = [
   'miral/miral-theme-parks-demo.js',
 ];
 
-const FORBIDDEN_CSS_PATTERNS = [
-  { re: /grid-template-columns:\s*1fr\s+300px/, label: 'legacy two-column env strip grid (use aep-demo-id-inner / Sky stacked layout)' },
-];
-
-/** Demo CSS that may customize embedded bars — not the standard site-clone id-inner stack. */
-const PROFILE_GRID_OVERRIDE_CSS_ALLOWLIST = new Set([
-  'mod-demo.css',
-  'race-for-life-demo.css',
-  'donate-demo.css',
-  'oldmutual-demo.css',
-  'social/facebook-home.css',
-  'social/tiktok.css',
+const CSS_DRIFT_ALLOWLIST = new Set([
+  'aep-demo-env-bar.css',
+  'site-clone-bc-env-strip.css',
+  BUNDLE_CSS,
+  'site-clone-bc.css',
 ]);
 
-const PROFILE_GRID_OVERRIDE_FORBIDDEN = {
-  re: /\.aep-demo-profile-section-grid/,
-  label: 'per-demo aep-demo-profile-section-grid override (use aep-demo-env-bar.css Sky master)',
-};
+const FORBIDDEN_CSS_PATTERNS = [
+  { re: /grid-template-columns:\s*1fr\s+300px/, label: 'legacy two-column env strip grid (use aep-demo-id-inner / Sky stacked layout)' },
+  { re: /\.aep-demo-env-/, label: 'per-demo .aep-demo-env-* override (use shared/demo-env-bar.bundle.css)' },
+  { re: /#aepDemoProfileSection/, label: 'per-demo #aepDemoProfileSection override (use shared/demo-env-bar.bundle.css)' },
+  { re: /\.site-clone-bc-env-strip/, label: 'per-demo site-clone-bc-env-strip override (use shared/demo-env-bar.bundle.css)' },
+  { re: /\.aep-demo-profile-section-grid/, label: 'per-demo aep-demo-profile-section-grid override (use aep-demo-env-bar.css Sky master)' },
+];
 
 const FORBIDDEN_HTML_PATTERNS = [
   { re: /om-aep-env-editor-grid/, label: 'legacy om-aep-env-editor-grid class' },
@@ -109,8 +108,17 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   if (!html.includes('shared/demo-env-strip.js')) {
     fail(`${rel}: missing shared/demo-env-strip.js`);
   }
-  if (!html.includes('site-clone-bc-env-strip.css')) {
-    fail(`${rel}: missing site-clone-bc-env-strip.css`);
+  if (!html.includes(BUNDLE_CSS)) {
+    fail(`${rel}: missing ${BUNDLE_CSS} (unified env bar CSS bundle)`);
+  }
+  if (!html.includes(BUNDLE_BOOTSTRAP)) {
+    fail(`${rel}: missing ${BUNDLE_BOOTSTRAP}`);
+  }
+  if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
+    fail(`${rel}: must not load aep-demo-env-bar.css directly — use ${BUNDLE_CSS}`);
+  }
+  if (/href="[^"]*\/site-clone-bc-env-strip\.css/.test(html) || /href="site-clone-bc-env-strip\.css/.test(html)) {
+    fail(`${rel}: must not load site-clone-bc-env-strip.css directly — use ${BUNDLE_CSS}`);
   }
   if (!html.includes('aep-demo-id-inner')) {
     fail(`${rel}: missing aep-demo-id-inner on id-inner container`);
@@ -136,23 +144,39 @@ for (const rel of SITE_CLONE_DEMO_JS) {
   if (/injectButtonId:\s*['"]injectSdkBtn['"]/.test(js)) {
     fail(`${rel}: injectButtonId must be prefixed ({prefix}InjectSdkBtn), not injectSdkBtn`);
   }
+  if (!/initLabDemoEnvBar\s*\(/.test(js)) {
+    fail(`${rel}: must call initLabDemoEnvBar({ prefix: ... }) from shared/demo-env-bar-bootstrap.js`);
+  }
+  if (/AepDemoEnvStrip\.initStandardEnvBar\s*\(/.test(js)) {
+    fail(`${rel}: must not call AepDemoEnvStrip.initStandardEnvBar directly — use initLabDemoEnvBar`);
+  }
 }
 
 for (const cssFile of walkCss(pv)) {
   const rel = path.relative(pv, cssFile);
-  if (rel === 'site-clone-bc-env-strip.css' || rel === 'aep-demo-env-bar.css') continue;
+  if (CSS_DRIFT_ALLOWLIST.has(rel)) continue;
   const text = fs.readFileSync(cssFile, 'utf8');
   for (const { re, label } of FORBIDDEN_CSS_PATTERNS) {
     if (re.test(text)) fail(`${rel}: ${label}`);
-  }
-  if (!PROFILE_GRID_OVERRIDE_CSS_ALLOWLIST.has(rel) && PROFILE_GRID_OVERRIDE_FORBIDDEN.re.test(text)) {
-    fail(`${rel}: ${PROFILE_GRID_OVERRIDE_FORBIDDEN.label}`);
   }
 }
 
 const stripJs = fs.readFileSync(path.join(pv, 'shared/demo-env-strip.js'), 'utf8');
 if (!stripJs.includes('mod-demo-tags-company-row" hidden')) {
   fail('shared/demo-env-strip.js: Tags company row must include hidden attribute');
+}
+
+const bundleCss = read(BUNDLE_CSS);
+if (!bundleCss.includes("@import url('../aep-demo-env-bar.css')")) {
+  fail(`${BUNDLE_CSS}: must @import aep-demo-env-bar.css`);
+}
+if (!bundleCss.includes("@import url('../site-clone-bc-env-strip.css')")) {
+  fail(`${BUNDLE_CSS}: must @import site-clone-bc-env-strip.css`);
+}
+
+const bootstrapJs = read(BUNDLE_BOOTSTRAP);
+if (!bootstrapJs.includes('initLabDemoEnvBar')) {
+  fail(`${BUNDLE_BOOTSTRAP}: must export window.initLabDemoEnvBar`);
 }
 
 const stripCss = fs.readFileSync(path.join(pv, 'site-clone-bc-env-strip.css'), 'utf8');
@@ -173,4 +197,4 @@ if (!/\.aep-demo-id-inner\s+\.mod-demo-profile-actions/.test(envBarCss)) {
 if (failed) {
   process.exit(1);
 }
-console.log('verify-demo-env-strip: OK (Sky master — no env strip drift detected)');
+console.log('verify-demo-env-strip: OK (Sky master — unified bundle + bootstrap, no env strip drift detected)');

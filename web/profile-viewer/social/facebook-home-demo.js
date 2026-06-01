@@ -221,14 +221,7 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initFacebookHomeSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'facebookHomeSdkConfigSummary',
-    fieldsId: 'facebookHomeSdkConfigFields',
-    selectedScriptCodeId: 'facebookHomeSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'facebookHome' });
 
 function sandboxQs() {
   if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {

@@ -229,11 +229,4 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initTiktokSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'tiktokSdkConfigSummary',
-    fieldsId: 'tiktokSdkConfigFields',
-    selectedScriptCodeId: 'tiktokSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'tiktok' });

@@ -234,14 +234,7 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initSeaworldSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'seaworldSdkConfigSummary',
-    fieldsId: 'seaworldSdkConfigFields',
-    selectedScriptCodeId: 'seaworldSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'seaworld' });
 
 window.AepDemoParkStitch = window.AepDemoParkStitch || {};
 window.AepDemoParkStitch.stitch = function (email, ecid) {

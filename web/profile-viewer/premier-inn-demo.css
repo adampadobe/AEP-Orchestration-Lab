@@ -74,7 +74,7 @@
   transform: translateY(0);
 }
 
-/* Env strip layout: aep-demo-env-bar.css + site-clone-bc-env-strip.css (Sky master) */
+/* Env strip layout: shared/demo-env-bar.bundle.css (Sky master) */
 
 .premier-inn-sdk-summary {
   display: flex;
@@ -123,7 +123,7 @@
   color: var(--dash-error-text);
 }
 
-/* Site-clone BC shell: site-clone-bc.css + site-clone-bc-env-strip.css */
+/* Site-clone BC shell: site-clone-bc.css + shared/demo-env-bar.bundle.css */
 
 @media (min-width: 769px) {
   body.premier-inn-demo-page .dashboard-sidebar {

@@ -1,0 +1,7 @@
+/**
+ * Unified lab demo env bar CSS — Sky master stacked layout + site-clone Tags strip.
+ * Single load for all site-clone demos (replaces separate aep-demo-env-bar.css + site-clone-bc-env-strip.css links).
+ * @see docs/demo-env-strip-standard.md
+ */
+@import url('../aep-demo-env-bar.css');
+@import url('../site-clone-bc-env-strip.css');

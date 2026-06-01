@@ -176,14 +176,7 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initNavigatorDemoEnvStrip() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'navigatorSdkConfigSummary',
-    fieldsId: 'navigatorSdkConfigFields',
-    selectedScriptCodeId: 'navigatorSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'navigator' });
 
 (function initNavigatorGlobalDemoFlyoutSidebar() {
   const body = document.body;

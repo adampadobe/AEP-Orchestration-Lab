@@ -105,194 +105,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   transform: translateY(0);
 }
 
-.mod-demo-id-inner.aep-demo-id-inner {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0.75rem clamp(12px, 2vw, 20px) 0.5rem;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-}
-
-.mod-demo-id-inner .aep-demo-env-section {
-  width: 100%;
-}
-
-.mod-demo-id-inner .aep-demo-profile-section {
-  width: 100%;
-  border-top: 1px solid var(--dash-border);
-  margin-top: 0.65rem;
-  padding-top: 0.65rem;
-}
-
-.mod-demo-id-inner .aep-demo-profile-section-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.65rem 1rem;
-}
-
-.mod-demo-id-inner .aep-demo-profile-section-grid .form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-  margin: 0;
-}
-
-.mod-demo-id-inner .aep-demo-profile-section-grid label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--dash-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.mod-demo-id-inner .aep-demo-profile-section-grid .sandbox-select,
-.mod-demo-id-inner .aep-demo-profile-section-grid input[type='text'] {
-  min-width: 10rem;
-}
-
-.mod-demo-profile-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.65rem 1rem;
-  flex: 0 1 auto;
-  min-width: 0;
-  align-self: flex-end;
-}
-
-.mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block .mod-demo-bc-env-pair {
-  flex: 1 1 100%;
-  width: 100%;
-  align-self: stretch;
-}
-
-.mod-demo-bc-env-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  column-gap: 1.25rem;
-  row-gap: 0.25rem;
-  align-items: start;
-  flex: 1 1 100%;
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row,
-.mod-demo-bc-env-pair .mod-demo-bc-datastream-row {
-  display: contents;
-  margin: 0;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint {
-  grid-column: 1;
-  grid-row: 3;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
-  grid-column: 2;
-  grid-row: 3;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
-.mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label {
-  line-height: 1.25;
-  display: block;
-  margin: 0;
-}
-
-.mod-demo-bc-env-pair .mod-demo-bc-style-url-hint {
-  margin: 0;
-  max-width: none;
-}
-
-@media (max-width: 52rem) {
-  .mod-demo-bc-env-pair {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-  }
-
-  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > label,
-  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-input,
-  .mod-demo-bc-env-pair .mod-demo-bc-style-url-row > .mod-demo-bc-style-url-hint,
-  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > label,
-  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-datastream-input,
-  .mod-demo-bc-env-pair .mod-demo-bc-datastream-row > .mod-demo-bc-style-url-hint {
-    grid-column: 1;
-    grid-row: auto;
-  }
-}
-
-.mod-demo-bc-style-url-row {
-  flex: 1 1 100%;
-  min-width: min(100%, 28rem);
-}
-
-.mod-demo-bc-style-url-input {
-  width: 100%;
-  max-width: 100%;
-}
-
-.mod-demo-bc-datastream-input {
-  width: 100%;
-  max-width: 100%;
-}
-
-.mod-demo-bc-style-url-hint {
-  margin: 0.2rem 0 0;
-  font-size: 0.75rem;
-  color: var(--dash-muted);
-  line-height: 1.35;
-  max-width: min(100%, 36rem);
-  word-break: break-all;
-}
-
-.mod-demo-id-inner .mod-sdk-config-fields.mod-demo-tags-block {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.85rem;
-}
-
-.mod-demo-id-inner .aep-demo-web-push-row,
-.mod-demo-id-inner .aep-bc-toggle-row,
-.mod-demo-id-inner .aep-demo-web-push-retry {
-  flex: 0 0 auto;
-  padding-top: 0;
-  margin: 0;
-}
-
-.mod-demo-id-inner .aep-demo-web-push-retry-hint,
-.mod-demo-id-inner .aep-demo-web-push-hint {
-  display: none;
-}
+/* Env strip + profile lookup layout: shared/demo-env-bar.bundle.css (Sky master) */
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
   width: 100%;
@@ -303,7 +116,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   display: none !important;
 }
 
-.mod-demo-bc-prefs-field {
+.site-clone-bc-prefs-field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -325,7 +138,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   border: 0;
 }
 
-.mod-demo-bc-prefs-field .mod-demo-bc-prefs__label {
+.site-clone-bc-prefs-field .site-clone-bc-prefs__label {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--dash-muted);
@@ -341,11 +154,11 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   pointer-events: none !important;
 }
 
-.mod-demo-page #modDemoBcFab.mod-demo-bc-fab {
+.mod-demo-page #siteCloneBcFab.site-clone-bc-fab {
   display: none;
 }
 
-.mod-demo-page.mod-demo-bc-modal-armed #modDemoBcFab.mod-demo-bc-fab {
+.mod-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
   display: flex;
 }
 
@@ -360,18 +173,74 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
 }
 
 /* Full screen BC mode: same Army home snapshot iframe, BC fills viewport below site header */
-.mod-demo-page.mod-demo-bc-fullscreen-armed .mod-demo-site-frame {
+.mod-demo-page.site-clone-bc-fullscreen-armed .mod-demo-site-frame {
   z-index: 1;
 }
 
-.mod-demo-bc-prefs__options {
+/* Parent-page BC overlay (injected + full screen) — same network stack as modal */
+.site-clone-bc-frame-host {
+  position: fixed;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  pointer-events: auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  background: linear-gradient(
+    122.87deg,
+    var(--dash-surface-alt, #e1e9ff) 20.72%,
+    #efe3fa 34.96%,
+    #f5dff8 42.08%,
+    #fcdcf5 49.2%,
+    #ffdec3 91.6%
+  );
+}
+
+.site-clone-bc-frame-host[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Injected overlay: only the BC panel captures input; page/iframe scroll continues below */
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  pointer-events: none;
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount {
+  pointer-events: auto;
+}
+
+.site-clone-bc-frame-mount {
+  width: 100%;
+  max-width: 920px;
+  min-height: min(540px, 100%);
+  flex: 1 1 auto;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.site-clone-bc-frame-host #siteCloneBcFrameMount.brand-concierge-mount,
+.site-clone-bc-frame-host .site-clone-bc-frame-mount {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 540px;
+}
+
+.site-clone-bc-prefs__options {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem 0.9rem;
 }
 
-.mod-demo-bc-prefs__option {
+.site-clone-bc-prefs__option {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -381,7 +250,7 @@ html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
   white-space: nowrap;
 }
 
-.mod-demo-bc-prefs__option input[type='checkbox'] {
+.site-clone-bc-prefs__option input[type='checkbox'] {
   accent-color: var(--dash-blue);
   flex-shrink: 0;
 }

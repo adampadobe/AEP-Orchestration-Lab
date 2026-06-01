@@ -322,11 +322,4 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initAdmiralSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'admiralSdkConfigSummary',
-    fieldsId: 'admiralSdkConfigFields',
-    selectedScriptCodeId: 'admiralSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'admiral' });

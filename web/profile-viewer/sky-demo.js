@@ -165,14 +165,7 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initSkyDemoEnvStrip() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'skySdkConfigSummary',
-    fieldsId: 'skySdkConfigFields',
-    selectedScriptCodeId: 'skySelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'sky' });
 
 (function initSkyDemoFlyoutSidebar() {
   const body = document.body;

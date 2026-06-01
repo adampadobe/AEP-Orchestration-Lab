@@ -1135,15 +1135,7 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-(function initOmDemoEnvStrip() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  if (!document.getElementById('aepDemoEnvSection')) return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'omSdkConfigSummary',
-    fieldsId: 'omSdkConfigFields',
-    selectedScriptCodeId: 'omSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'om' });
 
 if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.init === 'function') {
   DemoProfileDrawer.init({

@@ -234,14 +234,7 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initWbworldSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'wbworldSdkConfigSummary',
-    fieldsId: 'wbworldSdkConfigFields',
-    selectedScriptCodeId: 'wbworldSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'wbworld' });
 
 // Exposed so miral-cross-site-events.js can trigger an identity stitch via alloy
 // (same path as stitchAfterProfileLookup used by the profile viewer Query Profile button)

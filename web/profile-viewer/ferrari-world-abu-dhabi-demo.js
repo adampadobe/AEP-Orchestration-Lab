@@ -234,14 +234,7 @@ DemoProfileDrawer.init({
   fetchBrowserEcidOnInit: true,
 });
 
-(function initFerrariworldSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'ferrariworldSdkConfigSummary',
-    fieldsId: 'ferrariworldSdkConfigFields',
-    selectedScriptCodeId: 'ferrariworldSelectedScript',
-  });
-})();
+window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'ferrariworld' });
 
 window.AepDemoParkStitch = window.AepDemoParkStitch || {};
 window.AepDemoParkStitch.stitch = function (email, ecid) {
