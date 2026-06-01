@@ -532,11 +532,51 @@ Embedded demos and **site-clone** pages (e.g. Old Mutual, MOD, Race for Life) th
 - **Stable ids:** `aepDemoEnvSection`, `aepDemoEnvEditor`, `aepDemoEnvConfigGrid` (see `web/profile-viewer/etihad-demo.html`).
 - **Brand Concierge launcher:** place `#brand-concierge-mount-host` (with dismiss button + `#brand-concierge-mount`), a branded `.aep-bc-park-launcher` button, and `brand-concierge-controls.js` at the bottom of `<body>`. In the demo CSS, hide both with `:not(.aep-bc-launcher-on)` so the panel never appears unless the user enables it via the launcher toggle.
 
-**Scripts (in order):** Firebase compat + `firebase-database-config.js`, `aep-global-sandbox.js`, `aep-lab-sandbox-sync.js`, `email-cache.js`, `identity-picker.js`, `email-engagement-metrics.js`, `aep-profile-drawer.js`, **`aep-demo-web-push.js`**, `demo-tags-injection.js`, **`aep-demo-env-bar.js`**, **`aep-demo-generator-targets.js`**, **`brand-concierge-styles-bundle.js`**, **`brand-concierge-toggle.js`**, then the demo-specific JS. After `aep-lab-nav.js`: the BC mount host + launcher + `brand-concierge-controls.js`.
+**Scripts (in order):** Firebase compat + `firebase-database-config.js`, `aep-global-sandbox.js`, `aep-lab-sandbox-sync.js`, `email-cache.js`, `identity-picker.js`, `email-engagement-metrics.js`, **`shared/profile-viewer-modal.js`**, `aep-profile-drawer.js`, **`aep-demo-web-push.js`**, `demo-tags-injection.js`, **`aep-demo-env-bar.js`**, **`aep-demo-generator-targets.js`**, **`brand-concierge-styles-bundle.js`**, **`brand-concierge-toggle.js`**, then the demo-specific JS. After `aep-lab-nav.js`: the BC mount host + launcher + `brand-concierge-controls.js`.
 
-**CSS (load order):** `style.css` → `home.css` → `{brand}-demo.css` → `aep-demo-env-bar.css` → `brand-concierge-controls.css` → `aep-profile-drawer.css` → `aep-theme.css`. If the page does not load `home.css`, define `--dash-*` fallbacks on a local wrapper (see `oldmutual-demo.css`).
+**CSS (load order):** `style.css` → `home.css` → `{brand}-demo.css` → `aep-demo-env-bar.css` → `brand-concierge-controls.css` → `aep-profile-drawer.css` → **`shared/profile-viewer-modal.css`** → `aep-theme.css`. If the page does not load `home.css`, define `--dash-*` fallbacks on a local wrapper (see `oldmutual-demo.css`).
 
 **Agent skill:** `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — canonical HTML structure, full CSS template, and JS wiring patterns for new demos.
+
+### Shared Profile Viewer modal — single source of truth
+
+Demo websites that show the **hover profile drawer** must **not** copy drawer HTML into page templates. Markup drifted across ~25 demos before centralisation (see `docs/profile-viewer-modal-migration-audit.md`).
+
+**Where to edit**
+
+| Change | File |
+|--------|------|
+| Drawer shell markup (panels, ids, default placeholders) | `web/profile-viewer/shared/profile-viewer-modal.js` |
+| Mount host / layout hook | `web/profile-viewer/shared/profile-viewer-modal.css` |
+| Profile fetch, `/api/profile/table`, events, identity graph logic | `web/profile-viewer/aep-profile-drawer.js` |
+| Drawer visual styling (panels, graph, modals inside drawer) | `web/profile-viewer/aep-profile-drawer.css` |
+
+**How demo pages consume it**
+
+1. Add a single mount point before scripts (no inline `#profileDrawer` block):
+
+   ```html
+   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+   ```
+
+2. Load assets (adjust `../` depth for nested paths):
+
+   ```html
+   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=YYYYMMDD">
+   …
+   <script src="shared/profile-viewer-modal.js?v=YYYYMMDD"></script>
+   <script src="aep-profile-drawer.js?v=…"></script>
+   ```
+
+3. Keep existing `DemoProfileDrawer.init({ emailInputId, profileOpenClass, … })` in the demo JS. Optional: `ProfileViewerModal.setContext({ profileOpenClass: '…' })` before `open()` / `close()`.
+
+**Public API:** `window.ProfileViewerModal` — `mount()`, `open()`, `close()`, `setContext()`, `renderProfile(data)` (delegates to `DemoProfileDrawer.updateProfileDrawer`).
+
+**Rules**
+
+- **Do not** paste `<aside id="profileDrawer">…</aside>` into new demo HTML.
+- **Do** keep profile lookup strip ids (`customerEmail`, `queryProfileBtn`, namespace select) per the lab demo strip skill.
+- Bump `?v=` on shared modal assets when you change them; run `npm run verify:profile-viewer-routes` and `npm run sync-profile-viewer-ui` before merge/deploy.
 
 ### Feature-specific CSS
 

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="oldmutual-business.css">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
 </head>
@@ -303,133 +304,7 @@
     </form>
   </section>
 
-  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
-  <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Profile preview">
-    <div class="aep-profile-drawer-inner">
-      <section
-        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
-        aria-labelledby="profileDrawerCustomerHeading"
-      >
-        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
-        <div class="aep-profile-drawer-avatar-ring">
-          <img
-            id="profileDrawerAvatar"
-            class="aep-profile-drawer-avatar"
-            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
-            alt="Customer profile photo"
-            loading="lazy"
-            decoding="async"
-          >
-        </div>
-        <div class="aep-profile-drawer-card-fields">
-          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
-          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
-          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
-          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
-          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
-          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
-          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
-        </div>
-        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
-          <label><input type="checkbox" checked disabled> Marketing</label>
-          <label><input type="checkbox" checked disabled> Notifications</label>
-          <label><input type="checkbox" disabled> Newsletter</label>
-        </div>
-      </section>
-      <section
-        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
-        aria-labelledby="profileDrawerIdentityHeading"
-      >
-        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
-        <div class="aep-profile-drawer-identity-fields">
-          <div class="aep-profile-drawer-identity-row">
-            <strong>ECID</strong>
-            <span id="profileDrawerDesktopId">—</span>
-          </div>
-          <div class="aep-profile-drawer-identity-row">
-            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
-            <span id="profileDrawerPropensityScore">—</span>
-          </div>
-          <div class="aep-profile-drawer-identity-row">
-            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
-            <span id="profileDrawerChurnScore">—</span>
-          </div>
-          <div class="aep-profile-drawer-identity-row">
-            <strong title="_demoemea.scoring.npsScore">NPS score</strong>
-            <span id="profileDrawerNpsScore">—</span>
-          </div>
-          <div class="aep-profile-drawer-identity-row">
-<strong>Loyalty Status</strong>
-            <span id="profileDrawerLoyalty">Unknown</span>
-          </div>
-          <div class="aep-profile-drawer-identity-row">
-            <strong title="_demoemea.individualCharacteristics.fsi.productOverview.checkingAcctType">Account Type</strong>
-            <span id="profileDrawerCheckingAcctType">—</span>
-          </div>
-        </div>
-      </section>
-      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
-        <div class="aep-profile-drawer-graph-head">
-          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
-          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
-            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
-            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
-          </div>
-        </div>
-        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
-          <svg
-            class="aep-profile-drawer-graph-svg"
-            id="identityGraphSvg"
-            viewBox="0 0 320 320"
-            preserveAspectRatio="xMidYMid meet"
-            aria-hidden="true"
-          ></svg>
-        </div>
-      </div>
-      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
-        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
-          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
-          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
-            <li>No audience membership loaded</li>
-          </ul>
-        </div>
-        <div
-          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
-          aria-labelledby="profileDrawerMessageSentHeading"
-        >
-          <div class="aep-profile-drawer-message-sent-heading-row">
-            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
-            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
-          </div>
-          <div class="aep-profile-drawer-email-sends-body">
-            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
-              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
-                class="aep-profile-drawer-email-sends-unit"
-                id="profileDrawerMessageSentUnit"
-              ></span>
-            </p>
-            <p
-              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
-              id="profileDrawerPushSendsRow"
-              hidden
-              aria-live="polite"
-            >
-              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
-                class="aep-profile-drawer-email-sends-unit"
-                id="profileDrawerPushSentUnit"
-              ></span>
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="aep-profile-drawer-col">
-        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
-        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
-          <p>No events loaded</p>
-        </div>
-      </div>
-    </div>
-  </aside>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
 
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -439,6 +314,7 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="identity-picker.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="demo-tags-injection.js?v=20260521-demo-tags"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
