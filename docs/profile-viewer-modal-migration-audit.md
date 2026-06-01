@@ -8,10 +8,10 @@
 | Candidate | Path | Notes |
 |-----------|------|-------|
 | **Sky (chosen)** | `web/profile-viewer/sky-demo.html` | Full drawer markup with NPS row, em-dash placeholders, identity graph zoom, audiences/messages/events panels; aligned with site-clone BC + canonical env strip (`mod-demo` layout). |
-| JLR | *Not present in repo* | No Jaguar Land Rover demo found under `web/profile-viewer/` (grep: jaguar, land-rover, jlr). Closest site-clone peer is `mod-demo.html` (British Army / MOD), which matched Sky structurally. |
+| JLR | `web/profile-viewer/jlr-demo.html` | Added on `origin/main` (kirkham); structurally identical site-clone drawer to Sky — migrated to shared mount in same pass. |
 | Etihad | `web/profile-viewer/etihad-demo.html` | Canonical env strip reference per skill; drawer used `-` vs `—` placeholders and slightly compressed HTML. Merged into Sky canonical shell. |
 
-**Decision:** **Sky** is the master reference. Etihad’s env-strip patterns remain documented in `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`; drawer shell markup is centralized from Sky.
+**Decision:** **Sky** is the master reference. JLR on `main` matched Sky structurally; both now use `ProfileViewerModal.mount()`. Etihad’s env-strip patterns remain documented in `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`; drawer shell markup is centralized from Sky.
 
 ## Variant differences (pre-migration)
 
@@ -63,6 +63,14 @@ Logic (`/api/profile/table`, namespace via `AepIdentityPicker`, Tags via `DemoTa
 | `ferrari-world-abu-dhabi/booking.html` | Copied HTML | Miral theme park | Yes | Mount | **Done** |
 | `seaworld-abu-dhabi/index.html` | Copied HTML | Miral theme park | Yes | Mount | **Done** |
 | `wb-world-abu-dhabi/index.html` | Copied HTML | Miral theme park | Yes | Mount | **Done** |
+| `jlr-demo.html` | Copied HTML | JLR site-clone | Yes | Mount | **Done** |
+| `sky-llm-agentic-traffic.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-brand-claims.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-brand-presence.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-opportunities.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-optimizer.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-prompts-management.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
+| `sky-llm-url-inspector.html` | Copied HTML | Sky LLM suite | Yes | Mount | **Done** |
 
 ## Out of scope (different UI pattern)
 

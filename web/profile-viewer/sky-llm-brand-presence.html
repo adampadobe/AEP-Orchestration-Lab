@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-bp">
   <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -90,18 +91,7 @@
     </div>
   </div>
 
-  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
-  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
-    <div class="aep-profile-drawer-inner">
-      <section class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer" aria-labelledby="profileDrawerCustomerHeading">
-        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
-        <div class="aep-profile-drawer-card-fields">
-          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
-          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
-        </div>
-      </section>
-    </div>
-  </aside>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
 
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -110,6 +100,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-env-bar.js?v=20260508-demo-env-strip"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
