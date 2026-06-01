@@ -139,6 +139,11 @@ if (!stripCss.includes('.mod-demo-tags-company-row')) {
   fail('site-clone-bc-env-strip.css: missing global .mod-demo-tags-company-row hide rule');
 }
 
+const envBarJs = read('aep-demo-env-bar.js');
+if (!envBarJs.includes('launchScriptNotSet')) {
+  fail('aep-demo-env-bar.js: must keep env editor expanded when Launch script is not set');
+}
+
 if (failed) {
   process.exit(1);
 }

@@ -4,8 +4,10 @@
  *   **Event destination** (`#generatorTarget` as sibling of Tags fields, not inside them,
  *   so it stays visible after inject), optional SDK summary + “Change SDK config”.
  * - Section **Profile lookup**: namespace, identifier, look up.
- * - Collapse: after Tags SDK is configured, `AepDemoEnvBar` hides the full grid and shows
- *   a compact “Sandbox · Tags” line with “Change environment”.
+ * - Collapse: after Tags SDK is configured **and** a Launch script is selected, `AepDemoEnvBar`
+ *   hides the full grid and shows a compact “Sandbox · Tags” line with “Change environment”.
+ * - When Launch script is unset (`None` / empty), the editor stays expanded so Tags injection
+ *   is visible without clicking “Change environment”.
  *
  * **Reference pages:** `mod-demo.html`, `navigator-global-demo.html`, `admiral-demo.html`,
  * `premier-inn-demo.html`, `race-for-life-demo.html`, `donate-demo.html`.
@@ -53,8 +55,17 @@
       return v || 'Default (server .env)';
     }
 
+    function selectedScriptText() {
+      return scriptCodeEl ? String(scriptCodeEl.textContent || '').trim() : '';
+    }
+
+    function launchScriptNotSet() {
+      var t = selectedScriptText();
+      return !t || t === 'None';
+    }
+
     function scriptShort() {
-      var t = scriptCodeEl ? String(scriptCodeEl.textContent || '').trim() : '';
+      var t = selectedScriptText();
       if (!t || t === 'None') return 'Launch script not set';
       if (t.length > 56) return t.slice(0, 53) + '\u2026';
       return t;
@@ -64,10 +75,25 @@
       return !!(fieldsEl && !fieldsEl.hidden);
     }
 
+    /** Keep Tags fields visible when no Launch URL is selected (matches compact-row label). */
+    function ensureTagsUiExpandedWhenScriptUnset() {
+      if (!launchScriptNotSet() || !fieldsEl || !fieldsEl.hidden) return;
+      fieldsEl.hidden = false;
+      if (summaryEl) summaryEl.hidden = true;
+      try {
+        global.dispatchEvent(
+          new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: true } })
+        );
+      } catch (e3) {
+        /* noop */
+      }
+    }
+
     function refresh() {
+      ensureTagsUiExpandedWhenScriptUnset();
       var configuring = tagFieldsExpanded();
       var pinned = sec.classList.contains(PINNED);
-      var showFullEditor = configuring || pinned;
+      var showFullEditor = configuring || pinned || launchScriptNotSet();
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
         collapseEl.setAttribute('hidden', '');
@@ -102,6 +128,8 @@
       var d = ev && ev.detail;
       if (d && d.tagFieldsExpanded) {
         sec.classList.remove(PINNED);
+      } else if (launchScriptNotSet()) {
+        ensureTagsUiExpandedWhenScriptUnset();
       }
       scheduleRefresh();
     });
@@ -115,6 +143,14 @@
     if (fieldsEl && typeof MutationObserver !== 'undefined') {
       var mo2 = new MutationObserver(scheduleRefresh);
       mo2.observe(fieldsEl, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    if (scriptCodeEl && typeof MutationObserver !== 'undefined') {
+      var moScript = new MutationObserver(scheduleRefresh);
+      moScript.observe(scriptCodeEl, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
     }
 
     scheduleRefresh();
