@@ -115,13 +115,25 @@ After `brand-concierge-toggle.js`:
 |------|--------|
 | All 19 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, Admiral, Navigator, Race, Donate, Old Mutual ×4, social ×2, Miral ×4) | **Done** — bundle CSS + `initLabDemoEnvBar` |
 
-### Intentionally not migrated (different UX / out of scope)
+### Exceptions (not site-clone) {#exceptions-not-site-clone}
 
-| Page | Reason |
-|------|--------|
-| `fnb-*.html`, `fnb-demo.html` | Compact FNB header bar (email + generator only); not a lab env strip demo |
-| `call-center-demo.html`, `call-centre-demo-v1.html`, `call-center-demo-apalmer.html` | Agent desktop UI; no Tags/sandbox strip |
-| `sky-llm-*.html` | Sandbox + profile lookup only (snapshot viewers); no Tags injection surface |
+These pages are **out of scope** for the unified site-clone env bar (`shared/demo-env-bar.bundle.css`, `initLabDemoEnvBar`, Tags mount). The verifier [`scripts/verify-demo-env-strip.mjs`](../scripts/verify-demo-env-strip.mjs) allowlists them — they are **not** checked for bundle/bootstrap/mount compliance. Site-clone demos remain fully guarded.
+
+| Page pattern | Why exempt | What they use instead | Verifiers still required |
+|--------------|------------|----------------------|-------------------------|
+| `fnb-demo.html`, `fnb-*.html` (5 pages) | Compact FNB site-clone header, not the lab Tags strip | `fnb-aep-login-bar` — profile login email, `#generatorTarget`, ECID in utility row; optional Launch comment in `<head>` | `npm run verify:demo-env-strip` (must pass — skips these pages), `npm run verify:profile-viewer-routes`, profile modal rules |
+| `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html` | Agent desktop UI; pinned customer lookup, not Tags injection | `call-center-pinned-lookup` panel + `#generatorTarget`; no sandbox/Tags strip | Same |
+| `sky-llm-*.html` (8 snapshot shells; `sky-llm-llm-response.html` redirects to optimizer hash) | Adobe LLM Optimizer snapshot viewers; sandbox + profile lookup only | Inline `#aepDemoEnvSection` + `#aepDemoProfileSection`; direct `aep-demo-env-bar.css` + `aep-demo-env-bar.js` (no Tags, no `demo-env-strip.js` mount) | Same |
+| `mobile-demo.html`, `mobile-demo-apalmer.html` | Resizable phone/tablet simulator shell | Iframe loads target demo (e.g. `fnb-demo.html?aepSimMobile=1`); env controls live in the iframe target, not the simulator chrome | Same |
+
+**PR rule:** `npm run verify:demo-env-strip` **must pass** before merge on any PR that touches `web/profile-viewer/`. It skips allowlisted pages above but still enforces site-clone compliance, shared bundle/bootstrap invariants, and CSS drift rules on non-exempt demo CSS.
+
+Explicit allowlist (kept in sync with verifier `ENV_STRIP_EXCEPTION_HTML`):
+
+- FNB: `fnb-demo.html`, `fnb-business-banking.html`, `fnb-business-accounts.html`, `fnb-gold-business-thank-you.html`, `fnb-platinum-business-thank-you.html`
+- Call centre: `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html`
+- Sky LLM: `sky-llm-optimizer.html`, `sky-llm-brand-presence.html`, `sky-llm-referral-traffic.html`, `sky-llm-agentic-traffic.html`, `sky-llm-opportunities.html`, `sky-llm-url-inspector.html`, `sky-llm-brand-claims.html`, `sky-llm-prompts-management.html`, `sky-llm-llm-response.html`
+- Mobile: `mobile-demo.html`, `mobile-demo-apalmer.html`
 
 ## Verify + mirror
 
@@ -146,6 +158,9 @@ CI/local script `scripts/verify-demo-env-strip.mjs` fails when:
 | `om-aep-env-editor-grid` | Old Mutual legacy grid class |
 | `injectSdkBtn` without prefix | Must be `{prefix}InjectSdkBtn` |
 | Site-clone demo JS without `hideTagsCompanyUi: true` | Tags company row stays hidden (CSS + JS) |
+| HTML with `data-demo-env-strip-mount="site-clone-tags"` not in site-clone list or [exception allowlist](#exceptions-not-site-clone) | Prevents orphan site-clone mounts |
+
+**Allowlisted exceptions** (FNB, call centre, Sky LLM, mobile simulator) skip bundle/bootstrap/mount checks — see [Exceptions (not site-clone)](#exceptions-not-site-clone). **`npm run verify:demo-env-strip` must pass on every Profile Viewer PR** before merge.
 
 **Tags company visibility:** row remains in DOM (`hidden` + `.mod-demo-tags-company-row { display: none !important }` in bundle); `demo-tags-injection.js` auto-picks company when `hideTagsCompanyUi: true`.
 

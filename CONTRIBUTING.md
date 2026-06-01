@@ -568,9 +568,18 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 - Inline env strip / Tags HTML, legacy `om-aep-env-editor-grid`, `id="injectSdkBtn"` without prefix
 - Missing `shared/demo-env-bar.bundle.css`, `shared/demo-env-bar-bootstrap.js`, `aep-demo-id-inner`, or `data-demo-env-strip-mount="site-clone-tags"`
 
-**Pre-merge:** `npm run verify:demo-env-strip`. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
+**Pre-merge:** `npm run verify:demo-env-strip` **must pass on every Profile Viewer PR** (CI runs the same check). The verifier skips [allowlisted non-site-clone pages](#exceptions-not-site-clone) for bundle/bootstrap/mount rules; site-clone demos must still comply. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
 
-**Exceptions** (different UX — not site-clone bundle): `fnb-*.html`, `call-center-demo*.html`, `sky-llm-*.html`. See [Intentionally not migrated](docs/demo-env-strip-standard.md#migration-status) in `docs/demo-env-strip-standard.md`.
+#### Exceptions (not site-clone)
+
+These lab demos use a **different UX** and are **not** required to load `shared/demo-env-bar.bundle.css` or call `initLabDemoEnvBar`. Full policy and explicit file list: [`docs/demo-env-strip-standard.md` → Exceptions (not site-clone)](docs/demo-env-strip-standard.md#exceptions-not-site-clone).
+
+| Page pattern | Why exempt | What they use instead | Verifiers still required |
+|--------------|------------|----------------------|-------------------------|
+| `fnb-demo.html`, `fnb-*.html` | Compact FNB header, not Tags strip | Profile login email + `#generatorTarget` in `fnb-aep-login-bar` | `verify:demo-env-strip` (passes — skipped), `verify:profile-viewer-routes`, profile modal |
+| `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html` | Agent desktop; pinned lookup | `call-center-pinned-lookup` + event destination; no Tags/sandbox strip | Same |
+| `sky-llm-*.html` (8 shells + redirect stub) | LLM Optimizer snapshot viewers | Inline sandbox + profile lookup via `aep-demo-env-bar.css` / `.js` directly | Same |
+| `mobile-demo.html`, `mobile-demo-apalmer.html` | Device simulator chrome | Iframe target demo owns env controls | Same |
 
 **Scripts (site-clone slice, after profile modal + drawer):** `shared/demo-env-strip.js` → `shared/demo-env-bar-bootstrap.js` → `demo-tags-injection.js` → `aep-demo-env-bar.js` → `aep-demo-generator-targets.js` → … → demo JS calling **`initLabDemoEnvBar({ prefix })`** → `site-clone-bc.js`.
 
@@ -616,7 +625,7 @@ Paste into PR description when adding or editing a **lab demo** under `web/profi
 - [ ] Stable ids: `sandboxSelect`, `generatorTarget`, `aepDemoProfileSection`, `{prefix}InjectSdkBtn`, `customerEmail`, `queryProfileBtn`
 - [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
 - [ ] `DemoProfileDrawer.init` unchanged contract; drawer edits only in `shared/profile-viewer-modal.js` / `aep-profile-drawer.js`
-- [ ] `npm run verify:demo-env-strip` (site-clone demos)
+- [ ] `npm run verify:demo-env-strip` (required on Profile Viewer PRs; skips allowlisted FNB / call-centre / Sky LLM / mobile pages)
 - [ ] `npm run verify:profile-viewer-routes` + `npm run sync-profile-viewer-ui` if `web/profile-viewer/` touched
 - [ ] Light + dark theme smoke on demo page
 ```
@@ -1042,8 +1051,8 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 - [ ] No `.env` or credential files staged
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
-- [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes))
-- [ ] If you touched a **site-clone lab demo** (env strip / drawer): [Shared env bar](#shared-env-bar--do-not-break) + [Shared profile drawer](#shared-profile-drawer--do-not-break) — `npm run verify:demo-env-strip` passes; no inline `#profileDrawer` / Tags markup
+- [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)); `npm run verify:demo-env-strip` passes (required — skips [non-site-clone exceptions](#exceptions-not-site-clone))
+- [ ] If you touched a **site-clone lab demo** (env strip / drawer): [Shared env bar](#shared-env-bar--do-not-break) + [Shared profile drawer](#shared-profile-drawer--do-not-break) — no inline `#profileDrawer` / Tags markup
 - [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
 - [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)
 - [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, re-`git status`, pulled if behind, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)

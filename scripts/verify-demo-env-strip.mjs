@@ -14,6 +14,41 @@ const pv = path.join(root, 'web/profile-viewer');
 const BUNDLE_CSS = 'shared/demo-env-bar.bundle.css';
 const BUNDLE_BOOTSTRAP = 'shared/demo-env-bar-bootstrap.js';
 
+/**
+ * Lab demos exempt from site-clone bundle/bootstrap/mount checks.
+ * They use different UX (FNB header, call-centre desktop, Sky LLM snapshot strip, mobile simulator).
+ * @see docs/demo-env-strip-standard.md#exceptions-not-site-clone
+ */
+const ENV_STRIP_EXCEPTION_HTML = [
+  'fnb-demo.html',
+  'fnb-business-banking.html',
+  'fnb-business-accounts.html',
+  'fnb-gold-business-thank-you.html',
+  'fnb-platinum-business-thank-you.html',
+  'call-center-demo.html',
+  'call-center-demo-apalmer.html',
+  'call-centre-demo-v1.html',
+  'sky-llm-optimizer.html',
+  'sky-llm-brand-presence.html',
+  'sky-llm-referral-traffic.html',
+  'sky-llm-agentic-traffic.html',
+  'sky-llm-opportunities.html',
+  'sky-llm-url-inspector.html',
+  'sky-llm-brand-claims.html',
+  'sky-llm-prompts-management.html',
+  'sky-llm-llm-response.html',
+  'mobile-demo.html',
+  'mobile-demo-apalmer.html',
+];
+
+const ENV_STRIP_EXCEPTION_BASENAME_RE = [
+  /^fnb-.*\.html$/,
+  /^call-center-demo.*\.html$/,
+  /^call-centre-demo.*\.html$/,
+  /^sky-llm-.*\.html$/,
+  /^mobile-demo.*\.html$/,
+];
+
 const SITE_CLONE_DEMO_HTML = [
   'sky-demo.html',
   'jlr-demo.html',
@@ -86,6 +121,25 @@ function read(rel) {
   return fs.readFileSync(path.join(pv, rel), 'utf8');
 }
 
+function isEnvStripException(rel) {
+  const norm = rel.replace(/\\/g, '/');
+  if (ENV_STRIP_EXCEPTION_HTML.includes(norm)) return true;
+  const base = path.basename(norm);
+  return ENV_STRIP_EXCEPTION_BASENAME_RE.some((re) => re.test(base));
+}
+
+function walkHtml(dir, out = [], skipDirs = new Set(['node_modules', 'sky-llm-snapshot'])) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      if (!skipDirs.has(ent.name)) walkHtml(abs, out, skipDirs);
+    } else if (ent.isFile() && ent.name.endsWith('.html') && !ent.name.startsWith('sky-llm-snapshot')) {
+      out.push(path.relative(pv, abs).replace(/\\/g, '/'));
+    }
+  }
+  return out;
+}
+
 function walkCss(dir, out = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, ent.name);
@@ -95,7 +149,29 @@ function walkCss(dir, out = []) {
   return out;
 }
 
+for (const rel of ENV_STRIP_EXCEPTION_HTML) {
+  const abs = path.join(pv, rel);
+  if (!fs.existsSync(abs)) {
+    fail(`Env strip exception listed but missing: ${rel}`);
+    continue;
+  }
+  if (SITE_CLONE_DEMO_HTML.includes(rel)) {
+    fail(`Env strip exception must not also be in SITE_CLONE_DEMO_HTML: ${rel}`);
+  }
+}
+
+for (const rel of walkHtml(pv)) {
+  if (SITE_CLONE_DEMO_HTML.includes(rel) || isEnvStripException(rel)) continue;
+  const html = read(rel);
+  if (html.includes('data-demo-env-strip-mount="site-clone-tags"')) {
+    fail(`${rel}: site-clone-tags mount but not in SITE_CLONE_DEMO_HTML or env-strip exception allowlist`);
+  }
+}
+
 for (const rel of SITE_CLONE_DEMO_HTML) {
+  if (isEnvStripException(rel)) {
+    fail(`Site-clone demo must not be on env-strip exception allowlist: ${rel}`);
+  }
   const abs = path.join(pv, rel);
   if (!fs.existsSync(abs)) {
     fail(`Missing site-clone demo HTML: ${rel}`);
@@ -197,4 +273,6 @@ if (!/\.aep-demo-id-inner\s+\.mod-demo-profile-actions/.test(envBarCss)) {
 if (failed) {
   process.exit(1);
 }
-console.log('verify-demo-env-strip: OK (Sky master — unified bundle + bootstrap, no env strip drift detected)');
+console.log(
+  `verify-demo-env-strip: OK (${SITE_CLONE_DEMO_HTML.length} site-clone demos, ${ENV_STRIP_EXCEPTION_HTML.length} allowlisted exceptions, no env strip drift)`,
+);
