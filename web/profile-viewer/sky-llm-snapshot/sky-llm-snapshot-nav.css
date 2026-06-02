@@ -54,7 +54,15 @@ nav .sky-llm-nav-rail-native {
   display: block !important;
 }
 
-[id^='org-sidebar-section-'] {
-  opacity: 1 !important;
-  visibility: visible !important;
+.sky-llm-op-overview-row {
+  cursor: pointer;
+}
+
+.sky-llm-op-overview-row:hover {
+  background: rgb(250, 250, 250);
+}
+
+[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + .macro-static-4d9rBe,
+[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + .macro-static-KcpNYd {
+  display: none !important;
 }

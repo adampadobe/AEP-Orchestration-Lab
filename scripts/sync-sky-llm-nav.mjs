@@ -68,6 +68,7 @@ function replaceNav(html, newNav) {
 function ensureNavAssets(html, basename) {
   const inject = [
     '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
+    '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
     '<script src="./sky-llm-snapshot-nav.js"></script>',
   ];
   if (basename === 'overview.html') {

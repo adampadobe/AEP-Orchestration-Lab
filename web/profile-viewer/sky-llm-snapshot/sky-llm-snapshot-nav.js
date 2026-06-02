@@ -4,6 +4,8 @@
 (function () {
   'use strict';
 
+  var STORAGE_KEY = 'skyLlmNavSectionExpanded';
+
   var ROUTES = {
     Overview: 'overview.html',
     'Brand Presence': 'brand-presence.html',
@@ -56,6 +58,64 @@
     return btn.closest('[id^="org-nav-item-"]') || btn.parentElement;
   }
 
+  function sectionKey(section) {
+    return section.getAttribute('id') || '';
+  }
+
+  function findSectionBody(section) {
+    return section.querySelector('.macro-static-4d9rBe, .macro-static-KcpNYd');
+  }
+
+  function readSectionStates() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function writeSectionState(key, expanded) {
+    if (!key) return;
+    var states = readSectionStates();
+    states[key] = expanded;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function updateChevron(header, expanded) {
+    if (!header) return;
+    var chevron = header.querySelector('svg[style*="rotate"]');
+    if (chevron) {
+      chevron.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  }
+
+  function setSectionExpanded(section, expanded, persist) {
+    if (!section) return;
+    var header = section.querySelector('[role="button"][aria-expanded]');
+    var body = findSectionBody(section);
+    if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (body) body.style.display = expanded ? '' : 'none';
+    updateChevron(header, expanded);
+    if (persist) writeSectionState(sectionKey(section), expanded);
+  }
+
+  function applyStoredSectionStates() {
+    var states = readSectionStates();
+    var hasStored = Object.keys(states).length > 0;
+    document.querySelectorAll('[id^="org-sidebar-section-"]').forEach(function (section) {
+      var key = sectionKey(section);
+      if (hasStored && Object.prototype.hasOwnProperty.call(states, key)) {
+        setSectionExpanded(section, !!states[key], false);
+      } else {
+        setSectionExpanded(section, true, false);
+      }
+    });
+  }
+
   function clearActive() {
     document.querySelectorAll('[id^="org-nav-item-"].sky-llm-nav-active').forEach(function (el) {
       el.classList.remove('sky-llm-nav-active');
@@ -100,10 +160,6 @@
           sectionRail.classList.add('sky-llm-nav-rail-native');
           sectionRail.style.display = '';
         }
-        var header = section.querySelector('[role="button"][aria-expanded]');
-        if (header) header.setAttribute('aria-expanded', 'true');
-        var body = section.querySelector('.macro-static-4d9rBe, .macro-static-KcpNYd');
-        if (body) body.style.display = '';
       }
     });
   }
@@ -115,18 +171,13 @@
       header.addEventListener(
         'click',
         function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var expanded = header.getAttribute('aria-expanded') === 'true';
-          header.setAttribute('aria-expanded', expanded ? 'false' : 'true');
           var section = header.closest('[id^="org-sidebar-section-"]');
           if (!section) return;
-          var body = section.querySelector('.macro-static-4d9rBe');
-          if (body) body.style.display = expanded ? 'none' : '';
-          var chevron = header.querySelector('svg[style*="rotate"]');
-          if (chevron) {
-            chevron.style.transform = expanded ? 'rotate(0deg)' : 'rotate(180deg)';
-          }
+          var expanded = header.getAttribute('aria-expanded') === 'true';
+          var next = !expanded;
+          setSectionExpanded(section, next, true);
+          e.preventDefault();
+          e.stopPropagation();
         },
         true,
       );
@@ -153,16 +204,31 @@
     document.querySelectorAll('[id^="org-sidebar-section-"]').forEach(function (section) {
       section.style.setProperty('opacity', '1', 'important');
       section.style.setProperty('visibility', 'visible', 'important');
-      var body = section.querySelector('.macro-static-4d9rBe');
-      if (body) body.style.display = '';
-      var header = section.querySelector('[role="button"][aria-expanded]');
-      if (header) header.setAttribute('aria-expanded', 'true');
+    });
+
+    applyStoredSectionStates();
+  }
+
+  function patchOpportunitiesBadge() {
+    var catalog = window.SkyLlmOpportunitiesCatalog;
+    if (!catalog) return;
+    var count = catalog.OPPORTUNITIES.length;
+    findNavButtons().forEach(function (btn) {
+      if ((btn.getAttribute('aria-label') || '').trim() !== 'Opportunities') return;
+      var wrap = findNavItemWrapper(btn);
+      if (!wrap) return;
+      Array.from(wrap.querySelectorAll('[data-rsp-slot="text"], span')).forEach(function (el) {
+        if (el.childElementCount === 0 && /^\d+$/.test(el.textContent.trim())) {
+          el.textContent = String(count);
+        }
+      });
     });
   }
 
   function wireNav() {
     ensureNavVisible();
     wireSectionToggles();
+    patchOpportunitiesBadge();
     var file = currentFile();
     var activeLabel = PAGE_ACTIVE[file] || 'Overview';
     applyActive(activeLabel);

@@ -27,6 +27,7 @@ const outHtml = path.join(outDir, 'overview.html');
 const SNAPSHOT_ASSETS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+  '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
   '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-overview.js"></script>',
