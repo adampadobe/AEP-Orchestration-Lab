@@ -21,7 +21,7 @@
     "defender-130": {
       "inherit": "sharedDefenderL663",
       "overrides": {
-        "red": "https://jlr.scene7.com/is/image/jlr/L66325GL_303103289_029",
+        "red": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_114",
         "blue": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_082",
         "orange": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_084",
         "green": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_125"
@@ -30,7 +30,7 @@
     "defender-octa": {
       "inherit": "sharedDefenderL663",
       "overrides": {
-        "red": "https://jlr.scene7.com/is/image/jlr/L66325GL_303103289_029",
+        "red": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_117",
         "black": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK",
         "blue": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_147",
         "orange": "https://jlr.scene7.com/is/image/jlr/L66326GL_DEFENDER_OCTA_26MY_OOH_DEAD_FRONT_48_CLEAN_CROP_UK"
