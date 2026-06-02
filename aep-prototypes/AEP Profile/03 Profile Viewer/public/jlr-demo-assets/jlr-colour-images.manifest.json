@@ -1,0 +1,40 @@
+{
+  "note": "Scene7 / landrover.com sources — fetched locally by scripts/fetch-jlr-colour-images.mjs",
+  "sharedDefenderL663": {
+    "red": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_078",
+    "black": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_035",
+    "green": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_036",
+    "grey": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_040",
+    "yellow": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_041",
+    "blue": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_042",
+    "orange": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_057",
+    "white": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_067",
+    "silver": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_116"
+  },
+  "models": {
+    "defender-110": {
+      "inherit": "sharedDefenderL663"
+    },
+    "defender-90": {
+      "inherit": "sharedDefenderL663"
+    },
+    "defender-130": {
+      "inherit": "sharedDefenderL663",
+      "overrides": {
+        "red": "https://jlr.scene7.com/is/image/jlr/L66325GL_303103289_029",
+        "blue": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_082",
+        "orange": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_084",
+        "green": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_125"
+      }
+    },
+    "defender-octa": {
+      "inherit": "sharedDefenderL663",
+      "overrides": {
+        "red": "https://jlr.scene7.com/is/image/jlr/L66325GL_303103289_029",
+        "black": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK",
+        "blue": "https://jlr.scene7.com/is/image/jlr/L66326GL_303104383_147",
+        "orange": "https://jlr.scene7.com/is/image/jlr/L66326GL_DEFENDER_OCTA_26MY_OOH_DEAD_FRONT_48_CLEAN_CROP_UK"
+      }
+    }
+  }
+}

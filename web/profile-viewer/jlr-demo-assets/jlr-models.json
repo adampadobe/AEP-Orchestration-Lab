@@ -156,7 +156,18 @@
       "pageUrl": "https://www.landrover.co.uk/defender/defender-octa/index.html",
       "heroImage": "jlr-demo-assets/catalogue/defender-octa.jpg",
       "imageStatus": "direct_image_url_found",
-      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK"
+      "heroImageRemote": "https://jlr.scene7.com/is/image/jlr/L461_23MY_021_GLHD_SANTORINI_BLACK",
+      "heroImagesByColour": {
+        "red": "jlr-demo-assets/catalogue/defender-octa-red.jpg",
+        "black": "jlr-demo-assets/catalogue/defender-octa-black.jpg",
+        "green": "jlr-demo-assets/catalogue/defender-octa-green.jpg",
+        "grey": "jlr-demo-assets/catalogue/defender-octa-grey.jpg",
+        "yellow": "jlr-demo-assets/catalogue/defender-octa-yellow.jpg",
+        "blue": "jlr-demo-assets/catalogue/defender-octa-blue.jpg",
+        "orange": "jlr-demo-assets/catalogue/defender-octa-orange.jpg",
+        "white": "jlr-demo-assets/catalogue/defender-octa-white.jpg",
+        "silver": "jlr-demo-assets/catalogue/defender-octa-silver.jpg"
+      }
     },
     {
       "id": "defender-130",
@@ -189,7 +200,18 @@
       "pageUrl": "https://www.landrover.co.uk/defender/defender-130/index.html",
       "heroImage": "jlr-demo-assets/catalogue/defender-130.jpg",
       "imageStatus": "gallery_page_only",
-      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_125.jpg.res/JLRHASH673EFB536D02F761697C5A6E9977041E2C62B241/L66326GL_303104383_125.jpg"
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_125.jpg.res/JLRHASH673EFB536D02F761697C5A6E9977041E2C62B241/L66326GL_303104383_125.jpg",
+      "heroImagesByColour": {
+        "red": "jlr-demo-assets/catalogue/defender-130-red.jpg",
+        "black": "jlr-demo-assets/catalogue/defender-130-black.jpg",
+        "green": "jlr-demo-assets/catalogue/defender-130-green.jpg",
+        "grey": "jlr-demo-assets/catalogue/defender-130-grey.jpg",
+        "yellow": "jlr-demo-assets/catalogue/defender-130-yellow.jpg",
+        "blue": "jlr-demo-assets/catalogue/defender-130-blue.jpg",
+        "orange": "jlr-demo-assets/catalogue/defender-130-orange.jpg",
+        "white": "jlr-demo-assets/catalogue/defender-130-white.jpg",
+        "silver": "jlr-demo-assets/catalogue/defender-130-silver.jpg"
+      }
     },
     {
       "id": "defender-110",
@@ -222,7 +244,18 @@
       "pageUrl": "https://www.landrover.co.uk/defender/defender-110/index.html",
       "heroImage": "jlr-demo-assets/catalogue/defender-110.jpg",
       "imageStatus": "direct_image_url_found",
-      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg"
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg",
+      "heroImagesByColour": {
+        "red": "jlr-demo-assets/catalogue/defender-110-red.jpg",
+        "black": "jlr-demo-assets/catalogue/defender-110-black.jpg",
+        "green": "jlr-demo-assets/catalogue/defender-110-green.jpg",
+        "grey": "jlr-demo-assets/catalogue/defender-110-grey.jpg",
+        "yellow": "jlr-demo-assets/catalogue/defender-110-yellow.jpg",
+        "blue": "jlr-demo-assets/catalogue/defender-110-blue.jpg",
+        "orange": "jlr-demo-assets/catalogue/defender-110-orange.jpg",
+        "white": "jlr-demo-assets/catalogue/defender-110-white.jpg",
+        "silver": "jlr-demo-assets/catalogue/defender-110-silver.jpg"
+      }
     },
     {
       "id": "defender-90",
@@ -253,7 +286,18 @@
       "pageUrl": "https://www.landrover.co.uk/defender/defender-90/index.html",
       "heroImage": "jlr-demo-assets/catalogue/defender-110.jpg",
       "imageStatus": "direct_image_url_found",
-      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg"
+      "heroImageRemote": "https://www.landrover.com/content/dam/lrdx/global/l663/26my/int/L66326GL_303104383_124.jpg.res/JLRHASH92B0FBA4A7B5C9F661BF54D5132B5DB638E0ADCD/L66326GL_303104383_124.jpg",
+      "heroImagesByColour": {
+        "red": "jlr-demo-assets/catalogue/defender-90-red.jpg",
+        "black": "jlr-demo-assets/catalogue/defender-90-black.jpg",
+        "green": "jlr-demo-assets/catalogue/defender-90-green.jpg",
+        "grey": "jlr-demo-assets/catalogue/defender-90-grey.jpg",
+        "yellow": "jlr-demo-assets/catalogue/defender-90-yellow.jpg",
+        "blue": "jlr-demo-assets/catalogue/defender-90-blue.jpg",
+        "orange": "jlr-demo-assets/catalogue/defender-90-orange.jpg",
+        "white": "jlr-demo-assets/catalogue/defender-90-white.jpg",
+        "silver": "jlr-demo-assets/catalogue/defender-90-silver.jpg"
+      }
     },
     {
       "id": "discovery",

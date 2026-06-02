@@ -219,13 +219,20 @@
     return null;
   }
 
+  function resolveHeroImage(model, colour) {
+    if (colour && model.heroImagesByColour && model.heroImagesByColour[colour]) {
+      return model.heroImagesByColour[colour];
+    }
+    return model.heroImage;
+  }
+
   function modelToCard(model, colour) {
     return {
       id: model.id,
       title: model.model,
       subtitle: model.brandFamily,
       description: buildCardSummary(model, colour),
-      imageUrl: model.heroImage,
+      imageUrl: resolveHeroImage(model, colour),
       pageUrl: model.pageUrl,
       badge: model.isUsedOnly ? 'Approved used' : null,
     };

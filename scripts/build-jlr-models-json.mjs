@@ -5,6 +5,7 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const csvPath = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/jlr_merged_availability_and_images.csv');
 const outPath = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/jlr-models.json');
 const catalogueDir = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/catalogue');
+const manifestPath = path.join(repoRoot, 'web/profile-viewer/jlr-demo-assets/jlr-colour-images.manifest.json');
 
 function localHeroPath(id) {
   for (const ext of ['.jpg', '.jpeg', '.png', '.webp']) {
@@ -12,6 +13,36 @@ function localHeroPath(id) {
     if (fs.existsSync(file)) return `jlr-demo-assets/catalogue/${id}${ext}`;
   }
   return null;
+}
+
+function resolveModelColours(manifest, modelId) {
+  const entry = manifest.models?.[modelId];
+  if (!entry) return null;
+  const out = {};
+  if (entry.inherit && manifest[entry.inherit]) Object.assign(out, manifest[entry.inherit]);
+  if (entry.overrides) Object.assign(out, entry.overrides);
+  for (const [colour, url] of Object.entries(entry)) {
+    if (colour === 'inherit' || colour === 'overrides') continue;
+    out[colour] = url;
+  }
+  return out;
+}
+
+function attachColourImages(models) {
+  if (!fs.existsSync(manifestPath)) return;
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  for (const model of models) {
+    const remoteByColour = resolveModelColours(manifest, model.id);
+    if (!remoteByColour) continue;
+    const heroImagesByColour = {};
+    for (const colour of Object.keys(remoteByColour)) {
+      const localAbs = path.join(catalogueDir, `${model.id}-${colour}.jpg`);
+      if (fs.existsSync(localAbs)) {
+        heroImagesByColour[colour] = `jlr-demo-assets/catalogue/${model.id}-${colour}.jpg`;
+      }
+    }
+    if (Object.keys(heroImagesByColour).length) model.heroImagesByColour = heroImagesByColour;
+  }
 }
 
 const raw = fs.readFileSync(csvPath, 'utf8');
@@ -95,6 +126,8 @@ for (let i = 1; i < lines.length; i++) {
     imageStatus: row.image_status,
   });
 }
+
+attachColourImages(models);
 
 fs.writeFileSync(outPath, JSON.stringify({ generatedFrom: 'jlr_merged_availability_and_images.csv', models }, null, 2));
 console.log('Wrote', models.length, 'models to', outPath);
