@@ -64,10 +64,31 @@
   }
 
   function hasStrictFilters(filters) {
-    return filters.doors != null || filters.seats != null || filters.colour != null;
+    return (
+      filters.doors != null ||
+      filters.seats != null ||
+      filters.colour != null ||
+      !!filters.brandHint ||
+      filters.electric
+    );
+  }
+
+  function modelMatchesBrandHint(model, hint) {
+    if (!hint) return true;
+    var family = normalize(model.brandFamily);
+    var name = normalize(model.model);
+    var h = normalize(hint);
+    if (h === 'discovery') return family === 'discovery' || name.indexOf('discovery') !== -1;
+    if (h === 'defender') return family === 'defender' || name.indexOf('defender') !== -1;
+    if (h === 'range rover velar') return name.indexOf('velar') !== -1;
+    if (h === 'range rover evoque') return name.indexOf('evoque') !== -1;
+    if (h === 'range rover sport') return name.indexOf('range rover sport') !== -1;
+    if (h === 'range rover') return family === 'range rover' || name.indexOf('range rover') === 0;
+    return family.indexOf(h) === 0 || name.indexOf(h) !== -1;
   }
 
   function modelMatchesStrictFilters(model, filters) {
+    if (!modelMatchesBrandHint(model, filters.brandHint)) return false;
     if (filters.doors != null && model.doors != null && model.doors !== filters.doors) return false;
     if (filters.seats != null && model.seats != null && model.seats < filters.seats) return false;
     if (filters.colour && model.colours.indexOf(filters.colour) === -1) return false;
@@ -78,6 +99,7 @@
     var n = normalize(text);
     var m = n.match(/(\d+)\s*seat/);
     if (m) return parseInt(m[1], 10);
+    if (/\btwo seater\b|\b2 seater\b|\b2-seat\b|\btwo-seat\b/.test(n)) return 2;
     if (/\bfamily\b|\bseven seat\b|\b7 seat\b/.test(n)) return 7;
     return null;
   }
@@ -163,9 +185,13 @@
       else if (model.electricClass === 'mhev') score += 2;
     }
 
-    if (!model.isUsedOnly) score += 2;
-
     return score;
+  }
+
+  function minimumMatchScore(filters) {
+    if (filters.brandHint) return 8;
+    if (filters.doors != null || filters.seats != null || filters.colour) return 6;
+    return 4;
   }
 
   function buildCardSummary(model, colour) {
@@ -254,23 +280,44 @@
     if (!count) {
       if (filters.doors === 2) {
         return (
-          'There are no 2-door models in the current UK JLR catalogue. The closest options are the 3-door Jaguar F-TYPE Coupé and Convertible (approved used) — mention Jaguar to include them.'
+          'There are no 2-door models in the current UK JLR catalogue. The closest options are the 2-seat, 3-door Jaguar F-TYPE Coupé and Convertible (approved used) — mention Jaguar to include them.'
         );
       }
-      if (filters.doors != null) {
+      if (filters.seats === 2 && !filters.includeJaguar) {
         return (
-          'I could not find any ' +
-          filters.doors +
-          '-door models in the current UK catalogue with those criteria. Try a different door count, brand, or colour — Jaguar models appear when you mention Jaguar.'
+          'The 2-seat sports cars in this catalogue are Jaguar F-TYPE Coupé and Convertible (3-door, approved used). Mention Jaguar to include them.'
+        );
+      }
+      if (filters.doors === 3 && !filters.includeJaguar) {
+        return (
+          'The 3-door models in this catalogue are Jaguar F-TYPE Coupé and Convertible (approved used). Mention Jaguar to include them.'
+        );
+      }
+      if (filters.doors != null || filters.seats != null) {
+        return (
+          'I could not find any models in the current UK catalogue matching those door or seat criteria. Try a different count, brand, or colour — Jaguar models appear when you mention Jaguar.'
+        );
+      }
+      if (filters.brandHint) {
+        return (
+          'I could not find models matching "' +
+          filters.brandHint +
+          '" with those criteria in the current UK catalogue.'
         );
       }
       return (
         'I could not find a close match in the current UK catalogue. Try mentioning a brand (Defender, Discovery, Range Rover), number of doors, colour, or plug-in hybrid. Jaguar models appear when you ask about Jaguar specifically.'
       );
     }
-    var bits = ['Here ' + (count === 1 ? 'is the closest match' : 'are the top ' + count + ' matches') + ' from the UK model catalogue'];
+    var bits = [
+      'Here ' +
+        (count === 1 ? 'is the matching model' : 'are the ' + count + ' matching models') +
+        ' from the UK catalogue',
+    ];
+    if (filters.brandHint) bits.push('for ' + filters.brandHint);
     if (filters.colour) bits.push('in ' + filters.colour);
     if (filters.doors) bits.push('with ' + filters.doors + ' doors');
+    if (filters.seats) bits.push('with up to ' + filters.seats + ' seats');
     if (filters.electric) bits.push('with electrified powertrains');
     return bits.join(' ') + '. ' + electricDisclaimer(filters);
   }
@@ -293,24 +340,20 @@
         return modelMatchesStrictFilters(m, filters);
       });
 
+      var minScore = minimumMatchScore(filters);
+
       var ranked = pool
         .map(function (m) {
           return { model: m, score: scoreModel(m, text, filters) };
         })
         .filter(function (r) {
-          return r.score > 0;
+          return r.score >= minScore;
         })
         .sort(function (a, b) {
           return b.score - a.score;
         });
 
-      if (!ranked.length && pool.length && !hasStrictFilters(filters)) {
-        ranked = pool.slice(0, 3).map(function (m) {
-          return { model: m, score: 1 };
-        });
-      }
-
-      var top = ranked.slice(0, 3).map(function (r) {
+      var top = ranked.map(function (r) {
         return modelToCard(r.model, filters.colour);
       });
 
@@ -357,19 +400,19 @@
         .filter(function (m) {
           if (m.id === model.id) return false;
           if (m.isJaguar && !mentionsJaguar(stem)) return false;
+          if (colour && m.colours.indexOf(colour) === -1) return false;
+          if (!modelMatchesBrandHint(m, model.brandFamily)) return false;
           if (model.id.indexOf('defender') === 0 && m.id.indexOf('defender') === 0) return true;
-          return normalize(m.brandFamily) === normalize(model.brandFamily) && m.id !== model.id;
-        })
-        .slice(0, 2);
+          return normalize(m.brandFamily) === normalize(model.brandFamily);
+        });
 
       var cards = [modelToCard(model, colour)];
       related.forEach(function (m) {
         cards.push(modelToCard(m, colour));
       });
-
       return {
         intro: intro,
-        cards: cards.slice(0, 3),
+        cards: cards,
         filters: { colour: colour, includeJaguar: mentionsJaguar(stem) || model.isJaguar },
       };
     });
