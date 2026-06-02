@@ -19,6 +19,7 @@
     catalogLoading: false,
     processing: false,
     advancedOpen: false,
+    expandedSkillIds: {},
   };
 
   function byId(id) {
@@ -480,6 +481,44 @@
     return haystack.indexOf(query) !== -1;
   }
 
+  function encodeSkillFilePath(fileName) {
+    return String(fileName || '')
+      .split('/')
+      .map(function (segment) {
+        return encodeURIComponent(segment);
+      })
+      .join('/');
+  }
+
+  function getSkillDownloadUrl(skill) {
+    if (skill && skill.publicUrl) return skill.publicUrl;
+    if (skill && skill.id && skill.fileName) {
+      return (
+        '/skills/' +
+        encodeURIComponent(skill.id) +
+        '/' +
+        encodeSkillFilePath(skill.fileName)
+      );
+    }
+    return '';
+  }
+
+  function getSkillDownloadName(skill) {
+    var fileName = skill && skill.fileName;
+    if (fileName) return fileName.split('/').pop() || fileName;
+    var ext = (skill && skill.extension) || 'md';
+    return (skill && skill.name ? String(skill.name).replace(/[^\w.-]+/g, '-') : 'skill') + '.' + ext;
+  }
+
+  function toggleSkillExpanded(skillId) {
+    if (state.expandedSkillIds[skillId]) {
+      delete state.expandedSkillIds[skillId];
+    } else {
+      state.expandedSkillIds[skillId] = true;
+    }
+    renderSkills();
+  }
+
   function openEditForSkill(skillId) {
     var skill = state.publishedSkills.find(function (s) {
       return s.id === skillId;
@@ -537,6 +576,16 @@
 
     tiles.innerHTML = list
       .map(function (skill) {
+        var skillId = skill.id;
+        var isExpanded = !!state.expandedSkillIds[skillId];
+        var detailsId = 'skills-tile-details-' + skillId;
+
+        var tagsHtml = (skill.tags || [])
+          .map(function (tag) {
+            return '<span class="skills-tag">' + escapeHtml(tag) + '</span>';
+          })
+          .join('');
+
         var useCasesHtml =
           skill.useCases && skill.useCases.length
             ? '<ul class="skills-use-cases">' +
@@ -547,18 +596,6 @@
                 .join('') +
               '</ul>'
             : '<p class="skills-muted">No use cases listed.</p>';
-
-        var tagsHtml = (skill.tags || [])
-          .map(function (tag) {
-            return '<span class="skills-tag">' + escapeHtml(tag) + '</span>';
-          })
-          .join('');
-
-        var link = skill.publicUrl
-          ? '<a class="skills-tile-link" href="' +
-            escapeHtml(skill.publicUrl) +
-            '" target="_blank" rel="noopener noreferrer">Open hosted skill</a>'
-          : '';
 
         var badges =
           '<span class="skills-badge">' +
@@ -572,44 +609,125 @@
           badges += '<span class="skills-badge">' + escapeHtml(skill.category) + '</span>';
         }
 
+        var downloadUrl = getSkillDownloadUrl(skill);
+        var downloadName = getSkillDownloadName(skill);
+        var downloadBtn = downloadUrl
+          ? '<a class="skills-btn skills-btn--primary skills-tile-download" href="' +
+            escapeHtml(downloadUrl) +
+            '" download="' +
+            escapeHtml(downloadName) +
+            '">Download</a>'
+          : '';
+
+        var hostedLink = downloadUrl
+          ? '<a class="skills-tile-link" href="' +
+            escapeHtml(downloadUrl) +
+            '" target="_blank" rel="noopener noreferrer">Open hosted skill</a>'
+          : '';
+
         var editBtn = skill._legacyLocal
           ? ''
           : '<button class="skills-btn skills-btn--link skills-tile-edit" type="button" data-edit-id="' +
-            escapeHtml(skill.id) +
+            escapeHtml(skillId) +
             '">Edit</button>';
 
+        var deleteBtn = skill._legacyLocal
+          ? ''
+          : '<button class="skills-btn skills-delete" type="button" data-delete-id="' +
+            escapeHtml(skillId) +
+            '">Delete</button>';
+
+        var fileMeta = skill.fileName
+          ? '<p class="skills-muted">File: <code class="skills-code">' +
+            escapeHtml(skill.fileName) +
+            '</code></p>'
+          : '';
+
         return (
-          '<article class="skills-tile" data-skill-id="' +
-          escapeHtml(skill.id) +
+          '<article class="skills-tile' +
+          (isExpanded ? ' skills-tile--expanded' : '') +
+          '" data-skill-id="' +
+          escapeHtml(skillId) +
           '">' +
-          '<div class="skills-tile-header">' +
-          '<h4 class="skills-tile-title">' +
+          '<div class="skills-tile-summary">' +
+          '<button type="button" class="skills-tile-toggle" data-toggle-id="' +
+          escapeHtml(skillId) +
+          '" aria-expanded="' +
+          (isExpanded ? 'true' : 'false') +
+          '" aria-controls="' +
+          escapeHtml(detailsId) +
+          '">' +
+          '<span class="skills-tile-toggle-text">' +
+          '<span class="skills-tile-title">' +
           escapeHtml(skill.name || 'Untitled skill') +
-          '</h4>' +
-          '<div class="skills-tile-actions">' +
-          editBtn +
-          (skill._legacyLocal
-            ? ''
-            : '<button class="skills-btn skills-delete" type="button" data-delete-id="' +
-              escapeHtml(skill.id) +
-              '">Delete</button>') +
+          '</span>' +
+          '<span class="skills-tile-desc skills-tile-desc--truncate">' +
+          escapeHtml(skill.description || 'No description provided.') +
+          '</span>' +
+          '</span>' +
+          '<span class="skills-tile-chevron" aria-hidden="true"></span>' +
+          '</button>' +
+          (tagsHtml ? '<div class="skills-tags skills-tags--summary">' + tagsHtml + '</div>' : '') +
           '</div>' +
-          '</div>' +
+          '<div id="' +
+          escapeHtml(detailsId) +
+          '" class="skills-tile-details"' +
+          (isExpanded ? '' : ' hidden') +
+          '>' +
           '<div class="skills-badges">' +
           badges +
           '</div>' +
-          '<p>' +
+          '<p class="skills-tile-desc">' +
           escapeHtml(skill.description || 'No description provided.') +
           '</p>' +
           (skill.valueSummary
-            ? '<p class="skills-muted">' + escapeHtml(skill.valueSummary) + '</p>'
+            ? '<div class="skills-tile-field">' +
+              '<span class="skills-tile-field-label">Value summary</span>' +
+              '<p class="skills-muted">' +
+              escapeHtml(skill.valueSummary) +
+              '</p>' +
+              '</div>'
             : '') +
+          (skill.category
+            ? '<div class="skills-tile-field">' +
+              '<span class="skills-tile-field-label">Category</span>' +
+              '<p class="skills-muted">' +
+              escapeHtml(skill.category) +
+              '</p>' +
+              '</div>'
+            : '') +
+          '<div class="skills-tile-field">' +
+          '<span class="skills-tile-field-label">Use cases</span>' +
           useCasesHtml +
-          (tagsHtml ? '<div class="skills-tags">' + tagsHtml + '</div>' : '') +
+          '</div>' +
           (skill.sourcePath
-            ? '<p class="skills-muted">Source: ' + escapeHtml(skill.sourcePath) + '</p>'
+            ? '<div class="skills-tile-field">' +
+              '<span class="skills-tile-field-label">Source path</span>' +
+              '<p class="skills-muted"><code class="skills-code">' +
+              escapeHtml(skill.sourcePath) +
+              '</code></p>' +
+              '</div>'
             : '') +
-          link +
+          fileMeta +
+          (downloadUrl
+            ? '<div class="skills-tile-field">' +
+              '<span class="skills-tile-field-label">Hosted URL</span>' +
+              '<p class="skills-muted"><code class="skills-code">' +
+              escapeHtml(downloadUrl) +
+              '</code></p>' +
+              '</div>'
+            : '') +
+          '<div class="skills-tile-footer">' +
+          '<div class="skills-tile-links">' +
+          hostedLink +
+          downloadBtn +
+          '</div>' +
+          '<div class="skills-tile-actions">' +
+          editBtn +
+          deleteBtn +
+          '</div>' +
+          '</div>' +
+          '</div>' +
           '</article>'
         );
       })
@@ -686,18 +804,37 @@
         });
     });
 
+    tiles.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      var toggleBtn = target.closest('[data-toggle-id]');
+      if (!toggleBtn) return;
+      event.preventDefault();
+      var toggleId = toggleBtn.getAttribute('data-toggle-id');
+      if (toggleId) toggleSkillExpanded(toggleId);
+    });
+
     tiles.addEventListener('click', function (event) {
       var target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
-      var editId = target.getAttribute('data-edit-id');
-      if (editId) {
-        openEditForSkill(editId);
+      var toggleBtn = target.closest('[data-toggle-id]');
+      if (toggleBtn) {
+        var toggleId = toggleBtn.getAttribute('data-toggle-id');
+        if (toggleId) toggleSkillExpanded(toggleId);
         return;
       }
 
-      var deleteId = target.getAttribute('data-delete-id');
-      if (!deleteId) return;
+      var editEl = target.closest('[data-edit-id]');
+      if (editEl) {
+        openEditForSkill(editEl.getAttribute('data-edit-id'));
+        return;
+      }
+
+      var deleteEl = target.closest('[data-delete-id]');
+      if (!deleteEl) return;
+      var deleteId = deleteEl.getAttribute('data-delete-id');
       if (!window.confirm('Delete this skill from the shared catalog?')) return;
 
       fetch(API_CATALOG + '?id=' + encodeURIComponent(deleteId), { method: 'DELETE' })
@@ -708,6 +845,7 @@
           });
         })
         .then(function () {
+          delete state.expandedSkillIds[deleteId];
           state.publishedSkills = state.publishedSkills.filter(function (skill) {
             return skill.id !== deleteId;
           });
