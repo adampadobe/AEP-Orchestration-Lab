@@ -62,7 +62,16 @@ nav .sky-llm-nav-rail-native {
   background: rgb(250, 250, 250);
 }
 
-[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + .macro-static-4d9rBe,
-[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + .macro-static-KcpNYd {
+[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + [class*='macro-static-4d9rBe'],
+[id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + [class*='macro-static-KcpNYd'],
+.sky-llm-nav-section-collapsed [class*='macro-static-4d9rBe'],
+.sky-llm-nav-section-collapsed [class*='macro-static-KcpNYd'],
+[id^='org-sidebar-section-'] [class*='macro-static-4d9rBe'][data-sky-llm-collapsed='true'],
+[id^='org-sidebar-section-'] [class*='macro-static-KcpNYd'][data-sky-llm-collapsed='true'] {
   display: none !important;
+}
+
+[id^='org-sidebar-section-'] {
+  opacity: 1 !important;
+  visibility: visible !important;
 }

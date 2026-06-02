@@ -35,7 +35,8 @@
 
   function currentFile() {
     var parts = (location.pathname || '').split('/');
-    return parts[parts.length - 1] || 'overview.html';
+    var file = parts[parts.length - 1] || 'overview.html';
+    return file.split('?')[0];
   }
 
   function findNavRoot() {
@@ -62,8 +63,15 @@
     return section.getAttribute('id') || '';
   }
 
+  function findSectionHeader(section) {
+    return section.querySelector('[role="button"][aria-expanded]');
+  }
+
   function findSectionBody(section) {
-    return section.querySelector('.macro-static-4d9rBe, .macro-static-KcpNYd');
+    return (
+      section.querySelector('[class*="macro-static-4d9rBe"]') ||
+      section.querySelector('[class*="macro-static-KcpNYd"]')
+    );
   }
 
   function readSectionStates() {
@@ -87,19 +95,26 @@
 
   function updateChevron(header, expanded) {
     if (!header) return;
-    var chevron = header.querySelector('svg[style*="rotate"]');
-    if (chevron) {
-      chevron.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
-    }
+    var chevrons = header.querySelectorAll('svg');
+    chevrons.forEach(function (svg) {
+      var style = svg.getAttribute('style') || '';
+      if (style.indexOf('rotate') !== -1 || svg.closest('[class*="Chevron"]')) {
+        svg.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
+      }
+    });
   }
 
   function setSectionExpanded(section, expanded, persist) {
     if (!section) return;
-    var header = section.querySelector('[role="button"][aria-expanded]');
+    var header = findSectionHeader(section);
     var body = findSectionBody(section);
     if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    if (body) body.style.display = expanded ? '' : 'none';
+    if (body) {
+      body.style.display = expanded ? '' : 'none';
+      body.setAttribute('data-sky-llm-collapsed', expanded ? 'false' : 'true');
+    }
     updateChevron(header, expanded);
+    section.classList.toggle('sky-llm-nav-section-collapsed', !expanded);
     if (persist) writeSectionState(sectionKey(section), expanded);
   }
 
@@ -134,7 +149,7 @@
     if (!wrap) return;
     var rail = wrap.querySelector('.sky-llm-nav-rail-native');
     if (!rail) {
-      var native = wrap.querySelector('div[class*="macro-dynamic-kn9iqo"], div.J1DOfn11, div.HkNNfn11');
+      var native = wrap.querySelector('[class*="macro-dynamic-kn9iqo"], [class*="J1DOfn11"], [class*="HkNNfn11"]');
       if (native) {
         native.classList.add('sky-llm-nav-rail-native');
         rail = native;
@@ -153,26 +168,18 @@
       var wrap = findNavItemWrapper(btn);
       if (wrap) wrap.classList.add('sky-llm-nav-active');
       showNativeRail(btn);
-      var section = btn.closest('[id^="org-sidebar-section-"]');
-      if (section) {
-        var sectionRail = section.querySelector('.J1DOfn11, .HkNNfn11');
-        if (sectionRail) {
-          sectionRail.classList.add('sky-llm-nav-rail-native');
-          sectionRail.style.display = '';
-        }
-      }
     });
   }
 
   function wireSectionToggles() {
-    document.querySelectorAll('[id^="org-sidebar-section-"] [role="button"][aria-expanded]').forEach(function (header) {
-      if (header.dataset.skyLlmSectionWired === '1') return;
+    document.querySelectorAll('[id^="org-sidebar-section-"]').forEach(function (section) {
+      var header = findSectionHeader(section);
+      if (!header || header.dataset.skyLlmSectionWired === '1') return;
       header.dataset.skyLlmSectionWired = '1';
       header.addEventListener(
         'click',
         function (e) {
-          var section = header.closest('[id^="org-sidebar-section-"]');
-          if (!section) return;
+          if (e.target.closest('button[aria-label]')) return;
           var expanded = header.getAttribute('aria-expanded') === 'true';
           var next = !expanded;
           setSectionExpanded(section, next, true);
@@ -181,6 +188,22 @@
         },
         true,
       );
+    });
+  }
+
+  function watchNavSections() {
+    var nav = findNavRoot();
+    if (!nav || nav.dataset.skyLlmNavWatch === '1') return;
+    nav.dataset.skyLlmNavWatch = '1';
+    var obs = new MutationObserver(function () {
+      applyStoredSectionStates();
+      wireSectionToggles();
+    });
+    obs.observe(nav, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-expanded', 'style', 'class'],
     });
   }
 
@@ -205,8 +228,6 @@
       section.style.setProperty('opacity', '1', 'important');
       section.style.setProperty('visibility', 'visible', 'important');
     });
-
-    applyStoredSectionStates();
   }
 
   function patchOpportunitiesBadge() {
@@ -228,6 +249,8 @@
   function wireNav() {
     ensureNavVisible();
     wireSectionToggles();
+    applyStoredSectionStates();
+    watchNavSections();
     patchOpportunitiesBadge();
     var file = currentFile();
     var activeLabel = PAGE_ACTIVE[file] || 'Overview';
@@ -264,6 +287,7 @@
   } else {
     run();
   }
-  window.setTimeout(run, 400);
-  window.setTimeout(run, 1200);
+  [300, 800, 1500, 3000, 5000].forEach(function (ms) {
+    window.setTimeout(run, ms);
+  });
 })();
