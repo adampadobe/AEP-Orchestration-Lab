@@ -6,7 +6,8 @@
 
   var PCT = 36;
   var CAPTION = 'Fair — some content is visible to AI models';
-  var patchedOverview = false;
+  var contentVisibilityLocked = false;
+  var patchDebounceTimer;
 
   function qs(root, sel) {
     return (root || document).querySelector(sel);
@@ -17,9 +18,11 @@
   }
 
   function lockContentVisibility() {
+    if (contentVisibilityLocked) return;
     var meter = qs(document, 'svg[role="meter"][aria-label*="Content Visibility"]');
     if (!meter) return;
 
+    contentVisibilityLocked = true;
     meter.setAttribute('aria-valuenow', String(PCT));
     meter.setAttribute('aria-label', 'Content Visibility: ' + PCT + '%');
 
@@ -38,16 +41,19 @@
     var track = meter.querySelector('circle:not([stroke-dasharray])');
     if (track) track.setAttribute('stroke', '#e8e8e8');
 
-    qsa(document, 'div, span, p').forEach(function (el) {
-      if (el.childElementCount > 0) return;
-      var t = (el.textContent || '').trim();
-      if (/^Fair\s*—/i.test(t) || /some content is visible to AI/i.test(t)) {
-        el.textContent = CAPTION;
-      }
-      if (/Your content can.t be seen by AI/i.test(t)) {
-        el.textContent = 'Your content can\u2019t be seen by AI';
-      }
-    });
+    var captionHost = meter.parentElement;
+    if (captionHost) {
+      qsa(captionHost, 'div, span, p').forEach(function (el) {
+        if (el.childElementCount > 0) return;
+        var t = (el.textContent || '').trim();
+        if (/^Fair\s*—/i.test(t) || /some content is visible to AI/i.test(t)) {
+          el.textContent = CAPTION;
+        }
+        if (/Your content can.t be seen by AI/i.test(t)) {
+          el.textContent = 'Your content can\u2019t be seen by AI';
+        }
+      });
+    }
   }
 
   function findLatestOpportunitiesHost() {
@@ -68,8 +74,7 @@
   function findLatestRows(host) {
     if (!host) return [];
     var rows = qsa(host, '[class*="macro-static-CzVEte"]');
-    if (rows.length >= 3) return rows.slice(0, 3);
-    return rows;
+    return rows.slice(0, 3);
   }
 
   function setLeafText(row, classPart, text) {
@@ -78,6 +83,7 @@
       el.textContent = text;
       return true;
     }
+    return false;
   }
 
   function patchLatestOpportunities() {
@@ -154,25 +160,17 @@
       );
     }
 
-    patchedOverview = true;
     return true;
   }
 
-  function watchLatestOpportunities() {
-    var host = findLatestOpportunitiesHost();
-    if (!host || host.dataset.skyLlmOverviewWatch === '1') return;
-    host.dataset.skyLlmOverviewWatch = '1';
-    var obs = new MutationObserver(function () {
-      patchLatestOpportunities();
-    });
-    obs.observe(host, { childList: true, subtree: true, characterData: true });
+  function schedulePatchLatest() {
+    if (patchDebounceTimer) window.clearTimeout(patchDebounceTimer);
+    patchDebounceTimer = window.setTimeout(patchLatestOpportunities, 150);
   }
 
   function run() {
     lockContentVisibility();
-    if (patchLatestOpportunities()) {
-      watchLatestOpportunities();
-    }
+    schedulePatchLatest();
   }
 
   if (document.readyState === 'loading') {
@@ -180,7 +178,6 @@
   } else {
     run();
   }
-  [300, 800, 1500, 3000, 5000, 8000].forEach(function (ms) {
-    window.setTimeout(run, ms);
-  });
+  window.setTimeout(run, 800);
+  window.setTimeout(run, 2500);
 })();

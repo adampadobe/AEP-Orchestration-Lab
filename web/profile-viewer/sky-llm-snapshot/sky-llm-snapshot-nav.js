@@ -95,10 +95,9 @@
 
   function updateChevron(header, expanded) {
     if (!header) return;
-    var chevrons = header.querySelectorAll('svg');
-    chevrons.forEach(function (svg) {
+    header.querySelectorAll('svg').forEach(function (svg) {
       var style = svg.getAttribute('style') || '';
-      if (style.indexOf('rotate') !== -1 || svg.closest('[class*="Chevron"]')) {
+      if (style.indexOf('rotate') !== -1) {
         svg.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
       }
     });
@@ -181,29 +180,12 @@
         function (e) {
           if (e.target.closest('button[aria-label]')) return;
           var expanded = header.getAttribute('aria-expanded') === 'true';
-          var next = !expanded;
-          setSectionExpanded(section, next, true);
+          setSectionExpanded(section, !expanded, true);
           e.preventDefault();
           e.stopPropagation();
         },
         true,
       );
-    });
-  }
-
-  function watchNavSections() {
-    var nav = findNavRoot();
-    if (!nav || nav.dataset.skyLlmNavWatch === '1') return;
-    nav.dataset.skyLlmNavWatch = '1';
-    var obs = new MutationObserver(function () {
-      applyStoredSectionStates();
-      wireSectionToggles();
-    });
-    obs.observe(nav, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['aria-expanded', 'style', 'class'],
     });
   }
 
@@ -250,7 +232,6 @@
     ensureNavVisible();
     wireSectionToggles();
     applyStoredSectionStates();
-    watchNavSections();
     patchOpportunitiesBadge();
     var file = currentFile();
     var activeLabel = PAGE_ACTIVE[file] || 'Overview';
@@ -287,7 +268,6 @@
   } else {
     run();
   }
-  [300, 800, 1500, 3000, 5000].forEach(function (ms) {
-    window.setTimeout(run, ms);
-  });
+  window.setTimeout(run, 500);
+  window.setTimeout(run, 2000);
 })();
