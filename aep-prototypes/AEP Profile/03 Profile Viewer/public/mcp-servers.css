@@ -17,7 +17,6 @@
 }
 
 .mcp-intro-panel,
-.mcp-config-panel,
 .mcp-table-panel {
   background: var(--dash-surface, #fff);
   border: 1px solid var(--dash-border, #e2e2e2);
@@ -26,16 +25,14 @@
   margin-bottom: 1rem;
 }
 
-.mcp-intro-panel p,
-.mcp-config-panel p {
+.mcp-intro-panel p {
   margin: 0 0 0.75rem;
   color: var(--dash-text, #2c2c2c);
   line-height: 1.55;
   font-size: 0.92rem;
 }
 
-.mcp-intro-panel p:last-child,
-.mcp-config-panel p:last-child {
+.mcp-intro-panel p:last-child {
   margin-bottom: 0;
 }
 
@@ -57,7 +54,6 @@
   text-decoration: underline;
 }
 
-.mcp-config-panel h3,
 .mcp-table-panel h3 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
@@ -65,7 +61,6 @@
   color: var(--dash-text, #2c2c2c);
 }
 
-.mcp-config-panel code,
 .mcp-intro-panel code {
   font-size: 0.85em;
   padding: 0.1em 0.35em;
@@ -75,13 +70,6 @@
   color: var(--dash-text, #2c2c2c);
 }
 
-.mcp-config-list {
-  margin: 0;
-  padding-left: 1.25rem;
-  color: var(--dash-text-secondary, #6e6e6e);
-  font-size: 0.88rem;
-  line-height: 1.5;
-}
 
 .mcp-controls {
   display: flex;

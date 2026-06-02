@@ -21,10 +21,6 @@
   line-height: 1.5;
 }
 
-.skills-panel--notice {
-  border-left: 4px solid var(--dash-blue);
-}
-
 .skills-muted {
   color: var(--dash-muted);
   font-size: 0.88rem;
