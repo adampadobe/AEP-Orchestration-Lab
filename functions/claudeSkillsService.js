@@ -4,7 +4,8 @@
  * Storage layout (bucket: CLAUDE_SKILLS_BUCKET or default Firebase bucket):
  *   claude-skills/{skillId}/{safeFileName}
  *
- * Public read via Hosting rewrite → claudeSkillsAsset:
+ * Public read via Firebase Hosting rewrite → claudeSkillsAsset (lab domain URL;
+ * bytes live in GCS — same pattern as /cdn/** image hosting, not static web/):
  *   /skills/{skillId}/{relPath}
  *
  * Firestore collection `claudeSkills` (Admin SDK only; client rules deny writes).
@@ -19,24 +20,22 @@ const { callGemini, stripJsonFences } = require('./vertexClient');
 
 const COLLECTION = 'claudeSkills';
 const STORAGE_PREFIX = 'claude-skills';
-const MAX_FILE_BYTES = 512 * 1024;
-const MAX_ZIP_BYTES = 2 * 1024 * 1024;
-const MAX_ZIP_ENTRIES = 50;
-const MAX_ZIP_UNCOMPRESSED_BYTES = 4 * 1024 * 1024;
+/** Cloud Functions request body ~32 MiB; base64 adds ~33% overhead. */
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const MAX_ZIP_BYTES = MAX_UPLOAD_BYTES;
+const MAX_ZIP_ENTRIES = 100;
+const MAX_ZIP_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
 const MAX_STORAGE_PATH_DEPTH = 6;
 const MAX_TEXT_ANALYZE_CHARS = 48_000;
 const ACCEPTED_EXTENSIONS = new Set(['md', 'txt', 'json', 'yaml', 'yml']);
 const ACCEPTED_UPLOAD_EXTENSIONS = new Set([...ACCEPTED_EXTENSIONS, 'zip']);
 
 /**
- * Dedicated bucket optional. Falls back to the Firebase default bucket
- * (`{project}.appspot.com`). Create `CLAUDE_SKILLS_BUCKET` in env at deploy
- * if you prefer isolating skill files from brand-scrape cache.
+ * Dedicated bucket optional. Otherwise uses the Firebase project default bucket
+ * (`FIREBASE_CONFIG.storageBucket` or `{projectId}.firebasestorage.app`).
+ * Do not fall back to legacy `{project}.appspot.com` — that bucket often does not
+ * exist on modern Firebase projects (see web/profile-viewer/firebase-database-config.js).
  */
-const BUCKET_NAME =
-  process.env.CLAUDE_SKILLS_BUCKET
-  || process.env.FIREBASE_STORAGE_BUCKET
-  || '';
 
 const ANALYZE_SYSTEM = `You analyze Claude Agent skill files for an internal Adobe lab catalog.
 Respond with valid JSON only — no markdown fences, no prose outside the object.
@@ -89,10 +88,47 @@ function getDb() {
   return db;
 }
 
+function readFirebaseConfigField(field) {
+  const raw = String(process.env.FIREBASE_CONFIG || '').trim();
+  if (!raw) return '';
+  try {
+    return String(JSON.parse(raw)[field] || '').trim();
+  } catch (_e) {
+    return '';
+  }
+}
+
+function resolveProjectId() {
+  return String(
+    process.env.GCLOUD_PROJECT
+    || process.env.GCP_PROJECT
+    || process.env.GOOGLE_CLOUD_PROJECT
+    || readFirebaseConfigField('projectId')
+    || 'aep-orchestration-lab',
+  ).trim();
+}
+
+/**
+ * Bucket for claude-skills/* objects. Explicit env wins; else Firebase default.
+ * @returns {string}
+ */
+function resolveClaudeSkillsBucketName() {
+  const explicit = String(
+    process.env.CLAUDE_SKILLS_BUCKET
+    || process.env.FIREBASE_STORAGE_BUCKET
+    || '',
+  ).trim();
+  if (explicit) return explicit;
+
+  const fromFirebaseConfig = readFirebaseConfigField('storageBucket');
+  if (fromFirebaseConfig) return fromFirebaseConfig;
+
+  return `${resolveProjectId()}.firebasestorage.app`;
+}
+
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
-  const name = BUCKET_NAME || `${process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab'}.appspot.com`;
-  return admin.storage().bucket(name);
+  return admin.storage().bucket(resolveClaudeSkillsBucketName());
 }
 
 function genId() {
@@ -204,12 +240,9 @@ async function extractSkillFromZip(zipBytes) {
     const bytes = await zEntry.buffer();
     totalUncompressed += bytes.length;
     if (totalUncompressed > MAX_ZIP_UNCOMPRESSED_BYTES) {
-      const err = new Error(`ZIP uncompressed content exceeds ${MAX_ZIP_UNCOMPRESSED_BYTES} bytes`);
-      err.status = 413;
-      throw err;
-    }
-    if (bytes.length > MAX_FILE_BYTES) {
-      const err = new Error(`Extracted file "${rawPath}" exceeds ${MAX_FILE_BYTES} bytes`);
+      const err = new Error(
+        `ZIP uncompressed content exceeds ${Math.round(MAX_ZIP_UNCOMPRESSED_BYTES / (1024 * 1024))} MB platform limit`,
+      );
       err.status = 413;
       throw err;
     }
@@ -309,9 +342,14 @@ function decodeUploadBody(body) {
     err.status = 400;
     throw err;
   }
-  const maxBytes = isZip ? MAX_ZIP_BYTES : MAX_FILE_BYTES;
+  const maxBytes = isZip ? MAX_ZIP_BYTES : MAX_UPLOAD_BYTES;
   if (bytes.length > maxBytes) {
-    const err = new Error(`File too large (${bytes.length} bytes, max ${maxBytes})`);
+    const maxMb = Math.round(maxBytes / (1024 * 1024));
+    const err = new Error(
+      isZip
+        ? `ZIP archive exceeds ${maxMb} MB platform upload limit`
+        : `File exceeds ${maxMb} MB platform upload limit`,
+    );
     err.status = 413;
     throw err;
   }
@@ -401,11 +439,6 @@ async function readSkillText(skillId, storagePath) {
     throw err;
   }
   const [buf] = await file.download();
-  if (buf.length > MAX_FILE_BYTES) {
-    const err = new Error('Stored file exceeds size limit');
-    err.status = 413;
-    throw err;
-  }
   return buf.toString('utf8');
 }
 
@@ -622,12 +655,14 @@ function resolveAsset(reqPath) {
 }
 
 module.exports = {
-  MAX_FILE_BYTES,
+  MAX_UPLOAD_BYTES,
   MAX_ZIP_BYTES,
   MAX_ZIP_ENTRIES,
   MAX_ZIP_UNCOMPRESSED_BYTES,
   ACCEPTED_EXTENSIONS,
   ACCEPTED_UPLOAD_EXTENSIONS,
+  resolveClaudeSkillsBucketName,
+  resolveProjectId,
   extractSkillFromZip,
   pickPrimarySkillCandidate,
   uploadSkillFile,
