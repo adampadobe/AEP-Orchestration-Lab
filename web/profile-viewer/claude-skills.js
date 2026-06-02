@@ -80,9 +80,30 @@
     });
   }
 
+  function parseApiResponse(response, text) {
+    var trimmed = String(text || '').trim();
+    var contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    var looksJson = trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[';
+    if (contentType.indexOf('application/json') === -1 && !looksJson) {
+      if (!response.ok) {
+        throw new Error(trimmed || response.statusText || 'Request failed');
+      }
+      throw new Error('Unexpected non-JSON response from server');
+    }
+    try {
+      return trimmed ? JSON.parse(trimmed) : {};
+    } catch (_parseErr) {
+      if (!response.ok) {
+        throw new Error(trimmed || response.statusText || 'Request failed');
+      }
+      throw new Error('Invalid JSON response from server');
+    }
+  }
+
   function apiJson(url, options) {
     return fetch(url, options).then(function (response) {
-      return response.json().then(function (data) {
+      return response.text().then(function (text) {
+        var data = parseApiResponse(response, text);
         if (!response.ok) {
           var msg = (data && data.error) || response.statusText || 'Request failed';
           throw new Error(msg);
@@ -612,7 +633,7 @@
         var downloadUrl = getSkillDownloadUrl(skill);
         var downloadName = getSkillDownloadName(skill);
         var downloadBtn = downloadUrl
-          ? '<a class="skills-btn skills-btn--primary skills-tile-download" href="' +
+          ? '<a class="skills-btn skills-btn--primary skills-tile-download skills-tile-download--summary" href="' +
             escapeHtml(downloadUrl) +
             '" download="' +
             escapeHtml(downloadName) +
@@ -650,6 +671,7 @@
           escapeHtml(skillId) +
           '">' +
           '<div class="skills-tile-summary">' +
+          '<div class="skills-tile-summary-head">' +
           '<button type="button" class="skills-tile-toggle" data-toggle-id="' +
           escapeHtml(skillId) +
           '" aria-expanded="' +
@@ -667,6 +689,8 @@
           '</span>' +
           '<span class="skills-tile-chevron" aria-hidden="true"></span>' +
           '</button>' +
+          downloadBtn +
+          '</div>' +
           (tagsHtml ? '<div class="skills-tags skills-tags--summary">' + tagsHtml + '</div>' : '') +
           '</div>' +
           '<div id="' +
@@ -720,7 +744,6 @@
           '<div class="skills-tile-footer">' +
           '<div class="skills-tile-links">' +
           hostedLink +
-          downloadBtn +
           '</div>' +
           '<div class="skills-tile-actions">' +
           editBtn +
@@ -819,6 +842,11 @@
       var target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
+      if (target.closest('.skills-tile-download')) {
+        event.stopPropagation();
+        return;
+      }
+
       var toggleBtn = target.closest('[data-toggle-id]');
       if (toggleBtn) {
         var toggleId = toggleBtn.getAttribute('data-toggle-id');
@@ -839,7 +867,8 @@
 
       fetch(API_CATALOG + '?id=' + encodeURIComponent(deleteId), { method: 'DELETE' })
         .then(function (response) {
-          return response.json().then(function (data) {
+          return response.text().then(function (text) {
+            var data = parseApiResponse(response, text);
             if (!response.ok) throw new Error((data && data.error) || 'Delete failed');
             return data;
           });

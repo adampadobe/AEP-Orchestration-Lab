@@ -358,6 +358,26 @@
   gap: 0.55rem;
 }
 
+.skills-tile-summary-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.skills-tile-summary-head .skills-tile-toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.skills-tile-download--summary {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  padding: 0.38rem 0.72rem;
+  white-space: nowrap;
+}
+
 .skills-tile-toggle {
   appearance: none;
   border: none;

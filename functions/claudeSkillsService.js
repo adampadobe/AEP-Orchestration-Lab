@@ -162,6 +162,33 @@ function safeFileName(name) {
   return safeStorageRelPath(String(name || 'skill.md').replace(/\\/g, '/').split('/').pop() || 'skill.md');
 }
 
+/** Sanitize an uploaded archive name for metadata (preserves .zip extension). */
+function safeZipArchiveName(name) {
+  const base = String(name || 'archive.zip').replace(/\\/g, '/').split('/').pop() || 'archive.zip';
+  const ext = extensionFromFileName(base);
+  const stem = ext ? base.slice(0, -(ext.length + 1)) : base;
+  const safeStem = safeSegment(stem) || 'archive';
+  if (ext === 'zip') return `${safeStem}.zip`;
+  return safeSegment(base) || 'archive.zip';
+}
+
+function mapStorageError(err) {
+  const message = String((err && err.message) || err || '');
+  if (/bucket does not exist/i.test(message)) {
+    const bucket = resolveClaudeSkillsBucketName();
+    const mapped = new Error(`Storage bucket "${bucket}" is not available. Contact the lab admin.`);
+    mapped.status = 503;
+    mapped.code = 'STORAGE_BUCKET_MISSING';
+    return mapped;
+  }
+  if (/permission|denied|403/i.test(message)) {
+    const mapped = new Error('Storage permission denied for skill upload');
+    mapped.status = 503;
+    return mapped;
+  }
+  return err;
+}
+
 function normalizeZipPath(entryPath) {
   return String(entryPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
 }
@@ -357,14 +384,18 @@ async function saveSkillObject(bucket, skillId, relPath, bytes, ext, originalNam
   const safeRel = safeStorageRelPath(relPath);
   const path = storageObjectPath(skillId, safeRel);
   const file = bucket.file(path);
-  await file.save(bytes, {
-    contentType: contentTypeForExt(ext),
-    resumable: false,
-    metadata: {
-      cacheControl: 'public, max-age=0, must-revalidate',
-      metadata: { skillId, originalName: originalName || relPath },
-    },
-  });
+  try {
+    await file.save(bytes, {
+      contentType: contentTypeForExt(ext),
+      resumable: false,
+      metadata: {
+        cacheControl: 'public, max-age=0, must-revalidate',
+        metadata: { skillId, originalName: originalName || relPath },
+      },
+    });
+  } catch (err) {
+    throw mapStorageError(err);
+  }
   return {
     fileName: safeRel,
     storagePath: path,
@@ -406,7 +437,7 @@ async function uploadSkillFile(body) {
       size: primary.bytes.length,
       textPreview: text.slice(0, 2000),
       extractedFromZip: true,
-      zipFileName: fileName,
+      zipFileName: safeZipArchiveName(fileName),
       files: storedFiles,
     };
   }
@@ -660,6 +691,8 @@ module.exports = {
   ACCEPTED_UPLOAD_EXTENSIONS,
   resolveClaudeSkillsBucketName,
   resolveProjectId,
+  safeZipArchiveName,
+  mapStorageError,
   extractSkillFromZip,
   pickPrimarySkillCandidate,
   uploadSkillFile,

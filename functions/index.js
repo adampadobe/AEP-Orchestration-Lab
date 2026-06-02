@@ -5254,6 +5254,12 @@ const CLAUDE_SKILLS_FN_ENV = {
   CLAUDE_SKILLS_BUCKET: process.env.CLAUDE_SKILLS_BUCKET || 'aep-orchestration-lab-brand-scrapes',
 };
 
+function sendClaudeSkillsJson(res, status, payload) {
+  if (res.headersSent) return;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.status(status).json(payload);
+}
+
 exports.claudeSkillsApi = onRequest(
   {
     region: REGION,
@@ -5278,37 +5284,37 @@ exports.claudeSkillsApi = onRequest(
       if (req.method === 'POST' && path === 'upload') {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const out = await claudeSkillsService.uploadSkillFile(body);
-        res.status(200).json(out);
+        sendClaudeSkillsJson(res, 200, out);
         return;
       }
       if (req.method === 'POST' && path === 'analyze') {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const out = await claudeSkillsService.analyzeSkill(body, clientKey);
-        res.status(200).json(out);
+        sendClaudeSkillsJson(res, 200, out);
         return;
       }
       if (req.method === 'POST' && path === 'publish') {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const out = await claudeSkillsService.publishSkill(body);
-        res.status(200).json(out);
+        sendClaudeSkillsJson(res, 200, out);
         return;
       }
       if (req.method === 'GET' && (path === '' || path === 'catalog')) {
         const out = await claudeSkillsService.listCatalog();
-        res.status(200).json(out);
+        sendClaudeSkillsJson(res, 200, out);
         return;
       }
       if (req.method === 'DELETE' && (path === 'catalog' || path === '')) {
         const id = String((req.query && req.query.id) || '').trim();
         const out = await claudeSkillsService.deleteSkill(id);
-        res.status(200).json(out);
+        sendClaudeSkillsJson(res, 200, out);
         return;
       }
-      res.status(404).json({ error: 'Not found' });
+      sendClaudeSkillsJson(res, 404, { ok: false, error: 'Not found' });
     } catch (e) {
       const status = e.status || (e.code === 'RATE_LIMITED' ? 429 : 500);
       console.error('[claudeSkillsApi]', String(e && e.message || e));
-      res.status(status).json({ ok: false, error: String(e.message || e) });
+      sendClaudeSkillsJson(res, status, { ok: false, error: String(e.message || e) });
     }
   },
 );

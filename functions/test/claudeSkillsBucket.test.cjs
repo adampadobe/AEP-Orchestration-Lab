@@ -6,6 +6,8 @@ const assert = require('node:assert');
 const {
   resolveClaudeSkillsBucketName,
   resolveProjectId,
+  safeZipArchiveName,
+  mapStorageError,
 } = require('../claudeSkillsService');
 
 function withEnv(patch, fn) {
@@ -74,4 +76,15 @@ test('resolveProjectId reads FIREBASE_CONFIG.projectId', () => {
   }, () => {
     assert.strictEqual(resolveProjectId(), 'sandbox-project');
   });
+});
+
+test('safeZipArchiveName sanitizes spaces and preserves .zip extension', () => {
+  assert.strictEqual(safeZipArchiveName('aep-demo-use-case 4.zip'), 'aep-demo-use-case-4.zip');
+  assert.strictEqual(safeZipArchiveName('My Skill Archive.ZIP'), 'My-Skill-Archive.zip');
+});
+
+test('mapStorageError maps missing bucket to 503 JSON-friendly message', () => {
+  const mapped = mapStorageError(new Error('The specified bucket does not exist.'));
+  assert.strictEqual(mapped.status, 503);
+  assert.match(mapped.message, /Storage bucket/i);
 });
