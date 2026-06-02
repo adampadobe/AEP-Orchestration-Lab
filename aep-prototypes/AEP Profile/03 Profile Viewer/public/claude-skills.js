@@ -7,8 +7,6 @@
 
   var STORAGE_LEGACY_KEY = 'claudeSkillsCatalogV1';
   var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml', 'zip'];
-  var MAX_FILE_BYTES = 512 * 1024;
-  var MAX_ZIP_BYTES = 2 * 1024 * 1024;
   var API_UPLOAD = '/api/claude-skills/upload';
   var API_ANALYZE = '/api/claude-skills/analyze';
   var API_CATALOG = '/api/claude-skills/catalog';
@@ -315,12 +313,6 @@
       return;
     }
     var isZip = ext === 'zip';
-    var maxBytes = isZip ? MAX_ZIP_BYTES : MAX_FILE_BYTES;
-    if (file.size > maxBytes) {
-      hideDropSuccess();
-      setDropStatus(isZip ? 'ZIP exceeds 2 MB limit.' : 'File exceeds 512 KB limit.', 'error');
-      return;
-    }
 
     hideDropSuccess();
     setAdvancedOpen(false);

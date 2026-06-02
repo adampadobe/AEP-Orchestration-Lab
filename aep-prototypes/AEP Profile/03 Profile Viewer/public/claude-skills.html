@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="claude-skills.css?v=20260602c">
+  <link rel="stylesheet" href="claude-skills.css?v=20260602d">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
 </head>
@@ -32,7 +32,7 @@
             <header class="dashboard-hero-header">
               <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
               <p class="dashboard-hero-subtitle">
-                Drop a Claude skill file or ZIP archive. The lab uploads it, classifies it with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically — no form to fill in first.
+                Drop a Claude skill file or ZIP archive. The lab uploads it, classifies it with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically. Published files are served on this lab domain at <code>/skills/{id}/{file}</code> (same hosting URL pattern as image CDN assets, not the static <code>web/</code> tree).
               </p>
             </header>
           </div>
@@ -53,7 +53,7 @@
             <p class="skills-dropzone-title">Drop skill file or ZIP here</p>
             <p class="skills-dropzone-hint">or click to browse · <code>.md</code> <code>.txt</code> <code>.json</code> <code>.yaml</code> <code>.zip</code></p>
             <p class="skills-dropzone-limits skills-muted">
-              Single files up to 512&nbsp;KB · ZIP up to 2&nbsp;MB (server extracts <code>SKILL.md</code> or first <code>.md</code>)
+              ZIP archives are extracted server-side (<code>SKILL.md</code> or first <code>.md</code>). Very large uploads may hit Cloud Functions platform limits (~20&nbsp;MB per request).
             </p>
             <p id="skillsDropFileName" class="skills-dropzone-file" aria-live="polite"></p>
             <p id="skillsDropStatus" class="skills-dropzone-status" aria-live="polite"></p>
@@ -140,7 +140,7 @@
     </div>
   </div>
 
-  <script src="claude-skills.js?v=20260602c"></script>
+  <script src="claude-skills.js?v=20260602d"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
 </body>
