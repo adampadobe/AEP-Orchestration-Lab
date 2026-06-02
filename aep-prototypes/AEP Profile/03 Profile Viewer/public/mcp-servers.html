@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Reference for Model Context Protocol servers used with this lab: what each Adobe (and lab) MCP does, how it is usually enabled in Cursor, and where to read official setup guides. This page does not store or display credentials and is not Adobe-sandbox-dependent.
+                Reference for Model Context Protocol servers used with this lab: what each Adobe MCP does, its documented endpoint URL, how it is usually enabled in Cursor, and where to read official setup guides. This page does not store or display credentials and is not Adobe-sandbox-dependent.
               </p>
             </header>
           </div>
@@ -46,7 +46,7 @@
             <strong>Model Context Protocol (MCP)</strong> lets Cursor (and other agents) call external <strong>tools</strong> with structured schemas instead of guessing APIs. This catalog is intentionally sandbox-independent UI: it remains available with no Adobe sandbox selected and can be used to plan non-AEP workflows too.
           </p>
           <p>
-            Adobe-hosted servers typically use <strong>streamable HTTP</strong> and <strong>OAuth</strong> (Adobe ID). The lab also ships a <strong>local stdio</strong> server (<code>aep-lab-adobe</code>) that reuses the same Node services as Firebase functions. Test mutating workflows in non-production sandboxes first; validate tool output before acting on it.
+            Adobe-hosted servers typically use <strong>streamable HTTP</strong> and <strong>OAuth</strong> (Adobe ID). Some integrations (Firebase, Express Developer) run as <strong>local stdio</strong> processes instead. Test mutating workflows in non-production sandboxes first; validate tool output before acting on it.
           </p>
           <div class="mcp-intro-links">
             <a href="https://cursor.com/docs/mcp" target="_blank" rel="noopener noreferrer">Cursor — MCP</a>
@@ -61,9 +61,8 @@
             <code>.cursor/mcp.json</code> in this repo currently enables only the <strong>Firebase</strong> MCP (<code>npx -y firebase-tools@latest experimental:mcp</code>). Adobe product MCPs are normally added in <strong>Cursor Settings → Tools &amp; MCP</strong> (global) or an extended local <code>mcp.json</code> — see <code>AGENTS.md</code> in the repo root.
           </p>
           <ul class="mcp-config-list">
-            <li><strong>In this repo</strong> — committed project MCP (Firebase).</li>
-            <li><strong>Lab package</strong> — <code>npm run mcp:aep-lab-adobe</code> / <code>tools/aep-lab-adobe-mcp/</code> (stdio; IMS env vars, never commit secrets).</li>
-            <li><strong>Typical Cursor setup</strong> — common global/plugin servers (AEP, Analytics, CJA, Target, AEM, Express Developer) when your org has entitlements.</li>
+            <li><strong>In this repo</strong> — committed project MCP (Firebase stdio).</li>
+            <li><strong>Global / plugin</strong> — Adobe product MCPs (AEP Marketing Agent, Analytics, CJA, Target, AEM, Express Developer) when your org has entitlements.</li>
             <li><strong>Adobe documented</strong> — official guides for servers you can add (e.g. Marketo, custom App Builder MCP).</li>
           </ul>
         </section>
@@ -74,17 +73,7 @@
           <div class="mcp-controls">
             <div class="mcp-field">
               <label for="mcpSearch">Search</label>
-              <input type="search" id="mcpSearch" placeholder="Name, product, use case…" autocomplete="off">
-            </div>
-            <div class="mcp-field">
-              <label for="mcpStatusFilter">Status</label>
-              <select id="mcpStatusFilter" aria-label="Filter by configuration status">
-                <option value="">All statuses</option>
-                <option value="repo">In this repo</option>
-                <option value="lab">Lab package</option>
-                <option value="typical">Typical Cursor setup</option>
-                <option value="documented">Adobe documented</option>
-              </select>
+              <input type="search" id="mcpSearch" placeholder="Name, product, URL, use case…" autocomplete="off">
             </div>
           </div>
           <p id="mcpCount" class="mcp-status-text" aria-live="polite"></p>
@@ -95,7 +84,7 @@
                 <tr>
                   <th scope="col">Server</th>
                   <th scope="col">Product / area</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">MCP server URL</th>
                   <th scope="col">What it does</th>
                   <th scope="col">Typical use cases</th>
                   <th scope="col">Config notes</th>
