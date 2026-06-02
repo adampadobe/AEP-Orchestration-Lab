@@ -22,10 +22,12 @@ const SNAPSHOT_ASSETS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">',
+  '<link rel="stylesheet" href="./sky-llm-snapshot-opportunities.css">',
   '<script src="./sky-llm-snapshot-nav.js"></script>',
   '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-platform.js"></script>',
   '<script src="./sky-llm-snapshot-market.js"></script>',
+  '<script src="./sky-llm-snapshot-opportunities.js"></script>',
 ].join('\n');
 
 function stripAuthScripts(html) {
