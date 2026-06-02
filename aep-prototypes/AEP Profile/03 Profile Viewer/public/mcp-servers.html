@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Reference for Model Context Protocol servers used with this lab: what each Adobe MCP does, its documented endpoint URL, how it is usually enabled in Cursor, and where to read official setup guides. This page does not store or display credentials and is not Adobe-sandbox-dependent.
+                Reference for Adobe-hosted MCP servers with documented HTTPS endpoints: what each server does, its URL, how it is usually enabled in Cursor, and where to read official setup guides. Local stdio-only MCPs are not listed here. This page does not store credentials and is not Adobe-sandbox-dependent.
               </p>
             </header>
           </div>
@@ -46,7 +46,7 @@
             <strong>Model Context Protocol (MCP)</strong> lets Cursor (and other agents) call external <strong>tools</strong> with structured schemas instead of guessing APIs. This catalog is intentionally sandbox-independent UI: it remains available with no Adobe sandbox selected and can be used to plan non-AEP workflows too.
           </p>
           <p>
-            Adobe-hosted servers typically use <strong>streamable HTTP</strong> and <strong>OAuth</strong> (Adobe ID). Some integrations (Firebase, Express Developer) run as <strong>local stdio</strong> processes instead. Test mutating workflows in non-production sandboxes first; validate tool output before acting on it.
+            Entries in this catalog use <strong>streamable HTTP</strong> (<code>https://…/mcp</code>) and <strong>OAuth</strong> (Adobe ID) unless noted otherwise in official docs. Test mutating workflows in non-production sandboxes first; validate tool output before acting on it.
           </p>
           <div class="mcp-intro-links">
             <a href="https://cursor.com/docs/mcp" target="_blank" rel="noopener noreferrer">Cursor — MCP</a>
@@ -58,12 +58,12 @@
         <section class="mcp-config-panel" aria-labelledby="mcpConfigHeading">
           <h3 id="mcpConfigHeading">Configuration in this repository</h3>
           <p>
-            <code>.cursor/mcp.json</code> in this repo currently enables only the <strong>Firebase</strong> MCP (<code>npx -y firebase-tools@latest experimental:mcp</code>). Adobe product MCPs are normally added in <strong>Cursor Settings → Tools &amp; MCP</strong> (global) or an extended local <code>mcp.json</code> — see <code>AGENTS.md</code> in the repo root.
+            Connect Adobe product MCPs in <strong>Cursor Settings → Tools &amp; MCP</strong> (global or plugin) using each server’s documented HTTPS URL from the catalog below. This repo may also commit a separate <code>.cursor/mcp.json</code> for local stdio tools (e.g. Firebase) that are not listed on this page — see <code>AGENTS.md</code> in the repo root.
           </p>
           <ul class="mcp-config-list">
-            <li><strong>In this repo</strong> — committed project MCP (Firebase stdio).</li>
-            <li><strong>Global / plugin</strong> — Adobe product MCPs (AEP Marketing Agent, Analytics, CJA, Target, AEM, Express Developer) when your org has entitlements.</li>
-            <li><strong>Adobe documented</strong> — official guides for servers you can add (e.g. Marketo, custom App Builder MCP).</li>
+            <li><strong>Catalog below</strong> — Adobe-hosted HTTP MCP endpoints with fixed URLs.</li>
+            <li><strong>Global / plugin</strong> — AEP Marketing Agent, Analytics, CJA, Target, AEM, Marketo, and similar when your org has entitlements.</li>
+            <li><strong>Not on this page</strong> — stdio-only or deploy-your-own-URL MCPs (Firebase, Express Developer, custom App Builder); use official docs and your own <code>mcp.json</code>.</li>
           </ul>
         </section>
 

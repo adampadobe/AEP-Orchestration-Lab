@@ -19,22 +19,6 @@
    */
   const MCP_SERVERS = [
     {
-      id: 'firebase',
-      name: 'Firebase',
-      product: 'Firebase / lab deploy',
-      mcpUrl: 'N/A (stdio)',
-      summary:
-        'Official Firebase MCP via firebase-tools. Inspect and operate Firebase projects (hosting, functions, config) from Cursor using the same CLI auth as local deploy.',
-      useCases: [
-        'Ask about hosting rewrites or function exports before deploy',
-        'Debug Firebase project configuration from the agent',
-      ],
-      configNotes:
-        'Committed in this repo: .cursor/mcp.json — command npx -y firebase-tools@latest experimental:mcp. Uses firebase login / ADC on your machine.',
-      docUrl: 'https://cursor.com/docs/mcp',
-      docLabel: 'Cursor MCP docs',
-    },
-    {
       id: 'aep',
       name: 'AEP / Marketing Agent',
       product: 'Adobe Experience Platform',
@@ -120,23 +104,6 @@
       docLabel: 'AEM MCP overview',
     },
     {
-      id: 'express-developer',
-      name: 'Adobe Express Developer',
-      product: 'Adobe Express add-ons',
-      mcpUrl: 'N/A (stdio)',
-      summary:
-        'stdio MCP package @adobe/express-developer-mcp: semantic search over add-on docs plus official TypeScript definitions to reduce hallucinations when building Express add-ons.',
-      useCases: [
-        'Grounded answers on add-on APIs and architecture',
-        'Fetch typedefinitions for accurate completions',
-        'Debug add-on code with current documentation context',
-      ],
-      configNotes:
-        'command npx, args ["-y", "@adobe/express-developer-mcp@latest"] in global or project mcp.json. Node 18+. Replaces deprecated @adobe/express-add-on-dev-mcp.',
-      docUrl: 'https://developer.adobe.com/express/add-ons/docs/guides/getting-started/local-development/mcp-server',
-      docLabel: 'Express Developer MCP setup',
-    },
-    {
       id: 'marketo',
       name: 'Marketo Engage',
       product: 'Adobe Marketo Engage',
@@ -152,22 +119,6 @@
         'Headers X-Marketo-Client-Id, X-Marketo-Client-Secret, X-Marketo-Munchkin-Id (use secrets locally, never commit).',
       docUrl: 'https://experienceleague.adobe.com/docs/marketo-developer/marketo/mcp-server.html',
       docLabel: 'Marketo MCP server',
-    },
-    {
-      id: 'app-builder-mcp',
-      name: 'Custom MCP on App Builder',
-      product: 'Adobe I/O App Builder',
-      mcpUrl: 'Custom (your App Builder deploy URL)',
-      summary:
-        'Pattern for hosting your own MCP server on Adobe I/O Runtime with OAuth S2S to Experience Cloud APIs — secure intermediary so IDE clients do not hold org secrets.',
-      useCases: [
-        'Team-specific tools over Analytics, AEM, Assets, or internal APIs',
-        'Serverless MCP endpoints with Adobe-managed scaling',
-      ],
-      configNotes:
-        'Build with @modelcontextprotocol/sdk; deploy via aio app deploy. Connect Cursor to the published web MCP URL. See Adobe App Builder AI use cases guide.',
-      docUrl: 'https://developer.adobe.com/app-builder/docs/resources/ai-use-cases',
-      docLabel: 'App Builder AI & MCP',
     },
   ];
 
