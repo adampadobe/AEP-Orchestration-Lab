@@ -424,6 +424,22 @@
   color: rgb(109, 109, 109);
 }
 
+.sky-llm-op-search-inline {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.sky-llm-op-expand-cell {
+  width: 28px;
+  color: rgb(109, 109, 109);
+  font-size: 12px;
+}
+
+.sky-llm-op-table-summaries td:nth-child(3) a {
+  word-break: break-all;
+}
+
 .sky-llm-op-table-recover th:first-child,
 .sky-llm-op-table-recover td:first-child {
   width: 40px;

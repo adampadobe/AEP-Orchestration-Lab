@@ -83,39 +83,8 @@
       rows: [['https://sky.com/help/server-status', '1', '1', '1']],
     },
     recover: { kind: 'recover' },
-    simplify: {
-      kind: 'table',
-      title: 'Simplify Complex Content',
-      subtitle: 'Recommendations to simplify dense pages for LLM comprehension',
-      kpi1Label: 'Pages reviewed',
-      kpi1Value: '3',
-      kpi2Label: 'Priority',
-      kpi2Value: 'High',
-      summary:
-        'Complex layout and jargon on high-traffic pages may reduce how much content agents extract and cite.',
-      sectionTitle: 'Suggested pages',
-      tableHeaders: ['Url', 'Complexity score', 'Agentic traffic', 'Action'],
-      rows: [
-        ['https://sky.com/tv/sky-glass/packages', 'High', 'Elevated', 'Review'],
-        ['https://sky.com/broadband/deals', 'Medium', 'Moderate', 'Review'],
-      ],
-    },
-    'llm-summaries': {
-      kind: 'table',
-      title: 'Add LLM-Friendly Summaries',
-      subtitle: 'Add concise summaries agents can cite without parsing full pages',
-      kpi1Label: 'Pages without summary',
-      kpi1Value: '4',
-      kpi2Label: 'Est. citation lift',
-      kpi2Value: '+0.8x',
-      summary: 'Short, structured summaries at the top of key URLs can improve LLM discovery and quoting.',
-      sectionTitle: 'Summary candidates',
-      tableHeaders: ['Url', 'Current summary', 'Priority', 'Status'],
-      rows: [
-        ['https://sky.com/tv', 'Missing', 'High', 'Suggested'],
-        ['https://sky.com/help/home', 'Partial', 'Medium', 'Suggested'],
-      ],
-    },
+    simplify: { kind: 'content-op-simplify' },
+    'llm-summaries': { kind: 'content-op-summaries' },
   };
 
   var TITLE_TO_ID = {
@@ -549,14 +518,216 @@
     );
   }
 
+  function buildContentOpHead(title, updated, metric1Val, metric1Lbl, metric2Val, metric2Lbl) {
+    return (
+      '<div class="sky-llm-op-recover-head">' +
+      '<div class="sky-llm-op-recover-head-main">' +
+      '<h1 class="sky-llm-op-detail-title">' +
+      escapeHtml(title) +
+      '</h1>' +
+      '<div class="sky-llm-op-recover-meta">' +
+      '<span class="sky-llm-op-pill">Content Optimization</span>' +
+      '<span class="sky-llm-op-updated">Updated ' +
+      escapeHtml(updated) +
+      '</span></div></div>' +
+      '<div class="sky-llm-op-recover-metrics">' +
+      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">' +
+      escapeHtml(metric1Val) +
+      '</span><span class="sky-llm-op-recover-metric-lbl">' +
+      escapeHtml(metric1Lbl) +
+      '</span></div>' +
+      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">' +
+      escapeHtml(metric2Val) +
+      '</span><span class="sky-llm-op-recover-metric-lbl">' +
+      escapeHtml(metric2Lbl) +
+      '</span></div></div></div>'
+    );
+  }
+
+  function buildPanels(overviewHtml, guidanceHtml) {
+    return (
+      '<section class="sky-llm-op-panel">' +
+      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Overview</button>' +
+      '<div class="sky-llm-op-panel-body">' +
+      overviewHtml +
+      '</div></section>' +
+      '<section class="sky-llm-op-panel">' +
+      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Guidance</button>' +
+      '<div class="sky-llm-op-panel-body">' +
+      guidanceHtml +
+      '</div></section>'
+    );
+  }
+
+  function buildProgressBlock(optimized, total, note) {
+    return (
+      '<section class="sky-llm-op-progress-block">' +
+      '<p class="sky-llm-op-kicker">Optimization progress</p>' +
+      '<div class="sky-llm-op-progress-bar"><div class="sky-llm-op-progress-fill" style="width:' +
+      (total ? Math.round((optimized / total) * 100) : 0) +
+      '%"></div></div>' +
+      '<p class="sky-llm-op-progress-label"><strong>' +
+      escapeHtml(String(optimized)) +
+      '</strong> of <strong>' +
+      escapeHtml(String(total)) +
+      '</strong> URLs optimized</p>' +
+      '<p class="sky-llm-op-progress-note">' +
+      escapeHtml(note) +
+      '</p></section>'
+    );
+  }
+
+  function buildPlanBlock(planText, deployHint) {
+    return (
+      '<section class="sky-llm-op-panel sky-llm-op-plan">' +
+      '<div class="sky-llm-op-plan-row">' +
+      '<div><h2 class="sky-llm-op-section-title">Opportunity plan</h2>' +
+      '<p class="sky-llm-op-plan-text">' +
+      escapeHtml(planText) +
+      '</p></div>' +
+      '<div class="sky-llm-op-plan-action">' +
+      '<button type="button" class="sky-llm-op-deploy-btn" disabled>Deploy optimizations</button>' +
+      '<span class="sky-llm-op-plan-hint">' +
+      escapeHtml(deployHint) +
+      '</span></div></div></section>'
+    );
+  }
+
+  function buildSimplifyDetailHtml() {
+    var overview =
+      '<p>Poor readability makes content difficult for users to understand. Content with low readability scores may drive away visitors and reduce engagement metrics.</p>' +
+      '<p>Readability scores measure how easy your content is to understand. Higher Flesch Reading Ease scores (60+) indicate easier-to-read content, which improves user engagement and SEO performance. These AI-generated suggestions help simplify complex text while maintaining meaning and context.</p>';
+    var guidance =
+      '<p>Recommendations use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
+      '<ol>' +
+      '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
+      '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing required.</li>' +
+      '<li><strong>Fast, low-risk deployment:</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
+      '</ol>' +
+      '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>';
+
+    return (
+      '<button type="button" class="sky-llm-op-back" id="skyLlmOpBack">← Back to Opportunities</button>' +
+      buildContentOpHead('Simplify Complex Content', 'Mon, May 18, 2024', '1', 'URLs', '1', 'Issues') +
+      buildPanels(overview, guidance) +
+      buildProgressBlock(
+        0,
+        10,
+        'Upgrade to unlock more opportunities and optimize additional URLs.',
+      ) +
+      buildPlanBlock(
+        'Review all suggested fixes below carefully before applying. You can dismiss or edit where needed.',
+        'Please select suggestions to deploy',
+      ) +
+      '<section class="sky-llm-op-urls-block">' +
+      '<div class="sky-llm-op-section-head"><h2 class="sky-llm-op-section-title">URLs with suggestions</h2></div>' +
+      '<div class="sky-llm-op-toolbar">' +
+      '<span class="sky-llm-op-filter">Current Suggestions</span>' +
+      '<div class="sky-llm-op-search sky-llm-op-search-inline">Search URLs</div>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
+      '</div>' +
+      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-simplify">' +
+      '<thead><tr><th></th><th>URL</th><th>Issues</th><th>Agentic Traffic (4 Weeks)</th><th>Details</th></tr></thead>' +
+      '<tbody><tr>' +
+      '<td><input type="checkbox" aria-label="Select URL"></td>' +
+      '<td><a href="https://sky.com/tv/sky-glass/packages" rel="noopener noreferrer">https://sky.com/tv/sky-glass/packages</a></td>' +
+      '<td>1</td><td>N/A</td>' +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
+      '</tr></tbody></table></div></section>'
+    );
+  }
+
+  function buildLlmSummariesDetailHtml() {
+    var urls = [
+      { url: 'https://sky.com/tv/sky-glass', suggestions: '2' },
+      { url: 'https://sky.com/tv/sky-stream', suggestions: '1' },
+      { url: 'https://sky.com/broadband/deals', suggestions: '3' },
+      { url: 'https://sky.com/broadband/full-fibre', suggestions: '1' },
+      { url: 'https://sky.com/tv/sports', suggestions: '2' },
+      { url: 'https://sky.com/tv/cinema', suggestions: '1' },
+      { url: 'https://sky.com/shop/tv', suggestions: '3' },
+      { url: 'https://sky.com/help/home', suggestions: '1' },
+      { url: 'https://sky.com/help/broadband', suggestions: '2' },
+      { url: 'https://sky.com/magazine/entertainment', suggestions: '1' },
+      { url: 'https://sky.com/magazine/sport', suggestions: '2' },
+      { url: 'https://sky.com/tv/ultimate-tv', suggestions: '3' },
+      { url: 'https://sky.com/tv/netflix', suggestions: '1' },
+    ];
+
+    var rows = urls
+      .map(function (row) {
+        return (
+          '<tr>' +
+          '<td><input type="checkbox" aria-label="Select URL"></td>' +
+          '<td class="sky-llm-op-expand-cell" aria-hidden="true">▸</td>' +
+          '<td><a href="' +
+          escapeHtml(row.url) +
+          '" rel="noopener noreferrer">' +
+          escapeHtml(row.url) +
+          '</a></td>' +
+          '<td>' +
+          escapeHtml(row.suggestions) +
+          '</td>' +
+          '<td>No</td><td>0</td>' +
+          '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+
+    var overview =
+      '<p>Content summarization elements such as summary and key points improve content discoverability and user engagement. AI-generated summaries help improve content discoverability and user engagement.</p>' +
+      '<p>These suggestions provide concise summaries that can be added to your pages, either as full page summaries or section-specific summaries.</p>';
+    var guidance =
+      '<p><strong>Recommendation:</strong> Use an edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
+      '<p><strong>Our solution</strong></p>' +
+      '<ol>' +
+      '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
+      '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
+      '<li><strong>Fast, low-risk deployment:</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
+      '</ol>' +
+      '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>';
+
+    return (
+      '<button type="button" class="sky-llm-op-back" id="skyLlmOpBack">← Back to Opportunities</button>' +
+      buildContentOpHead('Add LLM-Friendly Summaries', 'Mon, May 6, 2024', '13', 'URLs', '25', 'Suggestions') +
+      buildPanels(overview, guidance) +
+      buildProgressBlock(
+        0,
+        13,
+        'Upgrade to unlock more opportunities and prioritize additional URLs.',
+      ) +
+      buildPlanBlock(
+        'Review all suggestions from below carefully before applying. You can dismiss or edit where needed.',
+        'Please select suggestions to deploy',
+      ) +
+      '<section class="sky-llm-op-urls-block">' +
+      '<div class="sky-llm-op-section-head"><h2 class="sky-llm-op-section-title">URLs with suggestions</h2></div>' +
+      '<div class="sky-llm-op-toolbar">' +
+      '<span class="sky-llm-op-filter">Current Suggestions</span>' +
+      '<div class="sky-llm-op-search sky-llm-op-search-inline">Search URLs</div>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
+      '</div>' +
+      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-summaries">' +
+      '<thead><tr><th></th><th></th><th>URL</th><th>Suggestions</th><th>Agentic Traffic (4 Weeks)</th><th>Citations (4 Weeks)</th><th>Details</th></tr></thead>' +
+      '<tbody>' +
+      rows +
+      '</tbody></table></div></section>'
+    );
+  }
+
   function buildDetailHtml(viewId) {
     var view = DETAIL_VIEWS[viewId];
     if (!view) return '';
     if (view.kind === 'recover') return buildRecoverDetailHtml();
+    if (view.kind === 'content-op-simplify') return buildSimplifyDetailHtml();
+    if (view.kind === 'content-op-summaries') return buildLlmSummariesDetailHtml();
     return buildTableDetailHtml(view);
   }
 
-  function wireRecoverPanels(root) {
+  function wireDetailPanels(root) {
     root.querySelectorAll('.sky-llm-op-panel-toggle').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var expanded = btn.getAttribute('aria-expanded') === 'true';
@@ -580,6 +751,10 @@
     return el;
   }
 
+  function isRichDetailView(viewId) {
+    return viewId === 'recover' || viewId === 'simplify' || viewId === 'llm-summaries';
+  }
+
   function showDetail(viewId) {
     var canvas = findOpportunitiesMain();
     var detail = ensureDetailRoot();
@@ -587,10 +762,10 @@
 
     detail.innerHTML = buildDetailHtml(viewId);
     detail.hidden = false;
-    detail.classList.toggle('sky-llm-op-detail--recover', viewId === 'recover');
+    detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
     canvas.classList.add('sky-llm-op-list-hidden');
 
-    if (viewId === 'recover') wireRecoverPanels(detail);
+    if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
     var back = document.getElementById('skyLlmOpBack');
     if (back) {
