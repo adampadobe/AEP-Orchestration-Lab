@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude skills - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="claude-skills.css?v=20260602">
+  <link rel="stylesheet" href="home.css?v=20260602">
+  <link rel="stylesheet" href="aep-theme.css?v=20260602">
+</head>
+<body class="claude-skills-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Claude skill ingest and catalog">Skills</span>
+          <a href="home.html" class="dashboard-topbar-link">Home</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main claude-skills-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="skillsBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
+              <p class="dashboard-hero-subtitle">
+                Upload a Claude skill file, infer metadata, and publish it as a reusable tile. This workflow is non-Adobe sandbox and does not depend on sandbox selection.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="skills-panel skills-panel--notice" aria-labelledby="skillsNoticeHeading">
+          <h3 id="skillsNoticeHeading">Non-Adobe sandbox workflow</h3>
+          <p>
+            This page runs fully in-browser with localStorage persistence. Adobe sandbox toggles are ignored here so skills can be curated independently of AEP context.
+          </p>
+        </section>
+
+        <section class="skills-grid" aria-label="Claude skills workflow">
+          <article class="skills-panel" aria-labelledby="skillsUploadHeading">
+            <h3 id="skillsUploadHeading">Upload and infer</h3>
+            <p class="skills-muted">
+              Accepted formats: <code>.md</code>, <code>.txt</code>, <code>.json</code>, <code>.yaml</code>, <code>.yml</code>.
+            </p>
+            <div class="skills-field">
+              <label for="skillFileInput">Skill file</label>
+              <input id="skillFileInput" type="file" accept=".md,.txt,.json,.yaml,.yml,text/markdown,text/plain,application/json">
+            </div>
+            <div class="skills-actions">
+              <button id="inferSkillBtn" type="button" class="skills-btn skills-btn--primary">Infer metadata</button>
+              <button id="clearDraftBtn" type="button" class="skills-btn">Clear draft</button>
+            </div>
+            <p id="uploadStatus" class="skills-status" aria-live="polite"></p>
+          </article>
+
+          <article class="skills-panel" aria-labelledby="skillsMetadataHeading">
+            <h3 id="skillsMetadataHeading">Review and publish</h3>
+            <form id="skillMetadataForm" class="skills-form">
+              <div class="skills-field">
+                <label for="skillNameInput">Name</label>
+                <input id="skillNameInput" name="name" type="text" placeholder="Skill name" required>
+              </div>
+              <div class="skills-field">
+                <label for="skillDescriptionInput">Description</label>
+                <textarea id="skillDescriptionInput" name="description" rows="3" placeholder="What value this skill provides"></textarea>
+              </div>
+              <div class="skills-field">
+                <label for="skillUseCasesInput">Use cases</label>
+                <textarea id="skillUseCasesInput" name="useCases" rows="3" placeholder="One per line"></textarea>
+              </div>
+              <div class="skills-field">
+                <label for="skillTagsInput">Tags</label>
+                <input id="skillTagsInput" name="tags" type="text" placeholder="comma, separated, tags">
+              </div>
+              <div class="skills-field">
+                <label for="skillSourcePathInput">Source path (optional)</label>
+                <input id="skillSourcePathInput" name="sourcePath" type="text" placeholder="/path/to/SKILL.md">
+              </div>
+              <div class="skills-actions">
+                <button type="submit" class="skills-btn skills-btn--primary">Publish tile</button>
+              </div>
+              <p id="publishStatus" class="skills-status" aria-live="polite"></p>
+            </form>
+          </article>
+        </section>
+
+        <section class="skills-panel" aria-labelledby="vertexHeading">
+          <h3 id="vertexHeading">Analyze in Vertex AI</h3>
+          <p class="skills-muted">
+            Configure a Vertex chat/form endpoint. If direct browser submission is blocked by CORS or auth, copy the generated payload and paste it into your Vertex tool manually.
+          </p>
+          <div class="skills-vertex-grid">
+            <div class="skills-field">
+              <label for="vertexEndpointInput">Endpoint URL</label>
+              <input id="vertexEndpointInput" type="url" placeholder="https://...">
+            </div>
+            <div class="skills-field">
+              <label for="vertexRouteInput">Optional route/model</label>
+              <input id="vertexRouteInput" type="text" placeholder="chat/completions or gemini-1.5-pro">
+            </div>
+          </div>
+          <div class="skills-actions">
+            <button id="vertexAnalyzeBtn" type="button" class="skills-btn skills-btn--primary">Analyze in Vertex AI</button>
+            <button id="vertexCopyBtn" type="button" class="skills-btn">Copy payload</button>
+            <button id="vertexSubmitBtn" type="button" class="skills-btn">Try direct submit</button>
+          </div>
+          <div class="skills-field">
+            <label for="vertexPayloadOutput">Generated payload</label>
+            <textarea id="vertexPayloadOutput" rows="8" readonly></textarea>
+          </div>
+          <p id="vertexStatus" class="skills-status" aria-live="polite"></p>
+        </section>
+
+        <section class="skills-panel" aria-labelledby="catalogHeading">
+          <h3 id="catalogHeading">Published skill tiles</h3>
+          <div class="skills-filters">
+            <div class="skills-field">
+              <label for="skillsSearchInput">Search</label>
+              <input id="skillsSearchInput" type="search" placeholder="Search name, description, tags">
+            </div>
+            <div class="skills-field">
+              <label for="skillsTagFilter">Tag filter</label>
+              <select id="skillsTagFilter">
+                <option value="">All tags</option>
+              </select>
+            </div>
+          </div>
+          <p id="skillsCount" class="skills-muted" aria-live="polite"></p>
+          <div id="skillsTiles" class="skills-tiles" aria-label="Claude skill tiles"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="claude-skills.js?v=20260602"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
+</body>
+</html>
