@@ -168,6 +168,27 @@
         }
       },
       {
+        "source": "/api/claude-skills/**",
+        "function": {
+          "functionId": "claudeSkillsApi",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/claude-skills",
+        "function": {
+          "functionId": "claudeSkillsApi",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/skills/**",
+        "function": {
+          "functionId": "claudeSkillsAsset",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",

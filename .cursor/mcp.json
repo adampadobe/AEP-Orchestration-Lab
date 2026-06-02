@@ -3,6 +3,14 @@
     "firebase": {
       "command": "npx",
       "args": ["-y", "firebase-tools@latest", "experimental:mcp"]
+    },
+    "rtcdp": {
+      "type": "streamable-http",
+      "url": "https://rtcdp-mcp.adobe.io/mcp"
+    },
+    "ajo": {
+      "type": "streamable-http",
+      "url": "https://ajo-mcp.adobe.io/mcp"
     }
   }
 }

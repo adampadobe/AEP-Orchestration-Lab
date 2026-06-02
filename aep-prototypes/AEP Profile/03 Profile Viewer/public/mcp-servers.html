@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260603">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260602-claude-hint">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -35,6 +35,24 @@
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
                 Reference for Adobe-hosted MCP servers with documented HTTPS endpoints, plus common third-party MCPs for documentation, data, APIs, and delivery workflows. Each row notes how it is usually enabled in Cursor. This page does not store credentials and is not Adobe-sandbox-dependent.
+              </p>
+              <p class="mcp-claude-hint" id="mcpClaudeHint">
+                <span class="mcp-claude-hint-label" aria-hidden="true">Tip</span>
+                <button
+                  type="button"
+                  class="mcp-claude-hint-info"
+                  aria-label="More about Adobe MCP in Claude"
+                  aria-describedby="mcpClaudeHintText"
+                  title="Adobe is rolling out MCP connectors in Claude. In Claude, open Connectors to browse Adobe integrations; use this lab catalog for Cursor setup and endpoint URLs."
+                >
+                  <svg class="mcp-claude-hint-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.25"/>
+                    <path fill="currentColor" d="M7.25 7h1.5v4.5h-1.5V7zm.75-2.25a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                  </svg>
+                </button>
+                <span id="mcpClaudeHintText" class="mcp-claude-hint-text">
+                  Adobe is bringing MCP servers into Claude — open <strong>Connectors</strong> in Claude to browse available Adobe integrations alongside this lab catalog.
+                </span>
               </p>
             </header>
           </div>

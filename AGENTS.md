@@ -34,8 +34,8 @@ Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local
 
 ## MCP in this workspace
 
-- **`.cursor/mcp.json`** enables the **Firebase MCP** (`firebase-tools experimental:mcp`) for this folder. Uses the same auth as **Firebase CLI** on your machine (`firebase login` / ADC).
-- **Adobe / AEP MCP** (e.g. Marketing Agent): there is no repo-committed stdio block for it here — add it in **Cursor global MCP** or extend `.cursor/mcp.json` locally from your org’s documented command/env (avoid committing tokens).
+- **`.cursor/mcp.json`** enables **Firebase MCP** (`firebase-tools experimental:mcp`; same auth as **Firebase CLI** / ADC) plus Adobe OAuth MCPs **Real-Time CDP** (`rtcdp` → `https://rtcdp-mcp.adobe.io/mcp`) and **Journey Optimizer** (`ajo` → `https://ajo-mcp.adobe.io/mcp`) as `streamable-http` URL-only entries — browser Adobe ID sign-in on first tool use; no static headers in the repo.
+- **Other Adobe MCP** (e.g. Marketing Agent / AEP AMA): add in **Cursor global MCP** or extend `.cursor/mcp.json` locally from your org’s documented command/env (avoid committing tokens).
 
 ## Global Cursor baseline (all projects)
 

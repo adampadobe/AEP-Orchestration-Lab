@@ -4,6 +4,64 @@
   padding-bottom: 2rem;
 }
 
+.mcp-claude-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem 0.5rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.mcp-claude-hint-label {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #888);
+  padding-top: 0.12rem;
+}
+
+.mcp-claude-hint-info {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--dash-muted, #888);
+  cursor: help;
+  border-radius: 50%;
+  line-height: 0;
+}
+
+.mcp-claude-hint-info:hover,
+.mcp-claude-hint-info:focus-visible {
+  color: var(--dash-blue, #1473e6);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue, #1473e6) 22%, transparent);
+}
+
+.mcp-claude-hint-icon {
+  display: block;
+}
+
+.mcp-claude-hint-text {
+  flex: 1;
+  min-width: min(100%, 16rem);
+}
+
+.mcp-claude-hint-text strong {
+  font-weight: 600;
+  color: var(--dash-text, #2c2c2c);
+}
+
 .mcp-catalog-panel {
   background: var(--dash-surface, #fff);
   border: 1px solid var(--dash-border, #e2e2e2);

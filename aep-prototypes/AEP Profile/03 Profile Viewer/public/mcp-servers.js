@@ -87,7 +87,7 @@
         'Explore mboxes, environments, and properties',
       ],
       configNotes:
-        'streamable-http — interactive OAuth on first tool use. Requires Target license and appropriate Admin Console role.',
+        'Cursor global ~/.cursor/mcp.json: "type": "streamable-http", "url": "https://targetmcp.adobe.io/mcp" — OAuth on first tool use (no static headers). Server id often user-adobe-target. Requires Target license and Observer+ role in Admin Console.',
       docUrl: 'https://experienceleague.adobe.com/docs/target/using/mcp/target-mcp-get-started.html',
       docLabel: 'Target MCP get started',
     },
@@ -123,9 +123,47 @@
         'Email and snippet discovery',
       ],
       configNotes:
-        'Headers X-Marketo-Client-Id, X-Marketo-Client-Secret, X-Marketo-Munchkin-Id (use secrets locally, never commit).',
+        'Cursor global ~/.cursor/mcp.json: "type": "http", url https://marketo-mcp.adobe.io/mcp, headers X-Marketo-Client-Id, X-Marketo-Client-Secret, X-Marketo-Munchkin-Id (LaunchPoint + Admin > Munchkin; never commit). Limited availability — request access via Adobe form.',
       docUrl: 'https://experienceleague.adobe.com/docs/marketo-developer/marketo/mcp-server.html',
       docLabel: 'Marketo MCP server',
+    },
+    {
+      id: 'rtcdp',
+      section: 'adobe',
+      name: 'Real-Time CDP (CDP MCP)',
+      product: 'Adobe Real-Time Customer Data Platform',
+      mcpUrl: 'https://rtcdp-mcp.adobe.io/mcp',
+      summary:
+        'Adobe-hosted Real-Time CDP MCP (Beta, read-only): inspect audiences, destinations, sources, identity namespaces, merge policies, and flow runs via natural language in MCP clients — B2C and B2B Edition (tools vary by entitlements).',
+      useCases: [
+        'Search audiences and preview segment membership estimates',
+        'Triage destination activation flows, connectors, and flow-run failures',
+        'Monitor source ingestion pipelines and diagnose batch audience evaluation jobs',
+      ],
+      configNotes:
+        'Cursor: streamable-http — Settings → Tools & MCP → Connect → Adobe ID, url https://rtcdp-mcp.adobe.io/mcp (no static headers). OAuth browser sign-in on first tool use. Tell the assistant your imsOrgId and sandboxName each session (use search_organizations if needed). Public Beta — contact your Adobe rep for access. Also: https://experienceleague.adobe.com/docs/experience-platform/rtcdp/intro/rtcdpb2b-intro/rtcdp-mcp',
+      docUrl:
+        'https://experienceleague.adobe.com/docs/experience-cloud-ai/experience-cloud-ai/mcp/rtcdp-mcp',
+      docLabel: 'Real-Time CDP MCP (Beta)',
+    },
+    {
+      id: 'ajo',
+      section: 'adobe',
+      name: 'Adobe Journey Optimizer (AJO MCP)',
+      product: 'Adobe Journey Optimizer',
+      mcpUrl: 'https://ajo-mcp.adobe.io/mcp',
+      summary:
+        'Adobe-hosted Journey Optimizer MCP (Beta, read-only): list and inspect campaigns (status filters), fetch campaign configuration (audience, schedule, channels), and list email/SMS/push/WhatsApp channel presets — offers and sandbox context; tools vary by entitlements.',
+      useCases: [
+        'Audit live, draft, stopped, or completed campaigns without the AJO UI',
+        'Troubleshoot campaign setup, targeting, and channel configuration from conversation',
+        'Review channel surface presets and branding across sandboxes',
+      ],
+      configNotes:
+        'Cursor: streamable-http — Settings → Tools & MCP → Connect → Adobe ID, url https://ajo-mcp.adobe.io/mcp (no static headers). OAuth browser sign-in on first tool use. Beta — contact your Adobe rep for org access; official setup also documents Claude Web/Desktop. View permissions for campaigns/offers required; all tools are read-only.',
+      docUrl:
+        'https://experienceleague.adobe.com/docs/journey-optimizer/using/content-management/combine/ajo-mcp.html',
+      docLabel: 'AJO MCP (Beta)',
     },
     {
       id: 'context7',

@@ -104,6 +104,7 @@ const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
+const claudeSkillsService = lazyRequireMod('./claudeSkillsService');
 const snowflakeService = lazyRequireMod('./snowflakeService');
 const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
 const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelService');
@@ -5239,6 +5240,112 @@ exports.imageHostingAsset = onRequest(
       if (!res.headersSent) res.status(500).send('internal error');
     }
   }
+);
+
+/**
+ * Claude skills lab catalog API (shared Storage + Firestore + Vertex AI).
+ *   POST   /api/claude-skills/upload    { fileName, contentBase64, skillId? }
+ *   POST   /api/claude-skills/analyze   { skillId, storagePath? } | { text, fileName }
+ *   GET    /api/claude-skills/catalog   list published tiles
+ *   POST   /api/claude-skills/publish   publish metadata + skillId
+ *   DELETE /api/claude-skills/catalog?id=…
+ */
+exports.claudeSkillsApi = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, POST, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    const path = String(req.path || req.url || '')
+      .replace(/^\/api\/claude-skills\/?/, '')
+      .split('?')[0]
+      .replace(/\/+$/, '');
+    const clientKey = String(
+      (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+      || req.ip
+      || 'anonymous',
+    );
+    try {
+      if (req.method === 'POST' && path === 'upload') {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const out = await claudeSkillsService.uploadSkillFile(body);
+        res.status(200).json(out);
+        return;
+      }
+      if (req.method === 'POST' && path === 'analyze') {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const out = await claudeSkillsService.analyzeSkill(body, clientKey);
+        res.status(200).json(out);
+        return;
+      }
+      if (req.method === 'POST' && path === 'publish') {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const out = await claudeSkillsService.publishSkill(body);
+        res.status(200).json(out);
+        return;
+      }
+      if (req.method === 'GET' && (path === '' || path === 'catalog')) {
+        const out = await claudeSkillsService.listCatalog();
+        res.status(200).json(out);
+        return;
+      }
+      if (req.method === 'DELETE' && (path === 'catalog' || path === '')) {
+        const id = String((req.query && req.query.id) || '').trim();
+        const out = await claudeSkillsService.deleteSkill(id);
+        res.status(200).json(out);
+        return;
+      }
+      res.status(404).json({ error: 'Not found' });
+    } catch (e) {
+      const status = e.status || (e.code === 'RATE_LIMITED' ? 429 : 500);
+      console.error('[claudeSkillsApi]', String(e && e.message || e));
+      res.status(status).json({ ok: false, error: String(e.message || e) });
+    }
+  },
+);
+
+/**
+ * Public skill file proxy — streams bytes from the skills bucket at
+ * gs://<bucket>/claude-skills/{skillId}/{file}
+ */
+exports.claudeSkillsAsset = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.status(405).send('GET only'); return;
+    }
+    try {
+      const { file } = claudeSkillsService.resolveAsset(req.path);
+      const [exists] = await file.exists();
+      if (!exists) { res.status(404).send('not found'); return; }
+      const [md] = await file.getMetadata().catch(() => [null]);
+      const ct = (md && md.contentType) || 'text/plain; charset=utf-8';
+      res.setHeader('Content-Type', ct);
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      if (md && md.size) res.setHeader('Content-Length', String(md.size));
+      if (md && md.etag) res.setHeader('ETag', md.etag);
+      if (req.method === 'HEAD') { res.status(200).end(); return; }
+      file.createReadStream().on('error', (err) => {
+        console.error('[claudeSkillsAsset] stream', String(err && err.message || err));
+        if (!res.headersSent) res.status(500).send('read error');
+      }).pipe(res);
+    } catch (e) {
+      const status = e.status || 500;
+      console.error('[claudeSkillsAsset]', String(e && e.message || e));
+      if (!res.headersSent) res.status(status).send(status === 400 ? 'bad path' : 'internal error');
+    }
+  },
 );
 
 /**

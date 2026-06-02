@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="claude-skills.css?v=20260602">
+  <link rel="stylesheet" href="claude-skills.css?v=20260602b">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
 </head>
@@ -32,27 +32,37 @@
             <header class="dashboard-hero-header">
               <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
               <p class="dashboard-hero-subtitle">
-                Upload a Claude skill file, infer metadata, and publish it as a reusable tile. This workflow is non-Adobe sandbox and does not depend on sandbox selection.
+                Drop a Claude skill file to upload it to the shared lab catalog, classify it with <strong>Vertex AI Gemini</strong> on the server, edit metadata, and publish a tile with a stable hosted link for your team.
               </p>
             </header>
           </div>
         </section>
 
+        <p id="skillsMigrateBanner" class="skills-migrate-banner" hidden></p>
+
         <section class="skills-grid" aria-label="Claude skills workflow">
-          <article class="skills-panel" aria-labelledby="skillsUploadHeading">
-            <h3 id="skillsUploadHeading">Upload and infer</h3>
+          <article class="skills-panel skills-panel--upload" aria-labelledby="skillsUploadHeading">
+            <h3 id="skillsUploadHeading">Upload skill file</h3>
             <p class="skills-muted">
-              Accepted formats: <code>.md</code>, <code>.txt</code>, <code>.json</code>, <code>.yaml</code>, <code>.yml</code>.
+              Accepted: <code>.md</code>, <code>.txt</code>, <code>.json</code>, <code>.yaml</code>, <code>.yml</code> (max 512&nbsp;KB). Files are stored in Firebase Storage; analysis runs via Vertex AI on the backend.
             </p>
-            <div class="skills-field">
-              <label for="skillFileInput">Skill file</label>
-              <input id="skillFileInput" type="file" accept=".md,.txt,.json,.yaml,.yml,text/markdown,text/plain,application/json">
+            <div
+              id="skillsDropZone"
+              class="skills-dropzone"
+              tabindex="0"
+              role="button"
+              aria-label="Drop a skill file here or activate to browse"
+            >
+              <input id="skillFileInput" type="file" class="skills-dropzone-input" accept=".md,.txt,.json,.yaml,.yml,text/markdown,text/plain,application/json">
+              <p class="skills-dropzone-title">Drop skill file here</p>
+              <p class="skills-dropzone-hint">or click to browse</p>
+              <p id="skillsDropFileName" class="skills-dropzone-file" aria-live="polite"></p>
             </div>
             <div class="skills-actions">
-              <button id="inferSkillBtn" type="button" class="skills-btn skills-btn--primary">Infer metadata</button>
               <button id="clearDraftBtn" type="button" class="skills-btn">Clear draft</button>
             </div>
             <p id="uploadStatus" class="skills-status" aria-live="polite"></p>
+            <p id="analyzeStatus" class="skills-status skills-status--analysis" aria-live="polite"></p>
           </article>
 
           <article class="skills-panel" aria-labelledby="skillsMetadataHeading">
@@ -67,6 +77,14 @@
                 <textarea id="skillDescriptionInput" name="description" rows="3" placeholder="What value this skill provides"></textarea>
               </div>
               <div class="skills-field">
+                <label for="skillCategoryInput">Category</label>
+                <input id="skillCategoryInput" name="category" type="text" placeholder="e.g. workflow, integration, demo">
+              </div>
+              <div class="skills-field">
+                <label for="skillValueSummaryInput">Value summary</label>
+                <textarea id="skillValueSummaryInput" name="valueSummary" rows="2" placeholder="Business + technical value (from Vertex AI)"></textarea>
+              </div>
+              <div class="skills-field">
                 <label for="skillUseCasesInput">Use cases</label>
                 <textarea id="skillUseCasesInput" name="useCases" rows="3" placeholder="One per line"></textarea>
               </div>
@@ -78,39 +96,13 @@
                 <label for="skillSourcePathInput">Source path (optional)</label>
                 <input id="skillSourcePathInput" name="sourcePath" type="text" placeholder="/path/to/SKILL.md">
               </div>
+              <p id="skillHostedUrl" class="skills-muted skills-hosted-url" hidden></p>
               <div class="skills-actions">
-                <button type="submit" class="skills-btn skills-btn--primary">Publish tile</button>
+                <button type="submit" class="skills-btn skills-btn--primary" id="publishSkillBtn" disabled>Publish tile</button>
               </div>
               <p id="publishStatus" class="skills-status" aria-live="polite"></p>
             </form>
           </article>
-        </section>
-
-        <section class="skills-panel" aria-labelledby="vertexHeading">
-          <h3 id="vertexHeading">Analyze in Vertex AI</h3>
-          <p class="skills-muted">
-            Configure a Vertex chat/form endpoint. If direct browser submission is blocked by CORS or auth, copy the generated payload and paste it into your Vertex tool manually.
-          </p>
-          <div class="skills-vertex-grid">
-            <div class="skills-field">
-              <label for="vertexEndpointInput">Endpoint URL</label>
-              <input id="vertexEndpointInput" type="url" placeholder="https://...">
-            </div>
-            <div class="skills-field">
-              <label for="vertexRouteInput">Optional route/model</label>
-              <input id="vertexRouteInput" type="text" placeholder="chat/completions or gemini-1.5-pro">
-            </div>
-          </div>
-          <div class="skills-actions">
-            <button id="vertexAnalyzeBtn" type="button" class="skills-btn skills-btn--primary">Analyze in Vertex AI</button>
-            <button id="vertexCopyBtn" type="button" class="skills-btn">Copy payload</button>
-            <button id="vertexSubmitBtn" type="button" class="skills-btn">Try direct submit</button>
-          </div>
-          <div class="skills-field">
-            <label for="vertexPayloadOutput">Generated payload</label>
-            <textarea id="vertexPayloadOutput" rows="8" readonly></textarea>
-          </div>
-          <p id="vertexStatus" class="skills-status" aria-live="polite"></p>
         </section>
 
         <section class="skills-panel" aria-labelledby="catalogHeading">
@@ -134,7 +126,7 @@
     </div>
   </div>
 
-  <script src="claude-skills.js?v=20260602"></script>
+  <script src="claude-skills.js?v=20260602b"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
 </body>

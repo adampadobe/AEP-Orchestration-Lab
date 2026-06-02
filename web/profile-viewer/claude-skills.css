@@ -116,11 +116,115 @@
   min-height: 1.2rem;
 }
 
-.skills-vertex-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+.skills-status--error {
+  color: var(--dash-error, var(--dash-muted));
+}
+
+.skills-status--success {
+  color: var(--dash-success, var(--dash-muted));
+}
+
+.skills-status--info {
+  color: var(--dash-text-secondary);
+}
+
+.skills-status--analysis {
+  font-weight: 500;
+}
+
+.skills-dropzone {
+  position: relative;
+  border: 2px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  padding: 1.6rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.skills-dropzone:focus-visible {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue) 26%, transparent);
+}
+
+.skills-dropzone--over,
+.skills-dropzone:hover {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface-alt));
+}
+
+.skills-dropzone--busy {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.skills-dropzone-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.skills-dropzone-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.skills-dropzone-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.86rem;
+  color: var(--dash-muted);
+}
+
+.skills-dropzone-file {
+  margin: 0.65rem 0 0;
+  font-size: 0.84rem;
+  color: var(--dash-text-secondary);
+  word-break: break-all;
+}
+
+.skills-migrate-banner {
+  border: 1px solid color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 40%, transparent);
+  background: color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 10%, var(--dash-surface));
+  border-radius: var(--dash-radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.skills-btn--inline {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.skills-hosted-url a {
+  color: var(--dash-blue);
+  word-break: break-all;
+}
+
+.skills-tile-link {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.skills-tile-link:hover {
+  text-decoration: underline;
+}
+
+.skills-badge--warn {
+  border-color: color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 50%, transparent);
+  color: var(--dash-warning, var(--dash-blue));
+  background: color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 12%, transparent);
 }
 
 .skills-filters {
@@ -220,7 +324,6 @@
     grid-template-columns: 1fr;
   }
 
-  .skills-vertex-grid,
   .skills-filters {
     grid-template-columns: 1fr;
   }
