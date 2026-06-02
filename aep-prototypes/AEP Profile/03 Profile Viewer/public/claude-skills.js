@@ -1,11 +1,14 @@
 /**
  * Claude skills — shared lab catalog (Storage + Firestore + Vertex AI).
+ * Primary UX: drop file → upload → Vertex analyze → auto-publish.
  */
 (function () {
   'use strict';
 
   var STORAGE_LEGACY_KEY = 'claudeSkillsCatalogV1';
-  var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml'];
+  var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml', 'zip'];
+  var MAX_FILE_BYTES = 512 * 1024;
+  var MAX_ZIP_BYTES = 2 * 1024 * 1024;
   var API_UPLOAD = '/api/claude-skills/upload';
   var API_ANALYZE = '/api/claude-skills/analyze';
   var API_CATALOG = '/api/claude-skills/catalog';
@@ -13,9 +16,11 @@
 
   var state = {
     draft: null,
+    lastPublishedSkill: null,
     publishedSkills: [],
     catalogLoading: false,
     processing: false,
+    advancedOpen: false,
   };
 
   function byId(id) {
@@ -76,19 +81,6 @@
     });
   }
 
-  function readFileAsText(file) {
-    return new Promise(function (resolve, reject) {
-      var reader = new FileReader();
-      reader.onload = function () {
-        resolve(String(reader.result || ''));
-      };
-      reader.onerror = function () {
-        reject(new Error('Unable to read file'));
-      };
-      reader.readAsText(file);
-    });
-  }
-
   function apiJson(url, options) {
     return fetch(url, options).then(function (response) {
       return response.json().then(function (data) {
@@ -101,8 +93,8 @@
     });
   }
 
-  function setStatus(id, message, tone) {
-    var el = byId(id);
+  function setDropStatus(message, tone) {
+    var el = byId('skillsDropStatus');
     if (!el) return;
     el.textContent = message || '';
     el.classList.remove('skills-status--error', 'skills-status--success', 'skills-status--info');
@@ -111,11 +103,65 @@
     if (tone === 'info') el.classList.add('skills-status--info');
   }
 
+  function setPublishStatus(message, tone) {
+    var el = byId('publishStatus');
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.remove('skills-status--error', 'skills-status--success', 'skills-status--info');
+    if (tone === 'error') el.classList.add('skills-status--error');
+    if (tone === 'success') el.classList.add('skills-status--success');
+    if (tone === 'info') el.classList.add('skills-status--info');
+  }
+
+  function hideDropSuccess() {
+    var box = byId('skillsDropSuccess');
+    if (box) box.hidden = true;
+    var zone = byId('skillsDropZone');
+    if (zone) zone.classList.remove('skills-dropzone--published');
+  }
+
+  function showDropSuccess(skill) {
+    var box = byId('skillsDropSuccess');
+    var title = byId('skillsDropSuccessTitle');
+    var links = byId('skillsDropSuccessLinks');
+    var zone = byId('skillsDropZone');
+    if (!box || !title) return;
+
+    var name = (skill && skill.name) || 'Skill';
+    title.textContent = 'Published: ' + name;
+
+    if (links) {
+      var html = '';
+      if (skill && skill.publicUrl) {
+        html +=
+          '<a href="' +
+          escapeHtml(skill.publicUrl) +
+          '" target="_blank" rel="noopener noreferrer">Open hosted skill</a>';
+      }
+      links.innerHTML = html;
+    }
+
+    box.hidden = false;
+    if (zone) zone.classList.add('skills-dropzone--published');
+    setDropStatus('', '');
+  }
+
   function setDropZoneBusy(busy) {
     var zone = byId('skillsDropZone');
-    if (zone) zone.classList.toggle('skills-dropzone--busy', !!busy);
+    if (zone) {
+      zone.classList.toggle('skills-dropzone--busy', !!busy);
+      zone.classList.toggle('skills-dropzone--processing', !!busy);
+    }
     state.processing = !!busy;
     updatePublishEnabled();
+  }
+
+  function setAdvancedOpen(open) {
+    state.advancedOpen = !!open;
+    var panel = byId('skillsAdvancedPanel');
+    var showBtn = byId('showAdvancedBtn');
+    if (panel) panel.hidden = !open;
+    if (showBtn) showBtn.hidden = open || !state.draft;
   }
 
   function updatePublishEnabled() {
@@ -124,7 +170,27 @@
     btn.disabled = state.processing || !state.draft || !state.draft.skillId;
   }
 
+  function metadataFromAnalysis(analysis) {
+    if (!analysis) return null;
+    var name = String(analysis.title || '').trim();
+    if (!name) {
+      var base = String(state.draft && state.draft.fileName || 'skill').replace(/\.[^.]+$/, '');
+      name = base || 'Untitled skill';
+    }
+    return {
+      name: name,
+      description: String(analysis.description || '').trim(),
+      category: String(analysis.category || '').trim(),
+      valueSummary: String(analysis.valueSummary || '').trim(),
+      useCases: Array.isArray(analysis.useCases) ? analysis.useCases : [],
+      tags: Array.isArray(analysis.tags) ? analysis.tags : [],
+      sourcePath: String(analysis.sourcePath || '').trim(),
+      confidence: typeof analysis.confidence === 'number' ? analysis.confidence : undefined,
+    };
+  }
+
   function fillDraftForm(metadata) {
+    if (!metadata) return;
     byId('skillNameInput').value = metadata.name || metadata.title || '';
     byId('skillDescriptionInput').value = metadata.description || '';
     byId('skillCategoryInput').value = metadata.category || '';
@@ -163,21 +229,19 @@
 
   function applyAnalysis(analysis) {
     if (!analysis) return;
-    fillDraftForm({
-      name: analysis.title,
-      description: analysis.description,
-      category: analysis.category,
-      valueSummary: analysis.valueSummary,
-      useCases: analysis.useCases,
-      tags: analysis.tags,
-      sourcePath: analysis.sourcePath,
-    });
+    var meta = metadataFromAnalysis(analysis);
+    fillDraftForm(meta);
     if (state.draft) state.draft.confidence = analysis.confidence;
+    if (state.draft && meta) state.draft.lastMetadata = meta;
+    return meta;
   }
 
   function clearDraft() {
     state.draft = null;
-    byId('skillMetadataForm').reset();
+    state.lastPublishedSkill = null;
+    state.advancedOpen = false;
+    var form = byId('skillMetadataForm');
+    if (form) form.reset();
     byId('skillFileInput').value = '';
     var fileLabel = byId('skillsDropFileName');
     if (fileLabel) fileLabel.textContent = '';
@@ -186,30 +250,90 @@
       hosted.hidden = true;
       hosted.textContent = '';
     }
-    setStatus('uploadStatus', '');
-    setStatus('analyzeStatus', '');
-    setStatus('publishStatus', '');
+    hideDropSuccess();
+    setDropStatus('', '');
+    setPublishStatus('');
+    setAdvancedOpen(false);
+    var showBtn = byId('showAdvancedBtn');
+    if (showBtn) showBtn.hidden = true;
     updatePublishEnabled();
+  }
+
+  function upsertPublishedSkill(skill) {
+    if (!skill || !skill.id) return;
+    state.publishedSkills = state.publishedSkills.filter(function (s) {
+      return s.id !== skill.id;
+    });
+    state.publishedSkills.unshift(skill);
+    renderSkills();
+  }
+
+  async function publishDraft(metadata) {
+    if (!state.draft || !state.draft.skillId) {
+      throw new Error('No skill draft to publish');
+    }
+    var draft = metadata || getDraftFromForm();
+    if (!draft.name) {
+      throw new Error('Vertex AI did not return a skill name. Try another file or use Edit details.');
+    }
+
+    var data = await apiJson(API_PUBLISH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        skillId: state.draft.skillId,
+        fileName: state.draft.fileName,
+        storagePath: state.draft.storagePath,
+        name: draft.name,
+        description: draft.description,
+        category: draft.category,
+        valueSummary: draft.valueSummary,
+        useCases: draft.useCases,
+        tags: draft.tags,
+        sourcePath: draft.sourcePath,
+        confidence: draft.confidence,
+      }),
+    });
+
+    if (data.skill) {
+      upsertPublishedSkill(data.skill);
+      try {
+        localStorage.removeItem(STORAGE_LEGACY_KEY);
+      } catch (_e) { /* ignore */ }
+      var banner = byId('skillsMigrateBanner');
+      if (banner) banner.hidden = true;
+    }
+    return data.skill;
   }
 
   async function processFile(file) {
     if (!file) return;
     var ext = fileExtension(file.name);
     if (ACCEPTED_EXTENSIONS.indexOf(ext) === -1) {
-      setStatus('uploadStatus', 'Unsupported extension: .' + (ext || '(none)'), 'error');
+      hideDropSuccess();
+      setDropStatus('Unsupported file type. Use .md, .txt, .json, .yaml, .yml, or .zip.', 'error');
       return;
     }
-    if (file.size > 512 * 1024) {
-      setStatus('uploadStatus', 'File exceeds 512 KB limit.', 'error');
+    var isZip = ext === 'zip';
+    var maxBytes = isZip ? MAX_ZIP_BYTES : MAX_FILE_BYTES;
+    if (file.size > maxBytes) {
+      hideDropSuccess();
+      setDropStatus(isZip ? 'ZIP exceeds 2 MB limit.' : 'File exceeds 512 KB limit.', 'error');
       return;
     }
+
+    hideDropSuccess();
+    setAdvancedOpen(false);
+    setPublishStatus('');
 
     var fileLabel = byId('skillsDropFileName');
     if (fileLabel) fileLabel.textContent = file.name;
 
     setDropZoneBusy(true);
-    setStatus('uploadStatus', 'Uploading ' + file.name + '…', 'info');
-    setStatus('analyzeStatus', '', 'info');
+    setDropStatus(
+      (isZip ? 'Uploading ZIP…' : 'Uploading…'),
+      'info'
+    );
 
     try {
       var contentBase64 = await readFileAsBase64(file);
@@ -219,6 +343,7 @@
         body: JSON.stringify({
           fileName: file.name,
           contentBase64: contentBase64,
+          contentType: file.type || '',
         }),
       });
 
@@ -228,10 +353,16 @@
         storagePath: upload.storagePath,
         publicUrl: upload.publicUrl,
         extension: upload.extension,
-        localText: await readFileAsText(file),
+        extractedFromZip: !!upload.extractedFromZip,
+        zipFileName: upload.zipFileName || '',
+        extractedFiles: upload.files || [],
       };
       updatePublishEnabled();
-      setStatus('uploadStatus', 'Uploaded. Analyzing with Vertex AI…', 'success');
+
+      var uploadDetail = upload.extractedFromZip
+        ? 'ZIP extracted on server. '
+        : '';
+      setDropStatus(uploadDetail + 'Analyzing with Vertex AI…', 'info');
 
       var analyzed = await apiJson(API_ANALYZE, {
         method: 'POST',
@@ -243,18 +374,21 @@
         }),
       });
 
-      applyAnalysis(analyzed.analysis);
-      var conf = analyzed.analysis && typeof analyzed.analysis.confidence === 'number'
-        ? Math.round(analyzed.analysis.confidence * 100) + '%'
-        : '';
-      setStatus(
-        'analyzeStatus',
-        'Vertex AI classification complete' + (conf ? ' (confidence ' + conf + ').' : '.') + ' Edit fields, then publish.',
-        'success'
-      );
+      var metadata = applyAnalysis(analyzed.analysis);
+      setDropStatus('Publishing to shared catalog…', 'info');
+
+      var skill = await publishDraft(metadata);
+      state.lastPublishedSkill = skill || null;
+      showDropSuccess(skill);
+
+      var showBtn = byId('showAdvancedBtn');
+      if (showBtn) showBtn.hidden = false;
+
+      state.draft = null;
+      updatePublishEnabled();
     } catch (error) {
-      setStatus('uploadStatus', error.message || 'Upload failed', 'error');
-      setStatus('analyzeStatus', '', 'error');
+      hideDropSuccess();
+      setDropStatus(error.message || 'Something went wrong. Try again or use Edit details.', 'error');
     } finally {
       setDropZoneBusy(false);
     }
@@ -302,7 +436,7 @@
       }
       renderSkills();
     } catch (error) {
-      setStatus('publishStatus', 'Could not load catalog: ' + (error.message || error), 'error');
+      setPublishStatus('Could not load catalog: ' + (error.message || error), 'error');
       var legacyOnly = loadLegacyLocalSkills();
       if (legacyOnly.length) {
         state.publishedSkills = legacyOnly.map(function (s) {
@@ -354,6 +488,35 @@
     return haystack.indexOf(query) !== -1;
   }
 
+  function openEditForSkill(skillId) {
+    var skill = state.publishedSkills.find(function (s) {
+      return s.id === skillId;
+    });
+    if (!skill) return;
+
+    state.draft = {
+      skillId: skill.id,
+      fileName: skill.fileName,
+      storagePath: skill.storagePath,
+      publicUrl: skill.publicUrl,
+      extension: skill.extension,
+      confidence: skill.confidence,
+    };
+    fillDraftForm({
+      name: skill.name,
+      description: skill.description,
+      category: skill.category,
+      valueSummary: skill.valueSummary,
+      useCases: skill.useCases,
+      tags: skill.tags,
+      sourcePath: skill.sourcePath,
+    });
+    updatePublishEnabled();
+    setAdvancedOpen(true);
+    setPublishStatus('Editing published tile. Save changes when ready.', 'info');
+    byId('skillsAdvancedPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   function renderSkills() {
     renderTagFilter();
 
@@ -376,7 +539,7 @@
     if (!tiles) return;
     if (!list.length) {
       tiles.innerHTML =
-        '<div class="skills-empty">No skill tiles yet. Drop a file above to upload and publish.</div>';
+        '<div class="skills-empty">No skill tiles yet. Drop a file above — Vertex AI will classify and publish automatically.</div>';
       return;
     }
 
@@ -417,6 +580,12 @@
           badges += '<span class="skills-badge">' + escapeHtml(skill.category) + '</span>';
         }
 
+        var editBtn = skill._legacyLocal
+          ? ''
+          : '<button class="skills-btn skills-btn--link skills-tile-edit" type="button" data-edit-id="' +
+            escapeHtml(skill.id) +
+            '">Edit</button>';
+
         return (
           '<article class="skills-tile" data-skill-id="' +
           escapeHtml(skill.id) +
@@ -425,11 +594,14 @@
           '<h4 class="skills-tile-title">' +
           escapeHtml(skill.name || 'Untitled skill') +
           '</h4>' +
+          '<div class="skills-tile-actions">' +
+          editBtn +
           (skill._legacyLocal
             ? ''
             : '<button class="skills-btn skills-delete" type="button" data-delete-id="' +
               escapeHtml(skill.id) +
               '">Delete</button>') +
+          '</div>' +
           '</div>' +
           '<div class="skills-badges">' +
           badges +
@@ -458,11 +630,14 @@
     if (!zone || !input) return;
 
     zone.addEventListener('click', function (event) {
+      if (state.processing) return;
       if (event.target === input) return;
+      if (event.target.closest && event.target.closest('a, button')) return;
       input.click();
     });
 
     zone.addEventListener('keydown', function (event) {
+      if (state.processing) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         input.click();
@@ -476,7 +651,7 @@
 
     zone.addEventListener('dragover', function (event) {
       event.preventDefault();
-      zone.classList.add('skills-dropzone--over');
+      if (!state.processing) zone.classList.add('skills-dropzone--over');
     });
 
     zone.addEventListener('dragleave', function () {
@@ -486,6 +661,7 @@
     zone.addEventListener('drop', function (event) {
       event.preventDefault();
       zone.classList.remove('skills-dropzone--over');
+      if (state.processing) return;
       var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
       if (file) processFile(file);
     });
@@ -498,56 +674,36 @@
     form.addEventListener('submit', function (event) {
       event.preventDefault();
       if (!state.draft || !state.draft.skillId) {
-        setStatus('publishStatus', 'Upload a skill file first.', 'error');
+        setPublishStatus('Open a tile with Edit or drop a file first.', 'error');
         return;
       }
       var draft = getDraftFromForm();
       if (!draft.name) {
-        setStatus('publishStatus', 'Name is required.', 'error');
+        setPublishStatus('Name is required.', 'error');
         return;
       }
 
-      setStatus('publishStatus', 'Publishing…', 'info');
-      apiJson(API_PUBLISH, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          skillId: state.draft.skillId,
-          fileName: state.draft.fileName,
-          storagePath: state.draft.storagePath,
-          name: draft.name,
-          description: draft.description,
-          category: draft.category,
-          valueSummary: draft.valueSummary,
-          useCases: draft.useCases,
-          tags: draft.tags,
-          sourcePath: draft.sourcePath,
-          confidence: draft.confidence,
-        }),
-      })
-        .then(function (data) {
-          if (data.skill) {
-            state.publishedSkills = state.publishedSkills.filter(function (s) {
-              return s.id !== data.skill.id;
-            });
-            state.publishedSkills.unshift(data.skill);
-          }
-          renderSkills();
-          setStatus('publishStatus', 'Published "' + draft.name + '" to the shared catalog.', 'success');
-          try {
-            localStorage.removeItem(STORAGE_LEGACY_KEY);
-          } catch (_e) { /* ignore */ }
-          var banner = byId('skillsMigrateBanner');
-          if (banner) banner.hidden = true;
+      setPublishStatus('Saving…', 'info');
+      publishDraft(draft)
+        .then(function (skill) {
+          setPublishStatus('Saved "' + draft.name + '" to the shared catalog.', 'success');
+          if (skill) showDropSuccess(skill);
         })
         .catch(function (error) {
-          setStatus('publishStatus', error.message || 'Publish failed', 'error');
+          setPublishStatus(error.message || 'Save failed', 'error');
         });
     });
 
     tiles.addEventListener('click', function (event) {
       var target = event.target;
       if (!(target instanceof HTMLElement)) return;
+
+      var editId = target.getAttribute('data-edit-id');
+      if (editId) {
+        openEditForSkill(editId);
+        return;
+      }
+
       var deleteId = target.getAttribute('data-delete-id');
       if (!deleteId) return;
       if (!window.confirm('Delete this skill from the shared catalog?')) return;
@@ -564,12 +720,47 @@
             return skill.id !== deleteId;
           });
           renderSkills();
-          setStatus('publishStatus', 'Removed skill tile.', 'success');
+          setPublishStatus('Removed skill tile.', 'success');
         })
         .catch(function (error) {
-          setStatus('publishStatus', error.message || 'Delete failed', 'error');
+          setPublishStatus(error.message || 'Delete failed', 'error');
         });
     });
+  }
+
+  function wireAdvancedPanel() {
+    var showBtn = byId('showAdvancedBtn');
+    var hideBtn = byId('hideAdvancedBtn');
+    var editFromSuccess = byId('editDraftFromSuccessBtn');
+
+    if (showBtn) {
+      showBtn.addEventListener('click', function () {
+        if (state.draft) {
+          setAdvancedOpen(true);
+          return;
+        }
+        if (state.lastPublishedSkill && state.lastPublishedSkill.id) {
+          openEditForSkill(state.lastPublishedSkill.id);
+          return;
+        }
+        setPublishStatus('Drop a file first, or use Edit on a published tile.', 'info');
+      });
+    }
+    if (hideBtn) {
+      hideBtn.addEventListener('click', function () {
+        setAdvancedOpen(false);
+      });
+    }
+    if (editFromSuccess) {
+      editFromSuccess.addEventListener('click', function () {
+        var skill = state.lastPublishedSkill;
+        if (skill && skill.id) {
+          openEditForSkill(skill.id);
+          return;
+        }
+        if (state.publishedSkills.length) openEditForSkill(state.publishedSkills[0].id);
+      });
+    }
   }
 
   function wireFilterActions() {
@@ -580,6 +771,7 @@
   function init() {
     wireDropZone();
     wirePublishActions();
+    wireAdvancedPanel();
     wireFilterActions();
     byId('clearDraftBtn').addEventListener('click', clearDraft);
     loadCatalog();

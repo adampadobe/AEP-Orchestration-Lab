@@ -34,8 +34,30 @@ Never commit secrets. Use **Firebase `defineSecret`**, gitignored `.env` / local
 
 ## MCP in this workspace
 
-- **`.cursor/mcp.json`** enables **Firebase MCP** (`firebase-tools experimental:mcp`; same auth as **Firebase CLI** / ADC) plus Adobe OAuth MCPs **Real-Time CDP** (`rtcdp` → `https://rtcdp-mcp.adobe.io/mcp`) and **Journey Optimizer** (`ajo` → `https://ajo-mcp.adobe.io/mcp`) as `streamable-http` URL-only entries — browser Adobe ID sign-in on first tool use; no static headers in the repo.
-- **Other Adobe MCP** (e.g. Marketing Agent / AEP AMA): add in **Cursor global MCP** or extend `.cursor/mcp.json` locally from your org’s documented command/env (avoid committing tokens).
+Cursor loads MCP from two places — they appear as separate sections in **Settings → MCP**:
+
+| Location | File | Cursor UI label |
+|----------|------|-----------------|
+| **Workspace** (committed, team default for this repo) | `.cursor/mcp.json` | **Workspace MCP Servers** |
+| **User / global** (your machine only, all projects) | `~/.cursor/mcp.json` | **User MCP Servers** |
+
+- **Workspace (this repo):** **Firebase MCP** only — `firebase-tools experimental:mcp` (same auth as **Firebase CLI** / ADC). Keeps deploy/emulator tooling tied to the lab project without duplicating personal Adobe OAuth servers in git.
+- **User / global:** Adobe product MCPs (**Real-Time CDP**, **Journey Optimizer**, AEP AMA, Analytics, etc.) belong here alongside your other Adobe entries. Paste into `~/.cursor/mcp.json` (merge; do not wipe existing servers):
+
+```json
+"rtcdp": {
+  "type": "streamable-http",
+  "url": "https://rtcdp-mcp.adobe.io/mcp"
+},
+"ajo": {
+  "type": "streamable-http",
+  "url": "https://ajo-mcp.adobe.io/mcp"
+}
+```
+
+Optional — if you want **Firebase MCP in every project**, add the same block as workspace `firebase` to your user file (or enable the workspace entry when this repo is open). Browser Adobe ID sign-in on first tool use for OAuth MCPs; no static auth headers in the repo.
+
+- **Secrets:** never commit tokens or client secrets. Use user-level `headers` / `env` only in `~/.cursor/mcp.json` (gitignored on your machine).
 
 ## Global Cursor baseline (all projects)
 

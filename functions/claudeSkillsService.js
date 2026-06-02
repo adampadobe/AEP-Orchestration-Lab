@@ -20,8 +20,13 @@ const { callGemini, stripJsonFences } = require('./vertexClient');
 const COLLECTION = 'claudeSkills';
 const STORAGE_PREFIX = 'claude-skills';
 const MAX_FILE_BYTES = 512 * 1024;
+const MAX_ZIP_BYTES = 2 * 1024 * 1024;
+const MAX_ZIP_ENTRIES = 50;
+const MAX_ZIP_UNCOMPRESSED_BYTES = 4 * 1024 * 1024;
+const MAX_STORAGE_PATH_DEPTH = 6;
 const MAX_TEXT_ANALYZE_CHARS = 48_000;
 const ACCEPTED_EXTENSIONS = new Set(['md', 'txt', 'json', 'yaml', 'yml']);
+const ACCEPTED_UPLOAD_EXTENSIONS = new Set([...ACCEPTED_EXTENSIONS, 'zip']);
 
 /**
  * Dedicated bucket optional. Falls back to the Firebase default bucket
@@ -94,15 +99,132 @@ function genId() {
   return Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
 }
 
-function safeFileName(name) {
-  const base = String(name || 'skill.md').replace(/\\/g, '/').split('/').pop() || 'skill.md';
-  const ext = (/\./.test(base) ? base.split('.').pop() : 'md').toLowerCase().replace(/[^a-z0-9]/g, '') || 'md';
-  const stem = base.replace(/\.[a-z0-9]+$/i, '').toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
+function safeSegment(name) {
+  return String(name || '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 80) || 'skill';
-  const safeExt = ACCEPTED_EXTENSIONS.has(ext) ? ext : 'md';
-  return `${stem}.${safeExt}`;
+    .slice(0, 80) || 'file';
+}
+
+function safeStorageRelPath(relPath) {
+  const parts = String(relPath || 'skill.md')
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(Boolean)
+    .map(safeSegment)
+    .filter(Boolean);
+  if (!parts.length) return 'skill.md';
+  const trimmed = parts.length > MAX_STORAGE_PATH_DEPTH
+    ? parts.slice(-MAX_STORAGE_PATH_DEPTH)
+    : parts;
+  const last = trimmed[trimmed.length - 1];
+  const ext = extensionFromFileName(last);
+  if (!ACCEPTED_EXTENSIONS.has(ext)) {
+    trimmed[trimmed.length - 1] = `${safeSegment(last.replace(/\.[a-z0-9]+$/i, '') || 'skill')}.md`;
+  }
+  return trimmed.join('/');
+}
+
+function safeFileName(name) {
+  return safeStorageRelPath(String(name || 'skill.md').replace(/\\/g, '/').split('/').pop() || 'skill.md');
+}
+
+function normalizeZipPath(entryPath) {
+  return String(entryPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+function isUnsafeZipPath(name) {
+  if (!name || name.includes('..')) return true;
+  if (name.split('/').some((seg) => seg === '..')) return true;
+  if (name.startsWith('__MACOSX/') || name === '__MACOSX') return true;
+  const base = name.split('/').pop() || '';
+  if (base === '.DS_Store' || base.startsWith('._')) return true;
+  return false;
+}
+
+function pickPrimarySkillCandidate(files) {
+  const byPath = (predicate) => files.find((f) => predicate(f.rawPath.toLowerCase()));
+
+  const rootSkill = byPath((p) => p === 'skill.md');
+  if (rootSkill) return rootSkill;
+
+  const oneFolderSkill = files.filter((f) => /^[^/]+\/skill\.md$/.test(f.rawPath.toLowerCase()));
+  if (oneFolderSkill.length === 1) return oneFolderSkill[0];
+
+  const anySkill = files
+    .filter((f) => /(^|\/)skill\.md$/i.test(f.rawPath))
+    .sort((a, b) => a.rawPath.split('/').length - b.rawPath.split('/').length);
+  if (anySkill.length) return anySkill[0];
+
+  const markdown = files
+    .filter((f) => f.ext === 'md')
+    .sort((a, b) => {
+      const depthDiff = a.rawPath.split('/').length - b.rawPath.split('/').length;
+      if (depthDiff !== 0) return depthDiff;
+      return a.rawPath.localeCompare(b.rawPath);
+    });
+  if (markdown.length) return markdown[0];
+
+  return files[0];
+}
+
+async function extractSkillFromZip(zipBytes) {
+  const unzipper = require('unzipper');
+  let directory;
+  try {
+    directory = await unzipper.Open.buffer(zipBytes);
+  } catch (_e) {
+    const err = new Error('Invalid or corrupt ZIP file');
+    err.status = 400;
+    throw err;
+  }
+
+  const candidates = [];
+  let fileEntryCount = 0;
+  let totalUncompressed = 0;
+
+  for (const zEntry of directory.files) {
+    if (zEntry.type !== 'File') continue;
+    fileEntryCount += 1;
+    if (fileEntryCount > MAX_ZIP_ENTRIES) {
+      const err = new Error(`ZIP has too many file entries (max ${MAX_ZIP_ENTRIES})`);
+      err.status = 400;
+      throw err;
+    }
+
+    const rawPath = normalizeZipPath(zEntry.path);
+    if (isUnsafeZipPath(rawPath)) continue;
+
+    const base = rawPath.split('/').pop() || '';
+    if (!base || base.startsWith('.')) continue;
+
+    const ext = extensionFromFileName(base);
+    if (!ACCEPTED_EXTENSIONS.has(ext)) continue;
+
+    const bytes = await zEntry.buffer();
+    totalUncompressed += bytes.length;
+    if (totalUncompressed > MAX_ZIP_UNCOMPRESSED_BYTES) {
+      const err = new Error(`ZIP uncompressed content exceeds ${MAX_ZIP_UNCOMPRESSED_BYTES} bytes`);
+      err.status = 413;
+      throw err;
+    }
+    if (bytes.length > MAX_FILE_BYTES) {
+      const err = new Error(`Extracted file "${rawPath}" exceeds ${MAX_FILE_BYTES} bytes`);
+      err.status = 413;
+      throw err;
+    }
+
+    candidates.push({ rawPath, ext, bytes });
+  }
+
+  if (!candidates.length) {
+    const err = new Error('ZIP contains no skill files (.md, .txt, .json, .yaml, .yml)');
+    err.status = 400;
+    throw err;
+  }
+
+  const primary = pickPrimarySkillCandidate(candidates);
+  return { primary, files: candidates };
 }
 
 function extensionFromFileName(fileName) {
@@ -122,12 +244,13 @@ function contentTypeForExt(ext) {
 }
 
 function storageObjectPath(skillId, fileName) {
-  return `${STORAGE_PREFIX}/${skillId}/${safeFileName(fileName)}`;
+  return `${STORAGE_PREFIX}/${skillId}/${safeStorageRelPath(fileName)}`;
 }
 
 function publicSkillUrl(skillId, fileName) {
-  const rel = safeFileName(fileName);
-  return `/skills/${encodeURIComponent(skillId)}/${encodeURIComponent(rel)}`;
+  const rel = safeStorageRelPath(fileName);
+  const encodedRel = rel.split('/').map((seg) => encodeURIComponent(seg)).join('/');
+  return `/skills/${encodeURIComponent(skillId)}/${encodedRel}`;
 }
 
 function checkAnalyzeRateLimit(clientKey) {
@@ -153,8 +276,17 @@ function checkAnalyzeRateLimit(clientKey) {
 function decodeUploadBody(body) {
   const fileName = String(body.fileName || body.filename || 'skill.md').trim();
   const ext = extensionFromFileName(fileName);
-  if (!ACCEPTED_EXTENSIONS.has(ext)) {
-    const err = new Error(`Unsupported extension .${ext || '(none)'}. Use: ${[...ACCEPTED_EXTENSIONS].join(', ')}`);
+  const contentType = String(body.contentType || '').trim().toLowerCase();
+  const isZip = ext === 'zip' || contentType.includes('zip');
+  if (!isZip && !ACCEPTED_EXTENSIONS.has(ext)) {
+    const err = new Error(
+      `Unsupported extension .${ext || '(none)'}. Use: ${[...ACCEPTED_UPLOAD_EXTENSIONS].join(', ')}`,
+    );
+    err.status = 400;
+    throw err;
+  }
+  if (isZip && ext !== 'zip' && !ACCEPTED_EXTENSIONS.has(ext)) {
+    const err = new Error('ZIP uploads must use a .zip file name');
     err.status = 400;
     throw err;
   }
@@ -177,36 +309,81 @@ function decodeUploadBody(body) {
     err.status = 400;
     throw err;
   }
-  if (bytes.length > MAX_FILE_BYTES) {
-    const err = new Error(`File too large (${bytes.length} bytes, max ${MAX_FILE_BYTES})`);
+  const maxBytes = isZip ? MAX_ZIP_BYTES : MAX_FILE_BYTES;
+  if (bytes.length > maxBytes) {
+    const err = new Error(`File too large (${bytes.length} bytes, max ${maxBytes})`);
     err.status = 413;
     throw err;
   }
-  return { fileName, ext, bytes };
+  return { fileName, ext: isZip ? 'zip' : ext, bytes, isZip };
 }
 
-async function uploadSkillFile(body) {
-  const { fileName, ext, bytes } = decodeUploadBody(body);
-  const skillId = String(body.skillId || '').trim() || genId();
-  const path = storageObjectPath(skillId, fileName);
-  const bucket = getBucket();
+async function saveSkillObject(bucket, skillId, relPath, bytes, ext, originalName) {
+  const safeRel = safeStorageRelPath(relPath);
+  const path = storageObjectPath(skillId, safeRel);
   const file = bucket.file(path);
-  const ct = String(body.contentType || '').trim() || contentTypeForExt(ext);
   await file.save(bytes, {
-    contentType: ct,
+    contentType: contentTypeForExt(ext),
     resumable: false,
     metadata: {
       cacheControl: 'public, max-age=0, must-revalidate',
-      metadata: { skillId, originalName: fileName },
+      metadata: { skillId, originalName: originalName || relPath },
     },
   });
+  return {
+    fileName: safeRel,
+    storagePath: path,
+    publicUrl: publicSkillUrl(skillId, safeRel),
+    extension: ext,
+    size: bytes.length,
+  };
+}
+
+async function uploadSkillFile(body) {
+  const { fileName, ext, bytes, isZip } = decodeUploadBody(body);
+  const skillId = String(body.skillId || '').trim() || genId();
+  const bucket = getBucket();
+
+  if (isZip) {
+    const { primary, files } = await extractSkillFromZip(bytes);
+    const storedFiles = [];
+    for (const entry of files) {
+      storedFiles.push(await saveSkillObject(
+        bucket,
+        skillId,
+        entry.rawPath,
+        entry.bytes,
+        entry.ext,
+        entry.rawPath,
+      ));
+    }
+    const primaryRel = safeStorageRelPath(primary.rawPath);
+    const primaryStored = storedFiles.find((f) => f.fileName === primaryRel)
+      || await saveSkillObject(bucket, skillId, primary.rawPath, primary.bytes, primary.ext, primary.rawPath);
+    const text = primary.bytes.toString('utf8');
+    return {
+      ok: true,
+      skillId,
+      fileName: primaryStored.fileName,
+      storagePath: primaryStored.storagePath,
+      publicUrl: primaryStored.publicUrl,
+      extension: primary.ext,
+      size: primary.bytes.length,
+      textPreview: text.slice(0, 2000),
+      extractedFromZip: true,
+      zipFileName: fileName,
+      files: storedFiles,
+    };
+  }
+
+  const saved = await saveSkillObject(bucket, skillId, fileName, bytes, ext, fileName);
   const text = bytes.toString('utf8');
   return {
     ok: true,
     skillId,
-    fileName: safeFileName(fileName),
-    storagePath: path,
-    publicUrl: publicSkillUrl(skillId, fileName),
+    fileName: saved.fileName,
+    storagePath: saved.storagePath,
+    publicUrl: saved.publicUrl,
     extension: ext,
     size: bytes.length,
     textPreview: text.slice(0, 2000),
@@ -435,13 +612,24 @@ function resolveAsset(reqPath) {
   }
   const skillId = decodeURIComponent(parts.shift());
   const relFile = parts.map(decodeURIComponent).join('/');
+  if (!relFile || relFile.includes('..')) {
+    const err = new Error('bad path');
+    err.status = 400;
+    throw err;
+  }
   const storagePath = `${STORAGE_PREFIX}/${skillId}/${relFile}`;
   return { skillId, storagePath, file: getBucket().file(storagePath) };
 }
 
 module.exports = {
   MAX_FILE_BYTES,
+  MAX_ZIP_BYTES,
+  MAX_ZIP_ENTRIES,
+  MAX_ZIP_UNCOMPRESSED_BYTES,
   ACCEPTED_EXTENSIONS,
+  ACCEPTED_UPLOAD_EXTENSIONS,
+  extractSkillFromZip,
+  pickPrimarySkillCandidate,
   uploadSkillFile,
   analyzeSkill,
   listCatalog,

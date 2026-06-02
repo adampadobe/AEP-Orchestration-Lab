@@ -5244,7 +5244,7 @@ exports.imageHostingAsset = onRequest(
 
 /**
  * Claude skills lab catalog API (shared Storage + Firestore + Vertex AI).
- *   POST   /api/claude-skills/upload    { fileName, contentBase64, skillId? }
+ *   POST   /api/claude-skills/upload    { fileName, contentBase64, skillId?, contentType? } — .zip extracted server-side
  *   POST   /api/claude-skills/analyze   { skillId, storagePath? } | { text, fileName }
  *   GET    /api/claude-skills/catalog   list published tiles
  *   POST   /api/claude-skills/publish   publish metadata + skillId

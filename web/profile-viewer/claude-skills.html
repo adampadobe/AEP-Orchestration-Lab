@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="claude-skills.css?v=20260602b">
+  <link rel="stylesheet" href="claude-skills.css?v=20260602c">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
 </head>
@@ -32,7 +32,7 @@
             <header class="dashboard-hero-header">
               <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
               <p class="dashboard-hero-subtitle">
-                Drop a Claude skill file to upload it to the shared lab catalog, classify it with <strong>Vertex AI Gemini</strong> on the server, edit metadata, and publish a tile with a stable hosted link for your team.
+                Drop a Claude skill file or ZIP archive. The lab uploads it, classifies it with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically — no form to fill in first.
               </p>
             </header>
           </div>
@@ -40,69 +40,83 @@
 
         <p id="skillsMigrateBanner" class="skills-migrate-banner" hidden></p>
 
-        <section class="skills-grid" aria-label="Claude skills workflow">
-          <article class="skills-panel skills-panel--upload" aria-labelledby="skillsUploadHeading">
-            <h3 id="skillsUploadHeading">Upload skill file</h3>
-            <p class="skills-muted">
-              Accepted: <code>.md</code>, <code>.txt</code>, <code>.json</code>, <code>.yaml</code>, <code>.yml</code> (max 512&nbsp;KB). Files are stored in Firebase Storage; analysis runs via Vertex AI on the backend.
+        <section class="skills-upload-hero" aria-label="Upload a Claude skill">
+          <div
+            id="skillsDropZone"
+            class="skills-dropzone skills-dropzone--hero"
+            tabindex="0"
+            role="button"
+            aria-label="Drop a skill file or ZIP here or activate to browse"
+          >
+            <input id="skillFileInput" type="file" class="skills-dropzone-input" accept=".md,.txt,.json,.yaml,.yml,.zip,text/markdown,text/plain,application/json,application/zip">
+            <p class="skills-dropzone-kicker">Shared lab catalog</p>
+            <p class="skills-dropzone-title">Drop skill file or ZIP here</p>
+            <p class="skills-dropzone-hint">or click to browse · <code>.md</code> <code>.txt</code> <code>.json</code> <code>.yaml</code> <code>.zip</code></p>
+            <p class="skills-dropzone-limits skills-muted">
+              Single files up to 512&nbsp;KB · ZIP up to 2&nbsp;MB (server extracts <code>SKILL.md</code> or first <code>.md</code>)
             </p>
-            <div
-              id="skillsDropZone"
-              class="skills-dropzone"
-              tabindex="0"
-              role="button"
-              aria-label="Drop a skill file here or activate to browse"
-            >
-              <input id="skillFileInput" type="file" class="skills-dropzone-input" accept=".md,.txt,.json,.yaml,.yml,text/markdown,text/plain,application/json">
-              <p class="skills-dropzone-title">Drop skill file here</p>
-              <p class="skills-dropzone-hint">or click to browse</p>
-              <p id="skillsDropFileName" class="skills-dropzone-file" aria-live="polite"></p>
+            <p id="skillsDropFileName" class="skills-dropzone-file" aria-live="polite"></p>
+            <p id="skillsDropStatus" class="skills-dropzone-status" aria-live="polite"></p>
+            <div id="skillsDropSuccess" class="skills-dropzone-success" hidden>
+              <p id="skillsDropSuccessTitle" class="skills-dropzone-success-title"></p>
+              <p id="skillsDropSuccessLinks" class="skills-dropzone-success-links"></p>
+              <button type="button" class="skills-btn skills-btn--link" id="editDraftFromSuccessBtn">Edit details</button>
             </div>
-            <div class="skills-actions">
-              <button id="clearDraftBtn" type="button" class="skills-btn">Clear draft</button>
-            </div>
-            <p id="uploadStatus" class="skills-status" aria-live="polite"></p>
-            <p id="analyzeStatus" class="skills-status skills-status--analysis" aria-live="polite"></p>
-          </article>
+          </div>
+          <div class="skills-upload-actions">
+            <button id="clearDraftBtn" type="button" class="skills-btn">Upload another</button>
+            <button type="button" class="skills-btn skills-btn--link" id="showAdvancedBtn" hidden>Show advanced options</button>
+          </div>
+        </section>
 
-          <article class="skills-panel" aria-labelledby="skillsMetadataHeading">
-            <h3 id="skillsMetadataHeading">Review and publish</h3>
-            <form id="skillMetadataForm" class="skills-form">
-              <div class="skills-field">
-                <label for="skillNameInput">Name</label>
-                <input id="skillNameInput" name="name" type="text" placeholder="Skill name" required>
-              </div>
-              <div class="skills-field">
-                <label for="skillDescriptionInput">Description</label>
-                <textarea id="skillDescriptionInput" name="description" rows="3" placeholder="What value this skill provides"></textarea>
-              </div>
-              <div class="skills-field">
-                <label for="skillCategoryInput">Category</label>
-                <input id="skillCategoryInput" name="category" type="text" placeholder="e.g. workflow, integration, demo">
-              </div>
-              <div class="skills-field">
-                <label for="skillValueSummaryInput">Value summary</label>
-                <textarea id="skillValueSummaryInput" name="valueSummary" rows="2" placeholder="Business + technical value (from Vertex AI)"></textarea>
-              </div>
-              <div class="skills-field">
-                <label for="skillUseCasesInput">Use cases</label>
-                <textarea id="skillUseCasesInput" name="useCases" rows="3" placeholder="One per line"></textarea>
-              </div>
-              <div class="skills-field">
-                <label for="skillTagsInput">Tags</label>
-                <input id="skillTagsInput" name="tags" type="text" placeholder="comma, separated, tags">
-              </div>
-              <div class="skills-field">
-                <label for="skillSourcePathInput">Source path (optional)</label>
-                <input id="skillSourcePathInput" name="sourcePath" type="text" placeholder="/path/to/SKILL.md">
-              </div>
-              <p id="skillHostedUrl" class="skills-muted skills-hosted-url" hidden></p>
-              <div class="skills-actions">
-                <button type="submit" class="skills-btn skills-btn--primary" id="publishSkillBtn" disabled>Publish tile</button>
-              </div>
-              <p id="publishStatus" class="skills-status" aria-live="polite"></p>
-            </form>
-          </article>
+        <section
+          id="skillsAdvancedPanel"
+          class="skills-panel skills-panel--advanced"
+          aria-labelledby="skillsMetadataHeading"
+          hidden
+        >
+          <div class="skills-advanced-header">
+            <h3 id="skillsMetadataHeading">Edit skill details</h3>
+            <button type="button" class="skills-btn skills-btn--link" id="hideAdvancedBtn">Close</button>
+          </div>
+          <p class="skills-muted">
+            Optional — only needed if you want to tweak metadata after publish. Drop a new file to auto-publish again.
+          </p>
+          <form id="skillMetadataForm" class="skills-form" novalidate>
+            <div class="skills-field">
+              <label for="skillNameInput">Name</label>
+              <input id="skillNameInput" name="name" type="text" placeholder="Skill name">
+            </div>
+            <div class="skills-field">
+              <label for="skillDescriptionInput">Description</label>
+              <textarea id="skillDescriptionInput" name="description" rows="3" placeholder="What value this skill provides"></textarea>
+            </div>
+            <div class="skills-field">
+              <label for="skillCategoryInput">Category</label>
+              <input id="skillCategoryInput" name="category" type="text" placeholder="e.g. workflow, integration, demo">
+            </div>
+            <div class="skills-field">
+              <label for="skillValueSummaryInput">Value summary</label>
+              <textarea id="skillValueSummaryInput" name="valueSummary" rows="2" placeholder="Business + technical value (from Vertex AI)"></textarea>
+            </div>
+            <div class="skills-field">
+              <label for="skillUseCasesInput">Use cases</label>
+              <textarea id="skillUseCasesInput" name="useCases" rows="3" placeholder="One per line"></textarea>
+            </div>
+            <div class="skills-field">
+              <label for="skillTagsInput">Tags</label>
+              <input id="skillTagsInput" name="tags" type="text" placeholder="comma, separated, tags">
+            </div>
+            <div class="skills-field">
+              <label for="skillSourcePathInput">Source path (optional)</label>
+              <input id="skillSourcePathInput" name="sourcePath" type="text" placeholder="/path/to/SKILL.md">
+            </div>
+            <p id="skillHostedUrl" class="skills-muted skills-hosted-url" hidden></p>
+            <div class="skills-actions">
+              <button type="submit" class="skills-btn skills-btn--primary" id="publishSkillBtn" disabled>Save changes</button>
+            </div>
+            <p id="publishStatus" class="skills-status" aria-live="polite"></p>
+          </form>
         </section>
 
         <section class="skills-panel" aria-labelledby="catalogHeading">
@@ -126,7 +140,7 @@
     </div>
   </div>
 
-  <script src="claude-skills.js?v=20260602b"></script>
+  <script src="claude-skills.js?v=20260602c"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
 </body>
