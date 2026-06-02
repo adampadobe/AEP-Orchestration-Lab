@@ -5250,12 +5250,17 @@ exports.imageHostingAsset = onRequest(
  *   POST   /api/claude-skills/publish   publish metadata + skillId
  *   DELETE /api/claude-skills/catalog?id=…
  */
+const CLAUDE_SKILLS_FN_ENV = {
+  CLAUDE_SKILLS_BUCKET: process.env.CLAUDE_SKILLS_BUCKET || 'aep-orchestration-lab-brand-scrapes',
+};
+
 exports.claudeSkillsApi = onRequest(
   {
     region: REGION,
     invoker: 'public',
     timeoutSeconds: 120,
     memory: '512MiB',
+    environmentVariables: CLAUDE_SKILLS_FN_ENV,
   },
   async (req, res) => {
     setCors(res, 'GET, POST, DELETE, OPTIONS');
@@ -5318,6 +5323,7 @@ exports.claudeSkillsAsset = onRequest(
     invoker: 'public',
     timeoutSeconds: 30,
     memory: '256MiB',
+    environmentVariables: CLAUDE_SKILLS_FN_ENV,
   },
   async (req, res) => {
     setCors(res, 'GET, OPTIONS');

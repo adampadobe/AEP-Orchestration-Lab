@@ -29,7 +29,7 @@ function withEnv(patch, fn) {
 test('resolveClaudeSkillsBucketName prefers CLAUDE_SKILLS_BUCKET', () => {
   withEnv({
     CLAUDE_SKILLS_BUCKET: 'my-skills-bucket',
-    FIREBASE_STORAGE_BUCKET: 'other',
+    BRAND_SCRAPER_BUCKET: 'brand-bucket',
     FIREBASE_CONFIG: JSON.stringify({ storageBucket: 'from-config.firebasestorage.app' }),
     GCLOUD_PROJECT: 'aep-orchestration-lab',
   }, () => {
@@ -37,10 +37,10 @@ test('resolveClaudeSkillsBucketName prefers CLAUDE_SKILLS_BUCKET', () => {
   });
 });
 
-test('resolveClaudeSkillsBucketName uses FIREBASE_CONFIG.storageBucket', () => {
+test('resolveClaudeSkillsBucketName uses lab brand-scrapes bucket by default', () => {
   withEnv({
     CLAUDE_SKILLS_BUCKET: '',
-    FIREBASE_STORAGE_BUCKET: '',
+    BRAND_SCRAPER_BUCKET: '',
     FIREBASE_CONFIG: JSON.stringify({
       projectId: 'aep-orchestration-lab',
       storageBucket: 'aep-orchestration-lab.firebasestorage.app',
@@ -49,21 +49,19 @@ test('resolveClaudeSkillsBucketName uses FIREBASE_CONFIG.storageBucket', () => {
   }, () => {
     assert.strictEqual(
       resolveClaudeSkillsBucketName(),
-      'aep-orchestration-lab.firebasestorage.app',
+      'aep-orchestration-lab-brand-scrapes',
     );
   });
 });
 
-test('resolveClaudeSkillsBucketName falls back to firebasestorage.app not appspot', () => {
+test('resolveClaudeSkillsBucketName honors BRAND_SCRAPER_BUCKET when set', () => {
   withEnv({
     CLAUDE_SKILLS_BUCKET: '',
-    FIREBASE_STORAGE_BUCKET: '',
+    BRAND_SCRAPER_BUCKET: 'custom-brand-bucket',
     FIREBASE_CONFIG: '',
     GCLOUD_PROJECT: 'aep-orchestration-lab',
   }, () => {
-    const name = resolveClaudeSkillsBucketName();
-    assert.strictEqual(name, 'aep-orchestration-lab.firebasestorage.app');
-    assert.ok(!name.endsWith('.appspot.com'));
+    assert.strictEqual(resolveClaudeSkillsBucketName(), 'custom-brand-bucket');
   });
 });
 

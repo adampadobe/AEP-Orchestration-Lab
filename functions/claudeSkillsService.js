@@ -1,7 +1,7 @@
 /**
  * Claude skills — shared lab catalog (Firebase Storage + Firestore + Vertex AI).
  *
- * Storage layout (bucket: CLAUDE_SKILLS_BUCKET or default Firebase bucket):
+ * Storage layout (bucket: CLAUDE_SKILLS_BUCKET or lab brand-scrapes GCS bucket):
  *   claude-skills/{skillId}/{safeFileName}
  *
  * Public read via Firebase Hosting rewrite → claudeSkillsAsset (lab domain URL;
@@ -31,11 +31,12 @@ const ACCEPTED_EXTENSIONS = new Set(['md', 'txt', 'json', 'yaml', 'yml']);
 const ACCEPTED_UPLOAD_EXTENSIONS = new Set([...ACCEPTED_EXTENSIONS, 'zip']);
 
 /**
- * Dedicated bucket optional. Otherwise uses the Firebase project default bucket
- * (`FIREBASE_CONFIG.storageBucket` or `{projectId}.firebasestorage.app`).
- * Do not fall back to legacy `{project}.appspot.com` — that bucket often does not
- * exist on modern Firebase projects (see web/profile-viewer/firebase-database-config.js).
+ * Lab GCS bucket for claude-skills/* objects. Firebase Web config may name
+ * `{projectId}.firebasestorage.app`, but Storage is not provisioned on every
+ * project — use the same bucket as brand scraper / image hosting (proven IAM).
+ * Override with CLAUDE_SKILLS_BUCKET or BRAND_SCRAPER_BUCKET at deploy.
  */
+const LAB_CLAUDE_SKILLS_BUCKET_DEFAULT = 'aep-orchestration-lab-brand-scrapes';
 
 const ANALYZE_SYSTEM = `You analyze Claude Agent skill files for an internal Adobe lab catalog.
 Respond with valid JSON only — no markdown fences, no prose outside the object.
@@ -113,17 +114,13 @@ function resolveProjectId() {
  * @returns {string}
  */
 function resolveClaudeSkillsBucketName() {
-  const explicit = String(
-    process.env.CLAUDE_SKILLS_BUCKET
-    || process.env.FIREBASE_STORAGE_BUCKET
-    || '',
-  ).trim();
+  const explicit = String(process.env.CLAUDE_SKILLS_BUCKET || '').trim();
   if (explicit) return explicit;
 
-  const fromFirebaseConfig = readFirebaseConfigField('storageBucket');
-  if (fromFirebaseConfig) return fromFirebaseConfig;
+  const brand = String(process.env.BRAND_SCRAPER_BUCKET || '').trim();
+  if (brand) return brand;
 
-  return `${resolveProjectId()}.firebasestorage.app`;
+  return LAB_CLAUDE_SKILLS_BUCKET_DEFAULT;
 }
 
 function getBucket() {
