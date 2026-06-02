@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mcp-servers.css?v=20260602">
+  <link rel="stylesheet" href="mcp-servers.css?v=20260603">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
@@ -34,29 +34,14 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Reference for Adobe-hosted MCP servers with documented HTTPS endpoints: what each server does, its URL, how it is usually enabled in Cursor, and where to read official setup guides. Local stdio-only MCPs are not listed here. This page does not store credentials and is not Adobe-sandbox-dependent.
+                Reference for Adobe-hosted MCP servers with documented HTTPS endpoints, plus common third-party MCPs for documentation, data, APIs, and delivery workflows. Each row notes how it is usually enabled in Cursor. This page does not store credentials and is not Adobe-sandbox-dependent.
               </p>
             </header>
           </div>
         </section>
 
-        <section class="mcp-intro-panel" aria-labelledby="mcpIntroHeading">
-          <h3 id="mcpIntroHeading" class="visually-hidden">About MCP in Cursor</h3>
-          <p>
-            <strong>Model Context Protocol (MCP)</strong> lets Cursor (and other agents) call external <strong>tools</strong> with structured schemas instead of guessing APIs. This catalog is intentionally sandbox-independent UI: it remains available with no Adobe sandbox selected and can be used to plan non-AEP workflows too.
-          </p>
-          <p>
-            Entries in this catalog use <strong>streamable HTTP</strong> (<code>https://…/mcp</code>) and <strong>OAuth</strong> (Adobe ID) unless noted otherwise in official docs. Test mutating workflows in non-production sandboxes first; validate tool output before acting on it.
-          </p>
-          <div class="mcp-intro-links">
-            <a href="https://cursor.com/docs/mcp" target="_blank" rel="noopener noreferrer">Cursor — MCP</a>
-            <a href="https://developer.adobe.com/analytics-mcp/docs/" target="_blank" rel="noopener noreferrer">Adobe Analytics &amp; CJA MCP</a>
-            <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener noreferrer">MCP specification</a>
-          </div>
-        </section>
-
-        <section class="mcp-table-panel" aria-labelledby="mcpCatalogHeading">
-          <h3 id="mcpCatalogHeading">Server catalog</h3>
+        <section class="mcp-catalog-panel" aria-labelledby="mcpCatalogHeading">
+          <h3 id="mcpCatalogHeading" class="mcp-catalog-panel-title">Server catalog</h3>
 
           <div class="mcp-controls">
             <div class="mcp-field">
@@ -66,29 +51,55 @@
           </div>
           <p id="mcpCount" class="mcp-status-text" aria-live="polite"></p>
 
-          <div class="mcp-table-wrap">
-            <table class="mcp-table" aria-describedby="mcpCatalogHeading">
-              <thead>
-                <tr>
-                  <th scope="col">Server</th>
-                  <th scope="col">Product / area</th>
-                  <th scope="col">MCP server URL</th>
-                  <th scope="col">What it does</th>
-                  <th scope="col">Typical use cases</th>
-                  <th scope="col">Config notes</th>
-                </tr>
-              </thead>
-              <tbody id="mcpTableBody"></tbody>
-            </table>
+          <div class="mcp-section" data-mcp-section="adobe" aria-labelledby="mcpSectionAdobeHeading">
+            <h2 id="mcpSectionAdobeHeading" class="mcp-section-heading">Adobe</h2>
+            <p class="mcp-section-lead">Adobe-hosted HTTPS MCP servers. Every row includes a documented endpoint URL.</p>
+            <div class="mcp-table-wrap">
+              <table class="mcp-table" aria-describedby="mcpSectionAdobeHeading">
+                <thead>
+                  <tr>
+                    <th scope="col">Server</th>
+                    <th scope="col">Product / area</th>
+                    <th scope="col">MCP server URL</th>
+                    <th scope="col">What it does</th>
+                    <th scope="col">Typical use cases</th>
+                    <th scope="col">Config notes</th>
+                  </tr>
+                </thead>
+                <tbody id="mcpTableBodyAdobe"></tbody>
+              </table>
+            </div>
+            <div id="mcpCardsAdobe" class="mcp-cards" aria-label="Adobe MCP servers (mobile cards)"></div>
+            <p id="mcpEmptyAdobe" class="mcp-section-empty mcp-status-text" hidden>No Adobe servers match your search.</p>
           </div>
 
-          <div id="mcpCards" class="mcp-cards" aria-label="MCP servers (mobile cards)"></div>
+          <div class="mcp-section" data-mcp-section="thirdParty" aria-labelledby="mcpSectionThirdPartyHeading">
+            <h2 id="mcpSectionThirdPartyHeading" class="mcp-section-heading">Third Party</h2>
+            <p class="mcp-section-lead">Widely used MCPs from other vendors. Remote HTTPS URLs where documented; stdio-only tools show N/A with setup notes.</p>
+            <div class="mcp-table-wrap">
+              <table class="mcp-table" aria-describedby="mcpSectionThirdPartyHeading">
+                <thead>
+                  <tr>
+                    <th scope="col">Server</th>
+                    <th scope="col">Product / area</th>
+                    <th scope="col">MCP server URL</th>
+                    <th scope="col">What it does</th>
+                    <th scope="col">Typical use cases</th>
+                    <th scope="col">Config notes</th>
+                  </tr>
+                </thead>
+                <tbody id="mcpTableBodyThirdParty"></tbody>
+              </table>
+            </div>
+            <div id="mcpCardsThirdParty" class="mcp-cards" aria-label="Third-party MCP servers (mobile cards)"></div>
+            <p id="mcpEmptyThirdParty" class="mcp-section-empty mcp-status-text" hidden>No third-party servers match your search.</p>
+          </div>
         </section>
       </main>
     </div>
   </div>
 
-  <script src="mcp-servers.js?v=20260602"></script>
+  <script src="mcp-servers.js?v=20260603"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260602-mcp-servers"></script>
