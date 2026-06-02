@@ -57,9 +57,21 @@
     var n = normalize(text);
     var m = n.match(/(\d+)\s*-?\s*door/);
     if (m) return parseInt(m[1], 10);
+    if (/\btwo door\b|\b2 door\b/.test(n)) return 2;
+    if (/\bthree door\b|\b3 door\b/.test(n)) return 3;
     if (/\bfive door\b|\b5 door\b/.test(n)) return 5;
-    if (/\btwo door\b|\b2 door\b|\bthree door\b|\b3 door\b/.test(n)) return 3;
     return null;
+  }
+
+  function hasStrictFilters(filters) {
+    return filters.doors != null || filters.seats != null || filters.colour != null;
+  }
+
+  function modelMatchesStrictFilters(model, filters) {
+    if (filters.doors != null && model.doors != null && model.doors !== filters.doors) return false;
+    if (filters.seats != null && model.seats != null && model.seats < filters.seats) return false;
+    if (filters.colour && model.colours.indexOf(filters.colour) === -1) return false;
+    return true;
   }
 
   function parseSeatFilter(text) {
@@ -240,6 +252,18 @@
 
   function buildIntro(text, filters, count) {
     if (!count) {
+      if (filters.doors === 2) {
+        return (
+          'There are no 2-door models in the current UK JLR catalogue. The closest options are the 3-door Jaguar F-TYPE Coupé and Convertible (approved used) — mention Jaguar to include them.'
+        );
+      }
+      if (filters.doors != null) {
+        return (
+          'I could not find any ' +
+          filters.doors +
+          '-door models in the current UK catalogue with those criteria. Try a different door count, brand, or colour — Jaguar models appear when you mention Jaguar.'
+        );
+      }
       return (
         'I could not find a close match in the current UK catalogue. Try mentioning a brand (Defender, Discovery, Range Rover), number of doors, colour, or plug-in hybrid. Jaguar models appear when you ask about Jaguar specifically.'
       );
@@ -266,7 +290,7 @@
 
       var pool = models.filter(function (m) {
         if (m.isJaguar && !filters.includeJaguar) return false;
-        return true;
+        return modelMatchesStrictFilters(m, filters);
       });
 
       var ranked = pool
@@ -280,7 +304,7 @@
           return b.score - a.score;
         });
 
-      if (!ranked.length && pool.length) {
+      if (!ranked.length && pool.length && !hasStrictFilters(filters)) {
         ranked = pool.slice(0, 3).map(function (m) {
           return { model: m, score: 1 };
         });
