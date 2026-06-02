@@ -269,11 +269,12 @@
     return btn;
   }
 
-  function wireDetailsButton(card, viewId) {
-    var btn = ensureDetailsButton(card);
-    if (!btn || btn.dataset.skyLlmOpDetailWired === '1') return;
-    btn.dataset.skyLlmOpDetailWired = '1';
-    btn.addEventListener(
+  function wireCardOpen(card, viewId) {
+    if (!card || card.dataset.skyLlmOpCardWired === '1') return;
+    card.dataset.skyLlmOpCardWired = '1';
+    card.classList.add('sky-llm-op-card-clickable');
+    ensureDetailsButton(card);
+    card.addEventListener(
       'click',
       function (e) {
         e.preventDefault();
@@ -310,7 +311,7 @@
       var config = ONSITE_CARDS[id];
       if (!card || !config) return;
       patchCard(card, config);
-      wireDetailsButton(card, id);
+      wireCardOpen(card, id);
     });
 
     cards.forEach(function (card) {
@@ -341,17 +342,17 @@
     if (!byId.simplify && template) {
       byId.simplify = template;
       patchCard(byId.simplify, CONTENT_CARDS.simplify, { hideMetrics: true });
-      wireDetailsButton(byId.simplify, 'simplify');
+      wireCardOpen(byId.simplify, 'simplify');
     }
 
     if (!byId['llm-summaries'] && byId.simplify) {
       var clone = byId.simplify.cloneNode(true);
       clone.dataset.skyLlmOpCloned = '1';
-      clone.dataset.skyLlmOpDetailWired = '';
+      clone.dataset.skyLlmOpCardWired = '';
       host.appendChild(clone);
       byId['llm-summaries'] = clone;
       patchCard(clone, CONTENT_CARDS['llm-summaries'], { hideMetrics: true });
-      wireDetailsButton(clone, 'llm-summaries');
+      wireCardOpen(clone, 'llm-summaries');
     }
 
     CONTENT_ORDER.forEach(function (id) {
@@ -359,7 +360,7 @@
       var config = CONTENT_CARDS[id];
       if (!card || !config) return;
       patchCard(card, config, { hideMetrics: true });
-      wireDetailsButton(card, id);
+      wireCardOpen(card, id);
       card.classList.remove('sky-llm-op-card-hidden');
     });
 

@@ -190,6 +190,14 @@
   display: none !important;
 }
 
+.sky-llm-op-card-clickable {
+  cursor: pointer !important;
+}
+
+.sky-llm-op-card-clickable [style*='pointer-events: none'] {
+  pointer-events: auto !important;
+}
+
 /* Frozen export blurs gated cards — clear for demo */
 .sky-llm-op-card-clear > div[style*='blur'] {
   filter: none !important;
