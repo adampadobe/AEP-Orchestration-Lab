@@ -1815,6 +1815,13 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   const url = body.url;
   if (!url) { res.status(400).json({ error: 'url is required' }); return; }
 
+  /** LLM Demo customize bar — sync crawl + grounded research (no Firestore scrape). */
+  if (body.llmDemoPersonalize === true || body.llmDemo === true) {
+    const llmDemoPersonalizeService = require('./llmDemoPersonalizeService');
+    await llmDemoPersonalizeService.handlePersonalize(req, res);
+    return;
+  }
+
   const scope = await resolveScope(req);
   if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const sandbox = scope.storageScope;

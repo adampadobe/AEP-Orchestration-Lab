@@ -376,7 +376,7 @@
     },
     {
       "source": "/api/llm-demo/personalize",
-      "functionId": "llmDemoPersonalize",
+      "functionId": "brandScraperAnalyze",
       "region": "us-east4"
     },
     {

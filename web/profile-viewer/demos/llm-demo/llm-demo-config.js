@@ -147,12 +147,31 @@
     var body = { url: parsed.href };
     if (opts.brandOverride) body.brandOverride = String(opts.brandOverride).trim();
 
+    body.llmDemoPersonalize = true;
+    body.sync = true;
+
     return fetch(API_PATH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(body),
     }).then(function (res) {
-      return res.json().then(function (data) {
+      return res.text().then(function (text) {
+        var ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+        var data = null;
+        if (/json/i.test(ct) || (text && text.trim().charAt(0) === '{')) {
+          try {
+            data = JSON.parse(text);
+          } catch (parseErr) {
+            throw new Error('Research API returned invalid JSON.');
+          }
+        } else if (text && /^\s*</.test(text)) {
+          throw new Error(
+            'Research API is not available (got an HTML page instead of JSON). ' +
+              'Hosting may need redeploy, or brandScraperAnalyze must be updated on the project.',
+          );
+        } else {
+          throw new Error((text || res.statusText || 'Research failed').slice(0, 240));
+        }
         if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Research failed');
         if (!data || !data.config) throw new Error('No personalization config returned');
         var cfg = data.config;
