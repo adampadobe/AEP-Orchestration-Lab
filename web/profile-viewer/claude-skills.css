@@ -355,7 +355,7 @@
   padding: 0.85rem 0.95rem 0.95rem;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0;
 }
 
 .skills-tile-summary-head {
@@ -404,9 +404,45 @@
 .skills-tile-toggle-text {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
   min-width: 0;
   flex: 1;
+}
+
+.skills-tile-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.skills-tile-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.skills-tile-preview-text {
+  margin: 0;
+  color: var(--dash-text-secondary);
+  line-height: 1.45;
+  font-size: 0.84rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.skills-tile-meta {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .skills-tile-chevron {
@@ -440,8 +476,17 @@
   overflow: hidden;
 }
 
-.skills-tags--summary {
-  padding-top: 0.1rem;
+.skills-inline-list {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.skills-tile-legacy-note {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 40%, transparent);
+  background: color-mix(in srgb, var(--dash-warning, var(--dash-blue)) 8%, transparent);
 }
 
 .skills-tile-details {

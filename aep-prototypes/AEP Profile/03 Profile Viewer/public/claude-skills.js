@@ -531,6 +531,55 @@
     return (skill && skill.name ? String(skill.name).replace(/[^\w.-]+/g, '-') : 'skill') + '.' + ext;
   }
 
+  function truncateText(text, maxLen) {
+    var value = String(text || '').trim();
+    if (!value) return '';
+    if (value.length <= maxLen) return value;
+    return value.slice(0, maxLen - 1).trim() + '…';
+  }
+
+  function formatMetaExtension(extension) {
+    var ext = String(extension || '').trim().toLowerCase();
+    if (!ext) return '';
+    if (ext === 'yml') return 'YAML';
+    return ext.toUpperCase();
+  }
+
+  function pickPrimaryTags(tags, tagFilter, maxCount) {
+    var limit = typeof maxCount === 'number' ? maxCount : 2;
+    var list = Array.isArray(tags) ? tags.slice() : [];
+    if (!list.length) return [];
+    if (tagFilter && list.indexOf(tagFilter) !== -1) {
+      list = [tagFilter].concat(
+        list.filter(function (tag) {
+          return tag !== tagFilter;
+        })
+      );
+    }
+    return list.slice(0, limit);
+  }
+
+  function buildSkillCollapsedSummary(skill) {
+    var valueSummary = String(skill.valueSummary || '').trim();
+    if (valueSummary) return truncateText(valueSummary, 220);
+    var description = String(skill.description || '').trim();
+    if (description) return truncateText(description, 220);
+    return 'No summary available.';
+  }
+
+  function buildSkillMetaLine(skill, tagFilter) {
+    var parts = [];
+    var extLabel = formatMetaExtension(skill.extension);
+    if (extLabel) parts.push(extLabel);
+    var category = String(skill.category || '').trim().toLowerCase();
+    if (category) parts.push(category);
+    pickPrimaryTags(skill.tags, tagFilter, 2).forEach(function (tag) {
+      var normalized = String(tag || '').trim().toLowerCase();
+      if (normalized && parts.indexOf(normalized) === -1) parts.push(normalized);
+    });
+    return parts.join(' · ');
+  }
+
   function toggleSkillExpanded(skillId) {
     if (state.expandedSkillIds[skillId]) {
       delete state.expandedSkillIds[skillId];
@@ -601,11 +650,8 @@
         var isExpanded = !!state.expandedSkillIds[skillId];
         var detailsId = 'skills-tile-details-' + skillId;
 
-        var tagsHtml = (skill.tags || [])
-          .map(function (tag) {
-            return '<span class="skills-tag">' + escapeHtml(tag) + '</span>';
-          })
-          .join('');
+        var collapsedSummary = buildSkillCollapsedSummary(skill);
+        var metaLine = buildSkillMetaLine(skill, tagFilter);
 
         var useCasesHtml =
           skill.useCases && skill.useCases.length
@@ -617,18 +663,6 @@
                 .join('') +
               '</ul>'
             : '<p class="skills-muted">No use cases listed.</p>';
-
-        var badges =
-          '<span class="skills-badge">' +
-          escapeHtml(skill.extension || 'unknown') +
-          '</span>' +
-          (skill._legacyLocal
-            ? '<span class="skills-badge skills-badge--warn">browser only</span>'
-            : '<span class="skills-badge">shared</span>');
-
-        if (skill.category) {
-          badges += '<span class="skills-badge">' + escapeHtml(skill.category) + '</span>';
-        }
 
         var downloadUrl = getSkillDownloadUrl(skill);
         var downloadName = getSkillDownloadName(skill);
@@ -680,27 +714,33 @@
           escapeHtml(detailsId) +
           '">' +
           '<span class="skills-tile-toggle-text">' +
+          '<span class="skills-tile-title-row">' +
           '<span class="skills-tile-title">' +
           escapeHtml(skill.name || 'Untitled skill') +
           '</span>' +
-          '<span class="skills-tile-desc skills-tile-desc--truncate">' +
-          escapeHtml(skill.description || 'No description provided.') +
-          '</span>' +
-          '</span>' +
           '<span class="skills-tile-chevron" aria-hidden="true"></span>' +
+          '</span>' +
+          '<span class="skills-tile-preview">' +
+          '<span class="skills-tile-preview-text">' +
+          escapeHtml(collapsedSummary) +
+          '</span>' +
+          (metaLine
+            ? '<span class="skills-tile-meta">' + escapeHtml(metaLine) + '</span>'
+            : '') +
+          '</span>' +
+          '</span>' +
           '</button>' +
           downloadBtn +
           '</div>' +
-          (tagsHtml ? '<div class="skills-tags skills-tags--summary">' + tagsHtml + '</div>' : '') +
           '</div>' +
           '<div id="' +
           escapeHtml(detailsId) +
           '" class="skills-tile-details"' +
           (isExpanded ? '' : ' hidden') +
           '>' +
-          '<div class="skills-badges">' +
-          badges +
-          '</div>' +
+          (skill._legacyLocal
+            ? '<p class="skills-muted skills-tile-legacy-note">Saved in this browser only — re-upload to publish to the shared catalog.</p>'
+            : '') +
           '<p class="skills-tile-desc">' +
           escapeHtml(skill.description || 'No description provided.') +
           '</p>' +
@@ -724,6 +764,14 @@
           '<span class="skills-tile-field-label">Use cases</span>' +
           useCasesHtml +
           '</div>' +
+          (skill.tags && skill.tags.length
+            ? '<div class="skills-tile-field">' +
+              '<span class="skills-tile-field-label">Tags</span>' +
+              '<p class="skills-muted skills-inline-list">' +
+              escapeHtml(skill.tags.join(', ')) +
+              '</p>' +
+              '</div>'
+            : '') +
           (skill.sourcePath
             ? '<div class="skills-tile-field">' +
               '<span class="skills-tile-field-label">Source path</span>' +
