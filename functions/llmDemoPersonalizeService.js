@@ -5,6 +5,7 @@
 'use strict';
 
 const brandScraperService = require('./brandScraperService');
+const brandScrapeStore = require('./brandScrapeStore');
 const { callGemini, callGeminiResearch, stripJsonFences } = require('./vertexClient');
 
 const SKY_COMPETITORS = ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
@@ -336,6 +337,124 @@ async function structureConfig(research, crawlFallback) {
   return mergeParsedJson(parsed, crawlFallback);
 }
 
+const COMPETITOR_JSON_SYSTEM = `You identify direct competitors for a brand. Respond with valid JSON only:
+{"competitors":["exactly six real company or brand names in the same industry and region"]}`;
+
+async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, url }) {
+  const userPrompt = [
+    `Website: ${url}`,
+    `Brand: ${brand}`,
+    `Industry: ${industry || 'unknown'}`,
+    `About: ${about || ''}`,
+    '',
+    'Crawled snippets:',
+    String(crawlText || '').slice(0, 5000),
+  ].join('\n');
+  const raw = await callGemini(COMPETITOR_JSON_SYSTEM, userPrompt, {
+    model: 'gemini-2.5-flash',
+    temperature: 0.2,
+    maxOutputTokens: 512,
+    jsonMode: true,
+    allowTruncation: true,
+  });
+  let parsed = {};
+  try {
+    parsed = JSON.parse(stripJsonFences(raw));
+  } catch (_e) {
+    parsed = {};
+  }
+  const list = Array.isArray(parsed.competitors)
+    ? parsed.competitors.map(String).filter(Boolean).slice(0, 6)
+    : [];
+  return list;
+}
+
+async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
+  const sb = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!sb || !sid) throw new Error('sandbox and scrapeId are required');
+
+  const record = await brandScrapeStore.getScrape(sb, sid);
+  if (!record) throw new Error('Scrape not found for this sandbox');
+
+  const url = normaliseUrl(record.url || record.baseUrl);
+  const siteHost = hostFromUrl(url);
+  const siteUrl = new URL(url).origin;
+  const pages = (record.crawlSummary && record.crawlSummary.pages) || [];
+  const crawlText = pages
+    .map((p) => `${p.url}\n${(p.title || '')}\n${(p.description || '')}\n`)
+    .join('\n\n---\n\n');
+  const pathFallback = pathsFromCrawl(pages, siteHost, 12);
+  const hostBrand = siteHost.split('.')[0];
+  const brandFallback =
+    String(brandOverride || '').trim() ||
+    record.brandName ||
+    (hostBrand ? hostBrand.charAt(0).toUpperCase() + hostBrand.slice(1) : 'Brand');
+  const about =
+    (record.analysis && !record.analysis.skipped && record.analysis.about) ||
+    record.about ||
+    (pages[0] && pages[0].description) ||
+    '';
+  const industry = String(record.industry || '').trim();
+
+  let competitors = [];
+  try {
+    competitors = await inferCompetitorsFromScrape({
+      brand: brandFallback,
+      industry,
+      about,
+      crawlText,
+      url,
+    });
+  } catch (e) {
+    console.warn('[llmDemoPersonalize] scrape competitor inference failed', String(e && e.message || e));
+  }
+  if (competitors.length < 4) competitors = SKY_COMPETITORS.slice();
+
+  const structured = {
+    brand: brandFallback,
+    siteHost,
+    competitors,
+    industry,
+    about,
+    samplePaths: pathFallback.length
+      ? pathFallback
+      : ['/', '/about', '/products', '/help', '/contact'],
+    claimThemes: claimThemesForIndustry(industry),
+    samplePrompts: [],
+  };
+
+  const config = buildClientConfig({
+    sourceUrl: url,
+    siteUrl,
+    siteHost,
+    brand: structured.brand,
+    competitors: structured.competitors,
+    industry: structured.industry,
+    about: structured.about,
+    samplePaths: structured.samplePaths,
+    claimThemes: structured.claimThemes,
+    samplePrompts: structured.samplePrompts,
+    researchUsed: false,
+    crawlPages: pages.length,
+  });
+  config.scrapeId = sid;
+  config.scrapeSandbox = sb;
+  config.loadedFromScrape = true;
+
+  return {
+    ok: true,
+    config,
+    meta: {
+      fromScrape: sid,
+      sandbox: sb,
+      crawlPages: pages.length,
+      researchUsed: false,
+      payloadExpired: !!record.payloadExpired,
+    },
+  };
+}
+
 async function personalizeUrl(rawUrl) {
   const url = normaliseUrl(rawUrl);
   const siteHost = hostFromUrl(url);
@@ -437,6 +556,32 @@ async function handlePersonalize(req, res) {
   }
 
   const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+  if (body.scrapeId) {
+    const sandbox = String(body.sandbox || '').trim();
+    if (!sandbox) {
+      res.status(400).json({ error: 'sandbox is required when scrapeId is set' });
+      return;
+    }
+    try {
+      const out = await personalizeFromScrape({
+        sandbox,
+        scrapeId: body.scrapeId,
+        brandOverride: body.brandOverride,
+      });
+      if (body.brandOverride && out.config) {
+        out.config.brand = String(body.brandOverride).trim();
+        out.config.axisMap = buildAxisMap(out.config.brand, out.config.competitors);
+      }
+      res.status(200).json(out);
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      console.error('[llmDemoPersonalize] scrape', msg);
+      res.status(500).json({ error: msg });
+    }
+    return;
+  }
+
   const url = body.url;
   if (!url) {
     res.status(400).json({ error: 'url is required' });
@@ -460,6 +605,7 @@ async function handlePersonalize(req, res) {
 module.exports = {
   handlePersonalize,
   personalizeUrl,
+  personalizeFromScrape,
   buildAxisMap,
   buildClientConfig,
 };

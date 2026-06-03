@@ -264,6 +264,8 @@
     animToken: 0,
     ready: false,
     outsidePickerCloseWired: false,
+    platformSelectionWired: false,
+    walnutObserver: null,
   };
 
   function getPageKind() {
@@ -375,7 +377,82 @@
       walnut.style.setProperty('display', 'none', 'important');
       walnut.style.setProperty('pointer-events', 'none', 'important');
       walnut.style.setProperty('visibility', 'hidden', 'important');
+      walnut.style.setProperty('width', '0', 'important');
+      walnut.style.setProperty('height', '0', 'important');
+      if (walnut.parentNode) walnut.parentNode.removeChild(walnut);
     }
+  }
+
+  function platformIdFromLabel(text) {
+    var t = String(text || '').trim();
+    var i;
+    for (i = 0; i < PLATFORMS.length; i++) {
+      if (t === PLATFORMS[i].name || t.indexOf(PLATFORMS[i].name) === 0) return PLATFORMS[i].id;
+    }
+    return null;
+  }
+
+  function syncPlatformTriggerLabel() {
+    var p = PLATFORMS.find(function (x) {
+      return x.id === state.platformId;
+    });
+    if (!p) return;
+    var input = findCombobox('platform');
+    if (input) input.value = p.name;
+    document.querySelectorAll('.sky-llm-platform-trigger > span:first-child').forEach(function (el) {
+      el.textContent = p.name;
+    });
+  }
+
+  function setPlatformId(id, opts) {
+    if (!id) return;
+    state.platformId = id;
+    syncPlatformTriggerLabel();
+    applyDashboard({ animate: !(opts && opts.animate === false) });
+    hideReactListboxes();
+    document.querySelectorAll('.sky-llm-platform-menu').forEach(function (m) {
+      m.hidden = true;
+    });
+    document.querySelectorAll('.sky-llm-platform-trigger').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function wirePlatformSelection() {
+    if (state.platformSelectionWired) return;
+    state.platformSelectionWired = true;
+    document.addEventListener(
+      'click',
+      function (e) {
+        var hostOpt = e.target.closest('[data-sky-platform-id]');
+        if (hostOpt) {
+          e.preventDefault();
+          e.stopPropagation();
+          setPlatformId(hostOpt.getAttribute('data-sky-platform-id'), { animate: true });
+          return;
+        }
+        var reactOpt = e.target.closest('[role="option"]');
+        if (!reactOpt) return;
+        var listbox = reactOpt.closest('[role="listbox"]');
+        if (!listbox || listbox.classList.contains('sky-llm-platform-menu')) return;
+        var id = platformIdFromLabel(reactOpt.textContent);
+        if (!id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setPlatformId(id, { animate: true });
+      },
+      true,
+    );
+  }
+
+  function watchWalnutRemoval() {
+    if (state.walnutObserver) return;
+    suppressUiBlockers();
+    if (!document.body || !window.MutationObserver) return;
+    state.walnutObserver = new MutationObserver(function () {
+      suppressUiBlockers();
+    });
+    state.walnutObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   function hideReactListboxes() {
@@ -1011,6 +1088,7 @@
         btn.setAttribute('role', 'option');
         btn.setAttribute('aria-selected', config.isSelected(opt) ? 'true' : 'false');
         btn.innerHTML = config.renderOption(opt);
+        if (config.getOptionId) btn.setAttribute('data-sky-platform-id', config.getOptionId(opt));
         btn.addEventListener('mousedown', selectOption.bind(null, opt), true);
         btn.addEventListener('click', selectOption.bind(null, opt), true);
         li.appendChild(btn);
@@ -1093,10 +1171,11 @@
           '</span></span>'
         );
       },
-      onSelect: function (p, input) {
-        state.platformId = p.id;
-        if (input) input.value = p.name;
-        applyDashboard({ animate: true });
+      getOptionId: function (p) {
+        return p.id;
+      },
+      onSelect: function (p) {
+        setPlatformId(p.id, { animate: true });
       },
     });
   }
@@ -1145,9 +1224,11 @@
 
   function ensurePickers() {
     suppressUiBlockers();
+    watchWalnutRemoval();
     hideReactListboxes();
     buildPlatformPicker();
     buildDatePicker();
+    syncPlatformTriggerLabel();
   }
 
   function init() {
@@ -1183,6 +1264,9 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') hideTooltip();
   });
+
+  wirePlatformSelection();
+  watchWalnutRemoval();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

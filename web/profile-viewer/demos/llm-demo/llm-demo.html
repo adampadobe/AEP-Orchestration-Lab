@@ -78,7 +78,7 @@
     id="llmDemoFrame"
     class="mod-demo-site-frame sky-llm-optimizer-frame"
     title="Adobe LLM Optimizer — LLM Demo"
-    src="../../sky-llm-snapshot/overview.html?v=20260602&llmDemo=1"
+    src="../../sky-llm-snapshot/overview.html?v=20260615&llmDemo=1"
     referrerpolicy="no-referrer-when-downgrade"
     sandbox="allow-same-origin allow-scripts allow-forms"
     loading="eager"
@@ -101,6 +101,13 @@
           Enter the customer site URL. The lab crawls the site and uses Google Search–grounded research to resolve the real brand name, six competitors, and sample paths, then rewrites copy and URLs across Overview, Opportunities, Brand Presence, and related pages.
         </p>
         <div class="llm-demo-customize-row">
+          <label for="llmDemoScrapeSelect">Saved brand scrape (sandbox)
+            <select id="llmDemoScrapeSelect" class="sandbox-select" aria-label="Saved brand scrapes for current sandbox">
+              <option value="">Select sandbox to list scrapes…</option>
+            </select>
+          </label>
+        </div>
+        <div class="llm-demo-customize-row">
           <label for="llmDemoSiteUrl">Customer site URL
             <input type="url" id="llmDemoSiteUrl" placeholder="https://www.example.com" autocomplete="off" spellcheck="false">
           </label>
@@ -109,6 +116,7 @@
           </label>
         </div>
         <div class="llm-demo-customize-actions">
+          <button type="button" id="llmDemoLoadScrapeBtn" class="btn-lookup">Load scrape</button>
           <button type="button" id="llmDemoApplyBtn" class="btn-lookup">Research &amp; apply</button>
           <button type="button" id="llmDemoResetBtn" class="btn-lookup">Reset to Sky demo</button>
           <span class="llm-demo-customize-status" id="llmDemoCustomizeStatus" aria-live="polite"></span>
@@ -138,8 +146,8 @@
   <script src="../../aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="../../aep-demo-env-bar.js?v=20260603-launch-unset-expand"></script>
   <script src="../../aep-demo-generator-targets.js?v=20260508"></script>
-  <script src="llm-demo-config.js?v=20260607"></script>
-  <script src="llm-demo.js?v=20260607"></script>
+  <script src="llm-demo-config.js?v=20260615"></script>
+  <script src="llm-demo.js?v=20260615"></script>
   <script defer src="../../aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="../../aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="../../aep-lab-nav.js?v=20260603-llm-demo"></script>

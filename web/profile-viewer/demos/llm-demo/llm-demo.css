@@ -61,7 +61,17 @@
 }
 
 .llm-demo-customize-panel.llm-demo-customize-panel--open {
-  max-height: 220px;
+  max-height: 320px;
+}
+
+.llm-demo-customize-row select.sandbox-select {
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font-size: 0.85rem;
+  max-width: 100%;
 }
 
 .llm-demo-customize-inner {

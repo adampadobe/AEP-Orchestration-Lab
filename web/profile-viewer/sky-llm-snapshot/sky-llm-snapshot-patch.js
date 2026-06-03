@@ -84,9 +84,23 @@
     }
   }
 
+  function snapshotBuild() {
+    return (typeof window !== 'undefined' && window.SKY_LLM_SNAPSHOT_BUILD) || '20260615';
+  }
+
+  function bust(path) {
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    return path + sep + 'v=' + snapshotBuild();
+  }
+
+  function suppressWalnutOverlay() {
+    var walnut = document.getElementById('walnut-root-popin-element');
+    if (walnut && walnut.parentNode) walnut.parentNode.removeChild(walnut);
+  }
+
   function loadScript(src, next) {
     var s = document.createElement('script');
-    s.src = src;
+    s.src = bust(src);
     s.onload = function () {
       if (next) next();
     };
@@ -108,21 +122,21 @@
         scheduleApply();
         return;
       }
-      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260613', scheduleApply);
+      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js', scheduleApply);
     }
 
     function loadPageModules(chain) {
       var path = location.pathname || '';
       if (/url-inspector\.html/i.test(path) && !window.SkyLlmUrlInspector) {
-        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260613', chain);
+        loadScript('./sky-llm-snapshot-url-inspector.js', chain);
         return;
       }
       if (/brand-claims\.html/i.test(path) && !window.SkyLlmBrandClaims) {
-        loadScript('./sky-llm-snapshot-brand-claims.js?v=20260613', chain);
+        loadScript('./sky-llm-snapshot-brand-claims.js', chain);
         return;
       }
       if (/prompts-management\.html/i.test(path) && !window.SkyLlmPromptsManagement) {
-        loadScript('./sky-llm-snapshot-prompts-management.js?v=20260613', chain);
+        loadScript('./sky-llm-snapshot-prompts-management.js', chain);
         return;
       }
       chain();
@@ -136,14 +150,14 @@
         afterUrls();
         return;
       }
-      loadScript('./sky-llm-snapshot-llm-demo-urls.js?v=20260613', afterUrls);
+      loadScript('./sky-llm-snapshot-llm-demo-urls.js', afterUrls);
     }
 
     if (window.SkyLlmLlmDemoBrands) {
       boot();
       return;
     }
-    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260613', boot);
+    loadScript('./sky-llm-snapshot-llm-demo-brands.js', boot);
   }
 
   function loadLlmDemoPersonalize() {
@@ -162,11 +176,16 @@
     }
   }
 
+  suppressWalnutOverlay();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
+    document.addEventListener('DOMContentLoaded', function () {
+      suppressWalnutOverlay();
+      run();
+    });
   } else {
     run();
   }
   window.setTimeout(run, 400);
+  window.setTimeout(suppressWalnutOverlay, 50);
   loadLlmDemoPersonalize();
 })();

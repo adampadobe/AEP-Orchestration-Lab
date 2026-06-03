@@ -6,6 +6,8 @@
 
   var STORAGE_KEY = 'llmDemoPersonalization_v1';
   var API_PATH = '/api/llm-demo/personalize';
+  var BUILD_ID = '20260615';
+  var SCRAPES_API = '/api/brand-scraper/scrapes';
 
   var SKY_DEFAULT = {
     siteUrl: 'https://www.sky.com',
@@ -139,6 +141,65 @@
    * Crawl site + Google Search–grounded competitor research via Cloud Function.
    * @returns {Promise<{config: object, meta: object}>}
    */
+  function fetchScrapeList(sandbox) {
+    var sb = String(sandbox || '').trim();
+    if (!sb) return Promise.resolve([]);
+    return fetch(SCRAPES_API + '?sandbox=' + encodeURIComponent(sb), {
+      headers: { Accept: 'application/json' },
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Failed to list scrapes');
+        var items = Array.isArray(data.items) ? data.items : [];
+        return items.filter(function (item) {
+          var status = String(item.scrapeStatus || '').toLowerCase();
+          if (status && status !== 'complete' && status !== 'crawl_complete') return false;
+          return !!(item.brandName || item.baseUrl || item.url);
+        });
+      });
+    });
+  }
+
+  function fetchFromScrape(scrapeId, sandbox, options) {
+    var opts = options || {};
+    var sb = String(sandbox || '').trim();
+    var sid = String(scrapeId || '').trim();
+    if (!sb) return Promise.reject(new Error('Choose a sandbox first'));
+    if (!sid) return Promise.reject(new Error('Choose a saved brand scrape'));
+
+    var body = { scrapeId: sid, sandbox: sb, llmDemoPersonalize: true };
+    if (opts.brandOverride) body.brandOverride = String(opts.brandOverride).trim();
+
+    return fetch(API_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        if (text && text.trim().charAt(0) === '{') {
+          try {
+            data = JSON.parse(text);
+          } catch (parseErr) {
+            throw new Error('Personalize API returned invalid JSON.');
+          }
+        } else {
+          throw new Error((text || res.statusText || 'Load scrape failed').slice(0, 240));
+        }
+        if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Load scrape failed');
+        if (!data || !data.config) throw new Error('No personalization config returned');
+        var cfg = data.config;
+        if (opts.brandOverride) {
+          cfg.brand = String(opts.brandOverride).trim();
+          cfg.brandPickerLabel = cfg.brand;
+        }
+        if (!cfg.brandPickerLabel && cfg.brand) cfg.brandPickerLabel = cfg.brand;
+        if (!cfg.axisMap) cfg.axisMap = buildAxisMap(cfg.brand, cfg.competitors);
+        cfg.updatedAt = Date.now();
+        return { config: cfg, meta: data.meta || {} };
+      });
+    });
+  }
+
   function fetchResearch(rawUrl, options) {
     var opts = options || {};
     var parsed = normalizeUrlInput(rawUrl);
@@ -190,10 +251,13 @@
 
   global.LlmDemoConfig = {
     STORAGE_KEY: STORAGE_KEY,
+    BUILD_ID: BUILD_ID,
     SKY_DEFAULT: SKY_DEFAULT,
     SKY_REFERENCE_BRANDS: SKY_REFERENCE_BRANDS,
     buildFromUrl: buildFromUrl,
     buildAxisMap: buildAxisMap,
+    fetchScrapeList: fetchScrapeList,
+    fetchFromScrape: fetchFromScrape,
     fetchResearch: fetchResearch,
     load: load,
     save: save,

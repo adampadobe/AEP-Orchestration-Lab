@@ -4,7 +4,20 @@
 (function () {
   'use strict';
 
-  var SNAPSHOT_BASE = '../../sky-llm-snapshot/overview.html?v=20260602&llmDemo=1';
+  function snapshotBuild() {
+    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260615';
+  }
+
+  function snapshotPageUrl(file) {
+    return (
+      '../../sky-llm-snapshot/' +
+      (file || 'overview.html') +
+      '?v=' +
+      snapshotBuild() +
+      '&llmDemo=1&_=' +
+      Date.now()
+    );
+  }
 
   function initLabFlyoutSidebar() {
     var body = document.body;
@@ -93,7 +106,7 @@
     } catch (e) {
       /* cross-origin or not loaded */
     }
-    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260609&llmDemo=1&_=' + Date.now();
+    frame.src = snapshotPageUrl(file);
     window.setTimeout(pushConfigToFrame, 600);
     window.setTimeout(pushConfigToFrame, 1800);
   }
@@ -105,11 +118,37 @@
     pushConfigToFrame();
   }
 
+  function getSandboxName() {
+    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+      return String(AepGlobalSandbox.getSandboxName() || '').trim();
+    }
+    var sel = document.getElementById('sandboxSelect');
+    return sel ? String(sel.value || '').trim() : '';
+  }
+
+  function formatScrapeOption(item) {
+    var brand = item.brandName || 'Brand';
+    var url = item.baseUrl || item.url || '';
+    var when = item.updatedAt || item.createdAt || '';
+    var dateLabel = '';
+    if (when) {
+      try {
+        dateLabel = new Date(when).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      } catch (e) {
+        dateLabel = '';
+      }
+    }
+    var pages = item.pagesScraped != null ? item.pagesScraped + ' pg' : '';
+    return brand + ' — ' + url + (dateLabel ? ' (' + dateLabel + ')' : '') + (pages ? ' · ' + pages : '');
+  }
+
   function initCustomizeBar() {
     var tab = document.getElementById('llmDemoCustomizeTab');
     var panel = document.getElementById('llmDemoCustomizePanel');
     var urlInput = document.getElementById('llmDemoSiteUrl');
     var brandInput = document.getElementById('llmDemoBrand');
+    var scrapeSelect = document.getElementById('llmDemoScrapeSelect');
+    var loadScrapeBtn = document.getElementById('llmDemoLoadScrapeBtn');
     var applyBtn = document.getElementById('llmDemoApplyBtn');
     var resetBtn = document.getElementById('llmDemoResetBtn');
     var status = document.getElementById('llmDemoCustomizeStatus');
@@ -134,7 +173,11 @@
       if (LlmDemoConfig.isCustomized()) {
         urlInput.value = active.sourceUrl || active.siteUrl || '';
         brandInput.value = active.brand || '';
-        var extra = active.researchUsed ? ' · researched online' : '';
+        var extra = active.loadedFromScrape
+          ? ' · loaded from brand scrape'
+          : active.researchUsed
+            ? ' · researched online'
+            : '';
         if (active.industry) extra += ' · ' + active.industry;
         setStatus('Personalized for ' + active.brand + ' (' + active.siteHost + ')' + extra + '.', 'ok');
       } else {
@@ -143,6 +186,86 @@
         setStatus('Showing default Sky UK demo. Enter a customer URL to personalize.', '');
       }
     }
+
+    function refreshScrapeList() {
+      if (!scrapeSelect) return;
+      var sandbox = getSandboxName();
+      scrapeSelect.innerHTML = '';
+      if (!sandbox) {
+        scrapeSelect.appendChild(new Option('Select sandbox to list scrapes…', ''));
+        return;
+      }
+      scrapeSelect.appendChild(new Option('Loading scrapes for ' + sandbox + '…', ''));
+      LlmDemoConfig.fetchScrapeList(sandbox)
+        .then(function (items) {
+          scrapeSelect.innerHTML = '';
+          scrapeSelect.appendChild(new Option('— Choose a saved scrape —', ''));
+          if (!items.length) {
+            scrapeSelect.appendChild(new Option('No completed scrapes in this sandbox', ''));
+            return;
+          }
+          items.forEach(function (item) {
+            var opt = new Option(formatScrapeOption(item), item.scrapeId || '');
+            opt.dataset.url = item.baseUrl || item.url || '';
+            opt.dataset.brand = item.brandName || '';
+            scrapeSelect.appendChild(opt);
+          });
+        })
+        .catch(function (err) {
+          scrapeSelect.innerHTML = '';
+          scrapeSelect.appendChild(new Option('Could not load scrapes', ''));
+          setStatus(String((err && err.message) || err || 'Scrape list failed'), 'err');
+        });
+    }
+
+    if (scrapeSelect) {
+      scrapeSelect.addEventListener('change', function () {
+        var opt = scrapeSelect.options[scrapeSelect.selectedIndex];
+        if (!opt || !opt.value) return;
+        if (opt.dataset.url) urlInput.value = opt.dataset.url;
+        if (opt.dataset.brand && !brandInput.value.trim()) brandInput.value = opt.dataset.brand;
+      });
+    }
+
+    if (loadScrapeBtn) {
+      loadScrapeBtn.addEventListener('click', function () {
+        var sandbox = getSandboxName();
+        var scrapeId = scrapeSelect ? scrapeSelect.value : '';
+        if (!sandbox) {
+          setStatus('Choose a sandbox in Environment first.', 'err');
+          return;
+        }
+        if (!scrapeId) {
+          setStatus('Choose a saved brand scrape.', 'err');
+          return;
+        }
+        loadScrapeBtn.disabled = true;
+        setStatus('Loading scrape data and building demo config…', '');
+        LlmDemoConfig.fetchFromScrape(scrapeId, sandbox, { brandOverride: brandInput.value.trim() })
+          .then(function (result) {
+            LlmDemoConfig.save(result.config);
+            var meta = result.meta || {};
+            var note = 'Brand scrape · ' + (meta.crawlPages || 0) + ' page(s)';
+            if (meta.payloadExpired) note += ' · payload may be partial';
+            setStatus('Personalized for ' + result.config.brand + ' — ' + note + '.', 'ok');
+            fillForm();
+            reloadIframe();
+          })
+          .catch(function (err) {
+            setStatus(String((err && err.message) || err || 'Load scrape failed'), 'err');
+          })
+          .finally(function () {
+            loadScrapeBtn.disabled = false;
+          });
+      });
+    }
+
+    var sandboxSelect = document.getElementById('sandboxSelect');
+    if (sandboxSelect) {
+      sandboxSelect.addEventListener('change', refreshScrapeList);
+    }
+    document.addEventListener('aep:sandbox-changed', refreshScrapeList);
+    refreshScrapeList();
 
     tab.addEventListener('click', function () {
       setOpen(!panel.classList.contains('llm-demo-customize-panel--open'));
