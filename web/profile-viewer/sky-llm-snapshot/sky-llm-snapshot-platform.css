@@ -1,7 +1,19 @@
 /* Shared filter pickers (Platform, Date Range) */
+/* Frozen export Walnut layer blocks clicks on React listboxes */
+#walnut-root-popin-element {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 .sky-llm-platform-shell,
 .sky-llm-date-shell {
   position: relative;
+}
+
+.sky-llm-platform-shell > *:not(.sky-llm-platform-host),
+.sky-llm-date-shell > *:not(.sky-llm-date-host) {
+  pointer-events: none !important;
 }
 
 .sky-llm-platform-shell > input[role='combobox'],
@@ -110,7 +122,14 @@
   border: 1px solid #dadada;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 50;
+  z-index: 2147483630;
+}
+
+/* React Aria listbox popovers (portaled) — keep custom menus only */
+body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 .sky-llm-platform-menu[hidden],

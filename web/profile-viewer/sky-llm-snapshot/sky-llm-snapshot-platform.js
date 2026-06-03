@@ -263,6 +263,7 @@
     tooltip: null,
     animToken: 0,
     ready: false,
+    outsidePickerCloseWired: false,
   };
 
   function getPageKind() {
@@ -366,6 +367,48 @@
     return Array.from(document.querySelectorAll('input[role="combobox"], [role="combobox"]')).find(function (el) {
       return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(needle) >= 0;
     });
+  }
+
+  function suppressUiBlockers() {
+    var walnut = document.getElementById('walnut-root-popin-element');
+    if (walnut) {
+      walnut.style.setProperty('display', 'none', 'important');
+      walnut.style.setProperty('pointer-events', 'none', 'important');
+      walnut.style.setProperty('visibility', 'hidden', 'important');
+    }
+  }
+
+  function hideReactListboxes() {
+    document.querySelectorAll('[role="listbox"]').forEach(function (el) {
+      if (el.classList.contains('sky-llm-platform-menu') || el.classList.contains('sky-llm-date-menu')) {
+        return;
+      }
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('pointer-events', 'none', 'important');
+      el.style.setProperty('visibility', 'hidden', 'important');
+    });
+  }
+
+  function findPickerShell(combobox) {
+    var el = combobox;
+    for (var i = 0; i < 12 && el; i++) {
+      if (
+        el.querySelector &&
+        el.querySelector('input[role="combobox"]') &&
+        el.querySelector('button[aria-haspopup="listbox"]')
+      ) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return combobox.parentElement;
+  }
+
+  function removePicker(shell, hostClass, shellClass) {
+    if (!shell) return;
+    var host = shell.querySelector('.' + hostClass);
+    if (host) host.remove();
+    shell.classList.remove(shellClass);
   }
 
   function findMetricValueInCard(root, labelEl) {
@@ -906,11 +949,19 @@
   }
 
   function buildFilterPicker(combobox, config) {
-    var shell = combobox.parentElement;
-    if (!shell || shell.querySelector('.' + config.hostClass)) return;
+    var shell = findPickerShell(combobox);
+    if (!shell) return null;
+
+    var existing = shell.querySelector('.' + config.hostClass);
+    if (existing && existing.querySelector('.' + config.triggerClass)) {
+      return { shell: shell, host: existing, closeMenu: existing.__skyCloseMenu };
+    }
+
+    removePicker(shell, config.hostClass, config.shellClass);
 
     shell.classList.add(config.shellClass);
     combobox.setAttribute('tabindex', '-1');
+    combobox.setAttribute('aria-hidden', 'true');
 
     var host = document.createElement('div');
     host.className = config.hostClass;
@@ -934,9 +985,23 @@
     function closeMenu() {
       menu.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
+      combobox.setAttribute('aria-expanded', 'false');
+      hideReactListboxes();
+    }
+
+    function selectOption(opt, e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      hideReactListboxes();
+      config.onSelect(opt, combobox);
+      renderTrigger();
+      closeMenu();
     }
 
     function openMenu() {
+      hideReactListboxes();
       menu.innerHTML = '';
       config.options().forEach(function (opt) {
         var li = document.createElement('li');
@@ -944,13 +1009,10 @@
         btn.type = 'button';
         btn.className = config.optionClass + (config.isSelected(opt) ? ' is-selected' : '');
         btn.setAttribute('role', 'option');
+        btn.setAttribute('aria-selected', config.isSelected(opt) ? 'true' : 'false');
         btn.innerHTML = config.renderOption(opt);
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          config.onSelect(opt);
-          renderTrigger();
-          closeMenu();
-        });
+        btn.addEventListener('mousedown', selectOption.bind(null, opt), true);
+        btn.addEventListener('click', selectOption.bind(null, opt), true);
         li.appendChild(btn);
         menu.appendChild(li);
       });
@@ -958,21 +1020,40 @@
       trigger.setAttribute('aria-expanded', 'true');
     }
 
-    trigger.addEventListener('click', function (e) {
+    trigger.addEventListener('mousedown', function (e) {
+      e.preventDefault();
       e.stopPropagation();
+      hideReactListboxes();
       if (menu.hidden) openMenu();
       else closeMenu();
-    });
-    host.addEventListener('click', function (e) {
+    }, true);
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
-    });
+    }, true);
+
+    if (!state.outsidePickerCloseWired) {
+      state.outsidePickerCloseWired = true;
+      document.addEventListener(
+        'mousedown',
+        function (e) {
+          if (e.target.closest('.sky-llm-platform-host, .sky-llm-date-host')) return;
+          document.querySelectorAll('.sky-llm-platform-menu, .sky-llm-date-menu').forEach(function (m) {
+            if (!m.hidden) m.hidden = true;
+          });
+          hideReactListboxes();
+        },
+        true,
+      );
+    }
 
     host.appendChild(trigger);
     host.appendChild(menu);
     shell.insertBefore(host, combobox);
     renderTrigger();
+    host.__skyCloseMenu = closeMenu;
 
-    return { closeMenu: closeMenu };
+    return { shell: shell, host: host, closeMenu: closeMenu };
   }
 
   function buildPlatformPicker() {
@@ -1012,8 +1093,9 @@
           '</span></span>'
         );
       },
-      onSelect: function (p) {
+      onSelect: function (p, input) {
         state.platformId = p.id;
+        if (input) input.value = p.name;
         applyDashboard({ animate: true });
       },
     });
@@ -1053,14 +1135,17 @@
           '</span></span>'
         );
       },
-      onSelect: function (d) {
+      onSelect: function (d, input) {
         state.dateRangeId = d.id;
+        if (input) input.value = d.name;
         applyDashboard({ animate: true });
       },
     });
   }
 
   function ensurePickers() {
+    suppressUiBlockers();
+    hideReactListboxes();
     buildPlatformPicker();
     buildDatePicker();
   }
@@ -1085,9 +1170,6 @@
     ensureTooltip();
     applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
-    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.scheduleApplyAll) {
-      global.SkyLlmLlmDemoBrands.scheduleApplyAll();
-    }
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
@@ -1108,6 +1190,13 @@
     init();
   }
   window.setTimeout(init, 800);
+  [150, 600, 1500, 3000].forEach(function (ms) {
+    window.setTimeout(function () {
+      if (!/overview\.html|brand-presence\.html/i.test(location.pathname || '')) return;
+      ensurePickers();
+      if (state.ready) applyDashboard({ animate: false });
+    }, ms);
+  });
 
   global.skyLlmSnapshotPlatform = {
     isReady: function () {

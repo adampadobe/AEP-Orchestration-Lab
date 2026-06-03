@@ -371,7 +371,9 @@
 
     if (/overview\.html/i.test(global.location.pathname || '')) {
       if (global.skyLlmSnapshotPlatform && global.skyLlmSnapshotPlatform.ensurePickers) {
-        global.skyLlmSnapshotPlatform.ensurePickers();
+        if (!document.querySelector('.sky-llm-platform-host')) {
+          global.skyLlmSnapshotPlatform.ensurePickers();
+        }
       }
     }
     if (platformReady() && global.skyLlmSnapshotPlatform.refresh) {
