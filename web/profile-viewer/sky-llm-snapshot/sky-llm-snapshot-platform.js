@@ -263,9 +263,11 @@
     tooltip: null,
     animToken: 0,
     ready: false,
+    reactListboxesHidden: false,
     outsidePickerCloseWired: false,
     platformSelectionWired: false,
-    walnutObserver: null,
+    walnutWatcher: false,
+    metricsReapplyTimer: null,
   };
 
   function getPageKind() {
@@ -392,6 +394,31 @@
     return null;
   }
 
+  function closeAllPickerMenus() {
+    document.querySelectorAll('.sky-llm-platform-menu, .sky-llm-date-menu').forEach(function (m) {
+      m.hidden = true;
+    });
+    document.querySelectorAll('.sky-llm-platform-trigger, .sky-llm-date-trigger').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('[role="listbox"]').forEach(function (el) {
+      if (el.classList.contains('sky-llm-platform-menu') || el.classList.contains('sky-llm-date-menu')) return;
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('pointer-events', 'none', 'important');
+    });
+  }
+
+  function scheduleMetricsReapply() {
+    if (state.metricsReapplyTimer) window.clearTimeout(state.metricsReapplyTimer);
+    var pass = 0;
+    function tick() {
+      applyMetrics(state.platformId, state.dateRangeId);
+      pass += 1;
+      if (pass < 4) state.metricsReapplyTimer = window.setTimeout(tick, pass === 1 ? 80 : 220);
+    }
+    tick();
+  }
+
   function syncPlatformTriggerLabel() {
     var p = PLATFORMS.find(function (x) {
       return x.id === state.platformId;
@@ -402,20 +429,24 @@
     document.querySelectorAll('.sky-llm-platform-trigger > span:first-child').forEach(function (el) {
       el.textContent = p.name;
     });
+    document.querySelectorAll('.sky-llm-platform-option').forEach(function (btn) {
+      var id = btn.getAttribute('data-sky-platform-id');
+      var selected = id === state.platformId;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
   }
 
   function setPlatformId(id, opts) {
-    if (!id) return;
+    if (!id || id === state.platformId) {
+      closeAllPickerMenus();
+      return;
+    }
     state.platformId = id;
     syncPlatformTriggerLabel();
+    closeAllPickerMenus();
     applyDashboard({ animate: !(opts && opts.animate === false) });
-    hideReactListboxes();
-    document.querySelectorAll('.sky-llm-platform-menu').forEach(function (m) {
-      m.hidden = true;
-    });
-    document.querySelectorAll('.sky-llm-platform-trigger').forEach(function (btn) {
-      btn.setAttribute('aria-expanded', 'false');
-    });
+    scheduleMetricsReapply();
   }
 
   function wirePlatformSelection() {
@@ -446,16 +477,32 @@
   }
 
   function watchWalnutRemoval() {
-    if (state.walnutObserver) return;
+    if (state.walnutWatcher) return;
+    state.walnutWatcher = true;
     suppressUiBlockers();
-    if (!document.body || !window.MutationObserver) return;
-    state.walnutObserver = new MutationObserver(function () {
-      suppressUiBlockers();
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i++) {
+        var nodes = records[i].addedNodes;
+        for (var j = 0; j < nodes.length; j++) {
+          var n = nodes[j];
+          if (n.nodeType !== 1) continue;
+          if (
+            n.id === 'walnut-root-popin-element' ||
+            (n.querySelector && n.querySelector('#walnut-root-popin-element'))
+          ) {
+            suppressUiBlockers();
+            return;
+          }
+        }
+      }
     });
-    state.walnutObserver.observe(document.documentElement, { childList: true, subtree: true });
+    obs.observe(document.documentElement, { childList: true });
   }
 
   function hideReactListboxes() {
+    if (state.reactListboxesHidden) return;
+    state.reactListboxesHidden = true;
     document.querySelectorAll('[role="listbox"]').forEach(function (el) {
       if (el.classList.contains('sky-llm-platform-menu') || el.classList.contains('sky-llm-date-menu')) {
         return;
@@ -897,7 +944,10 @@
     cacheMetricNodes();
     var m = getMetrics(platformId, rangeId);
     Object.keys(m).forEach(function (key) {
-      if (state.metricNodes[key]) state.metricNodes[key].textContent = m[key];
+      if (state.metricNodes[key]) {
+        state.metricNodes[key].textContent = m[key];
+        state.metricNodes[key].setAttribute('data-sky-metric', key);
+      }
     });
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.applyTrends) {
       window.skyLlmSnapshotMarket.applyTrends(platformId, rangeId);
@@ -1063,7 +1113,6 @@
       menu.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
       combobox.setAttribute('aria-expanded', 'false');
-      hideReactListboxes();
     }
 
     function selectOption(opt, e) {
@@ -1071,13 +1120,14 @@
         e.preventDefault();
         e.stopPropagation();
       }
-      hideReactListboxes();
       config.onSelect(opt, combobox);
       renderTrigger();
       closeMenu();
+      closeAllPickerMenus();
     }
 
     function openMenu() {
+      state.reactListboxesHidden = false;
       hideReactListboxes();
       menu.innerHTML = '';
       config.options().forEach(function (opt) {
@@ -1116,10 +1166,7 @@
         'mousedown',
         function (e) {
           if (e.target.closest('.sky-llm-platform-host, .sky-llm-date-host')) return;
-          document.querySelectorAll('.sky-llm-platform-menu, .sky-llm-date-menu').forEach(function (m) {
-            if (!m.hidden) m.hidden = true;
-          });
-          hideReactListboxes();
+          closeAllPickerMenus();
         },
         true,
       );

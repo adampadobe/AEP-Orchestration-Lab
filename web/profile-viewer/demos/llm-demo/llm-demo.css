@@ -1,5 +1,5 @@
 /**
- * LLM Demo — lab shell + bottom customize drawer (uses --dash-* tokens).
+ * LLM Demo — lab shell + bottom hover personalize drawer (uses --dash-* tokens).
  */
 .llm-demo-page .mod-demo-site-frame {
   bottom: 0;
@@ -14,54 +14,33 @@
   pointer-events: none;
 }
 
+/* Invisible hover strip — move mouse to bottom edge to reveal panel */
 .llm-demo-customize-anchor::before {
   content: "";
   display: block;
-  height: 12px;
+  height: 52px;
   pointer-events: auto;
 }
 
 .llm-demo-customize-tab {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  pointer-events: auto;
-  padding: 0.4rem 1rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dash-text);
-  background: var(--dash-surface);
-  border: 1px solid var(--dash-border);
-  border-bottom: none;
-  border-radius: var(--dash-radius-sm) var(--dash-radius-sm) 0 0;
-  cursor: pointer;
-  box-shadow: var(--dash-shadow);
-  opacity: 0.55;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.llm-demo-customize-anchor:hover .llm-demo-customize-tab,
-.llm-demo-customize-tab:focus-visible,
-.llm-demo-customize-tab.llm-demo-customize-tab--open {
-  opacity: 1;
+  display: none;
 }
 
 .llm-demo-customize-panel {
   pointer-events: auto;
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.28s ease;
+  transition: max-height 0.22s ease;
   background: var(--dash-surface);
   color: var(--dash-text);
   border-top: 1px solid var(--dash-border);
   box-shadow: 0 -8px 24px var(--dash-shadow);
 }
 
+.llm-demo-customize-anchor:hover .llm-demo-customize-panel,
+.llm-demo-customize-anchor:focus-within .llm-demo-customize-panel,
 .llm-demo-customize-panel.llm-demo-customize-panel--open {
-  max-height: 320px;
+  max-height: 340px;
 }
 
 .llm-demo-customize-row select.sandbox-select {

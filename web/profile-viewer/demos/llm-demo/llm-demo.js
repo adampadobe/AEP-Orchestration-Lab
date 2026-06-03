@@ -5,7 +5,7 @@
   'use strict';
 
   function snapshotBuild() {
-    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260615';
+    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260616';
   }
 
   function snapshotPageUrl(file) {
@@ -143,7 +143,7 @@
   }
 
   function initCustomizeBar() {
-    var tab = document.getElementById('llmDemoCustomizeTab');
+    var anchor = document.getElementById('llmDemoCustomizeAnchor');
     var panel = document.getElementById('llmDemoCustomizePanel');
     var urlInput = document.getElementById('llmDemoSiteUrl');
     var brandInput = document.getElementById('llmDemoBrand');
@@ -152,14 +152,36 @@
     var applyBtn = document.getElementById('llmDemoApplyBtn');
     var resetBtn = document.getElementById('llmDemoResetBtn');
     var status = document.getElementById('llmDemoCustomizeStatus');
-    if (!tab || !panel || !urlInput || typeof LlmDemoConfig === 'undefined') return;
+    if (!anchor || !panel || !urlInput || typeof LlmDemoConfig === 'undefined') return;
+
+    var hideTimer = null;
 
     function setOpen(open) {
       panel.classList.toggle('llm-demo-customize-panel--open', open);
-      tab.classList.toggle('llm-demo-customize-tab--open', open);
-      tab.setAttribute('aria-expanded', open ? 'true' : 'false');
       panel.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
+
+    function clearHideTimer() {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+
+    function scheduleClose() {
+      clearHideTimer();
+      hideTimer = window.setTimeout(function () {
+        setOpen(false);
+      }, 450);
+    }
+
+    anchor.addEventListener('mouseenter', function () {
+      clearHideTimer();
+      setOpen(true);
+    });
+    anchor.addEventListener('mouseleave', scheduleClose);
+    panel.addEventListener('mouseenter', clearHideTimer);
+    panel.addEventListener('mouseleave', scheduleClose);
 
     function setStatus(text, kind) {
       if (!status) return;
@@ -223,7 +245,7 @@
         var opt = scrapeSelect.options[scrapeSelect.selectedIndex];
         if (!opt || !opt.value) return;
         if (opt.dataset.url) urlInput.value = opt.dataset.url;
-        if (opt.dataset.brand && !brandInput.value.trim()) brandInput.value = opt.dataset.brand;
+        if (opt.dataset.brand) brandInput.value = opt.dataset.brand;
       });
     }
 
@@ -266,10 +288,6 @@
     }
     document.addEventListener('aep:sandbox-changed', refreshScrapeList);
     refreshScrapeList();
-
-    tab.addEventListener('click', function () {
-      setOpen(!panel.classList.contains('llm-demo-customize-panel--open'));
-    });
 
     applyBtn.addEventListener('click', function () {
       if (!urlInput.value.trim()) {

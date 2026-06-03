@@ -106,6 +106,7 @@
     contentHost: null,
     contentTemplate: null,
     delegateWired: false,
+    walnutWatcher: false,
   };
 
   var TESTID_TO_VIEW = {
@@ -194,9 +195,36 @@
       walnut.style.setProperty('display', 'none', 'important');
       walnut.style.setProperty('pointer-events', 'none', 'important');
       walnut.style.setProperty('visibility', 'hidden', 'important');
+      walnut.style.setProperty('width', '0', 'important');
+      walnut.style.setProperty('height', '0', 'important');
+      if (walnut.parentNode) walnut.parentNode.removeChild(walnut);
     }
     var root = document.getElementById('root');
     if (root) root.style.pointerEvents = 'auto';
+  }
+
+  function watchWalnutRemoval() {
+    if (state.walnutWatcher) return;
+    state.walnutWatcher = true;
+    suppressClickBlockers();
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i++) {
+        var nodes = records[i].addedNodes;
+        for (var j = 0; j < nodes.length; j++) {
+          var n = nodes[j];
+          if (n.nodeType !== 1) continue;
+          if (
+            n.id === 'walnut-root-popin-element' ||
+            (n.querySelector && n.querySelector('#walnut-root-popin-element'))
+          ) {
+            suppressClickBlockers();
+            return;
+          }
+        }
+      }
+    });
+    obs.observe(document.documentElement, { childList: true });
   }
 
   function getCardTitle(card) {
@@ -303,6 +331,13 @@
     return btn;
   }
 
+  function openDetailForCard(card) {
+    if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
+    var viewId = resolveViewId(card);
+    if (!viewId) return;
+    showDetail(viewId);
+  }
+
   function wireCardOpen(card, viewId) {
     if (!card || !viewId) return;
     card.dataset.skyLlmOpViewId = viewId;
@@ -310,7 +345,19 @@
     card.classList.add('sky-llm-op-card-clickable');
     card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'button');
-    ensureDetailsButton(card);
+    var btn = ensureDetailsButton(card);
+    if (btn && btn.dataset.skyLlmOpBtnWired !== '1') {
+      btn.dataset.skyLlmOpBtnWired = '1';
+      btn.addEventListener(
+        'click',
+        function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openDetailForCard(card);
+        },
+        true,
+      );
+    }
   }
 
   function isOpportunityOpenClick(target) {
@@ -337,7 +384,21 @@
         if (!viewId) return;
         e.preventDefault();
         e.stopPropagation();
-        showDetail(viewId);
+        openDetailForCard(card);
+      },
+      true,
+    );
+    document.addEventListener(
+      'mousedown',
+      function (e) {
+        var card = e.target.closest('[data-testid*="OppCard"]');
+        if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
+        if (e.target.closest('input, textarea, select, a[href]')) return;
+        var viewId = resolveViewId(card);
+        if (!viewId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openDetailForCard(card);
       },
       true,
     );
@@ -825,13 +886,18 @@
 
   function showDetail(viewId) {
     suppressClickBlockers();
+    watchWalnutRemoval();
     var canvas = findOpportunitiesMain() || findListCanvas();
     var detail = ensureDetailRoot();
     if (!DETAIL_VIEWS[viewId] || !detail) return;
 
     detail.innerHTML = buildDetailHtml(viewId);
-    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchRoot) {
-      global.SkyLlmDemoUrls.patchRoot(detail, global.SkyLlmDemoUrls.getCfg());
+    try {
+      if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchRoot) {
+        global.SkyLlmDemoUrls.patchRoot(detail, global.SkyLlmDemoUrls.getCfg());
+      }
+    } catch (e) {
+      /* personalization patch optional */
     }
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
@@ -883,6 +949,7 @@
 
   function boot() {
     suppressClickBlockers();
+    watchWalnutRemoval();
     ensureDelegatedClicks();
     resetCaches();
     setupOnsiteCards();
