@@ -105,6 +105,12 @@
     onsiteHost: null,
     contentHost: null,
     contentTemplate: null,
+    delegateWired: false,
+  };
+
+  var TESTID_TO_VIEW = {
+    'techgeo-4xx': '404',
+    'techgeo-5xx': '503',
   };
 
   function escapeHtml(str) {
@@ -182,10 +188,38 @@
     return state.contentHost;
   }
 
+  function suppressClickBlockers() {
+    var walnut = document.getElementById('walnut-root-popin-element');
+    if (walnut) {
+      walnut.style.setProperty('display', 'none', 'important');
+      walnut.style.setProperty('pointer-events', 'none', 'important');
+      walnut.style.setProperty('visibility', 'hidden', 'important');
+    }
+    var root = document.getElementById('root');
+    if (root) root.style.pointerEvents = 'auto';
+  }
+
   function getCardTitle(card) {
+    if (!card) return '';
     var titleEl = card.querySelector('[class*="CxHbm"]');
-    if (titleEl) return titleEl.textContent.trim();
-    return '';
+    if (titleEl) return (titleEl.textContent || '').trim();
+    var leaf = Array.from(card.querySelectorAll('[data-rsp-slot="text"], div, span, h2, h3')).find(function (el) {
+      if (el.childElementCount > 0) return false;
+      var t = (el.textContent || '').trim();
+      return t.length > 8 && TITLE_TO_ID[t];
+    });
+    return leaf ? leaf.textContent.trim() : '';
+  }
+
+  function resolveViewId(card) {
+    if (!card) return '';
+    if (card.dataset.skyLlmOpViewId) return card.dataset.skyLlmOpViewId;
+    var testid = card.getAttribute('data-testid') || '';
+    var keys = Object.keys(TESTID_TO_VIEW);
+    for (var i = 0; i < keys.length; i++) {
+      if (testid.indexOf(keys[i]) >= 0) return TESTID_TO_VIEW[keys[i]];
+    }
+    return TITLE_TO_ID[getCardTitle(card)] || '';
   }
 
   function unblurCard(card) {
@@ -270,20 +304,52 @@
   }
 
   function wireCardOpen(card, viewId) {
-    if (!card || card.dataset.skyLlmOpCardWired === '1') return;
+    if (!card || !viewId) return;
+    card.dataset.skyLlmOpViewId = viewId;
     card.dataset.skyLlmOpCardWired = '1';
     card.classList.add('sky-llm-op-card-clickable');
-    var actionBtn = ensureDetailsButton(card);
-    function openDetail(e) {
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    ensureDetailsButton(card);
+  }
+
+  function isOpportunityOpenClick(target) {
+    if (!target || !target.closest) return false;
+    var card = target.closest('[data-testid*="OppCard"]');
+    if (!card || card.classList.contains('sky-llm-op-card-hidden')) return false;
+    if (target.closest('input, textarea, select, a[href]')) return false;
+    if (target.closest('button, [role="button"]')) {
+      var label = (target.closest('button, [role="button"]').textContent || '').trim();
+      if (label && label !== 'Details' && label !== 'Preview') return false;
+    }
+    return !!resolveViewId(card);
+  }
+
+  function ensureDelegatedClicks() {
+    if (state.delegateWired) return;
+    state.delegateWired = true;
+    document.addEventListener(
+      'click',
+      function (e) {
+        if (!isOpportunityOpenClick(e.target)) return;
+        var card = e.target.closest('[data-testid*="OppCard"]');
+        var viewId = resolveViewId(card);
+        if (!viewId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        showDetail(viewId);
+      },
+      true,
+    );
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var card = e.target.closest('[data-testid*="OppCard"].sky-llm-op-card-clickable');
+      if (!card) return;
+      var viewId = resolveViewId(card);
+      if (!viewId) return;
       e.preventDefault();
-      e.stopPropagation();
       showDetail(viewId);
-    }
-    card.addEventListener('click', openDetail, false);
-    if (actionBtn && actionBtn.dataset.skyLlmOpBtnWired !== '1') {
-      actionBtn.dataset.skyLlmOpBtnWired = '1';
-      actionBtn.addEventListener('click', openDetail, false);
-    }
+    });
   }
 
   function reorderCards(host, order, byId) {
@@ -302,8 +368,7 @@
 
     var byId = {};
     cards.forEach(function (card) {
-      var title = getCardTitle(card);
-      var id = TITLE_TO_ID[title];
+      var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
       if (id && ONSITE_CARDS[id]) byId[id] = card;
     });
 
@@ -316,9 +381,9 @@
     });
 
     cards.forEach(function (card) {
-      var title = getCardTitle(card);
-      var id = TITLE_TO_ID[title];
+      var id = resolveViewId(card);
       if (ONSITE_CARDS[id] || CONTENT_CARDS[id]) return;
+      var title = getCardTitle(card);
       if (title.indexOf('Information gain') === 0) return;
       card.classList.add('sky-llm-op-card-hidden');
     });
@@ -335,8 +400,7 @@
     var template = cards[0];
 
     cards.forEach(function (card) {
-      var title = getCardTitle(card);
-      var id = TITLE_TO_ID[title];
+      var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
       if (id && CONTENT_CARDS[id]) byId[id] = card;
     });
 
@@ -366,8 +430,7 @@
     });
 
     Array.from(host.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
-      var title = getCardTitle(card);
-      var id = TITLE_TO_ID[title];
+      var id = resolveViewId(card);
       if (!CONTENT_CARDS[id]) {
         card.classList.add('sky-llm-op-card-hidden');
       }
@@ -741,14 +804,17 @@
   }
 
   function ensureDetailRoot() {
-    if (state.detailEl) return state.detailEl;
-    var canvas = findOpportunitiesMain() || findListCanvas();
-    if (!canvas || !canvas.parentElement) return null;
+    if (state.detailEl && state.detailEl.isConnected) return state.detailEl;
+    var existing = document.getElementById('skyLlmOpDetail');
+    if (existing) {
+      state.detailEl = existing;
+      return existing;
+    }
     var el = document.createElement('div');
     el.id = 'skyLlmOpDetail';
-    el.className = 'sky-llm-op-detail';
+    el.className = 'sky-llm-op-detail sky-llm-op-detail--overlay';
     el.hidden = true;
-    canvas.parentElement.appendChild(el);
+    document.body.appendChild(el);
     state.detailEl = el;
     return el;
   }
@@ -758,9 +824,10 @@
   }
 
   function showDetail(viewId) {
+    suppressClickBlockers();
     var canvas = findOpportunitiesMain() || findListCanvas();
     var detail = ensureDetailRoot();
-    if (!DETAIL_VIEWS[viewId] || !canvas || !detail) return;
+    if (!DETAIL_VIEWS[viewId] || !detail) return;
 
     detail.innerHTML = buildDetailHtml(viewId);
     if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchRoot) {
@@ -768,7 +835,8 @@
     }
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
-    canvas.classList.add('sky-llm-op-list-hidden');
+    if (canvas) canvas.classList.add('sky-llm-op-list-hidden');
+    document.body.classList.add('sky-llm-op-detail-open');
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -789,6 +857,7 @@
   function hideDetail() {
     var canvas = findOpportunitiesMain() || findListCanvas();
     if (canvas) canvas.classList.remove('sky-llm-op-list-hidden');
+    document.body.classList.remove('sky-llm-op-detail-open');
     if (state.detailEl) {
       state.detailEl.hidden = true;
       state.detailEl.innerHTML = '';
@@ -806,7 +875,16 @@
     else hideDetail();
   }
 
+  function resetCaches() {
+    state.listCanvas = null;
+    state.onsiteHost = null;
+    state.contentHost = null;
+  }
+
   function boot() {
+    suppressClickBlockers();
+    ensureDelegatedClicks();
+    resetCaches();
     setupOnsiteCards();
     ensureContentCards();
     ensureDetailRoot();
@@ -816,6 +894,7 @@
   function resetCardWiring() {
     document.querySelectorAll('[data-testid*="OppCard"]').forEach(function (card) {
       delete card.dataset.skyLlmOpCardWired;
+      delete card.dataset.skyLlmOpViewId;
     });
   }
 

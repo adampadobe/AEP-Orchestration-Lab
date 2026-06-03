@@ -379,10 +379,7 @@
       patchMarketComparisonLabels();
     }
     if (/opportunities\.html/i.test(global.location.pathname || '')) {
-      var oppWired =
-        global.SkyLlmOpportunities &&
-        document.querySelector('[data-testid*="OppCard"][data-sky-llm-op-card-wired="1"]');
-      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot && !oppWired) {
+      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot) {
         global.SkyLlmOpportunities.boot();
       }
     }

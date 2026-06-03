@@ -1,12 +1,30 @@
 /**
  * Opportunities list patches + detail drill-down (404 / 503 / recover content).
  */
+/* Frozen export ships a full-viewport Walnut layer after </body> that blocks all clicks */
+#walnut-root-popin-element {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 .sky-llm-op-detail {
   padding: 72px 32px 48px;
   max-width: 1200px;
   box-sizing: border-box;
   position: relative;
   z-index: 2;
+}
+
+.sky-llm-op-detail--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  overflow: auto;
+  background: rgb(255, 255, 255);
 }
 
 .sky-llm-op-detail[hidden] {
