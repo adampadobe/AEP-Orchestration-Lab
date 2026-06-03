@@ -105,12 +105,20 @@
       /* ignore */
     }
     if (!hasParam && !hasStored) return;
-    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260607', function () {
-      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260607', function () {
+    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260608', function () {
+      var afterPersonalize = function () {
         if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.applyAll) {
           window.SkyLlmLlmDemoBrands.applyAll();
         }
-      });
+      };
+      var chain = function () {
+        loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260608', afterPersonalize);
+      };
+      if (/url-inspector\.html/i.test(location.pathname || '')) {
+        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260608', chain);
+      } else {
+        chain();
+      }
     });
   }
 

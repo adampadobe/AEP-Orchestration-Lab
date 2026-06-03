@@ -122,9 +122,29 @@
       }
       if (display && out.indexOf(skyLabel) !== -1) out = out.split(skyLabel).join(display);
     });
-    out = out.split('www.sky.com').join(cfg.siteHost);
-    out = out.split('sky.com').join(cfg.siteHost);
+    if (/https?:\/\/|www\./i.test(out)) {
+      out = out.split('www.sky.com').join(cfg.siteHost);
+      out = out.split('sky.com').join(cfg.siteHost);
+    }
     return out;
+  }
+
+  function mapStarMarketLabel(txt) {
+    var t = String(txt || '').trim();
+    if (!t) return t;
+    var starred = /^⭐\s*/.test(t);
+    var core = t.replace(/^⭐\s*/, '').trim();
+    var mapped = skyToDisplay(core);
+    if (core === 'Sky' || core === 'Sky TV and broadband') mapped = brandPickerLabel();
+    return starred ? '⭐ ' + mapped : mapped;
+  }
+
+  function patchMarketLabelNode(el) {
+    if (!el) return;
+    var txt = (el.textContent || '').trim();
+    if (!txt || txt.length > 48) return;
+    var next = mapStarMarketLabel(txt);
+    if (next !== txt) el.textContent = next;
   }
 
   function isLeafTextEl(el) {
@@ -180,44 +200,34 @@
     if (!isActive()) return;
     var root = findSectionRoot('Market Comparison');
     if (!root) return;
-    root.querySelectorAll('text, tspan').forEach(function (el) {
-      var txt = (el.textContent || '').trim();
-      if (!txt || txt.length > 40 || /^\d+$/.test(txt)) return;
-      var mapped = skyToDisplay(txt);
-      if (txt === 'Sky' || txt === 'Sky TV and broadband') mapped = brandPickerLabel();
-      if (mapped !== txt) el.textContent = mapped;
+    root.querySelectorAll(
+      '.recharts-yAxis-tick-label text, .recharts-cartesian-axis-tick-label text, text, tspan',
+    ).forEach(patchMarketLabelNode);
+    root.querySelectorAll('.recharts-yAxis-tick-label title').forEach(function (titleEl) {
+      var txt = (titleEl.textContent || '').trim();
+      var next = mapStarMarketLabel(txt);
+      if (next !== txt) titleEl.textContent = next;
     });
     root.querySelectorAll('span, strong').forEach(function (el) {
       if (!isLeafTextEl(el)) return;
       var txt = (el.textContent || '').trim();
       if (txt.length > 40) return;
-      var next = applyTextPairs(txt);
+      var next = mapStarMarketLabel(txt);
+      if (next === txt) next = applyTextPairs(txt);
       if (next !== txt) el.textContent = next;
     });
   }
 
   function patchUrlInspector() {
     if (!isActive()) return;
+    if (window.SkyLlmUrlInspector && window.SkyLlmUrlInspector.patch) {
+      window.SkyLlmUrlInspector.patch();
+      return;
+    }
     var cfg = loadConfig();
     document.querySelectorAll('a[href]').forEach(function (a) {
       var href = a.getAttribute('href') || '';
       if (/sky\.com/i.test(href)) a.setAttribute('href', replaceSkyUrl(href, cfg));
-      if (isLeafTextEl(a) && /sky\.com/i.test(a.textContent || '')) {
-        a.textContent = replaceSkyUrl(a.textContent, cfg);
-      }
-    });
-    document.querySelectorAll('td, th, span, code, div, p, li').forEach(function (el) {
-      if (!isLeafTextEl(el)) return;
-      var txt = el.textContent || '';
-      if (!txt || txt.length > 600) return;
-      if (!/sky\.com|Sky|Virgin Media|TalkTalk|frescopa/i.test(txt)) return;
-      var next = applyTextPairs(txt);
-      if (/sky\.com/i.test(next)) next = replaceSkyUrl(next, cfg);
-      if (next !== txt) el.textContent = next;
-    });
-    document.querySelectorAll('input, textarea').forEach(function (input) {
-      var val = input.value || '';
-      if (/sky\.com/i.test(val)) input.value = replaceSkyUrl(val, cfg);
     });
   }
 
@@ -240,12 +250,15 @@
     if (global.skyLlmSnapshotPlatform && global.skyLlmSnapshotPlatform.refresh) {
       global.skyLlmSnapshotPlatform.refresh();
     }
+    patchMarketComparisonLabels();
     if (global.skyLlmSnapshotMarket && global.skyLlmSnapshotMarket.initMarketTracking) {
       global.skyLlmSnapshotMarket.initMarketTracking();
     }
     if (global.skyLlmLlmDemoPersonalize && global.skyLlmLlmDemoPersonalize.apply) {
       global.skyLlmLlmDemoPersonalize.apply();
     }
+    patchMarketComparisonLabels();
+    patchUrlInspector();
   }
 
   function reapplyMarket() {
@@ -325,6 +338,7 @@
     getKnownBrandsMap: getKnownBrandsMap,
     persistConfig: persistConfig,
     applyLegendLabels: applyLegendLabels,
+    patchMarketComparisonLabels: patchMarketComparisonLabels,
     applyAll: applyAll,
     reapplyMarket: reapplyMarket,
   };

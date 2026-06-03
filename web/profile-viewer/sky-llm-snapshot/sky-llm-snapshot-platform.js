@@ -596,7 +596,10 @@
     var labels = Array.from(svg.querySelectorAll('text'))
       .filter(function (t) {
         var txt = (t.textContent || '').trim();
-        return txt && txt.length < 28 && !/^\d/.test(txt) && txt.indexOf('%') < 0;
+        if (!txt || txt.length > 40 || /^\d+$/.test(txt) || txt.indexOf('%') >= 0) return false;
+        var low = txt.toLowerCase();
+        if (low === 'mentions' || low === 'citations') return false;
+        return true;
       })
       .sort(function (a, b) {
         return Number(a.getAttribute('y') || 0) - Number(b.getAttribute('y') || 0);
@@ -805,7 +808,12 @@
       var cw = item.citeW * p;
       cached.mentionPath.setAttribute('d', makeMarketPath(83, y, mw));
       if (cached.citePath) cached.citePath.setAttribute('d', makeMarketPath(83 + mw, y, cw));
-      if (cached.labelEl) cached.labelEl.textContent = item.row.name;
+      if (cached.labelEl) {
+        var labelName = item.row.name;
+        var prevLabel = (cached.labelEl.textContent || '').trim();
+        if (/^⭐/.test(prevLabel)) labelName = '⭐ ' + labelName;
+        cached.labelEl.textContent = labelName;
+      }
       if (cached.totalEl) cached.totalEl.textContent = String(Math.round((item.row.mentions + item.row.citations) * p));
       cached.data = item.row;
     });
@@ -1098,6 +1106,9 @@
       if (!state.ready) return;
       cacheMarketRows();
       applyDashboard({ animate: false });
+      if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels) {
+        global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels();
+      }
     },
   };
 })();

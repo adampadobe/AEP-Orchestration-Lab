@@ -119,6 +119,7 @@
   }
 
   function patchLeafText(cfg) {
+    if (/url-inspector\.html/i.test(location.pathname || '')) return;
     var pairs = buildTextPairs(cfg);
     document.querySelectorAll('span, button, p, li, td, th, label, h1, h2, h3, h4, small, strong').forEach(
       function (el) {
@@ -173,12 +174,14 @@
 
   function init() {
     if (!getConfig()) return;
+    var onUrlInspector = /url-inspector\.html/i.test(location.pathname || '');
     runAll();
     window.setTimeout(runAll, 400);
     window.setTimeout(runAll, 1200);
-    window.setTimeout(runAll, 2800);
-    window.setTimeout(runAll, 4500);
-    window.setTimeout(runAll, 7000);
+    if (!onUrlInspector) {
+      window.setTimeout(runAll, 2800);
+      window.setTimeout(runAll, 4500);
+    }
     window.addEventListener('storage', function (e) {
       if (e.key === 'llmDemoPersonalization_v1') schedule();
     });
