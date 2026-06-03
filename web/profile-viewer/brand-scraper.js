@@ -1506,24 +1506,22 @@
     );
   }
 
-  function renderLlmDemoSection(data) {
+  function renderCompetitorAnalysisSection(data) {
     const cfg = data.llmDemoConfig;
     if (!cfg || typeof cfg !== 'object') return '';
     const comps = Array.isArray(cfg.competitors) ? cfg.competitors.slice(0, 6) : [];
     const paths = Array.isArray(cfg.samplePaths) ? cfg.samplePaths.slice(0, 6) : [];
     const prompts = Array.isArray(cfg.samplePrompts) ? cfg.samplePrompts.slice(0, 3) : [];
-    const demoUrl = 'demos/llm-demo/llm-demo.html?scrapeId=' + encodeURIComponent(data.scrapeId || '');
     return (
-      '<section class="brand-scraper-result-block brand-scraper-llm-demo-block">' +
-        '<h4>LLM Demo personalization</h4>' +
-        '<p class="brand-scraper-result-muted">Competitors, URL mappings, and prompts are saved with this scrape — load them in the LLM Demo without re-crawling.</p>' +
+      '<section class="brand-scraper-result-block brand-scraper-competitor-block">' +
+        '<h4>Competitor analysis</h4>' +
+        '<p class="brand-scraper-result-muted">Direct competitors, sample site paths, and consumer comparison prompts — inferred from this scrape and saved with the result.</p>' +
         (comps.length ? '<p class="brand-scraper-result-muted"><strong>Competitors:</strong> ' + esc(comps.join(', ')) + '</p>' : '') +
         (paths.length ? '<p class="brand-scraper-result-muted"><strong>Sample paths:</strong> ' + esc(paths.join(', ')) + (cfg.samplePaths && cfg.samplePaths.length > 6 ? '…' : '') + '</p>' : '') +
-        (prompts.length ? '<details class="brand-scraper-tag-opps"><summary>Sample LLM prompts (' + (cfg.samplePrompts ? cfg.samplePrompts.length : 0) + ')</summary><ul>' +
+        (prompts.length ? '<details class="brand-scraper-tag-opps"><summary>Sample comparison prompts (' + (cfg.samplePrompts ? cfg.samplePrompts.length : 0) + ')</summary><ul>' +
           prompts.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') +
           (cfg.samplePrompts && cfg.samplePrompts.length > 3 ? '<li class="brand-scraper-result-muted">…and ' + (cfg.samplePrompts.length - 3) + ' more</li>' : '') +
         '</ul></details>' : '') +
-        (data.scrapeId ? '<p><a class="dashboard-btn-outline brand-scraper-llm-demo-link" href="' + esc(demoUrl) + '">Open in LLM Demo</a></p>' : '') +
       '</section>'
     );
   }
@@ -1591,7 +1589,7 @@
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
         : '') +
       renderSummarySection(data, crawl) +
-      renderLlmDemoSection(data) +
+      renderCompetitorAnalysisSection(data) +
       renderConversationStartersSection(data, crawl) +
       (function () {
         const guidelinesTile = renderTileSection(
@@ -1722,7 +1720,7 @@
             (it.campaignsPresent ? ' · campaigns' : '') +
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
-            (it.llmDemoConfigPresent ? ' · LLM demo ready' : '') +
+            (it.llmDemoConfigPresent ? ' · competitor analysis' : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +
@@ -2068,7 +2066,7 @@
       setStatus('Wait for the current run to finish or cancel it first.', 'error');
       return;
     }
-    if (!confirm('Re-analyse this scrape using saved crawl data?\n\nNo new crawl — only the AI steps selected in Options will run again (brand guidelines, personas, LLM Demo config, etc.).')) return;
+    if (!confirm('Re-analyse this scrape using saved crawl data?\n\nNo new crawl — only the AI steps selected in Options will run again (brand guidelines, personas, competitor analysis, etc.).')) return;
     try {
       const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
       const detail = await detailResp.json().catch(() => ({}));

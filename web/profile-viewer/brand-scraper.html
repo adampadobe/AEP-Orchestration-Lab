@@ -63,7 +63,7 @@
                     <label><input type="checkbox" data-run-option="segments" /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
                     <label><input type="checkbox" data-run-option="stakeholders" /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
                     <label><input type="checkbox" data-run-option="tagAudit" checked /> <span><strong>Tag &amp; analytics audit</strong><em>Adobe / Google / CMP signals; JS crawl adds timings &amp; console errors</em></span></label>
-                    <label><input type="checkbox" data-run-option="llmDemoConfig" checked /> <span><strong>LLM Demo config</strong><em>competitors, URL mappings, and sample prompts for the LLM Demo customize bar (no extra crawl)</em></span></label>
+                    <label><input type="checkbox" data-run-option="llmDemoConfig" checked /> <span><strong>Competitor analysis</strong><em>direct competitors, sample site paths, and consumer comparison prompts (no extra crawl)</em></span></label>
                     <hr class="brand-scraper-run-options-divider" />
                     <label><input type="checkbox" id="brandScraperCrawlerJs" /> <span><strong>JS-rendered crawl</strong><em>Playwright in Cloud Run; slower but handles bot protection + SPAs</em></span></label>
                     <p class="brand-scraper-result-muted">Defaults favour a <strong>light first pass</strong> (fewer pages, smaller brand JSON, phased saves). Re-run with more pages or use <strong>append</strong> to deepen. Turning off AI steps saves tokens; turning off the tag audit skips vendor/network instrumentation only.</p>
@@ -225,6 +225,16 @@
               </header>
               <h3 class="brand-scraper-card-title">Tag &amp; analytics audit</h3>
               <p class="brand-scraper-card-body">Per-page inventory of Adobe Launch / Web SDK, Google Tag Manager / GA4, Tealium, Segment, CMPs, and other common vendors — plus duplicate collector hints, slow third-party scripts, and console errors when <strong>JS-rendered crawl</strong> is on. Toggle it under <strong>Options</strong>; outputs appear in results after <strong>Analyse</strong>.</p>
+            </article>
+            <article class="brand-scraper-card" data-healthcheck="analyze">
+              <header class="brand-scraper-card-head">
+                <span class="brand-scraper-card-ico" aria-hidden="true">⚔</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking competitor analysis health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
+              </header>
+              <h3 class="brand-scraper-card-title">Competitor analysis</h3>
+              <p class="brand-scraper-card-body">Identifies six direct competitors in the same industry and region, sample SEO and agentic-traffic URL paths on the brand site, and realistic consumer comparison prompts — grounded in the crawled pages. Toggle under <strong>Options</strong>; results appear after <strong>Analyse</strong>.</p>
             </article>
             <article class="brand-scraper-card" data-healthcheck="export">
               <header class="brand-scraper-card-head">

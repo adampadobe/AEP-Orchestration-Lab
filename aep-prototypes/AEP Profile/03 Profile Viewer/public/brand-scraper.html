@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260420a">
-  <link rel="stylesheet" href="brand-scraper.css?v=20260505b">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260603a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
 </head>
@@ -63,6 +63,7 @@
                     <label><input type="checkbox" data-run-option="segments" /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
                     <label><input type="checkbox" data-run-option="stakeholders" /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
                     <label><input type="checkbox" data-run-option="tagAudit" checked /> <span><strong>Tag &amp; analytics audit</strong><em>Adobe / Google / CMP signals; JS crawl adds timings &amp; console errors</em></span></label>
+                    <label><input type="checkbox" data-run-option="llmDemoConfig" checked /> <span><strong>Competitor analysis</strong><em>direct competitors, sample site paths, and consumer comparison prompts (no extra crawl)</em></span></label>
                     <hr class="brand-scraper-run-options-divider" />
                     <label><input type="checkbox" id="brandScraperCrawlerJs" /> <span><strong>JS-rendered crawl</strong><em>Playwright in Cloud Run; slower but handles bot protection + SPAs</em></span></label>
                     <p class="brand-scraper-result-muted">Defaults favour a <strong>light first pass</strong> (fewer pages, smaller brand JSON, phased saves). Re-run with more pages or use <strong>append</strong> to deepen. Turning off AI steps saves tokens; turning off the tag audit skips vendor/network instrumentation only.</p>
@@ -225,6 +226,16 @@
               <h3 class="brand-scraper-card-title">Tag &amp; analytics audit</h3>
               <p class="brand-scraper-card-body">Per-page inventory of Adobe Launch / Web SDK, Google Tag Manager / GA4, Tealium, Segment, CMPs, and other common vendors — plus duplicate collector hints, slow third-party scripts, and console errors when <strong>JS-rendered crawl</strong> is on. Toggle it under <strong>Options</strong>; outputs appear in results after <strong>Analyse</strong>.</p>
             </article>
+            <article class="brand-scraper-card" data-healthcheck="analyze">
+              <header class="brand-scraper-card-head">
+                <span class="brand-scraper-card-ico" aria-hidden="true">⚔</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking competitor analysis health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
+              </header>
+              <h3 class="brand-scraper-card-title">Competitor analysis</h3>
+              <p class="brand-scraper-card-body">Identifies six direct competitors in the same industry and region, sample SEO and agentic-traffic URL paths on the brand site, and realistic consumer comparison prompts — grounded in the crawled pages. Toggle under <strong>Options</strong>; results appear after <strong>Analyse</strong>.</p>
+            </article>
             <article class="brand-scraper-card" data-healthcheck="export">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">📦</span>
@@ -295,6 +306,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
-  <script src="brand-scraper.js?v=20260505b"></script>
+  <script src="brand-scraper.js?v=20260603a"></script>
 </body>
 </html>

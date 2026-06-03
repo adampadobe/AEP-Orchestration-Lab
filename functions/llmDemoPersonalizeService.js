@@ -400,6 +400,42 @@ async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, u
   return list;
 }
 
+/** Resolve six industry competitors from scrape context; never fall back to Sky telco defaults. */
+async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, url, siteHost }) {
+  let competitors = [];
+  try {
+    competitors = await inferCompetitorsFromScrape({
+      brand,
+      industry,
+      about,
+      crawlText,
+      url,
+    });
+  } catch (e) {
+    console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
+  }
+  if (competitors.length >= 4) return competitors;
+
+  try {
+    const research = await researchBrand({
+      url,
+      siteHost,
+      brandName: brand,
+      crawlText,
+    });
+    if (research.competitors && research.competitors.length >= 4) {
+      return research.competitors.slice(0, 6);
+    }
+    if (research.competitors && research.competitors.length > competitors.length) {
+      competitors = research.competitors.slice(0, 6);
+    }
+  } catch (e) {
+    console.warn('[llmDemoPersonalize] competitor research fallback failed', String(e && e.message || e));
+  }
+
+  return competitors;
+}
+
 /**
  * Build LLM Demo personalization config from a saved brand scrape record.
  * Used during brand-scraper analyse and when re-using scrape data without re-crawling.
@@ -427,19 +463,15 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
 
   let competitors = [];
   if (opts.skipCompetitorInference !== true) {
-    try {
-      competitors = await inferCompetitorsFromScrape({
-        brand: brandFallback,
-        industry,
-        about,
-        crawlText,
-        url,
-      });
-    } catch (e) {
-      console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
-    }
+    competitors = await resolveCompetitorsForScrape({
+      brand: brandFallback,
+      industry,
+      about,
+      crawlText,
+      url,
+      siteHost,
+    });
   }
-  if (competitors.length < 4) competitors = SKY_COMPETITORS.slice();
 
   let samplePrompts = [];
   if (opts.includePrompts !== false) {
