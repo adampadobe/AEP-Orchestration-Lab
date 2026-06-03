@@ -91,6 +91,13 @@
         }
       },
       {
+        "source": "/api/llm-demo/personalize",
+        "function": {
+          "functionId": "llmDemoPersonalize",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/analyze",
         "function": {
           "functionId": "brandScraperAnalyze",

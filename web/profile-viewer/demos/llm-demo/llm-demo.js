@@ -111,7 +111,9 @@
       if (LlmDemoConfig.isCustomized()) {
         urlInput.value = active.sourceUrl || active.siteUrl || '';
         brandInput.value = active.brand || '';
-        setStatus('Personalized for ' + active.brand + ' (' + active.siteHost + ').', 'ok');
+        var extra = active.researchUsed ? ' · researched online' : '';
+        if (active.industry) extra += ' · ' + active.industry;
+        setStatus('Personalized for ' + active.brand + ' (' + active.siteHost + ')' + extra + '.', 'ok');
       } else {
         urlInput.value = '';
         brandInput.value = '';
@@ -124,15 +126,28 @@
     });
 
     applyBtn.addEventListener('click', function () {
-      var cfg = LlmDemoConfig.buildFromUrl(urlInput.value);
-      if (!cfg) {
+      if (!urlInput.value.trim()) {
         setStatus('Enter a valid URL (e.g. https://www.example.com).', 'err');
         return;
       }
-      if (brandInput.value.trim()) cfg.brand = brandInput.value.trim();
-      LlmDemoConfig.save(cfg);
-      fillForm();
-      reloadIframe();
+      applyBtn.disabled = true;
+      setStatus('Crawling site and researching competitors (may take up to a minute)…', '');
+      LlmDemoConfig.fetchResearch(urlInput.value, { brandOverride: brandInput.value.trim() })
+        .then(function (result) {
+          LlmDemoConfig.save(result.config);
+          var meta = result.meta || {};
+          var note = result.config.researchUsed ? 'Grounded web research' : 'Crawl-only fallback';
+          if (meta.crawlPages) note += ' · ' + meta.crawlPages + ' page(s) crawled';
+          setStatus('Personalized for ' + result.config.brand + ' — ' + note + '.', 'ok');
+          fillForm();
+          reloadIframe();
+        })
+        .catch(function (err) {
+          setStatus(String((err && err.message) || err || 'Research failed'), 'err');
+        })
+        .finally(function () {
+          applyBtn.disabled = false;
+        });
     });
 
     resetBtn.addEventListener('click', function () {

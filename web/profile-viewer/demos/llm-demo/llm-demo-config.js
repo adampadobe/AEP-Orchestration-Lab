@@ -1,10 +1,11 @@
 /**
- * Build LLM Demo personalization from a customer site URL (localStorage payload).
+ * LLM Demo personalization — localStorage + /api/llm-demo/personalize research.
  */
 (function (global) {
   'use strict';
 
   var STORAGE_KEY = 'llmDemoPersonalization_v1';
+  var API_PATH = '/api/llm-demo/personalize';
 
   var SKY_DEFAULT = {
     siteUrl: 'https://www.sky.com',
@@ -27,6 +28,8 @@
     },
   };
 
+  var SKY_REFERENCE_BRANDS = ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+', 'Sky'];
+
   function hostToBrand(host) {
     var h = String(host || '')
       .replace(/^www\./i, '')
@@ -36,16 +39,22 @@
     return base.charAt(0).toUpperCase() + base.slice(1);
   }
 
-  function suggestCompetitors(brand) {
-    var b = String(brand || 'Brand').trim() || 'Brand';
-    return [
-      b + ' Media',
-      'Helix Broadband',
-      'Prime Stream',
-      'Vertex Mobile',
-      'Lumen TV',
-      'Apex Digital',
-    ];
+  function buildAxisMap(brand, competitors) {
+    var c = competitors || [];
+    return {
+      Adobe: brand,
+      WKND: c[0] || brand,
+      Automattic: c[1] || brand,
+      Contentful: c[2] || brand,
+      Global: c[0] || brand,
+      AEM: c[5] || brand,
+      Wix: c[2] || brand,
+      Webflow: c[0] || brand,
+      Frescopa: brand,
+      'Sweet Maria\u2019s': c[1] || brand,
+      Cropster: c[2] || brand,
+      Agtron: c[0] || brand,
+    };
   }
 
   function normalizeUrlInput(raw) {
@@ -64,28 +73,23 @@
     if (!parsed) return null;
     var host = parsed.hostname.replace(/^www\./i, '');
     var brand = hostToBrand(host);
-    var competitors = suggestCompetitors(brand);
+    var competitors = [
+      brand + ' Media',
+      'Helix Broadband',
+      'Prime Stream',
+      'Vertex Mobile',
+      'Lumen TV',
+      'Apex Digital',
+    ];
     return {
       siteUrl: parsed.origin,
       siteHost: host,
       brand: brand,
       competitors: competitors,
-      axisMap: {
-        Adobe: brand,
-        WKND: competitors[0],
-        Automattic: competitors[1],
-        Contentful: competitors[2],
-        Global: competitors[0],
-        AEM: competitors[5],
-        Wix: competitors[2],
-        Webflow: competitors[0],
-        Frescopa: brand,
-        'Sweet Maria\u2019s': competitors[1],
-        Cropster: competitors[2],
-        Agtron: competitors[0],
-      },
+      axisMap: buildAxisMap(brand, competitors),
       sourceUrl: parsed.href,
       updatedAt: Date.now(),
+      researchUsed: false,
     };
   }
 
@@ -131,10 +135,43 @@
     return !!load();
   }
 
+  /**
+   * Crawl site + Google Search–grounded competitor research via Cloud Function.
+   * @returns {Promise<{config: object, meta: object}>}
+   */
+  function fetchResearch(rawUrl, options) {
+    var opts = options || {};
+    var parsed = normalizeUrlInput(rawUrl);
+    if (!parsed) return Promise.reject(new Error('Enter a valid URL'));
+
+    var body = { url: parsed.href };
+    if (opts.brandOverride) body.brandOverride = String(opts.brandOverride).trim();
+
+    return fetch(API_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Research failed');
+        if (!data || !data.config) throw new Error('No personalization config returned');
+        var cfg = data.config;
+        if (opts.brandOverride) cfg.brand = String(opts.brandOverride).trim();
+        if (!cfg.axisMap) cfg.axisMap = buildAxisMap(cfg.brand, cfg.competitors);
+        cfg.sourceUrl = parsed.href;
+        cfg.updatedAt = Date.now();
+        return { config: cfg, meta: data.meta || {} };
+      });
+    });
+  }
+
   global.LlmDemoConfig = {
     STORAGE_KEY: STORAGE_KEY,
     SKY_DEFAULT: SKY_DEFAULT,
+    SKY_REFERENCE_BRANDS: SKY_REFERENCE_BRANDS,
     buildFromUrl: buildFromUrl,
+    buildAxisMap: buildAxisMap,
+    fetchResearch: fetchResearch,
     load: load,
     save: save,
     reset: reset,

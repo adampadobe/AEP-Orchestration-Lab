@@ -24,7 +24,14 @@
   }
 
   function replaceHostInUrl(url, cfg) {
-    var s = String(url || '');
+    var s = String(url || '').trim();
+    if (!s) return s;
+    var reps = cfg.urlReplacements || [];
+    for (var i = 0; i < reps.length; i++) {
+      var row = reps[i];
+      if (row.from && s.indexOf(row.from) !== -1) return s.split(row.from).join(row.to);
+      if (row.fromWww && s.indexOf(row.fromWww) !== -1) return s.split(row.fromWww).join(row.to);
+    }
     if (!/sky\.com/i.test(s)) return s;
     try {
       var u = new URL(s, 'https://sky.com');
@@ -40,19 +47,21 @@
     var brand = cfg.brand;
     var host = cfg.siteHost;
     var comps = cfg.competitors || [];
+    var ref =
+      typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.SKY_REFERENCE_BRANDS
+        ? LlmDemoConfig.SKY_REFERENCE_BRANDS
+        : ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+', 'Sky'];
     var pairs = [
       ['www.sky.com', host],
       ['sky.com', host],
       ['Sky UK', brand],
-      ['Virgin Media', comps[0] || 'Virgin Media'],
-      ['TalkTalk', comps[2] || 'TalkTalk'],
-      ['Disney+', comps[5] || 'Disney+'],
-      ['Netflix', comps[4] || 'Netflix'],
-      ['BT', comps[1] || 'BT'],
-      ['Sky', brand],
       ['frescopa TV and broadband', brand],
       ['frescopa', brand],
     ];
+    ref.forEach(function (skyName, idx) {
+      if (skyName === 'Sky') pairs.push(['Sky', brand]);
+      else pairs.push([skyName, comps[idx] || comps[comps.length - 1] || skyName]);
+    });
     return pairs;
   }
 
@@ -94,6 +103,16 @@
     });
   }
 
+  function patchUrlReplacements(cfg) {
+    (cfg.urlReplacements || []).forEach(function (row) {
+      if (!row.from || !row.to) return;
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        var href = a.getAttribute('href') || '';
+        if (href === row.from || href === row.fromWww) a.setAttribute('href', row.to);
+      });
+    });
+  }
+
   function patchLeafText(cfg) {
     var pairs = buildTextPairs(cfg);
     document.querySelectorAll('span, button, p, li, td, th, label, h1, h2, h3, h4, small, strong').forEach(
@@ -123,6 +142,7 @@
     if (RUNNING) return;
     RUNNING = true;
     try {
+      patchUrlReplacements(cfg);
       patchUrlsAndInputs(cfg);
       patchAxis(cfg);
       patchLeafText(cfg);

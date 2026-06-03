@@ -375,6 +375,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/llm-demo/personalize",
+      "functionId": "llmDemoPersonalize",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/brand-scraper/analyze",
       "functionId": "brandScraperAnalyze",
       "region": "us-east4"

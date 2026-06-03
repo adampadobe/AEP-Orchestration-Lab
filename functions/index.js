@@ -98,6 +98,7 @@ const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const profileGenerateService = lazyRequireMod('./profileGenerateService');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
+const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
@@ -4532,6 +4533,29 @@ exports.archMaster = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
     res.status(code).json({ ok: false, error: String(e.message || e) });
   }
 });
+
+/** POST /api/llm-demo/personalize — crawl + grounded research for LLM Demo personalization. */
+exports.llmDemoPersonalize = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    try {
+      await llmDemoPersonalizeService.handlePersonalize(req, res);
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(500).json({ error: String((e && e.message) || e) });
+      } else {
+        console.error('[llmDemoPersonalize] error after response started', String((e && e.message) || e));
+      }
+    }
+  },
+);
 
 /** POST /api/brand-scraper/analyze — crawl a brand URL and optionally run LLM brand analysis. */
 exports.brandScraperAnalyze = onRequest(

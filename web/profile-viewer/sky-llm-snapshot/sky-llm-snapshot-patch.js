@@ -85,7 +85,7 @@
     }
     if (!hasParam && !hasStored) return;
     var s = document.createElement('script');
-    s.src = '../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260603';
+    s.src = '../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260604';
     s.async = true;
     document.body.appendChild(s);
   }
