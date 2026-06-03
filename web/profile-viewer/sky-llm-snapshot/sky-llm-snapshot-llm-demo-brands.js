@@ -298,6 +298,9 @@
     patchMarketComparisonLabels();
     patchUrlInspector();
     applyLegendLabels();
+    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchPage) {
+      global.SkyLlmDemoUrls.patchPage();
+    }
 
     if (global.skyLlmLlmDemoPersonalize && global.skyLlmLlmDemoPersonalize.patchLinksAndInputs) {
       global.skyLlmLlmDemoPersonalize.patchLinksAndInputs();
@@ -313,6 +316,9 @@
     }
 
     patchBrandClaims();
+    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchPage) {
+      global.SkyLlmDemoUrls.patchPage();
+    }
 
     if (
       applyPass < MAX_APPLY_PASSES &&

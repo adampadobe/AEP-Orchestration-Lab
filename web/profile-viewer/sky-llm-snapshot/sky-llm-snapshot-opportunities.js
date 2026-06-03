@@ -762,6 +762,9 @@
     if (!DETAIL_VIEWS[viewId] || !canvas || !detail) return;
 
     detail.innerHTML = buildDetailHtml(viewId);
+    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchRoot) {
+      global.SkyLlmDemoUrls.patchRoot(detail, global.SkyLlmDemoUrls.getCfg());
+    }
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
     canvas.classList.add('sky-llm-op-list-hidden');
