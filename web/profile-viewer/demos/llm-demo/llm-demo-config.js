@@ -32,6 +32,99 @@
 
   var SKY_REFERENCE_BRANDS = ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+', 'Sky'];
 
+  var SKY_DEMO_PATHS = [
+    '/content/status',
+    '/help/server-status',
+    '/tv/sky-glass',
+    '/tv/sky-glass/packages',
+    '/tv/sky-stream',
+    '/broadband/deals',
+    '/broadband/full-fibre',
+    '/tv/sports',
+    '/tv/cinema',
+    '/shop/tv',
+    '/help/home',
+    '/help/broadband',
+  ];
+
+  function pathsFromScrapePages(pages, siteHost) {
+    var out = [];
+    var seen = {};
+    (pages || []).forEach(function (p) {
+      try {
+        var u = new URL(p.url);
+        if (u.hostname.replace(/^www\./i, '') !== siteHost) return;
+        var path = u.pathname || '/';
+        if (path === '/' || seen[path]) return;
+        seen[path] = true;
+        out.push(path);
+      } catch (e) {
+        /* skip */
+      }
+    });
+    return out.slice(0, 12);
+  }
+
+  function buildUrlReplacements(siteUrl, paths) {
+    var origin = String(siteUrl || '').replace(/\/$/, '');
+    var urls = (paths || []).map(function (p) {
+      var path = String(p || '').trim();
+      if (!path) return '';
+      return origin + (path.charAt(0) === '/' ? path : '/' + path);
+    }).filter(Boolean);
+    return SKY_DEMO_PATHS.map(function (skyPath, i) {
+      var to = urls[i % urls.length] || origin + skyPath;
+      return {
+        from: 'https://sky.com' + skyPath,
+        fromWww: 'https://www.sky.com' + skyPath,
+        to: to,
+      };
+    });
+  }
+
+  function buildConfigFromScrapeRecord(record, brandOverride) {
+    var url = (record && (record.baseUrl || record.url)) || '';
+    var parsed = normalizeUrlInput(url);
+    if (!parsed) throw new Error('Scrape has no valid URL');
+    var siteHost = parsed.hostname.replace(/^www\./i, '');
+    var siteUrl = parsed.origin;
+    var brand =
+      String(brandOverride || '').trim() ||
+      (record && record.brandName) ||
+      hostToBrand(siteHost);
+    var pages = (record && record.crawlSummary && record.crawlSummary.pages) || [];
+    var paths = pathsFromScrapePages(pages, siteHost);
+    var base = buildFromUrl(parsed.href) || {};
+    var samplePaths = paths.length ? paths : base.samplePaths || ['/'];
+    var competitors = base.competitors || SKY_DEFAULT.competitors;
+    var cfg = {
+      siteUrl: siteUrl,
+      siteHost: siteHost,
+      brand: brand,
+      brandPickerLabel: brand,
+      competitors: competitors,
+      industry: (record && record.industry) || '',
+      about:
+        (record && record.analysis && record.analysis.about) ||
+        (pages[0] && pages[0].description) ||
+        '',
+      samplePaths: samplePaths,
+      sampleUrls: samplePaths.map(function (p) {
+        return siteUrl + (p.charAt(0) === '/' ? p : '/' + p);
+      }),
+      urlReplacements: buildUrlReplacements(siteUrl, samplePaths),
+      axisMap: buildAxisMap(brand, competitors),
+      sourceUrl: parsed.href,
+      researchUsed: false,
+      crawlPages: pages.length,
+      loadedFromScrape: true,
+      scrapeId: record && record.scrapeId,
+      scrapeSandbox: record && record.sandbox,
+      updatedAt: Date.now(),
+    };
+    return cfg;
+  }
+
   function hostToBrand(host) {
     var h = String(host || '')
       .replace(/^www\./i, '')
@@ -159,6 +252,20 @@
     });
   }
 
+  function fetchScrapeRecord(sandbox, scrapeId) {
+    var sb = String(sandbox || '').trim();
+    var sid = String(scrapeId || '').trim();
+    return fetch(
+      SCRAPES_API + '/' + encodeURIComponent(sid) + '?sandbox=' + encodeURIComponent(sb),
+      { headers: { Accept: 'application/json' } },
+    ).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Failed to load scrape');
+        return data;
+      });
+    });
+  }
+
   function fetchFromScrape(scrapeId, sandbox, options) {
     var opts = options || {};
     var sb = String(sandbox || '').trim();
@@ -166,37 +273,21 @@
     if (!sb) return Promise.reject(new Error('Choose a sandbox first'));
     if (!sid) return Promise.reject(new Error('Choose a saved brand scrape'));
 
-    var body = { scrapeId: sid, sandbox: sb, llmDemoPersonalize: true };
-    if (opts.brandOverride) body.brandOverride = String(opts.brandOverride).trim();
-
-    return fetch(API_PATH, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        var data = null;
-        if (text && text.trim().charAt(0) === '{') {
-          try {
-            data = JSON.parse(text);
-          } catch (parseErr) {
-            throw new Error('Personalize API returned invalid JSON.');
-          }
-        } else {
-          throw new Error((text || res.statusText || 'Load scrape failed').slice(0, 240));
-        }
-        if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Load scrape failed');
-        if (!data || !data.config) throw new Error('No personalization config returned');
-        var cfg = data.config;
-        if (opts.brandOverride) {
-          cfg.brand = String(opts.brandOverride).trim();
-          cfg.brandPickerLabel = cfg.brand;
-        }
-        if (!cfg.brandPickerLabel && cfg.brand) cfg.brandPickerLabel = cfg.brand;
-        if (!cfg.axisMap) cfg.axisMap = buildAxisMap(cfg.brand, cfg.competitors);
-        cfg.updatedAt = Date.now();
-        return { config: cfg, meta: data.meta || {} };
-      });
+    return fetchScrapeRecord(sb, sid).then(function (record) {
+      if (record && record.payloadExpired) {
+        throw new Error('Scrape payload expired — re-run the brand scraper for this URL.');
+      }
+      var cfg = buildConfigFromScrapeRecord(record, opts.brandOverride);
+      return {
+        config: cfg,
+        meta: {
+          fromScrape: sid,
+          sandbox: sb,
+          crawlPages: cfg.crawlPages || 0,
+          researchUsed: false,
+          clientSide: true,
+        },
+      };
     });
   }
 
@@ -257,6 +348,8 @@
     buildFromUrl: buildFromUrl,
     buildAxisMap: buildAxisMap,
     fetchScrapeList: fetchScrapeList,
+    fetchScrapeRecord: fetchScrapeRecord,
+    buildConfigFromScrapeRecord: buildConfigFromScrapeRecord,
     fetchFromScrape: fetchFromScrape,
     fetchResearch: fetchResearch,
     load: load,
