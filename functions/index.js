@@ -5307,6 +5307,14 @@ exports.claudeSkillsApi = onRequest(
     try {
       if (req.method === 'POST' && path === 'upload') {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        if (!String(body.contentBase64 || body.fileBase64 || '').trim()) {
+          sendClaudeSkillsJson(res, 413, {
+            ok: false,
+            code: 'PAYLOAD_TOO_LARGE',
+            error: 'Request body missing or too large for upload (max ~20 MB skill file before base64 encoding). Upload SKILL.md or a smaller ZIP without large binaries.',
+          });
+          return;
+        }
         const out = await claudeSkillsService.uploadSkillFile(body);
         sendClaudeSkillsJson(res, 200, out);
         return;
@@ -5337,8 +5345,13 @@ exports.claudeSkillsApi = onRequest(
       sendClaudeSkillsJson(res, 404, { ok: false, error: 'Not found' });
     } catch (e) {
       const status = e.status || (e.code === 'RATE_LIMITED' ? 429 : 500);
-      console.error('[claudeSkillsApi]', String(e && e.message || e));
-      sendClaudeSkillsJson(res, status, { ok: false, error: String(e.message || e) });
+      console.error('[claudeSkillsApi]', path || '(unknown)', String(e && e.message || e), e && e.stack ? `\n${e.stack}` : '');
+      sendClaudeSkillsJson(res, status, {
+        ok: false,
+        error: String(e.message || e),
+        code: e.code || undefined,
+        step: path || undefined,
+      });
     }
   },
 );
