@@ -175,7 +175,11 @@
         if (!res.ok) throw new Error((data && data.error) || res.statusText || 'Research failed');
         if (!data || !data.config) throw new Error('No personalization config returned');
         var cfg = data.config;
-        if (opts.brandOverride) cfg.brand = String(opts.brandOverride).trim();
+        if (opts.brandOverride) {
+          cfg.brand = String(opts.brandOverride).trim();
+          cfg.brandPickerLabel = cfg.brand;
+        }
+        if (!cfg.brandPickerLabel && cfg.brand) cfg.brandPickerLabel = cfg.brand;
         if (!cfg.axisMap) cfg.axisMap = buildAxisMap(cfg.brand, cfg.competitors);
         cfg.sourceUrl = parsed.href;
         cfg.updatedAt = Date.now();

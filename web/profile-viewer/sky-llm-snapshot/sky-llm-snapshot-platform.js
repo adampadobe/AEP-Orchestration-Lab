@@ -311,12 +311,19 @@
     };
   }
 
+  function mapMarketBrandLabel(name) {
+    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.isActive()) {
+      return global.SkyLlmLlmDemoBrands.skyToDisplay(name);
+    }
+    return name;
+  }
+
   function getMarketRows(platformId, rangeId) {
     var base = MARKET_BASE[platformId] || MARKET_BASE['chatgpt-free'];
     var f = RANGE_SCALE[rangeId] || 1;
     return base.map(function (row) {
       return {
-        name: row.name,
+        name: mapMarketBrandLabel(row.name),
         mentions: scaleInt(row.mentions, f),
         citations: scaleInt(row.citations, f),
       };
@@ -1085,4 +1092,12 @@
     init();
   }
   window.setTimeout(init, 800);
+
+  global.skyLlmSnapshotPlatform = {
+    refresh: function () {
+      if (!state.ready) return;
+      cacheMarketRows();
+      applyDashboard({ animate: false });
+    },
+  };
 })();

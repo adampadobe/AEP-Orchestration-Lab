@@ -162,6 +162,7 @@ function buildClientConfig({
     siteUrl,
     siteHost,
     brand,
+    brandPickerLabel: brand,
     competitors: comps,
     industry: industry || '',
     about: about || '',

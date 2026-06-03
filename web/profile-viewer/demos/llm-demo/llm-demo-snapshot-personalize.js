@@ -51,11 +51,16 @@
       typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.SKY_REFERENCE_BRANDS
         ? LlmDemoConfig.SKY_REFERENCE_BRANDS
         : ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+', 'Sky'];
+    var pickerLabel =
+      window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.brandPickerLabel
+        ? window.SkyLlmLlmDemoBrands.brandPickerLabel()
+        : brand;
     var pairs = [
       ['www.sky.com', host],
       ['sky.com', host],
       ['Sky UK', brand],
-      ['frescopa TV and broadband', brand],
+      ['Sky TV and broadband', pickerLabel],
+      ['frescopa TV and broadband', pickerLabel],
       ['frescopa', brand],
     ];
     ref.forEach(function (skyName, idx) {
@@ -159,29 +164,27 @@
     DEBOUNCE = window.setTimeout(apply, 120);
   }
 
+  function runAll() {
+    apply();
+    if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.applyAll) {
+      window.SkyLlmLlmDemoBrands.applyAll();
+    }
+  }
+
   function init() {
     if (!getConfig()) return;
-    apply();
-    if (window.SkyLlmLlmDemoBrands) {
-      window.SkyLlmLlmDemoBrands.applyLegendLabels();
-      window.SkyLlmLlmDemoBrands.reapplyMarket();
-    }
-    window.setTimeout(apply, 400);
-    window.setTimeout(apply, 1200);
-    window.setTimeout(apply, 2800);
-    window.setTimeout(function () {
-      apply();
-      if (window.SkyLlmLlmDemoBrands) {
-        window.SkyLlmLlmDemoBrands.applyLegendLabels();
-        window.SkyLlmLlmDemoBrands.reapplyMarket();
-      }
-    }, 4500);
+    runAll();
+    window.setTimeout(runAll, 400);
+    window.setTimeout(runAll, 1200);
+    window.setTimeout(runAll, 2800);
+    window.setTimeout(runAll, 4500);
+    window.setTimeout(runAll, 7000);
     window.addEventListener('storage', function (e) {
       if (e.key === 'llmDemoPersonalization_v1') schedule();
     });
   }
 
-  window.skyLlmLlmDemoPersonalize = { apply: apply, schedule: schedule };
+  window.skyLlmLlmDemoPersonalize = { apply: runAll, schedule: schedule };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

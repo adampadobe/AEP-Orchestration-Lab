@@ -97,6 +97,7 @@
     window.setTimeout(pushConfigToFrame, 800);
     window.setTimeout(pushConfigToFrame, 2500);
     window.setTimeout(pushConfigToFrame, 5000);
+    window.setTimeout(pushConfigToFrame, 8000);
   }
 
   function initFrameConfigSync() {
