@@ -83,6 +83,36 @@
   }
 
   function buildConfigFromScrapeRecord(record, brandOverride) {
+    if (record && record.llmDemoConfig && typeof record.llmDemoConfig === 'object') {
+      var stored = record.llmDemoConfig;
+      var brand =
+        String(brandOverride || '').trim() ||
+        stored.brand ||
+        (record && record.brandName) ||
+        '';
+      return {
+        siteUrl: stored.siteUrl || record.baseUrl || record.url,
+        siteHost: stored.siteHost || '',
+        brand: brand,
+        brandPickerLabel: brand,
+        competitors: stored.competitors || SKY_DEFAULT.competitors,
+        industry: stored.industry || (record && record.industry) || '',
+        about: stored.about || (record && record.analysis && record.analysis.about) || '',
+        samplePaths: stored.samplePaths || [],
+        sampleUrls: stored.sampleUrls || [],
+        urlReplacements: stored.urlReplacements || [],
+        axisMap: stored.axisMap || buildAxisMap(brand, stored.competitors),
+        claimThemes: stored.claimThemes || [],
+        samplePrompts: stored.samplePrompts || [],
+        sourceUrl: stored.sourceUrl || record.baseUrl || record.url,
+        researchUsed: false,
+        crawlPages: stored.crawlPages || ((record.crawlSummary && record.crawlSummary.pages) || []).length,
+        loadedFromScrape: true,
+        scrapeId: record && record.scrapeId,
+        scrapeSandbox: record && record.sandbox,
+        updatedAt: Date.now(),
+      };
+    }
     var url = (record && (record.baseUrl || record.url)) || '';
     var parsed = normalizeUrlInput(url);
     if (!parsed) throw new Error('Scrape has no valid URL');

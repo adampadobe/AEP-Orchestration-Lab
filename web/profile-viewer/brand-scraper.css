@@ -821,14 +821,22 @@ html[data-sidebar-collapsed] .brand-scraper-progress-dock {
 
 .brand-scraper-history-card-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }
 
 .brand-scraper-history-card-actions button {
-  flex: 1;
+  flex: 1 1 calc(50% - 4px);
+  min-width: 72px;
   padding: 6px 10px;
   font-size: 12px;
+}
+
+.brand-scraper-llm-demo-link {
+  display: inline-block;
+  margin-top: 8px;
+  text-decoration: none;
 }
 
 .brand-scraper-history-progress {

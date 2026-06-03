@@ -103,11 +103,11 @@
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
-  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit'];
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit', 'llmDemoConfig'];
 
   function loadRunOptions() {
     // Light first pass: brand core + on-site signals + assets; add personas/segments/stakeholders when you need depth (or append).
-    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true };
+    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true, llmDemoConfig: true };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -1506,6 +1506,28 @@
     );
   }
 
+  function renderLlmDemoSection(data) {
+    const cfg = data.llmDemoConfig;
+    if (!cfg || typeof cfg !== 'object') return '';
+    const comps = Array.isArray(cfg.competitors) ? cfg.competitors.slice(0, 6) : [];
+    const paths = Array.isArray(cfg.samplePaths) ? cfg.samplePaths.slice(0, 6) : [];
+    const prompts = Array.isArray(cfg.samplePrompts) ? cfg.samplePrompts.slice(0, 3) : [];
+    const demoUrl = 'demos/llm-demo/llm-demo.html?scrapeId=' + encodeURIComponent(data.scrapeId || '');
+    return (
+      '<section class="brand-scraper-result-block brand-scraper-llm-demo-block">' +
+        '<h4>LLM Demo personalization</h4>' +
+        '<p class="brand-scraper-result-muted">Competitors, URL mappings, and prompts are saved with this scrape — load them in the LLM Demo without re-crawling.</p>' +
+        (comps.length ? '<p class="brand-scraper-result-muted"><strong>Competitors:</strong> ' + esc(comps.join(', ')) + '</p>' : '') +
+        (paths.length ? '<p class="brand-scraper-result-muted"><strong>Sample paths:</strong> ' + esc(paths.join(', ')) + (cfg.samplePaths && cfg.samplePaths.length > 6 ? '…' : '') + '</p>' : '') +
+        (prompts.length ? '<details class="brand-scraper-tag-opps"><summary>Sample LLM prompts (' + (cfg.samplePrompts ? cfg.samplePrompts.length : 0) + ')</summary><ul>' +
+          prompts.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') +
+          (cfg.samplePrompts && cfg.samplePrompts.length > 3 ? '<li class="brand-scraper-result-muted">…and ' + (cfg.samplePrompts.length - 3) + ' more</li>' : '') +
+        '</ul></details>' : '') +
+        (data.scrapeId ? '<p><a class="dashboard-btn-outline brand-scraper-llm-demo-link" href="' + esc(demoUrl) + '">Open in LLM Demo</a></p>' : '') +
+      '</section>'
+    );
+  }
+
   function renderResults(data) {
     currentScrapeData = data;
     resultsEl.hidden = false;
@@ -1569,6 +1591,7 @@
         ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
         : '') +
       renderSummarySection(data, crawl) +
+      renderLlmDemoSection(data) +
       renderConversationStartersSection(data, crawl) +
       (function () {
         const guidelinesTile = renderTileSection(
@@ -1675,6 +1698,8 @@
     const staleMeta = (activeRow && (staleLongWall || staleNoServerUpdate)) ? ' · check status' : '';
     const hbMeta = (activeRow && it.crawlHeartbeatDetail) ? (' · ' + esc(String(it.crawlHeartbeatDetail))) : '';
     const viewDisabled = runState === 'running';
+    const canReAnalyse = !activeRow && runState !== 'running' && (it.pagesScraped > 0 || runState === 'complete' || runState === 'crawl_complete');
+    const canReScrape = !activeRow && runState !== 'running';
     const progressPct = cardProgressPercent(it);
     const progressLabel = cardProgressLabel(it);
     return (
@@ -1697,6 +1722,7 @@
             (it.campaignsPresent ? ' · campaigns' : '') +
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
+            (it.llmDemoConfigPresent ? ' · LLM demo ready' : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             runAgeMeta +
@@ -1726,7 +1752,8 @@
         '<div class="brand-scraper-history-card-actions">' +
           '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
           (activeRow ? '<button type="button" class="dashboard-btn-outline" data-action="cancel">Cancel</button>' : '') +
-          (activeRow || runState === 'failed' ? '<button type="button" class="dashboard-btn-outline" data-action="retry">Try again</button>' : '') +
+          (canReAnalyse ? '<button type="button" class="dashboard-btn-outline" data-action="re-analyse" title="Re-run AI analysis on saved crawl data (no re-crawl)">Re-analyse</button>' : '') +
+          ((activeRow || runState === 'failed' || canReScrape) ? '<button type="button" class="dashboard-btn-outline" data-action="re-scrape" title="Crawl the site again and merge results">Re-scrape</button>' : '') +
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
       '</article>'
@@ -2035,7 +2062,56 @@
     }
   }
 
-  async function retryScrape(scrapeId) {
+  async function reAnalyseScrape(scrapeId) {
+    const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
+    if (row && rowIndicatesActiveScrape(row)) {
+      setStatus('Wait for the current run to finish or cancel it first.', 'error');
+      return;
+    }
+    if (!confirm('Re-analyse this scrape using saved crawl data?\n\nNo new crawl — only the AI steps selected in Options will run again (brand guidelines, personas, LLM Demo config, etc.).')) return;
+    try {
+      const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
+      const detail = await detailResp.json().catch(() => ({}));
+      if (!detailResp.ok) {
+        setStatus('Re-analyse failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
+        return;
+      }
+      const include = (function () {
+        if (detail && typeof detail.includeSummary === 'string' && detail.includeSummary.trim()) {
+          try {
+            const parsed = JSON.parse(detail.includeSummary);
+            if (parsed && typeof parsed === 'object') return parsed;
+          } catch (_e) {}
+        }
+        return { ...runOptions };
+      })();
+      const retryResp = await scopedFetch(directCfAnalyzeUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: detail.url || detail.baseUrl,
+          businessType: detail.businessType || (btypeSel && btypeSel.value) || 'b2c',
+          country: detail.country || (countrySel && countrySel.value) || '',
+          include: include,
+          analysisOnly: true,
+          existingScrapeId: scrapeId,
+        }),
+      });
+      const data = await retryResp.json().catch(() => ({}));
+      const sid = data.scrapeId || retryResp.headers.get('x-brand-scrape-id') || scrapeId;
+      if (!retryResp.ok && retryResp.status !== 202) {
+        setStatus('Re-analyse failed: ' + (data.error || retryResp.statusText), 'error');
+        return;
+      }
+      setStatus('Re-analyse started (using saved crawl). Watching progress…', 'info');
+      await loadHistory();
+      if (sid) startScrapePoll(String(sid), {});
+    } catch (e) {
+      setStatus('Network error re-analysing scrape: ' + (e && e.message || e), 'error');
+    }
+  }
+
+  async function reScrapeScrape(scrapeId) {
     const row = historyItemsCache.find(function (x) { return x.scrapeId === scrapeId; }) || null;
     if (row && rowIndicatesActiveScrape(row)) {
       const okCancel = await cancelScrape(scrapeId, { quiet: true });
@@ -2045,7 +2121,7 @@
       const detailResp = await scopedFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId));
       const detail = await detailResp.json().catch(() => ({}));
       if (!detailResp.ok) {
-        setStatus('Retry failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
+        setStatus('Re-scrape failed: could not load scrape details (' + (detail.error || detailResp.statusText) + ').', 'error');
         return;
       }
       const include = (function () {
@@ -2074,16 +2150,16 @@
       const data = await retryResp.json().catch(() => ({}));
       const sid = data.scrapeId || retryResp.headers.get('x-brand-scrape-id');
       if (!retryResp.ok && retryResp.status !== 202) {
-        setStatus('Retry failed: ' + (data.error || retryResp.statusText), 'error');
+        setStatus('Re-scrape failed: ' + (data.error || retryResp.statusText), 'error');
         return;
       }
-      setStatus('Retry started in background. Watching progress…', 'info');
+      setStatus('Re-scrape started in background. Watching progress…', 'info');
       await loadHistory();
       if (sid) {
         startScrapePoll(String(sid), {});
       }
     } catch (e) {
-      setStatus('Network error retrying scrape: ' + (e && e.message || e), 'error');
+      setStatus('Network error re-scraping: ' + (e && e.message || e), 'error');
     }
   }
 
@@ -2141,7 +2217,8 @@
       if (!id) return;
       if (btn.dataset.action === 'view') viewScrape(id);
       else if (btn.dataset.action === 'cancel') cancelScrape(id);
-      else if (btn.dataset.action === 'retry') retryScrape(id);
+      else if (btn.dataset.action === 're-analyse') reAnalyseScrape(id);
+      else if (btn.dataset.action === 're-scrape') reScrapeScrape(id);
       else if (btn.dataset.action === 'delete') deleteScrape(id);
       else if (btn.dataset.action === 'extend-from-card') extendRetentionForScrapeId(id);
     });

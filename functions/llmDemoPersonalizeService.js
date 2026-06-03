@@ -340,6 +340,37 @@ async function structureConfig(research, crawlFallback) {
 const COMPETITOR_JSON_SYSTEM = `You identify direct competitors for a brand. Respond with valid JSON only:
 {"competitors":["exactly six real company or brand names in the same industry and region"]}`;
 
+const PROMPTS_JSON_SYSTEM = `You write realistic consumer questions people ask LLMs when comparing brands in an industry.
+Respond with valid JSON only:
+{"samplePrompts":["exactly twelve full questions, 15-30 words each, mentioning the target brand or category naturally"]}`;
+
+async function inferSamplePromptsFromScrape({ brand, industry, about, competitors, url }) {
+  const userPrompt = [
+    `Website: ${url}`,
+    `Brand: ${brand}`,
+    `Industry: ${industry || 'unknown'}`,
+    `About: ${about || ''}`,
+    `Competitors: ${(competitors || []).join(', ')}`,
+  ].join('\n');
+  const raw = await callGemini(PROMPTS_JSON_SYSTEM, userPrompt, {
+    model: 'gemini-2.5-flash',
+    temperature: 0.35,
+    maxOutputTokens: 1536,
+    jsonMode: true,
+    allowTruncation: true,
+  });
+  let parsed = {};
+  try {
+    parsed = JSON.parse(stripJsonFences(raw));
+  } catch (_e) {
+    parsed = {};
+  }
+  const list = Array.isArray(parsed.samplePrompts)
+    ? parsed.samplePrompts.map(String).filter(Boolean).slice(0, 12)
+    : [];
+  return list;
+}
+
 async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, url }) {
   const userPrompt = [
     `Website: ${url}`,
@@ -369,14 +400,11 @@ async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, u
   return list;
 }
 
-async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
-  const sb = String(sandbox || '').trim();
-  const sid = String(scrapeId || '').trim();
-  if (!sb || !sid) throw new Error('sandbox and scrapeId are required');
-
-  const record = await brandScrapeStore.getScrape(sb, sid);
-  if (!record) throw new Error('Scrape not found for this sandbox');
-
+/**
+ * Build LLM Demo personalization config from a saved brand scrape record.
+ * Used during brand-scraper analyse and when re-using scrape data without re-crawling.
+ */
+async function buildLlmDemoConfigForRecord(record, opts = {}) {
   const url = normaliseUrl(record.url || record.baseUrl);
   const siteHost = hostFromUrl(url);
   const siteUrl = new URL(url).origin;
@@ -387,7 +415,7 @@ async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
   const pathFallback = pathsFromCrawl(pages, siteHost, 12);
   const hostBrand = siteHost.split('.')[0];
   const brandFallback =
-    String(brandOverride || '').trim() ||
+    String(opts.brandOverride || '').trim() ||
     record.brandName ||
     (hostBrand ? hostBrand.charAt(0).toUpperCase() + hostBrand.slice(1) : 'Brand');
   const about =
@@ -398,22 +426,41 @@ async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
   const industry = String(record.industry || '').trim();
 
   let competitors = [];
-  try {
-    competitors = await inferCompetitorsFromScrape({
-      brand: brandFallback,
-      industry,
-      about,
-      crawlText,
-      url,
-    });
-  } catch (e) {
-    console.warn('[llmDemoPersonalize] scrape competitor inference failed', String(e && e.message || e));
+  if (opts.skipCompetitorInference !== true) {
+    try {
+      competitors = await inferCompetitorsFromScrape({
+        brand: brandFallback,
+        industry,
+        about,
+        crawlText,
+        url,
+      });
+    } catch (e) {
+      console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
+    }
   }
   if (competitors.length < 4) competitors = SKY_COMPETITORS.slice();
 
-  const structured = {
-    brand: brandFallback,
+  let samplePrompts = [];
+  if (opts.includePrompts !== false) {
+    try {
+      samplePrompts = await inferSamplePromptsFromScrape({
+        brand: brandFallback,
+        industry,
+        about,
+        competitors,
+        url,
+      });
+    } catch (e) {
+      console.warn('[llmDemoPersonalize] prompt inference failed', String(e && e.message || e));
+    }
+  }
+
+  return buildClientConfig({
+    sourceUrl: url,
+    siteUrl,
     siteHost,
+    brand: brandFallback,
     competitors,
     industry,
     about,
@@ -421,26 +468,53 @@ async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
       ? pathFallback
       : ['/', '/about', '/products', '/help', '/contact'],
     claimThemes: claimThemesForIndustry(industry),
-    samplePrompts: [],
-  };
-
-  const config = buildClientConfig({
-    sourceUrl: url,
-    siteUrl,
-    siteHost,
-    brand: structured.brand,
-    competitors: structured.competitors,
-    industry: structured.industry,
-    about: structured.about,
-    samplePaths: structured.samplePaths,
-    claimThemes: structured.claimThemes,
-    samplePrompts: structured.samplePrompts,
+    samplePrompts,
     researchUsed: false,
     crawlPages: pages.length,
   });
+}
+
+async function personalizeFromScrape({ sandbox, scrapeId, brandOverride }) {
+  const sb = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!sb || !sid) throw new Error('sandbox and scrapeId are required');
+
+  const record = await brandScrapeStore.getScrape(sb, sid);
+  if (!record) throw new Error('Scrape not found for this sandbox');
+
+  if (record.llmDemoConfig && typeof record.llmDemoConfig === 'object' && !brandOverride) {
+    const config = {
+      ...record.llmDemoConfig,
+      scrapeId: sid,
+      scrapeSandbox: sb,
+      loadedFromScrape: true,
+      updatedAt: Date.now(),
+    };
+    return {
+      ok: true,
+      config,
+      meta: {
+        fromScrape: sid,
+        sandbox: sb,
+        crawlPages: (record.crawlSummary && record.crawlSummary.pages && record.crawlSummary.pages.length) || 0,
+        researchUsed: false,
+        payloadExpired: !!record.payloadExpired,
+        fromStoredConfig: true,
+      },
+    };
+  }
+
+  const config = await buildLlmDemoConfigForRecord(record, { brandOverride });
   config.scrapeId = sid;
   config.scrapeSandbox = sb;
   config.loadedFromScrape = true;
+  if (brandOverride) {
+    config.brand = String(brandOverride).trim();
+    config.brandPickerLabel = config.brand;
+    config.axisMap = buildAxisMap(config.brand, config.competitors);
+  }
+
+  const pages = (record.crawlSummary && record.crawlSummary.pages) || [];
 
   return {
     ok: true,
@@ -606,6 +680,7 @@ module.exports = {
   handlePersonalize,
   personalizeUrl,
   personalizeFromScrape,
+  buildLlmDemoConfigForRecord,
   buildAxisMap,
   buildClientConfig,
 };

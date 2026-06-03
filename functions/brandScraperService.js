@@ -1432,6 +1432,31 @@ function runStepFromLlm(id, label, result) {
   return runStepOk(id, label, null);
 }
 
+/** Reconstruct a crawl-shaped object from a persisted scrape record (for analyse-only re-runs). */
+function crawlObjectFromStoredRecord(record) {
+  const cs = record.crawlSummary || {};
+  const pages = (cs.pages || []).map((p) => ({
+    url: p.url,
+    title: p.title || '',
+    description: p.description || '',
+    text: p.text || p.description || '',
+    textLength: p.textLength || 0,
+    status: p.status,
+    tagAudit: p.tagAudit || null,
+  }));
+  return {
+    brandName: record.brandName || inferBrandNameFromUrl(record.url || record.baseUrl),
+    baseUrl: record.baseUrl || normaliseUrl(record.url),
+    pages,
+    totalDiscovered: cs.totalDiscovered || pages.length,
+    engine: cs.engine || 'fetch',
+    _crawlEngineUsed: cs.engine || 'fetch',
+    assets: cs.assets || {},
+    tagAuditSummary: cs.tagAuditSummary || null,
+    failures: cs.failures || [],
+  };
+}
+
 /**
  * Crawl → checkpoint → LLMs → final save. Caller must have already called markScrapeRunning.
  * @returns {{ status: number, payload: object }}
@@ -1450,13 +1475,49 @@ async function executeAnalyzePipeline({
   const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
   const inc = (key) => !body.include || body.include[key] !== false;
   const wantTagAudit = inc('tagAudit');
-  const appendMode = body.mode === 'append' && body.existingScrapeId;
+  const analysisOnly = body.analysisOnly === true || body.mode === 'analyse_only';
+  const appendMode = !analysisOnly && body.mode === 'append' && body.existingScrapeId;
+  const analyseOnlySid = analysisOnly ? String(body.existingScrapeId || '').trim() : '';
   const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
   const runSteps = [];
 
+  let crawl;
+  let appendBaseline = null;
+  let storedBaseline = null;
+
+  if (analysisOnly) {
+    if (!analyseOnlySid) {
+      return { status: 400, payload: { error: 'existingScrapeId is required for analyse-only runs', scrapeId: runScrapeId } };
+    }
+    analyzePipelineLog(runScrapeId, 'analyse_only_start', { sandbox });
+    try {
+      storedBaseline = await brandScrapeStore.getScrape(sandbox, analyseOnlySid);
+    } catch (e) {
+      const msg = 'Could not load scrape: ' + String((e && e.message) || e);
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: msg,
+        steps: [runStepFailed('load', 'Load stored crawl', msg)],
+      }).catch(() => {});
+      return { status: 404, payload: { error: msg, scrapeId: runScrapeId } };
+    }
+    if (!storedBaseline || !(storedBaseline.crawlSummary && storedBaseline.crawlSummary.pages && storedBaseline.crawlSummary.pages.length)) {
+      const msg = 'No crawl data on this scrape — use Re-scrape instead.';
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: msg,
+        steps: [runStepFailed('load', 'Load stored crawl', msg)],
+      }).catch(() => {});
+      return { status: 400, payload: { error: msg, scrapeId: runScrapeId } };
+    }
+    crawl = crawlObjectFromStoredRecord(storedBaseline);
+    body.url = storedBaseline.url || storedBaseline.baseUrl;
+    runSteps.push(runStepOk(
+      'crawl',
+      'Use stored crawl',
+      `${crawl.pages.length} page(s) · no re-crawl`,
+    ));
+  } else {
   analyzePipelineLog(runScrapeId, 'crawl_start', { sandbox });
   const crawlDeadlineMs = started + (ANALYZE_FN_TIMEOUT_MS - ANALYZE_POST_CRAWL_RESERVE_MS);
-  let crawl;
   const crawlHeartbeatMs = 22000;
   const crawlHeartbeatDetail = wantJs ? 'Still crawling (JS renderer)…' : 'Still crawling (fetch)…';
   const crawlHeartbeatTimer = setInterval(() => {
@@ -1532,19 +1593,25 @@ async function executeAnalyzePipeline({
     'Crawl pages',
     `${crawl.pages.length} page(s) · engine ${crawl._crawlEngineUsed || crawl.engine || 'fetch'}`,
   ));
+  } // end !analysisOnly crawl
 
-  let appendBaseline = null;
+  if (!analysisOnly) {
   if (appendMode && existingSid) {
     try {
       appendBaseline = await brandScrapeStore.getScrape(sandbox, existingSid);
     } catch (_e) { /* ignore */ }
   }
+  } else if (storedBaseline) {
+    appendBaseline = storedBaseline;
+  }
 
-  const crawlSummary = {
+  const crawlSummary = analysisOnly && storedBaseline
+    ? storedBaseline.crawlSummary
+    : {
     pagesScraped: crawl.pages.length,
     totalDiscovered: crawl.totalDiscovered,
     engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
-    seedUrl: crawl._crawlSeedUrl || url,
+    seedUrl: crawl._crawlSeedUrl || body.url,
     crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
     tagAuditSummary: crawl.tagAuditSummary || null,
     failures: crawl.failures || [],
@@ -1557,8 +1624,24 @@ async function executeAnalyzePipeline({
   };
 
   const checkpointElapsed = Date.now() - started;
-  let checkpointRecord = {
-    url,
+  let checkpointRecord = analysisOnly && storedBaseline
+    ? {
+      ...storedBaseline,
+      url: storedBaseline.url || body.url,
+      baseUrl: storedBaseline.baseUrl || crawl.baseUrl,
+      brandName: storedBaseline.brandName || crawl.brandName,
+      businessType: body.businessType || storedBaseline.businessType || 'b2c',
+      country: body.country || storedBaseline.country || '',
+      crawlSummary,
+      elapsedMs: checkpointElapsed,
+      ...(inc('analysis') ? { analysis: null, analysisError: null } : {}),
+      ...(inc('personas') ? { personas: null, personasError: null } : {}),
+      ...(inc('campaigns') ? { campaigns: null, campaignsError: null } : {}),
+      ...(inc('segments') ? { segments: null, segmentsError: null } : {}),
+      ...(inc('stakeholders') ? { stakeholders: null, stakeholdersError: null } : {}),
+    }
+    : {
+    url: body.url,
     baseUrl: crawl.baseUrl,
     brandName: crawl.brandName,
     businessType: body.businessType || 'b2c',
@@ -1578,7 +1661,7 @@ async function executeAnalyzePipeline({
     stakeholdersError: null,
     elapsedMs: checkpointElapsed,
   };
-  if (appendMode && appendBaseline) {
+  if (!analysisOnly && appendMode && appendBaseline) {
     checkpointRecord = mergeScrapeRecords(appendBaseline, checkpointRecord);
     checkpointRecord.scrapeId = appendBaseline.scrapeId;
   }
@@ -1597,7 +1680,7 @@ async function executeAnalyzePipeline({
     return { status: 500, payload: { error: 'Crawl checkpoint failed: ' + pe, scrapeId: runScrapeId } };
   }
   analyzePipelineLog(runScrapeId, 'checkpoint_saved', { sandbox, ms: Date.now() - started });
-  runSteps.push(runStepOk('checkpoint', 'Save crawl checkpoint', 'Crawl saved to storage'));
+  runSteps.push(runStepOk('checkpoint', analysisOnly ? 'Reload stored crawl' : 'Save crawl checkpoint', analysisOnly ? 'Using saved pages' : 'Crawl saved to storage'));
 
   let resolvedProvider = 'gemini';
   let resolvedAnthropicKey = anthropicKey || '';
@@ -1751,6 +1834,19 @@ async function executeAnalyzePipeline({
   let recordToPersist = persistPayload(working);
   if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
+  if (inc('llmDemoConfig')) {
+    try {
+      const llmDemoPersonalizeService = require('./llmDemoPersonalizeService');
+      recordToPersist.llmDemoConfig = await llmDemoPersonalizeService.buildLlmDemoConfigForRecord(recordToPersist);
+    } catch (e) {
+      console.warn('[brandScraperAnalyze] llmDemoConfig build failed', {
+        sandbox,
+        scrapeId: recordToPersist.scrapeId,
+        error: String((e && e.message) || e),
+      });
+    }
+  }
+
   let saved = null;
   let persistError = null;
   try {
@@ -1802,6 +1898,7 @@ async function executeAnalyzePipeline({
       stakeholders: (saved && saved.stakeholders) || stakeholders,
       stakeholdersError: (saved && saved.stakeholdersError) || stakeholdersError,
       appended: !!appendMode,
+      analysisOnly: !!analysisOnly,
       elapsedMs,
     },
   };
@@ -1812,8 +1909,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const body = (req.body && typeof req.body === 'object') ? req.body : {};
-  const url = body.url;
-  if (!url) { res.status(400).json({ error: 'url is required' }); return; }
+  const analysisOnly = body.analysisOnly === true || body.mode === 'analyse_only';
 
   /** LLM Demo customize bar — sync crawl + grounded research (no Firestore scrape). */
   if (body.llmDemoPersonalize === true || body.llmDemo === true) {
@@ -1826,14 +1922,36 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const sandbox = scope.storageScope;
 
+  let url = body.url;
+  if (analysisOnly) {
+    const sid = String(body.existingScrapeId || '').trim();
+    if (!sid) { res.status(400).json({ error: 'existingScrapeId is required for analyse-only runs' }); return; }
+    if (!url) {
+      try {
+        const existing = await brandScrapeStore.getScrape(sandbox, sid);
+        if (!existing) { res.status(404).json({ error: 'Scrape not found' }); return; }
+        url = existing.url || existing.baseUrl;
+        body.url = url;
+      } catch (e) {
+        res.status(500).json({ error: String((e && e.message) || e) });
+        return;
+      }
+    }
+  } else if (!url) {
+    res.status(400).json({ error: 'url is required' });
+    return;
+  }
+
   const started = Date.now();
   let runScrapeId = null;
   try {
     const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
     const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
-    const appendMode = body.mode === 'append' && body.existingScrapeId;
-    const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
-    runScrapeId = (appendMode && existingSid) ? existingSid : brandScrapeStore.genId();
+    const appendMode = !analysisOnly && body.mode === 'append' && body.existingScrapeId;
+    const existingSid = String(body.existingScrapeId || '').trim();
+    runScrapeId = (analysisOnly && existingSid)
+      ? existingSid
+      : ((appendMode && existingSid) ? existingSid : brandScrapeStore.genId());
     const includeSnap = (body.include && typeof body.include === 'object') ? body.include : null;
     const runningMeta = {
       scrapeId: runScrapeId,

@@ -304,6 +304,34 @@
 
     fillForm();
     setOpen(false);
+
+    var params = new URLSearchParams(global.location.search || '');
+    var preloadScrapeId = params.get('scrapeId');
+    if (preloadScrapeId) {
+      setOpen(true);
+      var tryLoad = function () {
+        var sandbox = getSandboxName();
+        if (!sandbox) return;
+        if (scrapeSelect) scrapeSelect.value = preloadScrapeId;
+        setStatus('Loading scrape from brand scraper…', '');
+        LlmDemoConfig.fetchFromScrape(preloadScrapeId, sandbox, {})
+          .then(function (result) {
+            LlmDemoConfig.save(result.config);
+            setStatus('Loaded ' + result.config.brand + ' from brand scrape (no re-crawl).', 'ok');
+            fillForm();
+            reloadIframe();
+          })
+          .catch(function (err) {
+            setStatus(String((err && err.message) || err || 'Load scrape failed'), 'err');
+          });
+      };
+      if (scrapeSelect && scrapeSelect.options.length > 1) {
+        tryLoad();
+      } else {
+        document.addEventListener('aep:sandbox-changed', tryLoad, { once: true });
+        setTimeout(tryLoad, 1200);
+      }
+    }
   }
 
   function initProfileLookup() {

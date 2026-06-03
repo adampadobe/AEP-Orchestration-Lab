@@ -464,6 +464,7 @@ async function saveScrape(sandbox, payload, options = {}) {
     segmentsError: payload.segmentsError || null,
     stakeholders: payload.stakeholders || null,
     stakeholdersError: payload.stakeholdersError || null,
+    llmDemoConfig: payload.llmDemoConfig || null,
     lastExport: payload.lastExport || null,
     elapsedMs: typeof payload.elapsedMs === 'number' ? payload.elapsedMs : null,
     schemaVersion: 2, // hybrid storage
@@ -538,6 +539,7 @@ async function saveScrape(sandbox, payload, options = {}) {
     campaignsPresent: hasRealPayload(fullRecord.campaigns, 'campaigns'),
     segmentsPresent: hasRealPayload(fullRecord.segments, 'segments'),
     stakeholdersPresent: hasRealPayload(fullRecord.stakeholders, 'people'),
+    llmDemoConfigPresent: !!(fullRecord.llmDemoConfig && fullRecord.llmDemoConfig.siteHost),
     pagesScraped: fullRecord.crawlSummary ? fullRecord.crawlSummary.pagesScraped : null,
     lastExport: fullRecord.lastExport,
     storagePath: path,
