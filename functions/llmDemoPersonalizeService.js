@@ -46,7 +46,10 @@ Two sentences describing what the brand offers.
 Bullet list of 8–12 realistic URL paths on the brand's own website (path only, starting with /) that would appear in an SEO or agentic-traffic audit — product, help, status, or content pages. Use paths plausible for this brand; do not invent sky.com paths.
 
 ## THEMES
-Bullet list of exactly 12 short risk-monitoring category labels for a "Risk by Theme" brand-claims dashboard (e.g. product quality, pricing, sustainability — tailored to this brand's industry, not telecom unless the brand is a telco).`;
+Bullet list of exactly 12 short risk-monitoring category labels for a "Risk by Theme" brand-claims dashboard (e.g. product quality, pricing, sustainability — tailored to this brand's industry, not telecom unless the brand is a telco).
+
+## PROMPTS
+Bullet list of exactly 12 realistic consumer questions people ask LLMs when comparing brands in this industry (full questions, 15–30 words each; mention the target brand or category naturally; no Sky or telecom unless the brand is a telco).`;
 
 const JSON_SYSTEM = `You convert brand research into JSON for a demo UI. Respond with valid JSON only:
 {
@@ -56,7 +59,8 @@ const JSON_SYSTEM = `You convert brand research into JSON for a demo UI. Respond
   "industry": "string",
   "about": "string",
   "samplePaths": ["8-12 paths starting with /"],
-  "claimThemes": ["exactly 12 theme category strings"]
+  "claimThemes": ["exactly 12 theme category strings"],
+  "samplePrompts": ["exactly 12 full prompt question strings"]
 }`;
 
 function normaliseUrl(raw) {
@@ -197,6 +201,7 @@ function buildClientConfig({
   about,
   samplePaths,
   claimThemes,
+  samplePrompts,
   researchUsed,
   crawlPages,
 }) {
@@ -225,6 +230,7 @@ function buildClientConfig({
       ? claimThemes
       : claimThemesForIndustry(industry)
     ).slice(0, 12),
+    samplePrompts: (samplePrompts && samplePrompts.length >= 8 ? samplePrompts : []).slice(0, 12),
     axisMap: buildAxisMap(brand, comps),
     samplePaths: paths,
     sampleUrls: urls,
@@ -248,6 +254,10 @@ function mergeParsedJson(parsed, fallback) {
     ? parsed.claimThemes.map((t) => String(t).trim()).filter(Boolean)
     : [];
   if (claimThemes.length < 12) claimThemes = fallback.claimThemes || [];
+  let samplePrompts = Array.isArray(parsed.samplePrompts)
+    ? parsed.samplePrompts.map((t) => String(t).trim()).filter(Boolean)
+    : [];
+  if (samplePrompts.length < 8) samplePrompts = fallback.samplePrompts || [];
   return {
     brand,
     siteHost,
@@ -256,6 +266,7 @@ function mergeParsedJson(parsed, fallback) {
     about: String(parsed.about || fallback.about || '').trim(),
     samplePaths: samplePaths.length ? samplePaths : fallback.samplePaths,
     claimThemes,
+    samplePrompts,
   };
 }
 
@@ -283,6 +294,7 @@ async function researchBrand({ url, siteHost, brandName, crawlText }) {
   const about = parseSection(raw, 'ABOUT').replace(/\n+/g, ' ').trim();
   const pathBullets = bulletsToList(parseSection(raw, 'PATHS'));
   const themeBullets = bulletsToList(parseSection(raw, 'THEMES'));
+  const promptBullets = bulletsToList(parseSection(raw, 'PROMPTS'));
 
   const competitors = bulletsToList(compSec).slice(0, 6);
   const brand = brandSec.split('\n')[0].trim() || brandName;
@@ -295,6 +307,7 @@ async function researchBrand({ url, siteHost, brandName, crawlText }) {
     about,
     samplePaths: pathBullets,
     claimThemes: themeBullets,
+    samplePrompts: promptBullets,
   };
 }
 
@@ -358,6 +371,7 @@ async function personalizeUrl(rawUrl) {
     about: (crawl && crawl.pages && crawl.pages[0] && crawl.pages[0].description) || '',
     samplePaths: pathFallback.length ? pathFallback : ['/', '/about', '/products', '/help', '/contact'],
     claimThemes: [],
+    samplePrompts: [],
   };
 
   let research = null;
@@ -379,6 +393,7 @@ async function personalizeUrl(rawUrl) {
       about: research.about || crawlFallback.about,
       samplePaths: research.samplePaths.length ? research.samplePaths : crawlFallback.samplePaths,
       claimThemes: research.claimThemes && research.claimThemes.length ? research.claimThemes : [],
+      samplePrompts: research.samplePrompts && research.samplePrompts.length ? research.samplePrompts : [],
     });
   } catch (e) {
     console.warn('[llmDemoPersonalize] research failed, using crawl fallback', String(e && e.message || e));
@@ -395,6 +410,7 @@ async function personalizeUrl(rawUrl) {
     about: structured.about,
     samplePaths: structured.samplePaths,
     claimThemes: structured.claimThemes,
+    samplePrompts: structured.samplePrompts,
     researchUsed,
     crawlPages: (crawl && crawl.pages && crawl.pages.length) || 0,
   });

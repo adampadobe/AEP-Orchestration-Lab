@@ -362,8 +362,9 @@
   }
 
   function findCombobox(labelPart) {
-    return Array.from(document.querySelectorAll('[role="combobox"]')).find(function (el) {
-      return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(labelPart) >= 0;
+    var needle = String(labelPart || '').toLowerCase();
+    return Array.from(document.querySelectorAll('input[role="combobox"], [role="combobox"]')).find(function (el) {
+      return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(needle) >= 0;
     });
   }
 
@@ -1059,6 +1060,11 @@
     });
   }
 
+  function ensurePickers() {
+    buildPlatformPicker();
+    buildDatePicker();
+  }
+
   function init() {
     if (state.ready && document.querySelector('.sky-llm-platform-host')) {
       state.pageKind = getPageKind();
@@ -1075,11 +1081,13 @@
       cacheMarketRows();
       cacheTrafficLines();
     }
-    buildPlatformPicker();
-    buildDatePicker();
+    ensurePickers();
     ensureTooltip();
     applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
+    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.scheduleApplyAll) {
+      global.SkyLlmLlmDemoBrands.scheduleApplyAll();
+    }
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
@@ -1105,6 +1113,7 @@
     isReady: function () {
       return state.ready;
     },
+    ensurePickers: ensurePickers,
     refresh: function () {
       if (!state.ready) return;
       cacheMarketRows();

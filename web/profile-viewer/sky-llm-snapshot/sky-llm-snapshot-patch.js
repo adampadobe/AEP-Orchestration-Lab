@@ -108,17 +108,21 @@
         scheduleApply();
         return;
       }
-      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260611', scheduleApply);
+      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260613', scheduleApply);
     }
 
     function loadPageModules(chain) {
       var path = location.pathname || '';
       if (/url-inspector\.html/i.test(path) && !window.SkyLlmUrlInspector) {
-        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260611', chain);
+        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260613', chain);
         return;
       }
       if (/brand-claims\.html/i.test(path) && !window.SkyLlmBrandClaims) {
-        loadScript('./sky-llm-snapshot-brand-claims.js?v=20260611', chain);
+        loadScript('./sky-llm-snapshot-brand-claims.js?v=20260613', chain);
+        return;
+      }
+      if (/prompts-management\.html/i.test(path) && !window.SkyLlmPromptsManagement) {
+        loadScript('./sky-llm-snapshot-prompts-management.js?v=20260613', chain);
         return;
       }
       chain();
@@ -132,14 +136,14 @@
         afterUrls();
         return;
       }
-      loadScript('./sky-llm-snapshot-llm-demo-urls.js?v=20260611', afterUrls);
+      loadScript('./sky-llm-snapshot-llm-demo-urls.js?v=20260613', afterUrls);
     }
 
     if (window.SkyLlmLlmDemoBrands) {
       boot();
       return;
     }
-    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260611', boot);
+    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260613', boot);
   }
 
   function loadLlmDemoPersonalize() {

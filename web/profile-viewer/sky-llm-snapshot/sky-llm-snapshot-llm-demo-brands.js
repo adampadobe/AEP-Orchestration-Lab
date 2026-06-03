@@ -172,22 +172,62 @@
     });
   }
 
-  function patchBrandPicker() {
-    if (!isActive()) return;
-    var cfg = loadConfig();
-    var label = brandPickerLabel();
+  function findSelectorCombobox(labelPart) {
+    var needle = String(labelPart || '').toLowerCase();
+    return Array.from(document.querySelectorAll('input[role="combobox"]')).find(function (el) {
+      if (el.closest('.sky-llm-platform-shell, .sky-llm-date-shell')) return false;
+      return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(needle) >= 0;
+    });
+  }
 
-    document.querySelectorAll('[role="combobox"]').forEach(function (box) {
-      box.querySelectorAll('span').forEach(function (el) {
+  function patchComboboxInput(input, value) {
+    if (!input || value == null || value === '') return;
+    var next = String(value);
+    if (input.value !== next) {
+      input.value = next;
+      try {
+        input.setAttribute('value', next);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  function patchFieldRowLabels(anchorEl, label) {
+    var field = anchorEl && anchorEl.parentElement;
+    var up;
+    for (up = 0; field && up < 10; up++) {
+      field.querySelectorAll('span[data-rsp-slot="text"], span, button span').forEach(function (el) {
         if (!isLeafTextEl(el)) return;
         var txt = (el.textContent || '').trim();
         if (txt.length > 80) return;
-        if (txt === 'Sky' || /sky tv|frescopa/i.test(txt)) el.textContent = label;
-        else if (SKY_TO_COMP_INDEX[txt] != null || txt === 'Virgin Media' || txt === 'BT' || txt === 'TalkTalk') {
-          el.textContent = skyToDisplay(txt);
+        if (txt === 'Sky' || txt === 'Sky TV and broadband' || /frescopa/i.test(txt)) {
+          el.textContent = label;
         }
       });
-    });
+      if (field.querySelector('label')) return;
+      field = field.parentElement;
+    }
+  }
+
+  /** Brand + Site filter inputs (Overview) — never touch Platform / Date Range comboboxes. */
+  function patchOverviewSelectors() {
+    if (!isActive()) return;
+    var cfg = loadConfig();
+    var label = brandPickerLabel();
+    var brandInput = findSelectorCombobox('brand selector');
+    if (brandInput) {
+      patchComboboxInput(brandInput, label);
+      patchFieldRowLabels(brandInput, label);
+    }
+    var siteInput = findSelectorCombobox('site selector');
+    if (siteInput && cfg.siteHost) {
+      patchComboboxInput(siteInput, cfg.siteHost);
+    }
+  }
+
+  function patchBrandPicker() {
+    patchOverviewSelectors();
   }
 
   function findSectionRoot(title) {
@@ -278,6 +318,28 @@
     }
   }
 
+  function patchPromptsManagement() {
+    if (!/prompts-management\.html/i.test(global.location.pathname || '')) return;
+    if (global.SkyLlmPromptsManagement) {
+      if (global.SkyLlmPromptsManagement.patch) global.SkyLlmPromptsManagement.patch();
+      if (global.SkyLlmPromptsManagement.schedulePatch) global.SkyLlmPromptsManagement.schedulePatch();
+      return;
+    }
+    if (global.SkyLlmLlmDemoBrands && !global.__skyLlmPromptsLoader) {
+      global.__skyLlmPromptsLoader = true;
+      var s = document.createElement('script');
+      s.src = './sky-llm-snapshot-prompts-management.js?v=20260613';
+      s.onload = function () {
+        global.__skyLlmPromptsLoader = false;
+        patchPromptsManagement();
+      };
+      s.onerror = function () {
+        global.__skyLlmPromptsLoader = false;
+      };
+      document.body.appendChild(s);
+    }
+  }
+
   function shouldAutoApply() {
     if (!isActive()) return false;
     if (/(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '')) return true;
@@ -295,6 +357,7 @@
     patchSiteHeaderBrand();
     patchBrandPicker();
     patchBrandClaims();
+    patchPromptsManagement();
     patchMarketComparisonLabels();
     patchUrlInspector();
     applyLegendLabels();
@@ -306,9 +369,22 @@
       global.skyLlmLlmDemoPersonalize.patchLinksAndInputs();
     }
 
+    if (/overview\.html/i.test(global.location.pathname || '')) {
+      if (global.skyLlmSnapshotPlatform && global.skyLlmSnapshotPlatform.ensurePickers) {
+        global.skyLlmSnapshotPlatform.ensurePickers();
+      }
+    }
     if (platformReady() && global.skyLlmSnapshotPlatform.refresh) {
       global.skyLlmSnapshotPlatform.refresh();
       patchMarketComparisonLabels();
+    }
+    if (/opportunities\.html/i.test(global.location.pathname || '')) {
+      var oppWired =
+        global.SkyLlmOpportunities &&
+        document.querySelector('[data-testid*="OppCard"][data-sky-llm-op-card-wired="1"]');
+      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot && !oppWired) {
+        global.SkyLlmOpportunities.boot();
+      }
     }
 
     if (!marketTrackingReady() && global.skyLlmSnapshotMarket && global.skyLlmSnapshotMarket.initMarketTracking) {
@@ -316,15 +392,22 @@
     }
 
     patchBrandClaims();
+    patchPromptsManagement();
     if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchPage) {
       global.SkyLlmDemoUrls.patchPage();
     }
 
+    var needPlatform = /overview\.html|brand-presence\.html/i.test(global.location.pathname || '');
     if (
       applyPass < MAX_APPLY_PASSES &&
-      (!platformReady() || (pageNeedsMarketTracking() && !marketTrackingReady()))
+      ((needPlatform && !platformReady()) ||
+        (pageNeedsMarketTracking() && !marketTrackingReady()))
     ) {
       global.setTimeout(applyAll, 450);
+    }
+    if (/prompts-management\.html/i.test(global.location.pathname || '') && applyPass >= MAX_APPLY_PASSES) {
+      global.setTimeout(patchPromptsManagement, 600);
+      global.setTimeout(patchPromptsManagement, 2000);
     }
   }
 
