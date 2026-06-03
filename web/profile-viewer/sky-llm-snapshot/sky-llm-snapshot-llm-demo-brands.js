@@ -29,6 +29,10 @@
   };
 
   var cached = null;
+  var sectionRootCache = {};
+  var applyTimer = null;
+  var applyPass = 0;
+  var MAX_APPLY_PASSES = 2;
 
   function readRaw() {
     try {
@@ -53,6 +57,8 @@
 
   function clearCache() {
     cached = null;
+    sectionRootCache = {};
+    applyPass = 0;
   }
 
   function skyToDisplay(internalName) {
@@ -155,42 +161,32 @@
     if (!isActive()) return;
     var cfg = loadConfig();
     var label = brandPickerLabel();
-    var host = cfg.siteHost;
 
     document.querySelectorAll('[role="combobox"]').forEach(function (box) {
-      box.querySelectorAll('span, div').forEach(function (el) {
+      box.querySelectorAll('span').forEach(function (el) {
         if (!isLeafTextEl(el)) return;
         var txt = (el.textContent || '').trim();
-        if (
-          /sky|frescopa|broadband|virgin media|talktalk/i.test(txt) &&
-          txt.length < 80
-        ) {
-          if (txt === 'Sky' || /sky tv|frescopa/i.test(txt)) el.textContent = label;
-          else if (SKY_TO_COMP_INDEX[txt] != null || txt === 'Virgin Media' || txt === 'BT') {
-            el.textContent = skyToDisplay(txt);
-          }
+        if (txt.length > 80) return;
+        if (txt === 'Sky' || /sky tv|frescopa/i.test(txt)) el.textContent = label;
+        else if (SKY_TO_COMP_INDEX[txt] != null || txt === 'Virgin Media' || txt === 'BT' || txt === 'TalkTalk') {
+          el.textContent = skyToDisplay(txt);
         }
       });
-    });
-
-    document.querySelectorAll('input, textarea').forEach(function (input) {
-      var val = input.value || '';
-      if (/sky\.com|wknd|frescopa/i.test(val)) {
-        if (/^https?:\/\//i.test(val)) input.value = replaceSkyUrl(val, cfg);
-        else input.value = host;
-      }
-      if (/frescopa|sky tv/i.test(val)) input.value = label;
     });
   }
 
   function findSectionRoot(title) {
-    var heads = Array.from(document.querySelectorAll('div, span, h2, h3')).filter(function (n) {
-      return n.textContent.trim() === title && n.childElementCount === 0;
+    if (sectionRootCache[title]) return sectionRootCache[title];
+    var heads = Array.from(document.querySelectorAll('h2, h3, span[data-rsp-slot="text"]')).filter(function (n) {
+      return (n.textContent || '').trim() === title && n.childElementCount === 0;
     });
     if (!heads.length) return null;
     var root = heads[0].parentElement;
     for (var i = 0; i < 10 && root; i++) {
-      if (root.querySelector('svg.recharts-surface')) return root;
+      if (root.querySelector('svg.recharts-surface')) {
+        sectionRootCache[title] = root;
+        return root;
+      }
       root = root.parentElement;
     }
     return null;
@@ -241,28 +237,61 @@
     });
   }
 
+  function platformReady() {
+    return (
+      global.skyLlmSnapshotPlatform &&
+      global.skyLlmSnapshotPlatform.isReady &&
+      global.skyLlmSnapshotPlatform.isReady()
+    );
+  }
+
+  function marketTrackingReady() {
+    return (
+      global.skyLlmSnapshotMarket &&
+      global.skyLlmSnapshotMarket.isMarketTrackingReady &&
+      global.skyLlmSnapshotMarket.isMarketTrackingReady()
+    );
+  }
+
   function applyAll() {
     if (!isActive()) return;
+    applyPass += 1;
+
     patchBrandPicker();
     patchMarketComparisonLabels();
     patchUrlInspector();
     applyLegendLabels();
-    if (global.skyLlmSnapshotPlatform && global.skyLlmSnapshotPlatform.refresh) {
-      global.skyLlmSnapshotPlatform.refresh();
+
+    if (global.skyLlmLlmDemoPersonalize && global.skyLlmLlmDemoPersonalize.patchLinksAndInputs) {
+      global.skyLlmLlmDemoPersonalize.patchLinksAndInputs();
     }
-    patchMarketComparisonLabels();
-    if (global.skyLlmSnapshotMarket && global.skyLlmSnapshotMarket.initMarketTracking) {
+
+    if (platformReady() && global.skyLlmSnapshotPlatform.refresh) {
+      global.skyLlmSnapshotPlatform.refresh();
+      patchMarketComparisonLabels();
+    }
+
+    if (!marketTrackingReady() && global.skyLlmSnapshotMarket && global.skyLlmSnapshotMarket.initMarketTracking) {
       global.skyLlmSnapshotMarket.initMarketTracking();
     }
-    if (global.skyLlmLlmDemoPersonalize && global.skyLlmLlmDemoPersonalize.apply) {
-      global.skyLlmLlmDemoPersonalize.apply();
+
+    if (applyPass < MAX_APPLY_PASSES && (!platformReady() || !marketTrackingReady())) {
+      global.setTimeout(applyAll, 450);
     }
-    patchMarketComparisonLabels();
-    patchUrlInspector();
+  }
+
+  function scheduleApplyAll() {
+    if (applyTimer) global.clearTimeout(applyTimer);
+    applyPass = 0;
+    sectionRootCache = {};
+    applyTimer = global.setTimeout(function () {
+      applyTimer = null;
+      applyAll();
+    }, 32);
   }
 
   function reapplyMarket() {
-    applyAll();
+    scheduleApplyAll();
   }
 
   global.addEventListener('storage', function (e) {
@@ -324,6 +353,14 @@
     return map;
   }
 
+  try {
+    if (isActive() && /(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '')) {
+      scheduleApplyAll();
+    }
+  } catch (e) {
+    /* ignore */
+  }
+
   global.SkyLlmLlmDemoBrands = {
     STORAGE_KEY: STORAGE_KEY,
     SKY_CHART_KEYS: SKY_CHART_KEYS,
@@ -340,6 +377,7 @@
     applyLegendLabels: applyLegendLabels,
     patchMarketComparisonLabels: patchMarketComparisonLabels,
     applyAll: applyAll,
+    scheduleApplyAll: scheduleApplyAll,
     reapplyMarket: reapplyMarket,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

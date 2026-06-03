@@ -874,6 +874,9 @@
   }
 
   window.skyLlmSnapshotMarket = {
+    isMarketTrackingReady: function () {
+      return marketState.ready;
+    },
     initMarketTracking: initMarketTracking,
     applyBrandVisibility: applyBrandVisibility,
     ensureLinesVisible: ensureLinesVisible,

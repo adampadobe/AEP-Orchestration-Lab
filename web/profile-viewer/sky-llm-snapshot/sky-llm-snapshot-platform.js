@@ -1102,6 +1102,9 @@
   window.setTimeout(init, 800);
 
   global.skyLlmSnapshotPlatform = {
+    isReady: function () {
+      return state.ready;
+    },
     refresh: function () {
       if (!state.ready) return;
       cacheMarketRows();

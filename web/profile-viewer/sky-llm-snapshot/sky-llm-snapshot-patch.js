@@ -96,6 +96,36 @@
     document.body.appendChild(s);
   }
 
+  function runLlmDemoPatches() {
+    function loadPersonalizeThenApply() {
+      if (window.skyLlmLlmDemoPersonalize) {
+        if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.scheduleApplyAll) {
+          window.SkyLlmLlmDemoBrands.scheduleApplyAll();
+        }
+        return;
+      }
+      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260609', function () {
+        if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.scheduleApplyAll) {
+          window.SkyLlmLlmDemoBrands.scheduleApplyAll();
+        }
+      });
+    }
+
+    function boot() {
+      if (/url-inspector\.html/i.test(location.pathname || '') && !window.SkyLlmUrlInspector) {
+        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260609', loadPersonalizeThenApply);
+      } else {
+        loadPersonalizeThenApply();
+      }
+    }
+
+    if (window.SkyLlmLlmDemoBrands) {
+      boot();
+      return;
+    }
+    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260609', boot);
+  }
+
   function loadLlmDemoPersonalize() {
     var hasParam = /(?:\?|&)llmDemo=1(?:&|$)/.test(location.search || '');
     var hasStored = false;
@@ -105,21 +135,11 @@
       /* ignore */
     }
     if (!hasParam && !hasStored) return;
-    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260608', function () {
-      var afterPersonalize = function () {
-        if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.applyAll) {
-          window.SkyLlmLlmDemoBrands.applyAll();
-        }
-      };
-      var chain = function () {
-        loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260608', afterPersonalize);
-      };
-      if (/url-inspector\.html/i.test(location.pathname || '')) {
-        loadScript('./sky-llm-snapshot-url-inspector.js?v=20260608', chain);
-      } else {
-        chain();
-      }
-    });
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(runLlmDemoPatches, { timeout: 500 });
+    } else {
+      window.setTimeout(runLlmDemoPatches, 0);
+    }
   }
 
   if (document.readyState === 'loading') {

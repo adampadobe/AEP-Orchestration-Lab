@@ -93,11 +93,9 @@
     } catch (e) {
       /* cross-origin or not loaded */
     }
-    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260606&llmDemo=1&_=' + Date.now();
-    window.setTimeout(pushConfigToFrame, 800);
-    window.setTimeout(pushConfigToFrame, 2500);
-    window.setTimeout(pushConfigToFrame, 5000);
-    window.setTimeout(pushConfigToFrame, 8000);
+    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260609&llmDemo=1&_=' + Date.now();
+    window.setTimeout(pushConfigToFrame, 600);
+    window.setTimeout(pushConfigToFrame, 1800);
   }
 
   function initFrameConfigSync() {
