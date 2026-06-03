@@ -157,6 +157,21 @@
     return el && el.childElementCount === 0;
   }
 
+  function patchSiteHeaderBrand() {
+    if (!isActive()) return;
+    var label = brandPickerLabel();
+    document.querySelectorAll('header [data-rsp-slot="text"]').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (!txt || txt.length > 96) return;
+      if (txt === 'Sky' || txt === 'Sky TV and broadband' || /frescopa/i.test(txt)) {
+        el.textContent = label;
+      } else if (txt === 'Virgin Media' || txt === 'BT' || txt === 'TalkTalk') {
+        el.textContent = skyToDisplay(txt);
+      }
+    });
+  }
+
   function patchBrandPicker() {
     if (!isActive()) return;
     var cfg = loadConfig();
@@ -253,11 +268,33 @@
     );
   }
 
+  function pageNeedsMarketTracking() {
+    return /brand-presence\.html/i.test(global.location.pathname || '');
+  }
+
+  function patchBrandClaims() {
+    if (global.SkyLlmBrandClaims && global.SkyLlmBrandClaims.patch) {
+      global.SkyLlmBrandClaims.patch();
+    }
+  }
+
+  function shouldAutoApply() {
+    if (!isActive()) return false;
+    if (/(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '')) return true;
+    try {
+      return !!localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function applyAll() {
     if (!isActive()) return;
     applyPass += 1;
 
+    patchSiteHeaderBrand();
     patchBrandPicker();
+    patchBrandClaims();
     patchMarketComparisonLabels();
     patchUrlInspector();
     applyLegendLabels();
@@ -275,7 +312,12 @@
       global.skyLlmSnapshotMarket.initMarketTracking();
     }
 
-    if (applyPass < MAX_APPLY_PASSES && (!platformReady() || !marketTrackingReady())) {
+    patchBrandClaims();
+
+    if (
+      applyPass < MAX_APPLY_PASSES &&
+      (!platformReady() || (pageNeedsMarketTracking() && !marketTrackingReady()))
+    ) {
       global.setTimeout(applyAll, 450);
     }
   }
@@ -354,9 +396,7 @@
   }
 
   try {
-    if (isActive() && /(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '')) {
-      scheduleApplyAll();
-    }
+    if (shouldAutoApply()) scheduleApplyAll();
   } catch (e) {
     /* ignore */
   }

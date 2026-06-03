@@ -248,7 +248,15 @@
           if (target === file && label === activeLabel) return;
           e.preventDefault();
           e.stopPropagation();
-          location.href = target;
+          var search = location.search || '';
+          try {
+            if (!search && localStorage.getItem('llmDemoPersonalization_v1')) {
+              search = '?llmDemo=1';
+            }
+          } catch (e) {
+            /* ignore */
+          }
+          location.href = target + search;
         },
         true,
       );

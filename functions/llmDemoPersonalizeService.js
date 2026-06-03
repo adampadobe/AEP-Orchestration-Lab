@@ -43,7 +43,10 @@ One short industry label (e.g. Telecommunications, Retail banking, Airlines).
 Two sentences describing what the brand offers.
 
 ## PATHS
-Bullet list of 8–12 realistic URL paths on the brand's own website (path only, starting with /) that would appear in an SEO or agentic-traffic audit — product, help, status, or content pages. Use paths plausible for this brand; do not invent sky.com paths.`;
+Bullet list of 8–12 realistic URL paths on the brand's own website (path only, starting with /) that would appear in an SEO or agentic-traffic audit — product, help, status, or content pages. Use paths plausible for this brand; do not invent sky.com paths.
+
+## THEMES
+Bullet list of exactly 12 short risk-monitoring category labels for a "Risk by Theme" brand-claims dashboard (e.g. product quality, pricing, sustainability — tailored to this brand's industry, not telecom unless the brand is a telco).`;
 
 const JSON_SYSTEM = `You convert brand research into JSON for a demo UI. Respond with valid JSON only:
 {
@@ -52,7 +55,8 @@ const JSON_SYSTEM = `You convert brand research into JSON for a demo UI. Respond
   "competitors": ["six strings"],
   "industry": "string",
   "about": "string",
-  "samplePaths": ["8-12 paths starting with /"]
+  "samplePaths": ["8-12 paths starting with /"],
+  "claimThemes": ["exactly 12 theme category strings"]
 }`;
 
 function normaliseUrl(raw) {
@@ -133,6 +137,56 @@ function sampleUrls(siteUrl, paths) {
     .filter(Boolean);
 }
 
+function claimThemesForIndustry(industry) {
+  const ind = String(industry || '').toLowerCase();
+  if (/telecom|broadband|pay[- ]?tv|media bundle/.test(ind)) {
+    return [
+      'Broadband & TV',
+      'Brand Types & Positioning',
+      'Pricing & Value',
+      'Sustainability & Ethics',
+      'Consumer Preferences',
+      'Supply Chain & Sourcing',
+      'Subscription & Membership',
+      'Customer Support',
+      'Data & Analytics',
+      'Channel Monitoring',
+      'Security & Compliance',
+      'Technology & AI',
+    ];
+  }
+  if (/sport|apparel|footwear|athletic|sportswear/.test(ind)) {
+    return [
+      'Product & Performance',
+      'Brand Positioning',
+      'Pricing & Value',
+      'Sustainability & Ethics',
+      'Consumer Preferences',
+      'Supply Chain & Sourcing',
+      'Membership & Loyalty',
+      'Customer Support',
+      'Data & Analytics',
+      'Retail & Channel Partners',
+      'Security & Compliance',
+      'Technology & AI',
+    ];
+  }
+  return [
+    'Product Range & Availability',
+    'Brand Positioning',
+    'Pricing & Promotions',
+    'Sustainability & Ethics',
+    'Shopper Preferences',
+    'Supply Chain & Sourcing',
+    'Loyalty & Membership',
+    'Customer Support',
+    'Data & Personalisation',
+    'Omnichannel & Stores',
+    'Security & Compliance',
+    'Technology & AI',
+  ];
+}
+
 function buildClientConfig({
   sourceUrl,
   siteUrl,
@@ -142,6 +196,7 @@ function buildClientConfig({
   industry,
   about,
   samplePaths,
+  claimThemes,
   researchUsed,
   crawlPages,
 }) {
@@ -166,6 +221,10 @@ function buildClientConfig({
     competitors: comps,
     industry: industry || '',
     about: about || '',
+    claimThemes: (claimThemes && claimThemes.length >= 12
+      ? claimThemes
+      : claimThemesForIndustry(industry)
+    ).slice(0, 12),
     axisMap: buildAxisMap(brand, comps),
     samplePaths: paths,
     sampleUrls: urls,
@@ -185,6 +244,10 @@ function mergeParsedJson(parsed, fallback) {
   const samplePaths = Array.isArray(parsed.samplePaths)
     ? parsed.samplePaths.map((p) => String(p).trim()).filter((p) => p.startsWith('/'))
     : fallback.samplePaths;
+  let claimThemes = Array.isArray(parsed.claimThemes)
+    ? parsed.claimThemes.map((t) => String(t).trim()).filter(Boolean)
+    : [];
+  if (claimThemes.length < 12) claimThemes = fallback.claimThemes || [];
   return {
     brand,
     siteHost,
@@ -192,6 +255,7 @@ function mergeParsedJson(parsed, fallback) {
     industry: String(parsed.industry || fallback.industry || '').trim(),
     about: String(parsed.about || fallback.about || '').trim(),
     samplePaths: samplePaths.length ? samplePaths : fallback.samplePaths,
+    claimThemes,
   };
 }
 
@@ -218,6 +282,7 @@ async function researchBrand({ url, siteHost, brandName, crawlText }) {
   const industry = parseSection(raw, 'INDUSTRY').split('\n')[0] || '';
   const about = parseSection(raw, 'ABOUT').replace(/\n+/g, ' ').trim();
   const pathBullets = bulletsToList(parseSection(raw, 'PATHS'));
+  const themeBullets = bulletsToList(parseSection(raw, 'THEMES'));
 
   const competitors = bulletsToList(compSec).slice(0, 6);
   const brand = brandSec.split('\n')[0].trim() || brandName;
@@ -229,6 +294,7 @@ async function researchBrand({ url, siteHost, brandName, crawlText }) {
     industry,
     about,
     samplePaths: pathBullets,
+    claimThemes: themeBullets,
   };
 }
 
@@ -291,6 +357,7 @@ async function personalizeUrl(rawUrl) {
     industry: '',
     about: (crawl && crawl.pages && crawl.pages[0] && crawl.pages[0].description) || '',
     samplePaths: pathFallback.length ? pathFallback : ['/', '/about', '/products', '/help', '/contact'],
+    claimThemes: [],
   };
 
   let research = null;
@@ -311,6 +378,7 @@ async function personalizeUrl(rawUrl) {
       industry: research.industry,
       about: research.about || crawlFallback.about,
       samplePaths: research.samplePaths.length ? research.samplePaths : crawlFallback.samplePaths,
+      claimThemes: research.claimThemes && research.claimThemes.length ? research.claimThemes : [],
     });
   } catch (e) {
     console.warn('[llmDemoPersonalize] research failed, using crawl fallback', String(e && e.message || e));
@@ -326,6 +394,7 @@ async function personalizeUrl(rawUrl) {
     industry: structured.industry,
     about: structured.about,
     samplePaths: structured.samplePaths,
+    claimThemes: structured.claimThemes,
     researchUsed,
     crawlPages: (crawl && crawl.pages && crawl.pages.length) || 0,
   });
