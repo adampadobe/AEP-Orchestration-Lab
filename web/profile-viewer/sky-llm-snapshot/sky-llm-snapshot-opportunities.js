@@ -501,6 +501,35 @@
     return byId;
   }
 
+  function demoUrl(raw) {
+    var s = String(raw || '');
+    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.replaceHostInUrl) {
+      var cfg = global.SkyLlmDemoUrls.getCfg && global.SkyLlmDemoUrls.getCfg();
+      if (cfg) return global.SkyLlmDemoUrls.replaceHostInUrl(s, cfg);
+    }
+    return s;
+  }
+
+  function demoLinkLabel(raw) {
+    var mapped = demoUrl(raw);
+    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.formatLinkDisplay) {
+      return global.SkyLlmDemoUrls.formatLinkDisplay(mapped);
+    }
+    return mapped;
+  }
+
+  function demoLinkCell(raw) {
+    var href = demoUrl(raw);
+    var label = demoLinkLabel(raw);
+    return (
+      '<td><a href="' +
+      escapeHtml(href) +
+      '" rel="noopener noreferrer">' +
+      escapeHtml(label) +
+      '</a></td>'
+    );
+  }
+
   function buildTableDetailHtml(view) {
     var headers = view.tableHeaders
       .map(function (h) {
@@ -512,13 +541,7 @@
         var cells = row
           .map(function (cell, idx) {
             if (idx === 0 && /^https?:\/\//.test(cell)) {
-              return (
-                '<td><a href="' +
-                escapeHtml(cell) +
-                '" rel="noopener noreferrer">' +
-                escapeHtml(cell) +
-                '</a></td>'
-              );
+              return demoLinkCell(cell);
             }
             return '<td>' + escapeHtml(cell) + '</td>';
           })
@@ -636,7 +659,11 @@
       '<thead><tr><th></th><th>URL</th><th>Agentic Traffic (4 Weeks)</th><th>Content Visibility</th><th>Content Gain Ratio</th><th>Actions</th><th>Details</th></tr></thead>' +
       '<tbody><tr>' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
-      '<td><a href="https://sky.com/tv/sky-glass" rel="noopener noreferrer">https://sky.com/tv/sky-glass</a></td>' +
+      '<td><a href="' +
+      escapeHtml(demoUrl('https://sky.com/tv/sky-glass')) +
+      '" rel="noopener noreferrer">' +
+      escapeHtml(demoLinkLabel('https://sky.com/tv/sky-glass')) +
+      '</a></td>' +
       '<td>—</td><td>91%</td><td>1.1</td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
@@ -757,7 +784,7 @@
       '<thead><tr><th></th><th>URL</th><th>Issues</th><th>Agentic Traffic (4 Weeks)</th><th>Details</th></tr></thead>' +
       '<tbody><tr>' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
-      '<td><a href="https://sky.com/tv/sky-glass/packages" rel="noopener noreferrer">https://sky.com/tv/sky-glass/packages</a></td>' +
+      demoLinkCell('https://sky.com/tv/sky-glass/packages') +
       '<td>1</td><td>N/A</td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
       '</tr></tbody></table></div></section>'
@@ -787,11 +814,7 @@
           '<tr>' +
           '<td><input type="checkbox" aria-label="Select URL"></td>' +
           '<td class="sky-llm-op-expand-cell" aria-hidden="true">▸</td>' +
-          '<td><a href="' +
-          escapeHtml(row.url) +
-          '" rel="noopener noreferrer">' +
-          escapeHtml(row.url) +
-          '</a></td>' +
+          demoLinkCell(row.url) +
           '<td>' +
           escapeHtml(row.suggestions) +
           '</td>' +
@@ -865,17 +888,28 @@
   }
 
   function ensureDetailRoot() {
-    if (state.detailEl && state.detailEl.isConnected) return state.detailEl;
+    var mount = findOpportunitiesMain() || findListCanvas() || document.getElementById('root');
+    if (state.detailEl && state.detailEl.isConnected) {
+      if (mount && state.detailEl.parentElement !== mount) {
+        mount.appendChild(state.detailEl);
+      }
+      return state.detailEl;
+    }
     var existing = document.getElementById('skyLlmOpDetail');
     if (existing) {
+      if (mount && existing.parentElement !== mount) {
+        mount.appendChild(existing);
+      }
+      existing.classList.remove('sky-llm-op-detail--overlay');
       state.detailEl = existing;
       return existing;
     }
     var el = document.createElement('div');
     el.id = 'skyLlmOpDetail';
-    el.className = 'sky-llm-op-detail sky-llm-op-detail--overlay';
+    el.className = 'sky-llm-op-detail';
     el.hidden = true;
-    document.body.appendChild(el);
+    if (mount) mount.appendChild(el);
+    else document.body.appendChild(el);
     state.detailEl = el;
     return el;
   }
@@ -902,7 +936,6 @@
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
     if (canvas) canvas.classList.add('sky-llm-op-list-hidden');
-    document.body.classList.add('sky-llm-op-detail-open');
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -923,7 +956,6 @@
   function hideDetail() {
     var canvas = findOpportunitiesMain() || findListCanvas();
     if (canvas) canvas.classList.remove('sky-llm-op-list-hidden');
-    document.body.classList.remove('sky-llm-op-detail-open');
     if (state.detailEl) {
       state.detailEl.hidden = true;
       state.detailEl.innerHTML = '';

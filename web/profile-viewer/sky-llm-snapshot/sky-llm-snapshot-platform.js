@@ -267,6 +267,8 @@
     outsidePickerCloseWired: false,
     platformSelectionWired: false,
     walnutWatcher: false,
+    platformWatchTimer: null,
+    lastComboboxPlatform: '',
     metricsReapplyTimer: null,
   };
 
@@ -437,14 +439,62 @@
     });
   }
 
-  function setPlatformId(id, opts) {
-    if (!id || id === state.platformId) {
-      closeAllPickerMenus();
-      return;
+  function refreshDashboardCaches() {
+    state.metricNodes = {};
+    if (state.pageKind !== 'brand-presence') {
+      state.marketRows = [];
+      cacheMarketRows();
     }
+  }
+
+  function applyPlatformFromCombobox() {
+    var input = findCombobox('platform');
+    if (!input) return false;
+    var label = String(input.value || '').trim();
+    if (label === state.lastComboboxPlatform) return false;
+    state.lastComboboxPlatform = label;
+    var id = platformIdFromLabel(label);
+    if (!id || id === state.platformId) return false;
     state.platformId = id;
     syncPlatformTriggerLabel();
     closeAllPickerMenus();
+    refreshDashboardCaches();
+    applyDashboard({ animate: true });
+    scheduleMetricsReapply();
+    return true;
+  }
+
+  function watchNativePlatformSelection() {
+    if (state.platformWatchTimer) return;
+    var input = findCombobox('platform');
+    if (input) {
+      state.lastComboboxPlatform = String(input.value || '').trim();
+      input.addEventListener('change', applyPlatformFromCombobox);
+      input.addEventListener('input', applyPlatformFromCombobox);
+    }
+    state.platformWatchTimer = window.setInterval(applyPlatformFromCombobox, 350);
+  }
+
+  function setPlatformId(id, opts) {
+    if (!id) {
+      closeAllPickerMenus();
+      return;
+    }
+    if (id === state.platformId) {
+      closeAllPickerMenus();
+      refreshDashboardCaches();
+      applyDashboard({ animate: !(opts && opts.animate === false) });
+      scheduleMetricsReapply();
+      return;
+    }
+    state.platformId = id;
+    var p = PLATFORMS.find(function (x) {
+      return x.id === id;
+    });
+    if (p) state.lastComboboxPlatform = p.name;
+    syncPlatformTriggerLabel();
+    closeAllPickerMenus();
+    refreshDashboardCaches();
     applyDashboard({ animate: !(opts && opts.animate === false) });
     scheduleMetricsReapply();
   }
@@ -1281,7 +1331,8 @@
   function init() {
     if (state.ready && document.querySelector('.sky-llm-platform-host')) {
       state.pageKind = getPageKind();
-      cacheMetricNodes();
+      watchNativePlatformSelection();
+      refreshDashboardCaches();
       applyDashboard({ animate: false });
       return;
     }
@@ -1296,6 +1347,7 @@
     }
     ensurePickers();
     ensureTooltip();
+    watchNativePlatformSelection();
     applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {

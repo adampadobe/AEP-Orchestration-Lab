@@ -5,7 +5,7 @@
   'use strict';
 
   function snapshotBuild() {
-    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260616';
+    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260617';
   }
 
   function snapshotPageUrl(file) {

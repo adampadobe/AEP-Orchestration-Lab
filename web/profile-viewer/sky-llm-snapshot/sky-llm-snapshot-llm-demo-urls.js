@@ -25,8 +25,19 @@
   ];
 
   function getCfg() {
-    if (!global.SkyLlmLlmDemoBrands || !global.SkyLlmLlmDemoBrands.isActive()) return null;
-    return global.SkyLlmLlmDemoBrands.loadConfig();
+    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.isActive()) {
+      return global.SkyLlmLlmDemoBrands.loadConfig();
+    }
+    try {
+      var raw = localStorage.getItem('llmDemoPersonalization_v1');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.brand && parsed.siteHost) return parsed;
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return null;
   }
 
   function replaceHostInUrl(url, cfg) {

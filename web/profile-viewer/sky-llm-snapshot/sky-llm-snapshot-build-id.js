@@ -1,4 +1,4 @@
 /** Bump this string when shipping sky-llm-snapshot / LLM demo iframe assets. */
 (function (g) {
-  g.SKY_LLM_SNAPSHOT_BUILD = '20260616';
+  g.SKY_LLM_SNAPSHOT_BUILD = '20260617';
 })(typeof window !== 'undefined' ? window : globalThis);

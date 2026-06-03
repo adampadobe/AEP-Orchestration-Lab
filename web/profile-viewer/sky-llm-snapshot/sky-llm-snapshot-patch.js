@@ -85,7 +85,7 @@
   }
 
   function snapshotBuild() {
-    return (typeof window !== 'undefined' && window.SKY_LLM_SNAPSHOT_BUILD) || '20260616';
+    return (typeof window !== 'undefined' && window.SKY_LLM_SNAPSHOT_BUILD) || '20260617';
   }
 
   function bust(path) {
