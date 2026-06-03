@@ -66,6 +66,20 @@
     setFlyoutOpen(false);
   }
 
+  function pushConfigToFrame() {
+    var frame = document.getElementById('llmDemoFrame');
+    if (!frame || typeof LlmDemoConfig === 'undefined') return;
+    var cfg = LlmDemoConfig.load();
+    if (!cfg) return;
+    try {
+      if (frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: 'llm-demo-config', config: cfg }, window.location.origin);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function reloadIframe() {
     var frame = document.getElementById('llmDemoFrame');
     if (!frame) return;
@@ -79,7 +93,17 @@
     } catch (e) {
       /* cross-origin or not loaded */
     }
-    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260602&llmDemo=1&_=' + Date.now();
+    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260606&llmDemo=1&_=' + Date.now();
+    window.setTimeout(pushConfigToFrame, 800);
+    window.setTimeout(pushConfigToFrame, 2500);
+    window.setTimeout(pushConfigToFrame, 5000);
+  }
+
+  function initFrameConfigSync() {
+    var frame = document.getElementById('llmDemoFrame');
+    if (!frame) return;
+    frame.addEventListener('load', pushConfigToFrame);
+    pushConfigToFrame();
   }
 
   function initCustomizeBar() {
@@ -229,4 +253,5 @@
   initLabFlyoutSidebar();
   initCustomizeBar();
   initProfileLookup();
+  initFrameConfigSync();
 })();

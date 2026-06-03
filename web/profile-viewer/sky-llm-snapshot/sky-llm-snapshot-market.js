@@ -119,7 +119,18 @@
 
   function normalizeBrandName(raw) {
     var t = (raw || '').trim();
+    if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.isActive()) {
+      var mapped = window.SkyLlmLlmDemoBrands.displayToSky(t);
+      return LEGACY_LABEL[mapped] || mapped;
+    }
     return LEGACY_LABEL[t] || t;
+  }
+
+  function displayBrandName(internalName) {
+    if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.isActive()) {
+      return window.SkyLlmLlmDemoBrands.skyToDisplay(internalName);
+    }
+    return internalName;
   }
 
   function findSectionRoot(title) {
@@ -408,7 +419,11 @@
   }
 
   function isKnownBrand(name) {
-    return !!KNOWN_BRANDS[normalizeBrandName(name)];
+    var key = normalizeBrandName(name);
+    if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.isActive()) {
+      return !!window.SkyLlmLlmDemoBrands.getKnownBrandsMap()[key];
+    }
+    return !!KNOWN_BRANDS[key];
   }
 
   function resetLineGraphics(entry) {
@@ -448,7 +463,7 @@
       if (!entry.legendEl) return;
       var textEl = entry.legendEl.querySelector('.recharts-legend-item-text');
       if (textEl) {
-        textEl.textContent = entry.name;
+        textEl.textContent = displayBrandName(entry.name);
         if (STROKE_BY_BRAND[entry.name]) textEl.style.color = STROKE_BY_BRAND[entry.name];
       }
       var iconPath = entry.legendEl.querySelector('.recharts-legend-icon');
@@ -529,7 +544,7 @@
     row.setAttribute('aria-label', name);
     row.setAttribute('data-sky-llm-brand', name);
     var span = row.querySelector('span[data-rsp-slot="text"]');
-    if (span) span.textContent = name;
+    if (span) span.textContent = displayBrandName(name);
     var removeBtn = row.querySelector('button[aria-label="Remove"]');
     if (removeBtn) delete removeBtn.dataset.skyLlmRemoveWired;
     return row;
@@ -650,7 +665,12 @@
   }
 
   function availableBrands() {
-    return ALL_BRANDS.filter(function (b) {
+    var pool = ALL_BRANDS;
+    if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.isActive()) {
+      var demo = window.SkyLlmLlmDemoBrands.getAllBrands();
+      if (demo && demo.length) pool = DEFAULT_SELECTED.concat(demo);
+    }
+    return pool.filter(function (b) {
       return !isSelected(b);
     });
   }
@@ -718,7 +738,7 @@
         btn.type = 'button';
         btn.className = 'sky-llm-date-option';
         btn.setAttribute('role', 'option');
-        btn.textContent = brand;
+        btn.textContent = displayBrandName(brand);
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           addBrand(brand);
@@ -770,6 +790,7 @@
     buildSelectOthersPicker();
     syncLegendLabels();
     applyBrandVisibility();
+    if (window.SkyLlmLlmDemoBrands) window.SkyLlmLlmDemoBrands.applyLegendLabels();
     marketState.ready = true;
   }
 
@@ -903,11 +924,15 @@
     boot();
   }
   watchLineCurves();
-  [400, 1200, 1800, 3000, 5000].forEach(function (ms) {
+  [400, 1200, 1800, 3000, 5000, 6500].forEach(function (ms) {
     window.setTimeout(function () {
       if (!marketState.ready && findSectionRoot('Market Tracking')) initMarketTracking();
       ensureLinesVisible();
       markFitLineCharts();
+      if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.isActive()) {
+        window.SkyLlmLlmDemoBrands.applyLegendLabels();
+        syncLegendLabels();
+      }
     }, ms);
   });
 

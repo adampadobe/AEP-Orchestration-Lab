@@ -162,13 +162,26 @@
   function init() {
     if (!getConfig()) return;
     apply();
+    if (window.SkyLlmLlmDemoBrands) {
+      window.SkyLlmLlmDemoBrands.applyLegendLabels();
+      window.SkyLlmLlmDemoBrands.reapplyMarket();
+    }
     window.setTimeout(apply, 400);
     window.setTimeout(apply, 1200);
     window.setTimeout(apply, 2800);
+    window.setTimeout(function () {
+      apply();
+      if (window.SkyLlmLlmDemoBrands) {
+        window.SkyLlmLlmDemoBrands.applyLegendLabels();
+        window.SkyLlmLlmDemoBrands.reapplyMarket();
+      }
+    }, 4500);
     window.addEventListener('storage', function (e) {
       if (e.key === 'llmDemoPersonalization_v1') schedule();
     });
   }
+
+  window.skyLlmLlmDemoPersonalize = { apply: apply, schedule: schedule };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -65,7 +65,16 @@
     });
   }
 
+  function llmDemoActive() {
+    try {
+      return !!localStorage.getItem('llmDemoPersonalization_v1');
+    } catch (e) {
+      return false;
+    }
+  }
+
   function run() {
+    if (llmDemoActive()) return;
     try {
       patchSiteField();
       patchAxisLabels();
@@ -73,6 +82,18 @@
     } catch (e) {
       /* frozen snapshot */
     }
+  }
+
+  function loadScript(src, next) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = function () {
+      if (next) next();
+    };
+    s.onerror = function () {
+      if (next) next();
+    };
+    document.body.appendChild(s);
   }
 
   function loadLlmDemoPersonalize() {
@@ -84,10 +105,11 @@
       /* ignore */
     }
     if (!hasParam && !hasStored) return;
-    var s = document.createElement('script');
-    s.src = '../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260604';
-    s.async = true;
-    document.body.appendChild(s);
+    loadScript('./sky-llm-snapshot-llm-demo-brands.js?v=20260606', function () {
+      loadScript('../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260606', function () {
+        if (window.SkyLlmLlmDemoBrands) window.SkyLlmLlmDemoBrands.reapplyMarket();
+      });
+    });
   }
 
   if (document.readyState === 'loading') {
