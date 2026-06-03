@@ -330,6 +330,20 @@
        */
       subgroups: [
         {
+          id: 'demoLlmLab',
+          label: 'LLM',
+          items: [
+            {
+              label: 'LLM Demo (in development)',
+              href: 'demos/llm-demo/llm-demo.html',
+              inDevelopment: true,
+              navHideKey: 'llmDemo',
+              ico:
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+            },
+          ],
+        },
+        {
           id: 'demoMobileLab',
           label: 'Mobile',
           items: [

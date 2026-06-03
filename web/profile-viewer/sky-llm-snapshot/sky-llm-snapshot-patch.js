@@ -75,10 +75,26 @@
     }
   }
 
+  function loadLlmDemoPersonalize() {
+    var hasParam = /(?:\?|&)llmDemo=1(?:&|$)/.test(location.search || '');
+    var hasStored = false;
+    try {
+      hasStored = !!localStorage.getItem('llmDemoPersonalization_v1');
+    } catch (e) {
+      /* ignore */
+    }
+    if (!hasParam && !hasStored) return;
+    var s = document.createElement('script');
+    s.src = '../demos/llm-demo/llm-demo-snapshot-personalize.js?v=20260603';
+    s.async = true;
+    document.body.appendChild(s);
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', run);
   } else {
     run();
   }
   window.setTimeout(run, 400);
+  loadLlmDemoPersonalize();
 })();

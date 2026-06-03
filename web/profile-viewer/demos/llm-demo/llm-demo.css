@@ -1,0 +1,133 @@
+/**
+ * LLM Demo — lab shell + bottom customize drawer (uses --dash-* tokens).
+ */
+.llm-demo-page .mod-demo-site-frame {
+  bottom: 0;
+}
+
+.llm-demo-customize-anchor {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6600;
+  pointer-events: none;
+}
+
+.llm-demo-customize-anchor::before {
+  content: "";
+  display: block;
+  height: 12px;
+  pointer-events: auto;
+}
+
+.llm-demo-customize-tab {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  padding: 0.4rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dash-text);
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-bottom: none;
+  border-radius: var(--dash-radius-sm) var(--dash-radius-sm) 0 0;
+  cursor: pointer;
+  box-shadow: var(--dash-shadow);
+  opacity: 0.55;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.llm-demo-customize-anchor:hover .llm-demo-customize-tab,
+.llm-demo-customize-tab:focus-visible,
+.llm-demo-customize-tab.llm-demo-customize-tab--open {
+  opacity: 1;
+}
+
+.llm-demo-customize-panel {
+  pointer-events: auto;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border-top: 1px solid var(--dash-border);
+  box-shadow: 0 -8px 24px var(--dash-shadow);
+}
+
+.llm-demo-customize-panel.llm-demo-customize-panel--open {
+  max-height: 220px;
+}
+
+.llm-demo-customize-inner {
+  padding: 0.85rem 1.25rem 1rem;
+  display: grid;
+  gap: 0.65rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.llm-demo-customize-inner h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.llm-demo-customize-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.45;
+}
+
+.llm-demo-customize-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: flex-end;
+}
+
+.llm-demo-customize-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  flex: 1 1 220px;
+}
+
+.llm-demo-customize-row input {
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+.llm-demo-customize-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.llm-demo-customize-status {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+  min-height: 1.2em;
+}
+
+.llm-demo-customize-status--ok {
+  color: var(--dash-success, var(--dash-text-secondary));
+}
+
+.llm-demo-customize-status--err {
+  color: var(--dash-error, var(--dash-text-secondary));
+}

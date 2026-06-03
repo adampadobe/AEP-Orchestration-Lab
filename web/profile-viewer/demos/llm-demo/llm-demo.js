@@ -1,0 +1,217 @@
+/**
+ * LLM Demo — lab chrome, profile lookup, iframe reload on personalization.
+ */
+(function () {
+  'use strict';
+
+  var SNAPSHOT_BASE = '../../sky-llm-snapshot/overview.html?v=20260602&llmDemo=1';
+
+  function initLabFlyoutSidebar() {
+    var body = document.body;
+    if (!body.classList.contains('llm-demo-page')) return;
+    var sidebar = document.querySelector('.dashboard-sidebar');
+    if (!sidebar) return;
+
+    var mq = window.matchMedia('(max-width: 768px)');
+    var hideTimer = null;
+
+    function clearHideTimer() {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+
+    function setFlyoutOpen(open) {
+      body.classList.toggle('mod-demo-page--nav-open', open);
+    }
+
+    function scheduleClose() {
+      clearHideTimer();
+      hideTimer = window.setTimeout(function () {
+        setFlyoutOpen(false);
+      }, 450);
+    }
+
+    function onPointerMove(e) {
+      if (mq.matches) return;
+      if (e.clientX <= 24) {
+        clearHideTimer();
+        setFlyoutOpen(true);
+        return;
+      }
+      var r = sidebar.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        clearHideTimer();
+        setFlyoutOpen(true);
+        return;
+      }
+      if (body.classList.contains('mod-demo-page--nav-open')) scheduleClose();
+    }
+
+    sidebar.addEventListener('mouseenter', function () {
+      if (!mq.matches) {
+        clearHideTimer();
+        setFlyoutOpen(true);
+      }
+    });
+    sidebar.addEventListener('mouseleave', function () {
+      if (!mq.matches) scheduleClose();
+    });
+    document.addEventListener('mousemove', onPointerMove, { passive: true });
+    mq.addEventListener('change', function () {
+      clearHideTimer();
+      if (mq.matches) body.classList.remove('mod-demo-page--nav-open');
+    });
+    setFlyoutOpen(false);
+  }
+
+  function reloadIframe() {
+    var frame = document.getElementById('llmDemoFrame');
+    if (!frame) return;
+    var file = 'overview.html';
+    try {
+      var loc = frame.contentWindow && frame.contentWindow.location;
+      if (loc && loc.pathname) {
+        var parts = loc.pathname.split('/');
+        file = (parts[parts.length - 1] || file).split('?')[0];
+      }
+    } catch (e) {
+      /* cross-origin or not loaded */
+    }
+    frame.src = '../../sky-llm-snapshot/' + file + '?v=20260602&llmDemo=1&_=' + Date.now();
+  }
+
+  function initCustomizeBar() {
+    var tab = document.getElementById('llmDemoCustomizeTab');
+    var panel = document.getElementById('llmDemoCustomizePanel');
+    var urlInput = document.getElementById('llmDemoSiteUrl');
+    var brandInput = document.getElementById('llmDemoBrand');
+    var applyBtn = document.getElementById('llmDemoApplyBtn');
+    var resetBtn = document.getElementById('llmDemoResetBtn');
+    var status = document.getElementById('llmDemoCustomizeStatus');
+    if (!tab || !panel || !urlInput || typeof LlmDemoConfig === 'undefined') return;
+
+    function setOpen(open) {
+      panel.classList.toggle('llm-demo-customize-panel--open', open);
+      tab.classList.toggle('llm-demo-customize-tab--open', open);
+      tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+      panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+
+    function setStatus(text, kind) {
+      if (!status) return;
+      status.textContent = text || '';
+      status.className =
+        'llm-demo-customize-status' + (kind ? ' llm-demo-customize-status--' + kind : '');
+    }
+
+    function fillForm() {
+      var active = LlmDemoConfig.activeOrDefault();
+      if (LlmDemoConfig.isCustomized()) {
+        urlInput.value = active.sourceUrl || active.siteUrl || '';
+        brandInput.value = active.brand || '';
+        setStatus('Personalized for ' + active.brand + ' (' + active.siteHost + ').', 'ok');
+      } else {
+        urlInput.value = '';
+        brandInput.value = '';
+        setStatus('Showing default Sky UK demo. Enter a customer URL to personalize.', '');
+      }
+    }
+
+    tab.addEventListener('click', function () {
+      setOpen(!panel.classList.contains('llm-demo-customize-panel--open'));
+    });
+
+    applyBtn.addEventListener('click', function () {
+      var cfg = LlmDemoConfig.buildFromUrl(urlInput.value);
+      if (!cfg) {
+        setStatus('Enter a valid URL (e.g. https://www.example.com).', 'err');
+        return;
+      }
+      if (brandInput.value.trim()) cfg.brand = brandInput.value.trim();
+      LlmDemoConfig.save(cfg);
+      fillForm();
+      reloadIframe();
+    });
+
+    resetBtn.addEventListener('click', function () {
+      LlmDemoConfig.reset();
+      fillForm();
+      reloadIframe();
+    });
+
+    fillForm();
+    setOpen(false);
+  }
+
+  function initProfileLookup() {
+    var customerEmail = document.getElementById('customerEmail');
+    if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+    if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'llmDemoNs');
+
+    var llmDemoMessage = document.getElementById('llmDemoMessage');
+    var queryProfileBtn = document.getElementById('queryProfileBtn');
+    var generatorTargetSelect = document.getElementById('generatorTarget');
+    var generatorTargets = [];
+
+    function getEmail() {
+      return customerEmail ? String(customerEmail.value || '').trim() : '';
+    }
+
+    function setMessage(text, type) {
+      if (!llmDemoMessage) return;
+      llmDemoMessage.textContent = text || '';
+      llmDemoMessage.className =
+        'mod-demo-message' + (type ? ' mod-demo-message--' + String(type).replace(/\s+/g, '-') : '');
+      llmDemoMessage.hidden = !text;
+    }
+
+    function getSelectedGeneratorTarget() {
+      var id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      return generatorTargets.find(function (t) {
+        return t.id === id;
+      }) || generatorTargets[0] || null;
+    }
+
+    if (typeof DemoProfileDrawer !== 'undefined') {
+      DemoProfileDrawer.init({
+        emailInputId: 'customerEmail',
+        profileOpenClass: 'mod-demo-page--profile-open',
+        viewName: 'LLM Demo',
+        emailGetter: getEmail,
+        messageSetter: setMessage,
+        getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        fetchBrowserEcidOnInit: true,
+      });
+    }
+
+    if (queryProfileBtn) {
+      queryProfileBtn.addEventListener('click', async function () {
+        var email = getEmail();
+        if (!email) {
+          setMessage('Enter a customer identifier first.', 'error');
+          return;
+        }
+        setMessage('Looking up profile…', '');
+        await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+      });
+    }
+
+    if (generatorTargetSelect && window.AepDemoGeneratorTargets) {
+      void window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, {}).then(
+        function (t) {
+          generatorTargets = t || [];
+        },
+      );
+    }
+
+    if (typeof AepDemoEnvStrip !== 'undefined' && AepDemoEnvStrip.initStandardEnvBar) {
+      AepDemoEnvStrip.initStandardEnvBar({});
+    }
+  }
+
+  initLabFlyoutSidebar();
+  initCustomizeBar();
+  initProfileLookup();
+})();
