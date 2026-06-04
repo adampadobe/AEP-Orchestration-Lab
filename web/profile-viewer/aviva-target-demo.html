@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviva Target (demo) – AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="aviva-target-demo.css?v=20260604-target-lab">
+  <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="aviva-target-demo-page home-dashboard-concierge">
+  <div class="aviva-target-demo-top-anchor" id="avivaTargetDemoTopAnchor">
+    <section class="aviva-target-demo-id-banner" aria-label="Aviva Target demo controls">
+      <div class="aviva-target-demo-id-inner aep-demo-id-inner">
+        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
+          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
+            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
+              <span class="aep-demo-env-kicker">Environment</span>
+              <div class="aep-demo-env-editor-grid">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div
+                  id="avivaTargetSdkConfigFieldsMount"
+                  data-demo-env-strip-mount="site-clone-tags"
+                  data-demo-env-strip-prefix="avivaTarget"
+                ></div>
+                <div class="form-row">
+                  <label for="generatorTarget">Event destination</label>
+                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+                </div>
+              </div>
+              <div id="avivaTargetSdkConfigSummary" class="aviva-target-sdk-summary mod-sdk-summary--below-env-grid" hidden>
+                <span id="avivaTargetSdkConfigSummaryText"></span>
+                <button type="button" id="avivaTargetChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
+              </div>
+            </div>
+            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
+              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
+              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
+            </div>
+          </div>
+        </section>
+        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
+          <span class="aep-demo-env-kicker">Profile lookup</span>
+          <div class="aep-demo-profile-section-grid">
+            <div class="form-row">
+              <label for="avivaTargetNs">Namespace</label>
+              <select id="avivaTargetNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid" selected>ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="ECID or email" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="mod-demo-profile-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="aviva-target-demo-script-preview">Selected script: <code id="avivaTargetSelectedScript">None</code></p>
+      <p id="avivaTargetMessage" class="aviva-target-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="aviva-target-demo-disclaimer">
+        Embedded Aviva car insurance journey for Adobe Target A/B demos. Inject your Demo EMEA Launch property, then click through the iframe.
+        See <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AVIVA_TARGET_AB_TESTING.md">docs/AVIVA_TARGET_AB_TESTING.md</a>.
+        Not affiliated with Aviva.
+      </p>
+    </section>
+  </div>
+
+  <iframe
+    id="avivaTargetFrame"
+    class="aviva-target-demo-site-frame"
+    title="Aviva car insurance journey (Target demo)"
+    src="demos/aviva-target/index.html"
+    loading="eager"
+    referrerpolicy="no-referrer-when-downgrade"
+  ></iframe>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page aviva-target-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
+  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+  <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
+  <script src="demo-tags-injection.js?v=20260601-tags-property-boot"></script>
+  <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="aviva-target-demo.js?v=20260604-target-lab"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260604-aviva-target"></script>
+</body>
+</html>
