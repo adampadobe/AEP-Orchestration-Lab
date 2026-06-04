@@ -127,6 +127,7 @@
     onsiteHost: null,
     contentHost: null,
     offsiteHost: null,
+    offsiteMount: null,
     contentTemplate: null,
     delegateWired: false,
     walnutWatcher: false,
@@ -239,31 +240,69 @@
     return OFFSITE_ORDER.indexOf(resolveViewId(card)) >= 0;
   }
 
-  function insertIntoOffsiteGap(node) {
-    if (!node) return;
-    markOffsiteCard(node);
+  function findOffsiteInsertPoint() {
     var offsite = getSectionMarker('Offsite Optimizations');
     var tech = getSectionMarker('Onsite Technical Optimizations');
-    if (tech) {
-      var block = tech;
-      for (var i = 0; i < 15 && block.parentElement; i++) {
-        block = block.parentElement;
-        if (offsite && block.contains(offsite) && block !== offsite) {
-          var parent = block.parentElement;
-          if (parent) {
-            parent.insertBefore(node, block);
-            return;
-          }
-        }
+    if (!tech) return null;
+    var cursor = tech;
+    for (var i = 0; i < 25 && cursor.parentElement; i++) {
+      var parent = cursor.parentElement;
+      var prev = cursor.previousElementSibling;
+      if (prev && offsite && prev.contains(offsite)) {
+        return { parent: parent, before: cursor };
       }
+      cursor = parent;
+    }
+    return null;
+  }
+
+  function ensureOffsiteCardsMount() {
+    if (state.offsiteMount && state.offsiteMount.isConnected) return state.offsiteMount;
+    var existing = document.getElementById('skyLlmOpOffsiteCards');
+    if (existing) {
+      state.offsiteMount = existing;
+      return existing;
+    }
+    var point = findOffsiteInsertPoint();
+    if (!point) return null;
+    var el = document.createElement('div');
+    el.id = 'skyLlmOpOffsiteCards';
+    el.className = 'sky-llm-op-offsite-cards';
+    point.parent.insertBefore(el, point.before);
+    state.offsiteMount = el;
+    return el;
+  }
+
+  function mountOffsiteCard(node) {
+    if (!node) return;
+    markOffsiteCard(node);
+    var mount = ensureOffsiteCardsMount();
+    if (mount) {
+      mount.appendChild(node);
+      return;
     }
     var parent = sharedCardsParent();
     var firstTech = cardsForSection('Onsite Technical Optimizations')[0];
     if (parent && firstTech) {
       parent.insertBefore(node, firstTech);
-      return;
+    } else if (parent) {
+      parent.appendChild(node);
     }
-    if (parent) parent.insertBefore(node, parent.firstChild);
+  }
+
+  function relocateOffsiteCards() {
+    var mount = ensureOffsiteCardsMount();
+    if (!mount) return;
+    OFFSITE_ORDER.forEach(function (id) {
+      var card = findOffsiteCardGlobal(id);
+      if (card && card.parentElement !== mount) {
+        mount.appendChild(card);
+      }
+    });
+    OFFSITE_ORDER.forEach(function (id) {
+      var card = findOffsiteCardGlobal(id);
+      if (card) mount.appendChild(card);
+    });
   }
 
   function sectionCardsParent(sectionTitle) {
@@ -661,8 +700,12 @@
       if (byId[id]) return;
       var existing = findOffsiteCardGlobal(id);
       if (existing) {
-        if (!isOffsiteCard(existing)) {
-          insertIntoOffsiteGap(existing);
+        if (
+          !isOffsiteCard(existing) ||
+          !existing.parentElement ||
+          existing.parentElement.id !== 'skyLlmOpOffsiteCards'
+        ) {
+          mountOffsiteCard(existing);
         }
         byId[id] = existing;
       }
@@ -677,7 +720,7 @@
         card.dataset.skyLlmOpCloned = '1';
         card.dataset.skyLlmOpCardWired = '';
         card.dataset.skyLlmOpViewId = '';
-        insertIntoOffsiteGap(card);
+        mountOffsiteCard(card);
         byId[id] = card;
       }
       if (!card) return;
@@ -686,17 +729,7 @@
       markOffsiteCard(card);
     });
 
-    var offsiteCards = OFFSITE_ORDER.map(function (id) {
-      return byId[id];
-    }).filter(Boolean);
-
-    offsiteCards.forEach(function (card, idx) {
-      if (!card.parentElement || card.parentElement !== host) return;
-      var anchor = offsiteCards[idx + 1];
-      if (anchor && anchor !== card.nextSibling) {
-        host.insertBefore(card, anchor);
-      }
-    });
+    relocateOffsiteCards();
 
     sectionCards.forEach(function (card) {
       if (OFFSITE_ORDER.indexOf(resolveViewId(card)) >= 0) return;
@@ -1169,13 +1202,7 @@
   }
 
   function detailMount() {
-    var main = findOpportunitiesMain();
-    if (main) {
-      var pos = window.getComputedStyle(main).position;
-      if (pos === 'static') main.style.position = 'relative';
-      return main;
-    }
-    return document.getElementById('root') || document.body;
+    return document.body;
   }
 
   function ensureDetailRoot() {
@@ -1219,27 +1246,25 @@
 
   function listHideTargets() {
     var detail = state.detailEl || document.getElementById('skyLlmOpDetail');
-    var main = findOpportunitiesMain();
-    if (detail && main && detail.parentElement === main && main.contains(detail)) {
-      /* detail lives on main; hide list canvas only */
-    }
-    var list = findListCanvas();
-    if (list && (!detail || !list.contains(detail))) return [list];
-    var hosts = [];
+    var targets = [];
     var seen = [];
-    [findOnsiteHost(), findContentHost()].forEach(function (host) {
-      if (host && host !== list && seen.indexOf(host) < 0) {
-        seen.push(host);
-        hosts.push(host);
+    function add(el) {
+      if (el && seen.indexOf(el) < 0 && (!detail || !el.contains(detail))) {
+        seen.push(el);
+        targets.push(el);
       }
-    });
-    return hosts;
+    }
+    add(findOpportunitiesMain());
+    add(findListCanvas());
+    add(document.getElementById('skyLlmOpOffsiteCards'));
+    return targets;
   }
 
   function setOpportunityListsVisible(visible) {
     listHideTargets().forEach(function (host) {
       host.classList.toggle('sky-llm-op-list-hidden', !visible);
     });
+    document.body.classList.toggle('sky-llm-op-detail-open', !visible);
   }
 
   function showDetail(viewId) {
@@ -1248,7 +1273,8 @@
     var detail = ensureDetailRoot();
     if (!DETAIL_VIEWS[viewId] || !detail) return;
 
-    detail.innerHTML = buildDetailHtml(viewId);
+    detail.innerHTML =
+      '<div class="sky-llm-op-detail-inner">' + buildDetailHtml(viewId) + '</div>';
     try {
       var urls = llmDemoUrlsApi();
       if (urls && urls.patchRoot) {
@@ -1262,9 +1288,8 @@
     detail.classList.add('sky-llm-op-detail--overlay');
     detail.classList.add('sky-llm-op-detail--recover');
     detail.style.display = 'block';
-    detail.style.zIndex = '100';
     setOpportunityListsVisible(false);
-    detail.scrollIntoView({ block: 'start' });
+    window.scrollTo(0, 0);
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -1284,6 +1309,7 @@
 
   function hideDetail() {
     setOpportunityListsVisible(true);
+    document.body.classList.remove('sky-llm-op-detail-open');
     if (state.detailEl) {
       state.detailEl.hidden = true;
       state.detailEl.innerHTML = '';
@@ -1306,6 +1332,7 @@
     state.onsiteHost = null;
     state.contentHost = null;
     state.offsiteHost = null;
+    state.offsiteMount = null;
   }
 
   function boot() {
