@@ -5,7 +5,7 @@
   'use strict';
 
   function snapshotBuild() {
-    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260623';
+    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260624';
   }
 
   function snapshotPageUrl(file) {
@@ -152,7 +152,17 @@
     var applyBtn = document.getElementById('llmDemoApplyBtn');
     var resetBtn = document.getElementById('llmDemoResetBtn');
     var status = document.getElementById('llmDemoCustomizeStatus');
-    if (!anchor || !panel || !urlInput || typeof LlmDemoConfig === 'undefined') return;
+    if (
+      !anchor ||
+      !panel ||
+      !urlInput ||
+      !brandInput ||
+      !applyBtn ||
+      !resetBtn ||
+      typeof LlmDemoConfig === 'undefined'
+    ) {
+      return;
+    }
 
     var hideTimer = null;
 

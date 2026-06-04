@@ -275,6 +275,8 @@
     lastComboboxPlatform: '',
     metricsReapplyTimer: null,
     kpiObserver: null,
+    kpiObserverMuted: false,
+    kpiObserverPending: false,
   };
 
   var OVERVIEW_KPI_SPECS = [
@@ -893,7 +895,14 @@
     var root = findOverviewKpiRoot();
     if (!root || !window.MutationObserver) return;
     state.kpiObserver = new MutationObserver(function () {
-      scheduleMetricsReapply();
+      if (state.kpiObserverMuted) return;
+      if (state.kpiObserverPending) return;
+      state.kpiObserverPending = true;
+      window.requestAnimationFrame(function () {
+        state.kpiObserverPending = false;
+        if (state.kpiObserverMuted) return;
+        scheduleMetricsReapply();
+      });
     });
     state.kpiObserver.observe(root, { childList: true, subtree: true, characterData: true });
   }
@@ -1103,12 +1112,17 @@
   function applyMetrics(platformId, rangeId) {
     cacheMetricNodes();
     var m = getMetrics(platformId, rangeId);
-    Object.keys(m).forEach(function (key) {
-      if (state.metricNodes[key]) {
-        state.metricNodes[key].textContent = m[key];
-        state.metricNodes[key].setAttribute('data-sky-metric', key);
-      }
-    });
+    state.kpiObserverMuted = true;
+    try {
+      Object.keys(m).forEach(function (key) {
+        var node = state.metricNodes[key];
+        if (!node) return;
+        if (node.textContent !== m[key]) node.textContent = m[key];
+        node.setAttribute('data-sky-metric', key);
+      });
+    } finally {
+      state.kpiObserverMuted = false;
+    }
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.applyTrends) {
       window.skyLlmSnapshotMarket.applyTrends(platformId, rangeId);
     }
