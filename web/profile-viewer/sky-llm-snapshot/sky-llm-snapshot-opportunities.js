@@ -580,8 +580,26 @@
     showDetail(viewId);
   }
 
+  /** Frozen React OppCards swallow clicks — replace with inert clone before wiring. */
+  function neutralizeFrozenCard(card) {
+    if (!card || !card.parentElement) return card;
+    if (card.dataset.skyLlmOpCloned === '1' || card.dataset.skyLlmOpNeutralized === '1') {
+      return card;
+    }
+    var viewId = card.dataset.skyLlmOpViewId || resolveViewId(card);
+    var clone = card.cloneNode(true);
+    clone.dataset.skyLlmOpNeutralized = '1';
+    clone.dataset.skyLlmOpCardWired = '';
+    clone.dataset.skyLlmOpCardClickWired = '';
+    clone.dataset.skyLlmOpBtnWired = '';
+    card.parentElement.replaceChild(clone, card);
+    if (viewId) clone.dataset.skyLlmOpViewId = viewId;
+    return clone;
+  }
+
   function wireCardOpen(card, viewId) {
     if (!card || !viewId) return;
+    card = neutralizeFrozenCard(card);
     card.dataset.skyLlmOpViewId = viewId;
     card.dataset.skyLlmOpCardWired = '1';
     card.classList.add('sky-llm-op-card-clickable');
@@ -638,19 +656,22 @@
   function ensureDelegatedClicks() {
     if (state.delegateWired) return;
     state.delegateWired = true;
-    document.addEventListener(
-      'click',
-      function (e) {
-        if (!isOpportunityOpenClick(e.target)) return;
-        var card = e.target.closest('[data-testid*="OppCard"]');
-        var viewId = resolveViewId(card);
-        if (!viewId) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openDetailForCard(card);
-      },
-      true,
-    );
+    var lastOpenAt = 0;
+    function handleOpenIntent(e) {
+      if (!isOpportunityOpenClick(e.target)) return;
+      var card = e.target.closest('[data-testid*="OppCard"]');
+      var viewId = resolveViewId(card);
+      if (!viewId) return;
+      var now = Date.now();
+      if (now - lastOpenAt < 350) return;
+      lastOpenAt = now;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      openDetailForCard(card);
+    }
+    document.addEventListener('pointerdown', handleOpenIntent, true);
+    document.addEventListener('click', handleOpenIntent, true);
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       var card = e.target.closest('[data-testid*="OppCard"].sky-llm-op-card-clickable');
@@ -686,6 +707,8 @@
       var card = byId[id];
       var config = ONSITE_CARDS[id];
       if (!card || !config) return;
+      card = neutralizeFrozenCard(card);
+      byId[id] = card;
       patchCard(card, config);
       wireCardOpen(card, id);
       card.classList.remove('sky-llm-op-card-hidden');
@@ -820,6 +843,7 @@
     }
 
     if (byId.simplify) {
+      byId.simplify = neutralizeFrozenCard(byId.simplify);
       patchCard(byId.simplify, CONTENT_CARDS.simplify, { hideMetrics: true });
       wireCardOpen(byId.simplify, 'simplify');
       byId.simplify.classList.remove('sky-llm-op-card-hidden');
@@ -1362,7 +1386,7 @@
     if (pane) pane.scrollTop = 0;
     detail.scrollTop = 0;
 
-    if (isRichDetailView(viewId)) wireDetailPanels(detail);
+    wireDetailPanels(detail);
 
     var back = document.getElementById('skyLlmOpBack');
     if (back) {
@@ -1426,6 +1450,7 @@
       delete card.dataset.skyLlmOpCardClickWired;
       delete card.dataset.skyLlmOpViewId;
       delete card.dataset.skyLlmOpZone;
+      delete card.dataset.skyLlmOpNeutralized;
     });
   }
 

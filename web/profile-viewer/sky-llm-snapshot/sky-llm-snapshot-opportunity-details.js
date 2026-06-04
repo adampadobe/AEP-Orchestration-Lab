@@ -78,13 +78,10 @@
   }
 
   function priorityPill(level) {
-    var cls =
-      level === 'Critical'
-        ? 'sky-llm-op-priority--critical'
-        : level === 'High'
-          ? 'sky-llm-op-priority--high'
-          : 'sky-llm-op-priority--medium';
-    return '<span class="sky-llm-op-priority ' + cls + '">' + esc(level) + '</span>';
+    var cls = 'sky-llm-op-priority sky-llm-op-priority--medium';
+    if (level === 'Critical') cls = 'sky-llm-op-priority sky-llm-op-priority--critical';
+    if (level === 'High') cls = 'sky-llm-op-priority sky-llm-op-priority--high';
+    return '<span class="' + cls + '">' + esc(level) + '</span>';
   }
 
   function buildRedditDetailHtml() {
@@ -94,17 +91,17 @@
       '<h1 class="sky-llm-op-detail-title">Reddit Sentiment Analysis — ' +
       esc(b) +
       '</h1>' +
-      '<p class="sky-llm-op-detail-subtitle">Reddit is a critical data source for Large Language Models. When users ask AI assistants about your brand, the LLM responses are influenced by Reddit content sentiment. This analysis identifies actionable improvements to ' +
+      '<p class="sky-llm-op-detail-subtitle">Reddit is a critical data source for Large Language Models. When users ask AI assistants about your brand, LLM responses are influenced by Reddit content sentiment. This analysis identifies actionable improvements to ' +
       esc(b) +
-      '\'s Reddit reputation and brand visibility across r/Coffee, r/espresso, r/InstantCoffee, r/BuyItForLife, and r/sustainability.</p>' +
+      '\'s Reddit reputation across r/Coffee, r/espresso, r/InstantCoffee, r/BuyItForLife, and r/sustainability.</p>' +
       '<div class="sky-llm-op-recover-meta">' +
       '<span class="sky-llm-op-pill">Social &amp; Community</span>' +
       '<span class="sky-llm-op-pill">Social Media</span>' +
-      '<span class="sky-llm-op-updated">Updated Mon, Jun 1, 2024</span>' +
+      '<span class="sky-llm-op-updated">Updated Mon, Jun 3, 2024</span>' +
       '<button type="button" class="sky-llm-op-export-btn sky-llm-op-export-btn--inline">Export to PDF</button>' +
       '</div>' +
       kpiStrip([
-        { label: 'Posts Analyzed', value: '16' },
+        { label: 'Posts Analyzed', value: '16', hint: 'Threads scanned in the last 90 days' },
         { label: 'Comments Analyzed', value: '1,487' },
         { label: 'Brand Mentions (Threads)', value: '221' },
         { label: 'Overall Sentiment (Threads)', value: 'Favorable' },
@@ -117,10 +114,10 @@
       '<span class="sky-llm-op-subtab sky-llm-op-subtab--active">Current Suggestions</span>' +
       '<span class="sky-llm-op-subtab">Fixed Suggestions</span>' +
       '<span class="sky-llm-op-subtab">Ignored Suggestions</span>' +
-      '<span class="sky-llm-op-subtabs-actions">' +
+      '<div class="sky-llm-op-subtabs-actions">' +
       '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
       '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
-      '</span></div>' +
+      '</div></div>' +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-suggestions">' +
       '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Items</th><th>Evidence</th></tr></thead>' +
       '<tbody>' +
@@ -144,9 +141,7 @@
       '<h1 class="sky-llm-op-detail-title">YouTube Sentiment Analysis — ' +
       esc(b) +
       ' Pricing Perception</h1>' +
-      '<p class="sky-llm-op-detail-subtitle">YouTube reviews and comparison videos shape how LLMs describe your pricing and value. This analysis surfaces narrative gaps and engagement opportunities on high-traffic creator content about ' +
-      esc(b) +
-      '.</p>' +
+      '<p class="sky-llm-op-detail-subtitle">YouTube reviews and creator commentary shape how LLMs summarize pricing, value, and product comparisons for your brand.</p>' +
       '<div class="sky-llm-op-recover-meta">' +
       '<span class="sky-llm-op-pill">Social Media</span>' +
       '<span class="sky-llm-op-updated">Updated Mon, Jan 1, 2024</span>' +
@@ -161,11 +156,6 @@
       '<span class="sky-llm-op-tab sky-llm-op-tab--active">Suggestions</span>' +
       '<span class="sky-llm-op-tab">Performance</span>' +
       '</div>' +
-      '<div class="sky-llm-op-subtabs">' +
-      '<span class="sky-llm-op-subtab sky-llm-op-subtab--active">Current Suggestions</span>' +
-      '<span class="sky-llm-op-subtab">Fixed Suggestions</span>' +
-      '<span class="sky-llm-op-subtab">Ignored Suggestions</span>' +
-      '</div>' +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-suggestions">' +
       '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Items</th><th>Evidence</th></tr></thead>' +
       '<tbody>' +
@@ -179,74 +169,113 @@
     );
   }
 
+  function wikiKpiCard(item) {
+    return (
+      '<div class="sky-llm-op-kpi-card sky-llm-op-kpi-card--compact">' +
+      '<span class="sky-llm-op-kpi-label">' +
+      esc(item.label) +
+      ' <span class="sky-llm-op-info" title="Compared to industry average">i</span></span>' +
+      '<span class="sky-llm-op-kpi-value">' +
+      esc(item.value) +
+      '</span>' +
+      '<span class="' +
+      esc(item.subClass) +
+      '">' +
+      esc(item.sub) +
+      '</span></div>'
+    );
+  }
+
+  function wikiRecRow(label) {
+    return (
+      '<li>' +
+      '<input type="checkbox" aria-label="Select recommendation">' +
+      '<span class="sky-llm-op-rec-label">' +
+      esc(label) +
+      '</span>' +
+      '<span class="sky-llm-op-rec-status">PENDING VALIDATION</span>' +
+      '</li>'
+    );
+  }
+
   function buildWikipediaDetailHtml() {
     var b = brand();
+    var kpis = [
+      { label: 'References', value: '111', sub: '+39% vs Average', subClass: 'sky-llm-op-kpi-sub sky-llm-op-kpi-sub--pos' },
+      { label: 'Sections', value: '9', sub: '+100% vs Average', subClass: 'sky-llm-op-kpi-sub sky-llm-op-kpi-sub--pos' },
+      { label: 'Word Count', value: '3,432', sub: '+60% vs Average', subClass: 'sky-llm-op-kpi-sub sky-llm-op-kpi-sub--pos' },
+      { label: 'Images', value: '6', sub: '+40% vs Average', subClass: 'sky-llm-op-kpi-sub sky-llm-op-kpi-sub--pos' },
+      { label: 'Categories', value: '34', sub: '-10% vs Average', subClass: 'sky-llm-op-kpi-sub sky-llm-op-kpi-sub--neg' },
+    ];
+    var recs = [
+      'Infobox Complete',
+      'Sections Leader',
+      'Categories Leader',
+      'Article Quality Status',
+      'References Above Average',
+      'Images Above Average',
+    ];
+
     return (
       backBtn() +
       '<div class="sky-llm-op-wiki-head">' +
-      '<div><h1 class="sky-llm-op-detail-title">Wikipedia Analysis — AI-powered suggestions to optimize your Wikipedia presence</h1>' +
+      '<div class="sky-llm-op-wiki-head-main">' +
+      '<h1 class="sky-llm-op-detail-title">LLM discoverability: Improve Wikipedia presence</h1>' +
+      '<p class="sky-llm-op-detail-subtitle">AI-powered suggestions to optimize your Wikipedia presence.</p>' +
       '<div class="sky-llm-op-recover-meta">' +
       '<span class="sky-llm-op-pill">Wikipedia Analysis</span>' +
-      '<span class="sky-llm-op-pill">Off-Site</span>' +
-      '<span class="sky-llm-op-updated">Updated Mon, Jun 3, 2024</span>' +
+      '<span class="sky-llm-op-updated">Updated Tue, Apr 23, 2024</span>' +
       '</div></div>' +
       '<div class="sky-llm-op-wiki-head-actions">' +
       '<button type="button" class="sky-llm-op-export-btn">Export to PDF</button>' +
       '<button type="button" class="sky-llm-op-deploy-btn" disabled>Deploy optimizations</button>' +
       '</div></div>' +
       '<div class="sky-llm-op-kpi-row sky-llm-op-kpi-row--five">' +
-      [
-        { label: 'References', value: '27', sub: '+56% vs Average' },
-        { label: 'Sections', value: '8', sub: '+100% vs Average' },
-        { label: 'Word Count', value: '1,385', sub: '+65% vs Average' },
-        { label: 'Images', value: '7', sub: '+43% vs Average' },
-        { label: 'Categories', value: '9', sub: '-10% vs Average' },
-      ]
-        .map(function (item) {
-          return (
-            '<div class="sky-llm-op-kpi-card sky-llm-op-kpi-card--compact"><span class="sky-llm-op-kpi-label">' +
-            esc(item.label) +
-            '</span><span class="sky-llm-op-kpi-value">' +
-            esc(item.value) +
-            '</span><span class="sky-llm-op-kpi-sub">' +
-            esc(item.sub) +
-            '</span></div>'
-          );
-        })
-        .join('') +
+      kpis.map(wikiKpiCard).join('') +
       '</div>' +
       '<section class="sky-llm-op-panel sky-llm-op-panel--overview-lite">' +
+      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">' +
+      '<span class="sky-llm-op-panel-title">Overview</span>' +
+      '</button>' +
       '<div class="sky-llm-op-panel-body">' +
-      '<p>Enhancing your Wikipedia article improves visibility in LLMs such as ChatGPT, Google AI Mode, Gemini, Perplexity, and Copilot. Citations from authoritative Wikipedia content increase the likelihood your brand is referenced accurately in AI-generated answers.</p>' +
-      '<p class="sky-llm-op-platforms">IMPROVE VISIBILITY IN: ChatGPT (Paid) · ChatGPT (Free) · Google AI Overview · Perplexity · Google AI Mode · Microsoft Copilot · Gemini</p>' +
+      '<p>Enhance your company\'s Wikipedia page to improve visibility in Large Language Model (LLM) and AI search responses. A well-maintained Wikipedia presence increases the likelihood of being accurately cited by AI systems like ChatGPT, Google AI Mode, Gemini, Perplexity, and Copilot. Review the suggestions below and use the action buttons to mark them as applied or dismiss them.</p>' +
+      '<p class="sky-llm-op-platforms"><strong>IMPROVE VISIBILITY IN:</strong> ChatGPT (Paid) · ChatGPT (Free) · Google AI Overview · Perplexity · Google AI Mode · Microsoft Copilot · Gemini</p>' +
       '</div></section>' +
       '<div class="sky-llm-op-tabs">' +
       '<span class="sky-llm-op-tab sky-llm-op-tab--active">Suggestions &amp; Guidance</span>' +
       '<span class="sky-llm-op-tab">Market Comparison</span>' +
       '<span class="sky-llm-op-tab">Your Article</span>' +
       '</div>' +
+      '<div class="sky-llm-op-guidance-head">' +
+      '<div class="sky-llm-op-guidance-head-title">' +
+      '<h2 class="sky-llm-op-section-title">Guidance</h2>' +
+      '<span class="sky-llm-op-ai-badge">AI-Generated</span></div>' +
+      '<button type="button" class="sky-llm-op-ghost-btn sky-llm-op-view-wiki-btn">View Wikipedia Page</button>' +
+      '</div>' +
       '<section class="sky-llm-op-guidance-grid">' +
-      '<div class="sky-llm-op-guidance-col"><h3>Recommendation</h3><p>Review and implement the suggested improvements to enhance Wikipedia presence and LLM citability.</p></div>' +
-      '<div class="sky-llm-op-guidance-col"><h3>Key Insight</h3><p>Wikipedia analysis identified 6 improvement opportunities for <strong>' +
+      '<div class="sky-llm-op-guidance-col"><h3>Recommendation</h3><p>Review and implement the suggested improvements to enhance Wikipedia presence and LLM visibility.</p></div>' +
+      '<div class="sky-llm-op-guidance-col"><h3>Key Insight</h3><p>Wikipedia analysis identified ' +
+      recs.length +
+      ' improvement opportunities for <strong>' +
       esc(b) +
       '</strong>.</p></div>' +
-      '<div class="sky-llm-op-guidance-col"><h3>Rationale</h3><p>Based on comparison with coffee and beverages competitors.</p></div>' +
+      '<div class="sky-llm-op-guidance-col"><h3>Rationale</h3><p>Based on comparison with industry competitors in your category.</p></div>' +
       '</section>' +
-      '<div class="sky-llm-op-section-head"><h2 class="sky-llm-op-section-title">Strategic Recommendations</h2>' +
+      '<div class="sky-llm-op-section-head sky-llm-op-section-head--wiki-rec">' +
+      '<div><h2 class="sky-llm-op-section-title">Strategic Recommendations</h2>' +
       '<span class="sky-llm-op-ai-badge">AI-Generated</span></div>' +
+      '<a href="#" class="sky-llm-op-help-link">How priorities work</a>' +
+      '</div>' +
       '<div class="sky-llm-op-toolbar">' +
-      '<span class="sky-llm-op-filter">Status: Current (6)</span>' +
-      '<span class="sky-llm-op-filter">Priority: All (6)</span>' +
+      '<span class="sky-llm-op-filter">Status: Current (All)</span>' +
+      '<span class="sky-llm-op-filter">Priority: All (' +
+      recs.length +
+      ')</span>' +
       '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark Fixed</button>' +
       '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore</button>' +
       '</div>' +
-      '<ul class="sky-llm-op-rec-list">' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>Enhance infobox with missing fields</span><span class="sky-llm-op-rec-icon sky-llm-op-rec-icon--warn" aria-hidden="true">!</span></li>' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>Add 1+ Categories to Improve Discoverability</span><span class="sky-llm-op-rec-icon" aria-hidden="true">i</span></li>' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>References Above Average: 27 (Rank #1 of 4)</span><span class="sky-llm-op-rec-icon" aria-hidden="true">i</span></li>' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>Sections Above Average: 8 (Rank #1 of 4)</span><span class="sky-llm-op-rec-icon" aria-hidden="true">i</span></li>' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>Images Leader: 7 Images (Rank #1 of 4)</span><span class="sky-llm-op-rec-icon" aria-hidden="true">i</span></li>' +
-      '<li><input type="checkbox" aria-label="Select recommendation"><span>Article Quality Status</span><span class="sky-llm-op-rec-icon" aria-hidden="true">i</span></li>' +
+      '<ul class="sky-llm-op-rec-list sky-llm-op-rec-list--wiki">' +
+      recs.map(wikiRecRow).join('') +
       '</ul>'
     );
   }

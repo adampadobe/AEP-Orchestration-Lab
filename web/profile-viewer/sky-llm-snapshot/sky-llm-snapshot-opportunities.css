@@ -525,6 +525,84 @@
   color: rgb(109, 109, 109);
 }
 
+.sky-llm-op-kpi-sub--pos {
+  color: rgb(22, 128, 57);
+}
+
+.sky-llm-op-kpi-sub--neg {
+  color: rgb(194, 65, 12);
+}
+
+.sky-llm-op-panel--overview-lite {
+  background: rgb(239, 246, 255);
+  border-color: rgb(191, 219, 254);
+}
+
+.sky-llm-op-panel--overview-lite .sky-llm-op-panel-toggle {
+  color: rgb(41, 41, 41);
+}
+
+.sky-llm-op-guidance-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 0;
+}
+
+.sky-llm-op-guidance-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sky-llm-op-guidance-head .sky-llm-op-section-title {
+  margin: 0;
+}
+
+.sky-llm-op-view-wiki-btn {
+  border-color: rgb(41, 41, 41);
+  color: rgb(41, 41, 41);
+  background: rgb(255, 255, 255);
+}
+
+.sky-llm-op-section-head--wiki-rec {
+  margin-top: 8px;
+}
+
+.sky-llm-op-section-head--wiki-rec .sky-llm-op-section-title {
+  display: inline;
+  margin-right: 8px;
+}
+
+.sky-llm-op-help-link {
+  font-size: 13px;
+  color: rgb(20, 115, 230);
+  text-decoration: none;
+}
+
+.sky-llm-op-help-link:hover {
+  text-decoration: underline;
+}
+
+.sky-llm-op-rec-list--wiki .sky-llm-op-rec-label {
+  flex: 1;
+}
+
+.sky-llm-op-rec-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgb(109, 109, 109);
+  white-space: nowrap;
+}
+
+.sky-llm-op-wiki-head-main .sky-llm-op-detail-subtitle {
+  margin: 8px 0 0;
+}
+
 .sky-llm-op-info {
   display: inline-flex;
   align-items: center;
