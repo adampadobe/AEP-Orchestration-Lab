@@ -10,15 +10,16 @@
 
   var ONSITE_ORDER = ['404', '503', 'recover'];
   var CONTENT_ORDER = ['simplify', 'llm-summaries'];
+  var OFFSITE_ORDER = ['reddit', 'youtube', 'wikipedia', 'cited'];
 
   var ONSITE_CARDS = {
     '404': {
       title: 'Agentic Traffic 404s Analysis',
       date: 'Sun, May 17, 2026',
       tag: 'Technical SEO',
-      metric1: '2',
+      metric1: '3',
       label1: 'URLs affected',
-      metric2: '2',
+      metric2: '5,733',
       label2: 'Total hits lost',
     },
     '503': {
@@ -54,24 +55,31 @@
     },
   };
 
-  var DETAIL_VIEWS = {
-    '404': {
-      kind: 'table',
-      title: 'Agentic Traffic 404s Analysis',
-      subtitle: 'Analysis of 404 errors detected by AI agents crawling your site',
-      kpi1Label: 'Total URLs',
-      kpi1Value: '2',
-      kpi2Label: 'Total Hits',
-      kpi2Value: '2',
-      summary:
-        'Found 2 URLs returning 404 errors with 2 total hits from AI agents, representing significant lost traffic potential.',
-      sectionTitle: '404 Errors Details',
-      tableHeaders: ['Url', 'Total', 'Week 19, 2024', 'Week 20, 2024'],
-      rows: [
-        ['https://sky.com/content/status', '1', '1', '—'],
-        ['https://sky.com/content/status', '1', '—', '1'],
-      ],
+  var OFFSITE_CARDS = {
+    reddit: {
+      title: 'Reddit Sentiment Analysis — {brand}',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Social Media',
     },
+    youtube: {
+      title: 'YouTube Sentiment Analysis — {brand} Pricing Perception',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Social Media',
+    },
+    wikipedia: {
+      title: 'Wikipedia Analysis — AI-powered suggestions to optimize your Wikipedia presence',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Earned Content',
+    },
+    cited: {
+      title: 'Cited Sentiment Analysis — {brand}',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Earned Content',
+    },
+  };
+
+  var DETAIL_VIEWS = {
+    '404': { kind: 'table', dynamic: '404' },
     '503': {
       kind: 'table',
       title: 'Agentic Traffic 503s Analysis',
@@ -89,6 +97,10 @@
     recover: { kind: 'recover' },
     simplify: { kind: 'content-op-simplify' },
     'llm-summaries': { kind: 'content-op-summaries' },
+    reddit: { kind: 'reddit' },
+    youtube: { kind: 'youtube' },
+    wikipedia: { kind: 'wikipedia' },
+    cited: { kind: 'cited' },
   };
 
   var TITLE_TO_ID = {
@@ -101,13 +113,14 @@
     'Information gain for GEO ': 'simplify',
   };
 
-  var HASH_IDS = '404|503|recover|simplify|llm-summaries';
+  var HASH_IDS = '404|503|recover|simplify|llm-summaries|reddit|youtube|wikipedia|cited';
 
   var state = {
     listCanvas: null,
     detailEl: null,
     onsiteHost: null,
     contentHost: null,
+    offsiteHost: null,
     contentTemplate: null,
     delegateWired: false,
     walnutWatcher: false,
@@ -193,6 +206,51 @@
     return state.contentHost;
   }
 
+  function findOffsiteHost() {
+    if (state.offsiteHost) return state.offsiteHost;
+    state.offsiteHost = findSectionHost('Offsite Optimizations');
+    return state.offsiteHost;
+  }
+
+  function demoBrandLabel() {
+    var brands = root.SkyLlmLlmDemoBrands || root.LlmDemoBrands;
+    if (brands && brands.isActive && brands.isActive()) {
+      if (brands.brandPickerLabel) return brands.brandPickerLabel();
+      var cfg = brands.loadConfig && brands.loadConfig();
+      if (cfg && cfg.brand) return cfg.brand;
+    }
+    return 'Sky';
+  }
+
+  function demoSiteUrl(path) {
+    var urls = llmDemoUrlsApi();
+    var cfg = urls && urls.getCfg && urls.getCfg();
+    var base = cfg && cfg.siteUrl ? String(cfg.siteUrl).replace(/\/$/, '') : 'https://www.sky.com';
+    var p = path.charAt(0) === '/' ? path : '/' + path;
+    return demoUrl(base + p);
+  }
+
+  function registerDetailDeps() {
+    root.__llmOppDetailDeps = {
+      escapeHtml: escapeHtml,
+      demoBrandLabel: demoBrandLabel,
+      demoSiteUrl: demoSiteUrl,
+      demoLinkCell: demoLinkCell,
+    };
+  }
+
+  function detailViewsApi() {
+    return root.LlmOpportunityDetailViews || root.SkyLlmOpportunityDetailViews;
+  }
+
+  function resolveTableView(view) {
+    if (view.dynamic === '404') {
+      var ext = detailViewsApi();
+      if (ext && ext.build404View) return ext.build404View();
+    }
+    return view;
+  }
+
   function suppressClickBlockers() {
     var walnut = document.getElementById('walnut-root-popin-element');
     if (walnut) {
@@ -255,7 +313,12 @@
     for (var i = 0; i < keys.length; i++) {
       if (testid.indexOf(keys[i]) >= 0) return TESTID_TO_VIEW[keys[i]];
     }
-    return TITLE_TO_ID[getCardTitle(card)] || '';
+    var title = getCardTitle(card);
+    if (/Reddit Sentiment/i.test(title)) return 'reddit';
+    if (/YouTube Sentiment/i.test(title)) return 'youtube';
+    if (/Wikipedia Analysis/i.test(title)) return 'wikipedia';
+    if (/Cited Sentiment/i.test(title)) return 'cited';
+    return TITLE_TO_ID[title] || '';
   }
 
   function unblurCard(card) {
@@ -437,13 +500,77 @@
 
     cards.forEach(function (card) {
       var id = resolveViewId(card);
-      if (ONSITE_CARDS[id] || CONTENT_CARDS[id]) return;
+      if (ONSITE_CARDS[id] || CONTENT_CARDS[id] || OFFSITE_CARDS[id]) return;
       var title = getCardTitle(card);
       if (title.indexOf('Information gain') === 0) return;
       card.classList.add('sky-llm-op-card-hidden');
     });
 
     reorderCards(findOnsiteHost(), ONSITE_ORDER, byId);
+  }
+
+  function patchOffsiteCard(card, config) {
+    var title = config.title.replace(/\{brand\}/g, demoBrandLabel());
+    patchCard(card, {
+      title: title,
+      date: config.date,
+      tag: config.tag,
+      metric1: '',
+      label1: '',
+      metric2: '',
+      label2: '',
+    }, { hideMetrics: true });
+  }
+
+  function matchOffsiteCardTitle(title, id) {
+    if (!title) return false;
+    if (id === 'reddit') return /Reddit Sentiment/i.test(title);
+    if (id === 'youtube') return /YouTube Sentiment/i.test(title);
+    if (id === 'wikipedia') return /Wikipedia Analysis/i.test(title);
+    if (id === 'cited') return /Cited Sentiment/i.test(title);
+    return false;
+  }
+
+  function setupOffsiteCards() {
+    var host = findOffsiteHost();
+    if (!host) return;
+
+    var cards = Array.from(host.querySelectorAll('[data-testid*="OppCard"]'));
+    var byId = {};
+    var template = cards[0];
+
+    cards.forEach(function (card) {
+      OFFSITE_ORDER.forEach(function (id) {
+        if (!byId[id] && matchOffsiteCardTitle(getCardTitle(card), id)) {
+          byId[id] = card;
+        }
+      });
+    });
+
+    OFFSITE_ORDER.forEach(function (id) {
+      var config = OFFSITE_CARDS[id];
+      if (!config) return;
+      var card = byId[id];
+      if (!card && template) {
+        card = template.cloneNode(true);
+        card.dataset.skyLlmOpCloned = '1';
+        card.dataset.skyLlmOpCardWired = '';
+        card.dataset.skyLlmOpViewId = '';
+        host.appendChild(card);
+        byId[id] = card;
+      }
+      if (!card) return;
+      patchOffsiteCard(card, config);
+      wireCardOpen(card, id);
+      card.classList.remove('sky-llm-op-card-hidden');
+    });
+
+    cards.forEach(function (card) {
+      if (OFFSITE_ORDER.indexOf(resolveViewId(card)) >= 0) return;
+      card.classList.add('sky-llm-op-card-hidden');
+    });
+
+    reorderCards(host, OFFSITE_ORDER, byId);
   }
 
   function ensureContentCards() {
@@ -656,9 +783,9 @@
       '<tbody><tr>' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
       '<td><a href="' +
-      escapeHtml(demoUrl('https://sky.com/tv/sky-glass')) +
+      escapeHtml(demoSiteUrl('/')) +
       '" rel="noopener noreferrer">' +
-      escapeHtml(demoLinkLabel('https://sky.com/tv/sky-glass')) +
+      escapeHtml(demoLinkLabel(demoSiteUrl('/'))) +
       '</a></td>' +
       '<td>—</td><td>91%</td><td>1.1</td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' +
@@ -747,7 +874,8 @@
       '<p>Poor readability makes content difficult for users to understand. Content with low readability scores may drive away visitors and reduce engagement metrics.</p>' +
       '<p>Readability scores measure how easy your content is to understand. Higher Flesch Reading Ease scores (60+) indicate easier-to-read content, which improves user engagement and SEO performance. These AI-generated suggestions help simplify complex text while maintaining meaning and context.</p>';
     var guidance =
-      '<p>Recommendations use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
+      '<p><strong>Recommendation:</strong> Use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
+      '<p><strong>Our solution</strong></p>' +
       '<ol>' +
       '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
       '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing required.</li>' +
@@ -780,7 +908,7 @@
       '<thead><tr><th></th><th>URL</th><th>Issues</th><th>Agentic Traffic (4 Weeks)</th><th>Details</th></tr></thead>' +
       '<tbody><tr>' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
-      demoLinkCell('https://sky.com/tv/sky-glass/packages') +
+      demoLinkCell(siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html')) +
       '<td>1</td><td>N/A</td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
       '</tr></tbody></table></div></section>'
@@ -788,21 +916,24 @@
   }
 
   function buildLlmSummariesDetailHtml() {
-    var urls = [
-      { url: 'https://sky.com/tv/sky-glass', suggestions: '2' },
-      { url: 'https://sky.com/tv/sky-stream', suggestions: '1' },
-      { url: 'https://sky.com/broadband/deals', suggestions: '3' },
-      { url: 'https://sky.com/broadband/full-fibre', suggestions: '1' },
-      { url: 'https://sky.com/tv/sports', suggestions: '2' },
-      { url: 'https://sky.com/tv/cinema', suggestions: '1' },
-      { url: 'https://sky.com/shop/tv', suggestions: '3' },
-      { url: 'https://sky.com/help/home', suggestions: '1' },
-      { url: 'https://sky.com/help/broadband', suggestions: '2' },
-      { url: 'https://sky.com/magazine/entertainment', suggestions: '1' },
-      { url: 'https://sky.com/magazine/sport', suggestions: '2' },
-      { url: 'https://sky.com/tv/ultimate-tv', suggestions: '3' },
-      { url: 'https://sky.com/tv/netflix', suggestions: '1' },
+    var paths = [
+      '/tv/sky-glass',
+      '/tv/sky-stream',
+      '/broadband/deals',
+      '/broadband/full-fibre',
+      '/tv/sports',
+      '/tv/cinema',
+      '/shop/tv',
+      '/help/home',
+      '/help/broadband',
+      '/magazine/entertainment',
+      '/magazine/sport',
+      '/tv/ultimate-tv',
+      '/tv/netflix',
     ];
+    var urls = paths.map(function (path, i) {
+      return { url: siteUrl(path), suggestions: String((i % 3) + 1) };
+    });
 
     var rows = urls
       .map(function (row) {
@@ -866,10 +997,16 @@
   function buildDetailHtml(viewId) {
     var view = DETAIL_VIEWS[viewId];
     if (!view) return '';
+    var ext = detailViewsApi();
     if (view.kind === 'recover') return buildRecoverDetailHtml();
     if (view.kind === 'content-op-simplify') return buildSimplifyDetailHtml();
     if (view.kind === 'content-op-summaries') return buildLlmSummariesDetailHtml();
-    return buildTableDetailHtml(view);
+    if (view.kind === 'reddit' && ext && ext.buildRedditDetailHtml) return ext.buildRedditDetailHtml();
+    if (view.kind === 'youtube' && ext && ext.buildYoutubeDetailHtml) return ext.buildYoutubeDetailHtml();
+    if (view.kind === 'wikipedia' && ext && ext.buildWikipediaDetailHtml) return ext.buildWikipediaDetailHtml();
+    if (view.kind === 'cited' && ext && ext.buildCitedDetailHtml) return ext.buildCitedDetailHtml();
+    if (view.kind === 'table') return buildTableDetailHtml(resolveTableView(view));
+    return '';
   }
 
   function wireDetailPanels(root) {
@@ -914,11 +1051,19 @@
   }
 
   function isRichDetailView(viewId) {
-    return viewId === 'recover' || viewId === 'simplify' || viewId === 'llm-summaries';
+    return (
+      viewId === 'recover' ||
+      viewId === 'simplify' ||
+      viewId === 'llm-summaries' ||
+      viewId === 'reddit' ||
+      viewId === 'youtube' ||
+      viewId === 'wikipedia' ||
+      viewId === 'cited'
+    );
   }
 
   function listHideTargets() {
-    var hosts = [findOnsiteHost(), findContentHost()].filter(Boolean);
+    var hosts = [findOnsiteHost(), findContentHost(), findOffsiteHost()].filter(Boolean);
     if (hosts.length) return hosts;
     var list = findListCanvas();
     var main = findOpportunitiesMain();
@@ -994,15 +1139,18 @@
     state.listCanvas = null;
     state.onsiteHost = null;
     state.contentHost = null;
+    state.offsiteHost = null;
   }
 
   function boot() {
+    registerDetailDeps();
     suppressClickBlockers();
     watchWalnutRemoval();
     ensureDelegatedClicks();
     resetCaches();
     setupOnsiteCards();
     ensureContentCards();
+    setupOffsiteCards();
     ensureDetailRoot();
     applyHashRoute();
   }

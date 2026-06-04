@@ -46,6 +46,7 @@ const PAGE_SCRIPTS = {
     '<script src="./sky-llm-snapshot-blockers.js' + v + '"></script>',
     '<script src="./sky-llm-snapshot-opportunities-catalog.js' + v + '"></script>',
     '<script src="./sky-llm-snapshot-nav.js' + v + '"></script>',
+    '<script src="./sky-llm-snapshot-opportunity-details.js' + v + '"></script>',
     '<script src="./sky-llm-snapshot-opportunities.js' + v + '"></script>',
     '<script src="./sky-llm-snapshot-patch.js' + v + '"></script>',
     '<script src="./sky-llm-snapshot-market.js' + v + '"></script>',

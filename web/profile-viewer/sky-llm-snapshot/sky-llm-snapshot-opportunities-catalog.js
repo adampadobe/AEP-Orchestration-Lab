@@ -48,6 +48,38 @@
         'Add concise summaries agents can cite without parsing full pages — full-page or section-specific summaries.',
       bullet: '25 Suggestions',
     },
+    {
+      id: 'reddit',
+      title: 'Reddit Sentiment Analysis',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Social Media',
+      description: 'Improve Reddit reputation and visibility across key subreddits that influence LLM answers.',
+      bullet: 'Social Media',
+    },
+    {
+      id: 'youtube',
+      title: 'YouTube Sentiment Analysis',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Social Media',
+      description: 'Surface narrative gaps and engagement opportunities on high-traffic creator content.',
+      bullet: 'Social Media',
+    },
+    {
+      id: 'wikipedia',
+      title: 'Wikipedia Analysis',
+      date: 'Mon, Jun 3, 2024',
+      tag: 'Earned Content',
+      description: 'AI-powered suggestions to optimize your Wikipedia presence for LLM citability.',
+      bullet: 'Earned Content',
+    },
+    {
+      id: 'cited',
+      title: 'Cited Sentiment Analysis',
+      date: 'Mon, Jan 1, 2024',
+      tag: 'Earned Content',
+      description: 'Track earned citations and tone across third-party articles that shape LLM summaries.',
+      bullet: 'Earned Content',
+    },
   ];
 
   function parseDate(str) {
