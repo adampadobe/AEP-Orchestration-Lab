@@ -227,27 +227,43 @@
     return cards.length ? cards[0].parentElement : null;
   }
 
-  function insertBeforeOnsiteTechnical(node) {
+  function markOffsiteCard(card) {
+    if (!card) return;
+    card.dataset.skyLlmOpZone = 'offsite';
+    card.classList.remove('sky-llm-op-card-hidden');
+  }
+
+  function isOffsiteCard(card) {
+    if (!card) return false;
+    if (card.dataset.skyLlmOpZone === 'offsite') return true;
+    return OFFSITE_ORDER.indexOf(resolveViewId(card)) >= 0;
+  }
+
+  function insertIntoOffsiteGap(node) {
     if (!node) return;
-    var firstTech = cardsForSection('Onsite Technical Optimizations')[0];
-    var parent = (firstTech && firstTech.parentElement) || sharedCardsParent();
-    if (!parent) return;
-    if (firstTech) {
-      parent.insertBefore(node, firstTech);
-    } else {
-      var marker = getSectionMarker('Onsite Technical Optimizations');
-      if (marker) {
-        var walk = marker;
-        for (var i = 0; i < 10 && walk.parentElement; i++) {
-          walk = walk.parentElement;
-          if (walk.parentElement === parent) {
-            parent.insertBefore(node, walk.nextSibling);
+    markOffsiteCard(node);
+    var offsite = getSectionMarker('Offsite Optimizations');
+    var tech = getSectionMarker('Onsite Technical Optimizations');
+    if (tech) {
+      var block = tech;
+      for (var i = 0; i < 15 && block.parentElement; i++) {
+        block = block.parentElement;
+        if (offsite && block.contains(offsite) && block !== offsite) {
+          var parent = block.parentElement;
+          if (parent) {
+            parent.insertBefore(node, block);
             return;
           }
         }
       }
-      parent.insertBefore(node, parent.firstChild);
     }
+    var parent = sharedCardsParent();
+    var firstTech = cardsForSection('Onsite Technical Optimizations')[0];
+    if (parent && firstTech) {
+      parent.insertBefore(node, firstTech);
+      return;
+    }
+    if (parent) parent.insertBefore(node, parent.firstChild);
   }
 
   function sectionCardsParent(sectionTitle) {
@@ -479,12 +495,33 @@
     card.classList.add('sky-llm-op-card-clickable');
     card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'button');
+    card.style.pointerEvents = 'auto';
+    card.style.cursor = 'pointer';
     var btn = ensureDetailsButton(card);
     if (btn && btn.dataset.skyLlmOpBtnWired !== '1') {
       btn.dataset.skyLlmOpBtnWired = '1';
+      btn.style.pointerEvents = 'auto';
       btn.addEventListener(
         'click',
         function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openDetailForCard(card);
+        },
+        true,
+      );
+    }
+    if (card.dataset.skyLlmOpCardClickWired !== '1') {
+      card.dataset.skyLlmOpCardClickWired = '1';
+      card.addEventListener(
+        'click',
+        function (e) {
+          if (e.target.closest('input, textarea, select, a[href]')) return;
+          var hit = e.target.closest('button, [role="button"]');
+          if (hit) {
+            var label = (hit.textContent || '').trim();
+            if (label && label !== 'Details' && label !== 'Preview') return;
+          }
           e.preventDefault();
           e.stopPropagation();
           openDetailForCard(card);
@@ -563,6 +600,7 @@
     });
 
     sectionCards.forEach(function (card) {
+      if (isOffsiteCard(card)) return;
       var id = resolveViewId(card);
       if (ONSITE_CARDS[id]) return;
       card.classList.add('sky-llm-op-card-hidden');
@@ -623,8 +661,8 @@
       if (byId[id]) return;
       var existing = findOffsiteCardGlobal(id);
       if (existing) {
-        if (!cardInSection(existing, 'Offsite Optimizations')) {
-          insertBeforeOnsiteTechnical(existing);
+        if (!isOffsiteCard(existing)) {
+          insertIntoOffsiteGap(existing);
         }
         byId[id] = existing;
       }
@@ -639,13 +677,13 @@
         card.dataset.skyLlmOpCloned = '1';
         card.dataset.skyLlmOpCardWired = '';
         card.dataset.skyLlmOpViewId = '';
-        insertBeforeOnsiteTechnical(card);
+        insertIntoOffsiteGap(card);
         byId[id] = card;
       }
       if (!card) return;
       patchOffsiteCard(card, config);
       wireCardOpen(card, id);
-      card.classList.remove('sky-llm-op-card-hidden');
+      markOffsiteCard(card);
     });
 
     var offsiteCards = OFFSITE_ORDER.map(function (id) {
@@ -1131,6 +1169,12 @@
   }
 
   function detailMount() {
+    var main = findOpportunitiesMain();
+    if (main) {
+      var pos = window.getComputedStyle(main).position;
+      if (pos === 'static') main.style.position = 'relative';
+      return main;
+    }
     return document.getElementById('root') || document.body;
   }
 
@@ -1140,6 +1184,7 @@
       if (state.detailEl.parentElement !== mount) {
         mount.appendChild(state.detailEl);
       }
+      state.detailEl.classList.add('sky-llm-op-detail--overlay');
       return state.detailEl;
     }
     var existing = document.getElementById('skyLlmOpDetail');
@@ -1147,13 +1192,13 @@
       if (existing.parentElement !== mount) {
         mount.appendChild(existing);
       }
-      existing.classList.remove('sky-llm-op-detail--overlay');
+      existing.classList.add('sky-llm-op-detail--overlay');
       state.detailEl = existing;
       return existing;
     }
     var el = document.createElement('div');
     el.id = 'skyLlmOpDetail';
-    el.className = 'sky-llm-op-detail';
+    el.className = 'sky-llm-op-detail sky-llm-op-detail--overlay';
     el.hidden = true;
     mount.appendChild(el);
     state.detailEl = el;
@@ -1173,14 +1218,22 @@
   }
 
   function listHideTargets() {
-    var hosts = [findOnsiteHost(), findContentHost(), findOffsiteHost()].filter(Boolean);
-    if (hosts.length) return hosts;
-    var list = findListCanvas();
-    var main = findOpportunitiesMain();
     var detail = state.detailEl || document.getElementById('skyLlmOpDetail');
-    if (list && main && list !== main && main.contains(list)) return [list];
+    var main = findOpportunitiesMain();
+    if (detail && main && detail.parentElement === main && main.contains(detail)) {
+      /* detail lives on main; hide list canvas only */
+    }
+    var list = findListCanvas();
     if (list && (!detail || !list.contains(detail))) return [list];
-    return [];
+    var hosts = [];
+    var seen = [];
+    [findOnsiteHost(), findContentHost()].forEach(function (host) {
+      if (host && host !== list && seen.indexOf(host) < 0) {
+        seen.push(host);
+        hosts.push(host);
+      }
+    });
+    return hosts;
   }
 
   function setOpportunityListsVisible(visible) {
@@ -1205,10 +1258,13 @@
       /* personalization patch optional */
     }
     detail.hidden = false;
-    detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
-    detail.style.position = 'relative';
-    detail.style.zIndex = '20';
+    detail.removeAttribute('hidden');
+    detail.classList.add('sky-llm-op-detail--overlay');
+    detail.classList.add('sky-llm-op-detail--recover');
+    detail.style.display = 'block';
+    detail.style.zIndex = '100';
     setOpportunityListsVisible(false);
+    detail.scrollIntoView({ block: 'start' });
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -1258,9 +1314,9 @@
     watchWalnutRemoval();
     ensureDelegatedClicks();
     resetCaches();
+    setupOffsiteCards();
     setupOnsiteCards();
     ensureContentCards();
-    setupOffsiteCards();
     ensureDetailRoot();
     applyHashRoute();
   }
@@ -1268,7 +1324,9 @@
   function resetCardWiring() {
     document.querySelectorAll('[data-testid*="OppCard"]').forEach(function (card) {
       delete card.dataset.skyLlmOpCardWired;
+      delete card.dataset.skyLlmOpCardClickWired;
       delete card.dataset.skyLlmOpViewId;
+      delete card.dataset.skyLlmOpZone;
     });
   }
 
