@@ -45,7 +45,7 @@
   var CONTENT_CARDS = {
     simplify: {
       title: 'Simplify Complex Content',
-      date: 'Mon, May 18, 2026',
+      date: 'Mon, Jun 1, 2024',
       tag: 'Content Opportunity',
     },
     'llm-summaries': {
@@ -1078,18 +1078,72 @@
     );
   }
 
-  function buildPanels(overviewHtml, guidanceHtml) {
+  function buildPanelSection(title, bodyHtml) {
     return (
       '<section class="sky-llm-op-panel">' +
-      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Overview</button>' +
+      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">' +
+      '<span class="sky-llm-op-panel-title">' +
+      escapeHtml(title) +
+      '</span>' +
+      '<span class="sky-llm-op-panel-chevron" aria-hidden="true">⌄</span>' +
+      '</button>' +
       '<div class="sky-llm-op-panel-body">' +
-      overviewHtml +
-      '</div></section>' +
-      '<section class="sky-llm-op-panel">' +
-      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Guidance</button>' +
-      '<div class="sky-llm-op-panel-body">' +
-      guidanceHtml +
+      bodyHtml +
       '</div></section>'
+    );
+  }
+
+  function buildPanels(overviewHtml, guidanceHtml) {
+    return buildPanelSection('Overview', overviewHtml) + buildPanelSection('Guidance', guidanceHtml);
+  }
+
+  function isFullWidthDetailView(viewId) {
+    return (
+      viewId === 'simplify' ||
+      viewId === 'recover' ||
+      viewId === 'llm-summaries' ||
+      viewId === '404' ||
+      viewId === '503'
+    );
+  }
+
+  function buildContentOpUrlsSection(opts) {
+    opts = opts || {};
+    var sampleUrl = opts.url || siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html');
+    var issues = opts.issues != null ? opts.issues : '1';
+    var traffic = opts.traffic != null ? opts.traffic : '12,422';
+    var showActions = opts.showActions !== false;
+
+    return (
+      '<section class="sky-llm-op-urls-block sky-llm-op-panel">' +
+      '<h2 class="sky-llm-op-urls-title">URLs with suggestions</h2>' +
+      '<div class="sky-llm-op-url-tabs-row">' +
+      '<div class="sky-llm-op-suggest-tabs">' +
+      '<span class="sky-llm-op-suggest-tab sky-llm-op-suggest-tab--active">Current suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Fixed suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Ignored suggestions</span>' +
+      '</div>' +
+      '<div class="sky-llm-op-suggest-actions">' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore suggestions</button>' +
+      '</div></div>' +
+      '<div class="sky-llm-op-search sky-llm-op-search--full" role="search">Search URLs</div>' +
+      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-simplify">' +
+      '<thead><tr><th scope="col"></th><th scope="col">URL</th><th scope="col">Issues</th>' +
+      '<th scope="col">Agentic Traffic (4 Weeks)</th>' +
+      (showActions ? '<th scope="col">Actions</th>' : '') +
+      '<th scope="col">Details</th></tr></thead>' +
+      '<tbody><tr>' +
+      '<td><input type="checkbox" aria-label="Select URL"></td>' +
+      demoLinkCell(sampleUrl) +
+      '<td>' +
+      escapeHtml(issues) +
+      '</td><td>' +
+      escapeHtml(traffic) +
+      '</td>' +
+      (showActions ? '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' : '') +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
+      '</tr></tbody></table></div></section>'
     );
   }
 
@@ -1135,41 +1189,28 @@
       '<p><strong>Recommendation:</strong> Use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
       '<p><strong>Our solution</strong></p>' +
       '<ol>' +
-      '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
-      '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing required.</li>' +
-      '<li><strong>Fast, low-risk deployment:</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
+      '<li><strong>Bot-only delivery.</strong> We target agents only. Human visitors are not affected in any way.</li>' +
+      '<li><strong>We don\'t touch your CMS.</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
+      '<li><strong>Fast, low-risk deployment.</strong> Optimization can take effect in minutes, not days. No developer engagement required.</li>' +
       '</ol>' +
       '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>';
 
     return (
       '<button type="button" class="sky-llm-op-back" id="skyLlmOpBack">← Back to Opportunities</button>' +
-      buildContentOpHead('Simplify Complex Content', 'Mon, May 18, 2024', '1', 'URLs', '1', 'Issues') +
-      buildPanels(overview, guidance) +
-      buildProgressBlock(
-        0,
-        10,
-        'Upgrade to unlock more opportunities and optimize additional URLs.',
-      ) +
+      '<div class="sky-llm-op-content-op">' +
+      buildContentOpHead('Simplify Complex Content', 'Mon, Jun 1, 2024', '1', 'URLs', '1', 'Issues') +
+      buildPanelSection('Overview', overview) +
+      buildPanelSection('Guidance', guidance) +
       buildPlanBlock(
         'Review all suggested fixes below carefully before applying. You can dismiss or edit where needed.',
         'Please select suggestions to deploy',
       ) +
-      '<section class="sky-llm-op-urls-block">' +
-      '<div class="sky-llm-op-section-head"><h2 class="sky-llm-op-section-title">URLs with suggestions</h2></div>' +
-      '<div class="sky-llm-op-toolbar">' +
-      '<span class="sky-llm-op-filter">Current Suggestions</span>' +
-      '<div class="sky-llm-op-search sky-llm-op-search-inline">Search URLs</div>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
-      '</div>' +
-      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-simplify">' +
-      '<thead><tr><th></th><th>URL</th><th>Issues</th><th>Agentic Traffic (4 Weeks)</th><th>Details</th></tr></thead>' +
-      '<tbody><tr>' +
-      '<td><input type="checkbox" aria-label="Select URL"></td>' +
-      demoLinkCell(siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html')) +
-      '<td>1</td><td>N/A</td>' +
-      '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
-      '</tr></tbody></table></div></section>'
+      buildContentOpUrlsSection({
+        url: siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html'),
+        issues: '1',
+        traffic: '12,422',
+      }) +
+      '</div>'
     );
   }
 
@@ -1363,10 +1404,14 @@
     var detail = ensureDetailRoot();
     if (!DETAIL_VIEWS[viewId] || !detail) return;
 
+    var fullWidth = isFullWidthDetailView(viewId);
     detail.innerHTML =
-      '<div class="sky-llm-op-detail-inner sky-llm-op-detail--recover">' +
+      '<div class="sky-llm-op-detail-inner' +
+      (fullWidth ? ' sky-llm-op-detail-inner--full' : ' sky-llm-op-detail--recover') +
+      '">' +
       buildDetailHtml(viewId) +
       '</div>';
+    detail.classList.toggle('sky-llm-op-detail--full', fullWidth);
     try {
       var urls = llmDemoUrlsApi();
       if (urls && urls.patchRoot) {
@@ -1408,7 +1453,7 @@
     if (state.detailEl) {
       state.detailEl.hidden = true;
       state.detailEl.innerHTML = '';
-      state.detailEl.classList.remove('sky-llm-op-detail--recover');
+      state.detailEl.classList.remove('sky-llm-op-detail--recover', 'sky-llm-op-detail--full');
     }
     if (location.hash.indexOf('#detail/') === 0) {
       history.replaceState(null, '', location.pathname + location.search);
