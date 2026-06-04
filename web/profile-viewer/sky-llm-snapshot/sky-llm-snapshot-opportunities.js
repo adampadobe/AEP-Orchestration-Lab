@@ -115,6 +115,12 @@
 
   var HASH_IDS = '404|503|recover|simplify|llm-summaries|reddit|youtube|wikipedia|cited';
 
+  var SECTION_TITLES = [
+    'Offsite Optimizations',
+    'Onsite Technical Optimizations',
+    'Onsite Content Optimizations',
+  ];
+
   var state = {
     listCanvas: null,
     detailEl: null,
@@ -181,34 +187,91 @@
     return findListCanvas();
   }
 
-  function findSectionHost(sectionTitle) {
-    var head = findLeaf(sectionTitle);
-    if (!head) return null;
-    var walk = head.parentElement;
-    for (var i = 0; i < 14 && walk; i++) {
-      if (walk.querySelector('[data-testid*="OppCard"]')) {
-        return walk;
+  function getSectionMarker(sectionTitle) {
+    return findLeaf(sectionTitle);
+  }
+
+  function getNextSectionMarker(sectionTitle) {
+    var idx = SECTION_TITLES.indexOf(sectionTitle);
+    if (idx < 0 || idx >= SECTION_TITLES.length - 1) return null;
+    return getSectionMarker(SECTION_TITLES[idx + 1]);
+  }
+
+  function nodeFollows(node, anchor) {
+    if (!node || !anchor) return false;
+    return !!(anchor.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+
+  function nodePrecedes(node, anchor) {
+    if (!node || !anchor) return false;
+    return !!(anchor.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_PRECEDING);
+  }
+
+  function cardInSection(card, sectionTitle) {
+    var start = getSectionMarker(sectionTitle);
+    if (!start || !card) return false;
+    if (!nodeFollows(card, start)) return false;
+    var end = getNextSectionMarker(sectionTitle);
+    if (!end) return true;
+    return nodePrecedes(card, end);
+  }
+
+  function cardsForSection(sectionTitle) {
+    return Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).filter(function (card) {
+      return cardInSection(card, sectionTitle);
+    });
+  }
+
+  function sharedCardsParent() {
+    var cards = document.querySelectorAll('[data-testid*="OppCard"]');
+    return cards.length ? cards[0].parentElement : null;
+  }
+
+  function insertBeforeOnsiteTechnical(node) {
+    if (!node) return;
+    var firstTech = cardsForSection('Onsite Technical Optimizations')[0];
+    var parent = (firstTech && firstTech.parentElement) || sharedCardsParent();
+    if (!parent) return;
+    if (firstTech) {
+      parent.insertBefore(node, firstTech);
+    } else {
+      var marker = getSectionMarker('Onsite Technical Optimizations');
+      if (marker) {
+        var walk = marker;
+        for (var i = 0; i < 10 && walk.parentElement; i++) {
+          walk = walk.parentElement;
+          if (walk.parentElement === parent) {
+            parent.insertBefore(node, walk.nextSibling);
+            return;
+          }
+        }
       }
-      walk = walk.parentElement;
+      parent.insertBefore(node, parent.firstChild);
     }
-    return head.parentElement;
+  }
+
+  function sectionCardsParent(sectionTitle) {
+    var cards = cardsForSection(sectionTitle);
+    if (cards.length) return cards[0].parentElement;
+    if (sectionTitle === 'Offsite Optimizations') return sharedCardsParent();
+    return null;
   }
 
   function findOnsiteHost() {
     if (state.onsiteHost) return state.onsiteHost;
-    state.onsiteHost = findSectionHost('Onsite Technical Optimizations');
+    state.onsiteHost = sectionCardsParent('Onsite Technical Optimizations');
     return state.onsiteHost;
   }
 
   function findContentHost() {
     if (state.contentHost) return state.contentHost;
-    state.contentHost = findSectionHost('Onsite Content Optimizations');
+    state.contentHost = sectionCardsParent('Onsite Content Optimizations');
     return state.contentHost;
   }
 
   function findOffsiteHost() {
     if (state.offsiteHost) return state.offsiteHost;
-    state.offsiteHost = findSectionHost('Offsite Optimizations');
+    state.offsiteHost = sectionCardsParent('Offsite Optimizations');
     return state.offsiteHost;
   }
 
@@ -481,11 +544,11 @@
   }
 
   function setupOnsiteCards() {
-    var cards = Array.from(document.querySelectorAll('[data-testid*="OppCard"]'));
-    if (!cards.length) return;
+    var sectionCards = cardsForSection('Onsite Technical Optimizations');
+    if (!sectionCards.length) return;
 
     var byId = {};
-    cards.forEach(function (card) {
+    sectionCards.forEach(function (card) {
       var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
       if (id && ONSITE_CARDS[id]) byId[id] = card;
     });
@@ -496,13 +559,12 @@
       if (!card || !config) return;
       patchCard(card, config);
       wireCardOpen(card, id);
+      card.classList.remove('sky-llm-op-card-hidden');
     });
 
-    cards.forEach(function (card) {
+    sectionCards.forEach(function (card) {
       var id = resolveViewId(card);
-      if (ONSITE_CARDS[id] || CONTENT_CARDS[id] || OFFSITE_CARDS[id]) return;
-      var title = getCardTitle(card);
-      if (title.indexOf('Information gain') === 0) return;
+      if (ONSITE_CARDS[id]) return;
       card.classList.add('sky-llm-op-card-hidden');
     });
 
@@ -531,20 +593,41 @@
     return false;
   }
 
+  function findOffsiteCardGlobal(id) {
+    return Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).find(function (card) {
+      return resolveViewId(card) === id || matchOffsiteCardTitle(getCardTitle(card), id);
+    });
+  }
+
   function setupOffsiteCards() {
     var host = findOffsiteHost();
     if (!host) return;
 
-    var cards = Array.from(host.querySelectorAll('[data-testid*="OppCard"]'));
+    var sectionCards = cardsForSection('Offsite Optimizations');
     var byId = {};
-    var template = cards[0];
+    var template =
+      sectionCards[0] ||
+      findOffsiteCardGlobal('youtube') ||
+      cardsForSection('Onsite Content Optimizations')[0] ||
+      document.querySelector('[data-testid*="OppCard"]');
 
-    cards.forEach(function (card) {
+    sectionCards.forEach(function (card) {
       OFFSITE_ORDER.forEach(function (id) {
         if (!byId[id] && matchOffsiteCardTitle(getCardTitle(card), id)) {
           byId[id] = card;
         }
       });
+    });
+
+    OFFSITE_ORDER.forEach(function (id) {
+      if (byId[id]) return;
+      var existing = findOffsiteCardGlobal(id);
+      if (existing) {
+        if (!cardInSection(existing, 'Offsite Optimizations')) {
+          insertBeforeOnsiteTechnical(existing);
+        }
+        byId[id] = existing;
+      }
     });
 
     OFFSITE_ORDER.forEach(function (id) {
@@ -556,7 +639,7 @@
         card.dataset.skyLlmOpCloned = '1';
         card.dataset.skyLlmOpCardWired = '';
         card.dataset.skyLlmOpViewId = '';
-        host.appendChild(card);
+        insertBeforeOnsiteTechnical(card);
         byId[id] = card;
       }
       if (!card) return;
@@ -565,37 +648,64 @@
       card.classList.remove('sky-llm-op-card-hidden');
     });
 
-    cards.forEach(function (card) {
+    var offsiteCards = OFFSITE_ORDER.map(function (id) {
+      return byId[id];
+    }).filter(Boolean);
+
+    offsiteCards.forEach(function (card, idx) {
+      if (!card.parentElement || card.parentElement !== host) return;
+      var anchor = offsiteCards[idx + 1];
+      if (anchor && anchor !== card.nextSibling) {
+        host.insertBefore(card, anchor);
+      }
+    });
+
+    sectionCards.forEach(function (card) {
       if (OFFSITE_ORDER.indexOf(resolveViewId(card)) >= 0) return;
       card.classList.add('sky-llm-op-card-hidden');
     });
-
-    reorderCards(host, OFFSITE_ORDER, byId);
   }
 
   function ensureContentCards() {
     var host = findContentHost();
     if (!host) return {};
 
-    var cards = Array.from(host.querySelectorAll('[data-testid*="OppCard"]'));
+    var sectionCards = cardsForSection('Onsite Content Optimizations');
     var byId = {};
-    var template = cards[0];
-
-    cards.forEach(function (card) {
+    var template = sectionCards.find(function (card) {
       var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
+      return id && CONTENT_CARDS[id];
+    });
+
+    sectionCards.forEach(function (card) {
+      var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
+      if (OFFSITE_CARDS[id] || /YouTube Sentiment/i.test(getCardTitle(card))) {
+        card.classList.add('sky-llm-op-card-hidden');
+        return;
+      }
       if (id && CONTENT_CARDS[id]) byId[id] = card;
     });
 
     if (!byId.simplify && template) {
       byId.simplify = template;
+    } else if (!byId.simplify) {
+      var infoCard = sectionCards.find(function (card) {
+        return getCardTitle(card).indexOf('Information gain') === 0;
+      });
+      if (infoCard) byId.simplify = infoCard;
+    }
+
+    if (byId.simplify) {
       patchCard(byId.simplify, CONTENT_CARDS.simplify, { hideMetrics: true });
       wireCardOpen(byId.simplify, 'simplify');
+      byId.simplify.classList.remove('sky-llm-op-card-hidden');
     }
 
     if (!byId['llm-summaries'] && byId.simplify) {
       var clone = byId.simplify.cloneNode(true);
       clone.dataset.skyLlmOpCloned = '1';
       clone.dataset.skyLlmOpCardWired = '';
+      clone.dataset.skyLlmOpViewId = '';
       host.appendChild(clone);
       byId['llm-summaries'] = clone;
       patchCard(clone, CONTENT_CARDS['llm-summaries'], { hideMetrics: true });
@@ -611,11 +721,11 @@
       card.classList.remove('sky-llm-op-card-hidden');
     });
 
-    Array.from(host.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
+    sectionCards.forEach(function (card) {
       var id = resolveViewId(card);
-      if (!CONTENT_CARDS[id]) {
-        card.classList.add('sky-llm-op-card-hidden');
-      }
+      if (CONTENT_CARDS[id]) return;
+      if (OFFSITE_CARDS[id] || /YouTube Sentiment/i.test(getCardTitle(card))) return;
+      card.classList.add('sky-llm-op-card-hidden');
     });
 
     reorderCards(host, CONTENT_ORDER, byId);
