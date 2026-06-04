@@ -378,6 +378,56 @@
   gap: 32px;
 }
 
+.sky-llm-op-recover-metrics--3 {
+  gap: 40px;
+}
+
+.sky-llm-op-progress-block--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sky-llm-op-progress-main {
+  flex: 1;
+  min-width: 280px;
+}
+
+.sky-llm-op-progress-cta {
+  flex: 0 1 340px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgb(239, 246, 255);
+  border: 1px solid rgb(191, 219, 254);
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgb(41, 41, 41);
+}
+
+.sky-llm-op-offsite-detail {
+  width: 100%;
+}
+
+.sky-llm-op-offsite-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.sky-llm-op-offsite-head-main {
+  flex: 1;
+  min-width: 280px;
+}
+
+.sky-llm-op-table-recover tr:not(.sky-llm-op-row-group) td:nth-child(2) {
+  padding-left: 28px;
+}
+
 .sky-llm-op-recover-metric {
   text-align: right;
 }
@@ -652,7 +702,7 @@
 }
 
 .sky-llm-op-kpi-row--multi {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .sky-llm-op-kpi-row--five {

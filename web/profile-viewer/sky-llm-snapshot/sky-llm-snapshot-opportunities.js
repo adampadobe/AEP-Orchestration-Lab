@@ -35,11 +35,11 @@
     },
     recover: {
       title: 'Recover Content Visibility',
-      date: 'Mon, May 11, 2026',
+      date: 'Mon, Jun 1, 2026',
       tag: 'Technical SEO',
-      metric1: '1',
-      label1: 'URLs affected',
-      metric2: '+1.1x',
+      metric1: '9',
+      label1: 'URLs',
+      metric2: '+5.9x',
       label2: 'Estimated Content Gain',
     },
   };
@@ -771,17 +771,7 @@
   }
 
   function injectContentDetailsButton(card, viewId) {
-    if (!card || !viewId) return null;
-    var existing = card.querySelector('[data-sky-llm-op-details-btn="' + viewId + '"]');
-    if (existing) return existing;
-
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'sky-llm-op-content-details-btn';
-    btn.dataset.skyLlmOpDetailsBtn = viewId;
-    btn.textContent = 'Details';
-    card.appendChild(btn);
-    return btn;
+    return null;
   }
 
   function ensureContentDetailsDelegation() {
@@ -1028,6 +1018,18 @@
     });
   }
 
+  function hideNativeContentSectionCards(mount) {
+    if (!mount) return;
+    Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
+      if (mount.contains(card)) return;
+      if (isOffsiteCard(card)) return;
+      if (cardInSection(card, 'Onsite Content Optimizations') || isContentOpCardNode(card)) {
+        card.classList.add('sky-llm-op-card-hidden');
+        card.style.display = 'none';
+      }
+    });
+  }
+
   function ensureContentCards() {
     var mount = ensureContentCardsMount();
     if (!mount) return {};
@@ -1037,40 +1039,29 @@
     var templateSeed = contentCardTemplate();
     if (!templateSeed) return {};
 
-    var byId = {};
+    mount.innerHTML = '';
 
+    var byId = {};
     CONTENT_ORDER.forEach(function (id) {
       var config = CONTENT_CARDS[id];
       if (!config) return;
 
-      var card = mount.querySelector('[data-sky-llm-op-view-id="' + id + '"]');
-      if (!card) {
-        card = templateSeed.cloneNode(true);
-        card.dataset.skyLlmOpCloned = '1';
-        resetContentCardWiring(card);
-        mount.appendChild(card);
-      }
-
+      var card = templateSeed.cloneNode(true);
+      resetContentCardWiring(card);
+      mount.appendChild(card);
       card = neutralizeFrozenCard(card);
-      byId[id] = card;
       patchCard(card, config, { hideMetrics: true });
       wireCardOpen(card, id);
-      injectContentDetailsButton(card, id);
       markContentCard(card);
+      byId[id] = card;
     });
 
     reorderCards(mount, CONTENT_ORDER, byId);
-
-    Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
-      if (mount.contains(card)) return;
-      if (isOffsiteCard(card)) return;
-      if (isContentOpCardNode(card)) {
-        card.classList.add('sky-llm-op-card-hidden');
-      }
-    });
+    hideNativeContentSectionCards(mount);
 
     if (!mount.contains(templateSeed)) {
       templateSeed.classList.add('sky-llm-op-card-hidden');
+      templateSeed.style.display = 'none';
     }
 
     return byId;
@@ -1171,80 +1162,95 @@
   }
 
   function buildRecoverDetailHtml() {
+    var overview =
+      '<p>AI agents can only cite content they can access. They don\'t see critical content hidden behind client-side rendering and dynamic loads.</p>' +
+      '<p>The visibility gap across the affected pages below means agents miss key content such as product descriptions, user ratings, recipes, and user comments.</p>';
+    var guidance =
+      '<p><strong>Recommendation:</strong> Use our edge-based optimization solution to safely optimize your content for agents in a low-risk way.</p>' +
+      '<ol>' +
+      '<li><strong>Scan your site.</strong> We identify pages where agents miss critical content.</li>' +
+      '<li><strong>Choose pages to optimize.</strong> Select URLs to deploy edge optimizations for agentic traffic only — human visitors are unaffected.</li>' +
+      '<li><strong>Roll back anytime.</strong> Changes can be reversed without CMS or code updates.</li>' +
+      '</ol>';
+
+    var domainRoot = demoSiteUrl('/');
+    var domainLabel = demoLinkLabel(domainRoot).replace(/\/$/, '') + '/* (All Domain URLs)';
+
     return (
       '<button type="button" class="sky-llm-op-back" id="skyLlmOpBack">← Back to Opportunities</button>' +
+      '<div class="sky-llm-op-content-op">' +
       '<div class="sky-llm-op-recover-head">' +
       '<div class="sky-llm-op-recover-head-main">' +
       '<h1 class="sky-llm-op-detail-title">Recover Content Visibility</h1>' +
       '<div class="sky-llm-op-recover-meta">' +
       '<span class="sky-llm-op-pill">Technical SEO</span>' +
-      '<span class="sky-llm-op-updated">Updated Mon, May 13, 2024</span>' +
-      '</div>' +
-      '</div>' +
-      '<div class="sky-llm-op-recover-metrics">' +
-      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">1</span><span class="sky-llm-op-recover-metric-lbl">URLs</span></div>' +
-      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">+1.1x</span><span class="sky-llm-op-recover-metric-lbl">Estimated Content Gain</span></div>' +
-      '</div>' +
-      '</div>' +
-      '<section class="sky-llm-op-panel">' +
-      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Overview</button>' +
-      '<div class="sky-llm-op-panel-body">' +
-      '<p>Let\'s unlock your website\'s LLM citation potential.</p>' +
-      '<p>AI agents can only cite content they can access. They don\'t see critical content hidden behind client-side rendering and dynamic loads.</p>' +
-      '<p>The visibility gap (LLM generated summary) across the affected pages below: they are missing out on key content such as product descriptions, user ratings, recipes and user comments.</p>' +
-      '</div></section>' +
-      '<section class="sky-llm-op-panel">' +
-      '<button type="button" class="sky-llm-op-panel-toggle" aria-expanded="true">Guidance</button>' +
-      '<div class="sky-llm-op-panel-body">' +
-      '<p><strong>Recommendation:</strong> Use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
-      '<ol>' +
-      '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
-      '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
-      '<li><strong>Fast, low-risk deployment:</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
-      '</ol>' +
-      '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>' +
-      '</div></section>' +
-      '<section class="sky-llm-op-panel sky-llm-op-plan">' +
-      '<div class="sky-llm-op-plan-row">' +
-      '<div><h2 class="sky-llm-op-section-title">Opportunity plan</h2>' +
-      '<p class="sky-llm-op-plan-text">Try our Optimize on Edge solution to safely optimize your content as suggested above.</p></div>' +
-      '<div class="sky-llm-op-plan-action">' +
-      '<button type="button" class="sky-llm-op-deploy-btn" disabled>Deploy optimizations</button>' +
-      '<span class="sky-llm-op-plan-hint">choose at least 1 page to deploy</span>' +
-      '</div></div></section>' +
-      '<section class="sky-llm-op-progress-block">' +
+      '<span class="sky-llm-op-updated">Updated Mon, Jun 1, 2026</span>' +
+      '</div></div>' +
+      '<div class="sky-llm-op-recover-metrics sky-llm-op-recover-metrics--3">' +
+      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">9</span><span class="sky-llm-op-recover-metric-lbl">URLs</span></div>' +
+      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">+5.9x</span><span class="sky-llm-op-recover-metric-lbl">Estimated Content Gain</span></div>' +
+      '<div class="sky-llm-op-recover-metric"><span class="sky-llm-op-recover-metric-val">22%</span><span class="sky-llm-op-recover-metric-lbl">Avg Content Visibility</span></div>' +
+      '</div></div>' +
+      buildPanelSection('Overview', overview) +
+      buildPanelSection('Guidance', guidance) +
+      buildPlanBlock(
+        'Try our Optimize on Edge solution to safely optimize your content as suggested above.',
+        'Please select suggestions to deploy',
+      ) +
+      '<section class="sky-llm-op-progress-block sky-llm-op-progress-block--split">' +
+      '<div class="sky-llm-op-progress-main">' +
       '<p class="sky-llm-op-kicker">Optimization progress</p>' +
       '<div class="sky-llm-op-progress-bar"><div class="sky-llm-op-progress-fill" style="width:0%"></div></div>' +
-      '<p class="sky-llm-op-progress-label"><strong>0</strong> of <strong>1</strong> URLs optimized</p>' +
-      '<p class="sky-llm-op-progress-note">Upgrade to unlock more opportunities and optimize additional URLs.</p>' +
-      '</section>' +
-      '<section class="sky-llm-op-urls-block">' +
-      '<div class="sky-llm-op-section-head">' +
-      '<div><h2 class="sky-llm-op-section-title">URLs with suggestions</h2>' +
-      '<p class="sky-llm-op-urls-desc">These URLs receive high agentic traffic, but low visibility can limit what AI actually read. Check the preview for each page to understand the gap and how to fix it.</p></div>' +
-      '<div class="sky-llm-op-urls-tools">' +
+      '<p class="sky-llm-op-progress-label"><strong>0</strong> of <strong>10</strong> URLs optimized</p>' +
+      '</div>' +
+      '<aside class="sky-llm-op-progress-cta">' +
+      '<strong>Fix your site in minutes.</strong> Talk to our team for a tailored analysis of your brand.' +
+      '</aside></section>' +
+      '<section class="sky-llm-op-urls-block sky-llm-op-panel">' +
+      '<h2 class="sky-llm-op-urls-title">URLs with suggestions</h2>' +
+      '<p class="sky-llm-op-urls-desc">These URLs receive high agentic traffic, but low visibility can limit what AI actually read. Check the preview for each page to understand the gap and how to fix it.</p>' +
+      '<div class="sky-llm-op-url-tabs-row">' +
+      '<div class="sky-llm-op-suggest-tabs">' +
+      '<span class="sky-llm-op-suggest-tab sky-llm-op-suggest-tab--active">Current suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Fixed suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Ignored suggestions</span>' +
+      '</div>' +
+      '<div class="sky-llm-op-suggest-actions">' +
       '<span class="sky-llm-op-filter">Filter by Classification: All</span>' +
       '<button type="button" class="sky-llm-op-export-btn">Export</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore suggestions</button>' +
       '</div></div>' +
-      '<div class="sky-llm-op-toolbar">' +
-      '<span class="sky-llm-op-filter">Current Suggestions</span>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
-      '</div>' +
-      '<div class="sky-llm-op-search">Search URLs</div>' +
+      '<div class="sky-llm-op-search sky-llm-op-search--full" role="search">Search URLs</div>' +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-recover">' +
-      '<thead><tr><th></th><th>URL</th><th>Agentic Traffic (4 Weeks)</th><th>Content Visibility</th><th>Content Gain Ratio</th><th>Actions</th><th>Details</th></tr></thead>' +
-      '<tbody><tr>' +
+      '<thead><tr><th scope="col"></th><th scope="col">URL</th><th scope="col">Agentic Traffic (4 Weeks)</th><th scope="col">Content Visibility</th><th scope="col">Content Gain Ratio</th><th scope="col">Actions</th><th scope="col">Details</th></tr></thead>' +
+      '<tbody>' +
+      '<tr class="sky-llm-op-row-group">' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
-      '<td><a href="' +
-      escapeHtml(demoSiteUrl('/')) +
+      '<td><span class="sky-llm-op-expand-cell" aria-hidden="true">▾</span> ' +
+      '<a href="' +
+      escapeHtml(domainRoot) +
       '" rel="noopener noreferrer">' +
-      escapeHtml(demoLinkLabel(demoSiteUrl('/'))) +
+      escapeHtml(domainLabel) +
       '</a></td>' +
-      '<td>—</td><td>91%</td><td>1.1</td>' +
+      '<td>1,671,921</td><td>13%</td><td>5.9</td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' +
       '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
-      '</tr></tbody></table></div></section>'
+      '</tr>' +
+      '<tr>' +
+      '<td><input type="checkbox" aria-label="Select URL"></td>' +
+      demoLinkCell(demoSiteUrl('/coffee')) +
+      '<td>842,110</td><td>11%</td><td>5.2</td>' +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
+      '</tr>' +
+      '<tr>' +
+      '<td><input type="checkbox" aria-label="Select URL"></td>' +
+      demoLinkCell(demoSiteUrl('/tea')) +
+      '<td>829,811</td><td>15%</td><td>6.1</td>' +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Preview</button></td>' +
+      '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
+      '</tr></tbody></table></div></section></div>'
     );
   }
 
@@ -1302,7 +1308,10 @@
       viewId === 'llm-summaries' ||
       viewId === '404' ||
       viewId === '503' ||
-      viewId === 'wikipedia'
+      viewId === 'wikipedia' ||
+      viewId === 'youtube' ||
+      viewId === 'cited' ||
+      viewId === 'reddit'
     );
   }
 

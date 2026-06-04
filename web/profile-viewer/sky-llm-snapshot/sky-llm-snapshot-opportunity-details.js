@@ -134,38 +134,61 @@
     );
   }
 
+  function suggestionsSubtabs() {
+    return (
+      '<div class="sky-llm-op-subtabs">' +
+      '<span class="sky-llm-op-subtab sky-llm-op-subtab--active">Current Suggestions</span>' +
+      '<span class="sky-llm-op-subtab">Fixed Suggestions</span>' +
+      '<span class="sky-llm-op-subtab">Ignored Suggestions</span>' +
+      '<div class="sky-llm-op-subtabs-actions">' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
+      '</div></div>'
+    );
+  }
+
   function buildYoutubeDetailHtml() {
     var b = brand();
     return (
       backBtn() +
-      '<h1 class="sky-llm-op-detail-title">YouTube Sentiment Analysis — ' +
+      '<div class="sky-llm-op-offsite-detail">' +
+      '<div class="sky-llm-op-offsite-head">' +
+      '<div class="sky-llm-op-offsite-head-main">' +
+      '<h1 class="sky-llm-op-detail-title">YouTube Sentiment Analysis – ' +
       esc(b) +
       ' Pricing Perception</h1>' +
-      '<p class="sky-llm-op-detail-subtitle">YouTube reviews and creator commentary shape how LLMs summarize pricing, value, and product comparisons for your brand.</p>' +
+      '<p class="sky-llm-op-detail-subtitle">YouTube is a key driver of consumer perception for coffee brands. This analysis highlights how ' +
+      esc(b) +
+      '\'s pricing is discussed across high-engagement videos, examining views and sentiment to understand how YouTube content influences AI-generated brand perception and recommendations.</p>' +
       '<div class="sky-llm-op-recover-meta">' +
-      '<span class="sky-llm-op-pill">Social Media</span>' +
+      '<span class="sky-llm-op-pill">Social &amp; Community</span>' +
+      '<span class="sky-llm-op-pill">Video Content</span>' +
       '<span class="sky-llm-op-updated">Updated Mon, Jan 1, 2024</span>' +
-      '</div>' +
+      '</div></div>' +
+      '<button type="button" class="sky-llm-op-export-btn">Export to PDF</button></div>' +
       kpiStrip([
-        { label: 'Videos Analyzed', value: '42' },
-        { label: 'Comments Analyzed', value: '3,204' },
-        { label: 'Brand Mentions', value: '318' },
-        { label: 'Overall Sentiment', value: 'Mixed' },
+        { label: 'Videos Analyzed', value: '14', hint: 'Videos scanned in the analysis window' },
+        { label: 'Comments Analyzed', value: '287' },
+        { label: 'Brand Mentions (Videos)', value: '184' },
+        { label: 'Brand Mentions (Comments)', value: '155' },
+        { label: 'Overall Sentiment (Videos)', value: 'Unfavorable' },
+        { label: 'Overall Sentiment (Comments)', value: 'Unfavorable' },
       ]) +
       '<div class="sky-llm-op-tabs">' +
       '<span class="sky-llm-op-tab sky-llm-op-tab--active">Suggestions</span>' +
       '<span class="sky-llm-op-tab">Performance</span>' +
       '</div>' +
+      suggestionsSubtabs() +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-suggestions">' +
-      '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Items</th><th>Evidence</th></tr></thead>' +
+      '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Item</th><th>Evidence</th></tr></thead>' +
       '<tbody>' +
-      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Publish transparent pricing explainers aligned to top creator comparison keywords</td><td>' +
-      priorityPill('High') +
-      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 2 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
-      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Seed official channel responses on high-velocity review threads</td><td>' +
-      priorityPill('Medium') +
-      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 2 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
-      '</tbody></table></div>'
+      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Counter Competitive Comparisons</td><td>' +
+      priorityPill('Critical') +
+      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 5 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
+      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Improve Value Perception Narrative</td><td>' +
+      priorityPill('Critical') +
+      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 5 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
+      '</tbody></table></div></div>'
     );
   }
 
@@ -285,34 +308,44 @@
     var b = brand();
     return (
       backBtn() +
+      '<div class="sky-llm-op-offsite-detail">' +
+      '<div class="sky-llm-op-offsite-head">' +
+      '<div class="sky-llm-op-offsite-head-main">' +
       '<h1 class="sky-llm-op-detail-title">Cited Sentiment Analysis — ' +
       esc(b) +
       '</h1>' +
-      '<p class="sky-llm-op-detail-subtitle">Earned citations in third-party articles influence how LLMs summarize brand sentiment. This view tracks citation context, tone, and remediation opportunities across the open web.</p>' +
+      '<p class="sky-llm-op-detail-subtitle">Top-cited URLs show the sources AI relies on when answering questions about ' +
+      esc(b) +
+      '. Sentiment reveals how the brand is portrayed, share of voice shows visibility versus competitors, and prompts highlight the consumer questions driving traffic—guiding content priorities.</p>' +
       '<div class="sky-llm-op-recover-meta">' +
       '<span class="sky-llm-op-pill">Earned Content</span>' +
-      '<span class="sky-llm-op-updated">Updated Mon, Jan 1, 2024</span>' +
-      '</div>' +
+      '<span class="sky-llm-op-updated">Updated Mon, Jun 1, 2026</span>' +
+      '</div></div>' +
+      '<button type="button" class="sky-llm-op-export-btn">Export to PDF</button></div>' +
       kpiStrip([
-        { label: 'Articles Analyzed', value: '128' },
-        { label: 'Brand Citations', value: '412' },
-        { label: 'Positive Mentions', value: '64%' },
-        { label: 'Neutral / Negative', value: '36%' },
+        { label: 'Pages Analyzed', value: '12', hint: 'Publisher pages scanned' },
+        { label: 'Pages Skipped', value: '8' },
+        { label: 'Brand Mentions (Pages)', value: '71' },
+        { label: 'Overall Sentiment (Pages)', value: 'Favorable' },
       ]) +
       '<div class="sky-llm-op-tabs">' +
       '<span class="sky-llm-op-tab sky-llm-op-tab--active">Suggestions</span>' +
       '<span class="sky-llm-op-tab">Performance</span>' +
       '</div>' +
+      suggestionsSubtabs() +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-suggestions">' +
-      '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Items</th><th>Evidence</th></tr></thead>' +
+      '<thead><tr><th></th><th>Suggestion</th><th>Priority</th><th>Action Items</th></tr></thead>' +
       '<tbody>' +
-      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Correct outdated product claims in top-cited publisher articles</td><td>' +
-      priorityPill('Critical') +
-      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 4 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
-      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Pitch updated brand narrative to high-authority citation sources</td><td>' +
+      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Target Competitor-Dominated Content</td><td>' +
       priorityPill('High') +
-      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 3 actions</button></td><td><button type="button" class="sky-llm-op-ghost-btn">Evidence</button></td></tr>' +
-      '</tbody></table></div>'
+      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 3 actions</button></td></tr>' +
+      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Increase Share of Voice in Price-Comparison Content</td><td>' +
+      priorityPill('High') +
+      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 3 actions</button></td></tr>' +
+      '<tr><td class="sky-llm-op-expand-cell">▾</td><td>Strengthen High-Trust Favorable Coverage</td><td>' +
+      priorityPill('Medium') +
+      '</td><td><button type="button" class="sky-llm-op-ghost-btn">View 3 actions</button></td></tr>' +
+      '</tbody></table></div></div>'
     );
   }
 
