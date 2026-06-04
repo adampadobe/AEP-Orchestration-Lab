@@ -50,7 +50,7 @@
     },
     'llm-summaries': {
       title: 'Add LLM-Friendly Summaries',
-      date: 'Mon, May 4, 2026',
+      date: 'Mon, May 4, 2024',
       tag: 'Content Opportunity',
     },
   };
@@ -129,10 +129,12 @@
     contentHost: null,
     offsiteHost: null,
     offsiteMount: null,
+    contentMount: null,
     mainPane: null,
     contentTemplate: null,
     delegateWired: false,
     walnutWatcher: false,
+    contentObserver: false,
   };
 
   var TESTID_TO_VIEW = {
@@ -373,9 +375,76 @@
   }
 
   function findContentHost() {
+    if (state.contentMount && state.contentMount.isConnected) return state.contentMount;
     if (state.contentHost) return state.contentHost;
     state.contentHost = sectionCardsParent('Onsite Content Optimizations');
     return state.contentHost;
+  }
+
+  function markContentCard(card) {
+    if (!card) return;
+    card.dataset.skyLlmOpZone = 'content';
+    card.classList.remove('sky-llm-op-card-hidden');
+  }
+
+  function findContentInsertPoint() {
+    var contentMarker = getSectionMarker('Onsite Content Optimizations');
+    if (!contentMarker) return null;
+    var cursor = contentMarker;
+    for (var i = 0; i < 25 && cursor; i++) {
+      var parent = cursor.parentElement;
+      if (!parent) break;
+      var next = cursor.nextElementSibling;
+      if (next) return { parent: parent, before: next };
+      cursor = parent;
+    }
+    return null;
+  }
+
+  function ensureContentCardsMount() {
+    if (state.contentMount && state.contentMount.isConnected) return state.contentMount;
+    var existing = document.getElementById('skyLlmOpContentCards');
+    if (existing) {
+      state.contentMount = existing;
+      return existing;
+    }
+    var point = findContentInsertPoint();
+    var el = document.createElement('div');
+    el.id = 'skyLlmOpContentCards';
+    el.className = 'sky-llm-op-content-cards';
+    if (point) {
+      point.parent.insertBefore(el, point.before);
+    } else {
+      var host = sectionCardsParent('Onsite Content Optimizations') || sharedCardsParent();
+      if (!host) return null;
+      host.appendChild(el);
+    }
+    state.contentMount = el;
+    return el;
+  }
+
+  function mountContentCard(node) {
+    if (!node) return;
+    markContentCard(node);
+    var mount = ensureContentCardsMount();
+    if (mount) {
+      mount.appendChild(node);
+      return;
+    }
+    var host = findContentHost() || sharedCardsParent();
+    if (host) host.appendChild(node);
+  }
+
+  function contentCardTemplate() {
+    return (
+      findContentCardGlobal('simplify') ||
+      findContentCardGlobal('llm-summaries') ||
+      cardsForSection('Onsite Content Optimizations')[0] ||
+      cardsForSection('Onsite Technical Optimizations').find(function (card) {
+        return /information gain|GEO content|Simplify Complex|LLM-Friendly/i.test(getCardTitle(card));
+      }) ||
+      document.querySelector('[data-testid*="OppCard"]')
+    );
   }
 
   function findOffsiteHost() {
@@ -497,6 +566,9 @@
   }
 
   function findContentCardGlobal(id) {
+    var wired = document.querySelector('[data-sky-llm-op-view-id="' + id + '"]');
+    if (wired && !wired.classList.contains('sky-llm-op-card-hidden')) return wired;
+
     var cards = Array.from(document.querySelectorAll('[data-testid*="OppCard"]'));
     var i;
     for (i = 0; i < cards.length; i++) {
@@ -580,9 +652,9 @@
   }
 
   function findActionButton(card) {
-    return Array.from(card.querySelectorAll('button, [role="button"]')).find(function (btn) {
-      var t = btn.textContent.trim();
-      return t === 'Details' || t === 'Preview';
+    return Array.from(card.querySelectorAll('button, [role="button"], a')).find(function (btn) {
+      var t = (btn.textContent || '').trim();
+      return /^Details$/i.test(t) || /^Preview$/i.test(t);
     });
   }
 
@@ -600,9 +672,9 @@
     return btn;
   }
 
-  function openDetailForCard(card) {
+  function openDetailForCard(card, forcedViewId) {
     if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
-    var viewId = resolveViewId(card);
+    var viewId = forcedViewId || card.dataset.skyLlmOpViewId || resolveViewId(card);
     if (!viewId) return;
     showDetail(viewId);
   }
@@ -620,7 +692,10 @@
     clone.dataset.skyLlmOpCardClickWired = '';
     clone.dataset.skyLlmOpBtnWired = '';
     card.parentElement.replaceChild(clone, card);
-    if (viewId) clone.dataset.skyLlmOpViewId = viewId;
+    if (viewId) {
+      clone.dataset.skyLlmOpViewId = viewId;
+      clone.setAttribute('data-sky-llm-op-view-id', viewId);
+    }
     return clone;
   }
 
@@ -639,12 +714,16 @@
     if (btn && btn.dataset.skyLlmOpBtnWired !== '1') {
       btn.dataset.skyLlmOpBtnWired = '1';
       btn.style.pointerEvents = 'auto';
+      if (btn.tagName === 'A') {
+        btn.setAttribute('href', '#');
+        btn.setAttribute('role', 'button');
+      }
       btn.addEventListener(
         'click',
         function (e) {
           e.preventDefault();
           e.stopPropagation();
-          openDetailForCard(card);
+          openDetailForCard(card, viewId);
         },
         true,
       );
@@ -662,7 +741,7 @@
           }
           e.preventDefault();
           e.stopPropagation();
-          openDetailForCard(card);
+          openDetailForCard(card, viewId);
         },
         true,
       );
@@ -692,7 +771,7 @@
     function handleOpenIntent(e) {
       if (!isOpportunityOpenClick(e.target)) return;
       var card = opportunityCardFromTarget(e.target);
-      var viewId = resolveViewId(card);
+      var viewId = (card && card.dataset.skyLlmOpViewId) || resolveViewId(card);
       if (!viewId) return;
       var now = Date.now();
       if (now - lastOpenAt < 350) return;
@@ -700,7 +779,7 @@
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      openDetailForCard(card);
+      openDetailForCard(card, viewId);
     }
     document.addEventListener('pointerdown', handleOpenIntent, true);
     document.addEventListener('click', handleOpenIntent, true);
@@ -708,7 +787,7 @@
       if (e.key !== 'Enter' && e.key !== ' ') return;
       var card = e.target.closest('[data-testid*="OppCard"].sky-llm-op-card-clickable');
       if (!card) return;
-      var viewId = resolveViewId(card);
+      var viewId = card.dataset.skyLlmOpViewId || resolveViewId(card);
       if (!viewId) return;
       e.preventDefault();
       showDetail(viewId);
@@ -750,6 +829,8 @@
       if (isOffsiteCard(card)) return;
       var id = resolveViewId(card);
       if (ONSITE_CARDS[id]) return;
+      if (CONTENT_CARDS[id]) return;
+      if (card.dataset.skyLlmOpZone === 'content') return;
       card.classList.add('sky-llm-op-card-hidden');
     });
 
@@ -846,70 +927,53 @@
   }
 
   function ensureContentCards() {
-    var host = findContentHost();
+    var mount = ensureContentCardsMount();
+    var host = mount || findContentHost() || sharedCardsParent();
     if (!host) return {};
 
-    var sectionCards = cardsForSection('Onsite Content Optimizations');
+    var templateSeed = contentCardTemplate();
     var byId = {};
-    var template = sectionCards.find(function (card) {
-      var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
-      return id && CONTENT_CARDS[id];
-    });
-
-    sectionCards.forEach(function (card) {
-      var id = resolveViewId(card) || TITLE_TO_ID[getCardTitle(card)];
-      if (OFFSITE_CARDS[id] || /YouTube Sentiment/i.test(getCardTitle(card))) {
-        card.classList.add('sky-llm-op-card-hidden');
-        return;
-      }
-      if (id && CONTENT_CARDS[id]) byId[id] = card;
-    });
-
-    if (!byId.simplify) {
-      byId.simplify = findContentCardGlobal('simplify');
-    }
-    if (!byId.simplify && template) {
-      byId.simplify = template;
-    }
-
-    if (byId.simplify) {
-      byId.simplify = neutralizeFrozenCard(byId.simplify);
-      patchCard(byId.simplify, CONTENT_CARDS.simplify, { hideMetrics: true });
-      wireCardOpen(byId.simplify, 'simplify');
-      byId.simplify.classList.remove('sky-llm-op-card-hidden');
-    }
-
-    if (!byId['llm-summaries']) {
-      byId['llm-summaries'] = findContentCardGlobal('llm-summaries');
-    }
-    if (!byId['llm-summaries'] && byId.simplify) {
-      var clone = byId.simplify.cloneNode(true);
-      clone.dataset.skyLlmOpCloned = '1';
-      clone.dataset.skyLlmOpCardWired = '';
-      clone.dataset.skyLlmOpViewId = '';
-      host.appendChild(clone);
-      byId['llm-summaries'] = clone;
-      patchCard(clone, CONTENT_CARDS['llm-summaries'], { hideMetrics: true });
-      wireCardOpen(clone, 'llm-summaries');
-    }
 
     CONTENT_ORDER.forEach(function (id) {
-      var card = byId[id];
-      var config = CONTENT_CARDS[id];
-      if (!card || !config) return;
-      patchCard(card, config, { hideMetrics: true });
-      wireCardOpen(card, id);
-      card.classList.remove('sky-llm-op-card-hidden');
+      var found = findContentCardGlobal(id);
+      if (found && !isOffsiteCard(found)) byId[id] = found;
     });
 
-    sectionCards.forEach(function (card) {
+    CONTENT_ORDER.forEach(function (id) {
+      var config = CONTENT_CARDS[id];
+      if (!config) return;
+      var card = byId[id];
+      if (!card && templateSeed) {
+        card = templateSeed.cloneNode(true);
+        card.dataset.skyLlmOpCloned = '1';
+        card.dataset.skyLlmOpCardWired = '';
+        card.dataset.skyLlmOpCardClickWired = '';
+        card.dataset.skyLlmOpBtnWired = '';
+        card.dataset.skyLlmOpViewId = '';
+        card.removeAttribute('data-sky-llm-op-view-id');
+        mountContentCard(card);
+        byId[id] = card;
+      }
+      if (!card) return;
+      card = neutralizeFrozenCard(card);
+      byId[id] = card;
+      patchCard(card, config, { hideMetrics: true });
+      wireCardOpen(card, id);
+      markContentCard(card);
+    });
+
+    Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
+      if (isOffsiteCard(card)) return;
       var id = resolveViewId(card);
-      if (CONTENT_CARDS[id]) return;
-      if (OFFSITE_CARDS[id] || /YouTube Sentiment/i.test(getCardTitle(card))) return;
+      if (!CONTENT_CARDS[id]) return;
+      if (mount && mount.contains(card)) return;
+      if (byId[id] === card) return;
       card.classList.add('sky-llm-op-card-hidden');
     });
 
-    reorderCards(host, CONTENT_ORDER, byId);
+    if (mount) reorderCards(mount, CONTENT_ORDER, byId);
+    else reorderCards(host, CONTENT_ORDER, byId);
+
     return byId;
   }
 
@@ -1085,7 +1149,7 @@
     );
   }
 
-  function buildContentOpHead(title, updated, metric1Val, metric1Lbl, metric2Val, metric2Lbl) {
+  function buildContentOpHead(title, updated, metric1Val, metric1Lbl, metric2Val, metric2Lbl, pillTag) {
     return (
       '<div class="sky-llm-op-recover-head">' +
       '<div class="sky-llm-op-recover-head-main">' +
@@ -1093,7 +1157,9 @@
       escapeHtml(title) +
       '</h1>' +
       '<div class="sky-llm-op-recover-meta">' +
-      '<span class="sky-llm-op-pill">Content Optimization</span>' +
+      '<span class="sky-llm-op-pill">' +
+      escapeHtml(pillTag || 'Content Optimization') +
+      '</span>' +
       '<span class="sky-llm-op-updated">Updated ' +
       escapeHtml(updated) +
       '</span></div></div>' +
@@ -1248,82 +1314,99 @@
     );
   }
 
-  function buildLlmSummariesDetailHtml() {
-    var paths = [
-      '/tv/sky-glass',
-      '/tv/sky-stream',
-      '/broadband/deals',
-      '/broadband/full-fibre',
-      '/tv/sports',
-      '/tv/cinema',
-      '/shop/tv',
-      '/help/home',
-      '/help/broadband',
-      '/magazine/entertainment',
-      '/magazine/sport',
-      '/tv/ultimate-tv',
-      '/tv/netflix',
+  function buildSummariesUrlsSection() {
+    var sampleRows = [
+      { path: '/2023/08/adobe-firefly-for-enterprise.html', suggestions: '3', traffic: '18,204', citations: '42' },
+      { path: '/products/photoshop.html', suggestions: '2', traffic: '12,881', citations: '28' },
+      { path: '/creativecloud/plans.html', suggestions: '4', traffic: '9,442', citations: '19' },
+      { path: '/acrobat/pdf-reader.html', suggestions: '1', traffic: '7,116', citations: '11' },
+      { path: '/experience-cloud.html', suggestions: '5', traffic: '6,308', citations: '24' },
+      { path: '/products/premiere.html', suggestions: '2', traffic: '4,992', citations: '8' },
+      { path: '/trust/security.html', suggestions: '1', traffic: '3,701', citations: '6' },
+      { path: '/about-adobe.html', suggestions: '3', traffic: '2,884', citations: '14' },
     ];
-    var urls = paths.map(function (path, i) {
-      return { url: siteUrl(path), suggestions: String((i % 3) + 1) };
-    });
-
-    var rows = urls
+    var rows = sampleRows
       .map(function (row) {
         return (
           '<tr>' +
           '<td><input type="checkbox" aria-label="Select URL"></td>' +
           '<td class="sky-llm-op-expand-cell" aria-hidden="true">▸</td>' +
-          demoLinkCell(row.url) +
+          demoLinkCell(siteUrl(row.path)) +
           '<td>' +
           escapeHtml(row.suggestions) +
+          '</td><td>' +
+          escapeHtml(row.traffic) +
+          '</td><td>' +
+          escapeHtml(row.citations) +
           '</td>' +
-          '<td>No</td><td>0</td>' +
           '<td><button type="button" class="sky-llm-op-ghost-btn">Details</button></td>' +
           '</tr>'
         );
       })
       .join('');
 
+    return (
+      '<section class="sky-llm-op-urls-block sky-llm-op-panel">' +
+      '<h2 class="sky-llm-op-urls-title">URLs with suggestions</h2>' +
+      '<div class="sky-llm-op-url-tabs-row">' +
+      '<div class="sky-llm-op-suggest-tabs">' +
+      '<span class="sky-llm-op-suggest-tab sky-llm-op-suggest-tab--active">Current suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Fixed suggestions</span>' +
+      '<span class="sky-llm-op-suggest-tab">Ignored suggestions</span>' +
+      '</div>' +
+      '<div class="sky-llm-op-suggest-actions">' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as fixed</button>' +
+      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore suggestions</button>' +
+      '</div></div>' +
+      '<div class="sky-llm-op-search sky-llm-op-search--full" role="search">Search URLs</div>' +
+      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-summaries">' +
+      '<thead><tr><th scope="col"></th><th scope="col"></th><th scope="col">URL</th><th scope="col">Suggestions</th>' +
+      '<th scope="col">Agentic Traffic (7 Weeks)</th><th scope="col">Citations (7 Weeks)</th><th scope="col">Details</th></tr></thead>' +
+      '<tbody>' +
+      rows +
+      '</tbody></table></div></section>'
+    );
+  }
+
+  function buildLlmSummariesDetailHtml() {
     var overview =
       '<p>Content summarization elements such as summary and key points improve content discoverability and user engagement. AI-generated summaries help improve content discoverability and user engagement.</p>' +
       '<p>These suggestions provide concise summaries that can be added to your pages, either as full page summaries or section-specific summaries.</p>';
     var guidance =
-      '<p><strong>Recommendation:</strong> Use an edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
+      '<p><strong>Recommendation:</strong> Use our edge-based optimization solution to safely optimize your content for agents in a low-risk way. With this solution, you can apply AI-suggested improvements at the delivery layer for agentic traffic only.</p>' +
       '<p><strong>Our solution</strong></p>' +
       '<ol>' +
-      '<li><strong>Bot-only delivery:</strong> We target agents only. Human visitors are not affected in any way.</li>' +
-      '<li><strong>We don\'t touch your CMS:</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
-      '<li><strong>Fast, low-risk deployment:</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
+      '<li><strong>Bot-only delivery.</strong> We target agents only. Human visitors are not affected in any way.</li>' +
+      '<li><strong>We don\'t touch your CMS.</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
+      '<li><strong>Fast, low-risk deployment.</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
       '</ol>' +
       '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>';
 
     return (
       '<button type="button" class="sky-llm-op-back" id="skyLlmOpBack">← Back to Opportunities</button>' +
-      buildContentOpHead('Add LLM-Friendly Summaries', 'Mon, May 6, 2024', '13', 'URLs', '25', 'Suggestions') +
-      buildPanels(overview, guidance) +
+      '<div class="sky-llm-op-content-op">' +
+      buildContentOpHead(
+        'Add LLM-Friendly Summaries',
+        'Mon, May 20, 2024',
+        '22',
+        'sites',
+        '42',
+        'suggestions',
+        'Search optimization',
+      ) +
+      buildPanelSection('Overview', overview) +
+      buildPanelSection('Guidance', guidance) +
       buildProgressBlock(
         0,
-        13,
-        'Upgrade to unlock more opportunities and prioritize additional URLs.',
+        42,
+        'Upgrade to a paid version to select and optimize additional URLs.',
       ) +
       buildPlanBlock(
         'Review all suggestions from below carefully before applying. You can dismiss or edit where needed.',
         'Please select suggestions to deploy',
       ) +
-      '<section class="sky-llm-op-urls-block">' +
-      '<div class="sky-llm-op-section-head"><h2 class="sky-llm-op-section-title">URLs with suggestions</h2></div>' +
-      '<div class="sky-llm-op-toolbar">' +
-      '<span class="sky-llm-op-filter">Current Suggestions</span>' +
-      '<div class="sky-llm-op-search sky-llm-op-search-inline">Search URLs</div>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Mark as Fixed</button>' +
-      '<button type="button" class="sky-llm-op-ghost-btn" disabled>Ignore Suggestions</button>' +
-      '</div>' +
-      '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-summaries">' +
-      '<thead><tr><th></th><th></th><th>URL</th><th>Suggestions</th><th>Agentic Traffic (4 Weeks)</th><th>Citations (4 Weeks)</th><th>Details</th></tr></thead>' +
-      '<tbody>' +
-      rows +
-      '</tbody></table></div></section>'
+      buildSummariesUrlsSection() +
+      '</div>'
     );
   }
 
@@ -1420,6 +1503,7 @@
     add(findOpportunitiesMain());
     add(findListCanvas());
     add(document.getElementById('skyLlmOpOffsiteCards'));
+    add(document.getElementById('skyLlmOpContentCards'));
     return targets;
   }
 
@@ -1507,6 +1591,7 @@
     state.contentHost = null;
     state.offsiteHost = null;
     state.offsiteMount = null;
+    state.contentMount = null;
     state.mainPane = null;
   }
 
@@ -1517,8 +1602,8 @@
     ensureDelegatedClicks();
     resetCaches();
     setupOffsiteCards();
-    setupOnsiteCards();
     ensureContentCards();
+    setupOnsiteCards();
     ensureDetailRoot();
     applyHashRoute();
   }
@@ -1548,9 +1633,19 @@
   } else {
     boot();
   }
-  [400, 1200, 2500].forEach(function (ms) {
+  [400, 1200, 2500, 5000].forEach(function (ms) {
     window.setTimeout(boot, ms);
   });
+
+  if (window.MutationObserver && !state.contentObserver) {
+    state.contentObserver = true;
+    var contentObs = new MutationObserver(function () {
+      if (!document.querySelector('[data-sky-llm-op-view-id="simplify"].sky-llm-op-card-clickable')) {
+        ensureContentCards();
+      }
+    });
+    contentObs.observe(document.documentElement, { childList: true, subtree: true });
+  }
 
   var opportunitiesApi = { boot: boot, rewire: rewire, showDetail: showDetail };
   root.LlmOpportunities = opportunitiesApi;
