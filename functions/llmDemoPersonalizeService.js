@@ -10,6 +10,42 @@ const { callGemini, callGeminiResearch, stripJsonFences } = require('./vertexCli
 
 const SKY_COMPETITORS = ['Virgin Media', 'BT', 'TalkTalk', 'Netflix', 'Disney+'];
 
+/** Sky UK demo telco/streaming labels — must not pad non-telco brand scrapes. */
+const SKY_TELCO_LABELS = new Set(
+  ['virgin media', 'bt', 'talktalk', 'netflix', 'disney+', 'disney plus', 'sky', 'competitor 1', 'competitor 2', 'competitor 3', 'competitor 4', 'competitor 5', 'competitor 6'].map((s) => s.toLowerCase()),
+);
+
+function isTelcoIndustry(industry) {
+  return /telecom|broadband|pay[- ]?tv|media bundle|telco|mobile network/i.test(String(industry || ''));
+}
+
+function sanitizeCompetitorName(name) {
+  let n = String(name || '').trim();
+  if (!n) return '';
+  if (/^&\s*general$/i.test(n)) n = 'Legal & General';
+  if (/^&\s+/i.test(n) && /general/i.test(n)) n = `Legal ${n}`;
+  if (/^general$/i.test(n)) return '';
+  if (/^competitor\s+\d+$/i.test(n)) return '';
+  return n;
+}
+
+function normalizeCompetitorList(list, { industry, brand } = {}) {
+  const telco = isTelcoIndustry(industry);
+  const out = [];
+  const seen = new Set();
+  for (const raw of list || []) {
+    const name = sanitizeCompetitorName(raw);
+    if (!name || name.length < 3) continue;
+    const key = name.toLowerCase();
+    if (!telco && SKY_TELCO_LABELS.has(key)) continue;
+    if (brand && key === String(brand).trim().toLowerCase()) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out.slice(0, 6);
+}
+
 /** Paths used in the frozen Sky snapshot (opportunities / URL tables). */
 const SKY_DEMO_PATHS = [
   '/content/status',
@@ -106,10 +142,21 @@ function parseSection(raw, heading) {
 }
 
 function bulletsToList(section) {
-  return String(section || '')
-    .split('\n')
-    .map((line) => line.replace(/^[\s*-•]+/, '').trim())
-    .filter(Boolean);
+  const lines = String(section || '').split('\n');
+  const out = [];
+  let pending = '';
+  for (const line of lines) {
+    const trimmed = line.replace(/^[\s*-•]+/, '').trim();
+    if (!trimmed) continue;
+    if (/^&\s/.test(trimmed) && pending) {
+      pending = `${pending} ${trimmed}`;
+      continue;
+    }
+    if (pending) out.push(pending);
+    pending = trimmed;
+  }
+  if (pending) out.push(pending);
+  return out;
 }
 
 function pathsFromCrawl(pages, siteHost, limit) {
@@ -205,9 +252,12 @@ function buildClientConfig({
   samplePrompts,
   researchUsed,
   crawlPages,
+  padCompetitors = true,
 }) {
-  const comps = (competitors || []).slice(0, 6);
-  while (comps.length < 6) comps.push(SKY_COMPETITORS[comps.length] || `Competitor ${comps.length + 1}`);
+  const comps = normalizeCompetitorList(competitors, { industry, brand });
+  if (padCompetitors) {
+    while (comps.length < 6) comps.push(SKY_COMPETITORS[comps.length] || `Competitor ${comps.length + 1}`);
+  }
   const paths = (samplePaths || []).slice(0, 12);
   const urls = sampleUrls(siteUrl, paths);
   const urlReplacements = [];
@@ -338,7 +388,8 @@ async function structureConfig(research, crawlFallback) {
 }
 
 const COMPETITOR_JSON_SYSTEM = `You identify direct competitors for a brand. Respond with valid JSON only:
-{"competitors":["exactly six real company or brand names in the same industry and region"]}`;
+{"competitors":["exactly six real company or brand names in the same industry and region"]}
+Rules: use full official brand names (e.g. "Legal & General" not "& General"); same industry as the target (insurance brands for insurers, not telecom or streaming unless the target is a telco); UK/EU names when the site is .co.uk.`;
 
 const PROMPTS_JSON_SYSTEM = `You write realistic consumer questions people ask LLMs when comparing brands in an industry.
 Respond with valid JSON only:
@@ -384,7 +435,7 @@ async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, u
   const raw = await callGemini(COMPETITOR_JSON_SYSTEM, userPrompt, {
     model: 'gemini-2.5-flash',
     temperature: 0.2,
-    maxOutputTokens: 512,
+    maxOutputTokens: 1024,
     jsonMode: true,
     allowTruncation: true,
   });
@@ -400,21 +451,14 @@ async function inferCompetitorsFromScrape({ brand, industry, about, crawlText, u
   return list;
 }
 
-/** Resolve six industry competitors from scrape context; never fall back to Sky telco defaults. */
+/**
+ * Resolve industry competitors for brand scraper — grounded research first, no Sky padding.
+ * @returns {{ competitors: string[], researchUsed: boolean, industryHint: string }}
+ */
 async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, url, siteHost }) {
   let competitors = [];
-  try {
-    competitors = await inferCompetitorsFromScrape({
-      brand,
-      industry,
-      about,
-      crawlText,
-      url,
-    });
-  } catch (e) {
-    console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
-  }
-  if (competitors.length >= 4) return competitors;
+  let researchUsed = false;
+  let industryHint = String(industry || '').trim();
 
   try {
     const research = await researchBrand({
@@ -423,17 +467,35 @@ async function resolveCompetitorsForScrape({ brand, industry, about, crawlText, 
       brandName: brand,
       crawlText,
     });
-    if (research.competitors && research.competitors.length >= 4) {
-      return research.competitors.slice(0, 6);
-    }
-    if (research.competitors && research.competitors.length > competitors.length) {
-      competitors = research.competitors.slice(0, 6);
-    }
+    researchUsed = true;
+    if (research.industry && !industryHint) industryHint = String(research.industry).trim();
+    competitors = normalizeCompetitorList(research.competitors, {
+      industry: industryHint || research.industry,
+      brand,
+    });
   } catch (e) {
-    console.warn('[llmDemoPersonalize] competitor research fallback failed', String(e && e.message || e));
+    console.warn('[llmDemoPersonalize] competitor research failed', String(e && e.message || e));
   }
 
-  return competitors;
+  if (competitors.length < 4) {
+    try {
+      const inferred = await inferCompetitorsFromScrape({
+        brand,
+        industry: industryHint,
+        about,
+        crawlText,
+        url,
+      });
+      competitors = normalizeCompetitorList(
+        [...competitors, ...inferred],
+        { industry: industryHint, brand },
+      );
+    } catch (e) {
+      console.warn('[llmDemoPersonalize] competitor inference failed', String(e && e.message || e));
+    }
+  }
+
+  return { competitors, researchUsed, industryHint };
 }
 
 /**
@@ -445,8 +507,13 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
   const siteHost = hostFromUrl(url);
   const siteUrl = new URL(url).origin;
   const pages = (record.crawlSummary && record.crawlSummary.pages) || [];
-  const crawlText = pages
-    .map((p) => `${p.url}\n${(p.title || '')}\n${(p.description || '')}\n`)
+  const crawlText = [
+    (record.analysis && !record.analysis.skipped && record.analysis.about) || '',
+    ...pages.map((p) =>
+      `${p.url}\n${(p.title || '')}\n${(p.description || '')}\n${String(p.text || '').slice(0, 400)}`,
+    ),
+  ]
+    .filter(Boolean)
     .join('\n\n---\n\n');
   const pathFallback = pathsFromCrawl(pages, siteHost, 12);
   const hostBrand = siteHost.split('.')[0];
@@ -459,11 +526,12 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
     record.about ||
     (pages[0] && pages[0].description) ||
     '';
-  const industry = String(record.industry || '').trim();
+  let industry = String(record.industry || '').trim();
 
   let competitors = [];
+  let competitorResearchUsed = false;
   if (opts.skipCompetitorInference !== true) {
-    competitors = await resolveCompetitorsForScrape({
+    const resolved = await resolveCompetitorsForScrape({
       brand: brandFallback,
       industry,
       about,
@@ -471,6 +539,9 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
       url,
       siteHost,
     });
+    competitors = resolved.competitors;
+    competitorResearchUsed = resolved.researchUsed;
+    if (resolved.industryHint && !industry) industry = resolved.industryHint;
   }
 
   let samplePrompts = [];
@@ -501,8 +572,9 @@ async function buildLlmDemoConfigForRecord(record, opts = {}) {
       : ['/', '/about', '/products', '/help', '/contact'],
     claimThemes: claimThemesForIndustry(industry),
     samplePrompts,
-    researchUsed: false,
+    researchUsed: competitorResearchUsed,
     crawlPages: pages.length,
+    padCompetitors: false,
   });
 }
 
