@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ocean Cruises | Saga Cruises</title>
+  <title>Saga Cruises – Cruises for over 50s</title>
+  <meta name="description" content="Whether it's exploring Europe on a river cruise or seeing the world on an ocean cruise, Saga has holidays to suit everyone.">
   <link rel="stylesheet" href="saga-shared.css">
+  <link rel="stylesheet" href="saga-cruises.css">
   <script src="saga-events.js"></script>
   <script src="saga-login.js"></script>
 </head>
-<body class="saga-site" data-saga-page="cruises-list">
+<body class="saga-site saga-cruises-hub" data-saga-page="cruises-list">
   <header class="saga-meganav" role="banner">
     <div class="saga-meganav__stripe" aria-hidden="true"></div>
     <div class="saga-meganav__inner">
       <div class="saga-meganav__brand">
-        <a href="saga-home.html" class="saga-meganav__logo-link" aria-label="Saga home">
+        <a href="saga-home.html" class="saga-meganav__logo-link" data-saga-nav="home" aria-label="Saga home">
           <img class="saga-meganav__logo" src="images/saga_logo.svg" width="118" height="32" alt="Saga">
         </a>
         <img class="saga-meganav__anniversary" src="images/saga_75_years_badge.svg" width="52" height="44" alt="Celebrating 75 years of Saga">
@@ -36,35 +38,49 @@
     </div>
   </header>
 
-  <section class="saga-travel-hero" style="background-image: linear-gradient(135deg, rgba(20,34,89,0.85), rgba(30,50,130,0.75)), url('images/cruise-hero-mouse-island.jpg'); background-size: cover; background-position: center;">
-    <div class="saga-travel-hero__inner">
-      <p class="saga-kicker" style="color: var(--saga-champagne);">Saga Cruises</p>
-      <h1>Ocean cruises</h1>
-      <p>Boutique all-inclusive ships sailing from UK ports — Spirit of Discovery and Spirit of Adventure.</p>
-      <a href="#sagaCruiseGrid" class="saga-btn saga-btn--dark" style="margin-top: 1rem;">Find your cruise</a>
+  <nav class="saga-cruises-breadcrumb" aria-label="Breadcrumb">
+    <a href="saga-home.html">Home</a> › <span aria-current="page">Cruises</span>
+  </nav>
+
+  <div class="saga-cruises-mini-search" data-region="CruiseMiniSearch">
+    <div class="saga-cruises-mini-search__inner">
+      <p class="saga-cruises-mini-search__label">Find your boutique cruise</p>
+      <button type="button" class="saga-cruises-mini-search__btn" id="sagaMiniSearchBtn" data-saga-action="mini-search">Search</button>
+    </div>
+  </div>
+
+  <section class="saga-cruises-hero" style="background-image: url('images/cruises-hero-promenade.jpg');" aria-label="Saga cruises hero">
+    <div class="saga-cruises-hero__inner">
+      <h1><span class="saga-cruises-hero__bar" aria-hidden="true"></span>Saga cruises</h1>
     </div>
   </section>
 
-  <main class="saga-main">
-    <nav class="saga-breadcrumb" aria-label="Breadcrumb">
-      <a href="saga-home.html">Saga</a> › <span>Ocean cruises</span>
-    </nav>
-
-    <form class="saga-filters" id="sagaFilters" aria-label="Cruise search filters">
+  <section class="saga-cruises-search" aria-label="Cruise search">
+    <form class="saga-cruises-search__inner" id="sagaFilters" data-saga-region="search">
       <label>
-        Destination
+        Cruise type
+        <select id="sagaFilterCruiseType" name="cruiseType">
+          <option value="any">All cruises</option>
+          <option value="ocean" selected>Ocean cruise</option>
+          <option value="river">River cruise</option>
+        </select>
+      </label>
+      <label>
+        Region
         <select id="sagaFilterDestination" name="destination">
-          <option value="any">Any destination</option>
+          <option value="any">All regions</option>
           <option value="norway">Norway &amp; fjords</option>
           <option value="mediterranean">Mediterranean</option>
           <option value="british-isles">British Isles</option>
           <option value="canaries">Canaries</option>
+          <option value="europe-rivers">Europe rivers</option>
         </select>
       </label>
       <label>
-        Year
+        Date
         <select id="sagaFilterYear" name="year">
-          <option value="2026">2026</option>
+          <option value="any">Any date</option>
+          <option value="2026" selected>2026</option>
           <option value="2027">2027</option>
         </select>
       </label>
@@ -74,48 +90,133 @@
           <option value="any">Any ship</option>
           <option value="spirit-of-discovery">Spirit of Discovery</option>
           <option value="spirit-of-adventure">Spirit of Adventure</option>
+          <option value="spirit-of-the-lorelei">Spirit of the Lorelei</option>
         </select>
       </label>
-      <button type="button" class="saga-btn saga-btn--secondary" id="sagaApplyFilters">Apply filters</button>
+      <button type="button" class="saga-btn saga-btn--dark" id="sagaApplyFilters">Search cruises</button>
     </form>
+  </section>
 
-    <h2 class="saga-section-title">Our boutique cruises are selling fast</h2>
-    <p style="margin: 0 0 1.5rem; max-width: 42rem;">Every no-fly cruise includes an excursion in every port. Early booking discounts of up to 35% on selected sailings.</p>
+  <main class="saga-cruises-main" id="Content">
+    <section class="saga-cruises-intro" data-region="CruiseIntro">
+      <h2>Experience cruising with Saga</h2>
+      <p>Choose a no-fly ocean cruise or sail Europe's finest waterways. You can look forward to many exciting first-time experiences when you cruise with us.</p>
+      <p>Whether it's being picked up from home by a chauffeur, exploring new destinations on included excursions, or relaxing with all-inclusive cocktails throughout your time on board.</p>
+      <p class="saga-cruises-intro__links"><a href="#sagaCruiseGrid" data-saga-nav="featured-cruises">Discover your perfect ocean or river cruise today.</a></p>
+    </section>
 
-    <div class="saga-card-grid" id="sagaCruiseGrid">
-      <article class="saga-cruise-card" data-cruise-id="SAGA-NFJ-2026-05" data-visible="1" data-dest="norway">
-        <div class="saga-cruise-card__img" style="background-image: url('images/cruise-ship-ullapool.jpg')"></div>
-        <div class="saga-cruise-card__body">
-          <span class="saga-cruise-card__ship">Spirit of Discovery</span>
-          <h3><a href="saga-cruise-detail.html">Norwegian Fjords &amp; Arctic Circle</a></h3>
-          <p class="saga-cruise-card__meta">14 nights · Dover · May 2026</p>
-          <p class="saga-cruise-card__price">From £2,899 pp</p>
-          <a class="saga-btn saga-btn--dark" href="saga-cruise-detail.html" data-saga-view-cruise="SAGA-NFJ-2026-05">View cruise</a>
+    <div class="saga-cruises-promos" data-region="CruisePromoPods">
+      <a class="saga-cruises-promo saga-cruises-promo--award" href="saga-cruise-detail.html" data-saga-promo="which-award">
+        <div class="saga-cruises-promo__img" style="background-image: url('images/cruises-award-which-2026.png');"></div>
+        <div class="saga-cruises-promo__body">
+          <h3>Which? number one rated cruise line</h3>
+          <p>Recommended Provider of Ocean Cruises for six years in a row — highest customer score in 2026.</p>
+          <span class="saga-cruises-promo__cta">View our awards</span>
         </div>
-      </article>
-      <article class="saga-cruise-card" data-cruise-id="SAGA-MED-2026-09" data-visible="1" data-dest="mediterranean">
-        <div class="saga-cruise-card__img" style="background-image: linear-gradient(160deg,#c4a060,#6a5030)"></div>
-        <div class="saga-cruise-card__body">
-          <span class="saga-cruise-card__ship">Spirit of Adventure</span>
-          <h3><a href="saga-cruise-detail.html?cruise=SAGA-MED-2026-09">Mediterranean Highlights</a></h3>
-          <p class="saga-cruise-card__meta">12 nights · Portsmouth · Sep 2026</p>
-          <p class="saga-cruise-card__price">From £2,499 pp</p>
-          <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html?cruise=SAGA-MED-2026-09">View cruise</a>
+      </a>
+      <a class="saga-cruises-promo" href="#sagaCruiseGrid" data-saga-promo="ocean-2027">
+        <div class="saga-cruises-promo__img" style="background-image: url('images/cruises-ocean-pod-2027.jpg');"></div>
+        <div class="saga-cruises-promo__body">
+          <h3>New 2027 no-fly cruises selling fast!</h3>
+          <p>Our full season of 2027 no-fly cruises has launched — celebrating 30 years of Saga Cruising with an included excursion in every port.</p>
+          <span class="saga-cruises-promo__cta">Discover our ocean cruises</span>
         </div>
-      </article>
-      <article class="saga-cruise-card" data-cruise-id="SAGA-BI-2027-06" data-visible="1" data-dest="british-isles">
-        <div class="saga-cruise-card__img" style="background-image: url('images/cruise-hero-mouse-island.jpg')"></div>
-        <div class="saga-cruise-card__body">
-          <span class="saga-cruise-card__ship">Spirit of Discovery</span>
-          <h3>British Isles Discovery</h3>
-          <p class="saga-cruise-card__meta">10 nights · Dover · Jun 2027</p>
-          <p class="saga-cruise-card__price">From £1,999 pp</p>
-          <button type="button" class="saga-btn saga-btn--secondary" disabled>Lab: open featured cruise</button>
+      </a>
+      <a class="saga-cruises-promo" href="#sagaCruiseGrid" data-saga-promo="river-2027" data-saga-filter-hint="river">
+        <div class="saga-cruises-promo__img" style="background-image: url('images/cruises-river-pod-czech.jpg');"></div>
+        <div class="saga-cruises-promo__body">
+          <h3>Brand-new 2027 river cruises</h3>
+          <p>Discover our brand-new 2027 season aboard Spirit of the Lorelei on all-inclusive European river itineraries.</p>
+          <span class="saga-cruises-promo__cta">Discover river cruises</span>
         </div>
-      </article>
+      </a>
     </div>
 
-    <p class="saga-demo-note">Demo listing styled after travel.saga.co.uk/cruises/ocean — lab journey continues to cruise detail.</p>
+    <div class="saga-cruises-pods" data-region="CruiseButtonPods">
+      <a class="saga-cruises-pod" href="saga-cruise-detail.html" data-saga-promo="britannia-club">
+        <span class="saga-cruises-pod__bg" style="background-image: url('images/cruises-restaurant-pod.jpg');"></span>
+        <div class="saga-cruises-pod__content">
+          <h3>Britannia Club</h3>
+          <p>Cruise with us for more than 35 nights and enjoy free membership with exclusive benefits.</p>
+          <span class="saga-cruises-pod__cta">Find out more</span>
+        </div>
+      </a>
+      <a class="saga-cruises-pod" href="saga-cruise-detail.html" data-saga-promo="unique-experiences">
+        <span class="saga-cruises-pod__bg" style="background-image: url('images/cruises-promenade-pod.jpg');"></span>
+        <div class="saga-cruises-pod__content">
+          <h3>Discover unique experiences</h3>
+          <p>From Northern Lights to Norwegian fjords — explore remarkable destinations with Saga.</p>
+          <span class="saga-cruises-pod__cta">Explore destinations</span>
+        </div>
+      </a>
+      <a class="saga-cruises-pod" href="saga-cruise-detail.html" data-saga-promo="love-it-first">
+        <span class="saga-cruises-pod__bg" style="background-image: url('images/cruise-hero-mouse-island.jpg');"></span>
+        <div class="saga-cruises-pod__content">
+          <h3>Love your first cruise, or your money back</h3>
+          <p>Our Love-It-First-Time Guarantee — book with confidence on your first Saga cruise.</p>
+          <span class="saga-cruises-pod__cta">Learn more</span>
+        </div>
+      </a>
+    </div>
+
+    <section class="saga-cruises-awards" data-region="CruiseAwards" aria-label="Cruise awards">
+      <h2>View our awards</h2>
+      <div class="saga-cruises-awards__grid">
+        <img src="images/cruises-award-which-2026.png" alt="Which? Recommended Provider 2026" width="120" height="56" loading="lazy">
+        <img src="images/cruises-award-which-2026.png" alt="British Travel Awards" width="120" height="56" loading="lazy" aria-hidden="true" style="opacity:0.85">
+        <img src="images/cruises-award-which-2026.png" alt="Cruise Critic" width="120" height="56" loading="lazy" aria-hidden="true" style="opacity:0.75">
+      </div>
+    </section>
+
+    <section class="saga-cruises-featured" id="sagaCruiseGrid" aria-labelledby="sagaFeaturedTitle">
+      <h2 class="saga-section-title" id="sagaFeaturedTitle">Our boutique cruises are selling fast</h2>
+      <p class="saga-cruises-featured__lead">Every no-fly cruise includes an excursion in every port. Early booking discounts of up to 35% on selected sailings. Select a cruise to continue the lab journey.</p>
+
+      <div class="saga-card-grid">
+        <article class="saga-cruise-card" data-cruise-id="SAGA-NFJ-2026-05" data-visible="1" data-dest="norway" data-cruise-type="ocean" data-year="2026" data-ship="spirit-of-discovery">
+          <div class="saga-cruise-card__img" style="background-image: url('images/cruise-ship-ullapool.jpg')"></div>
+          <div class="saga-cruise-card__body">
+            <span class="saga-cruise-card__ship">Spirit of Discovery</span>
+            <h3><a href="saga-cruise-detail.html" data-saga-view-cruise="SAGA-NFJ-2026-05">Norwegian Fjords &amp; Arctic Circle</a></h3>
+            <p class="saga-cruise-card__meta">14 nights · Dover · May 2026</p>
+            <p class="saga-cruise-card__price">From £2,899 pp</p>
+            <a class="saga-btn saga-btn--dark" href="saga-cruise-detail.html" data-saga-view-cruise="SAGA-NFJ-2026-05">View cruise</a>
+          </div>
+        </article>
+        <article class="saga-cruise-card" data-cruise-id="SAGA-MED-2026-09" data-visible="1" data-dest="mediterranean" data-cruise-type="ocean" data-year="2026" data-ship="spirit-of-adventure">
+          <div class="saga-cruise-card__img" style="background-image: url('images/cruises-ocean-pod-2027.jpg')"></div>
+          <div class="saga-cruise-card__body">
+            <span class="saga-cruise-card__ship">Spirit of Adventure</span>
+            <h3><a href="saga-cruise-detail.html?cruise=SAGA-MED-2026-09" data-saga-view-cruise="SAGA-MED-2026-09">Mediterranean Highlights</a></h3>
+            <p class="saga-cruise-card__meta">12 nights · Portsmouth · Sep 2026</p>
+            <p class="saga-cruise-card__price">From £2,499 pp</p>
+            <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html?cruise=SAGA-MED-2026-09" data-saga-view-cruise="SAGA-MED-2026-09">View cruise</a>
+          </div>
+        </article>
+        <article class="saga-cruise-card" data-cruise-id="SAGA-BI-2027-06" data-visible="1" data-dest="british-isles" data-cruise-type="ocean" data-year="2027" data-ship="spirit-of-discovery">
+          <div class="saga-cruise-card__img" style="background-image: url('images/cruises-hero-promenade.jpg')"></div>
+          <div class="saga-cruise-card__body">
+            <span class="saga-cruise-card__ship">Spirit of Discovery</span>
+            <h3><a href="saga-cruise-detail.html?cruise=SAGA-BI-2027-06" data-saga-view-cruise="SAGA-BI-2027-06">British Isles Discovery</a></h3>
+            <p class="saga-cruise-card__meta">10 nights · Dover · Jun 2027</p>
+            <p class="saga-cruise-card__price">From £1,999 pp</p>
+            <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html?cruise=SAGA-BI-2027-06" data-saga-view-cruise="SAGA-BI-2027-06">View cruise</a>
+          </div>
+        </article>
+        <article class="saga-cruise-card" data-cruise-id="SAGA-RV-2027-04" data-visible="1" data-dest="europe-rivers" data-cruise-type="river" data-year="2027" data-ship="spirit-of-the-lorelei">
+          <div class="saga-cruise-card__img" style="background-image: url('images/cruises-river-pod-czech.jpg')"></div>
+          <div class="saga-cruise-card__body">
+            <span class="saga-cruise-card__ship">Spirit of the Lorelei</span>
+            <h3><a href="saga-cruise-detail.html?cruise=SAGA-RV-2027-04" data-saga-view-cruise="SAGA-RV-2027-04">Danube &amp; Czech Republic</a></h3>
+            <p class="saga-cruise-card__meta">10 nights · Prague · Apr 2027</p>
+            <p class="saga-cruise-card__price">From £2,199 pp</p>
+            <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html?cruise=SAGA-RV-2027-04" data-saga-view-cruise="SAGA-RV-2027-04">View cruise</a>
+          </div>
+        </article>
+      </div>
+
+      <p class="saga-demo-note">AEP lab — visual mimic of <a href="https://travel.saga.co.uk/cruises" rel="noopener noreferrer">travel.saga.co.uk/cruises</a>. Featured cards link to cruise detail for journey tracking.</p>
+    </section>
   </main>
 
   <footer class="saga-megafoot" data-region="Footer">
@@ -194,26 +295,36 @@
 
   <script>
     (function () {
+      var CRUISE_NAMES = {
+        'SAGA-NFJ-2026-05': 'Norwegian Fjords & Arctic Circle',
+        'SAGA-MED-2026-09': 'Mediterranean Highlights',
+        'SAGA-BI-2027-06': 'British Isles Discovery',
+        'SAGA-RV-2027-04': 'Danube & Czech Republic',
+      };
+
       var base = {
         travelBrand: 'Saga',
-        travelProductCategory: 'ocean_cruise',
+        travelProductCategory: 'cruise_hub',
         travelJourneyStage: 'cruise_list',
-        pageName: 'Ocean Cruises — Search',
-        siteSection: 'cruises/ocean',
+        pageName: 'Saga Cruises — Hub',
+        siteSection: 'cruises',
       };
+
       function emit(type, extra) {
         if (!window.SagaCruisesLabEvents) return;
         var pub = {};
         var k;
         for (k in base) if (Object.prototype.hasOwnProperty.call(base, k)) pub[k] = base[k];
         if (extra) for (k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) pub[k] = extra[k];
-        SagaCruisesLabEvents.emit(type, pub, 'Saga — Ocean cruises', location.href);
+        SagaCruisesLabEvents.emit(type, pub, 'Saga — Cruises hub', location.href);
       }
-      emit('web.webpagedetails.pageViews', { travelPageType: 'listing' });
-      emit('travel.cruise.list.view', { travelCruiseResultCount: 3 });
+
+      emit('web.webpagedetails.pageViews', { travelPageType: 'hub' });
+      emit('travel.cruise.list.view', { travelCruiseResultCount: document.querySelectorAll('[data-cruise-id]').length });
 
       function filterState() {
         return {
+          travelFilterCruiseType: document.getElementById('sagaFilterCruiseType').value,
           travelFilterDestination: document.getElementById('sagaFilterDestination').value,
           travelFilterYear: document.getElementById('sagaFilterYear').value,
           travelFilterShip: document.getElementById('sagaFilterShip').value,
@@ -221,13 +332,15 @@
       }
 
       function applyFilterUi() {
-        var dest = document.getElementById('sagaFilterDestination').value;
+        var st = filterState();
         var cards = document.querySelectorAll('[data-cruise-id]');
         var visible = 0;
         cards.forEach(function (card) {
-          var cardDest = card.getAttribute('data-dest') || 'norway';
-          var id = card.getAttribute('data-cruise-id') || '';
-          var show = dest === 'any' || cardDest === dest || (dest === 'norway' && id.indexOf('NFJ') >= 0);
+          var show = true;
+          if (st.travelFilterCruiseType !== 'any' && card.getAttribute('data-cruise-type') !== st.travelFilterCruiseType) show = false;
+          if (st.travelFilterDestination !== 'any' && card.getAttribute('data-dest') !== st.travelFilterDestination) show = false;
+          if (st.travelFilterYear !== 'any' && card.getAttribute('data-year') !== st.travelFilterYear) show = false;
+          if (st.travelFilterShip !== 'any' && card.getAttribute('data-ship') !== st.travelFilterShip) show = false;
           card.style.display = show ? '' : 'none';
           if (show) visible++;
         });
@@ -238,13 +351,37 @@
         var st = filterState();
         var count = applyFilterUi();
         emit('travel.cruise.filter.apply', Object.assign({}, st, { travelCruiseResultCount: count }));
+        var grid = document.getElementById('sagaCruiseGrid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      document.getElementById('sagaMiniSearchBtn').addEventListener('click', function () {
+        document.getElementById('sagaApplyFilters').click();
+      });
+
+      document.querySelectorAll('[data-saga-filter-hint="river"]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          var dest = document.getElementById('sagaFilterDestination');
+          var type = document.getElementById('sagaFilterCruiseType');
+          if (type) type.value = 'river';
+          if (dest) dest.value = 'europe-rivers';
+        });
       });
 
       document.querySelectorAll('[data-saga-view-cruise]').forEach(function (el) {
         el.addEventListener('click', function () {
+          var id = el.getAttribute('data-saga-view-cruise');
           emit('travel.cruise.select', {
-            travelCruiseId: el.getAttribute('data-saga-view-cruise'),
-            travelCruiseName: 'Norwegian Fjords & Arctic Circle',
+            travelCruiseId: id,
+            travelCruiseName: CRUISE_NAMES[id] || id,
+          });
+        });
+      });
+
+      document.querySelectorAll('[data-saga-promo]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          emit('travel.cruise.promo.click', {
+            travelPromoId: el.getAttribute('data-saga-promo'),
           });
         });
       });
