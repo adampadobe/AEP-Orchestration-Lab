@@ -128,6 +128,7 @@
     contentHost: null,
     offsiteHost: null,
     offsiteMount: null,
+    mainPane: null,
     contentTemplate: null,
     delegateWired: false,
     walnutWatcher: false,
@@ -186,6 +187,58 @@
       walk = walk.parentElement;
     }
     return findListCanvas();
+  }
+
+  function ensurePanePositioned(el) {
+    if (!el) return;
+    var pos = window.getComputedStyle(el).position;
+    if (pos === 'static') el.style.position = 'relative';
+  }
+
+  /** Main scroll column to the right of the org sidebar (keeps left nav visible). */
+  function findShellMainPane() {
+    if (state.mainPane && state.mainPane.isConnected) return state.mainPane;
+
+    var sidebarEl = document.querySelector('[id^="org-sidebar-section-"]');
+    var oppHead = findOpportunitiesHeading();
+    if (oppHead && sidebarEl) {
+      var row = oppHead.parentElement;
+      for (var i = 0; i < 35 && row; i++) {
+        if (row.contains(sidebarEl)) {
+          var children = Array.from(row.children);
+          for (var c = 0; c < children.length; c++) {
+            var ch = children[c];
+            if (ch.contains(sidebarEl)) continue;
+            if (ch.contains(oppHead)) {
+              state.mainPane = ch;
+              ensurePanePositioned(state.mainPane);
+              return state.mainPane;
+            }
+          }
+        }
+        row = row.parentElement;
+      }
+    }
+
+    var toggle = document.getElementById('shell-left-nav-menu-toggle-button');
+    if (toggle) {
+      var header = toggle.closest('header');
+      if (header) {
+        var shell = header.parentElement;
+        if (shell) {
+          var afterHeader = header.nextElementSibling;
+          if (afterHeader && (!oppHead || afterHeader.contains(oppHead))) {
+            state.mainPane = afterHeader;
+            ensurePanePositioned(state.mainPane);
+            return state.mainPane;
+          }
+        }
+      }
+    }
+
+    state.mainPane = findOpportunitiesMain() || findListCanvas();
+    ensurePanePositioned(state.mainPane);
+    return state.mainPane;
   }
 
   function getSectionMarker(sectionTitle) {
@@ -1202,7 +1255,7 @@
   }
 
   function detailMount() {
-    return document.body;
+    return findShellMainPane() || document.getElementById('root') || document.body;
   }
 
   function ensureDetailRoot() {
@@ -1264,7 +1317,9 @@
     listHideTargets().forEach(function (host) {
       host.classList.toggle('sky-llm-op-list-hidden', !visible);
     });
-    document.body.classList.toggle('sky-llm-op-detail-open', !visible);
+    var pane = findShellMainPane();
+    if (pane) pane.classList.toggle('sky-llm-op-main-scroll-lock', !visible);
+    document.body.classList.remove('sky-llm-op-detail-open');
   }
 
   function showDetail(viewId) {
@@ -1287,9 +1342,11 @@
     detail.removeAttribute('hidden');
     detail.classList.add('sky-llm-op-detail--overlay');
     detail.classList.add('sky-llm-op-detail--recover');
-    detail.style.display = 'block';
+    detail.style.display = 'flex';
     setOpportunityListsVisible(false);
-    window.scrollTo(0, 0);
+    var pane = findShellMainPane();
+    if (pane) pane.scrollTop = 0;
+    detail.scrollTop = 0;
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -1333,6 +1390,7 @@
     state.contentHost = null;
     state.offsiteHost = null;
     state.offsiteMount = null;
+    state.mainPane = null;
   }
 
   function boot() {
