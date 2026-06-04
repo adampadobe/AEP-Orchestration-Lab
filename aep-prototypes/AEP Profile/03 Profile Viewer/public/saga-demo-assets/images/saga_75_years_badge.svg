@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 44" role="img" aria-labelledby="saga75Title">
+  <title id="saga75Title">Celebrating 75 years of Saga</title>
+  <defs>
+    <pattern id="saga75Pattern" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#1e3282"/>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#2a4594" stroke-width="1.5" opacity="0.45"/>
+    </pattern>
+  </defs>
+  <rect width="52" height="44" rx="6" fill="url(#saga75Pattern)"/>
+  <text x="26" y="23" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">75</text>
+  <text x="26" y="35" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="7" font-weight="600" letter-spacing="0.14em">YEARS</text>
+</svg>

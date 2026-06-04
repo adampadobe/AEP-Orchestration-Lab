@@ -111,37 +111,26 @@
 .saga-meganav__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.saga-meganav__logo-link {
+  display: flex;
   flex-shrink: 0;
 }
 
 .saga-meganav__logo {
-  height: 36px;
-  width: auto;
+  width: 118px;
+  height: auto;
+  padding: 8px 0;
 }
 
-.saga-meganav__badge {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 52px;
-  padding: 4px 8px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #e8c547 0%, var(--saga-gold) 45%, #9a7b1a 100%);
-  color: var(--saga-navy-dark);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1.1;
-  text-align: center;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(30, 50, 130, 0.2);
-}
-
-.saga-meganav__badge strong {
-  font-size: 1.05rem;
-  font-weight: 800;
+.saga-meganav__anniversary {
   display: block;
+  width: 52px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .saga-meganav__nav {
