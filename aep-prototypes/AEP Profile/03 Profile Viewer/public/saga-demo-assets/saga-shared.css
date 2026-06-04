@@ -3,6 +3,9 @@
   --saga-navy: #1e3282;
   --saga-navy-dark: #142259;
   --saga-aqua: #80d2f0;
+  --saga-login-aqua: #aad7d7;
+  --saga-login-aqua-hover: #d4ebeb;
+  --saga-btn-navy-hover: #616fa7;
   --saga-champagne: #fbb175;
   --saga-blush: #d6c0dc;
   --saga-mint: #e5f3f3;
@@ -36,12 +39,12 @@
   display: block;
 }
 
-.saga-site a {
+.saga-site a:not([class*="saga-btn"]) {
   color: var(--saga-navy);
   text-decoration: none;
 }
 
-.saga-site a:hover {
+.saga-site a:not([class*="saga-btn"]):hover {
   text-decoration: underline;
 }
 
@@ -54,14 +57,20 @@
   padding-right: 16px;
 }
 
-/* —— Header (meganav) —— */
+/* —— Header (meganav) — match saga.co.uk rebuild —— */
 .saga-meganav {
   position: sticky;
   top: 0;
   z-index: 40;
   background: var(--saga-white);
-  border-bottom: 1px solid var(--saga-border);
   margin-bottom: 11px;
+  box-shadow: 0 0 24px 0 rgba(13, 20, 100, 0.16);
+}
+
+.saga-meganav__stripe {
+  height: 4px;
+  width: 100%;
+  background: var(--saga-navy);
 }
 
 .saga-meganav__inner {
@@ -71,7 +80,32 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px 20px;
+  gap: 12px 16px;
+}
+
+@media (min-width: 1024px) {
+  .saga-meganav__inner {
+    display: grid;
+    grid-template-columns: minmax(160px, auto) 1fr minmax(220px, auto);
+    align-items: center;
+    column-gap: 24px;
+    flex-wrap: nowrap;
+  }
+
+  .saga-meganav__nav-wrap {
+    justify-self: center;
+    min-width: 0;
+  }
+
+  .saga-meganav__nav {
+    flex: none;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+
+  .saga-meganav__actions {
+    justify-self: end;
+  }
 }
 
 .saga-meganav__brand {
@@ -123,12 +157,14 @@
 
 .saga-meganav__nav a {
   display: block;
-  padding: 10px 14px;
+  padding: 10px 18px;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--saga-navy);
   text-decoration: none;
   border-bottom: 3px solid transparent;
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
 }
 
 .saga-meganav__nav a:hover,
@@ -142,15 +178,9 @@
 .saga-meganav__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   margin-left: auto;
-}
-
-.saga-meganav__contact {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--saga-navy);
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .saga-btn {
@@ -158,34 +188,79 @@
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.65rem 1.25rem;
+  padding: 14px 20px 10px;
   border-radius: var(--saga-radius);
-  font-weight: 700;
-  font-size: 0.875rem;
+  font-weight: 500;
+  font-size: 0.8889rem;
+  line-height: 1.25;
   border: 2px solid transparent;
   cursor: pointer;
   font-family: inherit;
   text-decoration: none;
-  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.saga-btn--dark {
-  background: var(--saga-navy);
-  color: var(--saga-white);
+.saga-meganav__actions .saga-btn {
+  padding: 14px 20px 10px;
+}
+
+.saga-btn--contact {
+  background-color: var(--saga-navy);
+  color: #fff;
   border-color: var(--saga-navy);
 }
 
-.saga-btn--dark:hover {
-  background: var(--saga-navy-dark);
-  border-color: var(--saga-navy-dark);
-  color: var(--saga-white);
+.saga-btn--contact:hover,
+.saga-btn--contact:focus-visible {
+  background-color: var(--saga-btn-navy-hover);
+  border-color: var(--saga-btn-navy-hover);
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+.saga-btn--login {
+  background-color: var(--saga-login-aqua);
+  color: var(--saga-navy);
+  border-color: var(--saga-login-aqua);
+}
+
+.saga-btn--login:hover,
+.saga-btn--login:focus-visible {
+  background-color: var(--saga-login-aqua-hover);
+  border-color: var(--saga-login-aqua-hover);
+  color: var(--saga-navy);
+  text-decoration: none;
+}
+
+.saga-btn--dark {
+  background-color: var(--saga-navy);
+  color: #fff;
+  border-color: var(--saga-navy);
+}
+
+.saga-btn--dark:hover,
+.saga-btn--dark:focus-visible {
+  background-color: var(--saga-btn-navy-hover);
+  border-color: var(--saga-btn-navy-hover);
+  color: #fff;
   text-decoration: none;
 }
 
 .saga-btn--light {
-  background: var(--saga-white);
+  background-color: #fff;
   color: var(--saga-navy);
-  border-color: var(--saga-navy);
+  border-color: #fff;
+}
+
+.saga-btn--light:hover,
+.saga-btn--light:focus-visible {
+  background-color: var(--saga-mint);
+  border-color: var(--saga-mint);
+  color: var(--saga-navy);
+  text-decoration: none;
 }
 
 .saga-btn--block {
@@ -193,14 +268,85 @@
 }
 
 .saga-btn--secondary {
-  background: transparent;
+  background-color: transparent;
   color: var(--saga-navy);
   border-color: var(--saga-navy);
 }
 
-.saga-btn--secondary:hover {
-  background: var(--saga-mint);
+.saga-btn--secondary:hover,
+.saga-btn--secondary:focus-visible {
+  background-color: var(--saga-mint);
+  color: var(--saga-navy);
   text-decoration: none;
+}
+
+/* CTA contrast — explicit colors so link/inherited rules never yield invisible text */
+.saga-site a.saga-btn,
+.saga-site button.saga-btn {
+  text-decoration: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.saga-site a.saga-btn--contact,
+.saga-site a.saga-btn.saga-btn--contact {
+  background-color: var(--saga-navy);
+  color: #fff;
+  border-color: var(--saga-navy);
+}
+
+.saga-site a.saga-btn--login,
+.saga-site a.saga-btn.saga-btn--login {
+  background-color: var(--saga-login-aqua);
+  color: var(--saga-navy);
+  border-color: var(--saga-login-aqua);
+}
+
+.saga-site a.saga-btn--dark,
+.saga-site button.saga-btn--dark,
+.saga-site a.saga-btn.saga-btn--dark {
+  background-color: var(--saga-navy);
+  color: #fff;
+  border-color: var(--saga-navy);
+}
+
+.saga-site a.saga-btn--light,
+.saga-site a.saga-btn.saga-btn--light {
+  background-color: #fff;
+  color: var(--saga-navy);
+  border-color: #fff;
+}
+
+.saga-site a.saga-btn--secondary,
+.saga-site button.saga-btn--secondary,
+.saga-site a.saga-btn.saga-btn--secondary {
+  background-color: transparent;
+  color: var(--saga-navy);
+  border-color: var(--saga-navy);
+}
+
+.saga-site .saga-newsletter a.saga-btn--light {
+  background-color: #fff;
+  color: var(--saga-navy);
+  border-color: #fff;
+}
+
+.saga-site a.saga-btn:hover,
+.saga-site button.saga-btn:hover {
+  text-decoration: none;
+}
+
+.saga-site a.saga-btn--contact:hover,
+.saga-site a.saga-btn--dark:hover,
+.saga-site button.saga-btn--dark:hover {
+  background-color: var(--saga-btn-navy-hover);
+  border-color: var(--saga-btn-navy-hover);
+  color: #fff;
+}
+
+.saga-site a.saga-btn--login:hover {
+  background-color: var(--saga-login-aqua-hover);
+  border-color: var(--saga-login-aqua-hover);
+  color: var(--saga-navy);
 }
 
 /* —— Hero banner —— */

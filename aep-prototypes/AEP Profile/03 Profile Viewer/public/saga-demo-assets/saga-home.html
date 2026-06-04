@@ -8,7 +8,8 @@
   <script src="saga-events.js"></script>
 </head>
 <body class="saga-site" data-saga-page="home">
-  <header class="saga-meganav">
+  <header class="saga-meganav" role="banner">
+    <div class="saga-meganav__stripe" aria-hidden="true"></div>
     <div class="saga-meganav__inner">
       <div class="saga-meganav__brand">
         <a href="saga-home.html" data-saga-nav="home" aria-label="Saga home">
@@ -16,18 +17,20 @@
         </a>
         <span class="saga-meganav__badge" aria-label="Celebrating 75 years of Saga"><strong>75</strong>years</span>
       </div>
-      <nav aria-label="Primary">
-        <ul class="saga-meganav__nav">
-          <li><a href="saga-home.html#insurance">Insurance</a></li>
-          <li><a href="saga-home.html#holidays">Holidays</a></li>
-          <li><a href="saga-cruises-list.html" id="sagaNavCruises">Cruises</a></li>
-          <li><a href="saga-home.html#money">Money</a></li>
-          <li><a href="saga-home.html#magazine">Magazine</a></li>
-        </ul>
-      </nav>
+      <div class="saga-meganav__nav-wrap">
+        <nav aria-label="Primary">
+          <ul class="saga-meganav__nav">
+            <li><a href="saga-home.html#insurance">Insurance</a></li>
+            <li><a href="saga-home.html#holidays">Holidays</a></li>
+            <li><a href="saga-cruises-list.html" id="sagaNavCruises">Cruises</a></li>
+            <li><a href="saga-home.html#money">Money</a></li>
+            <li><a href="saga-home.html#magazine">Magazine</a></li>
+          </ul>
+        </nav>
+      </div>
       <div class="saga-meganav__actions">
-        <a class="saga-meganav__contact" href="saga-home.html#contact">Contact us</a>
-        <a class="saga-btn saga-btn--dark" href="saga-home.html#login">Log in</a>
+        <a class="saga-btn saga-btn--contact" href="saga-home.html#contact">Contact us</a>
+        <a class="saga-btn saga-btn--login" href="saga-home.html#login">Log in</a>
       </div>
     </div>
   </header>
