@@ -26,32 +26,35 @@
   box-sizing: border-box;
 }
 
-.sky-llm-op-detail--overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.sky-llm-op-detail.sky-llm-op-detail--overlay {
+  position: fixed;
   z-index: 500;
-  width: 100%;
-  max-width: none;
-  min-height: 100%;
+  max-width: none !important;
+  width: auto;
+  min-height: 0;
   margin: 0;
-  padding: 24px 32px 48px;
+  padding: 32px 40px 48px;
   overflow-x: hidden;
   overflow-y: auto;
   background: rgb(255, 255, 255);
   box-sizing: border-box;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
+}
+
+.sky-llm-op-detail--overlay.sky-llm-op-detail--recover {
+  max-width: none !important;
 }
 
 .sky-llm-op-detail-inner {
   max-width: 1100px;
-  margin: 0 auto;
   width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   flex: 0 0 auto;
+  align-self: center;
   box-sizing: border-box;
 }
 
@@ -256,7 +259,7 @@
 }
 
 /* —— Recover Content Visibility detail —— */
-.sky-llm-op-detail--recover {
+.sky-llm-op-detail--recover:not(.sky-llm-op-detail--overlay) {
   max-width: 1100px;
 }
 

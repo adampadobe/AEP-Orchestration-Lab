@@ -1255,7 +1255,18 @@
   }
 
   function detailMount() {
-    return findShellMainPane() || document.getElementById('root') || document.body;
+    return document.body;
+  }
+
+  function syncDetailOverlayLayout() {
+    var detail = state.detailEl || document.getElementById('skyLlmOpDetail');
+    var pane = findShellMainPane();
+    if (!detail || !pane || detail.hidden) return;
+    var rect = pane.getBoundingClientRect();
+    detail.style.top = Math.round(rect.top) + 'px';
+    detail.style.left = Math.round(rect.left) + 'px';
+    detail.style.width = Math.round(rect.width) + 'px';
+    detail.style.height = Math.round(rect.height) + 'px';
   }
 
   function ensureDetailRoot() {
@@ -1329,7 +1340,9 @@
     if (!DETAIL_VIEWS[viewId] || !detail) return;
 
     detail.innerHTML =
-      '<div class="sky-llm-op-detail-inner">' + buildDetailHtml(viewId) + '</div>';
+      '<div class="sky-llm-op-detail-inner sky-llm-op-detail--recover">' +
+      buildDetailHtml(viewId) +
+      '</div>';
     try {
       var urls = llmDemoUrlsApi();
       if (urls && urls.patchRoot) {
@@ -1341,8 +1354,9 @@
     detail.hidden = false;
     detail.removeAttribute('hidden');
     detail.classList.add('sky-llm-op-detail--overlay');
-    detail.classList.add('sky-llm-op-detail--recover');
+    detail.classList.remove('sky-llm-op-detail--recover');
     detail.style.display = 'flex';
+    syncDetailOverlayLayout();
     setOpportunityListsVisible(false);
     var pane = findShellMainPane();
     if (pane) pane.scrollTop = 0;
@@ -1421,6 +1435,9 @@
   }
 
   window.addEventListener('hashchange', applyHashRoute);
+  window.addEventListener('resize', function () {
+    syncDetailOverlayLayout();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
