@@ -27,8 +27,9 @@
   }
 
   function visibilityPctFromPlatform() {
-    if (window.skyLlmSnapshotPlatform && window.skyLlmSnapshotPlatform.getDashboardMetrics) {
-      return parseVisibilityPercent(window.skyLlmSnapshotPlatform.getDashboardMetrics());
+    var platform = window.llmSnapshotPlatform || window.skyLlmSnapshotPlatform;
+    if (platform && platform.getDashboardMetrics) {
+      return parseVisibilityPercent(platform.getDashboardMetrics());
     }
     return DEFAULT_PCT;
   }
@@ -120,7 +121,7 @@
   }
 
   function patchLatestOpportunities() {
-    var catalog = window.SkyLlmOpportunitiesCatalog;
+    var catalog = window.LlmOpportunitiesCatalog || window.SkyLlmOpportunitiesCatalog;
     if (!catalog) return false;
 
     var host = findLatestOpportunitiesHost();

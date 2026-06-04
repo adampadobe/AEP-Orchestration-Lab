@@ -1,8 +1,12 @@
 /**
- * Sky LLM overview snapshot — Platform & Date Range pickers, chart updates, animations, tooltips.
+ * LLM Demo snapshot — Platform & Date Range pickers, chart updates, animations, tooltips.
  */
-(function () {
+(function (root) {
   'use strict';
+
+  function llmDemoBrands() {
+    return root.LlmDemoBrands || root.SkyLlmLlmDemoBrands;
+  }
 
   var PLATFORMS = [
     { id: 'chatgpt-free', name: 'ChatGPT (Free)', share: '49 % global market share', icon: 'openai' },
@@ -328,8 +332,9 @@
   }
 
   function mapMarketBrandLabel(name) {
-    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.isActive()) {
-      return global.SkyLlmLlmDemoBrands.skyToDisplay(name);
+    var brands = llmDemoBrands();
+    if (brands && brands.isActive()) {
+      return brands.skyToDisplay(name);
     }
     return name;
   }
@@ -1489,7 +1494,7 @@
     }, ms);
   });
 
-  global.skyLlmSnapshotPlatform = {
+  var platformApi = {
     isReady: function () {
       return state.ready;
     },
@@ -1506,9 +1511,12 @@
       refreshDashboardCaches();
       applyDashboard({ animate: false });
       scheduleMetricsReapply();
-      if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels) {
-        global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels();
+      var brands = llmDemoBrands();
+      if (brands && brands.patchMarketComparisonLabels) {
+        brands.patchMarketComparisonLabels();
       }
     },
   };
-})();
+  root.llmSnapshotPlatform = platformApi;
+  root.skyLlmSnapshotPlatform = platformApi;
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

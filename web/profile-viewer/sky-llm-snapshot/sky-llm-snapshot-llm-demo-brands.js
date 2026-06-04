@@ -299,9 +299,9 @@
 
   function platformReady() {
     return (
-      global.skyLlmSnapshotPlatform &&
-      global.skyLlmSnapshotPlatform.isReady &&
-      global.skyLlmSnapshotPlatform.isReady()
+      (global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform) &&
+      (global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform).isReady &&
+      (global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform).isReady()
     );
   }
 
@@ -360,8 +360,9 @@
     patchMarketComparisonLabels();
     patchUrlInspector();
     applyLegendLabels();
-    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchPage) {
-      global.SkyLlmDemoUrls.patchPage();
+    var urls = global.LlmDemoUrls || global.SkyLlmDemoUrls;
+    if (urls && urls.patchPage) {
+      urls.patchPage();
     }
 
     if (global.skyLlmLlmDemoPersonalize && global.skyLlmLlmDemoPersonalize.patchLinksAndInputs) {
@@ -369,21 +370,23 @@
     }
 
     if (/overview\.html/i.test(global.location.pathname || '')) {
-      if (global.skyLlmSnapshotPlatform && global.skyLlmSnapshotPlatform.ensurePickers) {
+      var platform = global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform;
+      if (platform && platform.ensurePickers) {
         if (!document.querySelector('.sky-llm-platform-host')) {
-          global.skyLlmSnapshotPlatform.ensurePickers();
+          platform.ensurePickers();
         }
       }
     }
-    if (platformReady() && global.skyLlmSnapshotPlatform.refresh) {
-      global.skyLlmSnapshotPlatform.refresh();
+    if (platformReady() && (global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform).refresh) {
+      (global.llmSnapshotPlatform || global.skyLlmSnapshotPlatform).refresh();
       patchMarketComparisonLabels();
     }
     if (/opportunities\.html/i.test(global.location.pathname || '')) {
-      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.rewire) {
-        global.SkyLlmOpportunities.rewire();
-      } else if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot) {
-        global.SkyLlmOpportunities.boot();
+      var op = global.LlmOpportunities || global.SkyLlmOpportunities;
+      if (op && op.rewire) {
+        op.rewire();
+      } else if (op && op.boot) {
+        op.boot();
       }
     }
 
@@ -393,8 +396,9 @@
 
     patchBrandClaims();
     patchPromptsManagement();
-    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchPage) {
-      global.SkyLlmDemoUrls.patchPage();
+    var urls = global.LlmDemoUrls || global.SkyLlmDemoUrls;
+    if (urls && urls.patchPage) {
+      urls.patchPage();
     }
 
     var needPlatform = /overview\.html|brand-presence\.html/i.test(global.location.pathname || '');
@@ -490,7 +494,7 @@
     /* ignore */
   }
 
-  global.SkyLlmLlmDemoBrands = {
+  var brandsApi = {
     STORAGE_KEY: STORAGE_KEY,
     SKY_CHART_KEYS: SKY_CHART_KEYS,
     loadConfig: loadConfig,
@@ -509,4 +513,6 @@
     scheduleApplyAll: scheduleApplyAll,
     reapplyMarket: reapplyMarket,
   };
+  global.LlmDemoBrands = brandsApi;
+  global.SkyLlmLlmDemoBrands = brandsApi;
 })(typeof window !== 'undefined' ? window : globalThis);

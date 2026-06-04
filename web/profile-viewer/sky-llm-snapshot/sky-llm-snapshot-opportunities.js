@@ -1,8 +1,12 @@
 /**
- * Opportunities — onsite technical/content cards + detail drill-down views.
+ * LLM Demo Opportunities — onsite technical/content cards + detail drill-down views.
  */
-(function () {
+(function (root) {
   'use strict';
+
+  function llmDemoUrlsApi() {
+    return root.LlmDemoUrls || root.SkyLlmDemoUrls;
+  }
 
   var ONSITE_ORDER = ['404', '503', 'recover'];
   var CONTENT_ORDER = ['simplify', 'llm-summaries'];
@@ -493,17 +497,19 @@
 
   function demoUrl(raw) {
     var s = String(raw || '');
-    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.replaceHostInUrl) {
-      var cfg = global.SkyLlmDemoUrls.getCfg && global.SkyLlmDemoUrls.getCfg();
-      if (cfg) return global.SkyLlmDemoUrls.replaceHostInUrl(s, cfg);
+    var urls = llmDemoUrlsApi();
+    if (urls && urls.replaceHostInUrl) {
+      var cfg = urls.getCfg && urls.getCfg();
+      if (cfg) return urls.replaceHostInUrl(s, cfg);
     }
     return s;
   }
 
   function demoLinkLabel(raw) {
     var mapped = demoUrl(raw);
-    if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.formatLinkDisplay) {
-      return global.SkyLlmDemoUrls.formatLinkDisplay(mapped);
+    var urls = llmDemoUrlsApi();
+    if (urls && urls.formatLinkDisplay) {
+      return urls.formatLinkDisplay(mapped);
     }
     return mapped;
   }
@@ -936,8 +942,9 @@
 
     detail.innerHTML = buildDetailHtml(viewId);
     try {
-      if (global.SkyLlmDemoUrls && global.SkyLlmDemoUrls.patchRoot) {
-        global.SkyLlmDemoUrls.patchRoot(detail, global.SkyLlmDemoUrls.getCfg());
+      var urls = llmDemoUrlsApi();
+      if (urls && urls.patchRoot) {
+        urls.patchRoot(detail, urls.getCfg());
       }
     } catch (e) {
       /* personalization patch optional */
@@ -1023,5 +1030,7 @@
     window.setTimeout(boot, ms);
   });
 
-  global.SkyLlmOpportunities = { boot: boot, rewire: rewire, showDetail: showDetail };
-})();
+  var opportunitiesApi = { boot: boot, rewire: rewire, showDetail: showDetail };
+  root.LlmOpportunities = opportunitiesApi;
+  root.SkyLlmOpportunities = opportunitiesApi;
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

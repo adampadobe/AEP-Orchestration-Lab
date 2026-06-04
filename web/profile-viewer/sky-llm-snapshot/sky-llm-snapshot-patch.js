@@ -113,8 +113,9 @@
 
   function runLlmDemoPatches() {
     function scheduleApply() {
-      if (window.SkyLlmLlmDemoBrands && window.SkyLlmLlmDemoBrands.scheduleApplyAll) {
-        window.SkyLlmLlmDemoBrands.scheduleApplyAll();
+      var brands = window.LlmDemoBrands || window.SkyLlmLlmDemoBrands;
+      if (brands && brands.scheduleApplyAll) {
+        brands.scheduleApplyAll();
       }
     }
 
@@ -147,14 +148,14 @@
       function afterUrls() {
         loadPageModules(loadPersonalizeThenApply);
       }
-      if (window.SkyLlmDemoUrls) {
+      if (window.LlmDemoUrls || window.SkyLlmDemoUrls) {
         afterUrls();
         return;
       }
       loadScript('./sky-llm-snapshot-llm-demo-urls.js', afterUrls);
     }
 
-    if (window.SkyLlmLlmDemoBrands) {
+    if (window.LlmDemoBrands || window.SkyLlmLlmDemoBrands) {
       boot();
       return;
     }

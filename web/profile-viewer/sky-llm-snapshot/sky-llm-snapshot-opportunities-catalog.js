@@ -66,9 +66,11 @@
     return 'opportunities.html#detail/' + id;
   }
 
-  global.SkyLlmOpportunitiesCatalog = {
+  var catalogApi = {
     OPPORTUNITIES: OPPORTUNITIES,
     getLatest: getLatest,
     detailHref: detailHref,
   };
+  global.LlmOpportunitiesCatalog = catalogApi;
+  global.SkyLlmOpportunitiesCatalog = catalogApi;
 })(typeof window !== 'undefined' ? window : globalThis);

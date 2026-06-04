@@ -25,8 +25,9 @@
   ];
 
   function getCfg() {
-    if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.isActive()) {
-      return global.SkyLlmLlmDemoBrands.loadConfig();
+    var brands = global.LlmDemoBrands || global.SkyLlmLlmDemoBrands;
+    if (brands && brands.isActive()) {
+      return brands.loadConfig();
     }
     try {
       var raw = localStorage.getItem('llmDemoPersonalization_v1');
@@ -168,7 +169,7 @@
     }
   }
 
-  global.SkyLlmDemoUrls = {
+  var urlsApi = {
     getCfg: getCfg,
     replaceHostInUrl: replaceHostInUrl,
     formatLinkDisplay: formatLinkDisplay,
@@ -177,4 +178,6 @@
     patchPage: patchPage,
     patchOpportunitiesDetail: patchOpportunitiesDetail,
   };
+  global.LlmDemoUrls = urlsApi;
+  global.SkyLlmDemoUrls = urlsApi;
 })(typeof window !== 'undefined' ? window : globalThis);
