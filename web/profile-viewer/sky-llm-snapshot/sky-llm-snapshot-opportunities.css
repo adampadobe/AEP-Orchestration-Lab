@@ -17,7 +17,6 @@
   background: rgb(255, 255, 255);
 }
 
-.sky-llm-op-offsite-cards,
 .sky-llm-op-content-cards {
   display: flex;
   flex-direction: column;
@@ -25,6 +24,14 @@
   width: 100%;
   margin: 0 0 24px;
   box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.sky-llm-op-content-cards [data-testid*='OppCard'] {
+  position: relative;
+  pointer-events: auto;
 }
 
 .sky-llm-op-content-intro {
@@ -37,8 +44,13 @@
   box-sizing: border-box;
 }
 
-.sky-llm-op-content-cards [data-testid*='OppCard'] {
-  position: relative;
+.sky-llm-op-offsite-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin: 0 0 24px;
+  box-sizing: border-box;
 }
 
 .sky-llm-op-content-details-btn {
@@ -56,6 +68,7 @@
   font-size: 13px;
   cursor: pointer;
   transform: translateY(-50%);
+  pointer-events: auto;
 }
 
 .sky-llm-op-detail.sky-llm-op-detail--overlay {
