@@ -3,80 +3,229 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Saga — Travel &amp; Cruises for the over 50s</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>Homepage | Saga</title>
   <link rel="stylesheet" href="saga-shared.css">
   <script src="saga-events.js"></script>
 </head>
 <body class="saga-site" data-saga-page="home">
-  <div class="saga-utility">
-    <span>Exclusive experiences for the over 50s</span>
-    <span><a href="#">Manage booking</a> · <a href="#">Contact us</a></span>
-  </div>
-  <header class="saga-header">
-    <div class="saga-header-inner">
-      <a class="saga-logo" href="saga-home.html" data-saga-nav="home">SAGA</a>
+  <header class="saga-meganav">
+    <div class="saga-meganav__inner">
+      <div class="saga-meganav__brand">
+        <a href="saga-home.html" data-saga-nav="home" aria-label="Saga home">
+          <img class="saga-meganav__logo" src="images/saga_logo.svg" width="120" height="36" alt="Saga">
+        </a>
+        <span class="saga-meganav__badge" aria-label="Celebrating 75 years of Saga"><strong>75</strong>years</span>
+      </div>
       <nav aria-label="Primary">
-        <ul class="saga-nav">
-          <li><a href="saga-home.html" aria-current="page">Home</a></li>
-          <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
-          <li><a href="saga-home.html#holidays">Holidays</a></li>
+        <ul class="saga-meganav__nav">
           <li><a href="saga-home.html#insurance">Insurance</a></li>
+          <li><a href="saga-home.html#holidays">Holidays</a></li>
+          <li><a href="saga-cruises-list.html" id="sagaNavCruises">Cruises</a></li>
           <li><a href="saga-home.html#money">Money</a></li>
+          <li><a href="saga-home.html#magazine">Magazine</a></li>
         </ul>
       </nav>
-      <div class="saga-header-cta">
-        <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html" id="sagaHeroCta">Explore cruises</a>
+      <div class="saga-meganav__actions">
+        <a class="saga-meganav__contact" href="saga-home.html#contact">Contact us</a>
+        <a class="saga-btn saga-btn--dark" href="saga-home.html#login">Log in</a>
       </div>
     </div>
   </header>
 
-  <section class="saga-hero">
-    <div class="saga-hero-inner">
-      <p class="saga-kicker">Saga Cruises</p>
-      <h1>Boutique ocean cruising, all-inclusive</h1>
-      <p>Sail from UK ports on Spirit of Discovery and Spirit of Adventure — balcony cabins, chauffeur service, and curated excursions included.</p>
-      <div class="saga-hero-actions">
-        <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html">Find your cruise</a>
-        <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html">Featured: Norwegian Fjords</a>
+  <section class="saga-hero-banner" aria-label="Homepage hero">
+    <div class="saga-hero-banner__wrap">
+      <div class="saga-hero-banner__img-box">
+        <img class="saga-hero-banner__img" src="images/251029_ab_saga_s13_0112_1440x510px.jpg" alt="Two people sitting in deck chairs on a sandy beach facing the sea" width="1440" height="510">
+      </div>
+      <div class="saga-hero-banner__inner" data-region="GHPHero">
+        <h1 class="saga-hero-banner__title">Celebrating 75 years of Saga</h1>
+        <p class="saga-hero-banner__body">Exclusive products and services for the over 50s — insurance, holidays, cruises, money and the UK's best-selling monthly magazine.</p>
+        <a href="saga-cruises-list.html" class="saga-btn saga-btn--dark saga-btn--block" id="sagaHeroCta">Explore Saga Cruises</a>
       </div>
     </div>
   </section>
 
-  <main class="saga-main">
-    <p class="saga-kicker">Why Saga</p>
-    <h2 class="saga-section-title">Designed for discerning travellers</h2>
-    <div class="saga-card-grid">
-      <article class="saga-cruise-card">
-        <div class="saga-cruise-card__img" role="img" aria-label="Ocean cruise ship"></div>
-        <div class="saga-cruise-card__body">
-          <h3>Ocean cruises</h3>
-          <p class="saga-cruise-card__meta">No-fly options from Dover &amp; Portsmouth</p>
-          <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html">Browse ocean cruises</a>
-        </div>
-      </article>
-      <article class="saga-cruise-card">
-        <div class="saga-cruise-card__img" style="background:linear-gradient(160deg,#5a8a6a,#2d5a4a)" role="img" aria-label="River cruise"></div>
-        <div class="saga-cruise-card__body">
-          <h3>River cruises</h3>
-          <p class="saga-cruise-card__meta">Rhine, Danube &amp; Douro</p>
-          <span class="saga-cruise-card__price">Lab demo: ocean journey only</span>
-        </div>
-      </article>
-      <article class="saga-cruise-card">
-        <div class="saga-cruise-card__img" style="background:linear-gradient(160deg,#8a7a5a,#4a4030)" role="img" aria-label="Travel insurance"></div>
-        <div class="saga-cruise-card__body">
-          <h3>Travel insurance</h3>
-          <p class="saga-cruise-card__meta">Included on selected cruises</p>
-        </div>
-      </article>
+  <main>
+    <div class="saga-container">
+      <div class="saga-campaign-pods" data-region="GHPCampaignPods">
+        <article class="saga-campaign-pod saga-campaign-pod--champagne">
+          <div class="saga-campaign-pod__image">
+            <img src="images/cow-000351_southamerica_splits_ghp_promopod_assets_1730x760.jpg" alt="Aerial view of Rio de Janeiro coastline" loading="lazy" width="865" height="380">
+          </div>
+          <div class="saga-campaign-pod__contents">
+            <h2 class="saga-campaign-pod__title">South America fly cruises</h2>
+            <p class="saga-campaign-pod__body">New! Shorter all-inclusive fly cruises to South America now on sale!</p>
+            <a href="saga-cruises-list.html" class="saga-btn saga-btn--dark saga-btn--block" data-saga-promo="south-america">Discover more</a>
+          </div>
+        </article>
+        <article class="saga-campaign-pod saga-campaign-pod--aqua" id="insurance">
+          <div class="saga-campaign-pod__image">
+            <img src="images/zd13384_motor-whichbest-buy-image-for-group-home-page3-(1).jpg" alt="Person loading bags into a car with Which? Best Buy logo" loading="lazy" width="865" height="380">
+          </div>
+          <div class="saga-campaign-pod__contents">
+            <h2 class="saga-campaign-pod__title">Saga Car Insurance</h2>
+            <p class="saga-campaign-pod__body">Saga's Plus, Select and Standard policies are all rated Which? Best Buys.</p>
+            <a href="saga-home.html#insurance" class="saga-btn saga-btn--dark saga-btn--block" data-saga-promo="car-insurance">Learn more</a>
+          </div>
+        </article>
+        <article class="saga-campaign-pod saga-campaign-pod--blush" id="money">
+          <div class="saga-campaign-pod__image">
+            <img src="images/boxed---ghp-asset-cards---option-3-(2).png" alt="Man jogging on a beach" loading="lazy" width="865" height="380">
+          </div>
+          <div class="saga-campaign-pod__contents">
+            <h2 class="saga-campaign-pod__title">New savings rate</h2>
+            <p class="saga-campaign-pod__body">We've just raised the Saga Easy Access Savings rate. Interest paid monthly.</p>
+            <a href="saga-home.html#money" class="saga-btn saga-btn--dark saga-btn--block" data-saga-promo="savings">Find out more</a>
+          </div>
+        </article>
+      </div>
     </div>
-    <p class="saga-demo-note">AEP Orchestration Lab snapshot — not affiliated with Saga plc. Events fire via parent lab strip when Tags are injected.</p>
+
+    <section class="saga-nav-tiles" data-region="GHPBUTiles" aria-label="Our products and services">
+      <div class="saga-container">
+        <div class="saga-nav-tiles__grid">
+          <article class="saga-nav-tiles__tile" id="holidays">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 26l8-14 8 14" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Insurance</h3>
+            <p class="saga-nav-tiles__body">Car, home, travel and health – we've got you covered.</p>
+            <a href="saga-home.html#insurance" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Go to Saga Insurance</a>
+          </article>
+          <article class="saga-nav-tiles__tile">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="14" width="24" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 14V11a6 6 0 0112 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Holidays</h3>
+            <p class="saga-nav-tiles__body">Discover a holiday created with you in mind.</p>
+            <a href="saga-home.html#holidays" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Go to Saga Holidays</a>
+          </article>
+          <article class="saga-nav-tiles__tile">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M8 28h24l-4-12H12l-4 12z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16V10h8v6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Cruises</h3>
+            <p class="saga-nav-tiles__body">Luxury, all-inclusive cruising to a host of exciting destinations.</p>
+            <a href="saga-cruises-list.html" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta" data-saga-nav="cruises">Go to Saga Cruises</a>
+          </article>
+          <article class="saga-nav-tiles__tile">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><rect x="10" y="12" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 20h12M14 24h8" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Money</h3>
+            <p class="saga-nav-tiles__body">Products to help you feel good about your finances.</p>
+            <a href="saga-home.html#money" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Go to Saga Money</a>
+          </article>
+          <article class="saga-nav-tiles__tile" id="magazine">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M12 10h16v22H12z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 14h8M16 18h8M16 22h6" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Magazine</h3>
+            <p class="saga-nav-tiles__body">Widen your world with our award-winning magazine.</p>
+            <a href="saga-home.html#magazine" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Go to Saga Magazine</a>
+          </article>
+          <article class="saga-nav-tiles__tile">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 8c-4 0-8 3-8 8 0 6 8 16 8 16s8-10 8-16c0-5-4-8-8-8z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Vintage by Saga</h3>
+            <p class="saga-nav-tiles__body">Great value, carefully chosen wines, by the bottle or case.</p>
+            <a href="saga-home.html" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Go to Vintage by Saga</a>
+          </article>
+          <article class="saga-nav-tiles__tile">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="14" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="26" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 30c2-4 6-6 10-6s8 2 10 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">Saga Connections</h3>
+            <p class="saga-nav-tiles__body">Find love, friendship and fun online.</p>
+            <a href="saga-home.html" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Join today</a>
+          </article>
+          <article class="saga-nav-tiles__tile" id="login">
+            <svg class="saga-nav-tiles__icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="14" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 32c0-6 4-10 10-10s10 4 10 10" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <h3 class="saga-nav-tiles__title">MySaga</h3>
+            <p class="saga-nav-tiles__body">View your quotes and manage holiday bookings.</p>
+            <a href="saga-home.html#login" class="saga-btn saga-btn--dark saga-btn--block saga-nav-tiles__cta">Log in to MySaga</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div class="saga-container saga-articles">
+      <h2 class="saga-section-heading">From Saga Magazine</h2>
+      <div class="saga-articles__grid">
+        <article class="saga-article-card">
+          <img class="saga-article-card__img" src="images/cow-000351_southamerica_splits_ghp_promopod_assets_1730x760.jpg" alt="" loading="lazy">
+          <div class="saga-article-card__body">
+            <span class="saga-article-card__badge">Article</span>
+            <h3>Experience is everything</h3>
+          </div>
+        </article>
+        <article class="saga-article-card">
+          <img class="saga-article-card__img" src="images/251029_ab_saga_s13_0112_1440x510px.jpg" alt="" loading="lazy">
+          <div class="saga-article-card__body">
+            <span class="saga-article-card__badge">Article</span>
+            <h3>Travel tips for your next adventure</h3>
+          </div>
+        </article>
+        <article class="saga-article-card">
+          <img class="saga-article-card__img" src="images/zd13384_motor-whichbest-buy-image-for-group-home-page3-(1).jpg" alt="" loading="lazy">
+          <div class="saga-article-card__body">
+            <span class="saga-article-card__badge">Article</span>
+            <h3>Making the most of retirement</h3>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <section class="saga-awards" aria-label="Awards">
+      <p>Winner of multiple consumer awards · Trusted by millions of customers over 50</p>
+    </section>
+
+    <section class="saga-newsletter" id="contact" aria-label="Newsletter">
+      <div class="saga-container">
+        <h2>Hear more from us</h2>
+        <p>Sign up for news, offers and inspiration tailored for the over 50s.</p>
+        <a href="saga-home.html#contact" class="saga-btn saga-btn--light">Subscribe to updates</a>
+      </div>
+    </section>
+
+    <p class="saga-demo-note saga-container">AEP Orchestration Lab snapshot — visual mimic of saga.co.uk for CX demos. Events fire via parent lab strip when Tags are injected.</p>
   </main>
 
-  <footer class="saga-footer">© Demo snapshot · saga.co.uk style mimic for CX lab</footer>
+  <footer class="saga-megafoot" data-region="Footer">
+    <img class="saga-megafoot__signifier" src="images/saga_signifer_white_01.svg" alt="" aria-hidden="true" width="480" height="48">
+    <img class="saga-megafoot__logo" src="images/saga_logo.svg" alt="Saga" width="120" height="40">
+    <div class="saga-megafoot__social" aria-label="Social media">
+      <a href="saga-home.html" title="Facebook">FB</a>
+      <a href="saga-home.html" title="X">X</a>
+      <a href="saga-home.html" title="YouTube">YT</a>
+      <a href="saga-home.html" title="Instagram">IG</a>
+    </div>
+    <div class="saga-megafoot__sections">
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Our company</div>
+        <ul>
+          <li><a href="saga-home.html">About us</a></li>
+          <li><a href="saga-home.html">Careers</a></li>
+          <li><a href="saga-home.html">Investor relations</a></li>
+          <li><a href="saga-home.html">Newsroom</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Our products</div>
+        <ul>
+          <li><a href="saga-home.html#insurance">Insurance</a></li>
+          <li><a href="saga-home.html#holidays">Holidays</a></li>
+          <li><a href="saga-cruises-list.html">Cruises</a></li>
+          <li><a href="saga-home.html#money">Money</a></li>
+          <li><a href="saga-home.html#magazine">Magazine</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">More from us</div>
+        <ul>
+          <li><a href="saga-home.html#contact">Hear more from us</a></li>
+          <li><a href="saga-home.html">Saga Connections</a></li>
+          <li><a href="saga-home.html">Vintage by Saga</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Help</div>
+        <ul>
+          <li><a href="saga-home.html#contact">Contact us</a></li>
+          <li><a href="saga-home.html">Accessibility</a></li>
+          <li><a href="saga-home.html">Privacy policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="saga-megafoot__legal">© Demo snapshot · Not affiliated with Saga plc. Lab use only.</p>
+  </footer>
 
   <aside class="saga-journey-rail" aria-label="Demo journey steps">
     <strong>Lab journey:</strong>
@@ -95,7 +244,7 @@
         travelProductCategory: 'ocean_cruise',
         travelJourneyStage: 'home',
         pageName: 'Saga Home',
-        siteSection: 'cruises',
+        siteSection: 'group_home',
       };
       function emit(type, extra) {
         if (!window.SagaCruisesLabEvents) return;
@@ -106,10 +255,18 @@
         SagaCruisesLabEvents.emit(type, pub, 'Saga — Home', location.href);
       }
       emit('web.webpagedetails.pageViews', { travelPageType: 'home' });
-      document.getElementById('sagaHeroCta') &&
-        document.getElementById('sagaHeroCta').addEventListener('click', function () {
+      var heroCta = document.getElementById('sagaHeroCta');
+      if (heroCta) {
+        heroCta.addEventListener('click', function () {
           emit('travel.navigation.select', { travelNavTarget: 'ocean_cruises', travelJourneyStage: 'home_cta' });
         });
+      }
+      var navCruises = document.getElementById('sagaNavCruises');
+      if (navCruises) {
+        navCruises.addEventListener('click', function () {
+          emit('travel.navigation.select', { travelNavTarget: 'cruises_nav', travelJourneyStage: 'home_nav' });
+        });
+      }
     })();
   </script>
 </body>

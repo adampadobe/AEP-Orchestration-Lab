@@ -4,34 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Norwegian Fjords &amp; Arctic Circle | Saga Cruises</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="saga-shared.css">
   <script src="saga-events.js"></script>
 </head>
 <body class="saga-site" data-saga-page="cruise-detail">
-  <div class="saga-utility">
-    <span><a href="saga-cruises-list.html" id="sagaBackToList">← Back to ocean cruises</a></span>
-  </div>
-  <header class="saga-header">
-    <div class="saga-header-inner">
-      <a class="saga-logo" href="saga-home.html">SAGA</a>
+  <header class="saga-meganav">
+    <div class="saga-meganav__inner">
+      <div class="saga-meganav__brand">
+        <a href="saga-home.html" aria-label="Saga home">
+          <img class="saga-meganav__logo" src="images/saga_logo.svg" width="120" height="36" alt="Saga">
+        </a>
+        <span class="saga-meganav__badge" aria-label="Celebrating 75 years of Saga"><strong>75</strong>years</span>
+      </div>
       <nav aria-label="Primary">
-        <ul class="saga-nav">
-          <li><a href="saga-home.html">Home</a></li>
-          <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
+        <ul class="saga-meganav__nav">
+          <li><a href="saga-home.html#insurance">Insurance</a></li>
+          <li><a href="saga-home.html#holidays">Holidays</a></li>
+          <li><a href="saga-cruises-list.html" class="is-active">Cruises</a></li>
+          <li><a href="saga-home.html#money">Money</a></li>
+          <li><a href="saga-home.html#magazine">Magazine</a></li>
         </ul>
       </nav>
+      <div class="saga-meganav__actions">
+        <a class="saga-meganav__contact" href="saga-home.html#contact">Contact us</a>
+        <a class="saga-btn saga-btn--dark" href="saga-home.html#login">Log in</a>
+      </div>
     </div>
   </header>
 
   <main class="saga-main">
+    <nav class="saga-breadcrumb" aria-label="Breadcrumb">
+      <a href="saga-home.html">Saga</a> › <a href="saga-cruises-list.html" id="sagaBackToList">Ocean cruises</a> › <span>Norwegian Fjords</span>
+    </nav>
+
     <p class="saga-kicker">Spirit of Discovery · May 2026</p>
     <h1 class="saga-section-title">Norwegian Fjords &amp; Arctic Circle</h1>
 
     <div class="saga-detail-hero">
-      <div class="saga-detail-visual" role="img" aria-label="Fjord coastline"></div>
+      <div class="saga-detail-visual" style="background-image: url('images/cruise-ship-ullapool.jpg')" role="img" aria-label="Spirit of Discovery in Norwegian waters"></div>
       <div>
         <p>14 nights from Dover. All-inclusive boutique cruising with balcony cabin, chauffeur transfers, travel insurance and selected excursions included.</p>
         <ul class="saga-detail-facts">
@@ -41,8 +51,10 @@
           <li><strong>From:</strong> £2,899 per person</li>
           <li><strong>Cabin:</strong> Balcony (all guests)</li>
         </ul>
-        <button type="button" class="saga-btn saga-btn--primary" id="sagaCheckAvailability">Check availability</button>
-        <button type="button" class="saga-btn saga-btn--secondary" id="sagaAddWishlist">Add to wishlist</button>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+          <button type="button" class="saga-btn saga-btn--dark" id="sagaCheckAvailability">Check availability</button>
+          <button type="button" class="saga-btn saga-btn--secondary" id="sagaAddWishlist">Add to wishlist</button>
+        </div>
       </div>
     </div>
 
@@ -56,7 +68,22 @@
       </ul>
     </div>
 
-    <p>
+    <div class="saga-campaign-pods" style="margin-top:2rem">
+      <article class="saga-campaign-pod saga-campaign-pod--aqua">
+        <div class="saga-campaign-pod__contents" style="padding:24px">
+          <h2 class="saga-campaign-pod__title">Excursion in every port</h2>
+          <p class="saga-campaign-pod__body">Included Explore Ashore experiences on this sailing — matching Saga's 2026 ocean cruise promise.</p>
+        </div>
+      </article>
+      <article class="saga-campaign-pod saga-campaign-pod--champagne">
+        <div class="saga-campaign-pod__contents" style="padding:24px">
+          <h2 class="saga-campaign-pod__title">No-fly from Dover</h2>
+          <p class="saga-campaign-pod__body">Sail straight from the UK with chauffeur collection and porterage included.</p>
+        </div>
+      </article>
+    </div>
+
+    <p style="margin-top:1.5rem">
       <button type="button" class="saga-btn saga-btn--secondary" id="sagaSimulateAbandon">
         Simulate abandon (exit without booking)
       </button>
@@ -64,7 +91,47 @@
     <p class="saga-demo-note">Use “Back to ocean cruises” or close the booking panel without confirming to fire <code>travel.cruise.booking.abandon</code> in the lab.</p>
   </main>
 
-  <footer class="saga-footer">© Demo snapshot · not affiliated with Saga plc</footer>
+  <footer class="saga-megafoot" data-region="Footer">
+    <img class="saga-megafoot__signifier" src="images/saga_signifer_white_01.svg" alt="" aria-hidden="true" width="480" height="48">
+    <img class="saga-megafoot__logo" src="images/saga_logo.svg" alt="Saga" width="120" height="40">
+    <div class="saga-megafoot__social" aria-label="Social media">
+      <a href="saga-home.html" title="Facebook">FB</a>
+      <a href="saga-home.html" title="X">X</a>
+      <a href="saga-home.html" title="YouTube">YT</a>
+      <a href="saga-home.html" title="Instagram">IG</a>
+    </div>
+    <div class="saga-megafoot__sections">
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Our products</div>
+        <ul>
+          <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
+          <li><a href="saga-cruise-detail.html">This cruise</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Help</div>
+        <ul>
+          <li><a href="saga-home.html#contact">Contact us</a></li>
+          <li><a href="saga-cruises-list.html">FAQs</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Ship</div>
+        <ul>
+          <li><a href="saga-cruise-detail.html">Spirit of Discovery</a></li>
+          <li><a href="saga-cruise-detail.html">Deck plan</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Book</div>
+        <ul>
+          <li><a href="#" id="sagaFooterBook">Check availability</a></li>
+          <li><a href="saga-cruises-list.html">See all cruises</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="saga-megafoot__legal">© Demo snapshot · Not affiliated with Saga plc.</p>
+  </footer>
 
   <aside class="saga-journey-rail" aria-label="Demo journey steps">
     <strong>Lab journey:</strong>
@@ -88,7 +155,7 @@
         </select>
       </label>
       <p style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <button type="button" class="saga-btn saga-btn--primary" id="sagaBookingContinue">Continue</button>
+        <button type="button" class="saga-btn saga-btn--dark" id="sagaBookingContinue">Continue</button>
         <button type="button" class="saga-btn saga-btn--secondary" id="sagaBookingClose">Close without booking</button>
       </p>
     </div>
@@ -146,7 +213,7 @@
         modal.setAttribute('aria-hidden', 'true');
       }
 
-      document.getElementById('sagaCheckAvailability').addEventListener('click', function () {
+      function startBooking() {
         if (!bookingStarted) {
           bookingStarted = true;
           emit('travel.cruise.booking.start', {
@@ -155,7 +222,16 @@
           });
         }
         openModal();
-      });
+      }
+
+      document.getElementById('sagaCheckAvailability').addEventListener('click', startBooking);
+      var footerBook = document.getElementById('sagaFooterBook');
+      if (footerBook) {
+        footerBook.addEventListener('click', function (e) {
+          e.preventDefault();
+          startBooking();
+        });
+      }
 
       document.getElementById('sagaBookingContinue').addEventListener('click', function () {
         emit('travel.cruise.booking.step', {
@@ -184,7 +260,7 @@
         sendAbandon('simulate_button');
       });
 
-      document.getElementById('sagaBackToList').addEventListener('click', function (e) {
+      document.getElementById('sagaBackToList').addEventListener('click', function () {
         if (!abandonSent) {
           sendAbandon('back_to_list');
         }

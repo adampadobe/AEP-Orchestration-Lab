@@ -1,17 +1,22 @@
-/* Saga Cruises snapshot — brand tokens scoped to .saga-site only (not lab chrome). */
+/* Saga.co.uk group homepage snapshot — scoped to .saga-site (lab chrome uses --dash-*). */
 .saga-site {
-  --saga-navy: #003f5c;
-  --saga-teal: #007c89;
-  --saga-gold: #b8962e;
-  --saga-cream: #f5f0e6;
+  --saga-navy: #1e3282;
+  --saga-navy-dark: #142259;
+  --saga-aqua: #80d2f0;
+  --saga-champagne: #fbb175;
+  --saga-blush: #d6c0dc;
+  --saga-mint: #e5f3f3;
   --saga-white: #ffffff;
-  --saga-text: #1a2b33;
+  --saga-text: #262b2f;
   --saga-muted: #5c6f78;
   --saga-border: #d4dce0;
-  --saga-radius: 6px;
-  --saga-font: "Source Sans 3", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  --saga-serif: Georgia, "Times New Roman", serif;
+  --saga-gold: #c9a227;
+  --saga-radius: 8px;
+  --saga-container: 1232px;
+  --saga-font: Arial, Helvetica, "Helvetica Neue", sans-serif;
+  --saga-spacing: 48px;
   margin: 0;
+  padding-bottom: 52px;
   font-family: var(--saga-font);
   font-size: 16px;
   line-height: 1.5;
@@ -25,8 +30,14 @@
   box-sizing: border-box;
 }
 
+.saga-site img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 .saga-site a {
-  color: var(--saga-teal);
+  color: var(--saga-navy);
   text-decoration: none;
 }
 
@@ -34,78 +45,112 @@
   text-decoration: underline;
 }
 
-.saga-utility {
-  background: var(--saga-navy);
-  color: var(--saga-white);
-  font-size: 0.75rem;
-  padding: 0.35rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.saga-container {
+  width: 100%;
+  max-width: var(--saga-container);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-.saga-utility a {
-  color: var(--saga-cream);
-}
-
-.saga-header {
-  border-bottom: 1px solid var(--saga-border);
-  background: var(--saga-white);
+/* —— Header (meganav) —— */
+.saga-meganav {
   position: sticky;
   top: 0;
   z-index: 40;
+  background: var(--saga-white);
+  border-bottom: 1px solid var(--saga-border);
+  margin-bottom: 11px;
 }
 
-.saga-header-inner {
-  max-width: 1200px;
+.saga-meganav__inner {
+  max-width: var(--saga-container);
   margin: 0 auto;
-  padding: 0.75rem 1.25rem;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
   flex-wrap: wrap;
+  gap: 12px 20px;
 }
 
-.saga-logo {
-  font-family: var(--saga-serif);
+.saga-meganav__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.saga-meganav__logo {
+  height: 36px;
+  width: auto;
+}
+
+.saga-meganav__badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px 8px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e8c547 0%, var(--saga-gold) 45%, #9a7b1a 100%);
+  color: var(--saga-navy-dark);
+  font-size: 0.62rem;
   font-weight: 700;
-  font-size: 1.75rem;
-  letter-spacing: 0.12em;
-  color: var(--saga-navy);
-  text-decoration: none;
+  line-height: 1.1;
+  text-align: center;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(30, 50, 130, 0.2);
 }
 
-.saga-logo:hover {
-  text-decoration: none;
-  color: var(--saga-teal);
+.saga-meganav__badge strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  display: block;
 }
 
-.saga-nav {
+.saga-meganav__nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1.25rem;
+  align-items: center;
+  gap: 4px 0;
   list-style: none;
   margin: 0;
   padding: 0;
   flex: 1;
 }
 
-.saga-nav a {
-  color: var(--saga-text);
+.saga-meganav__nav a {
+  display: block;
+  padding: 10px 14px;
+  font-size: 0.9375rem;
   font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--saga-navy);
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
 }
 
-.saga-nav a.is-active,
-.saga-nav a[aria-current="page"] {
-  color: var(--saga-teal);
-  border-bottom: 2px solid var(--saga-gold);
+.saga-meganav__nav a:hover,
+.saga-meganav__nav a.is-active,
+.saga-meganav__nav a[aria-current="page"] {
+  color: var(--saga-navy);
+  border-bottom-color: var(--saga-gold);
+  text-decoration: none;
 }
 
-.saga-header-cta {
+.saga-meganav__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-left: auto;
+}
+
+.saga-meganav__contact {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--saga-navy);
+  white-space: nowrap;
 }
 
 .saga-btn {
@@ -113,27 +158,38 @@
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.55rem 1.1rem;
+  padding: 0.65rem 1.25rem;
   border-radius: var(--saga-radius);
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.875rem;
   border: 2px solid transparent;
   cursor: pointer;
   font-family: inherit;
   text-decoration: none;
+  line-height: 1.2;
 }
 
-.saga-btn--primary {
-  background: var(--saga-teal);
-  color: var(--saga-white);
-  border-color: var(--saga-teal);
-}
-
-.saga-btn--primary:hover {
+.saga-btn--dark {
   background: var(--saga-navy);
-  border-color: var(--saga-navy);
-  text-decoration: none;
   color: var(--saga-white);
+  border-color: var(--saga-navy);
+}
+
+.saga-btn--dark:hover {
+  background: var(--saga-navy-dark);
+  border-color: var(--saga-navy-dark);
+  color: var(--saga-white);
+  text-decoration: none;
+}
+
+.saga-btn--light {
+  background: var(--saga-white);
+  color: var(--saga-navy);
+  border-color: var(--saga-navy);
+}
+
+.saga-btn--block {
+  width: 100%;
 }
 
 .saga-btn--secondary {
@@ -143,129 +199,453 @@
 }
 
 .saga-btn--secondary:hover {
-  background: var(--saga-cream);
+  background: var(--saga-mint);
   text-decoration: none;
 }
 
-.saga-hero {
-  background: linear-gradient(135deg, var(--saga-navy) 0%, var(--saga-teal) 100%);
-  color: var(--saga-white);
-  padding: 3rem 1.25rem;
+/* —— Hero banner —— */
+.saga-hero-banner {
+  margin-bottom: var(--saga-spacing);
 }
 
-.saga-hero-inner {
-  max-width: 1200px;
+.saga-hero-banner__wrap {
+  position: relative;
+  max-width: var(--saga-container);
   margin: 0 auto;
+  padding: 0 16px;
 }
 
-.saga-hero h1 {
-  font-family: var(--saga-serif);
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-  margin: 0 0 0.75rem;
-  font-weight: 400;
+.saga-hero-banner__img-box {
+  border-radius: var(--saga-radius);
+  overflow: hidden;
+  position: relative;
+  padding-top: 35.4%;
+  margin-bottom: 16px;
+}
+
+.saga-hero-banner__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+}
+
+.saga-hero-banner__inner {
+  background: var(--saga-white);
+  border-radius: var(--saga-radius);
+  max-width: 480px;
+  padding: 32px 40px;
+  box-shadow: 0 8px 32px rgba(30, 50, 130, 0.12);
+  margin-top: -120px;
+  margin-left: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.saga-hero-banner__title {
+  color: var(--saga-navy);
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
-.saga-hero p {
-  margin: 0 0 1.25rem;
-  max-width: 36rem;
-  opacity: 0.95;
+.saga-hero-banner__body {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--saga-text);
 }
 
-.saga-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+@media (max-width: 768px) {
+  .saga-hero-banner__img-box {
+    padding-top: 56%;
+  }
+
+  .saga-hero-banner__inner {
+    margin: -48px 8px 0;
+    max-width: none;
+    padding: 24px;
+  }
 }
 
-.saga-hero .saga-btn--secondary {
-  color: var(--saga-white);
-  border-color: var(--saga-white);
-}
-
-.saga-hero .saga-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.saga-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 5rem;
-}
-
-.saga-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  color: var(--saga-teal);
-  font-weight: 700;
-  margin: 0 0 0.35rem;
-}
-
-.saga-section-title {
-  font-family: var(--saga-serif);
-  font-size: 1.65rem;
-  margin: 0 0 1rem;
-  color: var(--saga-navy);
-}
-
-.saga-card-grid {
+/* —— Campaign pods (3 promo tiles) —— */
+.saga-campaign-pods {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: var(--saga-spacing);
 }
 
-.saga-cruise-card {
-  border: 1px solid var(--saga-border);
+@media (min-width: 768px) {
+  .saga-campaign-pods {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.saga-campaign-pod {
+  display: flex;
+  flex-direction: column;
   border-radius: var(--saga-radius);
   overflow: hidden;
   background: var(--saga-white);
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.2s ease;
+  box-shadow: 0 2px 12px rgba(30, 50, 130, 0.08);
 }
 
-.saga-cruise-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 63, 92, 0.12);
+.saga-campaign-pod__image {
+  aspect-ratio: 1730 / 760;
+  overflow: hidden;
 }
 
-.saga-cruise-card__img {
-  height: 160px;
-  background: linear-gradient(160deg, #2a6f8a 0%, var(--saga-navy) 55%, #1a3a4a 100%);
-  position: relative;
+.saga-campaign-pod__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.saga-cruise-card__img::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 50%);
-}
-
-.saga-cruise-card__body {
-  padding: 1rem 1.1rem 1.15rem;
+.saga-campaign-pod__contents {
+  padding: 20px 20px 24px;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.saga-cruise-card h3 {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
+.saga-campaign-pod--champagne .saga-campaign-pod__contents {
+  background: var(--saga-champagne);
+}
+
+.saga-campaign-pod--aqua .saga-campaign-pod__contents {
+  background: var(--saga-aqua);
+}
+
+.saga-campaign-pod--blush .saga-campaign-pod__contents {
+  background: var(--saga-blush);
+}
+
+.saga-campaign-pod__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--saga-navy);
+  margin: 0 0 8px;
+  line-height: 1.25;
+}
+
+.saga-campaign-pod__body {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  flex: 1;
+  color: var(--saga-text);
+}
+
+/* —— Nav tiles (8 service grid on mint) —— */
+.saga-nav-tiles {
+  background: var(--saga-mint);
+  padding: 32px 0 64px;
+  margin-bottom: var(--saga-spacing);
+}
+
+.saga-nav-tiles__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .saga-nav-tiles__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .saga-nav-tiles__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.saga-nav-tiles__tile {
+  background: var(--saga-white);
+  border-radius: var(--saga-radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.saga-nav-tiles__icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
   color: var(--saga-navy);
 }
 
-.saga-cruise-card__meta {
-  font-size: 0.85rem;
-  color: var(--saga-muted);
-  margin: 0 0 0.75rem;
+.saga-nav-tiles__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--saga-navy);
+  margin: 0 0 8px;
 }
 
-.saga-cruise-card__price {
-  font-weight: 700;
-  color: var(--saga-teal);
+.saga-nav-tiles__body {
+  font-size: 0.9375rem;
+  margin: 0 0 16px;
+  flex: 1;
+  color: var(--saga-text);
+}
+
+.saga-nav-tiles__cta {
   margin-top: auto;
-  margin-bottom: 0.75rem;
+}
+
+/* —— Article row —— */
+.saga-articles {
+  margin-bottom: var(--saga-spacing);
+}
+
+.saga-section-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--saga-navy);
+  margin: 0 0 20px;
+}
+
+.saga-articles__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.saga-article-card {
+  border-radius: var(--saga-radius);
+  overflow: hidden;
+  background: var(--saga-white);
+  border: 1px solid var(--saga-border);
+}
+
+.saga-article-card__img {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  width: 100%;
+}
+
+.saga-article-card__body {
+  padding: 16px;
+}
+
+.saga-article-card__badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--saga-navy);
+  background: var(--saga-mint);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.saga-article-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--saga-navy);
+}
+
+/* —— Newsletter strip —— */
+.saga-newsletter {
+  background: var(--saga-navy);
+  color: var(--saga-white);
+  padding: 40px 16px;
+  margin-bottom: var(--saga-spacing);
+  text-align: center;
+}
+
+.saga-newsletter h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.saga-newsletter p {
+  margin: 0 0 16px;
+  opacity: 0.9;
+}
+
+/* —— Awards row —— */
+.saga-awards {
+  text-align: center;
+  padding: 24px 16px;
+  margin-bottom: var(--saga-spacing);
+  border-top: 1px solid var(--saga-border);
+  border-bottom: 1px solid var(--saga-border);
+}
+
+.saga-awards p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--saga-muted);
+}
+
+/* —— Footer (megafoot + wave) —— */
+.saga-megafoot {
+  background: var(--saga-navy);
+  color: var(--saga-white);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-align: center;
+  position: relative;
+  padding: 80px 16px 32px;
+}
+
+.saga-megafoot__signifier {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 480px);
+  height: auto;
+  pointer-events: none;
+}
+
+.saga-megafoot__logo {
+  height: 40px;
+  width: auto;
+  margin: 0 auto 24px;
+  filter: brightness(0) invert(1);
+}
+
+.saga-megafoot__sections {
+  max-width: var(--saga-container);
+  margin: 0 auto 32px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .saga-megafoot__sections {
+    grid-template-columns: repeat(4, 1fr);
+    text-align: left;
+  }
+}
+
+.saga-megafoot__title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--saga-white);
+}
+
+.saga-megafoot__section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.saga-megafoot__section li {
+  margin-bottom: 8px;
+}
+
+.saga-megafoot__section a {
+  color: var(--saga-white);
+  text-decoration: none;
+}
+
+.saga-megafoot__section a:hover {
+  text-decoration: underline;
+}
+
+.saga-megafoot__social {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.saga-megafoot__social a {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  align-items: center;
+  justify-content: center;
+  color: var(--saga-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.saga-megafoot__legal {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* —— Cruises / travel sub-pages —— */
+.saga-travel-hero {
+  background: linear-gradient(135deg, var(--saga-navy-dark) 0%, var(--saga-navy) 60%, #2a4a9a 100%);
+  color: var(--saga-white);
+  padding: 48px 16px 56px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.saga-travel-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 55%);
+  pointer-events: none;
+}
+
+.saga-travel-hero__inner {
+  max-width: var(--saga-container);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.saga-travel-hero h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.saga-travel-hero p {
+  margin: 0;
+  max-width: 36rem;
+  opacity: 0.95;
+}
+
+.saga-main {
+  max-width: var(--saga-container);
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+.saga-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  color: var(--saga-navy);
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.saga-section-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--saga-navy);
 }
 
 .saga-filters {
@@ -275,7 +655,7 @@
   align-items: flex-end;
   margin-bottom: 1.5rem;
   padding: 1rem 1.1rem;
-  background: var(--saga-cream);
+  background: var(--saga-mint);
   border-radius: var(--saga-radius);
 }
 
@@ -297,6 +677,79 @@
   font-size: 0.9rem;
 }
 
+.saga-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.saga-cruise-card {
+  border: 1px solid var(--saga-border);
+  border-radius: var(--saga-radius);
+  overflow: hidden;
+  background: var(--saga-white);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+}
+
+.saga-cruise-card:hover {
+  box-shadow: 0 8px 24px rgba(30, 50, 130, 0.12);
+}
+
+.saga-cruise-card__img {
+  height: 180px;
+  background: linear-gradient(160deg, #3d7a94, var(--saga-navy));
+  background-size: cover;
+  background-position: center;
+}
+
+.saga-cruise-card__body {
+  padding: 1rem 1.1rem 1.15rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.saga-cruise-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--saga-navy);
+}
+
+.saga-cruise-card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.saga-cruise-card h3 a:hover {
+  text-decoration: underline;
+}
+
+.saga-cruise-card__meta {
+  font-size: 0.85rem;
+  color: var(--saga-muted);
+  margin: 0 0 0.75rem;
+}
+
+.saga-cruise-card__price {
+  font-weight: 700;
+  color: var(--saga-navy);
+  margin-top: auto;
+  margin-bottom: 0.75rem;
+}
+
+.saga-cruise-card__ship {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--saga-white);
+  background: var(--saga-navy);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
 .saga-detail-hero {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -311,9 +764,11 @@
 }
 
 .saga-detail-visual {
-  min-height: 280px;
+  min-height: 320px;
   border-radius: var(--saga-radius);
   background: linear-gradient(145deg, #3d7a94, var(--saga-navy));
+  background-size: cover;
+  background-position: center;
 }
 
 .saga-detail-facts {
@@ -333,7 +788,7 @@
 }
 
 .saga-includes {
-  background: var(--saga-cream);
+  background: var(--saga-mint);
   padding: 1.25rem;
   border-radius: var(--saga-radius);
   margin: 1.5rem 0;
@@ -344,12 +799,23 @@
   padding-left: 1.2rem;
 }
 
+.saga-breadcrumb {
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  color: var(--saga-muted);
+}
+
+.saga-breadcrumb a {
+  color: var(--saga-navy);
+}
+
+/* —— Lab journey rail —— */
 .saga-journey-rail {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--saga-navy);
+  background: var(--saga-navy-dark);
   color: var(--saga-white);
   padding: 0.6rem 1rem;
   font-size: 0.82rem;
@@ -362,7 +828,7 @@
 }
 
 .saga-journey-rail strong {
-  color: var(--saga-gold);
+  color: var(--saga-champagne);
 }
 
 .saga-journey-rail ol {
@@ -380,13 +846,13 @@
 
 .saga-journey-rail li.is-current {
   font-weight: 700;
-  color: var(--saga-gold);
+  color: var(--saga-champagne);
 }
 
 .saga-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 30, 45, 0.55);
+  background: rgba(20, 34, 89, 0.55);
   z-index: 80;
   display: none;
   align-items: center;
@@ -409,16 +875,7 @@
 
 .saga-modal h2 {
   margin: 0 0 0.75rem;
-  font-family: var(--saga-serif);
   color: var(--saga-navy);
-}
-
-.saga-footer {
-  border-top: 1px solid var(--saga-border);
-  padding: 2rem 1.25rem;
-  font-size: 0.8rem;
-  color: var(--saga-muted);
-  text-align: center;
 }
 
 .saga-demo-note {
@@ -427,4 +884,8 @@
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px dashed var(--saga-border);
+}
+
+.saga-demo-note code {
+  font-size: 0.85em;
 }
