@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Norwegian Fjords &amp; Arctic Circle | Saga Cruises</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="saga-shared.css">
+  <script src="saga-events.js"></script>
+</head>
+<body class="saga-site" data-saga-page="cruise-detail">
+  <div class="saga-utility">
+    <span><a href="saga-cruises-list.html" id="sagaBackToList">← Back to ocean cruises</a></span>
+  </div>
+  <header class="saga-header">
+    <div class="saga-header-inner">
+      <a class="saga-logo" href="saga-home.html">SAGA</a>
+      <nav aria-label="Primary">
+        <ul class="saga-nav">
+          <li><a href="saga-home.html">Home</a></li>
+          <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="saga-main">
+    <p class="saga-kicker">Spirit of Discovery · May 2026</p>
+    <h1 class="saga-section-title">Norwegian Fjords &amp; Arctic Circle</h1>
+
+    <div class="saga-detail-hero">
+      <div class="saga-detail-visual" role="img" aria-label="Fjord coastline"></div>
+      <div>
+        <p>14 nights from Dover. All-inclusive boutique cruising with balcony cabin, chauffeur transfers, travel insurance and selected excursions included.</p>
+        <ul class="saga-detail-facts">
+          <li><strong>Cruise ID:</strong> <span id="sagaCruiseId">SAGA-NFJ-2026-05</span></li>
+          <li><strong>Ship:</strong> Spirit of Discovery</li>
+          <li><strong>Departure:</strong> 9 May 2026, Dover</li>
+          <li><strong>From:</strong> £2,899 per person</li>
+          <li><strong>Cabin:</strong> Balcony (all guests)</li>
+        </ul>
+        <button type="button" class="saga-btn saga-btn--primary" id="sagaCheckAvailability">Check availability</button>
+        <button type="button" class="saga-btn saga-btn--secondary" id="sagaAddWishlist">Add to wishlist</button>
+      </div>
+    </div>
+
+    <div class="saga-includes">
+      <h2 class="saga-section-title" style="font-size:1.2rem;margin-top:0">All-inclusive highlights</h2>
+      <ul>
+        <li>Return UK chauffeur service to the port</li>
+        <li>Travel insurance and cancellation cover</li>
+        <li>Selected shore excursions in Bergen, Tromsø and Ålesund</li>
+        <li>Speciality dining and 24-hour room service</li>
+      </ul>
+    </div>
+
+    <p>
+      <button type="button" class="saga-btn saga-btn--secondary" id="sagaSimulateAbandon">
+        Simulate abandon (exit without booking)
+      </button>
+    </p>
+    <p class="saga-demo-note">Use “Back to ocean cruises” or close the booking panel without confirming to fire <code>travel.cruise.booking.abandon</code> in the lab.</p>
+  </main>
+
+  <footer class="saga-footer">© Demo snapshot · not affiliated with Saga plc</footer>
+
+  <aside class="saga-journey-rail" aria-label="Demo journey steps">
+    <strong>Lab journey:</strong>
+    <ol>
+      <li class="is-done">1 Home</li>
+      <li class="is-done">2 Cruises list</li>
+      <li class="is-current">3 Cruise detail</li>
+      <li>4 Abandon</li>
+    </ol>
+  </aside>
+
+  <div class="saga-modal-backdrop" id="sagaBookingModal" aria-hidden="true">
+    <div class="saga-modal" role="dialog" aria-labelledby="sagaBookingTitle">
+      <h2 id="sagaBookingTitle">Start your booking</h2>
+      <p>Step 1 of 3 — choose cabin grade (demo).</p>
+      <label>
+        Cabin grade
+        <select id="sagaCabinGrade">
+          <option value="balcony">Balcony — included</option>
+          <option value="suite">Suite — on request</option>
+        </select>
+      </label>
+      <p style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button type="button" class="saga-btn saga-btn--primary" id="sagaBookingContinue">Continue</button>
+        <button type="button" class="saga-btn saga-btn--secondary" id="sagaBookingClose">Close without booking</button>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var CRUISE = {
+        travelCruiseId: 'SAGA-NFJ-2026-05',
+        travelCruiseName: 'Norwegian Fjords & Arctic Circle',
+        travelShipName: 'Spirit of Discovery',
+        travelDestination: 'Norway',
+        travelDeparturePort: 'Dover',
+        travelDurationNights: 14,
+        travelPriceFrom: 2899,
+        travelBrand: 'Saga',
+        travelProductCategory: 'ocean_cruise',
+        travelJourneyStage: 'cruise_detail',
+      };
+      var bookingStarted = false;
+      var abandonSent = false;
+
+      function emit(type, extra) {
+        if (!window.SagaCruisesLabEvents) return;
+        var pub = {};
+        var k;
+        for (k in CRUISE) if (Object.prototype.hasOwnProperty.call(CRUISE, k)) pub[k] = CRUISE[k];
+        if (extra) for (k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) pub[k] = extra[k];
+        SagaCruisesLabEvents.emit(type, pub, 'Saga — Cruise detail', location.href);
+      }
+
+      var params = new URLSearchParams(location.search);
+      if (params.get('cruise')) {
+        document.getElementById('sagaCruiseId').textContent = params.get('cruise');
+        CRUISE.travelCruiseId = params.get('cruise');
+      }
+
+      emit('web.webpagedetails.pageViews', { travelPageType: 'product_detail', pageName: 'Cruise detail — ' + CRUISE.travelCruiseName });
+      emit('travel.cruise.detail.view', {
+        travelProductViewType: 'cruise',
+        travelSKU: CRUISE.travelCruiseId,
+      });
+
+      document.getElementById('sagaAddWishlist').addEventListener('click', function () {
+        emit('travel.cruise.wishlist.add', { travelWishlistAction: 'add' });
+      });
+
+      var modal = document.getElementById('sagaBookingModal');
+      function openModal() {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+      function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      document.getElementById('sagaCheckAvailability').addEventListener('click', function () {
+        if (!bookingStarted) {
+          bookingStarted = true;
+          emit('travel.cruise.booking.start', {
+            travelBookingStep: 1,
+            travelCabinGrade: document.getElementById('sagaCabinGrade').value,
+          });
+        }
+        openModal();
+      });
+
+      document.getElementById('sagaBookingContinue').addEventListener('click', function () {
+        emit('travel.cruise.booking.step', {
+          travelBookingStep: 2,
+          travelCabinGrade: document.getElementById('sagaCabinGrade').value,
+        });
+        closeModal();
+      });
+
+      function sendAbandon(via) {
+        if (abandonSent) return;
+        abandonSent = true;
+        emit('travel.cruise.booking.abandon', {
+          travelExitVia: via,
+          travelBookingStarted: bookingStarted,
+          travelAbandonReason: bookingStarted ? 'booking_funnel_exit' : 'detail_exit',
+        });
+      }
+
+      document.getElementById('sagaBookingClose').addEventListener('click', function () {
+        closeModal();
+        sendAbandon('booking_modal_close');
+      });
+
+      document.getElementById('sagaSimulateAbandon').addEventListener('click', function () {
+        sendAbandon('simulate_button');
+      });
+
+      document.getElementById('sagaBackToList').addEventListener('click', function (e) {
+        if (!abandonSent) {
+          sendAbandon('back_to_list');
+        }
+      });
+
+      window.addEventListener('beforeunload', function () {
+        sendAbandon('beforeunload');
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saga — Travel &amp; Cruises for the over 50s</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="saga-shared.css">
+  <script src="saga-events.js"></script>
+</head>
+<body class="saga-site" data-saga-page="home">
+  <div class="saga-utility">
+    <span>Exclusive experiences for the over 50s</span>
+    <span><a href="#">Manage booking</a> · <a href="#">Contact us</a></span>
+  </div>
+  <header class="saga-header">
+    <div class="saga-header-inner">
+      <a class="saga-logo" href="saga-home.html" data-saga-nav="home">SAGA</a>
+      <nav aria-label="Primary">
+        <ul class="saga-nav">
+          <li><a href="saga-home.html" aria-current="page">Home</a></li>
+          <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
+          <li><a href="saga-home.html#holidays">Holidays</a></li>
+          <li><a href="saga-home.html#insurance">Insurance</a></li>
+          <li><a href="saga-home.html#money">Money</a></li>
+        </ul>
+      </nav>
+      <div class="saga-header-cta">
+        <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html" id="sagaHeroCta">Explore cruises</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="saga-hero">
+    <div class="saga-hero-inner">
+      <p class="saga-kicker">Saga Cruises</p>
+      <h1>Boutique ocean cruising, all-inclusive</h1>
+      <p>Sail from UK ports on Spirit of Discovery and Spirit of Adventure — balcony cabins, chauffeur service, and curated excursions included.</p>
+      <div class="saga-hero-actions">
+        <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html">Find your cruise</a>
+        <a class="saga-btn saga-btn--secondary" href="saga-cruise-detail.html">Featured: Norwegian Fjords</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="saga-main">
+    <p class="saga-kicker">Why Saga</p>
+    <h2 class="saga-section-title">Designed for discerning travellers</h2>
+    <div class="saga-card-grid">
+      <article class="saga-cruise-card">
+        <div class="saga-cruise-card__img" role="img" aria-label="Ocean cruise ship"></div>
+        <div class="saga-cruise-card__body">
+          <h3>Ocean cruises</h3>
+          <p class="saga-cruise-card__meta">No-fly options from Dover &amp; Portsmouth</p>
+          <a class="saga-btn saga-btn--primary" href="saga-cruises-list.html">Browse ocean cruises</a>
+        </div>
+      </article>
+      <article class="saga-cruise-card">
+        <div class="saga-cruise-card__img" style="background:linear-gradient(160deg,#5a8a6a,#2d5a4a)" role="img" aria-label="River cruise"></div>
+        <div class="saga-cruise-card__body">
+          <h3>River cruises</h3>
+          <p class="saga-cruise-card__meta">Rhine, Danube &amp; Douro</p>
+          <span class="saga-cruise-card__price">Lab demo: ocean journey only</span>
+        </div>
+      </article>
+      <article class="saga-cruise-card">
+        <div class="saga-cruise-card__img" style="background:linear-gradient(160deg,#8a7a5a,#4a4030)" role="img" aria-label="Travel insurance"></div>
+        <div class="saga-cruise-card__body">
+          <h3>Travel insurance</h3>
+          <p class="saga-cruise-card__meta">Included on selected cruises</p>
+        </div>
+      </article>
+    </div>
+    <p class="saga-demo-note">AEP Orchestration Lab snapshot — not affiliated with Saga plc. Events fire via parent lab strip when Tags are injected.</p>
+  </main>
+
+  <footer class="saga-footer">© Demo snapshot · saga.co.uk style mimic for CX lab</footer>
+
+  <aside class="saga-journey-rail" aria-label="Demo journey steps">
+    <strong>Lab journey:</strong>
+    <ol>
+      <li class="is-current">1 Home</li>
+      <li>2 Cruises list</li>
+      <li>3 Cruise detail</li>
+      <li>4 Abandon</li>
+    </ol>
+  </aside>
+
+  <script>
+    (function () {
+      var base = {
+        travelBrand: 'Saga',
+        travelProductCategory: 'ocean_cruise',
+        travelJourneyStage: 'home',
+        pageName: 'Saga Home',
+        siteSection: 'cruises',
+      };
+      function emit(type, extra) {
+        if (!window.SagaCruisesLabEvents) return;
+        var pub = {};
+        var k;
+        for (k in base) if (Object.prototype.hasOwnProperty.call(base, k)) pub[k] = base[k];
+        if (extra) for (k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) pub[k] = extra[k];
+        SagaCruisesLabEvents.emit(type, pub, 'Saga — Home', location.href);
+      }
+      emit('web.webpagedetails.pageViews', { travelPageType: 'home' });
+      document.getElementById('sagaHeroCta') &&
+        document.getElementById('sagaHeroCta').addEventListener('click', function () {
+          emit('travel.navigation.select', { travelNavTarget: 'ocean_cruises', travelJourneyStage: 'home_cta' });
+        });
+    })();
+  </script>
+</body>
+</html>

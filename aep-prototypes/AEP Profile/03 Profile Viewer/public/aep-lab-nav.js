@@ -330,6 +330,20 @@
        */
       subgroups: [
         {
+          id: 'demoLlmLab',
+          label: 'LLM',
+          items: [
+            {
+              label: 'LLM Demo (in development)',
+              href: 'demos/llm-demo/llm-demo.html',
+              inDevelopment: true,
+              navHideKey: 'llmDemo',
+              ico:
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+            },
+          ],
+        },
+        {
           id: 'demoMobileLab',
           label: 'Mobile',
           items: [
@@ -479,6 +493,28 @@
                   demoMeta: { owners: ['apalmer'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 10h16v10H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 14h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'demoSaga',
+          label: 'Saga',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'sagaWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Saga Cruises (in development)',
+                  href: 'saga-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'sagaDemo',
+                  demoMeta: { owners: ['apalmer'], sandbox: 'apalmer' },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 18V8l4-3 4 3v10" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/></svg>',
                 },
               ],
             },

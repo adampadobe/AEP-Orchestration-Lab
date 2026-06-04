@@ -1,0 +1,430 @@
+/* Saga Cruises snapshot — brand tokens scoped to .saga-site only (not lab chrome). */
+.saga-site {
+  --saga-navy: #003f5c;
+  --saga-teal: #007c89;
+  --saga-gold: #b8962e;
+  --saga-cream: #f5f0e6;
+  --saga-white: #ffffff;
+  --saga-text: #1a2b33;
+  --saga-muted: #5c6f78;
+  --saga-border: #d4dce0;
+  --saga-radius: 6px;
+  --saga-font: "Source Sans 3", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --saga-serif: Georgia, "Times New Roman", serif;
+  margin: 0;
+  font-family: var(--saga-font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--saga-text);
+  background: var(--saga-white);
+}
+
+.saga-site *,
+.saga-site *::before,
+.saga-site *::after {
+  box-sizing: border-box;
+}
+
+.saga-site a {
+  color: var(--saga-teal);
+  text-decoration: none;
+}
+
+.saga-site a:hover {
+  text-decoration: underline;
+}
+
+.saga-utility {
+  background: var(--saga-navy);
+  color: var(--saga-white);
+  font-size: 0.75rem;
+  padding: 0.35rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.saga-utility a {
+  color: var(--saga-cream);
+}
+
+.saga-header {
+  border-bottom: 1px solid var(--saga-border);
+  background: var(--saga-white);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.saga-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.saga-logo {
+  font-family: var(--saga-serif);
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: 0.12em;
+  color: var(--saga-navy);
+  text-decoration: none;
+}
+
+.saga-logo:hover {
+  text-decoration: none;
+  color: var(--saga-teal);
+}
+
+.saga-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.saga-nav a {
+  color: var(--saga-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.saga-nav a.is-active,
+.saga-nav a[aria-current="page"] {
+  color: var(--saga-teal);
+  border-bottom: 2px solid var(--saga-gold);
+}
+
+.saga-header-cta {
+  margin-left: auto;
+}
+
+.saga-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--saga-radius);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.saga-btn--primary {
+  background: var(--saga-teal);
+  color: var(--saga-white);
+  border-color: var(--saga-teal);
+}
+
+.saga-btn--primary:hover {
+  background: var(--saga-navy);
+  border-color: var(--saga-navy);
+  text-decoration: none;
+  color: var(--saga-white);
+}
+
+.saga-btn--secondary {
+  background: transparent;
+  color: var(--saga-navy);
+  border-color: var(--saga-navy);
+}
+
+.saga-btn--secondary:hover {
+  background: var(--saga-cream);
+  text-decoration: none;
+}
+
+.saga-hero {
+  background: linear-gradient(135deg, var(--saga-navy) 0%, var(--saga-teal) 100%);
+  color: var(--saga-white);
+  padding: 3rem 1.25rem;
+}
+
+.saga-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.saga-hero h1 {
+  font-family: var(--saga-serif);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  margin: 0 0 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.saga-hero p {
+  margin: 0 0 1.25rem;
+  max-width: 36rem;
+  opacity: 0.95;
+}
+
+.saga-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.saga-hero .saga-btn--secondary {
+  color: var(--saga-white);
+  border-color: var(--saga-white);
+}
+
+.saga-hero .saga-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.saga-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 5rem;
+}
+
+.saga-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--saga-teal);
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.saga-section-title {
+  font-family: var(--saga-serif);
+  font-size: 1.65rem;
+  margin: 0 0 1rem;
+  color: var(--saga-navy);
+}
+
+.saga-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.saga-cruise-card {
+  border: 1px solid var(--saga-border);
+  border-radius: var(--saga-radius);
+  overflow: hidden;
+  background: var(--saga-white);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+}
+
+.saga-cruise-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 63, 92, 0.12);
+}
+
+.saga-cruise-card__img {
+  height: 160px;
+  background: linear-gradient(160deg, #2a6f8a 0%, var(--saga-navy) 55%, #1a3a4a 100%);
+  position: relative;
+}
+
+.saga-cruise-card__img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 50%);
+}
+
+.saga-cruise-card__body {
+  padding: 1rem 1.1rem 1.15rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.saga-cruise-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--saga-navy);
+}
+
+.saga-cruise-card__meta {
+  font-size: 0.85rem;
+  color: var(--saga-muted);
+  margin: 0 0 0.75rem;
+}
+
+.saga-cruise-card__price {
+  font-weight: 700;
+  color: var(--saga-teal);
+  margin-top: auto;
+  margin-bottom: 0.75rem;
+}
+
+.saga-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem;
+  background: var(--saga-cream);
+  border-radius: var(--saga-radius);
+}
+
+.saga-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--saga-muted);
+}
+
+.saga-filters select {
+  min-width: 10rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--saga-border);
+  border-radius: var(--saga-radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.saga-detail-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .saga-detail-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.saga-detail-visual {
+  min-height: 280px;
+  border-radius: var(--saga-radius);
+  background: linear-gradient(145deg, #3d7a94, var(--saga-navy));
+}
+
+.saga-detail-facts {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.saga-detail-facts li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--saga-border);
+  font-size: 0.95rem;
+}
+
+.saga-detail-facts strong {
+  color: var(--saga-navy);
+}
+
+.saga-includes {
+  background: var(--saga-cream);
+  padding: 1.25rem;
+  border-radius: var(--saga-radius);
+  margin: 1.5rem 0;
+}
+
+.saga-includes ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.saga-journey-rail {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--saga-navy);
+  color: var(--saga-white);
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.saga-journey-rail strong {
+  color: var(--saga-gold);
+}
+
+.saga-journey-rail ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.saga-journey-rail li.is-done {
+  opacity: 0.65;
+}
+
+.saga-journey-rail li.is-current {
+  font-weight: 700;
+  color: var(--saga-gold);
+}
+
+.saga-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 30, 45, 0.55);
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.saga-modal-backdrop.is-open {
+  display: flex;
+}
+
+.saga-modal {
+  background: var(--saga-white);
+  border-radius: var(--saga-radius);
+  max-width: 420px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.saga-modal h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--saga-serif);
+  color: var(--saga-navy);
+}
+
+.saga-footer {
+  border-top: 1px solid var(--saga-border);
+  padding: 2rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--saga-muted);
+  text-align: center;
+}
+
+.saga-demo-note {
+  font-size: 0.75rem;
+  color: var(--saga-muted);
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--saga-border);
+}
