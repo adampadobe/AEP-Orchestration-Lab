@@ -798,7 +798,7 @@
     visibility: ['Visibility Score'],
     mentions: ['Brand Mentions'],
     citations: ['Citations'],
-    agentic: ['Agentic Interactions', 'Agentic Traffic'],
+    agentic: ['Agentic Interactions', 'Agentic interactions', 'Agentic Traffic'],
     referral: ['Total Referral Traffic from LLMs', 'Referral Traffic'],
   };
 

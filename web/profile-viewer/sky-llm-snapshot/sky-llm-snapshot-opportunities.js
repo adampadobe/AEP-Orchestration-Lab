@@ -877,17 +877,21 @@
     });
   }
 
+  function detailMount() {
+    return document.getElementById('root') || document.body;
+  }
+
   function ensureDetailRoot() {
-    var mount = findOpportunitiesMain() || findListCanvas() || document.getElementById('root');
+    var mount = detailMount();
     if (state.detailEl && state.detailEl.isConnected) {
-      if (mount && state.detailEl.parentElement !== mount) {
+      if (state.detailEl.parentElement !== mount) {
         mount.appendChild(state.detailEl);
       }
       return state.detailEl;
     }
     var existing = document.getElementById('skyLlmOpDetail');
     if (existing) {
-      if (mount && existing.parentElement !== mount) {
+      if (existing.parentElement !== mount) {
         mount.appendChild(existing);
       }
       existing.classList.remove('sky-llm-op-detail--overlay');
@@ -898,8 +902,7 @@
     el.id = 'skyLlmOpDetail';
     el.className = 'sky-llm-op-detail';
     el.hidden = true;
-    if (mount) mount.appendChild(el);
-    else document.body.appendChild(el);
+    mount.appendChild(el);
     state.detailEl = el;
     return el;
   }
@@ -941,6 +944,8 @@
     }
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
+    detail.style.position = 'relative';
+    detail.style.zIndex = '20';
     setOpportunityListsVisible(false);
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);

@@ -27,11 +27,13 @@ const outHtml = path.join(outDir, 'overview.html');
 const SNAPSHOT_ASSETS = [
   '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
   '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+  '<script src="./sky-llm-snapshot-build-id.js"></script>',
+  '<script src="./sky-llm-snapshot-blockers.js"></script>',
   '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
   '<script src="./sky-llm-snapshot-nav.js"></script>',
-  '<script src="./sky-llm-snapshot-patch.js"></script>',
-  '<script src="./sky-llm-snapshot-overview.js"></script>',
   '<script src="./sky-llm-snapshot-platform.js"></script>',
+  '<script src="./sky-llm-snapshot-overview.js"></script>',
+  '<script src="./sky-llm-snapshot-patch.js"></script>',
   '<script src="./sky-llm-snapshot-market.js"></script>',
 ].join('\n');
 
@@ -94,6 +96,7 @@ for (const [from, to] of axisLabelReplacements) {
 }
 html = html.split('WKND').join('Virgin Media');
 
+html = html.replace(/<\/body>\s*<div id="walnut-root-popin-element"[\s\S]*$/i, '</body>\n');
 html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
 if (!html.includes('sky-llm-snapshot-platform.js')) {
   html = html.replace('</body>', `${SNAPSHOT_ASSETS}\n</body>`);

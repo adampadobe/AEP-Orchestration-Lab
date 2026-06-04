@@ -270,7 +270,16 @@
     platformWatchTimer: null,
     lastComboboxPlatform: '',
     metricsReapplyTimer: null,
+    kpiObserver: null,
   };
+
+  var OVERVIEW_KPI_SPECS = [
+    { key: 'visibility', labels: ['visibility score'] },
+    { key: 'mentions', labels: ['brand mentions'] },
+    { key: 'citations', labels: ['citations'] },
+    { key: 'agentic', labels: ['agentic interactions', 'agentic traffic'] },
+    { key: 'referral', labels: ['total referral traffic from llms', 'referral traffic'] },
+  ];
 
   function getPageKind() {
     if (findSectionRoot('Market Tracking')) return 'brand-presence';
@@ -831,14 +840,57 @@
     );
   }
 
+  function findOverviewMetricNodesBySequence() {
+    var root = findOverviewKpiRoot();
+    if (!root) return null;
+    var textEls = Array.from(root.querySelectorAll('[data-rsp-slot="text"]')).filter(function (el) {
+      return el.childElementCount === 0;
+    });
+    var nodes = {};
+    var specIdx = 0;
+    var i;
+    for (i = 0; i < textEls.length && specIdx < OVERVIEW_KPI_SPECS.length; i++) {
+      var txt = normalizeMetricLabel(textEls[i].textContent);
+      var spec = OVERVIEW_KPI_SPECS[specIdx];
+      if (spec.labels.indexOf(txt) < 0) continue;
+      var j;
+      for (j = i + 1; j < textEls.length; j++) {
+        if (isMetricValueText(textEls[j].textContent)) {
+          nodes[spec.key] = textEls[j];
+          specIdx += 1;
+          i = j;
+          break;
+        }
+      }
+    }
+    return Object.keys(nodes).length >= 4 ? nodes : null;
+  }
+
   function cacheMetricNodes() {
     var keys = Object.keys(METRIC_LABELS);
     var next = {};
+    if (state.pageKind === 'overview') {
+      var seq = findOverviewMetricNodesBySequence();
+      if (seq) {
+        state.metricNodes = seq;
+        return;
+      }
+    }
     keys.forEach(function (key) {
       next[key] =
         document.querySelector('[data-sky-metric="' + key + '"]') || findMetricValueNode(METRIC_LABELS[key]);
     });
     state.metricNodes = next;
+  }
+
+  function watchOverviewKpiMutations() {
+    if (state.pageKind !== 'overview' || state.kpiObserver) return;
+    var root = findOverviewKpiRoot();
+    if (!root || !window.MutationObserver) return;
+    state.kpiObserver = new MutationObserver(function () {
+      scheduleMetricsReapply();
+    });
+    state.kpiObserver.observe(root, { childList: true, subtree: true, characterData: true });
   }
 
   function cacheMarketRows() {
@@ -1405,6 +1457,7 @@
     applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
     notifyPlatformChange();
+    watchOverviewKpiMutations();
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
