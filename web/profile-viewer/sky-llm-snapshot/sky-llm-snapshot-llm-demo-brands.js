@@ -380,7 +380,9 @@
       patchMarketComparisonLabels();
     }
     if (/opportunities\.html/i.test(global.location.pathname || '')) {
-      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot) {
+      if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.rewire) {
+        global.SkyLlmOpportunities.rewire();
+      } else if (global.SkyLlmOpportunities && global.SkyLlmOpportunities.boot) {
         global.SkyLlmOpportunities.boot();
       }
     }

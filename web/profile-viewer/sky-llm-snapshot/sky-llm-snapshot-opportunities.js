@@ -236,7 +236,11 @@
       var t = (el.textContent || '').trim();
       return t.length > 8 && TITLE_TO_ID[t];
     });
-    return leaf ? leaf.textContent.trim() : '';
+    if (leaf) return leaf.textContent.trim();
+    var testid = card.getAttribute('data-testid') || '';
+    if (testid.indexOf('techgeo-4xx') >= 0) return 'Agentic Traffic 404s Analysis';
+    if (testid.indexOf('techgeo-5xx') >= 0) return 'Agentic Traffic 503s Analysis';
+    return '';
   }
 
   function resolveViewId(card) {
@@ -380,20 +384,6 @@
       function (e) {
         if (!isOpportunityOpenClick(e.target)) return;
         var card = e.target.closest('[data-testid*="OppCard"]');
-        var viewId = resolveViewId(card);
-        if (!viewId) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openDetailForCard(card);
-      },
-      true,
-    );
-    document.addEventListener(
-      'mousedown',
-      function (e) {
-        var card = e.target.closest('[data-testid*="OppCard"]');
-        if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
-        if (e.target.closest('input, textarea, select, a[href]')) return;
         var viewId = resolveViewId(card);
         if (!viewId) return;
         e.preventDefault();
@@ -918,10 +908,26 @@
     return viewId === 'recover' || viewId === 'simplify' || viewId === 'llm-summaries';
   }
 
+  function listHideTargets() {
+    var hosts = [findOnsiteHost(), findContentHost()].filter(Boolean);
+    if (hosts.length) return hosts;
+    var list = findListCanvas();
+    var main = findOpportunitiesMain();
+    var detail = state.detailEl || document.getElementById('skyLlmOpDetail');
+    if (list && main && list !== main && main.contains(list)) return [list];
+    if (list && (!detail || !list.contains(detail))) return [list];
+    return [];
+  }
+
+  function setOpportunityListsVisible(visible) {
+    listHideTargets().forEach(function (host) {
+      host.classList.toggle('sky-llm-op-list-hidden', !visible);
+    });
+  }
+
   function showDetail(viewId) {
     suppressClickBlockers();
     watchWalnutRemoval();
-    var canvas = findOpportunitiesMain() || findListCanvas();
     var detail = ensureDetailRoot();
     if (!DETAIL_VIEWS[viewId] || !detail) return;
 
@@ -935,7 +941,7 @@
     }
     detail.hidden = false;
     detail.classList.toggle('sky-llm-op-detail--recover', isRichDetailView(viewId));
-    if (canvas) canvas.classList.add('sky-llm-op-list-hidden');
+    setOpportunityListsVisible(false);
 
     if (isRichDetailView(viewId)) wireDetailPanels(detail);
 
@@ -954,8 +960,7 @@
   }
 
   function hideDetail() {
-    var canvas = findOpportunitiesMain() || findListCanvas();
-    if (canvas) canvas.classList.remove('sky-llm-op-list-hidden');
+    setOpportunityListsVisible(true);
     if (state.detailEl) {
       state.detailEl.hidden = true;
       state.detailEl.innerHTML = '';

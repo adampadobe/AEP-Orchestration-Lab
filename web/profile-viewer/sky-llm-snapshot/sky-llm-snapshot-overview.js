@@ -4,10 +4,13 @@
 (function () {
   'use strict';
 
-  var PCT = 36;
-  var CAPTION = 'Fair — some content is visible to AI models';
-  var contentVisibilityLocked = false;
+  var DEFAULT_PCT = 36;
+  var contentVisibilityPct = null;
   var patchDebounceTimer;
+
+  function opportunitiesPageUrl(hashSuffix) {
+    return 'opportunities.html' + (location.search || '') + (hashSuffix || '');
+  }
 
   function qs(root, sel) {
     return (root || document).querySelector(sel);
@@ -17,37 +20,67 @@
     return Array.from((root || document).querySelectorAll(sel));
   }
 
-  function lockContentVisibility() {
-    if (contentVisibilityLocked) return;
+  function parseVisibilityPercent(metrics) {
+    if (!metrics || !metrics.visibility) return DEFAULT_PCT;
+    var n = parseInt(String(metrics.visibility).replace(/[^\d]/g, ''), 10);
+    return isNaN(n) ? DEFAULT_PCT : Math.min(99, Math.max(0, n));
+  }
+
+  function visibilityPctFromPlatform() {
+    if (window.skyLlmSnapshotPlatform && window.skyLlmSnapshotPlatform.getDashboardMetrics) {
+      return parseVisibilityPercent(window.skyLlmSnapshotPlatform.getDashboardMetrics());
+    }
+    return DEFAULT_PCT;
+  }
+
+  function captionForPct(pct) {
+    if (pct >= 55) return 'Strong — content is frequently cited by AI models';
+    if (pct >= 40) return 'Good — solid visibility in AI-generated answers';
+    if (pct >= 28) return 'Fair — some content is visible to AI models';
+    return 'Low — limited visibility in AI answers';
+  }
+
+  function gaugeStrokeForPct(pct) {
+    if (pct >= 55) return '#047857';
+    if (pct >= 40) return '#2563eb';
+    if (pct >= 28) return '#c45c26';
+    return '#b91c1c';
+  }
+
+  function patchContentVisibility() {
     var meter = qs(document, 'svg[role="meter"][aria-label*="Content Visibility"]');
     if (!meter) return;
 
-    contentVisibilityLocked = true;
-    meter.setAttribute('aria-valuenow', String(PCT));
-    meter.setAttribute('aria-label', 'Content Visibility: ' + PCT + '%');
+    var pct = visibilityPctFromPlatform();
+    if (contentVisibilityPct === pct && meter.getAttribute('data-sky-gauge-pct') === String(pct)) return;
+    contentVisibilityPct = pct;
+    meter.setAttribute('data-sky-gauge-pct', String(pct));
+    meter.setAttribute('aria-valuenow', String(pct));
+    meter.setAttribute('aria-label', 'Content Visibility: ' + pct + '%');
 
     var pctText = meter.querySelector('text');
-    if (pctText) pctText.textContent = PCT + '%';
+    if (pctText) pctText.textContent = pct + '%';
 
     var circumference = 2 * Math.PI * 64;
-    var offset = circumference * (1 - PCT / 100);
+    var offset = circumference * (1 - pct / 100);
     var arc = meter.querySelector('circle[stroke-dasharray]');
     if (arc) {
       arc.setAttribute('stroke-dasharray', String(circumference));
       arc.setAttribute('stroke-dashoffset', String(offset));
-      arc.setAttribute('stroke', '#c45c26');
+      arc.setAttribute('stroke', gaugeStrokeForPct(pct));
     }
 
     var track = meter.querySelector('circle:not([stroke-dasharray])');
     if (track) track.setAttribute('stroke', '#e8e8e8');
 
+    var caption = captionForPct(pct);
     var captionHost = meter.parentElement;
     if (captionHost) {
       qsa(captionHost, 'div, span, p').forEach(function (el) {
         if (el.childElementCount > 0) return;
         var t = (el.textContent || '').trim();
-        if (/^Fair\s*—/i.test(t) || /some content is visible to AI/i.test(t)) {
-          el.textContent = CAPTION;
+        if (/^(Strong|Good|Fair|Low)\s*—/i.test(t) || /content is visible to AI/i.test(t) || /visibility in AI/i.test(t)) {
+          el.textContent = caption;
         }
         if (/Your content can.t be seen by AI/i.test(t)) {
           el.textContent = 'Your content can\u2019t be seen by AI';
@@ -139,7 +172,7 @@
           function (e) {
             e.preventDefault();
             e.stopPropagation();
-            location.href = catalog.detailHref(opp.id);
+            location.href = opportunitiesPageUrl('#detail/' + opp.id);
           },
           true,
         );
@@ -154,7 +187,7 @@
         function (e) {
           e.preventDefault();
           e.stopPropagation();
-          location.href = 'opportunities.html';
+          location.href = opportunitiesPageUrl('');
         },
         true,
       );
@@ -169,9 +202,14 @@
   }
 
   function run() {
-    lockContentVisibility();
+    patchContentVisibility();
     schedulePatchLatest();
   }
+
+  document.addEventListener('sky-llm-platform-change', function () {
+    contentVisibilityPct = null;
+    patchContentVisibility();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', run);

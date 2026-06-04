@@ -245,7 +245,7 @@
     visibility: ['Visibility Score'],
     mentions: ['Brand Mentions'],
     citations: ['Citations'],
-    agentic: ['Agentic Interactions', 'Agentic Traffic'],
+    agentic: ['Agentic Interactions', 'Agentic interactions', 'Agentic Traffic'],
     referral: ['Total Referral Traffic from LLMs', 'Referral Traffic'],
   };
 
@@ -447,10 +447,31 @@
     }
   }
 
-  function applyPlatformFromCombobox() {
+  function readActivePlatformLabel() {
+    var trigger = document.querySelector('.sky-llm-platform-trigger > span:first-child');
+    if (trigger) {
+      var fromTrigger = String(trigger.textContent || '').trim();
+      if (fromTrigger) return fromTrigger;
+    }
     var input = findCombobox('platform');
-    if (!input) return false;
-    var label = String(input.value || '').trim();
+    return input ? String(input.value || '').trim() : '';
+  }
+
+  function notifyPlatformChange() {
+    try {
+      document.dispatchEvent(
+        new CustomEvent('sky-llm-platform-change', {
+          detail: { platformId: state.platformId, dateRangeId: state.dateRangeId },
+        }),
+      );
+    } catch (e) {
+      /* IE / old WebView */
+    }
+  }
+
+  function applyPlatformFromCombobox() {
+    var label = readActivePlatformLabel();
+    if (!label) return false;
     if (label === state.lastComboboxPlatform) return false;
     state.lastComboboxPlatform = label;
     var id = platformIdFromLabel(label);
@@ -461,6 +482,7 @@
     refreshDashboardCaches();
     applyDashboard({ animate: true });
     scheduleMetricsReapply();
+    notifyPlatformChange();
     return true;
   }
 
@@ -485,6 +507,7 @@
       refreshDashboardCaches();
       applyDashboard({ animate: !(opts && opts.animate === false) });
       scheduleMetricsReapply();
+      notifyPlatformChange();
       return;
     }
     state.platformId = id;
@@ -497,6 +520,7 @@
     refreshDashboardCaches();
     applyDashboard({ animate: !(opts && opts.animate === false) });
     scheduleMetricsReapply();
+    notifyPlatformChange();
   }
 
   function wirePlatformSelection() {
@@ -602,9 +626,30 @@
     return candidates[0];
   }
 
-  function findMetricValueNodeOne(labelText) {
-    var labelNodes = Array.from(document.querySelectorAll('div, span, p, h2, h3')).filter(function (n) {
-      return n.childElementCount === 0 && n.textContent.trim() === labelText;
+  function normalizeMetricLabel(text) {
+    return String(text || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  function findOverviewKpiRoot() {
+    var anchor =
+      document.querySelector('.sky-llm-platform-host') || findCombobox('platform') || findCombobox('brand selector');
+    var el = anchor;
+    for (var i = 0; i < 16 && el; i++) {
+      var blob = el.textContent || '';
+      if (blob.indexOf('Visibility Score') >= 0 && blob.indexOf('Brand Mentions') >= 0) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function findMetricValueNodeOne(labelText, scopeRoot) {
+    var target = normalizeMetricLabel(labelText);
+    var pool = scopeRoot ? scopeRoot.querySelectorAll('div, span, p, h2, h3') : document.querySelectorAll('div, span, p, h2, h3');
+    var labelNodes = Array.from(pool).filter(function (n) {
+      return n.childElementCount === 0 && normalizeMetricLabel(n.textContent) === target;
     });
     for (var i = 0; i < labelNodes.length; i++) {
       var walk = labelNodes[i].parentElement;
@@ -619,9 +664,17 @@
 
   function findMetricValueNode(labelTexts) {
     var labels = Array.isArray(labelTexts) ? labelTexts : [labelTexts];
-    for (var i = 0; i < labels.length; i++) {
-      var node = findMetricValueNodeOne(labels[i]);
-      if (node) return node;
+    var scopes = [];
+    if (state.pageKind === 'overview') {
+      var kpiRoot = findOverviewKpiRoot();
+      if (kpiRoot) scopes.push(kpiRoot);
+    }
+    scopes.push(null);
+    for (var s = 0; s < scopes.length; s++) {
+      for (var i = 0; i < labels.length; i++) {
+        var node = findMetricValueNodeOne(labels[i], scopes[s]);
+        if (node) return node;
+      }
     }
     return null;
   }
@@ -779,13 +832,13 @@
   }
 
   function cacheMetricNodes() {
-    state.metricNodes = {
-      visibility: findMetricValueNode(METRIC_LABELS.visibility),
-      mentions: findMetricValueNode(METRIC_LABELS.mentions),
-      citations: findMetricValueNode(METRIC_LABELS.citations),
-      agentic: findMetricValueNode(METRIC_LABELS.agentic),
-      referral: findMetricValueNode(METRIC_LABELS.referral),
-    };
+    var keys = Object.keys(METRIC_LABELS);
+    var next = {};
+    keys.forEach(function (key) {
+      next[key] =
+        document.querySelector('[data-sky-metric="' + key + '"]') || findMetricValueNode(METRIC_LABELS[key]);
+    });
+    state.metricNodes = next;
   }
 
   function cacheMarketRows() {
@@ -1315,6 +1368,7 @@
         state.dateRangeId = d.id;
         if (input) input.value = d.name;
         applyDashboard({ animate: true });
+        notifyPlatformChange();
       },
     });
   }
@@ -1350,6 +1404,7 @@
     watchNativePlatformSelection();
     applyDashboard({ animate: state.pageKind !== 'brand-presence' && !state.ready });
     state.ready = true;
+    notifyPlatformChange();
     if (window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.initMarketTracking) {
       window.setTimeout(function () {
         window.skyLlmSnapshotMarket.initMarketTracking();
@@ -1386,10 +1441,18 @@
       return state.ready;
     },
     ensurePickers: ensurePickers,
+    getDashboardMetrics: function () {
+      return getMetrics(state.platformId, state.dateRangeId);
+    },
+    getPlatformId: function () {
+      return state.platformId;
+    },
     refresh: function () {
       if (!state.ready) return;
-      cacheMarketRows();
+      state.metricNodes = {};
+      refreshDashboardCaches();
       applyDashboard({ animate: false });
+      scheduleMetricsReapply();
       if (global.SkyLlmLlmDemoBrands && global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels) {
         global.SkyLlmLlmDemoBrands.patchMarketComparisonLabels();
       }
