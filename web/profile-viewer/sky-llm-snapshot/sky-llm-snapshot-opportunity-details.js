@@ -218,6 +218,7 @@
 
     return (
       backBtn() +
+      '<div class="sky-llm-op-wiki-detail sky-llm-op-content-op">' +
       '<div class="sky-llm-op-wiki-head">' +
       '<div class="sky-llm-op-wiki-head-main">' +
       '<h1 class="sky-llm-op-detail-title">LLM discoverability: Improve Wikipedia presence</h1>' +
@@ -276,7 +277,7 @@
       '</div>' +
       '<ul class="sky-llm-op-rec-list sky-llm-op-rec-list--wiki">' +
       recs.map(wikiRecRow).join('') +
-      '</ul>'
+      '</ul></div>'
     );
   }
 

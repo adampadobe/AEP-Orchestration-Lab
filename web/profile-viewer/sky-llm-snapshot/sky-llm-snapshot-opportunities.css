@@ -77,6 +77,21 @@
   width: 100%;
 }
 
+.sky-llm-op-wiki-detail {
+  width: 100%;
+}
+
+.sky-llm-op-detail-inner--full .sky-llm-op-wiki-head,
+.sky-llm-op-detail-inner--full .sky-llm-op-kpi-row--five,
+.sky-llm-op-detail-inner--full .sky-llm-op-panel,
+.sky-llm-op-detail-inner--full .sky-llm-op-tabs,
+.sky-llm-op-detail-inner--full .sky-llm-op-guidance-head,
+.sky-llm-op-detail-inner--full .sky-llm-op-guidance-grid,
+.sky-llm-op-detail-inner--full .sky-llm-op-rec-list--wiki {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .sky-llm-op-main-scroll-lock {
   overflow: hidden !important;
 }
