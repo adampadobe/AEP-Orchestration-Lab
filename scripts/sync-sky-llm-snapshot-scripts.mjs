@@ -61,15 +61,19 @@ const DEFAULT_SCRIPTS = [
   '<script src="./sky-llm-snapshot-market.js' + v + '"></script>',
 ];
 
-const blockRe =
+const blockWithLinksRe =
   /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/i;
+const blockScriptsOnlyRe =
+  /<script src="\.\/sky-llm-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/i;
 
 for (const file of fs.readdirSync(snapDir).filter((f) => f.endsWith('.html'))) {
   const fp = path.join(snapDir, file);
   let html = fs.readFileSync(fp, 'utf8');
   const injection = (PAGE_SCRIPTS[file] || DEFAULT_SCRIPTS).join('\n');
-  if (blockRe.test(html)) {
-    html = html.replace(blockRe, injection);
+  if (blockWithLinksRe.test(html)) {
+    html = html.replace(blockWithLinksRe, injection);
+  } else if (blockScriptsOnlyRe.test(html)) {
+    html = html.replace(blockScriptsOnlyRe, injection);
   } else if (!html.includes('sky-llm-snapshot-blockers.js')) {
     html = html.replace(/<\/body>/i, injection + '\n</body>');
   }

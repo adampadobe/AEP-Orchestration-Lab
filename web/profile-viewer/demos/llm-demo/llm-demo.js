@@ -5,7 +5,7 @@
   'use strict';
 
   function snapshotBuild() {
-    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260622';
+    return (typeof LlmDemoConfig !== 'undefined' && LlmDemoConfig.BUILD_ID) || '20260623';
   }
 
   function snapshotPageUrl(file) {
@@ -323,7 +323,7 @@
     fillForm();
     setOpen(false);
 
-    var params = new URLSearchParams(global.location.search || '');
+    var params = new URLSearchParams(window.location.search || '');
     var preloadScrapeId = params.get('scrapeId');
     if (preloadScrapeId) {
       setOpen(true);
