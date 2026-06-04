@@ -1,0 +1,92 @@
+
+
+
+    var FRAMEWORK = window.FRAMEWORK || {};
+    FRAMEWORK.extend = FRAMEWORK.extend || {};
+
+    FRAMEWORK.extend.locale = {
+        "en-GB": {
+            mPredictiveSearch: {
+                instruction: "When auto\u002Dcomplete results are available use up and down arrows to review and enter to select.  Touch device users, explore by touch or with swipe gestures.",
+                location: "Use current location",
+                locationUnavailable: "Location services are unavailable",
+                resultsFound: "results are available.",
+                noResults: "No search results."
+            },
+            aDate: {
+                locale: "en-gb",
+                format: "DD\/MM\/YYYY",
+                interactionInstruction: "Use the arrow keys to pick a date",
+                triggerLabelSingle: "Select date",
+                confirmLabelSingle: "Confirm date",
+                triggerLabelRange: "Select dates",
+                confirmLabelRange: "Confirm dates",
+                clearLabel: "Clear",
+                totalSelectedSingular: "Total days selected: <strong>{days} day<\/strong>",
+                totalSelectedPlural: "Total days selected: <strong>{days} days<\/strong>",
+                yearLabel: "Year",
+                monthLabel: "Month",
+                startDateTitle: "Set start date",
+                endDateTitle: "Set end date",
+                previousMonth: "Previous month",
+                nextMonth: "Next month",
+                weekdaysShort: [
+                    "S",
+                    "M",
+                    "T",
+                    "W",
+                    "T",
+                    "F",
+                    "S"
+                ]
+            },
+            oFaqPanel: {
+                backLinkText: "Back to FAQ list"
+            },
+            aFileUpload: {
+                multipleCaption: "{count} files selected"
+            },
+            mFormRowHelp: {
+                showMore: "Show more",
+                showLess: "Show less"
+            },
+            oMasthead: {
+                closeText: "Close",
+                loadingText: "Please wait"
+            },
+            mMediaPlayer: {
+                progress: "played",
+                progressTime: "time",
+                restart: "Restart",
+                rewind: "Rewind",
+                play: "Play",
+                playVideo: "Play video",
+                playAudio: "Play audio",
+                pause: "Pause",
+                forward: "Forward",
+                mute: "Mute",
+                volume: "Volume",
+                captions: "Captions",
+                fullscreen: "Fullscreen",
+                seconds: "seconds"
+            },
+            oModal: {
+                closeText: "Close",
+                loadingText: "Please wait",
+                contentLabel: "Modal content"
+            },
+            mCheckboxGroupMultiselect: {
+                pleaseSelect: "Please select...",
+                allSelected: "All selected",
+                selected: " selected",
+                selectAll: "Select all"
+            },
+            mCardNotification: {
+                closeText: "Close"
+            },
+            mTabs: {
+                moreText: "More",
+                closeText: "Less"
+            }
+        }
+    }

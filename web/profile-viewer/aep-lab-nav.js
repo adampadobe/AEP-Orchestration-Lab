@@ -477,6 +477,27 @@
           ],
         },
         {
+          id: 'demoAviva',
+          label: 'Aviva',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'avivaTarget',
+              label: 'Target',
+              items: [
+                {
+                  label: 'Car insurance journey',
+                  href: 'demos/aviva-target/index.html',
+                  navHideKey: 'avivaTargetCarInsurance',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 17h16l-1.5-5H5.5L4 17z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="7.5" cy="17.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="16.5" cy="17.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoPremierInn',
           label: 'Premier Inn',
           demoCustomer: true,
