@@ -27,6 +27,37 @@
   box-sizing: border-box;
 }
 
+.sky-llm-op-content-intro {
+  margin: 8px 0 16px;
+  max-width: none;
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgb(109, 109, 109);
+  box-sizing: border-box;
+}
+
+.sky-llm-op-content-cards [data-testid*='OppCard'] {
+  position: relative;
+}
+
+.sky-llm-op-content-details-btn {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  z-index: 3;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 999px;
+  background: rgb(255, 255, 255);
+  color: rgb(41, 41, 41);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
 .sky-llm-op-detail.sky-llm-op-detail--overlay {
   position: fixed;
   z-index: 500;

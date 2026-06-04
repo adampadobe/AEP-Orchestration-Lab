@@ -9,7 +9,9 @@
   }
 
   var ONSITE_ORDER = ['404', '503', 'recover'];
-  var CONTENT_ORDER = ['simplify', 'llm-summaries'];
+  var CONTENT_ORDER = ['llm-summaries', 'simplify'];
+  var ONSITE_CONTENT_INTRO =
+    'Onsite opportunities are relevant to improve your content to better be understood by LLMs and matched to user queries, particularly when the LLM accesses one of your webpages to read its content.';
   var OFFSITE_ORDER = ['reddit', 'youtube', 'wikipedia', 'cited'];
 
   var ONSITE_CARDS = {
@@ -135,6 +137,7 @@
     delegateWired: false,
     walnutWatcher: false,
     contentObserver: false,
+    contentDelegateWired: false,
   };
 
   var TESTID_TO_VIEW = {
@@ -401,11 +404,46 @@
     return null;
   }
 
+  function createContentIntroEl() {
+    var intro = document.createElement('p');
+    intro.id = 'skyLlmOpContentIntro';
+    intro.className = 'sky-llm-op-content-intro';
+    intro.textContent = ONSITE_CONTENT_INTRO;
+    return intro;
+  }
+
+  function hideDuplicateOnsiteContentIntro() {
+    var snip = 'Onsite opportunities are relevant';
+    Array.from(document.querySelectorAll('p, span, div')).forEach(function (el) {
+      if (el.id === 'skyLlmOpContentIntro' || el.closest('#skyLlmOpContentIntro')) return;
+      var text = (el.textContent || '').trim();
+      if (text.indexOf(snip) !== 0) return;
+      var block = el.closest('p') || el;
+      if (block.dataset.skyLlmOpIntroMoved === '1') return;
+      block.dataset.skyLlmOpIntroMoved = '1';
+      block.style.display = 'none';
+    });
+  }
+
+  function relocateOnsiteContentIntro() {
+    hideDuplicateOnsiteContentIntro();
+    var intro = document.getElementById('skyLlmOpContentIntro') || createContentIntroEl();
+    var mount = document.getElementById('skyLlmOpContentCards');
+    if (mount && mount.parentElement) {
+      mount.parentElement.insertBefore(intro, mount);
+      return intro;
+    }
+    var point = findContentInsertPoint();
+    if (point) point.parent.insertBefore(intro, point.before);
+    return intro;
+  }
+
   function ensureContentCardsMount() {
     if (state.contentMount && state.contentMount.isConnected) return state.contentMount;
     var existing = document.getElementById('skyLlmOpContentCards');
     if (existing) {
       state.contentMount = existing;
+      relocateOnsiteContentIntro();
       return existing;
     }
     var point = findContentInsertPoint();
@@ -420,6 +458,7 @@
       host.appendChild(el);
     }
     state.contentMount = el;
+    relocateOnsiteContentIntro();
     return el;
   }
 
@@ -651,11 +690,19 @@
     unblurCard(card);
   }
 
+  function actionButtonLabel(btn) {
+    return ((btn && btn.textContent) || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function isDetailsActionButton(btn) {
+    if (!btn) return false;
+    var t = actionButtonLabel(btn);
+    var aria = ((btn.getAttribute && btn.getAttribute('aria-label')) || '').trim();
+    return /\bDetails\b/i.test(t) || /\bPreview\b/i.test(t) || /^Details$/i.test(aria);
+  }
+
   function findActionButton(card) {
-    return Array.from(card.querySelectorAll('button, [role="button"], a')).find(function (btn) {
-      var t = (btn.textContent || '').trim();
-      return /^Details$/i.test(t) || /^Preview$/i.test(t);
-    });
+    return Array.from(card.querySelectorAll('button, [role="button"], a')).find(isDetailsActionButton);
   }
 
   function ensureDetailsButton(card) {
@@ -682,7 +729,7 @@
   /** Frozen React OppCards swallow clicks — replace with inert clone before wiring. */
   function neutralizeFrozenCard(card) {
     if (!card || !card.parentElement) return card;
-    if (card.dataset.skyLlmOpCloned === '1' || card.dataset.skyLlmOpNeutralized === '1') {
+    if (card.dataset.skyLlmOpNeutralized === '1') {
       return card;
     }
     var viewId = card.dataset.skyLlmOpViewId || resolveViewId(card);
@@ -697,6 +744,86 @@
       clone.setAttribute('data-sky-llm-op-view-id', viewId);
     }
     return clone;
+  }
+
+  function injectContentDetailsButton(card, viewId) {
+    if (!card || !viewId) return null;
+    var existing = card.querySelector('[data-sky-llm-op-details-btn="' + viewId + '"]');
+    if (existing) return existing;
+
+    Array.from(card.querySelectorAll('button, a, [role="button"]')).forEach(function (nativeBtn) {
+      if (!isDetailsActionButton(nativeBtn) || nativeBtn.dataset.skyLlmOpDetailsBtn) return;
+      nativeBtn.style.display = 'none';
+      nativeBtn.setAttribute('aria-hidden', 'true');
+      nativeBtn.tabIndex = -1;
+    });
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sky-llm-op-content-details-btn';
+    btn.dataset.skyLlmOpDetailsBtn = viewId;
+    btn.textContent = 'Details';
+    card.appendChild(btn);
+    return btn;
+  }
+
+  function wireContentCardOpen(card, viewId) {
+    wireCardOpen(card, viewId);
+    card =
+      document.querySelector('#skyLlmOpContentCards [data-sky-llm-op-view-id="' + viewId + '"]') ||
+      document.querySelector('[data-sky-llm-op-view-id="' + viewId + '"]') ||
+      card;
+    var btn = injectContentDetailsButton(card, viewId);
+    if (!btn || btn.dataset.skyLlmOpDetailsWired === '1') return;
+    btn.dataset.skyLlmOpDetailsWired = '1';
+    btn.addEventListener(
+      'click',
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showDetail(viewId);
+      },
+      true,
+    );
+  }
+
+  function ensureContentDetailsDelegation() {
+    if (state.contentDelegateWired) return;
+    state.contentDelegateWired = true;
+    document.addEventListener(
+      'click',
+      function (e) {
+        var card = e.target.closest('#skyLlmOpContentCards [data-sky-llm-op-view-id]');
+        if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
+        var hit = e.target.closest('button, a, [role="button"], [data-sky-llm-op-details-btn]');
+        if (!hit || !isDetailsActionButton(hit)) {
+          if (!hit || !hit.dataset.skyLlmOpDetailsBtn) return;
+        }
+        var viewId = hit.dataset.skyLlmOpDetailsBtn || card.getAttribute('data-sky-llm-op-view-id');
+        if (!viewId || !DETAIL_VIEWS[viewId]) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showDetail(viewId);
+      },
+      true,
+    );
+    document.addEventListener(
+      'pointerdown',
+      function (e) {
+        var card = e.target.closest('#skyLlmOpContentCards [data-sky-llm-op-view-id]');
+        if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
+        var hit = e.target.closest('button, a, [role="button"], [data-sky-llm-op-details-btn]');
+        if (!hit) return;
+        if (!isDetailsActionButton(hit) && !hit.dataset.skyLlmOpDetailsBtn) return;
+        var viewId = hit.dataset.skyLlmOpDetailsBtn || card.getAttribute('data-sky-llm-op-view-id');
+        if (!viewId || !DETAIL_VIEWS[viewId]) return;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      true,
+    );
   }
 
   function wireCardOpen(card, viewId) {
@@ -958,9 +1085,11 @@
       card = neutralizeFrozenCard(card);
       byId[id] = card;
       patchCard(card, config, { hideMetrics: true });
-      wireCardOpen(card, id);
+      wireContentCardOpen(card, id);
       markContentCard(card);
     });
+
+    relocateOnsiteContentIntro();
 
     Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
       if (isOffsiteCard(card)) return;
@@ -1600,6 +1729,7 @@
     suppressClickBlockers();
     watchWalnutRemoval();
     ensureDelegatedClicks();
+    ensureContentDetailsDelegation();
     resetCaches();
     setupOffsiteCards();
     ensureContentCards();
@@ -1640,8 +1770,9 @@
   if (window.MutationObserver && !state.contentObserver) {
     state.contentObserver = true;
     var contentObs = new MutationObserver(function () {
-      if (!document.querySelector('[data-sky-llm-op-view-id="simplify"].sky-llm-op-card-clickable')) {
+      if (!document.querySelector('#skyLlmOpContentCards [data-sky-llm-op-details-btn]')) {
         ensureContentCards();
+        relocateOnsiteContentIntro();
       }
     });
     contentObs.observe(document.documentElement, { childList: true, subtree: true });
