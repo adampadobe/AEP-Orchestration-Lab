@@ -31,8 +31,24 @@
     }
   }
 
+  /**
+   * @param {string} email
+   */
+  function requestLogin(email) {
+    var em = String(email || '').trim();
+    if (!em) return;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ source: MSG_SOURCE, type: 'login-request', email: em }, '*');
+      }
+    } catch (e) {
+      /* noop */
+    }
+  }
+
   window.SagaCruisesLabEvents = {
     emit: emit,
+    requestLogin: requestLogin,
     SOURCE: MSG_SOURCE,
   };
 })();

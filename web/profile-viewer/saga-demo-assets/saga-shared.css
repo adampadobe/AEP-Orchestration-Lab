@@ -1118,3 +1118,146 @@
 .saga-demo-note code {
   font-size: 0.85em;
 }
+
+/* —— MySaga login modal (lab / Etihad-style stitch) —— */
+.saga-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.saga-login-overlay[hidden] {
+  display: none;
+}
+
+.saga-login-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 34, 89, 0.55);
+}
+
+.saga-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: var(--saga-white);
+  border-radius: var(--saga-radius);
+  padding: 1.75rem 1.5rem 1.5rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+}
+
+.saga-login-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--saga-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 4px;
+}
+
+.saga-login-close:hover,
+.saga-login-close:focus-visible {
+  background: var(--saga-mint);
+  color: var(--saga-navy);
+}
+
+.saga-login-logo {
+  display: block;
+  margin: 0 auto 1rem;
+}
+
+.saga-login-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  color: var(--saga-navy);
+  text-align: center;
+}
+
+.saga-login-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  color: var(--saga-muted);
+  text-align: center;
+}
+
+.saga-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.saga-login-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--saga-navy);
+  margin-bottom: 0.35rem;
+}
+
+.saga-login-field input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--saga-border);
+  border-radius: var(--saga-radius);
+  font: inherit;
+}
+
+.saga-login-error {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #b42318;
+}
+
+.saga-login-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.saga-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.saga-login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--saga-white);
+  border-radius: 50%;
+  animation: saga-login-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes saga-login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.saga-login-guest-link {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.saga-login-guest-link a {
+  color: var(--saga-navy);
+}
+
+.saga-btn--login.is-signed-in,
+button.saga-btn--login.is-signed-in {
+  background-color: var(--saga-navy);
+  border-color: var(--saga-navy);
+  color: var(--saga-white);
+}

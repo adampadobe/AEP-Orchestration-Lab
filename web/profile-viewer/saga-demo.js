@@ -4,8 +4,41 @@
  */
 
 const customerEmail = document.getElementById('customerEmail');
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+const sagaNs = document.getElementById('sagaNs');
+
+/** Pre-fill identifier from shared recent-identifiers map (same keys as consent / home). */
+function hydrateSagaIdentifierFromRecents() {
+  if (!customerEmail || (customerEmail.value || '').trim()) return;
+  let ns = 'email';
+  try {
+    if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+      ns = AepIdentityPicker.getNamespace('customerEmail') || 'email';
+    } else if (sagaNs && sagaNs.value) {
+      ns = String(sagaNs.value).trim().toLowerCase();
+    }
+  } catch {
+    /* noop */
+  }
+  try {
+    if (typeof getRecentForNamespace === 'function') {
+      const rec = getRecentForNamespace(ns);
+      if (rec.length) customerEmail.value = rec[0];
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail', 'recentEmails', 'sagaNs');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'sagaNs');
+hydrateSagaIdentifierFromRecents();
+if (sagaNs) {
+  sagaNs.addEventListener('change', function () {
+    window.requestAnimationFrame(function () {
+      hydrateSagaIdentifierFromRecents();
+    });
+  });
+}
 
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const sagaMessage = document.getElementById('sagaMessage');
@@ -187,6 +220,60 @@ window.addEventListener('message', async function (ev) {
     return;
   }
   if (!ev.data || ev.data.source !== 'saga-cruises-lab') return;
+
+  if (ev.data.type === 'login-modal-open') {
+    const prefill = getEmail().trim();
+    if (sagaSiteFrame && sagaSiteFrame.contentWindow) {
+      sagaSiteFrame.contentWindow.postMessage(
+        {
+          source: 'saga-demo-shell',
+          type: 'login-prefill',
+          email: prefill,
+        },
+        '*',
+      );
+    }
+    return;
+  }
+
+  if (ev.data.type === 'login-request') {
+    const email = String(ev.data.email || '').trim();
+    if (!email) return;
+
+    if (customerEmail) customerEmail.value = email;
+
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const profile =
+      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+        : null;
+    const profileMsg = profile
+      ? {
+          firstName: profile.firstName || null,
+          loyaltyStatus: profile.loyaltyStatus || null,
+        }
+      : null;
+
+    if (sagaSiteFrame && sagaSiteFrame.contentWindow) {
+      sagaSiteFrame.contentWindow.postMessage(
+        {
+          source: 'saga-demo-shell',
+          type: 'login-complete',
+          found: !!ok,
+          email: email,
+          firstName: profile ? profile.firstName || null : null,
+          profile: profileMsg,
+        },
+        '*',
+      );
+    }
+
+    if (ok && sagaTagsInjection && typeof sagaTagsInjection.stitchAfterProfileLookup === 'function') {
+      const stitched = await sagaTagsInjection.stitchAfterProfileLookup(profile, email);
+      if (stitched) setSagaMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    }
+    return;
+  }
 
   if (ev.data.type === 'cruise-experience-event') {
     void sendSagaCruiseExperienceEvent(ev.data.payload);
