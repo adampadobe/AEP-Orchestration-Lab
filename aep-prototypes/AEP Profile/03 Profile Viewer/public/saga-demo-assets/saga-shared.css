@@ -624,55 +624,131 @@
   color: var(--saga-muted);
 }
 
-/* —— Footer (megafoot + wave) —— */
+/* —— Footer (megafoot + wave) — matches saga.co.uk megafoot —— */
 .saga-megafoot {
-  background: var(--saga-navy);
+  --saga-megafoot-margin: 16px;
+  background: #1e3282;
   color: var(--saga-white);
-  font-size: 0.875rem;
-  line-height: 1.35;
+  font-size: 0.8889rem;
+  line-height: 1.1111rem;
   text-align: center;
   position: relative;
-  padding: 80px 16px 32px;
-}
-
-.saga-megafoot__signifier {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(100%, 480px);
-  height: auto;
-  pointer-events: none;
-}
-
-.saga-megafoot__logo {
-  height: 40px;
-  width: auto;
-  margin: 0 auto 24px;
-  filter: brightness(0) invert(1);
-}
-
-.saga-megafoot__sections {
-  max-width: var(--saga-container);
-  margin: 0 auto 32px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 28px;
-  text-align: left;
 }
 
 @media (min-width: 768px) {
-  .saga-megafoot__sections {
-    grid-template-columns: repeat(4, 1fr);
+  .saga-megafoot {
+    --saga-megafoot-margin: 48px;
     text-align: left;
   }
 }
 
-.saga-megafoot__title {
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 12px;
+@media (min-width: 1280px) {
+  .saga-megafoot {
+    --saga-megafoot-margin: max(64px, calc(50% - 616px));
+  }
+}
+
+.saga-megafoot,
+.saga-megafoot a {
   color: var(--saga-white);
+}
+
+.saga-megafoot a {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.saga-megafoot a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.saga-megafoot::before,
+.saga-megafoot::after {
+  background-image: url("images/saga_marble_wave.svg");
+  background-position: 50% 0;
+  background-size: cover;
+  content: "";
+  display: block;
+  height: 144px;
+}
+
+.saga-megafoot::after {
+  height: 32px;
+}
+
+.saga-megafoot__signifier-container {
+  background-color: #1e3282;
+  border-radius: 76px 76px 0 0;
+  display: flex;
+  height: 180px;
+  justify-content: center;
+  margin: -72px auto 0;
+  overflow: hidden;
+  padding: 15px 0 0;
+  width: 152px;
+}
+
+.saga-megafoot__signifier {
+  width: 100%;
+  height: auto;
+  max-width: 122px;
+  pointer-events: none;
+}
+
+.saga-megafoot__logo-link {
+  display: inline-block;
+  margin: -40px var(--saga-megafoot-margin) 44px;
+}
+
+.saga-megafoot img.saga-megafoot__logo {
+  display: inline-block;
+  filter: invert(1);
+  height: 40px;
+  max-width: 118px;
+  width: auto;
+}
+
+.saga-megafoot__sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 0 var(--saga-megafoot-margin);
+  text-align: left;
+}
+
+.saga-megafoot__section {
+  flex: 1 1 calc(50% - 12px);
+  margin-bottom: 44px;
+  min-width: 140px;
+}
+
+@media (min-width: 768px) {
+  .saga-megafoot__section {
+    flex: 1 1 calc(33.3333% - 16px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .saga-megafoot__section {
+    flex: 1 1 calc(20% - 20px);
+  }
+
+  .saga-megafoot__section:last-child {
+    text-align: right;
+  }
+
+  .saga-megafoot__socials {
+    justify-content: flex-end;
+  }
+}
+
+.saga-megafoot__title {
+  color: var(--saga-white);
+  font-size: 1.3333rem;
+  font-weight: 500;
+  line-height: 1.5556rem;
+  margin-bottom: 16px;
 }
 
 .saga-megafoot__section ul {
@@ -681,45 +757,63 @@
   padding: 0;
 }
 
-.saga-megafoot__section li {
-  margin-bottom: 8px;
+.saga-megafoot__section li > a {
+  display: inline-block;
+  padding: 12px 0;
 }
 
-.saga-megafoot__section a {
-  color: var(--saga-white);
-  text-decoration: none;
-}
-
-.saga-megafoot__section a:hover {
-  text-decoration: underline;
-}
-
-.saga-megafoot__social {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.saga-megafoot__social a {
-  display: inline-flex;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+.saga-megafoot__socials {
   align-items: center;
-  justify-content: center;
-  color: var(--saga-white);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-decoration: none;
+  display: flex;
+  gap: 16px;
+  justify-content: flex-start;
+  padding-top: 16px;
 }
 
-.saga-megafoot__legal {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  max-width: 720px;
-  margin: 0 auto;
+.saga-megafoot__socials a {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.saga-megafoot__socials img {
+  height: 24px;
+  vertical-align: middle;
+  width: auto;
+}
+
+.saga-megafoot__info {
+  align-items: baseline;
+  border-top: 1px solid var(--saga-white);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  justify-content: space-between;
+  margin: 0 var(--saga-megafoot-margin);
+  padding: 44px 0;
+  text-align: left;
+}
+
+.saga-megafoot__office address {
+  display: inline;
+  font-style: normal;
+}
+
+.saga-megafoot__copyright {
+  font-size: 0.8889rem;
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .saga-megafoot__logo-link {
+    display: block;
+    margin: -40px auto 44px;
+    text-align: center;
+  }
+
+  .saga-megafoot__info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* —— Cruises / travel sub-pages —— */

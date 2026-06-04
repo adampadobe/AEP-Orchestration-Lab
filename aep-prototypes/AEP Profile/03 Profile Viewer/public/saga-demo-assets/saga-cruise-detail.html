@@ -95,45 +95,64 @@
   </main>
 
   <footer class="saga-megafoot" data-region="Footer">
-    <img class="saga-megafoot__signifier" src="images/saga_signifer_white_01.svg" alt="" aria-hidden="true" width="480" height="48">
-    <img class="saga-megafoot__logo" src="images/saga_logo.svg" alt="Saga" width="120" height="40">
-    <div class="saga-megafoot__social" aria-label="Social media">
-      <a href="saga-home.html" title="Facebook">FB</a>
-      <a href="saga-home.html" title="X">X</a>
-      <a href="saga-home.html" title="YouTube">YT</a>
-      <a href="saga-home.html" title="Instagram">IG</a>
+    <div class="saga-megafoot__signifier-container">
+      <img class="saga-megafoot__signifier" src="images/saga_signifer_white_01.svg" alt="" aria-hidden="true" loading="lazy">
     </div>
+    <a class="saga-megafoot__logo-link" href="saga-home.html" title="Saga home">
+      <img class="saga-megafoot__logo" src="images/saga_logo.svg" alt="Saga" width="118" height="32" loading="lazy">
+    </a>
     <div class="saga-megafoot__sections">
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Our company</div>
+        <ul>
+          <li><a href="saga-home.html">About us</a></li>
+          <li><a href="saga-home.html">Careers</a></li>
+          <li><a href="saga-home.html">Investor relations</a></li>
+        </ul>
+      </div>
       <div class="saga-megafoot__section">
         <div class="saga-megafoot__title">Our products</div>
         <ul>
           <li><a href="saga-cruises-list.html">Ocean cruises</a></li>
           <li><a href="saga-cruise-detail.html">This cruise</a></li>
+          <li><a href="#" id="sagaFooterBook">Check availability</a></li>
         </ul>
       </div>
       <div class="saga-megafoot__section">
-        <div class="saga-megafoot__title">Help</div>
+        <div class="saga-megafoot__title">More from us</div>
+        <ul>
+          <li><a href="saga-cruises-list.html">See all cruises</a></li>
+          <li><a href="saga-cruise-detail.html">Deck plan</a></li>
+          <li><a href="saga-home.html#magazine">Magazine</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Other information</div>
+        <ul>
+          <li><a href="saga-home.html">Privacy policy</a></li>
+          <li><a href="saga-cruises-list.html">Cruise FAQs</a></li>
+          <li><a href="saga-home.html">Accessibility</a></li>
+        </ul>
+      </div>
+      <div class="saga-megafoot__section">
+        <div class="saga-megafoot__title">Contact us</div>
         <ul>
           <li><a href="saga-home.html#contact">Contact us</a></li>
-          <li><a href="saga-cruises-list.html">FAQs</a></li>
-        </ul>
-      </div>
-      <div class="saga-megafoot__section">
-        <div class="saga-megafoot__title">Ship</div>
-        <ul>
           <li><a href="saga-cruise-detail.html">Spirit of Discovery</a></li>
-          <li><a href="saga-cruise-detail.html">Deck plan</a></li>
         </ul>
-      </div>
-      <div class="saga-megafoot__section">
-        <div class="saga-megafoot__title">Book</div>
-        <ul>
-          <li><a href="#" id="sagaFooterBook">Check availability</a></li>
-          <li><a href="saga-cruises-list.html">See all cruises</a></li>
-        </ul>
+        <div class="saga-megafoot__socials" aria-label="Social media">
+          <a href="saga-home.html" title="X"><img src="images/saga_social_x.png" alt="X" width="24" height="24" loading="lazy"></a>
+          <a href="saga-home.html" title="Facebook"><img src="images/saga_social_facebook.png" alt="Facebook" width="24" height="24" loading="lazy"></a>
+        </div>
       </div>
     </div>
-    <p class="saga-megafoot__legal">© Demo snapshot · Not affiliated with Saga plc.</p>
+    <div class="saga-megafoot__info">
+      <div class="saga-megafoot__office">
+        Registered office:
+        <address>3 Pancras Square, London, United Kingdom, N1C 4AG</address>
+      </div>
+      <small class="saga-megafoot__copyright">© Saga 2024 · AEP lab demo snapshot</small>
+    </div>
   </footer>
 
   <aside class="saga-journey-rail" aria-label="Demo journey steps">
