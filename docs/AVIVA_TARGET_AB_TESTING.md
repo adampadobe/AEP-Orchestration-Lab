@@ -41,6 +41,9 @@ flowchart TB
 **Live URL (after deploy):**  
 `https://aep-orchestration-lab.web.app/profile-viewer/aviva-target-demo.html`
 
+**Step 4 quote page (Target URL match — mirrors production `/quote/Direct/Motor/quote-details`):**  
+`https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/quote-details.html`
+
 Direct journey pages (no lab strip) still work for styling QA:  
 `/profile-viewer/demos/aviva-target/index.html`
 

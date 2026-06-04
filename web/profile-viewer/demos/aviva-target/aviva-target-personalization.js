@@ -22,10 +22,15 @@
     'step2-driver.html': ['aviva-step2-driver'],
     'step3-additional.html': ['aviva-step3-assumptions', 'aviva-step3-continue-cta'],
     'step4-quote.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
+    'quote-details.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
   };
 
   function currentPage() {
-    return (global.location.pathname.split('/').pop() || 'index.html').replace(/^\.\//, '');
+    var path = global.location.pathname || '';
+    if (path.indexOf('/quote/Direct/Motor/quote-details') !== -1 || path.indexOf('quote-details.html') !== -1) {
+      return 'quote-details.html';
+    }
+    return (path.split('/').pop() || 'index.html').replace(/^\.\//, '');
   }
 
   function decisionScopesForPage() {

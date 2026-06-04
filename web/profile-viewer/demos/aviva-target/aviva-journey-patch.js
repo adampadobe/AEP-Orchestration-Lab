@@ -10,6 +10,9 @@
 
   function currentPage() {
     var path = location.pathname || '';
+    if (path.indexOf('/quote/Direct/Motor/quote-details') !== -1 || path.indexOf('quote-details.html') !== -1) {
+      return 'quote-details.html';
+    }
     var name = path.split('/').pop() || 'index.html';
     return name.replace(/^\.\//, '');
   }
@@ -177,7 +180,9 @@
         wireNextButton('step3-additional.html');
         break;
       case 'step3-additional.html':
-        wireNextButton('step4-quote.html');
+        wireNextButton('quote/Direct/Motor/quote-details.html');
+        break;
+      case 'quote-details.html':
         break;
       default:
         break;

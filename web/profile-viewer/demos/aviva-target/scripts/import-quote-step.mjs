@@ -14,8 +14,9 @@ const STEPS = {
   },
   step4: {
     label: 'Step4',
-    destHtml: 'step4-quote.html',
+    destHtml: 'quote/Direct/Motor/quote-details.html',
     assetDir: 'step4',
+    depthPrefix: '../../../',
   },
 };
 
@@ -33,7 +34,10 @@ function importStep(key) {
   const destAssets = path.join(root, 'assets', cfg.assetDir);
   const assetFolderName = `${base}_files`;
   const assetPrefix = `./${assetFolderName}/`;
-  const assetTarget = `./assets/${cfg.assetDir}/`;
+  const assetTarget = cfg.depthPrefix
+    ? `${cfg.depthPrefix}assets/${cfg.assetDir}/`
+    : `./assets/${cfg.assetDir}/`;
+  const scriptPrefix = cfg.depthPrefix || './';
 
   let html = fs.readFileSync(sourceHtml, 'utf8');
   html = html.split(assetPrefix).join(assetTarget);
@@ -48,16 +52,34 @@ function importStep(key) {
   html = html.replace(/<script[^>]*src="[^"]*cookielaw\.org[^"]*"[^>]*><\/script>/gi, '');
 
   if (!html.includes('aviva-demo-head.js')) {
-    html = html.replace('<head>', '<head>\n    <script src="aviva-demo-head.js"></script>');
+    html = html.replace(
+      '<head>',
+      `<head>\n    <script src="${scriptPrefix}aviva-demo-head.js"></script>`,
+    );
+  }
+
+  if (!html.includes('aviva-target-sdk-resume.js')) {
+    html = html.replace(
+      '<head>',
+      `<head>\n    <script src="${scriptPrefix}aviva-target-sdk-resume.js"></script>`,
+    );
+  }
+
+  if (!html.includes('aviva-target-personalization.js')) {
+    html = html.replace(
+      '<head>',
+      `<head>\n    <script src="${scriptPrefix}aviva-target-personalization.js"></script>`,
+    );
   }
 
   if (!html.includes('aviva-journey-patch.js')) {
     html = html.replace(
       '</body>',
-      '  <script src="aviva-journey-patch.js" defer></script>\n</body>',
+      `  <script src="${scriptPrefix}aviva-journey-patch.js" defer></script>\n</body>`,
     );
   }
 
+  fs.mkdirSync(path.dirname(destHtml), { recursive: true });
   fs.writeFileSync(destHtml, html);
   console.log('Wrote', destHtml);
 
