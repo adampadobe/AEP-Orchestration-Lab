@@ -65,12 +65,13 @@
     });
   }
 
+  /** True only inside LLM Demo iframe (?llmDemo=1). Sky LLM Optimizer must stay on frozen Sky labels. */
+  function llmDemoMode() {
+    return /(?:\?|&)llmDemo=1(?:&|$)/.test(location.search || '');
+  }
+
   function llmDemoActive() {
-    try {
-      return !!localStorage.getItem('llmDemoPersonalization_v1');
-    } catch (e) {
-      return false;
-    }
+    return llmDemoMode();
   }
 
   function run() {
@@ -85,7 +86,7 @@
   }
 
   function snapshotBuild() {
-    return (typeof window !== 'undefined' && window.SKY_LLM_SNAPSHOT_BUILD) || '20260617';
+    return (typeof window !== 'undefined' && window.SKY_LLM_SNAPSHOT_BUILD) || '20260619';
   }
 
   function bust(path) {
@@ -161,14 +162,7 @@
   }
 
   function loadLlmDemoPersonalize() {
-    var hasParam = /(?:\?|&)llmDemo=1(?:&|$)/.test(location.search || '');
-    var hasStored = false;
-    try {
-      hasStored = !!localStorage.getItem('llmDemoPersonalization_v1');
-    } catch (e) {
-      /* ignore */
-    }
-    if (!hasParam && !hasStored) return;
+    if (!llmDemoMode()) return;
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(runLlmDemoPatches, { timeout: 500 });
     } else {

@@ -789,11 +789,16 @@
     try {
       var p = String(window.location.pathname || '').replace(/\\/g, '/');
       if (p.indexOf('/_archive/firebase-hosting-legacy/') !== -1) return '../';
-      if (p.indexOf('/profile-viewer/miral/') !== -1) return '../';
-      if (p.indexOf('/profile-viewer/wb-world-abu-dhabi/') !== -1) return '../';
-      if (p.indexOf('/profile-viewer/seaworld-abu-dhabi/') !== -1) return '../';
-      if (p.indexOf('/profile-viewer/ferrari-world-abu-dhabi/') !== -1) return '../';
-      if (p.indexOf('/profile-viewer/social/') !== -1) return '../';
+      var marker = '/profile-viewer/';
+      var pvIdx = p.indexOf(marker);
+      if (pvIdx === -1) return '';
+      var after = p.slice(pvIdx + marker.length);
+      var segs = after.split('/').filter(Boolean);
+      if (segs.length <= 1) return '';
+      var ups = segs.length - 1;
+      var out = '';
+      for (var i = 0; i < ups; i++) out += '../';
+      return out;
     } catch (e) {}
     return '';
   }

@@ -249,13 +249,7 @@
           e.preventDefault();
           e.stopPropagation();
           var search = location.search || '';
-          try {
-            if (!search && localStorage.getItem('llmDemoPersonalization_v1')) {
-              search = '?llmDemo=1';
-            }
-          } catch (e) {
-            /* ignore */
-          }
+          if (!/(?:\?|&)llmDemo=1(?:&|$)/.test(search)) search = '';
           location.href = target + search;
         },
         true,

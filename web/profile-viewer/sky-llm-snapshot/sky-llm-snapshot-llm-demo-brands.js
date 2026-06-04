@@ -50,7 +50,12 @@
     return cached;
   }
 
+  function llmDemoMode() {
+    return /(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '');
+  }
+
   function isActive() {
+    if (!llmDemoMode()) return false;
     var c = loadConfig();
     return !!(c && c.brand && c.siteHost);
   }
@@ -341,13 +346,7 @@
   }
 
   function shouldAutoApply() {
-    if (!isActive()) return false;
-    if (/(?:\?|&)llmDemo=1(?:&|$)/.test(global.location.search || '')) return true;
-    try {
-      return !!localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
-      return false;
-    }
+    return isActive();
   }
 
   function applyAll() {
