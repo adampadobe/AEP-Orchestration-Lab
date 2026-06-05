@@ -6,7 +6,7 @@
 
   var STORAGE_KEY = 'llmDemoPersonalization_v1';
   var API_PATH = '/api/llm-demo/personalize';
-  var BUILD_ID = '20260706';
+  var BUILD_ID = '20260707';
   var SCRAPES_API = '/api/brand-scraper/scrapes';
 
   var SKY_DEFAULT = {

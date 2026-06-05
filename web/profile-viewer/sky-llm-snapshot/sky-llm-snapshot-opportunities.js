@@ -138,6 +138,7 @@
     walnutWatcher: false,
     contentObserver: false,
     contentDelegateWired: false,
+    contentRebuildTimer: null,
   };
 
   var TESTID_TO_VIEW = {
@@ -390,7 +391,7 @@
     card.classList.remove('sky-llm-op-card-hidden');
   }
 
-  function findContentInsertPoint() {
+  function findContentInsertPointLegacy() {
     var contentMarker = getSectionMarker('Onsite Content Optimizations');
     if (!contentMarker) return null;
     var cursor = contentMarker;
@@ -402,6 +403,22 @@
       cursor = parent;
     }
     return null;
+  }
+
+  function findContentInsertPoint() {
+    var content = getSectionMarker('Onsite Content Optimizations');
+    var offsite = getSectionMarker('Offsite Optimizations');
+    if (!content || !offsite) return findContentInsertPointLegacy();
+    var cursor = offsite;
+    for (var i = 0; i < 25 && cursor.parentElement; i++) {
+      var parent = cursor.parentElement;
+      var prev = cursor.previousElementSibling;
+      if (prev && content && prev.contains(content)) {
+        return { parent: parent, before: cursor };
+      }
+      cursor = parent;
+    }
+    return findContentInsertPointLegacy();
   }
 
   function createContentIntroEl() {
@@ -429,10 +446,20 @@
     hideDuplicateOnsiteContentIntro();
     var intro = document.getElementById('skyLlmOpContentIntro') || createContentIntroEl();
     var mount = document.getElementById('skyLlmOpContentCards');
+
     if (mount && mount.parentElement) {
-      mount.parentElement.insertBefore(intro, mount);
+      if (intro.parentElement !== mount.parentElement || intro.nextElementSibling !== mount) {
+        mount.parentElement.insertBefore(intro, mount);
+      }
       return intro;
     }
+
+    var heading = getSectionMarker('Onsite Content Optimizations');
+    if (heading && heading.parentElement) {
+      heading.parentElement.insertBefore(intro, heading.nextElementSibling);
+      return intro;
+    }
+
     var point = findContentInsertPoint();
     if (point) point.parent.insertBefore(intro, point.before);
     return intro;
@@ -497,16 +524,24 @@
 
   function contentCardTemplate() {
     var pool = Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).filter(function (card) {
-      if (card.closest('#skyLlmOpOffsiteCards') || card.closest('#skyLlmOpContentCards')) return false;
+      if (card.closest('#skyLlmOpOffsiteCards')) return false;
+      if (card.closest('#skyLlmOpContentCards')) return false;
       if (isOffsiteCard(card)) return false;
+      if (card.classList.contains('sky-llm-op-card-hidden')) return false;
       return true;
     });
     return (
       pool.find(function (card) {
         return /information gain|GEO content|Simplify Complex|LLM-Friendly/i.test(getCardTitle(card));
       }) ||
+      pool.find(function (card) {
+        return cardInSection(card, 'Onsite Content Optimizations');
+      }) ||
+      pool.find(function (card) {
+        return cardInSection(card, 'Onsite Technical Optimizations');
+      }) ||
       pool[0] ||
-      document.querySelector('[data-testid*="OppCard"]')
+      null
     );
   }
 
@@ -1018,6 +1053,19 @@
     });
   }
 
+  function captureContentTemplate() {
+    if (!state.contentTemplate) {
+      var live = contentCardTemplate();
+      if (live) state.contentTemplate = live.cloneNode(true);
+    }
+    if (!state.contentTemplate) {
+      var offsiteMount = document.getElementById('skyLlmOpOffsiteCards');
+      var offsiteCard = offsiteMount && offsiteMount.querySelector('[data-testid*="OppCard"]');
+      if (offsiteCard) state.contentTemplate = offsiteCard.cloneNode(true);
+    }
+    return state.contentTemplate;
+  }
+
   function hideNativeContentSectionCards(mount) {
     if (!mount) return;
     Array.from(document.querySelectorAll('[data-testid*="OppCard"]')).forEach(function (card) {
@@ -1034,19 +1082,24 @@
     var mount = ensureContentCardsMount();
     if (!mount) return {};
 
+    var templateSource = captureContentTemplate();
+    if (!templateSource) {
+      if (mount.querySelector('[data-sky-llm-op-view-id]')) return {};
+      return {};
+    }
+
     relocateOnsiteContentIntro();
 
-    var templateSeed = contentCardTemplate();
-    if (!templateSeed) return {};
-
     mount.innerHTML = '';
+    mount.style.display = '';
+    mount.hidden = false;
 
     var byId = {};
     CONTENT_ORDER.forEach(function (id) {
       var config = CONTENT_CARDS[id];
       if (!config) return;
 
-      var card = templateSeed.cloneNode(true);
+      var card = templateSource.cloneNode(true);
       resetContentCardWiring(card);
       mount.appendChild(card);
       card = neutralizeFrozenCard(card);
@@ -1059,12 +1112,26 @@
     reorderCards(mount, CONTENT_ORDER, byId);
     hideNativeContentSectionCards(mount);
 
-    if (!mount.contains(templateSeed)) {
-      templateSeed.classList.add('sky-llm-op-card-hidden');
-      templateSeed.style.display = 'none';
+    var liveTemplate = contentCardTemplate();
+    if (liveTemplate && !mount.contains(liveTemplate)) {
+      liveTemplate.classList.add('sky-llm-op-card-hidden');
+      liveTemplate.style.display = 'none';
     }
 
     return byId;
+  }
+
+  function scheduleEnsureContentCards() {
+    if (state.contentRebuildTimer) return;
+    state.contentRebuildTimer = window.setTimeout(function () {
+      state.contentRebuildTimer = null;
+      var mount = document.getElementById('skyLlmOpContentCards');
+      var ok =
+        mount &&
+        mount.querySelector('[data-sky-llm-op-view-id="simplify"]') &&
+        mount.querySelector('[data-sky-llm-op-view-id="llm-summaries"]');
+      if (!ok) ensureContentCards();
+    }, 200);
   }
 
   function demoUrl(raw) {
@@ -1699,7 +1766,6 @@
     state.contentHost = null;
     state.offsiteHost = null;
     state.offsiteMount = null;
-    state.contentMount = null;
     state.mainPane = null;
   }
 
@@ -1711,8 +1777,8 @@
     ensureContentDetailsDelegation();
     resetCaches();
     setupOffsiteCards();
-    ensureContentCards();
     setupOnsiteCards();
+    ensureContentCards();
     ensureDetailRoot();
     applyHashRoute();
   }
@@ -1749,12 +1815,7 @@
   if (window.MutationObserver && !state.contentObserver) {
     state.contentObserver = true;
     var contentObs = new MutationObserver(function () {
-      if (
-        !document.querySelector('#skyLlmOpContentCards [data-sky-llm-op-view-id="simplify"]') ||
-        !document.querySelector('#skyLlmOpContentCards [data-sky-llm-op-view-id="llm-summaries"]')
-      ) {
-        ensureContentCards();
-      }
+      scheduleEnsureContentCards();
     });
     contentObs.observe(document.documentElement, { childList: true, subtree: true });
   }
