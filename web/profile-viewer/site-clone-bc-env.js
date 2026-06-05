@@ -536,10 +536,13 @@ function refreshSiteCloneBcDatastreamHint() {
   if (!hint) return;
   if (!siteCloneBcAllDatastreamOptions.length) {
     hint.textContent = id
-      ? 'Alloy datastreamId (manual): ' + id + (sandbox ? ' · sandbox ' + sandbox : '')
+      ? 'Lab override: ' +
+        id +
+        (sandbox ? ' · sandbox ' + sandbox : '') +
+        '. Debugger shows Tags Web SDK extension datastream until you publish a new library there.'
       : sandbox
         ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.'
-        : 'Paste a datastream UUID.';
+        : 'Paste a datastream UUID (lab override for sendEvent / Target).';
     return;
   }
   hint.textContent =

@@ -83,6 +83,25 @@
     });
   }
 
+  const LAB_EDGE_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandbox';
+
+  function sanitiseLabEdgeDatastreamId(raw) {
+    const v = String(raw || '').trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return '';
+    return v.toLowerCase();
+  }
+
+  /** Datastream UUID from env bar (per sandbox). Does not change Alloy instance config from Launch. */
+  function readLabEdgeDatastreamOverrideFromStorage() {
+    const id = sanitiseLabEdgeDatastreamId(readStorageMap(LAB_EDGE_DATASTREAM_BY_SANDBOX_KEY)[getSandboxKey()]);
+    return id;
+  }
+
+  function labEdgeConfigOverrides() {
+    const id = readLabEdgeDatastreamOverrideFromStorage();
+    return id ? { edgeConfigOverrides: { datastreamId: id } } : {};
+  }
+
   function tagsApiUrl(resource, companyId, propertyId) {
     const p = new URLSearchParams();
     const sandbox = getSandboxName();
@@ -909,20 +928,26 @@
       const pageUrlNoQuery =
         global.location && global.location.href ? String(global.location.href).split('?')[0] : '';
       try {
-        await alloyFn('sendEvent', {
-          xdm: Object.assign(
+        await alloyFn(
+          'sendEvent',
+          Object.assign(
             {
-              eventType: 'web.webPageDetails.pageViews',
-              web: {
-                webPageDetails: {
-                  name: pageName,
-                  URL: pageUrlNoQuery,
+              xdm: Object.assign(
+                {
+                  eventType: 'web.webPageDetails.pageViews',
+                  web: {
+                    webPageDetails: {
+                      name: pageName,
+                      URL: pageUrlNoQuery,
+                    },
+                  },
                 },
-              },
+                tenant
+              ),
             },
-            tenant
-          ),
-        });
+            labEdgeConfigOverrides()
+          )
+        );
         dtLog('syncEcidFromAlloy: sendEvent (page view + _demoemea.core.ecid) completed', { phase });
       } catch (e) {
         dtLog('syncEcidFromAlloy: sendEvent failed (non-fatal)', {
@@ -1388,5 +1413,10 @@
 
   global.DemoTagsInjection = {
     init: createInstance,
+  };
+
+  global.DemoLabEdgeConfig = {
+    readDatastreamId: readLabEdgeDatastreamOverrideFromStorage,
+    edgeConfigOverrides: labEdgeConfigOverrides,
   };
 })(window);

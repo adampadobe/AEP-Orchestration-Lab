@@ -105,6 +105,21 @@
     }
   }
 
+  /** Env bar datastream (per sandbox) — applied per sendEvent; Launch/Tags still sets debugger default. */
+  function labEdgeConfigOverrides() {
+    if (global.DemoLabEdgeConfig && typeof global.DemoLabEdgeConfig.edgeConfigOverrides === 'function') {
+      return global.DemoLabEdgeConfig.edgeConfigOverrides() || {};
+    }
+    try {
+      var map = readStorageMap('siteCloneBcDatastreamIdBySandbox');
+      var raw = String(map[getSandboxKey()] || '').trim();
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+        return { edgeConfigOverrides: { datastreamId: raw.toLowerCase() } };
+      }
+    } catch (e) {}
+    return {};
+  }
+
   function markTargets(scopeNames) {
     scopeNames.forEach(function (scope) {
       document.querySelectorAll('[data-aviva-target-scope="' + scope + '"]').forEach(function (el) {
@@ -128,13 +143,19 @@
         return;
       }
 
-      return alloyFn('sendEvent', {
-        renderDecisions: true,
-        decisionScopes: scopes.map(function (name) {
-          return { name: name };
-        }),
-        xdm: buildXdm(),
-      }).then(function (result) {
+      return alloyFn(
+        'sendEvent',
+        Object.assign(
+          {
+            renderDecisions: true,
+            decisionScopes: scopes.map(function (name) {
+              return { name: name };
+            }),
+            xdm: buildXdm(),
+          },
+          labEdgeConfigOverrides()
+        )
+      ).then(function (result) {
         var propositions = (result && (result.propositions || result.decisions)) || [];
         if (!propositions.length) {
           if (global.console && global.console.debug) {

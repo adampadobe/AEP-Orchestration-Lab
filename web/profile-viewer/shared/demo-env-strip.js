@@ -92,10 +92,10 @@
       '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint" aria-live="polite"></p>' +
       '</div>' +
       '<div class="form-row site-clone-bc-datastream-row">' +
-      '<label for="siteCloneBcDatastreamId">Alloy datastream</label>' +
-      '<input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input" aria-label="Alloy datastream for Brand Concierge" placeholder="Select or search datastream" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false">' +
+      '<label for="siteCloneBcDatastreamId">Lab datastream override</label>' +
+      '<input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false">' +
       '<datalist id="siteCloneBcDatastreamList"></datalist>' +
-      '<p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>' +
+      '<p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides). Debugger still shows the datastream from your Tags Web SDK extension until you change and publish that extension.</p>' +
       '</div>' +
       '</div>' +
       '</div>' +
