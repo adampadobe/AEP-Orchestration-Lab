@@ -8,7 +8,7 @@ const root = path.join(__dirname, '..');
 const pages = [
   { file: 'index.html', prefix: '' },
   { file: 'step1-registration.html', prefix: '' },
-  { file: 'step1-vehicle-details.html', prefix: '' },
+  { file: 'quote/Direct/Motor/vehicle-details.html', prefix: '../../../' },
   { file: 'quote/Direct/Motor/driver-details.html', prefix: '../../../' },
   { file: 'quote/Direct/Motor/additional-information.html', prefix: '../../../' },
   { file: 'quote/Direct/Motor/driver-quote.html', prefix: '../../../' },
@@ -21,6 +21,7 @@ const headScripts = [
 ];
 
 const cookieScript = 'aviva-demo-head.js';
+const journeyChromeScript = 'aviva-target-journey-chrome.js';
 
 for (const { file, prefix } of pages) {
   const filePath = path.join(root, file);
@@ -52,6 +53,12 @@ for (const { file, prefix } of pages) {
   const journeyTag = `<script src="${prefix}aviva-journey-patch.js" defer></script>`;
   if (!html.includes('aviva-journey-patch.js')) {
     html = html.replace('</body>', `  ${journeyTag}\n</body>`);
+    changed = true;
+  }
+
+  const chromeTag = `<script src="${prefix}${journeyChromeScript}" defer></script>`;
+  if (!html.includes(journeyChromeScript)) {
+    html = html.replace('</body>', `  ${chromeTag}\n</body>`);
     changed = true;
   }
 

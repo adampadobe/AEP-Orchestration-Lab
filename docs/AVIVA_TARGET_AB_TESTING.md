@@ -41,7 +41,7 @@ flowchart TB
 **Live URL (lab shell — entry point with Tags strip):**  
 `https://aep-orchestration-lab.web.app/profile-viewer/aviva-target-demo.html`
 
-The lab shell URL stays on `aviva-target-demo.html` while the landing loads in the iframe. When you click **Get a new quote** (or continue through the journey), the **browser navigates to the direct hosted path** below — the address bar does **not** use `?journey=` on the lab shell.
+The lab shell URL stays on `aviva-target-demo.html` while the landing loads in the iframe. When you click **Get a new quote** (or continue through the journey), the **address bar updates to the direct hosted path** below (`history.pushState`) while the **lab strip stays visible** on the parent page. Opening or refreshing a journey URL directly mounts the same strip via `aviva-target-journey-chrome.js` (hidden during Target VEC authoring).
 
 **Journey URLs (use these in Target VEC and for bookmarks):**
 

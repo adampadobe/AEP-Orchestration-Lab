@@ -8,6 +8,22 @@
   background: var(--dash-bg);
 }
 
+/* Direct journey page loads: hover-reveal strip over saved Aviva HTML */
+body.aviva-target-journey-chrome-page .aviva-target-demo-top-anchor {
+  z-index: 6500;
+}
+
+body.aviva-target-journey-chrome-page .dashboard-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  pointer-events: none;
+}
+
+body.aviva-target-journey-chrome-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
 .aviva-target-demo-page .dashboard-main {
   padding: 0;
   max-width: none;

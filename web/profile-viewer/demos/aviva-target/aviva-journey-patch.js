@@ -15,14 +15,26 @@
     return DEMO_ROOT + String(relativePath || '').replace(/^\//, '');
   }
 
+  function inLabShellIframe() {
+    try {
+      return (
+        window.top !== window &&
+        /aviva-target-demo\.html$/i.test(String(window.top.location.pathname || ''))
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function go(relativePath) {
     var url = demoUrl(relativePath);
-    try {
-      if (window.top && window.top !== window) {
-        window.top.location.href = url;
-        return;
-      }
-    } catch (e) {}
+    if (inLabShellIframe()) {
+      try {
+        window.top.history.pushState({ avivaDemoJourney: true }, '', url);
+      } catch (e) {}
+      window.location.href = relativePath;
+      return;
+    }
     window.location.href = url;
   }
 

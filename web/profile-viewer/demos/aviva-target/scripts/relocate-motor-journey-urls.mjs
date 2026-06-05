@@ -20,16 +20,15 @@ function patchPathsForMotor(html, assetDir) {
     const re = new RegExp(`src="${name.replace('.', '\\.')}"`, 'g');
     html = html.replace(re, `src="${depthPrefix}${name}"`);
   }
-  if (!html.includes('aviva-journey-patch.js')) {
-    html = html.replace(
-      '</body>',
-      `  <script src="${depthPrefix}aviva-journey-patch.js" defer></script>\n</body>`,
-    );
-  } else {
-    html = html.replace(
-      /src="(?:\.\.\/)*aviva-journey-patch\.js"/g,
-      `src="${depthPrefix}aviva-journey-patch.js"`,
-    );
+  const bodyScripts = ['aviva-journey-patch.js', 'aviva-target-journey-chrome.js'];
+  for (const name of bodyScripts) {
+    const tag = `  <script src="${depthPrefix}${name}" defer></script>`;
+    if (!html.includes(name)) {
+      html = html.replace('</body>', `${tag}\n</body>`);
+    } else {
+      const re = new RegExp(`src="(?:\\.\\./)*${name.replace('.', '\\.')}"`, 'g');
+      html = html.replace(re, `src="${depthPrefix}${name}"`);
+    }
   }
   return html;
 }
