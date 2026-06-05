@@ -6,9 +6,8 @@
 const customerEmail = document.getElementById('customerEmail');
 const etihadNs = document.getElementById('etihadNs');
 
-/** Pre-fill identifier from shared recent-identifiers map (same keys as consent / home). */
-function hydrateEtihadIdentifierFromRecents() {
-  if (!customerEmail || (customerEmail.value || '').trim()) return;
+function rememberEtihadSessionIdentifier(value) {
+  if (typeof setSessionIdentifier !== 'function') return;
   let ns = 'email';
   try {
     if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
@@ -19,25 +18,22 @@ function hydrateEtihadIdentifierFromRecents() {
   } catch {
     /* noop */
   }
-  try {
-    if (typeof getRecentForNamespace === 'function') {
-      const rec = getRecentForNamespace(ns);
-      if (rec.length) customerEmail.value = rec[0];
-    }
-  } catch {
-    /* noop */
-  }
+  setSessionIdentifier(value, ns);
 }
 
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'etihadNs');
 if (typeof attachEmailDatalist === 'function') {
   attachEmailDatalist('customerEmail', 'recentEmails', 'etihadNs');
 }
-hydrateEtihadIdentifierFromRecents();
+if (typeof hydrateIdentifierFromSession === 'function') {
+  hydrateIdentifierFromSession('customerEmail', 'etihadNs');
+}
 if (etihadNs) {
   etihadNs.addEventListener('change', function () {
     window.requestAnimationFrame(function () {
-      hydrateEtihadIdentifierFromRecents();
+      if (typeof hydrateIdentifierFromSession === 'function') {
+        hydrateIdentifierFromSession('customerEmail', 'etihadNs');
+      }
     });
   });
 }
@@ -222,6 +218,7 @@ window.addEventListener('message', async function (ev) {
     if (!email) return;
 
     if (customerEmail) customerEmail.value = email;
+    rememberEtihadSessionIdentifier(email);
 
     const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
     const profile =
@@ -320,6 +317,7 @@ queryProfileBtn &&
       return;
     }
     setEtihadMessage('Looking up profile...', '');
+    rememberEtihadSessionIdentifier(email);
     const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
     if (!ok || !etihadTagsInjection || typeof etihadTagsInjection.stitchAfterProfileLookup !== 'function') return;
     const profile =

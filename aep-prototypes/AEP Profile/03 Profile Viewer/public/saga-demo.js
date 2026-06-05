@@ -6,9 +6,8 @@
 const customerEmail = document.getElementById('customerEmail');
 const sagaNs = document.getElementById('sagaNs');
 
-/** Pre-fill identifier from shared recent-identifiers map (same keys as consent / home). */
-function hydrateSagaIdentifierFromRecents() {
-  if (!customerEmail || (customerEmail.value || '').trim()) return;
+function rememberSagaSessionIdentifier(value) {
+  if (typeof setSessionIdentifier !== 'function') return;
   let ns = 'email';
   try {
     if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
@@ -19,23 +18,18 @@ function hydrateSagaIdentifierFromRecents() {
   } catch {
     /* noop */
   }
-  try {
-    if (typeof getRecentForNamespace === 'function') {
-      const rec = getRecentForNamespace(ns);
-      if (rec.length) customerEmail.value = rec[0];
-    }
-  } catch {
-    /* noop */
-  }
+  setSessionIdentifier(value, ns);
 }
 
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail', 'recentEmails', 'sagaNs');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'sagaNs');
-hydrateSagaIdentifierFromRecents();
+if (typeof hydrateIdentifierFromSession === 'function') hydrateIdentifierFromSession('customerEmail', 'sagaNs');
 if (sagaNs) {
   sagaNs.addEventListener('change', function () {
     window.requestAnimationFrame(function () {
-      hydrateSagaIdentifierFromRecents();
+      if (typeof hydrateIdentifierFromSession === 'function') {
+        hydrateIdentifierFromSession('customerEmail', 'sagaNs');
+      }
     });
   });
 }
@@ -241,6 +235,7 @@ window.addEventListener('message', async function (ev) {
     if (!email) return;
 
     if (customerEmail) customerEmail.value = email;
+    rememberSagaSessionIdentifier(email);
 
     const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
     const profile =
@@ -284,6 +279,7 @@ window.addEventListener('message', async function (ev) {
     const em = String(ev.data.email || '').trim();
     if (!em) return;
     if (customerEmail) customerEmail.value = em;
+    rememberSagaSessionIdentifier(em);
     void (async () => {
       try {
         const ok = await DemoProfileDrawer.loadProfileDataForDrawer(em, { updateMessage: true });
@@ -352,6 +348,7 @@ queryProfileBtn &&
       return;
     }
     setSagaMessage('Looking up profile...', '');
+    rememberSagaSessionIdentifier(email);
     const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
     if (!ok || !sagaTagsInjection || typeof sagaTagsInjection.stitchAfterProfileLookup !== 'function') return;
     const profile =

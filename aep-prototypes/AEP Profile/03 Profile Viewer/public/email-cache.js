@@ -105,6 +105,66 @@ function addEmail(email) {
   addRecentIdentifier(email, 'email');
 }
 
+/** Per-tab session identifier for lab demos (not synced across sessions or sandboxes). */
+const SESSION_IDENTIFIER_KEY = 'aep-demo-session-identifier-v1';
+
+/**
+ * Remember identifier for the current browser tab session (profile lookup or demo login).
+ * @param {string} value
+ * @param {string} [namespace='email']
+ */
+function setSessionIdentifier(value, namespace) {
+  const ns = (namespace || 'email').trim().toLowerCase();
+  const v = (value || '').trim();
+  if (!v) return;
+  try {
+    sessionStorage.setItem(SESSION_IDENTIFIER_KEY, JSON.stringify({ ns, value: v }));
+  } catch {
+    /* noop */
+  }
+}
+
+/**
+ * @param {string} [namespace='email']
+ * @returns {string}
+ */
+function getSessionIdentifier(namespace) {
+  const ns = (namespace || 'email').trim().toLowerCase();
+  try {
+    const raw = sessionStorage.getItem(SESSION_IDENTIFIER_KEY);
+    if (!raw) return '';
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== 'object') return '';
+    if (String(o.ns || 'email').trim().toLowerCase() !== ns) return '';
+    return typeof o.value === 'string' ? o.value.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Pre-fill identifier from this tab session only — avoids cross-session localStorage recents on demo load.
+ * @param {string} inputId
+ * @param {string} [namespaceSelectId]
+ */
+function hydrateIdentifierFromSession(inputId, namespaceSelectId) {
+  const input = document.getElementById(inputId);
+  if (!input || (input.value || '').trim()) return;
+  let ns = 'email';
+  try {
+    if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+      ns = AepIdentityPicker.getNamespace(inputId) || 'email';
+    } else if (namespaceSelectId) {
+      const sel = document.getElementById(namespaceSelectId);
+      if (sel && sel.value) ns = String(sel.value).trim().toLowerCase();
+    }
+  } catch {
+    /* noop */
+  }
+  const v = getSessionIdentifier(ns);
+  if (v) input.value = v;
+}
+
 /**
  * Attach a datalist to the identifier input. Options follow the current #identityNs when present.
  * Browsers filter datalist options by the current value; we briefly clear the field (restore on blur)
