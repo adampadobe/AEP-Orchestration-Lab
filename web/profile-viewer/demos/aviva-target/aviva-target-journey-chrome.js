@@ -200,6 +200,18 @@
   }
 
   function bootLabStack() {
+    window.SiteCloneDemoEnv = Object.assign(
+      {
+        storagePrefix: 'avivaTarget',
+        webPushBySandboxKey: 'avivaTargetWebPushOnInjectBySandbox',
+        webPushLegacyKey: 'avivaTargetWebPushOnInjectToggle',
+        webPushToggleId: 'avivaTargetWebPushOnInjectToggle',
+        bcOnInjectToggleId: 'avivaTargetBcOnInjectToggle',
+        bcStyleSelectId: 'avivaTargetBcStyleSelect',
+      },
+      window.SiteCloneDemoEnv || {},
+    );
+
     var scripts = [
       PV + 'firebase-database-config.js',
       'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
@@ -212,9 +224,10 @@
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
       PV + 'shared/demo-env-strip.js?v=20260601-env-strip-mount-sync',
       PV + 'shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap',
-      PV + 'demo-tags-injection.js?v=20260601-tags-property-boot',
+      PV + 'demo-tags-injection.js?v=20260605-tags-sandbox-restore',
       PV + 'aep-demo-env-bar.js?v=20260601-launch-unset-expand',
       PV + 'aep-demo-generator-targets.js?v=20260508',
+      PV + 'site-clone-bc-env.js?v=20260605-tags-sandbox-restore',
       PV + 'demos/aviva-target/aviva-target-lab-core.js?v=' + BUILD,
     ];
 

@@ -42,6 +42,47 @@
     return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
   }
 
+  /** Technical sandbox name → Tags property name prefix (datalist filter). */
+  const TAGS_PROPERTY_PREFIX_BY_SANDBOX = {
+    kirkham: 'kirkham',
+  };
+
+  function getSandboxSelectLabelLower() {
+    try {
+      const el = document.getElementById('sandboxSelect');
+      if (!el || el.selectedIndex < 0) return '';
+      return String(el.options[el.selectedIndex].textContent || '').toLowerCase();
+    } catch {
+      return '';
+    }
+  }
+
+  function resolveTagsPropertyNamePrefix(cfg) {
+    if (cfg && typeof cfg.tagsPropertyNamePrefix === 'string') {
+      const forced = String(cfg.tagsPropertyNamePrefix || '').trim().toLowerCase();
+      if (forced) return forced;
+    }
+    if (cfg && cfg.tagsPropertyPrefixBySandbox && typeof cfg.tagsPropertyPrefixBySandbox === 'object') {
+      const sb = getSandboxName().toLowerCase();
+      const mapped = cfg.tagsPropertyPrefixBySandbox[sb];
+      if (mapped) return String(mapped).trim().toLowerCase();
+    }
+    const sb = getSandboxName().toLowerCase();
+    if (TAGS_PROPERTY_PREFIX_BY_SANDBOX[sb]) return TAGS_PROPERTY_PREFIX_BY_SANDBOX[sb];
+    const label = getSandboxSelectLabelLower();
+    if (label.indexOf('alan kirkham') !== -1) return 'kirkham';
+    return '';
+  }
+
+  function filterPropertiesForSandbox(items, cfg) {
+    const prefix = resolveTagsPropertyNamePrefix(cfg);
+    if (!prefix) return Array.isArray(items) ? items : [];
+    return (Array.isArray(items) ? items : []).filter(function (p) {
+      const name = String((p && p.attributes && p.attributes.name) || '').trim().toLowerCase();
+      return name.indexOf(prefix) === 0;
+    });
+  }
+
   function tagsApiUrl(resource, companyId, propertyId) {
     const p = new URLSearchParams();
     const sandbox = getSandboxName();
@@ -385,6 +426,21 @@
       }
     }
 
+    function applyPersistedTagsFieldsEarly() {
+      refreshTagsDom();
+      const rec = readPersistedTagsPropertySelection();
+      if (rec && rec.propertyId) selectedPropertyId = String(rec.propertyId);
+      if (tagsPropertyInput && rec && rec.propertyLabel) {
+        tagsPropertyInput.value = rec.propertyLabel;
+      }
+      const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+      if (persistedScript) renderSelectedScript(persistedScript);
+      const encodedEnv = readPersistedTagsEnvironmentEncodedValue();
+      if (encodedEnv && tagsEnvironmentSelect && selectTagsEnvironmentByEncodedValue(encodedEnv)) {
+        applyTagsEnvironmentOptionValue(encodedEnv);
+      }
+    }
+
     async function restorePersistedTagsPropertySelection() {
       const rec = readPersistedTagsPropertySelection();
       if (!rec || !rec.propertyId) return;
@@ -650,6 +706,7 @@
 
     async function loadTagsCompanies() {
       if (!tagsCompanySelect) return;
+      applyPersistedTagsFieldsEarly();
       try {
         setMessage('Loading Tags companies...', '');
         const items = await fetchTags('companies');
@@ -664,9 +721,16 @@
           'Select company'
         );
         allPropertyOptions = [];
-        selectedPropertyId = '';
-        if (tagsPropertyInput) tagsPropertyInput.value = '';
-        renderPropertySuggestions('');
+        const earlyRec = readPersistedTagsPropertySelection();
+        if (earlyRec && earlyRec.propertyId) {
+          selectedPropertyId = String(earlyRec.propertyId);
+        } else {
+          selectedPropertyId = '';
+        }
+        if (tagsPropertyInput && !(earlyRec && earlyRec.propertyLabel)) {
+          tagsPropertyInput.value = '';
+        }
+        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
 
@@ -731,14 +795,25 @@
       try {
         setMessage('Loading properties...', '');
         const items = await fetchTags('properties', companyId, '');
-        allPropertyOptions = items;
-        selectedPropertyId = '';
-        tagsPropertyInput.value = '';
-        renderPropertySuggestions('');
+        allPropertyOptions = filterPropertiesForSandbox(items, cfg);
+        const prefix = resolveTagsPropertyNamePrefix(cfg);
+        if (prefix && !allPropertyOptions.length) {
+          setMessage(
+            'No Tags properties starting with “' +
+              prefix +
+              '” for this sandbox. Check Data Collection or sandbox selection.',
+            'error',
+          );
+        }
+        const earlyRec = readPersistedTagsPropertySelection();
+        if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
+        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         await restorePersistedTagsPropertySelection();
-        setMessage('Properties loaded.', 'success');
+        if (!(prefix && !allPropertyOptions.length)) {
+          setMessage('Properties loaded.', 'success');
+        }
       } catch (err) {
         setMessage(err.message || 'Failed to load properties.', 'error');
       }
@@ -1218,6 +1293,7 @@
 
     global.addEventListener('aep-global-sandbox-change', function () {
       refreshTagsDom();
+      applyPersistedTagsFieldsEarly();
       applySandboxConfigState({ announceSandboxChange: true });
       void loadTagsCompanies();
     });
@@ -1235,6 +1311,7 @@
       }
       tagsBootStarted = true;
       bindTagsListenersOnce();
+      applyPersistedTagsFieldsEarly();
 
       dtLog('init: boot', {
         sandboxKey: getSandboxKey(),

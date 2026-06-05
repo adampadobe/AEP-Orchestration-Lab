@@ -404,8 +404,14 @@ function invalidateSiteCloneBcCore() {
 
 const SC_BC_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandbox';
 const SC_BC_DATASTREAM_LEGACY_SCALAR = 'siteCloneBcDatastreamId';
-const siteCloneBcDatastreamId = document.getElementById('siteCloneBcDatastreamId');
-const siteCloneBcDatastreamList = document.getElementById('siteCloneBcDatastreamList');
+
+function siteCloneBcDatastreamEl() {
+  return document.getElementById('siteCloneBcDatastreamId');
+}
+
+function siteCloneBcDatastreamListEl() {
+  return document.getElementById('siteCloneBcDatastreamList');
+}
 
 /** @type {Array<{ id: string, title: string, sandbox?: string }>} */
 let siteCloneBcAllDatastreamOptions = [];
@@ -434,7 +440,7 @@ function findSiteCloneBcDatastreamByLabel(label) {
 }
 
 function resolveSiteCloneBcDatastreamIdFromInput() {
-  const raw = siteCloneBcDatastreamId ? String(siteCloneBcDatastreamId.value || '').trim() : '';
+  const raw = siteCloneBcDatastreamEl() ? String(siteCloneBcDatastreamEl().value || '').trim() : '';
   if (!raw) return '';
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
     return raw.toLowerCase();
@@ -469,17 +475,17 @@ function readPersistedSiteCloneBcDatastreamId(sandboxKey) {
 function getSiteCloneBcDatastreamId() {
   const resolved = resolveSiteCloneBcDatastreamIdFromInput();
   if (resolved) return sanitiseSiteCloneBcDatastreamId(resolved);
-  const fromField = siteCloneBcDatastreamId
-    ? extractDatastreamUuidFromField(siteCloneBcDatastreamId.value)
+  const fromField = siteCloneBcDatastreamEl()
+    ? extractDatastreamUuidFromField(siteCloneBcDatastreamEl().value)
     : '';
   if (fromField) return sanitiseSiteCloneBcDatastreamId(fromField);
   return readPersistedSiteCloneBcDatastreamId();
 }
 
 function renderSiteCloneBcDatastreamSuggestions(query) {
-  if (!siteCloneBcDatastreamList) return;
+  if (!siteCloneBcDatastreamListEl()) return;
   const q = String(query || '').trim().toLowerCase();
-  siteCloneBcDatastreamList.innerHTML = '';
+  siteCloneBcDatastreamListEl().innerHTML = '';
   const matches = siteCloneBcAllDatastreamOptions
     .filter(function (d) {
       if (!q) return true;
@@ -491,7 +497,7 @@ function renderSiteCloneBcDatastreamSuggestions(query) {
   matches.forEach(function (d) {
     const opt = document.createElement('option');
     opt.value = datastreamLabelFromItem(d);
-    siteCloneBcDatastreamList.appendChild(opt);
+    siteCloneBcDatastreamListEl().appendChild(opt);
   });
 }
 
@@ -500,8 +506,8 @@ function applySiteCloneBcDatastreamInputToStoredId() {
   const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
     return String(d.id || '').toLowerCase() === id;
   });
-  if (siteCloneBcDatastreamId && hit) {
-    siteCloneBcDatastreamId.value = datastreamLabelFromItem(hit);
+  if (siteCloneBcDatastreamEl() && hit) {
+    siteCloneBcDatastreamEl().value = datastreamLabelFromItem(hit);
   }
   writeSandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, id);
   refreshSiteCloneBcDatastreamHint();
@@ -514,12 +520,12 @@ function saveSiteCloneBcDatastreamId() {
 }
 
 function applySiteCloneBcDatastreamFieldForSandbox(sandboxKey) {
-  if (!siteCloneBcDatastreamId) return;
+  if (!siteCloneBcDatastreamEl()) return;
   const storedId = readPersistedSiteCloneBcDatastreamId(sandboxKey);
   const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
     return String(d.id || '').toLowerCase() === storedId;
   });
-  siteCloneBcDatastreamId.value = hit ? datastreamLabelFromItem(hit) : storedId;
+  siteCloneBcDatastreamEl().value = hit ? datastreamLabelFromItem(hit) : storedId;
   refreshSiteCloneBcDatastreamHint();
 }
 
@@ -561,7 +567,7 @@ async function loadSiteCloneBcDatastreams() {
     if (loadGen !== datastreamLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
 
     siteCloneBcAllDatastreamOptions = Array.isArray(data.datastreams) ? data.datastreams : [];
-    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId ? siteCloneBcDatastreamId.value : '');
+    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamEl() ? siteCloneBcDatastreamEl().value : '');
 
     applySiteCloneBcDatastreamFieldForSandbox(sandboxKeyAtStart);
 
@@ -708,8 +714,12 @@ function syncSiteCloneBcFromPrefs() {
   refreshSiteCloneBcStyleUrlHints();
 })();
 
-(function initSiteCloneBcDatastreamPicker() {
-  if (!siteCloneBcDatastreamId) return;
+let siteCloneBcDatastreamPickerBooted = false;
+
+function bootSiteCloneBcDatastreamPicker() {
+  const dsInput = siteCloneBcDatastreamEl();
+  if (!dsInput || siteCloneBcDatastreamPickerBooted) return !!dsInput;
+  siteCloneBcDatastreamPickerBooted = true;
 
   function onDatastreamFieldChange() {
     const prev = lastBcDatastreamIdForLiveEdge || getSiteCloneBcDatastreamId();
@@ -724,12 +734,13 @@ function syncSiteCloneBcFromPrefs() {
 
   let lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
 
-  siteCloneBcDatastreamId.addEventListener('input', function () {
-    renderSiteCloneBcDatastreamSuggestions(siteCloneBcDatastreamId.value);
+  dsInput.addEventListener('input', function () {
+    renderSiteCloneBcDatastreamSuggestions(dsInput.value);
   });
-  siteCloneBcDatastreamId.addEventListener('change', onDatastreamFieldChange);
-  siteCloneBcDatastreamId.addEventListener('blur', onDatastreamFieldChange);
-})();
+  dsInput.addEventListener('change', onDatastreamFieldChange);
+  dsInput.addEventListener('blur', onDatastreamFieldChange);
+  return true;
+}
 
   function flushEnvForSandboxKey(sandboxKey) {
     const sk = String(sandboxKey || '').trim();
@@ -744,7 +755,7 @@ function syncSiteCloneBcFromPrefs() {
     const dsFromInput = resolveSiteCloneBcDatastreamIdFromInput();
     const dsUuid =
       dsFromInput ||
-      (siteCloneBcDatastreamId ? extractDatastreamUuidFromField(siteCloneBcDatastreamId.value) : '');
+      (siteCloneBcDatastreamEl() ? extractDatastreamUuidFromField(siteCloneBcDatastreamEl().value) : '');
     if (dsUuid) {
       writeSandboxStringForKey(SC_BC_DATASTREAM_BY_SANDBOX_KEY, sk, sanitiseSiteCloneBcDatastreamId(dsUuid));
     }
@@ -763,11 +774,19 @@ function syncSiteCloneBcFromPrefs() {
   }
 
   function applyEnvForCurrentSandbox() {
+    bootSiteCloneBcDatastreamPicker();
     if (typeof env().applyWebPushToggle === 'function') env().applyWebPushToggle();
     else applyWebPushOnInjectToggle();
     applyBcOnInjectPrefs();
     if (siteCloneBcStyleConfigUrl) {
       applySiteCloneBcStyleConfigFieldForSandbox();
+    }
+    const dsEarly = siteCloneBcDatastreamEl();
+    if (dsEarly) {
+      const storedDs = readPersistedSiteCloneBcDatastreamId();
+      if (storedDs && !String(dsEarly.value || '').trim()) {
+        dsEarly.value = storedDs;
+      }
     }
     applySiteCloneBcDatastreamFieldForSandbox();
     applySiteCloneBcDisplayPrefsToUi();
@@ -791,6 +810,14 @@ function syncSiteCloneBcFromPrefs() {
 
   envSandboxKey = getSandboxKey();
   applyEnvForCurrentSandbox();
+
+  if (!siteCloneBcDatastreamEl()) {
+    global.addEventListener('aep-demo-env-strip-mounted', function onDemoEnvStripMounted() {
+      if (!bootSiteCloneBcDatastreamPicker()) return;
+      applySiteCloneBcDatastreamFieldForSandbox();
+      void loadSiteCloneBcDatastreams();
+    });
+  }
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,

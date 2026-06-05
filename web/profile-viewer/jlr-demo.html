@@ -1,10 +1,10 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JLR (demo) â€“ AEP Profile Viewer</title>
+  <title>JLR (demo) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,7 +42,7 @@
                 <div class="form-row">
                   <label for="sandboxSelect">Sandbox</label>
                   <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxesâ€¦</option>
+                    <option value="">Loading sandboxes…</option>
                   </select>
                 </div>
                 <div
@@ -85,7 +85,7 @@
             </div>
             <div class="mod-demo-profile-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">â€”</strong></span>
+              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
               <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
             </div>
           </div>
@@ -106,7 +106,7 @@
   <iframe
     id="jlrDemoSiteFrame"
     class="mod-demo-site-frame"
-    title="JLR â€” corporate homepage snapshot (embedded)"
+    title="JLR — corporate homepage snapshot (embedded)"
     src="jlr-demo-assets/jlr-home-snapshot.html"
     referrerpolicy="no-referrer-when-downgrade"
     sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
@@ -171,7 +171,7 @@
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
   <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
   <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
-  <script src="demo-tags-injection.js?v=20260601-tags-property-boot"></script>
+  <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
   <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
@@ -186,13 +186,13 @@
       bcStyleSelectId: 'jlrBcStyleSelect',
     };
   </script>
-  <script src="site-clone-bc-env.js?v=20260529-bc-style-picker"></script>
+  <script src="site-clone-bc-env.js?v=20260605-tags-sandbox-restore"></script>
   <script src="jlr-ask-engine.js?v=20260529-jlr-ask-search"></script>
   <script src="jlr-ask.js?v=20260529-jlr-ask-drop"></script>
   <script src="jlr-demo.js?v=20260529-jlr-demo"></script>
   <script src="site-clone-bc.js?v=20260529-jlr-demo"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">Ã—</button>
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
