@@ -14,7 +14,7 @@ const STEPS = {
   },
   step4: {
     label: 'Step4',
-    destHtml: 'quote/Direct/Motor/quote-details.html',
+    destHtml: 'quote/Direct/Motor/driver-quote.html',
     assetDir: 'step4',
     depthPrefix: '../../../',
   },

@@ -19,17 +19,17 @@
     'index.html': ['aviva-landing-hero', 'aviva-landing-quote-cta'],
     'step1-registration.html': ['aviva-step1-registration'],
     'step1-vehicle-details.html': ['aviva-step1-vehicle'],
-    'step2-driver.html': ['aviva-step2-driver'],
-    'step3-additional.html': ['aviva-step3-assumptions', 'aviva-step3-continue-cta'],
-    'step4-quote.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
-    'quote-details.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
+    'driver-details.html': ['aviva-step2-driver'],
+    'additional-information.html': ['aviva-step3-assumptions', 'aviva-step3-continue-cta'],
+    'driver-quote.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
   };
 
   function currentPage() {
-    var path = global.location.pathname || '';
-    if (path.indexOf('/quote/Direct/Motor/quote-details') !== -1 || path.indexOf('quote-details.html') !== -1) {
-      return 'quote-details.html';
-    }
+    var path = (global.location.pathname || '').toLowerCase();
+    if (path.indexOf('/quote/direct/motor/driver-details') !== -1) return 'driver-details.html';
+    if (path.indexOf('/quote/direct/motor/additional-information') !== -1) return 'additional-information.html';
+    if (path.indexOf('/quote/direct/motor/driver-quote') !== -1) return 'driver-quote.html';
+    if (path.indexOf('/quote/direct/motor/quote-details') !== -1) return 'driver-quote.html';
     return (path.split('/').pop() || 'index.html').replace(/^\.\//, '');
   }
 

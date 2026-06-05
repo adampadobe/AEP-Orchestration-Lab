@@ -41,10 +41,17 @@ flowchart TB
 **Live URL (after deploy):**  
 `https://aep-orchestration-lab.web.app/profile-viewer/aviva-target-demo.html`
 
-**Step 4 quote page (Target URL match — mirrors production `/quote/Direct/Motor/quote-details`):**  
-`https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/quote-details.html`
+**Motor quote flow URLs (match Aviva path segments — use these in Target, not the lab shell):**
 
-Direct journey pages (no lab strip) still work for styling QA:  
+| Step | URL path segment | Full hosted URL |
+|------|------------------|-----------------|
+| Step 2 driver | `…/quote/Direct/Motor/driver-details.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-details.html` |
+| Step 3 additional | `…/quote/Direct/Motor/additional-information.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/additional-information.html` |
+| Step 4 quote | `…/quote/Direct/Motor/driver-quote.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-quote.html` |
+
+**Target VEC authoring:** append `?adobe_authoring_enabled=true` to the **direct** motor URL above. Do **not** use `aviva-target-demo.html` as the activity URL — VEC cannot edit content inside the lab iframe.
+
+Direct journey landing (no lab strip):  
 `/profile-viewer/demos/aviva-target/index.html`
 
 ---
@@ -105,9 +112,9 @@ The repo ships default scope names per page in `aviva-target-personalization.js`
 
 When creating the activity in Target, use **Form-based experience composer** or **Visual Experience Composer (VEC)**:
 
-- **VEC URL:** open the lab shell, inject Tags, then use the iframe URL e.g.  
-  `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/step3-additional.html`  
-  Append `?adobe_authoring_enabled=true` if required for authoring mode.
+- **VEC URL:** use the direct motor path, e.g.  
+  `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-quote.html?adobe_authoring_enabled=true`  
+  `aviva-target-vec.js` disables lab Launch re-inject and cookie DOM cleanup during authoring.
 - Target selectors: prefer stable hooks — add `data-aviva-target-scope="aviva-step3-continue-cta"` on elements you want to personalize (optional; scopes can also use global page locations).
 
 **Override scopes without code changes:**
@@ -158,7 +165,8 @@ Stitch known profiles: use **Profile lookup** in the lab strip with email, then 
 |------|---------|
 | `web/profile-viewer/aviva-target-demo.html` | Lab shell + iframe |
 | `web/profile-viewer/aviva-target-demo.js` | `DemoTagsInjection` (`storagePrefix: avivaTarget`) |
-| `web/profile-viewer/demos/aviva-target/aviva-target-sdk-resume.js` | Persisted Launch re-inject |
+| `web/profile-viewer/demos/aviva-target/aviva-target-vec.js` | VEC authoring detection (`adobe_authoring_enabled`, etc.) |
+| `web/profile-viewer/demos/aviva-target/aviva-target-sdk-resume.js` | Persisted Launch re-inject (skipped during VEC) |
 | `web/profile-viewer/demos/aviva-target/aviva-target-personalization.js` | Target `sendEvent` / `applyPropositions` |
 | `web/profile-viewer/demos/aviva-target/aviva-journey-patch.js` | Local click-through navigation |
 | `web/profile-viewer/demo-tags-injection.js` | Shared Tags inject + `_demoemea` ECID sync |

@@ -7,14 +7,22 @@
 
   var REG_KEY = 'avivaDemoRegistration';
   var DEFAULT_REG = 'MT16CSV';
+  var MOTOR_BASE = 'quote/Direct/Motor/';
+
+  function motorSlug() {
+    var path = (location.pathname || '').toLowerCase();
+    if (path.indexOf('/quote/direct/motor/driver-details') !== -1) return 'driver-details';
+    if (path.indexOf('/quote/direct/motor/additional-information') !== -1) return 'additional-information';
+    if (path.indexOf('/quote/direct/motor/driver-quote') !== -1) return 'driver-quote';
+    if (path.indexOf('/quote/direct/motor/quote-details') !== -1) return 'driver-quote';
+    return '';
+  }
 
   function currentPage() {
-    var path = location.pathname || '';
-    if (path.indexOf('/quote/Direct/Motor/quote-details') !== -1 || path.indexOf('quote-details.html') !== -1) {
-      return 'quote-details.html';
-    }
-    var name = path.split('/').pop() || 'index.html';
-    return name.replace(/^\.\//, '');
+    var slug = motorSlug();
+    if (slug) return slug;
+    var name = (location.pathname || '').split('/').pop() || 'index.html';
+    return name.replace(/^\.\//, '').replace(/\.html$/i, '');
   }
 
   function go(href) {
@@ -167,22 +175,25 @@
     applyStoredRegistration();
 
     switch (currentPage()) {
+      case 'index':
       case 'index.html':
         wireLanding();
         break;
+      case 'step1-registration':
       case 'step1-registration.html':
         wireRegistration();
         break;
+      case 'step1-vehicle-details':
       case 'step1-vehicle-details.html':
-        wireNextButton('step2-driver.html');
+        wireNextButton(MOTOR_BASE + 'driver-details.html');
         break;
-      case 'step2-driver.html':
-        wireNextButton('step3-additional.html');
+      case 'driver-details':
+        wireNextButton('additional-information.html');
         break;
-      case 'step3-additional.html':
-        wireNextButton('quote/Direct/Motor/quote-details.html');
+      case 'additional-information':
+        wireNextButton('driver-quote.html');
         break;
-      case 'quote-details.html':
+      case 'driver-quote':
         break;
       default:
         break;

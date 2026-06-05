@@ -5,6 +5,20 @@
 (function () {
   'use strict';
 
+  function isVecAuthoring() {
+    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isAuthoring === 'function') {
+      return window.AvivaTargetVec.isAuthoring();
+    }
+    var s = String((location.search || '')).toLowerCase();
+    return (
+      s.indexOf('adobe_authoring_enabled') !== -1 ||
+      s.indexOf('mboxdisable=1') !== -1 ||
+      s.indexOf('at_preview') !== -1
+    );
+  }
+
+  if (isVecAuthoring()) return;
+
   var page = (location.pathname.split('/').pop() || 'index.html').replace(/^\.\//, '');
   if (page === 'index.html') return;
 
