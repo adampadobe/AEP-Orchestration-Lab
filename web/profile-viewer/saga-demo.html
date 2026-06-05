@@ -7,7 +7,7 @@
   <title>Saga Cruises (demo) — AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260604-saga-demo">
-  <link rel="stylesheet" href="saga-demo.css?v=20260604-saga-demo">
+  <link rel="stylesheet" href="saga-demo.css?v=20260605-saga-bc-injected">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
   <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
@@ -15,6 +15,14 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script>
+    window.SiteCloneBcPage = {
+      iframeId: 'sagaSiteFrame',
+      defaultFrameSrc: 'saga-demo-assets/saga-home.html',
+      snapshotLayout: 'saga-home',
+      statusMessageId: 'sagaMessage',
+    };
+  </script>
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
 <body class="saga-demo-page home-dashboard-concierge">
@@ -173,14 +181,10 @@
       bcOnInjectToggleId: 'sagaBcOnInjectToggle',
       bcStyleSelectId: 'sagaBcStyleSelect',
     };
-    window.SiteCloneBcPage = {
-      iframeId: 'sagaSiteFrame',
-      statusMessageId: 'sagaMessage',
-    };
   </script>
   <script src="site-clone-bc-env.js?v=20260529-bc-style-picker"></script>
   <script src="saga-demo.js?v=20260604-saga-login"></script>
-  <script src="site-clone-bc.js?v=20260604-saga-demo"></script>
+  <script src="site-clone-bc.js?v=20260605-saga-bc-injected"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260604-saga-demo"></script>

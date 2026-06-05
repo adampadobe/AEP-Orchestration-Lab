@@ -134,6 +134,97 @@
   box-shadow: var(--dash-shadow);
 }
 
+/* Brand Concierge injected / full-screen overlay — above site iframe (z-index 100), below env strip (6500) */
+.saga-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
+.saga-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
+  display: none !important;
+}
+
+.saga-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
+  display: flex !important;
+}
+
+.saga-demo-page.aep-bc-modal-open .saga-demo-site-frame {
+  visibility: visible;
+}
+
+.saga-demo-page.aep-bc-modal-open #brand-concierge-mount-host,
+.saga-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.saga-demo-page .site-clone-bc-frame-host {
+  position: fixed;
+  z-index: 5000;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  pointer-events: auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  background: linear-gradient(
+    122.87deg,
+    var(--dash-surface-alt) 20.72%,
+    color-mix(in srgb, var(--dash-surface-alt) 70%, var(--dash-blue)) 91.6%
+  );
+}
+
+.saga-demo-page .site-clone-bc-frame-host[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  pointer-events: none;
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount,
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount.brand-concierge-mount {
+  pointer-events: auto;
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen .site-clone-bc-frame-mount,
+.saga-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.saga-demo-page .site-clone-bc-frame-mount,
+.saga-demo-page .site-clone-bc-frame-host #siteCloneBcFrameMount.brand-concierge-mount {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 540px;
+  flex: 1 1 auto;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.saga-demo-page #siteCloneBcFab.site-clone-bc-fab {
+  z-index: 5500;
+}
+
 @media (min-width: 769px) {
   body.saga-demo-page .dashboard-sidebar {
     position: fixed;
