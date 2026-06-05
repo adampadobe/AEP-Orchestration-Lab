@@ -41,20 +41,19 @@ flowchart TB
 **Live URL (lab shell — entry point with Tags strip):**  
 `https://aep-orchestration-lab.web.app/profile-viewer/aviva-target-demo.html`
 
-As you click through the iframe, the parent URL updates with `?journey=…` (e.g. `?journey=quote/Direct/Motor/driver-details.html`) so you can bookmark or share the current step. **Target VEC** should still use the **direct** motor URLs below, not the lab shell.
+The lab shell URL stays on `aviva-target-demo.html` while the landing loads in the iframe. When you click **Get a new quote** (or continue through the journey), the **browser navigates to the direct hosted path** below — the address bar does **not** use `?journey=` on the lab shell.
 
-**Motor quote flow URLs (match Aviva path segments — use these in Target, not the lab shell):**
+**Journey URLs (use these in Target VEC and for bookmarks):**
 
-| Step | URL path segment | Full hosted URL |
-|------|------------------|-----------------|
-| Step 2 driver | `…/quote/Direct/Motor/driver-details.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-details.html` |
-| Step 3 additional | `…/quote/Direct/Motor/additional-information.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/additional-information.html` |
-| Step 4 quote | `…/quote/Direct/Motor/driver-quote.html` | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-quote.html` |
+| Step | Full hosted URL |
+|------|-----------------|
+| Landing (home) | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/index.html` |
+| Step 1 vehicle | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/vehicle-details.html` |
+| Step 2 driver | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-details.html` |
+| Step 3 additional | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/additional-information.html` |
+| Step 4 quote | `https://aep-orchestration-lab.web.app/profile-viewer/demos/aviva-target/quote/Direct/Motor/driver-quote.html` |
 
-**Target VEC authoring:** append `?adobe_authoring_enabled=true` to the **direct** motor URL above. Do **not** use `aviva-target-demo.html` as the activity URL — VEC cannot edit content inside the lab iframe.
-
-Direct journey landing (no lab strip):  
-`/profile-viewer/demos/aviva-target/index.html`
+**Target VEC authoring:** append `?adobe_authoring_enabled=true` to the **direct** journey URL for the page you are editing (especially **landing** `index.html` and each motor step). Do **not** use `aviva-target-demo.html` as the activity URL — VEC cannot edit content inside the lab iframe.
 
 ---
 

@@ -75,6 +75,7 @@ function writeRedirect(filePath, targetRelative, title) {
 fs.mkdirSync(motorDir, { recursive: true });
 
 const relocations = [
+  { src: 'step1-vehicle-details.html', dest: 'vehicle-details.html', assetDir: 'step1-vehicle' },
   { src: 'step2-driver.html', dest: 'driver-details.html', assetDir: 'step2' },
   { src: 'step3-additional.html', dest: 'additional-information.html', assetDir: 'step3' },
   { src: 'quote/Direct/Motor/quote-details.html', dest: 'driver-quote.html', assetDir: 'step4' },
@@ -97,6 +98,11 @@ for (const { src, dest, assetDir } of relocations) {
   console.log('Wrote', destPath);
 }
 
+writeRedirect(
+  path.join(root, 'step1-vehicle-details.html'),
+  'quote/Direct/Motor/vehicle-details.html',
+  'Redirecting to vehicle details…',
+);
 writeRedirect(
   path.join(root, 'step2-driver.html'),
   'quote/Direct/Motor/driver-details.html',

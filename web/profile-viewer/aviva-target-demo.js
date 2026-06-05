@@ -122,43 +122,6 @@ DemoProfileDrawer.init({
 
 window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'avivaTarget' });
 
-/** Reflect iframe journey path in parent URL (?journey=…) for bookmarks and Target QA. */
-const AVIVA_JOURNEY_BASE = 'demos/aviva-target/';
-const AVIVA_JOURNEY_MARKER = '/demos/aviva-target/';
-
-function avivaJourneyPathFromFrame() {
-  if (!avivaTargetFrame || !avivaTargetFrame.contentWindow) return '';
-  try {
-    const path = avivaTargetFrame.contentWindow.location.pathname || '';
-    const idx = path.toLowerCase().indexOf(AVIVA_JOURNEY_MARKER);
-    if (idx === -1) return '';
-    return path.slice(idx + AVIVA_JOURNEY_MARKER.length);
-  } catch (_e) {
-    return '';
-  }
-}
-
-function syncParentJourneyParam() {
-  const journey = avivaJourneyPathFromFrame();
-  if (!journey) return;
-  const url = new URL(window.location.href);
-  if (url.searchParams.get('journey') === journey) return;
-  url.searchParams.set('journey', journey);
-  window.history.replaceState(null, '', url.toString());
-}
-
-function applyInitialJourneyFromUrl() {
-  if (!avivaTargetFrame) return;
-  const journey = new URLSearchParams(window.location.search).get('journey');
-  if (!journey) return;
-  avivaTargetFrame.src = AVIVA_JOURNEY_BASE + journey.replace(/^\//, '');
-}
-
-applyInitialJourneyFromUrl();
-if (avivaTargetFrame) {
-  avivaTargetFrame.addEventListener('load', syncParentJourneyParam);
-}
-
 (function initAvivaTargetDemoFlyoutSidebar() {
   const body = document.body;
   if (!body.classList.contains('aviva-target-demo-page')) return;
