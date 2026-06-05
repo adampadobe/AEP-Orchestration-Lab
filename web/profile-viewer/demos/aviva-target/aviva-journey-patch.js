@@ -82,6 +82,25 @@
     return (el.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
+  function isJourneyBackLink(el) {
+    if (!el || el.tagName !== 'A') return false;
+    if (el.getAttribute('data-dd-link') === 'back') return true;
+    if (!el.classList.contains('a-button-icon--previous')) return false;
+    return buttonText(el) === 'Back';
+  }
+
+  function wireBackLinks(backHref) {
+    if (!backHref) return;
+    document.querySelectorAll('a').forEach(function (el) {
+      if (!isJourneyBackLink(el)) return;
+      intercept(el, function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        go(backHref);
+      });
+    });
+  }
+
   function wireLanding() {
     var regInput = document.getElementById('car-registration');
 
@@ -134,6 +153,8 @@
         findBtn.click();
       });
     }
+
+    wireBackLinks('index.html');
   }
 
   function wireNextButton(nextHref) {
@@ -186,14 +207,18 @@
       case 'step1-vehicle-details':
       case 'step1-vehicle-details.html':
         wireNextButton(MOTOR_BASE + 'driver-details.html');
+        wireBackLinks('index.html');
         break;
       case 'driver-details':
         wireNextButton('additional-information.html');
+        wireBackLinks('../../step1-vehicle-details.html');
         break;
       case 'additional-information':
         wireNextButton('driver-quote.html');
+        wireBackLinks('driver-details.html');
         break;
       case 'driver-quote':
+        wireBackLinks('additional-information.html');
         break;
       default:
         break;

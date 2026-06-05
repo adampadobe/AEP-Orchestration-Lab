@@ -38,8 +38,10 @@ flowchart TB
 | **`aviva-target-personalization.js`** | After Alloy loads, calls `sendEvent` with **decision scopes** and `applyPropositions` for Target offers. |
 | **Your Launch property** | Ships **Web SDK (Alloy)** configured with a Demo EMEA **datastream** and **Target / Personalization** enabled. |
 
-**Live URL (after deploy):**  
+**Live URL (lab shell — entry point with Tags strip):**  
 `https://aep-orchestration-lab.web.app/profile-viewer/aviva-target-demo.html`
+
+As you click through the iframe, the parent URL updates with `?journey=…` (e.g. `?journey=quote/Direct/Motor/driver-details.html`) so you can bookmark or share the current step. **Target VEC** should still use the **direct** motor URLs below, not the lab shell.
 
 **Motor quote flow URLs (match Aviva path segments — use these in Target, not the lab shell):**
 
