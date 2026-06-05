@@ -208,6 +208,8 @@ node web/profile-viewer/demos/aviva-target/scripts/inject-target-lab-scripts.mjs
 | No ECID in strip | Launch injected? Web SDK extension installed? Datastream valid? |
 | `alloy not available` in console | Inject Tags from lab shell first; confirm `avivaTargetSdkConfiguredBySandbox` in localStorage. |
 | No Target content | Activity published? Scope names match? Activity bound to correct property / datastream? |
+| Debugger flips between Demo EMEA and Aviva UK | Saved HTML embeds Aviva production Launch — `aviva-target-suppress-prod-tags.js` blocks it on the lab host; only use lab-injected `launch-….min.js`. |
+| Datastream ID in debugger ≠ Target-enabled stream | Update **Web SDK extension** datastream ID in your **Tags** property (not only in AEP UI), then **publish** the library. Debugger shows the ID from the extension, not a separate lab setting. |
 | Offer flashes then disappears | Conflicting Aviva saved `_satellite` scripts vs Alloy — expected on clones; Target should win after `applyPropositions`. |
 | Different ECID each step | Launch not resumed — confirm `aviva-target-sdk-resume.js` on page; inject once from parent. |
 | Profile empty | Include `_demoemea.identification.core.ecid` on events ([pattern doc](./ANONYMOUS_EDGE_DEMO_PATTERN.md)). |

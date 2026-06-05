@@ -14,6 +14,9 @@ const pages = [
   { file: 'quote/Direct/Motor/driver-quote.html', prefix: '../../../' },
 ];
 
+/** Must load first — blocks Aviva production Launch/DTM baked into saved HTML. */
+const headScriptsFirst = ['aviva-target-suppress-prod-tags.js'];
+
 const headScripts = [
   'aviva-target-vec.js',
   'aviva-target-sdk-resume.js',
@@ -22,6 +25,12 @@ const headScripts = [
 
 const cookieScript = 'aviva-demo-head.js';
 const journeyChromeScript = 'aviva-target-journey-chrome.js';
+
+function injectHeadScript(html, prefix, name) {
+  if (html.includes(name)) return html;
+  const tag = `<script src="${prefix}${name}"></script>`;
+  return html.replace('<head>', `<head>\n    ${tag}`);
+}
 
 for (const { file, prefix } of pages) {
   const filePath = path.join(root, file);
@@ -35,12 +44,18 @@ for (const { file, prefix } of pages) {
     continue;
   }
   let changed = false;
+  const before = html;
+
+  for (const name of headScriptsFirst) {
+    const next = injectHeadScript(html, prefix, name);
+    if (next !== html) changed = true;
+    html = next;
+  }
 
   for (const name of headScripts) {
-    const tag = `<script src="${prefix}${name}"></script>`;
-    if (html.includes(name)) continue;
-    html = html.replace('<head>', `<head>\n    ${tag}`);
-    changed = true;
+    const next = injectHeadScript(html, prefix, name);
+    if (next !== html) changed = true;
+    html = next;
   }
 
   const isLanding = file === 'index.html';
@@ -62,7 +77,7 @@ for (const { file, prefix } of pages) {
     changed = true;
   }
 
-  if (changed) {
+  if (changed || html !== before) {
     fs.writeFileSync(filePath, html);
     console.log('Updated', file);
   } else {

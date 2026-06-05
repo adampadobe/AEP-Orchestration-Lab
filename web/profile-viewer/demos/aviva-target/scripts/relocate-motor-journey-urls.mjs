@@ -8,6 +8,7 @@ const motorDir = path.join(root, 'quote/Direct/Motor');
 const depthPrefix = '../../../';
 
 const HEAD_SCRIPTS = [
+  'aviva-target-suppress-prod-tags.js',
   'aviva-target-vec.js',
   'aviva-target-sdk-resume.js',
   'aviva-target-personalization.js',
