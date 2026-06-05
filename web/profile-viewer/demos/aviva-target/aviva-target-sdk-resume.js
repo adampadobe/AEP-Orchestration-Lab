@@ -1,24 +1,21 @@
 /**
  * Re-injects the persisted Adobe Launch / Web SDK script on each Aviva journey page load.
  * Parent lab shell (aviva-target-demo.html) stores config via DemoTagsInjection storagePrefix avivaTarget.
- * Skipped during Target VEC authoring so Alloy/Launch does not fight the composer.
+ * Skipped during Target VEC compose only (adobe_authoring_enabled). Activity QA (at_preview)
+ * still needs Launch so Web SDK can apply preview offers.
  */
 (function () {
   'use strict';
 
-  function isVecAuthoring() {
-    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isAuthoring === 'function') {
-      return window.AvivaTargetVec.isAuthoring();
+  function isVecCompose() {
+    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isVecCompose === 'function') {
+      return window.AvivaTargetVec.isVecCompose();
     }
-    var s = String((location.search || '')).toLowerCase();
-    return (
-      s.indexOf('adobe_authoring_enabled') !== -1 ||
-      s.indexOf('mboxdisable=1') !== -1 ||
-      s.indexOf('at_preview') !== -1
-    );
+    var s = String((location.search || '') + (location.hash || '')).toLowerCase();
+    return s.indexOf('adobe_authoring_enabled') !== -1 || s.indexOf('mboxdisable=1') !== -1;
   }
 
-  if (isVecAuthoring()) return;
+  if (isVecCompose()) return;
 
   var STORAGE_PREFIX = 'avivaTarget';
   var SCRIPT_MARKER = 'data-aviva-target-launch';

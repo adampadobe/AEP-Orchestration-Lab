@@ -5,19 +5,15 @@
 (function () {
   'use strict';
 
-  function isVecAuthoring() {
-    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isAuthoring === 'function') {
-      return window.AvivaTargetVec.isAuthoring();
+  function isVecCompose() {
+    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isVecCompose === 'function') {
+      return window.AvivaTargetVec.isVecCompose();
     }
-    var s = String((location.search || '')).toLowerCase();
-    return (
-      s.indexOf('adobe_authoring_enabled') !== -1 ||
-      s.indexOf('mboxdisable=1') !== -1 ||
-      s.indexOf('at_preview') !== -1
-    );
+    var s = String((location.search || '') + (location.hash || '')).toLowerCase();
+    return s.indexOf('adobe_authoring_enabled') !== -1 || s.indexOf('mboxdisable=1') !== -1;
   }
 
-  if (isVecAuthoring()) return;
+  if (isVecCompose()) return;
 
   var page = (location.pathname.split('/').pop() || 'index.html').replace(/^\.\//, '');
   if (page === 'index.html') return;

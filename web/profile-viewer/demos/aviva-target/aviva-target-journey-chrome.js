@@ -1,6 +1,6 @@
 /**
  * Mounts the Aviva Target lab strip on direct journey page loads (motor URLs, landing, registration).
- * Skipped inside the lab shell iframe (parent already has the strip) and during Target VEC authoring.
+ * Skipped inside the lab shell iframe (parent already has the strip) and during VEC compose only.
  */
 (function () {
   'use strict';
@@ -10,16 +10,13 @@
 
   if (window.__avivaTargetJourneyChromeBooted) return;
 
-  function isVecAuthoring() {
-    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isAuthoring === 'function') {
-      return window.AvivaTargetVec.isAuthoring();
+  function isVecCompose() {
+    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isVecCompose === 'function') {
+      return window.AvivaTargetVec.isVecCompose();
     }
-    var s = String(location.search || '').toLowerCase();
-    return (
-      s.indexOf('adobe_authoring_enabled') !== -1 ||
-      s.indexOf('mboxdisable=1') !== -1 ||
-      s.indexOf('at_preview') !== -1
-    );
+    var s = String(location.search || '') + String(location.hash || '');
+    s = s.toLowerCase();
+    return s.indexOf('adobe_authoring_enabled') !== -1 || s.indexOf('mboxdisable=1') !== -1;
   }
 
   function inLabShellIframe() {
@@ -33,7 +30,7 @@
     }
   }
 
-  if (isVecAuthoring() || inLabShellIframe()) return;
+  if (isVecCompose() || inLabShellIframe()) return;
 
   window.__avivaTargetJourneyChromeBooted = true;
 

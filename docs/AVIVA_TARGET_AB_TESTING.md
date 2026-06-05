@@ -156,7 +156,8 @@ Stitch known profiles: use **Profile lookup** in the lab strip with email, then 
 **QA toggles:**
 
 - `?mboxDisable=1` on a journey URL — skips personalization requests.
-- `?adobe_authoring_enabled=true` — skips auto `sendEvent` so VEC can author.
+- `?adobe_authoring_enabled=true` — skips auto `sendEvent` so VEC can author (Launch resume is also skipped).
+- **Activity QA** (`at_preview_token`, `at_preview_index`, …) — Launch **must** load on the page; `aviva-target-sdk-resume.js` re-injects your script on preview URLs. Paste the full QA link with `?` query params (not `#` hash).
 
 ---
 
