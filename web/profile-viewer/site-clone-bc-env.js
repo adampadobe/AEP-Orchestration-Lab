@@ -404,7 +404,6 @@ function invalidateSiteCloneBcCore() {
 
 const SC_BC_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandbox';
 const SC_BC_DATASTREAM_LEGACY_SCALAR = 'siteCloneBcDatastreamId';
-const SC_BC_DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
 const siteCloneBcDatastreamId = document.getElementById('siteCloneBcDatastreamId');
 const siteCloneBcDatastreamList = document.getElementById('siteCloneBcDatastreamList');
 
@@ -413,9 +412,9 @@ let siteCloneBcAllDatastreamOptions = [];
 
 function sanitiseSiteCloneBcDatastreamId(raw) {
   const v = String(raw || '').trim();
-  if (!v) return SC_BC_DEFAULT_DATASTREAM_ID;
+  if (!v) return '';
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v.toLowerCase();
-  return SC_BC_DEFAULT_DATASTREAM_ID;
+  return '';
 }
 
 function datastreamLabelFromItem(d) {
@@ -464,7 +463,7 @@ function readPersistedSiteCloneBcDatastreamId(sandboxKey) {
     sanitiseSiteCloneBcDatastreamId,
     '',
   );
-  return stored || SC_BC_DEFAULT_DATASTREAM_ID;
+  return stored;
 }
 
 function getSiteCloneBcDatastreamId() {
@@ -541,8 +540,7 @@ function refreshSiteCloneBcDatastreamHint() {
     siteCloneBcAllDatastreamOptions.length +
     ' datastream(s)' +
     (sandbox ? ' for ' + sandbox : '') +
-    ' · selected ' +
-    id;
+    (id ? ' · selected ' + id : ' · none selected — pick or paste a UUID.');
 }
 
 async function loadSiteCloneBcDatastreams() {

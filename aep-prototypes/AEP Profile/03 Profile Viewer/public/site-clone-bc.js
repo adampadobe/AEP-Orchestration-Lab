@@ -58,7 +58,6 @@
 
   var BASE = cfg('embedBase', 'embed-bc/');
   var PROFILE_VIEWER_PREFIX = '/profile-viewer/';
-  var DEFAULT_DATASTREAM_ID = 'cf7272a7-f634-4bdf-9ce6-fa31ac0c6416';
   var ORG_ID = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
   var EDGE_DEPLOYMENT = 'nld2';
   var IFRAME_ID = cfg('iframeId', 'siteCloneDemoSiteFrame');
@@ -163,9 +162,9 @@
 
   function getDatastreamId() {
     if (global.SiteCloneBcConfig && typeof global.SiteCloneBcConfig.getDatastreamId === 'function') {
-      return global.SiteCloneBcConfig.getDatastreamId();
+      return String(global.SiteCloneBcConfig.getDatastreamId() || '').trim();
     }
-    return DEFAULT_DATASTREAM_ID;
+    return '';
   }
 
   function setSnapshotInjectedLayout(doc, on) {
@@ -1259,7 +1258,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260528-bc-modal-scroll', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260528-bc-modal-close', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
