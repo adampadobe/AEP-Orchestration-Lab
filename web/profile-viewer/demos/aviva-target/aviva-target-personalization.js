@@ -7,6 +7,7 @@
 (function (global) {
   'use strict';
 
+  var VIEW_SCOPE = '__view__';
   var PERSONALIZATION_SCHEMAS = [
     'https://ns.adobe.com/personalization/default-content-item',
     'https://ns.adobe.com/personalization/html-content-item',
@@ -24,6 +25,10 @@
     'driver-quote.html': ['aviva-step4-quote-price', 'aviva-step4-quote-cta'],
   };
 
+  var refreshTimer = null;
+  var refreshGeneration = 0;
+  var lastAppliedSignature = '';
+
   function currentPage() {
     var path = (global.location.pathname || '').toLowerCase();
     if (path.indexOf('/quote/direct/motor/driver-details') !== -1) return 'driver-details.html';
@@ -33,12 +38,28 @@
     return (path.split('/').pop() || 'index.html').replace(/^\.\//, '');
   }
 
+  function uniqueScopes(list) {
+    var seen = {};
+    var out = [];
+    (list || []).forEach(function (name) {
+      var key = String(name || '').trim();
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      out.push(key);
+    });
+    return out;
+  }
+
   function decisionScopesForPage() {
     var cfg = global.AvivaTargetDemoConfig;
     if (cfg && Array.isArray(cfg.decisionScopes) && cfg.decisionScopes.length) {
-      return cfg.decisionScopes;
+      return uniqueScopes(cfg.decisionScopes);
     }
-    return DEFAULT_SCOPES_BY_PAGE[currentPage()] || ['aviva-motor-journey-default'];
+    var scopes = DEFAULT_SCOPES_BY_PAGE[currentPage()] || ['aviva-motor-journey-default'];
+    if (currentPage() === 'index.html') {
+      return uniqueScopes([VIEW_SCOPE].concat(scopes));
+    }
+    return uniqueScopes(scopes);
   }
 
   function waitForAlloy(maxMs, intervalMs) {
@@ -128,47 +149,76 @@
     });
   }
 
+  function propositionSignature(scopes, propositions) {
+    return scopes.join('|') + ':' + String((propositions && propositions.length) || 0);
+  }
+
+  function sendPersonalizationEvent(alloyFn, scopes) {
+    return alloyFn(
+      'sendEvent',
+      Object.assign(
+        {
+          renderDecisions: true,
+          decisionScopes: scopes.map(function (name) {
+            return { name: name };
+          }),
+          xdm: buildXdm(),
+        },
+        labEdgeConfigOverrides()
+      )
+    ).then(function (result) {
+      var propositions = (result && (result.propositions || result.decisions)) || [];
+      if (!propositions.length) {
+        if (global.console && global.console.debug) {
+          global.console.debug('[AvivaTarget] no propositions for scopes', scopes);
+        }
+        return false;
+      }
+      var signature = propositionSignature(scopes, propositions);
+      if (signature === lastAppliedSignature) {
+        return true;
+      }
+      return alloyFn('applyPropositions', {
+        propositions: propositions,
+        metadata: { __adobe: { target: true } },
+      }).then(function () {
+        lastAppliedSignature = signature;
+        if (global.console && global.console.info) {
+          global.console.info('[AvivaTarget] applied', propositions.length, 'proposition(s) for', scopes.join(', '));
+        }
+        return true;
+      });
+    });
+  }
+
   function requestPersonalization() {
     if (global.location.search.indexOf('mboxDisable=1') >= 0) return Promise.resolve();
     if (global.location.search.indexOf('adobe_authoring_enabled') >= 0) return Promise.resolve();
 
+    var generation = ++refreshGeneration;
     var scopes = decisionScopesForPage();
     markTargets(scopes);
 
-    return waitForAlloy(20000, 250).then(function (alloyFn) {
+    return waitForAlloy(25000, 250).then(function (alloyFn) {
+      if (generation !== refreshGeneration) return;
       if (!alloyFn) {
         if (global.console && global.console.debug) {
           global.console.debug('[AvivaTarget] alloy not available — inject Tags from the lab strip first.');
         }
         return;
       }
-
-      return alloyFn(
-        'sendEvent',
-        Object.assign(
-          {
-            renderDecisions: true,
-            decisionScopes: scopes.map(function (name) {
-              return { name: name };
-            }),
-            xdm: buildXdm(),
-          },
-          labEdgeConfigOverrides()
-        )
-      ).then(function (result) {
-        var propositions = (result && (result.propositions || result.decisions)) || [];
-        if (!propositions.length) {
-          if (global.console && global.console.debug) {
-            global.console.debug('[AvivaTarget] no propositions for scopes', scopes);
-          }
-          return;
-        }
-        return alloyFn('applyPropositions', {
-          propositions: propositions,
-          metadata: { __adobe: { target: true } },
-        });
-      });
+      return sendPersonalizationEvent(alloyFn, scopes);
     });
+  }
+
+  function schedulePersonalization(delayMs) {
+    if (refreshTimer) {
+      global.clearTimeout(refreshTimer);
+    }
+    refreshTimer = global.setTimeout(function () {
+      refreshTimer = null;
+      void requestPersonalization();
+    }, typeof delayMs === 'number' ? delayMs : 0);
   }
 
   global.AvivaTargetPersonalization = {
@@ -176,11 +226,19 @@
     scopesForCurrentPage: decisionScopesForPage,
   };
 
+  global.addEventListener('aviva-target-launch-injected', function () {
+    schedulePersonalization(400);
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
-      void requestPersonalization();
+      schedulePersonalization(0);
     });
   } else {
-    void requestPersonalization();
+    schedulePersonalization(0);
   }
+
+  global.addEventListener('load', function () {
+    schedulePersonalization(1200);
+  });
 })(window);

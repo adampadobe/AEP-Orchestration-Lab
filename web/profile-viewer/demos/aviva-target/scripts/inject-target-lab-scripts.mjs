@@ -32,6 +32,17 @@ function injectHeadScript(html, prefix, name) {
   return html.replace('<head>', `<head>\n    ${tag}`);
 }
 
+/** sdk-resume must run before personalization so alloy exists when sendEvent fires. */
+function fixLabHeadScriptOrder(html) {
+  const wrong =
+    /(<script src="([^"]*)aviva-target-personalization\.js"><\/script>)\s*(<script src="([^"]*)aviva-target-sdk-resume\.js"><\/script>)/;
+  if (!wrong.test(html)) return html;
+  return html.replace(
+    wrong,
+    '<script src="$4aviva-target-sdk-resume.js"></script>\n    <script src="$2aviva-target-personalization.js"></script>'
+  );
+}
+
 for (const { file, prefix } of pages) {
   const filePath = path.join(root, file);
   if (!fs.existsSync(filePath)) {
@@ -56,6 +67,12 @@ for (const { file, prefix } of pages) {
     const next = injectHeadScript(html, prefix, name);
     if (next !== html) changed = true;
     html = next;
+  }
+
+  const ordered = fixLabHeadScriptOrder(html);
+  if (ordered !== html) {
+    html = ordered;
+    changed = true;
   }
 
   const isLanding = file === 'index.html';

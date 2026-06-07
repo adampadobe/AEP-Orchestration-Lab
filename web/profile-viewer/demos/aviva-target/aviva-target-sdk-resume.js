@@ -4,12 +4,12 @@
  * Skipped during Target VEC compose only (adobe_authoring_enabled). Activity QA (at_preview)
  * still needs Launch so Web SDK can apply preview offers.
  */
-(function () {
+(function (global) {
   'use strict';
 
   function isVecCompose() {
-    if (window.AvivaTargetVec && typeof window.AvivaTargetVec.isVecCompose === 'function') {
-      return window.AvivaTargetVec.isVecCompose();
+    if (global.AvivaTargetVec && typeof global.AvivaTargetVec.isVecCompose === 'function') {
+      return global.AvivaTargetVec.isVecCompose();
     }
     var s = String((location.search || '') + (location.hash || '')).toLowerCase();
     return s.indexOf('adobe_authoring_enabled') !== -1 || s.indexOf('mboxdisable=1') !== -1;
@@ -56,14 +56,29 @@
     return sanitiseLaunchScriptUrl(scripts[getSandboxKey()] || '');
   }
 
+  function notifyLaunchReady() {
+    try {
+      global.dispatchEvent(new CustomEvent('aviva-target-launch-injected'));
+    } catch (e) {}
+  }
+
   function injectLaunchScript(url) {
-    if (!url || document.querySelector('script[' + SCRIPT_MARKER + '="1"]')) return;
+    if (!url || document.querySelector('script[' + SCRIPT_MARKER + '="1"]')) return false;
     var script = document.createElement('script');
     script.src = url;
     script.async = true;
     script.setAttribute(SCRIPT_MARKER, '1');
+    script.addEventListener('load', notifyLaunchReady);
+    script.addEventListener('error', function () {
+      if (global.console && global.console.warn) {
+        global.console.warn('[AvivaTarget] Launch script failed to load — re-inject from the lab strip.');
+      }
+    });
     (document.head || document.documentElement).appendChild(script);
+    return true;
   }
 
-  injectLaunchScript(readPersistedLaunchUrl());
-})();
+  if (!injectLaunchScript(readPersistedLaunchUrl()) && typeof global.alloy === 'function') {
+    global.setTimeout(notifyLaunchReady, 0);
+  }
+})(window);
