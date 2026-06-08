@@ -487,7 +487,7 @@
               items: [
                 {
                   label: 'Car insurance journey',
-                  href: 'aviva-target-demo.html',
+                  href: '/profile-viewer/aviva-target-demo.html',
                   navHideKey: 'avivaTargetCarInsurance',
                   demoMeta: { owners: ['kirkham'], sandbox: 'demoemea' },
                   ico:
@@ -824,12 +824,19 @@
     return '';
   }
 
+  function navHrefBasename(href) {
+    var base = String(href || '').split('#')[0].split('?')[0];
+    var parts = base.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : base;
+  }
+
   /** Match nav href to current page; supports same file + hash when href includes #fragment. */
   function navItemActive(defHref, filename) {
     if (!defHref) return false;
     var parts = defHref.split('#');
     var base = (parts[0] || '').split('?')[0];
-    if (filename !== base) return false;
+    var fileTail = String(filename || '');
+    if (fileTail !== base && navHrefBasename(base) !== navHrefBasename(fileTail)) return false;
     if (parts.length >= 2 && parts[1]) {
       return (window.location.hash || '') === '#' + parts[1];
     }
@@ -967,7 +974,9 @@
     var useStacked = !!stacked && !isLiveActivities;
     var tooltipText = stripInDevelopmentSuffix(raw) || raw;
     var itemHref = def.href || '';
-    if (itemHref && !/^https?:\/\//i.test(itemHref)) itemHref = navHrefPrefix() + itemHref;
+    if (itemHref && !/^https?:\/\//i.test(itemHref) && itemHref.charAt(0) !== '/') {
+      itemHref = navHrefPrefix() + itemHref;
+    }
     var a = mk('a', 'dashboard-nav-item' + (active ? ' dashboard-nav-item--active' : ''), {
       href: itemHref,
       'data-tooltip': tooltipText,

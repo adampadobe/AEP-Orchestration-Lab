@@ -483,7 +483,7 @@
           channels: [
             {
               id: 'avivaWeb',
-              label: 'Target',
+              label: 'Web',
               items: [
                 {
                   label: 'Car insurance journey',
