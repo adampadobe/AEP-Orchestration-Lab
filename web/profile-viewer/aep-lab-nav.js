@@ -482,8 +482,8 @@
           demoCustomer: true,
           channels: [
             {
-              id: 'avivaTarget',
-              label: 'Target',
+              id: 'avivaWeb',
+              label: 'Web',
               items: [
                 {
                   label: 'Car insurance journey',
