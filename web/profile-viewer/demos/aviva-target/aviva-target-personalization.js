@@ -159,9 +159,7 @@
       Object.assign(
         {
           renderDecisions: true,
-          decisionScopes: scopes.map(function (name) {
-            return { name: name };
-          }),
+          decisionScopes: scopes,
           xdm: buildXdm(),
         },
         labEdgeConfigOverrides()
