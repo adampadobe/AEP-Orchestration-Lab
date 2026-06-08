@@ -251,7 +251,7 @@
       })
       .then(function () {
         var nav = document.createElement('script');
-        nav.src = PV + 'aep-lab-nav.js?v=20260604-aviva-target';
+        nav.src = PV + 'aep-lab-nav.js?v=20260608-aviva-target-nav';
         nav.defer = true;
         document.body.appendChild(nav);
       })
