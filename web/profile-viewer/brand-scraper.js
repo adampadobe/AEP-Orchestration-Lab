@@ -24,6 +24,7 @@
   function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
   function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
   function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
+  function directCfSlideDeckUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperSlideDeck'; }
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
@@ -1568,6 +1569,7 @@
         '</div>' +
         '<div class="brand-scraper-result-actions">' +
           (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-outline" data-action="classify-assets">Classify images</button>' : '') +
+          (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-outline" data-action="export-deck">Export deck (PPTX)</button>' : '') +
           (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-primary" data-action="export-kit">Export kit (ZIP)</button>' : '') +
         '</div>' +
       '</header>' +
@@ -2323,6 +2325,60 @@
     }
   }
 
+  async function runSlideDeckExport() {
+    if (!currentScrapeData || !currentScrapeData.scrapeId) return;
+    if (currentScrapeData.viewingVersion != null && currentScrapeData.viewingVersion !== '') {
+      setStatus('Switch to “Latest (current)” in the snapshot menu to export the saved run.', 'info');
+      return;
+    }
+    const scope = getScope();
+    if (!scope.scopeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
+    const btn = resultsEl.querySelector('[data-action="export-deck"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Building deck…'; }
+    setStatus('Building slide deck (Summary, Competitor analysis, guidelines, campaigns…) \u2026', 'info');
+    startProgress(4000, ['Loading scrape', 'Rendering slides', 'Packaging PPTX']);
+    try {
+      const url = withScopeQuery(directCfSlideDeckUrl());
+      const authHeaders = await getScopeAuthHeaders();
+      const resp = await fetchWithRetry(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders || {}),
+        body: JSON.stringify({
+          sandbox: scope.scopeType === 'sandbox' ? scope.scopeId : '',
+          scopeType: scope.scopeType,
+          scopeId: scope.scopeId,
+          scrapeId: currentScrapeData.scrapeId,
+        }),
+      }, {
+        retries: 2,
+        onRetry: (n, status) => setStatus('Warming slide deck export (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(function () { return {}; });
+        setStatus('Slide deck export failed: ' + (data.error || resp.statusText), 'error');
+        stopProgress();
+        return;
+      }
+      stopProgress({ success: true });
+      setStatus('Slide deck ready — download should start automatically.', 'info');
+      const blob = await resp.blob();
+      const slug = String(currentScrapeData.brandName || 'brand-scrape').replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 60);
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = dlUrl;
+      a.download = slug + '-brand-scrape-deck.pptx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(dlUrl); }, 60000);
+    } catch (e) {
+      setStatus('Network error: ' + (e && e.message || e), 'error');
+      stopProgress();
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Export deck (PPTX)'; }
+    }
+  }
+
   async function runExport() {
     if (!currentScrapeData || !currentScrapeData.scrapeId) return;
     if (currentScrapeData.viewingVersion != null && currentScrapeData.viewingVersion !== '') {
@@ -2394,6 +2450,7 @@
     const btn = evt.target.closest('button[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'classify-assets') runClassify();
+    else if (btn.dataset.action === 'export-deck') runSlideDeckExport();
     else if (btn.dataset.action === 'export-kit') runExport();
     else if (btn.dataset.action === 'extend-retention' && currentScrapeData && currentScrapeData.scrapeId) {
       extendRetentionForScrapeId(currentScrapeData.scrapeId);
@@ -2619,6 +2676,7 @@
     get analyze() { return directCfAnalyzeUrl(); },
     get classify() { return directCfClassifyUrl(); },
     get export() { return directCfExportUrl(); },
+    get slideDeck() { return directCfSlideDeckUrl(); },
   };
 
   async function pingFunction(url) {

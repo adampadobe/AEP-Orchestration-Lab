@@ -9,6 +9,7 @@
 const brandScrapeStore = require('./brandScrapeStore');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
+const slideDeck = require('./brandScraperSlideDeck');
 const modelConfigStore = require('./brandScraperModelConfigStore');
 const tagAudit = require('./brandScraperTagAudit');
 const labUserSandboxStore = require('./labUserSandboxStore');
@@ -2262,6 +2263,31 @@ async function handleExport(req, res) {
   });
 }
 
+async function handleSlideDeckExport(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const scope = await resolveScope(req);
+  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
+  const sandbox = scope.storageScope;
+  const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
+  if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
+
+  const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+  if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
+
+  try {
+    const buf = await slideDeck.renderSlideDeck(record);
+    const slug = slideDeck.safeFilename(record.brandName || 'brand-scrape');
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.set('Content-Disposition', `attachment; filename="${slug}-brand-scrape-deck.pptx"`);
+    res.set('Content-Length', String(buf.length));
+    res.status(200).end(buf);
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+  }
+}
+
 async function handleModelConfig(req, res) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   const scope = await resolveScope(req);
@@ -2301,5 +2327,6 @@ module.exports = {
   handleScrapes,
   handleClassifyAssets,
   handleExport,
+  handleSlideDeckExport,
   handleModelConfig,
 };
