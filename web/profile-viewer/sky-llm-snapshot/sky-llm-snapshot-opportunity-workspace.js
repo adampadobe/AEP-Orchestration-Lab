@@ -18,6 +18,7 @@
   var state = {
     mounted: false,
     rootEl: null,
+    mainPane: null,
     platformId: 'chatgpt-free',
   };
 
@@ -186,22 +187,103 @@
     );
   }
 
+  function findLeaf(title) {
+    var nodes = document.querySelectorAll('span[data-rsp-slot="text"], div, span, p, h1, h2, h3');
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.childElementCount === 0 && n.textContent.trim() === title) return n;
+    }
+    return null;
+  }
+
+  function ensurePanePositioned(el) {
+    if (!el) return;
+    if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
+  }
+
+  /** Main scroll column to the right of the org sidebar — never the sidebar row itself. */
   function findShellMainPane() {
+    if (state.mainPane && state.mainPane.isConnected) return state.mainPane;
+
     var sidebarEl = document.querySelector('[id^="org-sidebar-section-"]');
+    var contentHead =
+      document.getElementById('sky-llm-ow-host') || findLeaf('Opportunity Workspace') || findLeaf('Opportunities');
+
+    if (sidebarEl) {
+      var row = sidebarEl.parentElement;
+      for (var i = 0; i < 40 && row; i++) {
+        var children = Array.from(row.children);
+        var hasSidebarChild = children.some(function (ch) {
+          return ch.contains(sidebarEl);
+        });
+        if (hasSidebarChild) {
+          for (var c = 0; c < children.length; c++) {
+            var col = children[c];
+            if (col.contains(sidebarEl)) continue;
+            if (!contentHead || col.contains(contentHead) || col.querySelector('main, [role="main"]')) {
+              state.mainPane = col;
+              ensurePanePositioned(state.mainPane);
+              return state.mainPane;
+            }
+          }
+          for (var c2 = 0; c2 < children.length; c2++) {
+            if (!children[c2].contains(sidebarEl)) {
+              state.mainPane = children[c2];
+              ensurePanePositioned(state.mainPane);
+              return state.mainPane;
+            }
+          }
+        }
+        row = row.parentElement;
+      }
+    }
+
     var toggle = document.getElementById('shell-left-nav-menu-toggle-button');
     if (toggle) {
       var header = toggle.closest('header');
       if (header && header.parentElement) {
         var afterHeader = header.nextElementSibling;
-        if (afterHeader && (!sidebarEl || afterHeader.contains(sidebarEl))) {
-          return afterHeader;
+        if (afterHeader && contentHead && afterHeader.contains(contentHead) && !afterHeader.contains(sidebarEl)) {
+          state.mainPane = afterHeader;
+          ensurePanePositioned(state.mainPane);
+          return state.mainPane;
         }
       }
     }
-    return document.querySelector('#root') || document.body;
+
+    state.mainPane = document.querySelector('#root main, #root [role="main"]') || document.querySelector('#root');
+    ensurePanePositioned(state.mainPane);
+    return state.mainPane;
+  }
+
+  function restoreSidebarVisibility() {
+    var sidebarEl = document.querySelector('[id^="org-sidebar-section-"]');
+    if (sidebarEl) {
+      var walk = sidebarEl.parentElement;
+      for (var i = 0; i < 40 && walk; i++) {
+        var children = Array.from(walk.children);
+        if (children.some(function (ch) {
+          return ch.contains(sidebarEl);
+        })) {
+          children.forEach(function (ch) {
+            ch.style.removeProperty('display');
+            ch.style.removeProperty('visibility');
+            ch.style.removeProperty('opacity');
+          });
+          break;
+        }
+        walk = walk.parentElement;
+      }
+    }
+    document.querySelectorAll('[id^="org-sidebar-section-"]').forEach(function (section) {
+      section.style.removeProperty('display');
+      section.style.removeProperty('visibility');
+      section.style.removeProperty('opacity');
+    });
   }
 
   function mount() {
+    restoreSidebarVisibility();
     var pane = findShellMainPane();
     if (!pane) return false;
 
@@ -209,6 +291,7 @@
     if (!host) {
       Array.from(pane.children).forEach(function (child) {
         if (child.id === 'sky-llm-ow-host') return;
+        if (child.querySelector && child.querySelector('[id^="org-sidebar-section-"]')) return;
         child.style.display = 'none';
       });
       host = document.createElement('div');

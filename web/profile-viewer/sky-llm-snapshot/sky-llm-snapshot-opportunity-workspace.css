@@ -1,6 +1,15 @@
 /**
  * Opportunity Workspace — custom snapshot page (Sky fixed + LLM Demo personalization).
  */
+[id^='org-sidebar-section-'],
+nav[style*='flex-direction: column'],
+nav[class*='macro-static'] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .sky-llm-ow {
   padding: 24px 32px 48px;
   max-width: 1400px;
