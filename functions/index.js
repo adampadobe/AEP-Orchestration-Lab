@@ -4652,20 +4652,6 @@ exports.brandScraperExport = onRequest(
   }
 );
 
-/** POST /api/brand-scraper/scrapes/slide-deck — build PPTX deck and stream download. */
-exports.brandScraperSlideDeck = onRequest(
-  {
-    region: REGION,
-    invoker: 'public',
-    timeoutSeconds: 120,
-    memory: '512MiB',
-  },
-  async (req, res) => {
-    setCors(res, 'POST, OPTIONS');
-    await brandScraperService.handleSlideDeckExport(req, res);
-  }
-);
-
 /**
  * POST /api/client-journey/generate
  * Body: { sandbox, scrapeId, brandColour?, journeyType?, personaName?, clientName? }

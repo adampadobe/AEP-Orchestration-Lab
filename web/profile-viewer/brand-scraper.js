@@ -24,7 +24,6 @@
   function directCfAnalyzeUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperAnalyze'; }
   function directCfClassifyUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperClassify'; }
   function directCfExportUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperExport'; }
-  function directCfSlideDeckUrl() { return aepLabCloudFunctionsOrigin() + '/brandScraperSlideDeck'; }
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
@@ -2338,7 +2337,7 @@
     setStatus('Building slide deck (Summary, Competitor analysis, guidelines, campaigns…) \u2026', 'info');
     startProgress(4000, ['Loading scrape', 'Rendering slides', 'Packaging PPTX']);
     try {
-      const url = withScopeQuery(directCfSlideDeckUrl());
+      const url = withScopeQuery(directCfExportUrl());
       const authHeaders = await getScopeAuthHeaders();
       const resp = await fetchWithRetry(url, {
         method: 'POST',
@@ -2348,6 +2347,7 @@
           scopeType: scope.scopeType,
           scopeId: scope.scopeId,
           scrapeId: currentScrapeData.scrapeId,
+          format: 'pptx',
         }),
       }, {
         retries: 2,
@@ -2676,7 +2676,6 @@
     get analyze() { return directCfAnalyzeUrl(); },
     get classify() { return directCfClassifyUrl(); },
     get export() { return directCfExportUrl(); },
-    get slideDeck() { return directCfSlideDeckUrl(); },
   };
 
   async function pingFunction(url) {

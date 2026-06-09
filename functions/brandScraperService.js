@@ -2225,11 +2225,27 @@ async function handleExport(req, res) {
   const scope = await resolveScope(req);
   if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
   const sandbox = scope.storageScope;
-  const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const scrapeId = String(body.scrapeId || (req.query && req.query.scrapeId) || '').trim();
   if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
 
   const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
   if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
+
+  const exportFormat = String(body.format || body.exportType || 'zip').trim().toLowerCase();
+  if (exportFormat === 'pptx' || exportFormat === 'slide-deck' || exportFormat === 'deck') {
+    try {
+      const buf = await slideDeck.renderSlideDeck(record);
+      const slug = slideDeck.safeFilename(record.brandName || 'brand-scrape');
+      res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.set('Content-Disposition', `attachment; filename="${slug}-brand-scrape-deck.pptx"`);
+      res.set('Content-Length', String(buf.length));
+      res.status(200).end(buf);
+    } catch (e) {
+      res.status(500).json({ error: String(e && e.message || e) });
+    }
+    return;
+  }
 
   const started = Date.now();
   let result;
@@ -2261,31 +2277,6 @@ async function handleExport(req, res) {
     signedUrlExpiresAt: result.signedUrlExpiresAt,
     elapsedMs: Date.now() - started,
   });
-}
-
-async function handleSlideDeckExport(req, res) {
-  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
-
-  const scope = await resolveScope(req);
-  if (!scope.ok) { res.status(scope.status).json({ error: scope.error }); return; }
-  const sandbox = scope.storageScope;
-  const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
-  if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
-
-  const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
-  if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
-
-  try {
-    const buf = await slideDeck.renderSlideDeck(record);
-    const slug = slideDeck.safeFilename(record.brandName || 'brand-scrape');
-    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-    res.set('Content-Disposition', `attachment; filename="${slug}-brand-scrape-deck.pptx"`);
-    res.set('Content-Length', String(buf.length));
-    res.status(200).end(buf);
-  } catch (e) {
-    res.status(500).json({ error: String(e && e.message || e) });
-  }
 }
 
 async function handleModelConfig(req, res) {
@@ -2327,6 +2318,5 @@ module.exports = {
   handleScrapes,
   handleClassifyAssets,
   handleExport,
-  handleSlideDeckExport,
   handleModelConfig,
 };
