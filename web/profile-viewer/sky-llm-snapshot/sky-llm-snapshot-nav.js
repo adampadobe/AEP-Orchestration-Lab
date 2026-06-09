@@ -15,6 +15,7 @@
     'Agentic Traffic': 'agentic-traffic.html',
     'Referral Traffic': 'overview.html',
     Opportunities: 'opportunities.html',
+    'Opportunity Workspace': 'opportunity-workspace.html',
     'Brands Management': 'overview.html',
     Collaboration: 'overview.html',
     Settings: 'overview.html',
@@ -31,6 +32,7 @@
     'url-inspector.html': 'URL Inspector',
     'agentic-traffic.html': 'Agentic Traffic',
     'opportunities.html': 'Opportunities',
+    'opportunity-workspace.html': 'Opportunity Workspace',
   };
 
   function currentFile() {
@@ -212,6 +214,32 @@
     });
   }
 
+  function ensureOpportunityWorkspaceNavItem() {
+    if (document.getElementById('org-nav-item-opportunity-workspace')) return;
+    var oppItem = document.getElementById('org-nav-item-opportunities');
+    if (!oppItem || !oppItem.parentElement) return;
+
+    var clone = oppItem.cloneNode(true);
+    clone.id = 'org-nav-item-opportunity-workspace';
+    var btn = clone.querySelector('button[aria-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-label', 'Opportunity Workspace');
+    btn.removeAttribute('aria-current');
+    btn.removeAttribute('data-current');
+
+    clone.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+      if (el.childElementCount > 0) return;
+      var t = (el.textContent || '').trim();
+      if (/^\d+$/.test(t)) {
+        el.parentElement && el.parentElement.remove();
+        return;
+      }
+      el.textContent = 'Opportunity Workspace';
+    });
+
+    oppItem.parentElement.appendChild(clone);
+  }
+
   function patchOpportunitiesBadge() {
     var catalog = window.SkyLlmOpportunitiesCatalog;
     if (!catalog) return;
@@ -232,8 +260,13 @@
     ensureNavVisible();
     wireSectionToggles();
     applyStoredSectionStates();
+    ensureOpportunityWorkspaceNavItem();
     patchOpportunitiesBadge();
     var file = currentFile();
+    if (file === 'opportunity-workspace.html') {
+      var oppSection = document.getElementById('org-sidebar-section-opportunities');
+      if (oppSection) setSectionExpanded(oppSection, true, false);
+    }
     var activeLabel = PAGE_ACTIVE[file] || 'Overview';
     applyActive(activeLabel);
 

@@ -389,6 +389,11 @@
         op.boot();
       }
     }
+    if (/opportunity-workspace\.html/i.test(global.location.pathname || '')) {
+      if (global.SkyLlmOpportunityWorkspace && global.SkyLlmOpportunityWorkspace.refresh) {
+        global.SkyLlmOpportunityWorkspace.refresh();
+      }
+    }
 
     if (!marketTrackingReady() && global.skyLlmSnapshotMarket && global.skyLlmSnapshotMarket.initMarketTracking) {
       global.skyLlmSnapshotMarket.initMarketTracking();
