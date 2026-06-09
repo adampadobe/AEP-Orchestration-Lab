@@ -8,6 +8,9 @@ const INK = '1A1A1A';
 const INK_SOFT = '4A5060';
 const INK_MUTE = '7D8492';
 const DEFAULT_ACCENT = '1473E6';
+const SURFACE_ALT = 'F5F7FA';
+const BORDER = 'E3E6EB';
+const CHIP_SEGMENT_BG = 'EEF4FC';
 const PPTX_REMOTE_IMAGE_TIMEOUT_MS = 20000;
 
 function safeFilename(s) {
@@ -198,6 +201,278 @@ function addLogoWatermark(slide, logoData) {
     x: 11.2, y: 0.18, w: 1.75, h: 0.62,
     sizing: { type: 'contain', w: 1.75, h: 0.62 },
   });
+}
+
+function addDeckHeader(slide, pres, accent, deckImages, title, subtitle) {
+  slide.background = { color: 'FFFFFF' };
+  slide.addShape(pres.ShapeType.rect, {
+    x: 0, y: 0, w: 13.333, h: 0.12,
+    fill: { color: accent }, line: { color: accent, width: 0 },
+  });
+  addLogoWatermark(slide, deckImages.logoData);
+  slide.addText(title, {
+    x: 0.55, y: 0.35, w: deckImages.logoData ? 10.4 : 12.2, h: 0.55,
+    fontSize: 24, bold: true, color: INK,
+  });
+  if (subtitle) {
+    slide.addText(subtitle, {
+      x: 0.55, y: 0.88, w: deckImages.logoData ? 10.4 : 12.2, h: 0.28,
+      fontSize: 10, color: INK_MUTE,
+    });
+  }
+}
+
+function addSectionLabel(slide, label, hint, y) {
+  slide.addText(String(label || '').toUpperCase(), {
+    x: 0.55, y, w: 8.5, h: 0.22,
+    fontSize: 9, bold: true, color: INK_MUTE,
+  });
+  if (hint) {
+    slide.addText(hint, {
+      x: 8.8, y, w: 4.0, h: 0.22,
+      fontSize: 9, color: INK_MUTE, align: 'right',
+    });
+  }
+}
+
+function addFilledChip(slide, pres, text, x, y, accent, opts) {
+  const label = truncate(text, 34);
+  const w = Math.min(opts && opts.maxW ? opts.maxW : 1.85, 0.2 + label.length * 0.052);
+  slide.addShape(pres.ShapeType.roundRect, {
+    x, y, w, h: 0.22,
+    fill: { color: (opts && opts.muted) ? 'FFFFFF' : CHIP_SEGMENT_BG },
+    line: { color: (opts && opts.muted) ? BORDER : accent, width: 0.75 },
+    rectRadius: 0.11,
+  });
+  slide.addText(label, {
+    x, y, w, h: 0.22,
+    fontSize: 7, color: (opts && opts.muted) ? INK_SOFT : accent,
+    align: 'center', valign: 'middle',
+  });
+  return w + 0.06;
+}
+
+function addCtaPill(slide, pres, text, x, y, accent) {
+  const label = truncate(text, 36);
+  const w = Math.min(2.55, 0.26 + label.length * 0.058);
+  slide.addShape(pres.ShapeType.roundRect, {
+    x, y, w, h: 0.24,
+    fill: { color: accent },
+    line: { color: accent, width: 0 },
+    rectRadius: 0.12,
+  });
+  slide.addText(label, {
+    x, y, w, h: 0.24,
+    fontSize: 8, bold: true, color: 'FFFFFF',
+    align: 'center', valign: 'middle',
+  });
+}
+
+function addBlockLabel(slide, text, x, y, w) {
+  slide.addText(String(text || '').toUpperCase(), {
+    x, y, w, h: 0.16,
+    fontSize: 7.5, bold: true, color: INK_MUTE,
+  });
+}
+
+function addCampaignCard(slide, pres, cp, x, y, w, h, accent) {
+  slide.addShape(pres.ShapeType.roundRect, {
+    x, y, w, h,
+    fill: { color: SURFACE_ALT },
+    line: { color: BORDER, width: 1 },
+    rectRadius: 0.1,
+  });
+
+  const pad = 0.12;
+  let cy = y + pad;
+  slide.addText(String(cp.type || 'Campaign').toUpperCase(), {
+    x: x + pad, y: cy, w: w - pad * 2 - 0.95, h: 0.18,
+    fontSize: 8, bold: true, color: accent,
+  });
+  if (cp.channel) {
+    addFilledChip(slide, pres, cp.channel, x + w - pad - 0.82, cy - 0.01, accent, { maxW: 0.82 });
+  }
+
+  cy += 0.22;
+  slide.addText(cp.name || 'Untitled', {
+    x: x + pad, y: cy, w: w - pad * 2, h: 0.28,
+    fontSize: 11, bold: true, color: INK, valign: 'top',
+  });
+
+  cy += 0.3;
+  if (cp.summary) {
+    slide.addText(truncate(cp.summary, 280), {
+      x: x + pad, y: cy, w: w - pad * 2, h: 0.95,
+      fontSize: 8.5, color: INK, valign: 'top',
+    });
+    cy += 1.0;
+  }
+
+  const headlines = Array.isArray(cp.headlines) ? cp.headlines.slice(0, 3) : [];
+  if (headlines.length) {
+    addBlockLabel(slide, 'Headlines', x + pad, cy, w - pad * 2);
+    cy += 0.18;
+    slide.addText(
+      headlines.map((t) => ({ text: truncate(t, 90), options: { bullet: true, breakLine: true } })),
+      {
+        x: x + pad, y: cy, w: w - pad * 2, h: 0.62,
+        fontSize: 7.5, color: INK, valign: 'top',
+      },
+    );
+    cy += 0.66;
+  }
+
+  if (cp.cta) {
+    addCtaPill(slide, pres, cp.cta, x + pad, cy, accent);
+    cy += 0.3;
+  }
+
+  const meta = [cp.time_context, cp.season].filter(Boolean);
+  if (meta.length) {
+    let mx = x + pad;
+    for (const m of meta.slice(0, 2)) {
+      mx += addFilledChip(slide, pres, m, mx, cy, accent, { muted: true, maxW: 1.1 });
+    }
+    cy += 0.28;
+  }
+
+  const segments = Array.isArray(cp.target_segments) ? cp.target_segments : [];
+  if (segments.length) {
+    addBlockLabel(slide, 'Target segments', x + pad, cy, w - pad * 2);
+    cy += 0.18;
+    let sx = x + pad;
+    let placed = 0;
+    for (const seg of segments.slice(0, 4)) {
+      const remaining = w - pad * 2 - (sx - x - pad);
+      if (remaining < 0.55) {
+        sx = x + pad;
+        cy += 0.24;
+      }
+      const chipW = addFilledChip(slide, pres, seg, sx, cy, accent, { maxW: Math.min(1.85, w - pad * 2) });
+      sx += chipW;
+      placed += 1;
+    }
+    if (placed) cy += 0.28;
+  }
+
+  const sources = Array.isArray(cp.source_urls) ? cp.source_urls : [];
+  if (sources.length) {
+    addBlockLabel(slide, 'Evidence', x + pad, cy, w - pad * 2);
+    cy += 0.16;
+    slide.addText(
+      sources.slice(0, 2).map((u) => ({ text: truncate(u, 70), options: { bullet: true, breakLine: true } })),
+      {
+        x: x + pad, y: cy, w: w - pad * 2, h: 0.42,
+        fontSize: 6.5, color: accent, valign: 'top',
+      },
+    );
+  }
+}
+
+function addCampaignSectionSlide(pres, accent, deckImages, opts) {
+  const slide = pres.addSlide();
+  addDeckHeader(slide, pres, accent, deckImages, opts.mainTitle || 'Campaigns', opts.mainSubtitle || '');
+  addSectionLabel(slide, opts.sectionTitle, opts.sectionHint, 1.08);
+
+  const cards = (opts.campaigns || []).slice(0, 3);
+  const n = cards.length || 1;
+  const gap = 0.12;
+  const cardW = (13.333 - 1.1 - gap * (n - 1)) / n;
+  const cardH = 5.55;
+  const cardY = 1.35;
+  cards.forEach((cp, i) => {
+    addCampaignCard(slide, pres, cp, 0.55 + i * (cardW + gap), cardY, cardW, cardH, accent);
+  });
+  addFooter(slide);
+}
+
+function addCampaignSlides(pres, accent, deckImages, campaignsObj) {
+  const list = Array.isArray(campaignsObj.campaigns) ? campaignsObj.campaigns : [];
+  if (!list.length) return;
+  const detected = list.filter((c) => !c.is_recommendation);
+  const recommended = list.filter((c) => c.is_recommendation);
+  const provider = campaignsObj.provider ? ` · ${campaignsObj.provider}` : '';
+  const totalSub = `${list.length} total${provider}`;
+
+  if (detected.length) {
+    addCampaignSectionSlide(pres, accent, deckImages, {
+      mainTitle: 'Campaigns',
+      mainSubtitle: totalSub,
+      sectionTitle: 'Detected on-site',
+      sectionHint: `${detected.length} campaign${detected.length === 1 ? '' : 's'}`,
+      campaigns: detected,
+    });
+  }
+  if (recommended.length) {
+    addCampaignSectionSlide(pres, accent, deckImages, {
+      mainTitle: 'Campaigns',
+      mainSubtitle: detected.length ? 'Recommended for demo' : totalSub,
+      sectionTitle: 'Recommended for demo',
+      sectionHint: `${recommended.length} suggestion${recommended.length === 1 ? '' : 's'}`,
+      campaigns: recommended,
+    });
+  }
+}
+
+function addChannelCard(slide, pres, ch, x, y, w, h, accent) {
+  slide.addShape(pres.ShapeType.roundRect, {
+    x, y, w, h,
+    fill: { color: SURFACE_ALT },
+    line: { color: BORDER, width: 1 },
+    rectRadius: 0.1,
+  });
+  const pad = 0.12;
+  let cy = y + pad;
+  slide.addText(String(ch.channel || 'Channel').toUpperCase(), {
+    x: x + pad, y: cy, w: w - pad * 2, h: 0.2,
+    fontSize: 9, bold: true, color: accent,
+  });
+  cy += 0.24;
+
+  const fields = [
+    ['Subject', ch.subject_line],
+    ['Preheader', ch.preheader],
+    ['Headline', ch.headline],
+  ];
+  for (const [label, value] of fields) {
+    const val = value ? String(value) : 'N/A';
+    slide.addText([
+      { text: `${label}: `, options: { bold: true, color: INK_SOFT } },
+      { text: truncate(val, 80), options: { color: INK_SOFT } },
+    ], {
+      x: x + pad, y: cy, w: w - pad * 2, h: 0.18,
+      fontSize: 8, valign: 'top',
+    });
+    cy += 0.2;
+  }
+
+  if (ch.body) {
+    slide.addText(truncate(ch.body, 220), {
+      x: x + pad, y: cy, w: w - pad * 2, h: h - (cy - y) - 0.55,
+      fontSize: 8.5, color: INK, valign: 'top',
+    });
+  }
+
+  if (ch.cta) {
+    addCtaPill(slide, pres, ch.cta, x + pad, y + h - pad - 0.24, accent);
+  }
+}
+
+function addChannelSamplesSlide(pres, accent, deckImages, channels) {
+  const slide = pres.addSlide();
+  addDeckHeader(slide, pres, accent, deckImages, 'Brand guidelines', 'Channel samples');
+  addSectionLabel(slide, 'Channel samples', `${channels.length} channel${channels.length === 1 ? '' : 's'}`, 1.08);
+
+  const list = channels.slice(0, 3);
+  const n = list.length || 1;
+  const gap = 0.12;
+  const cardW = (13.333 - 1.1 - gap * (n - 1)) / n;
+  const cardH = 5.55;
+  const cardY = 1.35;
+  list.forEach((ch, i) => {
+    addChannelCard(slide, pres, ch, 0.55 + i * (cardW + gap), cardY, cardW, cardH, accent);
+  });
+  addFooter(slide);
 }
 
 function addSectionSlide(pres, accent, deckImages, title, subtitle, bullets, body) {
@@ -456,7 +731,7 @@ async function renderSlideDeck(record) {
     compBullets.length ? compBullets : ['Competitor inference did not return results — re-run Analyse with Competitor analysis enabled.'],
   );
 
-  // ─── Brand guidelines ──────────────────────────────────────────────────
+  // ─── Brand guidelines (tone / values — channel samples on own slide) ───
   if (analysis) {
     const guideBullets = [];
     for (const t of (analysis.tone_of_voice || []).slice(0, 4)) {
@@ -465,30 +740,21 @@ async function renderSlideDeck(record) {
     for (const v of (analysis.brand_values || []).slice(0, 4)) {
       guideBullets.push(`${v.value || 'Value'} — ${v.description || ''}`);
     }
-    for (const e of (analysis.editorial_guidelines || []).slice(0, 3)) {
+    for (const e of (analysis.editorial_guidelines || []).slice(0, 4)) {
       guideBullets.push(`${e.rule || 'Rule'}${e.example ? ` — ${e.example}` : ''}`);
     }
-    for (const ch of (analysis.channel_guidelines || []).slice(0, 2)) {
-      const bits = [ch.channel, ch.headline, ch.subject_line, ch.cta].filter(Boolean);
-      if (bits.length) guideBullets.push(bits.join(' · '));
-    }
     if (guideBullets.length) {
-      addSectionSlide(pres, accent, deckImages, 'Brand guidelines', 'Tone, values, editorial rules, and channel samples.', guideBullets);
+      addSectionSlide(pres, accent, deckImages, 'Brand guidelines', 'Tone, values, and editorial rules.', guideBullets);
+    }
+    const channels = Array.isArray(analysis.channel_guidelines) ? analysis.channel_guidelines : [];
+    if (channels.length) {
+      addChannelSamplesSlide(pres, accent, deckImages, channels);
     }
   }
 
-  // ─── Campaigns ─────────────────────────────────────────────────────────
-  const campaignList = (record.campaigns && !record.campaigns.error && !record.campaigns.skipped && Array.isArray(record.campaigns.campaigns))
-    ? record.campaigns.campaigns
-    : [];
-  if (campaignList.length) {
-    const bullets = [];
-    for (const c of campaignList.slice(0, 6)) {
-      const label = c.is_recommendation ? '[Recommended] ' : '[On-site] ';
-      const parts = [c.name, c.channel, c.summary, c.cta].filter(Boolean);
-      bullets.push(label + truncate(parts.join(' · '), 180));
-    }
-    addSectionSlide(pres, accent, deckImages, 'Campaigns', `${campaignList.length} campaign(s) detected or recommended.`, bullets);
+  // ─── Campaigns (card layout matching brand scraper UI) ─────────────────
+  if (record.campaigns && !record.campaigns.error && !record.campaigns.skipped) {
+    addCampaignSlides(pres, accent, deckImages, record.campaigns);
   }
 
   // ─── Personas ──────────────────────────────────────────────────────────
