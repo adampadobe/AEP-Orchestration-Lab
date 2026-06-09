@@ -19,6 +19,7 @@
     mounted: false,
     rootEl: null,
     mainPane: null,
+    contentCanvas: null,
     platformId: 'chatgpt-free',
   };
 
@@ -279,9 +280,52 @@
     return null;
   }
 
-  function purgeMisplacedHosts(validPane) {
+  /** White card shell used on every LLM Optimizer page (Overview, Opportunities, etc.). */
+  function findContentCanvas() {
+    var sidebarEl = document.querySelector('[id^="org-sidebar-section-"]');
+    var pageAnchor = findMainPageAnchor();
+
+    if (state.contentCanvas && state.contentCanvas.isConnected) {
+      if (!isInsideOrgNav(state.contentCanvas) && (!pageAnchor || state.contentCanvas.contains(pageAnchor))) {
+        return state.contentCanvas;
+      }
+      state.contentCanvas = null;
+    }
+
+    var byId = document.getElementById('dashboard-layout-content');
+    if (byId && !isInsideOrgNav(byId) && (!pageAnchor || byId.contains(pageAnchor))) {
+      state.contentCanvas = byId;
+      return byId;
+    }
+
+    if (pageAnchor) {
+      var walk = pageAnchor.parentElement;
+      for (var i = 0; i < 24 && walk; i++) {
+        if (walk.id === 'dashboard-layout-content' && !isInsideOrgNav(walk)) {
+          state.contentCanvas = walk;
+          return walk;
+        }
+        walk = walk.parentElement;
+      }
+    }
+
+    if (sidebarEl) {
+      var pane = findShellMainPane();
+      if (pane) {
+        var inPane = pane.querySelector('#dashboard-layout-content');
+        if (inPane && !isInsideOrgNav(inPane)) {
+          state.contentCanvas = inPane;
+          return inPane;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function purgeMisplacedHosts(validCanvas) {
     document.querySelectorAll('#sky-llm-ow-host').forEach(function (host) {
-      if (isInsideOrgNav(host) || (validPane && !validPane.contains(host))) host.remove();
+      if (isInsideOrgNav(host) || (validCanvas && !validCanvas.contains(host))) host.remove();
     });
   }
 
@@ -311,8 +355,8 @@
     });
   }
 
-  function hideFrozenOpportunitiesContent(pane) {
-    Array.from(pane.children).forEach(function (child) {
+  function hideFrozenOpportunitiesContent(canvas) {
+    Array.from(canvas.children).forEach(function (child) {
       if (child.id === 'sky-llm-ow-host') return;
       child.style.display = 'none';
     });
@@ -320,19 +364,19 @@
 
   function mount() {
     restoreSidebarVisibility();
-    var pane = findShellMainPane();
-    if (!pane) return false;
+    var canvas = findContentCanvas();
+    if (!canvas) return false;
 
-    purgeMisplacedHosts(pane);
+    purgeMisplacedHosts(canvas);
 
-    var host = pane.querySelector('#sky-llm-ow-host');
+    var host = canvas.querySelector('#sky-llm-ow-host');
     if (!host) {
-      hideFrozenOpportunitiesContent(pane);
+      hideFrozenOpportunitiesContent(canvas);
       host = document.createElement('div');
       host.id = 'sky-llm-ow-host';
-      pane.appendChild(host);
+      canvas.appendChild(host);
     } else {
-      hideFrozenOpportunitiesContent(pane);
+      hideFrozenOpportunitiesContent(canvas);
     }
 
     host.innerHTML = buildMarkup();

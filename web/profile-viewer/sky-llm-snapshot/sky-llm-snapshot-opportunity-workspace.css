@@ -17,9 +17,17 @@ nav[class*='macro-static'] {
   box-sizing: border-box;
 }
 
+#dashboard-layout-content > #sky-llm-ow-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .sky-llm-ow {
   padding: 24px 32px 48px;
-  max-width: 1400px;
+  width: 100%;
+  max-width: none;
   box-sizing: border-box;
   color: rgb(41, 41, 41);
   font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
