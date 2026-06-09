@@ -187,11 +187,35 @@
     );
   }
 
-  function findLeaf(title) {
-    var nodes = document.querySelectorAll('span[data-rsp-slot="text"], div, span, p, h1, h2, h3');
+  function isInsideOrgNav(el) {
+    if (!el) return false;
+    if (el.closest('[id^="org-sidebar-section-"]')) return true;
+    if (el.closest('[id^="org-nav-item-"]')) return true;
+    if (el.closest('nav')) return true;
+    return false;
+  }
+
+  /** Frozen Opportunities export still titles the main column — never the sidebar nav label. */
+  function findMainPageAnchor() {
+    var h1 = Array.from(document.querySelectorAll('h1')).find(function (n) {
+      return n.textContent.trim() === 'Opportunities' && !isInsideOrgNav(n);
+    });
+    if (h1) return h1;
+
+    var desc =
+      'Prioritized optimization opportunities based on provider gaps, trending topics, and performance data.';
+    var nodes = document.querySelectorAll('span[data-rsp-slot="text"], div, span, p');
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i];
-      if (n.childElementCount === 0 && n.textContent.trim() === title) return n;
+      if (n.childElementCount !== 0) continue;
+      if (n.textContent.trim() !== desc) continue;
+      if (isInsideOrgNav(n)) continue;
+      return n;
+    }
+
+    var cards = document.querySelectorAll('[data-testid*="OppCard"]');
+    for (var j = 0; j < cards.length; j++) {
+      if (!isInsideOrgNav(cards[j])) return cards[j];
     }
     return null;
   }
@@ -201,34 +225,35 @@
     if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
   }
 
-  /** Main scroll column to the right of the org sidebar — never the sidebar row itself. */
+  function isValidMainPane(pane, sidebarEl, pageAnchor) {
+    if (!pane || !pane.isConnected) return false;
+    if (isInsideOrgNav(pane)) return false;
+    if (sidebarEl && pane.contains(sidebarEl)) return false;
+    if (pageAnchor && !pane.contains(pageAnchor)) return false;
+    return true;
+  }
+
+  /** Main scroll column to the right of the org sidebar (same detection as Opportunities). */
   function findShellMainPane() {
-    if (state.mainPane && state.mainPane.isConnected) return state.mainPane;
-
     var sidebarEl = document.querySelector('[id^="org-sidebar-section-"]');
-    var contentHead =
-      document.getElementById('sky-llm-ow-host') || findLeaf('Opportunity Workspace') || findLeaf('Opportunities');
+    var pageAnchor = findMainPageAnchor();
 
-    if (sidebarEl) {
-      var row = sidebarEl.parentElement;
-      for (var i = 0; i < 40 && row; i++) {
-        var children = Array.from(row.children);
-        var hasSidebarChild = children.some(function (ch) {
-          return ch.contains(sidebarEl);
-        });
-        if (hasSidebarChild) {
+    if (state.mainPane && isValidMainPane(state.mainPane, sidebarEl, pageAnchor)) {
+      ensurePanePositioned(state.mainPane);
+      return state.mainPane;
+    }
+    state.mainPane = null;
+
+    if (pageAnchor && sidebarEl) {
+      var row = pageAnchor.parentElement;
+      for (var i = 0; i < 35 && row; i++) {
+        if (row.contains(sidebarEl)) {
+          var children = Array.from(row.children);
           for (var c = 0; c < children.length; c++) {
-            var col = children[c];
-            if (col.contains(sidebarEl)) continue;
-            if (!contentHead || col.contains(contentHead) || col.querySelector('main, [role="main"]')) {
-              state.mainPane = col;
-              ensurePanePositioned(state.mainPane);
-              return state.mainPane;
-            }
-          }
-          for (var c2 = 0; c2 < children.length; c2++) {
-            if (!children[c2].contains(sidebarEl)) {
-              state.mainPane = children[c2];
+            var ch = children[c];
+            if (ch.contains(sidebarEl)) continue;
+            if (ch.contains(pageAnchor)) {
+              state.mainPane = ch;
               ensurePanePositioned(state.mainPane);
               return state.mainPane;
             }
@@ -241,9 +266,9 @@
     var toggle = document.getElementById('shell-left-nav-menu-toggle-button');
     if (toggle) {
       var header = toggle.closest('header');
-      if (header && header.parentElement) {
+      if (header) {
         var afterHeader = header.nextElementSibling;
-        if (afterHeader && contentHead && afterHeader.contains(contentHead) && !afterHeader.contains(sidebarEl)) {
+        if (afterHeader && (!pageAnchor || afterHeader.contains(pageAnchor)) && !afterHeader.contains(sidebarEl)) {
           state.mainPane = afterHeader;
           ensurePanePositioned(state.mainPane);
           return state.mainPane;
@@ -251,9 +276,13 @@
       }
     }
 
-    state.mainPane = document.querySelector('#root main, #root [role="main"]') || document.querySelector('#root');
-    ensurePanePositioned(state.mainPane);
-    return state.mainPane;
+    return null;
+  }
+
+  function purgeMisplacedHosts(validPane) {
+    document.querySelectorAll('#sky-llm-ow-host').forEach(function (host) {
+      if (isInsideOrgNav(host) || (validPane && !validPane.contains(host))) host.remove();
+    });
   }
 
   function restoreSidebarVisibility() {
@@ -282,21 +311,28 @@
     });
   }
 
+  function hideFrozenOpportunitiesContent(pane) {
+    Array.from(pane.children).forEach(function (child) {
+      if (child.id === 'sky-llm-ow-host') return;
+      child.style.display = 'none';
+    });
+  }
+
   function mount() {
     restoreSidebarVisibility();
     var pane = findShellMainPane();
     if (!pane) return false;
 
+    purgeMisplacedHosts(pane);
+
     var host = pane.querySelector('#sky-llm-ow-host');
     if (!host) {
-      Array.from(pane.children).forEach(function (child) {
-        if (child.id === 'sky-llm-ow-host') return;
-        if (child.querySelector && child.querySelector('[id^="org-sidebar-section-"]')) return;
-        child.style.display = 'none';
-      });
+      hideFrozenOpportunitiesContent(pane);
       host = document.createElement('div');
       host.id = 'sky-llm-ow-host';
       pane.appendChild(host);
+    } else {
+      hideFrozenOpportunitiesContent(pane);
     }
 
     host.innerHTML = buildMarkup();

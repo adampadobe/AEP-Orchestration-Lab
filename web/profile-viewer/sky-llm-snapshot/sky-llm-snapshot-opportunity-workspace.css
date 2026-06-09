@@ -10,6 +10,13 @@ nav[class*='macro-static'] {
   pointer-events: auto !important;
 }
 
+#sky-llm-ow-host {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+}
+
 .sky-llm-ow {
   padding: 24px 32px 48px;
   max-width: 1400px;
