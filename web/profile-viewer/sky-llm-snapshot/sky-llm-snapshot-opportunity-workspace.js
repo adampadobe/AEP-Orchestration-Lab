@@ -25,10 +25,11 @@
 
   function infoIcon() {
     return (
-      '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
-      '<circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
-      '<path fill="currentColor" d="M9.2 8.4h1.6v5.8H9.2zm.8-7.2a1 1 0 110 2 1 1 0 010-2z"/>' +
-      '</svg>'
+      '<span class="sky-llm-ow__info-icon" aria-hidden="true">' +
+      '<svg viewBox="0 0 20 20" focusable="false">' +
+      '<circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+      '<path fill="currentColor" d="M9.25 8.5h1.5v5.5H9.25zm.75-7a1 1 0 110 2 1 1 0 010-2z"/>' +
+      '</svg></span>'
     );
   }
 
@@ -99,7 +100,7 @@
           '<td>' +
           escapeHtml(area.topic) +
           '</td>' +
-          '<td><span class="sky-llm-ow__strategy">Direct optimization ' +
+          '<td><span class="sky-llm-ow__strategy"><span>Direct optimization</span>' +
           infoIcon() +
           '</span></td>' +
           '<td>' +
@@ -129,8 +130,9 @@
     return (
       '<div class="sky-llm-ow__kpi">' +
       '<div class="sky-llm-ow__kpi-label">' +
+      '<span class="sky-llm-ow__kpi-label-text">' +
       escapeHtml(label) +
-      ' ' +
+      '</span>' +
       infoIcon() +
       '</div>' +
       '<div class="sky-llm-ow__kpi-value">' +
@@ -150,7 +152,7 @@
       '<h1 class="sky-llm-ow__title">Opportunity Workspace</h1>' +
       '<p class="sky-llm-ow__subtitle">Build and track your own custom opportunities and optimization strategies.</p>' +
       '<div class="sky-llm-ow__filters">' +
-      '<label class="sky-llm-ow__filter"><span class="sky-llm-ow__filter-label">Brand ' +
+      '<label class="sky-llm-ow__filter"><span class="sky-llm-ow__filter-label"><span>Brand</span>' +
       infoIcon() +
       '</span><select class="sky-llm-ow__select" id="skyLlmOwBrand" aria-label="Brand">' +
       '<option selected>' +

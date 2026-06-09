@@ -71,10 +71,24 @@ nav[class*='macro-static'] {
   color: rgb(75, 85, 99);
 }
 
-.sky-llm-ow__filter-label svg {
-  width: 14px;
-  height: 14px;
-  opacity: 0.65;
+.sky-llm-ow__info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  color: rgb(109, 109, 109);
+  opacity: 0.72;
+  line-height: 0;
+}
+
+.sky-llm-ow__info-icon svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  max-width: 12px;
+  max-height: 12px;
 }
 
 .sky-llm-ow__select {
@@ -115,13 +129,23 @@ nav[class*='macro-static'] {
 }
 
 .sky-llm-ow__kpi-label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
   margin-bottom: 8px;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.25;
   color: rgb(75, 85, 99);
+}
+
+.sky-llm-ow__kpi-label-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sky-llm-ow__kpi-value {
