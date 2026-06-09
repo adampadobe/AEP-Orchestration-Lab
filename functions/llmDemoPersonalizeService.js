@@ -46,6 +46,29 @@ function normalizeCompetitorList(list, { industry, brand } = {}) {
   return out.slice(0, 6);
 }
 
+function isCompetitorConfigStale(cfg, record) {
+  if (!cfg || typeof cfg !== 'object') return true;
+  const industry = String(record.industry || cfg.industry || '').trim();
+  const brand = record.brandName || cfg.brand || '';
+  const comps = Array.isArray(cfg.competitors) ? cfg.competitors : [];
+  if (comps.length < 3) return true;
+  const normalized = normalizeCompetitorList(comps, { industry, brand });
+  if (normalized.length < 3) return true;
+  if (normalized.length < comps.length) return true;
+  const prompts = Array.isArray(cfg.samplePrompts) ? cfg.samplePrompts : [];
+  if (comps.length >= 3 && !prompts.length) return true;
+  return false;
+}
+
+async function ensureCompetitorConfigForRecord(record, opts = {}) {
+  const forceRefresh = opts.forceRefresh === true;
+  const existing = record.llmDemoConfig;
+  if (!forceRefresh && existing && !isCompetitorConfigStale(existing, record)) {
+    return existing;
+  }
+  return buildLlmDemoConfigForRecord(record, opts);
+}
+
 /** Paths used in the frozen Sky snapshot (opportunities / URL tables). */
 const SKY_DEMO_PATHS = [
   '/content/status',
@@ -785,6 +808,9 @@ module.exports = {
   personalizeUrl,
   personalizeFromScrape,
   buildLlmDemoConfigForRecord,
+  ensureCompetitorConfigForRecord,
+  isCompetitorConfigStale,
+  normalizeCompetitorList,
   buildAxisMap,
   buildClientConfig,
 };

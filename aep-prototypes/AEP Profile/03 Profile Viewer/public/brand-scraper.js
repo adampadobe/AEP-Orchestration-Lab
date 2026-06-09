@@ -2334,8 +2334,8 @@
     if (!scope.scopeId) { setStatus('Select a sandbox or workspace first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="export-deck"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Building deck…'; }
-    setStatus('Building slide deck (Summary, Competitor analysis, guidelines, campaigns…) \u2026', 'info');
-    startProgress(4000, ['Loading scrape', 'Rendering slides', 'Packaging PPTX']);
+    setStatus('Building slide deck (refreshes competitor analysis when needed, embeds logos and site imagery) \u2026', 'info');
+    startProgress(6000, ['Loading scrape', 'Refreshing competitor analysis', 'Fetching brand imagery', 'Rendering slides', 'Packaging PPTX']);
     try {
       const url = withScopeQuery(directCfExportUrl());
       const authHeaders = await getScopeAuthHeaders();

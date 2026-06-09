@@ -10,6 +10,7 @@ const brandScrapeStore = require('./brandScrapeStore');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 const slideDeck = require('./brandScraperSlideDeck');
+const llmDemoPersonalizeService = require('./llmDemoPersonalizeService');
 const modelConfigStore = require('./brandScraperModelConfigStore');
 const tagAudit = require('./brandScraperTagAudit');
 const labUserSandboxStore = require('./labUserSandboxStore');
@@ -2234,8 +2235,20 @@ async function handleExport(req, res) {
 
   const exportFormat = String(body.format || body.exportType || 'zip').trim().toLowerCase();
   if (exportFormat === 'pptx' || exportFormat === 'slide-deck' || exportFormat === 'deck') {
+    let deckRecord = record;
     try {
-      const buf = await slideDeck.renderSlideDeck(record);
+      const freshCfg = await llmDemoPersonalizeService.ensureCompetitorConfigForRecord(record, {
+        forceRefresh: llmDemoPersonalizeService.isCompetitorConfigStale(record.llmDemoConfig, record),
+      });
+      deckRecord = { ...record, llmDemoConfig: freshCfg };
+      if (llmDemoPersonalizeService.isCompetitorConfigStale(record.llmDemoConfig, record)) {
+        await brandScrapeStore.saveScrape(sandbox, deckRecord);
+      }
+    } catch (e) {
+      console.warn('[brandScraperExport] competitor config refresh for deck failed', String(e && e.message || e));
+    }
+    try {
+      const buf = await slideDeck.renderSlideDeck(deckRecord);
       const slug = slideDeck.safeFilename(record.brandName || 'brand-scrape');
       res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       res.set('Content-Disposition', `attachment; filename="${slug}-brand-scrape-deck.pptx"`);
