@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260612';
+  var CACHE_BUST = '20260612c';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -196,6 +196,13 @@
       '.cd-banner--overlay .cd-banner-figure.cd-banner-figure--empty{display:block;background-image:none!important;background:var(--cd-no-image-bg,currentColor);opacity:0.92;}' +
       '.cd-banner--overlay .cd-banner-scrim{display:block;position:absolute;inset:0;z-index:1;background:linear-gradient(to top,color-mix(in srgb,currentColor 90%,transparent),color-mix(in srgb,currentColor 40%,transparent) 45%,transparent);}' +
       '.cd-banner--overlay .cd-banner-copy{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;gap:0.75rem;justify-content:var(--cd-block-justify,flex-end);min-height:min(52vh,400px);padding:1.35rem 1.5rem 1.5rem;}' +
+      '.cd-banner--overlay.cd-banner--contain-fit{position:relative;overflow:visible;min-height:0;display:block;}' +
+      '.cd-banner--overlay.cd-banner--contain-fit .cd-banner-figure{position:relative;inset:auto;min-height:0;display:flex;align-items:center;justify-content:center;background-repeat:no-repeat;background-position:center center;background-size:contain;}' +
+      '.cd-banner--overlay.cd-banner--contain-fit .cd-banner-figure img,' +
+      '.cd-banner--overlay.cd-banner--contain-fit>.cd-banner-image{width:100%;max-width:100%;height:auto;max-height:var(--cd-hero-img-max-height,min(42vh,360px));object-fit:contain;object-position:center;display:block;margin-left:auto;margin-right:auto;}' +
+      '.cd-banner--overlay.cd-banner--contain-fit .cd-banner-scrim{position:absolute;inset:0;z-index:1;display:block;}' +
+      '.cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy{position:absolute;inset:0;z-index:2;min-height:0;display:flex;flex-direction:column;gap:0.75rem;justify-content:center;align-items:center;text-align:center;padding:1.25rem 1.5rem;}' +
+      '.cd-edge-mount-body--hero-flow:not(.cd-edge-mount-body--layout-below) .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy{justify-content:center;}' +
       '.cd-banner-copy{display:flex;flex-direction:column;gap:0.75rem;justify-content:var(--cd-block-justify,flex-start);}' +
       '.cd-slot{display:flex;width:100%;justify-content:var(--cd-slot-justify,center);align-items:var(--cd-slot-align,flex-start);}' +
       '.cd-slot-title,.cd-edge-ajo-card-title{margin:0;font-size:clamp(1rem,2.5vw,1.35rem);font-weight:700;line-height:1.25;color:var(--cd-title-color,inherit);}' +
@@ -204,8 +211,15 @@
       '.cd-banner-image,.cd-edge-ajo-card-img{width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain;display:block;margin-left:auto;margin-right:auto;}' +
       '[data-hero-mount]:has(#' +
       FRAGMENTS.hero +
-      '.cd-edge-has-decision:not(:empty)){overflow:visible;height:auto;min-height:min(42vh,360px);}' +
-      '[data-hero-mount].cd-edge-hero-host-has-decision{overflow:visible;height:auto;min-height:min(42vh,360px);}' +
+      '.cd-edge-has-decision:not(:empty)),' +
+      '[data-hero-mount].cd-edge-hero-host-has-decision{overflow:visible;height:auto;min-height:min(42vh,360px);width:100%;max-width:none;box-sizing:border-box;}' +
+      '[data-hero-mount].cd-edge-hero-host-full-width{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);position:relative;left:0;}' +
+      '#' +
+      FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow:not(.cd-edge-mount-body--layout-below){width:100%;max-width:100%;}' +
+      '#' +
+      FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow:not(.cd-edge-mount-body--layout-below) .cd-banner--overlay.cd-banner--contain-fit{width:100%;max-width:100%;}' +
       '#' +
       FRAGMENTS.topRibbon +
       '.cd-edge-mount-body--ribbon-inline .cd-banner--below .cd-banner-image,' +
@@ -378,7 +392,7 @@
     var card = ensureMountEl(
       doc,
       FRAGMENTS.contentCard,
-      'cd-edge-mount-body ContentCardContainer cd-edge-mount-body--card-below',
+      'cd-edge-mount-body ContentCardContainer',
     );
     var cardRef = resolved.findContentCardInsertAfter(doc);
     if (cardRef && cardRef.parentNode) {
@@ -419,7 +433,7 @@
     var i;
     for (i = 0; i < banners.length; i++) {
       var banner = banners[i];
-      banner.classList.remove('cd-banner--overlay', 'cd-banner--half');
+      banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--contain-fit');
       banner.classList.add('cd-banner--below');
       banner.style.removeProperty('min-height');
       var scrim = banner.querySelector('.cd-banner-scrim');
@@ -435,6 +449,73 @@
       imgs[i].style.marginLeft = 'auto';
       imgs[i].style.marginRight = 'auto';
     }
+  }
+
+  /** Generic site-clone overlay: copy centered over a contained (uncropped) image. */
+  function normalizeOverlayBanner(mount) {
+    if (!mount) return;
+    var doc = mount.ownerDocument || document;
+    var banners = mount.querySelectorAll('.cd-banner--below, .cd-banner--half, .cd-banner--overlay, .cd-banner');
+    var i;
+    for (i = 0; i < banners.length; i++) {
+      var banner = banners[i];
+      banner.classList.remove('cd-banner--below', 'cd-banner--half');
+      banner.classList.add('cd-banner--overlay', 'cd-banner--contain-fit');
+      banner.style.removeProperty('min-height');
+      banner.style.background = 'transparent';
+      if (!banner.querySelector('.cd-banner-scrim')) {
+        var scrim = doc.createElement('div');
+        scrim.className = 'cd-banner-scrim';
+        scrim.setAttribute('aria-hidden', 'true');
+        var copyEl = banner.querySelector('.cd-banner-copy');
+        if (copyEl) banner.insertBefore(scrim, copyEl);
+        else banner.appendChild(scrim);
+      } else {
+        var existingScrim = banner.querySelector('.cd-banner-scrim');
+        if (existingScrim) existingScrim.style.removeProperty('display');
+      }
+    }
+    var copy = mount.querySelector('.cd-banner-copy');
+    if (copy) {
+      copy.style.setProperty('--cd-block-justify', 'center');
+      copy.style.textAlign = 'center';
+    }
+    mount.querySelectorAll('.cd-slot--title, .cd-slot--desc, .cd-slot--cta').forEach(function (slot) {
+      slot.style.setProperty('--cd-slot-justify', 'center');
+      slot.style.setProperty('--cd-slot-align', 'center');
+    });
+    mount.querySelectorAll('.cd-banner-image, .cd-banner-figure img').forEach(function (imgEl) {
+      imgEl.style.objectFit = 'contain';
+      imgEl.style.objectPosition = 'center';
+      imgEl.style.width = '100%';
+      imgEl.style.maxWidth = '100%';
+      imgEl.style.height = 'auto';
+      imgEl.style.maxHeight = 'var(--cd-hero-img-max-height, min(42vh, 360px))';
+      imgEl.style.marginLeft = 'auto';
+      imgEl.style.marginRight = 'auto';
+    });
+  }
+
+  /** Expand [data-hero-mount] to full content / viewport width (KSIA .ksia-hero, Etihad, …). */
+  function expandHeroHostFullWidth(host) {
+    if (!host) return;
+    host.classList.add('cd-edge-hero-host-has-decision', 'cd-edge-hero-host-full-width');
+    host.style.overflow = 'visible';
+    host.style.height = 'auto';
+    host.style.width = '100%';
+    host.style.maxWidth = 'none';
+    host.style.boxSizing = 'border-box';
+  }
+
+  /** Measure native hero host height before decisioning hides siblings. */
+  function measureGenericHeroHost(host) {
+    if (!host) return null;
+    var h = host.offsetHeight || 0;
+    if (!h) {
+      var rect = host.getBoundingClientRect();
+      h = Math.round(rect.height || 0);
+    }
+    return h ? { imgHeight: h } : null;
   }
 
   /** Measure native Sky hero picture height before decisioning hides siblings. */
@@ -513,7 +594,7 @@
     var hero = doc.getElementById(FRAGMENTS.hero);
     var heroMetrics = hero && !hero.matches(':empty') ? measureSkyHeroReference(hero) : null;
     if (hero && !hero.matches(':empty')) {
-      hero.classList.add('cd-edge-mount-body--hero-flow');
+      hero.classList.add('cd-edge-mount-body--hero-flow', 'cd-edge-mount-body--layout-below');
       normalizeBannerToBelow(hero);
       hero.style.minHeight = '0';
       hero.style.maxHeight = '';
@@ -530,28 +611,33 @@
     }
   }
 
-  /** Generic site-clone demos (KSIA, Etihad, …): stacked image-above-copy, contain images, expand hero host. */
+  /** Generic site-clone demos (KSIA, Etihad, …): overlay copy on contained image; expand hero host. */
   function normalizeGenericDecisionLayouts(doc, layout) {
     if (!doc || isSkyHomeLayout(layout)) return;
     var hero = doc.getElementById(FRAGMENTS.hero);
     if (hero && !hero.matches(':empty')) {
       hero.classList.add('cd-edge-mount-body--hero-flow');
-      normalizeBannerToBelow(hero);
+      hero.classList.remove('cd-edge-mount-body--layout-below');
+      normalizeOverlayBanner(hero);
       hero.style.minHeight = '0';
       hero.style.maxHeight = '';
       hero.style.height = '';
       hero.style.overflow = 'visible';
+      hero.style.width = '100%';
+      hero.style.maxWidth = '100%';
       var host = hero.closest('[data-hero-mount]');
       if (host) {
-        host.classList.add('cd-edge-hero-host-has-decision');
-        host.style.overflow = 'visible';
-        host.style.height = 'auto';
+        expandHeroHostFullWidth(host);
+        var hostMetrics = measureGenericHeroHost(host);
+        if (hostMetrics && hostMetrics.imgHeight) {
+          hero.style.setProperty('--cd-hero-img-max-height', Math.max(40, Math.round(hostMetrics.imgHeight)) + 'px');
+        }
       }
     }
     var card = doc.getElementById(FRAGMENTS.contentCard);
     if (card && !card.matches(':empty')) {
-      card.classList.add('cd-edge-mount-body--card-below');
-      normalizeBannerToBelow(card);
+      card.classList.remove('cd-edge-mount-body--card-below');
+      normalizeOverlayBanner(card);
     }
   }
 
@@ -674,11 +760,13 @@
   function applyStyleToMount(mount, st) {
     if (!mount || !st) return;
     var isHeroFlow = mount.classList.contains('cd-edge-mount-body--hero-flow');
+    var isLayoutBelow = mount.classList.contains('cd-edge-mount-body--layout-below');
     var isCardBelow = mount.classList.contains('cd-edge-mount-body--card-below');
+    var usesStackedLayout = isLayoutBelow || isCardBelow;
     var banner = mount.querySelector('.cd-banner');
     if (banner) {
-      if (!isHeroFlow && !isCardBelow) {
-        banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
+      if (!isHeroFlow && !usesStackedLayout) {
+        banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below', 'cd-banner--contain-fit');
         banner.classList.add('cd-banner--' + (st.layoutMode || STYLE_DEFAULTS.layoutMode));
       }
       if (st.titleColor) banner.style.setProperty('--cd-title-color', String(st.titleColor));
@@ -688,7 +776,7 @@
       var nib = st.noImageBg != null && String(st.noImageBg).trim() ? String(st.noImageBg).trim() : '';
       if (nib) {
         banner.style.setProperty('--cd-no-image-bg', nib);
-        if (isHeroFlow || isCardBelow) {
+        if (isHeroFlow || usesStackedLayout) {
           banner.style.removeProperty('background-color');
           banner.style.background = 'transparent';
           var fig = banner.querySelector('.cd-banner-figure--empty');
@@ -698,7 +786,7 @@
         }
       } else {
         banner.style.removeProperty('--cd-no-image-bg');
-        if (!isHeroFlow && !isCardBelow) banner.style.removeProperty('background-color');
+        if (!isHeroFlow && !usesStackedLayout) banner.style.removeProperty('background-color');
       }
     }
     var copy = mount.querySelector('.cd-banner-copy');
@@ -734,9 +822,17 @@
       mount.style.maxHeight = '';
       mount.style.height = '';
       mount.style.overflow = '';
-      normalizeBannerToBelow(mount);
-      reapplySkyHeroMetricsFromCache(mount, st.noImageBg);
-      hideBannerCta(mount);
+      if (isLayoutBelow) {
+        normalizeBannerToBelow(mount);
+        reapplySkyHeroMetricsFromCache(mount, st.noImageBg);
+        hideBannerCta(mount);
+      } else {
+        normalizeOverlayBanner(mount);
+        mount.style.width = '100%';
+        mount.style.maxWidth = '100%';
+        var heroHost = mount.closest('[data-hero-mount]');
+        if (heroHost) expandHeroHostFullWidth(heroHost);
+      }
       return;
     }
     if (isCardBelow) {
