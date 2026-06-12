@@ -77,14 +77,53 @@
     if (pin) writePinnedToStorage(true);
   }
 
-  function closeOverlay(anchor) {
+  function closeOverlay(anchor, opts) {
+    anchor = anchor || resolveAnchor();
+    if (!anchor) return false;
+    var options = opts || {};
+    if (!options.force && isOverlayPinned(anchor)) return false;
     setExpanded(anchor, false, false);
-    writePinnedToStorage(false);
+    if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
+    return true;
+  }
+
+  /** @type {HTMLElement|null} */
+  var activeAnchor = null;
+
+  function resolveAnchor() {
+    if (activeAnchor && document.contains(activeAnchor)) return activeAnchor;
+    var mount = document.querySelector('[data-demo-env-strip-mount]');
+    activeAnchor = findTopAnchor(mount);
+    return activeAnchor;
+  }
+
+  function isOverlayPinned(anchor) {
+    anchor = anchor || resolveAnchor();
+    return !!(anchor && anchor.classList.contains('lab-env-top-anchor--pinned')) || readPinnedFromStorage();
+  }
+
+  function openOverlayPublic(opts) {
+    var anchor = resolveAnchor();
+    if (!anchor) return false;
+    var options = opts || {};
+    var pin = options.pinned != null ? !!options.pinned : isOverlayPinned(anchor);
+    openOverlay(anchor, pin);
+    return true;
+  }
+
+  function closeOverlayPublic(opts) {
+    return closeOverlay(resolveAnchor(), opts);
+  }
+
+  function isOverlayOpenPublic() {
+    var anchor = resolveAnchor();
+    return anchor ? isOverlayOpen(anchor) : false;
   }
 
   function toggleOverlay(anchor) {
     if (anchor.classList.contains('lab-env-top-anchor--pinned')) {
-      closeOverlay(anchor);
+      closeOverlay(anchor, { force: true });
+      writePinnedToStorage(false);
       return;
     }
     if (isOverlayOpen(anchor)) closeOverlay(anchor);
@@ -95,6 +134,7 @@
     var mount = document.querySelector('[data-demo-env-strip-mount]');
     var anchor = findTopAnchor(mount);
     if (!anchor || anchor.getAttribute('data-lab-env-compact-init') === '1') return;
+    activeAnchor = anchor;
     anchor.classList.add('lab-env-top-anchor');
     anchor.setAttribute('data-lab-env-compact-init', '1');
     anchor.setAttribute('aria-expanded', 'false');
@@ -120,7 +160,7 @@
         ev.stopPropagation();
         var pinned = !anchor.classList.contains('lab-env-top-anchor--pinned');
         if (pinned) openOverlay(anchor, true);
-        else closeOverlay(anchor);
+        else closeOverlay(anchor, { force: true });
         writePinnedToStorage(pinned);
       });
     }
@@ -163,7 +203,22 @@
     });
   }
 
-  global.EnvBarCompact = { init: init };
+  global.addEventListener('aep-demo-env-configured', function () {
+    closeOverlayPublic();
+  });
+
+  global.addEventListener('aep-demo-env-overlay-open', function (ev) {
+    var detail = ev && ev.detail;
+    openOverlayPublic(detail && typeof detail === 'object' ? detail : {});
+  });
+
+  global.EnvBarCompact = {
+    init: init,
+    openOverlay: openOverlayPublic,
+    closeOverlay: closeOverlayPublic,
+    isOpen: isOverlayOpenPublic,
+    isPinned: isOverlayPinned,
+  };
 
   global.addEventListener('aep-demo-env-strip-mounted', function () {
     init();

@@ -39,6 +39,31 @@
 
     var PINNED = 'aep-demo-env-section--pinned-open';
 
+    function hasCompactToolbarOverlay() {
+      var anchor =
+        sec.closest('.lab-env-top-anchor') ||
+        sec.closest('[class*="-demo-top-anchor"]') ||
+        (function () {
+          var mount = document.querySelector('[data-demo-env-strip-mount]');
+          return mount
+            ? mount.closest('.lab-env-top-anchor') || mount.closest('[class*="-demo-top-anchor"]')
+            : null;
+        })();
+      return !!(anchor && anchor.querySelector('.lab-env-overlay-panel'));
+    }
+
+    function requestOverlayOpen() {
+      if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+        global.EnvBarCompact.openOverlay();
+        return;
+      }
+      try {
+        global.dispatchEvent(new CustomEvent('aep-demo-env-overlay-open'));
+      } catch (e0) {
+        /* noop */
+      }
+    }
+
     function sandboxLabel() {
       var v = '';
       try {
@@ -97,7 +122,11 @@
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
         collapseEl.setAttribute('hidden', '');
-        compact.removeAttribute('hidden');
+        if (hasCompactToolbarOverlay()) {
+          compact.setAttribute('hidden', '');
+        } else {
+          compact.removeAttribute('hidden');
+        }
         if (compactText) {
           compactText.textContent = 'Sandbox: ' + sandboxLabel() + ' \u00b7 Tags: ' + scriptShort();
         }
@@ -114,7 +143,17 @@
 
     if (expandBtn) {
       expandBtn.addEventListener('click', function () {
+        if (fieldsEl) fieldsEl.hidden = false;
+        if (summaryEl) summaryEl.hidden = true;
         sec.classList.add(PINNED);
+        requestOverlayOpen();
+        try {
+          global.dispatchEvent(
+            new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: true } })
+          );
+        } catch (e4) {
+          /* noop */
+        }
         scheduleRefresh();
         try {
           if (sandboxSelect && typeof sandboxSelect.focus === 'function') sandboxSelect.focus();
@@ -154,6 +193,11 @@
     }
 
     scheduleRefresh();
+    if (hasCompactToolbarOverlay() && launchScriptNotSet()) {
+      global.requestAnimationFrame(function () {
+        requestOverlayOpen();
+      });
+    }
   }
 
   global.AepDemoEnvBar = {

@@ -619,7 +619,22 @@
         global.dispatchEvent(
           new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: !!expanded } })
         );
+        if (!expanded) {
+          global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
+        }
       } catch (e) {
+        /* noop */
+      }
+    }
+
+    function requestEnvOverlayOpen() {
+      if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+        global.EnvBarCompact.openOverlay();
+        return;
+      }
+      try {
+        global.dispatchEvent(new CustomEvent('aep-demo-env-overlay-open'));
+      } catch (_e) {
         /* noop */
       }
     }
@@ -1311,6 +1326,7 @@
           markSdkConfiguredForSandbox(false);
           clearLastResolvedEcidForSandbox();
           setSdkConfigExpanded(true);
+          requestEnvOverlayOpen();
           setMessage('SDK config reopened for this sandbox.', '');
         });
       }

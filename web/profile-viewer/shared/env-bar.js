@@ -23,11 +23,11 @@
       demoEnvStripSpectrum: '20260623-spectrum',
       demoEnvStrip: '20260623-spectrum',
       spectrumSync: '20260623-spectrum',
-      compactJs: '20260612-env-compact-b',
-      compactCss: '20260612-env-compact-b',
+      compactJs: '20260624-compact-p3',
+      compactCss: '20260624-compact-p2',
       bootstrap: '20260602-env-bar-bootstrap',
-      tagsInjection: '20260605-tags-sandbox-restore',
-      aepDemoEnvBar: '20260601-launch-unset-expand',
+      tagsInjection: '20260624-tags-overlay-close',
+      aepDemoEnvBar: '20260624-env-bar-collapse-p3',
       siteCloneBcEnv: '20260612-strip-dom-defer',
     },
   };
@@ -543,6 +543,25 @@
     };
   }
 
+  function openEnvOverlay(opts) {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+      return global.EnvBarCompact.openOverlay(opts);
+    }
+    try {
+      global.dispatchEvent(new CustomEvent('aep-demo-env-overlay-open', { detail: opts || {} }));
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function closeEnvOverlay(opts) {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.closeOverlay === 'function') {
+      return global.EnvBarCompact.closeOverlay(opts);
+    }
+    return false;
+  }
+
   /**
    * Resolves when env bar init completes (strip mounted, Tags stack loaded, bootstrap done).
    * Kicks off init when demo lab-core runs before DOMContentLoaded autoInit (Tags boot race).
@@ -583,6 +602,8 @@
     getConfig: getConfig,
     onChange: onChange,
     registerTagsInjection: registerTagsInjection,
+    openOverlay: openEnvOverlay,
+    closeOverlay: closeEnvOverlay,
   };
 
   scheduleAutoInit();
