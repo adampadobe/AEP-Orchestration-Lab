@@ -17,7 +17,15 @@
 
   function findTopAnchor(mount) {
     if (!mount) return null;
-    return mount.closest('.mod-demo-top-anchor') || mount.closest('[class$="-demo-top-anchor"]');
+    return (
+      mount.closest('.lab-env-top-anchor') ||
+      mount.closest('.mod-demo-top-anchor') ||
+      mount.closest('[class*="-demo-top-anchor"]')
+    );
+  }
+
+  function isInteractiveToolbarTarget(node) {
+    return !!(node && node.closest && node.closest('button, a, select, input, textarea, label, [role="button"]'));
   }
 
   function setExpanded(anchor, expanded, pinned) {
@@ -87,8 +95,12 @@
     var mount = document.querySelector('[data-demo-env-strip-mount]');
     var anchor = findTopAnchor(mount);
     if (!anchor || anchor.getAttribute('data-lab-env-compact-init') === '1') return;
+    anchor.classList.add('lab-env-top-anchor');
     anchor.setAttribute('data-lab-env-compact-init', '1');
     anchor.setAttribute('aria-expanded', 'false');
+
+    var banner = anchor.querySelector('[class*="-demo-id-banner"]') || anchor.querySelector('.mod-demo-id-banner');
+    if (banner) banner.classList.add('lab-env-id-banner');
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
 
@@ -117,6 +129,17 @@
     if (expandBtn) {
       expandBtn.addEventListener('click', function () {
         openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
+      });
+    }
+
+    var toolbar = anchor.querySelector('.lab-env-toolbar');
+    if (toolbar) {
+      toolbar.addEventListener('click', function (ev) {
+        if (isInteractiveToolbarTarget(ev.target)) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (isOverlayOpen(anchor)) closeOverlay(anchor);
+        else openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
       });
     }
 

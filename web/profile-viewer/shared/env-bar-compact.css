@@ -7,7 +7,7 @@
  */
 
 .mod-demo-top-anchor,
-[class$='-demo-top-anchor'] {
+[class*='-demo-top-anchor'] {
   --env-bar-height: 3rem;
   --lab-env-overlay-max: 70vh;
   position: fixed;
@@ -20,12 +20,12 @@
 }
 
 .mod-demo-top-anchor::before,
-[class$='-demo-top-anchor']::before {
+[class*='-demo-top-anchor']::before {
   display: none;
 }
 
 .mod-demo-id-banner,
-[class$='-demo-id-banner'] {
+[class*='-demo-id-banner'] {
   pointer-events: auto;
   position: relative;
   height: var(--env-bar-height);
@@ -40,9 +40,9 @@
 }
 
 html[data-aep-theme='dark'] .mod-demo-id-banner,
-html[data-aep-theme='dark'] [class$='-demo-id-banner'],
+html[data-aep-theme='dark'] [class*='-demo-id-banner'],
 html[data-aep-theme='dark'] .mod-demo-id-inner,
-html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
+html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   --dash-bg: var(--dash-surface-alt, #f4f6f8);
   --dash-surface: #ffffff;
   --dash-surface-alt: #f8f9fa;
@@ -63,7 +63,7 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 /* ── Overlay backdrop ─────────────────────────────────────────── */
 .mod-demo-top-anchor::after,
-[class$='-demo-top-anchor']::after {
+[class*='-demo-top-anchor']::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -78,8 +78,8 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded::after,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned::after,
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded::after,
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned::after {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded::after,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned::after {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -109,8 +109,8 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-overlay-panel {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-overlay-panel {
   max-height: var(--lab-env-overlay-max);
   overflow-x: hidden;
   overflow-y: auto;
@@ -122,8 +122,8 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned,
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded,
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned {
   box-shadow: var(--dash-shadow);
 }
 
@@ -136,6 +136,7 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
   min-height: var(--env-bar-height);
   max-height: var(--env-bar-height);
   align-items: center;
+  cursor: pointer;
 }
 
 .lab-env-toolbar__brand {
@@ -248,12 +249,18 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
   white-space: nowrap;
 }
 
+.lab-env-toolbar__actions {
+  position: relative;
+  z-index: 2;
+}
+
 .lab-env-toggle-btn,
 .lab-env-pin-btn {
   flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  min-width: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0;
 }
 
@@ -279,7 +286,7 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 .mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
   .lab-env-overlay-panel:not([hidden]),
-[class$='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
   .lab-env-overlay-panel:not([hidden]) {
   display: none;
 }
@@ -291,25 +298,25 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden] {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden] {
   display: block !important;
 }
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact,
-[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
-[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact {
   display: none !important;
 }
 
 /* Legacy non-spectrum: keep peek fallback when no overlay panel */
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)) .mod-demo-id-banner,
-[class$='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)) [class$='-demo-id-banner'] {
+[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)) [class*='-demo-id-banner'] {
   transform: translateY(calc(-100% + var(--env-bar-height, 3rem)));
   max-height: var(--env-bar-height, 3rem);
   overflow: hidden;
@@ -320,10 +327,10 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)):focus-within .mod-demo-id-banner,
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded .mod-demo-id-banner,
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned .mod-demo-id-banner,
-[class$='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):hover [class$='-demo-id-banner'],
-[class$='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):focus-within [class$='-demo-id-banner'],
-[class$='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded [class$='-demo-id-banner'],
-[class$='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned [class$='-demo-id-banner'] {
+[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):hover [class*='-demo-id-banner'],
+[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):focus-within [class*='-demo-id-banner'],
+[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
   transform: translateY(0);
   max-height: min(var(--lab-env-overlay-max, 70vh), 960px);
   overflow-y: auto;
@@ -331,7 +338,7 @@ html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
 
 @media (max-width: 48rem) {
   .mod-demo-top-anchor,
-  [class$='-demo-top-anchor'] {
+  [class*='-demo-top-anchor'] {
     --env-bar-height: 3.25rem;
   }
 
