@@ -91,7 +91,38 @@
       out.siteCloneBcRefreshed = true;
     }
 
+    initCompactDropdown();
+
     return out;
+  }
+
+  function detectBootstrapBasePath() {
+    var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      var src = scripts[i].getAttribute('src') || '';
+      if (src.indexOf('shared/demo-env-bar-bootstrap.js') !== -1) {
+        return src.slice(0, src.indexOf('shared/demo-env-bar-bootstrap.js'));
+      }
+    }
+    return '';
+  }
+
+  function initCompactDropdown() {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.init === 'function') {
+      global.EnvBarCompact.init();
+      return;
+    }
+    var base = detectBootstrapBasePath();
+    var src = base + 'shared/env-bar-compact.js?v=20260612-env-compact';
+    if (document.querySelector('script[src="' + src + '"]')) return;
+    var script = document.createElement('script');
+    script.src = src;
+    script.onload = function () {
+      if (global.EnvBarCompact && typeof global.EnvBarCompact.init === 'function') {
+        global.EnvBarCompact.init();
+      }
+    };
+    (document.body || document.head).appendChild(script);
   }
 
   initLabDemoEnvBar.CACHE_BUST = CACHE_BUST;

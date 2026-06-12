@@ -54,7 +54,7 @@ window.envBar.registerTagsInjection(tags);
 | Method | Description |
 |--------|-------------|
 | `init(config?)` | Load manifest, CSS, script chain; call `initLabDemoEnvBar`. Returns `Promise`. |
-| `ready()` | Promise resolved when init completes (no-op if not started). |
+| `ready()` | Promise that resolves when init completes; starts `init()` if autoInit has not run yet (avoids Tags boot race when lab-core runs before `DOMContentLoaded`). |
 | `setEnvironment(sandbox)` | Set `AepGlobalSandbox` + `#sandboxSelect`; reapplies Tags/BC state. |
 | `reloadSDK()` | Clicks `{prefix}InjectSdkBtn` — existing reload-based inject flow. |
 | `getConfig()` | Shallow copy of active config. |
@@ -94,7 +94,8 @@ Edit **`shared/env-bar-versions.json`** only when bumping env bar assets:
     "demoEnvStrip": "20260623-spectrum",
     "bootstrap": "20260602-env-bar-bootstrap",
     "tagsInjection": "20260605-tags-sandbox-restore",
-    "aepDemoEnvBar": "20260601-launch-unset-expand"
+    "aepDemoEnvBar": "20260601-launch-unset-expand",
+    "siteCloneBcEnv": "20260612-strip-dom-defer"
   }
 }
 ```

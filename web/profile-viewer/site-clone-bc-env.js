@@ -103,7 +103,40 @@
   let sandboxEnvSwitching = false;
   let datastreamLoadGen = 0;
 
-  const webPushOnInjectToggle = document.getElementById(env().webPushToggleId || '');
+  /** Strip fields mount async via shared/env-bar.js — refresh refs after aep-demo-env-strip-mounted. */
+  let webPushOnInjectToggle = null;
+  let bcOnInjectToggle = null;
+  let bcStyleSelect = null;
+  let siteCloneBcStyleConfigUrl = null;
+  let siteCloneBcFullScreenToggle = null;
+  let siteCloneBcModalToggle = null;
+  let siteCloneBcInjectedToggle = null;
+  let siteCloneBcBottomDockToggle = null;
+  let siteCloneDecisioningEnabledToggle = null;
+  let stripDomListenersBound = false;
+
+  function refreshStripDomRefs() {
+    webPushOnInjectToggle = document.getElementById(env().webPushToggleId || '');
+    bcOnInjectToggle = document.getElementById(env().bcOnInjectToggleId || '');
+    bcStyleSelect = document.getElementById(env().bcStyleSelectId || '');
+    siteCloneBcStyleConfigUrl = document.getElementById('siteCloneBcStyleConfigUrl');
+    siteCloneBcFullScreenToggle = document.getElementById('siteCloneBcFullScreenToggle');
+    siteCloneBcModalToggle = document.getElementById('siteCloneBcModalToggle');
+    siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
+    siteCloneBcBottomDockToggle = document.getElementById('siteCloneBcBottomDockToggle');
+    siteCloneDecisioningEnabledToggle = document.getElementById('siteCloneDecisioningEnabledToggle');
+  }
+
+  function stripDomIsMounted() {
+    refreshStripDomRefs();
+    return !!(
+      siteCloneBcStyleConfigUrl ||
+      siteCloneBcDatastreamEl() ||
+      webPushOnInjectToggle ||
+      bcOnInjectToggle ||
+      siteCloneBcFullScreenToggle
+    );
+  }
 
   function readWebPushOnInject() {
     migrateLegacyScalar(webPushBySandboxKey(), webPushLegacyKey());
@@ -120,16 +153,6 @@
     if (!webPushOnInjectToggle) return;
     webPushOnInjectToggle.checked = readWebPushOnInject();
   }
-
-  if (webPushOnInjectToggle && typeof env().applyWebPushToggle !== 'function') {
-    applyWebPushOnInjectToggle();
-    webPushOnInjectToggle.addEventListener('change', function () {
-      writeWebPushOnInject(!!webPushOnInjectToggle.checked);
-    });
-  }
-
-  const bcOnInjectToggle = document.getElementById(env().bcOnInjectToggleId || '');
-  const bcStyleSelect = document.getElementById(env().bcStyleSelectId || '');
 
   function applyBcOnInjectPrefs() {
     if (!bcOnInjectToggle) return;
@@ -150,17 +173,9 @@
     );
   }
 
-  (function initBcOnInjectToggle() {
-    if (!bcOnInjectToggle) return;
-    applyBcOnInjectPrefs();
-    bcOnInjectToggle.addEventListener('change', saveBcOnInjectPrefs);
-    if (bcStyleSelect) bcStyleSelect.addEventListener('change', saveBcOnInjectPrefs);
-  })();
-
 const SC_BC_STYLE_URL_BY_SANDBOX_KEY = 'siteCloneBcStyleConfigUrlBySandbox';
 const SC_BC_STYLE_URL_LEGACY_SCALAR = 'siteCloneBcStyleConfigUrl';
 const SC_BC_DEFAULT_STYLE_URL = 'embed-bc/styleConfigurations-6a0992.js';
-const siteCloneBcStyleConfigUrl = document.getElementById('siteCloneBcStyleConfigUrl');
 
 /** @type {Array<{ relPath: string, cdnUrl: string }>} */
 let siteCloneBcStyleConfigOptions = [];
@@ -601,11 +616,6 @@ window.SiteCloneBcConfig = {
 };
 
 // Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
-const siteCloneBcFullScreenToggle = document.getElementById('siteCloneBcFullScreenToggle');
-const siteCloneBcModalToggle = document.getElementById('siteCloneBcModalToggle');
-const siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
-const siteCloneBcBottomDockToggle = document.getElementById('siteCloneBcBottomDockToggle');
-const siteCloneDecisioningEnabledToggle = document.getElementById('siteCloneDecisioningEnabledToggle');
 const SC_BC_PREFS_BY_SANDBOX_KEY = 'siteCloneBcDisplayPrefsBySandbox';
 const SC_BC_PREFS_KEY = 'siteCloneBcDisplayPrefs';
 const SC_DECISIONING_PREFS_BY_SANDBOX_KEY = 'siteCloneDecisioningPrefsBySandbox';
@@ -713,9 +723,32 @@ function syncSiteCloneBcFromPrefs() {
   }
 }
 
-(function initSiteCloneBcDisplayPrefs() {
+function bindStripDomListenersOnce() {
+  if (stripDomListenersBound) return;
+  refreshStripDomRefs();
+  if (!stripDomIsMounted()) return;
+  stripDomListenersBound = true;
+
+  if (webPushOnInjectToggle && typeof env().applyWebPushToggle !== 'function') {
+    applyWebPushOnInjectToggle();
+    webPushOnInjectToggle.addEventListener('change', function () {
+      writeWebPushOnInject(!!webPushOnInjectToggle.checked);
+    });
+  }
+
+  if (bcOnInjectToggle) {
+    applyBcOnInjectPrefs();
+    bcOnInjectToggle.addEventListener('change', saveBcOnInjectPrefs);
+    if (bcStyleSelect) bcStyleSelect.addEventListener('change', saveBcOnInjectPrefs);
+  }
+
   applySiteCloneBcDisplayPrefsToUi();
-  var bcToggles = [siteCloneBcFullScreenToggle, siteCloneBcModalToggle, siteCloneBcInjectedToggle, siteCloneBcBottomDockToggle];
+  var bcToggles = [
+    siteCloneBcFullScreenToggle,
+    siteCloneBcModalToggle,
+    siteCloneBcInjectedToggle,
+    siteCloneBcBottomDockToggle,
+  ];
   bcToggles.forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
@@ -751,32 +784,31 @@ function syncSiteCloneBcFromPrefs() {
     });
   }
   saveSiteCloneBcDisplayPrefs();
-})();
 
-(function initSiteCloneBcStyleConfigUrl() {
-  if (!siteCloneBcStyleConfigUrl) return;
-  applySiteCloneBcStyleConfigFieldForSandbox();
-  function onStyleUrlChange() {
-    saveSiteCloneBcStyleConfigUrl();
-    invalidateSiteCloneBcCore();
-    syncSiteCloneBcFromPrefs();
+  if (siteCloneBcStyleConfigUrl) {
+    applySiteCloneBcStyleConfigFieldForSandbox();
+    function onStyleUrlChange() {
+      saveSiteCloneBcStyleConfigUrl();
+      invalidateSiteCloneBcCore();
+      syncSiteCloneBcFromPrefs();
+    }
+    if (siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
+      siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+    } else {
+      siteCloneBcStyleConfigUrl.addEventListener('input', function () {
+        if (sandboxEnvSwitching) return;
+        writeSandboxString(
+          SC_BC_STYLE_URL_BY_SANDBOX_KEY,
+          sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
+        );
+        refreshSiteCloneBcStyleUrlHints();
+      });
+      siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
+      siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
+    }
+    refreshSiteCloneBcStyleUrlHints();
   }
-  if (siteCloneBcStyleConfigUrl.tagName === 'SELECT') {
-    siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
-  } else {
-    siteCloneBcStyleConfigUrl.addEventListener('input', function () {
-      if (sandboxEnvSwitching) return;
-      writeSandboxString(
-        SC_BC_STYLE_URL_BY_SANDBOX_KEY,
-        sanitiseSiteCloneBcStyleConfigUrl(siteCloneBcStyleConfigUrl.value),
-      );
-      refreshSiteCloneBcStyleUrlHints();
-    });
-    siteCloneBcStyleConfigUrl.addEventListener('change', onStyleUrlChange);
-    siteCloneBcStyleConfigUrl.addEventListener('blur', onStyleUrlChange);
-  }
-  refreshSiteCloneBcStyleUrlHints();
-})();
+}
 
 let siteCloneBcDatastreamPickerBooted = false;
 
@@ -838,6 +870,8 @@ function bootSiteCloneBcDatastreamPicker() {
   }
 
   function applyEnvForCurrentSandbox() {
+    refreshStripDomRefs();
+    bindStripDomListenersOnce();
     bootSiteCloneBcDatastreamPicker();
     if (typeof env().applyWebPushToggle === 'function') env().applyWebPushToggle();
     else applyWebPushOnInjectToggle();
@@ -862,6 +896,25 @@ function bootSiteCloneBcDatastreamPicker() {
     envSandboxKey = getSandboxKey();
   }
 
+  function bootStripDomWhenReady() {
+    if (!stripDomIsMounted()) return false;
+    bindStripDomListenersOnce();
+    applyEnvForCurrentSandbox();
+    return true;
+  }
+
+  function scheduleStripDomBoot() {
+    if (bootStripDomWhenReady()) return;
+    function onStripReady() {
+      if (bootStripDomWhenReady()) {
+        document.removeEventListener('DOMContentLoaded', onStripReady);
+        global.removeEventListener('aep-demo-env-strip-mounted', onStripReady);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', onStripReady);
+    global.addEventListener('aep-demo-env-strip-mounted', onStripReady);
+  }
+
   global.addEventListener('aep-global-sandbox-change', function () {
     sandboxEnvSwitching = true;
     try {
@@ -874,15 +927,7 @@ function bootSiteCloneBcDatastreamPicker() {
   });
 
   envSandboxKey = getSandboxKey();
-  applyEnvForCurrentSandbox();
-
-  if (!siteCloneBcDatastreamEl()) {
-    global.addEventListener('aep-demo-env-strip-mounted', function onDemoEnvStripMounted() {
-      if (!bootSiteCloneBcDatastreamPicker()) return;
-      applySiteCloneBcDatastreamFieldForSandbox();
-      void loadSiteCloneBcDatastreams();
-    });
-  }
+  scheduleStripDomBoot();
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,

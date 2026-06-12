@@ -28,6 +28,7 @@
       bootstrap: '20260602-env-bar-bootstrap',
       tagsInjection: '20260605-tags-sandbox-restore',
       aepDemoEnvBar: '20260601-launch-unset-expand',
+      siteCloneBcEnv: '20260612-strip-dom-defer',
     },
   };
 
@@ -347,6 +348,27 @@
   }
 
   /**
+   * Load site-clone-bc-env.js after strip mount (BC style hosting + datastream pickers need DOM).
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadSiteCloneBcEnv(versions, cfg) {
+    if (cfg.features && cfg.features.bc === false) return Promise.resolve();
+    var refresh = function () {
+      if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {
+        global.SiteCloneBcEnv.applyForCurrentSandbox();
+        log('SiteCloneBcEnv refreshed after strip mount');
+      }
+    };
+    if (document.querySelector('script[src*="site-clone-bc-env.js"]')) {
+      return Promise.resolve().then(refresh);
+    }
+    var a = versions.assets;
+    var src = assetUrl('site-clone-bc-env.js', a.siteCloneBcEnv || '20260612-strip-dom-defer');
+    return loadScript(src).then(refresh);
+  }
+
+  /**
    * Optionally load demo lab-core script after env bar stack is ready.
    * @param {EnvBarConfig} cfg
    */
@@ -385,6 +407,11 @@
       })
       .then(function () {
         var result = runBootstrap(state.config);
+        return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
+          return result;
+        });
+      })
+      .then(function (result) {
         initSpectrumSync(state.config);
         initCompactDropdown(state.config);
         applyDefaultSandbox(state.config);
@@ -499,9 +526,15 @@
     };
   }
 
-  /** @returns {Promise<void>} */
+  /**
+   * Resolves when env bar init completes (strip mounted, Tags stack loaded, bootstrap done).
+   * Kicks off init when demo lab-core runs before DOMContentLoaded autoInit (Tags boot race).
+   * @returns {Promise<void>}
+   */
   function ready() {
-    return state.initPromise || Promise.resolve();
+    if (state.initialized) return Promise.resolve();
+    if (state.initPromise) return state.initPromise;
+    return init();
   }
 
   function scheduleAutoInit() {

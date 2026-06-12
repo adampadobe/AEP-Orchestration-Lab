@@ -11,6 +11,7 @@
     "compactCss": "20260612-env-compact",
     "bootstrap": "20260602-env-bar-bootstrap",
     "tagsInjection": "20260605-tags-sandbox-restore",
-    "aepDemoEnvBar": "20260601-launch-unset-expand"
+    "aepDemoEnvBar": "20260601-launch-unset-expand",
+    "siteCloneBcEnv": "20260612-strip-dom-defer"
   }
 }
