@@ -169,13 +169,6 @@
         }
         setRaceMessage('Looking up profile...', '');
         const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
-        if (ok && typeof RaceForLifeAjo !== 'undefined' && typeof RaceForLifeAjo.refreshFromProfile === 'function') {
-          const ns =
-            typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function'
-              ? AepIdentityPicker.getNamespace('customerEmail')
-              : 'email';
-          void RaceForLifeAjo.refreshFromProfile(DemoProfileDrawer.getLastLookedUpProfile(), email, ns);
-        }
         if (ok && raceTagsInjection && typeof raceTagsInjection.stitchAfterProfileLookup === 'function') {
           const profile =
             window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
