@@ -31,7 +31,7 @@
 .bc-bottom-dock__dock {
   display: flex;
   align-items: stretch;
-  min-height: 13rem;
+  min-height: 3.25rem;
   border: 1px solid var(--bc-bottom-dock-border);
   border-radius: 999px;
   background: var(--bc-bottom-dock-surface);
@@ -79,7 +79,6 @@
 
 .bc-bottom-dock__dock-input {
   width: 100%;
-  min-height: 3.25rem;
   border: none;
   background: transparent;
   font-size: 0.92rem;
@@ -90,54 +89,6 @@
   padding: 0;
   margin: 0;
   align-self: center;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount {
-  --input-height: 13rem;
-  --input-height-mobile: 13rem;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount .input-section {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount .input-container {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  min-height: 13rem;
-  height: var(--input-height, 13rem);
-  margin-bottom: 2.75rem;
-  padding: 0.75rem 1rem;
-  box-sizing: border-box;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount textarea,
-.bc-bottom-dock__mount #brand-concierge-mount input[type='text'],
-.bc-bottom-dock__mount #brand-concierge-mount [contenteditable='true'],
-.bc-bottom-dock__mount #brand-concierge-mount .message-input {
-  flex: 1 1 auto;
-  align-self: center;
-  min-height: 2.75rem;
-  max-height: none;
-  line-height: 1.45;
-  padding: 0.35rem 0;
-  margin: 0;
-  border: none;
-  background: transparent;
-  resize: none;
-  vertical-align: middle;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount textarea::placeholder,
-.bc-bottom-dock__mount #brand-concierge-mount input[type='text']::placeholder {
-  line-height: 1.45;
-  opacity: 1;
-  color: var(--dash-muted);
 }
 
 .bc-bottom-dock__dock-input::placeholder {
@@ -171,7 +122,7 @@
   background: var(--bc-bottom-dock-surface);
   box-shadow: var(--bc-bottom-dock-shadow);
   overflow: hidden;
-  max-height: min(70vh, 540px);
+  max-height: min(85vh, 720px);
 }
 
 .bc-bottom-dock.is-expanded .bc-bottom-dock__panel {
@@ -230,13 +181,13 @@
 
 .bc-bottom-dock__panel-body {
   flex: 1 1 auto;
-  min-height: 320px;
+  min-height: 640px;
   overflow: auto;
   position: relative;
 }
 
 .bc-bottom-dock__mount {
-  min-height: 320px;
+  min-height: 640px;
 }
 
 .bc-bottom-dock__panel-footer {

@@ -6,11 +6,13 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260614';
+  var CACHE_BUST = '20260615';
 
   var config = null;
   var lastUpsClientData = null;
   var lastProfileEcid = '';
+  var labConfigRecord = null;
+  var labConfigLoadPromise = null;
 
   function log() {
     try {
@@ -122,10 +124,55 @@
 
   function buildSurfacesForPage() {
     if (typeof global.CdEdgeMounts === 'undefined') return [];
+    if (
+      labConfigRecord &&
+      labConfigRecord.targetPageUrl &&
+      typeof global.CdEdgeMounts.buildSurfacesFromPageUrl === 'function'
+    ) {
+      return global.CdEdgeMounts.buildSurfacesFromPageUrl(labConfigRecord.targetPageUrl);
+    }
     if (typeof global.CdEdgeMounts.buildSurfacesForEdgeLabPage === 'function') {
       return global.CdEdgeMounts.buildSurfacesForEdgeLabPage();
     }
     return [];
+  }
+
+  async function loadLabConfig() {
+    if (typeof global.CdLabConfigApi === 'undefined' || typeof global.CdLabConfigApi.fetchDecisionLabConfig !== 'function') {
+      return null;
+    }
+    try {
+      var data = await global.CdLabConfigApi.fetchDecisionLabConfig();
+      if (data && data.ok && data.record) {
+        labConfigRecord = data.record;
+        if (labConfigRecord.placements && typeof global.CdEdgeMounts !== 'undefined' && global.CdEdgeMounts.setPlacements) {
+          global.CdEdgeMounts.setPlacements(labConfigRecord.placements);
+        }
+        log('loadLabConfig', 'ok');
+        return labConfigRecord;
+      }
+    } catch (e) {
+      log('loadLabConfig', String(e && e.message ? e.message : e));
+    }
+    return null;
+  }
+
+  function ensureLabConfigLoaded() {
+    if (!labConfigLoadPromise) labConfigLoadPromise = loadLabConfig();
+    return labConfigLoadPromise;
+  }
+
+  function wireIframeMountRetries() {
+    var frame = getFrame();
+    if (!frame || frame.getAttribute('data-decisioning-mount-wired') === '1') return;
+    frame.setAttribute('data-decisioning-mount-wired', '1');
+    var onReady = function () {
+      if (isEnabled()) ensureMounts();
+    };
+    try {
+      if (frame.contentDocument && frame.contentDocument.body) onReady();
+    } catch (_e) {}
+    frame.addEventListener('load', onReady);
   }
 
   async function waitForAlloy(maxMs) {
@@ -145,11 +192,15 @@
     var inject = global.DecisioningEdgeInject;
     if (!inject) return;
     var layout = mountLayout();
-    inject.applyDecisioningPropositions(propositions, iframeDoc, { layout: layout });
+    inject.applyDecisioningPropositions(propositions, iframeDoc, {
+      layout: layout,
+      surfaceStyles: labConfigRecord && labConfigRecord.surfaceStyles,
+    });
   }
 
   async function runContentDecision() {
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
+    await ensureLabConfigLoaded();
     ensureMounts();
     var ok = await runProfileLookup({ silent: true });
     if (!ok) throw new Error('Profile lookup failed — enter an identifier and look up profile first.');
@@ -220,6 +271,14 @@
 
   function init(options) {
     config = options || {};
+    wireIframeMountRetries();
+    labConfigLoadPromise = loadLabConfig();
+    try {
+      global.addEventListener('aep-global-sandbox-change', function () {
+        labConfigRecord = null;
+        labConfigLoadPromise = loadLabConfig();
+      });
+    } catch (_e) {}
     if (isEnabled()) ensureMounts();
     else removeMounts();
     return getApi();
