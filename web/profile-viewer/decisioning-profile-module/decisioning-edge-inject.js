@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260615';
+  var CACHE_BUST = '20260616';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -101,14 +101,38 @@
     return LAYOUT_PRESETS.generic;
   }
 
+  function ribbonMountClass(resolved) {
+    if (resolved && resolved.insertRibbonAtBodyStart) {
+      return 'cd-edge-mount-body cd-edge-mount-body--ribbon-inline';
+    }
+    return 'cd-edge-mount-body cd-edge-mount-body--ribbon-fixed';
+  }
+
   function mountStylesCss() {
     return (
       '#' +
       FRAGMENTS.topRibbon +
-      '{position:sticky;top:0;z-index:120;width:100%;box-sizing:border-box;}' +
+      '{position:relative;width:100%;box-sizing:border-box;z-index:1;}' +
       '#' +
       FRAGMENTS.topRibbon +
       ':empty{display:none;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline{padding:0;margin:0;min-height:0;overflow:visible;background:transparent;border:none;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline .TopRibbon{width:100%;box-sizing:border-box;}' +
+      '.TopRibbon__content{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:0.35rem;padding:0.35rem 0.75rem;text-align:center;box-sizing:border-box;}' +
+      '.TopRibbon__image{flex:0 0 auto;max-height:2.25rem;width:auto;object-fit:contain;vertical-align:middle;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline .cd-banner.cd-banner--overlay{min-height:0!important;max-height:none;flex-direction:row;align-items:center;justify-content:center;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline .cd-banner--overlay .cd-banner-copy{flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:0.35rem;min-height:0!important;max-height:none;padding:0.35rem 0.75rem!important;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline .cd-banner-image{flex:0 0 auto;max-height:2.25rem;max-width:5rem;width:auto;object-fit:contain;}' +
       '#' +
       FRAGMENTS.topRibbon +
       '.cd-edge-mount-body--ribbon-fixed{min-height:8rem;padding:0.2rem 0.65rem;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;}' +
@@ -203,6 +227,18 @@
     parent.appendChild(node);
   }
 
+  function normalizeTopRibbonMount(mount) {
+    if (!mount) return;
+    if (mount.querySelector('.TopRibbon__content, .TopRibbon')) {
+      mount.classList.add('cd-edge-mount-body--ribbon-inline');
+      mount.classList.remove('cd-edge-mount-body--ribbon-fixed');
+      mount.style.removeProperty('height');
+      mount.style.removeProperty('max-height');
+      mount.style.removeProperty('min-height');
+      mount.style.removeProperty('overflow');
+    }
+  }
+
   /**
    * Ensure AJO fragment mounts exist in target document (iframe or host page).
    * @param {Document} doc
@@ -213,11 +249,7 @@
     var resolved = resolveLayout(layout);
     ensureMountStyles(doc);
 
-    var ribbon = ensureMountEl(
-      doc,
-      FRAGMENTS.topRibbon,
-      'cd-edge-mount-body cd-edge-mount-body--ribbon-fixed',
-    );
+    var ribbon = ensureMountEl(doc, FRAGMENTS.topRibbon, ribbonMountClass(resolved));
     var ribbonRef = resolved.findRibbonInsertAfter(doc);
     if (resolved.insertRibbonAtBodyStart && doc.body) {
       if (ribbon.parentNode !== doc.body || ribbon !== doc.body.firstElementChild) {
@@ -301,35 +333,48 @@
   function renderStructuredTopRibbon(el, content) {
     if (!el || !content || typeof content !== 'object') return false;
     el.textContent = '';
-    el.classList.add('cd-edge-rendered-ribbon');
-    var bar = document.createElement('div');
-    bar.className = 'cd-banner cd-banner--overlay cd-banner--ribbon-bar';
-    if (content.backgroundColor) bar.style.backgroundColor = String(content.backgroundColor);
-    if (content.color) bar.style.color = String(content.color);
-    var copy = document.createElement('div');
-    copy.className = 'cd-banner-copy';
-    copy.style.display = 'flex';
-    copy.style.flexWrap = 'wrap';
-    copy.style.alignItems = 'center';
-    copy.style.justifyContent = 'center';
-    copy.style.gap = '0.5rem';
+    el.classList.add('cd-edge-rendered-ribbon', 'cd-edge-mount-body--ribbon-inline');
+    el.classList.remove('cd-edge-mount-body--ribbon-fixed');
+    var root = document.createElement('div');
+    root.className = 'TopRibbon';
+    if (content.backgroundColor) root.style.backgroundColor = String(content.backgroundColor);
+    if (content.color) root.style.color = String(content.color);
+    var row = document.createElement('div');
+    row.className = 'TopRibbon__content';
+    var imgUrl =
+      content.imageUrl != null
+        ? String(content.imageUrl)
+        : content.imageURL != null
+          ? String(content.imageURL)
+          : content.image != null
+            ? String(content.image)
+            : '';
+    if (imgUrl.trim()) {
+      var img = document.createElement('img');
+      img.className = 'TopRibbon__image';
+      img.src = imgUrl.trim();
+      img.alt = content.message != null ? String(content.message) : 'Offer';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      row.appendChild(img);
+    }
     if (content.message) {
       var msg = document.createElement('span');
-      msg.className = 'cd-slot-desc';
+      msg.className = 'TopRibbon__text';
       msg.textContent = String(content.message);
-      copy.appendChild(msg);
+      row.appendChild(msg);
     }
     if (content.cta && content.cta.url && content.cta.label) {
       var a = document.createElement('a');
-      a.className = 'cd-slot-cta';
+      a.className = 'TopRibbon__cta';
       a.href = String(content.cta.url);
       a.textContent = String(content.cta.label);
       a.target = '_blank';
       a.rel = 'noopener';
-      copy.appendChild(a);
+      row.appendChild(a);
     }
-    bar.appendChild(copy);
-    el.appendChild(bar);
+    root.appendChild(row);
+    el.appendChild(root);
     return true;
   }
 
@@ -419,7 +464,21 @@
     if (st.showCta === false) mount.classList.add('cd-edge-vis--no-cta');
     if (st.showImage === false) mount.classList.add('cd-edge-vis--no-fig');
     var mh = sanitizeMountMinHeight(st.mountMinHeight);
-    var ribbonFixed = mountUsesTopRibbonSurface(mount) && (!!mh || mount.classList.contains('cd-edge-mount-body--ribbon-fixed'));
+    var ribbonInline = mount.classList.contains('cd-edge-mount-body--ribbon-inline');
+    var ribbonFixed =
+      !ribbonInline && mountUsesTopRibbonSurface(mount) && (!!mh || mount.classList.contains('cd-edge-mount-body--ribbon-fixed'));
+    if (ribbonInline) {
+      mount.classList.remove('cd-edge-mount-body--ribbon-fixed');
+      mount.style.maxHeight = '';
+      mount.style.height = '';
+      mount.style.overflow = '';
+      mount.style.minHeight = mh || '';
+      var topRibbonInner = mount.querySelector('.TopRibbon');
+      if (topRibbonInner && st.noImageBg) {
+        topRibbonInner.style.backgroundColor = String(st.noImageBg).trim();
+      }
+      return;
+    }
     if (ribbonFixed) {
       mount.classList.add('cd-edge-mount-body--ribbon-fixed');
       var resolvedHeight = mh || '8rem';
@@ -451,6 +510,7 @@
       var mount = doc.getElementById(frag);
       if (!mount) continue;
       applyStyleToMount(mount, Object.assign({}, STYLE_DEFAULTS, saved));
+      if (frag === FRAGMENTS.topRibbon) normalizeTopRibbonMount(mount);
     }
   }
 
@@ -496,6 +556,7 @@
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
     });
+    normalizeTopRibbonMount(mount);
     return mount.innerHTML !== prior && mount.innerHTML.trim() !== '';
   }
 
@@ -519,6 +580,9 @@
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
     });
+
+    var ribbonMount = scopeRoot.getElementById(FRAGMENTS.topRibbon);
+    if (ribbonMount) normalizeTopRibbonMount(ribbonMount);
 
     var card = scopeRoot.getElementById(FRAGMENTS.contentCard);
     if (card) normalizeContentCardLayout(card);
