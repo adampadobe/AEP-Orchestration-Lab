@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="claude-skills.css?v=20260602f">
+  <link rel="stylesheet" href="claude-skills.css?v=20260603">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
 </head>
@@ -32,7 +32,7 @@
             <header class="dashboard-hero-header">
               <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
               <p class="dashboard-hero-subtitle">
-                Drop a Claude skill file or ZIP archive. The lab uploads it, classifies it with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically. Published files are served on this lab domain at <code>/skills/{id}/{file}</code>.
+                Drop a Claude skill file or ZIP archive (skill text files up to 20 MB; large ZIPs with videos are auto-trimmed to .md/.txt/.json/.yaml). The lab uploads, classifies with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically. Published files are served at <code>/skills/{id}/{file}</code>.
               </p>
             </header>
           </div>
@@ -140,7 +140,8 @@
     </div>
   </div>
 
-  <script src="claude-skills.js?v=20260602f"></script>
+  <script src="fflate.min.js?v=20260603"></script>
+  <script src="claude-skills.js?v=20260603"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
 </body>

@@ -1,0 +1,291 @@
+/**
+ * Opportunity Workspace — custom snapshot page (Sky fixed + LLM Demo personalization).
+ */
+[id^='org-sidebar-section-'],
+nav[style*='flex-direction: column'],
+nav[class*='macro-static'] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#sky-llm-ow-host {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+}
+
+#dashboard-layout-content > #sky-llm-ow-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sky-llm-ow {
+  padding: 24px 32px 48px;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  color: rgb(41, 41, 41);
+  font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.sky-llm-ow__title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.sky-llm-ow__subtitle {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgb(109, 109, 109);
+}
+
+.sky-llm-ow__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sky-llm-ow__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.sky-llm-ow__filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(75, 85, 99);
+}
+
+.sky-llm-ow__info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  color: rgb(109, 109, 109);
+  opacity: 0.72;
+  line-height: 0;
+}
+
+.sky-llm-ow__info-icon svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  max-width: 12px;
+  max-height: 12px;
+}
+
+.sky-llm-ow__select {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 8px;
+  background: rgb(255, 255, 255);
+  color: rgb(41, 41, 41);
+  font: inherit;
+  font-size: 14px;
+}
+
+.sky-llm-ow__kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1200px) {
+  .sky-llm-ow__kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .sky-llm-ow__kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sky-llm-ow__kpi {
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: rgb(255, 255, 255);
+}
+
+.sky-llm-ow__kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: rgb(75, 85, 99);
+}
+
+.sky-llm-ow__kpi-label-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sky-llm-ow__kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.sky-llm-ow__empty {
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 12px;
+  padding: 48px 32px;
+  text-align: center;
+  background: rgb(255, 255, 255);
+  margin-bottom: 32px;
+}
+
+.sky-llm-ow__empty-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sky-llm-ow__empty-copy {
+  margin: 0 auto 20px;
+  max-width: 520px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgb(109, 109, 109);
+}
+
+.sky-llm-ow__cta {
+  min-height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: rgb(20, 115, 230);
+  color: rgb(255, 255, 255);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sky-llm-ow__cta:hover {
+  background: rgb(13, 102, 208);
+}
+
+.sky-llm-ow__focus-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sky-llm-ow__focus-copy {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgb(109, 109, 109);
+}
+
+.sky-llm-ow__table-wrap {
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgb(255, 255, 255);
+}
+
+.sky-llm-ow__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sky-llm-ow__table th,
+.sky-llm-ow__table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgb(241, 241, 241);
+  vertical-align: middle;
+}
+
+.sky-llm-ow__table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(75, 85, 99);
+  background: rgb(250, 250, 250);
+}
+
+.sky-llm-ow__table tr:last-child td {
+  border-bottom: none;
+}
+
+.sky-llm-ow__strategy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sky-llm-ow__visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.sky-llm-ow__trend--down {
+  color: rgb(220, 38, 38);
+}
+
+.sky-llm-ow__trend--up {
+  color: rgb(22, 163, 74);
+}
+
+.sky-llm-ow__add-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgb(227, 227, 227);
+  border-radius: 999px;
+  background: rgb(255, 255, 255);
+  color: rgb(41, 41, 41);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sky-llm-ow__add-btn:hover {
+  border-color: rgb(20, 115, 230);
+  color: rgb(20, 115, 230);
+}
+
+.sky-llm-ow .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

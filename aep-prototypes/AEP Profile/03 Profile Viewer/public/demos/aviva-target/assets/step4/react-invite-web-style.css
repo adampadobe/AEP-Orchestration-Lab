@@ -1,0 +1,7 @@
+html,body, #invitationApp {
+    height: 100%;
+}
+body {
+    line-height: 1.42857143;
+    margin:0;
+}

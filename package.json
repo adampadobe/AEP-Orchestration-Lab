@@ -18,6 +18,7 @@
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
     "verify:profile-viewer-routes": "node scripts/verify-profile-viewer-routes.mjs",
     "verify:demo-env-strip": "node scripts/verify-demo-env-strip.mjs",
+    "verify:decisioning-mount-zones": "node scripts/verify-decisioning-mount-zones.mjs",
     "verify:env-bar-versions": "node scripts/verify-env-bar-versions.mjs",
     "migrate:demo-env-shell": "node scripts/migrate-demo-env-shell.mjs",
     "prepare:sky-llm-snapshot": "node scripts/prepare-sky-llm-snapshot.mjs",
@@ -44,6 +45,7 @@
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "verify:context7-coverage": "node scripts/verify-context7-coverage.mjs",
+    "verify:decisioning-mount-zones": "node scripts/verify-decisioning-mount-zones.mjs",
     "verify:experimentation-accelerator": "node scripts/verify-experimentation-accelerator-snapshot.mjs",
     "verify:profile-viewer-routes": "node scripts/verify-profile-viewer-routes.mjs"
   },

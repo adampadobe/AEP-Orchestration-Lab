@@ -73,7 +73,14 @@ window.envBar.registerTagsInjection(tags);
 | `defaultSandbox` | — | Initial sandbox technical name |
 | `features.webPush` | `true` | Feature flag (mount / demo JS) |
 | `features.bc` | `true` | Brand Concierge strip sections |
-| `features.decisioning` | `true` | Decisioning toggle on mount; set `false` to hide |
+| `features.decisioning` | `true` | Decisioning toggle on mount; set `false` to hide. When enabled, loads `decisioning-profile-module/*` + `site-clone-decisioning-boot.js` |
+
+**Decisioning mount zones:** iframe / parent HTML needs `#TopRibbon`, `#hero-banner` (or `[data-hero-mount]`), and `#ContentCardContainer` — see [CONTRIBUTING.md § Decisioning mount zones](CONTRIBUTING.md#decisioning-mount-zones-site-clone-demos) and `shared/decisioning-mount-zones.fragment.html`.
+
+| `decisioning.iframeId` | auto | Override iframe for mount injection |
+| `decisioning.useParentDocument` | auto | Mount on shell page when no iframe |
+| `decisioning.mountLayoutPreset` | `generic` (Sky: `sky-home`) | Layout in `decisioning-edge-inject.js` |
+| `decisioning.viewName` | strip title | AJO page view name |
 | `iframeIds` | `[]` | Passthrough for demo Tags config |
 | `labCoreScript` | — | Optional script path loaded after env bar init |
 | `basePath` | auto | Profile-viewer root for nested journey pages |

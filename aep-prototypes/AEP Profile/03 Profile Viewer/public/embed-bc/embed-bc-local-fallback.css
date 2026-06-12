@@ -1,0 +1,82 @@
+/* Multimodal product cards — image area links to official role pages */
+.embed-bc-inline #brand-concierge-mount .bc-multimodal-card,
+.aep-bc-modal #brand-concierge-mount .bc-multimodal-card,
+#brand-concierge-mount .bc-multimodal-card {
+  position: relative;
+  cursor: pointer;
+}
+
+.embed-bc-inline #brand-concierge-mount .bc-multimodal-card__image,
+.aep-bc-modal #brand-concierge-mount .bc-multimodal-card__image,
+#brand-concierge-mount .bc-multimodal-card__image {
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+#brand-concierge-mount .bc-multimodal-card a.embed-bc-card-link {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  text-decoration: none;
+  color: transparent;
+}
+
+#brand-concierge-mount .bc-multimodal-card:hover .bc-multimodal-card__image,
+#brand-concierge-mount .bc-multimodal-card:focus-within .bc-multimodal-card__image {
+  filter: brightness(1.05);
+}
+
+#brand-concierge-mount .bc-multimodal-card__text label {
+  pointer-events: none;
+}
+
+/* Quick reveal — full formatted text, not chunked streaming */
+@keyframes embed-bc-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#brand-concierge-mount .concierge-message .message-content:not(.message-loading) {
+  animation: embed-bc-reveal 0.28s ease-out;
+}
+
+#brand-concierge-mount .bc-multimodal-carousel,
+#brand-concierge-mount .prompt-suggestions-container {
+  animation: embed-bc-reveal 0.32s ease-out 0.06s both;
+}
+
+/* Role list bullets — hollow circles like live BC (reference layout) */
+#brand-concierge-mount .concierge-message .message-content ul {
+  list-style-type: circle;
+  margin: 0.35em 0 0.75em 1.25em;
+  padding: 0;
+}
+
+#brand-concierge-mount .concierge-message .message-content ul li {
+  margin: 0.35em 0;
+  padding-left: 0.15em;
+}
+
+#brand-concierge-mount .concierge-message .message-content p {
+  margin: 0.5em 0;
+}
+
+#brand-concierge-mount .concierge-message .message-content p strong {
+  display: block;
+  margin-top: 0.75em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #brand-concierge-mount .concierge-message .message-content:not(.message-loading),
+  #brand-concierge-mount .bc-multimodal-carousel,
+  #brand-concierge-mount .prompt-suggestions-container {
+    animation: none;
+  }
+}

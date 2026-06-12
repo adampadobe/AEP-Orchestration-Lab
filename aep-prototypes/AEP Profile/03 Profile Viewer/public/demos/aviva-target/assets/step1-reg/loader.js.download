@@ -1,0 +1,37 @@
+// cache clear
+
+let ver = "v6.1.0"
+// added comment for change
+const rinit = document.createElement( 'script' );
+
+const thisLoader = document.currentScript;
+let dataApp = thisLoader.getAttribute( 'data-app' );
+let localeUrl = thisLoader.getAttribute( 'data-locale' );
+let settingsUrl = thisLoader.getAttribute( 'data-settings' );
+let requireUrl = thisLoader.getAttribute( 'data-require' );
+
+// eslint-disable-next-line strict
+rinit.onload = function onload() {
+	// eslint-disable-next-line no-console
+	console.log( 'ION init loaded' );
+};
+
+rinit.src = 'https://static.aviva.io/assets/themes-managed/'+ver+'/shared/extensions/requirejs/init.js';
+rinit.setAttribute( 'crossorigin', 'anonymous' );
+rinit.setAttribute( 'id', 'js-init' );
+if ( dataApp !== null ) {
+	rinit.setAttribute( 'data-app', dataApp );
+}
+if ( localeUrl !== null ) {
+	rinit.setAttribute( 'data-locale', localeUrl );
+}
+if ( settingsUrl !== null ) {
+	rinit.setAttribute( 'data-settings', settingsUrl );
+}
+
+if ( requireUrl !== null ) {
+	rinit.setAttribute( 'data-require', requireUrl );
+}
+
+
+document.body.appendChild( rinit );

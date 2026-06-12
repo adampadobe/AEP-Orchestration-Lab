@@ -7,6 +7,9 @@
 
   var STORAGE_LEGACY_KEY = 'claudeSkillsCatalogV1';
   var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml', 'zip'];
+  /** Must stay under Cloud Functions ~32 MiB JSON body (base64 adds ~33%). */
+  var MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+  var MAX_JSON_PAYLOAD_BYTES = 31 * 1024 * 1024;
   var API_UPLOAD = '/api/claude-skills/upload';
   var API_ANALYZE = '/api/claude-skills/analyze';
   var API_CATALOG = '/api/claude-skills/catalog';
@@ -65,6 +68,118 @@
     ).slice(0, 10);
   }
 
+  function formatFileSize(bytes) {
+    var mb = bytes / (1024 * 1024);
+    if (mb >= 1) return mb.toFixed(mb >= 10 ? 0 : 1) + ' MB';
+    return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+
+  function estimateJsonPayloadBytes(rawBytes) {
+    return Math.ceil(Number(rawBytes || 0) * 4 / 3) + 512;
+  }
+
+  function normalizeZipPath(entryPath) {
+    return String(entryPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  }
+
+  function isUnsafeZipPath(name) {
+    if (!name || name.indexOf('..') !== -1) return true;
+    if (name.indexOf('__MACOSX/') === 0 || name === '__MACOSX') return true;
+    var base = name.split('/').pop() || '';
+    return base === '.DS_Store' || base.indexOf('._') === 0;
+  }
+
+  function isAcceptedSkillZipEntry(entryPath) {
+    var normalized = normalizeZipPath(entryPath);
+    if (!normalized || isUnsafeZipPath(normalized)) return false;
+    var base = normalized.split('/').pop() || '';
+    if (!base || base.charAt(0) === '.') return false;
+    return ACCEPTED_EXTENSIONS.indexOf(fileExtension(base)) !== -1;
+  }
+
+  function ensureFflate() {
+    if (typeof fflate === 'undefined' || !fflate.unzipSync || !fflate.zipSync) {
+      return Promise.reject(new Error('ZIP helper failed to load. Refresh and try again.'));
+    }
+    return Promise.resolve(fflate);
+  }
+
+  function slimZipToSkillFiles(file) {
+    return ensureFflate().then(function (zipLib) {
+      return file.arrayBuffer().then(function (buffer) {
+        var entries;
+        try {
+          entries = zipLib.unzipSync(new Uint8Array(buffer));
+        } catch (_err) {
+          throw new Error('Could not read ZIP archive in the browser.');
+        }
+        var filtered = {};
+        var kept = 0;
+        Object.keys(entries).forEach(function (entryPath) {
+          if (!isAcceptedSkillZipEntry(entryPath)) return;
+          filtered[entryPath] = entries[entryPath];
+          kept += 1;
+        });
+        if (!kept) {
+          throw new Error(
+            'ZIP contains no skill files (.md, .txt, .json, .yaml, .yml). Add SKILL.md or upload the markdown file directly.',
+          );
+        }
+        var slimBytes = zipLib.zipSync(filtered);
+        var slimName = String(file.name || 'archive.zip').replace(/\.zip$/i, '') + '-skill-files.zip';
+        return new File([slimBytes], slimName, { type: 'application/zip' });
+      });
+    });
+  }
+
+  function prepareUploadFile(file) {
+    var ext = fileExtension(file.name);
+    var payloadEstimate = estimateJsonPayloadBytes(file.size);
+    if (payloadEstimate <= MAX_JSON_PAYLOAD_BYTES && file.size <= MAX_UPLOAD_BYTES) {
+      return Promise.resolve({ file: file, note: '' });
+    }
+    if (ext !== 'zip') {
+      throw new Error(
+        'Upload failed (file too large): ' +
+          formatFileSize(file.size) +
+          ' exceeds the ' +
+          formatFileSize(MAX_UPLOAD_BYTES) +
+          ' browser upload limit. Upload a smaller file or split assets out of the skill bundle.',
+      );
+    }
+    return slimZipToSkillFiles(file).then(function (slimFile) {
+      var slimPayload = estimateJsonPayloadBytes(slimFile.size);
+      if (slimPayload > MAX_JSON_PAYLOAD_BYTES || slimFile.size > MAX_UPLOAD_BYTES) {
+        throw new Error(
+          'Upload failed (ZIP still too large after keeping skill text files): ' +
+            formatFileSize(slimFile.size) +
+            '. Remove large binaries from the archive or upload SKILL.md directly.',
+        );
+      }
+      return {
+        file: slimFile,
+        note:
+          'Large ZIP trimmed to skill text files only (' +
+          formatFileSize(file.size) +
+          ' → ' +
+          formatFileSize(slimFile.size) +
+          '). Videos and other binaries were skipped.',
+      };
+    });
+  }
+
+  function proxyFailureMessage(step, response, text) {
+    var trimmed = String(text || '').trim();
+    if (/^internal error$/i.test(trimmed) || /^internal server error$/i.test(trimmed)) {
+      return (
+        step +
+        ' failed: request was rejected by the hosting proxy (often because the upload exceeds the ~20 MB skill file limit once base64-encoded). ' +
+        'Try uploading SKILL.md only, or a smaller ZIP without video/assets.'
+      );
+    }
+    return trimmed || response.statusText || step + ' failed';
+  }
+
   function readFileAsBase64(file) {
     return new Promise(function (resolve, reject) {
       var reader = new FileReader();
@@ -80,13 +195,13 @@
     });
   }
 
-  function parseApiResponse(response, text) {
+  function parseApiResponse(response, text, stepLabel) {
     var trimmed = String(text || '').trim();
     var contentType = String(response.headers.get('content-type') || '').toLowerCase();
     var looksJson = trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[';
     if (contentType.indexOf('application/json') === -1 && !looksJson) {
       if (!response.ok) {
-        throw new Error(trimmed || response.statusText || 'Request failed');
+        throw new Error(proxyFailureMessage(stepLabel || 'Request', response, trimmed));
       }
       throw new Error('Unexpected non-JSON response from server');
     }
@@ -94,18 +209,19 @@
       return trimmed ? JSON.parse(trimmed) : {};
     } catch (_parseErr) {
       if (!response.ok) {
-        throw new Error(trimmed || response.statusText || 'Request failed');
+        throw new Error(proxyFailureMessage(stepLabel || 'Request', response, trimmed));
       }
       throw new Error('Invalid JSON response from server');
     }
   }
 
-  function apiJson(url, options) {
+  function apiJson(url, options, stepLabel) {
+    var step = stepLabel || 'Request';
     return fetch(url, options).then(function (response) {
       return response.text().then(function (text) {
-        var data = parseApiResponse(response, text);
+        var data = parseApiResponse(response, text, step);
         if (!response.ok) {
-          var msg = (data && data.error) || response.statusText || 'Request failed';
+          var msg = (data && data.error) || proxyFailureMessage(step, response, text);
           throw new Error(msg);
         }
         return data;
@@ -297,23 +413,27 @@
       throw new Error('Vertex AI did not return a skill name. Try another file or use Edit details.');
     }
 
-    var data = await apiJson(API_PUBLISH, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        skillId: state.draft.skillId,
-        fileName: state.draft.fileName,
-        storagePath: state.draft.storagePath,
-        name: draft.name,
-        description: draft.description,
-        category: draft.category,
-        valueSummary: draft.valueSummary,
-        useCases: draft.useCases,
-        tags: draft.tags,
-        sourcePath: draft.sourcePath,
-        confidence: draft.confidence,
-      }),
-    });
+    var data = await apiJson(
+      API_PUBLISH,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skillId: state.draft.skillId,
+          fileName: state.draft.fileName,
+          storagePath: state.draft.storagePath,
+          name: draft.name,
+          description: draft.description,
+          category: draft.category,
+          valueSummary: draft.valueSummary,
+          useCases: draft.useCases,
+          tags: draft.tags,
+          sourcePath: draft.sourcePath,
+          confidence: draft.confidence,
+        }),
+      },
+      'Publish',
+    );
 
     if (data.skill) {
       upsertPublishedSkill(data.skill);
@@ -344,22 +464,31 @@
     if (fileLabel) fileLabel.textContent = file.name;
 
     setDropZoneBusy(true);
-    setDropStatus(
-      (isZip ? 'Uploading ZIP…' : 'Uploading…'),
-      'info'
-    );
+    setDropStatus(isZip ? 'Preparing ZIP…' : 'Uploading…', 'info');
 
     try {
-      var contentBase64 = await readFileAsBase64(file);
-      var upload = await apiJson(API_UPLOAD, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentBase64: contentBase64,
-          contentType: file.type || '',
-        }),
-      });
+      var prepared = await prepareUploadFile(file);
+      var uploadFile = prepared.file;
+      if (prepared.note) {
+        setDropStatus(prepared.note + ' Uploading…', 'info');
+      } else {
+        setDropStatus(isZip ? 'Uploading ZIP…' : 'Uploading…', 'info');
+      }
+
+      var contentBase64 = await readFileAsBase64(uploadFile);
+      var upload = await apiJson(
+        API_UPLOAD,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: uploadFile.name,
+            contentBase64: contentBase64,
+            contentType: uploadFile.type || file.type || '',
+          }),
+        },
+        'Upload',
+      );
 
       state.draft = {
         skillId: upload.skillId,
@@ -373,20 +502,23 @@
       };
       updatePublishEnabled();
 
-      var uploadDetail = upload.extractedFromZip
-        ? 'ZIP extracted on server. '
-        : '';
+      var uploadDetail = upload.extractedFromZip ? 'ZIP extracted on server. ' : '';
+      if (prepared.note) uploadDetail = prepared.note + ' ';
       setDropStatus(uploadDetail + 'Analyzing with Vertex AI…', 'info');
 
-      var analyzed = await apiJson(API_ANALYZE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          skillId: state.draft.skillId,
-          storagePath: state.draft.storagePath,
-          fileName: state.draft.fileName,
-        }),
-      });
+      var analyzed = await apiJson(
+        API_ANALYZE,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            skillId: state.draft.skillId,
+            storagePath: state.draft.storagePath,
+            fileName: state.draft.fileName,
+          }),
+        },
+        'Analyze',
+      );
 
       var metadata = applyAnalysis(analyzed.analysis);
       setDropStatus('Publishing to shared catalog…', 'info');
@@ -402,7 +534,11 @@
       updatePublishEnabled();
     } catch (error) {
       hideDropSuccess();
-      setDropStatus(error.message || 'Something went wrong. Try again or use Edit details.', 'error');
+      var message = error && error.message ? error.message : 'Something went wrong. Try again or use Edit details.';
+      if (message.indexOf('failed:') === -1 && message.indexOf('Upload failed') !== 0) {
+        message = 'Upload pipeline failed: ' + message;
+      }
+      setDropStatus(message, 'error');
     } finally {
       setDropZoneBusy(false);
     }

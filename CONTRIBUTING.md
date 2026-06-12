@@ -586,7 +586,78 @@ Every new **site-clone** demo under `web/profile-viewer/` must use a **single sh
 | **Brand Concierge** | Tags column → style configuration; profile column → Full Screen / Modal / Injected (+ optional Centre bottom) | `siteCloneBcStyleConfigUrl`, `siteCloneBcFullScreenToggle`, `siteCloneBcModalToggle`, `siteCloneBcInjectedToggle`, `siteCloneBcBottomDockToggle` |
 | **Decisioning** | Profile column → Enable toggle (when not disabled via `data-demo-env-strip-decisioning="0"`) | `siteCloneDecisioningEnabledToggle` |
 
-Wire Decisioning runtime (`decisioning-profile-module/*`, `initLabDemoEnvBar`) only on demos that use mid-page decisioning (e.g. Sky); the toggle is present on all site-clone demos so behaviour stays consistent.
+When decisioning is not disabled, `shared/env-bar.js` loads the decisioning script chain (`decisioning-profile-module/*`, `site-clone-decisioning-boot.js`) for **all** site-clone demos — not only Sky. Set `features.decisioning: false` or `data-demo-env-strip-decisioning="0"` to opt out.
+
+### Decisioning mount zones (site-clone demos)
+
+Site-clone demos that enable decisioning need **stable DOM targets** for Edge / AJO code-based experiences. Runtime injection (`decisioning-edge-inject.js`) can create mounts dynamically, but explicit placeholders keep `generic` layout positioning predictable.
+
+#### When required
+
+- Any demo with `features.decisioning: true` (or default-on site-clone shell without `data-demo-env-strip-decisioning="0"`).
+- Iframe shells: zones live in the **iframe `src` HTML** (or journey chrome injects them on direct URL loads).
+- Parent-document demos (e.g. Race for Life): zones live in the shell page `<main>`.
+
+#### Canonical DOM contract
+
+| Zone | Element | AJO surface fragment | Notes |
+|------|---------|----------------------|-------|
+| Top ribbon | `#TopRibbon` | `TopRibbon` | Fixed or inline ribbon depending on layout preset |
+| Hero | `#hero-banner` | `hero-banner` | Or mark native hero wrapper with `[data-hero-mount]` |
+| Content cards | `#ContentCardContainer` | `ContentCardContainer` | Class `ContentCardContainer` optional but matches AJO |
+
+**Do not** use alternate spellings (`#topribbon`, `#contentcardarea`, `#Hero-Banner`). Surface matching is case-sensitive.
+
+Copy-paste source: [`web/profile-viewer/shared/decisioning-mount-zones.fragment.html`](web/profile-viewer/shared/decisioning-mount-zones.fragment.html). Journey chrome may call [`shared/decisioning-mount-zones-inject.js`](web/profile-viewer/shared/decisioning-mount-zones-inject.js).
+
+Empty placeholders stay hidden until Edge fills them (`:empty { display: none }` in inject styles).
+
+#### `envBarConfig.decisioning` wiring
+
+| Field | Default / auto-detect | Purpose |
+|-------|----------------------|---------|
+| `iframeId` | `IFRAME_ID_BY_PREFIX`, `SiteCloneBcPage.iframeId`, `envBarConfig.iframeIds[0]` | Which iframe receives mounts |
+| `useParentDocument` | `true` when no iframe detected | Mount on shell page instead of iframe |
+| `mountLayoutPreset` | `sky-home` for `prefix=sky` or `snapshotLayout=sky-home`; else `generic` | Insertion heuristics in `decisioning-edge-inject.js` |
+| `viewName` | Strip title or `prefix` | AJO `webPageDetails.viewName` |
+| `emailInputId` | `customerEmail` | Profile lookup input for decisioning panel |
+| `namespaceSelectId` | `{prefix}Ns` | Identity namespace select |
+
+Example (non-Sky iframe demo):
+
+```js
+window.envBarConfig = {
+  prefix: 'ksia',
+  features: { webPush: true, bc: true, decisioning: true },
+  decisioning: {
+    mountLayoutPreset: 'generic',
+    viewName: 'KSIA (web)',
+  },
+};
+```
+
+#### Layout presets
+
+| Preset | Use when | Mount behaviour |
+|--------|----------|-----------------|
+| **`sky-home`** | Sky snapshot only (`main#app` hero finders) | Ribbon at body start; hero overlay on Sky hero block |
+| **`generic`** | All other demos | Ribbon after first body child; hero via `#hero-banner` / `[data-hero-mount]` / `main` |
+
+Sky iframe may waive static HTML with comment `decisioning-mounts: dynamic-only` in snapshot HTML (runtime-only mounts).
+
+#### New demo checklist (decisioning)
+
+- [ ] Copy [`shared/decisioning-mount-zones.fragment.html`](web/profile-viewer/shared/decisioning-mount-zones.fragment.html) into iframe `src` or parent `<main>` (or use journey-chrome injector for multi-page journeys).
+- [ ] Set `features.decisioning: true` explicitly (or document why `false`).
+- [ ] Set `envBarConfig.decisioning` when auto-detect is insufficient (`iframeId`, `useParentDocument`, `mountLayoutPreset`, `viewName`).
+- [ ] Journey subpages: snippet in each HTML **or** `decisioning-mount-zones-inject.js` in journey chrome.
+- [ ] Decision-lab Firestore `targetPageUrl` matches hosted journey URLs when iframe path ≠ shell URL.
+- [ ] `npm run verify:decisioning-mount-zones` passes (remove demo from migration pending list in verifier when zones land).
+- [ ] Manual: Enable Decisioning → mounts visible → profile lookup → content decision renders in zones.
+
+#### Greenfield scaffold
+
+No standalone generator script yet — copy the fragment into new demo HTML and add the decisioning checklist items above. See agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
 **Legacy mount contract (deprecated — do not use on new demos):**
 
@@ -663,6 +734,7 @@ Paste into PR description when adding or editing a **lab demo** under `web/profi
 - [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
 - [ ] `DemoProfileDrawer.init` unchanged contract; drawer edits only in `shared/profile-viewer-modal.js` / `aep-profile-drawer.js`
 - [ ] `npm run verify:demo-env-strip` (required on Profile Viewer PRs; skips allowlisted FNB / call-centre / Sky LLM / mobile pages)
+- [ ] `npm run verify:decisioning-mount-zones` when decisioning zones or site-clone iframe HTML changed
 - [ ] `npm run verify:env-bar-versions` when `shared/env-bar.js` or `shared/env-bar-versions.json` changed
 - [ ] `npm run verify:profile-viewer-routes` + `npm run sync-profile-viewer-ui` if `web/profile-viewer/` touched
 - [ ] Light + dark theme smoke on demo page
@@ -1124,7 +1196,7 @@ submodule is set to a no-push dummy as a safety net.
 
 ## Further reading
 
-- `docs/demo-env-strip-standard.md` — site-clone env bar bundle, mounts, exceptions (FNB / call centre / Sky LLM)
+- `docs/demo-env-strip-standard.md` — site-clone env bar bundle, mounts, exceptions (FNB / call centre / Sky LLM); cross-link to **Decisioning mount zones** in CONTRIBUTING
 - `docs/profile-viewer-modal-migration-audit.md` — shared profile drawer migration and stable ids
 - `docs/AJO_CONTENT_TEMPLATE_API.md` — AJO HTML content templates: bearer auth, correct `Content-Type`, `/api/aep` and MCP notes
 - `docs/COLLEAGUE_PROFILE_VIEWER.md` — local Express setup, auth, sandbox selection

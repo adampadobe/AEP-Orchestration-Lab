@@ -1,0 +1,1 @@
+define(()=>{let n=(t,e,i)=>{let r,n,o=i||window;for(r=0;o&&(n=t[r]);r++)o=n in o?o[n]:e?o[n]={}:void 0;return o};return{get:(t,e,i)=>n(t.split("_"),e,i),set:(t,e,i)=>{var t=t.split("_"),r=t.pop(),t=n(t,!0,i);return t&&r?t[r]=e:void 0},exists:(t,e)=>void 0!==this.get(t,!1,e)}});

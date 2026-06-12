@@ -1,0 +1,30 @@
+<!--
+  Decisioning mount zones — copy into site-clone iframe HTML or parent <main>.
+
+  Canonical contract (AJO / Edge surface fragments):
+    #TopRibbon          — top ribbon (fragment TopRibbon)
+    #hero-banner         — hero banner (fragment hero-banner)
+    #ContentCardContainer — content cards (fragment ContentCardContainer)
+
+  Optional: mark the native hero wrapper with data-hero-mount when you prefer
+  decisioning overlay on the existing hero instead of a sibling #hero-banner.
+
+  Do NOT use alternate spellings (#topribbon, #contentcardarea, #Hero-Banner).
+
+  Layout preset:
+    generic  — default for all demos except Sky (use this snippet)
+    sky-home — Sky snapshot only; runtime finders target main#app hero blocks
+               (iframe may use comment decisioning-mounts: dynamic-only instead)
+
+  Empty placeholders stay hidden until Edge injects content
+  (decisioning-edge-inject.js sets :empty { display: none } on these ids).
+
+  See CONTRIBUTING.md § Decisioning mount zones (site-clone demos)
+  and shared/decisioning-mount-zones-inject.js for journey-chrome injection.
+-->
+<section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+<!-- Option A: native hero + overlay anchor -->
+<!-- <section class="your-native-hero" data-hero-mount aria-label="Featured"> … </section> -->
+<!-- Option B: dedicated empty hero mount (sibling of native hero) -->
+<section id="hero-banner" aria-label="Personalized hero" role="region"></section>
+<section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>

@@ -249,6 +249,16 @@
       });
   }
 
+  function ensurePageMountZones() {
+    if (
+      window.DecisioningMountZones &&
+      typeof window.DecisioningMountZones.ensure === 'function'
+    ) {
+      var main = document.querySelector('main') || document.body;
+      window.DecisioningMountZones.ensure(document, { insertTarget: main });
+    }
+  }
+
   function start() {
     ensureThemePaint();
     linkCss(PV + 'style.css');
@@ -258,8 +268,17 @@
     linkCss(PV + 'shared/profile-viewer-modal.css?v=20260601-modal-central');
     linkCss(PV + 'aep-theme.css?v=20260423b-fs-helper');
     linkCss(PV + 'aep-theme-palettes.css?v=20260416c');
-    mountStripMarkup();
-    bootLabStack();
+    loadScript(PV + 'shared/decisioning-mount-zones-inject.js?v=20260612-mount-zones')
+      .then(function () {
+        ensurePageMountZones();
+        mountStripMarkup();
+        bootLabStack();
+      })
+      .catch(function (err) {
+        console.warn('[aviva-target-journey-chrome]', err);
+        mountStripMarkup();
+        bootLabStack();
+      });
   }
 
   if (document.readyState === 'loading') {

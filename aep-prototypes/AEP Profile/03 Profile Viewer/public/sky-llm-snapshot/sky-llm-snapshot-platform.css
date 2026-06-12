@@ -1,0 +1,396 @@
+/* Shared filter pickers (Platform, Date Range) */
+/* Frozen export Walnut layer blocks clicks on React listboxes */
+#walnut-root-popin-element {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.sky-llm-platform-shell,
+.sky-llm-date-shell,
+.sky-llm-filter-shell,
+.sky-llm-select-others-shell {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.sky-llm-platform-shell > *:not(.sky-llm-platform-host),
+.sky-llm-date-shell > *:not(.sky-llm-date-host),
+.sky-llm-filter-shell > *:not(.sky-llm-filter-host),
+.sky-llm-select-others-shell > *:not(.sky-llm-select-others-host) {
+  pointer-events: none !important;
+}
+
+.sky-llm-platform-shell > input[role='combobox'],
+.sky-llm-platform-shell > button,
+.sky-llm-date-shell > input[role='combobox'],
+.sky-llm-date-shell > button,
+.sky-llm-filter-shell > input[role='combobox'],
+.sky-llm-filter-shell > button,
+.sky-llm-select-others-shell > input[role='combobox'],
+.sky-llm-select-others-shell > button {
+  display: none !important;
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.sky-llm-platform-host,
+.sky-llm-date-host {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.sky-llm-platform-trigger,
+.sky-llm-date-trigger,
+.sky-llm-filter-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgb(242, 242, 242);
+  font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.25;
+  color: #222;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sky-llm-platform-trigger:hover,
+.sky-llm-date-trigger:hover,
+.sky-llm-filter-trigger:hover {
+  background: rgb(233, 233, 233);
+}
+
+.sky-llm-platform-trigger:focus-visible,
+.sky-llm-date-trigger:focus-visible,
+.sky-llm-filter-trigger:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: -2px;
+}
+
+.sky-llm-platform-trigger > span:first-child,
+.sky-llm-date-trigger > span:first-child,
+.sky-llm-filter-trigger > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sky-llm-platform-trigger-chevron,
+.sky-llm-date-trigger-chevron,
+.sky-llm-filter-trigger-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: calc(100% - 8px);
+  min-height: 20px;
+  margin: 4px 4px 4px 0;
+  border: none;
+  border-radius: 4px;
+  background: rgb(233, 233, 233);
+  color: #464646;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.sky-llm-platform-menu,
+.sky-llm-date-menu,
+.sky-llm-filter-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 18rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 2147483630;
+}
+
+/* React Aria listbox popovers (portaled) — keep custom menus only */
+body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.sky-llm-filter-menu) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.sky-llm-platform-menu[hidden],
+.sky-llm-date-menu[hidden],
+.sky-llm-filter-menu[hidden] {
+  display: none;
+}
+
+.sky-llm-platform-option,
+.sky-llm-date-option,
+.sky-llm-filter-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  color: #222;
+}
+
+.sky-llm-platform-option:hover,
+.sky-llm-platform-option.is-selected,
+.sky-llm-date-option:hover,
+.sky-llm-date-option.is-selected,
+.sky-llm-filter-option:hover,
+.sky-llm-filter-option.is-selected {
+  background: #f0f0f0;
+}
+
+.sky-llm-platform-check,
+.sky-llm-date-check,
+.sky-llm-filter-check {
+  width: 1rem;
+  flex-shrink: 0;
+  color: #1473e6;
+  visibility: hidden;
+  margin-top: 0.15rem;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sky-llm-platform-option.is-selected .sky-llm-platform-check,
+.sky-llm-date-option.is-selected .sky-llm-date-check,
+.sky-llm-filter-option.is-selected .sky-llm-filter-check {
+  visibility: visible;
+}
+
+.sky-llm-filter-host {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.sky-llm-filter-host.is-open .sky-llm-filter-trigger {
+  background: #222;
+  color: #fff;
+}
+
+.sky-llm-filter-host.is-open .sky-llm-filter-trigger-chevron {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.sky-llm-filter-copy {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.sky-llm-filter-menu-search-wrap {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.65rem 0.5rem;
+}
+
+.sky-llm-filter-menu-search {
+  padding: 8px 12px;
+  border: 1px solid #dadada;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  color: #6e6e6e;
+}
+
+.sky-llm-platform-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.sky-llm-platform-copy strong,
+.sky-llm-date-copy strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.sky-llm-platform-copy span,
+.sky-llm-date-copy span {
+  display: block;
+  font-size: 12px;
+  color: #6e6e6e;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+/* Chart hover tooltips */
+.sky-llm-chart-tooltip {
+  position: fixed;
+  z-index: 9999;
+  min-width: 10.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #222;
+  pointer-events: none;
+  line-height: 1.35;
+}
+
+.sky-llm-chart-tooltip[hidden] {
+  display: none;
+}
+
+.sky-llm-chart-tooltip-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 0.45rem;
+}
+
+.sky-llm-chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.sky-llm-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sky-llm-chart-tooltip-dot--mentions {
+  background: #3b82f6;
+}
+
+.sky-llm-chart-tooltip-dot--citations {
+  background: #f97316;
+}
+
+.sky-llm-chart-tooltip-dot--positive {
+  background: #047857;
+}
+
+.sky-llm-chart-tooltip-dot--neutral {
+  background: #4b5563;
+}
+
+.sky-llm-chart-tooltip-dot--negative {
+  background: #b91c1c;
+}
+
+.sky-llm-chart-tooltip-total {
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #eee;
+  font-weight: 700;
+}
+
+.sky-llm-market-hit,
+.sky-llm-sentiment-hit {
+  cursor: default;
+}
+
+/* Keep chart cards contained without clipping Recharts line geometry */
+.sky-llm-market-chart-card {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sky-llm-chart-overflow,
+.sky-llm-market-chart-card .recharts-wrapper,
+.sky-llm-market-chart-card .recharts-responsive-container {
+  overflow: visible !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sky-llm-market-chart-card svg.recharts-surface[role='application'] {
+  max-width: 100%;
+}
+
+.sky-llm-market-chart-card .recharts-cartesian-grid,
+.sky-llm-market-chart-card .recharts-xAxis,
+.sky-llm-market-chart-card .recharts-yAxis {
+  overflow: visible;
+}
+
+.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
+  stroke-opacity: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.sky-llm-select-others-empty {
+  padding: 0.5rem 0.75rem;
+  color: #6e6e6e;
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.sky-llm-select-others-host {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}

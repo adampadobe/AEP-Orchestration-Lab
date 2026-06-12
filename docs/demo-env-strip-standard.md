@@ -175,4 +175,4 @@ CI/local script `scripts/verify-demo-env-strip.mjs` fails when:
 
 - `.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md` — update canonical reference to Sky + mount + bundle
 - `docs/profile-viewer-modal-migration-audit.md` — profile **drawer** (separate concern)
-- `CONTRIBUTING.md` — Profile Viewer lab demos — environment strip
+- `CONTRIBUTING.md` — Profile Viewer lab demos — environment strip; **[Decisioning mount zones (site-clone demos)](CONTRIBUTING.md#decisioning-mount-zones-site-clone-demos)** — `#TopRibbon`, `#hero-banner`, `#ContentCardContainer` snippet and `envBarConfig.decisioning`

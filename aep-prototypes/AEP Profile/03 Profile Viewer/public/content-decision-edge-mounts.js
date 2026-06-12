@@ -65,6 +65,47 @@
         return '#' + String(p.fragment).replace(/^#/, '');
       });
     }
+    return buildSurfacesFromPageUrl('web://' + host + path);
+  }
+
+  /**
+   * Build personalization surfaces for a target page (same shape as Launch rule / Edge Lab config).
+   * @param {string} pageUrl full https:// URL or web:// host/path
+   */
+  function buildSurfacesFromPageUrl(pageUrl) {
+    var host = '';
+    var path = '/';
+    var raw = String(pageUrl || '').trim();
+    if (!raw) {
+      return buildSurfacesForEdgeLabPage();
+    }
+    try {
+      if (/^web:\/\//i.test(raw)) {
+        var withoutScheme = raw.replace(/^web:\/\//i, '');
+        var hashIdx = withoutScheme.indexOf('#');
+        var hostPath = hashIdx >= 0 ? withoutScheme.slice(0, hashIdx) : withoutScheme;
+        var slashIdx = hostPath.indexOf('/');
+        if (slashIdx >= 0) {
+          host = hostPath.slice(0, slashIdx);
+          path = hostPath.slice(slashIdx) || '/';
+        } else {
+          host = hostPath;
+          path = '/';
+        }
+      } else {
+        var u = new URL(raw, global.location && global.location.href ? global.location.href : undefined);
+        host = u.host;
+        path = (u.pathname || '/').split('?')[0];
+      }
+    } catch (_e) {
+      return buildSurfacesForEdgeLabPage();
+    }
+    path = path.replace(/\/+$/, '') || '/';
+    if (!host) {
+      return _placements.map(function (p) {
+        return '#' + String(p.fragment).replace(/^#/, '');
+      });
+    }
     var base = 'web://' + host + path;
     var out = [];
     var i;
@@ -563,8 +604,12 @@
     var i;
     for (i = 0; i < _placements.length; i++) {
       var k = _placements[i].key;
+      var frag = String(_placements[i].fragment || '')
+        .trim()
+        .replace(/^#/, '');
       var id = 'cd-edge-' + prefix + k;
-      mountByKey[k] = queryMountById(scopeRoot, id);
+      mountByKey[k] =
+        queryMountById(scopeRoot, id) || (frag ? queryMountById(scopeRoot, frag) : null);
     }
     return mountByKey;
   }
@@ -640,6 +685,7 @@
     setPlacements: setPlacements,
     getPlacements: getPlacements,
     buildSurfacesForEdgeLabPage: buildSurfacesForEdgeLabPage,
+    buildSurfacesFromPageUrl: buildSurfacesFromPageUrl,
     buildIdentityMap: buildIdentityMap,
     applyPropositionsManually: applyPropositionsManually,
   };

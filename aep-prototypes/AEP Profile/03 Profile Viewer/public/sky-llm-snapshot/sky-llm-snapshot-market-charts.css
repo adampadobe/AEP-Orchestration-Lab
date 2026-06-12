@@ -1,0 +1,197 @@
+/**
+ * Frozen Recharts line charts — dash-array attributes hide strokes; force visible lines.
+ */
+#root {
+  --chart-color-brand: #e11d48;
+  --chart-color-magenta: #d946ef;
+  --chart-color-orange: #f97316;
+  --chart-color-purple: #a855f7;
+  --chart-color-indigo: #6366f1;
+  --chart-color-fuchsia: #c026d3;
+  --chart-color-cyan: #06b6d4;
+  --chart-line-blue: #3b82f6;
+  --chart-line-orange: #f97316;
+  --chart-line-purple: #a855f7;
+}
+
+.sky-llm-market-chart-card {
+  --chart-color-brand: #e11d48;
+  --chart-color-magenta: #d946ef;
+  --chart-color-orange: #f97316;
+  --chart-color-purple: #a855f7;
+  --chart-color-indigo: #6366f1;
+  --chart-color-fuchsia: #c026d3;
+  --chart-color-cyan: #06b6d4;
+}
+
+#root path.recharts-line-curve,
+#root path.recharts-curve.recharts-line-curve,
+.sky-llm-market-chart-card path.recharts-curve,
+.sky-llm-market-chart-card path.recharts-line-curve,
+.sky-llm-line-chart-fit path.recharts-curve,
+.sky-llm-line-chart-fit path.recharts-line-curve {
+  stroke-dasharray: none !important;
+  stroke-dashoffset: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#root g.recharts-layer.recharts-line,
+.sky-llm-market-chart-card g.recharts-layer.recharts-line,
+.sky-llm-line-chart-fit g.recharts-layer.recharts-line {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.sky-llm-market-chart-card {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sky-llm-market-chart-card .recharts-responsive-container {
+  width: 100% !important;
+  min-height: 300px !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card .sky-llm-recharts-measure,
+.sky-llm-market-chart-card .recharts-responsive-container > div {
+  width: 100% !important;
+  min-height: 300px !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card .recharts-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.sky-llm-market-chart-card svg.recharts-surface[role='application'] {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+/* Wide frozen SVGs (URL Inspector, Agentic Traffic) — scale to card width; never clip strokes */
+.sky-llm-line-chart-fit {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.sky-llm-line-chart-fit .recharts-wrapper,
+.sky-llm-line-chart-fit .recharts-responsive-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.sky-llm-line-chart-fit svg.recharts-surface[role='application'] {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card path.sky-llm-market-line-hidden {
+  stroke-opacity: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Compact inline legend — icon SVGs must stay 14×14, not scale with chart */
+.sky-llm-market-chart-card .recharts-wrapper,
+.sky-llm-line-chart-fit .recharts-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+.sky-llm-market-chart-card .recharts-wrapper > svg.recharts-surface[role='application'],
+.sky-llm-line-chart-fit .recharts-wrapper > svg.recharts-surface[role='application'] {
+  order: 1 !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-wrapper,
+.sky-llm-line-chart-fit .recharts-legend-wrapper,
+.sky-llm-market-chart-card .recharts-wrapper > div:has(.recharts-default-legend),
+.sky-llm-line-chart-fit .recharts-wrapper > div:has(.recharts-default-legend) {
+  order: 2 !important;
+  position: relative !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 8px 0 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+  transform: none !important;
+}
+
+.sky-llm-market-chart-card .recharts-default-legend,
+.sky-llm-line-chart-fit .recharts-default-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 4px 10px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  list-style: none !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item,
+.sky-llm-line-chart-fit .recharts-legend-item {
+  display: inline-block !important;
+  margin: 0 10px 4px 0 !important;
+  vertical-align: middle !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item svg.recharts-surface,
+.sky-llm-line-chart-fit .recharts-legend-item svg.recharts-surface {
+  width: 14px !important;
+  height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 4px !important;
+  overflow: visible !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item-text,
+.sky-llm-line-chart-fit .recharts-legend-item-text {
+  font-size: 12px !important;
+  vertical-align: middle !important;
+}
+
+.sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden,
+.sky-llm-line-chart-fit .recharts-legend-item.sky-llm-market-legend-hidden {
+  display: none !important;
+}
+
+.sky-llm-market-chart-card g.sky-llm-market-line-hidden,
+.sky-llm-line-chart-fit g.sky-llm-market-line-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

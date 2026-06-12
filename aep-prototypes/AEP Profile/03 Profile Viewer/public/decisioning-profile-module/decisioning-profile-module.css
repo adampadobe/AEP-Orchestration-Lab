@@ -1,0 +1,330 @@
+/**
+ * Reusable decisioning profile module — mirrors Decisioning lab (Edge) micro profile styling.
+ * Scoped under .decisioning-profile-module .cd-hero-rail (dash tokens only).
+ */
+.decisioning-profile-module .cd-hero-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--dash-text);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-run-full-btn {
+  width: 100%;
+  text-align: center;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--dash-blue);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-run-full-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-run-full-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-collapsed {
+  gap: 0;
+  padding: 0.45rem 0.55rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.15rem 0.1rem;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle:hover {
+  background: var(--dash-hover);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle:focus {
+  outline: none;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle-cluster {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle-title {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  white-space: nowrap;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-chevron {
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: 0.1rem;
+  border-right: 2px solid var(--dash-muted);
+  border-bottom: 2px solid var(--dash-muted);
+  opacity: 0.9;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile:not(.is-collapsed) .cd-micro-profile-chevron {
+  transform: rotate(-135deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decisioning-profile-module .cd-hero-rail .cd-micro-profile-chevron {
+    transition-duration: 0.01ms;
+  }
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-collapsed .cd-micro-profile-body {
+  display: none !important;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile:not(.is-collapsed) .cd-micro-profile-body {
+  margin-top: 0.4rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--dash-muted);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state[data-loaded='true'] .cd-micro-profile-state-dot {
+  background: var(--dash-success-border);
+  box-shadow: 0 0 0 2px var(--dash-success-bg);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state[data-loaded='true'] {
+  color: var(--dash-success-text, var(--dash-text));
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle-cluster .cd-micro-profile-state {
+  max-width: 100%;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle-cluster .cd-micro-profile-state-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field > label {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field select {
+  width: 100%;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  box-sizing: border-box;
+}
+
+.decisioning-profile-module .cd-hero-rail #cdMicroProfileTier:not(:disabled) {
+  --cd-slider-fill: color-mix(in srgb, var(--dash-error-border) 38%, var(--dash-warning-border));
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field input[type='range'] {
+  --cd-slider-fill: var(--dash-blue);
+  --cd-slider-pct: 50%;
+  width: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--cd-slider-fill) 0% var(--cd-slider-pct),
+    var(--dash-input-border) var(--cd-slider-pct) 100%
+  );
+  accent-color: var(--cd-slider-fill);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 2px solid var(--cd-slider-fill);
+  cursor: pointer;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field input[type='range']::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 2px solid var(--cd-slider-fill);
+  cursor: pointer;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-field input[type='range']::-moz-range-track {
+  background: transparent;
+  border: 0;
+  height: 0.5rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-range-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-range-row > label {
+  margin: 0;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-range-row strong {
+  color: var(--dash-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-apply {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--dash-surface);
+  background: var(--dash-blue);
+  border: 1px solid var(--dash-blue);
+  border-radius: var(--dash-radius-sm);
+  cursor: pointer;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-apply:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-apply:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-status {
+  margin: 0;
+  min-height: 1em;
+  font-size: 0.7rem;
+  color: var(--dash-text-secondary);
+  word-break: break-word;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-status.is-error {
+  color: var(--dash-error-text, var(--dash-text));
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-status.is-ok {
+  color: var(--dash-success-text, var(--dash-text));
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-pipeline {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--dash-text-secondary);
+  min-height: 1.1em;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-pipeline.is-error {
+  color: var(--dash-error-text);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-pipeline.is-ok {
+  color: var(--dash-success-text);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier input[type='range'],
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points input[type='range'] {
+  opacity: 0.45;
+}

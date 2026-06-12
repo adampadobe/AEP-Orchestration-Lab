@@ -161,6 +161,8 @@
   var injectedToggle = document.getElementById(cfg('injectedToggleId', 'siteCloneBcInjectedToggle'));
   var modalToggle = document.getElementById(cfg('modalToggleId', 'siteCloneBcModalToggle'));
   var fullScreenToggle = document.getElementById(cfg('fullScreenToggleId', 'siteCloneBcFullScreenToggle'));
+  var bottomDockToggle = document.getElementById(cfg('bottomDockToggleId', 'siteCloneBcBottomDockToggle'));
+  var BOTTOM_DOCK_MOUNT_SELECTOR = cfg('bottomDockMountSelector', '#bcBottomDockMount');
   var bcModal = document.getElementById('aepBcModal');
   var bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
 
@@ -773,7 +775,7 @@
 
   function bindBcMountRepatch(win, doc) {
     if (!win || !doc) return;
-    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount').forEach(function (mount) {
+    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
       if (mount.__siteCloneBcRepatchBound) return;
       mount.__siteCloneBcRepatchBound = true;
       mount.addEventListener(
@@ -967,7 +969,7 @@
     if (!doc) return;
     function run() {
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount').forEach(function (mount) {
+        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
           global.repositionArmyBcDisclaimer(mount);
         });
       }
@@ -1290,6 +1292,16 @@
     await bootstrapIframeBcOverlay(fullscreen);
   }
 
+  async function bootstrapBottomDock() {
+    setBottomDockVisible(true);
+    await ensureParentCore();
+    await bootstrapConcierge(global, BOTTOM_DOCK_MOUNT_SELECTOR, global.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
+    scheduleDisclaimerReposition(document);
+    activeMode = 'bottomDock';
+  }
+
   async function bootstrapIframeFullscreen() {
     await bootstrapIframeBcInline(true);
   }
@@ -1315,6 +1327,16 @@
 
   function isFullScreenOn() {
     return !!(fullScreenToggle && fullScreenToggle.checked);
+  }
+
+  function isBottomDockOn() {
+    return !!(bottomDockToggle && bottomDockToggle.checked);
+  }
+
+  function setBottomDockVisible(on) {
+    if (global.BrandConciergeBottomDock && typeof global.BrandConciergeBottomDock.setVisible === 'function') {
+      global.BrandConciergeBottomDock.setVisible(!!on);
+    }
   }
 
   function closeBcModal() {
@@ -1360,6 +1382,10 @@
     if (!isInjectedOn() && !isFullScreenOn()) {
       hideBcFrameHost();
     }
+    if (!isBottomDockOn()) {
+      setBottomDockVisible(false);
+      clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
+    }
   }
 
   var syncInFlight = null;
@@ -1377,8 +1403,9 @@
     var wantInjected = isInjectedOn();
     var wantModal = isModalOn();
     var wantFullScreen = isFullScreenOn();
+    var wantBottomDock = isBottomDockOn();
 
-    if (!wantInjected && !wantModal && !wantFullScreen) {
+    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock) {
       var iframeDocOff = getIframeDoc();
       if (iframeDocOff) {
         setSnapshotFullscreenLayout(iframeDocOff, false);
@@ -1388,7 +1415,9 @@
       await restoreSiteCloneSnapshotFrame();
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+      clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
       hideBcFrameHost();
+      setBottomDockVisible(false);
       activeMode = null;
       reportBcStatus('');
       return;
@@ -1397,7 +1426,13 @@
     var styleUrl = resolveAssetUrl(getStyleConfigUrl());
     try {
       teardownConflictingBcMounts();
-      if (wantFullScreen) {
+      if (wantBottomDock) {
+        closeBcModal();
+        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+        await restoreSiteCloneSnapshotFrame();
+        await bootstrapBottomDock();
+      } else if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
         await restoreSiteCloneSnapshotFrame();
@@ -1437,7 +1472,7 @@
   }
 
   function bindToggles() {
-    [injectedToggle, modalToggle, fullScreenToggle].forEach(function (el) {
+    [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle].forEach(function (el) {
       if (!el) return;
       el.addEventListener('change', function () {
         sync();
@@ -1474,7 +1509,7 @@
   void ensureEdgePathPatches(global, document);
 
   function scheduleInitialSync() {
-    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn()) return;
+    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn()) return;
     var frame = getSiteCloneFrame();
     function run() {
       void sync();

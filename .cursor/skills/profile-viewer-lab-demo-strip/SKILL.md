@@ -24,6 +24,17 @@ description: >-
 5. **Selected script** line: a `<code id="…SelectedScript">` — pass its id as `selectedScriptCodeId` to `AepDemoEnvStrip.initStandardEnvBar`.
 6. **Two-column layout:** add `aep-demo-id-inner` to the brand-prefixed id-inner `<div>` to inherit the standard two-column grid (env config left `1fr`, profile lookup right `300px`). See `aep-demo-env-bar.css`.
 
+## Decisioning mount zones (when `features.decisioning` is enabled)
+
+After the env strip mount, add canonical AJO / Edge targets to the **iframe `src` HTML** (or parent `<main>` for parent-document demos):
+
+1. Copy [`shared/decisioning-mount-zones.fragment.html`](web/profile-viewer/shared/decisioning-mount-zones.fragment.html) into the site clone — or wrap the native hero with `data-hero-mount` and add `#TopRibbon` + `#ContentCardContainer` siblings.
+2. Set `envBarConfig.decisioning` when auto-detect is insufficient (`iframeId`, `mountLayoutPreset: 'generic'`, `viewName`).
+3. Multi-page journeys: paste snippet in each HTML **or** load `shared/decisioning-mount-zones-inject.js` from journey chrome (see `demos/ksia/ksia-journey-chrome.js`).
+4. Run `npm run verify:decisioning-mount-zones`.
+
+Full contract: [CONTRIBUTING.md § Decisioning mount zones](CONTRIBUTING.md#decisioning-mount-zones-site-clone-demos).
+
 ## HTML structure
 
 Use **`sky-demo.html`** as the canonical reference (site-clone strip). Mount markup via **`shared/demo-env-strip.js`** — see `docs/demo-env-strip-standard.md`. Legacy `etihad-demo.html` vertical layout is retired for new iframe demos.
@@ -372,6 +383,7 @@ Bump **`?v=YYYYMMDD-…`** on every `<link>` / `<script>` that references a chan
 ## Verify + mirror
 
 - `npm run verify:profile-viewer-routes`
+- `npm run verify:decisioning-mount-zones` when site-clone iframe HTML or decisioning wiring changed
 - `npm run sync-profile-viewer-ui` when the Express mirror must match
 
 ## References in repo
