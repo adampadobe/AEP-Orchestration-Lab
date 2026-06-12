@@ -69,8 +69,8 @@
 }
 
 .dpm-panel-backdrop.is-open {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .dpm-panel-inner {

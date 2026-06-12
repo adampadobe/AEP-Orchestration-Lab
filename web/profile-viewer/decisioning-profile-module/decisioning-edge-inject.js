@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617';
+  var CACHE_BUST = '20260618';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -192,10 +192,19 @@
       '.cd-banner-image,.cd-edge-ajo-card-img{width:100%;max-height:200px;object-fit:cover;display:block;}' +
       '#' +
       FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow .cd-banner--below{background:transparent!important;overflow:visible;min-height:0!important;}' +
+      '#' +
+      FRAGMENTS.hero +
       '.cd-edge-mount-body--hero-flow .cd-banner--below .cd-banner-image,' +
       '#' +
       FRAGMENTS.hero +
-      '.cd-edge-mount-body--hero-flow .cd-banner--below .cd-banner-figure img,' +
+      '.cd-edge-mount-body--hero-flow .cd-banner--below .cd-banner-figure img{width:100%;height:auto;max-height:var(--cd-sky-hero-img-max-height,min(42vh,360px));object-fit:contain;display:block;}' +
+      '#' +
+      FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow .cd-banner--below .cd-banner-figure--empty{min-height:0;height:auto;max-height:var(--cd-sky-hero-img-max-height,min(42vh,360px));opacity:1;}' +
+      '#' +
+      FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow .cd-banner--below .cd-banner-copy{padding:1rem 1.25rem 1.25rem;}' +
       '#' +
       FRAGMENTS.contentCard +
       '.cd-edge-mount-body--card-below .cd-banner--below .cd-banner-image,' +
@@ -357,15 +366,74 @@
       var banner = banners[i];
       banner.classList.remove('cd-banner--overlay', 'cd-banner--half');
       banner.classList.add('cd-banner--below');
+      banner.style.removeProperty('min-height');
       var scrim = banner.querySelector('.cd-banner-scrim');
       if (scrim) scrim.style.display = 'none';
     }
-    var imgs = mount.querySelectorAll('.cd-banner-image');
+    var imgs = mount.querySelectorAll('.cd-banner-image, .cd-banner-figure img');
     for (i = 0; i < imgs.length; i++) {
       imgs[i].style.objectFit = 'contain';
-      imgs[i].style.maxHeight = 'none';
+      imgs[i].style.width = '100%';
       imgs[i].style.height = 'auto';
     }
+  }
+
+  /** Measure native Sky hero picture height before decisioning hides siblings. */
+  function measureSkyHeroReference(heroMount) {
+    if (!heroMount || !heroMount.parentElement) return null;
+    var parent = heroMount.parentElement;
+    var img =
+      parent.querySelector('picture[data-test-id="php-image-bg-asset"] img') ||
+      parent.querySelector('[data-test-id="hero"] picture img') ||
+      parent.querySelector('img.image__Image-sc-21rhmd-0') ||
+      parent.querySelector('picture img[data-skyui-core*="Image"]') ||
+      parent.querySelector('picture img');
+    var imgH = 0;
+    var imgW = 0;
+    if (img) {
+      var rect = img.getBoundingClientRect();
+      imgH = Math.round(rect.height || img.offsetHeight || 0);
+      imgW = Math.round(rect.width || img.offsetWidth || 0);
+      if (!imgH && img.naturalHeight && img.naturalWidth) {
+        var parentW = parent.offsetWidth || heroMount.offsetWidth;
+        if (parentW) imgH = Math.round((parentW / img.naturalWidth) * img.naturalHeight);
+      }
+    }
+    if (!imgH) {
+      var picture = parent.querySelector('picture[data-test-id="php-image-bg-asset"]') || parent.querySelector('picture');
+      if (picture && picture.offsetHeight) imgH = picture.offsetHeight;
+    }
+    if (!imgH) return null;
+    return { imgHeight: imgH, imgWidth: imgW };
+  }
+
+  function applySkyHeroMetrics(heroMount, metrics, noImageBg) {
+    if (!heroMount || !metrics || !metrics.imgHeight) return;
+    var maxH = Math.max(40, Math.round(metrics.imgHeight));
+    heroMount.style.setProperty('--cd-sky-hero-img-max-height', maxH + 'px');
+    heroMount.setAttribute('data-cd-sky-hero-img-h', String(maxH));
+    var banner = heroMount.querySelector('.cd-banner');
+    if (banner) {
+      banner.style.removeProperty('background-color');
+      banner.style.background = 'transparent';
+      banner.style.removeProperty('min-height');
+      var nib = noImageBg != null && String(noImageBg).trim() ? String(noImageBg).trim() : '';
+      var empty = banner.querySelector('.cd-banner-figure--empty');
+      if (empty && nib) empty.style.backgroundColor = nib;
+    }
+    heroMount.querySelectorAll('.cd-banner-image, .cd-banner-figure img').forEach(function (imgEl) {
+      imgEl.style.width = '100%';
+      imgEl.style.height = 'auto';
+      imgEl.style.maxHeight = 'var(--cd-sky-hero-img-max-height, min(42vh, 360px))';
+      imgEl.style.objectFit = 'contain';
+    });
+  }
+
+  function reapplySkyHeroMetricsFromCache(heroMount, noImageBg) {
+    if (!heroMount) return;
+    var cached = heroMount.getAttribute('data-cd-sky-hero-img-h');
+    if (!cached) return;
+    applySkyHeroMetrics(heroMount, { imgHeight: parseInt(cached, 10) || 0 }, noImageBg);
   }
 
   function hideContentCardActions(mount) {
@@ -377,12 +445,22 @@
   }
 
   /** Sky snapshot: hero + content card use stacked image-above-copy layout (not overlay). */
-  function normalizeSkyHomeDecisionLayouts(doc, layout) {
+  function normalizeSkyHomeDecisionLayouts(doc, layout, surfaceStyles) {
     if (!doc || !isSkyHomeLayout(layout)) return;
+    var heroNoImageBg =
+      surfaceStyles && surfaceStyles[FRAGMENTS.hero] && surfaceStyles[FRAGMENTS.hero].noImageBg
+        ? surfaceStyles[FRAGMENTS.hero].noImageBg
+        : '';
     var hero = doc.getElementById(FRAGMENTS.hero);
+    var heroMetrics = hero && !hero.matches(':empty') ? measureSkyHeroReference(hero) : null;
     if (hero && !hero.matches(':empty')) {
       hero.classList.add('cd-edge-mount-body--hero-flow');
       normalizeBannerToBelow(hero);
+      hero.style.minHeight = '0';
+      hero.style.maxHeight = '';
+      hero.style.height = '';
+      if (heroMetrics) applySkyHeroMetrics(hero, heroMetrics, heroNoImageBg);
+      else reapplySkyHeroMetricsFromCache(hero, heroNoImageBg);
     }
     var card = doc.getElementById(FRAGMENTS.contentCard);
     if (card && !card.matches(':empty')) {
@@ -510,10 +588,14 @@
 
   function applyStyleToMount(mount, st) {
     if (!mount || !st) return;
+    var isHeroFlow = mount.classList.contains('cd-edge-mount-body--hero-flow');
+    var isCardBelow = mount.classList.contains('cd-edge-mount-body--card-below');
     var banner = mount.querySelector('.cd-banner');
     if (banner) {
-      banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
-      banner.classList.add('cd-banner--' + (st.layoutMode || STYLE_DEFAULTS.layoutMode));
+      if (!isHeroFlow && !isCardBelow) {
+        banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
+        banner.classList.add('cd-banner--' + (st.layoutMode || STYLE_DEFAULTS.layoutMode));
+      }
       if (st.titleColor) banner.style.setProperty('--cd-title-color', String(st.titleColor));
       if (st.descColor) banner.style.setProperty('--cd-desc-color', String(st.descColor));
       if (st.ctaBg) banner.style.setProperty('--cd-cta-bg', String(st.ctaBg));
@@ -521,10 +603,17 @@
       var nib = st.noImageBg != null && String(st.noImageBg).trim() ? String(st.noImageBg).trim() : '';
       if (nib) {
         banner.style.setProperty('--cd-no-image-bg', nib);
-        banner.style.setProperty('background-color', nib);
+        if (isHeroFlow || isCardBelow) {
+          banner.style.removeProperty('background-color');
+          banner.style.background = 'transparent';
+          var fig = banner.querySelector('.cd-banner-figure--empty');
+          if (fig) fig.style.backgroundColor = nib;
+        } else {
+          banner.style.setProperty('background-color', nib);
+        }
       } else {
         banner.style.removeProperty('--cd-no-image-bg');
-        banner.style.removeProperty('background-color');
+        if (!isHeroFlow && !isCardBelow) banner.style.removeProperty('background-color');
       }
     }
     var copy = mount.querySelector('.cd-banner-copy');
@@ -555,6 +644,20 @@
     var ribbonInline = mount.classList.contains('cd-edge-mount-body--ribbon-inline');
     var ribbonFixed =
       !ribbonInline && mountUsesTopRibbonSurface(mount) && (!!mh || mount.classList.contains('cd-edge-mount-body--ribbon-fixed'));
+    if (isHeroFlow) {
+      mount.style.minHeight = '0';
+      mount.style.maxHeight = '';
+      mount.style.height = '';
+      mount.style.overflow = '';
+      normalizeBannerToBelow(mount);
+      reapplySkyHeroMetricsFromCache(mount, st.noImageBg);
+      return;
+    }
+    if (isCardBelow) {
+      mount.style.minHeight = mh || '';
+      normalizeBannerToBelow(mount);
+      return;
+    }
     if (ribbonInline) {
       mount.classList.remove('cd-edge-mount-body--ribbon-fixed');
       mount.style.maxHeight = '';
@@ -674,9 +777,11 @@
 
     var card = scopeRoot.getElementById(FRAGMENTS.contentCard);
     if (card) normalizeContentCardLayout(card);
-    markHeroHasDecision(scopeRoot);
+
+    normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout, opts.surfaceStyles);
     if (opts.surfaceStyles) applySurfaceStyles(scopeRoot, opts.surfaceStyles);
-    normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout);
+    normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout, opts.surfaceStyles);
+    markHeroHasDecision(scopeRoot);
     return true;
   }
 
