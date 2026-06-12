@@ -1425,7 +1425,7 @@
       '<ol>' +
       '<li><strong>Bot-only delivery.</strong> We target agents only. Human visitors are not affected in any way.</li>' +
       '<li><strong>We don\'t touch your CMS.</strong> Optimizations live at the edge of your CDN. No code changes or republishing happening.</li>' +
-      '<li><strong>Fast, low-risk deployment.</strong> Optimization can take effect in minutes, not days. No developer engagement required.</li>' +
+      '<li><strong>Fast, low-risk deployment.</strong> Optimizations can take effect in minutes, not days. No developer engagement required.</li>' +
       '</ol>' +
       '<p>Optimizing your content for AI agents improves the likelihood of LLMs citing and understanding your content.</p>';
 
@@ -1434,7 +1434,7 @@
       '<div class="sky-llm-op-content-op">' +
       buildContentOpHead(
         'Simplify Complex Content',
-        'Mon, Jun 1, 2024',
+        'Mon, Jun 8, 2026',
         '1',
         'URLs',
         '1',
@@ -1447,11 +1447,6 @@
         'Review all suggested fixes below carefully before applying. You can dismiss or edit where needed.',
         'Please select suggestions to deploy',
       ) +
-      buildContentOpUrlsSection({
-        url: siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html'),
-        issues: '1',
-        traffic: '12,422',
-      }) +
       '</div>'
     );
   }
