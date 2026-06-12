@@ -88,6 +88,30 @@
   border-bottom: 0;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Config cards scroll inside overlay; profile lookup stays visible (not flex-shrunk to ~0). */
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-selected-script,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-inline-message,
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-info-bar {
+  flex-shrink: 0;
 }
 
 .lab-env-overlay-profile .spectrum-env-profile-grid {

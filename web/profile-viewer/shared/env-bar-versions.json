@@ -3,7 +3,7 @@
   "moduleVersion": "1.0.0",
   "assets": {
     "bundleCss": "20260623-env-inline",
-    "spectrumCss": "20260624-spectrum-p2",
+    "spectrumCss": "20260612-spectrum-profile-lookup",
     "demoEnvStripSpectrum": "20260623-spectrum",
     "demoEnvStrip": "20260623-spectrum",
     "spectrumSync": "20260623-spectrum",
