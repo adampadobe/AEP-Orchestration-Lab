@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home — King Salman International Airport</title>
+  <link rel="stylesheet" href="ksia-site.css?v=20260612">
+</head>
+<body class="ksia-site" data-ksia-page-id="home">
+  <div id="ksia-chrome-mount"></div>
+  <main class="ksia-main" id="ksia-main">
+    <section class="ksia-hero" aria-label="Featured">
+      <div class="ksia-hero-slides"><div class="ksia-hero-slide ksia-hero-theme-vision active" role="img" aria-label="King Salman International Airport"></div>
+        <div class="ksia-hero-slide ksia-hero-theme-terminals" role="img" aria-label="Six world-class terminals"></div>
+        <div class="ksia-hero-slide ksia-hero-theme-aivc" role="img" aria-label="Your AIVC companion"></div></div>
+      <div class="ksia-hero-overlay">
+        <div class="ksia-hero-text-wrap"><div class="ksia-hero-text-slide active"><h1 class="ksia-hero-h1">King Salman International Airport</h1><p class="ksia-hero-sub">Redefining travel for Vision 2030 — six terminals, one seamless experience.</p></div>
+          <div class="ksia-hero-text-slide"><h1 class="ksia-hero-h1">Six world-class terminals</h1><p class="ksia-hero-sub">From Terminal 1 to Terminal 6 — designed for capacity, comfort, and connection.</p></div>
+          <div class="ksia-hero-text-slide"><h1 class="ksia-hero-h1">Your AIVC companion</h1><p class="ksia-hero-sub">Airport Intelligent Virtual Companion — wallet, wayfinding, and disruption support.</p></div></div>
+        <div class="ksia-hero-controls">
+          <button type="button" class="ksia-hero-ctrl" id="ksiaHeroPrev" aria-label="Previous slide">‹</button>
+          <div class="ksia-hero-indicators"><button type="button" class="ksia-hero-ind ksia-hero-ind-active" aria-label="Slide 1"></button><button type="button" class="ksia-hero-ind" aria-label="Slide 2"></button><button type="button" class="ksia-hero-ind" aria-label="Slide 3"></button></div>
+          <button type="button" class="ksia-hero-ctrl" id="ksiaHeroNext" aria-label="Next slide">›</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-flight-search-wrap" aria-label="Flight search">
+      <form id="ksiaFlightSearch" class="ksia-flight-search">
+        <div class="ksia-search-field"><label for="ksiaOrigin">From</label><input id="ksiaOrigin" name="origin" placeholder="City or airport" autocomplete="off"></div>
+        <div class="ksia-search-field"><label for="ksiaDestination">To</label><input id="ksiaDestination" name="destination" placeholder="City or airport" autocomplete="off"></div>
+        <div class="ksia-search-field"><label for="ksiaTravelDate">Date</label><input id="ksiaTravelDate" name="date" type="date"></div>
+        <button type="submit" class="ksia-btn ksia-btn-primary">Search flights</button>
+      </form>
+    </section>
+
+    <section class="ksia-quick-links" aria-label="Quick links">
+      <h2 class="ksia-section-title">Quick links</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="flights/arrivals.html" class="ksia-card-link" data-ksia-quick-link>Flight arrivals</a></li>
+        <li><a href="flights/departures.html" class="ksia-card-link" data-ksia-quick-link>Flight departures</a></li>
+        <li><a href="at-the-airport/maps.html" class="ksia-card-link" data-ksia-quick-link>Terminal maps</a></li>
+        <li><a href="transport/parking.html" class="ksia-card-link" data-ksia-quick-link>Parking</a></li>
+        <li><a href="aivc/wallet-setup.html" class="ksia-card-link" data-ksia-quick-link>AIVC wallet</a></li>
+        <li><a href="shop-dine/index.html" class="ksia-card-link" data-ksia-quick-link>Shop &amp; Dine</a></li>
+      </ul>
+    </section>
+  </main>
+  <script src="ksia-mock-data.js?v=20260612"></script>
+  <script src="ksia-events.js?v=20260612"></script>
+  <script src="ksia-chrome.js?v=20260612"></script>
+  <script src="ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="ksia-home.js?v=20260612"></script>
+</body>
+</html>

@@ -399,6 +399,28 @@
           ],
         },
         {
+          id: 'demoKsia',
+          label: 'KSIA',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'ksiaWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'KSIA airport journey (in development)',
+                  href: 'ksia-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'ksiaAirportDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 20h20M4 20V9l8-5 8 5v11M9 20v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoFnb',
           label: 'FNB',
           demoCustomer: true,
@@ -677,6 +699,15 @@
                   demoMeta: { owners: ['kirkham'] },
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+                },
+                {
+                  label: 'Opportunity Workspace (in development)',
+                  href: 'sky-llm-opportunity-workspace.html',
+                  inDevelopment: true,
+                  navHideKey: 'skyLlmOpportunityWorkspace',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 10h8M8 14h5"/></svg>',
                 },
               ],
             },
