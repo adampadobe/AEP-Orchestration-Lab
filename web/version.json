@@ -1,14 +1,14 @@
 {
-  "gitSha": "ac0a6ec90c3aa5e1a8b1a4bb7c394ba3a29d51ca",
-  "gitShortSha": "ac0a6ec9",
+  "gitSha": "1a4dca857fd0951105ecc7eca60ca80eef700615",
+  "gitShortSha": "1a4dca85",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: env bar audit remediation — loader-only BC, Firestore config API, verifiers",
+  "gitCommitSubject": "[apalmer] refactor: Race for Life uses shared decisioning runtime (Phase 5)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-12T22:36:46+01:00",
-  "deployedAt": "2026-06-12T21:37:15.043Z",
+  "gitCommitDate": "2026-06-12T23:00:18+01:00",
+  "deployedAt": "2026-06-12T22:00:35.295Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ac0a6ec90c3aa5e1a8b1a4bb7c394ba3a29d51ca"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1a4dca857fd0951105ecc7eca60ca80eef700615"
 }
