@@ -806,7 +806,28 @@
   }
 
   function injectContentDetailsButton(card, viewId) {
-    return null;
+    if (!card || !viewId) return null;
+    var existing = card.querySelector('[data-sky-llm-op-details-btn="' + viewId + '"]');
+    if (existing) return existing;
+
+    Array.from(card.querySelectorAll('button, a, [role="button"]')).forEach(function (nativeBtn) {
+      if (!isDetailsActionButton(nativeBtn) || nativeBtn.dataset.skyLlmOpDetailsBtn) return;
+      nativeBtn.style.display = 'none';
+      nativeBtn.setAttribute('aria-hidden', 'true');
+      nativeBtn.tabIndex = -1;
+    });
+
+    if (getComputedStyle(card).position === 'static') {
+      card.style.position = 'relative';
+    }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sky-llm-op-content-details-btn';
+    btn.dataset.skyLlmOpDetailsBtn = viewId;
+    btn.textContent = 'Details';
+    card.appendChild(btn);
+    return btn;
   }
 
   function ensureContentDetailsDelegation() {
@@ -817,8 +838,11 @@
       var card = e.target.closest('#skyLlmOpContentCards [data-sky-llm-op-view-id]');
       if (!card || card.classList.contains('sky-llm-op-card-hidden')) return;
       if (e.target.closest('input, textarea, select')) return;
-      var viewId = card.getAttribute('data-sky-llm-op-view-id');
+      var hit = e.target.closest('button, a, [role="button"], [data-sky-llm-op-details-btn]');
+      var viewId =
+        (hit && hit.dataset.skyLlmOpDetailsBtn) || card.getAttribute('data-sky-llm-op-view-id');
       if (!viewId || !DETAIL_VIEWS[viewId]) return;
+      if (hit && !hit.dataset.skyLlmOpDetailsBtn && !isDetailsActionButton(hit)) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -873,6 +897,43 @@
         true,
       );
     }
+  }
+
+  function wireContentCardOpen(card, viewId) {
+    wireCardOpen(card, viewId);
+    card =
+      document.querySelector('#skyLlmOpContentCards [data-sky-llm-op-view-id="' + viewId + '"]') ||
+      document.querySelector('[data-sky-llm-op-view-id="' + viewId + '"]') ||
+      card;
+    var btn = injectContentDetailsButton(card, viewId);
+    if (!btn || btn.dataset.skyLlmOpDetailsWired === '1') return;
+    btn.dataset.skyLlmOpDetailsWired = '1';
+    btn.addEventListener(
+      'click',
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showDetail(viewId);
+      },
+      true,
+    );
+  }
+
+  function rewireContentCards(mount) {
+    if (!mount) return;
+    CONTENT_ORDER.forEach(function (id) {
+      var card = mount.querySelector('[data-sky-llm-op-view-id="' + id + '"]');
+      if (card) wireContentCardOpen(card, id);
+    });
+  }
+
+  function contentCardsReady(mount) {
+    return (
+      mount &&
+      mount.querySelector('[data-sky-llm-op-view-id="simplify"]') &&
+      mount.querySelector('[data-sky-llm-op-view-id="llm-summaries"]')
+    );
   }
 
   function opportunityCardFromTarget(target) {
@@ -1104,7 +1165,7 @@
       mount.appendChild(card);
       card = neutralizeFrozenCard(card);
       patchCard(card, config, { hideMetrics: true });
-      wireCardOpen(card, id);
+      wireContentCardOpen(card, id);
       markContentCard(card);
       byId[id] = card;
     });
@@ -1126,11 +1187,12 @@
     state.contentRebuildTimer = window.setTimeout(function () {
       state.contentRebuildTimer = null;
       var mount = document.getElementById('skyLlmOpContentCards');
-      var ok =
-        mount &&
-        mount.querySelector('[data-sky-llm-op-view-id="simplify"]') &&
-        mount.querySelector('[data-sky-llm-op-view-id="llm-summaries"]');
-      if (!ok) ensureContentCards();
+      hideNativeContentSectionCards(mount);
+      if (!contentCardsReady(mount)) {
+        ensureContentCards();
+        return;
+      }
+      rewireContentCards(mount);
     }, 200);
   }
 
