@@ -1341,11 +1341,37 @@
     );
   }
 
+  function buildContentOpProgressSplit(opts) {
+    opts = opts || {};
+    var optimized = opts.optimized != null ? opts.optimized : 0;
+    var total = opts.total != null ? opts.total : 1;
+    var note = opts.note || 'Upgrade to unlock more opportunities and optimize additional URLs.';
+    return (
+      '<section class="sky-llm-op-progress-block sky-llm-op-progress-block--split">' +
+      '<div class="sky-llm-op-progress-main">' +
+      '<p class="sky-llm-op-kicker">Optimization progress</p>' +
+      '<div class="sky-llm-op-progress-bar"><div class="sky-llm-op-progress-fill" style="width:' +
+      (total ? Math.round((optimized / total) * 100) : 0) +
+      '%"></div></div>' +
+      '<p class="sky-llm-op-progress-label"><strong>' +
+      escapeHtml(String(optimized)) +
+      '</strong> of <strong>' +
+      escapeHtml(String(total)) +
+      '</strong> URLs optimized</p>' +
+      '<p class="sky-llm-op-progress-note">' +
+      escapeHtml(note) +
+      '</p></div>' +
+      '<aside class="sky-llm-op-progress-cta">' +
+      '<strong>Fix your site in minutes.</strong> <a href="#">Talk to our team</a> for a tailored analysis of your brand.' +
+      '</aside></section>'
+    );
+  }
+
   function buildContentOpUrlsSection(opts) {
     opts = opts || {};
-    var sampleUrl = opts.url || siteUrl('/content/adobe-com/fusion/magazine/ski-touring.html');
+    var sampleUrl = opts.url || demoSiteUrl('/');
     var issues = opts.issues != null ? opts.issues : '1';
-    var traffic = opts.traffic != null ? opts.traffic : '12,422';
+    var traffic = opts.traffic != null ? opts.traffic : '12,425';
     var showActions = opts.showActions !== false;
 
     return (
@@ -1363,12 +1389,13 @@
       '</div></div>' +
       '<div class="sky-llm-op-search sky-llm-op-search--full" role="search">Search URLs</div>' +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-simplify">' +
-      '<thead><tr><th scope="col"></th><th scope="col">URL</th><th scope="col">Issues</th>' +
+      '<thead><tr><th scope="col"></th><th scope="col"></th><th scope="col">URL</th><th scope="col">Issues</th>' +
       '<th scope="col">Agentic Traffic (4 Weeks)</th>' +
       (showActions ? '<th scope="col">Actions</th>' : '') +
       '<th scope="col">Details</th></tr></thead>' +
       '<tbody><tr>' +
       '<td><input type="checkbox" aria-label="Select URL"></td>' +
+      '<td class="sky-llm-op-expand-cell" aria-hidden="true">▾</td>' +
       demoLinkCell(sampleUrl) +
       '<td>' +
       escapeHtml(issues) +
@@ -1447,27 +1474,23 @@
         'Review all suggested fixes below carefully before applying. You can dismiss or edit where needed.',
         'Please select suggestions to deploy',
       ) +
+      buildContentOpProgressSplit({ optimized: 0, total: 1 }) +
+      buildContentOpUrlsSection({ url: demoSiteUrl('/'), issues: '1', traffic: '12,425' }) +
       '</div>'
     );
   }
 
-  function buildSummariesUrlsSection() {
-    var sampleRows = [
-      { path: '/2023/08/adobe-firefly-for-enterprise.html', suggestions: '3', traffic: '18,204', citations: '42' },
-      { path: '/products/photoshop.html', suggestions: '2', traffic: '12,881', citations: '28' },
-      { path: '/creativecloud/plans.html', suggestions: '4', traffic: '9,442', citations: '19' },
-      { path: '/acrobat/pdf-reader.html', suggestions: '1', traffic: '7,116', citations: '11' },
-      { path: '/experience-cloud.html', suggestions: '5', traffic: '6,308', citations: '24' },
-      { path: '/products/premiere.html', suggestions: '2', traffic: '4,992', citations: '8' },
-      { path: '/trust/security.html', suggestions: '1', traffic: '3,701', citations: '6' },
-      { path: '/about-adobe.html', suggestions: '3', traffic: '2,884', citations: '14' },
+  function buildSummariesUrlsSection(opts) {
+    opts = opts || {};
+    var sampleRows = opts.rows || [
+      { path: '/', suggestions: '2', traffic: '12,425', citations: '18' },
     ];
     var rows = sampleRows
       .map(function (row) {
         return (
           '<tr>' +
           '<td><input type="checkbox" aria-label="Select URL"></td>' +
-          '<td class="sky-llm-op-expand-cell" aria-hidden="true">▸</td>' +
+          '<td class="sky-llm-op-expand-cell" aria-hidden="true">▾</td>' +
           demoLinkCell(siteUrl(row.path)) +
           '<td>' +
           escapeHtml(row.suggestions) +
@@ -1498,7 +1521,7 @@
       '<div class="sky-llm-op-search sky-llm-op-search--full" role="search">Search URLs</div>' +
       '<div class="sky-llm-op-table-wrap"><table class="sky-llm-op-table sky-llm-op-table-summaries">' +
       '<thead><tr><th scope="col"></th><th scope="col"></th><th scope="col">URL</th><th scope="col">Suggestions</th>' +
-      '<th scope="col">Agentic Traffic (7 Weeks)</th><th scope="col">Citations (7 Weeks)</th><th scope="col">Details</th></tr></thead>' +
+      '<th scope="col">Agentic Traffic (4 Weeks)</th><th scope="col">Citations (4 Weeks)</th><th scope="col">Details</th></tr></thead>' +
       '<tbody>' +
       rows +
       '</tbody></table></div></section>'
@@ -1537,6 +1560,8 @@
         'Review all suggested fixes below carefully before applying. You can dismiss or edit where needed.',
         'Please select suggestions to deploy',
       ) +
+      buildContentOpProgressSplit({ optimized: 0, total: 1 }) +
+      buildSummariesUrlsSection() +
       '</div>'
     );
   }

@@ -180,9 +180,52 @@
   function findSelectorCombobox(labelPart) {
     var needle = String(labelPart || '').toLowerCase();
     return Array.from(document.querySelectorAll('input[role="combobox"]')).find(function (el) {
-      if (el.closest('.sky-llm-platform-shell, .sky-llm-date-shell')) return false;
+      if (el.closest('.sky-llm-platform-shell, .sky-llm-date-shell, .sky-llm-filter-shell')) return false;
       return (el.getAttribute('aria-label') || '').toLowerCase().indexOf(needle) >= 0;
     });
+  }
+
+  function getOverviewCategories() {
+    if (!isActive()) {
+      return [
+        { id: 'all', name: 'All Categories' },
+        { id: 'tv', name: 'TV' },
+        { id: 'broadband', name: 'Broadband' },
+        { id: 'sports', name: 'Sports' },
+      ];
+    }
+    var cfg = loadConfig();
+    var host = String(cfg.siteHost || '').toLowerCase();
+    var brand = String(cfg.brand || '').toLowerCase();
+    if (/frescopa|\.coffee/.test(host) || /frescopa|coffee/i.test(brand)) {
+      return [
+        { id: 'all', name: 'All Categories' },
+        { id: 'coffee', name: 'Coffee' },
+        { id: 'machines', name: 'Machines' },
+        { id: 'tea', name: 'Tea' },
+      ];
+    }
+    return [
+      { id: 'all', name: 'All Categories' },
+      { id: 'products', name: 'Products' },
+      { id: 'services', name: 'Services' },
+      { id: 'support', name: 'Support' },
+    ];
+  }
+
+  function getOverviewMarkets() {
+    return [
+      { id: 'all', name: 'All Markets' },
+      { id: 'uk', name: 'United Kingdom' },
+      { id: 'ie', name: 'Ireland' },
+      { id: 'us', name: 'United States' },
+    ];
+  }
+
+  function getOverviewSiteHost() {
+    if (!isActive()) return 'sky.com';
+    var cfg = loadConfig();
+    return cfg.siteHost || 'sky.com';
   }
 
   function patchComboboxInput(input, value) {
@@ -511,6 +554,9 @@
     getDefaultSelected: getDefaultSelected,
     getAllBrands: getAllBrands,
     getKnownBrandsMap: getKnownBrandsMap,
+    getOverviewCategories: getOverviewCategories,
+    getOverviewMarkets: getOverviewMarkets,
+    getOverviewSiteHost: getOverviewSiteHost,
     persistConfig: persistConfig,
     applyLegendLabels: applyLegendLabels,
     patchMarketComparisonLabels: patchMarketComparisonLabels,

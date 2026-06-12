@@ -399,11 +399,20 @@
   flex: 0 1 340px;
   padding: 16px 20px;
   border-radius: 12px;
-  background: rgb(239, 246, 255);
+  background: rgb(235, 243, 255);
   border: 1px solid rgb(191, 219, 254);
   font-size: 14px;
   line-height: 1.5;
   color: rgb(41, 41, 41);
+}
+
+.sky-llm-op-progress-cta a {
+  color: rgb(20, 115, 230);
+  text-decoration: underline;
+}
+
+.sky-llm-op-progress-cta a:hover {
+  color: rgb(13, 102, 208);
 }
 
 .sky-llm-op-offsite-detail {
@@ -630,6 +639,7 @@
   margin: 0 20px 12px;
   width: auto;
   box-sizing: border-box;
+  border-radius: 999px;
 }
 
 .sky-llm-op-urls-block .sky-llm-op-table-wrap {
