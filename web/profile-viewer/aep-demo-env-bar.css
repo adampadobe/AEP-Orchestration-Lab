@@ -254,6 +254,16 @@
   gap: 0;
 }
 
+.aep-demo-id-inner--spectrum {
+  padding: 0;
+}
+
+.aep-demo-id-inner--spectrum .aep-demo-env-section + .aep-demo-profile-section {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .aep-demo-id-inner .aep-demo-env-section {
   width: 100%;
 }

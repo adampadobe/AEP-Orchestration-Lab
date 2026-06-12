@@ -113,7 +113,7 @@
       return;
     }
     var base = detectBootstrapBasePath();
-    var src = base + 'shared/env-bar-compact.js?v=20260612-env-compact';
+    var src = base + 'shared/env-bar-compact.js?v=20260612-env-overlay';
     if (document.querySelector('script[src="' + src + '"]')) return;
     var script = document.createElement('script');
     script.src = src;

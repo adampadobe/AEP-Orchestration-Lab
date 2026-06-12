@@ -1,12 +1,15 @@
 /**
- * Compact dropdown interaction for lab env bar (pin + mobile tap).
- * CSS in shared/env-bar-compact.css handles hover-reveal from top edge.
+ * Compact toolbar + overlay dropdown for lab env bar (pin, toggle, click-outside).
+ * CSS in shared/env-bar-compact.css — overlay does not push page content.
  */
 (function attachEnvBarCompact(global) {
   'use strict';
 
   var PIN_STORAGE_KEY = 'aepLabEnvBarPinned';
   var PIN_BTN_ID = 'aepLabEnvPinBtn';
+  var TOGGLE_BTN_ID = 'aepLabEnvToggleBtn';
+  var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
+  var EXPAND_BTN_ID = 'aepDemoEnvExpandBtn';
 
   function byId(id) {
     return id ? document.getElementById(id) : null;
@@ -17,19 +20,25 @@
     return mount.closest('.mod-demo-top-anchor') || mount.closest('[class$="-demo-top-anchor"]');
   }
 
-  function isCoarsePointer() {
-    try {
-      return global.matchMedia('(hover: none), (max-width: 768px)').matches;
-    } catch (_e) {
-      return false;
-    }
-  }
-
   function setExpanded(anchor, expanded, pinned) {
     if (!anchor) return;
+    var isOpen = !!(expanded || pinned);
     anchor.classList.toggle('lab-env-top-anchor--expanded', !!expanded);
     anchor.classList.toggle('lab-env-top-anchor--pinned', !!pinned);
-    anchor.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    anchor.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+    var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
+    if (panel) {
+      if (isOpen) panel.removeAttribute('hidden');
+      else panel.setAttribute('hidden', '');
+    }
+
+    var toggleBtn = byId(TOGGLE_BTN_ID);
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      toggleBtn.setAttribute('aria-label', isOpen ? 'Hide environment controls' : 'Show environment controls');
+    }
+
     var pinBtn = byId(PIN_BTN_ID);
     if (pinBtn) pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
   }
@@ -48,6 +57,32 @@
     } catch (_e) {}
   }
 
+  function isOverlayOpen(anchor) {
+    return (
+      anchor.classList.contains('lab-env-top-anchor--expanded') ||
+      anchor.classList.contains('lab-env-top-anchor--pinned')
+    );
+  }
+
+  function openOverlay(anchor, pin) {
+    setExpanded(anchor, true, !!pin);
+    if (pin) writePinnedToStorage(true);
+  }
+
+  function closeOverlay(anchor) {
+    setExpanded(anchor, false, false);
+    writePinnedToStorage(false);
+  }
+
+  function toggleOverlay(anchor) {
+    if (anchor.classList.contains('lab-env-top-anchor--pinned')) {
+      closeOverlay(anchor);
+      return;
+    }
+    if (isOverlayOpen(anchor)) closeOverlay(anchor);
+    else openOverlay(anchor, false);
+  }
+
   function init() {
     var mount = document.querySelector('[data-demo-env-strip-mount]');
     var anchor = findTopAnchor(mount);
@@ -55,8 +90,15 @@
     anchor.setAttribute('data-lab-env-compact-init', '1');
     anchor.setAttribute('aria-expanded', 'false');
 
-    if (readPinnedFromStorage()) {
-      setExpanded(anchor, true, true);
+    if (readPinnedFromStorage()) openOverlay(anchor, true);
+
+    var toggleBtn = byId(TOGGLE_BTN_ID);
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleOverlay(anchor);
+      });
     }
 
     var pinBtn = byId(PIN_BTN_ID);
@@ -65,30 +107,37 @@
         ev.preventDefault();
         ev.stopPropagation();
         var pinned = !anchor.classList.contains('lab-env-top-anchor--pinned');
-        setExpanded(anchor, pinned, pinned);
+        if (pinned) openOverlay(anchor, true);
+        else closeOverlay(anchor);
         writePinnedToStorage(pinned);
       });
     }
 
-    if (isCoarsePointer()) {
-      anchor.addEventListener('click', function (ev) {
-        if (ev.target.closest('#' + PIN_BTN_ID)) return;
-        if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
-        if (!anchor.classList.contains('lab-env-top-anchor--expanded')) {
-          setExpanded(anchor, true, false);
-        }
+    var expandBtn = byId(EXPAND_BTN_ID);
+    if (expandBtn) {
+      expandBtn.addEventListener('click', function () {
+        openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
       });
-
-      document.addEventListener(
-        'click',
-        function (ev) {
-          if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
-          if (anchor.contains(ev.target)) return;
-          setExpanded(anchor, false, false);
-        },
-        true,
-      );
     }
+
+    document.addEventListener(
+      'click',
+      function (ev) {
+        if (!anchor.querySelector('.lab-env-overlay-panel')) return;
+        if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
+        if (!isOverlayOpen(anchor)) return;
+        if (anchor.contains(ev.target)) return;
+        closeOverlay(anchor);
+      },
+      true,
+    );
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
+      if (!isOverlayOpen(anchor)) return;
+      closeOverlay(anchor);
+    });
   }
 
   global.EnvBarCompact = { init: init };

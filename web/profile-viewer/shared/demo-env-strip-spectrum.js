@@ -132,33 +132,41 @@
       );
     }
 
+    var overlayFooter = footerParts.join('');
+
     return (
       '<div class="aep-demo-env-bar aep-demo-env-bar--spectrum">' +
-      '<header class="spectrum-env-status-bar" aria-label="Configuration status">' +
-      '<div class="spectrum-env-status-bar__brand">' +
+      '<header class="spectrum-env-status-bar lab-env-toolbar" aria-label="Configuration status">' +
+      '<div class="spectrum-env-status-bar__brand lab-env-toolbar__brand">' +
       '<span class="spectrum-env-status-bar__logo">' +
       spectrumIcon('adobe') +
       '</span>' +
       '<div class="spectrum-env-status-bar__titles">' +
-      '<strong class="spectrum-env-status-bar__title">' +
+      '<strong class="spectrum-env-status-bar__title lab-env-toolbar__title">' +
       esc(title) +
       '</strong>' +
       '<span class="spectrum-env-status-bar__subtitle">' +
       esc(subtitle) +
       '</span></div></div>' +
-      '<div class="spectrum-env-status-bar__stats">' +
-      '<div class="spectrum-env-stat spectrum-env-stat--sandbox"><span class="spectrum-env-stat__label">Sandbox</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-sandbox-chip" id="aepSpectrumSandboxPill">—</span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Environment</span><span class="spectrum-env-pill spectrum-env-pill--blue" id="aepSpectrumEnvPill">Development</span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Property</span><span class="spectrum-env-stat__value"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumPropertyDot"></span><span id="aepSpectrumPropertyStatus">Active</span></span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">SDK Status</span><span class="spectrum-env-stat__value"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumSdkDot"></span><span id="aepSpectrumSdkStatus">Connected</span></span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Scripts Loaded</span><button type="button" class="spectrum-env-link-btn" id="aepSpectrumScriptsCount">None</button></div>' +
+      '<span class="lab-env-toolbar-divider" aria-hidden="true"></span>' +
+      '<div class="spectrum-env-status-bar__stats lab-env-toolbar__stats">' +
+      '<div class="spectrum-env-stat spectrum-env-stat--sandbox"><span class="spectrum-env-stat__label">Sandbox</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-sandbox-chip lab-env-chip" id="aepSpectrumSandboxPill" title="Sandbox">—</span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Environment</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-chip" id="aepSpectrumEnvPill" title="Tags environment">Development</span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Property</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status" id="aepSpectrumPropertyChip" title="Tags property"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumPropertyDot"></span><span id="aepSpectrumPropertyStatus">Active</span></span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">SDK Status</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status" title="SDK status"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumSdkDot"></span><span id="aepSpectrumSdkStatus">Connected</span></span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Scripts Loaded</span><button type="button" class="spectrum-env-link-btn lab-env-chip" id="aepSpectrumScriptsCount" title="Selected Launch script">None</button></div>' +
       '</div>' +
-      '<div class="spectrum-env-status-bar__updated"><span class="spectrum-env-status-bar__clock">' +
+      '<div class="lab-env-toolbar__actions">' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-toggle-btn" id="aepLabEnvToggleBtn" aria-label="Show environment controls" aria-expanded="false" title="Expand panel">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg></button>' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment panel open" aria-pressed="false" title="Pin open">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14 4v4.5l4.2 4.2-1.4 1.4L12.5 10V16h-1v-6L7.2 14.1 5.8 12.7 10 8.5V4h4Z"/></svg></button>' +
+      '</div>' +
+      '<div class="spectrum-env-status-bar__updated lab-env-overlay-only"><span class="spectrum-env-status-bar__clock">' +
       spectrumIcon('clock') +
       '</span><span class="spectrum-env-stat__label">Last Updated</span><span id="aepSpectrumLastUpdated">—</span></div>' +
-      '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment bar open" aria-pressed="false" title="Pin open">' +
-      '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14 4v4.5l4.2 4.2-1.4 1.4L12.5 10V16h-1v-6L7.2 14.1 5.8 12.7 10 8.5V4h4Z"/></svg></button>' +
       '</header>' +
+      '<div class="lab-env-overlay-panel" id="aepLabEnvOverlayPanel" role="region" aria-label="Lab environment controls" hidden>' +
       '<section class="aep-demo-env-section spectrum-env-section" id="aepDemoEnvSection" aria-label="AEP environment">' +
       '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
       '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
@@ -253,8 +261,8 @@
       '<div class="spectrum-env-profile-prefs"><div class="spectrum-env-display-mode"><span class="spectrum-env-field__label">Display mode</span><div ' +
       prefsAttrs +
       '></div></div></div></div>' +
-      footerParts.join('') +
-      '</section></div>'
+      overlayFooter +
+      '</section></div></div>'
     );
   }
 

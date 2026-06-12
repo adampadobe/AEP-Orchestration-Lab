@@ -47,6 +47,7 @@
     var sandboxPill = byId('aepSpectrumSandboxPill');
     var sandboxSelect = byId('sandboxSelect');
     var propertyStatus = byId('aepSpectrumPropertyStatus');
+    var propertyChip = byId('aepSpectrumPropertyChip');
     var sdkStatus = byId('aepSpectrumSdkStatus');
     var sdkDot = byId('aepSpectrumSdkDot');
     var scriptsBtn = byId('aepSpectrumScriptsCount');
@@ -89,16 +90,33 @@
       return scriptCode ? String(scriptCode.textContent || '').trim() : '';
     }
 
+    function syncTruncatedTitle(el, value) {
+      if (!el) return;
+      var text = value != null ? String(value) : String(el.value || el.textContent || '').trim();
+      el.title = text || '';
+      el.classList.toggle('lab-env-url-truncate', text.length > 42);
+    }
+
     function refresh() {
       if (lastUpdated) lastUpdated.textContent = formatNow();
 
-      if (sandboxPill) sandboxPill.textContent = sandboxLabel();
-      if (envPill) envPill.textContent = tagsEnvLabel();
-      if (bcPillEnv) bcPillEnv.textContent = tagsEnvLabel();
+      var sandbox = sandboxLabel();
+      if (sandboxPill) {
+        sandboxPill.textContent = sandbox;
+        syncTruncatedTitle(sandboxPill, sandbox);
+      }
+      var envLabel = tagsEnvLabel();
+      if (envPill) {
+        envPill.textContent = envLabel;
+        syncTruncatedTitle(envPill, envLabel);
+      }
+      if (bcPillEnv) bcPillEnv.textContent = envLabel;
 
       var propVal = tagsProperty ? String(tagsProperty.value || '').trim() : '';
       if (propertyStatus) propertyStatus.textContent = propVal ? 'Active' : 'Unset';
+      if (propertyChip) syncTruncatedTitle(propertyChip, propVal || 'Tags property not set');
       setDotState(byId('aepSpectrumPropertyDot'), null, !!propVal, '', '');
+      if (tagsProperty) syncTruncatedTitle(tagsProperty, propVal);
 
       var sdkConnected = !!(fields && fields.hidden && summary && !summary.hidden);
       setDotState(sdkDot, sdkStatus, sdkConnected, 'Connected', 'Configure SDK');
@@ -110,7 +128,11 @@
 
       var script = scriptText();
       var hasScript = script && script !== 'None';
-      if (scriptsBtn) scriptsBtn.textContent = hasScript ? script : 'None';
+      if (scriptsBtn) {
+        scriptsBtn.textContent = hasScript ? (script.length > 36 ? script.slice(0, 33) + '…' : script) : 'None';
+        syncTruncatedTitle(scriptsBtn, hasScript ? script : 'No Launch script selected');
+      }
+      if (scriptCode) syncTruncatedTitle(scriptCode, script);
       if (bcPillScripts) {
         bcPillScripts.textContent = hasScript ? 'Script active' : 'No script';
         bcPillScripts.classList.toggle('is-active', hasScript);
@@ -154,6 +176,13 @@
       scriptsBtn.addEventListener('click', function () {
         var expand = byId('aepDemoEnvExpandBtn');
         if (expand) expand.click();
+      });
+    }
+
+    var styleSelect = byId('siteCloneBcStyleConfigUrl');
+    if (styleSelect) {
+      styleSelect.addEventListener('change', function () {
+        syncTruncatedTitle(styleSelect);
       });
     }
 
