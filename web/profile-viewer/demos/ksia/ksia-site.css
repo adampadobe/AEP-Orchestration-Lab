@@ -339,6 +339,38 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   box-shadow: var(--ksia-shadow);
   border-color: var(--ksia-warm-gold);
 }
+.ksia-card-link-desc {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: rgba(40, 35, 40, 0.65);
+  line-height: 1.35;
+}
+
+.ksia-home-aivc-promo {
+  text-align: center;
+  padding: 40px 32px;
+  background: var(--ksia-charcoal);
+  background-image: var(--ksia-pattern-dark);
+  color: var(--ksia-sunlit);
+  border-radius: var(--ksia-radius);
+  max-width: 960px;
+  margin: 0 auto;
+}
+.ksia-home-aivc-promo .ksia-section-kicker { color: var(--ksia-warm-gold); }
+.ksia-home-aivc-promo .ksia-display-heading { color: var(--ksia-sunlit); margin-bottom: 12px; }
+.ksia-home-aivc-promo .ksia-body-text {
+  margin: 0 auto 24px;
+  max-width: 52ch;
+  color: rgba(255, 248, 240, 0.88);
+}
+.ksia-home-aivc-promo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
 
 .ksia-stub-note {
   margin: 0 24px 24px;
@@ -623,6 +655,7 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   margin: 0;
   line-height: 1.4;
 }
+.ksia-news-more { margin: 24px 0 0; text-align: center; }
 
 /* FAQ accordion */
 .ksia-faq-list {

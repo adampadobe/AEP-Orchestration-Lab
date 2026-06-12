@@ -137,10 +137,16 @@
   var QUICK_LINKS = [
     { label: 'Flight arrivals', href: 'flights/arrivals.html', desc: 'Live arrival board' },
     { label: 'Flight departures', href: 'flights/departures.html', desc: 'Live departure board' },
+    { label: 'Flights hub', href: 'flights/index.html', desc: 'Search & track your trip' },
+    { label: 'At the airport', href: 'at-the-airport/index.html', desc: 'Terminals, security & services' },
     { label: 'Terminal maps', href: 'at-the-airport/maps.html', desc: 'Wayfinding & gates' },
+    { label: 'Transport', href: 'transport/index.html', desc: 'Parking, drop-off & metro' },
     { label: 'Parking', href: 'transport/parking.html', desc: 'Rates & booking' },
-    { label: 'AIVC wallet', href: 'aivc/wallet-setup.html', desc: 'Digital travel companion' },
     { label: 'Shop & Dine', href: 'shop-dine/index.html', desc: 'Retail & dining' },
+    { label: 'Duty free', href: 'shop-dine/duty-free.html', desc: 'Collect at gate' },
+    { label: 'AIVC companion', href: 'aivc/index.html', desc: 'Digital travel orchestration' },
+    { label: 'AIVC wallet', href: 'aivc/wallet-setup.html', desc: 'Boarding pass & Fast Track' },
+    { label: 'About KSIA', href: 'about.html', desc: 'Vision 2030 story' },
   ];
 
   var BOARD_ARRIVALS = [
@@ -682,7 +688,13 @@
   ];
 
   var PAGE_META = {
-    about: { title: 'About KSIA', heading: 'Vision 2030 & the KSIA story', lead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.' },
+    about: {
+      title: 'About KSIA',
+      heading: 'Vision 2030 & the KSIA story',
+      lead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.',
+      section: 'about',
+      breadcrumbs: [{ label: 'About KSIA' }],
+    },
     'flights-hub': {
       title: 'Flights',
       heading: 'Flights information',
@@ -916,8 +928,20 @@
       section: 'aivc',
       breadcrumbs: [{ label: 'AIVC', href: 'aivc/index.html' }, { label: 'Disruption compensation' }],
     },
-    media: { title: 'Media', heading: 'Media centre', lead: 'Press releases, brand assets, and Vision 2030 announcements.' },
-    contact: { title: 'Contact', heading: 'Contact us', lead: 'Customer service, lost property, and feedback channels.' },
+    media: {
+      title: 'Media',
+      heading: 'Media centre',
+      lead: 'Press releases, brand assets, and Vision 2030 announcements.',
+      section: 'media',
+      breadcrumbs: [{ label: 'Media centre' }],
+    },
+    contact: {
+      title: 'Contact',
+      heading: 'Contact us',
+      lead: 'Customer service, lost property, and feedback channels.',
+      section: 'contact',
+      breadcrumbs: [{ label: 'Contact us' }],
+    },
   };
 
   global.KsiaMockData = {

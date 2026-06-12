@@ -247,10 +247,35 @@
   }
 
   function initQuickLinks() {
+    var mount = document.getElementById('ksiaQuickLinks');
+    var links = (window.KsiaMockData && window.KsiaMockData.QUICK_LINKS) || [];
+    if (mount && links.length) {
+      mount.innerHTML = links
+        .map(function (link) {
+          var href = window.KsiaChrome && typeof window.KsiaChrome.resolveHref === 'function'
+            ? window.KsiaChrome.resolveHref(link.href)
+            : link.href;
+          var desc = link.desc ? '<span class="ksia-card-link-desc">' + link.desc + '</span>' : '';
+          return (
+            '<li><a href="' + href + '" class="ksia-card-link" data-ksia-quick-link>' +
+            link.label + desc + '</a></li>'
+          );
+        })
+        .join('');
+    }
+
     document.querySelectorAll('[data-ksia-quick-link]').forEach(function (el) {
       el.addEventListener('click', function () {
         if (window.KsiaLabEvents) {
           window.KsiaLabEvents.emit('ksia.quicklink.click', { label: el.textContent.trim() });
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-ksia-promo-link]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emit('ksia.home.aivc-promo', { label: el.textContent.trim() });
         }
       });
     });

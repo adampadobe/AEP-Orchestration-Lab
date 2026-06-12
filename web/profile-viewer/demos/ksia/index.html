@@ -6,7 +6,7 @@
   <title>Home — King Salman International Airport</title>
   <link rel="stylesheet" href="ksia-site.css?v=20260612bb">
 </head>
-<body class="ksia-site" data-ksia-page-id="home">
+<body class="ksia-site" data-ksia-page-id="home" data-ksia-context="home gateway discovery">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
     <div class="ksia-scroll-header" id="ksiaScrollHeader" aria-hidden="true">
@@ -138,9 +138,8 @@
           </div>
         </article>
       </div>
+      <p class="ksia-news-more"><a href="media.html" class="ksia-btn ksia-btn-secondary">View media centre</a></p>
     </section>
-
-    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-faq-heading">
       <p class="ksia-section-kicker">FAQ</p>
       <h2 class="ksia-display-heading" id="ksia-faq-heading">Have Any Questions?</h2>
       <ul class="ksia-faq-list" id="ksiaFaqList">
@@ -163,16 +162,21 @@
       </ul>
     </section>
 
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-aivc-promo-heading">
+      <div class="ksia-home-aivc-promo">
+        <p class="ksia-section-kicker">AIVC</p>
+        <h2 class="ksia-display-heading" id="ksia-aivc-promo-heading">Your Airport Intelligent Virtual Companion</h2>
+        <p class="ksia-body-text">Wallet, wayfinding, lounge access, and automated disruption support — orchestrated across your entire journey from pre-trip to post-flight.</p>
+        <div class="ksia-home-aivc-promo-actions">
+          <a href="aivc/index.html" class="ksia-btn ksia-btn-primary" data-ksia-promo-link>Explore AIVC</a>
+          <a href="aivc/wallet-setup.html" class="ksia-btn ksia-btn-secondary" data-ksia-promo-link>Set up wallet</a>
+        </div>
+      </div>
+    </section>
+
     <section class="ksia-quick-links ksia-section--sand" aria-label="Quick links">
       <h2 class="ksia-section-title">Quick links</h2>
-      <ul class="ksia-link-grid">
-        <li><a href="flights/arrivals.html" class="ksia-card-link" data-ksia-quick-link>Flight arrivals</a></li>
-        <li><a href="flights/departures.html" class="ksia-card-link" data-ksia-quick-link>Flight departures</a></li>
-        <li><a href="at-the-airport/maps.html" class="ksia-card-link" data-ksia-quick-link>Terminal maps</a></li>
-        <li><a href="transport/parking.html" class="ksia-card-link" data-ksia-quick-link>Parking</a></li>
-        <li><a href="aivc/wallet-setup.html" class="ksia-card-link" data-ksia-quick-link>AIVC wallet</a></li>
-        <li><a href="shop-dine/index.html" class="ksia-card-link" data-ksia-quick-link>Shop &amp; Dine</a></li>
-      </ul>
+      <ul class="ksia-link-grid" id="ksiaQuickLinks"></ul>
     </section>
   </main>
   <script src="ksia-mock-data.js?v=20260612b"></script>
