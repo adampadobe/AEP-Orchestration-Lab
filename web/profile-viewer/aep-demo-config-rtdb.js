@@ -1,12 +1,14 @@
 /**
  * Per-user + per-sandbox demo config in Firebase RTDB.
  * Path: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/{section}
- * Sections: iPad, CallCentre, AgenticLayer, ExpAccelerator, ExpVisualiser, ContentDecisionLive
+ * Sections: CoreDemoData, StaffPortal, iPad, CallCentre, AgenticLayer, ExpAccelerator, ExpVisualiser, ContentDecisionLive
  */
 (function (global) {
   'use strict';
 
   var SECTIONS = {
+    CoreDemoData: 'CoreDemoData',
+    StaffPortal: 'StaffPortal',
     iPad: 'iPad',
     CallCentre: 'CallCentre',
     AgenticLayer: 'AgenticLayer',
@@ -223,18 +225,31 @@
 
   function splitStubIntoSections(flat) {
     var src = flat && typeof flat === 'object' ? flat : buildFlatLabStub();
+    var coreSrc = src.CoreDemoData && typeof src.CoreDemoData === 'object' ? src.CoreDemoData : {};
     return {
+      CoreDemoData: {
+        name: coreSrc.name || '',
+        airlineName: coreSrc.airlineName || coreSrc.name || '',
+        slogan: coreSrc.slogan || '',
+        url: coreSrc.url || '',
+        customerLogo: coreSrc.customerLogo || '',
+        shortName: coreSrc.shortName || '',
+      },
+      StaffPortal: Object.assign(
+        {
+          AgentName: 'Demo agent',
+          AgentID: 'AG-001',
+          AgentType: 'Customer Care',
+          Colour: '#1473e6',
+        },
+        src.StaffPortal || {},
+      ),
       iPad: {
-        StaffPortal: src.StaffPortal || {},
-        CoreDemoData: src.CoreDemoData || {},
         Mobile: src.Mobile || {},
         TravelData: src.TravelData || {},
         CustomerLoyalty: src.CustomerLoyalty || {},
       },
       CallCentre: {
-        StaffPortal: src.StaffPortal || {},
-        CoreDemoData: src.CoreDemoData || {},
-        Mobile: src.Mobile || {},
         industryId: 'travel',
       },
       AgenticLayer: {
@@ -274,6 +289,53 @@
     return ldapSlug + ':' + sandboxSlug;
   }
 
+  function mergeAppPayload(appSection, shared) {
+    var app = appSection && typeof appSection === 'object' ? appSection : {};
+    var sh = shared && typeof shared === 'object' ? shared : {};
+    var sharedCore = sh.CoreDemoData && Object.keys(sh.CoreDemoData).length ? sh.CoreDemoData : null;
+    var sharedStaff = sh.StaffPortal && Object.keys(sh.StaffPortal).length ? sh.StaffPortal : null;
+    return Object.assign({}, app, {
+      CoreDemoData: sharedCore || app.CoreDemoData || {},
+      StaffPortal: sharedStaff || app.StaffPortal || {},
+    });
+  }
+
+  function loadSharedBrand(sandboxSlug) {
+    return resolveLdapSlugAsync().then(function (ldapSlug) {
+      if (!ldapSlug || !sandboxSlug) {
+        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+          return {
+            CoreDemoData: (legacy && legacy.CoreDemoData) || {},
+            StaffPortal: (legacy && legacy.StaffPortal) || {},
+          };
+        });
+      }
+      var base = getRtdbBase();
+      return Promise.all([
+        fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
+        fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
+      ]).then(function (results) {
+        var core = results[0];
+        var staff = results[1];
+        var hasShared =
+          (core && typeof core === 'object' && Object.keys(core).length) ||
+          (staff && typeof staff === 'object' && Object.keys(staff).length);
+        if (hasShared) {
+          return {
+            CoreDemoData: core && typeof core === 'object' ? core : {},
+            StaffPortal: staff && typeof staff === 'object' ? staff : {},
+          };
+        }
+        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+          return {
+            CoreDemoData: (legacy && legacy.CoreDemoData) || {},
+            StaffPortal: (legacy && legacy.StaffPortal) || {},
+          };
+        });
+      });
+    });
+  }
+
   function fetchJson(url) {
     return fetch(url).then(function (res) {
       if (!res.ok) return null;
@@ -311,7 +373,18 @@
       ? Promise.resolve()
       : ensurePrepReady({ sandboxSlug: sandboxSlug, silent: true });
     return chain.then(function () {
-      return loadSectionInner(section, opts, sandboxSlug);
+      return loadSectionInner(section, opts, sandboxSlug).then(function (data) {
+        if (
+          data &&
+          !opts.skipBrandMerge &&
+          (section === SECTIONS.iPad || section === SECTIONS.CallCentre)
+        ) {
+          return loadSharedBrand(sandboxSlug).then(function (shared) {
+            return mergeAppPayload(data, shared);
+          });
+        }
+        return data;
+      });
     });
   }
 
@@ -320,10 +393,17 @@
       if (!ldapSlug || !sandboxSlug) {
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
           if (!legacy) return null;
-          if (section === SECTIONS.iPad || section === SECTIONS.CallCentre) {
-            var copy = Object.assign({}, legacy);
-            if (section === SECTIONS.CallCentre && !copy.industryId) copy.industryId = 'travel';
-            return copy;
+          if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || null;
+          if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || null;
+          if (section === SECTIONS.iPad) {
+            return {
+              Mobile: legacy.Mobile || {},
+              TravelData: legacy.TravelData || {},
+              CustomerLoyalty: legacy.CustomerLoyalty || {},
+            };
+          }
+          if (section === SECTIONS.CallCentre) {
+            return { industryId: legacy.industryId || 'travel' };
           }
           if (section === SECTIONS.AgenticLayer) return { agentUrls: splitStubIntoSections().AgenticLayer.agentUrls };
           return legacy;
@@ -339,22 +419,17 @@
         if (nested && typeof nested === 'object' && Object.keys(nested).length) return nested;
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
           if (!legacy) return null;
+          if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
+          if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || splitStubIntoSections().StaffPortal;
           if (section === SECTIONS.iPad) {
             return {
-              StaffPortal: legacy.StaffPortal || {},
-              CoreDemoData: legacy.CoreDemoData || {},
               Mobile: legacy.Mobile || {},
               TravelData: legacy.TravelData || {},
               CustomerLoyalty: legacy.CustomerLoyalty || {},
             };
           }
           if (section === SECTIONS.CallCentre) {
-            return {
-              StaffPortal: legacy.StaffPortal || {},
-              CoreDemoData: legacy.CoreDemoData || {},
-              Mobile: legacy.Mobile || {},
-              industryId: legacy.industryId || 'travel',
-            };
+            return { industryId: legacy.industryId || 'travel' };
           }
           if (section === SECTIONS.AgenticLayer) {
             return { agentUrls: splitStubIntoSections().AgenticLayer.agentUrls };
@@ -376,20 +451,33 @@
     });
   }
 
+  function loadCoreDemoData(opts) {
+    return loadSection(SECTIONS.CoreDemoData, opts);
+  }
+
+  function loadStaffPortal(opts) {
+    return loadSection(SECTIONS.StaffPortal, opts);
+  }
+
+  function saveCoreDemoData(partial, opts) {
+    return saveSection(SECTIONS.CoreDemoData, partial, opts);
+  }
+
+  function saveStaffPortal(partial, opts) {
+    return saveSection(SECTIONS.StaffPortal, partial, opts);
+  }
+
   /** Flat iPad-shaped object for etihad-ipad.js compatibility. */
   function loadIPadFlat(opts) {
     return loadSection(SECTIONS.iPad, opts).then(function (section) {
       if (!section) return {};
-      if (section.StaffPortal || section.TravelData) {
-        return {
-          StaffPortal: section.StaffPortal || {},
-          CoreDemoData: section.CoreDemoData || {},
-          Mobile: section.Mobile || {},
-          TravelData: section.TravelData || {},
-          CustomerLoyalty: section.CustomerLoyalty || {},
-        };
-      }
-      return section;
+      return {
+        StaffPortal: section.StaffPortal || {},
+        CoreDemoData: section.CoreDemoData || {},
+        Mobile: section.Mobile || {},
+        TravelData: section.TravelData || {},
+        CustomerLoyalty: section.CustomerLoyalty || {},
+      };
     });
   }
 
@@ -614,8 +702,14 @@
     buildFlatLabStub: buildFlatLabStub,
     splitStubIntoSections: splitStubIntoSections,
     loadSection: loadSection,
+    loadCoreDemoData: loadCoreDemoData,
+    loadStaffPortal: loadStaffPortal,
+    loadSharedBrand: loadSharedBrand,
+    mergeAppPayload: mergeAppPayload,
     loadIPadFlat: loadIPadFlat,
     saveSection: saveSection,
+    saveCoreDemoData: saveCoreDemoData,
+    saveStaffPortal: saveStaffPortal,
     saveSectionDebounced: saveSectionDebounced,
     ensureSandboxStub: ensureSandboxStub,
     ensurePrepReady: ensurePrepReady,

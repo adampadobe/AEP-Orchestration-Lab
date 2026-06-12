@@ -8,6 +8,8 @@
   var EXP_VIZ_KEYS = ['treatmentA', 'treatmentB', 'treatmentC', 'emailA', 'emailB'];
 
   var SECTION_LABELS = {
+    CoreDemoData: 'Customer & brand',
+    StaffPortal: 'Agent & chrome',
     iPad: 'iPad',
     CallCentre: 'Call Centre',
     AgenticLayer: 'Agentic layer',
@@ -53,6 +55,46 @@
     if (el) el.checked = !!on;
   }
 
+  function fillCoreDemoData(section) {
+    var s = section || {};
+    setVal('aepPrepCore_name', s.name || '');
+    setVal('aepPrepCore_airlineName', s.airlineName || '');
+    setVal('aepPrepCore_shortName', s.shortName || '');
+    setVal('aepPrepCore_slogan', s.slogan || '');
+    setVal('aepPrepCore_url', s.url || '');
+    setVal('aepPrepCore_customerLogo', s.customerLogo || '');
+  }
+
+  function collectCoreDemoData(existing) {
+    return Object.assign({}, existing || {}, {
+      name: val('aepPrepCore_name'),
+      airlineName: val('aepPrepCore_airlineName'),
+      shortName: val('aepPrepCore_shortName'),
+      slogan: val('aepPrepCore_slogan'),
+      url: val('aepPrepCore_url'),
+      customerLogo: val('aepPrepCore_customerLogo'),
+    });
+  }
+
+  function fillStaffPortal(section) {
+    var s = section || {};
+    setVal('aepPrepStaff_AgentName', s.AgentName || '');
+    setVal('aepPrepStaff_AgentID', s.AgentID || '');
+    setVal('aepPrepStaff_AgentType', s.AgentType || '');
+    setVal('aepPrepStaff_Colour', s.Colour || '');
+    setVal('aepPrepStaff_FlightTerminalInfo', s.FlightTerminalInfo || '');
+  }
+
+  function collectStaffPortal(existing) {
+    return Object.assign({}, existing || {}, {
+      AgentName: val('aepPrepStaff_AgentName'),
+      AgentID: val('aepPrepStaff_AgentID'),
+      AgentType: val('aepPrepStaff_AgentType'),
+      Colour: val('aepPrepStaff_Colour'),
+      FlightTerminalInfo: val('aepPrepStaff_FlightTerminalInfo'),
+    });
+  }
+
   function fillAgentic(agentUrls) {
     var u = agentUrls && typeof agentUrls === 'object' ? agentUrls : {};
     AGENTIC_KEYS.forEach(function (k) {
@@ -70,10 +112,7 @@
 
   function fillIPad(section) {
     var s = section || {};
-    var sp = s.StaffPortal || {};
     var td = s.TravelData || {};
-    setVal('aepPrepIpadAgentName', sp.AgentName || '');
-    setVal('aepPrepIpadColour', sp.Colour || '');
     setVal('aepPrepIpadFlight', td.flightNumber || '');
     setVal('aepPrepIpadRoute', td.route || '');
     setVal('aepPrepIpadGate', td.gate || '');
@@ -81,18 +120,12 @@
 
   function collectIPad(existing) {
     var ex = existing || {};
-    var sp = Object.assign({}, ex.StaffPortal || {}, {
-      AgentName: val('aepPrepIpadAgentName'),
-      Colour: val('aepPrepIpadColour'),
-    });
     var td = Object.assign({}, ex.TravelData || {}, {
       flightNumber: val('aepPrepIpadFlight'),
       route: val('aepPrepIpadRoute'),
       gate: val('aepPrepIpadGate'),
     });
     return {
-      StaffPortal: sp,
-      CoreDemoData: ex.CoreDemoData || {},
       Mobile: ex.Mobile || {},
       TravelData: td,
       CustomerLoyalty: ex.CustomerLoyalty || {},
@@ -101,26 +134,14 @@
 
   function fillCallCentre(section) {
     var s = section || {};
-    var sp = s.StaffPortal || {};
-    setVal('aepPrepCcAgentName', sp.AgentName || (s.Mobile && s.Mobile.StaffName) || '');
-    setVal('aepPrepCcColour', sp.Colour || '');
-    setVal('aepPrepCcBrand', (s.CoreDemoData && s.CoreDemoData.name) || '');
     var sel = document.getElementById('aepPrepCcIndustry');
     if (sel) sel.value = s.industryId || 'travel';
   }
 
   function collectCallCentre(existing) {
     var ex = existing || {};
-    var sp = Object.assign({}, ex.StaffPortal || {}, {
-      AgentName: val('aepPrepCcAgentName'),
-      Colour: val('aepPrepCcColour'),
-    });
-    var cd = Object.assign({}, ex.CoreDemoData || {}, { name: val('aepPrepCcBrand') });
     var sel = document.getElementById('aepPrepCcIndustry');
     return {
-      StaffPortal: sp,
-      CoreDemoData: cd,
-      Mobile: Object.assign({}, ex.Mobile || {}, { StaffName: val('aepPrepCcAgentName') }),
       industryId: sel ? sel.value : ex.industryId || 'travel',
     };
   }
@@ -171,6 +192,8 @@
   }
 
   var cachedSections = {
+    CoreDemoData: null,
+    StaffPortal: null,
     iPad: null,
     CallCentre: null,
     AgenticLayer: null,
@@ -247,28 +270,37 @@
   function loadAllForms() {
     var c = cfg();
     if (!c) return Promise.resolve();
+    var skip = { skipEnsurePrep: true, skipBrandMerge: true };
     return Promise.all([
-      c.loadSection(c.SECTIONS.iPad, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.CoreDemoData, skip).then(function (d) {
+        cachedSections.CoreDemoData = d;
+        fillCoreDemoData(d);
+      }),
+      c.loadSection(c.SECTIONS.StaffPortal, skip).then(function (d) {
+        cachedSections.StaffPortal = d;
+        fillStaffPortal(d);
+      }),
+      c.loadSection(c.SECTIONS.iPad, skip).then(function (d) {
         cachedSections.iPad = d;
         fillIPad(d);
       }),
-      c.loadSection(c.SECTIONS.CallCentre, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.CallCentre, skip).then(function (d) {
         cachedSections.CallCentre = d;
         fillCallCentre(d);
       }),
-      c.loadSection(c.SECTIONS.AgenticLayer, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.AgenticLayer, skip).then(function (d) {
         cachedSections.AgenticLayer = d;
         fillAgentic(d && d.agentUrls);
       }),
-      c.loadSection(c.SECTIONS.ExpVisualiser, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.ExpVisualiser, skip).then(function (d) {
         cachedSections.ExpVisualiser = d;
         fillExpVisualiser(d);
       }),
-      c.loadSection(c.SECTIONS.ExpAccelerator, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.ExpAccelerator, skip).then(function (d) {
         cachedSections.ExpAccelerator = d;
         fillExpAccelerator(d);
       }),
-      c.loadSection(c.SECTIONS.ContentDecisionLive, { skipEnsurePrep: true }).then(function (d) {
+      c.loadSection(c.SECTIONS.ContentDecisionLive, skip).then(function (d) {
         cachedSections.ContentDecisionLive = d;
         fillContentDecisionLive(d);
       }),
@@ -286,7 +318,7 @@
       c.saveSection(c.SECTIONS[sectionKey], payload)
         .then(function () {
           cachedSections[sectionKey] = payload;
-          setStatus(sectionKey + ' saved for sandbox “' + c.getActiveSandboxSlug() + '”.', 'ok');
+          setStatus((SECTION_LABELS[sectionKey] || sectionKey) + ' saved for sandbox “' + c.getActiveSandboxSlug() + '”.', 'ok');
           return c.loadSandboxSections();
         })
         .then(function (data) {
@@ -315,6 +347,8 @@
 
   function init() {
     wireIndustrySelect();
+    wireSave('CoreDemoData', collectCoreDemoData);
+    wireSave('StaffPortal', collectStaffPortal);
     wireSave('iPad', collectIPad);
     wireSave('CallCentre', collectCallCentre);
     wireSave('AgenticLayer', collectAgentic);

@@ -5,7 +5,16 @@
 const admin = require('firebase-admin');
 const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
 
-const DEMO_SECTIONS = ['iPad', 'CallCentre', 'AgenticLayer', 'ExpAccelerator', 'ExpVisualiser', 'ContentDecisionLive'];
+const DEMO_SECTIONS = [
+  'CoreDemoData',
+  'StaffPortal',
+  'iPad',
+  'CallCentre',
+  'AgenticLayer',
+  'ExpAccelerator',
+  'ExpVisualiser',
+  'ContentDecisionLive',
+];
 
 function getRtdb() {
   if (!admin.apps.length) admin.initializeApp();
@@ -60,18 +69,32 @@ function buildFlatLabStub() {
 
 function splitStubIntoSections(flat) {
   const src = flat && typeof flat === 'object' ? flat : buildFlatLabStub();
+  const coreSrc = src.CoreDemoData && typeof src.CoreDemoData === 'object' ? src.CoreDemoData : {};
   return {
+    CoreDemoData: {
+      name: coreSrc.name || '',
+      airlineName: coreSrc.airlineName || coreSrc.name || '',
+      slogan: coreSrc.slogan || '',
+      url: coreSrc.url || '',
+      customerLogo: coreSrc.customerLogo || '',
+      shortName: coreSrc.shortName || '',
+    },
+    StaffPortal: Object.assign(
+      {
+        AgentName: 'Demo agent',
+        AgentID: 'AG-001',
+        AgentType: 'Customer Care',
+        Colour: '#1473e6',
+        FlightTerminalInfo: 'Terminal 3 · Concourse B',
+      },
+      src.StaffPortal || {},
+    ),
     iPad: {
-      StaffPortal: src.StaffPortal || {},
-      CoreDemoData: src.CoreDemoData || {},
       Mobile: src.Mobile || {},
       TravelData: src.TravelData || {},
       CustomerLoyalty: src.CustomerLoyalty || {},
     },
     CallCentre: {
-      StaffPortal: src.StaffPortal || {},
-      CoreDemoData: src.CoreDemoData || {},
-      Mobile: src.Mobile || {},
       industryId: 'travel',
     },
     AgenticLayer: {
