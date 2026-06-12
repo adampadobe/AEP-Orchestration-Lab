@@ -323,6 +323,7 @@
                 Enter an email to load Real-Time Customer Profile data from your Adobe Experience Platform sandbox (attributes, identity graph, audiences, recent events).
               </p>
             </div>
+            <div class="call-center-sandbox-host" data-demo-env-strip-mount="site-clone-sandbox-only" data-demo-env-strip-prefix="callCenter" aria-label="AEP sandbox"></div>
             <div class="call-center-pinned-form">
               <div class="call-center-pinned-field call-center-pinned-field--email">
                 <label id="ccCustomerEmailLabel" for="customerEmail">Customer email</label>
@@ -874,6 +875,15 @@
   <script src="aep-demo-config-rtdb.js?v=20260612"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'callCenter',
+      mode: 'sandbox-only',
+      variant: 'classic',
+      features: { webPush: false, bc: false, decisioning: false },
+    };
+  </script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>

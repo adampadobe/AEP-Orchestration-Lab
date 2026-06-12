@@ -1,7 +1,8 @@
 /**
  * Contact center demo — off-canvas nav, AEP profile lookup, industry presets (bottom customise dock).
  */
-(function () {
+(function callCenterDemoBoot(global) {
+  function run() {
   const INDUSTRY_STORAGE_KEY = 'aepCallCenterIndustry_v1';
 
   /** @type {Record<string, { label: string; tabShort: string; heroTitle: string; heroSubtitle: string; pinnedTitle: string; pinnedLead: string; customerEmailLabel: string; agentToolkitTitle: string; agentToolkitHint: string; recordPill: string; notesPlaceholder: string; metricQLabel: string; metricQValue: string; metricQHint: string; metricWaitLabel: string; metricWaitValue: string; metricWaitHint: string; metricAgentsLabel: string; metricAgentsValue: string; metricAgentsHint: string; accent: string; accentSoft: string; emailPlaceholder: string }>} */
@@ -799,4 +800,11 @@
       void loadGeneratorTargets();
     });
   }
-})();
+  }
+
+  if (global.envBar && typeof global.envBar.ready === 'function') {
+    global.envBar.ready().then(run);
+  } else {
+    run();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

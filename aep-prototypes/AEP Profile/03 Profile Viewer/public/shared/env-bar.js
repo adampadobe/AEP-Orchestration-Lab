@@ -52,7 +52,7 @@
    * @property {string[]} [iframeIds] — Iframe ids for Tags injection (demo JS)
    * @property {string} [disclaimer] — HTML disclaimer on mount host
    * @property {string} [labCoreScript] — Optional demo lab-core script to load after env bar ready
-   * @property {'shell'|'journey'} [mode='shell'] — shell = full demo page; journey = direct journey URL chrome
+   * @property {'shell'|'journey'|'minimal'|'compact-fnb'|'sandbox-only'} [mode='shell'] — shell = full site-clone; minimal = sandbox + profile; compact-fnb / sandbox-only = sandbox row only
    * @property {string} [basePath] — Asset root (default: directory containing this script)
    * @property {boolean} [autoInit=true] — Auto-init on DOMContentLoaded when envBarConfig is set
    * @property {string} [storagePrefix] — SiteCloneDemoEnv storage prefix override
@@ -181,7 +181,12 @@
       }
     }
     if (!merged.variant) merged.variant = 'spectrum';
+    if (merged.mode === 'compact-fnb') merged.mode = 'sandbox-only';
     if (!merged.mode) merged.mode = 'shell';
+    if (merged.mode === 'minimal' || merged.mode === 'sandbox-only') {
+      merged.variant = merged.variant === 'spectrum' ? 'classic' : merged.variant || 'classic';
+      merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features || {});
+    }
     if (!merged.features || typeof merged.features !== 'object') {
       merged.features = { webPush: true, bc: true, decisioning: false };
     }
@@ -212,13 +217,18 @@
    * @param {typeof DEFAULT_VERSIONS} versions
    * @param {EnvBarConfig} cfg
    */
+  function isFullShellMode(cfg) {
+    var mode = cfg && cfg.mode ? cfg.mode : 'shell';
+    return mode === 'shell' || mode === 'journey';
+  }
+
   function loadStyles(versions, cfg) {
     var a = versions.assets;
-    var jobs = [
-      linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss)),
-      linkCss(assetUrl('shared/env-bar-compact.css', a.compactCss)),
-    ];
-    if (cfg.variant === 'spectrum') {
+    var jobs = [linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss))];
+    if (isFullShellMode(cfg)) {
+      jobs.push(linkCss(assetUrl('shared/env-bar-compact.css', a.compactCss)));
+    }
+    if (cfg.variant === 'spectrum' && isFullShellMode(cfg)) {
       jobs.push(linkCss(assetUrl('shared/demo-env-bar-spectrum.css', a.spectrumCss)));
     }
     return Promise.all(jobs);
@@ -232,17 +242,22 @@
   function loadScripts(versions, cfg) {
     var a = versions.assets;
     var chain = [];
-    if (cfg.variant === 'spectrum') {
+    var fullShell = isFullShellMode(cfg);
+    if (fullShell && cfg.variant === 'spectrum') {
       chain.push(assetUrl('shared/demo-env-strip-spectrum.js', a.demoEnvStripSpectrum));
     }
     chain.push(assetUrl('shared/demo-env-strip.js', a.demoEnvStrip));
-    if (cfg.variant === 'spectrum') {
+    if (fullShell && cfg.variant === 'spectrum') {
       chain.push(assetUrl('shared/demo-env-bar-spectrum-sync.js', a.spectrumSync));
     }
     chain.push(assetUrl('shared/demo-env-bar-bootstrap.js', a.bootstrap));
-    chain.push(assetUrl('demo-tags-injection.js', a.tagsInjection));
+    if (fullShell) {
+      chain.push(assetUrl('demo-tags-injection.js', a.tagsInjection));
+    }
     chain.push(assetUrl('aep-demo-env-bar.js', a.aepDemoEnvBar));
-    chain.push(assetUrl('shared/env-bar-compact.js', a.compactJs));
+    if (fullShell) {
+      chain.push(assetUrl('shared/env-bar-compact.js', a.compactJs));
+    }
 
     return chain.reduce(function (p, src) {
       return p.then(function () {
@@ -270,6 +285,7 @@
   }
 
   function initCompactDropdown(cfg) {
+    if (!isFullShellMode(cfg)) return;
     if (global.EnvBarCompact && typeof global.EnvBarCompact.init === 'function') {
       global.EnvBarCompact.init(cfg);
     }
@@ -302,7 +318,7 @@
       defaultBcStyle: cfg.defaultBcStyle,
       siteCloneDemoEnv: cfg.siteCloneDemoEnv,
       envBar: cfg.envBar,
-      refreshSiteCloneBcEnv: true,
+      refreshSiteCloneBcEnv: isFullShellMode(cfg),
     };
     log('initLabDemoEnvBar', bootOpts);
     return global.initLabDemoEnvBar(bootOpts);
@@ -353,6 +369,7 @@
    * @param {EnvBarConfig} cfg
    */
   function loadSiteCloneBcEnv(versions, cfg) {
+    if (!isFullShellMode(cfg)) return Promise.resolve();
     if (cfg.features && cfg.features.bc === false) return Promise.resolve();
     var refresh = function () {
       if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {

@@ -69,7 +69,7 @@ window.envBar.registerTagsInjection(tags);
 |-------|---------|---------|
 | `prefix` | — | **Required.** Strip id prefix (`sky`, `ksia`, …) |
 | `variant` | `spectrum` | `spectrum` or `classic` |
-| `mode` | `shell` | `shell` (demo HTML) or `journey` (chrome inject) |
+| `mode` | `shell` | `shell` (full site-clone), `journey` (chrome inject), `minimal` (sandbox + profile only), `compact-fnb` / `sandbox-only` (sandbox row in existing chrome) |
 | `defaultSandbox` | — | Initial sandbox technical name |
 | `features.webPush` | `true` | Feature flag (mount / demo JS) |
 | `features.bc` | `true` | Brand Concierge strip sections |
@@ -110,11 +110,29 @@ HTML references `shared/env-bar.js?v={manifestVersion}`. The loader fetches the 
 - `setEnvironment()` uses `AepGlobalSandbox.setSelected` + `applySandboxConfigState` on the registered Tags instance.
 - Per-demo `DemoTagsInjection.init({ hideTagsCompanyUi: true, … })` stays in lab-core JS; env-bar only loads shared modules.
 
+### Modes (`envBarConfig.mode`)
+
+| Mode | Mount | Loads Tags / BC | Use case |
+|------|-------|-----------------|----------|
+| `shell` (default) | `site-clone-shell` | Yes | Site-clone demos (Sky, KSIA, …) |
+| `journey` | `site-clone-shell` | Yes | Journey URL chrome inject |
+| `minimal` | `site-clone-minimal` | No | Sky LLM snapshots, call-centre pinned lookup, LLM demo |
+| `compact-fnb` | `site-clone-sandbox-only` | No | Alias for `sandbox-only` — FNB utility row |
+| `sandbox-only` | `site-clone-sandbox-only` | No | Sandbox select only (FNB header, call-centre v1 hybrid) |
+
+Minimal / sandbox-only pages set `variant: 'classic'`, skip spectrum CSS, `demo-tags-injection.js`, and `env-bar-compact.js`. Markup mounts via `data-demo-env-strip-mount` on a host div; demo JS waits on `envBar.ready()`.
+
 ## Migration status
 
 ### Migrated (shared/env-bar.js)
 
 All site-clone demos in `SITE_CLONE_DEMO_HTML` (`scripts/verify-demo-env-strip.mjs`): Sky, KSIA, JLR, MOD, Premier Inn, Etihad, Admiral, Navigator, Race for Life, Donate, Old Mutual (×4), Saga, Aviva Target, social (×2), Miral parks (Ferrari ×2, SeaWorld, WB World).
+
+**Minimal** (`mode: 'minimal'`): Sky LLM snapshot shells (×8), `call-center-demo.html`, `demos/llm-demo/llm-demo.html`.
+
+**Sandbox-only** (`mode: 'compact-fnb'` / `sandbox-only`): FNB demos (×5), `call-centre-demo-v1.html` (hybrid — sandbox via env bar; profile form unchanged).
+
+**Mobile simulator** (`mobile-demo.html`, `mobile-demo-apalmer.html`): no env bar on shell — iframe target demo owns chrome.
 
 Journey chrome via `envBar.init({ mode: 'journey' })`: `demos/ksia/ksia-journey-chrome.js`, `demos/aviva-target/aviva-target-journey-chrome.js`.
 

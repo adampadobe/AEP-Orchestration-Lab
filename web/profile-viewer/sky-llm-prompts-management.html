@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="home.css?v=20260528-sky-llm-pm">
   <link rel="stylesheet" href="mod-demo.css?v=20260528-sky-llm-pm">
   <link rel="stylesheet" href="sky-llm-optimizer.css?v=20260528-sky-llm-pm">
-  <link rel="stylesheet" href="aep-demo-env-bar.css?v=20260601-profile-lookup">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -18,54 +17,13 @@
 <body class="mod-demo-page sky-llm-optimizer-page home-dashboard-concierge">
   <div class="mod-demo-top-anchor" id="skyLlmTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Lab environment">
-      <div class="mod-demo-id-inner aep-demo-id-inner">
-        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div class="form-row" hidden>
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                </div>
-              </div>
-            </div>
-            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-            </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid">
-            <div class="form-row">
-              <label for="skyLlmNs">Namespace</label>
-              <select id="skyLlmNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="mod-demo-profile-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-            </div>
-          </div>
-        </section>
-      </div>
+      <div class="mod-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-minimal"
+        data-demo-env-strip-prefix="skyLlm"
+        data-demo-env-strip-ns-id="skyLlmNs"
+        data-demo-env-strip-message-id="skyLlmMessage"
+        data-demo-env-strip-hide-generator-target="1"
+      ></div>
       <p id="skyLlmMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
       <p class="mod-demo-disclaimer">
         <strong>Prompts Management</strong> for Sky UK (<a href="https://www.sky.com" rel="noopener noreferrer">sky.com</a>) — frozen Adobe LLM Optimizer export with lab wiring. Use the in-app left nav to switch pages.
@@ -102,7 +60,15 @@
   <script src="identity-picker.js"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
-  <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'skyLlm',
+      mode: 'minimal',
+      variant: 'classic',
+      features: { webPush: false, bc: false, decisioning: false },
+    };
+  </script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="sky-llm-optimizer.js?v=20260528-sky-llm-pm"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

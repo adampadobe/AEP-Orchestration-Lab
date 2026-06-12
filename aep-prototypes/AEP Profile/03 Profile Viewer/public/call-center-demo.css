@@ -134,6 +134,30 @@ body.call-center-demo-page .dashboard-main {
   max-width: 62ch;
 }
 
+.call-center-sandbox-host {
+  margin-bottom: 0.35rem;
+}
+
+.call-center-sandbox-host > section {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.call-center-env-bar-mount.aep-demo-id-inner {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  .call-center-env-bar-mount.aep-demo-id-inner {
+    grid-template-columns: minmax(200px, 1.4fr) minmax(160px, 1fr) auto;
+    align-items: end;
+  }
+}
+
 .call-center-pinned-form {
   display: grid;
   grid-template-columns: minmax(200px, 1.4fr) minmax(160px, 1fr) auto;

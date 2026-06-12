@@ -1,7 +1,8 @@
 /**
  * Sky LLM Optimizer — lab chrome (flyout nav, profile lookup) around frozen overview snapshot iframe.
+ * Env bar: shared/env-bar.js (mode minimal).
  */
-(function () {
+(function skyLlmBoot(global) {
   'use strict';
 
   function initLabFlyoutSidebar() {
@@ -141,13 +142,17 @@
         },
       );
     }
-
-    if (typeof AepDemoEnvStrip !== 'undefined' && AepDemoEnvStrip.initStandardEnvBar) {
-      AepDemoEnvStrip.initStandardEnvBar({});
-    }
   }
 
-  initLabFlyoutSidebar();
-  patchIframeWhenReady();
-  initProfileLookup();
-})();
+  function run() {
+    initLabFlyoutSidebar();
+    patchIframeWhenReady();
+    initProfileLookup();
+  }
+
+  if (global.envBar && typeof global.envBar.ready === 'function') {
+    global.envBar.ready().then(run);
+  } else {
+    run();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

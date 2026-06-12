@@ -6,11 +6,6 @@
   width: 100%;
 }
 
-.sky-demo-page .mod-demo-top-anchor:hover .mod-demo-id-banner,
-.sky-demo-page .mod-demo-top-anchor:focus-within .mod-demo-id-banner {
-  transform: translateY(0);
-}
-
 .sky-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
 .sky-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;

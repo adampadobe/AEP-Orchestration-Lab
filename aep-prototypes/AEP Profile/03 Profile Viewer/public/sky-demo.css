@@ -1,6 +1,10 @@
 /**
- * Sky demo — site-clone iframe + lab strip (shell layout from mod-demo.css).
+ * Sky demo — site-clone iframe + lab strip (Spectrum card layout pilot).
  */
+
+.sky-demo-page .mod-demo-id-inner--spectrum {
+  width: 100%;
+}
 
 .sky-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
 .sky-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
@@ -9,6 +13,17 @@
 
 .sky-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
   display: flex !important;
+}
+
+/* Modal open: dim via backdrop; keep Sky snapshot visible underneath (not a solid page fill) */
+.sky-demo-page.aep-bc-modal-open .mod-demo-site-frame {
+  visibility: visible;
+}
+
+.sky-demo-page.aep-bc-modal-open #brand-concierge-mount-host,
+.sky-demo-page.aep-bc-modal-open .site-clone-bc-frame-host {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .sky-demo-page .aep-bc-park-launcher {
@@ -42,4 +57,68 @@
 .sky-demo-page .mod-demo-id-inner .aep-demo-web-push-retry-hint,
 .sky-demo-page .mod-demo-id-inner .aep-demo-web-push-hint {
   display: none;
+}
+
+/* Injected: full banner width, scroll passes through outside the BC panel */
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected .site-clone-bc-frame-mount,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--injected #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Full screen BC: span iframe width (not capped at 920px) */
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen {
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen .site-clone-bc-frame-mount,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount.brand-concierge-mount {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount > *,
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='concierge'],
+.sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
+  max-width: none;
+}
+
+/* Extended lab prefs row (Decisioning + Centre bottom BC) — Sky only for now */
+.sky-demo-page .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1.25rem;
+}
+
+.sky-demo-page .site-clone-decisioning-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.sky-demo-page .mod-demo-site-frame {
+  transition: padding-bottom 0.2s ease;
+}
+
+.sky-demo-page.sky-demo-page--bottom-dock-armed .mod-demo-site-frame {
+  padding-bottom: 6rem;
+}
+
+.sky-demo-page.sky-demo-page--bottom-dock-armed .bc-bottom-dock:not(.is-hidden) {
+  display: block;
 }

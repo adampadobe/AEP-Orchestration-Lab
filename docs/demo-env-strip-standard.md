@@ -115,25 +115,17 @@ After `brand-concierge-toggle.js`:
 |------|--------|
 | All 22 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, KSIA, Admiral, Navigator, Race, Donate, Old Mutual ×4, Saga, Aviva Target, social ×2, Miral ×4) | **Done** — `site-clone-shell` + bundle CSS + `initLabDemoEnvBar` |
 
-### Exceptions (not site-clone) {#exceptions-not-site-clone}
+### Exceptions (redirect / iframe passthrough only) {#exceptions-not-site-clone}
 
-These pages are **out of scope** for the unified site-clone env bar (`shared/demo-env-bar.bundle.css`, `initLabDemoEnvBar`, Tags mount). The verifier [`scripts/verify-demo-env-strip.mjs`](../scripts/verify-demo-env-strip.mjs) allowlists them — they are **not** checked for bundle/bootstrap/mount compliance. Site-clone demos remain fully guarded.
+Former FNB, call-centre, and Sky LLM pages now use **`shared/env-bar.js`** (see `docs/env-bar-shared-module.md` modes). The verifier only exempts:
 
-| Page pattern | Why exempt | What they use instead | Verifiers still required |
-|--------------|------------|----------------------|-------------------------|
-| `fnb-demo.html`, `fnb-*.html` (5 pages) | Compact FNB site-clone header, not the lab Tags strip | `fnb-aep-login-bar` — profile login email, `#generatorTarget`, ECID in utility row; optional Launch comment in `<head>` | `npm run verify:demo-env-strip` (must pass — skips these pages), `npm run verify:profile-viewer-routes`, profile modal rules |
-| `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html` | Agent desktop UI; pinned customer lookup, not Tags injection | `call-center-pinned-lookup` panel + `#generatorTarget`; no sandbox/Tags strip | Same |
-| `sky-llm-*.html` (8 snapshot shells; `sky-llm-llm-response.html` redirects to optimizer hash) | Adobe LLM Optimizer snapshot viewers; sandbox + profile lookup only | Inline `#aepDemoEnvSection` + `#aepDemoProfileSection`; direct `aep-demo-env-bar.css` + `aep-demo-env-bar.js` (no Tags, no `demo-env-strip.js` mount) | Same |
-| `mobile-demo.html`, `mobile-demo-apalmer.html` | Resizable phone/tablet simulator shell | Iframe loads target demo (e.g. `fnb-demo.html?aepSimMobile=1`); env controls live in the iframe target, not the simulator chrome | Same |
+| Page | Why exempt |
+|------|------------|
+| `mobile-demo.html`, `mobile-demo-apalmer.html` | Resizable phone shell — env controls live in the iframe target demo |
+| `call-center-demo-apalmer.html` | Redirect stub → `call-centre-demo-v1.html` |
+| `sky-llm-referral-traffic.html`, `sky-llm-llm-response.html` | Redirect stubs → `sky-llm-optimizer.html` hash routes |
 
-**PR rule:** `npm run verify:demo-env-strip` **must pass** before merge on any PR that touches `web/profile-viewer/`. It skips allowlisted pages above but still enforces site-clone compliance, shared bundle/bootstrap invariants, and CSS drift rules on non-exempt demo CSS.
-
-Explicit allowlist (kept in sync with verifier `ENV_STRIP_EXCEPTION_HTML`):
-
-- FNB: `fnb-demo.html`, `fnb-business-banking.html`, `fnb-business-accounts.html`, `fnb-gold-business-thank-you.html`, `fnb-platinum-business-thank-you.html`
-- Call centre: `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html`
-- Sky LLM: `sky-llm-optimizer.html`, `sky-llm-brand-presence.html`, `sky-llm-referral-traffic.html`, `sky-llm-agentic-traffic.html`, `sky-llm-opportunities.html`, `sky-llm-url-inspector.html`, `sky-llm-brand-claims.html`, `sky-llm-prompts-management.html`, `sky-llm-llm-response.html`
-- Mobile: `mobile-demo.html`, `mobile-demo-apalmer.html`
+**PR rule:** `npm run verify:demo-env-strip` **must pass** before merge on any PR that touches `web/profile-viewer/`.
 
 ## Verify + mirror
 

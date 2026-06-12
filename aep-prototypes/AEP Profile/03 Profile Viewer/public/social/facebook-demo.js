@@ -200,12 +200,3 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
-
-(function initFacebookSandboxAndEnvBar() {
-  if (typeof AepDemoEnvStrip === 'undefined' || typeof AepDemoEnvStrip.initStandardEnvBar !== 'function') return;
-  AepDemoEnvStrip.initStandardEnvBar({
-    summaryId: 'facebookSdkConfigSummary',
-    fieldsId: 'facebookSdkConfigFields',
-    selectedScriptCodeId: 'facebookSelectedScript',
-  });
-})();

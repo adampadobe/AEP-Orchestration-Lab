@@ -319,27 +319,12 @@
                 Enter an email to load Real-Time Customer Profile data from your Adobe Experience Platform sandbox (attributes, identity graph, audiences, recent events).
               </p>
             </div>
-            <div class="call-center-pinned-form">
-              <div class="call-center-pinned-field call-center-pinned-field--email">
-                <label id="ccCustomerEmailLabel" for="customerEmail">Customer email</label>
-                <input
-                  type="email"
-                  id="customerEmail"
-                  placeholder="e.g. customer@example.com"
-                  autocomplete="email"
-                  spellcheck="false"
-                  aria-describedby="ccPinnedLead"
-                >
-              </div>
-              <div class="call-center-pinned-field call-center-pinned-field--target">
-                <label for="generatorTarget">Event destination</label>
-                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-              </div>
-              <div class="call-center-pinned-actions">
-                <button type="button" id="queryProfileBtn" class="btn-lookup call-center-pinned-submit">Load profile</button>
-                <span class="call-center-ecid call-center-pinned-ecid">ECID: <strong id="infoEcid">—</strong></span>
-              </div>
-            </div>
+            <div class="call-center-pinned-form call-center-env-bar-mount aep-demo-id-inner"
+              data-demo-env-strip-mount="site-clone-minimal"
+              data-demo-env-strip-prefix="callCenter"
+              data-demo-env-strip-hide-namespace="1"
+              data-demo-env-strip-profile-btn-label="Load profile"
+            ></div>
             <div id="ccStatus" class="call-center-status call-center-pinned-status" hidden role="status" aria-live="polite"></div>
           </div>
         </section>
@@ -799,6 +784,16 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'callCenter',
+      mode: 'minimal',
+      variant: 'classic',
+      features: { webPush: false, bc: false, decisioning: false },
+    };
+  </script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>

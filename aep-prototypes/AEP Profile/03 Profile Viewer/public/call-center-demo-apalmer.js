@@ -1,7 +1,8 @@
 /**
  * Contact center demo — off-canvas nav, AEP profile lookup, industry presets (bottom customise dock).
  */
-(function () {
+(function callCenterApalmerBoot(global) {
+  function run() {
   const CTX = window.AepLabIndustryContext;
   if (!CTX) {
     console.error('[call-center-demo] Missing aep-lab-industry-context.js (load it before call-center-demo-apalmer.js).');
@@ -2341,4 +2342,11 @@
     }
   }
   window.setTimeout(applyCallCenterEmailFromQuery, 650);
-})();
+  }
+
+  if (global.envBar && typeof global.envBar.ready === 'function') {
+    global.envBar.ready().then(run);
+  } else {
+    run();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

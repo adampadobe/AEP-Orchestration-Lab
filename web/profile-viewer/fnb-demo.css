@@ -425,6 +425,40 @@ body.fnb-business-banking-page {
   flex: 0 0 auto;
 }
 
+.fnb-sandbox-host {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.fnb-sandbox-host > section {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fnb-sandbox-host .form-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.fnb-sandbox-host label {
+  font-size: 0.72rem;
+  color: #4a5568;
+  white-space: nowrap;
+}
+
+.fnb-sandbox-host .sandbox-select {
+  height: 32px;
+  min-width: 7.5rem;
+  max-width: 11rem;
+  font-size: 0.78rem;
+}
+
 .fnb-demo-page .fnb-utility-auth input[type='email'] {
   /* Override global style.css input[type=email] flex + padding */
   flex: 0 1 220px;

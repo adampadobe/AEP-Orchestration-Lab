@@ -54,58 +54,7 @@
   background: var(--dash-bg);
 }
 
-/* Hover-reveal identity strip at top (lab chrome over MOD site) */
-.mod-demo-top-anchor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 6500;
-  pointer-events: none;
-}
-
-/* Invisible hover target so the banner can stay revealed while moving into it */
-.mod-demo-top-anchor::before {
-  content: "";
-  display: block;
-  height: 14px;
-  pointer-events: auto;
-}
-
-.mod-demo-id-banner {
-  pointer-events: auto;
-  background: var(--dash-surface, #ffffff);
-  color: var(--dash-text);
-  border-bottom: 1px solid var(--dash-border);
-  box-shadow: var(--dash-shadow);
-  transform: translateY(calc(-100% - 14px));
-  transition: transform 0.2s ease;
-}
-
-/* Lab strip stays light even when the page theme is dark */
-html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-banner,
-html[data-aep-theme='dark'] .mod-demo-page .mod-demo-id-inner,
-.mod-demo-page .mod-demo-id-banner,
-.mod-demo-page .mod-demo-id-inner {
-  --dash-bg: #f4f6f8;
-  --dash-surface: #ffffff;
-  --dash-surface-alt: #f8f9fa;
-  --dash-border: #e2e6ea;
-  --dash-text: #1a1a2e;
-  --dash-text-secondary: #4a5568;
-  --dash-muted: #6b7280;
-  --dash-input-bg: #ffffff;
-  --dash-input-border: #cbd5e1;
-  --dash-hover: #f1f5f9;
-  color-scheme: light;
-}
-
-.mod-demo-top-anchor:hover .mod-demo-id-banner,
-.mod-demo-top-anchor:focus-within .mod-demo-id-banner {
-  transform: translateY(0);
-}
-
-/* Env strip + profile lookup layout: shared/demo-env-bar.bundle.css (Sky master) */
+/* Hover-reveal identity strip: shared/env-bar-compact.css (all site-clone demos) */
 
 .mod-demo-id-inner .mod-sdk-summary--below-env-grid {
   width: 100%;

@@ -30,38 +30,44 @@ const SPECTRUM_CACHE = envBarVersions?.assets?.demoEnvStrip ?? '20260623-spectru
 const ENV_BAR_MANIFEST = envBarVersions?.manifestVersion ?? '20260612-env-bar';
 
 /**
- * Lab demos exempt from site-clone bundle/bootstrap/mount checks.
- * They use different UX (FNB header, call-centre desktop, Sky LLM snapshot strip, mobile simulator).
- * @see docs/demo-env-strip-standard.md#exceptions-not-site-clone
+ * Redirect stubs — no env bar on page (target demo or canonical URL carries chrome).
  */
-const ENV_STRIP_EXCEPTION_HTML = [
-  'fnb-demo.html',
-  'fnb-business-banking.html',
-  'fnb-business-accounts.html',
-  'fnb-gold-business-thank-you.html',
-  'fnb-platinum-business-thank-you.html',
-  'call-center-demo.html',
+const ENV_BAR_REDIRECT_HTML = [
   'call-center-demo-apalmer.html',
-  'call-centre-demo-v1.html',
+  'sky-llm-referral-traffic.html',
+  'sky-llm-llm-response.html',
+];
+
+/**
+ * Mobile simulator shell — env controls live in iframe target demo, not simulator chrome.
+ */
+const MOBILE_SIMULATOR_HTML = ['mobile-demo.html', 'mobile-demo-apalmer.html'];
+
+/** @deprecated — kept empty; all former exceptions migrated to shared/env-bar.js (Jun 2026). */
+const ENV_STRIP_EXCEPTION_HTML = [];
+
+const ENV_STRIP_EXCEPTION_BASENAME_RE = [];
+
+const MINIMAL_ENV_BAR_HTML = [
   'sky-llm-optimizer.html',
   'sky-llm-brand-presence.html',
-  'sky-llm-referral-traffic.html',
   'sky-llm-agentic-traffic.html',
   'sky-llm-opportunities.html',
   'sky-llm-url-inspector.html',
   'sky-llm-brand-claims.html',
   'sky-llm-prompts-management.html',
-  'sky-llm-llm-response.html',
-  'mobile-demo.html',
-  'mobile-demo-apalmer.html',
+  'sky-llm-opportunity-workspace.html',
+  'call-center-demo.html',
+  'demos/llm-demo/llm-demo.html',
 ];
 
-const ENV_STRIP_EXCEPTION_BASENAME_RE = [
-  /^fnb-.*\.html$/,
-  /^call-center-demo.*\.html$/,
-  /^call-centre-demo.*\.html$/,
-  /^sky-llm-.*\.html$/,
-  /^mobile-demo.*\.html$/,
+const SANDBOX_ONLY_ENV_BAR_HTML = [
+  'fnb-demo.html',
+  'fnb-business-banking.html',
+  'fnb-business-accounts.html',
+  'fnb-gold-business-thank-you.html',
+  'fnb-platinum-business-thank-you.html',
+  'call-centre-demo-v1.html',
 ];
 
 const SITE_CLONE_DEMO_HTML = [
@@ -111,6 +117,15 @@ const SITE_CLONE_DEMO_JS = [
   'miral/miral-theme-parks-demo.js',
 ];
 
+const MINIMAL_ENV_BAR_JS = [
+  'sky-llm-optimizer.js',
+  'call-center-demo.js',
+  'call-center-demo-apalmer.js',
+  'demos/llm-demo/llm-demo.js',
+];
+
+const SANDBOX_ONLY_ENV_BAR_JS = ['fnb-demo.js'];
+
 /** Site-clone demos on shared/env-bar.js — must match SITE_CLONE_DEMO_HTML. @see docs/env-bar-shared-module.md */
 const MIGRATED_TO_ENV_BAR_HTML = new Set(SITE_CLONE_DEMO_HTML);
 
@@ -150,11 +165,29 @@ function read(rel) {
   return fs.readFileSync(path.join(pv, rel), 'utf8');
 }
 
+function isEnvBarRedirect(rel) {
+  return ENV_BAR_REDIRECT_HTML.includes(rel.replace(/\\/g, '/'));
+}
+
+function isMobileSimulator(rel) {
+  return MOBILE_SIMULATOR_HTML.includes(rel.replace(/\\/g, '/'));
+}
+
 function isEnvStripException(rel) {
-  const norm = rel.replace(/\\/g, '/');
-  if (ENV_STRIP_EXCEPTION_HTML.includes(norm)) return true;
-  const base = path.basename(norm);
-  return ENV_STRIP_EXCEPTION_BASENAME_RE.some((re) => re.test(base));
+  return isMobileSimulator(rel) || isEnvBarRedirect(rel);
+}
+
+function envBarHrefFor(rel) {
+  return rel.includes('/') ? '../shared/env-bar.js' : 'shared/env-bar.js';
+}
+
+function walkJs(dir, out = []) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, ent.name);
+    if (ent.isDirectory() && ent.name !== 'node_modules') walkJs(abs, out);
+    else if (ent.isFile() && ent.name.endsWith('.js')) out.push(path.relative(pv, abs).replace(/\\/g, '/'));
+  }
+  return out;
 }
 
 function walkHtml(dir, out = [], skipDirs = new Set(['node_modules', 'sky-llm-snapshot'])) {
@@ -182,16 +215,69 @@ for (const rel of ENV_STRIP_EXCEPTION_HTML) {
   const abs = path.join(pv, rel);
   if (!fs.existsSync(abs)) {
     fail(`Env strip exception listed but missing: ${rel}`);
+  }
+}
+
+for (const rel of MINIMAL_ENV_BAR_HTML) {
+  const abs = path.join(pv, rel);
+  if (!fs.existsSync(abs)) {
+    fail(`Missing minimal env bar HTML: ${rel}`);
     continue;
   }
-  if (SITE_CLONE_DEMO_HTML.includes(rel)) {
-    fail(`Env strip exception must not also be in SITE_CLONE_DEMO_HTML: ${rel}`);
+  const html = read(rel);
+  const envBarHref = envBarHrefFor(rel);
+  if (!html.includes(envBarHref)) {
+    fail(`${rel}: minimal demo must load ${ENV_BAR_JS}`);
+  }
+  if (!html.includes(`env-bar.js?v=${ENV_BAR_MANIFEST}`)) {
+    fail(`${rel}: env-bar.js cache bust must be ?v=${ENV_BAR_MANIFEST}`);
+  }
+  if (!html.includes('envBarConfig')) {
+    fail(`${rel}: minimal demo must set window.envBarConfig`);
+  }
+  if (!html.includes('data-demo-env-strip-mount="site-clone-minimal"')) {
+    fail(`${rel}: minimal demo must use site-clone-minimal mount`);
+  }
+  if (html.includes('id="aepDemoEnvSection"') && html.includes('data-demo-env-strip-mount="site-clone-minimal"')) {
+    fail(`${rel}: inline aepDemoEnvSection with site-clone-minimal — env bar must be JS-mounted only`);
+  }
+  if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
+    fail(`${rel}: must not load aep-demo-env-bar.css directly — use ${ENV_BAR_JS}`);
+  }
+  if (html.includes('aep-demo-env-bar.js') && !html.includes('shared/env-bar.js')) {
+    fail(`${rel}: must not load aep-demo-env-bar.js directly — use ${ENV_BAR_JS}`);
+  }
+}
+
+for (const rel of SANDBOX_ONLY_ENV_BAR_HTML) {
+  const abs = path.join(pv, rel);
+  if (!fs.existsSync(abs)) {
+    fail(`Missing sandbox-only env bar HTML: ${rel}`);
+    continue;
+  }
+  const html = read(rel);
+  const envBarHref = envBarHrefFor(rel);
+  if (!html.includes(envBarHref)) {
+    fail(`${rel}: sandbox-only demo must load ${ENV_BAR_JS}`);
+  }
+  if (!html.includes('data-demo-env-strip-mount="site-clone-sandbox-only"')) {
+    fail(`${rel}: sandbox-only demo must use site-clone-sandbox-only mount`);
+  }
+  if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
+    fail(`${rel}: must not load aep-demo-env-bar.css directly — use ${ENV_BAR_JS}`);
   }
 }
 
 for (const rel of walkHtml(pv)) {
-  if (SITE_CLONE_DEMO_HTML.includes(rel) || isEnvStripException(rel)) continue;
+  if (isEnvStripException(rel) || SITE_CLONE_DEMO_HTML.includes(rel)) continue;
+  if (MINIMAL_ENV_BAR_HTML.includes(rel) || SANDBOX_ONLY_ENV_BAR_HTML.includes(rel)) continue;
   const html = read(rel);
+  if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
+    fail(`${rel}: must not load aep-demo-env-bar.css directly — use shared/env-bar.js`);
+  }
+  if (html.includes('id="aepDemoEnvSection"') && !html.includes('data-demo-env-strip-mount')) {
+    fail(`${rel}: inline aepDemoEnvSection without env-bar mount — use shared/env-bar.js`);
+  }
   if (html.includes('data-demo-env-strip-mount="site-clone-tags"') && !html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
     fail(`${rel}: site-clone-tags mount without site-clone-shell — use centralized env bar`);
   }
@@ -308,7 +394,44 @@ for (const cssFile of walkCss(pv)) {
   }
 }
 
+for (const rel of MINIMAL_ENV_BAR_JS) {
+  const abs = path.join(pv, rel);
+  if (!fs.existsSync(abs)) {
+    fail(`Missing minimal env bar JS: ${rel}`);
+    continue;
+  }
+  const js = fs.readFileSync(abs, 'utf8');
+  if (/AepDemoEnvStrip\.initStandardEnvBar\s*\(/.test(js)) {
+    fail(`${rel}: must not call AepDemoEnvStrip.initStandardEnvBar directly — use shared/env-bar.js`);
+  }
+  if (!/envBar/.test(js)) {
+    fail(`${rel}: minimal demo JS must integrate with window.envBar.ready()`);
+  }
+}
+
+const FORBIDDEN_INIT_STANDARD_ENV_BAR_JS = new Set([
+  'aep-demo-env-bar.js',
+  'shared/demo-env-bar-bootstrap.js',
+  'shared/demo-env-strip.js',
+  'shared/demo-env-strip-spectrum.js',
+]);
+
+for (const rel of walkJs(pv)) {
+  if (FORBIDDEN_INIT_STANDARD_ENV_BAR_JS.has(rel)) continue;
+  if (MIGRATED_ENV_BAR_JS.has(rel) || MINIMAL_ENV_BAR_JS.includes(rel) || SANDBOX_ONLY_ENV_BAR_JS.includes(rel)) continue;
+  const js = fs.readFileSync(path.join(pv, rel), 'utf8');
+  if (/AepDemoEnvStrip\.initStandardEnvBar\s*\(/.test(js)) {
+    fail(`${rel}: must not call AepDemoEnvStrip.initStandardEnvBar outside env-bar loader — use shared/env-bar.js`);
+  }
+}
+
 const stripJs = fs.readFileSync(path.join(pv, 'shared/demo-env-strip.js'), 'utf8');
+if (!stripJs.includes('site-clone-minimal')) {
+  fail('shared/demo-env-strip.js: must implement site-clone-minimal mount');
+}
+if (!stripJs.includes('site-clone-sandbox-only')) {
+  fail('shared/demo-env-strip.js: must implement site-clone-sandbox-only mount');
+}
 if (!stripJs.includes('mod-demo-tags-company-row" hidden')) {
   fail('shared/demo-env-strip.js: Tags company row must include hidden attribute');
 }
@@ -386,5 +509,5 @@ if (failed) {
   process.exit(1);
 }
 console.log(
-  `verify-demo-env-strip: OK (${SITE_CLONE_DEMO_HTML.length} site-clone demos, ${MIGRATED_TO_ENV_BAR_HTML.size} on shared/env-bar.js, ${ENV_STRIP_EXCEPTION_HTML.length} allowlisted exceptions, no env strip drift)`,
+  `verify-demo-env-strip: OK (${SITE_CLONE_DEMO_HTML.length} site-clone demos, ${MIGRATED_TO_ENV_BAR_HTML.size} on shared/env-bar.js, ${MINIMAL_ENV_BAR_HTML.length} minimal + ${SANDBOX_ONLY_ENV_BAR_HTML.length} sandbox-only, ${MOBILE_SIMULATOR_HTML.length} mobile iframe passthrough, ${ENV_STRIP_EXCEPTION_HTML.length} legacy exceptions, no env strip drift)`,
 );

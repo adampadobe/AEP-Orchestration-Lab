@@ -32,6 +32,7 @@
           <a href="https://www.online.fnb.co.za/banking/main.jsp?country=15&amp;skin=0&amp;nav=registration.navigator.RegistrationLanding&amp;simple=true" target="_blank" rel="noopener">Register</a>
         </div>
         <div class="fnb-utility-auth">
+          <div class="fnb-sandbox-host" data-demo-env-strip-mount="site-clone-sandbox-only" data-demo-env-strip-prefix="fnb" aria-label="AEP sandbox"></div>
           <label class="fnb-utility-login-label" for="customerEmail">Profile login email</label>
           <input type="email" id="customerEmail" placeholder="name@example.com" autocomplete="email" spellcheck="false">
           <button type="button" id="queryProfileBtn">Login</button>
@@ -110,6 +111,18 @@
 
   <script src="email-cache.js"></script>
   <script src="email-engagement-metrics.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'fnb',
+      mode: 'compact-fnb',
+      variant: 'classic',
+      features: { webPush: false, bc: false, decisioning: false },
+    };
+  </script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="fnb-demo.js"></script>

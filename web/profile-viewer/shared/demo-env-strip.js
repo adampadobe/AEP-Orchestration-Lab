@@ -49,6 +49,8 @@
       variant: String(host.getAttribute('data-demo-env-strip-variant') || '').trim().toLowerCase(),
       title: host.getAttribute('data-demo-env-strip-title') || '',
       subtitle: host.getAttribute('data-demo-env-strip-subtitle') || 'Active Configuration',
+      hideGeneratorTarget: host.getAttribute('data-demo-env-strip-hide-generator-target') === '1',
+      hideNamespace: host.getAttribute('data-demo-env-strip-hide-namespace') === '1',
     };
   }
 
@@ -310,6 +312,140 @@
     );
   }
 
+  /**
+   * Minimal env bar — sandbox + profile lookup only (no Tags / BC / decisioning).
+   * Used by Sky LLM snapshot shells and call-centre pinned lookup.
+   */
+  function siteCloneMinimalGridMarkup(config) {
+    var c = config || {};
+    var prefix = String(c.prefix || '').trim();
+    if (!prefix) return '';
+    var genHidden = c.hideGeneratorTarget ? ' hidden' : '';
+    var nsBlock = c.hideNamespace
+      ? ''
+      : '<div class="form-row">' +
+        '<label for="' +
+        esc(c.nsSelectId || prefix + 'Ns') +
+        '">Namespace</label>' +
+        '<select id="' +
+        esc(c.nsSelectId || prefix + 'Ns') +
+        '" class="sandbox-select" aria-label="Identity namespace">' +
+        '<option value="email">Email</option>' +
+        '<option value="ecid">ECID</option>' +
+        '<option value="crmId">CRM ID</option>' +
+        '<option value="loyaltyId">Loyalty ID</option>' +
+        '<option value="phone">Phone</option>' +
+        '</select>' +
+        '</div>';
+    return (
+      '<section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">' +
+      '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
+      '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
+      '<span class="aep-demo-env-kicker">Environment</span>' +
+      '<div class="aep-demo-env-editor-grid">' +
+      '<div class="form-row">' +
+      '<label for="sandboxSelect">Sandbox</label>' +
+      '<select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">' +
+      '<option value="">Loading sandboxes…</option>' +
+      '</select>' +
+      '</div>' +
+      '<div class="form-row"' +
+      genHidden +
+      '>' +
+      '<label for="generatorTarget">Event destination</label>' +
+      '<select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>' +
+      '<span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>' +
+      '<button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>' +
+      '</div>' +
+      '</div>' +
+      '</section>' +
+      '<section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">' +
+      '<span class="aep-demo-env-kicker">Profile lookup</span>' +
+      '<div class="aep-demo-profile-section-grid">' +
+      nsBlock +
+      '<div class="form-row">' +
+      '<label for="customerEmail">Identifier value</label>' +
+      '<input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">' +
+      '</div>' +
+      '<div class="mod-demo-profile-actions">' +
+      '<button type="button" id="queryProfileBtn" class="btn-lookup">' +
+      esc(c.profileBtnLabel || 'Look up profile') +
+      '</button>' +
+      '<span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>' +
+      '</div>' +
+      '</div>' +
+      '</section>'
+    );
+  }
+
+  /** Sandbox select only — for FNB utility row and call-centre v1 hybrid chrome. */
+  function siteCloneSandboxOnlyMarkup() {
+    return (
+      '<section class="aep-demo-env-section aep-demo-env-section--sandbox-only" id="aepDemoEnvSection" aria-label="AEP environment">' +
+      '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
+      '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
+      '<div class="aep-demo-env-editor-grid">' +
+      '<div class="form-row">' +
+      '<label for="sandboxSelect">Sandbox</label>' +
+      '<select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">' +
+      '<option value="">Loading sandboxes…</option>' +
+      '</select>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>' +
+      '<span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>' +
+      '<button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>' +
+      '</div>' +
+      '</div>' +
+      '</section>'
+    );
+  }
+
+  function mountSiteCloneMinimalShell(config) {
+    var c = config || {};
+    var host = c.host;
+    if (!host) return { mounted: false, reason: 'host-not-found' };
+    if (host.getAttribute(MOUNTED_ATTR) === '1') {
+      return { mounted: true, alreadyPresent: true };
+    }
+    var shellCfg = c.shellConfig || readShellConfig(host);
+    if (!shellCfg) return { mounted: false, reason: 'missing-shell-config' };
+    host.classList.add('aep-demo-id-inner');
+    host.innerHTML = siteCloneMinimalGridMarkup(shellCfg);
+    host.setAttribute(MOUNTED_ATTR, '1');
+    mountShellFooter(host, shellCfg);
+    try {
+      global.dispatchEvent(new CustomEvent(MOUNTED_EVENT, { detail: { prefix: shellCfg.prefix, mode: 'minimal' } }));
+    } catch (_e) {
+      /* noop */
+    }
+    return { mounted: true };
+  }
+
+  function mountSiteCloneSandboxOnly(config) {
+    var c = config || {};
+    var host = c.host;
+    if (!host) return { mounted: false, reason: 'host-not-found' };
+    if (host.getAttribute(MOUNTED_ATTR) === '1') {
+      return { mounted: true, alreadyPresent: true };
+    }
+    host.innerHTML = siteCloneSandboxOnlyMarkup();
+    host.setAttribute(MOUNTED_ATTR, '1');
+    try {
+      global.dispatchEvent(
+        new CustomEvent(MOUNTED_EVENT, { detail: { prefix: host.getAttribute(PREFIX_ATTR) || '', mode: 'sandbox-only' } }),
+      );
+    } catch (_e2) {
+      /* noop */
+    }
+    return { mounted: true };
+  }
+
   function siteCloneEnvShellFooterMarkup(config) {
     var c = config || {};
     if (!c.selectedScriptId) return '';
@@ -451,6 +587,18 @@
       mountSiteCloneEnvShell({ host: host });
     });
 
+    var minimalHosts = document.querySelectorAll('[' + MOUNT_ATTR + '="site-clone-minimal"]');
+    minimalHosts.forEach(function (host) {
+      if (host.getAttribute(MOUNTED_ATTR) === '1') return;
+      mountSiteCloneMinimalShell({ host: host });
+    });
+
+    var sandboxOnlyHosts = document.querySelectorAll('[' + MOUNT_ATTR + '="site-clone-sandbox-only"]');
+    sandboxOnlyHosts.forEach(function (host) {
+      if (host.getAttribute(MOUNTED_ATTR) === '1') return;
+      mountSiteCloneSandboxOnly({ host: host });
+    });
+
     var tagsHosts = document.querySelectorAll('[' + MOUNT_ATTR + '="site-clone-tags"]');
     tagsHosts.forEach(function (host) {
       if (host.getAttribute(MOUNTED_ATTR) === '1') return;
@@ -479,11 +627,15 @@
     siteCloneTagsFieldsMarkup: siteCloneTagsFieldsMarkup,
     siteCloneProfileBcPrefsMarkup: siteCloneProfileBcPrefsMarkup,
     siteCloneEnvShellGridMarkup: siteCloneEnvShellGridMarkup,
+    siteCloneMinimalGridMarkup: siteCloneMinimalGridMarkup,
+    siteCloneSandboxOnlyMarkup: siteCloneSandboxOnlyMarkup,
     siteCloneEnvShellFooterMarkup: siteCloneEnvShellFooterMarkup,
     readShellConfig: readShellConfig,
     mountSiteCloneTagsFields: mountSiteCloneTagsFields,
     mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
     mountSiteCloneEnvShell: mountSiteCloneEnvShell,
+    mountSiteCloneMinimalShell: mountSiteCloneMinimalShell,
+    mountSiteCloneSandboxOnly: mountSiteCloneSandboxOnly,
     siteCloneDemoEnvObject: siteCloneDemoEnvObject,
     autoMount: autoMountFromDom,
     capPrefix: capPrefix,
