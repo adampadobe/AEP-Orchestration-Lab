@@ -74,46 +74,101 @@
 .lab-env-overlay-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem 0.75rem;
+  gap: 16px;
+  padding: 16px 24px;
   align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .lab-env-overlay-profile {
   margin: 0;
-  padding-bottom: 0.375rem;
+  padding: 0 0 0.375rem;
+  border-top: 0;
   border-bottom: 1px solid var(--dash-border);
   width: 100%;
   box-sizing: border-box;
 }
 
-.lab-env-overlay-profile .spectrum-env-profile-main {
+.lab-env-overlay-profile .spectrum-env-profile-grid {
+  display: block;
   width: 100%;
-  flex: 1 1 100%;
+  gap: 0;
 }
 
-.lab-env-overlay-columns {
+.lab-env-overlay-profile .spectrum-env-profile-main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  gap: 12px 16px;
+  align-items: end;
+  width: 100%;
+  flex: 1 1 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-profile .spectrum-env-profile-main .form-group,
+.lab-env-overlay-profile .spectrum-env-profile-main .form-row.spectrum-env-field {
+  margin: 0;
+  min-width: 0;
+}
+
+.lab-env-overlay-profile .spectrum-env-ecid {
+  grid-column: 1 / -1;
+}
+
+.lab-env-overlay-columns,
+.env-bar-grid {
+  display: grid;
+  grid-template-columns: minmax(min(400px, 100%), 1fr) minmax(min(400px, 100%), 1fr);
+  gap: 24px;
   align-items: start;
   min-width: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .lab-env-col-left,
-.lab-env-col-right {
+.lab-env-col-right,
+.env-column {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 12px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .form-group,
+.lab-env-overlay-panel .form-row.spectrum-env-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .form-group label,
+.lab-env-overlay-panel .form-row.spectrum-env-field label {
   width: 100%;
 }
 
-.lab-env-overlay-panel .lab-env-col-right {
-  border-left: 1px solid var(--dash-border);
-  padding-left: 12px;
+.lab-env-overlay-panel .form-group select,
+.lab-env-overlay-panel .form-group input,
+.lab-env-overlay-panel .form-row.spectrum-env-field select,
+.lab-env-overlay-panel .form-row.spectrum-env-field input {
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
 }
 
 .lab-env-col-stack {
@@ -203,7 +258,11 @@
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields,
 .lab-env-overlay-panel .spectrum-env-target-inline {
-  gap: 0.5rem;
+  gap: 12px;
+}
+
+.lab-env-overlay-panel .spectrum-env-card__body--fields {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
@@ -212,12 +271,16 @@
 
 .lab-env-overlay-panel .lab-env-col-left select,
 .lab-env-overlay-panel .lab-env-col-right select,
+.lab-env-overlay-panel .env-column select,
 .lab-env-overlay-panel .lab-env-col-left input.spectrum-env-input,
 .lab-env-overlay-panel .lab-env-col-right input.spectrum-env-input,
+.lab-env-overlay-panel .env-column input.spectrum-env-input,
 .lab-env-overlay-panel .lab-env-col-left .site-clone-bc-style-url-select,
 .lab-env-overlay-panel .lab-env-col-right .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .env-column .site-clone-bc-style-url-select,
 .lab-env-overlay-panel .lab-env-col-left .site-clone-bc-datastream-input,
-.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-datastream-input {
+.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-datastream-input,
+.lab-env-overlay-panel .env-column .site-clone-bc-datastream-input {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -236,12 +299,14 @@
   padding-top: 0;
 }
 
-.lab-env-overlay-panel .lab-env-col-left .spectrum-env-selected-script {
-  margin: 0;
+.lab-env-overlay-panel .spectrum-env-field--grow {
+  flex: none;
+  width: 100%;
 }
 
 .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid {
-  gap: 0.5rem 0.625rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
 .lab-env-overlay-panel .spectrum-env-field label,
@@ -750,6 +815,15 @@
   width: 100%;
 }
 
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-start;
+}
+
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
   justify-content: flex-start;
 }
@@ -879,7 +953,12 @@
 }
 
 .spectrum-env-inline-message {
-  margin: 0.65rem 1rem 0;
+  margin: 0;
+}
+
+.lab-env-overlay-panel .spectrum-env-inline-message {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Hide legacy flat layout pieces inside spectrum root */
@@ -888,14 +967,14 @@
   display: none !important;
 }
 
-@media (max-width: 56rem) {
-  .lab-env-overlay-columns {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 1000px) {
+  .lab-env-overlay-columns,
+  .env-bar-grid {
+    grid-template-columns: 1fr;
   }
 
-  .lab-env-overlay-panel .lab-env-col-right {
-    border-left: 0;
-    padding-left: 0;
+  .lab-env-overlay-profile .spectrum-env-profile-main {
+    grid-template-columns: 1fr;
   }
 
   .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {

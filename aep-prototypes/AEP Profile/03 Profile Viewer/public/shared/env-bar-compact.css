@@ -91,6 +91,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   top: var(--env-bar-height);
   left: 0;
   right: 0;
+  width: 100%;
+  max-width: 100vw;
   z-index: 6499;
   max-height: 0;
   overflow: hidden;
@@ -101,19 +103,11 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   border-bottom: 1px solid var(--dash-border);
   border-radius: 0 0 var(--dash-radius-sm, 12px) var(--dash-radius-sm, 12px);
   box-shadow: var(--dash-shadow);
+  box-sizing: border-box;
   transition:
     max-height 0.2s ease,
     opacity 0.18s ease,
     visibility 0.18s ease;
-}
-
-@media (min-width: 48rem) {
-  .lab-env-overlay-panel {
-    left: 50%;
-    right: auto;
-    width: min(100%, 72rem);
-    transform: translateX(-50%);
-  }
 }
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
