@@ -95,6 +95,45 @@
     },
   ];
 
+  /** Coverflow gallery carousel (Etihad-style) — images from ksia.sa */
+  var GALLERY_CAROUSEL = [
+    {
+      image: 'assets/images/ksia-gallery-2030.png',
+      alt: 'Vision 2030',
+      tag: 'Vision 2030',
+      title: 'Vision 2030',
+      meta: 'A catalyst for tourism, trade, and innovation',
+    },
+    {
+      image: 'assets/images/ksia-gallery-gate.png',
+      alt: 'Terminal gates',
+      tag: 'Terminals',
+      title: 'World-class gates',
+      meta: 'Six terminals designed for seamless connection',
+    },
+    {
+      image: 'assets/images/ksia-gallery-saudi.png',
+      alt: 'Saudi heritage',
+      tag: 'Heritage',
+      title: 'Gateway to Saudi Arabia',
+      meta: 'Where tradition meets the future of travel',
+    },
+    {
+      image: 'assets/images/ksia-gallery-mbs.png',
+      alt: 'HRH Crown Prince announcement',
+      tag: 'Leadership',
+      title: 'A national landmark',
+      meta: 'Announced by HRH the Crown Prince',
+    },
+    {
+      image: 'assets/images/ksia-news-oct.webp',
+      alt: 'KSIA news',
+      tag: 'News',
+      title: 'Your journey, your destination',
+      meta: 'Latest updates from King Salman International Airport',
+    },
+  ];
+
   var QUICK_LINKS = [
     { label: 'Flight arrivals', href: 'flights/arrivals.html', desc: 'Live arrival board' },
     { label: 'Flight departures', href: 'flights/departures.html', desc: 'Live departure board' },
@@ -153,6 +192,7 @@
   global.KsiaMockData = {
     NAV: NAV,
     CAROUSEL_SLIDES: CAROUSEL_SLIDES,
+    GALLERY_CAROUSEL: GALLERY_CAROUSEL,
     QUICK_LINKS: QUICK_LINKS,
     SAMPLE_ARRIVALS: SAMPLE_ARRIVALS,
     SAMPLE_DEPARTURES: SAMPLE_DEPARTURES,

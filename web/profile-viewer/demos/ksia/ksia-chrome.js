@@ -85,7 +85,9 @@
       '<a href="' +
       resolveHref('index.html') +
       '" class="ksia-logo-link">' +
-      '<span class="ksia-logo-mark" aria-hidden="true">KSIA</span>' +
+      '<img src="' +
+      resolveHref('assets/logo.png') +
+      '" alt="King Salman International Airport" class="ksia-logo-img">' +
       '<span class="ksia-logo-text">King Salman<br>International Airport</span>' +
       '</a></div>' +
       '<hr class="ksia-sidebar-divider">' +
@@ -146,8 +148,39 @@
   function renderFooter() {
     return (
       '<footer class="ksia-footer">' +
-      '<div class="ksia-footer-inner">' +
+      '<div class="ksia-footer-contact">' +
+      '<div class="ksia-footer-contact-copy">' +
+      '<p class="ksia-section-kicker">Contact Us</p>' +
+      '<h2 class="ksia-display-heading">Get In Touch</h2>' +
+      '<p>Please fill out the form. We\'ll get back to you soon.</p>' +
+      '<div class="ksia-footer-social" aria-label="Social links">' +
+      '<a href="#" aria-label="X">X</a>' +
+      '<a href="#" aria-label="Instagram">IG</a>' +
+      '<a href="#" aria-label="LinkedIn">in</a>' +
+      '</div></div>' +
+      '<form class="ksia-contact-form" id="ksiaContactForm" novalidate>' +
+      '<label for="ksiaContactName">Name</label>' +
+      '<input id="ksiaContactName" name="name" type="text" autocomplete="name">' +
+      '<label for="ksiaContactEmail">Email</label>' +
+      '<input id="ksiaContactEmail" name="email" type="email" autocomplete="email">' +
+      '<label for="ksiaContactTopic">Topic</label>' +
+      '<select id="ksiaContactTopic" name="topic">' +
+      '<option value="general">General</option>' +
+      '<option value="media">Media</option>' +
+      '<option value="vendors">Vendors</option>' +
+      '<option value="career">Career</option>' +
+      '</select>' +
+      '<label for="ksiaContactMessage">Message</label>' +
+      '<textarea id="ksiaContactMessage" name="message" rows="3"></textarea>' +
+      '<button type="submit" class="ksia-btn ksia-btn-primary">Submit</button>' +
+      '</form></div>' +
+      '<div class="ksia-footer-bottom">' +
+      '<div class="ksia-footer-brand-row">' +
+      '<img src="' +
+      resolveHref('assets/logo.png') +
+      '" alt="" class="ksia-footer-logo" aria-hidden="true">' +
       '<p class="ksia-footer-brand">King Salman International Airport</p>' +
+      '</div>' +
       '<p class="ksia-footer-tag">Vision 2030 — Saudi Arabia\'s gateway to the world</p>' +
       '<p class="ksia-footer-demo">Adobe Experience Platform lab mockup — not affiliated with KSIA.</p>' +
       '</div></footer>'
@@ -222,6 +255,19 @@
     });
   }
 
+  function wireContactForm() {
+    var form = document.getElementById('ksiaContactForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (window.KsiaLabEvents && typeof window.KsiaLabEvents.emit === 'function') {
+        window.KsiaLabEvents.emit('ksia.contact.submit', {
+          topic: (document.getElementById('ksiaContactTopic') || {}).value || 'general',
+        });
+      }
+    });
+  }
+
   function mount() {
     var mount = document.getElementById('ksia-chrome-mount');
     if (!mount || !window.KsiaMockData) return;
@@ -242,6 +288,7 @@
 
     wireFlyout(nav);
     wireSidebarCollapse();
+    wireContactForm();
 
     if (window.KsiaLabEvents && typeof window.KsiaLabEvents.emitPageView === 'function') {
       window.KsiaLabEvents.emitPageView(pageId, meta && meta.section ? meta.section : pageId.split('-')[0]);
