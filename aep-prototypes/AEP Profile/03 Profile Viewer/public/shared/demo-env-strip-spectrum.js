@@ -8,6 +8,7 @@
   'use strict';
 
   var MOUNTED_ATTR = 'data-demo-env-strip-mounted';
+  var MOUNTED_EVENT = 'aep-demo-env-strip-mounted';
 
   function esc(s) {
     return String(s || '')
@@ -291,6 +292,18 @@
 
     if (global.DemoEnvBarSpectrumSync && typeof global.DemoEnvBarSpectrumSync.init === 'function') {
       global.DemoEnvBarSpectrumSync.init({ prefix: shellCfg.prefix, selectedScriptId: shellCfg.selectedScriptId });
+    }
+
+    if (fields) {
+      try {
+        global.dispatchEvent(
+          new CustomEvent(MOUNTED_EVENT, {
+            detail: { prefix: shellCfg.prefix, mountId: shellCfg.prefix + 'SdkConfigFields' },
+          }),
+        );
+      } catch (_e) {
+        /* noop */
+      }
     }
 
     return { mounted: true };
