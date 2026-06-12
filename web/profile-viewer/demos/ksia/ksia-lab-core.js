@@ -190,8 +190,8 @@
       });
     }
 
-    if (typeof global.initLabDemoEnvBar === 'function') {
-      global.initLabDemoEnvBar({ prefix: 'ksia' });
+    if (ksiaTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
+      global.envBar.registerTagsInjection(ksiaTagsInjection);
     }
 
     return { tagsInjection: ksiaTagsInjection, setMessage: setKsiaMessage, getSelectedGeneratorTarget: getSelectedGeneratorTarget };

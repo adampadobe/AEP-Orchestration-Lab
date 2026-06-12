@@ -24,10 +24,20 @@ function syncIframeToJourneyUrl() {
   }
 }
 
-var ksiaLab =
-  typeof window.initKsiaLab === 'function'
-    ? window.initKsiaLab({ iframeIds: ['ksiaSiteFrame'] })
-    : null;
+var ksiaLab = null;
+
+function bootKsiaDemoLab() {
+  ksiaLab =
+    typeof window.initKsiaLab === 'function'
+      ? window.initKsiaLab({ iframeIds: ['ksiaSiteFrame'] })
+      : null;
+}
+
+if (window.envBar && typeof window.envBar.ready === 'function') {
+  window.envBar.ready().then(bootKsiaDemoLab);
+} else {
+  bootKsiaDemoLab();
+}
 
 function setKsiaMessage(text, type) {
   if (ksiaLab && typeof ksiaLab.setMessage === 'function') {

@@ -1,0 +1,14 @@
+{
+  "manifestVersion": "20260612-env-bar",
+  "moduleVersion": "1.0.0",
+  "assets": {
+    "bundleCss": "20260623-env-inline",
+    "spectrumCss": "20260623-spectrum",
+    "demoEnvStripSpectrum": "20260623-spectrum",
+    "demoEnvStrip": "20260623-spectrum",
+    "spectrumSync": "20260623-spectrum",
+    "bootstrap": "20260602-env-bar-bootstrap",
+    "tagsInjection": "20260605-tags-sandbox-restore",
+    "aepDemoEnvBar": "20260601-launch-unset-expand"
+  }
+}

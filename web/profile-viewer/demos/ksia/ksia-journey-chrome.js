@@ -1,12 +1,13 @@
 /**
  * Mounts the KSIA lab strip on direct journey page loads (demos/ksia/* URLs).
  * Skipped inside the lab shell iframe and during VEC compose.
+ * Uses shared/env-bar.js for env bar CSS + script chain (single version manifest).
  */
 (function () {
   'use strict';
 
   var PV = '/profile-viewer/';
-  var BUILD = '20260623-spectrum';
+  var MANIFEST_VERSION = '20260612-env-bar';
 
   if (window.__ksiaJourneyChromeBooted) return;
 
@@ -152,7 +153,18 @@
       window.SiteCloneDemoEnv || {},
     );
 
-    var scripts = [
+    window.envBarConfig = {
+      prefix: 'ksia',
+      variant: 'spectrum',
+      mode: 'journey',
+      basePath: PV,
+      autoInit: false,
+      features: { webPush: true, bc: true, decisioning: false },
+      labCoreScript: 'demos/ksia/ksia-lab-core.js',
+      siteCloneDemoEnv: window.SiteCloneDemoEnv,
+    };
+
+    var prereqScripts = [
       PV + 'firebase-database-config.js',
       'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
       'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js',
@@ -163,25 +175,26 @@
       PV + 'shared/profile-viewer-modal.js?v=20260601-modal-central',
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
       PV + 'aep-demo-web-push.js?v=20260512-lab-push',
-      PV + 'shared/demo-env-strip-spectrum.js?v=20260623-spectrum',
-      PV + 'shared/demo-env-strip.js?v=20260623-spectrum',
-      PV + 'shared/demo-env-bar-spectrum-sync.js?v=20260623-spectrum',
-      PV + 'shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap',
-      PV + 'demo-tags-injection.js?v=20260605-tags-sandbox-restore',
-      PV + 'aep-demo-env-bar.js?v=20260601-launch-unset-expand',
       PV + 'aep-demo-generator-targets.js?v=20260508',
       PV + 'site-clone-bc-env.js?v=20260605-tags-sandbox-restore',
-      PV + 'demos/ksia/ksia-lab-core.js?v=' + BUILD,
     ];
 
-    var chain = Promise.resolve();
-    scripts.forEach(function (src) {
-      chain = chain.then(function () {
+    var chain = prereqScripts.reduce(function (p, src) {
+      return p.then(function () {
         return loadScript(src);
       });
-    });
+    }, Promise.resolve());
 
     chain
+      .then(function () {
+        return loadScript(PV + 'shared/env-bar.js?v=' + MANIFEST_VERSION);
+      })
+      .then(function () {
+        if (!window.envBar || typeof window.envBar.init !== 'function') {
+          throw new Error('shared/env-bar.js did not expose window.envBar');
+        }
+        return window.envBar.init(window.envBarConfig);
+      })
       .then(function () {
         if (typeof window.initKsiaLab === 'function') {
           window.initKsiaLab({ iframeIds: [] });
@@ -207,9 +220,7 @@
     ensureThemePaint();
     linkCss(PV + 'style.css');
     linkCss(PV + 'home.css?v=20260514-customer-demos-nav');
-    linkCss(PV + 'ksia-demo.css?v=' + BUILD);
-    linkCss(PV + 'shared/demo-env-bar.bundle.css?v=20260623-env-inline');
-    linkCss(PV + 'shared/demo-env-bar-spectrum.css?v=20260623-spectrum');
+    linkCss(PV + 'ksia-demo.css?v=' + MANIFEST_VERSION);
     linkCss(PV + 'aep-profile-drawer.css?v=20260521-refresh-btn-lightfix');
     linkCss(PV + 'shared/profile-viewer-modal.css?v=20260601-modal-central');
     linkCss(PV + 'aep-theme.css?v=20260423b-fs-helper');

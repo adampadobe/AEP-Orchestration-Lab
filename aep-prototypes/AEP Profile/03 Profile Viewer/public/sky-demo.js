@@ -1,6 +1,9 @@
 ﻿/**
  * Sky demo ÔÇö saved sky.com homepage in iframe + lab env strip (British Army / MOD pattern).
+ * Waits for shared/env-bar.js before Tags injection (env bar loads demo-tags-injection.js).
  */
+(function skyDemoBoot(global) {
+  function run() {
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'skyNs');
@@ -156,6 +159,9 @@ queryProfileBtn &&
         : null;
     const stitched = await skyTagsInjection.stitchAfterProfileLookup(profile, email);
     if (stitched) setSkyMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    if (typeof window.__skyDemoSyncDecisioningProfile === 'function') {
+      await window.__skyDemoSyncDecisioningProfile();
+    }
   });
 
 void loadGeneratorTargets();
@@ -165,7 +171,9 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'sky' });
+if (skyTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
+  global.envBar.registerTagsInjection(skyTagsInjection);
+}
 
 (function initSkyDemoFlyoutSidebar() {
   const body = document.body;
@@ -245,3 +253,109 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
+
+(function initSkyDecisioningAndBottomDock() {
+  if (!document.body.classList.contains('sky-demo-page')) return;
+
+  function getNamespace() {
+    if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+      return AepIdentityPicker.getNamespace('skyNs');
+    }
+    var sel = document.getElementById('skyNs');
+    return sel && sel.value ? String(sel.value).trim().toLowerCase() : 'email';
+  }
+
+  function getSandboxName() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      var sn = window.AepGlobalSandbox.getSandboxName();
+      if (sn) return String(sn).trim();
+    }
+    var sel = document.getElementById('sandboxSelect');
+    return sel && sel.value ? String(sel.value).trim() : '';
+  }
+
+  function isDecisioningEnabled() {
+    var toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
+    return !!(toggle && toggle.checked);
+  }
+
+  var skyBottomDockConfig = {
+    ctaLabel: 'ASK SKY',
+    panelTitle: 'Sky assistant',
+    placeholder: 'Ask about TV, broadband, Sky Glass, and packages…',
+    disclaimer: 'This assistant uses demo catalogue data and may provide incomplete responses. Not affiliated with Sky Group.',
+    betaLabel: 'BETA',
+    mountSelector: '#bcBottomDockMount',
+    onExpand: function () {
+      if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
+        void window.SiteCloneBc.sync();
+      }
+    },
+  };
+
+  if (typeof window.BrandConciergeBottomDock !== 'undefined') {
+    window.BrandConciergeBottomDock.init(skyBottomDockConfig);
+  }
+
+  var runtimeApi = null;
+  if (typeof window.DecisioningProfileRuntime !== 'undefined') {
+    runtimeApi = window.DecisioningProfileRuntime.init({
+      iframeId: 'skyDemoSiteFrame',
+      mountLayoutPreset: 'sky-home',
+      getViewName: function () {
+        return 'Sky';
+      },
+      getIdentifierValue: getEmail,
+      getNamespace: getNamespace,
+      getSandboxName: getSandboxName,
+      enabled: isDecisioningEnabled,
+    });
+  }
+
+  var dpmPanelHandle = null;
+  if (typeof window.DecisioningProfilePanel !== 'undefined') {
+    dpmPanelHandle = window.DecisioningProfilePanel.init({
+      isEnabled: isDecisioningEnabled,
+      enabledToggleId: 'siteCloneDecisioningEnabledToggle',
+      moduleOptions: {
+        getIdentifierValue: getEmail,
+        getNamespace: getNamespace,
+        getSandboxName: getSandboxName,
+        profileApi: runtimeApi || {},
+      },
+    });
+  }
+
+  window.__skyDemoSyncDecisioningProfile = async function syncDecisioningProfileFromLookup() {
+    if (!isDecisioningEnabled()) {
+      if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
+        dpmPanelHandle.moduleHandle.hydrate();
+      }
+      return;
+    }
+    if (runtimeApi && typeof runtimeApi.runProfileLookup === 'function') {
+      await runtimeApi.runProfileLookup({ silent: true });
+      return;
+    }
+    if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
+      dpmPanelHandle.moduleHandle.hydrate();
+    }
+  };
+
+  var bottomToggle = document.getElementById('siteCloneBcBottomDockToggle');
+  if (bottomToggle) {
+    var syncBottomDockClass = function () {
+      document.body.classList.toggle('sky-demo-page--bottom-dock-armed', !!bottomToggle.checked);
+    };
+    bottomToggle.addEventListener('change', syncBottomDockClass);
+    syncBottomDockClass();
+  }
+})();
+  }
+
+  if (global.envBar && typeof global.envBar.ready === 'function') {
+    global.envBar.ready().then(run);
+  } else {
+    run();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

@@ -1,6 +1,9 @@
 ﻿/**
  * Sky demo ÔÇö saved sky.com homepage in iframe + lab env strip (British Army / MOD pattern).
+ * Waits for shared/env-bar.js before Tags injection (env bar loads demo-tags-injection.js).
  */
+(function skyDemoBoot(global) {
+  function run() {
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'skyNs');
@@ -168,7 +171,9 @@ if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGener
   });
 }
 
-window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'sky' });
+if (skyTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
+  global.envBar.registerTagsInjection(skyTagsInjection);
+}
 
 (function initSkyDemoFlyoutSidebar() {
   const body = document.body;
@@ -346,3 +351,11 @@ DemoProfileDrawer.init({
     syncBottomDockClass();
   }
 })();
+  }
+
+  if (global.envBar && typeof global.envBar.ready === 'function') {
+    global.envBar.ready().then(run);
+  } else {
+    run();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
