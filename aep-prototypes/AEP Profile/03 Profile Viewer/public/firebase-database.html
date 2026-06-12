@@ -35,7 +35,7 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingFbDb" class="dashboard-hero-title">Real-time database</h2>
               <p class="dashboard-hero-subtitle">
-                Sign in, set a workspace name, edit your JSON, then copy <strong>one URL</strong> into Journey Optimizer — <strong>GET</strong>, no Adobe login.
+                Advanced JSON editor for your lab demo config at <code>ajoLookups/&lt;ldap&gt;/sandboxes/&lt;sandbox&gt;/</code>. Uses your <strong>lab Adobe sign-in</strong> — prep demos in <a href="global-settings.html">Global settings</a>.
               </p>
             </header>
           </div>
@@ -61,19 +61,12 @@
                 <span class="fb-db-account-chevron" aria-hidden="true">▼</span>
               </button>
               <div class="fb-db-account-body" id="fbDbAccountBody" role="region">
-                <p class="fb-db-auth-lead">Sign in to edit your workspace on this page.</p>
-                <div class="fb-db-field">
-                  <label for="fbDbEmail">Email</label>
-                  <input type="email" id="fbDbEmail" autocomplete="username" placeholder="you@example.com" />
-                </div>
-                <div class="fb-db-field">
-                  <label for="fbDbPassword">Password</label>
-                  <input type="password" id="fbDbPassword" autocomplete="current-password" placeholder="min. 6 characters" />
-                </div>
-                <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbSignIn">Sign in</button>
-                <button type="button" class="fb-db-btn" id="fbDbRegister">Create account</button>
-                <button type="button" class="fb-db-btn fb-db-btn--quiet" id="fbDbResetPassword">Send password reset email</button>
-                <button type="button" class="fb-db-btn fb-db-btn--quiet" id="fbDbAnonymous">Continue as guest (anonymous)</button>
+                <p class="fb-db-auth-lead">
+                  Sign in with your <strong>@adobe.com</strong> lab account (same session as the Profile Viewer home). No separate RTDB password.
+                </p>
+                <p id="fbDbLabAuthStatus" class="fb-db-auth-lead" style="font-size:13px;color:var(--dash-text-secondary);"></p>
+                <a href="home.html?accessSetup=1" class="fb-db-btn fb-db-btn--primary" id="fbDbLabSignInLink" style="text-decoration:none;display:inline-block;text-align:center;">Open lab sign-in</a>
+                <a href="global-settings.html" class="fb-db-btn" style="text-decoration:none;display:inline-block;text-align:center;margin-top:8px;">Demo prep (Global settings)</a>
               </div>
             </section>
 
@@ -260,11 +253,15 @@
     </div>
   </div>
 
-  <script src="firebase-database-config.js?v=20260411"></script>
+  <script src="firebase-database-config.js?v=20260612"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  <script src="firebase-database.js?v=20260418"></script>
+  <script src="aep-ldap-slug.js?v=20260612"></script>
+  <script src="aep-demo-config-rtdb.js?v=20260612"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
+  <script src="firebase-database.js?v=20260612"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>

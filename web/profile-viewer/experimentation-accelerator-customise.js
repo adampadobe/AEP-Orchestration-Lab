@@ -299,6 +299,12 @@
     return s || '_default';
   }
 
+  var cachedBySandbox = {};
+
+  function rtdbCfg() {
+    return window.AepDemoConfigRtdb;
+  }
+
   function readAll() {
     try {
       var raw = localStorage.getItem(LS);
@@ -314,20 +320,37 @@
     try {
       localStorage.setItem(LS, JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  function getForSandbox(sb) {
+    var key = sandboxKey(sb);
+    if (cachedBySandbox[key]) return cachedBySandbox[key];
+    var all = readAll();
+    return all[key] || null;
+  }
+
+  function saveForSandbox(sb, data) {
+    var key = sandboxKey(sb);
+    cachedBySandbox[key] = data;
+    var c = rtdbCfg();
+    if (c && typeof c.saveSection === 'function') {
+      c.saveSection(c.SECTIONS.ExpAccelerator, data, { sandboxSlug: sb }).catch(function () {});
+      return;
+    }
+    var all = readAll();
+    all[key] = data;
+    writeAll(all);
     if (window.AepLabSandboxSync && typeof AepLabSandboxSync.notifyDirty === 'function') {
       AepLabSandboxSync.notifyDirty();
     }
   }
 
-  function getForSandbox(sb) {
-    var all = readAll();
-    return all[sandboxKey(sb)] || null;
-  }
-
-  function saveForSandbox(sb, data) {
-    var all = readAll();
-    all[sandboxKey(sb)] = data;
-    writeAll(all);
+  function loadPrefsFromRtdb(sb) {
+    var c = rtdbCfg();
+    if (!c) return Promise.resolve(null);
+    return c.whenReady().then(function () {
+      return c.loadSection(c.SECTIONS.ExpAccelerator, { sandboxSlug: sb });
+    });
   }
 
   /**
@@ -823,9 +846,15 @@
   }
 
   function refreshFromStorage() {
-    fillInputs();
-    var stored = getForSandbox(currentSandboxName()) || {};
-    applyToDom(buildEffectivePrefs(stored));
+    var sb = currentSandboxName();
+    loadPrefsFromRtdb(sb).then(function (rtdbData) {
+      if (rtdbData && typeof rtdbData === 'object') {
+        cachedBySandbox[sandboxKey(sb)] = rtdbData;
+      }
+      fillInputs();
+      var stored = getForSandbox(sb) || {};
+      applyToDom(buildEffectivePrefs(stored));
+    });
   }
 
   function init() {
@@ -931,6 +960,8 @@
     document.addEventListener('aep-lab-sandbox-keys-applied', function () {
       refreshFromStorage();
     });
+
+    window.addEventListener('aep-demo-config-changed', refreshFromStorage);
 
     if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
       window.__aepLabSyncReady.then(function () {

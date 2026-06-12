@@ -27,7 +27,23 @@
     } catch (_e) {}
   }
 
+  function normalizeLdapSlug(raw) {
+    if (global.AepLdapSlug && typeof global.AepLdapSlug.normalizeLdapSlug === 'function') {
+      return global.AepLdapSlug.normalizeLdapSlug(raw);
+    }
+    var s = String(raw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '');
+    if (s.length < 2 || s.length > 48) return '';
+    return s;
+  }
+
   function toSlug(raw) {
+    return normalizeLdapSlug(raw) || toDisplaySlug(raw);
+  }
+
+  function toDisplaySlug(raw) {
     return String(raw || '')
       .toLowerCase()
       .trim()
@@ -53,9 +69,9 @@
   }
 
   function getWorkspaceSlug() {
-    var direct = toSlug(safeGet(LS_WORKSPACE_SLUG));
+    var direct = normalizeLdapSlug(safeGet(LS_WORKSPACE_SLUG));
     if (direct) return direct;
-    return toSlug(getWorkspaceName());
+    return normalizeLdapSlug(getWorkspaceName()) || toDisplaySlug(getWorkspaceName());
   }
 
   function dispatchChange() {
@@ -71,7 +87,7 @@
 
   function setWorkspaceName(name) {
     var value = String(name || '').trim().slice(0, 120);
-    var slug = toSlug(value);
+    var slug = normalizeLdapSlug(value) || toDisplaySlug(value);
     if (value) safeSet(LS_WORKSPACE_NAME, value);
     else safeRemove(LS_WORKSPACE_NAME);
     if (slug) safeSet(LS_WORKSPACE_SLUG, slug);
@@ -80,7 +96,7 @@
   }
 
   function setWorkspaceSlug(slug) {
-    var value = toSlug(slug);
+    var value = normalizeLdapSlug(slug) || toDisplaySlug(slug);
     if (value) safeSet(LS_WORKSPACE_SLUG, value);
     else safeRemove(LS_WORKSPACE_SLUG);
     dispatchChange();
@@ -165,6 +181,8 @@
     resetWorkspaceAccess: resetWorkspaceAccess,
     clearLabGateMode: clearLabGateMode,
     toSlug: toSlug,
+    normalizeLdapSlug: normalizeLdapSlug,
+    toDisplaySlug: toDisplaySlug,
     getScope: getScope,
     buildScopeQuery: buildScopeQuery,
     appendScope: appendScope,

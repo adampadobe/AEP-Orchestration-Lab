@@ -465,12 +465,40 @@
     }
   }
 
-  function getEmailPassword() {
-    var em = document.getElementById('fbDbEmail');
-    var pw = document.getElementById('fbDbPassword');
-    var email = em && em.value ? String(em.value).trim() : '';
-    var password = pw && pw.value ? String(pw.value) : '';
-    return { email: email, password: password };
+  function isLabAdobeUser(user) {
+    if (!user || !user.email) return false;
+    return String(user.email).trim().toLowerCase().endsWith('@adobe.com');
+  }
+
+  function ldapSlugFromLabUser(user) {
+    if (!user || !user.email) return '';
+    if (window.AepLdapSlug && typeof window.AepLdapSlug.ldapSlugFromEmail === 'function') {
+      return window.AepLdapSlug.ldapSlugFromEmail(user.email);
+    }
+    return sanitizeWorkspaceSlug(String(user.email).split('@')[0]);
+  }
+
+  function updateLabAuthStatus(user) {
+    var el = document.getElementById('fbDbLabAuthStatus');
+    var link = document.getElementById('fbDbLabSignInLink');
+    if (!el) return;
+    if (isLabAdobeUser(user)) {
+      el.textContent = 'Signed in as ' + user.email + (workspaceSlug ? ' · workspace ' + workspaceSlug : '');
+      if (link) link.hidden = true;
+    } else {
+      el.textContent = user && !user.email
+        ? 'Guest session cannot edit RTDB — sign in with your Adobe lab account.'
+        : 'Not signed in with an Adobe lab account.';
+      if (link) link.hidden = false;
+    }
+  }
+
+  function defaultSandboxViewRoot() {
+    if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.getActiveSandboxSlug === 'function') {
+      var sb = window.AepDemoConfigRtdb.getActiveSandboxSlug();
+      if (sb) return 'sandboxes/' + sb;
+    }
+    return '';
   }
 
   /** Public read mirror for AJO custom actions (GET, no auth) — …/ajoLookups/&lt;slug&gt;.json */
@@ -590,9 +618,19 @@
         var owned = ownRaw != null && ownRaw !== '' ? String(ownRaw).trim() : '';
         if (owned) {
           workspaceSlug = owned;
-          basePath = 'userWorkspaces/' + owned;
+          basePath = 'ajoLookups/' + owned;
+          viewRootRel = defaultSandboxViewRoot();
           setWorkspaceChrome({ pendingRequired: false, setupMode: 'hidden' });
           return;
+        }
+        var fromEmail = ldapSlugFromLabUser(user);
+        if (fromEmail && isLabAdobeUser(user)) {
+          return claimWorkspaceSlug(fromEmail).then(function () {
+            workspaceSlug = fromEmail;
+            basePath = 'ajoLookups/' + fromEmail;
+            viewRootRel = defaultSandboxViewRoot();
+            setWorkspaceChrome({ pendingRequired: false, setupMode: 'hidden' });
+          });
         }
         return database.ref('userWorkspaces/' + uid).once('value').then(function (legacySnap) {
           var legacyVal = legacySnap.val();
@@ -644,11 +682,12 @@
       })
       .then(function () {
         workspaceSlug = slug;
-        basePath = 'userWorkspaces/' + slug;
+        basePath = 'ajoLookups/' + slug;
+        viewRootRel = defaultSandboxViewRoot();
         setWorkspaceChrome({ pendingRequired: false, setupMode: 'hidden' });
         if (input) input.value = '';
         updateRestApiLink(auth.currentUser);
-        showMsg('Workspace ready at userWorkspaces/' + slug + '.', 'ok');
+        showMsg('Workspace ready at ajoLookups/' + slug + '.', 'ok');
         return refreshDatabase();
       })
       .catch(function (e) {
@@ -725,6 +764,24 @@
       auth = firebase.auth();
       database = firebase.database();
       auth.onAuthStateChanged(function (user) {
+        updateLabAuthStatus(user);
+        if (user && !isLabAdobeUser(user)) {
+          basePath = '';
+          workspaceSlug = '';
+          databaseData = {};
+          viewRootRel = '';
+          updateRestApiLink(null);
+          setWorkspaceChrome({ pendingRequired: false, setupMode: 'hidden' });
+          renderJsonView();
+          if (treeEl) {
+            treeEl.innerHTML =
+              '<div class="fb-db-tree-empty">Sign in with your @adobe.com lab account via <a href="home.html?accessSetup=1">Home</a>.</div>';
+          }
+          setStatus('Lab Adobe sign-in required', 'warn');
+          cancelEdit();
+          syncAccountPanelCollapse(null);
+          return;
+        }
         if (user) {
           var who = user.email || 'Guest ' + user.uid.slice(0, 8) + '…';
           setStatus('Signed in · ' + who, 'ok');
@@ -849,9 +906,12 @@
       });
   }
 
-  /** Keeps ajoLookups/&lt;slug&gt; in sync with userWorkspaces/&lt;slug&gt; for anonymous GET (AJO). */
+  /** Keeps ajoLookups mirror in sync when editing legacy userWorkspaces paths only. */
   function mirrorWorkspaceToAjoLookups() {
-    if (!database || !workspaceSlug || basePath !== 'userWorkspaces/' + workspaceSlug) {
+    if (!database || !workspaceSlug || basePath.indexOf('ajoLookups/') === 0) {
+      return Promise.resolve();
+    }
+    if (basePath !== 'userWorkspaces/' + workspaceSlug) {
       return Promise.resolve();
     }
     return database
@@ -1168,14 +1228,6 @@
   }
 
   initFirebaseApp();
-  applyCachedLoginEmail();
-
-  var pwEl = document.getElementById('fbDbPassword');
-  if (pwEl) {
-    pwEl.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') signInWithEmail();
-    });
-  }
 
   document.getElementById('fbDbAccountToggle') &&
     document.getElementById('fbDbAccountToggle').addEventListener('click', function () {
@@ -1194,11 +1246,6 @@
       if (e.key === 'Enter') saveWorkspaceSlug();
     });
   }
-  document.getElementById('fbDbSignIn') && document.getElementById('fbDbSignIn').addEventListener('click', signInWithEmail);
-  document.getElementById('fbDbRegister') && document.getElementById('fbDbRegister').addEventListener('click', registerWithEmail);
-  document.getElementById('fbDbAnonymous') && document.getElementById('fbDbAnonymous').addEventListener('click', signInAnonymous);
-  document.getElementById('fbDbResetPassword') &&
-    document.getElementById('fbDbResetPassword').addEventListener('click', sendPasswordReset);
   document.getElementById('fbDbCopyAjoUrl') &&
     document.getElementById('fbDbCopyAjoUrl').addEventListener('click', copyAjoRestApiUrl);
   document.getElementById('fbDbViewTree') &&

@@ -1,6 +1,8 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const labUserSandboxStore = require('./labUserSandboxStore');
+const { buildWorkspaceSlug, ldapSlugFromEmail } = require('./labRtdbSlug');
+const { provisionUserRtdbWorkspace } = require('./labRtdbProvisionService');
 
 const APPROVAL_COLLECTION = 'labWorkspaceAccessApprovals';
 const APPROVAL_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -29,20 +31,6 @@ function isValidEmail(email) {
 function isAdobeComEmail(email) {
   const e = String(email || '').trim().toLowerCase();
   return e.endsWith('@adobe.com');
-}
-
-function toSlug(raw) {
-  return String(raw || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 64);
-}
-
-function buildWorkspaceSlug(email, firstName, lastName) {
-  const localPart = String(email || '').split('@')[0] || '';
-  return toSlug(localPart) || toSlug(`${firstName}-${lastName}`) || 'workspace-user';
 }
 
 function deriveFirstLastFromUserRecord(userRecord) {
@@ -743,7 +731,46 @@ async function approveWorkspaceAuthRequest(input) {
     { merge: true },
   );
 
-  return { ok: true, status: 'approved', adobeEmail: String(data.adobeEmail || '') };
+  const adobeEmail = sanitizeEmail(data.adobeEmail);
+  const firstName = sanitizeName(data.firstName);
+  const lastName = sanitizeName(data.lastName);
+  const workspaceSlug = String(data.workspaceSlug || '').trim()
+    || buildWorkspaceSlug(adobeEmail, firstName, lastName);
+
+  let rtdbProvision = { skipped: true };
+  try {
+    rtdbProvision = await provisionUserRtdbWorkspace({
+      uid,
+      adobeEmail,
+      firstName,
+      lastName,
+      workspaceSlug,
+      defaultSandbox: workspaceSlug,
+    });
+  } catch (provisionErr) {
+    console.error('[labWorkspaceAuthService] RTDB provision on approve failed', provisionErr.message || provisionErr);
+    rtdbProvision = { ok: false, error: String(provisionErr.message || provisionErr) };
+  }
+
+  try {
+    await labUserSandboxStore.upsertWorkspaceProfile(uid, {
+      firstName,
+      lastName,
+      adobeEmail,
+      workspaceName: String(data.workspaceName || `${firstName} ${lastName}`).trim(),
+      workspaceSlug,
+    });
+  } catch (profileErr) {
+    console.error('[labWorkspaceAuthService] workspace profile upsert on approve failed', profileErr.message || profileErr);
+  }
+
+  return {
+    ok: true,
+    status: 'approved',
+    adobeEmail,
+    workspaceSlug,
+    rtdbProvision,
+  };
 }
 
 module.exports = {
@@ -754,5 +781,7 @@ module.exports = {
   requestLabAccessApprovalOnSignupRequest,
   getLabAccessStatusFromIdTokenRequest,
   approveWorkspaceAuthRequest,
+  buildWorkspaceSlug,
+  ldapSlugFromEmail,
 };
 

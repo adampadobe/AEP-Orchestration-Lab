@@ -939,10 +939,15 @@
   }
 
   function workspaceSlugFromProfile(scope, email, firstName, lastName) {
+    if (global.AepLdapSlug && typeof global.AepLdapSlug.ldapSlugFromEmail === 'function') {
+      return global.AepLdapSlug.ldapSlugFromEmail(email, firstName, lastName).slice(0, 64);
+    }
     var localPart = String(email || '').split('@')[0] || '';
-    var fromEmail = scope.toSlug(localPart);
+    var fromEmail = scope.normalizeLdapSlug ? scope.normalizeLdapSlug(localPart) : scope.toSlug(localPart);
     if (fromEmail) return fromEmail.slice(0, 64);
-    return scope.toSlug((firstName || '') + '-' + (lastName || '')).slice(0, 64);
+    return (scope.normalizeLdapSlug
+      ? scope.normalizeLdapSlug(String(firstName || '') + '.' + String(lastName || ''))
+      : scope.toSlug((firstName || '') + '-' + (lastName || ''))).slice(0, 64);
   }
 
   function setMsg(text, cls) {

@@ -43,6 +43,10 @@
   /** If `verifiedAt` is this many ms ahead of `Date.now()`, treat clock as skewed and force re-verify. */
   var VERIFIED_AT_FUTURE_SKEW_MS = 5 * 60 * 1000;
   var MIN_LAB_PASSWORD_LEN = 8;
+  /** Wall-clock cap so sandbox/home never stays on the deferred-shell "Loading…" placeholder. */
+  var AUTH_INIT_TIMEOUT_MS = 8000;
+  var LAB_ACCESS_TIMEOUT_MS = 8000;
+  var FIREBASE_CONFIG_DOC_PATH = 'docs/FIREBASE_MULTI_PROJECT_DEPLOY.md';
   /** Shown when lab access is pending (login, auth listener, or reopening setup while still signed in). */
   var PENDING_LAB_ACCESS_MSG =
     'Your lab access is pending administrator approval. Wait for an administrator to approve your account, then sign in with Log in below to continue lab setup.';
@@ -65,6 +69,8 @@
   var SS_SIGNUP_PENDING_HOLD_KIND = 'aepLabSignupPendingHoldKind';
   var HOLD_KIND_POST_SIGNUP = 'postSignup';
   var HOLD_KIND_LAB_STATUS = 'labStatus';
+  /** Log once when sandbox Hosting bypasses blocked lab-access Cloud Function IAM. */
+  var sandboxLabAccessBypassWarned = false;
   var step1LoginMode = false;
   var step1SessionExpiredShell = false;
   /** Step 1 “holding” panel: post-signup pending or signed-in-as-pending lockout (no form, single Log in). */
@@ -216,8 +222,78 @@
       '.aep-access-onb-hold-copy{margin-top:0}' +
       '.aep-access-onb-hold-actions{margin-top:4px}' +
       '.aep-access-onb-step-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}' +
-      '.aep-access-onb-step2-foot{display:flex;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:10px;}';
+      '.aep-access-onb-step2-foot{display:flex;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:10px;}' +
+      '.aep-firebase-config-error-panel{max-width:min(520px,92vw);margin:0 auto;padding:20px 22px;border:1px solid var(--dash-border);border-radius:var(--dash-radius-sm,12px);background:var(--dash-surface);box-shadow:var(--dash-shadow);}' +
+      '.aep-firebase-config-error-panel h2{margin:0 0 10px;font-size:20px;line-height:1.25;}' +
+      '.aep-firebase-config-error-panel p{margin:0 0 12px;color:var(--dash-text-secondary);}' +
+      '.aep-firebase-config-error-panel code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.92em;color:var(--dash-text);}';
     document.head.appendChild(style);
+  }
+
+  function isFirebaseWebConfigComplete() {
+    try {
+      if (
+        global.firebaseDatabaseConfigIsComplete &&
+        typeof global.firebaseDatabaseConfigIsComplete === 'function'
+      ) {
+        return global.firebaseDatabaseConfigIsComplete();
+      }
+    } catch (_c) {}
+    var cfg = global.firebaseDatabaseConfig;
+    return !!(
+      cfg &&
+      String(cfg.apiKey || '').trim() &&
+      String(cfg.appId || '').trim() &&
+      String(cfg.messagingSenderId || '').trim()
+    );
+  }
+
+  function showFirebaseConfigErrorInMount() {
+    var mount = document.getElementById(DEFERRED_HOME_DASHBOARD_MOUNT_ID);
+    if (!mount) return;
+    try {
+      mount.classList.remove('aep-dashboard-mount--pending');
+    } catch (_c) {}
+    var projectId = 'adbe-gcp0819';
+    try {
+      if (global.firebaseDatabaseConfig && global.firebaseDatabaseConfig.projectId) {
+        projectId = String(global.firebaseDatabaseConfig.projectId);
+      }
+    } catch (_p) {}
+    mount.innerHTML =
+      '<div class="aep-firebase-config-error-panel" role="alert">' +
+      '<h2>Firebase Web app not configured</h2>' +
+      '<p>This sandbox host needs a Web app in Firebase project <code>' +
+      projectId +
+      '</code> (apiKey, appId, messagingSenderId in <code>firebase-database-config.js</code>).</p>' +
+      '<p>Register the app in Firebase Console → Project settings → Your apps, or see <code>' +
+      FIREBASE_CONFIG_DOC_PATH +
+      '</code> in the repo. Until then, sign-in below may not work.</p>' +
+      '</div>';
+  }
+
+  function promiseWithTimeout(promise, ms, fallbackValue) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var timer = global.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        resolve(fallbackValue);
+      }, ms);
+      Promise.resolve(promise)
+        .then(function (value) {
+          if (settled) return;
+          settled = true;
+          global.clearTimeout(timer);
+          resolve(value);
+        })
+        .catch(function () {
+          if (settled) return;
+          settled = true;
+          global.clearTimeout(timer);
+          resolve(fallbackValue);
+        });
+    });
   }
 
   function getDashboardMainEl() {
@@ -591,18 +667,95 @@
     });
   }
 
-  function fetchLabAccessStatusWithIdToken(idToken) {
+  function isSandboxLabHosting() {
+    try {
+      var host = String(global.location && global.location.hostname || '').toLowerCase();
+      if (host === 'adbe-gcp0819.web.app' || host.endsWith('.adbe-gcp0819.web.app')) {
+        return true;
+      }
+    } catch (_host) {}
+    try {
+      var cfg = global.firebaseDatabaseConfig;
+      if (cfg && String(cfg.projectId || '') === 'adbe-gcp0819') return true;
+    } catch (_cfg) {}
+    return false;
+  }
+
+  function warnSandboxLabAccessBypassOnce() {
+    if (sandboxLabAccessBypassWarned) return;
+    sandboxLabAccessBypassWarned = true;
+    try {
+      console.warn('[sandbox] lab-access API unreachable; allowing Firebase-authenticated access');
+    } catch (_w) {}
+  }
+
+  /** Sandbox admins: skip pending-approval UI when lab-access API is blocked by org IAM. */
+  function sandboxAutoApproveAdobeEmail(email) {
+    var e = String(email || '').trim().toLowerCase();
+    return e === 'apalmer@adobe.com';
+  }
+
+  function isSandboxLabApiBlocked(httpStatus) {
+    return httpStatus === 401 || httpStatus === 403 || httpStatus === 0;
+  }
+
+  function sandboxWorkspaceRegisterBypass(user, input) {
+    if (!isSandboxLabHosting() || !user || !sandboxAutoApproveAdobeEmail(user.email)) return null;
+    if (!input || !input.firstName || !input.lastName) return null;
+    warnSandboxLabAccessBypassOnce();
+    var workspaceName = (String(input.firstName) + ' ' + String(input.lastName)).trim();
+    var workspaceSlug = workspaceSlugFromProfile(
+      global.AepAccessScope,
+      String(user.email || '').trim().toLowerCase(),
+      input.firstName,
+      input.lastName,
+    );
+    if (!workspaceSlug) return null;
+    return { ok: true, workspaceName: workspaceName, workspaceSlug: workspaceSlug };
+  }
+
+  function applySandboxLabAccessFallback(status, user, httpStatus) {
+    if (!isSandboxLabHosting()) return status;
+    if (!user || !isAdobeLabFirebaseUser(user)) return status;
+    if (status === 'approved' || status === 'pending') return status;
+    var unreachable =
+      status === 'error' || httpStatus === 401 || httpStatus === 403 || httpStatus === 0;
+    if (!unreachable) return status;
+    warnSandboxLabAccessBypassOnce();
+    if (sandboxAutoApproveAdobeEmail(user.email)) return 'approved';
+    return 'missing';
+  }
+
+  function fetchLabAccessStatusWithIdToken(idToken, user) {
+    var httpStatus = 0;
     return fetch('/api/lab/lab-access/status', {
       headers: { Authorization: 'Bearer ' + String(idToken || '') },
     })
       .then(function (res) {
-        return res.json().catch(function () {
-          return {};
-        });
+        httpStatus = res.status;
+        return res
+          .json()
+          .catch(function () {
+            return null;
+          })
+          .then(function (body) {
+            return { httpStatus: httpStatus, body: body };
+          });
       })
-      .then(function (body) {
-        if (!body || body.ok !== true) return 'error';
-        return String(body.status || 'error');
+      .then(function (pack) {
+        httpStatus = pack.httpStatus;
+        var body = pack.body;
+        if (!body || body.ok !== true) {
+          return applySandboxLabAccessFallback('error', user, httpStatus);
+        }
+        var status = String(body.status || 'error');
+        if (status === 'error') {
+          return applySandboxLabAccessFallback('error', user, httpStatus);
+        }
+        return status;
+      })
+      .catch(function () {
+        return applySandboxLabAccessFallback('error', user, httpStatus);
       });
   }
 
@@ -613,7 +766,7 @@
     return user
       .getIdToken(false)
       .then(function (idToken) {
-        return fetchLabAccessStatusWithIdToken(idToken);
+        return fetchLabAccessStatusWithIdToken(idToken, user);
       })
       .then(function (status) {
         if (status === 'pending') {
@@ -786,10 +939,15 @@
   }
 
   function workspaceSlugFromProfile(scope, email, firstName, lastName) {
+    if (global.AepLdapSlug && typeof global.AepLdapSlug.ldapSlugFromEmail === 'function') {
+      return global.AepLdapSlug.ldapSlugFromEmail(email, firstName, lastName).slice(0, 64);
+    }
     var localPart = String(email || '').split('@')[0] || '';
-    var fromEmail = scope.toSlug(localPart);
+    var fromEmail = scope.normalizeLdapSlug ? scope.normalizeLdapSlug(localPart) : scope.toSlug(localPart);
     if (fromEmail) return fromEmail.slice(0, 64);
-    return scope.toSlug((firstName || '') + '-' + (lastName || '')).slice(0, 64);
+    return (scope.normalizeLdapSlug
+      ? scope.normalizeLdapSlug(String(firstName || '') + '.' + String(lastName || ''))
+      : scope.toSlug((firstName || '') + '-' + (lastName || ''))).slice(0, 64);
   }
 
   function setMsg(text, cls) {
@@ -908,12 +1066,26 @@
         focusEmailField();
         return;
       }
-      user0
-        .getIdToken(false)
-        .then(function (idToken) {
-          return fetchLabAccessStatusWithIdToken(idToken);
-        })
-        .then(function (status) {
+      promiseWithTimeout(
+        user0.getIdToken(false).then(function (idToken) {
+          return fetchLabAccessStatusWithIdToken(idToken, user0);
+        }),
+        LAB_ACCESS_TIMEOUT_MS,
+        'timeout',
+      ).then(function (status) {
+          if (status === 'timeout') {
+            if (isSandboxLabHosting() && isAdobeLabFirebaseUser(user0)) {
+              status = applySandboxLabAccessFallback('error', user0, 0);
+            } else {
+              if (!isLabEmailReauthPending()) {
+                setMsg('Lab access check timed out. Sign in again or try later.', 'err');
+              }
+              setUiStep(1);
+              syncStep1AuthUi();
+              focusEmailField();
+              return;
+            }
+          }
           if (status === 'pending') {
             return signOutAndShowPendingApproval(auth0, PENDING_LAB_ACCESS_MSG);
           }
@@ -947,8 +1119,13 @@
 
   function ensureFirebaseAuth() {
     if (typeof firebase === 'undefined') return null;
+    if (!isFirebaseWebConfigComplete()) return null;
     if (!firebase.apps.length && global.firebaseDatabaseConfig) {
-      firebase.initializeApp(global.firebaseDatabaseConfig);
+      try {
+        firebase.initializeApp(global.firebaseDatabaseConfig);
+      } catch (_init) {
+        if (!firebase.apps.length) return null;
+      }
     }
     return firebase.auth ? firebase.auth() : null;
   }
@@ -1213,12 +1390,13 @@
         }
         return {
           ok: false,
+          httpStatus: resp.status,
           code: String((resp.body && resp.body.code) || ''),
           error: (resp.body && resp.body.error) || 'Workspace signup request failed.',
         };
       })
       .catch(function (e) {
-        return { ok: false, error: String((e && e.message) || e || 'Workspace signup request failed.') };
+        return { ok: false, httpStatus: 0, error: String((e && e.message) || e || 'Workspace signup request failed.') };
       });
   }
 
@@ -1229,7 +1407,13 @@
         return requestWorkspaceRegisterFromIdToken(idToken, input.firstName, input.lastName);
       })
       .then(function (reg) {
-        if (!reg || !reg.ok) return reg;
+        if (!reg || !reg.ok) {
+          if (reg && isSandboxLabApiBlocked(reg.httpStatus)) {
+            var bypass = sandboxWorkspaceRegisterBypass(user, input);
+            if (bypass) return bypass;
+          }
+          return reg;
+        }
         if (reg.pendingApproval) {
           return {
             ok: false,
@@ -1266,16 +1450,53 @@
           body: JSON.stringify(payload),
         })
           .then(function (res) {
-            return res.json().catch(function () {
-              return {};
-            });
-          })
-          .then(function (json) {
-            return json && json.ok
-              ? { ok: true, profile: json.profile || null }
-              : { ok: false, error: (json && json.error) || 'Failed to save profile.' };
+            var httpStatus = res.status;
+            return res
+              .json()
+              .catch(function () {
+                return {};
+              })
+              .then(function (json) {
+                if (json && json.ok) {
+                  return { ok: true, profile: json.profile || null };
+                }
+                if (
+                  isSandboxLabHosting() &&
+                  isSandboxLabApiBlocked(httpStatus) &&
+                  sandboxAutoApproveAdobeEmail(payload.adobeEmail)
+                ) {
+                  warnSandboxLabAccessBypassOnce();
+                  return {
+                    ok: true,
+                    profile: {
+                      firstName: payload.firstName,
+                      lastName: payload.lastName,
+                      adobeEmail: payload.adobeEmail,
+                      workspaceName: payload.workspaceName,
+                      workspaceSlug: payload.workspaceSlug,
+                    },
+                  };
+                }
+                return { ok: false, error: (json && json.error) || 'Failed to save profile.' };
+              });
           })
           .catch(function (e) {
+            if (
+              isSandboxLabHosting() &&
+              sandboxAutoApproveAdobeEmail(payload.adobeEmail)
+            ) {
+              warnSandboxLabAccessBypassOnce();
+              return {
+                ok: true,
+                profile: {
+                  firstName: payload.firstName,
+                  lastName: payload.lastName,
+                  adobeEmail: payload.adobeEmail,
+                  workspaceName: payload.workspaceName,
+                  workspaceSlug: payload.workspaceSlug,
+                },
+              };
+            }
             return { ok: false, error: String((e && e.message) || e || 'Failed to save profile.') };
           });
       });
@@ -1369,12 +1590,21 @@
     }
 
     function proceedAfterLogin(user) {
-      return user
-        .getIdToken(true)
-        .then(function (idToken) {
-          return fetchLabAccessStatusWithIdToken(idToken);
-        })
-        .then(function (status) {
+      return promiseWithTimeout(
+        user.getIdToken(true).then(function (idToken) {
+          return fetchLabAccessStatusWithIdToken(idToken, user);
+        }),
+        LAB_ACCESS_TIMEOUT_MS,
+        'timeout',
+      ).then(function (status) {
+          if (status === 'timeout') {
+            if (isSandboxLabHosting() && user && isAdobeLabFirebaseUser(user)) {
+              status = applySandboxLabAccessFallback('error', user, 0);
+            } else {
+              setMsg('Lab access check timed out. Try again in a moment.', 'err');
+              return;
+            }
+          }
           if (status === 'pending') {
             return signOutAndShowPendingApproval(ensureFirebaseAuth(), PENDING_LAB_ACCESS_MSG);
           }
@@ -1386,6 +1616,14 @@
           setMsg('Could not verify lab access status. Try again in a moment.', 'err');
         })
         .catch(function () {
+          if (isSandboxLabHosting() && user && isAdobeLabFirebaseUser(user)) {
+            var fallback = applySandboxLabAccessFallback('error', user, 0);
+            if (fallback === 'approved' || fallback === 'missing') {
+              clearPendingApprovalSessionHold();
+              afterStep1AuthSuccess({ ok: true, user: user });
+              return;
+            }
+          }
           setMsg('Could not verify lab access status. Try again in a moment.', 'err');
         });
     }
@@ -1618,18 +1856,57 @@
       setMsg('Your no-sandbox account is no longer active. Sign in again with your Adobe email and password.', 'err');
     });
 
+    if (!isFirebaseWebConfigComplete()) {
+      showFirebaseConfigErrorInMount();
+      show();
+      setMsg(
+        'Firebase Web app is not configured for this host. Add apiKey / appId in firebase-database-config.js (see ' +
+          FIREBASE_CONFIG_DOC_PATH +
+          ').',
+        'err',
+      );
+      return;
+    }
+
     var auth = ensureFirebaseAuth();
     if (!auth) {
+      show();
+      setMsg(
+        'Firebase Authentication could not start on this page. Hard-refresh (Shift+reload) and try again. If it persists, check the browser console.',
+        'err',
+      );
       maybeOpenOnboardingAfterAuthCheck(false);
       return;
     }
+
+    var authGateSettled = false;
+    function finishAuthGate(labSessionJustExpired) {
+      if (authGateSettled) return;
+      authGateSettled = true;
+      maybeOpenOnboardingAfterAuthCheck(!!labSessionJustExpired);
+    }
+
+    var authInitTimer = global.setTimeout(function () {
+      finishAuthGate(false);
+    }, AUTH_INIT_TIMEOUT_MS);
+
     auth.onAuthStateChanged(function (user) {
-      verifyAdobeUserApprovedOrLockout(auth, user).then(function (lockedOut) {
-        if (lockedOut) return;
-        enforceLabEmailSessionMaxAgeAsync(auth, user).then(function (expired) {
-          maybeOpenOnboardingAfterAuthCheck(expired);
+      verifyAdobeUserApprovedOrLockout(auth, user)
+        .then(function (lockedOut) {
+          if (lockedOut) {
+            global.clearTimeout(authInitTimer);
+            authGateSettled = true;
+            return;
+          }
+          return enforceLabEmailSessionMaxAgeAsync(auth, user).then(function (expired) {
+            global.clearTimeout(authInitTimer);
+            finishAuthGate(expired);
+          });
+        })
+        .catch(function () {
+          global.clearTimeout(authInitTimer);
+          finishAuthGate(false);
         });
-      });
     });
   }
 

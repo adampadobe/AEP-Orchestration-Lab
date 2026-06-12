@@ -1,12 +1,9 @@
 /**
  * Customise dock: per–AEP-sandbox URLs for the eight specialist agent cards on Agentic layer v2.
- * Storage: localStorage aepAgenticV2AgentUrls JSON { [sandboxKey]: { brand, product, … } }; synced via aep-lab-sandbox-sync.
- * Empty fields stay blank; cards become links only when a valid URL is saved.
+ * Storage: RTDB ajoLookups/{ldap}/sandboxes/{sandbox}/AgenticLayer/agentUrls
  */
 (function () {
   'use strict';
-
-  var LS = 'aepAgenticV2AgentUrls';
 
   var FIELD_KEYS = ['brand', 'product', 'operational', 'field', 'audience', 'journey', 'data', 'support'];
 
@@ -32,40 +29,8 @@
     support: 'node-agent-support-v2',
   };
 
-  function sandboxKey(name) {
-    var s = name != null ? String(name).trim() : '';
-    return s || '_default';
-  }
-
-  function readAll() {
-    try {
-      var raw = localStorage.getItem(LS);
-      if (!raw) return {};
-      var o = JSON.parse(raw);
-      return o && typeof o === 'object' ? o : {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function writeAll(obj) {
-    try {
-      localStorage.setItem(LS, JSON.stringify(obj));
-    } catch (e) {}
-    if (window.AepLabSandboxSync && typeof AepLabSandboxSync.notifyDirty === 'function') {
-      AepLabSandboxSync.notifyDirty();
-    }
-  }
-
-  function getUrlsForSandbox(sb) {
-    var all = readAll();
-    return all[sandboxKey(sb)] || null;
-  }
-
-  function saveUrlsForSandbox(sb, data) {
-    var all = readAll();
-    all[sandboxKey(sb)] = data;
-    writeAll(all);
+  function rtdb() {
+    return window.AepDemoConfigRtdb;
   }
 
   function emptyRecord() {
@@ -142,6 +107,7 @@
   }
 
   function currentSandboxName() {
+    if (rtdb()) return rtdb().getActiveSandboxSlug();
     if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
       return AepGlobalSandbox.getSandboxName() || '';
     }
@@ -152,10 +118,8 @@
     }
   }
 
-  function fillInputsFromStored() {
-    var sb = currentSandboxName();
-    var stored = getUrlsForSandbox(sb);
-    var m = normalizeStored(stored);
+  function fillInputsFromStored(urls) {
+    var m = normalizeStored(urls);
     FIELD_KEYS.forEach(function (k) {
       var inp = document.getElementById(INPUT_IDS[k]);
       if (inp) inp.value = m[k] || '';
@@ -186,6 +150,24 @@
     if (!el) return;
     el.textContent = msg || '';
     el.className = 'status' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
+  }
+
+  function loadUrlsFromRtdb() {
+    var c = rtdb();
+    if (!c) return Promise.resolve(null);
+    return c.whenReady().then(function () {
+      return c.migrateLocalStorageKeys(c.getActiveSandboxSlug());
+    }).then(function () {
+      return c.loadSection(c.SECTIONS.AgenticLayer);
+    }).then(function (section) {
+      return section && section.agentUrls ? section.agentUrls : null;
+    });
+  }
+
+  function saveUrlsToRtdb(urls) {
+    var c = rtdb();
+    if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
+    return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls });
   }
 
   function initDock() {
@@ -291,16 +273,22 @@
           }
         }
         var sb = currentSandboxName();
-        saveUrlsForSandbox(sb, c);
-        applyUrlsToAgentCards(c);
-        setStatus('Saved agent links for sandbox “' + (sb || 'default') + '”.', 'ok');
+        saveUrlsToRtdb(c)
+          .then(function () {
+            applyUrlsToAgentCards(c);
+            setStatus('Saved agent links for sandbox “' + (sb || 'default') + '”.', 'ok');
+          })
+          .catch(function (e) {
+            setStatus(String((e && e.message) || e), 'err');
+          });
       });
     }
 
-    function refreshFromStorage() {
-      fillInputsFromStored();
-      var stored = getUrlsForSandbox(currentSandboxName());
-      applyUrlsToAgentCards(stored);
+    function refreshFromRtdb() {
+      loadUrlsFromRtdb().then(function (urls) {
+        fillInputsFromStored(urls);
+        applyUrlsToAgentCards(urls);
+      });
     }
 
     window.addEventListener('aep-global-sandbox-change', function () {
@@ -311,19 +299,15 @@
           sel.value = n;
         }
       }
-      refreshFromStorage();
+      refreshFromRtdb();
     });
 
-    document.addEventListener('aep-lab-sandbox-keys-applied', function () {
-      refreshFromStorage();
-    });
+    window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
 
     if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-      window.__aepLabSyncReady.then(function () {
-        refreshFromStorage();
-      });
+      window.__aepLabSyncReady.then(refreshFromRtdb);
     } else {
-      refreshFromStorage();
+      refreshFromRtdb();
     }
   }
 

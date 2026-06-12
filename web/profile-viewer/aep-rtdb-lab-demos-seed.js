@@ -1,11 +1,14 @@
 /**
- * Global settings — seed `ajoLookups/{sandbox}` for Contact centre + iPad demos (Firebase RTDB).
- * Requires: firebase compat (app, auth, database), anonymous auth from aep-lab-sandbox-sync.
+ * Global settings — demo prep RTDB (per LDAP user + Adobe sandbox).
+ * Requires lab Firebase Auth (not anonymous) via aep-lab-sandbox-sync / onboarding.
  */
 (function (global) {
   'use strict';
 
   function buildLabAjoLookupsStub() {
+    if (global.AepDemoConfigRtdb && typeof global.AepDemoConfigRtdb.buildFlatLabStub === 'function') {
+      return global.AepDemoConfigRtdb.buildFlatLabStub();
+    }
     var dep = new Date(Date.now() + 3 * 3600 * 1000).toISOString();
     return {
       StaffPortal: {
@@ -51,76 +54,9 @@
     };
   }
 
-  var RESERVED_SLUGS = {
-    workspaceclaims: true,
-    userworkspaceowners: true,
-    userworkspaces: true,
-    ajolookups: true,
+  global.AepRtdbLabDemosSeed = {
+    buildLabAjoLookupsStub: buildLabAjoLookupsStub,
   };
-
-  function normalizeAjoLookupSlug(raw) {
-    var s = String(raw || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]/g, '');
-    if (s.length < 2 || s.length > 48) return '';
-    if (RESERVED_SLUGS[s]) return '';
-    return s;
-  }
-
-  function getActiveSandboxSlug() {
-    try {
-      if (global.AepAccessScope && global.AepAccessScope.getAccessMode && global.AepAccessScope.getAccessMode() === 'workspace') {
-        return '';
-      }
-    } catch (e0) {}
-    try {
-      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
-        return normalizeAjoLookupSlug(global.AepGlobalSandbox.getSandboxName());
-      }
-    } catch (e1) {}
-    return '';
-  }
-
-  function ensureFirebaseApp() {
-    if (typeof firebase === 'undefined' || !global.firebaseDatabaseConfig) return null;
-    if (!firebase.apps.length) {
-      firebase.initializeApp(global.firebaseDatabaseConfig);
-    }
-    return firebase.app();
-  }
-
-  function ensureWorkspaceClaim(database, uid, slug) {
-    var refClaim = database.ref('workspaceClaims/' + slug);
-    return refClaim.once('value').then(function (snap) {
-      var v = snap.val();
-      if (v === uid) return Promise.resolve();
-      if (v != null && v !== uid) {
-        return Promise.reject(
-          new Error(
-            'slug_taken: The workspace slug "' +
-              slug +
-              '" is already claimed by another Firebase user. Pick a different Adobe sandbox technical name, or coordinate via firebase-database.html.',
-          ),
-        );
-      }
-      return refClaim
-        .transaction(function (current) {
-          if (current === null || current === undefined) return uid;
-          if (current === uid) return uid;
-          return undefined;
-        })
-        .then(function (result) {
-          if (!result.committed || result.snapshot.val() !== uid) {
-            return Promise.reject(new Error('claim_failed'));
-          }
-        });
-    });
-  }
-
-  function mergeStub(database, slug, stub) {
-    return database.ref('ajoLookups/' + slug).update(stub);
-  }
 
   function setStatus(el, text, kind) {
     if (!el) return;
@@ -129,85 +65,50 @@
       kind === 'err' ? 'var(--dash-error, #c9252d)' : kind === 'ok' ? 'var(--dash-success, #12805c)' : 'var(--dash-text-secondary, #64748b)';
   }
 
-  function refreshSlugPreview(previewEl) {
-    if (!previewEl) return;
-    var s = getActiveSandboxSlug();
-    previewEl.textContent = s || '(select an Adobe sandbox — workspace mode has no RTDB slug)';
+  function refreshPreviews() {
+    var ldapEl = document.getElementById('aepRtdbLdapPreview');
+    var sbEl = document.getElementById('aepRtdbSeedSlugPreview');
+    var urlEl = document.getElementById('aepRtdbSandboxUrlPreview');
+    var cfg = global.AepDemoConfigRtdb;
+    if (!cfg) return;
+    var ldap = cfg.getLdapSlugSync() || '—';
+    var sb = cfg.getActiveSandboxSlug() || '—';
+    if (ldapEl) ldapEl.textContent = ldap;
+    if (sbEl) sbEl.textContent = sb;
+    if (urlEl && ldap !== '—' && sb !== '—') {
+      urlEl.textContent = cfg.sandboxRestUrl(ldap, sb);
+    } else if (urlEl) {
+      urlEl.textContent = '—';
+    }
   }
 
-  function wire() {
+  function wireProvisionBtn() {
     var btn = document.getElementById('aepRtdbSeedBtn');
     var statusEl = document.getElementById('aepRtdbSeedStatus');
-    var previewEl = document.getElementById('aepRtdbSeedSlugPreview');
-    var jsonTa = document.getElementById('aepRtdbSeedJsonPreview');
-    if (!btn || !global.AepLabSandboxSync || typeof global.AepLabSandboxSync.whenReady !== 'object') return;
-
-    function writeJsonPreview() {
-      var stub = buildLabAjoLookupsStub();
-      if (jsonTa) {
-        try {
-          jsonTa.value = JSON.stringify(stub, null, 2);
-        } catch (e) {
-          jsonTa.value = '{}';
-        }
-      }
-      return stub;
-    }
-
-    writeJsonPreview();
-
-    function tick() {
-      refreshSlugPreview(previewEl);
-    }
-    tick();
-    global.addEventListener('aep-global-sandbox-change', tick);
-    global.addEventListener('aep-access-scope-change', tick);
+    if (!btn || !global.AepDemoConfigRtdb) return;
 
     btn.addEventListener('click', function () {
       setStatus(statusEl, 'Working…', '');
       btn.disabled = true;
-      var slug = getActiveSandboxSlug();
-      if (!slug) {
-        setStatus(
-          statusEl,
-          'Select an Adobe sandbox first (access mode must be Adobe sandbox, not “no Adobe sandbox”).',
-          'err',
-        );
+      var sb = global.AepDemoConfigRtdb.getActiveSandboxSlug();
+      if (!sb) {
+        setStatus(statusEl, 'Select an Adobe sandbox first.', 'err');
         btn.disabled = false;
         return;
       }
-
-      global.AepLabSandboxSync.whenReady
+      global.AepDemoConfigRtdb.whenReady()
         .then(function () {
-          ensureFirebaseApp();
-          var auth = firebase.auth();
-          var db = firebase.database();
-          var u = auth.currentUser;
-          if (!u) {
-            return Promise.reject(new Error('Not signed in — wait for lab sync or enable Anonymous auth in Firebase Console.'));
-          }
-          var stub = buildLabAjoLookupsStub();
-          if (jsonTa) {
-            try {
-              jsonTa.value = JSON.stringify(stub, null, 2);
-            } catch (e2) {
-              /* ignore */
-            }
-          }
-          return ensureWorkspaceClaim(db, u.uid, slug).then(function () {
-            return mergeStub(db, slug, stub);
-          });
+          return global.AepDemoConfigRtdb.ensureSandboxStub({ sandboxSlug: sb });
         })
         .then(function () {
-          setStatus(statusEl, 'Updated ajoLookups/' + slug + ' (merged stub). Reload Contact centre / iPad demos.', 'ok');
+          setStatus(statusEl, 'Workspace ready for sandbox “' + sb + '”. Reload demos or edit fields below.', 'ok');
+          refreshPreviews();
+          try {
+            global.dispatchEvent(new CustomEvent('aep-demo-config-prep-reload'));
+          } catch (_e) {}
         })
         .catch(function (e) {
-          var msg = String((e && e.message) || e);
-          if (msg.indexOf('slug_taken') === 0 || msg.indexOf('claim_failed') !== -1) {
-            setStatus(statusEl, msg.replace(/^slug_taken: /, ''), 'err');
-          } else {
-            setStatus(statusEl, msg, 'err');
-          }
+          setStatus(statusEl, String((e && e.message) || e), 'err');
         })
         .finally(function () {
           btn.disabled = false;
@@ -215,9 +116,20 @@
     });
   }
 
+  function init() {
+    refreshPreviews();
+    wireProvisionBtn();
+    global.addEventListener('aep-global-sandbox-change', refreshPreviews);
+    global.addEventListener('aep-access-scope-change', refreshPreviews);
+    global.addEventListener('aep-demo-config-changed', refreshPreviews);
+    if (global.AepDemoConfigRtdb && typeof global.AepDemoConfigRtdb.whenReady === 'function') {
+      global.AepDemoConfigRtdb.whenReady().then(refreshPreviews);
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wire);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    wire();
+    init();
   }
 })(typeof window !== 'undefined' ? window : this);

@@ -171,6 +171,20 @@
       else localStorage.removeItem('aep-decision-scopes');
       localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
     } catch (e) {}
+    if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.saveSectionDebounced === 'function') {
+      var sb = sandboxSlugForEdgeConfigStorage();
+      var map = readEdgeConfigIdPerSandboxMap();
+      window.AepDemoConfigRtdb.saveSectionDebounced(
+        window.AepDemoConfigRtdb.SECTIONS.ContentDecisionLive,
+        {
+          edgeConfigBySandbox: map,
+          decisionScopes: sc,
+          edgeForceConfigure: fc,
+          edgeConfigId: ec,
+        },
+        { sandboxSlug: sb },
+      ).catch(function () {});
+    }
   }
 
   function parseScopes() {

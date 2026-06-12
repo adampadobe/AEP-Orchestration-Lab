@@ -86,6 +86,7 @@ const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
+const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
@@ -3447,6 +3448,56 @@ exports.labWorkspaceProfile = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
   }
 
   res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** POST /api/lab/provision-rtdb — idempotent RTDB workspace + sandbox demo stub for signed-in lab user */
+exports.labProvisionRtdb = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ ok: false, error: 'Method not allowed' });
+    return;
+  }
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({ ok: false, error: 'Firebase Auth required (lab sign-in).' });
+    return;
+  }
+
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  try {
+    const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+    const adobeEmail = String((profile && profile.adobeEmail) || body.adobeEmail || '').trim().toLowerCase();
+    if (!adobeEmail) {
+      res.status(400).json({ ok: false, error: 'Workspace profile or adobeEmail required' });
+      return;
+    }
+
+    const result = await labRtdbProvisionService.provisionUserRtdbWorkspace({
+      uid,
+      adobeEmail,
+      firstName: profile && profile.firstName,
+      lastName: profile && profile.lastName,
+      workspaceSlug: (profile && profile.workspaceSlug) || body.workspaceSlug,
+      defaultSandbox: body.defaultSandbox || (profile && profile.workspaceSlug),
+    });
+
+    if (body.mergeSandboxStub) {
+      const sb = String(body.defaultSandbox || result.ldapSlug || '').trim();
+      if (sb) {
+        await labRtdbProvisionService.ensureSandboxStub(null, result.ldapSlug, sb, { mergeDefaults: true });
+      }
+    }
+
+    res.status(200).json({ ok: true, ...result });
+  } catch (e) {
+    const status = e && e.code === 'slug_taken' ? 409 : 500;
+    res.status(status).json({ ok: false, error: String(e.message || e), code: e && e.code ? String(e.code) : '' });
+  }
 });
 
 /** POST /api/lab/workspace-auth/register — signup request with admin approval gate. */

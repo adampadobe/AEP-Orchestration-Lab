@@ -17,6 +17,12 @@
     return s || '_default';
   }
 
+  var cachedBySandbox = {};
+
+  function rtdbCfg() {
+    return window.AepDemoConfigRtdb;
+  }
+
   function readAll() {
     try {
       var raw = localStorage.getItem(LS);
@@ -32,20 +38,37 @@
     try {
       localStorage.setItem(LS, JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  function getUrlsForSandbox(sb) {
+    var key = sandboxKey(sb);
+    if (cachedBySandbox[key]) return cachedBySandbox[key];
+    var all = readAll();
+    return all[key] || null;
+  }
+
+  function saveUrlsForSandbox(sb, data) {
+    var key = sandboxKey(sb);
+    cachedBySandbox[key] = data;
+    var c = rtdbCfg();
+    if (c && typeof c.saveSection === 'function') {
+      c.saveSection(c.SECTIONS.ExpVisualiser, data, { sandboxSlug: sb }).catch(function () {});
+      return;
+    }
+    var all = readAll();
+    all[key] = data;
+    writeAll(all);
     if (window.AepLabSandboxSync && typeof AepLabSandboxSync.notifyDirty === 'function') {
       AepLabSandboxSync.notifyDirty();
     }
   }
 
-  function getUrlsForSandbox(sb) {
-    var all = readAll();
-    return all[sandboxKey(sb)] || null;
-  }
-
-  function saveUrlsForSandbox(sb, data) {
-    var all = readAll();
-    all[sandboxKey(sb)] = data;
-    writeAll(all);
+  function loadUrlsFromRtdb(sb) {
+    var c = rtdbCfg();
+    if (!c) return Promise.resolve(null);
+    return c.whenReady().then(function () {
+      return c.loadSection(c.SECTIONS.ExpVisualiser, { sandboxSlug: sb });
+    });
   }
 
   function mergeWithDefaults(stored) {
@@ -261,9 +284,14 @@
     }
 
     function refreshFromStorage() {
-      fillInputsFromStored();
-      var stored = getUrlsForSandbox(currentSandboxName());
-      applyUrlsToPage(stored);
+      var sb = currentSandboxName();
+      loadUrlsFromRtdb(sb).then(function (rtdbData) {
+        if (rtdbData && typeof rtdbData === 'object') {
+          cachedBySandbox[sandboxKey(sb)] = rtdbData;
+        }
+        fillInputsFromStored();
+        applyUrlsToPage(getUrlsForSandbox(sb));
+      });
     }
 
     window.addEventListener('aep-global-sandbox-change', function () {
@@ -280,6 +308,8 @@
     document.addEventListener('aep-lab-sandbox-keys-applied', function () {
       refreshFromStorage();
     });
+
+    window.addEventListener('aep-demo-config-changed', refreshFromStorage);
 
     if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
       window.__aepLabSyncReady.then(function () {

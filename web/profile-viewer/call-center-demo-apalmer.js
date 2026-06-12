@@ -77,6 +77,15 @@
   }
 
   async function fetchRtdbLookups() {
+    if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.loadSection === 'function') {
+      try {
+        await window.AepDemoConfigRtdb.whenReady();
+        const section = await window.AepDemoConfigRtdb.loadSection(window.AepDemoConfigRtdb.SECTIONS.CallCentre);
+        if (section) return section;
+      } catch (_) {
+        /* fall through to legacy */
+      }
+    }
     const cfg = (typeof window.firebaseDatabaseConfig !== 'undefined' && window.firebaseDatabaseConfig) || {};
     const dbUrl = cfg.databaseURL || 'https://aep-orchestration-lab-default-rtdb.firebaseio.com';
     const sandbox = normalizeAjoLookupSlug(getRtdbSandboxName()) || 'apalmer';
@@ -197,6 +206,10 @@
   async function initFromRtdb() {
     const data = await fetchRtdbLookups();
     applyRtdbToAgentUi(data);
+    if (data && data.industryId && INDUSTRIES[data.industryId]) {
+      applyIndustry(data.industryId);
+      if (industrySelect) industrySelect.value = data.industryId;
+    }
   }
 
   // ─── Travel data from profile table ───────────────────────────────────────
@@ -1445,6 +1458,9 @@
       const id = industrySelect.value;
       applyIndustry(id);
       persistIndustry(id);
+      if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.saveSectionDebounced === 'function') {
+        window.AepDemoConfigRtdb.saveSectionDebounced(window.AepDemoConfigRtdb.SECTIONS.CallCentre, { industryId: id }).catch(function () {});
+      }
     });
 
   CTX.attachCrossPageIndustryListener((id) => {

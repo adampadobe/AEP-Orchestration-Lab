@@ -776,11 +776,16 @@
   }
 
   async function loadRtdbData() {
-    var slug = normalizeAjoLookupSlug(getSandboxName()) || 'apalmer';
     try {
-      var res = await fetch(rtdbBase + '/ajoLookups/' + encodeURIComponent(slug) + '.json');
-      if (res.ok) rtdbData = (await res.json()) || {};
-      else rtdbData = {};
+      if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.loadIPadFlat === 'function') {
+        await window.AepDemoConfigRtdb.whenReady();
+        rtdbData = (await window.AepDemoConfigRtdb.loadIPadFlat()) || {};
+      } else {
+        var slug = normalizeAjoLookupSlug(getSandboxName()) || 'apalmer';
+        var res = await fetch(rtdbBase + '/ajoLookups/' + encodeURIComponent(slug) + '.json');
+        if (res.ok) rtdbData = (await res.json()) || {};
+        else rtdbData = {};
+      }
     } catch (e) {
       rtdbData = {};
       console.warn('[etihad-ipad] RTDB fetch failed', e);
