@@ -72,19 +72,78 @@
 
 /* ── Overlay panel layout ─────────────────────────────────────── */
 .lab-env-overlay-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
   padding: 0.625rem 0.75rem 0.75rem;
-  align-items: start;
+  align-items: stretch;
 }
 
-.lab-env-overlay-panel > .aep-demo-env-section,
-.lab-env-overlay-panel .aep-demo-env-editor,
-.lab-env-overlay-panel .aep-demo-env-collapsible,
-.lab-env-overlay-panel .spectrum-env-fields-root,
-.lab-env-overlay-panel .spectrum-env-cards--duo {
-  display: contents;
+.lab-env-overlay-profile {
+  margin: 0;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0.75rem 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.lab-env-col-left,
+.lab-env-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.lab-env-col-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.lab-env-bc-panel {
+  margin: 0;
+  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-surface));
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+}
+
+.lab-env-bc-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.lab-env-bc-prefs-wrap {
+  margin-top: 0.15rem;
+}
+
+.lab-env-bc-datastream {
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-sandbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-sandbox__field {
+  flex: 1 1 14rem;
+  max-width: min(100%, 22rem);
+  margin: 0;
 }
 
 .lab-env-overlay-panel .aep-demo-env-compact,
@@ -93,40 +152,24 @@
   display: none !important;
 }
 
-.lab-env-overlay-panel .spectrum-env-card--environment {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.lab-env-overlay-panel .spectrum-env-card--bc {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.lab-env-overlay-panel .spectrum-env-card--target {
-  grid-column: 2;
-  grid-row: 2;
-  margin: 0;
-}
-
-.lab-env-overlay-panel > .aep-demo-profile-section {
-  grid-column: 1;
-  grid-row: 2;
-  margin: 0;
-}
-
-.lab-env-overlay-panel > .spectrum-env-selected-script,
-.lab-env-overlay-panel > .spectrum-env-inline-message,
-.lab-env-overlay-panel > .spectrum-env-info-bar {
-  grid-column: 1 / -1;
-}
-
-.lab-env-overlay-panel .spectrum-env-card,
+.lab-env-overlay-panel .spectrum-env-card--environment,
+.lab-env-overlay-panel .lab-env-bc-panel,
 .lab-env-overlay-panel > .aep-demo-profile-section {
   background: transparent;
   border: 0;
   box-shadow: none;
   border-radius: 0;
+}
+
+.lab-env-overlay-panel .lab-env-bc-panel {
+  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-surface));
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+}
+
+.lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-overlay-panel > .spectrum-env-info-bar {
+  width: 100%;
 }
 
 .lab-env-overlay-panel .spectrum-env-card__header {
@@ -149,8 +192,37 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields,
-.lab-env-overlay-panel .spectrum-env-target-grid {
+.lab-env-overlay-panel .spectrum-env-target-inline {
   gap: 0.5rem;
+}
+
+.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags .form-row:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags .spectrum-env-card__actions {
+  grid-column: 1 / -1;
+}
+
+.lab-env-overlay-panel .spectrum-env-target-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-panel .spectrum-env-target-inline .spectrum-env-sdk-panel {
+  padding-top: 0;
+}
+
+.lab-env-overlay-panel .lab-env-col-left .spectrum-env-selected-script {
+  margin: 0;
 }
 
 .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid {
@@ -646,6 +718,27 @@
   gap: 0.45rem;
 }
 
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+  display: none;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-start;
+}
+
 .aep-demo-env-bar--spectrum .site-clone-profile-lab-prefs-row {
   display: flex;
   flex-wrap: wrap;
@@ -781,16 +874,12 @@
 }
 
 @media (max-width: 56rem) {
-  .lab-env-overlay-panel {
+  .lab-env-overlay-columns {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .lab-env-overlay-panel .spectrum-env-card--environment,
-  .lab-env-overlay-panel .spectrum-env-card--bc,
-  .lab-env-overlay-panel .spectrum-env-card--target,
-  .lab-env-overlay-panel > .aep-demo-profile-section {
-    grid-column: 1;
-    grid-row: auto;
+  .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

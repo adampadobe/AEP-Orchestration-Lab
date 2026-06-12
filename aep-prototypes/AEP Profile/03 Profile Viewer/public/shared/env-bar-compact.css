@@ -107,6 +107,15 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
     visibility 0.18s ease;
 }
 
+@media (min-width: 48rem) {
+  .lab-env-overlay-panel {
+    left: 50%;
+    right: auto;
+    width: min(100%, 72rem);
+    transform: translateX(-50%);
+  }
+}
+
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
 [class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
