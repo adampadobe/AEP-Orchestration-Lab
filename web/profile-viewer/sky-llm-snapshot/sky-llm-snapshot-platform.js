@@ -447,6 +447,16 @@
     return [{ id: host, name: host }];
   }
 
+  function getBrandOptions() {
+    var brands = llmDemoBrands();
+    var label = 'Sky TV and broadband';
+    if (brands && brands.brandPickerLabel) {
+      var picked = brands.brandPickerLabel();
+      if (picked) label = picked;
+    }
+    return [{ id: 'brand', name: label }];
+  }
+
   function syncFilterStateFromBrands() {
     var sites = getSiteOptions();
     if (sites.length) state.siteId = sites[0].id;
@@ -1580,6 +1590,50 @@
     );
   }
 
+  function hideNativeFilterChrome() {
+    document
+      .querySelectorAll('.sky-llm-platform-shell, .sky-llm-date-shell, .sky-llm-filter-shell, .sky-llm-select-others-shell')
+      .forEach(function (shell) {
+        shell.style.setProperty('background', 'transparent', 'important');
+        shell.style.setProperty('border', 'none', 'important');
+        shell.style.setProperty('box-shadow', 'none', 'important');
+        var row = shell.parentElement;
+        for (var i = 0; i < 3 && row; i++) {
+          if (!row.querySelector('.sky-llm-platform-host, .sky-llm-date-host, .sky-llm-filter-host')) break;
+          row.style.setProperty('background', 'transparent', 'important');
+          row.style.setProperty('border', 'none', 'important');
+          row.style.setProperty('box-shadow', 'none', 'important');
+          row = row.parentElement;
+        }
+      });
+  }
+
+  function pageUsesFilterPickers() {
+    var kind = getPageKind();
+    return kind === 'overview' || kind === 'brand-presence';
+  }
+
+  function buildBrandPicker() {
+    buildListFilterPicker('brand selector', {
+      ariaLabel: 'Brand',
+      options: getBrandOptions,
+      isSelected: function () {
+        return true;
+      },
+      renderTrigger: function (isOpen) {
+        var sel = getBrandOptions()[0];
+        return listPickerTriggerHtml(sel ? sel.name : 'Sky TV and broadband', isOpen);
+      },
+      renderOption: listPickerOptionHtml,
+      getOptionId: function () {
+        return 'brand';
+      },
+      onSelect: function (o, input) {
+        if (input) input.value = o.name;
+      },
+    });
+  }
+
   function buildSitePicker() {
     buildListFilterPicker('site selector', {
       ariaLabel: 'Site',
@@ -1662,12 +1716,19 @@
     syncFilterStateFromBrands();
     buildPlatformPicker();
     buildDatePicker();
-    if (getPageKind() === 'overview') {
+    if (pageUsesFilterPickers()) {
       buildSitePicker();
       buildCategoryPicker();
       buildMarketPicker();
     }
+    if (getPageKind() === 'overview') {
+      buildBrandPicker();
+    }
+    hideNativeFilterChrome();
     syncPlatformTriggerLabel();
+    if (getPageKind() === 'overview' && window.skyLlmSnapshotMarket && window.skyLlmSnapshotMarket.ensureLinesVisible) {
+      window.skyLlmSnapshotMarket.ensureLinesVisible();
+    }
   }
 
   function init() {

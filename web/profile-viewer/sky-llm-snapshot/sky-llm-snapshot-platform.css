@@ -7,26 +7,41 @@
 }
 
 .sky-llm-platform-shell,
-.sky-llm-date-shell {
+.sky-llm-date-shell,
+.sky-llm-filter-shell,
+.sky-llm-select-others-shell {
   position: relative;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .sky-llm-platform-shell > *:not(.sky-llm-platform-host),
-.sky-llm-date-shell > *:not(.sky-llm-date-host) {
+.sky-llm-date-shell > *:not(.sky-llm-date-host),
+.sky-llm-filter-shell > *:not(.sky-llm-filter-host),
+.sky-llm-select-others-shell > *:not(.sky-llm-select-others-host) {
   pointer-events: none !important;
 }
 
 .sky-llm-platform-shell > input[role='combobox'],
 .sky-llm-platform-shell > button,
 .sky-llm-date-shell > input[role='combobox'],
-.sky-llm-date-shell > button {
+.sky-llm-date-shell > button,
+.sky-llm-filter-shell > input[role='combobox'],
+.sky-llm-filter-shell > button,
+.sky-llm-select-others-shell > input[role='combobox'],
+.sky-llm-select-others-shell > button {
+  display: none !important;
   position: absolute !important;
   inset: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
   z-index: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  width: 0 !important;
+  height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
@@ -187,31 +202,6 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
   visibility: visible;
 }
 
-.sky-llm-filter-shell {
-  position: relative;
-}
-
-.sky-llm-filter-shell > *:not(.sky-llm-filter-host) {
-  pointer-events: none !important;
-}
-
-.sky-llm-filter-shell > input[role='combobox'],
-.sky-llm-filter-shell > button {
-  position: absolute !important;
-  inset: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
 .sky-llm-filter-host {
   position: relative;
   z-index: 1;
@@ -352,9 +342,11 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
 
 /* Keep chart cards contained without clipping Recharts line geometry */
 .sky-llm-market-chart-card {
-  overflow: visible !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
   position: relative;
   min-width: 0;
+  max-width: 100%;
 }
 
 .sky-llm-chart-overflow,
@@ -384,25 +376,6 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
 .sky-llm-market-chart-card .recharts-legend-item.sky-llm-market-legend-hidden {
   display: none !important;
   pointer-events: none !important;
-}
-
-.sky-llm-select-others-shell {
-  position: relative;
-}
-
-.sky-llm-select-others-shell > input[role='combobox'],
-.sky-llm-select-others-shell > button {
-  position: absolute !important;
-  inset: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  background: transparent !important;
 }
 
 .sky-llm-select-others-empty {

@@ -44,9 +44,11 @@
 }
 
 .sky-llm-market-chart-card {
-  overflow: visible !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
   position: relative;
   min-width: 0;
+  max-width: 100%;
 }
 
 .sky-llm-market-chart-card .recharts-responsive-container {

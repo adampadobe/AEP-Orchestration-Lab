@@ -40,6 +40,8 @@
     'Traffic Trend': 1,
   };
 
+  var OVERVIEW_CHART_TITLES = ['Sentiment Distribution', 'Market Comparison'];
+
   var LEGACY_LABEL = {
     Adobe: 'Sky',
     Automattic: 'BT',
@@ -316,6 +318,7 @@
   }
 
   function ensureLinesVisible() {
+    markOverviewCharts();
     document.querySelectorAll('svg.recharts-surface[role="application"]').forEach(repairRechartsLayout);
     document.querySelectorAll('path.recharts-curve, path.recharts-line-curve').forEach(repairPathStroke);
     normalizeLegendLayout();
@@ -341,33 +344,47 @@
     return null;
   }
 
+  function chartCardRoot(svg) {
+    if (!svg) return null;
+    return (
+      svg.closest('.sky-llm-market-chart-card') ||
+      (function () {
+        var container = svg.closest('.recharts-responsive-container');
+        var host = container && container.parentElement;
+        for (var i = 0; i < 14 && host; i++) {
+          if (host.clientWidth >= 200) return host;
+          host = host.parentElement;
+        }
+        return container ? container.parentElement : null;
+      })()
+    );
+  }
+
   function repairRechartsLayout(svg) {
     if (!svg) return;
     var container = svg.closest('.recharts-responsive-container');
     if (!container) return;
 
-    var host = container.parentElement;
-    for (var i = 0; i < 12 && host; i++) {
-      if (host.clientWidth >= 80) break;
-      host = host.parentElement;
-    }
-    var parentW = container.parentElement ? container.parentElement.clientWidth : 0;
-    var width = host && host.clientWidth >= 80 ? host.clientWidth : parentW;
+    var card = chartCardRoot(svg);
+    var cardWidth = card && card.clientWidth >= 120 ? card.clientWidth : 0;
 
     container.style.width = '100%';
-    container.style.minWidth = '100%';
+    container.style.minWidth = '0';
+    container.style.maxWidth = '100%';
     container.style.height = 'auto';
-    container.style.minHeight = '300px';
+    container.style.minHeight = '280px';
     container.style.overflow = 'visible';
 
     container.querySelectorAll('div').forEach(function (div) {
       if (div === container) return;
       var sw = div.style.width || '';
       var sh = div.style.height || '';
-      if (sw === '0px' || sw === '0' || sh === '0px' || sh === '0') {
+      if (sw === '0px' || sw === '0' || sh === '0px' || sh === '0' || div.classList.contains('sky-llm-recharts-measure')) {
         div.style.width = '100%';
+        div.style.minWidth = '0';
+        div.style.maxWidth = '100%';
         div.style.height = '100%';
-        div.style.minHeight = '300px';
+        div.style.minHeight = '280px';
         div.style.overflow = 'visible';
         div.classList.add('sky-llm-recharts-measure');
       }
@@ -376,23 +393,37 @@
     var wrap = svg.closest('.recharts-wrapper');
     if (wrap) {
       wrap.style.position = 'relative';
-      wrap.style.width = width > 80 ? width + 'px' : '100%';
+      wrap.style.width = '100%';
+      wrap.style.minWidth = '0';
       wrap.style.maxWidth = '100%';
       wrap.style.height = 'auto';
       wrap.style.overflow = 'visible';
     }
 
-    var vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+    svg.removeAttribute('width');
     svg.style.display = 'block';
     svg.style.width = '100%';
     svg.style.maxWidth = '100%';
     svg.style.overflow = 'visible';
-    if (vb.length === 4 && width > 80) {
-      svg.style.height = Math.round((width * vb[3]) / vb[2]) + 'px';
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+    var vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+    if (vb.length === 4 && cardWidth > 80) {
+      svg.style.height = Math.max(220, Math.round((cardWidth * vb[3]) / vb[2])) + 'px';
     } else {
       svg.style.height = 'auto';
     }
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  }
+
+  function markOverviewCharts() {
+    OVERVIEW_CHART_TITLES.forEach(function (title) {
+      var root = findSectionRoot(title);
+      if (!root) return;
+      root.classList.add('sky-llm-market-chart-card');
+      root.querySelectorAll('svg.recharts-surface[role="application"]').forEach(function (svg) {
+        repairRechartsLayout(svg);
+      });
+    });
   }
 
   function fitLineChartSvg(svg) {
@@ -694,26 +725,24 @@
     var shell = combobox.parentElement;
     if (!shell || shell.querySelector('.sky-llm-select-others-host')) return;
 
-    shell.classList.add('sky-llm-select-others-shell');
+    shell.classList.add('sky-llm-select-others-shell', 'sky-llm-filter-shell');
     combobox.setAttribute('tabindex', '-1');
-    Array.from(shell.querySelectorAll('button')).forEach(function (btn) {
-      if (btn.getAttribute('aria-label') === 'Show suggestions') btn.style.display = 'none';
-    });
+    combobox.setAttribute('aria-hidden', 'true');
 
     var host = document.createElement('div');
-    host.className = 'sky-llm-select-others-host sky-llm-date-host';
+    host.className = 'sky-llm-select-others-host sky-llm-filter-host';
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className = 'sky-llm-date-trigger';
+    trigger.className = 'sky-llm-filter-trigger';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-label', 'Select others');
     trigger.innerHTML =
-      '<span>Select others</span><span class="sky-llm-date-trigger-chevron" aria-hidden="true">▼</span>';
+      '<span>Select others</span><span class="sky-llm-filter-trigger-chevron" aria-hidden="true">▼</span>';
 
     var menu = document.createElement('ul');
-    menu.className = 'sky-llm-date-menu';
+    menu.className = 'sky-llm-filter-menu';
     menu.setAttribute('role', 'listbox');
     menu.hidden = true;
 
@@ -736,7 +765,7 @@
         var li = document.createElement('li');
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'sky-llm-date-option';
+        btn.className = 'sky-llm-filter-option';
         btn.setAttribute('role', 'option');
         btn.textContent = displayBrandName(brand);
         btn.addEventListener('click', function (e) {
