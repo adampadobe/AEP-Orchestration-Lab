@@ -139,9 +139,30 @@
     );
   }
 
-  /** Profile-column BC display mode toggles (Full Screen / Modal / Injected). */
-  function siteCloneProfileBcPrefsMarkup() {
+  /**
+   * Profile-column BC display mode toggles (Full Screen / Modal / Injected / optional Centre bottom).
+   * @param {{ includeBottomDock?: boolean, includeDecisioning?: boolean }} [options]
+   */
+  function siteCloneProfileBcPrefsMarkup(options) {
+    var opt = options || {};
+    var bottomDockOption = opt.includeBottomDock
+      ? '<label class="site-clone-bc-prefs__option">' +
+        '<input type="checkbox" id="siteCloneBcBottomDockToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
+        '<span>Centre bottom</span>' +
+        '</label>'
+      : '';
+    var decisioningBlock = opt.includeDecisioning
+      ? '<div class="site-clone-decisioning-prefs-field" role="group" aria-labelledby="siteCloneDecisioningPrefsHeading">' +
+        '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>' +
+        '<div class="site-clone-bc-prefs__options">' +
+        '<label class="site-clone-bc-prefs__option">' +
+        '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
+        '<span>Enable</span>' +
+        '</label>' +
+        '</div></div>'
+      : '';
     return (
+      '<div class="site-clone-profile-lab-prefs-row">' +
       '<div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">' +
       '<span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Show Brand Concierge</span>' +
       '<div class="site-clone-bc-prefs__options">' +
@@ -157,7 +178,10 @@
       '<input type="checkbox" id="siteCloneBcInjectedToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
       '<span>Injected</span>' +
       '</label>' +
+      bottomDockOption +
       '</div>' +
+      '</div>' +
+      decisioningBlock +
       '</div>'
     );
   }
@@ -207,7 +231,11 @@
     var host = document.getElementById(hostId);
     if (!host) return { mounted: false, reason: 'host-not-found' };
     if (host.getAttribute(MOUNTED_ATTR) === '1') return { mounted: true, alreadyPresent: true };
-    host.innerHTML = siteCloneProfileBcPrefsMarkup();
+    var includeBottomDock =
+      c.includeBottomDock === true || host.getAttribute('data-demo-env-strip-bc-bottom') === '1';
+    var includeDecisioning =
+      c.includeDecisioning === true || host.getAttribute('data-demo-env-strip-decisioning') === '1';
+    host.innerHTML = siteCloneProfileBcPrefsMarkup({ includeBottomDock: includeBottomDock, includeDecisioning: includeDecisioning });
     host.setAttribute(MOUNTED_ATTR, '1');
     return { mounted: true };
   }

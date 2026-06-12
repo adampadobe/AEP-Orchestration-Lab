@@ -90,3 +90,31 @@
 .sky-demo-page .site-clone-bc-frame-host.site-clone-bc-frame-host--fullscreen #siteCloneBcFrameMount [class*='bc-'] {
   max-width: none;
 }
+
+/* Extended lab prefs row (Decisioning + Centre bottom BC) — Sky only for now */
+.sky-demo-page .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1.25rem;
+}
+
+.sky-demo-page .site-clone-decisioning-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.sky-demo-page .mod-demo-site-frame {
+  transition: padding-bottom 0.2s ease;
+}
+
+.sky-demo-page.sky-demo-page--bottom-dock-armed .mod-demo-site-frame {
+  padding-bottom: 5.5rem;
+}
+
+.sky-demo-page.sky-demo-page--bottom-dock-armed .bc-bottom-dock:not(.is-hidden) {
+  display: block;
+}

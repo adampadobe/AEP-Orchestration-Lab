@@ -245,3 +245,95 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
+
+(function initSkyDecisioningAndBottomDock() {
+  if (!document.body.classList.contains('sky-demo-page')) return;
+
+  function getNamespace() {
+    if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+      return AepIdentityPicker.getNamespace('skyNs');
+    }
+    var sel = document.getElementById('skyNs');
+    return sel && sel.value ? String(sel.value).trim().toLowerCase() : 'email';
+  }
+
+  function getSandboxName() {
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      var sn = window.AepGlobalSandbox.getSandboxName();
+      if (sn) return String(sn).trim();
+    }
+    var sel = document.getElementById('sandboxSelect');
+    return sel && sel.value ? String(sel.value).trim() : '';
+  }
+
+  function isDecisioningEnabled() {
+    var toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
+    return !!(toggle && toggle.checked);
+  }
+
+  var skyBottomDockConfig = {
+    ctaLabel: 'ASK SKY',
+    panelTitle: 'Sky assistant',
+    placeholder: 'Ask about TV, broadband, Sky Glass, and packages…',
+    disclaimer: 'This assistant uses demo catalogue data and may provide incomplete responses. Not affiliated with Sky Group.',
+    betaLabel: 'BETA',
+    mountSelector: '#bcBottomDockMount',
+    onExpand: function () {
+      if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
+        void window.SiteCloneBc.sync();
+      }
+    },
+  };
+
+  if (typeof window.BrandConciergeBottomDock !== 'undefined') {
+    window.BrandConciergeBottomDock.init(skyBottomDockConfig);
+  }
+
+  var runtimeApi = null;
+  if (typeof window.DecisioningProfileRuntime !== 'undefined') {
+    runtimeApi = window.DecisioningProfileRuntime.init({
+      iframeId: 'skyDemoSiteFrame',
+      getIdentifierValue: getEmail,
+      getNamespace: getNamespace,
+      getSandboxName: getSandboxName,
+      enabled: isDecisioningEnabled,
+    });
+  }
+
+  if (typeof window.DecisioningProfilePanel !== 'undefined') {
+    window.DecisioningProfilePanel.init({
+      isEnabled: isDecisioningEnabled,
+      enabledToggleId: 'siteCloneDecisioningEnabledToggle',
+      moduleOptions: {
+        idPrefix: 'dpm',
+        getIdentifierValue: getEmail,
+        getNamespace: getNamespace,
+        getSandboxName: getSandboxName,
+        profileApi: runtimeApi || {},
+      },
+    });
+  }
+
+  var queryBtn = document.getElementById('queryProfileBtn');
+  if (queryBtn) {
+    queryBtn.addEventListener(
+      'click',
+      function () {
+        if (!isDecisioningEnabled() || !runtimeApi || typeof runtimeApi.runProfileLookup !== 'function') return;
+        window.setTimeout(function () {
+          void runtimeApi.runProfileLookup({ silent: true });
+        }, 800);
+      },
+      false,
+    );
+  }
+
+  var bottomToggle = document.getElementById('siteCloneBcBottomDockToggle');
+  if (bottomToggle) {
+    var syncBottomDockClass = function () {
+      document.body.classList.toggle('sky-demo-page--bottom-dock-armed', !!bottomToggle.checked);
+    };
+    bottomToggle.addEventListener('change', syncBottomDockClass);
+    syncBottomDockClass();
+  }
+})();

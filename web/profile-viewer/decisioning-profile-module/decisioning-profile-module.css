@@ -1,0 +1,240 @@
+/**
+ * Reusable decisioning profile tweak panel (brand-agnostic — dash tokens only).
+ */
+.decisioning-profile-module {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-family: inherit;
+}
+
+.decisioning-profile-module .dpm-run-btn {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.decisioning-profile-module .dpm-run-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--dash-blue) 88%, var(--dash-text));
+}
+
+.decisioning-profile-module .dpm-run-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.decisioning-profile-module .dpm-micro-profile {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  overflow: hidden;
+}
+
+.decisioning-profile-module .dpm-micro-profile-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: none;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.decisioning-profile-module .dpm-micro-profile-toggle-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.decisioning-profile-module .dpm-micro-profile-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .dpm-micro-profile-state-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--dash-muted);
+  flex-shrink: 0;
+}
+
+.decisioning-profile-module .dpm-micro-profile-state[data-loaded='true'] .dpm-micro-profile-state-dot {
+  background: var(--dash-success-border);
+  box-shadow: 0 0 0 2px var(--dash-success-bg);
+}
+
+.decisioning-profile-module .dpm-micro-profile-state[data-loaded='true'] {
+  color: var(--dash-success-text, var(--dash-text));
+}
+
+.decisioning-profile-module .dpm-micro-profile-chevron {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--dash-muted);
+  border-bottom: 2px solid var(--dash-muted);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.decisioning-profile-module .dpm-micro-profile:not(.is-collapsed) .dpm-micro-profile-chevron {
+  transform: rotate(-135deg);
+}
+
+.decisioning-profile-module .dpm-micro-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.55rem 0.55rem;
+}
+
+.decisioning-profile-module .dpm-micro-profile.is-collapsed .dpm-micro-profile-body {
+  display: none;
+}
+
+.decisioning-profile-module .dpm-micro-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.decisioning-profile-module .dpm-micro-profile-field > label {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .dpm-micro-profile-range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.decisioning-profile-module .dpm-micro-profile-range-row strong {
+  font-size: 0.72rem;
+  color: var(--dash-text);
+}
+
+.decisioning-profile-module .dpm-micro-profile-field select,
+.decisioning-profile-module .dpm-micro-profile-field input[type='range'] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.decisioning-profile-module .dpm-micro-profile-field select {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.decisioning-profile-module .dpm-micro-profile-field input[type='range'] {
+  accent-color: var(--dash-blue);
+}
+
+.decisioning-profile-module .dpm-micro-profile-apply {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.decisioning-profile-module .dpm-micro-profile-apply:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--dash-blue) 88%, var(--dash-text));
+}
+
+.decisioning-profile-module .dpm-micro-profile-status {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--dash-text-secondary);
+  min-height: 1.1em;
+}
+
+.decisioning-profile-module .dpm-micro-profile-status.is-error {
+  color: var(--dash-error-text);
+}
+
+.decisioning-profile-module .dpm-micro-profile-status.is-ok {
+  color: var(--dash-success-text);
+}
+
+.decisioning-profile-module .dpm-pipeline-status {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-profile-module .dpm-pipeline-status.is-error {
+  color: var(--dash-error-text);
+}
+
+.decisioning-profile-module .dpm-pipeline-status.is-ok {
+  color: var(--dash-success-text);
+}
+
+.decisioning-profile-module.is-loyalty-disabled .dpm-field--loyalty input[type='range'] {
+  opacity: 0.45;
+}
+
+/* Minimal proposition mount styling when rendered into iframe overlays */
+.dpm-mount .cd-banner,
+.dpm-mount .cd-edge-ajo-card-inner {
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--dash-surface) 92%, var(--dash-text));
+  box-shadow: var(--dash-shadow);
+}
+
+.dpm-mount .cd-slot-title,
+.dpm-mount .cd-edge-ajo-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.dpm-mount .cd-slot-desc,
+.dpm-mount .cd-edge-ajo-card-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+}
+
+.dpm-mount .cd-banner-image,
+.dpm-mount .cd-edge-ajo-card-img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  display: block;
+}

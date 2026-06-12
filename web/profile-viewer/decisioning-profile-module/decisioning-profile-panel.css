@@ -1,0 +1,130 @@
+/**
+ * Hidden lab panel + discreet trigger for decisioning-profile-module.
+ */
+.dpm-panel-trigger {
+  position: fixed;
+  top: 4.75rem;
+  right: 0.85rem;
+  z-index: 7100;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface);
+  color: var(--dash-blue);
+  box-shadow: var(--dash-shadow);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dpm-panel-trigger.is-visible {
+  display: inline-flex;
+}
+
+.dpm-panel-trigger:hover {
+  background: var(--dash-hover);
+}
+
+.dpm-panel-trigger-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--dash-blue);
+}
+
+.dpm-panel-shell {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7150;
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-width: 100%;
+  transform: translateX(105%);
+  transition: transform 0.22s ease;
+  pointer-events: none;
+}
+
+.dpm-panel-shell.is-open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.dpm-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7140;
+  border: none;
+  background: color-mix(in srgb, var(--dash-text) 18%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.dpm-panel-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dpm-panel-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--dash-surface-alt);
+  border-left: 1px solid var(--dash-border);
+  box-shadow: -8px 0 32px color-mix(in srgb, var(--dash-text) 12%, transparent);
+}
+
+.dpm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.dpm-panel-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.dpm-panel-close {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: var(--dash-radius-sm);
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dpm-panel-close:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.dpm-panel-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0.85rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dpm-panel-shell,
+  .dpm-panel-backdrop,
+  .decisioning-profile-module .dpm-micro-profile-chevron {
+    transition-duration: 0.01ms;
+  }
+}
