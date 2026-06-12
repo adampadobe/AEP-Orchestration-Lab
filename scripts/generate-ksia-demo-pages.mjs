@@ -13,7 +13,7 @@ const BUILD = '20260612';
 
 const PAGES = [
   { file: 'about.html', id: 'about' },
-  { file: 'flights/index.html', id: 'flights-hub', hubLinks: ['flights/arrivals.html', 'flights/departures.html'] },
+  { file: 'flights/index.html', id: 'flights-hub', custom: true },
   { file: 'flights/arrivals.html', id: 'flights-arrivals', board: 'arrivals' },
   { file: 'flights/departures.html', id: 'flights-departures', board: 'departures' },
   { file: 'at-the-airport/index.html', id: 'at-the-airport-hub', hubLinks: ['at-the-airport/terminal-guide.html', 'at-the-airport/maps.html', 'at-the-airport/security.html', 'at-the-airport/services/index.html'] },
@@ -211,9 +211,13 @@ fs.mkdirSync(ROOT, { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'index.html'), indexHtml());
 
 for (const page of PAGES) {
+  if (page.custom) continue;
   const dir = path.dirname(page.file);
   if (dir !== '.') fs.mkdirSync(path.join(ROOT, dir), { recursive: true });
   fs.writeFileSync(path.join(ROOT, page.file), wrapPage(page));
 }
 
-console.log('Generated', PAGES.length + 1, 'KSIA pages in', ROOT);
+console.log('Generated', PAGES.filter((p) => !p.custom).length + 1, 'KSIA pages in', ROOT);
+if (PAGES.some((p) => p.custom)) {
+  console.log('Skipped custom pages:', PAGES.filter((p) => p.custom).map((p) => p.file).join(', '));
+}

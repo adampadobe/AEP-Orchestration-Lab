@@ -151,15 +151,76 @@
   ];
 
   var SAMPLE_DEPARTURES = [
+    { flight: 'SV 123', to: 'London LHR', time: '17:05', terminal: 'T1', status: 'On time' },
     { flight: 'SV 103', to: 'London LHR', time: '17:05', terminal: 'T1', status: 'Boarding' },
     { flight: 'EK 816', to: 'Dubai DXB', time: '17:40', terminal: 'T2', status: 'On time' },
     { flight: 'QR 1189', to: 'Doha DOH', time: '18:15', terminal: 'T1', status: 'On time' },
     { flight: 'BA 264', to: 'London LHR', time: '19:00', terminal: 'T3', status: 'Gate open' },
   ];
 
+  var FLIGHTS_TRIP_CARD = {
+    flight: 'SV 123',
+    originCity: 'Riyadh',
+    originCode: 'RUH',
+    destCity: 'London',
+    destCode: 'LHR',
+    status: 'On time',
+    statusKey: 'ontime',
+    phase: 'Pre-trip',
+    departure: '17:05',
+    terminal: 'T1',
+    gate: 'B12',
+    checkInOpens: '14:05',
+  };
+
+  var FLIGHTS_JOURNEY_STEPS = [
+    { label: 'Check-in', state: 'upcoming' },
+    { label: 'Security', state: 'upcoming' },
+    { label: 'Gate', state: 'upcoming' },
+    { label: 'Board', state: 'upcoming' },
+    { label: 'Arrive', state: 'upcoming' },
+  ];
+
+  var FLIGHTS_ASSISTANT_SUGGESTIONS = [
+    {
+      title: 'Set up your AIVC wallet',
+      desc: 'Add boarding pass, parking, and loyalty cards before you travel.',
+      href: 'aivc/wallet-setup.html',
+      icon: '&#128179;',
+    },
+    {
+      title: 'Terminal guide',
+      desc: 'Find your check-in desk, security lane, and gate in Terminal 1.',
+      href: 'at-the-airport/terminal-guide.html',
+      icon: '&#128506;',
+    },
+    {
+      title: 'Book parking',
+      desc: 'Reserve short-stay or long-stay parking and pay with your wallet.',
+      href: 'transport/parking.html',
+      icon: '&#127359;',
+    },
+  ];
+
+  var FLIGHTS_RELATED_SERVICES = [
+    { label: 'Maps', href: 'at-the-airport/maps.html', icon: '&#128506;' },
+    { label: 'Security', href: 'at-the-airport/security.html', icon: '&#128737;' },
+    { label: 'Lounges', href: 'at-the-airport/services/lounges.html', icon: '&#9749;' },
+    { label: 'Transport', href: 'transport/index.html', icon: '&#128652;' },
+  ];
+
   var PAGE_META = {
     about: { title: 'About KSIA', heading: 'Vision 2030 & the KSIA story', lead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.' },
-    'flights-hub': { title: 'Flights', heading: 'Flights information', lead: 'Search, track arrivals and departures across six terminals.' },
+    'flights-hub': {
+      title: 'Flights',
+      heading: 'Flights information',
+      lead: 'Search, track arrivals and departures across six terminals.',
+      section: 'flights',
+      breadcrumbs: [
+        { label: 'Flights', href: 'flights/index.html' },
+        { label: 'Flights hub' },
+      ],
+    },
     'flights-arrivals': { title: 'Arrivals', heading: 'Flight arrivals', lead: 'Live arrival information for King Salman International Airport.' },
     'flights-departures': { title: 'Departures', heading: 'Flight departures', lead: 'Live departure information for King Salman International Airport.' },
     'at-the-airport-hub': { title: 'At the airport', heading: 'At the airport', lead: 'Everything you need before, during, and after your flight.' },
@@ -196,6 +257,10 @@
     QUICK_LINKS: QUICK_LINKS,
     SAMPLE_ARRIVALS: SAMPLE_ARRIVALS,
     SAMPLE_DEPARTURES: SAMPLE_DEPARTURES,
+    FLIGHTS_TRIP_CARD: FLIGHTS_TRIP_CARD,
+    FLIGHTS_JOURNEY_STEPS: FLIGHTS_JOURNEY_STEPS,
+    FLIGHTS_ASSISTANT_SUGGESTIONS: FLIGHTS_ASSISTANT_SUGGESTIONS,
+    FLIGHTS_RELATED_SERVICES: FLIGHTS_RELATED_SERVICES,
     PAGE_META: PAGE_META,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -291,7 +291,9 @@
     wireContactForm();
 
     if (window.KsiaLabEvents && typeof window.KsiaLabEvents.emitPageView === 'function') {
-      window.KsiaLabEvents.emitPageView(pageId, meta && meta.section ? meta.section : pageId.split('-')[0]);
+      var ctx = document.body && document.body.getAttribute('data-ksia-context');
+      var section = (meta && meta.section) || ctx || pageId.split('-')[0];
+      window.KsiaLabEvents.emitPageView(pageId, section);
     }
   }
 

@@ -3,17 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Flights — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612c">
 </head>
-<body class="ksia-site" data-ksia-page-id="flights-hub">
+<body class="ksia-site" data-ksia-page-id="flights-hub" data-ksia-context="flights-hub pre-trip">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Flights Hub</h1><p class="ksia-page-lead">King Salman International Airport — Flights Hub.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <!-- 1. Hero — trip card -->
+    <section class="ksia-flights-hero" aria-label="Your upcoming flight">
+      <div class="ksia-flights-hero-inner">
+        <p class="ksia-flights-hero-kicker">Your journey</p>
+        <div class="ksia-flights-trip-card" id="ksiaFlightsTripCard">
+          <div class="ksia-flights-trip-top">
+            <span class="ksia-flights-pill ksia-flights-pill--pre-trip">Pre-trip</span>
+            <span class="ksia-flights-status ksia-flights-status--ontime">On time</span>
+          </div>
+          <div class="ksia-flights-trip-route">
+            <div class="ksia-flights-trip-endpoint">
+              <span class="ksia-flights-trip-city">Riyadh</span>
+              <span class="ksia-flights-trip-code">RUH</span>
+            </div>
+            <div class="ksia-flights-trip-mid" aria-hidden="true">
+              <span class="ksia-flights-trip-flight">SV 123</span>
+              <span class="ksia-flights-trip-line"></span>
+              <span class="ksia-flights-trip-plane">&#9992;</span>
+            </div>
+            <div class="ksia-flights-trip-endpoint ksia-flights-trip-endpoint--dest">
+              <span class="ksia-flights-trip-city">London</span>
+              <span class="ksia-flights-trip-code">LHR</span>
+            </div>
+          </div>
+          <dl class="ksia-flights-trip-meta">
+            <div><dt>Departure</dt><dd>17:05</dd></div>
+            <div><dt>Terminal</dt><dd>T1</dd></div>
+            <div><dt>Gate</dt><dd>B12</dd></div>
+            <div><dt>Check-in</dt><dd>Opens 14:05</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Flight search -->
+    <section class="ksia-flight-search-wrap ksia-flights-search-wrap" aria-label="Flight search">
+      <form id="ksiaFlightSearch" class="ksia-flight-search">
+        <div class="ksia-search-field"><label for="ksiaOrigin">From</label><input id="ksiaOrigin" name="origin" placeholder="City or airport" autocomplete="off" value="Riyadh (RUH)"></div>
+        <div class="ksia-search-field"><label for="ksiaDestination">To</label><input id="ksiaDestination" name="destination" placeholder="City or airport" autocomplete="off" value="London (LHR)"></div>
+        <div class="ksia-search-field"><label for="ksiaTravelDate">Date</label><input id="ksiaTravelDate" name="date" type="date"></div>
+        <button type="submit" class="ksia-btn ksia-btn-primary">Search flights</button>
+      </form>
+    </section>
+
+    <!-- 3. Arrivals / Departures tabs -->
+    <section class="ksia-section ksia-section--white ksia-flights-board-section" aria-labelledby="ksia-flights-board-heading">
+      <div class="ksia-flights-board-header">
+        <h2 class="ksia-section-title" id="ksia-flights-board-heading">Live flight board</h2>
+        <div class="ksia-flights-tabs" role="tablist" aria-label="Flight board type">
+          <button type="button" class="ksia-flights-tab ksia-flights-tab--active" role="tab" id="ksiaTabArrivals" aria-selected="true" aria-controls="ksiaPanelArrivals" data-ksia-board-tab="arrivals">Arrivals</button>
+          <button type="button" class="ksia-flights-tab" role="tab" id="ksiaTabDepartures" aria-selected="false" aria-controls="ksiaPanelDepartures" data-ksia-board-tab="departures">Departures</button>
+        </div>
+      </div>
+      <div class="ksia-flights-board-panels">
+        <div class="ksia-flights-board-panel ksia-flights-board-panel--active" role="tabpanel" id="ksiaPanelArrivals" aria-labelledby="ksiaTabArrivals">
+          <div class="ksia-flights-board-table-wrap" id="ksiaArrivalsBoard"></div>
+          <p class="ksia-flights-board-footer"><a href="arrivals.html" class="ksia-flights-board-link">View all arrivals &rarr;</a></p>
+        </div>
+        <div class="ksia-flights-board-panel" role="tabpanel" id="ksiaPanelDepartures" aria-labelledby="ksiaTabDepartures" hidden>
+          <div class="ksia-flights-board-table-wrap" id="ksiaDeparturesBoard"></div>
+          <p class="ksia-flights-board-footer"><a href="departures.html" class="ksia-flights-board-link">View all departures &rarr;</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Journey timeline -->
+    <section class="ksia-section ksia-section--sunlit ksia-flights-journey-section" aria-labelledby="ksia-flights-journey-heading">
+      <p class="ksia-section-kicker">Your journey</p>
+      <h2 class="ksia-display-heading" id="ksia-flights-journey-heading">Airport timeline</h2>
+      <ol class="ksia-flights-stepper" id="ksiaFlightsStepper" aria-label="Journey steps"></ol>
+    </section>
+
+    <!-- 5. Assistant suggestions -->
+    <section class="ksia-section ksia-section--white ksia-flights-assistant-section" aria-labelledby="ksia-flights-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant</p>
+      <h2 class="ksia-display-heading" id="ksia-flights-assistant-heading">Suggested for your trip</h2>
+      <ul class="ksia-flights-assistant-list" id="ksiaFlightsAssistant"></ul>
+    </section>
+
+    <!-- 6. Disruption banner -->
+    <section class="ksia-flights-disruption" aria-label="Operations status">
+      <div class="ksia-flights-disruption-inner">
+        <div class="ksia-flights-disruption-icon" aria-hidden="true">&#10003;</div>
+        <div class="ksia-flights-disruption-copy">
+          <p class="ksia-flights-disruption-title">Normal operations</p>
+          <p class="ksia-flights-disruption-lead">All terminals operating on schedule. No widespread delays reported.</p>
+        </div>
+        <a href="../aivc/disruption-compensation.html" class="ksia-flights-disruption-link">Disruption support</a>
+      </div>
+    </section>
+
+    <!-- 7. Related services -->
+    <section class="ksia-section ksia-section--sand ksia-flights-services-section" aria-labelledby="ksia-flights-services-heading">
+      <h2 class="ksia-section-title" id="ksia-flights-services-heading">Related services</h2>
+      <ul class="ksia-flights-services-grid" id="ksiaFlightsServices"></ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612c"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-flights-hub.js?v=20260612c"></script>
 </body>
 </html>
