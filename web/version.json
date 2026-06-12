@@ -1,14 +1,14 @@
 {
-  "gitSha": "1a4dca857fd0951105ecc7eca60ca80eef700615",
-  "gitShortSha": "1a4dca85",
+  "gitSha": "59915589c7e9b18122b19302ff2366d34ab67217",
+  "gitShortSha": "59915589",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] refactor: Race for Life uses shared decisioning runtime (Phase 5)",
+  "gitCommitSubject": "[apalmer] chore: sync version stamp for Phase 5 deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-12T23:00:18+01:00",
-  "deployedAt": "2026-06-12T22:00:35.295Z",
+  "gitCommitDate": "2026-06-12T23:02:30+01:00",
+  "deployedAt": "2026-06-12T22:02:45.479Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/1a4dca857fd0951105ecc7eca60ca80eef700615"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/59915589c7e9b18122b19302ff2366d34ab67217"
 }
