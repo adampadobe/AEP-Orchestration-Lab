@@ -29,6 +29,16 @@
       tagsInjection: '20260624-tags-overlay-close',
       aepDemoEnvBar: '20260624-env-bar-collapse-p3',
       siteCloneBcEnv: '20260612-strip-dom-defer',
+      decisioningModuleCss: '20260615',
+      decisioningPanelCss: '20260621',
+      profileStreamingShared: '20260615',
+      contentDecisionLabConfig: '20260615',
+      contentDecisionEdgeMounts: '20260615',
+      decisioningEdgeInject: '20260619',
+      decisioningProfileRuntime: '20260620',
+      decisioningProfileModule: '20260620',
+      decisioningProfilePanel: '20260621',
+      siteCloneDecisioningBoot: '20260624-decisioning-universal',
     },
   };
 
@@ -49,6 +59,7 @@
    * @property {boolean} [debug=false] — Verbose console logging
    * @property {'spectrum'|'classic'} [variant='spectrum'] — Strip layout variant
    * @property {EnvBarFeatures} [features] — Feature toggles for mount attributes
+   * @property {object} [decisioning] — Wiring for SiteCloneDecisioningBoot (iframeId, viewName, mountLayoutPreset, …)
    * @property {string[]} [iframeIds] — Iframe ids for Tags injection (demo JS)
    * @property {string} [disclaimer] — HTML disclaimer on mount host
    * @property {string} [labCoreScript] — Optional demo lab-core script to load after env bar ready
@@ -267,6 +278,62 @@
     }, Promise.resolve());
   }
 
+  function isDecisioningFeatureEnabled(cfg) {
+    return !(cfg.features && cfg.features.decisioning === false);
+  }
+
+  /**
+   * Load decisioning module CSS when the env strip exposes the decisioning toggle.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadDecisioningStyles(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isDecisioningFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    return Promise.all([
+      linkCss(assetUrl('decisioning-profile-module/decisioning-profile-module.css', a.decisioningModuleCss)),
+      linkCss(assetUrl('decisioning-profile-module/decisioning-profile-panel.css', a.decisioningPanelCss)),
+    ]);
+  }
+
+  /**
+   * Load decisioning runtime script chain (Sky parity). Skips files already on the page.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadDecisioningScripts(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isDecisioningFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    var chain = [
+      assetUrl('profile-streaming-shared.js', a.profileStreamingShared),
+      assetUrl('content-decision-lab-config.js', a.contentDecisionLabConfig),
+      assetUrl('content-decision-edge-mounts.js', a.contentDecisionEdgeMounts),
+      assetUrl('decisioning-profile-module/decisioning-edge-inject.js', a.decisioningEdgeInject),
+      assetUrl('decisioning-profile-module/decisioning-profile-runtime.js', a.decisioningProfileRuntime),
+      assetUrl('decisioning-profile-module/decisioning-profile-module.js', a.decisioningProfileModule),
+      assetUrl('decisioning-profile-module/decisioning-profile-panel.js', a.decisioningProfilePanel),
+      assetUrl('shared/site-clone-decisioning-boot.js', a.siteCloneDecisioningBoot),
+    ];
+    return chain.reduce(function (p, src) {
+      return p.then(function () {
+        log('load decisioning script', src);
+        return loadScript(src);
+      });
+    }, Promise.resolve());
+  }
+
+  /**
+   * Init decisioning runtime + panel when decisioning feature is enabled (auto-detects iframe wiring).
+   * @param {EnvBarConfig} cfg
+   */
+  function bootSiteCloneDecisioning(cfg) {
+    if (!isDecisioningFeatureEnabled(cfg)) return;
+    if (global.SiteCloneDecisioningBoot && typeof global.SiteCloneDecisioningBoot.boot === 'function') {
+      log('boot SiteCloneDecisioningBoot');
+      global.SiteCloneDecisioningBoot.boot(cfg);
+    }
+  }
+
   /**
    * Wire SiteCloneDemoEnv from prefix when not already set by demo HTML.
    * @param {EnvBarConfig} cfg
@@ -418,12 +485,20 @@
         }
         applyFeatureFlags(state.config);
         ensureSiteCloneDemoEnv(state.config);
-        return loadStyles(versions, state.config).then(function () {
-          return loadScripts(versions, state.config);
-        });
+        return loadStyles(versions, state.config)
+          .then(function () {
+            return loadDecisioningStyles(versions, state.config);
+          })
+          .then(function () {
+            return loadScripts(versions, state.config);
+          })
+          .then(function () {
+            return loadDecisioningScripts(versions, state.config);
+          });
       })
       .then(function () {
         var result = runBootstrap(state.config);
+        bootSiteCloneDecisioning(state.config);
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
           return result;
         });

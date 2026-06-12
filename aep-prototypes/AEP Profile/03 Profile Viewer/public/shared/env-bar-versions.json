@@ -12,6 +12,16 @@
     "bootstrap": "20260602-env-bar-bootstrap",
     "tagsInjection": "20260624-tags-overlay-close",
     "aepDemoEnvBar": "20260624-env-bar-collapse-p3",
-    "siteCloneBcEnv": "20260612-strip-dom-defer"
+    "siteCloneBcEnv": "20260612-strip-dom-defer",
+    "decisioningModuleCss": "20260615",
+    "decisioningPanelCss": "20260621",
+    "profileStreamingShared": "20260615",
+    "contentDecisionLabConfig": "20260615",
+    "contentDecisionEdgeMounts": "20260615",
+    "decisioningEdgeInject": "20260619",
+    "decisioningProfileRuntime": "20260620",
+    "decisioningProfileModule": "20260620",
+    "decisioningProfilePanel": "20260621",
+    "siteCloneDecisioningBoot": "20260624-decisioning-universal"
   }
 }
