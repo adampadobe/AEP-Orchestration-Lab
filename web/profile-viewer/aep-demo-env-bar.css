@@ -27,6 +27,16 @@
   gap: 0.65rem 1rem;
 }
 
+.aep-demo-env-editor-grid > .form-row:first-child {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.aep-demo-env-editor-grid > .form-row:first-child .sandbox-select {
+  width: 100%;
+  max-width: 100%;
+}
+
 .aep-demo-env-editor-grid .form-row {
   display: flex;
   flex-direction: column;

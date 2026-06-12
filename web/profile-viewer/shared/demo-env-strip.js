@@ -10,7 +10,7 @@
   var MOUNT_ATTR = 'data-demo-env-strip-mount';
   var PREFIX_ATTR = 'data-demo-env-strip-prefix';
   var MOUNTED_ATTR = 'data-demo-env-strip-mounted';
-  var CACHE_BUST = '20260622-env-shell';
+  var CACHE_BUST = '20260623-env-inline';
   var MOUNTED_EVENT = 'aep-demo-env-strip-mounted';
   var FOOTER_ATTR = 'data-demo-env-strip-footer';
 
@@ -121,6 +121,10 @@
       '<datalist id="siteCloneBcDatastreamList"></datalist>' +
       '<p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p>' +
       '</div>' +
+      '</div>' +
+      '<div class="form-row site-clone-bc-env-strip__event-col">' +
+      '<label for="generatorTarget">Event destination</label>' +
+      '<select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>' +
       '</div>' +
       '</div>' +
       '<div class="site-clone-bc-env-strip__legacy-inject-toggles" aria-hidden="true">' +
@@ -248,10 +252,6 @@
       'SdkConfigFieldsMount" ' +
       tagsMountAttrs +
       '></div>' +
-      '<div class="form-row">' +
-      '<label for="generatorTarget">Event destination</label>' +
-      '<select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>' +
-      '</div>' +
       '</div>' +
       '<div id="' +
       esc(prefix) +

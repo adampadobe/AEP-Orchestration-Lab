@@ -265,7 +265,7 @@
     linkCss(PV + 'style.css');
     linkCss(PV + 'home.css?v=20260514-customer-demos-nav');
     linkCss(PV + 'aviva-target-demo.css?v=20260604-journey-chrome');
-    linkCss(PV + 'shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle');
+    linkCss(PV + 'shared/demo-env-bar.bundle.css?v=20260623-env-inline');
     linkCss(PV + 'aep-profile-drawer.css?v=20260521-refresh-btn-lightfix');
     linkCss(PV + 'shared/profile-viewer-modal.css?v=20260601-modal-central');
     linkCss(PV + 'aep-theme.css?v=20260423b-fs-helper');
