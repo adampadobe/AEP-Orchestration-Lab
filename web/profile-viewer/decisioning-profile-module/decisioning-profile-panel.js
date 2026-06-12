@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260613';
+  var CACHE_BUST = '20260619';
 
   function init(options) {
     var opt = options || {};
@@ -55,6 +55,22 @@
       shell.classList.toggle('is-open', open);
       backdrop.classList.toggle('is-open', open);
       trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) clearHideTimer();
+    }
+
+    var hideTimer = null;
+    function clearHideTimer() {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+    function scheduleClose() {
+      if (!shell.classList.contains('is-open')) return;
+      clearHideTimer();
+      hideTimer = window.setTimeout(function () {
+        setOpen(false);
+      }, 280);
     }
 
     function setVisible(visible) {
@@ -71,6 +87,19 @@
     document.getElementById('dpmPanelClose').addEventListener('click', function () {
       setOpen(false);
     });
+    shell.addEventListener('mouseenter', clearHideTimer);
+    shell.addEventListener('mouseleave', scheduleClose);
+    document.addEventListener(
+      'pointerdown',
+      function (evt) {
+        if (!shell.classList.contains('is-open')) return;
+        var t = evt.target;
+        if (!t || typeof t.closest !== 'function') return;
+        if (t.closest('#dpmPanelShell') || t.closest('#dpmPanelTrigger')) return;
+        setOpen(false);
+      },
+      true
+    );
 
     if (typeof opt.isEnabled === 'function') {
       var applyEnabled = function () {

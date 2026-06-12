@@ -70,7 +70,8 @@
 
 .dpm-panel-backdrop.is-open {
   opacity: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  background: transparent;
 }
 
 .dpm-panel-inner {
