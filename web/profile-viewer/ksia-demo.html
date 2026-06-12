@@ -15,19 +15,29 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script>
+    window.SiteCloneBcPage = {
+      iframeId: 'ksiaSiteFrame',
+      defaultFrameSrc: 'demos/ksia/index.html',
+      statusMessageId: 'ksiaMessage',
+    };
+  </script>
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
 <body class="ksia-demo-page home-dashboard-concierge">
   <div class="ksia-demo-top-anchor" id="ksiaDemoTopAnchor">
     <section class="ksia-demo-id-banner" aria-label="KSIA demo identity controls">
-            <div class="ksia-demo-id-inner aep-demo-id-inner"
+      <div
+        class="ksia-demo-id-inner aep-demo-id-inner"
         data-demo-env-strip-mount="site-clone-shell"
         data-demo-env-strip-prefix="ksia"
         data-demo-env-strip-selected-script-id="ksiaSelectedScript"
         data-demo-env-strip-script-preview-class="ksia-demo-script-preview"
         data-demo-env-strip-message-id="ksiaMessage"
-        data-demo-env-strip-profile-btn-label="Look up profile"></div>
-
+        data-demo-env-strip-message-class="ksia-demo-message"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="King Salman International Airport journey mockup for the AEP lab. Inject your Tags property, then walk the airport journey under <code>demos/ksia/</code>. Not affiliated with KSIA."
+      ></div>
     </section>
   </div>
 
@@ -90,11 +100,10 @@
       bcOnInjectToggleId: 'ksiaBcOnInjectToggle',
       bcStyleSelectId: 'ksiaBcStyleSelect',
     };
-    window.SiteCloneBcPage = { iframeId: 'ksiaSiteFrame', statusMessageId: 'ksiaMessage' };
   </script>
   <script src="site-clone-bc-env.js?v=20260605-tags-sandbox-restore"></script>
-  <script src="demos/ksia/ksia-lab-core.js?v=20260612"></script>
-  <script src="ksia-demo.js?v=20260612"></script>
+  <script src="demos/ksia/ksia-lab-core.js?v=20260623-env-inline"></script>
+  <script src="ksia-demo.js?v=20260623-env-inline"></script>
   <script src="site-clone-bc.js?v=20260612-ksia"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>

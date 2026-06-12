@@ -6,7 +6,7 @@
   'use strict';
 
   var PV = '/profile-viewer/';
-  var BUILD = '20260612';
+  var BUILD = '20260623-env-inline';
 
   if (window.__ksiaJourneyChromeBooted) return;
 
@@ -64,37 +64,15 @@
     anchor.id = 'ksiaDemoTopAnchor';
     anchor.innerHTML =
       '<section class="ksia-demo-id-banner" aria-label="KSIA demo controls">' +
-      '<div class="ksia-demo-id-inner aep-demo-id-inner">' +
-      '<section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">' +
-      '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
-      '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
-      '<span class="aep-demo-env-kicker">Environment</span>' +
-      '<div class="aep-demo-env-editor-grid">' +
-      '<div class="form-row"><label for="sandboxSelect">Sandbox</label>' +
-      '<select id="sandboxSelect" class="sandbox-select"><option value="">Loading sandboxes…</option></select></div>' +
-      '<div id="ksiaSdkConfigFieldsMount" data-demo-env-strip-mount="site-clone-tags" data-demo-env-strip-prefix="ksia"></div>' +
-      '<div class="form-row"><label for="generatorTarget">Event destination</label>' +
-      '<select id="generatorTarget"></select></div></div>' +
-      '<div id="ksiaSdkConfigSummary" class="ksia-sdk-summary mod-sdk-summary--below-env-grid" hidden>' +
-      '<span id="ksiaSdkConfigSummaryText"></span>' +
-      '<button type="button" id="ksiaChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button></div></div>' +
-      '<div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>' +
-      '<span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>' +
-      '<button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button></div></div></section>' +
-      '<section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">' +
-      '<span class="aep-demo-env-kicker">Profile lookup</span>' +
-      '<div class="aep-demo-profile-section-grid">' +
-      '<div class="form-row"><label for="ksiaNs">Namespace</label>' +
-      '<select id="ksiaNs" class="sandbox-select"><option value="email">Email</option><option value="ecid">ECID</option>' +
-      '<option value="crmId">CRM ID</option><option value="loyaltyId">Loyalty ID</option><option value="phone">Phone</option></select></div>' +
-      '<div class="form-row"><label for="customerEmail">Identifier value</label>' +
-      '<input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off"></div>' +
-      '<div class="mod-demo-profile-actions">' +
-      '<button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>' +
-      '<span class="mod-demo-ecid-hint" id="ecidHint">ECID: <strong id="infoEcid">—</strong></span>' +
-      '<div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div></div></div></section></div>' +
-      '<p class="ksia-demo-script-preview">Selected script: <code id="ksiaSelectedScript">None</code></p>' +
-      '<p id="ksiaMessage" class="ksia-demo-message" role="status" hidden></p></section>';
+      '<div class="ksia-demo-id-inner aep-demo-id-inner"' +
+      ' data-demo-env-strip-mount="site-clone-shell"' +
+      ' data-demo-env-strip-prefix="ksia"' +
+      ' data-demo-env-strip-selected-script-id="ksiaSelectedScript"' +
+      ' data-demo-env-strip-script-preview-class="ksia-demo-script-preview"' +
+      ' data-demo-env-strip-message-id="ksiaMessage"' +
+      ' data-demo-env-strip-message-class="ksia-demo-message"' +
+      ' data-demo-env-strip-profile-btn-label="Look up profile"></div>' +
+      '</section>';
 
     document.body.insertBefore(anchor, document.body.firstChild);
 
@@ -179,7 +157,8 @@
       PV + 'identity-picker.js',
       PV + 'shared/profile-viewer-modal.js?v=20260601-modal-central',
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
-      PV + 'shared/demo-env-strip.js?v=20260601-env-strip-mount-sync',
+      PV + 'aep-demo-web-push.js?v=20260512-lab-push',
+      PV + 'shared/demo-env-strip.js?v=20260623-env-inline',
       PV + 'shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap',
       PV + 'demo-tags-injection.js?v=20260605-tags-sandbox-restore',
       PV + 'aep-demo-env-bar.js?v=20260601-launch-unset-expand',
