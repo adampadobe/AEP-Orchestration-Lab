@@ -72,28 +72,28 @@ window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'sky' });
 
 | File | Role |
 |------|------|
-| `web/profile-viewer/shared/demo-env-strip.js` | `DemoEnvStrip.mountSiteCloneTagsFields`, `mountSiteCloneProfileBcPrefs`, `autoMount` from `data-demo-env-strip-mount` |
+| `web/profile-viewer/shared/demo-env-strip.js` | **`mountSiteCloneEnvShell`** — full env bar from `site-clone-shell`; Tags, Target, BC, Decisioning sub-mounts |
 | `web/profile-viewer/shared/demo-env-bar.bundle.css` | Unified env bar CSS (imports Sky master + strip) |
 | `web/profile-viewer/site-clone-bc-env.js` | Style URL, datastream, web push by sandbox, BC prefs |
 | `web/profile-viewer/site-clone-bc.js` | Modal / injected / full-screen BC |
 
-### HTML mount contract
+### HTML mount contract (site-clone-shell — required for new demos)
 
 ```html
-<!-- Inside .aep-demo-env-editor-grid after sandbox row -->
-<div
-  id="{prefix}SdkConfigFieldsMount"
-  data-demo-env-strip-mount="site-clone-tags"
+<div class="{brand}-demo-id-inner aep-demo-id-inner"
+  data-demo-env-strip-mount="site-clone-shell"
   data-demo-env-strip-prefix="{prefix}"
-  data-demo-env-strip-default-bc-style="army"
-></div>
-<!-- optional default BC style for mod-demo -->
-
-<!-- Inside profile actions row -->
-<div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
+  data-demo-env-strip-selected-script-id="{prefix}SelectedScript"
+  data-demo-env-strip-message-id="{prefix}Message"
+  data-demo-env-strip-profile-btn-label="Look up profile"
+  data-demo-env-strip-disclaimer="…optional HTML…"></div>
 ```
 
-Stable ids after mount: `{prefix}SdkConfigFields`, `{prefix}InjectSdkBtn`, `siteCloneBcStyleConfigUrl`, `siteCloneBcDatastreamId`, `siteCloneBc*Toggle`, `sandboxSelect`, `generatorTarget`, `aepDemoEnvCompact`, etc.
+Optional attributes: `data-demo-env-strip-default-bc-style`, `data-demo-env-strip-bc-bottom="1"`, `data-demo-env-strip-decisioning="0"` (hide Decisioning toggle).
+
+`DemoEnvStrip.autoMount()` injects **Adobe Target** (datastream), **Brand Concierge** (style + display toggles), and **Decisioning** (enable toggle, on by default). Migrate legacy pages: `node scripts/migrate-demo-env-shell.mjs`.
+
+Stable ids after mount: `{prefix}SdkConfigFields`, `{prefix}InjectSdkBtn`, `siteCloneBcStyleConfigUrl`, `siteCloneBcDatastreamId`, `siteCloneBc*Toggle`, `siteCloneDecisioningEnabledToggle`, `sandboxSelect`, `generatorTarget`, `aepDemoEnvCompact`, etc.
 
 ### Scripts (iframe site-clone demos — full page)
 
@@ -113,7 +113,7 @@ After `brand-concierge-toggle.js`:
 
 | Page | Status |
 |------|--------|
-| All 19 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, Admiral, Navigator, Race, Donate, Old Mutual ×4, social ×2, Miral ×4) | **Done** — bundle CSS + `initLabDemoEnvBar` |
+| All 22 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, KSIA, Admiral, Navigator, Race, Donate, Old Mutual ×4, Saga, Aviva Target, social ×2, Miral ×4) | **Done** — `site-clone-shell` + bundle CSS + `initLabDemoEnvBar` |
 
 ### Exceptions (not site-clone) {#exceptions-not-site-clone}
 

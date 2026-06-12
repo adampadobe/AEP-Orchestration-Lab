@@ -64,6 +64,8 @@ const SITE_CLONE_DEMO_HTML = [
   'oldmutual-wealth.html',
   'oldmutual-insurance-for-business.html',
   'oldmutual-business-quote-thank-you.html',
+  'saga-demo.html',
+  'aviva-target-demo.html',
   'social/facebook.html',
   'social/tiktok.html',
   'ferrari-world-abu-dhabi/index.html',
@@ -84,6 +86,8 @@ const SITE_CLONE_DEMO_JS = [
   'race-for-life-demo.js',
   'donate-demo.js',
   'oldmutual-demo.js',
+  'saga-demo.js',
+  'demos/aviva-target/aviva-target-lab-core.js',
   'social/facebook-home-demo.js',
   'social/tiktok-demo.js',
   'ferrari-world-abu-dhabi-demo.js',
@@ -165,8 +169,8 @@ for (const rel of ENV_STRIP_EXCEPTION_HTML) {
 for (const rel of walkHtml(pv)) {
   if (SITE_CLONE_DEMO_HTML.includes(rel) || isEnvStripException(rel)) continue;
   const html = read(rel);
-  if (html.includes('data-demo-env-strip-mount="site-clone-tags"')) {
-    fail(`${rel}: site-clone-tags mount but not in SITE_CLONE_DEMO_HTML or env-strip exception allowlist`);
+  if (html.includes('data-demo-env-strip-mount="site-clone-tags"') && !html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
+    fail(`${rel}: site-clone-tags mount without site-clone-shell — use centralized env bar`);
   }
 }
 
@@ -180,8 +184,14 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
     continue;
   }
   const html = fs.readFileSync(abs, 'utf8');
-  if (!html.includes('data-demo-env-strip-mount="site-clone-tags"')) {
-    fail(`${rel}: missing data-demo-env-strip-mount="site-clone-tags"`);
+  if (!html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
+    fail(`${rel}: missing data-demo-env-strip-mount="site-clone-shell" (centralized env bar)`);
+  }
+  if (html.includes('data-demo-env-strip-mount="site-clone-tags"') && !html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
+    fail(`${rel}: legacy site-clone-tags mount without site-clone-shell — run node scripts/migrate-demo-env-shell.mjs`);
+  }
+  if (html.includes('id="aepDemoEnvSection"') && html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
+    fail(`${rel}: inline aepDemoEnvSection with site-clone-shell — env bar must be JS-mounted only`);
   }
   if (!html.includes('shared/demo-env-strip.js')) {
     fail(`${rel}: missing shared/demo-env-strip.js`);
@@ -201,8 +211,8 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   if (!html.includes('aep-demo-id-inner')) {
     fail(`${rel}: missing aep-demo-id-inner on id-inner container`);
   }
-  if (!html.includes('mod-demo-profile-actions')) {
-    fail(`${rel}: profile lookup actions row must include mod-demo-profile-actions (Sky master)`);
+  if (!html.includes('mod-demo-profile-actions') && !html.includes('data-demo-env-strip-mount="site-clone-shell"')) {
+    fail(`${rel}: profile lookup actions row must include mod-demo-profile-actions or site-clone-shell mount`);
   }
   for (const { re, label } of FORBIDDEN_HTML_PATTERNS) {
     if (label && re.test(html)) fail(`${rel}: ${label}`);
@@ -242,6 +252,15 @@ for (const cssFile of walkCss(pv)) {
 const stripJs = fs.readFileSync(path.join(pv, 'shared/demo-env-strip.js'), 'utf8');
 if (!stripJs.includes('mod-demo-tags-company-row" hidden')) {
   fail('shared/demo-env-strip.js: Tags company row must include hidden attribute');
+}
+if (!stripJs.includes('site-clone-shell')) {
+  fail('shared/demo-env-strip.js: must implement site-clone-shell mount');
+}
+if (!stripJs.includes('Adobe Target')) {
+  fail('shared/demo-env-strip.js: Tags block must label Adobe Target datastream section');
+}
+if (!stripJs.includes('mod-demo-profile-actions')) {
+  fail('shared/demo-env-strip.js: shell grid must include mod-demo-profile-actions row');
 }
 
 const bundleCss = read(BUNDLE_CSS);

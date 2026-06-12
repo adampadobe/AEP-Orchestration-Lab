@@ -22,82 +22,15 @@
 
   <header class="om-aep-login-bar" aria-label="AEP profile login">
     <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
-    <div class="om-aep-inner aep-demo-id-inner">
-      <a class="om-wordmark" href="oldmutual-demo.html" title="Old Mutual demo home">
-        <img
-          class="om-wordmark-logo"
-          src="oldmutual-assets/oldmutual-logo-mark.png"
-          width="88"
-          height="104"
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-        >
-        Old Mutual
-      </a>
-      <div class="om-aep-controls om-aep-controls--lab-strip">
-        <section class="aep-demo-env-section om-aep-lab-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div
-                  id="omSdkConfigFieldsMount"
-                  data-demo-env-strip-mount="site-clone-tags"
-                  data-demo-env-strip-prefix="om"
-                  data-demo-env-strip-default-bc-style="miral"
-                ></div>
-                <div class="form-row">
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                </div>
-              </div>
-              <div id="omSdkConfigSummary" class="om-sdk-summary mod-sdk-summary mod-sdk-summary--below-env-grid" hidden>
-                <span id="omSdkConfigSummaryText"></span>
-                <button type="button" id="omChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-              </div>
-            </div>
-            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-            </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section om-aep-lab-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid om-aep-profile-grid">
-            <div class="form-row">
-              <label for="omNs">Namespace</label>
-              <select id="omNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="om-aep-profile-row mod-demo-profile-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Login</button>
-              <button type="button" id="omLogoutBtn" class="btn-lookup om-logout-outline">Log out</button>
-              <span class="om-ecid-hint">ECID: <strong id="infoEcid">—</strong></span>
-              <button type="button" id="omResetVisitorEcidBtn" class="om-reset-ecid-btn" title="Clear demo visitor ECID and mint a new one (best-effort Adobe kndctr cookie clear)">New visitor ECID</button>
-              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-    <p class="om-selected-script-preview" role="status">Selected script: <code id="omSelectedScript">None</code></p>
+          <div class="om-aep-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-prefix="om"
+        data-demo-env-strip-selected-script-id="omSelectedScript"
+        data-demo-env-strip-script-preview-class="mod-demo-script-preview"
+        data-demo-env-strip-message-id="omMessage"
+        data-demo-env-strip-profile-btn-label="Login"
+        data-demo-env-strip-default-bc-style="miral"></div>
+
   </header>
 
   <main class="om-site-frame" aria-label="Insurance for Business inspired layout">
@@ -301,7 +234,7 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+  <script src="shared/demo-env-strip.js?v=20260622-env-shell"></script>
   <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
   <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
   <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>

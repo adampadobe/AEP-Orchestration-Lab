@@ -533,7 +533,7 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 |-------|------------------------|--------|
 | **CSS** | `web/profile-viewer/shared/demo-env-bar.bundle.css` only | Link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly on site-clone demo HTML |
 | **Init** | `shared/demo-env-bar-bootstrap.js` → **`initLabDemoEnvBar({ prefix })`** once in demo JS | Call `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
-| **Markup** | `shared/demo-env-strip.js` — mount points only | Paste inline Tags rows, copy `site-clone-bc-env-strip.fragment.html`, or duplicate `{prefix}SdkConfigFields` HTML |
+| **Markup** | `shared/demo-env-strip.js` — **`data-demo-env-strip-mount="site-clone-shell"`** (one mount per demo) | Paste inline env/profile/Tags HTML, copy `site-clone-bc-env-strip.fragment.html`, or duplicate `{prefix}SdkConfigFields` blocks |
 
 **References:** master page [`web/profile-viewer/sky-demo.html`](web/profile-viewer/sky-demo.html); policy [`docs/demo-env-strip-standard.md`](docs/demo-env-strip-standard.md); verifier [`scripts/verify-demo-env-strip.mjs`](scripts/verify-demo-env-strip.mjs); agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
@@ -544,20 +544,52 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 - Profile lookup column: `aepDemoProfileSection`, `customerEmail`, `queryProfileBtn`, `infoEcid`
 - After mount (per `{prefix}`): `{prefix}SdkConfigFields`, `{prefix}InjectSdkBtn`, `{prefix}SdkConfigSummary`, `{prefix}SelectedScript`; site-clone BC: `siteCloneBcStyleConfigUrl`, `siteCloneBcDatastreamId`, toggles from `data-demo-env-strip-mount="site-clone-bc-prefs"`
 
-**Mount contract (HTML only — no inline Tags block):**
+**Mount contract (HTML only — no inline env bar):**
+
+Every new **site-clone** demo under `web/profile-viewer/` must use a **single shell mount**. `DemoEnvStrip.autoMount()` injects sandbox, Tags, **Adobe Target** (lab datastream override), **Brand Concierge** (style + display modes), **Decisioning** (enable toggle), profile lookup, script preview, and disclaimer footer.
 
 ```html
-<div class="{brand}-demo-id-inner aep-demo-id-inner">
-  …
-  <div id="{prefix}SdkConfigFieldsMount"
-       data-demo-env-strip-mount="site-clone-tags"
-       data-demo-env-strip-prefix="{prefix}"></div>
-  <div class="form-row"><label for="generatorTarget">Event destination</label>
-    <select id="generatorTarget">…</select></div>
-  …
-  <div class="… mod-demo-profile-actions">… queryProfileBtn …</div>
-  <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-</div>
+<div class="{brand}-demo-id-inner aep-demo-id-inner"
+     data-demo-env-strip-mount="site-clone-shell"
+     data-demo-env-strip-prefix="{prefix}"
+     data-demo-env-strip-selected-script-id="{prefix}SelectedScript"
+     data-demo-env-strip-script-preview-class="{brand}-demo-script-preview"
+     data-demo-env-strip-message-id="{prefix}Message"
+     data-demo-env-strip-profile-btn-label="Look up profile"
+     data-demo-env-strip-default-bc-style="miral"
+     data-demo-env-strip-bc-bottom="1"
+     data-demo-env-strip-disclaimer="Optional disclaimer HTML (escape quotes as &quot;)"></div>
+```
+
+| Attribute | Purpose |
+|-----------|---------|
+| `data-demo-env-strip-prefix` | **Required.** Derives `{prefix}Ns`, `{prefix}SdkConfig*`, `SiteCloneDemoEnv` |
+| `data-demo-env-strip-selected-script-id` | Selected Launch script `<code>` id (default `{prefix}SelectedScript`) |
+| `data-demo-env-strip-message-id` | Status line id (default `{prefix}Message`) |
+| `data-demo-env-strip-profile-btn-label` | Profile button label (`Look up profile` or `Login`) |
+| `data-demo-env-strip-default-bc-style` | Optional `miral` / `generic` / `army` for hidden BC style select |
+| `data-demo-env-strip-bc-bottom` | Set `1` when demo supports centre-bottom BC dock (e.g. Sky) |
+| `data-demo-env-strip-decisioning` | Set `0` to hide Decisioning toggle; **shown by default** on site-clone demos |
+| `data-demo-env-strip-disclaimer` | Optional disclaimer HTML injected after the strip |
+
+**Do not** paste `#aepDemoEnvSection`, Tags rows, or `#siteCloneBcPrefsMount` inline — the shell mount generates them. Legacy per-field mounts (`site-clone-tags` / `site-clone-bc-prefs` only) are **retired**; migrate with `node scripts/migrate-demo-env-shell.mjs`.
+
+**Product areas in the shared bar (single source: `shared/demo-env-strip.js`):**
+
+| Product | UI in strip | Stable ids |
+|---------|-------------|------------|
+| **Adobe Target** | Tags column → “Adobe Target” → lab datastream override | `siteCloneBcDatastreamId`, `siteCloneBcDatastreamList` |
+| **Brand Concierge** | Tags column → style configuration; profile column → Full Screen / Modal / Injected (+ optional Centre bottom) | `siteCloneBcStyleConfigUrl`, `siteCloneBcFullScreenToggle`, `siteCloneBcModalToggle`, `siteCloneBcInjectedToggle`, `siteCloneBcBottomDockToggle` |
+| **Decisioning** | Profile column → Enable toggle (when not disabled via `data-demo-env-strip-decisioning="0"`) | `siteCloneDecisioningEnabledToggle` |
+
+Wire Decisioning runtime (`decisioning-profile-module/*`, `initLabDemoEnvBar`) only on demos that use mid-page decisioning (e.g. Sky); the toggle is present on all site-clone demos so behaviour stays consistent.
+
+**Legacy mount contract (deprecated — do not use on new demos):**
+
+```html
+<!-- DEPRECATED — use site-clone-shell instead -->
+<div id="{prefix}SdkConfigFieldsMount" data-demo-env-strip-mount="site-clone-tags" …></div>
+<div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
 ```
 
 `DemoTagsInjection.init` must use `hideTagsCompanyUi: true` and `injectButtonId: '{prefix}InjectSdkBtn'` (not unprefixed `injectSdkBtn`).
@@ -566,7 +598,8 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 
 - Per-demo CSS touching `.aep-demo-env-*`, `#aepDemoProfileSection`, `.aep-demo-profile-section-grid`, `.site-clone-bc-env-strip`, or `grid-template-columns: 1fr 300px`
 - Inline env strip / Tags HTML, legacy `om-aep-env-editor-grid`, `id="injectSdkBtn"` without prefix
-- Missing `shared/demo-env-bar.bundle.css`, `shared/demo-env-bar-bootstrap.js`, `aep-demo-id-inner`, or `data-demo-env-strip-mount="site-clone-tags"`
+- Missing `shared/demo-env-bar.bundle.css`, `shared/demo-env-bar-bootstrap.js`, `aep-demo-id-inner`, or `data-demo-env-strip-mount="site-clone-shell"`
+- Inline `#aepDemoEnvSection` / Tags / BC prefs markup alongside `site-clone-shell`
 
 **Pre-merge:** `npm run verify:demo-env-strip` **must pass on every Profile Viewer PR** (CI runs the same check). The verifier skips [allowlisted non-site-clone pages](#exceptions-not-site-clone) for bundle/bootstrap/mount rules; site-clone demos must still comply. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
 
@@ -620,8 +653,8 @@ Paste into PR description when adding or editing a **lab demo** under `web/profi
 
 ```markdown
 ### Lab demo PR checklist
-- [ ] Site-clone strip: `shared/demo-env-bar.bundle.css` + `initLabDemoEnvBar({ prefix })` (no direct env-bar CSS / no `initStandardEnvBar`)
-- [ ] Tags markup: `data-demo-env-strip-mount="site-clone-tags"` only (no inline Tags HTML); `hideTagsCompanyUi: true`
+- [ ] Site-clone strip: `shared/demo-env-bar.bundle.css` + `initLabDemoEnvBar({ prefix })` + **`data-demo-env-strip-mount="site-clone-shell"`** (no inline env bar HTML)
+- [ ] Tags/BC/Target/Decisioning: injected by `shared/demo-env-strip.js` only; `hideTagsCompanyUi: true`
 - [ ] Stable ids: `sandboxSelect`, `generatorTarget`, `aepDemoProfileSection`, `{prefix}InjectSdkBtn`, `customerEmail`, `queryProfileBtn`
 - [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
 - [ ] `DemoProfileDrawer.init` unchanged contract; drawer edits only in `shared/profile-viewer-modal.js` / `aep-profile-drawer.js`

@@ -27,66 +27,14 @@
 <!-- ── Lab strip (canonical ids) ───────────────────────────── -->
 <div class="social-tiktok-demo-top-anchor">
   <section class="social-tiktok-demo-id-banner" aria-label="AEP lab — TikTok demo">
-    <div class="social-tiktok-demo-id-inner aep-demo-id-inner">
-      <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-        <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-          <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-            <span class="aep-demo-env-kicker">Environment</span>
-            <div class="aep-demo-env-editor-grid">
-              <div class="form-row">
-                <label for="sandboxSelect">Sandbox</label>
-                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                  <option value="">Loading sandboxes…</option>
-                </select>
-              </div>
-              <div
-                  id="tiktokSdkConfigFieldsMount"
-                  data-demo-env-strip-mount="site-clone-tags"
-                  data-demo-env-strip-prefix="tiktok"
-                ></div>
-                <div class="form-row">
-                <label for="generatorTarget">Event destination</label>
-                <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-              </div>
-            </div>
-            <div id="tiktokSdkConfigSummary" class="tiktok-sdk-summary mod-sdk-summary--below-env-grid" hidden>
-              <span id="tiktokSdkConfigSummaryText"></span>
-              <button type="button" id="tiktokChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-            </div>
-          </div>
-          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-          </div>
-        </div>
-      </section>
-      <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-        <span class="aep-demo-env-kicker">Profile lookup</span>
-        <div class="aep-demo-profile-section-grid">
-          <div class="form-row">
-            <label for="tiktokNs">Namespace</label>
-            <select id="tiktokNs" class="sandbox-select" aria-label="Identity namespace">
-              <option value="email">Email</option>
-              <option value="ecid">ECID</option>
-              <option value="crmId">CRM ID</option>
-              <option value="loyaltyId">Loyalty ID</option>
-              <option value="phone">Phone</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label for="customerEmail">Identifier value</label>
-            <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false" />
-          </div>
-          <div class="social-tiktok-demo-id-actions mod-demo-profile-actions">
-            <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-            <span class="social-tiktok-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-          </div>
-        </div>
-      </section>
-    </div>
-    <p class="social-tiktok-demo-script-preview">Selected script: <code id="tiktokSelectedScript">None</code></p>
-    <p id="tiktokMessage" class="social-tiktok-demo-message" role="status" aria-live="polite" hidden></p>
+          <div class="social-tiktok-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-prefix="tiktok"
+        data-demo-env-strip-selected-script-id="tiktokSelectedScript"
+        data-demo-env-strip-script-preview-class="social-tiktok-demo-script-preview"
+        data-demo-env-strip-message-id="tiktokMessage"
+        data-demo-env-strip-profile-btn-label="Look up profile"></div>
+
   </section>
 </div>
 
@@ -434,7 +382,7 @@
 <script src="../shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="../aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
 <script src="../aep-demo-web-push.js?v=20260512-lab-push"></script>
-<script src="../shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+<script src="../shared/demo-env-strip.js?v=20260622-env-shell"></script>
   <script src="../shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
   <script src="../demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
 <script src="../aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>

@@ -28,69 +28,15 @@
   <!-- Lab identity strip: hover top edge to reveal (same pattern as British Army demo) -->
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
-      <div class="mod-demo-id-inner aep-demo-id-inner">
-        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div
-                  id="navigatorSdkConfigFieldsMount"
-                  data-demo-env-strip-mount="site-clone-tags"
-                  data-demo-env-strip-prefix="navigator"
-                ></div>
-                <div class="form-row">
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                </div>
-              </div>
-              <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="navigatorSdkConfigSummary" hidden>
-                <span id="navigatorSdkConfigSummaryText"></span>
-                <button type="button" id="navigatorChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-              </div>
-            </div>
-          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-          </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid">
-            <div class="form-row">
-              <label for="modNs">Namespace</label>
-              <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="mod-demo-id-actions mod-demo-profile-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-      <p class="mod-demo-script-preview">Selected script: <code id="navigatorSelectedScript">None</code></p>
-      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">
-        Embedded snapshot (saved HTML + asset folder from browser export). Imagery may load from Navigator Global / Scene7 CDNs where the save did not include local copies. Not affiliated with Navigator Global or Santander UK.
-      </p>
+            <div class="mod-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-prefix="navigator"
+        data-demo-env-strip-selected-script-id="navigatorSelectedScript"
+        data-demo-env-strip-script-preview-class="mod-demo-script-preview"
+        data-demo-env-strip-message-id="modMessage"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="Embedded snapshot (saved HTML + asset folder from browser export). Imagery may load from Navigator Global / Scene7 CDNs where the save did not include local copies. Not affiliated with Navigator Global or Santander UK."></div>
+
       <div class="navigator-demo-flow" role="group" aria-label="Demo-only signals for sector, membership, and webinar">
         <span class="navigator-demo-flow-label">Demo flow</span>
         <button type="button" class="navigator-demo-flow-btn" data-ng-demo-event="sector-alcohol">Alcohol sector page</button>
@@ -146,7 +92,7 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+  <script src="shared/demo-env-strip.js?v=20260622-env-shell"></script>
   <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
   <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
   <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>

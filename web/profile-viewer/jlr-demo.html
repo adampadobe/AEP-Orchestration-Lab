@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JLR (demo) – AEP Profile Viewer</title>
+  <title>JLR (demo) ï¿½ AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,69 +33,15 @@
 <body class="mod-demo-page jlr-demo-page home-dashboard-concierge">
   <div class="mod-demo-top-anchor" id="jlrDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
-      <div class="mod-demo-id-inner aep-demo-id-inner">
-        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div
-                  id="jlrSdkConfigFieldsMount"
-                  data-demo-env-strip-mount="site-clone-tags"
-                  data-demo-env-strip-prefix="jlr"
-                ></div>
-                <div class="form-row">
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                </div>
-              </div>
-              <div id="jlrSdkConfigSummary" class="mod-sdk-summary mod-sdk-summary--below-env-grid" hidden>
-                <span id="jlrSdkConfigSummaryText"></span>
-                <button type="button" id="jlrChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-              </div>
-            </div>
-            <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-              <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-              <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-            </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid">
-            <div class="form-row">
-              <label for="jlrNs">Namespace</label>
-              <select id="jlrNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="mod-demo-profile-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-      <p class="mod-demo-script-preview">Selected script: <code id="jlrSelectedScript">None</code></p>
-      <p id="jlrMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">
-        Embedded snapshot (saved HTML + local asset folder from browser export). Hero video, imagery and fonts may still load from <a href="https://www.jlr.com/" target="_blank" rel="noopener">jlr.com</a> CDNs where the save did not include local copies. Not affiliated with JLR.
-      </p>
+            <div class="mod-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-prefix="jlr"
+        data-demo-env-strip-selected-script-id="jlrSelectedScript"
+        data-demo-env-strip-script-preview-class="mod-demo-script-preview"
+        data-demo-env-strip-message-id="jlrMessage"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="Embedded snapshot (saved HTML + local asset folder from browser export). Hero video, imagery and fonts may still load from <a href=&quot;https://www.jlr.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>jlr.com</a> CDNs where the save did not include local copies. Not affiliated with JLR."></div>
+
     </div>
   </div>
 
@@ -106,7 +52,7 @@
   <iframe
     id="jlrDemoSiteFrame"
     class="mod-demo-site-frame"
-    title="JLR — corporate homepage snapshot (embedded)"
+    title="JLR ï¿½ corporate homepage snapshot (embedded)"
     src="jlr-demo-assets/jlr-home-snapshot.html"
     referrerpolicy="no-referrer-when-downgrade"
     sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
@@ -169,7 +115,7 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+  <script src="shared/demo-env-strip.js?v=20260622-env-shell"></script>
   <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
   <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
   <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
@@ -192,7 +138,7 @@
   <script src="jlr-demo.js?v=20260529-jlr-demo"></script>
   <script src="site-clone-bc.js?v=20260529-jlr-demo"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">ï¿½</button>
   </div>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
