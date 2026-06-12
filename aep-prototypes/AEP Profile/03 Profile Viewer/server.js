@@ -15,6 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const requireCjs = createRequire(import.meta.url);
 /** Canonical streaming path routing + language mirror (keep in sync with Firebase `functions/profileStreamingCore.js`). */
 const profileStreamingCore = requireCjs(join(__dirname, '../../../functions/profileStreamingCore.js'));
+const tagsReactorService = requireCjs(join(__dirname, '../../../functions/tagsReactorService.js'));
 const { deriveEventChannel } = requireCjs(join(__dirname, '../../../functions/profileEventChannel.js'));
 dotenv.config({ path: join(__dirname, '.env') });
 
@@ -2585,6 +2586,41 @@ app.get('/api/sandboxes', async (req, res) => {
     res.json({ sandboxes });
   } catch (err) {
     res.status(500).json({ error: err.message, sandboxes: [] });
+  }
+});
+
+/** GET /api/tags/reactor — Reactor JSON:API proxy (companies, properties, environments). Parity with Firebase tagsReactorProxy. */
+app.get('/api/tags/reactor', async (req, res) => {
+  try {
+    const sandbox = (req.query.sandbox || '').trim() || undefined;
+    const resource = String(req.query.resource || 'companies').trim().toLowerCase();
+    const companyId = String(req.query.companyId || '').trim();
+    const propertyId = String(req.query.propertyId || '').trim();
+    const { token, config, cfg } = await getAuthForSandbox(sandbox);
+    const clientId = cfg.clientId;
+    const orgId = config.orgId;
+
+    if (resource === 'companies') {
+      const r = await tagsReactorService.listCompanies(token, clientId, orgId);
+      return res.status(200).json({ ok: r.ok, sandbox: sandbox || '', resource: 'companies', ...r });
+    }
+    if (resource === 'properties') {
+      if (!companyId) {
+        return res.status(400).json({ ok: false, error: 'companyId query param is required for resource=properties', sandbox: sandbox || '' });
+      }
+      const r = await tagsReactorService.listProperties(token, clientId, orgId, companyId);
+      return res.status(200).json({ ok: r.ok, sandbox: sandbox || '', resource: 'properties', companyId, ...r });
+    }
+    if (resource === 'environments') {
+      if (!propertyId) {
+        return res.status(400).json({ ok: false, error: 'propertyId query param is required for resource=environments', sandbox: sandbox || '' });
+      }
+      const r = await tagsReactorService.listEnvironments(token, clientId, orgId, propertyId);
+      return res.status(200).json({ ok: r.ok, sandbox: sandbox || '', resource: 'environments', propertyId, ...r });
+    }
+    return res.status(400).json({ ok: false, error: `Unsupported resource: ${resource}`, sandbox: sandbox || '' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message || String(err) });
   }
 });
 

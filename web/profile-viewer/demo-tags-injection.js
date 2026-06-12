@@ -1397,14 +1397,20 @@
     }
 
     function scheduleTagsBootRetry() {
+      function stopRetry() {
+        document.removeEventListener('DOMContentLoaded', retry);
+        global.removeEventListener('aep-demo-env-strip-mounted', retry);
+        global.removeEventListener('env-bar-change', onEnvBarChange);
+      }
       function retry() {
-        if (runTagsBoot()) {
-          document.removeEventListener('DOMContentLoaded', retry);
-          global.removeEventListener('aep-demo-env-strip-mounted', retry);
-        }
+        if (runTagsBoot()) stopRetry();
+      }
+      function onEnvBarChange(ev) {
+        if (ev && ev.detail && ev.detail.type === 'init') retry();
       }
       document.addEventListener('DOMContentLoaded', retry);
       global.addEventListener('aep-demo-env-strip-mounted', retry);
+      global.addEventListener('env-bar-change', onEnvBarChange);
     }
 
     if (!runTagsBoot()) {

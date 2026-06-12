@@ -5,7 +5,16 @@
 (function (global) {
   'use strict';
 
+  /** @type {ReturnType<typeof buildKsiaLab>|null} */
+  var ksiaLabSingleton = null;
+
   function initKsiaLab(options) {
+    if (ksiaLabSingleton) return ksiaLabSingleton;
+    ksiaLabSingleton = buildKsiaLab(options);
+    return ksiaLabSingleton;
+  }
+
+  function buildKsiaLab(options) {
     options = options || {};
     var iframeIds = Array.isArray(options.iframeIds) ? options.iframeIds : ['ksiaSiteFrame'];
 
@@ -63,45 +72,65 @@
       );
     }
 
-    var ksiaTagsInjection =
-      typeof global.DemoTagsInjection !== 'undefined'
-        ? global.DemoTagsInjection.init({
-            storagePrefix: 'ksia',
-            identityEventType: 'ksia.identity.stitch',
-            messageSetter: setKsiaMessage,
-            infoEcidId: 'infoEcid',
-            tagsCompanyId: 'ksiaTagsCompany',
-            tagsPropertyInputId: 'ksiaTagsProperty',
-            tagsPropertyListId: 'ksiaTagsPropertyList',
-            tagsEnvironmentId: 'ksiaTagsEnvironment',
-            injectButtonId: 'ksiaInjectSdkBtn',
-            selectedScriptId: 'ksiaSelectedScript',
-            configFieldsId: 'ksiaSdkConfigFields',
-            configSummaryId: 'ksiaSdkConfigSummary',
-            configSummaryTextId: 'ksiaSdkConfigSummaryText',
-            changeConfigButtonId: 'ksiaChangeSdkConfigBtn',
-            getSelectedGeneratorTarget: getSelectedGeneratorTarget,
-            getEmail: getEmail,
-            iframeIds: iframeIds,
-            hideTagsCompanyUi: true,
-            webPush: {
-              enabled: true,
-              subscribeAfterInject: ksiaWebPushOnInjectDesired,
-              requestPermissionOnInject: ksiaWebPushOnInjectDesired,
-            },
-            brandConcierge: {
-              enabled: function () {
-                return !!(ksiaBcOnInjectToggle && ksiaBcOnInjectToggle.checked);
-              },
-              styleKey: function () {
-                return ksiaBcStyleSelect ? ksiaBcStyleSelect.value : 'miral';
-              },
-              suppressEnable: function () {
-                return !!global.__siteCloneSuppressBcEnable;
-              },
-            },
-          })
-        : null;
+    /** @type {ReturnType<typeof global.DemoTagsInjection.init>|null} */
+    var ksiaTagsInjection = null;
+
+    function startTagsInjection() {
+      if (ksiaTagsInjection) return ksiaTagsInjection;
+      if (typeof global.DemoTagsInjection === 'undefined') {
+        if (global.envBar && typeof global.envBar.onChange === 'function') {
+          var unsubTags = global.envBar.onChange(function (detail) {
+            if (detail && detail.type === 'init' && typeof global.DemoTagsInjection !== 'undefined') {
+              unsubTags();
+              startTagsInjection();
+            }
+          });
+        }
+        return null;
+      }
+      ksiaTagsInjection = global.DemoTagsInjection.init({
+        storagePrefix: 'ksia',
+        identityEventType: 'ksia.identity.stitch',
+        messageSetter: setKsiaMessage,
+        infoEcidId: 'infoEcid',
+        tagsCompanyId: 'ksiaTagsCompany',
+        tagsPropertyInputId: 'ksiaTagsProperty',
+        tagsPropertyListId: 'ksiaTagsPropertyList',
+        tagsEnvironmentId: 'ksiaTagsEnvironment',
+        injectButtonId: 'ksiaInjectSdkBtn',
+        selectedScriptId: 'ksiaSelectedScript',
+        configFieldsId: 'ksiaSdkConfigFields',
+        configSummaryId: 'ksiaSdkConfigSummary',
+        configSummaryTextId: 'ksiaSdkConfigSummaryText',
+        changeConfigButtonId: 'ksiaChangeSdkConfigBtn',
+        getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+        getEmail: getEmail,
+        iframeIds: iframeIds,
+        hideTagsCompanyUi: true,
+        webPush: {
+          enabled: true,
+          subscribeAfterInject: ksiaWebPushOnInjectDesired,
+          requestPermissionOnInject: ksiaWebPushOnInjectDesired,
+        },
+        brandConcierge: {
+          enabled: function () {
+            return !!(ksiaBcOnInjectToggle && ksiaBcOnInjectToggle.checked);
+          },
+          styleKey: function () {
+            return ksiaBcStyleSelect ? ksiaBcStyleSelect.value : 'miral';
+          },
+          suppressEnable: function () {
+            return !!global.__siteCloneSuppressBcEnable;
+          },
+        },
+      });
+      if (ksiaTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
+        global.envBar.registerTagsInjection(ksiaTagsInjection);
+      }
+      return ksiaTagsInjection;
+    }
+
+    startTagsInjection();
 
     var ksiaWebPushRetryBtn = document.getElementById('ksiaWebPushRetryBtn');
     if (ksiaWebPushRetryBtn && typeof global.AepDemoWebPush !== 'undefined') {
@@ -188,10 +217,6 @@
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,
         fetchBrowserEcidOnInit: true,
       });
-    }
-
-    if (ksiaTagsInjection && global.envBar && typeof global.envBar.registerTagsInjection === 'function') {
-      global.envBar.registerTagsInjection(ksiaTagsInjection);
     }
 
     return { tagsInjection: ksiaTagsInjection, setMessage: setKsiaMessage, getSelectedGeneratorTarget: getSelectedGeneratorTarget };

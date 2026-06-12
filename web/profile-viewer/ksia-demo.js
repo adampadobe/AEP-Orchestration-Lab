@@ -25,19 +25,37 @@ function syncIframeToJourneyUrl() {
 }
 
 var ksiaLab = null;
+var ksiaLabBootStarted = false;
 
 function bootKsiaDemoLab() {
-  ksiaLab =
-    typeof window.initKsiaLab === 'function'
-      ? window.initKsiaLab({ iframeIds: ['ksiaSiteFrame'] })
-      : null;
+  if (ksiaLabBootStarted && ksiaLab) return;
+  if (typeof window.initKsiaLab !== 'function') return;
+  if (typeof window.DemoTagsInjection === 'undefined') {
+    if (window.envBar && typeof window.envBar.onChange === 'function') {
+      window.envBar.onChange(function (detail) {
+        if (detail && detail.type === 'init' && typeof window.DemoTagsInjection !== 'undefined') {
+          bootKsiaDemoLab();
+        }
+      });
+    }
+    return;
+  }
+  ksiaLabBootStarted = true;
+  ksiaLab = window.initKsiaLab({ iframeIds: ['ksiaSiteFrame'] });
 }
 
-if (window.envBar && typeof window.envBar.ready === 'function') {
-  window.envBar.ready().then(bootKsiaDemoLab);
-} else {
-  bootKsiaDemoLab();
+function whenEnvBarReady(run) {
+  if (window.envBar && typeof window.envBar.ready === 'function') {
+    window.envBar.ready().then(run).catch(function (err) {
+      console.warn('[ksia-demo] envBar.ready failed', err);
+      run();
+    });
+  } else {
+    run();
+  }
 }
+
+whenEnvBarReady(bootKsiaDemoLab);
 
 function setKsiaMessage(text, type) {
   if (ksiaLab && typeof ksiaLab.setMessage === 'function') {
