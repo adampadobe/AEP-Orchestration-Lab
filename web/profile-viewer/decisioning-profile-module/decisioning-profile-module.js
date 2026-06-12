@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260613';
+  var CACHE_BUST = '20260620';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -676,6 +676,24 @@
       } catch (_e) {}
     }
 
+    function patchLocalProfileCaches(form, updates) {
+      if (
+        typeof global.DemoProfileDrawer !== 'undefined' &&
+        typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function'
+      ) {
+        var partial = {};
+        if (form.propensity !== '') partial.propensityScore = Math.round(Number(form.propensity));
+        if (form.churn !== '') partial.churnPrediction = Math.round(Number(form.churn));
+        if (form.nps !== '') partial.npsScore = Math.round(Number(form.nps));
+        if (form.tier) partial.loyaltyStatus = form.tier;
+        if (form.channel) partial.preferredMarketingChannel = form.channel;
+        global.DemoProfileDrawer.patchLastProfileOrUpdate(partial);
+      }
+      if (typeof profileApi.patchLastUpsClientData === 'function' && updates && updates.length) {
+        profileApi.patchLastUpsClientData(updates);
+      }
+    }
+
     function hydrateFromProfile() {
       var drawer = getDrawerProfile();
       var entity = null;
@@ -683,12 +701,10 @@
         entity = extractEntityFromUps(profileApi.getLastUpsClientData());
       }
 
-      var nps =
-        drawer && drawer.npsScore != null && drawer.npsScore !== ''
-          ? Number(drawer.npsScore)
-          : entity
-            ? readNpsFromEntity(entity)
-            : null;
+      var nps = entity ? readNpsFromEntity(entity) : null;
+      if ((nps == null || Number.isNaN(nps)) && drawer && drawer.npsScore != null && drawer.npsScore !== '') {
+        nps = Number(drawer.npsScore);
+      }
       var npsEl = $('cdMicroProfileNps');
       if (npsEl) {
         npsEl.value =
@@ -698,19 +714,15 @@
       var lang = entity ? readLanguageFromEntity(entity) : '';
       setSelectFromProfileValue($('cdMicroProfileLanguage'), lang, lang);
 
-      var chPref =
-        drawer && drawer.preferredMarketingChannel
-          ? drawer.preferredMarketingChannel
-          : entity
-            ? readPreferredChannelFromEntity(entity)
-            : '';
+      var chPref = entity ? readPreferredChannelFromEntity(entity) : '';
+      if (!chPref && drawer && drawer.preferredMarketingChannel) chPref = drawer.preferredMarketingChannel;
       setSelectFromProfileValue($('cdMicroProfileChannel'), chPref, chPref);
 
       var inLoyalty = profileInLoyaltyScheme(entity, drawer);
       setLoyaltyUiEnabled(inLoyalty);
 
-      var tierStr =
-        drawer && drawer.loyaltyStatus ? String(drawer.loyaltyStatus).trim() : entity ? readTierFromEntity(entity) : '';
+      var tierStr = entity ? readTierFromEntity(entity) : '';
+      if (!tierStr && drawer && drawer.loyaltyStatus) tierStr = String(drawer.loyaltyStatus).trim();
       var tierEl = $('cdMicroProfileTier');
       if (tierEl && inLoyalty) {
         tierEl.value = String(tierIndexFromMetalName(tierStr));
@@ -731,12 +743,10 @@
         }
       }
 
-      var pr =
-        drawer && drawer.propensityScore != null && drawer.propensityScore !== ''
-          ? Number(drawer.propensityScore)
-          : entity
-            ? readPropensityFromEntity(entity)
-            : null;
+      var pr = entity ? readPropensityFromEntity(entity) : null;
+      if ((pr == null || Number.isNaN(pr)) && drawer && drawer.propensityScore != null && drawer.propensityScore !== '') {
+        pr = Number(drawer.propensityScore);
+      }
       var prEl = $('cdMicroProfilePropensity');
       if (prEl) {
         prEl.value =
@@ -745,12 +755,10 @@
             : MICRO_RANGE_DEFAULTS.cdMicroProfilePropensity;
       }
 
-      var ch =
-        drawer && drawer.churnPrediction != null && drawer.churnPrediction !== ''
-          ? Number(drawer.churnPrediction)
-          : entity
-            ? readChurnFromEntity(entity)
-            : null;
+      var ch = entity ? readChurnFromEntity(entity) : null;
+      if ((ch == null || Number.isNaN(ch)) && drawer && drawer.churnPrediction != null && drawer.churnPrediction !== '') {
+        ch = Number(drawer.churnPrediction);
+      }
       var chEl = $('cdMicroProfileChurn');
       if (chEl) {
         chEl.value =
@@ -944,6 +952,7 @@
           return;
         }
         setStatus('Updated. Re-run decision to see new result.', 'ok');
+        patchLocalProfileCaches(form, updates);
         setMicroBaselineFromDom();
       } catch (e) {
         setStatus(String(e && e.message ? e.message : e), 'error');
@@ -1054,7 +1063,7 @@
 
     global.addEventListener('decisioning-profile-updated', function (ev) {
       refreshStateDot();
-      if (ev && ev.detail && ev.detail.ok) hydrateFromProfile();
+      if (ev && ev.detail && ev.detail.ok && !ev.detail.skipHydrate) hydrateFromProfile();
     });
 
     return { refresh: refreshStateDot, hydrate: hydrateFromProfile };

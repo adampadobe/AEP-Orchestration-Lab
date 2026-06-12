@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260615';
+  var CACHE_BUST = '20260620';
 
   var config = null;
   var lastUpsClientData = null;
@@ -112,7 +112,7 @@
         return false;
       }
       lastProfileEcid = extractEcidFromUps(data);
-      dispatchUpdated({ ok: true, ecid: lastProfileEcid });
+      dispatchUpdated({ ok: true, ecid: lastProfileEcid, skipHydrate: !!opts.skipHydrate });
       return true;
     } catch (e) {
       lastUpsClientData = null;
@@ -198,12 +198,47 @@
     });
   }
 
+  function setEntityPath(entity, path, value) {
+    if (!entity || !path) return;
+    var parts = String(path).split('.');
+    if (!parts.length) return;
+    var cur = entity;
+    var i;
+    for (i = 0; i < parts.length - 1; i++) {
+      var key = parts[i];
+      if (!cur[key] || typeof cur[key] !== 'object' || Array.isArray(cur[key])) cur[key] = {};
+      cur = cur[key];
+    }
+    cur[parts[parts.length - 1]] = value;
+  }
+
+  function patchLastUpsClientData(updates) {
+    if (!lastUpsClientData || !updates || !updates.length) return;
+    var entity = null;
+    if (
+      typeof global.DecisioningProfileModule !== 'undefined' &&
+      typeof global.DecisioningProfileModule.extractEntityFromUps === 'function'
+    ) {
+      entity = global.DecisioningProfileModule.extractEntityFromUps(lastUpsClientData);
+    }
+    if (!entity) return;
+    var ui;
+    for (ui = 0; ui < updates.length; ui++) {
+      var u = updates[ui];
+      if (u && u.path) setEntityPath(entity, u.path, u.value);
+    }
+  }
+
   async function runContentDecision() {
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
     await ensureLabConfigLoaded();
     ensureMounts();
-    var ok = await runProfileLookup({ silent: true });
-    if (!ok) throw new Error('Profile lookup failed — enter an identifier and look up profile first.');
+    if (!lastUpsClientData || !isUpsOk(lastUpsClientData)) {
+      var ok = await runProfileLookup({ silent: true });
+      if (!ok) throw new Error('Profile lookup failed — enter an identifier and look up profile first.');
+    } else if (!lastProfileEcid) {
+      lastProfileEcid = extractEcidFromUps(lastUpsClientData);
+    }
     var alloyFn = await waitForAlloy();
     var idVal =
       typeof cfg('getIdentifierValue') === 'function' ? String(cfg('getIdentifierValue')() || '').trim() : '';
@@ -252,7 +287,7 @@
       log('applyPropositions', String(e && e.message ? e.message : e));
     }
     applyPropositionsToIframe(propositions);
-    dispatchUpdated({ ok: true, propositionCount: propositions.length });
+    dispatchUpdated({ ok: true, propositionCount: propositions.length, skipHydrate: true });
     return result;
   }
 
@@ -293,6 +328,7 @@
         return lastProfileEcid;
       },
       runProfileLookup: runProfileLookup,
+      patchLastUpsClientData: patchLastUpsClientData,
       runContentDecision: runContentDecision,
       ensureMounts: ensureMounts,
       removeMounts: removeMounts,

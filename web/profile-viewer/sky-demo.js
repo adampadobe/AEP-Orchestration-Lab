@@ -156,6 +156,9 @@ queryProfileBtn &&
         : null;
     const stitched = await skyTagsInjection.stitchAfterProfileLookup(profile, email);
     if (stitched) setSkyMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+    if (typeof window.__skyDemoSyncDecisioningProfile === 'function') {
+      await window.__skyDemoSyncDecisioningProfile();
+    }
   });
 
 void loadGeneratorTargets();
@@ -318,24 +321,21 @@ DemoProfileDrawer.init({
     });
   }
 
-  var queryBtn = document.getElementById('queryProfileBtn');
-  if (queryBtn) {
-    queryBtn.addEventListener(
-      'click',
-      function () {
-        window.setTimeout(function () {
-          if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
-            dpmPanelHandle.moduleHandle.hydrate();
-          }
-        }, 900);
-        if (!isDecisioningEnabled() || !runtimeApi || typeof runtimeApi.runProfileLookup !== 'function') return;
-        window.setTimeout(function () {
-          void runtimeApi.runProfileLookup({ silent: true });
-        }, 800);
-      },
-      false,
-    );
-  }
+  window.__skyDemoSyncDecisioningProfile = async function syncDecisioningProfileFromLookup() {
+    if (!isDecisioningEnabled()) {
+      if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
+        dpmPanelHandle.moduleHandle.hydrate();
+      }
+      return;
+    }
+    if (runtimeApi && typeof runtimeApi.runProfileLookup === 'function') {
+      await runtimeApi.runProfileLookup({ silent: true });
+      return;
+    }
+    if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
+      dpmPanelHandle.moduleHandle.hydrate();
+    }
+  };
 
   var bottomToggle = document.getElementById('siteCloneBcBottomDockToggle');
   if (bottomToggle) {
