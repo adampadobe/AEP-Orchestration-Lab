@@ -1,0 +1,14 @@
+{
+  "gitSha": "ac0a6ec90c3aa5e1a8b1a4bb7c394ba3a29d51ca",
+  "gitShortSha": "ac0a6ec9",
+  "gitBranch": "main",
+  "gitCommitSubject": "[apalmer] feat: env bar audit remediation — loader-only BC, Firestore config API, verifiers",
+  "gitCommitAuthor": "adampadobe",
+  "gitCommitDate": "2026-06-12T22:36:46+01:00",
+  "deployedAt": "2026-06-12T21:37:15.043Z",
+  "deployedBy": "adampadobe",
+  "aheadOfOrigin": 0,
+  "behindOrigin": 0,
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/ac0a6ec90c3aa5e1a8b1a4bb7c394ba3a29d51ca"
+}
