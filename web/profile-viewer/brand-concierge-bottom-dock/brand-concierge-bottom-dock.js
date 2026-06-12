@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260612';
+  var CACHE_BUST = '20260613';
   var SPARKLE_SVG =
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l1.2 4.2L17 8l-3.8 1.8L12 14l-1.2-4.2L7 8l3.8-1.8L12 2z" fill="currentColor"/></svg>';
 
@@ -30,10 +30,6 @@
 
     var root = el('div', 'bc-bottom-dock is-hidden');
     root.id = 'bcBottomDockRoot';
-
-    var dismissDock = el('button', 'bc-bottom-dock__dismiss-dock', '&times;');
-    dismissDock.type = 'button';
-    dismissDock.setAttribute('aria-label', 'Hide assistant dock');
 
     var panel = el('div', 'bc-bottom-dock__panel');
     panel.setAttribute('role', 'region');
@@ -88,7 +84,6 @@
     dock.appendChild(dockInputWrap);
     dock.appendChild(dockActions);
 
-    root.appendChild(dismissDock);
     root.appendChild(panel);
     root.appendChild(dock);
     document.body.appendChild(root);
@@ -117,9 +112,6 @@
     });
     closeBtn.addEventListener('click', function () {
       setExpanded(false);
-    });
-    dismissDock.addEventListener('click', function () {
-      setVisible(false);
     });
 
     dockInput.addEventListener('keydown', function (e) {

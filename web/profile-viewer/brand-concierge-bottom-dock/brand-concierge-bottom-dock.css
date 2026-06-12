@@ -28,31 +28,10 @@
   display: none !important;
 }
 
-.bc-bottom-dock__dismiss-dock {
-  position: absolute;
-  top: -0.65rem;
-  right: 0.35rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--dash-surface-alt);
-  color: var(--bc-bottom-dock-muted);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  pointer-events: auto;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--dash-text) 12%, transparent);
-}
-
-.bc-bottom-dock__dismiss-dock:hover {
-  background: var(--dash-hover);
-}
-
 .bc-bottom-dock__dock {
   display: flex;
   align-items: stretch;
-  min-height: 3.25rem;
+  min-height: 6.5rem;
   border: 1px solid var(--bc-bottom-dock-border);
   border-radius: 999px;
   background: var(--bc-bottom-dock-surface);
@@ -99,12 +78,24 @@
 
 .bc-bottom-dock__dock-input {
   width: 100%;
+  min-height: 3.25rem;
   border: none;
   background: transparent;
   font-size: 0.92rem;
   color: var(--dash-text);
   outline: none;
   font-family: inherit;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount {
+  --input-height: 6.5rem;
+  --input-height-mobile: 6.5rem;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount textarea,
+.bc-bottom-dock__mount #brand-concierge-mount input[type='text'],
+.bc-bottom-dock__mount #brand-concierge-mount .input-container {
+  min-height: 6.5rem;
 }
 
 .bc-bottom-dock__dock-input::placeholder {

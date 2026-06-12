@@ -5,7 +5,9 @@
 .site-clone-bc-inline #brand-concierge-mount .input-section,
 #siteCloneBcModalMount .input-section,
 #siteCloneBcFrameMount .input-section,
-.site-clone-bc-frame-host #siteCloneBcFrameMount .input-section {
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-section,
+#bcBottomDockMount .input-section,
+.bc-bottom-dock__mount #brand-concierge-mount .input-section {
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -18,7 +20,9 @@
 .site-clone-bc-inline #brand-concierge-mount .input-container,
 #siteCloneBcModalMount .input-container,
 #siteCloneBcFrameMount .input-container,
-.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container {
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container,
+#bcBottomDockMount .input-container,
+.bc-bottom-dock__mount #brand-concierge-mount .input-container {
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -36,7 +40,9 @@
 .site-clone-bc-inline #brand-concierge-mount .input-container .disclaimer-message,
 #siteCloneBcModalMount .input-container .disclaimer-message,
 #siteCloneBcFrameMount .input-container .disclaimer-message,
-.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container .disclaimer-message {
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container .disclaimer-message,
+#bcBottomDockMount .input-container .disclaimer-message,
+.bc-bottom-dock__mount #brand-concierge-mount .input-container .disclaimer-message {
   flex: 1 1 100% !important;
   order: 99 !important;
   position: static !important;
@@ -61,7 +67,9 @@
 .site-clone-bc-inline #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external,
 #siteCloneBcModalMount .disclaimer-message.embed-bc-disclaimer-external,
 #siteCloneBcFrameMount .disclaimer-message.embed-bc-disclaimer-external,
-.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-message.embed-bc-disclaimer-external {
+.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-message.embed-bc-disclaimer-external,
+#bcBottomDockMount .disclaimer-message.embed-bc-disclaimer-external,
+.bc-bottom-dock__mount #brand-concierge-mount .disclaimer-message.embed-bc-disclaimer-external {
   position: static;
   transform: none;
   left: auto;
@@ -80,6 +88,8 @@
 .site-clone-bc-inline #brand-concierge-mount .disclaimer-link,
 #siteCloneBcModalMount .disclaimer-link,
 #siteCloneBcFrameMount .disclaimer-link,
-.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-link {
+.site-clone-bc-frame-host #siteCloneBcFrameMount .disclaimer-link,
+#bcBottomDockMount .disclaimer-link,
+.bc-bottom-dock__mount #brand-concierge-mount .disclaimer-link {
   color: inherit;
 }

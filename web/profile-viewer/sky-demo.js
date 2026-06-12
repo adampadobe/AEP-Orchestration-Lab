@@ -300,12 +300,12 @@ DemoProfileDrawer.init({
     });
   }
 
+  var dpmPanelHandle = null;
   if (typeof window.DecisioningProfilePanel !== 'undefined') {
-    window.DecisioningProfilePanel.init({
+    dpmPanelHandle = window.DecisioningProfilePanel.init({
       isEnabled: isDecisioningEnabled,
       enabledToggleId: 'siteCloneDecisioningEnabledToggle',
       moduleOptions: {
-        idPrefix: 'dpm',
         getIdentifierValue: getEmail,
         getNamespace: getNamespace,
         getSandboxName: getSandboxName,
@@ -319,6 +319,11 @@ DemoProfileDrawer.init({
     queryBtn.addEventListener(
       'click',
       function () {
+        window.setTimeout(function () {
+          if (dpmPanelHandle && dpmPanelHandle.moduleHandle && typeof dpmPanelHandle.moduleHandle.hydrate === 'function') {
+            dpmPanelHandle.moduleHandle.hydrate();
+          }
+        }, 900);
         if (!isDecisioningEnabled() || !runtimeApi || typeof runtimeApi.runProfileLookup !== 'function') return;
         window.setTimeout(function () {
           void runtimeApi.runProfileLookup({ silent: true });

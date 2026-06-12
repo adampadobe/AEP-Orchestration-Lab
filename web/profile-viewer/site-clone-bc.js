@@ -775,7 +775,7 @@
 
   function bindBcMountRepatch(win, doc) {
     if (!win || !doc) return;
-    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount').forEach(function (mount) {
+    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
       if (mount.__siteCloneBcRepatchBound) return;
       mount.__siteCloneBcRepatchBound = true;
       mount.addEventListener(
@@ -969,7 +969,7 @@
     if (!doc) return;
     function run() {
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount').forEach(function (mount) {
+        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
           global.repositionArmyBcDisclaimer(mount);
         });
       }

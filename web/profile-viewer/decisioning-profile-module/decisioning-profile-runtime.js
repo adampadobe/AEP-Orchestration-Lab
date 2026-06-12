@@ -6,9 +6,9 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260612';
-  var OVERLAY_ID = 'dpmDecisioningOverlay';
-  var OVERLAY_STYLE_ID = 'dpmDecisioningOverlayStyle';
+  var CACHE_BUST = '20260613';
+  var MOUNT_STYLE_ID = 'dpmEdgeMountStyles';
+  var MOUNT_ATTR = 'data-dpm-edge-mount';
 
   var config = null;
   var lastUpsClientData = null;
@@ -55,8 +55,10 @@
   function extractEcidFromUps(data) {
     if (!data || typeof data !== 'object') return '';
     var entity = null;
-    if (typeof global.DecisioningProfileModule !== 'undefined' &&
-        typeof global.DecisioningProfileModule.extractEntityFromUps === 'function') {
+    if (
+      typeof global.DecisioningProfileModule !== 'undefined' &&
+      typeof global.DecisioningProfileModule.extractEntityFromUps === 'function'
+    ) {
       entity = global.DecisioningProfileModule.extractEntityFromUps(data);
     }
     if (!entity) return '';
@@ -194,91 +196,150 @@
     return result;
   }
 
-  function overlayCss() {
+  function findSkyHeroBlockForInject(doc) {
+    var main = doc.querySelector('main#app');
+    if (!main) return null;
+    var hero = main.querySelector('[data-test-id="hero"]');
+    if (hero) {
+      var node = hero;
+      while (node.parentElement && node.parentElement !== main) {
+        node = node.parentElement;
+      }
+      if (node.parentElement === main) return node;
+    }
+    var i;
+    for (i = 0; i < main.children.length; i++) {
+      var child = main.children[i];
+      if (child && child.querySelector && child.querySelector('[data-test-id="hero"]')) {
+        return child;
+      }
+    }
+    return null;
+  }
+
+  function findSkyInjectAfterNode(doc) {
+    if (!doc) return null;
+    var heroBlock = findSkyHeroBlockForInject(doc);
+    if (heroBlock) return heroBlock;
+    var main = doc.querySelector('main#app');
+    return main && main.children.length > 1 ? main.children[1] : main ? main.firstElementChild : null;
+  }
+
+  function mountStylesCss() {
     return (
-      '#' +
-      OVERLAY_ID +
-      '{position:absolute;inset:0;pointer-events:none;z-index:50;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .dpm-mount{pointer-events:auto;box-sizing:border-box;}' +
-      '#' +
-      OVERLAY_ID +
-      ' #cd-edge-topRibbon{position:absolute;top:0;left:0;right:0;min-height:2.5rem;z-index:3;}' +
-      '#' +
-      OVERLAY_ID +
-      ' #cd-edge-hero{position:absolute;top:12%;left:4%;right:4%;min-height:28%;z-index:2;}' +
-      '#' +
-      OVERLAY_ID +
-      ' #cd-edge-contentCard{position:absolute;left:4%;right:4%;bottom:8%;min-height:12%;z-index:2;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .dpm-mount:empty{border:1px dashed transparent;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .cd-banner,.cd-edge-ajo-card-inner{background:rgba(255,255,255,0.94);border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:0.5rem;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .cd-slot-title,.cd-edge-ajo-card-title{margin:0;font-size:14px;font-weight:700;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .cd-slot-desc,.cd-edge-ajo-card-desc{margin:0;font-size:12px;opacity:0.85;}' +
-      '#' +
-      OVERLAY_ID +
-      ' .cd-banner-image,.cd-edge-ajo-card-img{width:100%;max-height:140px;object-fit:cover;display:block;border-radius:4px;}'
+      '#cd-edge-topRibbon{position:relative;z-index:120;width:100%;box-sizing:border-box;}' +
+      '#cd-edge-topRibbon:empty{display:none;}' +
+      '#cd-edge-hero{position:relative;width:100%;box-sizing:border-box;min-height:0;}' +
+      '#cd-edge-hero:empty{display:none;}' +
+      '#cd-edge-hero:not(:empty){position:absolute;inset:0;z-index:5;}' +
+      '#cd-edge-hero:not(:empty) ~ *{visibility:hidden;}' +
+      '#cd-edge-contentCard{position:relative;width:100%;max-width:960px;margin:1rem auto;box-sizing:border-box;}' +
+      '#cd-edge-contentCard:empty{display:none;}' +
+      '.cd-banner,.cd-edge-ajo-card-inner{border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.12);}' +
+      '.cd-slot-title,.cd-edge-ajo-card-title{margin:0;font-size:14px;font-weight:700;}' +
+      '.cd-slot-desc,.cd-edge-ajo-card-desc{margin:0;font-size:12px;opacity:0.85;}' +
+      '.cd-banner-image,.cd-edge-ajo-card-img{width:100%;max-height:200px;object-fit:cover;display:block;}' +
+      '.cd-edge-ajo-iframe{width:100%;min-height:180px;border:0;border-radius:4px;}'
     );
+  }
+
+  function ensureMountStyles(doc) {
+    if (!doc || doc.getElementById(MOUNT_STYLE_ID)) return;
+    var styleEl = doc.createElement('style');
+    styleEl.id = MOUNT_STYLE_ID;
+    styleEl.setAttribute(MOUNT_ATTR, '1');
+    styleEl.textContent = mountStylesCss();
+    (doc.head || doc.documentElement).appendChild(styleEl);
+  }
+
+  function ensureFragmentAnchor(doc, id) {
+    var el = doc.getElementById(id);
+    if (el) return el;
+    el = doc.createElement('span');
+    el.id = id;
+    el.hidden = true;
+    el.setAttribute(MOUNT_ATTR, '1');
+    el.setAttribute('data-dpm-fragment', id);
+    doc.body.appendChild(el);
+    return el;
+  }
+
+  function ensureMountEl(doc, id, className) {
+    var el = doc.getElementById(id);
+    if (!el) {
+      el = doc.createElement('div');
+      el.id = id;
+      el.setAttribute(MOUNT_ATTR, '1');
+      el.setAttribute('role', 'region');
+      if (className) el.className = className;
+    } else if (className && !el.className) {
+      el.className = className;
+    }
+    return el;
+  }
+
+  function insertAfter(parent, node, ref) {
+    if (!parent || !node) return;
+    if (ref && ref.parentNode === parent) {
+      if (ref.nextSibling) parent.insertBefore(node, ref.nextSibling);
+      else parent.appendChild(node);
+      return;
+    }
+    parent.appendChild(node);
   }
 
   function ensureMounts() {
     if (!isEnabled()) return null;
     var doc = getIframeDoc();
     if (!doc || !doc.body) return null;
-    var existing = doc.getElementById(OVERLAY_ID);
-    if (existing) return existing;
-    var styleEl = doc.getElementById(OVERLAY_STYLE_ID);
-    if (!styleEl) {
-      styleEl = doc.createElement('style');
-      styleEl.id = OVERLAY_STYLE_ID;
-      styleEl.textContent = overlayCss();
-      (doc.head || doc.documentElement).appendChild(styleEl);
-    }
-    var host = doc.createElement('div');
-    host.id = OVERLAY_ID;
-    host.className = 'dpm-decisioning-overlay';
-    host.setAttribute('aria-hidden', 'true');
-    ['topRibbon', 'hero', 'contentCard'].forEach(function (key) {
-      var el = doc.createElement('div');
-      el.id = 'cd-edge-' + key;
-      el.className = 'dpm-mount dpm-mount--' + key;
-      el.setAttribute('role', 'region');
-      host.appendChild(el);
-    });
-    var fragments = [
-      { id: 'TopRibbon', frag: 'TopRibbon' },
-      { id: 'hero-banner', frag: 'hero-banner' },
-      { id: 'ContentCardContainer', frag: 'ContentCardContainer' },
-    ];
-    fragments.forEach(function (f) {
-      if (!doc.getElementById(f.id)) {
-        var anchor = doc.createElement('span');
-        anchor.id = f.id;
-        anchor.hidden = true;
-        anchor.setAttribute('data-dpm-fragment', f.frag);
-        host.appendChild(anchor);
+
+    ensureMountStyles(doc);
+    ensureFragmentAnchor(doc, 'TopRibbon');
+    ensureFragmentAnchor(doc, 'hero-banner');
+    ensureFragmentAnchor(doc, 'ContentCardContainer');
+
+    var masthead = doc.getElementById('masthead-header');
+    var ribbon = ensureMountEl(doc, 'cd-edge-topRibbon', 'cd-edge-mount-body cd-edge-mount-body--ribbon-fixed');
+    if (masthead && masthead.parentNode) {
+      if (ribbon.parentNode !== masthead.parentNode || ribbon.previousSibling !== masthead) {
+        insertAfter(masthead.parentNode, ribbon, masthead);
       }
-    });
-    if (doc.body.firstChild) doc.body.insertBefore(host, doc.body.firstChild);
-    else doc.body.appendChild(host);
-    return host;
+    } else if (!ribbon.parentNode) {
+      doc.body.insertBefore(ribbon, doc.body.firstChild);
+    }
+
+    var heroBlock = findSkyHeroBlockForInject(doc);
+    if (heroBlock) {
+      if (heroBlock.style.position !== 'relative') heroBlock.style.position = 'relative';
+      var heroMount = ensureMountEl(doc, 'cd-edge-hero', 'cd-edge-mount-body cd-edge-mount-body--hero cd-banner-wrap');
+      if (heroMount.parentNode !== heroBlock) {
+        heroBlock.insertBefore(heroMount, heroBlock.firstChild);
+      }
+    }
+
+    var cardAnchor = findSkyInjectAfterNode(doc);
+    var card = ensureMountEl(doc, 'cd-edge-contentCard', 'cd-edge-mount-body');
+    if (cardAnchor && cardAnchor.parentNode) {
+      if (card.parentNode !== cardAnchor.parentNode || card.previousSibling !== cardAnchor) {
+        insertAfter(cardAnchor.parentNode, card, cardAnchor);
+      }
+    } else if (!card.parentNode) {
+      var main = doc.querySelector('main#app');
+      if (main) main.appendChild(card);
+      else doc.body.appendChild(card);
+    }
+
+    return { ribbon: ribbon, hero: doc.getElementById('cd-edge-hero'), contentCard: card };
   }
 
   function removeMounts() {
     var doc = getIframeDoc();
     if (!doc) return;
-    var host = doc.getElementById(OVERLAY_ID);
-    if (host && host.parentNode) host.parentNode.removeChild(host);
-    var styleEl = doc.getElementById(OVERLAY_STYLE_ID);
-    if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+    doc.querySelectorAll('[' + MOUNT_ATTR + '="1"]').forEach(function (el) {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    var heroBlock = findSkyHeroBlockForInject(doc);
+    if (heroBlock && heroBlock.style.position === 'relative') heroBlock.style.position = '';
   }
 
   function init(options) {
