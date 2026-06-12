@@ -13,7 +13,8 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260521-stacked-layout">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
-  <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle">
+  <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260623-env-inline">
+  <link rel="stylesheet" href="shared/demo-env-bar-spectrum.css?v=20260623-spectrum">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
@@ -28,69 +29,19 @@
   <!-- Lab identity strip: hover top edge to reveal (same pattern as British Army demo) -->
   <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
     <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
-      <div class="mod-demo-id-inner aep-demo-id-inner">
-        <section class="aep-demo-env-section" id="aepDemoEnvSection" aria-label="AEP environment">
-          <div class="aep-demo-env-editor" id="aepDemoEnvEditor">
-            <div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">
-              <span class="aep-demo-env-kicker">Environment</span>
-              <div class="aep-demo-env-editor-grid">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-                <div
-                  id="navigatorSdkConfigFieldsMount"
-                  data-demo-env-strip-mount="site-clone-tags"
-                  data-demo-env-strip-prefix="navigator"
-                ></div>
-                <div class="form-row">
-                  <label for="generatorTarget">Event destination</label>
-                  <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-                </div>
-              </div>
-              <div class="mod-sdk-summary mod-sdk-summary--below-env-grid" id="navigatorSdkConfigSummary" hidden>
-                <span id="navigatorSdkConfigSummaryText"></span>
-                <button type="button" id="navigatorChangeSdkConfigBtn" class="btn-lookup">Change SDK config</button>
-              </div>
-            </div>
-          <div class="aep-demo-env-compact" id="aepDemoEnvCompact" hidden>
-            <span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span>
-            <button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup aep-demo-env-expand-btn">Change environment</button>
-          </div>
-          </div>
-        </section>
-        <section class="aep-demo-profile-section" id="aepDemoProfileSection" aria-label="Profile lookup">
-          <span class="aep-demo-env-kicker">Profile lookup</span>
-          <div class="aep-demo-profile-section-grid">
-            <div class="form-row">
-              <label for="modNs">Namespace</label>
-              <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="mod-demo-id-actions mod-demo-profile-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-              <div id="siteCloneBcPrefsMount" data-demo-env-strip-mount="site-clone-bc-prefs"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-      <p class="mod-demo-script-preview">Selected script: <code id="navigatorSelectedScript">None</code></p>
-      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">
-        Embedded snapshot (saved HTML + asset folder from browser export). Imagery may load from Navigator Global / Scene7 CDNs where the save did not include local copies. Not affiliated with Navigator Global or Santander UK.
-      </p>
+            <div class="mod-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-title="Navigator Global (web)"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-prefix="navigator"
+        data-demo-env-strip-selected-script-id="navigatorSelectedScript"
+        data-demo-env-strip-script-preview-class="mod-demo-script-preview"
+        data-demo-env-strip-message-id="modMessage"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="Embedded snapshot (saved HTML + asset folder from browser export). Imagery may load from Navigator Global / Scene7 CDNs where the save did not include local copies. Not affiliated with Navigator Global or Santander UK."></div>
+
       <div class="navigator-demo-flow" role="group" aria-label="Demo-only signals for sector, membership, and webinar">
         <span class="navigator-demo-flow-label">Demo flow</span>
         <button type="button" class="navigator-demo-flow-btn" data-ng-demo-event="sector-alcohol">Alcohol sector page</button>
@@ -146,9 +97,11 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
+  <script src="shared/demo-env-strip-spectrum.js?v=20260623-spectrum"></script>
+  <script src="shared/demo-env-strip.js?v=20260623-spectrum"></script>
+  <script src="shared/demo-env-bar-spectrum-sync.js?v=20260623-spectrum"></script>
   <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
-  <script src="demo-tags-injection.js?v=20260601-tags-property-boot"></script>
+  <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
   <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script>
@@ -161,7 +114,7 @@
       bcStyleSelectId: 'navigatorBcStyleSelect',
     };
   </script>
-  <script src="site-clone-bc-env.js?v=20260529-bc-style-picker"></script>
+  <script src="site-clone-bc-env.js?v=20260605-tags-sandbox-restore"></script>
   <script src="navigator-global-demo.js?v=20260513-drawer-mirror"></script>
   <script src="site-clone-bc.js?v=20260601-env-strip"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

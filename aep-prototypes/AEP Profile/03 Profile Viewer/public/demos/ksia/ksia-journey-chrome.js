@@ -6,7 +6,7 @@
   'use strict';
 
   var PV = '/profile-viewer/';
-  var BUILD = '20260623-env-inline';
+  var BUILD = '20260623-spectrum';
 
   if (window.__ksiaJourneyChromeBooted) return;
 
@@ -66,12 +66,17 @@
       '<section class="ksia-demo-id-banner" aria-label="KSIA demo controls">' +
       '<div class="ksia-demo-id-inner aep-demo-id-inner"' +
       ' data-demo-env-strip-mount="site-clone-shell"' +
+      ' data-demo-env-strip-variant="spectrum"' +
+      ' data-demo-env-strip-title="KSIA (web)"' +
+      ' data-demo-env-strip-subtitle="Active Configuration"' +
       ' data-demo-env-strip-prefix="ksia"' +
       ' data-demo-env-strip-selected-script-id="ksiaSelectedScript"' +
       ' data-demo-env-strip-script-preview-class="ksia-demo-script-preview"' +
       ' data-demo-env-strip-message-id="ksiaMessage"' +
       ' data-demo-env-strip-message-class="ksia-demo-message"' +
-      ' data-demo-env-strip-profile-btn-label="Look up profile"></div>' +
+      ' data-demo-env-strip-profile-btn-label="Look up profile"' +
+      ' data-demo-env-strip-bc-bottom="1"' +
+      ' data-demo-env-strip-disclaimer="King Salman International Airport journey mockup for the AEP lab. Inject your Tags property, then walk the airport journey under &lt;code&gt;demos/ksia/&lt;/code&gt;. Not affiliated with KSIA."></div>' +
       '</section>';
 
     document.body.insertBefore(anchor, document.body.firstChild);
@@ -158,7 +163,9 @@
       PV + 'shared/profile-viewer-modal.js?v=20260601-modal-central',
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
       PV + 'aep-demo-web-push.js?v=20260512-lab-push',
-      PV + 'shared/demo-env-strip.js?v=20260623-env-inline',
+      PV + 'shared/demo-env-strip-spectrum.js?v=20260623-spectrum',
+      PV + 'shared/demo-env-strip.js?v=20260623-spectrum',
+      PV + 'shared/demo-env-bar-spectrum-sync.js?v=20260623-spectrum',
       PV + 'shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap',
       PV + 'demo-tags-injection.js?v=20260605-tags-sandbox-restore',
       PV + 'aep-demo-env-bar.js?v=20260601-launch-unset-expand',
@@ -202,6 +209,7 @@
     linkCss(PV + 'home.css?v=20260514-customer-demos-nav');
     linkCss(PV + 'ksia-demo.css?v=' + BUILD);
     linkCss(PV + 'shared/demo-env-bar.bundle.css?v=20260623-env-inline');
+    linkCss(PV + 'shared/demo-env-bar-spectrum.css?v=20260623-spectrum');
     linkCss(PV + 'aep-profile-drawer.css?v=20260521-refresh-btn-lightfix');
     linkCss(PV + 'shared/profile-viewer-modal.css?v=20260601-modal-central');
     linkCss(PV + 'aep-theme.css?v=20260423b-fs-helper');

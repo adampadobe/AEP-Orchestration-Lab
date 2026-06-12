@@ -12,7 +12,11 @@ const root = path.join(__dirname, '..');
 const pv = path.join(root, 'web/profile-viewer');
 
 const BUNDLE_CSS = 'shared/demo-env-bar.bundle.css';
+const SPECTRUM_CSS = 'shared/demo-env-bar-spectrum.css';
 const BUNDLE_BOOTSTRAP = 'shared/demo-env-bar-bootstrap.js';
+const SPECTRUM_STRIP_JS = 'shared/demo-env-strip-spectrum.js';
+const SPECTRUM_SYNC_JS = 'shared/demo-env-bar-spectrum-sync.js';
+const SPECTRUM_CACHE = '20260623-spectrum';
 
 /**
  * Lab demos exempt from site-clone bundle/bootstrap/mount checks.
@@ -199,6 +203,30 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   }
   if (!html.includes(BUNDLE_CSS)) {
     fail(`${rel}: missing ${BUNDLE_CSS} (unified env bar CSS bundle)`);
+  }
+  const spectrumCssHref = rel.includes('/') ? `../${SPECTRUM_CSS}` : SPECTRUM_CSS;
+  if (!html.includes(spectrumCssHref)) {
+    fail(`${rel}: missing ${spectrumCssHref} (Spectrum env bar layout — match sky-demo.html)`);
+  }
+  if (!html.includes('data-demo-env-strip-variant="spectrum"')) {
+    fail(`${rel}: missing data-demo-env-strip-variant="spectrum" (Sky canonical env bar)`);
+  }
+  if (!html.includes('data-demo-env-strip-title=')) {
+    fail(`${rel}: missing data-demo-env-strip-title (Spectrum status bar header)`);
+  }
+  if (!html.includes('data-demo-env-strip-subtitle="Active Configuration"')) {
+    fail(`${rel}: missing data-demo-env-strip-subtitle="Active Configuration"`);
+  }
+  if (!html.includes('data-demo-env-strip-bc-bottom="1"')) {
+    fail(`${rel}: missing data-demo-env-strip-bc-bottom="1" (Centre bottom display mode)`);
+  }
+  const spectrumStripHref = rel.includes('/') ? `../${SPECTRUM_STRIP_JS}` : SPECTRUM_STRIP_JS;
+  const spectrumSyncHref = rel.includes('/') ? `../${SPECTRUM_SYNC_JS}` : SPECTRUM_SYNC_JS;
+  if (!html.includes(spectrumStripHref) || !html.includes(spectrumSyncHref)) {
+    fail(`${rel}: missing Spectrum env bar scripts (${SPECTRUM_STRIP_JS}, ${SPECTRUM_SYNC_JS})`);
+  }
+  if (!html.includes(`demo-env-strip.js?v=${SPECTRUM_CACHE}`)) {
+    fail(`${rel}: demo-env-strip.js cache bust must be ?v=${SPECTRUM_CACHE} (match Sky)`);
   }
   if (!html.includes(BUNDLE_BOOTSTRAP)) {
     fail(`${rel}: missing ${BUNDLE_BOOTSTRAP}`);
