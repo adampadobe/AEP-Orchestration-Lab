@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260619';
+  var CACHE_BUST = '20260620';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -62,6 +62,24 @@
     return main && main.children.length > 1 ? main.children[1] : main ? main.firstElementChild : null;
   }
 
+  function findGenericHeroHost(doc) {
+    if (!doc) return null;
+    var host = doc.querySelector('[data-hero-mount]');
+    if (host) return host;
+    var mount = doc.getElementById(FRAGMENTS.hero);
+    if (mount && mount.parentNode && mount.parentNode !== mount) return mount.parentNode;
+    return doc.querySelector('main');
+  }
+
+  function findGenericContentCardInsertAfter(doc) {
+    if (!doc) return null;
+    var heroHost = doc.querySelector('[data-hero-mount]');
+    if (heroHost) return heroHost;
+    var heroMount = doc.getElementById(FRAGMENTS.hero);
+    if (heroMount && heroMount.parentNode) return heroMount;
+    return doc.querySelector('main') || doc.body;
+  }
+
   var LAYOUT_PRESETS = {
     'sky-home': {
       insertRibbonAtBodyStart: true,
@@ -75,14 +93,8 @@
       findRibbonInsertAfter: function (doc) {
         return doc.body && doc.body.firstElementChild;
       },
-      findHeroParent: function (doc) {
-        return doc.getElementById(FRAGMENTS.hero) || doc.querySelector('[data-hero-mount]') || doc.querySelector('main');
-      },
-      findContentCardInsertAfter: function (doc) {
-        var hero = doc.getElementById(FRAGMENTS.hero);
-        if (hero && hero.parentNode) return hero;
-        return doc.querySelector('main') || doc.body;
-      },
+      findHeroParent: findGenericHeroHost,
+      findContentCardInsertAfter: findGenericContentCardInsertAfter,
     },
   };
 
@@ -265,9 +277,33 @@
     return el;
   }
 
+  function isInvalidDomInsert(parent, node, ref) {
+    if (!parent || !node) return true;
+    if (node === parent) return true;
+    if (node.contains(parent)) return true;
+    if (ref && (node === ref || node.contains(ref) || ref.contains(node))) return true;
+    return false;
+  }
+
+  function safeInsertBefore(parent, node, ref) {
+    if (!parent || !node) return false;
+    if (isInvalidDomInsert(parent, node, ref)) {
+      log('safeInsertBefore skipped invalid insert', parent.id || parent.tagName, node.id || node.tagName);
+      if (node.parentNode !== parent) parent.appendChild(node);
+      return false;
+    }
+    parent.insertBefore(node, ref);
+    return true;
+  }
+
   function insertAfter(parent, node, ref) {
     if (!parent || !node) return;
     if (ref && ref.parentNode === parent) {
+      if (isInvalidDomInsert(parent, node, ref)) {
+        log('insertAfter skipped invalid insert', parent.id || parent.tagName, node.id || node.tagName);
+        if (node.parentNode !== parent) parent.appendChild(node);
+        return;
+      }
       if (ref.nextSibling) parent.insertBefore(node, ref.nextSibling);
       else parent.appendChild(node);
       return;
@@ -301,24 +337,24 @@
     var ribbonRef = resolved.findRibbonInsertAfter(doc);
     if (resolved.insertRibbonAtBodyStart && doc.body) {
       if (ribbon.parentNode !== doc.body || ribbon !== doc.body.firstElementChild) {
-        doc.body.insertBefore(ribbon, doc.body.firstElementChild);
+        safeInsertBefore(doc.body, ribbon, doc.body.firstElementChild);
       }
     } else if (ribbonRef && ribbonRef.parentNode) {
       if (ribbon.parentNode !== ribbonRef.parentNode || ribbon.previousSibling !== ribbonRef) {
         insertAfter(ribbonRef.parentNode, ribbon, ribbonRef);
       }
     } else if (!ribbon.parentNode) {
-      doc.body.insertBefore(ribbon, doc.body.firstChild);
+      safeInsertBefore(doc.body, ribbon, doc.body.firstChild);
     }
 
     var heroParent = resolved.findHeroParent(doc);
     var heroClass = 'cd-edge-mount-body cd-edge-mount-body--hero cd-banner-wrap';
     if (resolved.insertRibbonAtBodyStart) heroClass += ' cd-edge-mount-body--hero-flow';
     var hero = ensureMountEl(doc, FRAGMENTS.hero, heroClass);
-    if (heroParent) {
+    if (heroParent && heroParent !== hero) {
       if (heroParent.style.position !== 'relative') heroParent.style.position = 'relative';
       if (hero.parentNode !== heroParent) {
-        heroParent.insertBefore(hero, heroParent.firstChild);
+        safeInsertBefore(heroParent, hero, heroParent.firstChild);
       }
     } else if (!hero.parentNode) {
       var main = doc.querySelector('main') || doc.body;
