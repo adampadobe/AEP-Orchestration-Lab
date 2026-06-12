@@ -1,0 +1,693 @@
+/**
+ * Adobe Spectrum card layout for the lab env bar (Sky pilot).
+ * Scoped to .aep-demo-env-bar--spectrum — other demos keep the legacy strip.
+ */
+.aep-demo-id-inner--spectrum {
+  padding: 0;
+  background: var(--spectrum-page-bg, #eef1f6);
+}
+
+.aep-demo-env-bar--spectrum {
+  --spectrum-page-bg: #eef1f6;
+  --spectrum-card-bg: #ffffff;
+  --spectrum-card-border: #dfe3ea;
+  --spectrum-card-shadow: 0 1px 2px color-mix(in srgb, var(--dash-text) 6%, transparent),
+    0 4px 16px color-mix(in srgb, var(--dash-text) 4%, transparent);
+  --spectrum-text: #1b1f24;
+  --spectrum-text-secondary: #5c6570;
+  --spectrum-label: #6b7380;
+  --spectrum-blue: #0265dc;
+  --spectrum-blue-hover: #0054b6;
+  --spectrum-blue-muted: #d9e8fc;
+  --spectrum-blue-soft: #edf4ff;
+  --spectrum-green: #2d9d78;
+  --spectrum-green-muted: #d5f2e8;
+  --spectrum-purple: #7c3aed;
+  --spectrum-purple-muted: #ede9fe;
+  --spectrum-red: #e34850;
+  --spectrum-red-muted: #fde8ea;
+  --spectrum-orange: #e68619;
+  --spectrum-orange-muted: #fff1df;
+  --spectrum-radius: 10px;
+  --spectrum-radius-sm: 8px;
+  --spectrum-input-border: #c8cfd8;
+  --spectrum-input-bg: #ffffff;
+  color: var(--spectrum-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.aep-demo-env-bar--spectrum .aep-demo-env-section,
+.aep-demo-env-bar--spectrum .aep-demo-profile-section {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* ── Status bar ─────────────────────────────────────────────── */
+.spectrum-env-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--spectrum-card-bg);
+  border-bottom: 1px solid var(--spectrum-card-border);
+}
+
+.spectrum-env-status-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 12rem;
+}
+
+.spectrum-env-status-bar__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  background: #2c2c2c;
+  color: #ffffff;
+}
+
+.spectrum-env-status-bar__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.spectrum-env-status-bar__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.spectrum-env-status-bar__subtitle {
+  font-size: 0.72rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-status-bar__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.35rem;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.spectrum-env-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.spectrum-env-stat__label,
+.spectrum-env-field__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--spectrum-label);
+}
+
+.spectrum-env-stat__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--spectrum-text);
+}
+
+.spectrum-env-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--spectrum-label);
+}
+
+.spectrum-env-dot--green {
+  background: var(--spectrum-green);
+}
+
+.spectrum-env-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.spectrum-env-pill--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--spectrum-blue);
+  cursor: pointer;
+  text-align: left;
+}
+
+.spectrum-env-link-btn:hover {
+  text-decoration: underline;
+}
+
+.spectrum-env-status-bar__updated {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--spectrum-text-secondary);
+  white-space: nowrap;
+}
+
+.spectrum-env-status-bar__clock {
+  display: inline-flex;
+  color: var(--spectrum-label);
+}
+
+/* ── Cards layout ───────────────────────────────────────────── */
+.spectrum-env-cards {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem 0;
+}
+
+.spectrum-env-cards--duo {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+.spectrum-env-card {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+  overflow: hidden;
+}
+
+.spectrum-env-card--target,
+.spectrum-env-card--profile {
+  margin: 0.85rem 1rem 0;
+}
+
+.spectrum-env-card--profile {
+  margin-bottom: 0.85rem;
+}
+
+.spectrum-env-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--spectrum-card-border);
+}
+
+.spectrum-env-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.spectrum-env-card__icon--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-card__icon--purple {
+  background: var(--spectrum-purple-muted);
+  color: var(--spectrum-purple);
+}
+
+.spectrum-env-card__icon--red {
+  background: var(--spectrum-red-muted);
+  color: var(--spectrum-red);
+}
+
+.spectrum-env-card__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.spectrum-env-card__body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.spectrum-env-card__body--fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.spectrum-env-collapsible-fields__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.85rem;
+  align-items: end;
+}
+
+.spectrum-env-collapsible-fields .spectrum-env-card__actions {
+  grid-column: 1 / -1;
+}
+
+.spectrum-env-collapsible-fields[hidden] {
+  display: none !important;
+}
+
+.spectrum-env-card__hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.35;
+}
+
+/* ── Fields ─────────────────────────────────────────────────── */
+.spectrum-env-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.spectrum-env-field--full {
+  width: 100%;
+}
+
+.spectrum-env-field--grow {
+  flex: 1 1 12rem;
+}
+
+.spectrum-env-field label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--spectrum-label);
+}
+
+.spectrum-env-field__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-red);
+}
+
+.spectrum-env-input,
+.aep-demo-env-bar--spectrum select.spectrum-env-input,
+.aep-demo-env-bar--spectrum input.spectrum-env-input {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--spectrum-radius-sm);
+  background: var(--spectrum-input-bg);
+  color: var(--spectrum-text);
+  font: inherit;
+  font-size: 0.84rem;
+  box-sizing: border-box;
+}
+
+.spectrum-env-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--spectrum-blue) 45%, transparent);
+  outline-offset: 1px;
+  border-color: var(--spectrum-blue);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.aep-demo-env-bar--spectrum .spectrum-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: var(--spectrum-radius-sm);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--primary {
+  background: var(--spectrum-blue);
+  color: #ffffff;
+  border-color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--primary:hover {
+  background: var(--spectrum-blue-hover);
+  border-color: var(--spectrum-blue-hover);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--secondary {
+  background: #ffffff;
+  color: var(--spectrum-text);
+  border-color: var(--spectrum-input-border);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--secondary:hover {
+  background: var(--spectrum-blue-soft);
+  border-color: var(--spectrum-blue);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-btn__icon {
+  display: inline-flex;
+}
+
+/* ── BC badges ──────────────────────────────────────────────── */
+.spectrum-env-bc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.spectrum-env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  opacity: 0.45;
+}
+
+.spectrum-env-badge.is-active {
+  opacity: 1;
+}
+
+.spectrum-env-badge--blue {
+  background: var(--spectrum-blue-muted);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-badge--purple {
+  background: var(--spectrum-purple-muted);
+  color: var(--spectrum-purple);
+}
+
+.spectrum-env-badge--green {
+  background: var(--spectrum-green-muted);
+  color: var(--spectrum-green);
+}
+
+.spectrum-env-badge--orange {
+  background: var(--spectrum-orange-muted);
+  color: var(--spectrum-orange);
+}
+
+.spectrum-env-badge--lg {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.spectrum-env-badge__icon {
+  display: inline-flex;
+}
+
+/* ── Target card ────────────────────────────────────────────── */
+.spectrum-env-target-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: 0.85rem 1rem;
+  align-items: start;
+}
+
+.spectrum-env-sdk-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 1.15rem;
+}
+
+.spectrum-env-sdk-panel__meta {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.35;
+}
+
+.spectrum-env-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--spectrum-radius-sm);
+  background: var(--spectrum-blue-soft);
+  border: 1px solid color-mix(in srgb, var(--spectrum-blue) 18%, var(--spectrum-card-border));
+}
+
+.spectrum-env-info-bar--muted {
+  background: var(--spectrum-blue-soft);
+}
+
+.spectrum-env-info-bar__icon {
+  display: inline-flex;
+  color: var(--spectrum-blue);
+  flex-shrink: 0;
+}
+
+.spectrum-env-info-bar__text {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+  line-height: 1.4;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-env-sdk-summary {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-env-sdk-summary:not([hidden]) {
+  display: block;
+}
+
+/* ── Profile card ─────────────────────────────────────────────── */
+.spectrum-env-profile-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1rem;
+  align-items: flex-end;
+}
+
+.spectrum-env-profile-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 0.85rem;
+  flex: 1 1 28rem;
+}
+
+.spectrum-env-profile-prefs {
+  flex: 1 1 16rem;
+  margin-left: auto;
+}
+
+.spectrum-env-display-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-profile-lab-prefs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+  display: none;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__label {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--spectrum-radius-sm);
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--spectrum-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:has(input:checked) {
+  border-color: var(--spectrum-blue);
+  background: var(--spectrum-blue-soft);
+  color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__options {
+  justify-content: flex-end;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option {
+  border-radius: 999px;
+  padding-right: 0.85rem;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option:has(input:checked) {
+  background: var(--spectrum-green-muted);
+  border-color: var(--spectrum-green);
+  color: var(--spectrum-green);
+}
+
+.spectrum-env-ecid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-ecid__value {
+  font-weight: 600;
+  color: var(--spectrum-text);
+  word-break: break-all;
+}
+
+.spectrum-env-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--spectrum-input-border);
+  border-radius: var(--spectrum-radius-sm);
+  background: #ffffff;
+  color: var(--spectrum-label);
+  cursor: pointer;
+}
+
+.spectrum-env-icon-btn:hover {
+  border-color: var(--spectrum-blue);
+  color: var(--spectrum-blue);
+}
+
+.spectrum-env-selected-script {
+  margin: 0.85rem 1rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--spectrum-radius-sm);
+  background: color-mix(in srgb, var(--spectrum-card-border) 35%, #ffffff);
+  font-size: 0.78rem;
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-selected-script__label {
+  font-weight: 600;
+}
+
+.spectrum-env-selected-script code {
+  word-break: break-all;
+}
+
+.spectrum-env-inline-message {
+  margin: 0.65rem 1rem 0;
+}
+
+/* Hide legacy flat layout pieces inside spectrum root */
+.aep-demo-env-bar--spectrum .site-clone-bc-env-strip__tags-row,
+.aep-demo-env-bar--spectrum .aep-demo-env-kicker {
+  display: none !important;
+}
+
+@media (max-width: 72rem) {
+  .spectrum-env-card__body--fields,
+  .spectrum-env-target-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .spectrum-env-sdk-panel {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+
+  .spectrum-env-cards--duo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 48rem) {
+  .spectrum-env-status-bar__stats {
+    justify-content: flex-start;
+  }
+
+  .spectrum-env-status-bar__updated {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .spectrum-env-card__body--fields,
+  .spectrum-env-target-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spectrum-env-profile-prefs {
+    margin-left: 0;
+    width: 100%;
+  }
+}

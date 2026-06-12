@@ -10,7 +10,7 @@
   var MOUNT_ATTR = 'data-demo-env-strip-mount';
   var PREFIX_ATTR = 'data-demo-env-strip-prefix';
   var MOUNTED_ATTR = 'data-demo-env-strip-mounted';
-  var CACHE_BUST = '20260623-env-inline';
+  var CACHE_BUST = '20260623-spectrum';
   var MOUNTED_EVENT = 'aep-demo-env-strip-mounted';
   var FOOTER_ATTR = 'data-demo-env-strip-footer';
 
@@ -46,6 +46,9 @@
       defaultBcStyle: host.getAttribute('data-demo-env-strip-default-bc-style') || '',
       includeBottomDock: host.getAttribute('data-demo-env-strip-bc-bottom') === '1',
       includeDecisioning: host.getAttribute('data-demo-env-strip-decisioning') !== '0',
+      variant: String(host.getAttribute('data-demo-env-strip-variant') || '').trim().toLowerCase(),
+      title: host.getAttribute('data-demo-env-strip-title') || '',
+      subtitle: host.getAttribute('data-demo-env-strip-subtitle') || 'Active Configuration',
     };
   }
 
@@ -407,6 +410,11 @@
     }
     var shellCfg = c.shellConfig || readShellConfig(host);
     if (!shellCfg) return { mounted: false, reason: 'missing-shell-config' };
+    if (shellCfg.variant === 'spectrum' && global.DemoEnvStripSpectrum && typeof global.DemoEnvStripSpectrum.mountSpectrumShell === 'function') {
+      return global.DemoEnvStripSpectrum.mountSpectrumShell(host, shellCfg, {
+        mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
+      });
+    }
     host.classList.add('aep-demo-id-inner');
     host.innerHTML = siteCloneEnvShellGridMarkup(shellCfg);
     host.setAttribute(MOUNTED_ATTR, '1');

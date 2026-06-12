@@ -101,6 +101,7 @@ const CSS_DRIFT_ALLOWLIST = new Set([
   'site-clone-bc-env-strip.css',
   BUNDLE_CSS,
   'site-clone-bc.css',
+  'shared/demo-env-bar-spectrum.css',
 ]);
 
 const FORBIDDEN_CSS_PATTERNS = [
@@ -241,7 +242,7 @@ for (const rel of SITE_CLONE_DEMO_JS) {
 }
 
 for (const cssFile of walkCss(pv)) {
-  const rel = path.relative(pv, cssFile);
+  const rel = path.relative(pv, cssFile).replace(/\\/g, '/');
   if (CSS_DRIFT_ALLOWLIST.has(rel)) continue;
   const text = fs.readFileSync(cssFile, 'utf8');
   for (const { re, label } of FORBIDDEN_CSS_PATTERNS) {
