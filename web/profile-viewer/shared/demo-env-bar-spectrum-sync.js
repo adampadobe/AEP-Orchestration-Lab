@@ -172,11 +172,42 @@
       });
     }
 
+    function openEnvOverlayFromToolbar() {
+      if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
+        global.EnvBarCompact.openOverlay();
+        return;
+      }
+      var expand = byId('aepDemoEnvExpandBtn');
+      if (expand) expand.click();
+      else {
+        try {
+          global.dispatchEvent(new CustomEvent('aep-demo-env-overlay-open'));
+        } catch (_e) {
+          /* noop */
+        }
+      }
+    }
+
     if (scriptsBtn) {
-      scriptsBtn.addEventListener('click', function () {
-        var expand = byId('aepDemoEnvExpandBtn');
-        if (expand) expand.click();
+      scriptsBtn.addEventListener('click', openEnvOverlayFromToolbar);
+    }
+
+    if (sdkStatus) {
+      sdkStatus.addEventListener('click', openEnvOverlayFromToolbar);
+      sdkStatus.setAttribute('role', 'button');
+      sdkStatus.setAttribute('tabindex', '0');
+      sdkStatus.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          openEnvOverlayFromToolbar();
+        }
       });
+    }
+
+    if (propertyChip) {
+      propertyChip.addEventListener('click', openEnvOverlayFromToolbar);
+      propertyChip.setAttribute('role', 'button');
+      propertyChip.setAttribute('tabindex', '0');
     }
 
     var styleSelect = byId('siteCloneBcStyleConfigUrl');

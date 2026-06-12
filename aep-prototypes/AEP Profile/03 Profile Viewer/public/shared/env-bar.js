@@ -22,7 +22,7 @@
       spectrumCss: '20260623-spectrum',
       demoEnvStripSpectrum: '20260623-spectrum',
       demoEnvStrip: '20260623-spectrum',
-      spectrumSync: '20260623-spectrum',
+      spectrumSync: '20260624-ksia-toolbar-open',
       compactJs: '20260624-compact-p3',
       compactCss: '20260624-compact-p2',
       bootstrap: '20260602-env-bar-bootstrap',

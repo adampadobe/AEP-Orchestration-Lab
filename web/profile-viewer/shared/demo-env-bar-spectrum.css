@@ -397,6 +397,16 @@
   min-width: 0;
 }
 
+#aepSpectrumSdkStatus,
+#aepSpectrumPropertyChip {
+  cursor: pointer;
+}
+
+#aepSpectrumSdkStatus:hover,
+#aepSpectrumPropertyChip:hover {
+  color: var(--dash-blue);
+}
+
 .spectrum-env-dot {
   width: 0.55rem;
   height: 0.55rem;

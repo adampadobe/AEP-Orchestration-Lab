@@ -6,8 +6,16 @@
 (function () {
   'use strict';
 
-  var PV = '/profile-viewer/';
   var MANIFEST_VERSION = '20260612-env-bar';
+
+  /** Firebase hosting uses /profile-viewer/; local Express mirror serves public/ at /. */
+  function detectProfileViewerBase() {
+    var path = String(window.location.pathname || '');
+    if (path.indexOf('/profile-viewer/') >= 0) return '/profile-viewer/';
+    return '/';
+  }
+
+  var PV = detectProfileViewerBase();
 
   if (window.__ksiaJourneyChromeBooted) return;
 
@@ -141,8 +149,16 @@
   }
 
   function bootLabStack() {
-    window.SiteCloneDemoEnv = Object.assign(
-      {
+    window.envBarConfig = {
+      prefix: 'ksia',
+      variant: 'spectrum',
+      mode: 'journey',
+      basePath: PV,
+      autoInit: false,
+      storagePrefix: 'ksia',
+      features: { webPush: true, bc: true, decisioning: true },
+      labCoreScript: 'demos/ksia/ksia-lab-core.js?v=20260624-ksia-env-bar',
+      siteCloneDemoEnv: {
         storagePrefix: 'ksia',
         webPushBySandboxKey: 'ksiaWebPushOnInjectBySandbox',
         webPushLegacyKey: 'ksiaWebPushOnInjectToggle',
@@ -150,18 +166,6 @@
         bcOnInjectToggleId: 'ksiaBcOnInjectToggle',
         bcStyleSelectId: 'ksiaBcStyleSelect',
       },
-      window.SiteCloneDemoEnv || {},
-    );
-
-    window.envBarConfig = {
-      prefix: 'ksia',
-      variant: 'spectrum',
-      mode: 'journey',
-      basePath: PV,
-      autoInit: false,
-      features: { webPush: true, bc: true, decisioning: true },
-      labCoreScript: 'demos/ksia/ksia-lab-core.js',
-      siteCloneDemoEnv: window.SiteCloneDemoEnv,
     };
 
     var prereqScripts = [
@@ -176,7 +180,6 @@
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
       PV + 'aep-demo-web-push.js?v=20260512-lab-push',
       PV + 'aep-demo-generator-targets.js?v=20260508',
-      PV + 'site-clone-bc-env.js?v=20260605-tags-sandbox-restore',
     ];
 
     var chain = prereqScripts.reduce(function (p, src) {
@@ -220,7 +223,7 @@
     ensureThemePaint();
     linkCss(PV + 'style.css');
     linkCss(PV + 'home.css?v=20260514-customer-demos-nav');
-    linkCss(PV + 'ksia-demo.css?v=' + MANIFEST_VERSION);
+    linkCss(PV + 'ksia-demo.css?v=20260624-ksia-env-bar');
     linkCss(PV + 'aep-profile-drawer.css?v=20260521-refresh-btn-lightfix');
     linkCss(PV + 'shared/profile-viewer-modal.css?v=20260601-modal-central');
     linkCss(PV + 'aep-theme.css?v=20260423b-fs-helper');
