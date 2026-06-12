@@ -679,6 +679,8 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   padding: 0 32px 32px;
   position: relative;
   z-index: 5;
+  display: flex;
+  justify-content: center;
 }
 .ksia-flight-search {
   display: flex;
@@ -689,7 +691,9 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   background: var(--ksia-white);
   border-radius: var(--ksia-radius);
   box-shadow: var(--ksia-shadow);
+  width: 100%;
   max-width: 960px;
+  margin: 0 auto;
   border: 1px solid rgba(155, 110, 75, 0.15);
 }
 .ksia-search-field { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 4px; }
