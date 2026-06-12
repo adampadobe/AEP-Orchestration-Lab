@@ -1,14 +1,18 @@
 /**
- * Discreet top-right trigger + slide-in panel hosting decisioning-profile-module.
+ * Mid-page trigger + compact popout hosting decisioning-profile-module.
  */
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260619';
+  var CACHE_BUST = '20260621';
 
   function init(options) {
     var opt = options || {};
-    if (document.getElementById('dpmPanelShell')) return;
+    if (document.getElementById('dpmPanelAnchor')) return;
+
+    var anchor = document.createElement('div');
+    anchor.id = 'dpmPanelAnchor';
+    anchor.className = 'dpm-panel-anchor';
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
@@ -41,9 +45,10 @@
       '<div class="dpm-panel-body" id="dpmPanelMount"></div>' +
       '</div>';
 
-    document.body.appendChild(trigger);
+    anchor.appendChild(trigger);
+    anchor.appendChild(shell);
     document.body.appendChild(backdrop);
-    document.body.appendChild(shell);
+    document.body.appendChild(anchor);
 
     var mountEl = document.getElementById('dpmPanelMount');
     var moduleHandle = null;
@@ -74,7 +79,7 @@
     }
 
     function setVisible(visible) {
-      trigger.classList.toggle('is-visible', !!visible);
+      anchor.classList.toggle('is-visible', !!visible);
       if (!visible) setOpen(false);
     }
 
@@ -87,15 +92,15 @@
     document.getElementById('dpmPanelClose').addEventListener('click', function () {
       setOpen(false);
     });
-    shell.addEventListener('mouseenter', clearHideTimer);
-    shell.addEventListener('mouseleave', scheduleClose);
+    anchor.addEventListener('mouseenter', clearHideTimer);
+    anchor.addEventListener('mouseleave', scheduleClose);
     document.addEventListener(
       'pointerdown',
       function (evt) {
         if (!shell.classList.contains('is-open')) return;
         var t = evt.target;
         if (!t || typeof t.closest !== 'function') return;
-        if (t.closest('#dpmPanelShell') || t.closest('#dpmPanelTrigger')) return;
+        if (t.closest('#dpmPanelAnchor')) return;
         setOpen(false);
       },
       true
@@ -114,7 +119,7 @@
         if (toggleEl) toggleEl.addEventListener('change', applyEnabled);
       }
     } else {
-      trigger.classList.add('is-visible');
+      setVisible(true);
     }
 
     return { setOpen: setOpen, setVisible: setVisible, moduleHandle: moduleHandle };

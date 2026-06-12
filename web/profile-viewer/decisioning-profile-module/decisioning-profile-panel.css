@@ -1,11 +1,26 @@
 /**
- * Hidden lab panel + discreet trigger for decisioning-profile-module.
+ * Mid-page trigger + compact popout for decisioning-profile-module.
  */
-.dpm-panel-trigger {
+.dpm-panel-anchor {
   position: fixed;
-  top: 4.75rem;
+  top: 50%;
   right: 0.85rem;
-  z-index: 7100;
+  z-index: 7150;
+  display: none;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.55rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dpm-panel-anchor.is-visible {
+  display: flex;
+}
+
+.dpm-panel-trigger {
+  position: relative;
+  z-index: 2;
   width: 2rem;
   height: 2rem;
   padding: 0;
@@ -15,21 +30,30 @@
   color: var(--dash-blue);
   box-shadow: var(--dash-shadow);
   cursor: pointer;
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font: inherit;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-}
-
-.dpm-panel-trigger.is-visible {
-  display: inline-flex;
+  pointer-events: auto;
+  flex-shrink: 0;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .dpm-panel-trigger:hover {
   background: var(--dash-hover);
+}
+
+.dpm-panel-trigger[aria-expanded='true'] {
+  border-color: var(--dash-blue);
+  box-shadow:
+    var(--dash-shadow),
+    0 0 0 2px color-mix(in srgb, var(--dash-blue) 22%, transparent);
 }
 
 .dpm-panel-trigger-dot {
@@ -37,23 +61,34 @@
   height: 0.55rem;
   border-radius: 50%;
   background: var(--dash-blue);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dpm-panel-trigger[aria-expanded='true'] .dpm-panel-trigger-dot {
+  transform: scale(1.12);
 }
 
 .dpm-panel-shell {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 7150;
-  width: min(22rem, calc(100vw - 1.5rem));
-  max-width: 100%;
-  transform: translateX(105%);
-  transition: transform 0.22s ease;
+  position: relative;
+  z-index: 1;
+  width: min(21rem, calc(100vw - 4.5rem));
+  max-width: calc(100vw - 4.5rem);
+  max-height: min(85vh, 40rem);
+  transform: scale(0.92) translateX(0.65rem);
+  transform-origin: center right;
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    visibility 0.22s ease;
 }
 
 .dpm-panel-shell.is-open {
-  transform: translateX(0);
+  transform: scale(1) translateX(0);
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -62,7 +97,7 @@
   inset: 0;
   z-index: 7140;
   border: none;
-  background: color-mix(in srgb, var(--dash-text) 18%, transparent);
+  background: transparent;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease;
@@ -71,16 +106,20 @@
 .dpm-panel-backdrop.is-open {
   opacity: 0;
   pointer-events: auto;
-  background: transparent;
 }
 
 .dpm-panel-inner {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-height: min(85vh, 40rem);
   background: var(--dash-surface-alt);
-  border-left: 1px solid var(--dash-border);
-  box-shadow: -8px 0 32px color-mix(in srgb, var(--dash-text) 12%, transparent);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  box-shadow:
+    var(--dash-shadow),
+    0 12px 40px color-mix(in srgb, var(--dash-text) 14%, transparent);
+  overflow: hidden;
 }
 
 .dpm-panel-header {
@@ -88,13 +127,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.75rem 0.85rem;
+  padding: 0.65rem 0.75rem;
   border-bottom: 1px solid var(--dash-border);
+  flex-shrink: 0;
 }
 
 .dpm-panel-title {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--dash-text);
 }
@@ -117,14 +157,29 @@
 }
 
 .dpm-panel-body {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   overflow: auto;
-  padding: 0.85rem;
+  overscroll-behavior: contain;
+  max-height: calc(min(85vh, 40rem) - 2.75rem);
+  padding: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .dpm-panel-anchor {
+    right: 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .dpm-panel-shell {
+    width: min(19rem, calc(100vw - 3.5rem));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dpm-panel-shell,
   .dpm-panel-backdrop,
+  .dpm-panel-trigger,
+  .dpm-panel-trigger-dot,
   .decisioning-profile-module .dpm-micro-profile-chevron {
     transition-duration: 0.01ms;
   }
