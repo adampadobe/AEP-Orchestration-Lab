@@ -36,7 +36,7 @@
       html +=
         '<tr><td class="ksia-flights-row-flight">' + row.flight + '</td>' +
         '<td>' + row[destKey] + '</td>' +
-        '<td>' + row.time + '</td>' +
+        '<td>' + (row.time || row.scheduled) + '</td>' +
         '<td>' + row.terminal + '</td>' +
         '<td><span class="ksia-status ksia-flights-row-status ' + statusClass(row.status) + '">' + row.status + '</span></td></tr>';
     });

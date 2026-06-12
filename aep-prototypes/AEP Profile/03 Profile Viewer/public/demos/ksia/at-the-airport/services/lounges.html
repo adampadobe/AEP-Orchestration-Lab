@@ -3,17 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../../ksia-site.css?v=20260612b">
+  <title>Lounges — King Salman International Airport</title>
+  <link rel="stylesheet" href="../../ksia-site.css?v=20260612e">
 </head>
-<body class="ksia-site" data-ksia-page-id="lounges">
+<body class="ksia-site" data-ksia-page-id="lounges" data-ksia-nav-section="at-the-airport" data-ksia-context="lounges access tier recommendation" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Lounges</h1><p class="ksia-page-lead">King Salman International Airport — Lounges.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <header class="ksia-subpage-hero">
+      <h1 class="ksia-display-heading">Airport lounges</h1>
+      <p class="ksia-subpage-hero-lead">Compare access tiers, get a personalized lounge recommendation, and book before you reach the gate.</p>
+    </header>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-lounges-tiers-heading">
+      <h2 class="ksia-section-title" id="ksia-lounges-tiers-heading">Lounge access tiers</h2>
+      <div class="ksia-lounge-tiers-grid" id="ksiaLoungesTiers"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-label="Personalized recommendation">
+      <div class="ksia-lounge-recommendation" id="ksiaLoungesRecommendation"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="index.html" class="ksia-card-link">All services</a></li>
+        <li><a href="../terminal-1.html" class="ksia-card-link">Terminal 1</a></li>
+        <li><a href="../../aivc/wallet-setup.html" class="ksia-card-link">AIVC wallet</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../../ksia-mock-data.js?v=20260612"></script>
+  <script src="../../ksia-mock-data.js?v=20260612e"></script>
   <script src="../../ksia-events.js?v=20260612"></script>
   <script src="../../ksia-chrome.js?v=20260612b"></script>
   <script src="../../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../../ksia-at-airport-pages.js?v=20260612e"></script>
 </body>
 </html>

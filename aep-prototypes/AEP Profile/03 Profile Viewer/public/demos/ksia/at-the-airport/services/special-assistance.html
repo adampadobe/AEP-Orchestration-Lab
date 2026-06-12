@@ -3,17 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../../ksia-site.css?v=20260612b">
+  <title>Special assistance — King Salman International Airport</title>
+  <link rel="stylesheet" href="../../ksia-site.css?v=20260612e">
 </head>
-<body class="ksia-site" data-ksia-page-id="special-assistance">
+<body class="ksia-site" data-ksia-page-id="special-assistance" data-ksia-nav-section="at-the-airport" data-ksia-context="special-assistance accessibility support" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Special Assistance</h1><p class="ksia-page-lead">King Salman International Airport — Special Assistance.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <header class="ksia-subpage-hero">
+      <h1 class="ksia-display-heading">Special assistance</h1>
+      <p class="ksia-subpage-hero-lead">Request support, find contact options, and see how AIVC helps from kerb to gate.</p>
+    </header>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-assistance-request-heading">
+      <div class="ksia-assistance-layout">
+        <div>
+          <h2 class="ksia-section-title" id="ksia-assistance-request-heading">Request assistance</h2>
+          <ol class="ksia-assistance-steps" id="ksiaAssistanceSteps"></ol>
+          <form id="ksiaAssistanceRequestForm" class="ksia-assistance-request-form">
+            <label for="ksiaAssistanceType">Assistance type</label>
+            <select id="ksiaAssistanceType" name="type">
+              <option value="wheelchair">Wheelchair escort</option>
+              <option value="hidden-disability">Hidden disability support</option>
+              <option value="companion">Companion seating</option>
+              <option value="other">Other — describe below</option>
+            </select>
+            <label for="ksiaAssistanceNotes">Notes (optional)</label>
+            <textarea id="ksiaAssistanceNotes" name="notes" rows="3" placeholder="Flight number, terminal preference, timing…"></textarea>
+            <button type="submit" class="ksia-btn ksia-btn-primary">Submit request (demo)</button>
+          </form>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">Contact options</h2>
+          <div class="ksia-assistance-contacts" id="ksiaAssistanceContacts"></div>
+          <h2 class="ksia-section-title" style="margin-top:28px">Journey support</h2>
+          <ul class="ksia-assistance-support-list" id="ksiaAssistanceSupport"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="index.html" class="ksia-card-link">All services</a></li>
+        <li><a href="../maps.html" class="ksia-card-link">Accessible wayfinding</a></li>
+        <li><a href="../../contact.html" class="ksia-card-link">Contact us</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../../ksia-mock-data.js?v=20260612"></script>
+  <script src="../../ksia-mock-data.js?v=20260612e"></script>
   <script src="../../ksia-events.js?v=20260612"></script>
   <script src="../../ksia-chrome.js?v=20260612b"></script>
   <script src="../../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../../ksia-at-airport-pages.js?v=20260612e"></script>
 </body>
 </html>

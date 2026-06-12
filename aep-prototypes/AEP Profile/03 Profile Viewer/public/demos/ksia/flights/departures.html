@@ -3,17 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612">
+  <title>Departures — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
 </head>
-<body class="ksia-site" data-ksia-page-id="flights-departures">
+<body class="ksia-site" data-ksia-page-id="flights-departures" data-ksia-nav-section="flights" data-ksia-context="flights-departures pre-departure day-of-travel" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Flights Departures</h1><p class="ksia-page-lead">King Salman International Airport — Flights Departures.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-board-hero" aria-label="Departures board">
+      <div class="ksia-board-hero-inner">
+        <h1 class="ksia-board-hero-title">Departures</h1>
+        <div class="ksia-board-hero-meta">
+          <span class="ksia-board-updated" id="ksiaBoardUpdated">Last updated —</span>
+          <span class="ksia-board-hero-pill">Pre-departure actions</span>
+        </div>
+        <form class="ksia-board-filters" id="ksiaBoardFilters" aria-label="Filter departures" onsubmit="return false;">
+          <div class="ksia-board-filter-field">
+            <label for="ksiaFilterAirline">Airline</label>
+            <select id="ksiaFilterAirline" name="airline"></select>
+          </div>
+          <div class="ksia-board-filter-field">
+            <label for="ksiaFilterFlight">Flight no.</label>
+            <input id="ksiaFilterFlight" name="flight" type="text" placeholder="e.g. SV 123" autocomplete="off">
+          </div>
+          <div class="ksia-board-filter-field">
+            <label for="ksiaFilterPlace">Destination</label>
+            <input id="ksiaFilterPlace" name="destination" type="text" placeholder="City or airport" autocomplete="off">
+          </div>
+          <button type="button" class="ksia-board-filter-reset" id="ksiaFilterReset">Clear filters</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-label="Gate change alert">
+      <div class="ksia-board-gate-alert-wrap" id="ksiaGateAlert" hidden></div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-departures-board-heading">
+      <h2 class="ksia-section-title" id="ksia-departures-board-heading">Live departures board</h2>
+      <div class="ksia-board-table-wrap" id="ksiaBoardTable"></div>
+      <p class="ksia-board-empty" id="ksiaBoardEmpty" hidden>No flights match your filters.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-label="Assistant suggestions">
+      <div id="ksiaBoardAssistant"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand ksia-board-related" aria-labelledby="ksia-departures-related-heading">
+      <h2 class="ksia-section-title" id="ksia-departures-related-heading">Related</h2>
+      <div id="ksiaBoardRelated"></div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612e"></script>
   <script src="../ksia-events.js?v=20260612"></script>
-  <script src="../ksia-chrome.js?v=20260612"></script>
+  <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-board-pages.js?v=20260612e"></script>
 </body>
 </html>

@@ -3,17 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Maps — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
 </head>
-<body class="ksia-site" data-ksia-page-id="maps">
+<body class="ksia-site" data-ksia-page-id="maps" data-ksia-nav-section="at-the-airport" data-ksia-context="maps wayfinding gate shop search" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Maps</h1><p class="ksia-page-lead">King Salman International Airport — Maps.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <header class="ksia-subpage-hero">
+      <h1 class="ksia-display-heading">Airport maps</h1>
+      <p class="ksia-subpage-hero-lead">Wayfinding across terminals, gates, shops, and transport — step-by-step directions from your AIVC profile.</p>
+    </header>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-maps-heading">
+      <div class="ksia-maps-layout">
+        <div class="ksia-maps-map-large" role="img" aria-label="Terminal map placeholder">
+          <span class="ksia-maps-map-label" id="ksiaMapsMapLabel">Terminal 1 — interactive map placeholder</span>
+        </div>
+        <div>
+          <h2 class="ksia-section-title" id="ksia-maps-heading">Find gate or shop</h2>
+          <form id="ksiaMapsSearchForm" class="ksia-maps-search-form">
+            <input id="ksiaMapsSearch" type="search" name="q" aria-label="Search map">
+            <button type="submit" class="ksia-btn ksia-btn-primary">Search</button>
+          </form>
+          <h3 class="ksia-section-kicker" style="margin-top:24px">Directions to Gate B12</h3>
+          <ol class="ksia-at-airport-wayfinding-steps" id="ksiaMapsDirections"></ol>
+          <div class="ksia-maps-a11y">
+            <label><input type="checkbox" id="ksiaMapsA11yToggle"> Accessible route</label>
+            <span id="ksiaMapsA11yNote"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="terminal-1.html" class="ksia-card-link">Terminal 1 detail</a></li>
+        <li><a href="security.html" class="ksia-card-link">Security</a></li>
+        <li><a href="index.html" class="ksia-card-link">At the airport hub</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612e"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-at-airport-pages.js?v=20260612e"></script>
 </body>
 </html>

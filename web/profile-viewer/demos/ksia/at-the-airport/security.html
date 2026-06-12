@@ -3,17 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Security — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
 </head>
-<body class="ksia-site" data-ksia-page-id="security">
+<body class="ksia-site" data-ksia-page-id="security" data-ksia-nav-section="at-the-airport" data-ksia-context="security biometrics fast-track e-gate" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Security</h1><p class="ksia-page-lead">King Salman International Airport — Security.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <header class="ksia-subpage-hero">
+      <h1 class="ksia-display-heading">Security &amp; biometrics</h1>
+      <p class="ksia-subpage-hero-lead">Live wait times, e-gate screening, Fast Track with your AIVC wallet, and a clear prep checklist.</p>
+    </header>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-security-wait-heading">
+      <h2 class="ksia-section-title" id="ksia-security-wait-heading">Wait times by lane</h2>
+      <div class="ksia-security-lanes-grid" id="ksiaSecurityLanes"></div>
+      <p><a href="../aivc/wallet-setup.html" class="ksia-btn ksia-btn-primary" id="ksiaSecurityFastTrack">Enable Fast Track in AIVC wallet</a></p>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-security-egate-heading">
+      <div class="ksia-security-split">
+        <div>
+          <h2 class="ksia-section-title" id="ksia-security-egate-heading">E-gate explainer</h2>
+          <ol class="ksia-at-airport-wayfinding-steps" id="ksiaSecurityEgate"></ol>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">What to prepare</h2>
+          <ul class="ksia-security-checklist" id="ksiaSecurityChecklist"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="maps.html" class="ksia-card-link">Maps &amp; wayfinding</a></li>
+        <li><a href="../flights/departures.html" class="ksia-card-link">Your departure</a></li>
+        <li><a href="index.html" class="ksia-card-link">At the airport hub</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612e"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-at-airport-pages.js?v=20260612e"></script>
 </body>
 </html>
