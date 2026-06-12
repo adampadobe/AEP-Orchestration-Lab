@@ -38,72 +38,6 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   color: var(--dash-text);
 }
 
-/* Collapsible “Your account” (minimise when signed in) */
-.firebase-database-page .fb-db-account-disclosure {
-  border: 1px solid var(--dash-border);
-  border-radius: 10px;
-  background: var(--dash-surface-alt);
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-
-.firebase-database-page .fb-db-account-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  margin: 0;
-  padding: 0.65rem 0.85rem;
-  font: inherit;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-align: left;
-  color: var(--dash-text);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  list-style: none;
-}
-
-.firebase-database-page .fb-db-account-toggle:hover {
-  background: var(--dash-hover);
-}
-
-.firebase-database-page .fb-db-account-toggle:focus-visible {
-  outline: 2px solid var(--dash-blue);
-  outline-offset: 2px;
-}
-
-.firebase-database-page .fb-db-account-toggle-text {
-  flex: 1;
-}
-
-.firebase-database-page .fb-db-account-chevron {
-  flex-shrink: 0;
-  font-size: 0.65rem;
-  line-height: 1;
-  color: var(--dash-muted);
-  transition: transform 0.18s ease;
-}
-
-.firebase-database-page .fb-db-account-disclosure--collapsed .fb-db-account-chevron {
-  transform: rotate(-90deg);
-}
-
-.firebase-database-page .fb-db-account-body {
-  padding: 0 0.85rem 0.85rem;
-  border-top: 1px solid var(--dash-border);
-}
-
-.firebase-database-page .fb-db-account-disclosure--collapsed .fb-db-account-body {
-  display: none;
-}
-
-.firebase-database-page .fb-db-account-body .fb-db-auth-lead {
-  margin-top: 0.65rem;
-}
-
 .firebase-database-page .fb-db-workspace-setup {
   margin: 0.75rem 0 0.85rem;
   padding: 0.75rem 0.85rem;
@@ -139,6 +73,12 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   margin: 1.25rem 0 0.65rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--dash-border);
+}
+
+.firebase-database-page .fb-db-subhead--first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .firebase-database-page .fb-db-auth-lead {

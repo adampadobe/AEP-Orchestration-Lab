@@ -74,29 +74,6 @@
   var editValueEl = document.getElementById('fbDbEditValue');
   var editTypeEl = document.getElementById('fbDbEditType');
 
-  var FB_DB_LAST_EMAIL_KEY = 'aepFbDbLastEmail';
-
-  function cacheLoginEmail(email) {
-    var s = String(email || '').trim();
-    if (!s) return;
-    try {
-      localStorage.setItem(FB_DB_LAST_EMAIL_KEY, s);
-    } catch (e) {
-      /* quota / private mode */
-    }
-  }
-
-  function applyCachedLoginEmail() {
-    var input = document.getElementById('fbDbEmail');
-    if (!input) return;
-    try {
-      var v = localStorage.getItem(FB_DB_LAST_EMAIL_KEY);
-      if (v) input.value = v;
-    } catch (e) {
-      /* */
-    }
-  }
-
   function showMsg(text, kind) {
     if (!msgEl) return;
     msgEl.hidden = false;
@@ -436,35 +413,6 @@
     renderJsonView();
   }
 
-  function authErrorMessage(err) {
-    if (!err || !err.code) return err && err.message ? String(err.message) : 'Request failed';
-    switch (err.code) {
-      case 'auth/email-already-in-use':
-        return 'That email is already registered — try Sign in.';
-      case 'auth/invalid-email':
-        return 'Enter a valid email address.';
-      case 'auth/weak-password':
-        return 'Password should be at least 6 characters.';
-      case 'auth/user-disabled':
-        return 'This account has been disabled.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        return 'Wrong email or password.';
-      case 'auth/too-many-requests':
-        return 'Too many attempts. Wait a bit and try again.';
-      case 'auth/configuration-not-found':
-      case 'auth/operation-not-allowed':
-        return (
-          'Email/Password sign-in is not enabled for this Firebase project. Open Firebase Console → Authentication → Sign-in method, ' +
-          'enable Email/Password (first row), save, wait a few seconds, then try Create account again. ' +
-          'Direct link: https://console.firebase.google.com/project/aep-orchestration-lab/authentication/providers'
-        );
-      default:
-        return err.message || String(err.code);
-    }
-  }
-
   function isLabAdobeUser(user) {
     if (!user || !user.email) return false;
     return String(user.email).trim().toLowerCase().endsWith('@adobe.com');
@@ -478,19 +426,12 @@
     return sanitizeWorkspaceSlug(String(user.email).split('@')[0]);
   }
 
-  function updateLabAuthStatus(user) {
-    var el = document.getElementById('fbDbLabAuthStatus');
-    var link = document.getElementById('fbDbLabSignInLink');
-    if (!el) return;
-    if (isLabAdobeUser(user)) {
-      el.textContent = 'Signed in as ' + user.email + (workspaceSlug ? ' · workspace ' + workspaceSlug : '');
-      if (link) link.hidden = true;
-    } else {
-      el.textContent = user && !user.email
-        ? 'Guest session cannot edit RTDB — sign in with your Adobe lab account.'
-        : 'Not signed in with an Adobe lab account.';
-      if (link) link.hidden = false;
-    }
+  function syncWorkspaceAuthChrome(user) {
+    var hint = document.getElementById('fbDbSignInHint');
+    var signOutBtn = document.getElementById('fbDbSignOut');
+    var needsLab = !user || !isLabAdobeUser(user);
+    if (hint) hint.hidden = !needsLab;
+    if (signOutBtn) signOutBtn.hidden = !user;
   }
 
   function defaultSandboxViewRoot() {
@@ -687,6 +628,10 @@
         setWorkspaceChrome({ pendingRequired: false, setupMode: 'hidden' });
         if (input) input.value = '';
         updateRestApiLink(auth.currentUser);
+        if (auth.currentUser) {
+          var whoSaved = auth.currentUser.email || 'Guest ' + auth.currentUser.uid.slice(0, 8) + '…';
+          setStatus('Signed in · ' + whoSaved + ' · workspace ' + slug, 'ok');
+        }
         showMsg('Workspace ready at ajoLookups/' + slug + '.', 'ok');
         return refreshDatabase();
       })
@@ -738,19 +683,6 @@
     document.body.removeChild(ta);
   }
 
-  function syncAccountPanelCollapse(user) {
-    var panel = document.getElementById('fbDbAccountDisclosure');
-    var toggle = document.getElementById('fbDbAccountToggle');
-    if (!panel || !toggle) return;
-    if (user) {
-      panel.classList.add('fb-db-account-disclosure--collapsed');
-      toggle.setAttribute('aria-expanded', 'false');
-    } else {
-      panel.classList.remove('fb-db-account-disclosure--collapsed');
-      toggle.setAttribute('aria-expanded', 'true');
-    }
-  }
-
   function initFirebaseApp() {
     var cfg = getCfg();
     if (!cfg || !cfg.apiKey) {
@@ -764,7 +696,7 @@
       auth = firebase.auth();
       database = firebase.database();
       auth.onAuthStateChanged(function (user) {
-        updateLabAuthStatus(user);
+        syncWorkspaceAuthChrome(user);
         if (user && !isLabAdobeUser(user)) {
           basePath = '';
           workspaceSlug = '';
@@ -779,16 +711,17 @@
           }
           setStatus('Lab Adobe sign-in required', 'warn');
           cancelEdit();
-          syncAccountPanelCollapse(null);
           return;
         }
         if (user) {
           var who = user.email || 'Guest ' + user.uid.slice(0, 8) + '…';
           setStatus('Signed in · ' + who, 'ok');
           cancelEdit();
-          syncAccountPanelCollapse(user);
           resolveWorkspaceForUser(user)
             .then(function () {
+              var whoResolved = user.email || 'Guest ' + user.uid.slice(0, 8) + '…';
+              var slugSuffix = workspaceSlug ? ' · workspace ' + workspaceSlug : '';
+              setStatus('Signed in · ' + whoResolved + slugSuffix, 'ok');
               updateRestApiLink(user);
               if (basePath) {
                 return refreshDatabase();
@@ -810,100 +743,16 @@
           renderJsonView();
           if (treeEl) {
             treeEl.innerHTML =
-              '<div class="fb-db-tree-empty">Sign in or create an account to load your workspace.</div>';
+              '<div class="fb-db-tree-empty">Sign in from <a href="home.html?accessSetup=1">Home</a> to load your workspace.</div>';
           }
           setStatus('Not signed in', 'warn');
           cancelEdit();
-          syncAccountPanelCollapse(null);
         }
       });
     } catch (e) {
       setStatus('Error', 'warn');
       showMsg(String(e.message || e), 'err');
     }
-  }
-
-  function signInWithEmail() {
-    var x = getEmailPassword();
-    if (!x.email || !x.password) {
-      showMsg('Enter email and password.', 'err');
-      return;
-    }
-    if (!auth) {
-      showMsg('Firebase not initialized.', 'err');
-      return;
-    }
-    showMsg('Signing in…', 'info');
-    auth
-      .signInWithEmailAndPassword(x.email, x.password)
-      .then(function () {
-        cacheLoginEmail(x.email);
-        showMsg('Signed in.', 'ok');
-      })
-      .catch(function (e) {
-        showMsg(authErrorMessage(e), 'err');
-      });
-  }
-
-  function registerWithEmail() {
-    var x = getEmailPassword();
-    if (!x.email || !x.password) {
-      showMsg('Enter email and password (min. 6 characters).', 'err');
-      return;
-    }
-    if (!auth) {
-      showMsg('Firebase not initialized.', 'err');
-      return;
-    }
-    showMsg('Creating account…', 'info');
-    auth
-      .createUserWithEmailAndPassword(x.email, x.password)
-      .then(function () {
-        cacheLoginEmail(x.email);
-        showMsg('Account created. Your workspace is ready.', 'ok');
-      })
-      .catch(function (e) {
-        showMsg(authErrorMessage(e), 'err');
-      });
-  }
-
-  function signInAnonymous() {
-    if (!auth) {
-      showMsg('Firebase not initialized.', 'err');
-      return;
-    }
-    showMsg('Signing in as guest…', 'info');
-    auth
-      .signInAnonymously()
-      .then(function () {
-        showMsg('Guest session — data may not persist across browsers.', 'info');
-      })
-      .catch(function (e) {
-        showMsg(
-          authErrorMessage(e) +
-            ' Enable Anonymous under Authentication → Sign-in method if you need this.',
-          'err',
-        );
-      });
-  }
-
-  function sendPasswordReset() {
-    var x = getEmailPassword();
-    if (!x.email) {
-      showMsg('Enter your email, then click Send password reset email.', 'err');
-      return;
-    }
-    if (!auth) return;
-    showMsg('Sending…', 'info');
-    auth
-      .sendPasswordResetEmail(x.email)
-      .then(function () {
-        cacheLoginEmail(x.email);
-        showMsg('Check your inbox for a reset link.', 'ok');
-      })
-      .catch(function (e) {
-        showMsg(authErrorMessage(e), 'err');
-      });
   }
 
   /** Keeps ajoLookups mirror in sync when editing legacy userWorkspaces paths only. */
@@ -1229,15 +1078,6 @@
 
   initFirebaseApp();
 
-  document.getElementById('fbDbAccountToggle') &&
-    document.getElementById('fbDbAccountToggle').addEventListener('click', function () {
-      if (!auth || !auth.currentUser) return;
-      var panel = document.getElementById('fbDbAccountDisclosure');
-      var toggle = document.getElementById('fbDbAccountToggle');
-      if (!panel || !toggle) return;
-      var collapsed = panel.classList.toggle('fb-db-account-disclosure--collapsed');
-      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    });
   document.getElementById('fbDbWorkspaceSlugSave') &&
     document.getElementById('fbDbWorkspaceSlugSave').addEventListener('click', saveWorkspaceSlug);
   var slugIn = document.getElementById('fbDbWorkspaceSlug');

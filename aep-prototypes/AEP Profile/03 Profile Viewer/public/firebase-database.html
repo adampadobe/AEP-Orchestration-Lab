@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="firebase-database.css?v=20260409g">
+  <link rel="stylesheet" href="firebase-database.css?v=20260612b">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -45,35 +45,13 @@
 
         <div class="fb-db-layout">
           <div class="fb-db-panel">
-            <section
-              class="fb-db-account-disclosure"
-              id="fbDbAccountDisclosure"
-              aria-label="Account sign-in"
-            >
-              <button
-                type="button"
-                class="fb-db-account-toggle"
-                id="fbDbAccountToggle"
-                aria-expanded="true"
-                aria-controls="fbDbAccountBody"
-              >
-                <span class="fb-db-account-toggle-text">Your account</span>
-                <span class="fb-db-account-chevron" aria-hidden="true">▼</span>
-              </button>
-              <div class="fb-db-account-body" id="fbDbAccountBody" role="region">
-                <p class="fb-db-auth-lead">
-                  Sign in with your <strong>@adobe.com</strong> lab account (same session as the Profile Viewer home). No separate RTDB password.
-                </p>
-                <p id="fbDbLabAuthStatus" class="fb-db-auth-lead" style="font-size:13px;color:var(--dash-text-secondary);"></p>
-                <a href="home.html?accessSetup=1" class="fb-db-btn fb-db-btn--primary" id="fbDbLabSignInLink" style="text-decoration:none;display:inline-block;text-align:center;">Open lab sign-in</a>
-                <a href="global-settings.html" class="fb-db-btn" style="text-decoration:none;display:inline-block;text-align:center;margin-top:8px;">Demo prep (Global settings)</a>
-              </div>
-            </section>
-
-            <h3 class="fb-db-subhead">Workspace</h3>
+            <h3 class="fb-db-subhead fb-db-subhead--first">Workspace</h3>
             <div class="fb-db-status" id="fbDbStatusWrap">
               <span id="fbDbStatusText">Not signed in</span>
             </div>
+            <p id="fbDbSignInHint" class="fb-db-auth-lead">
+              Sign in from <a href="home.html?accessSetup=1">Home</a> with your <strong>@adobe.com</strong> lab account (same session as the rest of the lab). Prep demos in <a href="global-settings.html">Global settings</a>.
+            </p>
 
             <div id="fbDbWorkspaceSetup" class="fb-db-workspace-setup" hidden>
               <p class="fb-db-workspace-setup-lead" id="fbDbWorkspaceSetupLead"></p>
@@ -91,7 +69,7 @@
               <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbWorkspaceSlugSave">Save workspace name</button>
             </div>
 
-            <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbSignOut">Sign out</button>
+            <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbSignOut" hidden>Sign out</button>
 
             <div id="fbDbWorkspaceDeferred" class="fb-db-workspace-deferred">
             <p id="fbDbRestApiPendingHint" class="fb-db-api-pending-hint" hidden>
@@ -261,7 +239,7 @@
   <script src="aep-demo-config-rtdb.js?v=20260612"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
-  <script src="firebase-database.js?v=20260612"></script>
+  <script src="firebase-database.js?v=20260612b"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
