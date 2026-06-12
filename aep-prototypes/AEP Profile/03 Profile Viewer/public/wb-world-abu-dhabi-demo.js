@@ -1,247 +1,262 @@
 /**
- * WB World Abu Dhabi demo — profile lookup + Tags injection + optional web push + flyout lab nav.
+ * Env bar: waits for shared/env-bar.js before Tags injection.
  */
+(function (global) {
+  'use strict';
+  function run() {
+    const customerEmail = document.getElementById('customerEmail');
+    if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+    if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'wbworldNs');
 
-const customerEmail = document.getElementById('customerEmail');
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'wbworldNs');
+    const queryProfileBtn = document.getElementById('queryProfileBtn');
+    const wbworldMessage = document.getElementById('wbworldMessage');
+    const generatorTargetSelect = document.getElementById('generatorTarget');
 
-const queryProfileBtn = document.getElementById('queryProfileBtn');
-const wbworldMessage = document.getElementById('wbworldMessage');
-const generatorTargetSelect = document.getElementById('generatorTarget');
+    /** @type {Array<{ id: string, label: string, transport: string }>} */
+    let generatorTargets = [];
 
-/** @type {Array<{ id: string, label: string, transport: string }>} */
-let generatorTargets = [];
+    const wbworldBcOnInjectToggle = document.getElementById('wbworldBcOnInjectToggle');
+    const wbworldBcStyleSelect = document.getElementById('wbworldBcStyleSelect');
 
-const wbworldBcOnInjectToggle = document.getElementById('wbworldBcOnInjectToggle');
-const wbworldBcStyleSelect = document.getElementById('wbworldBcStyleSelect');
+    function wbworldWebPushOnInjectDesired() {
+      if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
+        return window.SiteCloneBcEnv.webPushOnInjectDesired();
+      }
+      const el = document.getElementById('wbworldWebPushOnInjectToggle');
+      return !!(el && el.checked);
+    }
 
-function wbworldWebPushOnInjectDesired() {
-  if (typeof window.SiteCloneBcEnv !== 'undefined' && typeof window.SiteCloneBcEnv.webPushOnInjectDesired === 'function') {
-    return window.SiteCloneBcEnv.webPushOnInjectDesired();
-  }
-  const el = document.getElementById('wbworldWebPushOnInjectToggle');
-  return !!(el && el.checked);
-}
-
-window.__siteCloneSuppressBcEnable = true;
-const wbworldInjectSdkBtn = document.getElementById('wbworldInjectSdkBtn');
-if (wbworldInjectSdkBtn) {
-  wbworldInjectSdkBtn.addEventListener(
-    'click',
-    function () {
-      window.__siteCloneSuppressBcEnable = false;
-    },
-    true,
-  );
-}
-
-const wbworldTagsInjection =
-  typeof window.DemoTagsInjection !== 'undefined'
-    ? window.DemoTagsInjection.init({
-        storagePrefix: 'wbworld',
-        identityEventType: 'wbworld.identity.stitch',
-        messageSetter: setWbworldMessage,
-        infoEcidId: 'infoEcid',
-        tagsCompanyId: 'wbworldTagsCompany',
-        tagsPropertyInputId: 'wbworldTagsProperty',
-        tagsPropertyListId: 'wbworldTagsPropertyList',
-        tagsEnvironmentId: 'wbworldTagsEnvironment',
-        injectButtonId: 'wbworldInjectSdkBtn',
-        selectedScriptId: 'wbworldSelectedScript',
-        configFieldsId: 'wbworldSdkConfigFields',
-        configSummaryId: 'wbworldSdkConfigSummary',
-        configSummaryTextId: 'wbworldSdkConfigSummaryText',
-        changeConfigButtonId: 'wbworldChangeSdkConfigBtn',
-        getSelectedGeneratorTarget: getSelectedGeneratorTarget,
-        getEmail: () => (customerEmail && customerEmail.value) || '',
-        iframeIds: [],
-        hideTagsCompanyUi: true,
-        webPush: {
-          enabled: true,
-          subscribeAfterInject: wbworldWebPushOnInjectDesired,
-          requestPermissionOnInject: wbworldWebPushOnInjectDesired,
+    window.__siteCloneSuppressBcEnable = true;
+    const wbworldInjectSdkBtn = document.getElementById('wbworldInjectSdkBtn');
+    if (wbworldInjectSdkBtn) {
+      wbworldInjectSdkBtn.addEventListener(
+        'click',
+        function () {
+          window.__siteCloneSuppressBcEnable = false;
         },
-        brandConcierge: {
-          enabled: function () { return !!(wbworldBcOnInjectToggle && wbworldBcOnInjectToggle.checked); },
-          styleKey: function () { return wbworldBcStyleSelect ? wbworldBcStyleSelect.value : 'miral'; },
-          suppressEnable: function () {
-            return !!window.__siteCloneSuppressBcEnable;
-          },
-        },
-        onEcidResolved: function () {
-          if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();
-          var _ft2 = getSelectedGeneratorTarget();
-          if (_ft2 && (_ft2.dataStreamId || _ft2.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
-            window.MiralCrossSite.setDatastreamId(_ft2.dataStreamId || _ft2.datastreamId);
-          }
-          if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('wbworld');
-          var ecidEl = document.getElementById('infoEcid');
-          var ecid = ecidEl ? String(ecidEl.textContent || '').trim() : '';
-          if (ecid && ecid !== '—' && /^\d+$/.test(ecid) && ecid.length >= 10) {
-            if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
-              DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
-            }
-          }
-        },
-      })
-    : null;
-
-const wbworldWebPushRetryBtn = document.getElementById('wbworldWebPushRetryBtn');
-if (wbworldWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
-  wbworldWebPushRetryBtn.addEventListener('click', function () {
-    void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'wbworld' }).then(function (ok) {
-      setWbworldMessage(
-        ok
-          ? 'Web push subscription sent.'
-          : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
-        ok ? 'success' : 'error',
+        true,
       );
-    });
-  });
-}
-
-function getEmail() {
-  return (customerEmail && customerEmail.value) || '';
-}
-
-function setWbworldMessage(text, type) {
-  if (!wbworldMessage) return;
-  wbworldMessage.textContent = text || '';
-  wbworldMessage.className =
-    'wb-world-abu-dhabi-demo-message' + (type ? ' wb-world-abu-dhabi-demo-message--' + String(type).replace(/\s+/g, '-') : '');
-  wbworldMessage.hidden = !text;
-}
-
-function getSelectedGeneratorTarget() {
-  const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
-  return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
-}
-
-async function loadGeneratorTargets() {
-  if (!generatorTargetSelect) return;
-  if (
-    typeof window.AepDemoGeneratorTargets !== 'undefined' &&
-    window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
-  ) {
-    generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, { preferredId: 'lab-event-tool-edge' });
-    const _ft = getSelectedGeneratorTarget();
-    if (_ft && (_ft.dataStreamId || _ft.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
-      window.MiralCrossSite.setDatastreamId(_ft.dataStreamId || _ft.datastreamId);
     }
-    return;
-  }
-  try {
-    const res = await fetch('/api/events/generator-targets');
-    const data = await res.json().catch(() => ({}));
-    generatorTargets = Array.isArray(data.targets) ? data.targets : [];
-    generatorTargetSelect.innerHTML = '';
-    if (generatorTargets.length === 0) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'No targets (check event-generator-targets.json)';
-      generatorTargetSelect.appendChild(opt);
-      return;
-    }
-    generatorTargets.forEach((t) => {
-      const opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.label || t.id;
-      generatorTargetSelect.appendChild(opt);
-    });
-  } catch {
-    generatorTargetSelect.innerHTML = '';
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'Failed to load targets';
-    generatorTargetSelect.appendChild(opt);
-  }
-}
 
-void loadGeneratorTargets();
-if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
-  window.AepDemoGeneratorTargets.onSandboxChange(function () {
-    void loadGeneratorTargets();
-  });
-}
-
-queryProfileBtn &&
-  queryProfileBtn.addEventListener('click', async () => {
-    const email = getEmail().trim();
-    if (!email) {
-      setWbworldMessage('Enter a customer identifier first.', 'error');
-      return;
-    }
-    setWbworldMessage('Looking up profile...', '');
-    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
-    if (!ok || !wbworldTagsInjection || typeof wbworldTagsInjection.stitchAfterProfileLookup !== 'function') return;
-    const profile =
-      window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
-        ? window.DemoProfileDrawer.getLastLookedUpProfile()
+    const wbworldTagsInjection =
+      typeof window.DemoTagsInjection !== 'undefined'
+        ? window.DemoTagsInjection.init({
+            storagePrefix: 'wbworld',
+            identityEventType: 'wbworld.identity.stitch',
+            messageSetter: setWbworldMessage,
+            infoEcidId: 'infoEcid',
+            tagsCompanyId: 'wbworldTagsCompany',
+            tagsPropertyInputId: 'wbworldTagsProperty',
+            tagsPropertyListId: 'wbworldTagsPropertyList',
+            tagsEnvironmentId: 'wbworldTagsEnvironment',
+            injectButtonId: 'wbworldInjectSdkBtn',
+            selectedScriptId: 'wbworldSelectedScript',
+            configFieldsId: 'wbworldSdkConfigFields',
+            configSummaryId: 'wbworldSdkConfigSummary',
+            configSummaryTextId: 'wbworldSdkConfigSummaryText',
+            changeConfigButtonId: 'wbworldChangeSdkConfigBtn',
+            getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+            getEmail: () => (customerEmail && customerEmail.value) || '',
+            iframeIds: [],
+            hideTagsCompanyUi: true,
+            webPush: {
+              enabled: true,
+              subscribeAfterInject: wbworldWebPushOnInjectDesired,
+              requestPermissionOnInject: wbworldWebPushOnInjectDesired,
+            },
+            brandConcierge: {
+              enabled: function () { return !!(wbworldBcOnInjectToggle && wbworldBcOnInjectToggle.checked); },
+              styleKey: function () { return wbworldBcStyleSelect ? wbworldBcStyleSelect.value : 'miral'; },
+              suppressEnable: function () {
+                return !!window.__siteCloneSuppressBcEnable;
+              },
+            },
+            onEcidResolved: function () {
+              if (typeof window.MiralCrossSite !== 'undefined') window.MiralCrossSite.retryPageView();
+              var _ft2 = getSelectedGeneratorTarget();
+              if (_ft2 && (_ft2.dataStreamId || _ft2.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
+                window.MiralCrossSite.setDatastreamId(_ft2.dataStreamId || _ft2.datastreamId);
+              }
+              if (typeof AepBcToggle !== 'undefined') AepBcToggle.enableIfPrefsSet('wbworld');
+              var ecidEl = document.getElementById('infoEcid');
+              var ecid = ecidEl ? String(ecidEl.textContent || '').trim() : '';
+              if (ecid && ecid !== '—' && /^\d+$/.test(ecid) && ecid.length >= 10) {
+                if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+                  DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+                }
+              }
+            },
+          })
         : null;
-    const stitched = await wbworldTagsInjection.stitchAfterProfileLookup(profile, email);
-    if (stitched) setWbworldMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+
+    const wbworldWebPushRetryBtn = document.getElementById('wbworldWebPushRetryBtn');
+    if (wbworldWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
+      wbworldWebPushRetryBtn.addEventListener('click', function () {
+        void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'wbworld' }).then(function (ok) {
+          setWbworldMessage(
+            ok
+              ? 'Web push subscription sent.'
+              : 'Web push did not complete. Allow notifications, ensure push is enabled on your datastream, and that Tags is injected on this page.',
+            ok ? 'success' : 'error',
+          );
+        });
+      });
+    }
+
+    function getEmail() {
+      return (customerEmail && customerEmail.value) || '';
+    }
+
+    function setWbworldMessage(text, type) {
+      if (!wbworldMessage) return;
+      wbworldMessage.textContent = text || '';
+      wbworldMessage.className =
+        'wb-world-abu-dhabi-demo-message' + (type ? ' wb-world-abu-dhabi-demo-message--' + String(type).replace(/\s+/g, '-') : '');
+      wbworldMessage.hidden = !text;
+    }
+
+    function getSelectedGeneratorTarget() {
+      const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
+      return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
+    }
+
+    async function loadGeneratorTargets() {
+      if (!generatorTargetSelect) return;
+      if (
+        typeof window.AepDemoGeneratorTargets !== 'undefined' &&
+        window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect
+      ) {
+        generatorTargets = await window.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect(generatorTargetSelect, { preferredId: 'lab-event-tool-edge' });
+        const _ft = getSelectedGeneratorTarget();
+        if (_ft && (_ft.dataStreamId || _ft.datastreamId) && typeof window.MiralCrossSite !== 'undefined') {
+          window.MiralCrossSite.setDatastreamId(_ft.dataStreamId || _ft.datastreamId);
+        }
+        return;
+      }
+      try {
+        const res = await fetch('/api/events/generator-targets');
+        const data = await res.json().catch(() => ({}));
+        generatorTargets = Array.isArray(data.targets) ? data.targets : [];
+        generatorTargetSelect.innerHTML = '';
+        if (generatorTargets.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No targets (check event-generator-targets.json)';
+          generatorTargetSelect.appendChild(opt);
+          return;
+        }
+        generatorTargets.forEach((t) => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.label || t.id;
+          generatorTargetSelect.appendChild(opt);
+        });
+      } catch {
+        generatorTargetSelect.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Failed to load targets';
+        generatorTargetSelect.appendChild(opt);
+      }
+    }
+
+    void loadGeneratorTargets();
+    if (typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.onSandboxChange) {
+      window.AepDemoGeneratorTargets.onSandboxChange(function () {
+        void loadGeneratorTargets();
+      });
+    }
+
+    queryProfileBtn &&
+      queryProfileBtn.addEventListener('click', async () => {
+        const email = getEmail().trim();
+        if (!email) {
+          setWbworldMessage('Enter a customer identifier first.', 'error');
+          return;
+        }
+        setWbworldMessage('Looking up profile...', '');
+        const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+        if (!ok || !wbworldTagsInjection || typeof wbworldTagsInjection.stitchAfterProfileLookup !== 'function') return;
+        const profile =
+          window.DemoProfileDrawer && typeof window.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+            ? window.DemoProfileDrawer.getLastLookedUpProfile()
+            : null;
+        const stitched = await wbworldTagsInjection.stitchAfterProfileLookup(profile, email);
+        if (stitched) setWbworldMessage('Profile loaded and email linked to ECID for stitching.', 'success');
+      });
+
+    if (wbworldTagsInjection && window.envBar && typeof window.envBar.registerTagsInjection === 'function') {
+      window.envBar.registerTagsInjection(wbworldTagsInjection);
+    }
+
+    (function initWbworldDemoFlyoutSidebar() {
+      const body = document.body;
+      if (!body.classList.contains('wb-world-abu-dhabi-demo-page')) return;
+      const sidebar = document.querySelector('.dashboard-sidebar');
+      if (!sidebar) return;
+
+      const mq = window.matchMedia('(max-width: 768px)');
+      let hideTimer = null;
+
+      function clearHideTimer() {
+        if (hideTimer) { window.clearTimeout(hideTimer); hideTimer = null; }
+      }
+
+      function setFlyoutOpen(open) {
+        body.classList.toggle('wb-world-abu-dhabi-demo-page--nav-open', open);
+      }
+
+      function scheduleClose() {
+        clearHideTimer();
+        hideTimer = window.setTimeout(function () { setFlyoutOpen(false); hideTimer = null; }, 450);
+      }
+
+      function onPointerMove(e) {
+        if (mq.matches) return;
+        if (e.clientX <= 24) { clearHideTimer(); setFlyoutOpen(true); return; }
+        const r = sidebar.getBoundingClientRect();
+        const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        if (over) { clearHideTimer(); setFlyoutOpen(true); return; }
+        if (body.classList.contains('wb-world-abu-dhabi-demo-page--nav-open')) scheduleClose();
+      }
+
+      sidebar.addEventListener('mouseenter', function () { if (!mq.matches) { clearHideTimer(); setFlyoutOpen(true); } });
+      sidebar.addEventListener('mouseleave', function () { if (!mq.matches) scheduleClose(); });
+      document.addEventListener('mousemove', onPointerMove, { passive: true });
+      mq.addEventListener('change', function () {
+        clearHideTimer();
+        if (mq.matches) body.classList.remove('wb-world-abu-dhabi-demo-page--nav-open');
+      });
+      setFlyoutOpen(false);
+    })();
+
+    DemoProfileDrawer.init({
+      emailInputId: 'customerEmail',
+      profileOpenClass: 'wb-world-abu-dhabi-demo-page--profile-open',
+      viewName: 'WB World Abu Dhabi demo',
+      emailGetter: getEmail,
+      messageSetter: setWbworldMessage,
+      getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+      fetchBrowserEcidOnInit: true,
+    });
+
+    // Exposed so miral-cross-site-events.js can trigger an identity stitch via alloy
+    // (same path as stitchAfterProfileLookup used by the profile viewer Query Profile button)
+    window.AepDemoParkStitch = window.AepDemoParkStitch || {};
+    window.AepDemoParkStitch.stitch = function (email, ecid) {
+      if (wbworldTagsInjection && typeof wbworldTagsInjection.stitchAfterProfileLookup === 'function') {
+        var fakeProfile = ecid ? { ecid: ecid } : null;
+        void wbworldTagsInjection.stitchAfterProfileLookup(fakeProfile, email);
+      }
+    };
+
+  }
+
+if (global.envBar && typeof global.envBar.ready === 'function') {
+  global.envBar.ready().then(function () {
+    run();
   });
-
-(function initWbworldDemoFlyoutSidebar() {
-  const body = document.body;
-  if (!body.classList.contains('wb-world-abu-dhabi-demo-page')) return;
-  const sidebar = document.querySelector('.dashboard-sidebar');
-  if (!sidebar) return;
-
-  const mq = window.matchMedia('(max-width: 768px)');
-  let hideTimer = null;
-
-  function clearHideTimer() {
-    if (hideTimer) { window.clearTimeout(hideTimer); hideTimer = null; }
-  }
-
-  function setFlyoutOpen(open) {
-    body.classList.toggle('wb-world-abu-dhabi-demo-page--nav-open', open);
-  }
-
-  function scheduleClose() {
-    clearHideTimer();
-    hideTimer = window.setTimeout(function () { setFlyoutOpen(false); hideTimer = null; }, 450);
-  }
-
-  function onPointerMove(e) {
-    if (mq.matches) return;
-    if (e.clientX <= 24) { clearHideTimer(); setFlyoutOpen(true); return; }
-    const r = sidebar.getBoundingClientRect();
-    const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    if (over) { clearHideTimer(); setFlyoutOpen(true); return; }
-    if (body.classList.contains('wb-world-abu-dhabi-demo-page--nav-open')) scheduleClose();
-  }
-
-  sidebar.addEventListener('mouseenter', function () { if (!mq.matches) { clearHideTimer(); setFlyoutOpen(true); } });
-  sidebar.addEventListener('mouseleave', function () { if (!mq.matches) scheduleClose(); });
-  document.addEventListener('mousemove', onPointerMove, { passive: true });
-  mq.addEventListener('change', function () {
-    clearHideTimer();
-    if (mq.matches) body.classList.remove('wb-world-abu-dhabi-demo-page--nav-open');
-  });
-  setFlyoutOpen(false);
-})();
-
-DemoProfileDrawer.init({
-  emailInputId: 'customerEmail',
-  profileOpenClass: 'wb-world-abu-dhabi-demo-page--profile-open',
-  viewName: 'WB World Abu Dhabi demo',
-  emailGetter: getEmail,
-  messageSetter: setWbworldMessage,
-  getSelectedGeneratorTarget: getSelectedGeneratorTarget,
-  fetchBrowserEcidOnInit: true,
-});
-
-window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'wbworld' });
-
-// Exposed so miral-cross-site-events.js can trigger an identity stitch via alloy
-// (same path as stitchAfterProfileLookup used by the profile viewer Query Profile button)
-window.AepDemoParkStitch = window.AepDemoParkStitch || {};
-window.AepDemoParkStitch.stitch = function (email, ecid) {
-  if (wbworldTagsInjection && typeof wbworldTagsInjection.stitchAfterProfileLookup === 'function') {
-    var fakeProfile = ecid ? { ecid: ecid } : null;
-    void wbworldTagsInjection.stitchAfterProfileLookup(fakeProfile, email);
-  }
-};
+} else {
+  run();
+}
+})(typeof window !== 'undefined' ? window : globalThis);

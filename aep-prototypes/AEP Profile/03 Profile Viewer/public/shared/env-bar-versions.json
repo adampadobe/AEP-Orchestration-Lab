@@ -7,6 +7,8 @@
     "demoEnvStripSpectrum": "20260623-spectrum",
     "demoEnvStrip": "20260623-spectrum",
     "spectrumSync": "20260623-spectrum",
+    "compactJs": "20260612-env-compact",
+    "compactCss": "20260612-env-compact",
     "bootstrap": "20260602-env-bar-bootstrap",
     "tagsInjection": "20260605-tags-sandbox-restore",
     "aepDemoEnvBar": "20260601-launch-unset-expand"

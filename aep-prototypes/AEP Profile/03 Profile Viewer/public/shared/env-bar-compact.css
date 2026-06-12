@@ -1,0 +1,261 @@
+/**
+ * Shared compact dropdown for lab env bar — all site-clone / spectrum demos.
+ * Collapsed: thin top hit zone + status/sandbox peek (~2.25rem).
+ * Expanded: full strip on hover, focus-within, tap, or pin (.lab-env-top-anchor--pinned).
+ *
+ * @see docs/demo-env-strip-standard.md
+ */
+
+.mod-demo-top-anchor,
+[class$='-demo-top-anchor'] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6500;
+  pointer-events: none;
+  --lab-env-hit-zone: 14px;
+  --lab-env-collapsed-peek: 2.35rem;
+}
+
+.mod-demo-top-anchor::before,
+[class$='-demo-top-anchor']::before {
+  content: '';
+  display: block;
+  height: var(--lab-env-hit-zone);
+  pointer-events: auto;
+}
+
+.mod-demo-id-banner,
+[class$='-demo-id-banner'] {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% + var(--lab-env-collapsed-peek)));
+  transition: transform 0.22s ease, max-height 0.28s ease, box-shadow 0.22s ease;
+  max-height: var(--lab-env-collapsed-peek);
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Lab strip stays readable when dashboard theme is dark */
+html[data-aep-theme='dark'] .mod-demo-id-banner,
+html[data-aep-theme='dark'] [class$='-demo-id-banner'],
+html[data-aep-theme='dark'] .mod-demo-id-inner,
+html[data-aep-theme='dark'] [class$='-demo-id-inner'] {
+  --dash-bg: var(--dash-surface-alt, #f4f6f8);
+  --dash-surface: #ffffff;
+  --dash-surface-alt: #f8f9fa;
+  --dash-border: #e2e6ea;
+  --dash-text: #1a1a2e;
+  --dash-text-secondary: #4a5568;
+  --dash-muted: #6b7280;
+  --dash-input-bg: #ffffff;
+  --dash-input-border: #cbd5e1;
+  --dash-hover: #f1f5f9;
+  color-scheme: light;
+}
+
+.mod-demo-top-anchor:hover .mod-demo-id-banner,
+.mod-demo-top-anchor:focus-within .mod-demo-id-banner,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+[class$='-demo-top-anchor']:hover [class$='-demo-id-banner'],
+[class$='-demo-top-anchor']:focus-within [class$='-demo-id-banner'],
+[class$='-demo-top-anchor'].lab-env-top-anchor--expanded [class$='-demo-id-banner'],
+[class$='-demo-top-anchor'].lab-env-top-anchor--pinned [class$='-demo-id-banner'] {
+  transform: translateY(0);
+  max-height: min(92vh, 960px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-shadow: var(--dash-shadow);
+}
+
+.aep-demo-id-inner--spectrum {
+  padding: 0;
+}
+
+/* ── Collapsed spectrum peek: sandbox chip + status dots ─────── */
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar {
+  flex-wrap: nowrap;
+  gap: 0.55rem 0.75rem;
+  padding: 0.35rem 0.65rem;
+  min-height: var(--lab-env-collapsed-peek);
+  align-items: center;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat .spectrum-env-pill:not(.lab-env-sandbox-chip),
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat .spectrum-env-pill:not(.lab-env-sandbox-chip) {
+  display: none;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat .spectrum-env-link-btn,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat .spectrum-env-link-btn {
+  display: none;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__brand,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__brand {
+  min-width: 0;
+  flex: 0 1 auto;
+  gap: 0.45rem;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__logo,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__logo {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__titles,
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__updated,
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat__label,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__titles,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__updated,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__stats,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-status-bar__stats {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 0.65rem 0.85rem;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat:not(.spectrum-env-stat--sandbox),
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat:not(.spectrum-env-stat--sandbox) {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat--sandbox,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .spectrum-env-stat--sandbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.lab-env-sandbox-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(12rem, 34vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Pin control — visible in collapsed peek; stays in expanded bar */
+.lab-env-pin-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.lab-env-pin-btn[aria-pressed='true'] {
+  border-color: var(--dash-blue);
+  color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
+}
+
+.mod-demo-top-anchor:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .lab-env-pin-btn,
+[class$='-demo-top-anchor']:not(:hover):not(:focus-within):not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+  .lab-env-pin-btn {
+  width: 1.55rem;
+  height: 1.55rem;
+  min-width: 1.55rem;
+  padding: 0;
+}
+
+/* When dropdown is open, reveal inner env editor even if SDK compact row is active */
+.mod-demo-top-anchor:hover .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+.mod-demo-top-anchor:focus-within .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class$='-demo-top-anchor']:hover .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class$='-demo-top-anchor']:focus-within .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden] {
+  display: block !important;
+}
+
+.mod-demo-top-anchor:hover .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+.mod-demo-top-anchor:focus-within .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class$='-demo-top-anchor']:hover .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class$='-demo-top-anchor']:focus-within .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden] {
+  display: block !important;
+}
+
+.mod-demo-top-anchor:hover .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+.mod-demo-top-anchor:focus-within .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class$='-demo-top-anchor']:hover .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class$='-demo-top-anchor']:focus-within .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden] {
+  display: block !important;
+}
+
+.mod-demo-top-anchor:hover .aep-demo-env-section--collapsed .aep-demo-env-compact,
+.mod-demo-top-anchor:focus-within .aep-demo-env-section--collapsed .aep-demo-env-compact,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class$='-demo-top-anchor']:hover .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class$='-demo-top-anchor']:focus-within .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class$='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class$='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact {
+  display: none !important;
+}
+
+@media (max-width: 48rem) {
+  .mod-demo-top-anchor,
+  [class$='-demo-top-anchor'] {
+    --lab-env-collapsed-peek: 2.5rem;
+  }
+
+  .lab-env-sandbox-chip {
+    max-width: min(9rem, 42vw);
+  }
+}

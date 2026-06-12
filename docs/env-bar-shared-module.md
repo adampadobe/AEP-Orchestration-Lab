@@ -113,15 +113,9 @@ HTML references `shared/env-bar.js?v={manifestVersion}`. The loader fetches the 
 
 ### Migrated (shared/env-bar.js)
 
-| Page / script | Notes |
-|---------------|-------|
-| `sky-demo.html` + `sky-demo.js` | Canonical reference |
-| `ksia-demo.html` + `demos/ksia/ksia-lab-core.js` | Shell iframe |
-| `demos/ksia/ksia-journey-chrome.js` | Journey direct URL chrome via `envBar.init({ mode: 'journey' })` |
+All site-clone demos in `SITE_CLONE_DEMO_HTML` (`scripts/verify-demo-env-strip.mjs`): Sky, KSIA, JLR, MOD, Premier Inn, Etihad, Admiral, Navigator, Race for Life, Donate, Old Mutual (×4), Saga, Aviva Target, social (×2), Miral parks (Ferrari ×2, SeaWorld, WB World).
 
-### Still on legacy pattern (manual strip + bootstrap tags)
-
-All other site-clone demos in `SITE_CLONE_DEMO_HTML` (`scripts/verify-demo-env-strip.mjs`): JLR, MOD, Premier Inn, Etihad, Admiral, Navigator, Race for Life, Donate, Old Mutual (×4), Saga, Aviva Target, social (×2), Miral parks (×4).
+Journey chrome via `envBar.init({ mode: 'journey' })`: `demos/ksia/ksia-journey-chrome.js`, `demos/aviva-target/aviva-target-journey-chrome.js`.
 
 ## Migrating a remaining demo
 

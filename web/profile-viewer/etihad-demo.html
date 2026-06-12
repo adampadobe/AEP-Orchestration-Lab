@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="etihad-demo.css?v=20260601-env-strip">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
-  <link rel="stylesheet" href="shared/demo-env-bar.bundle.css?v=20260623-env-inline">
-  <link rel="stylesheet" href="shared/demo-env-bar-spectrum.css?v=20260623-spectrum">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
@@ -78,12 +76,18 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/demo-env-strip-spectrum.js?v=20260623-spectrum"></script>
-  <script src="shared/demo-env-strip.js?v=20260623-spectrum"></script>
-  <script src="shared/demo-env-bar-spectrum-sync.js?v=20260623-spectrum"></script>
-  <script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
-  <script src="demo-tags-injection.js?v=20260605-tags-sandbox-restore"></script>
-  <script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'etihad',
+      variant: 'spectrum',
+      features: {
+      webPush: true,
+      bc: true,
+      decisioning: false,
+      },
+    };
+  </script>
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>

@@ -23,6 +23,8 @@
       demoEnvStripSpectrum: '20260623-spectrum',
       demoEnvStrip: '20260623-spectrum',
       spectrumSync: '20260623-spectrum',
+      compactJs: '20260612-env-compact',
+      compactCss: '20260612-env-compact',
       bootstrap: '20260602-env-bar-bootstrap',
       tagsInjection: '20260605-tags-sandbox-restore',
       aepDemoEnvBar: '20260601-launch-unset-expand',
@@ -211,7 +213,10 @@
    */
   function loadStyles(versions, cfg) {
     var a = versions.assets;
-    var jobs = [linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss))];
+    var jobs = [
+      linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss)),
+      linkCss(assetUrl('shared/env-bar-compact.css', a.compactCss)),
+    ];
     if (cfg.variant === 'spectrum') {
       jobs.push(linkCss(assetUrl('shared/demo-env-bar-spectrum.css', a.spectrumCss)));
     }
@@ -236,6 +241,7 @@
     chain.push(assetUrl('shared/demo-env-bar-bootstrap.js', a.bootstrap));
     chain.push(assetUrl('demo-tags-injection.js', a.tagsInjection));
     chain.push(assetUrl('aep-demo-env-bar.js', a.aepDemoEnvBar));
+    chain.push(assetUrl('shared/env-bar-compact.js', a.compactJs));
 
     return chain.reduce(function (p, src) {
       return p.then(function () {
@@ -259,6 +265,12 @@
       }
     } else if (cfg.siteCloneDemoEnv) {
       global.SiteCloneDemoEnv = Object.assign({}, global.SiteCloneDemoEnv || {}, cfg.siteCloneDemoEnv);
+    }
+  }
+
+  function initCompactDropdown(cfg) {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.init === 'function') {
+      global.EnvBarCompact.init(cfg);
     }
   }
 
@@ -374,6 +386,7 @@
       .then(function () {
         var result = runBootstrap(state.config);
         initSpectrumSync(state.config);
+        initCompactDropdown(state.config);
         applyDefaultSandbox(state.config);
         state.initialized = true;
         notifyChange({ type: 'init', config: getConfig(), bootstrap: result });

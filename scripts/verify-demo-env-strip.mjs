@@ -19,12 +19,6 @@ const SPECTRUM_SYNC_JS = 'shared/demo-env-bar-spectrum-sync.js';
 const ENV_BAR_JS = 'shared/env-bar.js';
 const ENV_BAR_VERSIONS_JSON = 'shared/env-bar-versions.json';
 
-/** Site-clone demos migrated to shared/env-bar.js (single loader). @see docs/env-bar-shared-module.md */
-const MIGRATED_TO_ENV_BAR_HTML = new Set(['sky-demo.html', 'ksia-demo.html']);
-
-/** Demo JS that delegates env bar init to shared/env-bar.js */
-const MIGRATED_ENV_BAR_JS = new Set(['sky-demo.js', 'demos/ksia/ksia-lab-core.js']);
-
 let envBarVersions = null;
 try {
   envBarVersions = JSON.parse(fs.readFileSync(path.join(pv, ENV_BAR_VERSIONS_JSON), 'utf8'));
@@ -117,12 +111,19 @@ const SITE_CLONE_DEMO_JS = [
   'miral/miral-theme-parks-demo.js',
 ];
 
+/** Site-clone demos on shared/env-bar.js — must match SITE_CLONE_DEMO_HTML. @see docs/env-bar-shared-module.md */
+const MIGRATED_TO_ENV_BAR_HTML = new Set(SITE_CLONE_DEMO_HTML);
+
+/** Demo JS that delegates env bar init to shared/env-bar.js */
+const MIGRATED_ENV_BAR_JS = new Set(SITE_CLONE_DEMO_JS);
+
 const CSS_DRIFT_ALLOWLIST = new Set([
   'aep-demo-env-bar.css',
   'site-clone-bc-env-strip.css',
   BUNDLE_CSS,
   'site-clone-bc.css',
   'shared/demo-env-bar-spectrum.css',
+  'shared/env-bar-compact.css',
 ]);
 
 const FORBIDDEN_CSS_PATTERNS = [
@@ -229,50 +230,29 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   }
 
   const migrated = MIGRATED_TO_ENV_BAR_HTML.has(rel);
-  if (migrated) {
-    const envBarHref = rel.includes('/') ? `../${ENV_BAR_JS}` : ENV_BAR_JS;
-    if (!html.includes(envBarHref)) {
-      fail(`${rel}: migrated demo must load ${ENV_BAR_JS} (shared env bar loader)`);
-    }
-    if (!html.includes(`env-bar.js?v=${ENV_BAR_MANIFEST}`)) {
-      fail(`${rel}: env-bar.js cache bust must be ?v=${ENV_BAR_MANIFEST} (from ${ENV_BAR_VERSIONS_JSON})`);
-    }
-    if (!html.includes('envBarConfig')) {
-      fail(`${rel}: migrated demo must set window.envBarConfig`);
-    }
-    if (html.includes('shared/demo-env-strip.js') || html.includes(BUNDLE_BOOTSTRAP)) {
-      fail(`${rel}: migrated demo must not load strip/bootstrap directly — use ${ENV_BAR_JS}`);
-    }
-    if (html.includes('demo-tags-injection.js') || html.includes('aep-demo-env-bar.js')) {
-      fail(`${rel}: migrated demo must not load Tags/env-bar scripts directly — ${ENV_BAR_JS} loads them`);
-    }
-    const bundleCssHref = rel.includes('/') ? `../${BUNDLE_CSS}` : BUNDLE_CSS;
-    const spectrumCssHref = rel.includes('/') ? `../${SPECTRUM_CSS}` : SPECTRUM_CSS;
-    if (html.includes(bundleCssHref) || html.includes(spectrumCssHref)) {
-      fail(`${rel}: migrated demo must not link env bar CSS directly — ${ENV_BAR_JS} loads bundle + spectrum`);
-    }
-  } else {
-    if (!html.includes('shared/demo-env-strip.js')) {
-      fail(`${rel}: missing shared/demo-env-strip.js`);
-    }
-    if (!html.includes(BUNDLE_CSS)) {
-      fail(`${rel}: missing ${BUNDLE_CSS} (unified env bar CSS bundle)`);
-    }
-    const spectrumCssHref = rel.includes('/') ? `../${SPECTRUM_CSS}` : SPECTRUM_CSS;
-    if (!html.includes(spectrumCssHref)) {
-      fail(`${rel}: missing ${spectrumCssHref} (Spectrum env bar layout — match sky-demo.html)`);
-    }
-    const spectrumStripHref = rel.includes('/') ? `../${SPECTRUM_STRIP_JS}` : SPECTRUM_STRIP_JS;
-    const spectrumSyncHref = rel.includes('/') ? `../${SPECTRUM_SYNC_JS}` : SPECTRUM_SYNC_JS;
-    if (!html.includes(spectrumStripHref) || !html.includes(spectrumSyncHref)) {
-      fail(`${rel}: missing Spectrum env bar scripts (${SPECTRUM_STRIP_JS}, ${SPECTRUM_SYNC_JS})`);
-    }
-    if (!html.includes(`demo-env-strip.js?v=${SPECTRUM_CACHE}`)) {
-      fail(`${rel}: demo-env-strip.js cache bust must be ?v=${SPECTRUM_CACHE} (from ${ENV_BAR_VERSIONS_JSON})`);
-    }
-    if (!html.includes(BUNDLE_BOOTSTRAP)) {
-      fail(`${rel}: missing ${BUNDLE_BOOTSTRAP}`);
-    }
+  if (!migrated) {
+    fail(`${rel}: site-clone demo must use ${ENV_BAR_JS} — add to SITE_CLONE_DEMO_HTML migration`);
+  }
+  const envBarHref = rel.includes('/') ? `../${ENV_BAR_JS}` : ENV_BAR_JS;
+  if (!html.includes(envBarHref)) {
+    fail(`${rel}: migrated demo must load ${ENV_BAR_JS} (shared env bar loader)`);
+  }
+  if (!html.includes(`env-bar.js?v=${ENV_BAR_MANIFEST}`)) {
+    fail(`${rel}: env-bar.js cache bust must be ?v=${ENV_BAR_MANIFEST} (from ${ENV_BAR_VERSIONS_JSON})`);
+  }
+  if (!html.includes('envBarConfig')) {
+    fail(`${rel}: migrated demo must set window.envBarConfig`);
+  }
+  if (html.includes('shared/demo-env-strip.js') || html.includes(BUNDLE_BOOTSTRAP)) {
+    fail(`${rel}: migrated demo must not load strip/bootstrap directly — use ${ENV_BAR_JS}`);
+  }
+  if (html.includes('demo-tags-injection.js') || html.includes('aep-demo-env-bar.js')) {
+    fail(`${rel}: migrated demo must not load Tags/env-bar scripts directly — ${ENV_BAR_JS} loads them`);
+  }
+  const bundleCssHref = rel.includes('/') ? `../${BUNDLE_CSS}` : BUNDLE_CSS;
+  const spectrumCssHref = rel.includes('/') ? `../${SPECTRUM_CSS}` : SPECTRUM_CSS;
+  if (html.includes(bundleCssHref) || html.includes(spectrumCssHref)) {
+    fail(`${rel}: migrated demo must not link env bar CSS directly — ${ENV_BAR_JS} loads bundle + spectrum`);
   }
   if (/href="[^"]*\/aep-demo-env-bar\.css/.test(html) || /href="aep-demo-env-bar\.css/.test(html)) {
     fail(`${rel}: must not load aep-demo-env-bar.css directly — use ${BUNDLE_CSS}`);
@@ -305,15 +285,14 @@ for (const rel of SITE_CLONE_DEMO_JS) {
     fail(`${rel}: injectButtonId must be prefixed ({prefix}InjectSdkBtn), not injectSdkBtn`);
   }
   const migratedJs = MIGRATED_ENV_BAR_JS.has(rel);
-  if (migratedJs) {
-    if (/initLabDemoEnvBar\s*\(/.test(js)) {
-      fail(`${rel}: migrated demo JS must not call initLabDemoEnvBar — use shared/env-bar.js`);
-    }
-    if (!/envBar/.test(js)) {
-      fail(`${rel}: migrated demo JS must integrate with window.envBar (ready/registerTagsInjection)`);
-    }
-  } else if (!/initLabDemoEnvBar\s*\(/.test(js)) {
-    fail(`${rel}: must call initLabDemoEnvBar({ prefix: ... }) from shared/demo-env-bar-bootstrap.js`);
+  if (!migratedJs) {
+    fail(`${rel}: site-clone demo JS must integrate with window.envBar`);
+  }
+  if (/initLabDemoEnvBar\s*\(/.test(js)) {
+    fail(`${rel}: migrated demo JS must not call initLabDemoEnvBar — use shared/env-bar.js`);
+  }
+  if (!/envBar/.test(js)) {
+    fail(`${rel}: migrated demo JS must integrate with window.envBar (ready/registerTagsInjection)`);
   }
   if (/AepDemoEnvStrip\.initStandardEnvBar\s*\(/.test(js)) {
     fail(`${rel}: must not call AepDemoEnvStrip.initStandardEnvBar directly — use initLabDemoEnvBar`);
@@ -349,6 +328,9 @@ if (!bundleCss.includes("@import url('../aep-demo-env-bar.css')")) {
 }
 if (!bundleCss.includes("@import url('../site-clone-bc-env-strip.css')")) {
   fail(`${BUNDLE_CSS}: must @import site-clone-bc-env-strip.css`);
+}
+if (!bundleCss.includes("@import url('env-bar-compact.css')")) {
+  fail(`${BUNDLE_CSS}: must @import env-bar-compact.css`);
 }
 
 const bootstrapJs = read(BUNDLE_BOOTSTRAP);
