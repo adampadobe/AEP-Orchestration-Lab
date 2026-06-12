@@ -103,17 +103,16 @@
     if (c.includeBottomDock) prefsAttrs += ' data-demo-env-strip-bc-bottom="1"';
     if (c.includeDecisioning) prefsAttrs += ' data-demo-env-strip-decisioning="1"';
 
-    var leftColScriptPreview = '';
-    if (c.selectedScriptId) {
-      leftColScriptPreview =
-        '<div class="spectrum-env-selected-script ' +
-        esc(c.scriptPreviewClass || 'mod-demo-script-preview') +
-        '"><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
-        esc(c.selectedScriptId) +
-        '">None</code></div>';
-    }
-
     var overlayFooterParts = [];
+    if (c.selectedScriptId) {
+      overlayFooterParts.push(
+        '<div class="spectrum-env-selected-script ' +
+          esc(c.scriptPreviewClass || 'mod-demo-script-preview') +
+          '"><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
+          esc(c.selectedScriptId) +
+          '">None</code></div>',
+      );
+    }
     if (c.messageId) {
       overlayFooterParts.push(
         '<p id="' +
@@ -168,8 +167,82 @@
       '</span><span class="spectrum-env-stat__label">Last Updated</span><span id="aepSpectrumLastUpdated">—</span></div>' +
       '</header>' +
       '<div class="lab-env-overlay-panel" id="aepLabEnvOverlayPanel" role="region" aria-label="Lab environment controls" hidden>' +
-      '<div class="lab-env-overlay-sandbox">' +
-      '<div class="form-group form-row spectrum-env-field lab-env-overlay-sandbox__field"><label for="sandboxSelect">Sandbox</label><select id="sandboxSelect" class="sandbox-select spectrum-env-input" aria-label="Select AEP sandbox"><option value="">Loading sandboxes…</option></select></div></div>' +
+      '<section class="aep-demo-env-section spectrum-env-section" id="aepDemoEnvSection" aria-label="AEP environment">' +
+      '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
+      '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
+      '<div class="' +
+      esc(prefix) +
+      '-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block site-clone-bc-env-strip spectrum-env-fields-root lab-env-col-stack">' +
+      '<div class="spectrum-env-cards spectrum-env-cards--duo">' +
+      '<article class="spectrum-env-card spectrum-env-card--environment">' +
+      cardHeader('globe', 'Environment', 'blue') +
+      '<div class="spectrum-env-card__body spectrum-env-card__body--fields">' +
+      '<div class="form-group form-row spectrum-env-field"><label for="sandboxSelect">Sandbox</label><select id="sandboxSelect" class="sandbox-select spectrum-env-input" aria-label="Select AEP sandbox"><option value="">Loading sandboxes…</option></select></div>' +
+      '<div id="' +
+      esc(prefix) +
+      'SdkConfigFields" class="spectrum-env-collapsible-fields">' +
+      '<div class="spectrum-env-collapsible-fields__grid">' +
+      '<div class="form-group form-row spectrum-env-field"><label for="' +
+      esc(prefix) +
+      'TagsProperty">Tags property</label><input type="text" id="' +
+      esc(prefix) +
+      'TagsProperty" class="spectrum-env-input" aria-label="Tags property" placeholder="Select property" list="' +
+      esc(prefix) +
+      'TagsPropertyList" autocomplete="off" spellcheck="false"><datalist id="' +
+      esc(prefix) +
+      'TagsPropertyList"></datalist></div>' +
+      '<div class="form-group form-row spectrum-env-field"><label for="' +
+      esc(prefix) +
+      'TagsEnvironment">Tags environment</label><select id="' +
+      esc(prefix) +
+      'TagsEnvironment" class="spectrum-env-input" aria-label="Tags environment"></select></div>' +
+      '<div class="spectrum-env-card__actions"><button type="button" id="' +
+      esc(injectId) +
+      '" class="btn-lookup spectrum-btn spectrum-btn--primary"><span class="spectrum-btn__icon">' +
+      spectrumIcon('send') +
+      '</span>Inject Selected Script</button></div></div></div></div></article>' +
+      '<article class="spectrum-env-card spectrum-env-card--bc lab-env-bc-panel">' +
+      cardHeader('palette', 'Brand Concierge', 'purple') +
+      '<div class="spectrum-env-card__body lab-env-bc-panel__body">' +
+      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcStyleConfigUrl">Style configuration</label><select id="siteCloneBcStyleConfigUrl" class="site-clone-bc-style-url-select site-clone-bc-style-url-input spectrum-env-input" aria-label="Brand Concierge style configuration script"></select></div>' +
+      '<div class="spectrum-env-bc-pills" id="aepSpectrumBcPills" aria-live="polite">' +
+      '<span class="spectrum-env-badge spectrum-env-badge--blue" id="aepSpectrumBcPillScripts"><span class="spectrum-env-badge__icon">' +
+      spectrumIcon('info') +
+      '</span>Scripts</span>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--purple" id="aepSpectrumBcPillModal">Modal</span>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--green" id="aepSpectrumBcPillInjected">Injected</span>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv">Development</span></div>' +
+      '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint spectrum-env-card__hint" aria-live="polite"></p>' +
+      '<div class="spectrum-env-display-mode lab-env-bc-prefs-wrap"><span class="spectrum-env-field__label">Display mode</span><div ' +
+      prefsAttrs +
+      '></div></div></div></article></div>' +
+      '<article class="spectrum-env-card spectrum-env-card--target">' +
+      cardHeader('adobe', 'Adobe Target', 'red') +
+      '<div class="spectrum-env-card__body spectrum-env-card__body--target">' +
+      '<div class="spectrum-env-target-grid">' +
+      '<div class="form-group form-row spectrum-env-field"><label for="siteCloneBcDatastreamId">Datastream UUID</label><input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input spectrum-env-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false"><datalist id="siteCloneBcDatastreamList"></datalist><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p></div>' +
+      '<div class="form-group form-row spectrum-env-field"><label for="generatorTarget">Event destination</label><select id="generatorTarget" class="spectrum-env-input" aria-label="Edge or DCS streaming target"></select></div>' +
+      '<div class="spectrum-env-sdk-panel"><span class="spectrum-env-field__label">SDK Status</span><span class="spectrum-env-badge spectrum-env-badge--green spectrum-env-badge--lg" id="aepSpectrumTargetSdkBadge">SDK Connected</span><p class="spectrum-env-sdk-panel__meta" id="aepSpectrumTargetSdkMeta">Destination: Edge · Environment: Development</p></div></div>' +
+      '<div id="' +
+      esc(prefix) +
+      'SdkConfigSummary" class="' +
+      summaryClass +
+      '" hidden><div class="spectrum-env-info-bar"><span class="spectrum-env-info-bar__icon">' +
+      spectrumIcon('info') +
+      '</span><span id="' +
+      esc(prefix) +
+      'SdkConfigSummaryText" class="spectrum-env-info-bar__text"></span><button type="button" id="' +
+      esc(c.changeSdkBtnId || prefix + 'ChangeSdkConfigBtn') +
+      '" class="btn-lookup spectrum-btn spectrum-btn--secondary"><span class="spectrum-btn__icon">' +
+      spectrumIcon('gear') +
+      '</span>Change SDK Config</button></div></div></div></article>' +
+      legacyHiddenToggles(prefix, c.defaultBcStyle || 'miral') +
+      '<div class="form-row mod-demo-tags-company-row" hidden><label for="' +
+      esc(prefix) +
+      'TagsCompany">Tags company</label><select id="' +
+      esc(prefix) +
+      'TagsCompany" aria-label="Tags company"></select></div></div></div>' +
+      '<div class="aep-demo-env-compact spectrum-env-compact" id="aepDemoEnvCompact" hidden><span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span><button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup spectrum-btn spectrum-btn--secondary aep-demo-env-expand-btn">Change environment</button></div></div></section>' +
       '<section class="aep-demo-profile-section spectrum-env-card spectrum-env-card--profile lab-env-overlay-profile" id="aepDemoProfileSection" aria-label="Profile lookup">' +
       cardHeader('profile', 'Profile Lookup', 'blue') +
       '<div class="spectrum-env-card__body spectrum-env-profile-grid">' +
@@ -188,81 +261,6 @@
       '<div class="spectrum-env-ecid"><span class="spectrum-env-ecid__label">ECID:</span><strong id="infoEcid" class="spectrum-env-ecid__value">—</strong><button type="button" class="spectrum-env-icon-btn" id="aepSpectrumEcidCopy" aria-label="Copy ECID">' +
       spectrumIcon('copy') +
       '</button></div></div></div></section>' +
-      '<div class="lab-env-overlay-columns env-bar-grid">' +
-      '<div class="lab-env-col-left env-column env-column--left">' +
-      '<section class="aep-demo-env-section spectrum-env-section" id="aepDemoEnvSection" aria-label="AEP environment">' +
-      '<div class="aep-demo-env-editor" id="aepDemoEnvEditor">' +
-      '<div id="aepDemoEnvConfigGrid" class="aep-demo-env-collapsible">' +
-      '<div class="' +
-      esc(prefix) +
-      '-sdk-config-fields mod-sdk-config-fields mod-demo-tags-block site-clone-bc-env-strip spectrum-env-fields-root lab-env-col-stack">' +
-      '<article class="spectrum-env-card spectrum-env-card--environment">' +
-      cardHeader('globe', 'Tags & Target', 'blue') +
-      '<div class="spectrum-env-card__body spectrum-env-card__body--fields">' +
-      '<div id="' +
-      esc(prefix) +
-      'SdkConfigFields" class="spectrum-env-collapsible-fields">' +
-      '<div class="spectrum-env-collapsible-fields__grid spectrum-env-collapsible-fields__grid--tags">' +
-      '<div class="form-group form-row spectrum-env-field"><label for="' +
-      esc(prefix) +
-      'TagsProperty">Tags property</label><input type="text" id="' +
-      esc(prefix) +
-      'TagsProperty" class="spectrum-env-input" aria-label="Tags property" placeholder="Select property" list="' +
-      esc(prefix) +
-      'TagsPropertyList" autocomplete="off" spellcheck="false"><datalist id="' +
-      esc(prefix) +
-      'TagsPropertyList"></datalist></div>' +
-      '<div class="form-group form-row spectrum-env-field"><label for="' +
-      esc(prefix) +
-      'TagsEnvironment">Tags environment</label><select id="' +
-      esc(prefix) +
-      'TagsEnvironment" class="spectrum-env-input" aria-label="Tags environment"></select></div>' +
-      '<div class="form-group form-row spectrum-env-field"><label for="generatorTarget">Event destination</label><select id="generatorTarget" class="spectrum-env-input" aria-label="Edge or DCS streaming target"></select></div>' +
-      '<div class="spectrum-env-card__actions"><button type="button" id="' +
-      esc(injectId) +
-      '" class="btn-lookup spectrum-btn spectrum-btn--primary"><span class="spectrum-btn__icon">' +
-      spectrumIcon('send') +
-      '</span>Inject Selected Script</button></div></div></div>' +
-      '<div class="spectrum-env-target-inline">' +
-      '<div class="spectrum-env-sdk-panel"><span class="spectrum-env-field__label">SDK Status</span><span class="spectrum-env-badge spectrum-env-badge--green spectrum-env-badge--lg" id="aepSpectrumTargetSdkBadge">SDK Connected</span><p class="spectrum-env-sdk-panel__meta" id="aepSpectrumTargetSdkMeta">Destination: Edge · Environment: Development</p></div>' +
-      '<div id="' +
-      esc(prefix) +
-      'SdkConfigSummary" class="' +
-      summaryClass +
-      '" hidden><div class="spectrum-env-info-bar"><span class="spectrum-env-info-bar__icon">' +
-      spectrumIcon('info') +
-      '</span><span id="' +
-      esc(prefix) +
-      'SdkConfigSummaryText" class="spectrum-env-info-bar__text"></span><button type="button" id="' +
-      esc(c.changeSdkBtnId || prefix + 'ChangeSdkConfigBtn') +
-      '" class="btn-lookup spectrum-btn spectrum-btn--secondary"><span class="spectrum-btn__icon">' +
-      spectrumIcon('gear') +
-      '</span>Change SDK Config</button></div></div></div></div></article>' +
-      leftColScriptPreview +
-      legacyHiddenToggles(prefix, c.defaultBcStyle || 'miral') +
-      '<div class="form-row mod-demo-tags-company-row" hidden><label for="' +
-      esc(prefix) +
-      'TagsCompany">Tags company</label><select id="' +
-      esc(prefix) +
-      'TagsCompany" aria-label="Tags company"></select></div></div></div>' +
-      '<div class="aep-demo-env-compact spectrum-env-compact" id="aepDemoEnvCompact" hidden><span class="aep-demo-env-compact-text" id="aepDemoEnvCompactText"></span><button type="button" id="aepDemoEnvExpandBtn" class="btn-lookup spectrum-btn spectrum-btn--secondary aep-demo-env-expand-btn">Change environment</button></div></div></section></div>' +
-      '<div class="lab-env-col-right env-column env-column--right">' +
-      '<article class="spectrum-env-card spectrum-env-card--bc lab-env-bc-panel">' +
-      cardHeader('palette', 'Brand Concierge', 'purple') +
-      '<div class="spectrum-env-card__body lab-env-bc-panel__body">' +
-      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcStyleConfigUrl">Style configuration</label><select id="siteCloneBcStyleConfigUrl" class="site-clone-bc-style-url-select site-clone-bc-style-url-input spectrum-env-input" aria-label="Brand Concierge style configuration script"></select></div>' +
-      '<div class="spectrum-env-bc-pills" id="aepSpectrumBcPills" aria-live="polite">' +
-      '<span class="spectrum-env-badge spectrum-env-badge--blue" id="aepSpectrumBcPillScripts"><span class="spectrum-env-badge__icon">' +
-      spectrumIcon('info') +
-      '</span>Scripts</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--purple" id="aepSpectrumBcPillModal">Modal</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--green" id="aepSpectrumBcPillInjected">Injected</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv">Development</span></div>' +
-      '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint spectrum-env-card__hint" aria-live="polite"></p>' +
-      '<div class="spectrum-env-display-mode lab-env-bc-prefs-wrap"><span class="spectrum-env-field__label">Display mode</span><div ' +
-      prefsAttrs +
-      '></div></div>' +
-      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full lab-env-bc-datastream"><label for="siteCloneBcDatastreamId">Datastream UUID</label><input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input spectrum-env-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false"><datalist id="siteCloneBcDatastreamList"></datalist><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p></div></div></article></div></div>' +
       overlayFooter +
       '</div></div>'
     );
