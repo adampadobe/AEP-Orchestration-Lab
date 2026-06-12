@@ -3,17 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>At the airport — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612d">
 </head>
-<body class="ksia-site" data-ksia-page-id="at-the-airport-hub">
+<body class="ksia-site" data-ksia-page-id="at-the-airport-hub" data-ksia-context="at-airport-hub airport" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">At The Airport Hub</h1><p class="ksia-page-lead">King Salman International Airport — At The Airport Hub.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <!-- 1. Hero — airport day context -->
+    <section class="ksia-at-airport-hero" aria-label="Your airport day">
+      <div class="ksia-at-airport-hero-inner">
+        <p class="ksia-at-airport-hero-kicker">At the airport today</p>
+        <div class="ksia-at-airport-hero-context" id="ksiaAirportHeroContext">
+          <span class="ksia-at-airport-hero-detail">Terminal 1</span>
+          <span class="ksia-at-airport-hero-sep" aria-hidden="true">&middot;</span>
+          <span class="ksia-at-airport-hero-detail">Gate B12</span>
+          <span class="ksia-at-airport-hero-sep" aria-hidden="true">&middot;</span>
+          <span class="ksia-at-airport-hero-detail">Boarding in 45 min</span>
+        </div>
+        <span class="ksia-at-airport-pill ksia-at-airport-pill--stage">Airport stage &middot; Day of travel</span>
+      </div>
+    </section>
+
+    <!-- 2. Terminal finder -->
+    <section class="ksia-section ksia-section--white ksia-at-airport-finder-section" aria-labelledby="ksia-airport-finder-heading">
+      <h2 class="ksia-section-title" id="ksia-airport-finder-heading">Find your terminal</h2>
+      <form id="ksiaAirportFlightLookup" class="ksia-at-airport-finder">
+        <label for="ksiaAirportFlightSelect" class="ksia-at-airport-finder-label">Flight number or airline</label>
+        <div class="ksia-at-airport-finder-row">
+          <select id="ksiaAirportFlightSelect" name="flight" class="ksia-at-airport-finder-select"></select>
+          <button type="submit" class="ksia-btn ksia-btn-primary">Look up</button>
+        </div>
+      </form>
+      <div class="ksia-at-airport-finder-result" id="ksiaAirportFinderResult" aria-live="polite"></div>
+      <p class="ksia-at-airport-finder-link-wrap"><a href="terminal-guide.html" class="ksia-at-airport-inline-link" id="ksiaTerminalGuideLink">Open terminal guide &rarr;</a></p>
+    </section>
+
+    <!-- 3. Wayfinding & maps -->
+    <section class="ksia-section ksia-section--sand ksia-at-airport-wayfinding-section" aria-labelledby="ksia-airport-wayfinding-heading">
+      <h2 class="ksia-section-title" id="ksia-airport-wayfinding-heading">Wayfinding &amp; maps</h2>
+      <div class="ksia-at-airport-wayfinding-split">
+        <div class="ksia-at-airport-map-slot" role="img" aria-label="Terminal map preview placeholder">
+          <span class="ksia-at-airport-map-label">Terminal 1 map</span>
+        </div>
+        <div class="ksia-at-airport-wayfinding-copy">
+          <a href="maps.html" class="ksia-btn ksia-btn-primary ksia-at-airport-map-cta">Open terminal map</a>
+          <ol class="ksia-at-airport-wayfinding-steps" id="ksiaAirportWayfindingSteps"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Security & biometrics -->
+    <section class="ksia-section ksia-section--white ksia-at-airport-security-section" aria-labelledby="ksia-airport-security-heading">
+      <div class="ksia-at-airport-security-panel" id="ksiaAirportSecurityPanel">
+        <div class="ksia-at-airport-security-wait">
+          <span class="ksia-at-airport-security-wait-label">Security</span>
+          <span class="ksia-at-airport-security-wait-time" id="ksiaSecurityWait">~12 min</span>
+        </div>
+        <div class="ksia-at-airport-security-copy">
+          <h2 class="ksia-section-title" id="ksia-airport-security-heading">Security &amp; biometrics</h2>
+          <p class="ksia-at-airport-security-lead" id="ksiaSecurityLead">Use e-gate biometric check-in for faster screening — your AIVC wallet is already linked.</p>
+          <a href="security.html" class="ksia-at-airport-inline-link">Security information &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Journey timeline -->
+    <section class="ksia-section ksia-section--sunlit ksia-at-airport-journey-section" aria-labelledby="ksia-airport-journey-heading">
+      <p class="ksia-section-kicker">Your journey</p>
+      <h2 class="ksia-display-heading" id="ksia-airport-journey-heading">Airport timeline</h2>
+      <ol class="ksia-at-airport-stepper" id="ksiaAirportStepper" aria-label="Airport journey steps"></ol>
+      <p class="ksia-at-airport-next-hint" id="ksiaAirportNextHint"></p>
+    </section>
+
+    <!-- 6. Assistant suggestions -->
+    <section class="ksia-section ksia-section--white ksia-at-airport-assistant-section" aria-labelledby="ksia-airport-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant</p>
+      <h2 class="ksia-display-heading" id="ksia-airport-assistant-heading">Suggested for you now</h2>
+      <ul class="ksia-at-airport-assistant-list" id="ksiaAirportAssistant"></ul>
+    </section>
+
+    <!-- 7. Services grid -->
+    <section class="ksia-section ksia-section--sand ksia-at-airport-services-section" aria-labelledby="ksia-airport-services-heading">
+      <h2 class="ksia-section-title" id="ksia-airport-services-heading">Passenger services</h2>
+      <ul class="ksia-at-airport-services-grid" id="ksiaAirportServices"></ul>
+    </section>
+
+    <!-- 8. Terminal overview -->
+    <section class="ksia-section ksia-section--white ksia-at-airport-terminals-section" aria-labelledby="ksia-airport-terminals-heading">
+      <h2 class="ksia-section-title" id="ksia-airport-terminals-heading">Terminal overview</h2>
+      <div class="ksia-at-airport-terminals-layout" id="ksiaAirportTerminals"></div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612d"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-at-airport-hub.js?v=20260612d"></script>
 </body>
 </html>

@@ -209,6 +209,95 @@
     { label: 'Transport', href: 'transport/index.html', icon: '&#128652;' },
   ];
 
+  var AIRPORT_HERO_CONTEXT = {
+    details: ['Terminal 1', 'Gate B12', 'Boarding in 45 min'],
+    stage: 'Airport stage · Day of travel',
+  };
+
+  var AIRPORT_FLIGHT_LOOKUP_OPTIONS = [
+    {
+      id: 'sv123',
+      label: 'SV 123 — Saudia to London',
+      result: { flight: 'SV 123', terminal: 'Terminal 1', gate: 'B12' },
+    },
+    {
+      id: 'ek816',
+      label: 'EK 816 — Emirates to Dubai',
+      result: { flight: 'EK 816', terminal: 'Terminal 2', gate: 'A4' },
+    },
+    {
+      id: 'qr1189',
+      label: 'QR 1189 — Qatar Airways to Doha',
+      result: { flight: 'QR 1189', terminal: 'Terminal 1', gate: 'C7' },
+    },
+  ];
+
+  var AIRPORT_FLIGHT_LOOKUP_DEFAULT = AIRPORT_FLIGHT_LOOKUP_OPTIONS[0].result;
+
+  var AIRPORT_WAYFINDING_STEPS = [
+    'Enter Terminal 1 via main departures hall',
+    'Follow signage to Zone B — international gates',
+    'Gate B12 is on the mezzanine level, 8 min walk',
+  ];
+
+  var AIRPORT_SECURITY_PREVIEW = {
+    waitTime: '~12 min',
+    lead: 'Use e-gate biometric check-in for faster screening — your AIVC wallet is already linked.',
+  };
+
+  var AIRPORT_JOURNEY_STEPS = [
+    { label: 'Arrive', state: 'done' },
+    { label: 'Check-in', state: 'done' },
+    { label: 'Security', state: 'current' },
+    { label: 'Lounge', state: 'upcoming' },
+    { label: 'Gate', state: 'upcoming' },
+    { label: 'Board', state: 'upcoming' },
+  ];
+
+  var AIRPORT_NEXT_ACTION_HINT = 'Next: complete security screening — Fast Track lane B is recommended for your profile.';
+
+  var AIRPORT_ASSISTANT_SUGGESTIONS = [
+    {
+      title: 'Fast Track security',
+      desc: 'Skip the main queue with your AIVC wallet — lane B, Terminal 1.',
+      href: 'at-the-airport/security.html',
+      icon: '&#9889;',
+    },
+    {
+      title: 'Find your gate on map',
+      desc: 'Live wayfinding from security to Gate B12 with step-by-step directions.',
+      href: 'at-the-airport/maps.html',
+      icon: '&#128506;',
+    },
+    {
+      title: 'Pre-order duty-free',
+      desc: 'Collect at Gate B12 — browse Saudi crafts and fragrances before boarding.',
+      href: 'shop-dine/duty-free.html',
+      icon: '&#128722;',
+    },
+  ];
+
+  var AIRPORT_SERVICES_GRID = [
+    { label: 'Lounges', href: 'at-the-airport/services/lounges.html', icon: '&#9749;' },
+    { label: 'Special assistance', href: 'at-the-airport/services/special-assistance.html', icon: '&#9855;' },
+    { label: 'Fast Track', href: 'at-the-airport/security.html', icon: '&#9889;' },
+    { label: 'Family services', href: 'at-the-airport/services/index.html', icon: '&#128106;' },
+  ];
+
+  var AIRPORT_TERMINALS = [
+    {
+      name: 'Terminal 1',
+      desc: 'International hub — full services, lounges, AIVC kiosks, and Gate B12 for your flight.',
+      href: 'at-the-airport/terminal-1.html',
+      featured: true,
+    },
+    { name: 'Terminal 2', href: 'at-the-airport/terminal-2.html' },
+    { name: 'Terminal 3', href: 'at-the-airport/terminal-3.html' },
+    { name: 'Terminal 4', href: 'at-the-airport/terminal-4.html' },
+    { name: 'Terminal 5', href: 'at-the-airport/terminal-5.html' },
+    { name: 'Terminal 6', href: 'at-the-airport/terminal-6.html' },
+  ];
+
   var PAGE_META = {
     about: { title: 'About KSIA', heading: 'Vision 2030 & the KSIA story', lead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.' },
     'flights-hub': {
@@ -223,7 +312,16 @@
     },
     'flights-arrivals': { title: 'Arrivals', heading: 'Flight arrivals', lead: 'Live arrival information for King Salman International Airport.' },
     'flights-departures': { title: 'Departures', heading: 'Flight departures', lead: 'Live departure information for King Salman International Airport.' },
-    'at-the-airport-hub': { title: 'At the airport', heading: 'At the airport', lead: 'Everything you need before, during, and after your flight.' },
+    'at-the-airport-hub': {
+      title: 'At the airport',
+      heading: 'At the airport',
+      lead: 'Navigate terminals, security, and services with proactive AIVC guidance on your travel day.',
+      section: 'at-the-airport',
+      breadcrumbs: [
+        { label: 'At the airport', href: 'at-the-airport/index.html' },
+        { label: 'Airport hub' },
+      ],
+    },
     'terminal-guide': { title: 'Terminal guide', heading: 'Terminal guide', lead: 'Overview of KSIA\'s six-terminal layout and passenger flows.' },
     'terminal-1': { title: 'Terminal 1', heading: 'Terminal 1', lead: 'International hub — full services, lounges, and AIVC kiosks.' },
     'terminal-2': { title: 'Terminal 2', heading: 'Terminal 2', lead: 'Regional and domestic operations (stub — content coming soon).' },
@@ -261,6 +359,16 @@
     FLIGHTS_JOURNEY_STEPS: FLIGHTS_JOURNEY_STEPS,
     FLIGHTS_ASSISTANT_SUGGESTIONS: FLIGHTS_ASSISTANT_SUGGESTIONS,
     FLIGHTS_RELATED_SERVICES: FLIGHTS_RELATED_SERVICES,
+    AIRPORT_HERO_CONTEXT: AIRPORT_HERO_CONTEXT,
+    AIRPORT_FLIGHT_LOOKUP_OPTIONS: AIRPORT_FLIGHT_LOOKUP_OPTIONS,
+    AIRPORT_FLIGHT_LOOKUP_DEFAULT: AIRPORT_FLIGHT_LOOKUP_DEFAULT,
+    AIRPORT_WAYFINDING_STEPS: AIRPORT_WAYFINDING_STEPS,
+    AIRPORT_SECURITY_PREVIEW: AIRPORT_SECURITY_PREVIEW,
+    AIRPORT_JOURNEY_STEPS: AIRPORT_JOURNEY_STEPS,
+    AIRPORT_NEXT_ACTION_HINT: AIRPORT_NEXT_ACTION_HINT,
+    AIRPORT_ASSISTANT_SUGGESTIONS: AIRPORT_ASSISTANT_SUGGESTIONS,
+    AIRPORT_SERVICES_GRID: AIRPORT_SERVICES_GRID,
+    AIRPORT_TERMINALS: AIRPORT_TERMINALS,
     PAGE_META: PAGE_META,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -16,7 +16,7 @@ const PAGES = [
   { file: 'flights/index.html', id: 'flights-hub', custom: true },
   { file: 'flights/arrivals.html', id: 'flights-arrivals', board: 'arrivals' },
   { file: 'flights/departures.html', id: 'flights-departures', board: 'departures' },
-  { file: 'at-the-airport/index.html', id: 'at-the-airport-hub', hubLinks: ['at-the-airport/terminal-guide.html', 'at-the-airport/maps.html', 'at-the-airport/security.html', 'at-the-airport/services/index.html'] },
+  { file: 'at-the-airport/index.html', id: 'at-the-airport-hub', custom: true },
   { file: 'at-the-airport/terminal-guide.html', id: 'terminal-guide' },
   { file: 'at-the-airport/terminal-1.html', id: 'terminal-1', stub: true },
   { file: 'at-the-airport/terminal-2.html', id: 'terminal-2', stub: true },

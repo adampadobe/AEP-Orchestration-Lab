@@ -1132,6 +1132,379 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   .ksia-flights-disruption-inner { flex-direction: column; align-items: flex-start; }
 }
 
+/* ─── At the Airport hub ─── */
+.ksia-at-airport-hero {
+  background: var(--ksia-charcoal);
+  background-image: var(--ksia-pattern-dark);
+  background-size: cover;
+  padding: 40px 32px 48px;
+  color: var(--ksia-white);
+}
+.ksia-at-airport-hero-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.ksia-at-airport-hero-kicker {
+  font-family: var(--ksia-font-heading);
+  font-size: 1.5rem;
+  color: var(--ksia-warm-gold);
+  margin: 0 0 12px;
+  letter-spacing: 0.02em;
+}
+.ksia-at-airport-hero-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+  color: var(--ksia-sunlit);
+}
+.ksia-at-airport-hero-sep { opacity: 0.55; }
+.ksia-at-airport-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ksia-at-airport-pill--stage {
+  background: rgba(155, 110, 75, 0.25);
+  color: var(--ksia-warm-gold);
+  border: 1px solid rgba(230, 220, 200, 0.35);
+}
+
+.ksia-at-airport-finder { max-width: 520px; margin-bottom: 16px; }
+.ksia-at-airport-finder-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ksia-charcoal);
+}
+.ksia-at-airport-finder-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ksia-at-airport-finder-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid rgba(155, 110, 75, 0.35);
+  border-radius: var(--ksia-radius-sm);
+  font-size: 14px;
+  background: var(--ksia-white);
+  color: var(--ksia-charcoal);
+}
+.ksia-at-airport-finder-result {
+  padding: 14px 18px;
+  background: var(--ksia-sunlit);
+  border-radius: var(--ksia-radius-sm);
+  border: 1px solid rgba(155, 110, 75, 0.2);
+  margin-bottom: 12px;
+}
+.ksia-at-airport-finder-result-text { margin: 0; font-size: 0.95rem; }
+.ksia-at-airport-finder-link-wrap { margin: 0; }
+.ksia-at-airport-inline-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-inline-link:hover { text-decoration: underline; }
+
+.ksia-at-airport-wayfinding-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.ksia-at-airport-map-slot {
+  min-height: 220px;
+  border-radius: var(--ksia-radius);
+  background: linear-gradient(145deg, rgba(40, 35, 40, 0.08), rgba(155, 110, 75, 0.12));
+  border: 1px dashed rgba(155, 110, 75, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ksia-at-airport-map-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(40, 35, 40, 0.55);
+}
+.ksia-at-airport-map-cta { margin-bottom: 16px; }
+.ksia-at-airport-wayfinding-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: rgba(40, 35, 40, 0.85);
+}
+
+.ksia-at-airport-security-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  max-width: 800px;
+}
+.ksia-at-airport-security-wait {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 20px;
+  background: rgba(24, 180, 233, 0.12);
+  border: 1px solid rgba(24, 180, 233, 0.35);
+  border-radius: var(--ksia-radius);
+}
+.ksia-at-airport-security-wait-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(40, 35, 40, 0.7);
+  margin-bottom: 6px;
+}
+.ksia-at-airport-security-wait-time {
+  font-family: var(--ksia-font-display);
+  font-size: 1.5rem;
+  color: var(--ksia-accent-blue);
+}
+.ksia-at-airport-security-copy { flex: 1; min-width: 220px; }
+.ksia-at-airport-security-lead {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(40, 35, 40, 0.78);
+}
+
+.ksia-at-airport-stepper {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  justify-content: space-between;
+  max-width: 960px;
+}
+.ksia-at-airport-step {
+  position: relative;
+  flex: 1;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 6px 8px;
+}
+.ksia-at-airport-step-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--ksia-warm-gold);
+  background: var(--ksia-sunlit);
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 2;
+}
+.ksia-at-airport-step--current .ksia-at-airport-step-dot {
+  background: var(--ksia-warm-gold);
+  box-shadow: 0 0 0 4px rgba(155, 110, 75, 0.25);
+}
+.ksia-at-airport-step--done .ksia-at-airport-step-dot {
+  background: var(--ksia-deep-green);
+  border-color: var(--ksia-deep-green);
+}
+.ksia-at-airport-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ksia-charcoal);
+}
+.ksia-at-airport-step-connector {
+  position: absolute;
+  top: 7px;
+  left: calc(50% + 12px);
+  width: calc(100% - 24px);
+  height: 2px;
+  background: rgba(155, 110, 75, 0.35);
+  z-index: 1;
+}
+.ksia-at-airport-next-hint {
+  margin: 20px 0 0;
+  padding: 14px 18px;
+  background: rgba(155, 110, 75, 0.1);
+  border-left: 3px solid var(--ksia-warm-gold);
+  border-radius: 0 var(--ksia-radius-sm) var(--ksia-radius-sm) 0;
+  font-size: 0.9rem;
+  color: var(--ksia-charcoal);
+  max-width: 720px;
+}
+
+.ksia-at-airport-assistant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 720px;
+}
+.ksia-at-airport-assistant-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--ksia-gray);
+  border-radius: var(--ksia-radius);
+  border: 1px solid rgba(155, 110, 75, 0.15);
+  transition: box-shadow 150ms, border-color 150ms;
+}
+.ksia-at-airport-assistant-row:hover {
+  box-shadow: var(--ksia-shadow);
+  border-color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-assistant-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ksia-sunlit);
+  font-size: 18px;
+}
+.ksia-at-airport-assistant-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ksia-at-airport-assistant-title {
+  font-family: var(--ksia-font-heading);
+  font-size: 1rem;
+  color: var(--ksia-charcoal);
+}
+.ksia-at-airport-assistant-desc {
+  font-size: 0.875rem;
+  color: rgba(40, 35, 40, 0.72);
+}
+.ksia-at-airport-assistant-arrow {
+  flex-shrink: 0;
+  color: var(--ksia-warm-gold);
+  font-size: 18px;
+}
+
+.ksia-at-airport-services-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.ksia-at-airport-service-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  background: var(--ksia-white);
+  border-radius: var(--ksia-radius);
+  border: 1px solid rgba(155, 110, 75, 0.25);
+  font-weight: 600;
+  text-align: center;
+  transition: box-shadow 150ms, border-color 150ms;
+}
+.ksia-at-airport-service-card:hover {
+  box-shadow: var(--ksia-shadow);
+  border-color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-service-icon { font-size: 28px; line-height: 1; }
+.ksia-at-airport-service-label { font-size: 14px; color: var(--ksia-charcoal); }
+
+.ksia-at-airport-terminal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 22px;
+  background: var(--ksia-gray);
+  border-radius: var(--ksia-radius);
+  border: 1px solid rgba(155, 110, 75, 0.2);
+  transition: box-shadow 150ms, border-color 150ms;
+}
+.ksia-at-airport-terminal-card:hover {
+  box-shadow: var(--ksia-shadow);
+  border-color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-terminal-card--featured {
+  background: var(--ksia-sunlit);
+  border-color: rgba(155, 110, 75, 0.35);
+  padding: 24px 26px;
+}
+.ksia-at-airport-terminal-card--compact {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+.ksia-at-airport-terminal-name {
+  font-family: var(--ksia-font-heading);
+  font-size: 1.1rem;
+  color: var(--ksia-charcoal);
+}
+.ksia-at-airport-terminal-card--featured .ksia-at-airport-terminal-name {
+  font-size: 1.35rem;
+  color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-terminal-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(40, 35, 40, 0.75);
+}
+.ksia-at-airport-terminal-cta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ksia-warm-gold);
+}
+.ksia-at-airport-terminals-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .ksia-at-airport-terminals-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ksia-at-airport-terminal-card--featured {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .ksia-at-airport-wayfinding-split { grid-template-columns: 1fr; }
+  .ksia-at-airport-stepper { flex-direction: column; align-items: flex-start; }
+  .ksia-at-airport-step {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 0;
+  }
+  .ksia-at-airport-step-connector { display: none; }
+  .ksia-at-airport-security-panel { flex-direction: column; }
+}
+
 /* Footer + contact */
 .ksia-footer {
   margin-left: var(--ksia-sidebar-width);
