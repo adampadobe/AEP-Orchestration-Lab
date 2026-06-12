@@ -25,6 +25,25 @@
   gap: 0.5rem;
 }
 
+.lab-env-overlay-panel .lab-env-col-right,
+.lab-env-overlay-panel .lab-env-bc-panel,
+.lab-env-overlay-panel .lab-env-bc-panel__body,
+.lab-env-overlay-panel .lab-env-bc-prefs-wrap {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-datastream-input,
+.lab-env-overlay-panel .lab-env-col-left select,
+.lab-env-overlay-panel .lab-env-col-left input[type='text'] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .site-clone-bc-env-strip__legacy-inject-toggles {
   display: none !important;
 }

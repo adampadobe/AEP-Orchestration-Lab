@@ -83,14 +83,22 @@
   margin: 0;
   padding-bottom: 0.375rem;
   border-bottom: 1px solid var(--dash-border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lab-env-overlay-profile .spectrum-env-profile-main {
+  width: 100%;
+  flex: 1 1 100%;
 }
 
 .lab-env-overlay-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 0.75rem 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   align-items: start;
   min-width: 0;
+  width: 100%;
 }
 
 .lab-env-col-left,
@@ -99,6 +107,13 @@
   flex-direction: column;
   gap: 0.5rem;
   min-width: 0;
+  width: 100%;
+}
+
+.lab-env-overlay-panel .lab-env-col-right {
+  border-left: 1px solid var(--dash-border);
+  padding-left: 12px;
+  box-sizing: border-box;
 }
 
 .lab-env-col-stack {
@@ -110,9 +125,9 @@
 
 .lab-env-bc-panel {
   margin: 0;
-  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-surface));
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .lab-env-bc-panel__body {
@@ -141,8 +156,9 @@
 }
 
 .lab-env-overlay-sandbox__field {
-  flex: 1 1 14rem;
-  max-width: min(100%, 22rem);
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
 }
 
@@ -159,12 +175,6 @@
   border: 0;
   box-shadow: none;
   border-radius: 0;
-}
-
-.lab-env-overlay-panel .lab-env-bc-panel {
-  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-surface));
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
 }
 
 .lab-env-overlay-panel > .spectrum-env-inline-message,
@@ -197,15 +207,20 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags .form-row:nth-child(3) {
-  grid-column: 1 / -1;
-}
-
-.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags .spectrum-env-card__actions {
-  grid-column: 1 / -1;
+.lab-env-overlay-panel .lab-env-col-left select,
+.lab-env-overlay-panel .lab-env-col-right select,
+.lab-env-overlay-panel .lab-env-col-left input.spectrum-env-input,
+.lab-env-overlay-panel .lab-env-col-right input.spectrum-env-input,
+.lab-env-overlay-panel .lab-env-col-left .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .lab-env-col-left .site-clone-bc-datastream-input,
+.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-datastream-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .lab-env-overlay-panel .spectrum-env-target-inline {
@@ -876,6 +891,11 @@
 @media (max-width: 56rem) {
   .lab-env-overlay-columns {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lab-env-overlay-panel .lab-env-col-right {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
