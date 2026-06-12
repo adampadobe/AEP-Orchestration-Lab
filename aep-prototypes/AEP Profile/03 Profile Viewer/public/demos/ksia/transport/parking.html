@@ -3,17 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Parking — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
 </head>
-<body class="ksia-site" data-ksia-page-id="parking">
+<body class="ksia-site" data-ksia-page-id="parking" data-ksia-context="parking pre-trip" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Parking</h1><p class="ksia-page-lead">King Salman International Airport — Parking.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-subpage-hero" aria-labelledby="ksia-parking-heading">
+      <h1 class="ksia-page-title" id="ksia-parking-heading">Parking</h1>
+      <p class="ksia-subpage-hero-lead">Short-stay, long-stay, and valet options — book ahead and pay with your AIVC wallet.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-parking-products-heading">
+      <h2 class="ksia-section-title" id="ksia-parking-products-heading">Parking products</h2>
+      <div class="ksia-transport-products-grid" id="ksiaParkingProducts"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-parking-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant · PoT parking</p>
+      <h2 class="ksia-display-heading" id="ksia-parking-assistant-heading"><span id="ksiaParkingAssistantTitle">Pre-book parking</span></h2>
+      <div class="ksia-transport-assistant-card">
+        <p class="ksia-board-assistant-lead" id="ksiaParkingAssistantLead"></p>
+        <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaParkingAssistantCta">Book parking</button>
+      </div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612f"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-transport-pages.js?v=20260612f"></script>
 </body>
 </html>

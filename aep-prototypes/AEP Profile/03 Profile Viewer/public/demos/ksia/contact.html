@@ -3,17 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="ksia-site.css?v=20260612b">
+  <title>Contact — King Salman International Airport</title>
+  <link rel="stylesheet" href="ksia-site.css?v=20260612f">
 </head>
-<body class="ksia-site" data-ksia-page-id="contact">
+<body class="ksia-site" data-ksia-page-id="contact" data-ksia-context="contact">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Contact</h1><p class="ksia-page-lead">King Salman International Airport — Contact.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-subpage-hero" aria-labelledby="ksia-contact-heading">
+      <h1 class="ksia-page-title" id="ksia-contact-heading">Contact us</h1>
+      <p class="ksia-subpage-hero-lead">Customer service, lost property, AIVC support, and media enquiries.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--white">
+      <div class="ksia-contact-layout">
+        <div>
+          <h2 class="ksia-section-title">Channels</h2>
+          <div class="ksia-contact-channels" id="ksiaContactChannels"></div>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">Send a message</h2>
+          <form class="ksia-contact-form" id="ksiaContactForm">
+            <label for="ksiaContactName">Name</label>
+            <input id="ksiaContactName" name="name" type="text" required placeholder="Your name">
+            <label for="ksiaContactEmail">Email</label>
+            <input id="ksiaContactEmail" name="email" type="email" required placeholder="you@example.com">
+            <label for="ksiaContactTopic">Topic</label>
+            <select id="ksiaContactTopic" name="topic">
+              <option>General enquiry</option>
+              <option>Lost property</option>
+              <option>Special assistance</option>
+              <option>AIVC wallet</option>
+            </select>
+            <label for="ksiaContactMessage">Message</label>
+            <textarea id="ksiaContactMessage" name="message" required placeholder="How can we help?"></textarea>
+            <button type="submit" class="ksia-btn ksia-btn-primary">Send message</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
   </main>
-  <script src="ksia-mock-data.js?v=20260612"></script>
+  <script src="ksia-mock-data.js?v=20260612f"></script>
   <script src="ksia-events.js?v=20260612"></script>
   <script src="ksia-chrome.js?v=20260612b"></script>
   <script src="ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="ksia-info-pages.js?v=20260612f"></script>
 </body>
 </html>

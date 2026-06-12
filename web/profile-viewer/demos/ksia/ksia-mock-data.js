@@ -466,6 +466,221 @@
     { name: 'Terminal 6', href: 'at-the-airport/terminal-6.html' },
   ];
 
+  var TRANSPORT_HERO = {
+    kicker: 'Getting to & from KSIA',
+    lead: 'Plan parking, drop-off, or public transport for your SV 123 departure — Terminal 1, 17:05.',
+    stage: 'Pre-trip · Transport planning',
+  };
+
+  var TRANSPORT_MODES = [
+    { id: 'parking', label: 'Parking', desc: 'Short-stay, long-stay, and valet — book ahead with your AIVC wallet.', icon: '&#127359;', href: 'transport/parking.html' },
+    { id: 'drop-off', label: 'Drop-off', desc: 'Kerbside zones by terminal — kiss & fly with clear time limits.', icon: '&#128663;', href: 'transport/drop-off.html' },
+    { id: 'public-transport', label: 'Public transport', desc: 'Metro, bus, taxi, and ride-hail connections to Riyadh.', icon: '&#128652;', href: 'transport/public-transport.html' },
+    { id: 'chauffeur', label: 'Chauffeur', desc: 'Premium meet-and-greet — AIVC PoT #14 stub coming soon.', icon: '&#128081;', href: 'aivc/index.html', stub: true },
+  ];
+
+  var TRANSPORT_ASSISTANT = {
+    title: 'Best option for your trip',
+    lead: 'For SV 123 departing Terminal 1 at 17:05, we recommend pre-booking P1 short-stay parking — 5 min walk to check-in.',
+    recommendation: 'P1 Short-stay · Terminal 1 · from SAR 45 / 3 hrs',
+    actions: [
+      { label: 'Book parking', href: 'transport/parking.html', icon: '&#127359;' },
+      { label: 'Drop-off zones', href: 'transport/drop-off.html', icon: '&#128663;' },
+    ],
+  };
+
+  var PARKING_PRODUCTS = [
+    { id: 'short', name: 'P1 Short-stay', type: 'Short stay', terminal: 'Terminal 1', proximity: '2 min walk to departures', price: 'SAR 45 / 3 hrs', priceNote: 'SAR 15 per additional hour', features: ['Closest to T1 check-in', 'AIVC wallet pay & extend', 'EV charging bays available'] },
+    { id: 'long', name: 'P3 Long-stay', type: 'Long stay', terminal: 'All terminals', proximity: 'Shuttle every 8 min', price: 'SAR 95 / 24 hrs', priceNote: 'SAR 75 per additional day', features: ['Best value for trips 3+ days', 'Covered parking option', 'Pre-book via AIVC assistant'] },
+    { id: 'valet', name: 'Premium Valet', type: 'Premium / Valet', terminal: 'Terminal 1', proximity: 'Kerbside handover', price: 'SAR 180 / day', priceNote: 'Includes wash & charge (mock)', features: ['Meet at departures kerb', 'Vehicle ready on return', 'Alfursan tier discount eligible'] },
+  ];
+
+  var PARKING_ASSISTANT = {
+    title: 'Pre-book parking for SV 123',
+    lead: 'Reserve P1 short-stay for your 17:05 departure — pay with AIVC wallet and extend if your flight is delayed.',
+    cta: 'Book P1 for 14:00–20:00',
+    flight: 'SV 123',
+    terminal: 'Terminal 1',
+  };
+
+  var DROP_OFF_ZONES = [
+    { terminal: 'Terminal 1', zone: 'Departures kerb A–C', maxStay: '5 minutes', note: 'International departures — follow Zone B signage after drop-off.' },
+    { terminal: 'Terminal 2', zone: 'Departures kerb D–E', maxStay: '5 minutes', note: 'Regional carriers — cell phone lot available for longer waits.' },
+    { terminal: 'Terminal 3', zone: 'Departures kerb F', maxStay: '5 minutes', note: 'European routes — assistance desk at kerb entrance.' },
+  ];
+
+  var DROP_OFF_RULES = [
+    'Drivers must remain with vehicle at all times in active kerb lanes.',
+    'Maximum stay 5 minutes — enforcement cameras apply after grace period.',
+    'Kiss & fly: passenger only — no parking or waiting in live lanes.',
+    'For longer waits use the free cell phone lot (15 min) or book short-stay parking.',
+  ];
+
+  var PUBLIC_TRANSPORT_OPTIONS = [
+    { mode: 'Metro', name: 'Riyadh Metro Line 4 (stub)', time: '~35 min to city centre', cost: 'SAR 6 (mock)', note: 'KSIA station opening with airport expansion — integrated AIVC ticketing planned.' },
+    { mode: 'Bus', name: 'SAPTCO Airport Express', time: '~45 min to King Fahd Road', cost: 'SAR 25', note: 'Departures every 20 min from T1 transport hub.' },
+    { mode: 'Taxi', name: 'Official airport taxi rank', time: '~30 min to downtown (off-peak)', cost: 'From SAR 85', note: 'Fixed fare zones displayed at rank — pay card or wallet.' },
+    { mode: 'Ride-hail', name: 'Careem / Uber pickup zones', time: 'Varies by traffic', cost: 'Dynamic pricing', note: 'Designated pickup P2 — share live flight status from AIVC.' },
+    { mode: 'Chauffeur', name: 'AIVC PoT #14 — Premium chauffeur', time: 'Door-to-gate service', cost: 'From SAR 350', note: 'Stub: book meet-and-greet with luggage assistance via AIVC companion.', stub: true },
+  ];
+
+  var SHOP_DINE_HERO = {
+    kicker: 'Shop & Dine at KSIA',
+    lead: 'Duty-free, retail, and dining across six terminals — personalized picks for your SV 123 journey.',
+    stage: 'Airport stage · Retail & dining',
+  };
+
+  var SHOP_DINE_CATEGORIES = [
+    { id: 'duty-free', label: 'Duty-free', desc: 'Saudi crafts, fragrances, and global brands — collect at gate.', icon: '&#128722;', href: 'shop-dine/duty-free.html' },
+    { id: 'restaurants', label: 'Restaurants', desc: 'From quick bites to fine dining — filter by terminal and cuisine.', icon: '&#127869;', href: 'shop-dine/restaurants.html' },
+    { id: 'retail', label: 'Retail', desc: 'Fashion, electronics, and travel essentials across terminals.', icon: '&#128085;', href: 'shop-dine/duty-free.html' },
+  ];
+
+  var SHOP_PERSONALIZED_PICKS = [
+    { title: 'Saudi Heritage gift set', desc: 'Recommended based on your profile — oud & dates collection.', badge: 'For you', href: 'shop-dine/duty-free.html' },
+    { title: 'Altitude Café — Gate B12', desc: '15 min walk from security — your usual pre-board coffee.', badge: 'Near your gate', href: 'shop-dine/restaurants.html' },
+    { title: 'Pre-order duty-free', desc: 'Collect at Gate B12 before boarding SV 123.', badge: 'Save time', href: 'shop-dine/duty-free.html' },
+  ];
+
+  var SHOP_TERMINAL_FILTERS = ['All terminals', 'Terminal 1', 'Terminal 2', 'Terminal 3'];
+
+  var DUTY_FREE_OFFERS = [
+    { id: 'heritage', name: 'Saudi Heritage gift set', category: 'Gifts', price: 'SAR 189', recommended: true, note: 'Oud, dates & artisan crafts — popular departure gift.' },
+    { id: 'fragrance', name: 'Arabian Oud Signature', category: 'Fragrances', price: 'SAR 320', recommended: true, note: 'Exclusive KSIA duty-free blend.' },
+    { id: 'chocolate', name: 'Date chocolate assortment', category: 'Food', price: 'SAR 65', recommended: false, note: 'Local premium dates coated in dark chocolate.' },
+    { id: 'electronics', name: 'Noise-cancelling earbuds', category: 'Electronics', price: 'SAR 449', recommended: false, note: 'Travel essentials — gate collection available.' },
+    { id: 'perfume', name: 'Luxury fragrance duo', category: 'Fragrances', price: 'SAR 580', recommended: true, note: 'Based on your past purchases — save 15% pre-order.' },
+    { id: 'dates', name: 'Ajwa dates premium box', category: 'Food', price: 'SAR 95', recommended: false, note: 'Authentic Madinah ajwa — duty-free exclusive pack.' },
+  ];
+
+  var DUTY_FREE_ASSISTANT = {
+    title: 'Pre-order for gate collection',
+    lead: 'Order now, collect at Gate B12 before boarding SV 123 — pay with AIVC wallet at pickup.',
+    walletHref: 'aivc/wallet-setup.html',
+  };
+
+  var RESTAURANTS = [
+    { name: 'Altitude Café', terminal: 'Terminal 1', cuisine: 'Café', waitTime: '~5 min', dietary: 'Vegetarian options', featured: true },
+    { name: 'Al Nakheel Restaurant', terminal: 'Terminal 1', cuisine: 'Saudi & Middle Eastern', waitTime: '~15 min', dietary: 'Halal · Gluten-free available' },
+    { name: 'Sushi Express', terminal: 'Terminal 2', cuisine: 'Japanese', waitTime: '~10 min', dietary: 'Pescatarian · Nut-free' },
+    { name: 'The Grill House', terminal: 'Terminal 1', cuisine: 'International grill', waitTime: '~20 min', dietary: 'Halal steaks & salads' },
+    { name: 'Quick Bites', terminal: 'Terminal 3', cuisine: 'Fast food', waitTime: '~8 min', dietary: 'Standard allergen menu' },
+    { name: 'Levant Kitchen', terminal: 'Terminal 2', cuisine: 'Levantine', waitTime: '~12 min', dietary: 'Vegan mezze platter' },
+  ];
+
+  var RESTAURANT_CUISINES = ['All cuisines', 'Café', 'Saudi & Middle Eastern', 'Japanese', 'International grill', 'Fast food', 'Levantine'];
+
+  var RESTAURANTS_ASSISTANT = {
+    title: 'Dietary preferences',
+    lead: 'Your AIVC wallet stores halal and gluten-free preferences — restaurants with matching menus are highlighted.',
+    walletHref: 'aivc/wallet-setup.html',
+  };
+
+  var AIVC_HERO = {
+    kicker: 'Your AIVC companion',
+    tripSummary: 'SV 123 · Riyadh → London · Terminal 1 · Gate B12 · 17:05',
+    stage: 'Pre-trip → Post-trip orchestration',
+    status: 'Wallet 50% complete',
+  };
+
+  var AIVC_JOURNEY_STAGES = [
+    { id: 'pre-trip', label: 'Pre-trip', state: 'current', desc: 'Book parking, set up wallet, pre-order retail.' },
+    { id: 'airport', label: 'At airport', state: 'upcoming', desc: 'Wayfinding, security, lounge, gate.' },
+    { id: 'in-flight', label: 'In-flight', state: 'upcoming', desc: 'Entertainment, meal prefs, connection alerts.' },
+    { id: 'post-trip', label: 'Post-trip', state: 'upcoming', desc: 'Baggage, ground transport, feedback.' },
+  ];
+
+  var AIVC_NEXT_ACTIONS = [
+    { title: 'Complete wallet setup', desc: '2 of 4 steps done — add dietary prefs and notifications.', href: 'aivc/wallet-setup.html', priority: 'high', icon: '&#128179;' },
+    { title: 'Pre-book parking', desc: 'P1 short-stay recommended for SV 123 — Terminal 1.', href: 'transport/parking.html', priority: 'medium', icon: '&#127359;' },
+    { title: 'Pre-order duty-free', desc: 'Collect at Gate B12 — personalized picks ready.', href: 'shop-dine/duty-free.html', priority: 'medium', icon: '&#128722;' },
+    { title: 'Open terminal map', desc: 'Gate B12 wayfinding from security.', href: 'at-the-airport/maps.html', priority: 'low', icon: '&#128506;' },
+  ];
+
+  var AIVC_CONNECTED_SERVICES = [
+    { label: 'Parking', href: 'transport/parking.html', icon: '&#127359;', partner: 'KSIA Parking' },
+    { label: 'Duty-free', href: 'shop-dine/duty-free.html', icon: '&#128722;', partner: 'KSIA Retail' },
+    { label: 'Lounges', href: 'at-the-airport/services/lounges.html', icon: '&#9749;', partner: 'Saudia Alfursan' },
+    { label: 'Disruption support', href: 'aivc/disruption-compensation.html', icon: '&#9888;', partner: 'AIVC Claims' },
+    { label: 'Restaurants', href: 'shop-dine/restaurants.html', icon: '&#127869;', partner: 'KSIA F&B' },
+    { label: 'Public transport', href: 'transport/public-transport.html', icon: '&#128652;', partner: 'SAPTCO' },
+  ];
+
+  var AIVC_WALLET_PREVIEW = {
+    items: [
+      { label: 'Boarding pass', value: 'SV 123 · Gate B12', status: 'ready' },
+      { label: 'Identity', value: 'Nafath linked (mock)', status: 'ready' },
+      { label: 'Parking', value: 'Not booked', status: 'pending' },
+      { label: 'Preferences', value: 'Language · partial', status: 'partial' },
+    ],
+    progress: 2,
+    total: 4,
+  };
+
+  var AIVC_TRUST_OUTCOMES = [
+    { stat: '94%', label: 'Proactive alerts delivered before gate changes (mock)' },
+    { stat: '12 min', label: 'Average time saved at security with e-gate wallet' },
+    { stat: '200 SAR', label: 'Typical disruption voucher issued automatically' },
+  ];
+
+  var WALLET_SETUP_STEPS = [
+    { id: 'identity', label: 'Verify identity', desc: 'Nafath-style federated auth (mock)', done: true },
+    { id: 'boarding', label: 'Add boarding pass', desc: 'SV 123 synced from airline', done: true },
+    { id: 'preferences', label: 'Set preferences', desc: 'Language, notifications, dietary', done: false },
+    { id: 'payment', label: 'Link payment', desc: 'Parking, retail, and lounge pay', done: false },
+  ];
+
+  var WALLET_PREFERENCES = {
+    languages: ['English', 'Arabic', 'French'],
+    notifications: ['Flight status', 'Gate changes', 'Retail offers', 'Disruption alerts'],
+    dietary: ['Halal', 'Vegetarian', 'Gluten-free', 'Nut-free'],
+  };
+
+  var DISRUPTION_SCENARIO = {
+    flight: 'SV 456',
+    route: 'Jeddah JED → Riyadh RUH',
+    delay: '2 hours',
+    originalDeparture: '14:30',
+    revisedDeparture: '16:30',
+    terminal: 'Terminal 1',
+    voucherAmount: '200 SAR',
+    voucherCode: 'KSIA-DLY-456-2026',
+    alternatives: [
+      { flight: 'SV 458', time: '15:45', seats: '12 seats left', status: 'On time' },
+      { flight: 'SV 460', time: '17:20', seats: 'Available', status: 'On time' },
+    ],
+    retailLink: 'shop-dine/duty-free.html',
+    retailNote: 'Redeem voucher at duty-free — 15% bonus on Saudi Heritage collection.',
+  };
+
+  var ABOUT_CONTENT = {
+    visionLead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.',
+    stats: [
+      { value: '6', label: 'World-class terminals' },
+      { value: '185M', label: 'Annual passenger capacity (target)' },
+      { value: '2030', label: 'Vision alignment' },
+      { value: 'AIVC', label: 'Intelligent companion platform' },
+    ],
+    pillars: [
+      { title: 'Seamless journeys', desc: 'From kerb to gate — orchestrated experiences powered by Adobe Experience Platform and AIVC.' },
+      { title: 'Saudi hospitality', desc: 'Heritage-inspired design with world-class retail, dining, and passenger services.' },
+      { title: 'Sustainable growth', desc: 'Supporting Vision 2030 tourism targets with efficient, connected airport operations.' },
+    ],
+  };
+
+  var MEDIA_ITEMS = [
+    { date: 'Oct 2025', title: 'KSIA announces six-terminal masterplan', tag: 'Press release' },
+    { date: 'Nov 2025', title: 'AIVC companion platform preview for passengers', tag: 'Innovation' },
+    { date: 'Jan 2026', title: 'Vision 2030 gateway — brand assets pack', tag: 'Brand' },
+  ];
+
+  var CONTACT_CHANNELS = [
+    { label: 'Passenger services', value: '+966 11 000 KSIA (mock)', hours: '24/7' },
+    { label: 'Lost property', value: 'lostproperty@ksia-demo.lab', hours: '08:00–22:00 AST' },
+    { label: 'AIVC support', value: 'Chat via wallet assistant', hours: 'Always on' },
+    { label: 'Media enquiries', value: 'media@ksia-demo.lab', hours: 'Business hours' },
+  ];
+
   var PAGE_META = {
     about: { title: 'About KSIA', heading: 'Vision 2030 & the KSIA story', lead: 'King Salman International Airport is Saudi Arabia\'s gateway to the world — a catalyst for Vision 2030 tourism, trade, and innovation.' },
     'flights-hub': {
@@ -631,16 +846,76 @@
         { label: 'Special assistance' },
       ],
     },
-    'transport-hub': { title: 'Transport', heading: 'Getting to & from KSIA', lead: 'Parking, drop-off, taxis, and public transport connections.' },
-    parking: { title: 'Parking', heading: 'Parking', lead: 'Short-stay, long-stay, and valet options with AIVC wallet integration.' },
-    'drop-off': { title: 'Drop-off', heading: 'Passenger drop-off', lead: 'Kerbside zones by terminal with clear signage and timing limits.' },
-    'public-transport': { title: 'Public transport', heading: 'Public transport', lead: 'Metro, bus, and shuttle links to Riyadh and the region.' },
-    'shop-dine-hub': { title: 'Shop & Dine', heading: 'Shop & Dine', lead: 'Duty free, retail, and dining across all terminals.' },
-    'duty-free': { title: 'Duty free', heading: 'Duty free shopping', lead: 'Saudi and international brands — collect at gate or home delivery.' },
-    restaurants: { title: 'Restaurants', heading: 'Restaurants & cafés', lead: 'From quick bites to fine dining before you fly.' },
-    'aivc-hub': { title: 'AIVC', heading: 'Airport Intelligent Virtual Companion', lead: 'Your digital companion for wallet, wayfinding, and disruption support.' },
-    'wallet-setup': { title: 'Wallet setup', heading: 'AIVC wallet setup', lead: 'Link your boarding pass, parking, and loyalty cards in one wallet.' },
-    'disruption-compensation': { title: 'Disruption compensation', heading: 'Disruption compensation', lead: 'Automated claims when delays or cancellations affect your journey.' },
+    'transport-hub': {
+      title: 'Transport',
+      heading: 'Getting to & from KSIA',
+      lead: 'Parking, drop-off, taxis, and public transport connections.',
+      section: 'transport',
+      breadcrumbs: [{ label: 'Transport', href: 'transport/index.html' }, { label: 'Transport hub' }],
+    },
+    parking: {
+      title: 'Parking',
+      heading: 'Parking',
+      lead: 'Short-stay, long-stay, and valet options with AIVC wallet integration.',
+      section: 'transport',
+      breadcrumbs: [{ label: 'Transport', href: 'transport/index.html' }, { label: 'Parking' }],
+    },
+    'drop-off': {
+      title: 'Drop-off',
+      heading: 'Passenger drop-off',
+      lead: 'Kerbside zones by terminal with clear signage and timing limits.',
+      section: 'transport',
+      breadcrumbs: [{ label: 'Transport', href: 'transport/index.html' }, { label: 'Drop-off' }],
+    },
+    'public-transport': {
+      title: 'Public transport',
+      heading: 'Public transport',
+      lead: 'Metro, bus, and shuttle links to Riyadh and the region.',
+      section: 'transport',
+      breadcrumbs: [{ label: 'Transport', href: 'transport/index.html' }, { label: 'Public transport' }],
+    },
+    'shop-dine-hub': {
+      title: 'Shop & Dine',
+      heading: 'Shop & Dine',
+      lead: 'Duty free, retail, and dining across all terminals.',
+      section: 'shop-dine',
+      breadcrumbs: [{ label: 'Shop & Dine', href: 'shop-dine/index.html' }, { label: 'Marketplace hub' }],
+    },
+    'duty-free': {
+      title: 'Duty free',
+      heading: 'Duty free shopping',
+      lead: 'Saudi and international brands — collect at gate or home delivery.',
+      section: 'shop-dine',
+      breadcrumbs: [{ label: 'Shop & Dine', href: 'shop-dine/index.html' }, { label: 'Duty free' }],
+    },
+    restaurants: {
+      title: 'Restaurants',
+      heading: 'Restaurants & cafés',
+      lead: 'From quick bites to fine dining before you fly.',
+      section: 'shop-dine',
+      breadcrumbs: [{ label: 'Shop & Dine', href: 'shop-dine/index.html' }, { label: 'Restaurants' }],
+    },
+    'aivc-hub': {
+      title: 'AIVC',
+      heading: 'Airport Intelligent Virtual Companion',
+      lead: 'Your digital companion for wallet, wayfinding, and disruption support.',
+      section: 'aivc',
+      breadcrumbs: [{ label: 'AIVC', href: 'aivc/index.html' }, { label: 'Companion hub' }],
+    },
+    'wallet-setup': {
+      title: 'Wallet setup',
+      heading: 'AIVC wallet setup',
+      lead: 'Link your boarding pass, parking, and loyalty cards in one wallet.',
+      section: 'aivc',
+      breadcrumbs: [{ label: 'AIVC', href: 'aivc/index.html' }, { label: 'Wallet setup' }],
+    },
+    'disruption-compensation': {
+      title: 'Disruption compensation',
+      heading: 'Disruption compensation',
+      lead: 'Automated claims when delays or cancellations affect your journey.',
+      section: 'aivc',
+      breadcrumbs: [{ label: 'AIVC', href: 'aivc/index.html' }, { label: 'Disruption compensation' }],
+    },
     media: { title: 'Media', heading: 'Media centre', lead: 'Press releases, brand assets, and Vision 2030 announcements.' },
     contact: { title: 'Contact', heading: 'Contact us', lead: 'Customer service, lost property, and feedback channels.' },
   };
@@ -681,6 +956,35 @@
     AIRPORT_ASSISTANT_SUGGESTIONS: AIRPORT_ASSISTANT_SUGGESTIONS,
     AIRPORT_SERVICES_GRID: AIRPORT_SERVICES_GRID,
     AIRPORT_TERMINALS: AIRPORT_TERMINALS,
+    TRANSPORT_HERO: TRANSPORT_HERO,
+    TRANSPORT_MODES: TRANSPORT_MODES,
+    TRANSPORT_ASSISTANT: TRANSPORT_ASSISTANT,
+    PARKING_PRODUCTS: PARKING_PRODUCTS,
+    PARKING_ASSISTANT: PARKING_ASSISTANT,
+    DROP_OFF_ZONES: DROP_OFF_ZONES,
+    DROP_OFF_RULES: DROP_OFF_RULES,
+    PUBLIC_TRANSPORT_OPTIONS: PUBLIC_TRANSPORT_OPTIONS,
+    SHOP_DINE_HERO: SHOP_DINE_HERO,
+    SHOP_DINE_CATEGORIES: SHOP_DINE_CATEGORIES,
+    SHOP_PERSONALIZED_PICKS: SHOP_PERSONALIZED_PICKS,
+    SHOP_TERMINAL_FILTERS: SHOP_TERMINAL_FILTERS,
+    DUTY_FREE_OFFERS: DUTY_FREE_OFFERS,
+    DUTY_FREE_ASSISTANT: DUTY_FREE_ASSISTANT,
+    RESTAURANTS: RESTAURANTS,
+    RESTAURANT_CUISINES: RESTAURANT_CUISINES,
+    RESTAURANTS_ASSISTANT: RESTAURANTS_ASSISTANT,
+    AIVC_HERO: AIVC_HERO,
+    AIVC_JOURNEY_STAGES: AIVC_JOURNEY_STAGES,
+    AIVC_NEXT_ACTIONS: AIVC_NEXT_ACTIONS,
+    AIVC_CONNECTED_SERVICES: AIVC_CONNECTED_SERVICES,
+    AIVC_WALLET_PREVIEW: AIVC_WALLET_PREVIEW,
+    AIVC_TRUST_OUTCOMES: AIVC_TRUST_OUTCOMES,
+    WALLET_SETUP_STEPS: WALLET_SETUP_STEPS,
+    WALLET_PREFERENCES: WALLET_PREFERENCES,
+    DISRUPTION_SCENARIO: DISRUPTION_SCENARIO,
+    ABOUT_CONTENT: ABOUT_CONTENT,
+    MEDIA_ITEMS: MEDIA_ITEMS,
+    CONTACT_CHANNELS: CONTACT_CHANNELS,
     PAGE_META: PAGE_META,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

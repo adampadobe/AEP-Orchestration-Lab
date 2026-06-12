@@ -3,17 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Duty free — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
 </head>
-<body class="ksia-site" data-ksia-page-id="duty-free">
+<body class="ksia-site" data-ksia-page-id="duty-free" data-ksia-context="duty-free airport retail" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Duty Free</h1><p class="ksia-page-lead">King Salman International Airport — Duty Free.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-subpage-hero" aria-labelledby="ksia-dutyfree-heading">
+      <h1 class="ksia-page-title" id="ksia-dutyfree-heading">Duty-free shopping</h1>
+      <p class="ksia-subpage-hero-lead">PoT #4 personalized retail — recommended offers, pre-order for gate collection, pay with AIVC wallet.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-dutyfree-offers-heading">
+      <div class="ksia-shop-filter-row">
+        <h2 class="ksia-section-title" id="ksia-dutyfree-offers-heading" style="margin:0;flex:1">Offers</h2>
+        <label class="ksia-aivc-pref-check"><input type="checkbox" id="ksiaDutyFreeRecommendedOnly"> Recommended for you only</label>
+      </div>
+      <div class="ksia-shop-offers-grid" id="ksiaDutyFreeGrid"></div>
+      <div class="ksia-shop-pay-row">
+        <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaDutyFreePayBtn">Pay with AIVC wallet (mock)</button>
+        <a href="../aivc/wallet-setup.html" class="ksia-at-airport-inline-link" id="ksiaDutyFreeWalletLink">Set up wallet &rarr;</a>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-dutyfree-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant · PoT #4</p>
+      <h2 class="ksia-display-heading" id="ksia-dutyfree-assistant-heading"><span id="ksiaDutyFreeAssistantTitle">Pre-order for gate collection</span></h2>
+      <div class="ksia-shop-assistant-card">
+        <p class="ksia-board-assistant-lead" id="ksiaDutyFreeAssistantLead"></p>
+      </div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612f"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-shop-pages.js?v=20260612f"></script>
 </body>
 </html>

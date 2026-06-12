@@ -3,17 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Drop-off — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
 </head>
-<body class="ksia-site" data-ksia-page-id="drop-off">
+<body class="ksia-site" data-ksia-page-id="drop-off" data-ksia-context="drop-off pre-trip" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Drop Off</h1><p class="ksia-page-lead">King Salman International Airport — Drop Off.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-subpage-hero" aria-labelledby="ksia-dropoff-heading">
+      <h1 class="ksia-page-title" id="ksia-dropoff-heading">Passenger drop-off</h1>
+      <p class="ksia-subpage-hero-lead">Kerbside zones by terminal — kiss &amp; fly with clear time limits.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-dropoff-map-heading">
+      <h2 class="ksia-section-title" id="ksia-dropoff-map-heading">Terminal drop-off zones</h2>
+      <div class="ksia-transport-map-slot" role="img" aria-label="Drop-off zones map placeholder">
+        <span class="ksia-transport-map-label">Interactive kerbside map — Terminal 1–3 drop-off lanes</span>
+      </div>
+      <div class="ksia-transport-zones-grid" id="ksiaDropOffZones"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-dropoff-rules-heading">
+      <h2 class="ksia-section-title" id="ksia-dropoff-rules-heading">Rules &amp; kiss &amp; fly</h2>
+      <ul class="ksia-transport-rules-list" id="ksiaDropOffRules"></ul>
+      <p class="ksia-at-airport-finder-link-wrap" style="margin-top:20px">
+        <a href="parking.html" class="ksia-at-airport-inline-link">Staying longer? Book short-stay parking &rarr;</a>
+      </p>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612f"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-transport-pages.js?v=20260612f"></script>
 </body>
 </html>

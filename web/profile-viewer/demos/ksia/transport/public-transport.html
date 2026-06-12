@@ -3,17 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>King Salman International Airport — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612b">
+  <title>Public transport — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
 </head>
-<body class="ksia-site" data-ksia-page-id="public-transport">
+<body class="ksia-site" data-ksia-page-id="public-transport" data-ksia-context="public-transport pre-trip" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
-<header class="ksia-page-header"><h1 class="ksia-page-title">Public Transport</h1><p class="ksia-page-lead">King Salman International Airport — Public Transport.</p></header><section class="ksia-content-block"><p>Content for this section of the KSIA airport website POC. Navigation, lab strip integration, and AEP event emission are fully wired.</p></section>
+
+    <section class="ksia-subpage-hero" aria-labelledby="ksia-pt-heading">
+      <h1 class="ksia-page-title" id="ksia-pt-heading">Public transport</h1>
+      <p class="ksia-subpage-hero-lead">Metro, bus, taxi, and ride-hail connections to Riyadh and the region.</p>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-pt-routes-heading">
+      <h2 class="ksia-section-title" id="ksia-pt-routes-heading">Route options</h2>
+      <div class="ksia-transport-routes-grid" id="ksiaPublicTransportRoutes"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-pt-chauffeur-heading">
+      <p class="ksia-section-kicker">Premium transport</p>
+      <h2 class="ksia-section-title" id="ksia-pt-chauffeur-heading">Chauffeur &amp; AIVC PoT #14</h2>
+      <p class="ksia-at-airport-security-lead">Premium meet-and-greet chauffeur service is a planned AIVC proof-of-technology — door-to-gate with luggage assistance. See the chauffeur stub card above or visit the <a href="../aivc/index.html" class="ksia-at-airport-inline-link">AIVC companion hub</a>.</p>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612"></script>
+  <script src="../ksia-mock-data.js?v=20260612f"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260612" defer></script>
+  <script src="../ksia-transport-pages.js?v=20260612f"></script>
 </body>
 </html>

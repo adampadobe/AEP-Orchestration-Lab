@@ -12,7 +12,7 @@ const ROOT = path.join(__dirname, '..', 'web', 'profile-viewer', 'demos', 'ksia'
 const BUILD = '20260612';
 
 const PAGES = [
-  { file: 'about.html', id: 'about' },
+  { file: 'about.html', id: 'about', custom: true },
   { file: 'flights/index.html', id: 'flights-hub', custom: true },
   { file: 'flights/arrivals.html', id: 'flights-arrivals', custom: true },
   { file: 'flights/departures.html', id: 'flights-departures', custom: true },
@@ -29,18 +29,18 @@ const PAGES = [
   { file: 'at-the-airport/services/index.html', id: 'services-hub', custom: true },
   { file: 'at-the-airport/services/lounges.html', id: 'lounges', custom: true },
   { file: 'at-the-airport/services/special-assistance.html', id: 'special-assistance', custom: true },
-  { file: 'transport/index.html', id: 'transport-hub', hubLinks: ['transport/parking.html', 'transport/drop-off.html', 'transport/public-transport.html'] },
-  { file: 'transport/parking.html', id: 'parking' },
-  { file: 'transport/drop-off.html', id: 'drop-off' },
-  { file: 'transport/public-transport.html', id: 'public-transport' },
-  { file: 'shop-dine/index.html', id: 'shop-dine-hub', hubLinks: ['shop-dine/duty-free.html', 'shop-dine/restaurants.html'] },
-  { file: 'shop-dine/duty-free.html', id: 'duty-free' },
-  { file: 'shop-dine/restaurants.html', id: 'restaurants' },
-  { file: 'aivc/index.html', id: 'aivc-hub', hubLinks: ['aivc/wallet-setup.html', 'aivc/disruption-compensation.html'] },
-  { file: 'aivc/wallet-setup.html', id: 'wallet-setup', aivc: true },
-  { file: 'aivc/disruption-compensation.html', id: 'disruption-compensation', aivc: true },
-  { file: 'media.html', id: 'media' },
-  { file: 'contact.html', id: 'contact' },
+  { file: 'transport/index.html', id: 'transport-hub', custom: true },
+  { file: 'transport/parking.html', id: 'parking', custom: true },
+  { file: 'transport/drop-off.html', id: 'drop-off', custom: true },
+  { file: 'transport/public-transport.html', id: 'public-transport', custom: true },
+  { file: 'shop-dine/index.html', id: 'shop-dine-hub', custom: true },
+  { file: 'shop-dine/duty-free.html', id: 'duty-free', custom: true },
+  { file: 'shop-dine/restaurants.html', id: 'restaurants', custom: true },
+  { file: 'aivc/index.html', id: 'aivc-hub', custom: true },
+  { file: 'aivc/wallet-setup.html', id: 'wallet-setup', custom: true },
+  { file: 'aivc/disruption-compensation.html', id: 'disruption-compensation', custom: true },
+  { file: 'media.html', id: 'media', custom: true },
+  { file: 'contact.html', id: 'contact', custom: true },
 ];
 
 function prefixFor(file) {
