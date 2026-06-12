@@ -683,6 +683,24 @@
     document.body.removeChild(ta);
   }
 
+  function ensurePrepThenRefresh() {
+    if (basePath.indexOf('ajoLookups/') !== 0 || !window.AepDemoConfigRtdb) {
+      return refreshDatabase();
+    }
+    return window.AepDemoConfigRtdb.whenReady()
+      .then(function () {
+        return window.AepDemoConfigRtdb.ensurePrepReady({ silent: true });
+      })
+      .then(function () {
+        viewRootRel = defaultSandboxViewRoot();
+        return refreshDatabase();
+      })
+      .catch(function (e) {
+        showMsg(String((e && e.message) || e), 'err');
+        return refreshDatabase();
+      });
+  }
+
   function initFirebaseApp() {
     var cfg = getCfg();
     if (!cfg || !cfg.apiKey) {
@@ -724,7 +742,7 @@
               setStatus('Signed in · ' + whoResolved + slugSuffix, 'ok');
               updateRestApiLink(user);
               if (basePath) {
-                return refreshDatabase();
+                return ensurePrepThenRefresh();
               }
               renderJsonView();
             })

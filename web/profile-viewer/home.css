@@ -2388,6 +2388,47 @@ body.search-tool-page.home-dashboard-concierge .search-legacy-inner .lookup {
   border-top: 1px solid var(--dash-border);
 }
 
+.aep-demo-prep-structure-wrap {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+}
+
+.aep-demo-prep-structure-wrap .aep-demo-prep-structure {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.aep-demo-prep-structure-wrap .aep-demo-prep-structure li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: var(--dash-text);
+}
+
+.aep-demo-prep-structure-wrap .aep-demo-prep-structure-status {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dash-success, #12805c);
+}
+
+.aep-demo-prep-structure-wrap .aep-demo-prep-structure-status--pending {
+  color: var(--dash-muted);
+  font-weight: 500;
+}
+
 .aep-global-settings-disclosure {
   border: none;
   margin: 0;

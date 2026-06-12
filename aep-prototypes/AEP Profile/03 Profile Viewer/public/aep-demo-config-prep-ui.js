@@ -1,10 +1,20 @@
 /**
- * Global settings — Demo prep form (iPad, Call Centre, Agentic layer) → RTDB.
+ * Global settings — Demo prep form (all RTDB sections) → ajoLookups/{ldap}/sandboxes/{sandbox}/.
  */
 (function (global) {
   'use strict';
 
   var AGENTIC_KEYS = ['brand', 'product', 'operational', 'field', 'audience', 'journey', 'data', 'support'];
+  var EXP_VIZ_KEYS = ['treatmentA', 'treatmentB', 'treatmentC', 'emailA', 'emailB'];
+
+  var SECTION_LABELS = {
+    iPad: 'iPad',
+    CallCentre: 'Call Centre',
+    AgenticLayer: 'Agentic layer',
+    ExpVisualiser: 'Exp visualiser',
+    ExpAccelerator: 'Exp accelerator',
+    ContentDecisionLive: 'Content decision live',
+  };
 
   var INDUSTRY_OPTIONS = [
     { id: 'generic', label: 'Generic · CDP lab' },
@@ -36,6 +46,11 @@
   function setVal(id, v) {
     var el = document.getElementById(id);
     if (el) el.value = v != null ? String(v) : '';
+  }
+
+  function setChecked(id, on) {
+    var el = document.getElementById(id);
+    if (el) el.checked = !!on;
   }
 
   function fillAgentic(agentUrls) {
@@ -110,27 +125,154 @@
     };
   }
 
-  var cachedSections = { iPad: null, CallCentre: null, AgenticLayer: null };
+  function fillExpVisualiser(section) {
+    var s = section || {};
+    EXP_VIZ_KEYS.forEach(function (k) {
+      setVal('aepPrepExpViz_' + k, s[k] || '');
+    });
+  }
+
+  function collectExpVisualiser(existing) {
+    var ex = existing || {};
+    var o = Object.assign({}, ex);
+    EXP_VIZ_KEYS.forEach(function (k) {
+      o[k] = val('aepPrepExpViz_' + k);
+    });
+    return o;
+  }
+
+  function fillExpAccelerator(section) {
+    var s = section || {};
+    setVal('aepPrepExpAccel_displayNameOverride', s.displayNameOverride || '');
+    setVal('aepPrepExpAccel_opportunityIndustry', s.opportunityIndustry || 'general');
+  }
+
+  function collectExpAccelerator(existing) {
+    return Object.assign({}, existing || {}, {
+      displayNameOverride: val('aepPrepExpAccel_displayNameOverride'),
+      opportunityIndustry: val('aepPrepExpAccel_opportunityIndustry') || 'general',
+    });
+  }
+
+  function fillContentDecisionLive(section) {
+    var s = section || {};
+    setVal('aepPrepCdLive_edgeConfigId', s.edgeConfigId || '');
+    setVal('aepPrepCdLive_decisionScopes', s.decisionScopes || '');
+    setChecked('aepPrepCdLive_edgeForceConfigure', !!s.edgeForceConfigure);
+  }
+
+  function collectContentDecisionLive(existing) {
+    return Object.assign({}, existing || {}, {
+      edgeConfigId: val('aepPrepCdLive_edgeConfigId'),
+      decisionScopes: val('aepPrepCdLive_decisionScopes'),
+      edgeForceConfigure: !!(document.getElementById('aepPrepCdLive_edgeForceConfigure') && document.getElementById('aepPrepCdLive_edgeForceConfigure').checked),
+      edgeConfigBySandbox: (existing && existing.edgeConfigBySandbox) || {},
+    });
+  }
+
+  var cachedSections = {
+    iPad: null,
+    CallCentre: null,
+    AgenticLayer: null,
+    ExpVisualiser: null,
+    ExpAccelerator: null,
+    ContentDecisionLive: null,
+  };
+
+  function renderStructureMap(data) {
+    var wrap = document.getElementById('aepDemoPrepStructure');
+    var c = cfg();
+    if (!wrap || !c) return;
+    var ldap = c.getLdapSlugSync() || '—';
+    var sb = c.getActiveSandboxSlug() || '—';
+    if (ldap === '—' || sb === '—') {
+      wrap.textContent = 'Select a sandbox and sign in from Home to provision your demo prep tree in RTDB.';
+      return;
+    }
+    var base = 'ajoLookups/' + ldap + '/sandboxes/' + sb + '/';
+    var items = Object.keys(c.SECTIONS).map(function (key) {
+      var section = c.SECTIONS[key];
+      var label = SECTION_LABELS[section] || section;
+      var exists = data && data[section] != null && typeof data[section] === 'object';
+      return (
+        '<li><code>' +
+        base +
+        section +
+        '</code><span class="aep-demo-prep-structure-status' +
+        (exists ? '' : ' aep-demo-prep-structure-status--pending') +
+        '">' +
+        (exists ? 'ready' : 'pending') +
+        '</span><span>' +
+        label +
+        '</span></li>'
+      );
+    });
+    wrap.innerHTML =
+      '<strong>RTDB prep tree</strong> (auto-created for your active sandbox)<ul class="aep-demo-prep-structure">' +
+      items.join('') +
+      '</ul>';
+  }
+
+  function ensureAndLoad() {
+    var c = cfg();
+    if (!c) return Promise.resolve();
+    setStatus('Preparing RTDB workspace…', '');
+    return c
+      .ensurePrepReady()
+      .then(function (result) {
+        if (result && result.skipped && result.reason === 'auth') {
+          setStatus('Sign in from Home with your @adobe.com lab account to prep demos in RTDB.', 'err');
+          renderStructureMap(null);
+          return null;
+        }
+        if (result && result.skipped && result.reason === 'no_slug') {
+          setStatus('Select an Adobe sandbox in the lab strip first.', 'err');
+          renderStructureMap(null);
+          return null;
+        }
+        return c.loadSandboxSections();
+      })
+      .then(function (sandboxData) {
+        if (sandboxData !== null) {
+          renderStructureMap(sandboxData);
+          setStatus('Demo prep ready in RTDB for sandbox “' + c.getActiveSandboxSlug() + '”.', 'ok');
+        }
+        return loadAllForms();
+      })
+      .catch(function (e) {
+        setStatus(String((e && e.message) || e), 'err');
+      });
+  }
 
   function loadAllForms() {
     var c = cfg();
     if (!c) return Promise.resolve();
-    return c.whenReady().then(function () {
-      return Promise.all([
-        c.loadSection(c.SECTIONS.iPad).then(function (d) {
-          cachedSections.iPad = d;
-          fillIPad(d);
-        }),
-        c.loadSection(c.SECTIONS.CallCentre).then(function (d) {
-          cachedSections.CallCentre = d;
-          fillCallCentre(d);
-        }),
-        c.loadSection(c.SECTIONS.AgenticLayer).then(function (d) {
-          cachedSections.AgenticLayer = d;
-          fillAgentic(d && d.agentUrls);
-        }),
-      ]);
-    });
+    return Promise.all([
+      c.loadSection(c.SECTIONS.iPad, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.iPad = d;
+        fillIPad(d);
+      }),
+      c.loadSection(c.SECTIONS.CallCentre, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.CallCentre = d;
+        fillCallCentre(d);
+      }),
+      c.loadSection(c.SECTIONS.AgenticLayer, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.AgenticLayer = d;
+        fillAgentic(d && d.agentUrls);
+      }),
+      c.loadSection(c.SECTIONS.ExpVisualiser, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.ExpVisualiser = d;
+        fillExpVisualiser(d);
+      }),
+      c.loadSection(c.SECTIONS.ExpAccelerator, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.ExpAccelerator = d;
+        fillExpAccelerator(d);
+      }),
+      c.loadSection(c.SECTIONS.ContentDecisionLive, { skipEnsurePrep: true }).then(function (d) {
+        cachedSections.ContentDecisionLive = d;
+        fillContentDecisionLive(d);
+      }),
+    ]);
   }
 
   function wireSave(sectionKey, collectFn) {
@@ -145,6 +287,10 @@
         .then(function () {
           cachedSections[sectionKey] = payload;
           setStatus(sectionKey + ' saved for sandbox “' + c.getActiveSandboxSlug() + '”.', 'ok');
+          return c.loadSandboxSections();
+        })
+        .then(function (data) {
+          renderStructureMap(data);
         })
         .catch(function (e) {
           setStatus(String((e && e.message) || e), 'err');
@@ -172,15 +318,22 @@
     wireSave('iPad', collectIPad);
     wireSave('CallCentre', collectCallCentre);
     wireSave('AgenticLayer', collectAgentic);
-    loadAllForms().catch(function () {});
+    wireSave('ExpVisualiser', collectExpVisualiser);
+    wireSave('ExpAccelerator', collectExpAccelerator);
+    wireSave('ContentDecisionLive', collectContentDecisionLive);
+    ensureAndLoad();
     global.addEventListener('aep-global-sandbox-change', function () {
-      loadAllForms().catch(function () {});
+      var c2 = cfg();
+      if (c2 && c2.clearPrepCache) c2.clearPrepCache();
+      ensureAndLoad();
     });
     global.addEventListener('aep-demo-config-prep-reload', function () {
-      loadAllForms().catch(function () {});
+      ensureAndLoad();
     });
     global.addEventListener('aep-demo-config-changed', function () {
-      loadAllForms().catch(function () {});
+      var c = cfg();
+      if (!c) return;
+      c.loadSandboxSections().then(renderStructureMap).catch(function () {});
     });
   }
 

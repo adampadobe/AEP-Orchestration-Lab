@@ -18,6 +18,9 @@
   var cachedLdapSlug = '';
   var saveTimers = {};
   var SAVE_DEBOUNCE_MS = 800;
+  /** Per-session keys ldap:sandbox already provisioned via API. */
+  var prepEnsuredKeys = {};
+  var prepEnsureInflight = null;
 
   function normalizeSlug(raw) {
     if (global.AepLdapSlug && typeof global.AepLdapSlug.normalizeLdapSlug === 'function') {
@@ -246,10 +249,29 @@
           support: '',
         },
       },
-      ExpAccelerator: {},
-      ExpVisualiser: {},
-      ContentDecisionLive: {},
+      ExpAccelerator: {
+        displayNameOverride: '',
+        opportunityIndustry: 'general',
+        useIndustrySamplePack: true,
+      },
+      ExpVisualiser: {
+        treatmentA: 'https://contenthosting.web.app/experiments/treatmenta.png',
+        treatmentB: 'https://contenthosting.web.app/experiments/treatmentb.png',
+        treatmentC: 'https://contenthosting.web.app/experiments/treatmentc.png',
+        emailA: 'https://contenthosting.web.app/experiments/emailsubjecta.png',
+        emailB: 'https://contenthosting.web.app/experiments/emailsubjectb.png',
+      },
+      ContentDecisionLive: {
+        edgeConfigId: '',
+        decisionScopes: '',
+        edgeForceConfigure: false,
+        edgeConfigBySandbox: {},
+      },
     };
+  }
+
+  function prepCacheKey(ldapSlug, sandboxSlug) {
+    return ldapSlug + ':' + sandboxSlug;
   }
 
   function fetchJson(url) {
@@ -285,6 +307,15 @@
   function loadSection(section, opts) {
     opts = opts || {};
     var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    var chain = opts.skipEnsurePrep
+      ? Promise.resolve()
+      : ensurePrepReady({ sandboxSlug: sandboxSlug, silent: true });
+    return chain.then(function () {
+      return loadSectionInner(section, opts, sandboxSlug);
+    });
+  }
+
+  function loadSectionInner(section, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
       if (!ldapSlug || !sandboxSlug) {
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
@@ -334,6 +365,17 @@
     });
   }
 
+  function loadSandboxSections(opts) {
+    opts = opts || {};
+    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    return ensurePrepReady({ sandboxSlug: sandboxSlug, silent: true }).then(function () {
+      return resolveLdapSlugAsync().then(function (ldapSlug) {
+        if (!ldapSlug || !sandboxSlug) return null;
+        return fetchJson(sandboxRestUrl(ldapSlug, sandboxSlug));
+      });
+    });
+  }
+
   /** Flat iPad-shaped object for etihad-ipad.js compatibility. */
   function loadIPadFlat(opts) {
     return loadSection(SECTIONS.iPad, opts).then(function (section) {
@@ -354,6 +396,15 @@
   function saveSection(section, partial, opts) {
     opts = opts || {};
     var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    var chain = opts.skipEnsurePrep
+      ? Promise.resolve()
+      : ensurePrepReady({ sandboxSlug: sandboxSlug, silent: true });
+    return chain.then(function () {
+      return saveSectionInner(section, partial, opts, sandboxSlug);
+    });
+  }
+
+  function saveSectionInner(section, partial, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
       if (!ldapSlug || !sandboxSlug) {
         return Promise.reject(new Error('LDAP slug and sandbox are required to save demo config.'));
@@ -383,12 +434,12 @@
     });
   }
 
-  function ensureSandboxStub(opts) {
-    opts = opts || {};
-    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+  function callProvisionApi(sandboxSlug) {
     return authHeadersPromise().then(function (headers) {
       if (!headers.Authorization) {
-        return Promise.reject(new Error('Sign in to provision demo config.'));
+        var err = new Error('Sign in to provision demo config.');
+        err.code = 'auth_required';
+        throw err;
       }
       return fetch('/api/lab/provision-rtdb', {
         method: 'POST',
@@ -411,6 +462,66 @@
           dispatchConfigChanged({ provisioned: true, sandboxSlug: sandboxSlug });
           return result.body;
         });
+    });
+  }
+
+  /**
+   * Idempotent: ensures ajoLookups/{ldap}/sandboxes/{sandbox}/ has all demo section stubs.
+   * Called automatically before load/save and when opening Global settings / RTDB editor.
+   */
+  function ensurePrepReady(opts) {
+    opts = opts || {};
+    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    return whenReady().then(function () {
+      return resolveLdapSlugAsync().then(function (ldapSlug) {
+        if (!ldapSlug || !sandboxSlug) {
+          return { ok: false, skipped: true, reason: 'no_slug' };
+        }
+        var cacheKey = prepCacheKey(ldapSlug, sandboxSlug);
+        if (prepEnsuredKeys[cacheKey]) {
+          return { ok: true, cached: true, ldapSlug: ldapSlug, sandboxSlug: sandboxSlug };
+        }
+        if (prepEnsureInflight && prepEnsureInflight.key === cacheKey) {
+          return prepEnsureInflight.promise;
+        }
+        var promise = callProvisionApi(sandboxSlug)
+          .then(function (body) {
+            prepEnsuredKeys[cacheKey] = true;
+            return migrateLocalStorageKeys(sandboxSlug).then(function () {
+              return Object.assign({ ok: true }, body || {});
+            });
+          })
+          .catch(function (e) {
+            if (opts.silent && e && e.code === 'auth_required') {
+              return { ok: false, skipped: true, reason: 'auth' };
+            }
+            throw e;
+          })
+          .finally(function () {
+            if (prepEnsureInflight && prepEnsureInflight.key === cacheKey) {
+              prepEnsureInflight = null;
+            }
+          });
+        prepEnsureInflight = { key: cacheKey, promise: promise };
+        return promise;
+      });
+    });
+  }
+
+  function ensureSandboxStub(opts) {
+    return ensurePrepReady(opts);
+  }
+
+  function clearPrepCache(opts) {
+    opts = opts || {};
+    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    return resolveLdapSlugAsync().then(function (ldapSlug) {
+      if (ldapSlug && sandboxSlug) {
+        delete prepEnsuredKeys[prepCacheKey(ldapSlug, sandboxSlug)];
+      } else {
+        prepEnsuredKeys = {};
+      }
+      return { ok: true };
     });
   }
 
@@ -507,6 +618,9 @@
     saveSection: saveSection,
     saveSectionDebounced: saveSectionDebounced,
     ensureSandboxStub: ensureSandboxStub,
+    ensurePrepReady: ensurePrepReady,
+    clearPrepCache: clearPrepCache,
+    loadSandboxSections: loadSandboxSections,
     migrateLocalStorageKeys: migrateLocalStorageKeys,
     loadLegacyFlat: loadLegacyFlat,
     whenReady: whenReady,

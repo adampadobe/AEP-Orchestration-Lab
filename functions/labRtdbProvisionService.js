@@ -86,9 +86,24 @@ function splitStubIntoSections(flat) {
         support: '',
       },
     },
-    ExpAccelerator: {},
-    ExpVisualiser: {},
-    ContentDecisionLive: {},
+    ExpAccelerator: {
+      displayNameOverride: '',
+      opportunityIndustry: 'general',
+      useIndustrySamplePack: true,
+    },
+    ExpVisualiser: {
+      treatmentA: 'https://contenthosting.web.app/experiments/treatmenta.png',
+      treatmentB: 'https://contenthosting.web.app/experiments/treatmentb.png',
+      treatmentC: 'https://contenthosting.web.app/experiments/treatmentc.png',
+      emailA: 'https://contenthosting.web.app/experiments/emailsubjecta.png',
+      emailB: 'https://contenthosting.web.app/experiments/emailsubjectb.png',
+    },
+    ContentDecisionLive: {
+      edgeConfigId: '',
+      decisionScopes: '',
+      edgeForceConfigure: false,
+      edgeConfigBySandbox: {},
+    },
   };
 }
 

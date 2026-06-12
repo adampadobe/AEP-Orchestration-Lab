@@ -1,6 +1,6 @@
 /**
- * Global settings — demo prep RTDB (per LDAP user + Adobe sandbox).
- * Requires lab Firebase Auth (not anonymous) via aep-lab-sandbox-sync / onboarding.
+ * Global settings — demo prep RTDB previews (per LDAP user + Adobe sandbox).
+ * Stubs are auto-provisioned via AepDemoConfigRtdb.ensurePrepReady (see aep-demo-config-prep-ui.js).
  */
 (function (global) {
   'use strict';
@@ -82,13 +82,13 @@
     }
   }
 
-  function wireProvisionBtn() {
+  function wireRemergeBtn() {
     var btn = document.getElementById('aepRtdbSeedBtn');
     var statusEl = document.getElementById('aepRtdbSeedStatus');
     if (!btn || !global.AepDemoConfigRtdb) return;
 
     btn.addEventListener('click', function () {
-      setStatus(statusEl, 'Working…', '');
+      setStatus(statusEl, 'Re-merging missing sections…', '');
       btn.disabled = true;
       var sb = global.AepDemoConfigRtdb.getActiveSandboxSlug();
       if (!sb) {
@@ -96,12 +96,12 @@
         btn.disabled = false;
         return;
       }
-      global.AepDemoConfigRtdb.whenReady()
+      global.AepDemoConfigRtdb.clearPrepCache({ sandboxSlug: sb })
         .then(function () {
-          return global.AepDemoConfigRtdb.ensureSandboxStub({ sandboxSlug: sb });
+          return global.AepDemoConfigRtdb.ensurePrepReady({ sandboxSlug: sb });
         })
         .then(function () {
-          setStatus(statusEl, 'Workspace ready for sandbox “' + sb + '”. Reload demos or edit fields below.', 'ok');
+          setStatus(statusEl, 'Missing sections merged for “' + sb + '”.', 'ok');
           refreshPreviews();
           try {
             global.dispatchEvent(new CustomEvent('aep-demo-config-prep-reload'));
@@ -118,7 +118,7 @@
 
   function init() {
     refreshPreviews();
-    wireProvisionBtn();
+    wireRemergeBtn();
     global.addEventListener('aep-global-sandbox-change', refreshPreviews);
     global.addEventListener('aep-access-scope-change', refreshPreviews);
     global.addEventListener('aep-demo-config-changed', refreshPreviews);
