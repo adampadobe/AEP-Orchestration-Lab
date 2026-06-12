@@ -1491,7 +1491,7 @@
           '<tr>' +
           '<td><input type="checkbox" aria-label="Select URL"></td>' +
           '<td class="sky-llm-op-expand-cell" aria-hidden="true">▾</td>' +
-          demoLinkCell(siteUrl(row.path)) +
+          demoLinkCell(demoSiteUrl(row.path)) +
           '<td>' +
           escapeHtml(row.suggestions) +
           '</td><td>' +
