@@ -36,7 +36,7 @@
    * @typedef {object} EnvBarFeatures
    * @property {boolean} [webPush=true]
    * @property {boolean} [bc=true]
-   * @property {boolean} [decisioning=false]
+   * @property {boolean} [decisioning=true]
    */
 
   /**
@@ -188,7 +188,7 @@
       merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features || {});
     }
     if (!merged.features || typeof merged.features !== 'object') {
-      merged.features = { webPush: true, bc: true, decisioning: false };
+      merged.features = { webPush: true, bc: true, decisioning: true };
     }
     if (merged.autoInit === undefined) merged.autoInit = true;
     if (merged.basePath) state.basePath = merged.basePath;

@@ -25,7 +25,7 @@ Load prerequisites first (Firebase, `aep-global-sandbox.js`, profile drawer, `ae
   window.envBarConfig = {
     prefix: 'ksia',
     variant: 'spectrum',
-    features: { webPush: true, bc: true, decisioning: false },
+    features: { webPush: true, bc: true },
   };
 </script>
 <!-- Demo lab-core after env bar (must wait for envBar.ready — see below) -->
@@ -73,7 +73,7 @@ window.envBar.registerTagsInjection(tags);
 | `defaultSandbox` | — | Initial sandbox technical name |
 | `features.webPush` | `true` | Feature flag (mount / demo JS) |
 | `features.bc` | `true` | Brand Concierge strip sections |
-| `features.decisioning` | `false` | Decisioning toggle on mount |
+| `features.decisioning` | `true` | Decisioning toggle on mount; set `false` to hide |
 | `iframeIds` | `[]` | Passthrough for demo Tags config |
 | `labCoreScript` | — | Optional script path loaded after env bar init |
 | `basePath` | auto | Profile-viewer root for nested journey pages |

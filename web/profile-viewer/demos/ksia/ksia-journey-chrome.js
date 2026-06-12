@@ -159,7 +159,7 @@
       mode: 'journey',
       basePath: PV,
       autoInit: false,
-      features: { webPush: true, bc: true, decisioning: false },
+      features: { webPush: true, bc: true },
       labCoreScript: 'demos/ksia/ksia-lab-core.js',
       siteCloneDemoEnv: window.SiteCloneDemoEnv,
     };

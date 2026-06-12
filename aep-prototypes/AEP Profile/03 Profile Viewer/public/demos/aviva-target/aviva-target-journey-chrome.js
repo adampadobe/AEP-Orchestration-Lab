@@ -192,7 +192,7 @@
       mode: 'journey',
       basePath: PV,
       autoInit: false,
-      features: { webPush: true, bc: true, decisioning: false },
+      features: { webPush: true, bc: true },
       labCoreScript: 'demos/aviva-target/aviva-target-lab-core.js',
       siteCloneDemoEnv: window.SiteCloneDemoEnv,
     };

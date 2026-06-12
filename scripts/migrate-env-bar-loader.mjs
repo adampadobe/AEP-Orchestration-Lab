@@ -38,10 +38,8 @@ const SITE_CLONE_DEMO_HTML = [
   'wb-world-abu-dhabi/index.html',
 ];
 
-/** Prefix → feature overrides (default: webPush + bc, decisioning false). */
-const FEATURE_OVERRIDES = {
-  sky: { webPush: true, bc: true, decisioning: true },
-};
+/** Prefix → feature overrides (default: webPush + bc + decisioning). */
+const FEATURE_OVERRIDES = {};
 
 let manifestVersion = '20260612-env-bar';
 try {
@@ -63,7 +61,7 @@ function envBarHref(rel) {
 
 function buildEnvBarInsert(rel, prefix) {
   const href = envBarHref(rel);
-  const features = FEATURE_OVERRIDES[prefix] || { webPush: true, bc: true, decisioning: false };
+  const features = FEATURE_OVERRIDES[prefix] || { webPush: true, bc: true, decisioning: true };
   const featLines = Object.entries(features)
     .map(([k, v]) => `      ${k}: ${v},`)
     .join('\n');
