@@ -244,6 +244,10 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   min-width: 0;
 }
 
+.lab-env-toolbar .spectrum-env-stat--sandbox {
+  order: -1;
+}
+
 .lab-env-toolbar .spectrum-env-link-btn {
   font-size: 0.8125rem;
   max-width: min(10rem, 22vw);

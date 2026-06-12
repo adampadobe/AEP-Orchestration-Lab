@@ -168,6 +168,8 @@
       '</span><span class="spectrum-env-stat__label">Last Updated</span><span id="aepSpectrumLastUpdated">—</span></div>' +
       '</header>' +
       '<div class="lab-env-overlay-panel" id="aepLabEnvOverlayPanel" role="region" aria-label="Lab environment controls" hidden>' +
+      '<div class="lab-env-overlay-sandbox">' +
+      '<div class="form-group form-row spectrum-env-field lab-env-overlay-sandbox__field"><label for="sandboxSelect">Sandbox</label><select id="sandboxSelect" class="sandbox-select spectrum-env-input" aria-label="Select AEP sandbox"><option value="">Loading sandboxes…</option></select></div></div>' +
       '<section class="aep-demo-profile-section spectrum-env-card spectrum-env-card--profile lab-env-overlay-profile" id="aepDemoProfileSection" aria-label="Profile lookup">' +
       cardHeader('profile', 'Profile Lookup', 'blue') +
       '<div class="spectrum-env-card__body spectrum-env-profile-grid">' +
@@ -261,8 +263,6 @@
       prefsAttrs +
       '></div></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full lab-env-bc-datastream"><label for="siteCloneBcDatastreamId">Datastream UUID</label><input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input spectrum-env-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false"><datalist id="siteCloneBcDatastreamList"></datalist><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p></div></div></article></div></div>' +
-      '<div class="lab-env-overlay-sandbox">' +
-      '<div class="form-group form-row spectrum-env-field lab-env-overlay-sandbox__field"><label for="sandboxSelect">Sandbox</label><select id="sandboxSelect" class="sandbox-select spectrum-env-input" aria-label="Select AEP sandbox"><option value="">Loading sandboxes…</option></select></div></div>' +
       overlayFooter +
       '</div></div>'
     );
