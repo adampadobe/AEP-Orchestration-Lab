@@ -201,3 +201,22 @@
   line-height: 1.35;
   color: var(--bc-bottom-dock-muted);
 }
+
+/* BC widget draws a nested bordered prompt box — flatten to a single bar in the dock */
+.bc-bottom-dock__mount #brand-concierge-mount .input-container,
+.bc-bottom-dock__mount #brand-concierge-mount .input-section .input-container {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount .input-section {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
