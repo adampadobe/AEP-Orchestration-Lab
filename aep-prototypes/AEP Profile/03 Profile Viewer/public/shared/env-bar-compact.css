@@ -99,7 +99,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  background: var(--dash-surface);
+  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-bg));
   border-bottom: 1px solid var(--dash-border);
   border-radius: 0 0 var(--dash-radius-sm, 12px) var(--dash-radius-sm, 12px);
   box-shadow: var(--dash-shadow);

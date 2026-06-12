@@ -84,9 +84,8 @@
 
 .lab-env-overlay-profile {
   margin: 0;
-  padding: 0 0 0.375rem;
-  border-top: 0;
-  border-bottom: 1px solid var(--dash-border);
+  padding: 0;
+  border-bottom: 0;
   width: 100%;
   box-sizing: border-box;
 }
@@ -115,28 +114,6 @@
 
 .lab-env-overlay-profile .spectrum-env-ecid {
   grid-column: 1 / -1;
-}
-
-.lab-env-overlay-columns,
-.env-bar-grid {
-  display: grid;
-  grid-template-columns: minmax(min(400px, 100%), 1fr) minmax(min(400px, 100%), 1fr);
-  gap: 24px;
-  align-items: start;
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.lab-env-col-left,
-.lab-env-col-right,
-.env-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .lab-env-overlay-panel .form-group,
@@ -174,7 +151,7 @@
 .lab-env-col-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -195,41 +172,48 @@
   margin-top: 0.15rem;
 }
 
-.lab-env-bc-datastream {
-  margin-top: 0.15rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid var(--dash-border);
-}
-
-.lab-env-overlay-sandbox {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.5rem 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--dash-border);
-}
-
-.lab-env-overlay-sandbox__field {
-  flex: 1 1 100%;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-}
-
 .lab-env-overlay-panel .aep-demo-env-compact,
+.lab-env-overlay-panel #aepDemoEnvCompact,
 .lab-env-overlay-panel .site-clone-bc-env-strip__legacy-inject-toggles,
 .lab-env-overlay-panel .mod-demo-tags-company-row {
   display: none !important;
 }
 
-.lab-env-overlay-panel .spectrum-env-card--environment,
-.lab-env-overlay-panel .lab-env-bc-panel,
-.lab-env-overlay-panel > .aep-demo-profile-section {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  border-radius: 0;
+/* Elevated cards inside overlay (gray page background from env-bar-compact.css) */
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel {
+  --spectrum-card-bg: var(--dash-surface);
+  --spectrum-card-shadow: var(--dash-shadow);
+}
+
+.lab-env-overlay-panel .spectrum-env-card,
+.lab-env-overlay-panel .lab-env-bc-panel.spectrum-env-card {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+}
+
+.lab-env-overlay-panel .lab-env-overlay-profile {
+  background: var(--spectrum-card-bg);
+  border: 1px solid var(--spectrum-card-border);
+  border-top: 1px solid var(--dash-border);
+  border-radius: var(--spectrum-radius);
+  box-shadow: var(--spectrum-card-shadow);
+  margin-top: 0.25rem;
+  padding-top: 0;
+}
+
+.lab-env-overlay-panel .lab-env-overlay-profile .spectrum-env-card__header {
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.lab-env-overlay-panel .spectrum-env-cards--duo {
+  gap: 12px;
+  margin: 0;
+}
+
+.lab-env-overlay-panel .spectrum-env-card--target {
+  margin: 0;
 }
 
 .lab-env-overlay-panel > .spectrum-env-inline-message,
@@ -238,8 +222,8 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-card__header {
-  padding: 0 0 0.375rem;
-  border-bottom: 0;
+  padding: 0.65rem 0.85rem 0.45rem;
+  border-bottom: 1px solid var(--dash-border);
   gap: 0.4rem;
 }
 
@@ -253,11 +237,11 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-card__body {
-  padding: 0;
+  padding: 0.55rem 0.85rem 0.75rem;
 }
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields,
-.lab-env-overlay-panel .spectrum-env-target-inline {
+.lab-env-overlay-panel .spectrum-env-card__body--target {
   gap: 12px;
 }
 
@@ -265,38 +249,22 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
-  grid-template-columns: minmax(0, 1fr);
+.lab-env-overlay-panel .spectrum-env-target-grid {
+  gap: 0.75rem 1rem;
 }
 
-.lab-env-overlay-panel .lab-env-col-left select,
-.lab-env-overlay-panel .lab-env-col-right select,
-.lab-env-overlay-panel .env-column select,
-.lab-env-overlay-panel .lab-env-col-left input.spectrum-env-input,
-.lab-env-overlay-panel .lab-env-col-right input.spectrum-env-input,
-.lab-env-overlay-panel .env-column input.spectrum-env-input,
-.lab-env-overlay-panel .lab-env-col-left .site-clone-bc-style-url-select,
-.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-style-url-select,
-.lab-env-overlay-panel .env-column .site-clone-bc-style-url-select,
-.lab-env-overlay-panel .lab-env-col-left .site-clone-bc-datastream-input,
-.lab-env-overlay-panel .lab-env-col-right .site-clone-bc-datastream-input,
-.lab-env-overlay-panel .env-column .site-clone-bc-datastream-input {
+.lab-env-overlay-panel .spectrum-env-sdk-panel {
+  padding-top: 0;
+}
+
+.lab-env-overlay-panel .spectrum-env-input,
+.lab-env-overlay-panel select.spectrum-env-input,
+.lab-env-overlay-panel input.spectrum-env-input,
+.lab-env-overlay-panel .site-clone-bc-style-url-select,
+.lab-env-overlay-panel .site-clone-bc-datastream-input {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-}
-
-.lab-env-overlay-panel .spectrum-env-target-inline {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--dash-border);
-}
-
-.lab-env-overlay-panel .spectrum-env-target-inline .spectrum-env-sdk-panel {
-  padding-top: 0;
 }
 
 .lab-env-overlay-panel .spectrum-env-field--grow {
@@ -968,17 +936,8 @@
 }
 
 @media (max-width: 1000px) {
-  .lab-env-overlay-columns,
-  .env-bar-grid {
-    grid-template-columns: 1fr;
-  }
-
   .lab-env-overlay-profile .spectrum-env-profile-main {
     grid-template-columns: 1fr;
-  }
-
-  .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid--tags {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1009,12 +968,23 @@
   }
 
   .spectrum-env-card__body--fields,
-  .spectrum-env-target-grid {
+  .spectrum-env-target-grid,
+  .lab-env-overlay-panel .spectrum-env-target-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spectrum-env-sdk-panel,
+  .lab-env-overlay-panel .spectrum-env-sdk-panel {
+    grid-column: 1 / -1;
+    padding-top: 0;
   }
 
   .spectrum-env-profile-prefs {
     margin-left: 0;
     width: 100%;
+  }
+
+  .lab-env-overlay-panel .spectrum-env-cards--duo {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
