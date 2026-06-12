@@ -563,8 +563,12 @@
     var i;
     for (i = 0; i < _placements.length; i++) {
       var k = _placements[i].key;
+      var frag = String(_placements[i].fragment || '')
+        .trim()
+        .replace(/^#/, '');
       var id = 'cd-edge-' + prefix + k;
-      mountByKey[k] = queryMountById(scopeRoot, id);
+      mountByKey[k] =
+        queryMountById(scopeRoot, id) || (frag ? queryMountById(scopeRoot, frag) : null);
     }
     return mountByKey;
   }

@@ -31,7 +31,7 @@
 .bc-bottom-dock__dock {
   display: flex;
   align-items: stretch;
-  min-height: 6.5rem;
+  min-height: 13rem;
   border: 1px solid var(--bc-bottom-dock-border);
   border-radius: 999px;
   background: var(--bc-bottom-dock-surface);
@@ -74,6 +74,7 @@
   align-items: center;
   min-width: 0;
   padding: 0 0.75rem;
+  min-height: 100%;
 }
 
 .bc-bottom-dock__dock-input {
@@ -85,17 +86,58 @@
   color: var(--dash-text);
   outline: none;
   font-family: inherit;
+  line-height: 1.4;
+  padding: 0;
+  margin: 0;
+  align-self: center;
 }
 
 .bc-bottom-dock__mount #brand-concierge-mount {
-  --input-height: 6.5rem;
-  --input-height-mobile: 6.5rem;
+  --input-height: 13rem;
+  --input-height-mobile: 13rem;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount .input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount .input-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  min-height: 13rem;
+  height: var(--input-height, 13rem);
+  margin-bottom: 2.75rem;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
 }
 
 .bc-bottom-dock__mount #brand-concierge-mount textarea,
 .bc-bottom-dock__mount #brand-concierge-mount input[type='text'],
-.bc-bottom-dock__mount #brand-concierge-mount .input-container {
-  min-height: 6.5rem;
+.bc-bottom-dock__mount #brand-concierge-mount [contenteditable='true'],
+.bc-bottom-dock__mount #brand-concierge-mount .message-input {
+  flex: 1 1 auto;
+  align-self: center;
+  min-height: 2.75rem;
+  max-height: none;
+  line-height: 1.45;
+  padding: 0.35rem 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  resize: none;
+  vertical-align: middle;
+}
+
+.bc-bottom-dock__mount #brand-concierge-mount textarea::placeholder,
+.bc-bottom-dock__mount #brand-concierge-mount input[type='text']::placeholder {
+  line-height: 1.45;
+  opacity: 1;
+  color: var(--dash-muted);
 }
 
 .bc-bottom-dock__dock-input::placeholder {

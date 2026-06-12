@@ -293,6 +293,10 @@ DemoProfileDrawer.init({
   if (typeof window.DecisioningProfileRuntime !== 'undefined') {
     runtimeApi = window.DecisioningProfileRuntime.init({
       iframeId: 'skyDemoSiteFrame',
+      mountLayoutPreset: 'sky-home',
+      getViewName: function () {
+        return 'Sky';
+      },
       getIdentifierValue: getEmail,
       getNamespace: getNamespace,
       getSandboxName: getSandboxName,
