@@ -527,15 +527,19 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 
 ### Shared env bar — do not break
 
+**Canonical loader:** `web/profile-viewer/shared/env-bar.js` — loads CSS/script chain from `shared/env-bar-versions.json`, mounts the strip, and exposes `window.envBar`. Site-clone demos must **not** preload `demo-env-strip.js`, `demo-env-bar-bootstrap.js`, `aep-demo-env-bar.js`, `site-clone-bc-env.js`, or `env-bar-compact.js` in HTML (the loader defers them).
+
 **Site-clone** lab demos (Sky, JLR, MOD, Premier Inn, Etihad, Admiral, Miral parks, social, Old Mutual, etc.) that use **Adobe Tags injection** and **`POST /api/events/generator`** share one top strip. Treat it as a **shared component**: change behaviour in shared files, not per-demo forks.
 
 | Layer | Single source of truth | Do not |
 |-------|------------------------|--------|
-| **CSS** | `web/profile-viewer/shared/demo-env-bar.bundle.css` only | Link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly on site-clone demo HTML |
-| **Init** | `shared/demo-env-bar-bootstrap.js` → **`initLabDemoEnvBar({ prefix })`** once in demo JS | Call `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
+| **Loader** | `shared/env-bar.js` + `window.envBarConfig` | Preload strip/bootstrap/Tags/env-bar/BC scripts in demo HTML |
+| **CSS** | Loaded by `env-bar.js` from `shared/demo-env-bar.bundle.css` | Link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly on site-clone demo HTML |
+| **Init** | `env-bar.js` → `initLabDemoEnvBar({ prefix })` | Call `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
 | **Markup** | `shared/demo-env-strip.js` — **`data-demo-env-strip-mount="site-clone-shell"`** (one mount per demo) | Paste inline env/profile/Tags HTML, copy `site-clone-bc-env-strip.fragment.html`, or duplicate `{prefix}SdkConfigFields` blocks |
+| **Remote defaults** | Optional Firestore `envBarConfigs/{demoId}` via `GET /api/env-bar-config` | Require seeded Firestore docs for demos to work |
 
-**References:** master page [`web/profile-viewer/sky-demo.html`](web/profile-viewer/sky-demo.html); policy [`docs/demo-env-strip-standard.md`](docs/demo-env-strip-standard.md); verifier [`scripts/verify-demo-env-strip.mjs`](scripts/verify-demo-env-strip.mjs); agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
+**References:** master page [`web/profile-viewer/sky-demo.html`](web/profile-viewer/sky-demo.html); policy [`docs/demo-env-strip-standard.md`](docs/demo-env-strip-standard.md); module guide [`docs/env-bar-shared-module.md`](docs/env-bar-shared-module.md); verifiers [`scripts/verify-demo-env-strip.mjs`](scripts/verify-demo-env-strip.mjs), [`scripts/verify-env-bar-versions.mjs`](scripts/verify-env-bar-versions.mjs); agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
 **Stable DOM ids** (do not rename — `DemoTagsInjection`, `AepDemoEnvBar`, and site-clone BC depend on them):
 
@@ -601,7 +605,7 @@ Wire Decisioning runtime (`decisioning-profile-module/*`, `initLabDemoEnvBar`) o
 - Missing `shared/demo-env-bar.bundle.css`, `shared/demo-env-bar-bootstrap.js`, `aep-demo-id-inner`, or `data-demo-env-strip-mount="site-clone-shell"`
 - Inline `#aepDemoEnvSection` / Tags / BC prefs markup alongside `site-clone-shell`
 
-**Pre-merge:** `npm run verify:demo-env-strip` **must pass on every Profile Viewer PR** (CI runs the same check). The verifier skips [allowlisted non-site-clone pages](#exceptions-not-site-clone) for bundle/bootstrap/mount rules; site-clone demos must still comply. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
+**Pre-merge:** `npm run verify:demo-env-strip` **must pass on every Profile Viewer PR** (CI runs the same check). When `shared/env-bar.js` or `shared/env-bar-versions.json` change, also run `npm run verify:env-bar-versions`. The verifier skips [allowlisted non-site-clone pages](#exceptions-not-site-clone) for bundle/bootstrap/mount rules; site-clone demos must still comply. After edits under `web/profile-viewer/`, also `npm run sync-profile-viewer-ui`.
 
 #### Exceptions (not site-clone)
 
@@ -659,6 +663,7 @@ Paste into PR description when adding or editing a **lab demo** under `web/profi
 - [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
 - [ ] `DemoProfileDrawer.init` unchanged contract; drawer edits only in `shared/profile-viewer-modal.js` / `aep-profile-drawer.js`
 - [ ] `npm run verify:demo-env-strip` (required on Profile Viewer PRs; skips allowlisted FNB / call-centre / Sky LLM / mobile pages)
+- [ ] `npm run verify:env-bar-versions` when `shared/env-bar.js` or `shared/env-bar-versions.json` changed
 - [ ] `npm run verify:profile-viewer-routes` + `npm run sync-profile-viewer-ui` if `web/profile-viewer/` touched
 - [ ] Light + dark theme smoke on demo page
 ```
@@ -1084,7 +1089,7 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 - [ ] No `.env` or credential files staged
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
-- [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)); `npm run verify:demo-env-strip` passes (required — skips [non-site-clone exceptions](#exceptions-not-site-clone))
+- [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)); `npm run verify:demo-env-strip` passes (required — skips [non-site-clone exceptions](#exceptions-not-site-clone)); `npm run verify:env-bar-versions` when env bar manifest changed
 - [ ] If you touched a **site-clone lab demo** (env strip / drawer): [Shared env bar](#shared-env-bar--do-not-break) + [Shared profile drawer](#shared-profile-drawer--do-not-break) — no inline `#profileDrawer` / Tags markup
 - [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
 - [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)

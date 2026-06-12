@@ -19,7 +19,7 @@
     moduleVersion: '1.0.0',
     assets: {
       bundleCss: '20260623-env-inline',
-      spectrumCss: '20260623-spectrum',
+      spectrumCss: '20260612-spectrum-profile-lookup',
       demoEnvStripSpectrum: '20260623-spectrum',
       demoEnvStrip: '20260623-spectrum',
       spectrumSync: '20260624-ksia-toolbar-open',
@@ -70,7 +70,13 @@
    * @property {object} [siteCloneDemoEnv] — Merge into window.SiteCloneDemoEnv
    * @property {string} [defaultBcStyle] — BC style default for Tags remount
    * @property {object} [envBar] — Extra passthrough to initLabDemoEnvBar → AepDemoEnvStrip
+   * @property {string} [demoId] — Firestore envBarConfigs doc id (defaults to prefix)
+   * @property {boolean} [localOverride=false] — When true, page envBarConfig wins over remote defaults
+   * @property {boolean} [firestoreListen=true] — Poll /api/env-bar-config for remote updates
    */
+
+  var REMOTE_CONFIG_POLL_MS = 60000;
+  var remoteConfigPollTimer = null;
 
   /** @type {{ config: EnvBarConfig|null, versions: typeof DEFAULT_VERSIONS|null, initialized: boolean, initPromise: Promise<void>|null, changeListeners: Array<Function>, tagsInjection: object|null, basePath: string }} */
   var state = {
@@ -172,6 +178,102 @@
         state.versions = DEFAULT_VERSIONS;
         return state.versions;
       });
+  }
+
+  /**
+   * Resolve demo id for Firestore envBarConfigs/{demoId}.
+   * @param {Partial<EnvBarConfig>} [cfg]
+   * @returns {string}
+   */
+  function resolveDemoId(cfg) {
+    var fromCfg = cfg && (cfg.demoId || cfg.prefix);
+    if (fromCfg) return String(fromCfg).trim();
+    var mount = document.querySelector('[data-demo-env-strip-mount]');
+    if (mount) {
+      var prefixAttr = mount.getAttribute('data-demo-env-strip-prefix');
+      if (prefixAttr) return String(prefixAttr).trim();
+    }
+    return '';
+  }
+
+  /**
+   * Merge remote Firestore defaults with page envBarConfig.
+   * Remote wins by default; page wins when localOverride is true (local dev).
+   * @param {object} pageConfig
+   * @param {object} remoteConfig
+   * @returns {EnvBarConfig}
+   */
+  function mergeConfigLayers(pageConfig, remoteConfig) {
+    pageConfig = pageConfig && typeof pageConfig === 'object' ? pageConfig : {};
+    remoteConfig = remoteConfig && typeof remoteConfig === 'object' ? remoteConfig : {};
+    if (pageConfig.localOverride) {
+      return Object.assign({}, remoteConfig, pageConfig);
+    }
+    return Object.assign({}, pageConfig, remoteConfig);
+  }
+
+  /**
+   * @param {string} demoId
+   * @returns {Promise<object|null>}
+   */
+  function fetchRemoteConfig(demoId) {
+    if (!demoId) return Promise.resolve(null);
+    var url = '/api/env-bar-config?demoId=' + encodeURIComponent(demoId);
+    return fetch(url, { cache: 'no-store' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (body) {
+        if (body && body.ok && body.config && typeof body.config === 'object') return body.config;
+        return null;
+      })
+      .catch(function (err) {
+        log('remote config unavailable', demoId, err && err.message ? err.message : err);
+        return null;
+      });
+  }
+
+  /**
+   * Fetch envBarConfigs/{demoId} via API proxy and merge into window.envBarConfig.
+   * @returns {Promise<EnvBarConfig>}
+   */
+  function loadAndMergeRemoteConfig() {
+    var page =
+      global.envBarConfig && typeof global.envBarConfig === 'object' ? Object.assign({}, global.envBarConfig) : {};
+    var demoId = resolveDemoId(page);
+    if (!demoId) return Promise.resolve(page);
+    return fetchRemoteConfig(demoId).then(function (remote) {
+      if (!remote) return page;
+      var merged = mergeConfigLayers(page, remote);
+      global.envBarConfig = merged;
+      log('remote config merged', demoId, merged.localOverride ? 'localOverride' : 'remote-defaults');
+      return merged;
+    });
+  }
+
+  /**
+   * Poll remote config when firestoreListen is enabled (API proxy — no client Firestore SDK).
+   * @param {string} demoId
+   * @param {EnvBarConfig} cfg
+   */
+  function startRemoteConfigListen(demoId, cfg) {
+    if (!demoId || cfg.firestoreListen === false) return;
+    if (remoteConfigPollTimer) return;
+    remoteConfigPollTimer = setInterval(function () {
+      fetchRemoteConfig(demoId).then(function (remote) {
+        if (!remote) return;
+        var page = global.envBarConfig && typeof global.envBarConfig === 'object' ? global.envBarConfig : {};
+        var merged = mergeConfigLayers(page, remote);
+        var prevJson = JSON.stringify(state.config || global.envBarConfig || {});
+        var nextJson = JSON.stringify(merged);
+        if (prevJson === nextJson) return;
+        global.envBarConfig = merged;
+        if (state.config) state.config = resolveConfig();
+        notifyChange({ type: 'remote-config', config: getConfig(), remote: remote });
+        log('remote config updated', demoId);
+      });
+    }, REMOTE_CONFIG_POLL_MS);
   }
 
   /**
@@ -477,7 +579,11 @@
   function init(userConfig) {
     if (state.initPromise && !userConfig) return state.initPromise;
 
-    state.initPromise = loadVersions()
+    state.initPromise = loadAndMergeRemoteConfig()
+      .then(function (mergedCfg) {
+        startRemoteConfigListen(resolveDemoId(mergedCfg), mergedCfg);
+        return loadVersions();
+      })
       .then(function (versions) {
         state.config = resolveConfig(userConfig);
         if (!state.config.prefix) {

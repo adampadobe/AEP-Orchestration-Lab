@@ -80,6 +80,32 @@ window.envBar.registerTagsInjection(tags);
 | `debug` | `false` | `[envBar]` console logging |
 | `autoInit` | `true` | Auto `init()` on DOMContentLoaded |
 | `siteCloneDemoEnv` | — | Merge into `window.SiteCloneDemoEnv` |
+| `demoId` | `prefix` | Firestore `envBarConfigs/{demoId}` document id |
+| `localOverride` | `false` | When `true`, page `envBarConfig` wins over remote defaults (local dev) |
+| `firestoreListen` | `true` | Poll `GET /api/env-bar-config` for remote updates (`onChange` type `remote-config`) |
+
+## Remote config (Firestore via API proxy)
+
+Demos use Firebase **Realtime Database** for sandbox state — not the Firestore client SDK. Remote env bar defaults therefore load through a thin Cloud Function:
+
+- **Collection:** `envBarConfigs/{demoId}`
+- **API:** `GET /api/env-bar-config?demoId=ksia` (public read, Admin SDK in `functions/envBarConfigStore.js`)
+- **Merge:** Remote defaults apply over page config unless `localOverride: true` (page wins for local dev)
+- **Listen:** When `firestoreListen !== false`, the loader polls every 60s and emits `envBar.onChange({ type: 'remote-config' })`
+- **Fallback:** Missing Firestore doc is fine — page `envBarConfig` and mount attributes are used
+
+Example Firestore document (optional seed — demos work without it):
+
+```json
+{
+  "demoId": "ksia",
+  "prefix": "ksia",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "features": { "webPush": true, "bc": true, "decisioning": true },
+  "defaultBcStyle": "miral"
+}
+```
 
 ## Version manifest
 
@@ -100,7 +126,7 @@ Edit **`shared/env-bar-versions.json`** only when bumping env bar assets:
 }
 ```
 
-HTML references `shared/env-bar.js?v={manifestVersion}`. The loader fetches the JSON at runtime (embedded fallback if fetch fails).
+HTML references `shared/env-bar.js?v={manifestVersion}`. The loader fetches the JSON at runtime (embedded `DEFAULT_VERSIONS` fallback if fetch fails — **must stay in sync**; run `npm run verify:env-bar-versions`).
 
 ## SDK duplication avoidance
 
@@ -149,6 +175,7 @@ Journey chrome via `envBar.init({ mode: 'journey' })`: `demos/ksia/ksia-journey-
 
 ```bash
 npm run verify:demo-env-strip
+npm run verify:env-bar-versions
 npm run verify:profile-viewer-routes
 npm run sync-profile-viewer-ui
 ```

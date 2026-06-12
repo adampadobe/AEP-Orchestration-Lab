@@ -154,6 +154,24 @@ const FORBIDDEN_HTML_PATTERNS = [
   { re: /\bid="injectSdkBtn"/, label: 'unprefixed injectSdkBtn id in HTML' },
 ];
 
+/** Loader-only scripts — migrated demos must not preload these (env-bar.js loads them). */
+const FORBIDDEN_LOADER_SCRIPT_BASENAMES = [
+  'demo-env-strip.js',
+  'aep-demo-env-bar.js',
+  'demo-env-bar-bootstrap.js',
+  'site-clone-bc-env.js',
+  'env-bar-compact.js',
+];
+
+function htmlHasForbiddenLoaderScript(html) {
+  for (const base of FORBIDDEN_LOADER_SCRIPT_BASENAMES) {
+    if (new RegExp('<script[^>]+src="[^"]*' + base.replace(/\./g, '\\.') + '"', 'i').test(html)) {
+      return base;
+    }
+  }
+  return null;
+}
+
 let failed = false;
 
 function fail(msg) {
@@ -335,6 +353,10 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   if (html.includes('demo-tags-injection.js') || html.includes('aep-demo-env-bar.js')) {
     fail(`${rel}: migrated demo must not load Tags/env-bar scripts directly — ${ENV_BAR_JS} loads them`);
   }
+  const forbiddenScript = htmlHasForbiddenLoaderScript(html);
+  if (forbiddenScript) {
+    fail(`${rel}: migrated demo must not preload ${forbiddenScript} — ${ENV_BAR_JS} loads the chain`);
+  }
   const bundleCssHref = rel.includes('/') ? `../${BUNDLE_CSS}` : BUNDLE_CSS;
   const spectrumCssHref = rel.includes('/') ? `../${SPECTRUM_CSS}` : SPECTRUM_CSS;
   if (html.includes(bundleCssHref) || html.includes(spectrumCssHref)) {
@@ -503,6 +525,9 @@ if (!sharedEnvBarJs.includes('initLabDemoEnvBar')) {
 }
 if (!sharedEnvBarJs.includes('reloadSDK')) {
   fail(`${ENV_BAR_JS}: must expose reloadSDK()`);
+}
+if (!sharedEnvBarJs.includes('/api/env-bar-config')) {
+  fail(`${ENV_BAR_JS}: must fetch remote config via /api/env-bar-config`);
 }
 
 if (failed) {

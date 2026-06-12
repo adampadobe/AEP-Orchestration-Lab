@@ -1,7 +1,20 @@
 # Demo environment strip standard (JLR / Sky)
 
-**Date:** 2026-06-02  
+**Date:** 2026-06-02 (updated 2026-06-12 — canonical `shared/env-bar.js` loader)  
 **Goal:** Single source of truth for the lab **top strip** (sandbox, Tags, event destination, profile lookup, site-clone Brand Concierge controls)—not the profile drawer shell.
+
+## Canonical loader (2026-06-12)
+
+All **site-clone** demos use **`shared/env-bar.js`** as the single entry point. The loader fetches `shared/env-bar-versions.json`, injects CSS, and defers the script chain (`demo-env-strip.js`, bootstrap, Tags, `aep-demo-env-bar.js`, `site-clone-bc-env.js`, etc.). Demo HTML must **not** preload those scripts.
+
+```html
+<script src="shared/env-bar.js?v=20260612-env-bar"></script>
+<script>
+  window.envBarConfig = { prefix: 'sky', variant: 'spectrum' };
+</script>
+```
+
+Full API and migration guide: [`docs/env-bar-shared-module.md`](env-bar-shared-module.md). Verifiers: `npm run verify:demo-env-strip`, `npm run verify:env-bar-versions`.
 
 ## Master reference: **Sky** (`sky-demo.html`)
 

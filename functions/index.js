@@ -107,6 +107,7 @@ const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Servic
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const claudeSkillsService = lazyRequireMod('./claudeSkillsService');
+const envBarConfigStore = lazyRequireMod('./envBarConfigStore');
 const snowflakeService = lazyRequireMod('./snowflakeService');
 const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
 const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelService');
@@ -3335,6 +3336,34 @@ exports.decisionLabConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
     return;
   }
   res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET /api/env-bar-config?demoId=ksia — remote env bar defaults (Firestore envBarConfigs/{demoId}) */
+exports.envBarConfig = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const demoId = String(req.query.demoId || req.query.prefix || '').trim();
+  if (!demoId) {
+    res.status(400).json({ ok: false, error: 'demoId query parameter is required' });
+    return;
+  }
+  try {
+    const config = await envBarConfigStore.getEnvBarConfig(demoId);
+    if (!config) {
+      res.status(200).json({ ok: true, demoId, config: null, found: false });
+      return;
+    }
+    res.status(200).json({ ok: true, demoId, config, found: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e), demoId });
+  }
 });
 
 /** GET/POST /api/lab/sandbox-state — per-user scope localStorage mirror (sandbox/workspace) */

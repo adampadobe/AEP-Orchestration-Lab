@@ -672,6 +672,13 @@
         }
       },
       {
+        "source": "/api/env-bar-config",
+        "function": {
+          "functionId": "envBarConfig",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/arch-proposals",
         "function": {
           "functionId": "archProposals",
