@@ -21,8 +21,8 @@
   --spectrum-blue-soft: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface));
   --spectrum-green: var(--dash-success-text, #2d9d78);
   --spectrum-green-muted: color-mix(in srgb, var(--dash-success-text, #2d9d78) 14%, var(--dash-surface));
-  --spectrum-purple: color-mix(in srgb, var(--dash-blue) 55%, #7c3aed);
-  --spectrum-purple-muted: color-mix(in srgb, var(--dash-blue) 10%, var(--dash-surface));
+  --spectrum-purple: var(--dash-purple);
+  --spectrum-purple-muted: var(--dash-purple-muted);
   --spectrum-red: var(--dash-error-text, #e34850);
   --spectrum-red-muted: color-mix(in srgb, var(--dash-error-text, #e34850) 12%, var(--dash-surface));
   --spectrum-orange: var(--dash-warning-text, #e68619);
@@ -74,8 +74,8 @@
 .lab-env-overlay-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: var(--dash-space-300, 1rem);
+  padding: var(--dash-space-300, 1rem) var(--dash-space-400, 1.5rem);
   align-items: stretch;
   width: 100%;
   max-width: 100%;
@@ -123,7 +123,7 @@
 .lab-env-overlay-profile .spectrum-env-profile-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
-  gap: 12px 16px;
+  gap: var(--dash-space-200, 0.75rem) var(--dash-space-300, 1rem);
   align-items: end;
   width: 100%;
   flex: 1 1 100%;
@@ -168,14 +168,14 @@
 .lab-env-overlay-panel .spectrum-env-card__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--dash-space-100, 0.5rem);
   width: 100%;
 }
 
 .lab-env-col-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--dash-space-200, 0.75rem);
   min-width: 0;
 }
 
@@ -232,7 +232,7 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-cards--duo {
-  gap: 12px;
+  gap: var(--dash-space-200, 0.75rem);
   margin: 0;
 }
 
@@ -266,7 +266,7 @@
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields,
 .lab-env-overlay-panel .spectrum-env-card__body--target {
-  gap: 12px;
+  gap: var(--dash-space-200, 0.75rem);
 }
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields {
@@ -298,13 +298,13 @@
 
 .lab-env-overlay-panel .spectrum-env-collapsible-fields__grid {
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--dash-space-200, 0.75rem);
 }
 
 .lab-env-overlay-panel .spectrum-env-field label,
 .lab-env-overlay-panel .spectrum-env-stat__label,
 .lab-env-overlay-panel .spectrum-env-field__label {
-  font-size: 0.6875rem;
+  font-size: var(--dash-font-detail, 0.75rem);
 }
 
 .lab-env-overlay-panel .spectrum-env-input,
@@ -380,11 +380,9 @@
 
 .spectrum-env-stat__label,
 .spectrum-env-field__label {
-  font-size: 0.68rem;
+  font-size: var(--dash-font-detail, 0.75rem);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--spectrum-label);
+  color: var(--spectrum-text-secondary);
 }
 
 .spectrum-env-stat__value {
@@ -422,7 +420,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--dash-radius-chip, 0.5rem);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.25;
@@ -447,6 +445,12 @@
 
 .spectrum-env-link-btn:hover {
   text-decoration: underline;
+}
+
+.spectrum-env-link-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+  border-radius: var(--dash-radius-control, 0.5rem);
 }
 
 .spectrum-env-status-bar__updated {
@@ -579,11 +583,9 @@
 }
 
 .spectrum-env-field label {
-  font-size: 0.68rem;
+  font-size: var(--dash-font-detail, 0.75rem);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--spectrum-label);
+  color: var(--spectrum-text-secondary);
 }
 
 .spectrum-env-field__hint {
@@ -599,7 +601,7 @@
   min-height: 2.35rem;
   padding: 0.4rem 0.65rem;
   border: 1px solid var(--spectrum-input-border);
-  border-radius: var(--spectrum-radius-sm);
+  border-radius: var(--dash-radius-control, 0.5rem);
   background: var(--spectrum-input-bg);
   color: var(--spectrum-text);
   font: inherit;
@@ -621,7 +623,7 @@
   gap: 0.45rem;
   min-height: 2.35rem;
   padding: 0.45rem 1rem;
-  border-radius: var(--spectrum-radius-sm);
+  border-radius: var(--dash-radius-control, 0.5rem);
   border: 1px solid transparent;
   font: inherit;
   font-size: 0.84rem;
@@ -632,7 +634,7 @@
 
 .aep-demo-env-bar--spectrum .spectrum-btn--primary {
   background: var(--spectrum-blue);
-  color: #ffffff;
+  color: var(--dash-on-accent);
   border-color: var(--spectrum-blue);
 }
 
@@ -642,7 +644,7 @@
 }
 
 .aep-demo-env-bar--spectrum .spectrum-btn--secondary {
-  background: #ffffff;
+  background: var(--dash-surface);
   color: var(--spectrum-text);
   border-color: var(--spectrum-input-border);
 }
@@ -651,6 +653,27 @@
   background: var(--spectrum-blue-soft);
   border-color: var(--spectrum-blue);
   color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--spectrum-blue);
+  min-height: auto;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn--quiet:hover {
+  background: var(--spectrum-blue-soft);
+  border-color: transparent;
+  color: var(--spectrum-blue);
+}
+
+.aep-demo-env-bar--spectrum .spectrum-btn:focus-visible,
+.aep-demo-env-bar--spectrum .spectrum-env-icon-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
 }
 
 .spectrum-btn__icon {
@@ -859,8 +882,8 @@
   margin: 0;
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--spectrum-input-border);
-  border-radius: var(--spectrum-radius-sm);
-  background: #ffffff;
+  border-radius: var(--dash-radius-control, 0.5rem);
+  background: var(--dash-surface);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--spectrum-text-secondary);
@@ -923,11 +946,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
   border: 1px solid var(--spectrum-input-border);
-  border-radius: var(--spectrum-radius-sm);
-  background: #ffffff;
+  border-radius: var(--dash-radius-control, 0.5rem);
+  background: var(--dash-surface);
   color: var(--spectrum-label);
   cursor: pointer;
 }
@@ -941,7 +966,7 @@
   margin: 0.85rem 1rem 0;
   padding: 0.65rem 0.85rem;
   border-radius: var(--spectrum-radius-sm);
-  background: color-mix(in srgb, var(--spectrum-card-border) 35%, #ffffff);
+  background: color-mix(in srgb, var(--spectrum-card-border) 35%, var(--dash-surface));
   font-size: 0.78rem;
   color: var(--spectrum-text-secondary);
 }

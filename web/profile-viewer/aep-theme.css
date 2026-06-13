@@ -42,6 +42,10 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   );
   --dash-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
   --dash-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --dash-on-accent: #ffffff;
+  --dash-purple: #a78bfa;
+  --dash-purple-muted: color-mix(in srgb, var(--dash-purple) 18%, var(--dash-surface));
+  --dash-focus-ring: var(--dash-blue);
   --menu-bg: var(--dash-sidebar);
   --menu-fg: var(--dash-text);
   --menu-fg-muted: var(--dash-muted);
@@ -52,6 +56,16 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   --app-bg: var(--dash-bg);
   --panel-bg: var(--dash-surface);
   --panel-bg-alt: var(--dash-surface-alt);
+}
+
+/* Env bar toolbar + overlay stay forced-light when dashboard is dark */
+html[data-aep-theme='dark'] .mod-demo-id-banner,
+html[data-aep-theme='dark'] [class*='-demo-id-banner'],
+html[data-aep-theme='dark'] .mod-demo-id-inner,
+html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
+  --dash-env-bar-surface: #ffffff;
+  --dash-env-bar-text: #1a1a2e;
+  --dash-env-bar-border: #e2e6ea;
 }
 
 /* ── Sidebar & navigation (structural) ── */

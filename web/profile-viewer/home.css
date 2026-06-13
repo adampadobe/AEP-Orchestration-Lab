@@ -717,6 +717,21 @@ body.home-dashboard-concierge {
   );
   --dash-radius: 16px;
   --dash-radius-sm: 12px;
+  --dash-radius-control: 0.5rem;
+  --dash-radius-chip: 0.5rem;
+  --dash-font-detail: 0.75rem;
+  --dash-font-body-s: 0.875rem;
+  --dash-space-100: 0.5rem;
+  --dash-space-200: 0.75rem;
+  --dash-space-300: 1rem;
+  --dash-space-400: 1.5rem;
+  --dash-on-accent: #ffffff;
+  --dash-purple: #7c3aed;
+  --dash-purple-muted: color-mix(in srgb, var(--dash-purple) 14%, var(--dash-surface));
+  --dash-focus-ring: var(--dash-blue);
+  --dash-env-bar-surface: var(--dash-surface);
+  --dash-env-bar-text: var(--dash-text);
+  --dash-env-bar-border: var(--dash-border);
   --dash-shadow: 0 2px 14px rgba(15, 15, 25, 0.07);
   --dash-shadow-hover: 0 8px 28px rgba(15, 15, 25, 0.1);
 

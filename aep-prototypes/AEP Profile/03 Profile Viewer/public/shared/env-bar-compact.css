@@ -43,16 +43,16 @@ html[data-aep-theme='dark'] .mod-demo-id-banner,
 html[data-aep-theme='dark'] [class*='-demo-id-banner'],
 html[data-aep-theme='dark'] .mod-demo-id-inner,
 html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
-  --dash-bg: var(--dash-surface-alt, #f4f6f8);
-  --dash-surface: #ffffff;
-  --dash-surface-alt: #f8f9fa;
-  --dash-border: #e2e6ea;
-  --dash-text: #1a1a2e;
-  --dash-text-secondary: #4a5568;
-  --dash-muted: #6b7280;
-  --dash-input-bg: #ffffff;
-  --dash-input-border: #cbd5e1;
-  --dash-hover: #f1f5f9;
+  --dash-bg: var(--dash-surface-alt);
+  --dash-surface: var(--dash-env-bar-surface);
+  --dash-surface-alt: color-mix(in srgb, var(--dash-env-bar-surface) 92%, var(--dash-env-bar-text));
+  --dash-border: var(--dash-env-bar-border);
+  --dash-text: var(--dash-env-bar-text);
+  --dash-text-secondary: color-mix(in srgb, var(--dash-env-bar-text) 72%, var(--dash-env-bar-surface));
+  --dash-muted: color-mix(in srgb, var(--dash-env-bar-text) 55%, var(--dash-env-bar-surface));
+  --dash-input-bg: var(--dash-env-bar-surface);
+  --dash-input-border: var(--dash-env-bar-border);
+  --dash-hover: color-mix(in srgb, var(--dash-env-bar-text) 6%, var(--dash-env-bar-surface));
   color-scheme: light;
 }
 
@@ -192,7 +192,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   gap: 0.3rem;
   max-width: min(11rem, 26vw);
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--dash-radius-chip, 0.5rem);
   border: 1px solid var(--dash-border);
   background: color-mix(in srgb, var(--dash-surface-alt) 70%, var(--dash-surface));
   font-size: 0.8125rem;
@@ -284,6 +284,14 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   border-color: var(--dash-blue);
   color: var(--dash-blue);
   background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
+}
+
+.lab-env-toggle-btn:focus-visible,
+.lab-env-pin-btn:focus-visible,
+.lab-env-chip:focus-visible,
+.lab-env-toolbar .spectrum-env-link-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
 }
 
 /* Hide overlay-only chrome while collapsed */
