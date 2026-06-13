@@ -1,14 +1,14 @@
 {
-  "gitSha": "59915589c7e9b18122b19302ff2366d34ab67217",
-  "gitShortSha": "59915589",
+  "gitSha": "81e8ffcc66397d1c44f9450269a024198deab9c5",
+  "gitShortSha": "81e8ffcc",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: sync version stamp for Phase 5 deploy",
+  "gitCommitSubject": "[apalmer] chore: remove deprecated race-for-life-ajo stub",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-12T23:02:30+01:00",
-  "deployedAt": "2026-06-12T22:02:45.479Z",
+  "gitCommitDate": "2026-06-13T10:32:30+01:00",
+  "deployedAt": "2026-06-13T09:32:37.656Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/59915589c7e9b18122b19302ff2366d34ab67217"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/81e8ffcc66397d1c44f9450269a024198deab9c5"
 }
