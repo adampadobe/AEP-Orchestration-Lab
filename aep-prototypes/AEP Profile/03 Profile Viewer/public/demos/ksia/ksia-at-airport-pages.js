@@ -88,17 +88,21 @@
     }
   }
 
-  function initTerminal1() {
-    var detail = data.TERMINAL_1_DETAIL;
+  function initTerminalDetail(pageId) {
+    var num = pageId.replace('terminal-', '');
+    var detail = data['TERMINAL_' + num + '_DETAIL'];
     if (!detail) return;
 
-    var tagline = document.getElementById('ksiaTerminal1Tagline');
+    var tagline = document.getElementById('ksiaTerminal' + num + 'Tagline');
     if (tagline) tagline.textContent = detail.tagline;
 
-    var mapLabel = document.getElementById('ksiaTerminal1MapLabel');
+    var preview = document.getElementById('ksiaTerminal' + num + 'Preview');
+    if (preview && detail.preview) preview.hidden = false;
+
+    var mapLabel = document.getElementById('ksiaTerminal' + num + 'MapLabel');
     if (mapLabel) mapLabel.textContent = detail.gatesMapLabel;
 
-    var amenities = document.getElementById('ksiaTerminal1Amenities');
+    var amenities = document.getElementById('ksiaTerminal' + num + 'Amenities');
     if (amenities && detail.amenities) {
       amenities.innerHTML = detail.amenities
         .map(function (a) {
@@ -111,7 +115,7 @@
         .join('');
     }
 
-    var shops = document.getElementById('ksiaTerminal1Shops');
+    var shops = document.getElementById('ksiaTerminal' + num + 'Shops');
     if (shops && detail.shops) {
       shops.innerHTML = detail.shops
         .map(function (s) {
@@ -125,7 +129,7 @@
         .join('');
     }
 
-    var lounge = document.getElementById('ksiaTerminal1Lounge');
+    var lounge = document.getElementById('ksiaTerminal' + num + 'Lounge');
     if (lounge && detail.lounge) {
       lounge.innerHTML =
         '<h3 class="ksia-terminal-lounge-name">' + detail.lounge.name + '</h3>' +
@@ -133,7 +137,7 @@
         '<a href="' + resolveHref(detail.lounge.href) + '" class="ksia-btn ksia-btn-primary">Explore lounges</a>';
     }
 
-    var waits = document.getElementById('ksiaTerminal1Waits');
+    var waits = document.getElementById('ksiaTerminal' + num + 'Waits');
     if (waits && detail.waitTimes) {
       waits.innerHTML = detail.waitTimes
         .map(function (w) {
@@ -145,6 +149,45 @@
         })
         .join('');
     }
+  }
+
+  function initTerminalGuideAssistant() {
+    var module = data.TERMINAL_GUIDE_ASSISTANT;
+    var mount = document.getElementById('ksiaTerminalGuideAssistant');
+    if (!module || !mount) return;
+
+    var tips = (module.tips || [])
+      .map(function (t) {
+        return '<li>' + t + '</li>';
+      })
+      .join('');
+
+    mount.innerHTML =
+      '<div class="ksia-board-assistant-card">' +
+      '<p class="ksia-section-kicker">AIVC assistant</p>' +
+      '<h2 class="ksia-display-heading">' + module.title + '</h2>' +
+      '<p class="ksia-board-assistant-lead">' + module.lead + '</p>' +
+      '<ul class="ksia-board-assistant-tips">' + tips + '</ul>' +
+      '<a href="' + resolveHref(module.href) + '" class="ksia-btn ksia-btn-primary">' + module.cta + '</a>' +
+      '</div>';
+  }
+
+  function initTerminalGuideTerminals() {
+    var mount = document.getElementById('ksiaTerminalGuideTerminals');
+    var terminals = data.AIRPORT_TERMINALS || [];
+    if (!mount || !terminals.length) return;
+
+    mount.innerHTML = terminals
+      .map(function (t) {
+        var desc = t.desc ? '<p class="ksia-at-airport-terminal-desc">' + t.desc + '</p>' : '';
+        return (
+          '<a href="' + resolveHref(t.href.replace('at-the-airport/', '')) + '" class="ksia-at-airport-terminal-card ksia-at-airport-terminal-card--compact">' +
+          '<span class="ksia-at-airport-terminal-name">' + t.name + '</span>' +
+          desc +
+          '<span class="ksia-at-airport-terminal-cta">View &rarr;</span></a>'
+        );
+      })
+      .join('');
   }
 
   function initMaps() {
@@ -186,6 +229,37 @@
         }
       });
     }
+
+    initMapsAssistant();
+  }
+
+  function initMapsAssistant() {
+    var module = data.MAPS_ASSISTANT;
+    var mount = document.getElementById('ksiaMapsAssistant');
+    if (!module || !mount) return;
+
+    var actions = (module.actions || [])
+      .map(function (a) {
+        return (
+          '<li><a href="' + resolveHref(a.href) + '" class="ksia-flights-assistant-row" data-ksia-assistant-link>' +
+          '<span class="ksia-flights-assistant-icon" aria-hidden="true">' + (a.icon || '&#10022;') + '</span>' +
+          '<span class="ksia-flights-assistant-body">' +
+          '<span class="ksia-flights-assistant-title">' + a.label + '</span>' +
+          '<span class="ksia-flights-assistant-desc">' + a.desc + '</span>' +
+          '</span>' +
+          '<span class="ksia-flights-assistant-arrow" aria-hidden="true">&rarr;</span>' +
+          '</a></li>'
+        );
+      })
+      .join('');
+
+    mount.innerHTML =
+      '<div class="ksia-board-assistant-card">' +
+      '<p class="ksia-section-kicker">AIVC assistant</p>' +
+      '<h2 class="ksia-display-heading">' + module.title + '</h2>' +
+      '<p class="ksia-board-assistant-lead">' + module.lead + '</p>' +
+      '<ul class="ksia-flights-assistant-list">' + actions + '</ul>' +
+      '</div>';
   }
 
   function initSecurity() {
@@ -226,23 +300,71 @@
     if (cta && sec.fastTrackHref) {
       cta.setAttribute('href', resolveHref(sec.fastTrackHref));
     }
+
+    initSecurityAssistant();
+  }
+
+  function initSecurityAssistant() {
+    var module = data.SECURITY_ASSISTANT;
+    var mount = document.getElementById('ksiaSecurityAssistant');
+    if (!module || !mount) return;
+
+    var tips = (module.tips || [])
+      .map(function (t) {
+        return '<li>' + t + '</li>';
+      })
+      .join('');
+
+    mount.innerHTML =
+      '<div class="ksia-board-assistant-card">' +
+      '<p class="ksia-section-kicker">AIVC assistant</p>' +
+      '<h2 class="ksia-display-heading">' + module.title + '</h2>' +
+      '<p class="ksia-board-assistant-lead">' + module.lead + '</p>' +
+      '<ul class="ksia-board-assistant-tips">' + tips + '</ul>' +
+      '<a href="' + resolveHref(module.href) + '" class="ksia-btn ksia-btn-primary">' + module.cta + '</a>' +
+      '</div>';
   }
 
   function initServicesHub() {
     var mount = document.getElementById('ksiaServicesHubGrid');
     var items = data.SERVICES_HUB_ITEMS || [];
-    if (!mount || !items.length) return;
+    if (mount && items.length) {
+      mount.innerHTML = items
+        .map(function (item) {
+          return (
+            '<li><a href="' + resolveHref(item.href) + '" class="ksia-services-hub-card">' +
+            '<span class="ksia-services-hub-icon" aria-hidden="true">' + (item.icon || '&#9679;') + '</span>' +
+            '<span class="ksia-services-hub-label">' + item.label + '</span>' +
+            '<span class="ksia-services-hub-desc">' + item.desc + '</span></a></li>'
+          );
+        })
+        .join('');
+    }
+    initServicesHubAssistant();
+  }
 
-    mount.innerHTML = items
-      .map(function (item) {
+  function initServicesHubAssistant() {
+    var module = data.SERVICES_HUB_ASSISTANT;
+    var mount = document.getElementById('ksiaServicesHubAssistant');
+    if (!module || !mount) return;
+
+    var actions = (module.actions || [])
+      .map(function (a) {
         return (
-          '<li><a href="' + resolveHref(item.href) + '" class="ksia-services-hub-card">' +
-          '<span class="ksia-services-hub-icon" aria-hidden="true">' + (item.icon || '&#9679;') + '</span>' +
-          '<span class="ksia-services-hub-label">' + item.label + '</span>' +
-          '<span class="ksia-services-hub-desc">' + item.desc + '</span></a></li>'
+          '<a href="' + resolveHref(a.href) + '" class="ksia-board-assistant-action" data-ksia-assistant-cta>' +
+          '<span class="ksia-board-assistant-action-icon" aria-hidden="true">' + (a.icon || '&#9679;') + '</span>' +
+          '<span>' + a.label + '</span></a>'
         );
       })
       .join('');
+
+    mount.innerHTML =
+      '<div class="ksia-board-assistant-card">' +
+      '<p class="ksia-section-kicker">AIVC assistant</p>' +
+      '<h2 class="ksia-display-heading">' + module.title + '</h2>' +
+      '<p class="ksia-board-assistant-lead">' + module.lead + '</p>' +
+      '<div class="ksia-board-assistant-actions">' + actions + '</div>' +
+      '</div>';
   }
 
   function initLounges() {
@@ -327,8 +449,11 @@
 
   function boot() {
     var id = pageId();
-    if (id === 'terminal-guide') initTerminalGuide();
-    else if (id === 'terminal-1') initTerminal1();
+    if (id === 'terminal-guide') {
+      initTerminalGuide();
+      initTerminalGuideTerminals();
+      initTerminalGuideAssistant();
+    } else if (/^terminal-\d+$/.test(id)) initTerminalDetail(id);
     else if (id === 'maps') initMaps();
     else if (id === 'security') initSecurity();
     else if (id === 'services-hub') initServicesHub();

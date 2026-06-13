@@ -4,29 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Terminal 2 — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613">
 </head>
-<body class="ksia-site" data-ksia-page-id="terminal-2" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-2 expansion stub" data-ksia-journey-stage="airport">
+<body class="ksia-site" data-ksia-page-id="terminal-2" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-2 emirates premium carriers" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
 
     <header class="ksia-subpage-hero">
       <h1 class="ksia-display-heading">Terminal 2</h1>
-      <p class="ksia-subpage-hero-lead">Regional and premium carrier operations — opening with KSIA expansion.</p>
+      <p class="ksia-subpage-hero-lead" id="ksiaTerminal2Tagline">Emirates and premium Gulf carriers — EK 816 departs from Gate A4.</p>
+      <span class="ksia-at-airport-pill ksia-at-airport-pill--stage" id="ksiaTerminal2Preview" hidden>Preview · Opens with KSIA expansion</span>
     </header>
 
-    <section class="ksia-section ksia-section--white" aria-label="Terminal status">
-      <div class="ksia-terminal-stub-card">
-        <span class="ksia-terminal-stub-status">Opening with KSIA expansion</span>
-        <p class="ksia-body-text">Terminal 2 will serve regional and premium carriers with dedicated lounges and transfer facilities. Full gate maps, amenities, and AIVC wayfinding will be available at launch.</p>
-        <p style="margin-top:20px"><a href="terminal-guide.html" class="ksia-btn ksia-btn-primary">Back to terminal guide</a></p>
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t2-map-heading">
+      <h2 class="ksia-section-title" id="ksia-t2-map-heading">Gates map</h2>
+      <div class="ksia-terminal-map-slot" role="img" aria-label="Terminal 2 gates map placeholder">
+        <span class="ksia-at-airport-map-label" id="ksiaTerminal2MapLabel">Gates A1–A24 map — premium check-in and Emirates lounge Level 2</span>
       </div>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-t2-amenities-heading">
+      <div class="ksia-terminal-detail-grid">
+        <div>
+          <h2 class="ksia-section-title" id="ksia-t2-amenities-heading">Amenities</h2>
+          <ul class="ksia-terminal-detail-list" id="ksiaTerminal2Amenities"></ul>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">Live wait times</h2>
+          <div class="ksia-terminal-waits-grid" id="ksiaTerminal2Waits"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t2-shops-heading">
+      <h2 class="ksia-section-title" id="ksia-t2-shops-heading">Shops preview</h2>
+      <ul class="ksia-terminal-shops-grid" id="ksiaTerminal2Shops"></ul>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-t2-lounge-heading">
+      <h2 class="ksia-section-title" id="ksia-t2-lounge-heading">Lounge access</h2>
+      <div class="ksia-terminal-lounge-panel" id="ksiaTerminal2Lounge"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="terminal-guide.html" class="ksia-card-link">Terminal guide</a></li>
+        <li><a href="maps.html" class="ksia-card-link">Wayfinding maps</a></li>
+        <li><a href="services/lounges.html" class="ksia-card-link">All lounges</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612e"></script>
+  <script src="../ksia-mock-data.js?v=20260613"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
+  <script src="../ksia-at-airport-pages.js?v=20260613"></script>
 </body>
 </html>

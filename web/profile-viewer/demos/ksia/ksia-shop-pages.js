@@ -17,6 +17,77 @@
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
 
+  function renderStepper(mountId, steps) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !steps || !steps.length) return;
+    mount.innerHTML = steps
+      .map(function (step, i) {
+        var stateClass = step.state ? ' ksia-flights-step--' + step.state : '';
+        var connector = i < steps.length - 1 ? '<span class="ksia-flights-step-connector" aria-hidden="true"></span>' : '';
+        return (
+          '<li class="ksia-flights-step' + stateClass + '">' +
+          '<span class="ksia-flights-step-dot" aria-hidden="true"></span>' +
+          '<span class="ksia-flights-step-label">' + step.label + '</span>' +
+          connector +
+          '</li>'
+        );
+      })
+      .join('');
+  }
+
+  function renderServices(mountId, items) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !items || !items.length) return;
+    mount.innerHTML = items
+      .map(function (item) {
+        return (
+          '<li><a href="' + resolveHref(item.href) + '" class="ksia-flights-service-card">' +
+          '<span class="ksia-flights-service-icon" aria-hidden="true">' + (item.icon || '&#9679;') + '</span>' +
+          '<span class="ksia-flights-service-label">' + item.label + '</span>' +
+          '</a></li>'
+        );
+      })
+      .join('');
+  }
+
+  function renderSuggestions(mountId, items) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !items || !items.length) return;
+    mount.innerHTML = items
+      .map(function (item) {
+        return (
+          '<li><a href="' + resolveHref(item.href) + '" class="ksia-flights-assistant-row">' +
+          '<span class="ksia-flights-assistant-icon" aria-hidden="true">' + (item.icon || '&#10022;') + '</span>' +
+          '<span class="ksia-flights-assistant-body">' +
+          '<span class="ksia-flights-assistant-title">' + item.title + '</span>' +
+          '<span class="ksia-flights-assistant-desc">' + item.desc + '</span>' +
+          '</span>' +
+          '<span class="ksia-flights-assistant-arrow" aria-hidden="true">&rarr;</span>' +
+          '</a></li>'
+        );
+      })
+      .join('');
+  }
+
+  function initConcierge(prefix) {
+    var copy = data.CONCIERGE_COPY;
+    if (!copy) return;
+    var title = document.getElementById(prefix + 'ConciergeTitle');
+    var lead = document.getElementById(prefix + 'ConciergeLead');
+    var cta = document.getElementById(prefix + 'ConciergeCta');
+    if (title) title.textContent = copy.title;
+    if (lead) lead.textContent = copy.lead;
+    if (cta) {
+      if (copy.cta) cta.textContent = copy.cta;
+      cta.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emitAivcAction('concierge-open');
+        }
+        cta.textContent = 'Concierge opened (mock)';
+      });
+    }
+  }
+
   function initShopHub() {
     var hero = data.SHOP_DINE_HERO;
     if (hero) {
@@ -42,6 +113,8 @@
         })
         .join('');
     }
+
+    renderStepper('ksiaShopStepper', data.SHOP_JOURNEY_STEPS);
 
     var picksMount = document.getElementById('ksiaShopPersonalizedPicks');
     var picks = data.SHOP_PERSONALIZED_PICKS || [];
@@ -74,9 +147,21 @@
         }
       });
     }
+
+    renderSuggestions('ksiaShopSuggestions', data.SHOP_ASSISTANT_SUGGESTIONS);
+    renderServices('ksiaShopServices', data.SHOP_RELATED_SERVICES);
+    initConcierge('ksiaShop');
   }
 
   function initDutyFree() {
+    var collection = data.DUTY_FREE_COLLECTION;
+    var collectionMount = document.getElementById('ksiaDutyFreeCollection');
+    if (collectionMount && collection) {
+      collectionMount.innerHTML =
+        '<p class="ksia-board-assistant-lead">' + collection.lead + '</p>' +
+        '<p class="ksia-transport-assistant-rec">' + collection.flight + ' · Gate ' + collection.gate + ' · ' + collection.window + '</p>';
+    }
+
     var mount = document.getElementById('ksiaDutyFreeGrid');
     var offers = data.DUTY_FREE_OFFERS || [];
 
@@ -142,9 +227,32 @@
         payBtn.textContent = 'Paid via wallet (mock)';
       });
     }
+
+    var trustMount = document.getElementById('ksiaDutyFreeTrust');
+    var trust = data.AIVC_TRUST_OUTCOMES || [];
+    if (trustMount && trust.length) {
+      trustMount.innerHTML = trust
+        .slice(0, 2)
+        .map(function (t) {
+          return (
+            '<div class="ksia-aivc-trust-stat">' +
+            '<span class="ksia-aivc-trust-value">' + t.stat + '</span>' +
+            '<span class="ksia-aivc-trust-label">' + t.label + '</span></div>'
+          );
+        })
+        .join('');
+    }
   }
 
   function initRestaurants() {
+    var hint = data.RESTAURANTS_GATE_HINT;
+    var hintMount = document.getElementById('ksiaRestaurantsGateHint');
+    if (hintMount && hint) {
+      hintMount.innerHTML =
+        '<p class="ksia-board-assistant-lead">' + hint.lead + '</p>' +
+        '<p class="ksia-transport-assistant-rec">Gate ' + hint.gate + ' · ' + hint.walkTime + '</p>';
+    }
+
     var mount = document.getElementById('ksiaRestaurantsGrid');
     var restaurants = data.RESTAURANTS || [];
     var cuisineFilter = document.getElementById('ksiaRestaurantCuisineFilter');

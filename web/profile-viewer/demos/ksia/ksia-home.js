@@ -311,6 +311,34 @@
     onScroll();
   }
 
+  function initHomeJourneyStages() {
+    var mount = document.getElementById('ksiaHomeJourneyStages');
+    var stages = (window.KsiaMockData && window.KsiaMockData.HOME_JOURNEY_STAGES) || [];
+    if (!mount || !stages.length) return;
+    mount.innerHTML = stages
+      .map(function (s) {
+        var stateClass = s.state === 'current' ? ' ksia-home-journey-stage--current' : s.state === 'done' ? ' ksia-home-journey-stage--done' : '';
+        var href = window.KsiaChrome && typeof window.KsiaChrome.resolveHref === 'function'
+          ? window.KsiaChrome.resolveHref(s.href)
+          : s.href;
+        return (
+          '<li class="ksia-home-journey-stage' + stateClass + '">' +
+          '<a href="' + href + '" class="ksia-home-journey-stage-link" data-ksia-journey-stage>' +
+          '<span class="ksia-home-journey-stage-label">' + s.label + '</span>' +
+          '<span class="ksia-home-journey-stage-desc">' + s.desc + '</span></a></li>'
+        );
+      })
+      .join('');
+
+    mount.querySelectorAll('[data-ksia-journey-stage]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emit('ksia.home.journey-stage', { label: el.querySelector('.ksia-home-journey-stage-label').textContent.trim() });
+        }
+      });
+    });
+  }
+
   function boot() {
     initCarousel();
     initGalleryCarousel();
@@ -318,6 +346,7 @@
     initQuickLinks();
     initFaq();
     initScrollHeader();
+    initHomeJourneyStages();
   }
 
   if (document.readyState === 'loading') {

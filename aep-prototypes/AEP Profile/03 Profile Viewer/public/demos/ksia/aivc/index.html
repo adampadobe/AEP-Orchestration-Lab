@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIVC — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613a">
 </head>
 <body class="ksia-site" data-ksia-page-id="aivc-hub" data-ksia-context="aivc-hub orchestration" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
@@ -24,6 +24,27 @@
       <ol class="ksia-aivc-journey-stages" id="ksiaAivcJourneyStages" aria-label="Journey stages from pre-trip to post-trip"></ol>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-aivc-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant</p>
+      <h2 class="ksia-display-heading" id="ksia-aivc-assistant-heading"><span id="ksiaAivcAssistantTitle">Your companion</span></h2>
+      <div class="ksia-aivc-assistant-card">
+        <p class="ksia-board-assistant-lead" id="ksiaAivcAssistantLead"></p>
+        <p class="ksia-aivc-assistant-rec" id="ksiaAivcAssistantRec"></p>
+        <div class="ksia-board-assistant-actions" id="ksiaAivcAssistantActions"></div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-aivc-timeline-heading">
+      <p class="ksia-section-kicker">End-to-end orchestration</p>
+      <h2 class="ksia-display-heading" id="ksia-aivc-timeline-heading">Your journey timeline</h2>
+      <ol class="ksia-aivc-timeline" id="ksiaAivcTimeline" aria-label="Pre-trip to post-trip timeline"></ol>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-aivc-pot-heading">
+      <h2 class="ksia-section-title" id="ksia-aivc-pot-heading">Proof-of-tech modules</h2>
+      <ul class="ksia-aivc-pot-grid" id="ksiaAivcPotGrid"></ul>
+    </section>
+
     <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-aivc-actions-heading">
       <p class="ksia-section-kicker">Orchestration</p>
       <h2 class="ksia-display-heading" id="ksia-aivc-actions-heading">Next best actions</h2>
@@ -41,11 +62,11 @@
         <div class="ksia-aivc-wallet-progress-wrap">
           <span class="ksia-aivc-wallet-progress-label" id="ksiaAivcWalletProgress" role="progressbar" aria-valuemin="0">2 of 4 complete</span>
           <div class="ksia-aivc-wallet-progress-bar-track" aria-hidden="true">
-            <div class="ksia-aivc-wallet-progress-bar-fill" id="ksiaAivcWalletProgressBar" style="width:50%"></div>
+            <div class="ksia-aivc-wallet-progress-bar-fill" id="ksiaAivcWalletProgressBar"></div>
           </div>
         </div>
         <ul class="ksia-aivc-wallet-items" id="ksiaAivcWalletItems"></ul>
-        <p style="margin-top:16px"><a href="wallet-setup.html" class="ksia-btn ksia-btn-primary">Complete wallet setup</a></p>
+        <p class="ksia-aivc-wallet-cta"><a href="wallet-setup.html" class="ksia-btn ksia-btn-primary">Complete wallet setup</a></p>
       </div>
     </section>
 
@@ -56,17 +77,17 @@
 
     <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-aivc-concierge-heading">
       <div class="ksia-aivc-concierge-band">
-        <h2 class="ksia-display-heading" id="ksia-aivc-concierge-heading" style="color:var(--ksia-warm-gold);margin-bottom:12px">Concierge-ready</h2>
+        <h2 class="ksia-display-heading ksia-aivc-concierge-heading" id="ksia-aivc-concierge-heading">Concierge-ready</h2>
         <p>Open the Brand Concierge from the lab strip to explore orchestrated actions across parking, retail, lounges, and disruption support.</p>
         <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaAivcConciergeCta">Open AIVC concierge (mock)</button>
       </div>
     </section>
 
   </main>
-  <script src="../ksia-mock-data.js?v=20260612f"></script>
+  <script src="../ksia-mock-data.js?v=20260613a"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
-  <script src="../ksia-aivc-pages.js?v=20260612f"></script>
+  <script src="../ksia-aivc-pages.js?v=20260613a"></script>
 </body>
 </html>

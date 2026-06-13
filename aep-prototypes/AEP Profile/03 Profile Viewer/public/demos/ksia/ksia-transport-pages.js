@@ -17,6 +17,77 @@
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
 
+  function renderStepper(mountId, steps) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !steps || !steps.length) return;
+    mount.innerHTML = steps
+      .map(function (step, i) {
+        var stateClass = step.state ? ' ksia-flights-step--' + step.state : '';
+        var connector = i < steps.length - 1 ? '<span class="ksia-flights-step-connector" aria-hidden="true"></span>' : '';
+        return (
+          '<li class="ksia-flights-step' + stateClass + '">' +
+          '<span class="ksia-flights-step-dot" aria-hidden="true"></span>' +
+          '<span class="ksia-flights-step-label">' + step.label + '</span>' +
+          connector +
+          '</li>'
+        );
+      })
+      .join('');
+  }
+
+  function renderServices(mountId, items) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !items || !items.length) return;
+    mount.innerHTML = items
+      .map(function (item) {
+        return (
+          '<li><a href="' + resolveHref(item.href) + '" class="ksia-flights-service-card">' +
+          '<span class="ksia-flights-service-icon" aria-hidden="true">' + (item.icon || '&#9679;') + '</span>' +
+          '<span class="ksia-flights-service-label">' + item.label + '</span>' +
+          '</a></li>'
+        );
+      })
+      .join('');
+  }
+
+  function renderSuggestions(mountId, items) {
+    var mount = document.getElementById(mountId);
+    if (!mount || !items || !items.length) return;
+    mount.innerHTML = items
+      .map(function (item) {
+        return (
+          '<li><a href="' + resolveHref(item.href) + '" class="ksia-flights-assistant-row">' +
+          '<span class="ksia-flights-assistant-icon" aria-hidden="true">' + (item.icon || '&#10022;') + '</span>' +
+          '<span class="ksia-flights-assistant-body">' +
+          '<span class="ksia-flights-assistant-title">' + item.title + '</span>' +
+          '<span class="ksia-flights-assistant-desc">' + item.desc + '</span>' +
+          '</span>' +
+          '<span class="ksia-flights-assistant-arrow" aria-hidden="true">&rarr;</span>' +
+          '</a></li>'
+        );
+      })
+      .join('');
+  }
+
+  function initConcierge(prefix) {
+    var copy = data.CONCIERGE_COPY;
+    if (!copy) return;
+    var title = document.getElementById(prefix + 'ConciergeTitle');
+    var lead = document.getElementById(prefix + 'ConciergeLead');
+    var cta = document.getElementById(prefix + 'ConciergeCta');
+    if (title) title.textContent = copy.title;
+    if (lead) lead.textContent = copy.lead;
+    if (cta) {
+      if (copy.cta) cta.textContent = copy.cta;
+      cta.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emitAivcAction('concierge-open');
+        }
+        cta.textContent = 'Concierge opened (mock)';
+      });
+    }
+  }
+
   function initTransportHub() {
     var hero = data.TRANSPORT_HERO;
     var kicker = document.getElementById('ksiaTransportHeroKicker');
@@ -47,6 +118,8 @@
         .join('');
     }
 
+    renderStepper('ksiaTransportStepper', data.TRANSPORT_JOURNEY_STEPS);
+
     var assistant = data.TRANSPORT_ASSISTANT;
     if (assistant) {
       var title = document.getElementById('ksiaTransportAssistantTitle');
@@ -67,9 +140,29 @@
           .join('');
       }
     }
+
+    renderSuggestions('ksiaTransportSuggestions', data.TRANSPORT_ASSISTANT_SUGGESTIONS);
+    renderServices('ksiaTransportServices', data.TRANSPORT_RELATED_SERVICES);
+    initConcierge('ksiaTransport');
   }
 
   function initParking() {
+    var availMount = document.getElementById('ksiaParkingAvailability');
+    var availability = data.PARKING_AVAILABILITY || [];
+    if (availMount) {
+      availMount.innerHTML = availability
+        .map(function (a) {
+          return (
+            '<article class="ksia-transport-zone-card">' +
+            '<h3 class="ksia-transport-zone-terminal">' + a.zone + '</h3>' +
+            '<p class="ksia-transport-zone-name">' + a.terminal + '</p>' +
+            '<p class="ksia-transport-zone-stay"><strong>' + a.spaces + '</strong></p>' +
+            '<p class="ksia-transport-zone-note">Status: ' + a.status + '</p></article>'
+          );
+        })
+        .join('');
+    }
+
     var mount = document.getElementById('ksiaParkingProducts');
     var products = data.PARKING_PRODUCTS || [];
     if (mount) {
@@ -119,6 +212,8 @@
         });
       }
     }
+
+    renderServices('ksiaParkingServices', data.TRANSPORT_RELATED_SERVICES);
   }
 
   function initDropOff() {
@@ -143,9 +238,36 @@
     if (rulesMount) {
       rulesMount.innerHTML = rules.map(function (r) { return '<li>' + r + '</li>'; }).join('');
     }
+
+    var assistant = data.DROP_OFF_ASSISTANT;
+    if (assistant) {
+      var title = document.getElementById('ksiaDropOffAssistantTitle');
+      var lead = document.getElementById('ksiaDropOffAssistantLead');
+      var cta = document.getElementById('ksiaDropOffAssistantCta');
+      if (title) title.textContent = assistant.title;
+      if (lead) lead.textContent = assistant.lead;
+      if (cta) {
+        cta.textContent = assistant.cta;
+        cta.addEventListener('click', function () {
+          if (window.KsiaLabEvents) {
+            window.KsiaLabEvents.emit('ksia.transport.dropoff.pin', { flight: 'SV 123' });
+          }
+          cta.textContent = 'Pin sent to driver (mock)';
+        });
+      }
+    }
   }
 
   function initPublicTransport() {
+    var planner = data.PUBLIC_TRANSPORT_PLANNER;
+    var plannerMount = document.getElementById('ksiaPublicTransportPlanner');
+    if (plannerMount && planner) {
+      plannerMount.innerHTML =
+        '<p class="ksia-board-assistant-lead"><strong>From:</strong> ' + planner.origin + '<br>' +
+        '<strong>To:</strong> ' + planner.destination + '</p>' +
+        '<p class="ksia-transport-assistant-rec">Suggested: ' + planner.suggestedMode + ' · ' + planner.eta + '</p>';
+    }
+
     var mount = document.getElementById('ksiaPublicTransportRoutes');
     var options = data.PUBLIC_TRANSPORT_OPTIONS || [];
     if (mount) {
@@ -167,6 +289,8 @@
         })
         .join('');
     }
+
+    renderServices('ksiaPublicTransportServices', data.TRANSPORT_RELATED_SERVICES);
   }
 
   function init() {

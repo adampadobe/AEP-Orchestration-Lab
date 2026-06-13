@@ -17,6 +17,20 @@
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
 
+  function renderAssistantActions(mount, actions) {
+    if (!mount || !actions || !actions.length) return;
+    mount.innerHTML = actions
+      .map(function (a) {
+        var href = a.href && a.href.indexOf('#') === 0 ? a.href : resolveHref(a.href || '');
+        return (
+          '<a href="' + href + '" class="ksia-board-assistant-action">' +
+          '<span class="ksia-board-assistant-action-icon" aria-hidden="true">' + (a.icon || '') + '</span>' +
+          '<span>' + a.label + '</span></a>'
+        );
+      })
+      .join('');
+  }
+
   function initAivcHub() {
     var hero = data.AIVC_HERO;
     if (hero) {
@@ -43,6 +57,64 @@
             '<span class="ksia-aivc-stage-label">' + s.label + '</span>' +
             '<span class="ksia-aivc-stage-desc">' + s.desc + '</span>' +
             connector + '</li>'
+          );
+        })
+        .join('');
+    }
+
+    var assistant = data.AIVC_ASSISTANT;
+    if (assistant) {
+      var aTitle = document.getElementById('ksiaAivcAssistantTitle');
+      var aLead = document.getElementById('ksiaAivcAssistantLead');
+      var aRec = document.getElementById('ksiaAivcAssistantRec');
+      if (aTitle) aTitle.textContent = assistant.title;
+      if (aLead) aLead.textContent = assistant.lead;
+      if (aRec) aRec.textContent = assistant.recommendation || '';
+      renderAssistantActions(document.getElementById('ksiaAivcAssistantActions'), assistant.actions);
+    }
+
+    var timelineMount = document.getElementById('ksiaAivcTimeline');
+    var timeline = data.AIVC_JOURNEY_TIMELINE || [];
+    if (timelineMount) {
+      timelineMount.innerHTML = timeline
+        .map(function (t) {
+          var stateClass = t.state === 'current' ? ' ksia-aivc-timeline-item--current' : t.state === 'done' ? ' ksia-aivc-timeline-item--done' : '';
+          var items = (t.items || [])
+            .map(function (item) {
+              return '<li>' + item + '</li>';
+            })
+            .join('');
+          return (
+            '<li class="ksia-aivc-timeline-item' + stateClass + '">' +
+            '<div class="ksia-aivc-timeline-marker" aria-hidden="true"></div>' +
+            '<div class="ksia-aivc-timeline-body">' +
+            '<div class="ksia-aivc-timeline-head">' +
+            '<span class="ksia-aivc-timeline-label">' + t.label + '</span>' +
+            '<span class="ksia-aivc-timeline-when">' + t.when + '</span></div>' +
+            '<p class="ksia-aivc-timeline-summary">' + t.summary + '</p>' +
+            '<ul class="ksia-aivc-timeline-items">' + items + '</ul>' +
+            (t.href ? '<a href="' + resolveHref(t.href) + '" class="ksia-at-airport-inline-link">Explore ' + t.label.toLowerCase() + ' &rarr;</a>' : '') +
+            '</div></li>'
+          );
+        })
+        .join('');
+    }
+
+    var potMount = document.getElementById('ksiaAivcPotGrid');
+    var pots = data.AIVC_POT_MODULES || [];
+    if (potMount) {
+      potMount.innerHTML = pots
+        .map(function (p) {
+          var stubClass = p.stub ? ' ksia-aivc-pot-card--stub' : '';
+          var stubBadge = p.stub ? '<span class="ksia-transport-stub-badge">Stub</span>' : '';
+          return (
+            '<li><a href="' + resolveHref(p.href) + '" class="ksia-aivc-pot-card' + stubClass + '">' +
+            stubBadge +
+            '<span class="ksia-aivc-pot-badge">' + p.badge + '</span>' +
+            '<span class="ksia-aivc-pot-icon" aria-hidden="true">' + p.icon + '</span>' +
+            '<span class="ksia-aivc-pot-title">' + p.title + '</span>' +
+            '<span class="ksia-aivc-pot-desc">' + p.desc + '</span>' +
+            '<span class="ksia-aivc-pot-arrow" aria-hidden="true">&rarr;</span></a></li>'
           );
         })
         .join('');
@@ -132,7 +204,32 @@
     }
   }
 
+  function renderBoardingPass(mount, pass) {
+    if (!mount || !pass) return;
+    mount.innerHTML =
+      '<div class="ksia-aivc-boarding-pass-inner">' +
+      '<div class="ksia-aivc-boarding-pass-header">' +
+      '<span class="ksia-aivc-boarding-pass-airline">Saudia</span>' +
+      '<span class="ksia-aivc-boarding-pass-status">' + pass.status + '</span></div>' +
+      '<p class="ksia-aivc-boarding-pass-route">' + pass.route + '</p>' +
+      '<dl class="ksia-aivc-boarding-pass-meta">' +
+      '<div><dt>Passenger</dt><dd>' + pass.passenger + '</dd></div>' +
+      '<div><dt>Flight</dt><dd>' + pass.flight + '</dd></div>' +
+      '<div><dt>Date</dt><dd>' + pass.date + '</dd></div>' +
+      '<div><dt>Departure</dt><dd>' + pass.departure + '</dd></div>' +
+      '<div><dt>Gate</dt><dd>' + pass.gate + '</dd></div>' +
+      '<div><dt>Seat</dt><dd>' + pass.seat + '</dd></div>' +
+      '<div><dt>Terminal</dt><dd>' + pass.terminal + '</dd></div>' +
+      '<div><dt>Sequence</dt><dd>' + pass.sequence + '</dd></div>' +
+      '</dl>' +
+      '<div class="ksia-aivc-boarding-pass-barcode" aria-hidden="true"></div>' +
+      '</div>';
+  }
+
   function initWalletSetup() {
+    var pass = data.WALLET_BOARDING_PASS;
+    renderBoardingPass(document.getElementById('ksiaWalletBoardingPass'), pass);
+
     var stepsMount = document.getElementById('ksiaWalletSetupSteps');
     var steps = data.WALLET_SETUP_STEPS || [];
     var doneCount = steps.filter(function (s) { return s.done; }).length;
@@ -188,6 +285,29 @@
         .join('');
     }
 
+    var paymentMount = document.getElementById('ksiaWalletPaymentMethods');
+    var payments = data.WALLET_PAYMENT_METHODS || [];
+    if (paymentMount) {
+      paymentMount.innerHTML = payments
+        .map(function (p) {
+          var statusClass = ' ksia-aivc-payment-item--' + p.status;
+          return (
+            '<li class="ksia-aivc-payment-item' + statusClass + '">' +
+            '<span class="ksia-aivc-payment-label">' + p.label + '</span>' +
+            '<span class="ksia-aivc-payment-detail">' + p.detail + '</span></li>'
+          );
+        })
+        .join('');
+    }
+
+    var walletAssistant = data.WALLET_ASSISTANT;
+    if (walletAssistant) {
+      var wTitle = document.getElementById('ksiaWalletAssistantTitle');
+      var wLead = document.getElementById('ksiaWalletAssistantLead');
+      if (wTitle) wTitle.textContent = walletAssistant.title;
+      if (wLead) wLead.textContent = walletAssistant.lead;
+    }
+
     var nafathBtn = document.getElementById('ksiaWalletNafathBtn');
     if (nafathBtn) {
       nafathBtn.addEventListener('click', function () {
@@ -196,6 +316,17 @@
         }
         nafathBtn.textContent = 'Identity verified (mock)';
         nafathBtn.disabled = true;
+      });
+    }
+
+    var paymentBtn = document.getElementById('ksiaWalletPaymentBtn');
+    if (paymentBtn) {
+      paymentBtn.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emit('ksia.aivc.wallet.payment', { action: 'link' });
+        }
+        paymentBtn.textContent = 'Payment linked (mock)';
+        paymentBtn.disabled = true;
       });
     }
 
@@ -226,7 +357,33 @@
     }
 
     var flight = document.getElementById('ksiaDisruptionFlight');
-    if (flight) flight.textContent = scenario.flight + ' · ' + scenario.route;
+    if (flight) flight.textContent = scenario.flight + ' · ' + scenario.route + ' · ' + scenario.terminal;
+
+    var timelineMount = document.getElementById('ksiaDisruptionTimeline');
+    var timeline = data.DISRUPTION_TIMELINE || [];
+    if (timelineMount) {
+      timelineMount.innerHTML = timeline
+        .map(function (t) {
+          var typeClass = t.type ? ' ksia-aivc-disruption-timeline-item--' + t.type : '';
+          return (
+            '<li class="ksia-aivc-disruption-timeline-item' + typeClass + '">' +
+            '<span class="ksia-aivc-disruption-timeline-time">' + t.time + '</span>' +
+            '<div class="ksia-aivc-disruption-timeline-body">' +
+            '<span class="ksia-aivc-disruption-timeline-label">' + t.label + '</span>' +
+            '<p class="ksia-aivc-disruption-timeline-detail">' + t.detail + '</p></div></li>'
+          );
+        })
+        .join('');
+    }
+
+    var assistant = data.DISRUPTION_ASSISTANT;
+    if (assistant) {
+      var dTitle = document.getElementById('ksiaDisruptionAssistantTitle');
+      var dLead = document.getElementById('ksiaDisruptionAssistantLead');
+      if (dTitle) dTitle.textContent = assistant.title;
+      if (dLead) dLead.textContent = assistant.lead;
+      renderAssistantActions(document.getElementById('ksiaDisruptionAssistantActions'), assistant.actions);
+    }
 
     var voucher = document.getElementById('ksiaDisruptionVoucher');
     if (voucher) {
@@ -246,6 +403,11 @@
       }
     }
 
+    var rebookNote = document.getElementById('ksiaDisruptionRebookingNote');
+    if (rebookNote && data.DISRUPTION_REBOOKING_NOTE) {
+      rebookNote.textContent = data.DISRUPTION_REBOOKING_NOTE;
+    }
+
     var altMount = document.getElementById('ksiaDisruptionAlternatives');
     if (altMount && scenario.alternatives) {
       altMount.innerHTML =
@@ -253,21 +415,45 @@
         '<th>Flight</th><th>Departure</th><th>Seats</th><th>Status</th><th></th>' +
         '</tr></thead><tbody>' +
         scenario.alternatives
-          .map(function (a) {
+          .map(function (a, i) {
             return (
               '<tr><td>' + a.flight + '</td><td>' + a.time + '</td><td>' + a.seats + '</td>' +
               '<td><span class="ksia-status">' + a.status + '</span></td>' +
-              '<td><button type="button" class="ksia-btn ksia-btn-secondary ksia-aivc-alt-btn">Select</button></td></tr>'
+              '<td><button type="button" class="ksia-btn ksia-btn-secondary ksia-aivc-alt-btn" data-ksia-alt-index="' + i + '">Select</button></td></tr>'
             );
           })
           .join('') +
         '</tbody></table>';
+      altMount.querySelectorAll('.ksia-aivc-alt-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var idx = btn.getAttribute('data-ksia-alt-index');
+          var alt = scenario.alternatives[Number(idx)];
+          if (window.KsiaLabEvents && alt) {
+            window.KsiaLabEvents.emit('ksia.aivc.disruption.rebook', { flight: alt.flight, time: alt.time });
+          }
+          altMount.querySelectorAll('.ksia-aivc-alt-btn').forEach(function (b) {
+            b.textContent = 'Select';
+            b.disabled = false;
+          });
+          btn.textContent = 'Selected';
+          btn.disabled = true;
+        });
+      });
     }
 
     var retail = document.getElementById('ksiaDisruptionRetailLink');
     if (retail) {
       retail.href = resolveHref(scenario.retailLink);
       retail.textContent = scenario.retailNote;
+    }
+
+    var conciergeBtn = document.getElementById('ksiaDisruptionConciergeCta');
+    if (conciergeBtn) {
+      conciergeBtn.addEventListener('click', function () {
+        if (window.KsiaLabEvents) {
+          window.KsiaLabEvents.emitAivcAction('disruption-concierge');
+        }
+      });
     }
   }
 

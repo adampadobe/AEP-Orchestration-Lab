@@ -4,29 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Terminal 5 — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613">
 </head>
-<body class="ksia-site" data-ksia-page-id="terminal-5" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-5 expansion stub" data-ksia-journey-stage="airport">
+<body class="ksia-site" data-ksia-page-id="terminal-5" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-5 cargo-adjacent business travel" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
 
     <header class="ksia-subpage-hero">
       <h1 class="ksia-display-heading">Terminal 5</h1>
-      <p class="ksia-subpage-hero-lead">Cargo-adjacent passenger terminal — opening with KSIA expansion.</p>
+      <p class="ksia-subpage-hero-lead" id="ksiaTerminal5Tagline">Cargo-adjacent passenger terminal — integrated freight and business travel.</p>
+      <span class="ksia-at-airport-pill ksia-at-airport-pill--stage" id="ksiaTerminal5Preview" hidden>Preview · Opens with KSIA expansion</span>
     </header>
 
-    <section class="ksia-section ksia-section--white" aria-label="Terminal status">
-      <div class="ksia-terminal-stub-card">
-        <span class="ksia-terminal-stub-status">Opening with KSIA expansion</span>
-        <p class="ksia-body-text">Terminal 5 connects passenger operations with cargo-adjacent logistics — ideal for freight-forwarding partners and integrated supply-chain travellers.</p>
-        <p style="margin-top:20px"><a href="terminal-guide.html" class="ksia-btn ksia-btn-primary">Back to terminal guide</a></p>
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t5-map-heading">
+      <h2 class="ksia-section-title" id="ksia-t5-map-heading">Gates map</h2>
+      <div class="ksia-terminal-map-slot" role="img" aria-label="Terminal 5 gates map placeholder">
+        <span class="ksia-at-airport-map-label" id="ksiaTerminal5MapLabel">Gates G1–G12 map — cargo-adjacent passenger and partner flows</span>
       </div>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-t5-amenities-heading">
+      <div class="ksia-terminal-detail-grid">
+        <div>
+          <h2 class="ksia-section-title" id="ksia-t5-amenities-heading">Amenities</h2>
+          <ul class="ksia-terminal-detail-list" id="ksiaTerminal5Amenities"></ul>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">Live wait times</h2>
+          <div class="ksia-terminal-waits-grid" id="ksiaTerminal5Waits"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t5-shops-heading">
+      <h2 class="ksia-section-title" id="ksia-t5-shops-heading">Shops preview</h2>
+      <ul class="ksia-terminal-shops-grid" id="ksiaTerminal5Shops"></ul>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-t5-lounge-heading">
+      <h2 class="ksia-section-title" id="ksia-t5-lounge-heading">Lounge access</h2>
+      <div class="ksia-terminal-lounge-panel" id="ksiaTerminal5Lounge"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="terminal-guide.html" class="ksia-card-link">Terminal guide</a></li>
+        <li><a href="maps.html" class="ksia-card-link">Wayfinding maps</a></li>
+        <li><a href="services/lounges.html" class="ksia-card-link">All lounges</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612e"></script>
+  <script src="../ksia-mock-data.js?v=20260613"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
+  <script src="../ksia-at-airport-pages.js?v=20260613"></script>
 </body>
 </html>

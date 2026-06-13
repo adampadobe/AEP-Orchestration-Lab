@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shop &amp; Dine — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613a">
 </head>
 <body class="ksia-site" data-ksia-page-id="shop-dine-hub" data-ksia-context="shop-dine-hub airport" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
@@ -23,6 +23,12 @@
       <ul class="ksia-shop-categories-grid" id="ksiaShopCategories"></ul>
     </section>
 
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-shop-journey-heading">
+      <p class="ksia-section-kicker">Your journey</p>
+      <h2 class="ksia-display-heading" id="ksia-shop-journey-heading">Retail timeline</h2>
+      <ol class="ksia-flights-stepper" id="ksiaShopStepper" aria-label="Retail journey steps"></ol>
+    </section>
+
     <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-shop-picks-heading">
       <p class="ksia-section-kicker">AIVC retail teaser</p>
       <h2 class="ksia-display-heading" id="ksia-shop-picks-heading">Personalized picks</h2>
@@ -33,11 +39,29 @@
       <ul class="ksia-shop-picks-list" id="ksiaShopPersonalizedPicks"></ul>
     </section>
 
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-shop-suggestions-heading">
+      <h2 class="ksia-section-title" id="ksia-shop-suggestions-heading">Suggested for you</h2>
+      <ul class="ksia-flights-assistant-list" id="ksiaShopSuggestions"></ul>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-shop-services-heading">
+      <h2 class="ksia-section-title" id="ksia-shop-services-heading">Related services</h2>
+      <ul class="ksia-flights-services-grid" id="ksiaShopServices"></ul>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-shop-concierge-heading">
+      <div class="ksia-aivc-concierge-band">
+        <h2 class="ksia-display-heading" id="ksia-shop-concierge-heading" style="color:var(--ksia-warm-gold);margin-bottom:12px"><span id="ksiaShopConciergeTitle">Concierge-ready</span></h2>
+        <p id="ksiaShopConciergeLead"></p>
+        <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaShopConciergeCta">Open AIVC concierge (mock)</button>
+      </div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612f"></script>
+  <script src="../ksia-mock-data.js?v=20260613a"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
-  <script src="../ksia-shop-pages.js?v=20260612f"></script>
+  <script src="../ksia-shop-pages.js?v=20260613a"></script>
 </body>
 </html>

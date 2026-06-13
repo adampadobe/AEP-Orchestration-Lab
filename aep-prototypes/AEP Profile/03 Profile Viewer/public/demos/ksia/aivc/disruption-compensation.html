@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Disruption compensation — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613a">
 </head>
 <body class="ksia-site" data-ksia-page-id="disruption-compensation" data-ksia-context="disruption compensation" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
@@ -20,6 +20,20 @@
       <p class="ksia-at-airport-security-lead" id="ksiaDisruptionFlight"></p>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-disruption-timeline-heading">
+      <h2 class="ksia-section-title" id="ksia-disruption-timeline-heading">What happened</h2>
+      <ol class="ksia-aivc-disruption-timeline" id="ksiaDisruptionTimeline" aria-label="Disruption event timeline"></ol>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-disruption-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant</p>
+      <h2 class="ksia-display-heading" id="ksia-disruption-assistant-heading"><span id="ksiaDisruptionAssistantTitle">We are handling this</span></h2>
+      <div class="ksia-aivc-assistant-card">
+        <p class="ksia-board-assistant-lead" id="ksiaDisruptionAssistantLead"></p>
+        <div class="ksia-board-assistant-actions" id="ksiaDisruptionAssistantActions"></div>
+      </div>
+    </section>
+
     <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-disruption-voucher-heading">
       <h2 class="ksia-section-title" id="ksia-disruption-voucher-heading">Compensation voucher</h2>
       <div class="ksia-aivc-voucher-panel" id="ksiaDisruptionVoucher"></div>
@@ -27,6 +41,7 @@
 
     <section class="ksia-section ksia-section--white" aria-labelledby="ksia-disruption-alt-heading">
       <h2 class="ksia-section-title" id="ksia-disruption-alt-heading">Alternative flights</h2>
+      <p class="ksia-aivc-rebooking-note" id="ksiaDisruptionRebookingNote"></p>
       <div id="ksiaDisruptionAlternatives"></div>
     </section>
 
@@ -35,11 +50,19 @@
       <p><a href="../shop-dine/duty-free.html" class="ksia-at-airport-inline-link" id="ksiaDisruptionRetailLink"></a></p>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-disruption-concierge-heading">
+      <div class="ksia-aivc-concierge-band">
+        <h2 class="ksia-display-heading ksia-aivc-concierge-heading" id="ksia-disruption-concierge-heading">Need more help?</h2>
+        <p>Escalate to the AIVC concierge for rebooking assistance, hotel vouchers, or connection protection on your London itinerary.</p>
+        <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaDisruptionConciergeCta">Open concierge (mock)</button>
+      </div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612f"></script>
+  <script src="../ksia-mock-data.js?v=20260613a"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
-  <script src="../ksia-aivc-pages.js?v=20260612f"></script>
+  <script src="../ksia-aivc-pages.js?v=20260613a"></script>
 </body>
 </html>

@@ -372,6 +372,142 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   justify-content: center;
 }
 
+.ksia-home-journey-lead {
+  max-width: 56ch;
+  margin-bottom: 24px;
+}
+.ksia-home-journey-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.ksia-home-journey-stage-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 16px;
+  background: var(--ksia-white);
+  border: 1px solid rgba(155, 110, 75, 0.25);
+  border-radius: var(--ksia-radius);
+  min-height: 100%;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.ksia-home-journey-stage-link:hover {
+  border-color: var(--ksia-warm-gold);
+  box-shadow: var(--ksia-shadow);
+}
+.ksia-home-journey-stage--current .ksia-home-journey-stage-link {
+  border-color: var(--ksia-warm-gold);
+  background: var(--ksia-sunlit);
+}
+.ksia-home-journey-stage-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ksia-charcoal);
+}
+.ksia-home-journey-stage-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(40, 35, 40, 0.68);
+}
+
+/* Home destination coverflow carousel */
+.ksia-home-dest-section { overflow-x: clip; }
+.ksia-dest-carousel-wrap {
+  position: relative;
+  height: min(400px, 55vw);
+  margin-top: 8px;
+}
+.ksia-dest-carousel-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+.ksia-dest-card {
+  position: absolute;
+  border-radius: var(--ksia-radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: left 440ms cubic-bezier(0.4, 0, 0.2, 1),
+    top 440ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 440ms cubic-bezier(0.4, 0, 0.2, 1),
+    height 440ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 300ms ease,
+    z-index 0ms 220ms;
+}
+.ksia-dest-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ksia-dest-card-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(40, 35, 40, 0.82) 0%, transparent 55%);
+  pointer-events: none;
+}
+.ksia-dest-card-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(40, 35, 40, 0.75);
+  color: var(--ksia-white);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.ksia-dest-card-body {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  color: var(--ksia-white);
+}
+.ksia-dest-card-title {
+  margin: 0 0 4px;
+  font-family: var(--ksia-font-heading);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.ksia-dest-card-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+.ksia-dest-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+.ksia-dest-carousel-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ksia-carousel-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(155, 110, 75, 0.35);
+  cursor: pointer;
+}
+.ksia-carousel-dot.active {
+  background: var(--ksia-warm-gold);
+  transform: scale(1.2);
+}
+
 .ksia-stub-note {
   margin: 0 24px 24px;
   padding: 12px 16px;
@@ -2831,6 +2967,7 @@ body.ksia-journey-chrome-page .ksia-main { padding-top: 0; }
 .ksia-aivc-wallet-item--ready .ksia-aivc-wallet-item-value { color: var(--ksia-deep-green); font-weight: 600; }
 .ksia-aivc-wallet-item--pending .ksia-aivc-wallet-item-value { color: rgba(40, 35, 40, 0.55); }
 .ksia-aivc-wallet-item--partial .ksia-aivc-wallet-item-value { color: var(--ksia-warm-gold); font-weight: 600; }
+.ksia-aivc-wallet-cta { margin-top: 16px; }
 .ksia-aivc-trust-band {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -2958,6 +3095,261 @@ body.ksia-journey-chrome-page .ksia-main { padding-top: 0; }
 }
 .ksia-aivc-voucher-code { margin: 0 0 16px; font-size: 0.9rem; }
 .ksia-aivc-alt-table { margin-top: 12px; }
+.ksia-aivc-concierge-heading {
+  color: var(--ksia-warm-gold);
+  margin-bottom: 12px;
+}
+.ksia-aivc-assistant-rec {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--ksia-white);
+  border-radius: var(--ksia-radius-sm);
+  font-weight: 600;
+  color: var(--ksia-warm-gold);
+}
+.ksia-aivc-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 820px;
+}
+.ksia-aivc-timeline-item {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 16px;
+  padding-bottom: 24px;
+  position: relative;
+}
+.ksia-aivc-timeline-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background: rgba(155, 110, 75, 0.25);
+}
+.ksia-aivc-timeline-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(155, 110, 75, 0.45);
+  background: var(--ksia-white);
+  margin-top: 2px;
+}
+.ksia-aivc-timeline-item--current .ksia-aivc-timeline-marker {
+  border-color: var(--ksia-warm-gold);
+  background: var(--ksia-warm-gold);
+}
+.ksia-aivc-timeline-item--done .ksia-aivc-timeline-marker {
+  border-color: var(--ksia-deep-green);
+  background: var(--ksia-deep-green);
+}
+.ksia-aivc-timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-bottom: 6px;
+}
+.ksia-aivc-timeline-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ksia-charcoal);
+}
+.ksia-aivc-timeline-when {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(40, 35, 40, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ksia-aivc-timeline-summary {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(40, 35, 40, 0.78);
+}
+.ksia-aivc-timeline-items {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(40, 35, 40, 0.72);
+}
+.ksia-aivc-pot-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.ksia-aivc-pot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 18px;
+  background: var(--ksia-white);
+  border: 1px solid rgba(155, 110, 75, 0.25);
+  border-radius: var(--ksia-radius);
+  position: relative;
+  min-height: 100%;
+  transition: box-shadow 150ms, border-color 150ms;
+}
+.ksia-aivc-pot-card:hover {
+  box-shadow: var(--ksia-shadow);
+  border-color: var(--ksia-warm-gold);
+}
+.ksia-aivc-pot-card--stub { border-style: dashed; opacity: 0.88; }
+.ksia-aivc-pot-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ksia-warm-gold);
+}
+.ksia-aivc-pot-icon { font-size: 26px; }
+.ksia-aivc-pot-title { font-weight: 700; font-size: 1.05rem; color: var(--ksia-charcoal); }
+.ksia-aivc-pot-desc { font-size: 0.85rem; line-height: 1.45; color: rgba(40, 35, 40, 0.72); flex: 1; }
+.ksia-aivc-pot-arrow { color: var(--ksia-warm-gold); font-weight: 700; margin-top: auto; }
+.ksia-aivc-boarding-pass {
+  max-width: 420px;
+}
+.ksia-aivc-boarding-pass-inner {
+  padding: 22px;
+  background: var(--ksia-charcoal);
+  background-image: var(--ksia-pattern-dark);
+  color: var(--ksia-sunlit);
+  border-radius: var(--ksia-radius);
+  border: 1px solid rgba(230, 220, 200, 0.2);
+}
+.ksia-aivc-boarding-pass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.ksia-aivc-boarding-pass-airline {
+  font-weight: 700;
+  color: var(--ksia-warm-gold);
+}
+.ksia-aivc-boarding-pass-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(24, 180, 233, 0.2);
+  color: var(--ksia-accent-blue);
+}
+.ksia-aivc-boarding-pass-route {
+  margin: 0 0 16px;
+  font-family: var(--ksia-font-heading);
+  font-size: 1.1rem;
+}
+.ksia-aivc-boarding-pass-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+}
+.ksia-aivc-boarding-pass-meta dt {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.65;
+  margin-bottom: 2px;
+}
+.ksia-aivc-boarding-pass-meta dd { margin: 0; font-weight: 600; }
+.ksia-aivc-boarding-pass-barcode {
+  height: 48px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ksia-sunlit) 0,
+    var(--ksia-sunlit) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+  opacity: 0.85;
+}
+.ksia-wallet-setup-progress { margin-top: 12px; font-weight: 600; }
+.ksia-wallet-nafath-steps { margin: 16px 0; }
+.ksia-aivc-payment-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+.ksia-aivc-payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--ksia-gray);
+  border-radius: var(--ksia-radius-sm);
+  border: 1px solid rgba(155, 110, 75, 0.2);
+}
+.ksia-aivc-payment-label { font-weight: 600; }
+.ksia-aivc-payment-detail { font-size: 0.85rem; color: rgba(40, 35, 40, 0.65); }
+.ksia-aivc-payment-item--ready .ksia-aivc-payment-detail { color: var(--ksia-deep-green); font-weight: 600; }
+.ksia-aivc-disruption-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+.ksia-aivc-disruption-timeline-item {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--ksia-white);
+  border-radius: var(--ksia-radius-sm);
+  border: 1px solid rgba(155, 110, 75, 0.2);
+}
+.ksia-aivc-disruption-timeline-item--alert {
+  border-color: var(--ksia-warm-gold);
+  background: var(--ksia-sunlit);
+}
+.ksia-aivc-disruption-timeline-item--action {
+  border-left: 4px solid var(--ksia-deep-green);
+}
+.ksia-aivc-disruption-timeline-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ksia-warm-gold);
+}
+.ksia-aivc-disruption-timeline-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--ksia-charcoal);
+}
+.ksia-aivc-disruption-timeline-detail {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(40, 35, 40, 0.75);
+}
+.ksia-aivc-rebooking-note {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(40, 35, 40, 0.72);
+  max-width: 56ch;
+}
 
 /* ─── Info pages ─── */
 .ksia-about-stats {
@@ -3051,5 +3443,9 @@ body.ksia-journey-chrome-page .ksia-main { padding-top: 0; }
   .ksia-aivc-journey-stages { flex-direction: column; align-items: flex-start; }
   .ksia-aivc-stage { flex-direction: row; gap: 12px; width: 100%; text-align: left; align-items: flex-start; }
   .ksia-aivc-stage-connector { display: none; }
+  .ksia-home-journey-stages { grid-template-columns: 1fr 1fr; }
+  .ksia-dest-carousel-wrap { height: min(320px, 70vw); }
+  .ksia-aivc-boarding-pass-meta { grid-template-columns: 1fr; }
+  .ksia-aivc-disruption-timeline-item { grid-template-columns: 1fr; }
   .ksia-contact-layout { grid-template-columns: 1fr; }
 }

@@ -251,13 +251,165 @@
     ],
   };
 
+  var TERMINAL_2_DETAIL = {
+    name: 'Terminal 2',
+    preview: true,
+    tagline: 'Emirates and premium Gulf carriers — EK 816 departs from Gate A4.',
+    gatesMapLabel: 'Gates A1–A24 map — premium check-in and Emirates lounge Level 2',
+    amenities: [
+      { label: 'Emirates lounge', desc: 'Level 2 — showers, à la carte dining, and quiet workspace.' },
+      { label: 'Transfer desk', desc: 'Star Alliance and codeshare connections beside Gate A zone.' },
+      { label: 'AIVC kiosks', desc: 'Wallet setup at main departures hall — biometric Fast Track linked.' },
+      { label: 'Premium check-in', desc: 'Dedicated desks 1–8 for first and business class passengers.' },
+    ],
+    shops: [
+      { name: 'Arabian Oud', type: 'Retail', note: 'Fragrances & gifts — post-security A corridor' },
+      { name: 'Costa Coffee', type: 'Dining', note: 'Hot drinks & pastries — pre-security' },
+      { name: 'Gulf Duty Free', type: 'Duty free', note: 'Collect at Gate A4 for EK departures' },
+    ],
+    lounge: {
+      name: 'Emirates Lounge',
+      desc: 'Complimentary for eligible Emirates and partner tiers — spa showers and business centre.',
+      href: 'at-the-airport/services/lounges.html',
+    },
+    waitTimes: [
+      { label: 'Security (standard)', time: '~10 min' },
+      { label: 'Security (Fast Track A)', time: '~3 min' },
+      { label: 'Immigration (arrivals)', time: '~6 min' },
+    ],
+  };
+
+  var TERMINAL_3_DETAIL = {
+    name: 'Terminal 3',
+    preview: true,
+    tagline: 'European and long-haul operators — BA 264 boards from Gate D3.',
+    gatesMapLabel: 'Gates D1–D18 map — European routes and partner lounges',
+    amenities: [
+      { label: 'Club lounges', desc: 'British Airways and Air France partner lounges — Level 2 west wing.' },
+      { label: 'Premium check-in', desc: 'Desks 1–12 for European business and first class.' },
+      { label: 'AIVC wayfinding', desc: 'Digital signage synced to your wallet gate and boarding time.' },
+      { label: 'Family lane', desc: 'Dedicated security lane beside Gate D corridor.' },
+    ],
+    shops: [
+      { name: 'Harrods Travel', type: 'Retail', note: 'Luxury travel retail — Gate D mezzanine' },
+      { name: 'Paul Bakery', type: 'Dining', note: 'French pastries & sandwiches — pre-security' },
+      { name: 'EU Duty Free', type: 'Duty free', note: 'Wine & spirits — collect at Gate D3' },
+    ],
+    lounge: {
+      name: 'BA Galleries Club',
+      desc: 'Oneworld eligible passengers — hot buffet, bar, and shower suites.',
+      href: 'at-the-airport/services/lounges.html',
+    },
+    waitTimes: [
+      { label: 'Security (standard)', time: '~14 min' },
+      { label: 'Security (Fast Track D)', time: '~5 min' },
+      { label: 'Immigration (arrivals)', time: '~9 min' },
+    ],
+  };
+
+  var TERMINAL_4_DETAIL = {
+    name: 'Terminal 4',
+    preview: true,
+    tagline: 'Low-cost carrier terminal — flydubai FZ 822 from Gate F12.',
+    gatesMapLabel: 'Gates F1–F32 map — compact kerbside-to-gate LCC flows',
+    amenities: [
+      { label: 'Express check-in', desc: 'Self-service kiosks and bag-drop — 90 sec average.' },
+      { label: 'Compact retail', desc: 'Grab-and-go food and travel essentials at every gate cluster.' },
+      { label: 'AIVC alerts', desc: 'Gate change and boarding push notifications to your wallet.' },
+      { label: 'Short-stay parking', desc: 'P4 linked by covered walkway — 3 min to departures.' },
+    ],
+    shops: [
+      { name: 'Quick Bite', type: 'Dining', note: 'Sandwiches & coffee — every F gate cluster' },
+      { name: 'Travel Essentials', type: 'Retail', note: 'Adapters, snacks, last-minute items' },
+      { name: 'LCC Duty Pickup', type: 'Duty free', note: 'Pre-order via AIVC — collect at Gate F12' },
+    ],
+    lounge: {
+      name: 'Pay-per-use lounge',
+      desc: 'Compact lounge F-Plus — day passes from SAR 149 when space available.',
+      href: 'at-the-airport/services/lounges.html',
+    },
+    waitTimes: [
+      { label: 'Security (standard)', time: '~8 min' },
+      { label: 'Bag-drop queue', time: '~5 min' },
+      { label: 'Immigration (arrivals)', time: '~7 min' },
+    ],
+  };
+
+  var TERMINAL_5_DETAIL = {
+    name: 'Terminal 5',
+    preview: true,
+    tagline: 'Cargo-adjacent passenger terminal — integrated freight and business travel.',
+    gatesMapLabel: 'Gates G1–G12 map — cargo-adjacent passenger and partner flows',
+    amenities: [
+      { label: 'Business centre', desc: 'Meeting pods and printing — beside Gate G departures.' },
+      { label: 'Cargo partner desk', desc: 'Freight-forwarding check-in for integrated supply-chain travellers.' },
+      { label: 'AIVC cargo alerts', desc: 'Shipment status and passenger gate updates in one wallet view.' },
+      { label: 'Extended hours café', desc: 'Open for early freight-adjacent departures — 04:00–23:00.' },
+    ],
+    shops: [
+      { name: 'Logistics Café', type: 'Dining', note: 'Hot meals & espresso — Gate G hall' },
+      { name: 'Business Travel Store', type: 'Retail', note: 'Luggage, tech, and travel docs' },
+      { name: 'Partner Duty Free', type: 'Duty free', note: 'Corporate gifting — pre-order collection' },
+    ],
+    lounge: {
+      name: 'KSIA Business Lounge G',
+      desc: 'Corporate and premium economy passengers — quiet workspace and hot desk Wi‑Fi.',
+      href: 'at-the-airport/services/lounges.html',
+    },
+    waitTimes: [
+      { label: 'Security (standard)', time: '~11 min' },
+      { label: 'Partner check-in', time: '~6 min' },
+      { label: 'Cargo screening (adjacent)', time: '~15 min' },
+    ],
+  };
+
+  var TERMINAL_6_DETAIL = {
+    name: 'Terminal 6',
+    preview: true,
+    tagline: 'Future expansion terminal — sustainable design and next-generation AIVC experiences.',
+    gatesMapLabel: 'Gates H1–H20 map — preview layout for KSIA master plan phase 3',
+    amenities: [
+      { label: 'Sustainable design', desc: 'Solar shading, natural ventilation, and green roof viewing deck.' },
+      { label: 'Next-gen AIVC', desc: 'AR wayfinding pilots and voice assistant at every gate cluster.' },
+      { label: 'Wellness zone', desc: 'Quiet rooms, hydration stations, and outdoor terrace (preview).' },
+      { label: 'Vision 2030 gallery', desc: 'Interactive exhibit on KSIA and Saudi tourism growth.' },
+    ],
+    shops: [
+      { name: 'Vision 2030 Gallery Shop', type: 'Retail', note: 'Saudi crafts & books — main hall' },
+      { name: 'Future Food Hall', type: 'Dining', note: 'Local chefs & global brands — preview concept' },
+      { name: 'Sustainable Duty Free', type: 'Duty free', note: 'Eco-packaged gifts — opening collection' },
+    ],
+    lounge: {
+      name: 'KSIA Horizon Lounge',
+      desc: 'Preview concept — panoramic terrace, sustainable menu, and AIVC concierge desk.',
+      href: 'at-the-airport/services/lounges.html',
+    },
+    waitTimes: [
+      { label: 'Security (preview lane)', time: '~9 min' },
+      { label: 'AIVC onboarding', time: '~2 min' },
+      { label: 'Gallery entry', time: 'Walk-in' },
+    ],
+  };
+
   var TERMINAL_STUBS = [
-    { id: 'terminal-2', name: 'Terminal 2', lead: 'Regional and premium carrier operations — opening with KSIA expansion.' },
-    { id: 'terminal-3', name: 'Terminal 3', lead: 'European and long-haul carriers — opening with KSIA expansion.' },
-    { id: 'terminal-4', name: 'Terminal 4', lead: 'Low-cost carrier terminal — opening with KSIA expansion.' },
-    { id: 'terminal-5', name: 'Terminal 5', lead: 'Cargo-adjacent passenger flows — opening with KSIA expansion.' },
-    { id: 'terminal-6', name: 'Terminal 6', lead: 'Future expansion terminal — opening with KSIA expansion.' },
+    { id: 'terminal-2', name: 'Terminal 2', lead: TERMINAL_2_DETAIL.tagline },
+    { id: 'terminal-3', name: 'Terminal 3', lead: TERMINAL_3_DETAIL.tagline },
+    { id: 'terminal-4', name: 'Terminal 4', lead: TERMINAL_4_DETAIL.tagline },
+    { id: 'terminal-5', name: 'Terminal 5', lead: TERMINAL_5_DETAIL.tagline },
+    { id: 'terminal-6', name: 'Terminal 6', lead: TERMINAL_6_DETAIL.tagline },
   ];
+
+  var TERMINAL_GUIDE_ASSISTANT = {
+    title: 'Not sure which terminal?',
+    lead: 'Your AIVC wallet knows your airline and flight — open it for a personalised terminal and gate assignment.',
+    tips: [
+      'Saudia international flights typically use Terminal 1 — check-in Zone A–C.',
+      'Emirates and Lufthansa operate from Terminal 2 with dedicated lounges.',
+      'Share your live flight lookup with guests picking you up from arrivals.',
+    ],
+    cta: 'Open AIVC wallet',
+    href: 'aivc/wallet-setup.html',
+  };
 
   var MAPS_WAYFINDING = {
     mapLabel: 'Terminal 1 — interactive map placeholder',
@@ -268,6 +420,15 @@
       'Gate B12 is on the right, past Saudi Heritage retail (approx. 8 min walk).',
     ],
     accessibilityNote: 'Step-free route available via lifts beside Gate B corridor — toggle for accessible directions.',
+  };
+
+  var MAPS_ASSISTANT = {
+    title: 'Wayfinding from your profile',
+    lead: 'AIVC remembers your gate B12 and suggests the fastest route — including accessible paths when needed.',
+    actions: [
+      { label: 'Share directions', href: 'aivc/wallet-setup.html', icon: '&#128506;', desc: 'Send step-by-step map link to a companion.' },
+      { label: 'Pre-order at gate', href: 'shop-dine/duty-free.html', icon: '&#128722;', desc: 'Collect duty-free at Gate B12 on your way.' },
+    ],
   };
 
   var SECURITY_PAGE = {
@@ -288,6 +449,27 @@
       'AIVC wallet open for Fast Track lane B',
     ],
     fastTrackHref: 'aivc/wallet-setup.html',
+  };
+
+  var SECURITY_ASSISTANT = {
+    title: 'Skip the queue with AIVC',
+    lead: 'Your wallet is linked to Fast Track lane B — average wait ~4 min vs ~12 min standard.',
+    tips: [
+      'Open boarding pass in wallet before joining the e-gate lane.',
+      'Liquids and laptop ready — checklist above syncs to your profile.',
+      'Family lane available if travelling with children under 12.',
+    ],
+    cta: 'Enable Fast Track',
+    href: 'aivc/wallet-setup.html',
+  };
+
+  var SERVICES_HUB_ASSISTANT = {
+    title: 'Services matched to your journey',
+    lead: 'Based on SV 123 in Terminal 1, AIVC suggests lounge access, Fast Track, and gate-side collection.',
+    actions: [
+      { label: 'Lounges near Gate B12', href: 'at-the-airport/services/lounges.html', icon: '&#9749;' },
+      { label: 'Special assistance', href: 'at-the-airport/services/special-assistance.html', icon: '&#9855;' },
+    ],
   };
 
   var SERVICES_HUB_ITEMS = [
@@ -465,11 +647,31 @@
       href: 'at-the-airport/terminal-1.html',
       featured: true,
     },
-    { name: 'Terminal 2', href: 'at-the-airport/terminal-2.html' },
-    { name: 'Terminal 3', href: 'at-the-airport/terminal-3.html' },
-    { name: 'Terminal 4', href: 'at-the-airport/terminal-4.html' },
-    { name: 'Terminal 5', href: 'at-the-airport/terminal-5.html' },
-    { name: 'Terminal 6', href: 'at-the-airport/terminal-6.html' },
+    {
+      name: 'Terminal 2',
+      desc: 'Emirates and premium Gulf carriers — lounge Level 2 and Gate A zone.',
+      href: 'at-the-airport/terminal-2.html',
+    },
+    {
+      name: 'Terminal 3',
+      desc: 'European long-haul — BA and Air France lounges, Gates D1–D18.',
+      href: 'at-the-airport/terminal-3.html',
+    },
+    {
+      name: 'Terminal 4',
+      desc: 'Low-cost carrier terminal — compact LCC flows and express check-in.',
+      href: 'at-the-airport/terminal-4.html',
+    },
+    {
+      name: 'Terminal 5',
+      desc: 'Cargo-adjacent passenger terminal — business travel and partner desks.',
+      href: 'at-the-airport/terminal-5.html',
+    },
+    {
+      name: 'Terminal 6',
+      desc: 'Future expansion — sustainable design and next-gen AIVC pilots.',
+      href: 'at-the-airport/terminal-6.html',
+    },
   ];
 
   var TRANSPORT_HERO = {
@@ -530,6 +732,46 @@
     { mode: 'Chauffeur', name: 'AIVC PoT #14 — Premium chauffeur', time: 'Door-to-gate service', cost: 'From SAR 350', note: 'Stub: book meet-and-greet with luggage assistance via AIVC companion.', stub: true },
   ];
 
+  var TRANSPORT_JOURNEY_STEPS = [
+    { label: 'Plan route', state: 'done' },
+    { label: 'Book parking', state: 'current' },
+    { label: 'Arrive kerb', state: 'upcoming' },
+    { label: 'Check-in', state: 'upcoming' },
+    { label: 'Depart', state: 'upcoming' },
+  ];
+
+  var TRANSPORT_RELATED_SERVICES = [
+    { label: 'Flights', href: 'flights/index.html', icon: '&#9992;' },
+    { label: 'Terminal map', href: 'at-the-airport/maps.html', icon: '&#128506;' },
+    { label: 'AIVC wallet', href: 'aivc/wallet-setup.html', icon: '&#128179;' },
+    { label: 'Shop & dine', href: 'shop-dine/index.html', icon: '&#128722;' },
+  ];
+
+  var TRANSPORT_ASSISTANT_SUGGESTIONS = [
+    { title: 'Pre-book P1 parking', desc: 'Reserve for SV 123 — Terminal 1, 14:00–20:00 window.', href: 'transport/parking.html', icon: '&#127359;' },
+    { title: 'Share live ETA', desc: 'Send your arrival time to AIVC for kerbside coordination.', href: 'aivc/index.html', icon: '&#128337;' },
+    { title: 'Drop-off zones', desc: 'Terminal 1 kerb A–C — 5 min kiss & fly limit.', href: 'transport/drop-off.html', icon: '&#128663;' },
+  ];
+
+  var DROP_OFF_ASSISTANT = {
+    title: 'Kerbside guidance for SV 123',
+    lead: 'Your AIVC companion recommends Zone B at Terminal 1 departures — closest to Saudia check-in counters.',
+    cta: 'Send kerbside pin to driver',
+  };
+
+  var PUBLIC_TRANSPORT_PLANNER = {
+    origin: 'King Fahd Road, Riyadh',
+    destination: 'KSIA Terminal 1',
+    suggestedMode: 'SAPTCO Airport Express',
+    eta: '~45 min',
+  };
+
+  var PARKING_AVAILABILITY = [
+    { zone: 'P1 Short-stay', terminal: 'Terminal 1', spaces: '142 open', status: 'available' },
+    { zone: 'P2 Pickup', terminal: 'All terminals', spaces: '38 open', status: 'limited' },
+    { zone: 'P3 Long-stay', terminal: 'Shuttle hub', spaces: '890 open', status: 'available' },
+  ];
+
   var SHOP_DINE_HERO = {
     kicker: 'Shop & Dine at KSIA',
     lead: 'Duty-free, retail, and dining across six terminals — personalized picks for your SV 123 journey.',
@@ -582,6 +824,39 @@
     walletHref: 'aivc/wallet-setup.html',
   };
 
+  var SHOP_JOURNEY_STEPS = [
+    { label: 'Browse', state: 'done' },
+    { label: 'Pre-order', state: 'current' },
+    { label: 'Collect at gate', state: 'upcoming' },
+    { label: 'Board', state: 'upcoming' },
+  ];
+
+  var SHOP_RELATED_SERVICES = [
+    { label: 'Duty-free', href: 'shop-dine/duty-free.html', icon: '&#128722;' },
+    { label: 'Restaurants', href: 'shop-dine/restaurants.html', icon: '&#127869;' },
+    { label: 'Lounges', href: 'at-the-airport/services/lounges.html', icon: '&#9749;' },
+    { label: 'AIVC hub', href: 'aivc/index.html', icon: '&#128179;' },
+  ];
+
+  var SHOP_ASSISTANT_SUGGESTIONS = [
+    { title: 'Pre-order duty-free', desc: 'Saudi Heritage gift set — collect at Gate B12 before boarding.', href: 'shop-dine/duty-free.html', icon: '&#128722;' },
+    { title: 'Altitude Café', desc: 'Your usual pre-board coffee — 15 min from security.', href: 'shop-dine/restaurants.html', icon: '&#9749;' },
+    { title: 'Complete wallet', desc: 'Add payment method for seamless retail checkout.', href: 'aivc/wallet-setup.html', icon: '&#128179;' },
+  ];
+
+  var DUTY_FREE_COLLECTION = {
+    gate: 'B12',
+    flight: 'SV 123',
+    window: '16:15 – 16:45',
+    lead: 'Pre-orders are held at the Gate B12 collection point — show your AIVC wallet QR at pickup.',
+  };
+
+  var RESTAURANTS_GATE_HINT = {
+    gate: 'B12',
+    walkTime: '15 min from security',
+    lead: 'Altitude Café is your nearest featured restaurant — enough time before boarding SV 123 at 17:05.',
+  };
+
   var AIVC_HERO = {
     kicker: 'Your AIVC companion',
     tripSummary: 'SV 123 · Riyadh → London · Terminal 1 · Gate B12 · 17:05',
@@ -628,6 +903,149 @@
     { stat: '12 min', label: 'Average time saved at security with e-gate wallet' },
     { stat: '200 SAR', label: 'Typical disruption voucher issued automatically' },
   ];
+
+  var AIVC_ASSISTANT = {
+    title: 'Your companion for SV 123',
+    lead: 'Based on your Alfursan profile and pre-trip stage, AIVC recommends completing wallet setup and pre-booking Terminal 1 parking before you leave for the airport.',
+    recommendation: '2 actions ready — wallet preferences and P1 parking for your 17:05 departure.',
+    actions: [
+      { label: 'Complete wallet setup', href: 'aivc/wallet-setup.html', icon: '&#128179;' },
+      { label: 'Book parking', href: 'transport/parking.html', icon: '&#127359;' },
+    ],
+  };
+
+  var AIVC_POT_MODULES = [
+    {
+      id: 'pot1',
+      badge: 'PoT #1',
+      title: 'Travel wallet',
+      desc: 'Federated identity, boarding pass, preferences, and payment in one orchestrated wallet.',
+      href: 'aivc/wallet-setup.html',
+      icon: '&#128179;',
+    },
+    {
+      id: 'pot5',
+      badge: 'PoT #5',
+      title: 'Disruption compensation',
+      desc: 'Proactive delay alerts, automated vouchers, rebooking options, and retail redemption.',
+      href: 'aivc/disruption-compensation.html',
+      icon: '&#9888;',
+    },
+    {
+      id: 'pot14',
+      badge: 'PoT #14',
+      title: 'Premium chauffeur',
+      desc: 'Door-to-gate meet-and-greet with luggage assistance — concierge-ready stub.',
+      href: 'transport/public-transport.html',
+      icon: '&#128081;',
+      stub: true,
+    },
+  ];
+
+  var AIVC_JOURNEY_TIMELINE = [
+    {
+      id: 'pre-trip',
+      label: 'Pre-trip',
+      when: 'Today · before departure',
+      state: 'current',
+      summary: 'Book parking, finish wallet setup, and pre-order duty-free for Gate B12.',
+      items: [
+        'Complete wallet preferences (language, dietary, notifications)',
+        'Pre-book P1 short-stay parking for 14:00–20:00',
+        'Pre-order Saudi Heritage gift set — collect at gate',
+      ],
+      href: 'aivc/wallet-setup.html',
+    },
+    {
+      id: 'airport',
+      label: 'At airport',
+      when: 'Day of travel · Terminal 1',
+      state: 'upcoming',
+      summary: 'Fast Track security, lounge access, and live wayfinding to Gate B12.',
+      items: [
+        'Kerbside drop-off or P1 parking — 2 min walk to check-in',
+        'Fast Track lane B biometric screening (~4 min wait)',
+        'Saudia Alfursan Lounge — 6 min walk from Gate B12',
+      ],
+      href: 'at-the-airport/index.html',
+    },
+    {
+      id: 'in-flight',
+      label: 'In-flight',
+      when: 'SV 123 · Riyadh → London',
+      state: 'upcoming',
+      summary: 'Meal preferences synced, connection alerts, and entertainment ready on seatback.',
+      items: [
+        'Halal meal preference applied from wallet profile',
+        'Gate connection alert if LHR transfer changes',
+        'Duty-free order confirmation sent to cabin crew (mock)',
+      ],
+      href: 'flights/index.html',
+    },
+    {
+      id: 'post-trip',
+      label: 'Post-trip',
+      when: 'After arrival · London LHR',
+      state: 'upcoming',
+      summary: 'Baggage tracking, ground transport, and feedback loop to improve next journey.',
+      items: [
+        'Baggage belt notification when carousel opens',
+        'Heathrow Express or taxi pre-book from AIVC assistant',
+        'Rate your KSIA experience — feeds Adobe Experience Platform profile',
+      ],
+      href: 'contact.html',
+    },
+  ];
+
+  var HOME_JOURNEY_STAGES = [
+    { label: 'Pre-trip', desc: 'Wallet, parking & retail', href: 'aivc/index.html', state: 'current' },
+    { label: 'At airport', desc: 'Security, maps & lounges', href: 'at-the-airport/index.html', state: 'upcoming' },
+    { label: 'In-flight', desc: 'Meals & connections', href: 'flights/index.html', state: 'upcoming' },
+    { label: 'Post-trip', desc: 'Baggage & transport', href: 'aivc/index.html', state: 'upcoming' },
+  ];
+
+  var WALLET_BOARDING_PASS = {
+    passenger: 'Guest traveller',
+    flight: 'SV 123',
+    route: 'Riyadh RUH → London LHR',
+    date: 'Today',
+    departure: '17:05',
+    gate: 'B12',
+    terminal: 'Terminal 1',
+    seat: '12A',
+    sequence: '042',
+    status: 'On time',
+  };
+
+  var WALLET_PAYMENT_METHODS = [
+    { label: 'Mada debit card', detail: '···· 4821 · default', status: 'pending' },
+    { label: 'Apple Pay', detail: 'Not linked', status: 'pending' },
+    { label: 'Alfursan miles', detail: '12,450 miles available', status: 'ready' },
+  ];
+
+  var WALLET_ASSISTANT = {
+    title: 'Why set up your wallet?',
+    lead: 'Your AIVC wallet unlocks Fast Track security, lounge eligibility, parking pay-and-extend, and personalized retail — all tied to your unified travel profile.',
+    cta: 'Link payment method (mock)',
+  };
+
+  var DISRUPTION_TIMELINE = [
+    { time: '13:40', label: 'On schedule', detail: 'SV 456 JED → RUH scheduled to depart 14:30 from Terminal 1.', type: 'neutral' },
+    { time: '13:52', label: 'Delay detected', detail: 'Aircraft rotation delay — estimated +2 hours. AIVC alert sent to your wallet.', type: 'alert' },
+    { time: '13:55', label: 'Voucher issued', detail: '200 SAR compensation voucher KSIA-DLY-456-2026 added automatically.', type: 'action' },
+    { time: '14:00', label: 'Alternatives offered', detail: 'SV 458 at 15:45 and SV 460 at 17:20 — select rebooking below.', type: 'action' },
+  ];
+
+  var DISRUPTION_ASSISTANT = {
+    title: 'We are handling this for you',
+    lead: 'Your connecting itinerary to London is protected. AIVC has issued compensation and surfaced the fastest rebooking options — no call centre queue required.',
+    actions: [
+      { label: 'View alternative flights', href: '#ksia-disruption-alt-heading', icon: '&#9992;' },
+      { label: 'Redeem at duty-free', href: '../shop-dine/duty-free.html', icon: '&#128722;' },
+    ],
+  };
+
+  var DISRUPTION_REBOOKING_NOTE = 'Selecting an alternative flight updates your wallet boarding pass and notifies your hotel transfer in London (mock).';
 
   var WALLET_SETUP_STEPS = [
     { id: 'identity', label: 'Verify identity', desc: 'Nafath-style federated auth (mock)', done: true },
@@ -686,6 +1104,25 @@
     { label: 'AIVC support', value: 'Chat via wallet assistant', hours: 'Always on' },
     { label: 'Media enquiries', value: 'media@ksia-demo.lab', hours: 'Business hours' },
   ];
+
+  var ABOUT_AIVC_SECTION = {
+    title: 'Powered by AIVC',
+    lead: 'The Airport Intelligent Virtual Companion orchestrates parking, retail, wayfinding, and disruption support — connected to Adobe Experience Platform for real-time personalization.',
+    cta: 'Explore AIVC companion',
+    href: 'aivc/index.html',
+  };
+
+  var MEDIA_BRAND_ASSETS = [
+    { title: 'KSIA logo pack', desc: 'Primary, secondary, and Arabic lockups — PNG & SVG.', image: 'assets/logo.png' },
+    { title: 'Vision 2030 gateway', desc: 'Hero photography and terminal renders for press use.', image: 'assets/vision-2030.png' },
+    { title: 'Terminal gallery', desc: 'Gate and landscape imagery from the masterplan.', image: 'assets/gallery-gate.png' },
+  ];
+
+  var CONCIERGE_COPY = {
+    title: 'Concierge-ready',
+    lead: 'Open the Brand Concierge from the lab strip to explore orchestrated actions across your KSIA journey.',
+    cta: 'Open AIVC concierge (mock)',
+  };
 
   var PAGE_META = {
     about: {
@@ -960,9 +1397,18 @@
     DEPARTURES_GATE_ALERT: DEPARTURES_GATE_ALERT,
     TERMINAL_GUIDE_AIRLINES: TERMINAL_GUIDE_AIRLINES,
     TERMINAL_1_DETAIL: TERMINAL_1_DETAIL,
+    TERMINAL_2_DETAIL: TERMINAL_2_DETAIL,
+    TERMINAL_3_DETAIL: TERMINAL_3_DETAIL,
+    TERMINAL_4_DETAIL: TERMINAL_4_DETAIL,
+    TERMINAL_5_DETAIL: TERMINAL_5_DETAIL,
+    TERMINAL_6_DETAIL: TERMINAL_6_DETAIL,
     TERMINAL_STUBS: TERMINAL_STUBS,
+    TERMINAL_GUIDE_ASSISTANT: TERMINAL_GUIDE_ASSISTANT,
     MAPS_WAYFINDING: MAPS_WAYFINDING,
+    MAPS_ASSISTANT: MAPS_ASSISTANT,
     SECURITY_PAGE: SECURITY_PAGE,
+    SECURITY_ASSISTANT: SECURITY_ASSISTANT,
+    SERVICES_HUB_ASSISTANT: SERVICES_HUB_ASSISTANT,
     SERVICES_HUB_ITEMS: SERVICES_HUB_ITEMS,
     LOUNGES_PAGE: LOUNGES_PAGE,
     SPECIAL_ASSISTANCE_PAGE: SPECIAL_ASSISTANCE_PAGE,
@@ -997,18 +1443,36 @@
     RESTAURANTS: RESTAURANTS,
     RESTAURANT_CUISINES: RESTAURANT_CUISINES,
     RESTAURANTS_ASSISTANT: RESTAURANTS_ASSISTANT,
+    SHOP_JOURNEY_STEPS: SHOP_JOURNEY_STEPS,
+    SHOP_RELATED_SERVICES: SHOP_RELATED_SERVICES,
+    SHOP_ASSISTANT_SUGGESTIONS: SHOP_ASSISTANT_SUGGESTIONS,
+    DUTY_FREE_COLLECTION: DUTY_FREE_COLLECTION,
+    RESTAURANTS_GATE_HINT: RESTAURANTS_GATE_HINT,
     AIVC_HERO: AIVC_HERO,
     AIVC_JOURNEY_STAGES: AIVC_JOURNEY_STAGES,
     AIVC_NEXT_ACTIONS: AIVC_NEXT_ACTIONS,
     AIVC_CONNECTED_SERVICES: AIVC_CONNECTED_SERVICES,
     AIVC_WALLET_PREVIEW: AIVC_WALLET_PREVIEW,
     AIVC_TRUST_OUTCOMES: AIVC_TRUST_OUTCOMES,
+    AIVC_ASSISTANT: AIVC_ASSISTANT,
+    AIVC_POT_MODULES: AIVC_POT_MODULES,
+    AIVC_JOURNEY_TIMELINE: AIVC_JOURNEY_TIMELINE,
+    HOME_JOURNEY_STAGES: HOME_JOURNEY_STAGES,
+    WALLET_BOARDING_PASS: WALLET_BOARDING_PASS,
+    WALLET_PAYMENT_METHODS: WALLET_PAYMENT_METHODS,
+    WALLET_ASSISTANT: WALLET_ASSISTANT,
+    DISRUPTION_TIMELINE: DISRUPTION_TIMELINE,
+    DISRUPTION_ASSISTANT: DISRUPTION_ASSISTANT,
+    DISRUPTION_REBOOKING_NOTE: DISRUPTION_REBOOKING_NOTE,
     WALLET_SETUP_STEPS: WALLET_SETUP_STEPS,
     WALLET_PREFERENCES: WALLET_PREFERENCES,
     DISRUPTION_SCENARIO: DISRUPTION_SCENARIO,
     ABOUT_CONTENT: ABOUT_CONTENT,
     MEDIA_ITEMS: MEDIA_ITEMS,
     CONTACT_CHANNELS: CONTACT_CHANNELS,
+    ABOUT_AIVC_SECTION: ABOUT_AIVC_SECTION,
+    MEDIA_BRAND_ASSETS: MEDIA_BRAND_ASSETS,
+    CONCIERGE_COPY: CONCIERGE_COPY,
     PAGE_META: PAGE_META,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

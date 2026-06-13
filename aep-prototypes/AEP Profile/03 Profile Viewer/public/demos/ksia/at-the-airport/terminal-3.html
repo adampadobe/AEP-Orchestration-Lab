@@ -4,29 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Terminal 3 — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612e">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613">
 </head>
-<body class="ksia-site" data-ksia-page-id="terminal-3" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-3 expansion stub" data-ksia-journey-stage="airport">
+<body class="ksia-site" data-ksia-page-id="terminal-3" data-ksia-nav-section="at-the-airport" data-ksia-context="terminal-3 european long-haul carriers" data-ksia-journey-stage="airport">
   <div id="ksia-chrome-mount"></div>
   <main class="ksia-main" id="ksia-main">
 
     <header class="ksia-subpage-hero">
       <h1 class="ksia-display-heading">Terminal 3</h1>
-      <p class="ksia-subpage-hero-lead">European and long-haul carriers — opening with KSIA expansion.</p>
+      <p class="ksia-subpage-hero-lead" id="ksiaTerminal3Tagline">European and long-haul operators — BA 264 boards from Gate D3.</p>
+      <span class="ksia-at-airport-pill ksia-at-airport-pill--stage" id="ksiaTerminal3Preview" hidden>Preview · Opens with KSIA expansion</span>
     </header>
 
-    <section class="ksia-section ksia-section--white" aria-label="Terminal status">
-      <div class="ksia-terminal-stub-card">
-        <span class="ksia-terminal-stub-status">Opening with KSIA expansion</span>
-        <p class="ksia-body-text">Terminal 3 is designed for European and long-haul operators with premium check-in and partner lounge access. Detailed passenger content will follow in a future release.</p>
-        <p style="margin-top:20px"><a href="terminal-guide.html" class="ksia-btn ksia-btn-primary">Back to terminal guide</a></p>
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t3-map-heading">
+      <h2 class="ksia-section-title" id="ksia-t3-map-heading">Gates map</h2>
+      <div class="ksia-terminal-map-slot" role="img" aria-label="Terminal 3 gates map placeholder">
+        <span class="ksia-at-airport-map-label" id="ksiaTerminal3MapLabel">Gates D1–D18 map — European routes and partner lounges</span>
       </div>
     </section>
 
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-t3-amenities-heading">
+      <div class="ksia-terminal-detail-grid">
+        <div>
+          <h2 class="ksia-section-title" id="ksia-t3-amenities-heading">Amenities</h2>
+          <ul class="ksia-terminal-detail-list" id="ksiaTerminal3Amenities"></ul>
+        </div>
+        <div>
+          <h2 class="ksia-section-title">Live wait times</h2>
+          <div class="ksia-terminal-waits-grid" id="ksiaTerminal3Waits"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-t3-shops-heading">
+      <h2 class="ksia-section-title" id="ksia-t3-shops-heading">Shops preview</h2>
+      <ul class="ksia-terminal-shops-grid" id="ksiaTerminal3Shops"></ul>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-t3-lounge-heading">
+      <h2 class="ksia-section-title" id="ksia-t3-lounge-heading">Lounge access</h2>
+      <div class="ksia-terminal-lounge-panel" id="ksiaTerminal3Lounge"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-label="Related links">
+      <h2 class="ksia-section-title">Related</h2>
+      <ul class="ksia-link-grid">
+        <li><a href="terminal-guide.html" class="ksia-card-link">Terminal guide</a></li>
+        <li><a href="maps.html" class="ksia-card-link">Wayfinding maps</a></li>
+        <li><a href="services/lounges.html" class="ksia-card-link">All lounges</a></li>
+      </ul>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612e"></script>
+  <script src="../ksia-mock-data.js?v=20260613"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
+  <script src="../ksia-at-airport-pages.js?v=20260613"></script>
 </body>
 </html>

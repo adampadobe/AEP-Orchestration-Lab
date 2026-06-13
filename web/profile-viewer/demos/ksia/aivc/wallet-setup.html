@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wallet setup — King Salman International Airport</title>
-  <link rel="stylesheet" href="../ksia-site.css?v=20260612f">
+  <link rel="stylesheet" href="../ksia-site.css?v=20260613a">
 </head>
 <body class="ksia-site" data-ksia-page-id="wallet-setup" data-ksia-context="wallet-setup pre-trip" data-ksia-journey-stage="pre-trip">
   <div id="ksia-chrome-mount"></div>
@@ -13,19 +13,24 @@
     <section class="ksia-subpage-hero" aria-labelledby="ksia-wallet-heading">
       <h1 class="ksia-page-title" id="ksia-wallet-heading">AIVC wallet setup</h1>
       <p class="ksia-subpage-hero-lead">PoT #1 — federated identity, preferences, and payment in one travel wallet.</p>
-      <p class="ksia-at-airport-security-lead" id="ksiaWalletSetupProgress" style="margin-top:12px;font-weight:600">2 of 4 complete</p>
+      <p class="ksia-at-airport-security-lead ksia-wallet-setup-progress" id="ksiaWalletSetupProgress">2 of 4 complete</p>
     </section>
 
-    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-wallet-steps-heading">
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-wallet-pass-heading">
+      <h2 class="ksia-section-title" id="ksia-wallet-pass-heading">Boarding pass preview</h2>
+      <div class="ksia-aivc-boarding-pass" id="ksiaWalletBoardingPass" aria-label="Digital boarding pass preview"></div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-wallet-steps-heading">
       <h2 class="ksia-section-title" id="ksia-wallet-steps-heading">Setup progress</h2>
       <ol class="ksia-aivc-wallet-steps" id="ksiaWalletSetupSteps"></ol>
     </section>
 
-    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-wallet-nafath-heading">
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-wallet-nafath-heading">
       <h2 class="ksia-section-title" id="ksia-wallet-nafath-heading">Verify identity</h2>
       <div class="ksia-aivc-nafath-panel">
         <p class="ksia-at-airport-security-lead">Nafath-style federated auth (mock) — step 1 of 4-step wallet onboarding.</p>
-        <ol class="ksia-assistance-steps" style="margin:16px 0">
+        <ol class="ksia-assistance-steps ksia-wallet-nafath-steps">
           <li><span class="ksia-assistance-step-num">1</span> Open Nafath app on your device</li>
           <li><span class="ksia-assistance-step-num">2</span> Approve KSIA AIVC identity request</li>
           <li><span class="ksia-assistance-step-num">3</span> Return here to continue setup</li>
@@ -34,7 +39,7 @@
       </div>
     </section>
 
-    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-wallet-prefs-heading">
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-wallet-prefs-heading">
       <h2 class="ksia-section-title" id="ksia-wallet-prefs-heading">Preference capture</h2>
       <form class="ksia-aivc-pref-form" id="ksiaWalletPrefForm" onsubmit="return false">
         <div>
@@ -53,11 +58,25 @@
       </form>
     </section>
 
+    <section class="ksia-section ksia-section--white" aria-labelledby="ksia-wallet-payment-heading">
+      <h2 class="ksia-section-title" id="ksia-wallet-payment-heading">Link payment</h2>
+      <ul class="ksia-aivc-payment-list" id="ksiaWalletPaymentMethods"></ul>
+      <button type="button" class="ksia-btn ksia-btn-secondary" id="ksiaWalletPaymentBtn">Link payment method (mock)</button>
+    </section>
+
+    <section class="ksia-section ksia-section--sunlit" aria-labelledby="ksia-wallet-assistant-heading">
+      <p class="ksia-section-kicker">AIVC assistant</p>
+      <h2 class="ksia-display-heading" id="ksia-wallet-assistant-heading"><span id="ksiaWalletAssistantTitle">Why set up your wallet?</span></h2>
+      <div class="ksia-aivc-assistant-card">
+        <p class="ksia-board-assistant-lead" id="ksiaWalletAssistantLead"></p>
+      </div>
+    </section>
+
   </main>
-  <script src="../ksia-mock-data.js?v=20260612f"></script>
+  <script src="../ksia-mock-data.js?v=20260613a"></script>
   <script src="../ksia-events.js?v=20260612"></script>
   <script src="../ksia-chrome.js?v=20260612b"></script>
   <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
-  <script src="../ksia-aivc-pages.js?v=20260612f"></script>
+  <script src="../ksia-aivc-pages.js?v=20260613a"></script>
 </body>
 </html>
