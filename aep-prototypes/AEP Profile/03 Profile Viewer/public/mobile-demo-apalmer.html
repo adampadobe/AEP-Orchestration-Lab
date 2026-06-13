@@ -17,7 +17,11 @@
       <a class="mobile-demo-home" href="home.html">← Home</a>
       <div class="mobile-demo-topbar-text">
         <h1 class="mobile-demo-title">Mobile simulator</h1>
-        <p class="mobile-demo-sub">Apalmer sandbox · config-driven shell · defaults to <strong>Etihad</strong> · KSIA AIVC at <a href="ksia-mobile-demo.html">ksia-mobile-demo.html</a></p>
+        <p class="mobile-demo-sub">
+          <strong>Internal lab preview</strong> — use customer mobile demo pages for presentations
+          (<a href="etihad-mobile-demo.html">Etihad</a>,
+          <a href="ksia-mobile-demo.html">KSIA</a>).
+        </p>
       </div>
     </header>
 
@@ -47,7 +51,7 @@
           </div>
         </div>
         <p class="mobile-demo-hint">
-          Drag the lower-right corner of the preview to resize. Use Customize to pick the demo and device frame.
+          Drag the lower-right corner of the preview to resize. Customize (legacy) picks alternate web demos — not presentation-grade.
         </p>
       </div>
     </main>
@@ -56,7 +60,7 @@
     </button>
   </div>
 
-  <button type="button" class="mobile-demo-customize-tab" id="mobileDemoCustomizeToggle" aria-expanded="false" aria-controls="mobileDemoCustomizePanel">
+  <button type="button" class="mobile-demo-customize-tab" id="mobileDemoCustomizeToggle" aria-expanded="false" aria-controls="mobileDemoCustomizePanel" title="Legacy demo picker — use customer mobile demo pages for presentations">
     Customize
   </button>
   <div class="mobile-demo-customize-backdrop" id="mobileDemoCustomizeBackdrop" hidden aria-hidden="true"></div>
@@ -78,7 +82,7 @@
         Chooses frame style and default logical screen size (CSS px). You can still resize the preview by dragging its corner.
       </p>
       <p id="mobileDemoCustomizeHelp" class="mobile-demo-customize-note">
-        Matches the entries under <strong>Demos</strong> on Home. Internal links keep mobile preview mode while you navigate.
+        Legacy internal preview only. For Etihad / KSIA presentations use <strong>etihad-mobile-demo.html</strong> and <strong>ksia-mobile-demo.html</strong>.
       </p>
     </div>
   </aside>

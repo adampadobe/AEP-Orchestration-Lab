@@ -209,7 +209,7 @@
 
     /* Legacy customize drawer (etihad multi-demo picker) */
     if (opts.showLegacyCustomize) {
-      initLegacyCustomize(config, storageDemoKey, applyAppUrl);
+      initLegacyCustomize(config, storageDemoKey, applyAppUrl, applyDevice);
     }
 
     /* Status bar clock */
@@ -225,9 +225,10 @@
     return { applyDevice: applyDevice, applyAppUrl: applyAppUrl, getConfig: function () { return config; } };
   }
 
-  function initLegacyCustomize(config, storageDemoKey, applyAppUrl) {
+  function initLegacyCustomize(config, storageDemoKey, applyAppUrl, applyDevice) {
     var Cfgs = global.MobileDemoConfigs;
     var select = $('mobileDemoSelect');
+    var deviceSelect = $('mobileDemoDeviceSelect');
     var panel = $('mobileDemoCustomizePanel');
     var backdrop = $('mobileDemoCustomizeBackdrop');
     var toggleBtn = $('mobileDemoCustomizeToggle');
@@ -241,6 +242,29 @@
       opt.textContent = demo.label;
       select.appendChild(opt);
     });
+
+    if (deviceSelect && Cfgs.DEVICES) {
+      var toggleIds = config.deviceToggleDevices || ['iphone17pro', 's24u'];
+      toggleIds.forEach(function (id) {
+        var d = Cfgs.getDevice(id);
+        if (!d) return;
+        var devOpt = document.createElement('option');
+        devOpt.value = d.id;
+        devOpt.textContent = d.label;
+        deviceSelect.appendChild(devOpt);
+      });
+      var initialDev = config.defaultDevice || toggleIds[0] || 's24u';
+      try {
+        var savedDev = sessionStorage.getItem('aepMobileSimDevice_apalmerLab');
+        if (savedDev && toggleIds.indexOf(savedDev) >= 0) initialDev = savedDev;
+      } catch (_) {
+        /* ignore */
+      }
+      deviceSelect.value = initialDev;
+      deviceSelect.addEventListener('change', function () {
+        if (typeof applyDevice === 'function') applyDevice(deviceSelect.value, true);
+      });
+    }
 
     var initial = config.appEntryUrl || 'etihad-demo.html';
     try {

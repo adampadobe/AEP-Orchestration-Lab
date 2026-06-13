@@ -42,6 +42,20 @@
   pointer-events: none;
 }
 
+html.aep-sim-mobile .etihad-demo-top-anchor,
+html.aep-sim-mobile .mobile-demo-shell-channel-row {
+  display: none !important;
+}
+
+html.aep-sim-mobile body.etihad-demo-page .dashboard-sidebar {
+  display: none !important;
+}
+
+html.aep-sim-mobile .etihad-demo-site-frame {
+  position: absolute;
+  inset: 0;
+}
+
 .etihad-demo-top-anchor {
   position: fixed;
   top: 0;

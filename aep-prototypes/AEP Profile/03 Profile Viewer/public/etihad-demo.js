@@ -3,7 +3,32 @@
  */
 (function (global) {
   'use strict';
+  var isSimMobile = /\baepSimMobile=1\b/.test(String(global.location && global.location.search || ''));
+
+  function runSimMobileBridge() {
+    var etihadSiteFrame = document.getElementById('etihadSiteFrame');
+    if (!etihadSiteFrame) return;
+
+    global.addEventListener('message', function (ev) {
+      if (ev.source === global.parent && ev.data && ev.data.source === 'etihad-demo-shell') {
+        if (etihadSiteFrame.contentWindow) {
+          etihadSiteFrame.contentWindow.postMessage(ev.data, '*');
+        }
+        return;
+      }
+      if (!etihadSiteFrame.contentWindow || ev.source !== etihadSiteFrame.contentWindow) return;
+      if (!ev.data || ev.data.source !== 'etihad-airline-lab') return;
+      if (global.parent && global.parent !== global) {
+        global.parent.postMessage(ev.data, '*');
+      }
+    });
+  }
+
   function run() {
+    if (isSimMobile) {
+      runSimMobileBridge();
+      return;
+    }
     const customerEmail = document.getElementById('customerEmail');
     const etihadNs = document.getElementById('etihadNs');
 

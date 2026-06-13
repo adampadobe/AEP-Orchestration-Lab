@@ -1,9 +1,17 @@
 /**
  * Config registry for scalable mobile demo shell.
- * Add a customer: new entry here + mobile app HTML under demos/{brand}/mobile/.
+ *
+ * Preferred pattern (presentation-grade):
+ *   1. One dedicated URL per customer: `{customer}-mobile-demo.html`
+ *   2. Env bar OUTSIDE the device simulator (see ksia-mobile-demo.html, etihad-mobile-demo.html)
+ *   3. Web | Mobile channel toggle on both web and mobile demo pages
+ *   4. Add PAGE_CONFIGS.{demoId} here + thin page JS calling MobileDemoShell.init
+ *   5. Wire lab-core with envBarConfig.iframeIds targeting the shell iframe
+ *
+ * Internal preview only: mobile-demo-apalmer.html (web-in-frame, env bar inside iframe).
+ * Do NOT add new customers to LEGACY_DEMOS — use dedicated mobile pages instead.
  *
  * @see shared/mobile-demo-shell.js
- * @see docs/mobile-demo-shell.md (inline comments below)
  */
 (function (global) {
   'use strict';
@@ -76,7 +84,7 @@
     },
   };
 
-  /** Legacy customize drawer list (mobile-demo-apalmer without env bar). */
+  /** Legacy customize drawer list (mobile-demo-apalmer without env bar). Do not extend for new customers. */
   var LEGACY_DEMOS = [
     { value: 'etihad-demo.html', label: 'Etihad (demo)' },
     { value: 'fnb-demo.html', label: 'FNB (demo)' },
@@ -89,18 +97,12 @@
   ];
 
   /**
-   * Hash routes → config. Keys match location.hash without #.
-   * Dedicated pages (ksia-mobile-demo.html) set window.mobileDemoConfig directly.
+   * Hash routes → config or redirect. Keys match location.hash without #.
+   * Dedicated pages ({customer}-mobile-demo.html) set window.mobileDemoConfig directly.
    */
   var HASH_ROUTES = {
     'etihad-phone': {
-      demoId: 'etihad',
-      brandName: 'Etihad',
-      appEntryUrl: 'etihad-demo.html',
-      defaultDevice: 's24u',
-      deviceToggleDevices: ['iphone17pro', 's24u'],
-      envBar: false,
-      legacyDemoSelect: true,
+      redirect: 'etihad-mobile-demo.html',
     },
     'etihad-ipad': {
       demoId: 'etihad',
@@ -131,6 +133,21 @@
       webDemoUrl: 'ksia-demo.html',
       mobileDemoUrl: 'ksia-mobile-demo.html',
       pageClass: 'ksia-mobile-demo-page',
+      channelLabel: 'Mobile',
+    },
+    etihad: {
+      demoId: 'etihad',
+      brandName: 'Etihad',
+      appEntryUrl: 'etihad-demo.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'etihad',
+      iframeId: 'etihadMobileFrame',
+      labCoreScript: 'etihad-lab-core.js',
+      webDemoUrl: 'etihad-demo.html',
+      mobileDemoUrl: 'etihad-mobile-demo.html',
+      pageClass: 'etihad-mobile-demo-page',
       channelLabel: 'Mobile',
     },
   };

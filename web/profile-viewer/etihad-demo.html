@@ -7,7 +7,9 @@
   <title>Etihad (demo) - AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="etihad-demo.css?v=20260601-env-strip">
+  <link rel="stylesheet" href="etihad-demo.css?v=20260613-mobile">
+  <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260613">
+  <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -19,7 +21,13 @@
 <body class="etihad-demo-page home-dashboard-concierge">
   <div class="etihad-demo-top-anchor" id="etihadDemoTopAnchor">
     <section class="etihad-demo-id-banner" aria-label="Etihad demo identity controls">
-            <div class="etihad-demo-id-inner aep-demo-id-inner"
+      <div class="mobile-demo-shell-channel-row">
+        <nav class="mobile-demo-shell-channel-toggle" aria-label="Demo channel">
+          <a href="etihad-demo.html" class="mobile-demo-shell-channel-toggle__link is-active" aria-current="page">Web</a>
+          <a href="etihad-mobile-demo.html" class="mobile-demo-shell-channel-toggle__link">Mobile</a>
+        </nav>
+      </div>
+      <div class="etihad-demo-id-inner aep-demo-id-inner"
         data-demo-env-strip-mount="site-clone-shell"
         data-demo-env-strip-variant="spectrum"
         data-demo-env-strip-title="Etihad (web)"
@@ -105,7 +113,7 @@
   <script src="site-clone-bc.js?v=20260601-etihad-env-strip"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
+  <script defer src="aep-lab-nav.js?v=20260613-etihad-mobile"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
   </div>

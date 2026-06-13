@@ -1,5 +1,6 @@
 /**
  * Mobile simulator — apalmer sandbox copy (config-driven shell; Etihad default).
+ * Internal lab preview only — customer presentation pages: etihad-mobile-demo.html, ksia-mobile-demo.html.
  * @see shared/mobile-demo-shell.js
  * @see shared/mobile-demo-configs.js
  */

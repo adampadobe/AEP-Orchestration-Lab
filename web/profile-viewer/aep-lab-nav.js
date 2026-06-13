@@ -348,7 +348,7 @@
           label: 'Mobile',
           items: [
             {
-              label: 'Phone (in development)',
+              label: 'Internal preview (web-in-frame)',
               href: 'mobile-demo-apalmer.html#etihad-phone',
               inDevelopment: true,
               navHideKey: 'mobileDemoApalmerPhone',
@@ -396,6 +396,20 @@
                 },
               ],
             },
+            {
+              id: 'etihadMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Etihad mobile journey (in development)',
+                  href: 'etihad-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'etihadMobileDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
           ],
         },
         {
@@ -427,14 +441,6 @@
                   href: 'ksia-mobile-demo.html',
                   inDevelopment: true,
                   navHideKey: 'ksiaMobileDemo',
-                  demoMeta: { owners: ['apalmer'] },
-                  ico: '\uD83D\uDCF1',
-                },
-                {
-                  label: 'KSIA mobile (hash route)',
-                  href: 'mobile-demo-apalmer.html#ksia-phone',
-                  inDevelopment: true,
-                  navHideKey: 'ksiaMobileDemoHash',
                   demoMeta: { owners: ['apalmer'] },
                   ico: '\uD83D\uDCF1',
                 },

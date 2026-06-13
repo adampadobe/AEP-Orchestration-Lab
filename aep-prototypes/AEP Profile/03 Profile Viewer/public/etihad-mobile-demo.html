@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etihad mobile (demo) – AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="mobile-demo.css?v=20260613-mobile-shell">
+  <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260613">
+  <link rel="stylesheet" href="etihad-demo.css?v=20260613-mobile">
+  <link rel="stylesheet" href="etihad-mobile-demo.css?v=20260613">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script>
+    window.mobileDemoConfig = {
+      demoId: 'etihad',
+      brandName: 'Etihad',
+      appEntryUrl: 'etihad-demo.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'etihad',
+      iframeId: 'etihadMobileFrame',
+      webDemoUrl: 'etihad-demo.html',
+      mobileDemoUrl: 'etihad-mobile-demo.html',
+      pageClass: 'etihad-mobile-demo-page',
+      channelLabel: 'Mobile',
+    };
+  </script>
+</head>
+<body class="etihad-mobile-demo-page mobile-demo-shell-page mobile-demo-page home-dashboard-concierge">
+  <div class="mobile-demo-shell-env-anchor" id="etihadMobileDemoEnvAnchor">
+    <section class="etihad-demo-id-banner mobile-demo-shell-id-banner" aria-label="Etihad mobile demo controls">
+      <div class="mobile-demo-shell-channel-row">
+        <nav class="mobile-demo-shell-channel-toggle" aria-label="Demo channel">
+          <a href="etihad-demo.html" class="mobile-demo-shell-channel-toggle__link">Web</a>
+          <a href="etihad-mobile-demo.html" class="mobile-demo-shell-channel-toggle__link is-active" aria-current="page">Mobile</a>
+        </nav>
+      </div>
+      <div
+        class="etihad-demo-id-inner aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-title="Etihad (mobile)"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-prefix="etihad"
+        data-demo-env-strip-selected-script-id="etihadSelectedScript"
+        data-demo-env-strip-script-preview-class="etihad-demo-script-preview"
+        data-demo-env-strip-message-id="etihadMessage"
+        data-demo-env-strip-message-class="etihad-demo-message"
+        data-demo-env-strip-profile-btn-label="Look up profile"
+        data-demo-env-strip-disclaimer="Etihad booking journey in a phone simulator. Env bar sits outside the device frame — inject Tags, then explore the responsive web journey inside the frame."
+      ></div>
+    </section>
+  </div>
+
+  <div class="mobile-demo-fs-root" id="mobileDemoFsRoot">
+    <div class="mobile-demo-shell-controls">
+      <div class="mobile-demo-shell-device-toggle" id="mobileDemoDeviceToggle" role="group" aria-label="Device frame"></div>
+      <button type="button" class="mobile-demo-fullscreen-btn" id="mobileDemoFullscreenBtn" aria-pressed="false" title="Full screen">
+        Full screen
+      </button>
+    </div>
+
+    <div class="mobile-demo-shell-stage-wrap">
+      <p class="mobile-demo-shell-device-label mobile-demo-device-label" id="mobileDemoDeviceLabel">iPhone 17 Pro · simulator</p>
+      <div class="mobile-demo-stage">
+        <div class="mobile-demo-frame-outer">
+          <div class="mobile-demo-bezel mobile-demo-bezel--apple" id="mobileDemoBezel">
+            <div class="mobile-demo-notch mobile-demo-notch--dynamic-island" id="mobileDemoNotch" aria-hidden="true"></div>
+            <div class="mobile-demo-viewport mobile-demo-viewport--with-status" id="mobileDemoViewport">
+              <div class="mobile-demo-status-bar mobile-demo-status-bar--ios" id="mobileDemoStatusBar" aria-hidden="true"></div>
+              <div class="mobile-demo-viewport-clip">
+                <iframe
+                  id="etihadMobileFrame"
+                  title="Etihad mobile journey preview"
+                  src="etihad-demo.html?aepSimMobile=1"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="mobile-demo-fs-exit-float" id="mobileDemoFsExitFloat" hidden aria-label="Exit full screen">
+      Exit full screen
+    </button>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page etihad-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260514-id-token-health"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
+  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'etihad',
+      variant: 'spectrum',
+      features: { webPush: true, bc: true, decisioning: false },
+      storagePrefix: 'etihad',
+      iframeIds: ['etihadMobileFrame'],
+      labCoreScript: 'etihad-lab-core.js',
+      siteCloneDemoEnv: {
+        storagePrefix: 'etihadDemo',
+        webPushBySandboxKey: 'etihadDemoWebPushOnInjectBySandbox',
+        webPushLegacyKey: 'etihadWebPushOnInjectToggle',
+        webPushToggleId: 'etihadWebPushOnInjectToggle',
+        bcOnInjectToggleId: 'etihadBcOnInjectToggle',
+        bcStyleSelectId: 'etihadBcStyleSelect',
+      },
+    };
+  </script>
+  <script src="aep-demo-generator-targets.js?v=20260508"></script>
+  <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
+  <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+  <script src="shared/mobile-demo-configs.js?v=20260613"></script>
+  <script src="shared/mobile-demo-shell.js?v=20260613"></script>
+  <script src="etihad-lab-core.js?v=20260613"></script>
+  <script src="etihad-mobile-demo.js?v=20260613"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260613-etihad-mobile"></script>
+</body>
+</html>

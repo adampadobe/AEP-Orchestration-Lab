@@ -1,0 +1,50 @@
+.etihad-mobile-demo-page .etihad-demo-script-preview,
+.etihad-mobile-demo-page .etihad-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.etihad-mobile-demo-page .etihad-demo-message {
+  padding-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.etihad-mobile-demo-page .etihad-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.etihad-mobile-demo-page .etihad-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+body.etihad-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background:
+    radial-gradient(ellipse 95% 52% at 50% 108%, rgba(155, 110, 75, 0.14), transparent 55%),
+    radial-gradient(ellipse 130% 65% at 50% -18%, rgba(46, 0, 20, 0.1), transparent 52%),
+    var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.etihad-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background: var(--dash-bg);
+}
+
+@media (min-width: 769px) {
+  body.etihad-mobile-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.etihad-mobile-demo-page--nav-open .dashboard-sidebar,
+  body.etihad-mobile-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: var(--dash-shadow-hover);
+  }
+}
