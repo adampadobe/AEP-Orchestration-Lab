@@ -1,6 +1,6 @@
 /**
  * Decisioning lab (Edge): apply AJO/Web SDK propositions to three DOM mounts (top ribbon, hero, content card).
- * Adapted from race-for-life-ajo.js — same item parsing; extended scope routing for TopRibbon + travel-hero-banner.
+ * Item parsing and surface routing for TopRibbon + travel-hero-banner zones.
  */
 (function (global) {
   'use strict';
