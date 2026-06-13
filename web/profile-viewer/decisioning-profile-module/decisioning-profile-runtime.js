@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260620';
+  var CACHE_BUST = '20260624';
 
   var config = null;
   var lastUpsClientData = null;
@@ -128,14 +128,57 @@
     }
   }
 
+  function stripUrlQueryHash(raw) {
+    return String(raw || '')
+      .trim()
+      .split('#')[0]
+      .split('?')[0];
+  }
+
+  /** Same-origin iframe journey path, or resolved src when navigation is not readable yet. */
+  function getIframePageUrl() {
+    if (useParentDocument()) return '';
+    var frame = getFrame();
+    if (!frame) return '';
+    try {
+      var win = frame.contentWindow;
+      if (win && win.location && win.location.href) {
+        return stripUrlQueryHash(win.location.href);
+      }
+    } catch (_e) {}
+    var src = frame.getAttribute('src');
+    if (!src) return '';
+    try {
+      return stripUrlQueryHash(new URL(src, global.location && global.location.href ? global.location.href : undefined).href);
+    } catch (_e2) {
+      return '';
+    }
+  }
+
+  /**
+   * Resolve AJO target page URL for personalization surfaces.
+   * Journey shells (iframe src ≠ shell pathname) must use the iframe URL, not parent location.
+   */
+  function getEffectiveTargetPageUrl() {
+    if (typeof cfg('getTargetPageUrl') === 'function') {
+      var fromFn = stripUrlQueryHash(cfg('getTargetPageUrl')());
+      if (fromFn) return fromFn;
+    }
+    var explicit = stripUrlQueryHash(cfg('targetPageUrl'));
+    if (explicit) return explicit;
+    var iframeUrl = getIframePageUrl();
+    if (iframeUrl) return iframeUrl;
+    if (labConfigRecord && labConfigRecord.targetPageUrl) {
+      return stripUrlQueryHash(labConfigRecord.targetPageUrl);
+    }
+    return '';
+  }
+
   function buildSurfacesForPage() {
     if (typeof global.CdEdgeMounts === 'undefined') return [];
-    if (
-      labConfigRecord &&
-      labConfigRecord.targetPageUrl &&
-      typeof global.CdEdgeMounts.buildSurfacesFromPageUrl === 'function'
-    ) {
-      return global.CdEdgeMounts.buildSurfacesFromPageUrl(labConfigRecord.targetPageUrl);
+    var pageUrl = getEffectiveTargetPageUrl();
+    if (pageUrl && typeof global.CdEdgeMounts.buildSurfacesFromPageUrl === 'function') {
+      return global.CdEdgeMounts.buildSurfacesFromPageUrl(pageUrl);
     }
     if (typeof global.CdEdgeMounts.buildSurfacesForEdgeLabPage === 'function') {
       return global.CdEdgeMounts.buildSurfacesForEdgeLabPage();
@@ -267,7 +310,8 @@
         ? global.CdEdgeMounts.buildIdentityMap(profile, idVal, ns)
         : {};
     var surfaces = buildSurfacesForPage();
-    var href = global.location ? global.location.href.split('?')[0] : '';
+    var href = getEffectiveTargetPageUrl();
+    if (!href && global.location) href = stripUrlQueryHash(global.location.href);
     var viewName =
       typeof cfg('getViewName') === 'function'
         ? String(cfg('getViewName')() || '').trim()

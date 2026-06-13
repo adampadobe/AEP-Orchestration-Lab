@@ -197,6 +197,9 @@
         iframeId: wiring.iframeId || '',
         useParentDocument: !!wiring.useParentDocument,
         mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
+        targetPageUrl: wiring.targetPageUrl || '',
+        getTargetPageUrl:
+          typeof wiring.getTargetPageUrl === 'function' ? wiring.getTargetPageUrl : undefined,
         getViewName: getViewName,
         getIdentifierValue: getIdentifierValue,
         getNamespace: getNamespace,

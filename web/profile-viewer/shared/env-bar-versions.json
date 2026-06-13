@@ -19,9 +19,9 @@
     "contentDecisionLabConfig": "20260615",
     "contentDecisionEdgeMounts": "20260615",
     "decisioningEdgeInject": "20260612c",
-    "decisioningProfileRuntime": "20260620",
+    "decisioningProfileRuntime": "20260624",
     "decisioningProfileModule": "20260620",
     "decisioningProfilePanel": "20260621",
-    "siteCloneDecisioningBoot": "20260624-decisioning-universal"
+    "siteCloneDecisioningBoot": "20260624-target-page-url"
   }
 }
