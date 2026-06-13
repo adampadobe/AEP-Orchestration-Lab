@@ -96,7 +96,7 @@ window.envBar.registerTagsInjection(tags);
 Demos use Firebase **Realtime Database** for sandbox state — not the Firestore client SDK. Remote env bar defaults therefore load through a thin Cloud Function:
 
 - **Collection:** `envBarConfigs/{demoId}` on **default Firestore** (`aep-orchestration-lab`)
-- **Document id:** lowercased `demoId` / `prefix` (see `docId()` in `functions/envBarConfigStore.js`; e.g. `avivaTarget` → `avivtarget`)
+- **Document id:** lowercased `demoId` / `prefix` (see `docId()` in `functions/envBarConfigStore.js`; e.g. `avivaTarget` → `avivatarget`)
 - **API:** `GET /api/env-bar-config?demoId=ksia` (public read, Admin SDK in `functions/envBarConfigStore.js`)
 - **Merge:** Remote defaults apply over page config unless `localOverride: true` (page wins for local dev)
 - **Listen:** When `firestoreListen !== false`, the loader polls every 60s and emits `envBar.onChange({ type: 'remote-config' })`
@@ -148,7 +148,8 @@ node scripts/seed-env-bar-configs.mjs --dry-run
 node scripts/seed-env-bar-configs.mjs --only ksia,sky
 ```
 
-Canonical JSON per demo: `scripts/env-bar-config-seeds/{docId}.json` (ksia, sky, etihad, avivtarget, race).  
+Canonical JSON per demo: `scripts/env-bar-config-seeds/{docId}.json` (ksia, sky, etihad, avivatarget, race).  
+**Document id** is lowercased `prefix` (`avivaTarget` → `avivatarget`). Query `?demoId=avivaTarget` resolves to the same doc.  
 **Manual import** (no credentials): Firebase console → Firestore → `envBarConfigs` → Add document → id = filename stem → paste JSON (omit `updatedAt` / `seededBy` or set manually).
 
 Example Firestore document (KSIA):
