@@ -1,14 +1,14 @@
 {
-  "gitSha": "9bbbf175419fe10de888051b005f0f7f6cf6584b",
-  "gitShortSha": "9bbbf175",
+  "gitSha": "c9620d87ade0d4212c5e567a126b21a454297e66",
+  "gitShortSha": "c9620d87",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: mobile narrow viewport env bar layout",
+  "gitCommitSubject": "[apalmer] fix: show mobile demo env bar (CSS selector bug)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-13T10:36:38+01:00",
-  "deployedAt": "2026-06-13T09:36:43.468Z",
+  "gitCommitDate": "2026-06-13T17:59:55+01:00",
+  "deployedAt": "2026-06-13T17:00:18.346Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9bbbf175419fe10de888051b005f0f7f6cf6584b"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c9620d87ade0d4212c5e567a126b21a454297e66"
 }
