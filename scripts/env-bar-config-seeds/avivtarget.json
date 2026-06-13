@@ -1,0 +1,21 @@
+{
+  "demoId": "avivtarget",
+  "prefix": "avivaTarget",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "avivaTarget",
+    "webPushBySandboxKey": "avivaTargetWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "avivaTargetWebPushOnInjectToggle",
+    "webPushToggleId": "avivaTargetWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "avivaTargetBcOnInjectToggle",
+    "bcStyleSelectId": "avivaTargetBcStyleSelect"
+  },
+  "iframeIds": ["avivaTargetFrame"]
+}

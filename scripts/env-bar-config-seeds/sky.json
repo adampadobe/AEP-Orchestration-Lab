@@ -1,0 +1,23 @@
+{
+  "demoId": "sky",
+  "prefix": "sky",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": true
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "skyDemo",
+    "webPushBySandboxKey": "skyDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "skyDemoWebPushOnInjectToggle",
+    "webPushToggleId": "skyWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "skyBcOnInjectToggle",
+    "bcStyleSelectId": "skyBcStyleSelect"
+  },
+  "decisioning": {
+    "mountLayoutPreset": "sky-home"
+  }
+}

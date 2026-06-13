@@ -95,13 +95,63 @@ window.envBar.registerTagsInjection(tags);
 
 Demos use Firebase **Realtime Database** for sandbox state — not the Firestore client SDK. Remote env bar defaults therefore load through a thin Cloud Function:
 
-- **Collection:** `envBarConfigs/{demoId}`
+- **Collection:** `envBarConfigs/{demoId}` on **default Firestore** (`aep-orchestration-lab`)
+- **Document id:** lowercased `demoId` / `prefix` (see `docId()` in `functions/envBarConfigStore.js`; e.g. `avivaTarget` → `avivtarget`)
 - **API:** `GET /api/env-bar-config?demoId=ksia` (public read, Admin SDK in `functions/envBarConfigStore.js`)
 - **Merge:** Remote defaults apply over page config unless `localOverride: true` (page wins for local dev)
 - **Listen:** When `firestoreListen !== false`, the loader polls every 60s and emits `envBar.onChange({ type: 'remote-config' })`
 - **Fallback:** Missing Firestore doc is fine — page `envBarConfig` and mount attributes are used
 
-Example Firestore document (optional seed — demos work without it):
+### Firestore schema (`envBarConfigs/{demoId}`)
+
+Only fields in the allow-list below are returned by the API (`sanitizeConfig` in `envBarConfigStore.js`). Extra fields are stored but stripped on read.
+
+| Field | Type | Required | Purpose |
+|-------|------|----------|---------|
+| `demoId` | string | recommended | Document key after `docId()` normalization; defaults to `prefix` when omitted |
+| `prefix` | string | **yes** | Strip id prefix (`sky`, `ksia`, `avivaTarget`, …) |
+| `defaultSandbox` | string | no | Initial sandbox technical name (e.g. `apalmer`) |
+| `availableSandboxes` | string[] | no | Restrict sandbox dropdown to this list |
+| `variant` | string | no | `spectrum` (default) or `classic` |
+| `mode` | string | no | `shell`, `journey`, `minimal`, `compact-fnb`, `sandbox-only` |
+| `defaultBcStyle` | string | no | Brand Concierge style preset id |
+| `disclaimer` | string | no | Strip disclaimer copy |
+| `labCoreScript` | string | no | Optional lab-core script path loaded after env bar init |
+| `storagePrefix` | string | no | localStorage namespace for demo prefs |
+| `features` | object | no | `{ webPush, bc, decisioning }` booleans |
+| `decisioning` | object | no | `{ iframeId, useParentDocument, mountLayoutPreset, viewName, … }` |
+| `siteCloneDemoEnv` | object | no | Merged into `window.SiteCloneDemoEnv` (toggle ids, storage keys) |
+| `envBar` | object | no | Passthrough to `AepDemoEnvStrip.initStandardEnvBar` |
+| `iframeIds` | string[] | no | Default iframe ids for Tags inject / decisioning |
+| `updatedAt` | timestamp | auto | Server timestamp on seed/write |
+| `seededBy` | string | auto | Provenance (seed script name) |
+
+**API response** (`GET /api/env-bar-config?demoId=ksia`):
+
+```json
+{
+  "ok": true,
+  "demoId": "ksia",
+  "found": true,
+  "config": { "demoId": "ksia", "prefix": "ksia", "variant": "spectrum", "features": { "webPush": true, "bc": true, "decisioning": true } }
+}
+```
+
+When no document exists: `{ "ok": true, "found": false, "config": null }`.
+
+### Seed script and JSON exports
+
+```bash
+# Requires ADC on aep-orchestration-lab (gcloud auth application-default login)
+node scripts/seed-env-bar-configs.mjs
+node scripts/seed-env-bar-configs.mjs --dry-run
+node scripts/seed-env-bar-configs.mjs --only ksia,sky
+```
+
+Canonical JSON per demo: `scripts/env-bar-config-seeds/{docId}.json` (ksia, sky, etihad, avivtarget, race).  
+**Manual import** (no credentials): Firebase console → Firestore → `envBarConfigs` → Add document → id = filename stem → paste JSON (omit `updatedAt` / `seededBy` or set manually).
+
+Example Firestore document (KSIA):
 
 ```json
 {
@@ -110,7 +160,12 @@ Example Firestore document (optional seed — demos work without it):
   "defaultSandbox": "apalmer",
   "variant": "spectrum",
   "features": { "webPush": true, "bc": true, "decisioning": true },
-  "defaultBcStyle": "miral"
+  "siteCloneDemoEnv": {
+    "storagePrefix": "ksia",
+    "webPushToggleId": "ksiaWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "ksiaBcOnInjectToggle",
+    "bcStyleSelectId": "ksiaBcStyleSelect"
+  }
 }
 ```
 

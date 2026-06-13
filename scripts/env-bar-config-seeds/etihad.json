@@ -1,0 +1,21 @@
+{
+  "demoId": "etihad",
+  "prefix": "etihad",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "etihadDemo",
+    "webPushBySandboxKey": "etihadDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "etihadWebPushOnInjectToggle",
+    "webPushToggleId": "etihadWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "etihadBcOnInjectToggle",
+    "bcStyleSelectId": "etihadBcStyleSelect"
+  },
+  "iframeIds": ["etihadSiteFrame"]
+}

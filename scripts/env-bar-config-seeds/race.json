@@ -1,0 +1,25 @@
+{
+  "demoId": "race",
+  "prefix": "race",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": true
+  },
+  "decisioning": {
+    "useParentDocument": true,
+    "viewName": "Race for Life",
+    "mountLayoutPreset": "generic"
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "raceForLifeDemo",
+    "webPushBySandboxKey": "raceForLifeDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "raceWebPushOnInjectToggle",
+    "webPushToggleId": "raceWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "raceBcOnInjectToggle",
+    "bcStyleSelectId": "raceBcStyleSelect"
+  }
+}
