@@ -310,48 +310,60 @@
     var fsBtn = $('mobileDemoFullscreenBtn');
     var fsExitFloat = $('mobileDemoFsExitFloat');
 
-    function isFs() {
+    var PRESENTATION_CLASS = 'mobile-demo-fs-root--presentation';
+
+    function isBrowserFs() {
       return !!(document.fullscreenElement || document.webkitFullscreenElement);
     }
 
-    function exitFs() {
+    function exitBrowserFs() {
       if (document.exitFullscreen) return document.exitFullscreen();
       if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
       return Promise.resolve();
     }
 
-    function enterFs(el) {
-      if (!el) return Promise.resolve();
-      if (el.requestFullscreen) return el.requestFullscreen();
-      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
-      return Promise.resolve();
+    function isPresentation() {
+      return fsRoot && fsRoot.classList.contains(PRESENTATION_CLASS);
     }
 
     function syncFsButton() {
-      var fs = isFs();
+      var on = isPresentation();
       if (fsBtn) {
-        fsBtn.textContent = fs ? 'Exit full screen' : 'Full screen';
-        fsBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
+        fsBtn.textContent = on ? 'Exit full screen' : 'Full screen';
+        fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
       }
-      if (fsExitFloat) fsExitFloat.hidden = !fs;
-      document.body.classList.toggle('mobile-demo-page--fs', fs);
+      if (fsExitFloat) fsExitFloat.hidden = !on;
+    }
+
+    function setPresentation(on) {
+      if (!fsRoot) return;
+      var active = !!on;
+      fsRoot.classList.toggle(PRESENTATION_CLASS, active);
+      document.body.classList.toggle('mobile-demo-page--fs', active);
+      syncFsButton();
     }
 
     if (!fsBtn || !fsRoot) return;
 
+    /* CSS presentation mode — avoids Chrome sticky “press and hold Esc” overlay */
+    if (isBrowserFs()) exitBrowserFs().catch(function () {});
+
     fsBtn.addEventListener('click', function () {
-      if (isFs()) exitFs().catch(function () {});
-      else enterFs(fsRoot).catch(function () {});
+      setPresentation(!isPresentation());
     });
     if (fsExitFloat) {
       fsExitFloat.addEventListener('click', function () {
-        exitFs().catch(function () {});
+        setPresentation(false);
       });
     }
-    document.addEventListener('fullscreenchange', syncFsButton);
-    document.addEventListener('webkitfullscreenchange', syncFsButton);
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && isFs()) exitFs().catch(function () {});
+      if (e.key === 'Escape' && isPresentation()) setPresentation(false);
+    });
+    document.addEventListener('fullscreenchange', function () {
+      if (isBrowserFs()) exitBrowserFs().catch(function () {});
+    });
+    document.addEventListener('webkitfullscreenchange', function () {
+      if (isBrowserFs()) exitBrowserFs().catch(function () {});
     });
     syncFsButton();
   }

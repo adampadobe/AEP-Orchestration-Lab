@@ -34,11 +34,28 @@ body.mobile-demo-page {
   overflow-x: hidden;
 }
 
-/* Hide Customize tab while browser fullscreen is active on the simulator root */
+/* Hide Customize tab while presentation / browser fullscreen is active */
 .mobile-demo-fs-root:fullscreen ~ .mobile-demo-customize-tab,
 .mobile-demo-fs-root:-webkit-full-screen ~ .mobile-demo-customize-tab,
+.mobile-demo-fs-root--presentation ~ .mobile-demo-customize-tab,
 body.mobile-demo-page--fs .mobile-demo-customize-tab {
   display: none !important;
+}
+
+/* Presentation mode (CSS maximize — no Fullscreen API / Chrome Esc hint) */
+.mobile-demo-fs-root--presentation {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse 110% 58% at 50% 112%, rgba(255, 155, 118, 0.48), transparent 54%),
+    radial-gradient(ellipse 75% 48% at 6% 94%, rgba(255, 185, 165, 0.42), transparent 51%),
+    radial-gradient(ellipse 72% 46% at 96% 90%, rgba(232, 155, 188, 0.34), transparent 49%),
+    radial-gradient(ellipse 140% 85% at 50% -30%, rgba(140, 175, 245, 0.38), transparent 56%),
+    radial-gradient(ellipse 90% 50% at 72% 22%, rgba(255, 210, 225, 0.22), transparent 45%),
+    linear-gradient(172deg, #aebee8 0%, #cbbfe6 18%, #dcb8d4 38%, #eabfbf 58%, #f5c9ae 78%, #ffd4c2 100%);
 }
 
 /* Fullscreen: Win11 “Sunrise”-style sky → rose → warm horizon (CSS approximation only) */
@@ -60,24 +77,29 @@ body.mobile-demo-page--fs .mobile-demo-customize-tab {
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-topbar,
 .mobile-demo-fs-root:-webkit-full-screen .mobile-demo-topbar,
+.mobile-demo-fs-root--presentation .mobile-demo-topbar,
 body.mobile-demo-page--fs .mobile-demo-topbar {
   display: none !important;
 }
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-device-label,
 .mobile-demo-fs-root:-webkit-full-screen .mobile-demo-device-label,
+.mobile-demo-fs-root--presentation .mobile-demo-device-label,
+.mobile-demo-fs-root--presentation .mobile-demo-shell-device-label,
 body.mobile-demo-page--fs .mobile-demo-device-label {
   display: none !important;
 }
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-hint,
 .mobile-demo-fs-root:-webkit-full-screen .mobile-demo-hint,
+.mobile-demo-fs-root--presentation .mobile-demo-hint,
 body.mobile-demo-page--fs .mobile-demo-hint {
   display: none !important;
 }
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-main,
-.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-main {
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-main,
+.mobile-demo-fs-root--presentation .mobile-demo-main {
   flex: 1;
   display: flex;
   align-items: center;
@@ -87,14 +109,26 @@ body.mobile-demo-page--fs .mobile-demo-hint {
 }
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-stage,
-.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-stage {
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-stage,
+.mobile-demo-fs-root--presentation .mobile-demo-stage {
   gap: 0;
 }
 
 .mobile-demo-fs-root:fullscreen .mobile-demo-viewport,
-.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-viewport {
+.mobile-demo-fs-root:-webkit-full-screen .mobile-demo-viewport,
+.mobile-demo-fs-root--presentation .mobile-demo-viewport {
   max-height: calc(100vh - 5.5rem);
   max-height: calc(100dvh - 5.5rem);
+}
+
+.mobile-demo-fs-root--presentation .mobile-demo-shell-stage-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding-bottom: max(4rem, env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-demo-fs-exit-float {
