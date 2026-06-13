@@ -186,6 +186,39 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   flex-shrink: 0;
 }
 
+.lab-env-version-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 5.5rem;
+  padding: 0.125rem 0.4rem;
+  border-radius: var(--dash-radius-chip, 0.5rem);
+  border: 1px solid var(--dash-border);
+  background: color-mix(in srgb, var(--dash-surface-alt) 55%, var(--dash-surface));
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  color: var(--dash-muted);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  line-height: 1.25;
+}
+
+.lab-env-version-pill:hover,
+.lab-env-version-pill:focus-visible {
+  color: var(--dash-text-secondary);
+  border-color: color-mix(in srgb, var(--dash-blue) 35%, var(--dash-border));
+  outline: none;
+}
+
+.lab-env-version-pill:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+}
+
 .lab-env-chip {
   display: inline-flex;
   align-items: center;

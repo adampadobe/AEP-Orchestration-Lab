@@ -274,6 +274,55 @@
 
     global.addEventListener('aep-demo-tags-ui-state', refresh);
     refresh();
+    loadVersionPill();
+  }
+
+  function resolveVersionJsonPath() {
+    var path = '/version.json';
+    try {
+      var scripts = document.getElementsByTagName('script');
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        var src = scripts[i].getAttribute('src') || '';
+        if (src.indexOf('shared/env-bar.js') === -1) continue;
+        var idx = src.indexOf('shared/env-bar.js');
+        var base = idx > 0 ? src.slice(0, idx) : '';
+        if (base.charAt(0) === '/') {
+          var root = base.replace(/\/profile-viewer\/?$/, '/');
+          path = root + 'version.json';
+        } else if (base) {
+          path = base + 'version.json';
+        }
+        break;
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return path;
+  }
+
+  function loadVersionPill() {
+    var pill = byId('aepLabEnvVersionPill');
+    if (!pill) return;
+    var versionPath = resolveVersionJsonPath();
+    pill.setAttribute('href', versionPath);
+    if (typeof fetch !== 'function') return;
+    fetch(versionPath, { cache: 'no-store' })
+      .then(function (res) {
+        return res && res.ok ? res.json() : null;
+      })
+      .then(function (data) {
+        if (!data || !pill) return;
+        var sha = String(data.gitShortSha || '').trim();
+        if (!sha && data.gitSha) sha = String(data.gitSha).trim().slice(0, 8);
+        if (sha) pill.textContent = sha;
+        var tip = [];
+        if (data.deployedAt) tip.push('Deployed ' + data.deployedAt);
+        if (data.gitCommitSubject) tip.push(data.gitCommitSubject);
+        if (tip.length) pill.title = tip.join(' · ');
+      })
+      .catch(function () {
+        /* noop */
+      });
   }
 
   global.DemoEnvBarSpectrumSync = { init: init };
