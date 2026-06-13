@@ -14,6 +14,7 @@ description: >-
 
 - New HTML demo under `web/profile-viewer/` that needs **sandbox selection**, **Tags (Launch) injection**, and **`POST /api/events/generator`** (or profile drawer `application.login`).
 - Refactoring an existing demo from a compact header (email + hidden generator) to the **standard strip**.
+- Greenfield site-clone shell: run [`scripts/scaffold-site-clone-demo.mjs`](../../scripts/scaffold-site-clone-demo.mjs) (`--mode iframe` for Sky/MOD iframe clones; `--mode parent-doc` for Race for Life–style parent-document mounts). See [CONTRIBUTING.md § Greenfield scaffold](../../CONTRIBUTING.md#greenfield-scaffold).
 
 ## Canonical pattern (must match)
 
@@ -388,7 +389,8 @@ Bump **`?v=YYYYMMDD-…`** on every `<link>` / `<script>` that references a chan
 
 ## References in repo
 
-- `web/profile-viewer/sky-demo.html` + `shared/demo-env-strip.js` — canonical env strip (Jun 2026).
+- [`scripts/scaffold-site-clone-demo.mjs`](../../scripts/scaffold-site-clone-demo.mjs) — greenfield iframe or parent-doc shell generator.
+- `web/profile-viewer/sky-demo.html` + `shared/env-bar.js` — canonical env strip (2026).
 - `web/profile-viewer/etihad-demo.html` — migrated to site-clone mount; do not copy old vertical strip.
 - `web/profile-viewer/aep-demo-env-bar.css` — `.aep-demo-id-inner` shared grid utility.
 - `web/profile-viewer/brand-concierge-controls.css` / `brand-concierge-controls.js` — BC dismiss + reopen wiring.
