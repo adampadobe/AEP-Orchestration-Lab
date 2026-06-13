@@ -24,6 +24,7 @@
 /* Compact env bar: fixed toolbar + overlay (see shared/env-bar-compact.css) */
 .mobile-demo-shell-env-anchor.lab-env-top-anchor {
   --env-bar-height: calc(3rem + 2.25rem);
+  position: fixed;
   z-index: 7200;
 }
 

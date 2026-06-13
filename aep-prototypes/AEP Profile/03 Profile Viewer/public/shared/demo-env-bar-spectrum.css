@@ -102,8 +102,12 @@
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
-[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
-[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
   overflow-x: hidden;
   overflow-y: hidden;
 }
