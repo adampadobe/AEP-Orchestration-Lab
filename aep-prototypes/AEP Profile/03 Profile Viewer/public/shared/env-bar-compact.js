@@ -19,6 +19,7 @@
     if (!mount) return null;
     return (
       mount.closest('.lab-env-top-anchor') ||
+      mount.closest('.mobile-demo-shell-env-anchor') ||
       mount.closest('.mod-demo-top-anchor') ||
       mount.closest('[class*="-demo-top-anchor"]')
     );

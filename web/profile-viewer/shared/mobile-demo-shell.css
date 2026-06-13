@@ -21,6 +21,22 @@
   z-index: 6500;
 }
 
+/* Compact env bar: fixed toolbar + overlay (see shared/env-bar-compact.css) */
+.mobile-demo-shell-env-anchor.lab-env-top-anchor {
+  --env-bar-height: calc(3rem + 2.25rem);
+  z-index: 7200;
+}
+
+@media (max-width: 48rem) {
+  .mobile-demo-shell-env-anchor.lab-env-top-anchor {
+    --env-bar-height: calc(5.5rem + 2.25rem);
+  }
+}
+
+.mobile-demo-shell-env-anchor.lab-env-top-anchor ~ .mobile-demo-fs-root {
+  padding-top: var(--env-bar-height, 3rem);
+}
+
 .mobile-demo-shell-env-anchor .ksia-demo-id-banner,
 .mobile-demo-shell-env-anchor .mobile-demo-shell-id-banner {
   background: var(--dash-surface);
@@ -213,24 +229,24 @@
   padding: 11px;
 }
 
-/* KSIA mobile demo page overrides */
-.ksia-mobile-demo-page .dashboard-shell {
+/* Flyout lab nav — all mobile shell pages */
+.mobile-demo-shell-page .dashboard-shell {
   position: fixed;
   inset: 0;
   z-index: 7000;
   pointer-events: none;
 }
 
-.ksia-mobile-demo-page .dashboard-sidebar {
+.mobile-demo-shell-page .dashboard-sidebar {
   pointer-events: auto;
 }
 
-.ksia-mobile-demo-page .dashboard-main-wrap {
+.mobile-demo-shell-page .dashboard-main-wrap {
   display: none;
 }
 
 @media (min-width: 769px) {
-  body.ksia-mobile-demo-page .dashboard-sidebar {
+  body.mobile-demo-shell-page .dashboard-sidebar {
     position: fixed;
     left: 0;
     top: 0;
@@ -243,8 +259,8 @@
     pointer-events: auto;
   }
 
-  body.ksia-mobile-demo-page--nav-open .dashboard-sidebar,
-  body.ksia-mobile-demo-page .dashboard-sidebar:focus-within {
+  body.mobile-demo-shell-page--nav-open .dashboard-sidebar,
+  body.mobile-demo-shell-page .dashboard-sidebar:focus-within {
     transform: translateX(0);
     box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
   }

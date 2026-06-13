@@ -64,11 +64,14 @@
     function hasCompactToolbarOverlay() {
       var anchor =
         sec.closest('.lab-env-top-anchor') ||
+        sec.closest('.mobile-demo-shell-env-anchor') ||
         sec.closest('[class*="-demo-top-anchor"]') ||
         (function () {
           var mount = document.querySelector('[data-demo-env-strip-mount]');
           return mount
-            ? mount.closest('.lab-env-top-anchor') || mount.closest('[class*="-demo-top-anchor"]')
+            ? mount.closest('.lab-env-top-anchor') ||
+                mount.closest('.mobile-demo-shell-env-anchor') ||
+                mount.closest('[class*="-demo-top-anchor"]')
             : null;
         })();
       return !!(anchor && anchor.querySelector('.lab-env-overlay-panel'));

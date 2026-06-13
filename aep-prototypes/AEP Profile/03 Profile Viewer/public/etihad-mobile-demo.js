@@ -78,7 +78,7 @@ window.addEventListener('message', function (ev) {
     }
   }
   function setFlyoutOpen(open) {
-    body.classList.toggle('etihad-mobile-demo-page--nav-open', open);
+    body.classList.toggle('mobile-demo-shell-page--nav-open', open);
   }
   function scheduleClose() {
     clearHideTimer();
@@ -110,13 +110,13 @@ window.addEventListener('message', function (ev) {
         setFlyoutOpen(true);
         return;
       }
-      if (body.classList.contains('etihad-mobile-demo-page--nav-open')) scheduleClose();
+      if (body.classList.contains('mobile-demo-shell-page--nav-open')) scheduleClose();
     },
     { passive: true },
   );
   mq.addEventListener('change', function () {
     clearHideTimer();
-    if (mq.matches) body.classList.remove('etihad-mobile-demo-page--nav-open');
+    if (mq.matches) body.classList.remove('mobile-demo-shell-page--nav-open');
   });
   setFlyoutOpen(false);
 })();

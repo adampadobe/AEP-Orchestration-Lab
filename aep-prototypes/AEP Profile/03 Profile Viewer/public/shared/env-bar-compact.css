@@ -7,7 +7,7 @@
  */
 
 .mod-demo-top-anchor,
-[class*='-demo-top-anchor'] {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor {
   --env-bar-height: 3rem;
   --lab-env-overlay-max: 70vh;
   position: fixed;
@@ -20,7 +20,7 @@
 }
 
 .mod-demo-top-anchor::before,
-[class*='-demo-top-anchor']::before {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor::before {
   display: none;
 }
 
@@ -63,7 +63,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 /* ── Overlay backdrop ─────────────────────────────────────────── */
 .mod-demo-top-anchor::after,
-[class*='-demo-top-anchor']::after {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -78,8 +78,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded::after,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned::after,
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded::after,
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned::after {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded::after,
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned::after {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -112,8 +112,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-overlay-panel {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel {
   max-height: var(--lab-env-overlay-max);
   overflow-x: hidden;
   overflow-y: auto;
@@ -125,8 +125,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned,
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded,
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded,
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned {
   box-shadow: var(--dash-shadow);
 }
 
@@ -338,7 +338,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
   .lab-env-overlay-panel:not([hidden]),
-[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
   .lab-env-overlay-panel:not([hidden]) {
   display: none;
 }
@@ -350,25 +350,25 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden] {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .spectrum-env-collapsible-fields[hidden],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed [id$='SdkConfigFields'][hidden] {
   display: block !important;
 }
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact,
-[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
-[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-compact,
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-compact {
   display: none !important;
 }
 
 /* Legacy non-spectrum: keep peek fallback when no overlay panel */
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)) .mod-demo-id-banner,
-[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)) [class*='-demo-id-banner'] {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(:has(.lab-env-overlay-panel)) [class*='-demo-id-banner'] {
   transform: translateY(calc(-100% + var(--env-bar-height, 3rem)));
   max-height: var(--env-bar-height, 3rem);
   overflow: hidden;
@@ -379,10 +379,10 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)):focus-within .mod-demo-id-banner,
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded .mod-demo-id-banner,
 .mod-demo-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned .mod-demo-id-banner,
-[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):hover [class*='-demo-id-banner'],
-[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)):focus-within [class*='-demo-id-banner'],
-[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded [class*='-demo-id-banner'],
-[class*='-demo-top-anchor']:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(:has(.lab-env-overlay-panel)):hover [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(:has(.lab-env-overlay-panel)):focus-within [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor:not(:has(.lab-env-overlay-panel)).lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
   transform: translateY(0);
   max-height: min(var(--lab-env-overlay-max, 70vh), 960px);
   overflow-y: auto;
@@ -390,16 +390,113 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 @media (max-width: 48rem) {
   .mod-demo-top-anchor,
-  [class*='-demo-top-anchor'] {
-    --env-bar-height: 3.25rem;
+  [class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor {
+    --env-bar-height: 5.5rem;
+    --lab-env-overlay-max: min(82dvh, calc(100dvh - var(--env-bar-height) - 0.5rem));
+    height: var(--env-bar-height);
+  }
+
+  .mod-demo-id-banner,
+  [class*='-demo-id-banner'] {
+    height: var(--env-bar-height);
+    max-height: var(--env-bar-height);
+    overflow: hidden;
+  }
+
+  .lab-env-toolbar,
+  .spectrum-env-status-bar.lab-env-toolbar {
+    flex-wrap: wrap;
+    align-content: center;
+    max-height: var(--env-bar-height);
+    min-height: var(--env-bar-height);
+    padding: 0.3rem 0.5rem;
+    row-gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .lab-env-toolbar__brand {
+    flex: 1 1 auto;
+    max-width: min(10rem, 42vw);
+    min-width: 0;
+  }
+
+  .lab-env-toolbar__stats {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    order: 3;
+    gap: 0.25rem 0.35rem;
+    max-height: 2rem;
+    overflow: hidden;
+  }
+
+  .lab-env-toolbar__actions {
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   .lab-env-sandbox-chip,
   .lab-env-chip {
-    max-width: min(7.5rem, 34vw);
+    max-width: min(7.5rem, 38vw);
+    font-size: 0.75rem;
+  }
+
+  .lab-env-version-pill {
+    display: none;
+  }
+
+  .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
+  .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+  [class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
+  [class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel {
+    max-height: var(--lab-env-overlay-max);
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 24rem) {
+  .mod-demo-top-anchor,
+  [class*='-demo-top-anchor'], .mobile-demo-shell-env-anchor, .lab-env-top-anchor {
+    --env-bar-height: 6.25rem;
+    --lab-env-overlay-max: min(78dvh, calc(100dvh - var(--env-bar-height) - 0.25rem));
+  }
+
+  .lab-env-toolbar,
+  .spectrum-env-status-bar.lab-env-toolbar {
+    padding: 0.25rem 0.375rem;
+    row-gap: 0.2rem;
   }
 
   .lab-env-toolbar__brand {
-    max-width: min(9rem, 32vw);
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 1;
+  }
+
+  .lab-env-toolbar__actions {
+    order: 2;
+  }
+
+  .lab-env-toolbar__stats {
+    order: 3;
+    max-height: 2.25rem;
+  }
+
+  .lab-env-toolbar__title {
+    font-size: 0.75rem;
+  }
+
+  .lab-env-sandbox-chip,
+  .lab-env-chip {
+    max-width: min(6.5rem, 46vw);
+    font-size: 0.6875rem;
+    padding: 0.1rem 0.35rem;
+  }
+
+  .lab-env-toggle-btn,
+  .lab-env-pin-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 }
