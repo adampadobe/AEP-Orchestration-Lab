@@ -416,6 +416,40 @@
   background: var(--spectrum-green);
 }
 
+/* S2 StatusLight — toolbar SDK/property indicators */
+.spectrum-env-status-light {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--dash-muted);
+}
+
+.spectrum-env-status-light--positive {
+  background: var(--dash-success, var(--spectrum-green));
+}
+
+.spectrum-env-status-light--neutral {
+  background: var(--dash-muted);
+}
+
+.spectrum-env-status-light--notice {
+  background: var(--dash-warning, var(--spectrum-orange));
+}
+
+.lab-env-status-light--positive {
+  color: var(--dash-text);
+}
+
+.lab-env-status-light--neutral {
+  color: var(--dash-text-secondary);
+}
+
+.lab-env-status-light--notice {
+  color: var(--dash-warning-text, var(--dash-text));
+}
+
 .spectrum-env-pill {
   display: inline-flex;
   align-items: center;
@@ -877,10 +911,14 @@
 }
 
 .aep-demo-env-bar--spectrum .site-clone-bc-prefs__option {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: min(6.5rem, 42%);
   margin: 0;
-  padding: 0.3rem 0.65rem;
+  padding: 0.45rem 0.75rem;
   border: 1px solid var(--spectrum-input-border);
   border-radius: var(--dash-radius-control, 0.5rem);
   background: var(--dash-surface);
@@ -888,13 +926,25 @@
   font-weight: 600;
   color: var(--spectrum-text-secondary);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:hover {
+  border-color: color-mix(in srgb, var(--spectrum-blue) 45%, var(--spectrum-input-border));
+  background: color-mix(in srgb, var(--dash-surface-alt) 65%, var(--dash-surface));
+}
+
+.aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:focus-within {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
 }
 
 .aep-demo-env-bar--spectrum .site-clone-bc-prefs__option:has(input:checked) {
   border-color: var(--spectrum-blue);
   background: var(--spectrum-blue-soft);
   color: var(--spectrum-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spectrum-blue) 25%, transparent);
 }
 
 .aep-demo-env-bar--spectrum .site-clone-bc-prefs__option input {

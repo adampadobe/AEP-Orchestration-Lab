@@ -45,10 +45,15 @@
     if (toggleBtn) {
       toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       toggleBtn.setAttribute('aria-label', isOpen ? 'Hide environment controls' : 'Show environment controls');
+      toggleBtn.setAttribute('title', isOpen ? 'Collapse environment panel' : 'Expand environment panel');
     }
 
     var pinBtn = byId(PIN_BTN_ID);
-    if (pinBtn) pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+    if (pinBtn) {
+      pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+      pinBtn.setAttribute('aria-label', pinned ? 'Unpin environment panel' : 'Pin environment panel open');
+      pinBtn.setAttribute('title', pinned ? 'Unpin environment panel' : 'Pin environment panel open');
+    }
   }
 
   function readPinnedFromStorage() {

@@ -153,14 +153,14 @@
       '<div class="spectrum-env-status-bar__stats lab-env-toolbar__stats">' +
       '<div class="spectrum-env-stat spectrum-env-stat--sandbox"><span class="spectrum-env-stat__label">Sandbox</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-sandbox-chip lab-env-chip" id="aepSpectrumSandboxPill" title="Sandbox">—</span></div>' +
       '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Environment</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-chip" id="aepSpectrumEnvPill" title="Tags environment">Development</span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Property</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status" id="aepSpectrumPropertyChip" title="Tags property"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumPropertyDot"></span><span id="aepSpectrumPropertyStatus">Active</span></span></div>' +
-      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">SDK Status</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status" title="SDK status"><span class="spectrum-env-dot spectrum-env-dot--green" id="aepSpectrumSdkDot"></span><span id="aepSpectrumSdkStatus">Connected</span></span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Property</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status lab-env-status-light lab-env-status-light--positive" id="aepSpectrumPropertyChip" title="Tags property"><span class="spectrum-env-status-light spectrum-env-status-light--positive" id="aepSpectrumPropertyDot" aria-hidden="true"></span><span id="aepSpectrumPropertyStatus">Active</span></span></div>' +
+      '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">SDK Status</span><span class="spectrum-env-stat__value lab-env-chip lab-env-chip--status lab-env-status-light lab-env-status-light--positive" id="aepSpectrumSdkChip" title="SDK status"><span class="spectrum-env-status-light spectrum-env-status-light--positive" id="aepSpectrumSdkDot" aria-hidden="true"></span><span id="aepSpectrumSdkStatus">Connected</span></span></div>' +
       '<div class="spectrum-env-stat"><span class="spectrum-env-stat__label">Scripts Loaded</span><button type="button" class="spectrum-env-link-btn lab-env-chip" id="aepSpectrumScriptsCount" title="Selected Launch script">None</button></div>' +
       '</div>' +
       '<div class="lab-env-toolbar__actions">' +
-      '<button type="button" class="spectrum-env-icon-btn lab-env-toggle-btn" id="aepLabEnvToggleBtn" aria-label="Show environment controls" aria-expanded="false" title="Expand panel">' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-toggle-btn" id="aepLabEnvToggleBtn" aria-label="Show environment controls" aria-expanded="false" title="Expand environment panel">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg></button>' +
-      '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment panel open" aria-pressed="false" title="Pin open">' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment panel open" aria-pressed="false" title="Pin environment panel open">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14 4v4.5l4.2 4.2-1.4 1.4L12.5 10V16h-1v-6L7.2 14.1 5.8 12.7 10 8.5V4h4Z"/></svg></button>' +
       '</div>' +
       '<div class="spectrum-env-status-bar__updated lab-env-overlay-only"><span class="spectrum-env-status-bar__clock">' +
@@ -206,13 +206,13 @@
       cardHeader('palette', 'Brand Concierge', 'purple') +
       '<div class="spectrum-env-card__body lab-env-bc-panel__body">' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcStyleConfigUrl">Style configuration</label><select id="siteCloneBcStyleConfigUrl" class="site-clone-bc-style-url-select site-clone-bc-style-url-input spectrum-env-input" aria-label="Brand Concierge style configuration script"></select></div>' +
-      '<div class="spectrum-env-bc-pills" id="aepSpectrumBcPills" aria-live="polite">' +
-      '<span class="spectrum-env-badge spectrum-env-badge--blue" id="aepSpectrumBcPillScripts"><span class="spectrum-env-badge__icon">' +
+      '<div class="spectrum-env-bc-pills" id="aepSpectrumBcPills" role="list" aria-label="Brand Concierge status" aria-live="polite">' +
+      '<span class="spectrum-env-badge spectrum-env-badge--blue" id="aepSpectrumBcPillScripts" role="listitem"><span class="spectrum-env-badge__icon" aria-hidden="true">' +
       spectrumIcon('info') +
       '</span>Scripts</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--purple" id="aepSpectrumBcPillModal">Modal</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--green" id="aepSpectrumBcPillInjected">Injected</span>' +
-      '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv">Development</span></div>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--purple" id="aepSpectrumBcPillModal" role="listitem">Modal</span>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--green" id="aepSpectrumBcPillInjected" role="listitem">Injected</span>' +
+      '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv" role="listitem">Development</span></div>' +
       '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint spectrum-env-card__hint" aria-live="polite"></p>' +
       '<div class="spectrum-env-display-mode lab-env-bc-prefs-wrap"><span class="spectrum-env-field__label">Display mode</span><div ' +
       prefsAttrs +

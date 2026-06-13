@@ -22,11 +22,24 @@
     }
   }
 
-  function setDotState(dotEl, statusEl, ok, okText, badText) {
-    if (dotEl) {
-      dotEl.classList.toggle('spectrum-env-dot--green', !!ok);
+  var STATUS_LIGHT_VARIANTS = ['positive', 'neutral', 'notice'];
+
+  function setStatusLight(chipEl, dotEl, statusEl, variant, text) {
+    var v = STATUS_LIGHT_VARIANTS.indexOf(variant) >= 0 ? variant : 'neutral';
+    if (chipEl) {
+      chipEl.classList.add('lab-env-status-light');
+      STATUS_LIGHT_VARIANTS.forEach(function (name) {
+        chipEl.classList.toggle('lab-env-status-light--' + name, name === v);
+      });
     }
-    if (statusEl) statusEl.textContent = ok ? okText : badText;
+    if (dotEl) {
+      dotEl.classList.add('spectrum-env-status-light');
+      dotEl.classList.remove('spectrum-env-dot--green');
+      STATUS_LIGHT_VARIANTS.forEach(function (name) {
+        dotEl.classList.toggle('spectrum-env-status-light--' + name, name === v);
+      });
+    }
+    if (statusEl) statusEl.textContent = text;
   }
 
   function init(cfg) {
@@ -48,6 +61,7 @@
     var sandboxSelect = byId('sandboxSelect');
     var propertyStatus = byId('aepSpectrumPropertyStatus');
     var propertyChip = byId('aepSpectrumPropertyChip');
+    var sdkChip = byId('aepSpectrumSdkChip');
     var sdkStatus = byId('aepSpectrumSdkStatus');
     var sdkDot = byId('aepSpectrumSdkDot');
     var scriptsBtn = byId('aepSpectrumScriptsCount');
@@ -113,13 +127,24 @@
       if (bcPillEnv) bcPillEnv.textContent = envLabel;
 
       var propVal = tagsProperty ? String(tagsProperty.value || '').trim() : '';
-      if (propertyStatus) propertyStatus.textContent = propVal ? 'Active' : 'Unset';
+      setStatusLight(
+        propertyChip,
+        byId('aepSpectrumPropertyDot'),
+        propertyStatus,
+        propVal ? 'positive' : 'notice',
+        propVal ? 'Active' : 'Unset',
+      );
       if (propertyChip) syncTruncatedTitle(propertyChip, propVal || 'Tags property not set');
-      setDotState(byId('aepSpectrumPropertyDot'), null, !!propVal, '', '');
       if (tagsProperty) syncTruncatedTitle(tagsProperty, propVal);
 
       var sdkConnected = !!(fields && fields.hidden && summary && !summary.hidden);
-      setDotState(sdkDot, sdkStatus, sdkConnected, 'Connected', 'Configure SDK');
+      setStatusLight(
+        sdkChip,
+        sdkDot,
+        sdkStatus,
+        sdkConnected ? 'positive' : 'notice',
+        sdkConnected ? 'Connected' : 'Configure SDK',
+      );
       if (targetBadge) {
         targetBadge.textContent = sdkConnected ? 'SDK Connected' : 'SDK Not configured';
         targetBadge.classList.toggle('spectrum-env-badge--green', sdkConnected);

@@ -212,6 +212,10 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   padding-right: 0.25rem;
 }
 
+.lab-env-status-light {
+  gap: 0.35rem;
+}
+
 .lab-env-sandbox-chip {
   display: inline-flex;
   align-items: center;
