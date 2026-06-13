@@ -92,8 +92,22 @@
     });
   }
 
+  function shouldSkipFullscreenHelper(doc) {
+    var body = doc && doc.body;
+    if (body && body.classList && (
+      body.classList.contains('mobile-demo-shell-page') ||
+      body.classList.contains('mobile-demo-page')
+    )) return true;
+    if (doc && doc.getElementById('mobileDemoFsRoot')) return true;
+    var p = (global.location && global.location.pathname) || '';
+    if (/-mobile-demo\.html?$/i.test(p)) return true;
+    if (/\/mobile-demo(?:-apalmer)?\.html?$/i.test(p)) return true;
+    return false;
+  }
+
   function injectFullscreenHelper() {
     var doc = global.document;
+    if (shouldSkipFullscreenHelper(doc)) return;
     if (!doc.head || doc.querySelector('script[data-aep-fullscreen="1"]')) return;
     var s = doc.createElement('script');
     s.defer = true;
