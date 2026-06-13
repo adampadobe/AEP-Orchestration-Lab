@@ -3,7 +3,7 @@
   "moduleVersion": "1.0.0",
   "assets": {
     "bundleCss": "20260623-env-inline",
-    "spectrumCss": "20260613-mobile-narrow",
+    "spectrumCss": "20260613-bc-display-mode",
     "demoEnvStripSpectrum": "20260613-mobile-narrow",
     "demoEnvStrip": "20260625-version-pill",
     "spectrumSync": "20260625-version-pill",

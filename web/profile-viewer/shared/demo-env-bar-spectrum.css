@@ -865,6 +865,26 @@
   margin: 0;
 }
 
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field {
+  align-self: stretch;
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__option {
+  flex: initial;
+  min-width: 0;
+  width: 100%;
+}
+
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
   display: none;
 }
@@ -1145,7 +1165,11 @@
     font-size: 0.75rem;
   }
 
-  .aep-demo-env-bar--spectrum .site-clone-bc-prefs__option {
+  .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aep-demo-env-bar--spectrum .site-clone-decisioning-prefs-field .site-clone-bc-prefs__option {
     min-width: 100%;
   }
 }

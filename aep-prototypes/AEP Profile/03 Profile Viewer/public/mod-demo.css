@@ -65,7 +65,8 @@
   display: none !important;
 }
 
-.site-clone-bc-prefs-field {
+/* Classic profile-row prefs only — spectrum BC card uses demo-env-bar-spectrum.css */
+.aep-demo-profile-section .site-clone-bc-prefs-field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -87,7 +88,7 @@
   border: 0;
 }
 
-.site-clone-bc-prefs-field .site-clone-bc-prefs__label {
+.aep-demo-profile-section .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--dash-muted);
@@ -182,14 +183,14 @@
   min-height: 540px;
 }
 
-.site-clone-bc-prefs__options {
+.aep-demo-profile-section .site-clone-bc-prefs__options {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem 0.9rem;
 }
 
-.site-clone-bc-prefs__option {
+.aep-demo-profile-section .site-clone-bc-prefs__option {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -199,7 +200,7 @@
   white-space: nowrap;
 }
 
-.site-clone-bc-prefs__option input[type='checkbox'] {
+.aep-demo-profile-section .site-clone-bc-prefs__option input[type='checkbox'] {
   accent-color: var(--dash-blue);
   flex-shrink: 0;
 }
