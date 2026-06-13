@@ -657,7 +657,7 @@ Sky iframe may waive static HTML with comment `decisioning-mounts: dynamic-only`
 
 #### Greenfield scaffold
 
-No standalone generator script yet — copy the fragment into new demo HTML and add the decisioning checklist items above. See agent skill [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
+Run `node scripts/scaffold-site-clone-demo.mjs --prefix <id> --output web/profile-viewer/demos/<id>/index.html --iframe-src demos/<id>/snapshot.html` to generate a Spectrum env-bar shell; then add decisioning mount zones to the iframe snapshot and implement `{prefix}-lab-core.js`. See [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
 **Legacy mount contract (deprecated — do not use on new demos):**
 
