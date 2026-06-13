@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>KSIA AIVC — Home</title>
+  <link rel="stylesheet" href="ksia-mobile-app.css?v=20260613">
+</head>
+<body class="ksia-mobile-app" data-ksia-mobile-page="home">
+  <div class="ksia-mobile-app-shell">
+    <header class="ksia-mobile-header">
+      <div class="ksia-mobile-header-top">
+        <div class="ksia-mobile-logo">
+          <span class="ksia-mobile-logo-mark" aria-hidden="true">K</span>
+          <span class="ksia-mobile-logo-text">
+            KSIA AIVC
+            <span class="ksia-mobile-logo-sub">Airport companion</span>
+          </span>
+        </div>
+        <div class="ksia-mobile-header-actions">
+          <button type="button" class="ksia-mobile-icon-btn" aria-label="Notifications" onclick="location.href='notifications.html?aepSimMobile=1'">&#128276;</button>
+        </div>
+      </div>
+      <p class="ksia-mobile-greeting">Welcome back</p>
+      <h1 class="ksia-mobile-title">Your journey companion</h1>
+    </header>
+
+    <div class="ksia-mobile-app-scroll">
+      <div class="ksia-mobile-hero-card">
+        <p class="ksia-mobile-hero-kicker" id="ksiaMobileHeroKicker">Your AIVC companion</p>
+        <p class="ksia-mobile-hero-flight" id="ksiaMobileHeroFlight">SV 123 · Riyadh → London</p>
+        <p class="ksia-mobile-hero-meta" id="ksiaMobileHeroMeta"></p>
+        <span class="ksia-mobile-hero-badge" id="ksiaMobileHeroBadge"></span>
+      </div>
+
+      <p class="ksia-mobile-sdk-hint" id="ksiaMobileSdkHint">
+        Inject Tags from the lab env bar above the simulator to load Brand Concierge and Web SDK into this app shell.
+      </p>
+
+      <section class="ksia-mobile-section" aria-label="Journey stages">
+        <h2 class="ksia-mobile-section-title">Journey stage</h2>
+        <ol class="ksia-mobile-stages" id="ksiaMobileStages"></ol>
+      </section>
+
+      <section class="ksia-mobile-section" aria-labelledby="ksia-assist-heading">
+        <h2 class="ksia-mobile-section-title" id="ksia-assist-heading">AIVC assistant</h2>
+        <div class="ksia-mobile-card">
+          <p class="ksia-mobile-card-lead" id="ksiaMobileAssistantLead"></p>
+          <p class="ksia-mobile-card-rec" id="ksiaMobileAssistantRec"></p>
+          <div id="ksiaMobileAssistantActions"></div>
+        </div>
+      </section>
+
+      <section class="ksia-mobile-section" aria-labelledby="ksia-actions-heading">
+        <h2 class="ksia-mobile-section-title" id="ksia-actions-heading">Next best actions</h2>
+        <div class="ksia-mobile-card">
+          <ul class="ksia-mobile-actions" id="ksiaMobileNextActions"></ul>
+        </div>
+      </section>
+
+      <div id="brand-concierge-mobile-mount" aria-live="polite"></div>
+    </div>
+
+    <nav class="ksia-mobile-tabbar" id="ksiaMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+
+  <button type="button" class="ksia-mobile-bc-fab" id="ksiaMobileBcFab" aria-label="Open Brand Concierge">&#10022;</button>
+
+  <script src="../ksia-mock-data.js?v=20260613"></script>
+  <script src="ksia-mobile-app.js?v=20260613"></script>
+</body>
+</html>

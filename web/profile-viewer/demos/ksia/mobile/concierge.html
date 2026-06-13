@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>KSIA AIVC — Brand Concierge</title>
+  <link rel="stylesheet" href="ksia-mobile-app.css?v=20260613">
+</head>
+<body class="ksia-mobile-app" data-ksia-mobile-page="concierge">
+  <div class="ksia-mobile-app-shell">
+    <header class="ksia-mobile-header">
+      <div class="ksia-mobile-header-top">
+        <div class="ksia-mobile-logo">
+          <span class="ksia-mobile-logo-mark" aria-hidden="true">&#10022;</span>
+          <span class="ksia-mobile-logo-text">Brand Concierge</span>
+        </div>
+      </div>
+      <h1 class="ksia-mobile-title" id="ksiaMobileAssistantTitle">Your companion</h1>
+    </header>
+
+    <div class="ksia-mobile-app-scroll">
+      <section class="ksia-mobile-concierge-hero" aria-label="Brand Concierge hub">
+        <h2>Airport Intelligent Virtual Companion</h2>
+        <p>Personalised guidance across pre-trip, at-airport, in-flight, and post-trip — powered by Real-Time CDP and Journey Optimizer orchestration.</p>
+      </section>
+
+      <p class="ksia-mobile-sdk-hint" id="ksiaMobileSdkHint">
+        Inject Tags from the lab env bar to load Brand Concierge into the mount below. This is the mobile app focal point per the AIVC vision.
+      </p>
+
+      <section class="ksia-mobile-section">
+        <div class="ksia-mobile-card">
+          <p class="ksia-mobile-card-lead" id="ksiaMobileAssistantLead"></p>
+          <p class="ksia-mobile-card-rec" id="ksiaMobileAssistantRec"></p>
+          <div id="ksiaMobileAssistantActions"></div>
+        </div>
+      </section>
+
+      <!-- Primary BC / Web SDK injection mount -->
+      <section class="ksia-mobile-section" aria-label="Brand Concierge mount">
+        <h2 class="ksia-mobile-section-title">Concierge panel</h2>
+        <div class="ksia-mobile-card">
+          <div id="brand-concierge-mobile-mount" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="ksia-mobile-section">
+        <h2 class="ksia-mobile-section-title">Connected services</h2>
+        <div class="ksia-mobile-card">
+          <ul class="ksia-mobile-actions" id="ksiaMobileNextActions"></ul>
+        </div>
+      </section>
+    </div>
+
+    <nav class="ksia-mobile-tabbar" id="ksiaMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+
+  <button type="button" class="ksia-mobile-bc-fab" id="ksiaMobileBcFab" aria-label="Open Brand Concierge">&#10022;</button>
+
+  <script src="../ksia-mock-data.js?v=20260613"></script>
+  <script src="ksia-mobile-app.js?v=20260613"></script>
+</body>
+</html>

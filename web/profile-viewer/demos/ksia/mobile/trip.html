@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>KSIA AIVC — Trip</title>
+  <link rel="stylesheet" href="ksia-mobile-app.css?v=20260613">
+</head>
+<body class="ksia-mobile-app" data-ksia-mobile-page="trip">
+  <div class="ksia-mobile-app-shell">
+    <header class="ksia-mobile-header">
+      <div class="ksia-mobile-header-top">
+        <div class="ksia-mobile-logo">
+          <span class="ksia-mobile-logo-mark" aria-hidden="true">K</span>
+          <span class="ksia-mobile-logo-text">My trip</span>
+        </div>
+      </div>
+      <h1 class="ksia-mobile-title">SV 123 · Riyadh → London</h1>
+    </header>
+
+    <div class="ksia-mobile-app-scroll">
+      <div class="ksia-mobile-hero-card">
+        <p class="ksia-mobile-hero-kicker">Today · Terminal 1</p>
+        <p class="ksia-mobile-hero-flight">Departure 17:05 · Gate B12</p>
+        <p class="ksia-mobile-hero-meta">Check-in open · Boarding 16:35 · On time</p>
+        <span class="ksia-mobile-hero-badge">Pre-trip stage</span>
+      </div>
+
+      <section class="ksia-mobile-section">
+        <h2 class="ksia-mobile-section-title">Timeline</h2>
+        <div class="ksia-mobile-card">
+          <ul class="ksia-mobile-actions">
+            <li class="ksia-mobile-action">
+              <span class="ksia-mobile-action-icon">&#128663;</span>
+              <span class="ksia-mobile-action-body">
+                <p class="ksia-mobile-action-title">Leave for airport</p>
+                <p class="ksia-mobile-action-desc">Recommended 14:00 — 45 min drive to T1</p>
+              </span>
+            </li>
+            <li class="ksia-mobile-action">
+              <span class="ksia-mobile-action-icon">&#128274;</span>
+              <span class="ksia-mobile-action-body">
+                <p class="ksia-mobile-action-title">Security · e-gate</p>
+                <p class="ksia-mobile-action-desc">Wallet ready — save ~12 min</p>
+              </span>
+            </li>
+            <li class="ksia-mobile-action">
+              <span class="ksia-mobile-action-icon">&#9749;</span>
+              <span class="ksia-mobile-action-body">
+                <p class="ksia-mobile-action-title">Altitude Café</p>
+                <p class="ksia-mobile-action-desc">15 min walk from security · enough time before boarding</p>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="ksia-mobile-section">
+        <h2 class="ksia-mobile-section-title">Journey stage</h2>
+        <ol class="ksia-mobile-stages" id="ksiaMobileStages"></ol>
+      </section>
+    </div>
+
+    <nav class="ksia-mobile-tabbar" id="ksiaMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+
+  <button type="button" class="ksia-mobile-bc-fab" id="ksiaMobileBcFab" aria-label="Open Brand Concierge">&#10022;</button>
+
+  <script src="../ksia-mock-data.js?v=20260613"></script>
+  <script src="ksia-mobile-app.js?v=20260613"></script>
+</body>
+</html>

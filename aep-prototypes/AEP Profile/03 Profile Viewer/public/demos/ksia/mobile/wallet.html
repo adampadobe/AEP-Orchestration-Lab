@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>KSIA AIVC — Wallet</title>
+  <link rel="stylesheet" href="ksia-mobile-app.css?v=20260613">
+</head>
+<body class="ksia-mobile-app" data-ksia-mobile-page="wallet">
+  <div class="ksia-mobile-app-shell">
+    <header class="ksia-mobile-header">
+      <div class="ksia-mobile-header-top">
+        <div class="ksia-mobile-logo">
+          <span class="ksia-mobile-logo-mark" aria-hidden="true">K</span>
+          <span class="ksia-mobile-logo-text">Travel wallet</span>
+        </div>
+      </div>
+      <h1 class="ksia-mobile-title">Identity &amp; wallet</h1>
+    </header>
+
+    <div class="ksia-mobile-app-scroll">
+      <section class="ksia-mobile-section">
+        <h2 class="ksia-mobile-section-title">Setup progress · <span id="ksiaMobileWalletPct">50%</span></h2>
+        <div class="ksia-mobile-card">
+          <div class="ksia-mobile-wallet-progress">
+            <div class="ksia-mobile-wallet-bar"><div class="ksia-mobile-wallet-bar-fill" id="ksiaMobileWalletBar" style="width:50%"></div></div>
+          </div>
+          <ul class="ksia-mobile-wallet-items" id="ksiaMobileWalletItems"></ul>
+        </div>
+      </section>
+
+      <section class="ksia-mobile-section">
+        <h2 class="ksia-mobile-section-title">Proof-of-tech</h2>
+        <div class="ksia-mobile-card">
+          <p class="ksia-mobile-card-lead">Federated identity, boarding pass, preferences, and payment in one orchestrated wallet — PoT #1 from the AIVC vision.</p>
+          <ul class="ksia-mobile-actions" id="ksiaMobileNextActions"></ul>
+        </div>
+      </section>
+    </div>
+
+    <nav class="ksia-mobile-tabbar" id="ksiaMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+
+  <button type="button" class="ksia-mobile-bc-fab" id="ksiaMobileBcFab" aria-label="Open Brand Concierge">&#10022;</button>
+
+  <script src="../ksia-mock-data.js?v=20260613"></script>
+  <script src="ksia-mobile-app.js?v=20260613"></script>
+</body>
+</html>

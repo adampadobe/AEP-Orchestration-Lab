@@ -4,40 +4,48 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KSIA (demo) - AEP Profile Viewer</title>
+  <title>KSIA AIVC mobile (demo) – AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="ksia-demo.css?v=20260612">
+  <link rel="stylesheet" href="mobile-demo.css?v=20260613-mobile-shell">
   <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260613">
-  <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
-  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
+  <link rel="stylesheet" href="ksia-demo.css?v=20260612">
+  <link rel="stylesheet" href="ksia-mobile-demo.css?v=20260613">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <script>
-    window.SiteCloneBcPage = {
-      iframeId: 'ksiaSiteFrame',
-      defaultFrameSrc: 'demos/ksia/index.html',
-      statusMessageId: 'ksiaMessage',
+    window.mobileDemoConfig = {
+      demoId: 'ksia',
+      brandName: 'KSIA AIVC',
+      appEntryUrl: 'demos/ksia/mobile/index.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'ksia',
+      iframeId: 'ksiaMobileFrame',
+      webDemoUrl: 'ksia-demo.html',
+      mobileDemoUrl: 'ksia-mobile-demo.html',
+      pageClass: 'ksia-mobile-demo-page',
+      channelLabel: 'Mobile',
     };
   </script>
-  <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
-<body class="ksia-demo-page home-dashboard-concierge">
-  <div class="ksia-demo-top-anchor" id="ksiaDemoTopAnchor">
-    <section class="ksia-demo-id-banner" aria-label="KSIA demo identity controls">
+<body class="ksia-mobile-demo-page mobile-demo-shell-page mobile-demo-page home-dashboard-concierge">
+  <div class="mobile-demo-shell-env-anchor" id="ksiaMobileDemoEnvAnchor">
+    <section class="ksia-demo-id-banner mobile-demo-shell-id-banner" aria-label="KSIA mobile demo controls">
       <div class="mobile-demo-shell-channel-row">
         <nav class="mobile-demo-shell-channel-toggle" aria-label="Demo channel">
-          <a href="ksia-demo.html" class="mobile-demo-shell-channel-toggle__link is-active" aria-current="page">Web</a>
-          <a href="ksia-mobile-demo.html" class="mobile-demo-shell-channel-toggle__link">Mobile</a>
+          <a href="ksia-demo.html" class="mobile-demo-shell-channel-toggle__link">Web</a>
+          <a href="ksia-mobile-demo.html" class="mobile-demo-shell-channel-toggle__link is-active" aria-current="page">Mobile</a>
         </nav>
       </div>
       <div
         class="ksia-demo-id-inner aep-demo-id-inner"
         data-demo-env-strip-mount="site-clone-shell"
         data-demo-env-strip-variant="spectrum"
-        data-demo-env-strip-title="KSIA (web)"
+        data-demo-env-strip-title="KSIA (mobile)"
         data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-bc-bottom="1"
         data-demo-env-strip-prefix="ksia"
@@ -46,33 +54,44 @@
         data-demo-env-strip-message-id="ksiaMessage"
         data-demo-env-strip-message-class="ksia-demo-message"
         data-demo-env-strip-profile-btn-label="Look up profile"
-        data-demo-env-strip-disclaimer="King Salman International Airport journey mockup for the AEP lab. Inject your Tags property, then walk the airport journey under <code>demos/ksia/</code>. Not affiliated with KSIA."
+        data-demo-env-strip-disclaimer="King Salman International Airport AIVC mobile app mockup. Env bar sits outside the phone frame — inject Tags, then explore the native-style app with Brand Concierge as the focal point."
       ></div>
     </section>
   </div>
 
-  <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden>
-    <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
-  </div>
-  <button type="button" id="siteCloneBcFab" class="aep-bc-reopen-btn site-clone-bc-fab" hidden aria-label="Open Brand Concierge" aria-expanded="false" aria-controls="aepBcModal">
-    <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
-  </button>
-  <div id="aepBcModal" class="aep-bc-modal" role="dialog" aria-modal="true" aria-labelledby="aepBcModalTitle" hidden>
-    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
-    <div class="aep-bc-modal__dialog">
-      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">&times;</button>
-      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
-      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
+  <div class="mobile-demo-fs-root" id="mobileDemoFsRoot">
+    <div class="mobile-demo-shell-controls">
+      <div class="mobile-demo-shell-device-toggle" id="mobileDemoDeviceToggle" role="group" aria-label="Device frame"></div>
+      <button type="button" class="mobile-demo-fullscreen-btn" id="mobileDemoFullscreenBtn" aria-pressed="false" title="Full screen">
+        Full screen
+      </button>
     </div>
-  </div>
 
-  <iframe
-    id="ksiaSiteFrame"
-    class="ksia-demo-site-frame"
-    title="King Salman International Airport journey mockup"
-    src="demos/ksia/index.html?v=20260612"
-    loading="eager"
-  ></iframe>
+    <div class="mobile-demo-shell-stage-wrap">
+      <p class="mobile-demo-shell-device-label mobile-demo-device-label" id="mobileDemoDeviceLabel">iPhone 17 Pro · simulator</p>
+      <div class="mobile-demo-stage">
+        <div class="mobile-demo-frame-outer">
+          <div class="mobile-demo-bezel mobile-demo-bezel--apple" id="mobileDemoBezel">
+            <div class="mobile-demo-notch mobile-demo-notch--dynamic-island" id="mobileDemoNotch" aria-hidden="true"></div>
+            <div class="mobile-demo-viewport mobile-demo-viewport--with-status" id="mobileDemoViewport">
+              <div class="mobile-demo-status-bar mobile-demo-status-bar--ios" id="mobileDemoStatusBar" aria-hidden="true"></div>
+              <div class="mobile-demo-viewport-clip">
+                <iframe
+                  id="ksiaMobileFrame"
+                  title="KSIA AIVC mobile app preview"
+                  src="demos/ksia/mobile/index.html?aepSimMobile=1"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="mobile-demo-fs-exit-float" id="mobileDemoFsExitFloat" hidden aria-label="Exit full screen">
+      Exit full screen
+    </button>
+  </div>
 
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -99,8 +118,10 @@
     window.envBarConfig = {
       prefix: 'ksia',
       variant: 'spectrum',
-      features: { webPush: true, bc: true, decisioning: true },
+      features: { webPush: true, bc: true, decisioning: false },
       storagePrefix: 'ksia',
+      iframeIds: ['ksiaMobileFrame'],
+      labCoreScript: 'demos/ksia/ksia-lab-core.js',
       siteCloneDemoEnv: {
         storagePrefix: 'ksia',
         webPushBySandboxKey: 'ksiaWebPushOnInjectBySandbox',
@@ -114,15 +135,12 @@
   <script src="aep-demo-generator-targets.js?v=20260508"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
+  <script src="shared/mobile-demo-configs.js?v=20260613"></script>
+  <script src="shared/mobile-demo-shell.js?v=20260613"></script>
   <script src="demos/ksia/ksia-lab-core.js?v=20260624-ksia-env-bar"></script>
-  <script src="ksia-demo.js?v=20260624-ksia-env-bar"></script>
-  <script src="site-clone-bc.js?v=20260612-ksia"></script>
+  <script src="ksia-mobile-demo.js?v=20260613"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260612-ksia-nav"></script>
-  <div id="brand-concierge-mount-host" aria-live="polite" hidden>
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
-  </div>
-  <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
+  <script defer src="aep-lab-nav.js?v=20260613-ksia-mobile"></script>
 </body>
 </html>

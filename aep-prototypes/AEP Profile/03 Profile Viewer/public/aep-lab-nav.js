@@ -418,6 +418,28 @@
                 },
               ],
             },
+            {
+              id: 'ksiaMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'KSIA AIVC mobile app (in development)',
+                  href: 'ksia-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'ksiaMobileDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'KSIA mobile (hash route)',
+                  href: 'mobile-demo-apalmer.html#ksia-phone',
+                  inDevelopment: true,
+                  navHideKey: 'ksiaMobileDemoHash',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
           ],
         },
         {

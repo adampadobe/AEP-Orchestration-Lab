@@ -1,0 +1,261 @@
+/**
+ * Scalable mobile demo shell — env bar zone + device toggle + phone frame.
+ * Device chrome reuses mobile-demo.css bezel classes.
+ */
+
+.mobile-demo-shell-page {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--dash-bg, #f1f5f9);
+  color: var(--dash-text, #0f172a);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.mobile-demo-shell-page.home-dashboard-concierge {
+  /* inherits --dash-* from home.css */
+}
+
+/* ─── Env bar anchor (outside device frame) ─── */
+.mobile-demo-shell-env-anchor {
+  position: relative;
+  z-index: 6500;
+}
+
+.mobile-demo-shell-env-anchor .ksia-demo-id-banner,
+.mobile-demo-shell-env-anchor .mobile-demo-shell-id-banner {
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+}
+
+.mobile-demo-shell-channel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.45rem 1rem 0;
+}
+
+.mobile-demo-shell-channel-toggle {
+  display: inline-flex;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--dash-surface-alt, var(--dash-input-bg));
+}
+
+.mobile-demo-shell-channel-toggle__link {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--dash-text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mobile-demo-shell-channel-toggle__link:hover {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+}
+
+.mobile-demo-shell-channel-toggle__link.is-active {
+  background: var(--dash-blue);
+  color: var(--dash-on-accent, #fff);
+}
+
+/* ─── Device toggle bar ─── */
+.mobile-demo-shell-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.75rem 1rem 0.25rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.mobile-demo-shell-device-toggle {
+  display: inline-flex;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+}
+
+.mobile-demo-shell-device-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mobile-demo-shell-device-btn:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.mobile-demo-shell-device-btn.is-active {
+  background: var(--dash-blue);
+  color: var(--dash-on-accent, #fff);
+}
+
+.mobile-demo-shell-device-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.mobile-demo-shell-device-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mobile-demo-shell-device-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-text-secondary);
+  text-align: center;
+}
+
+.mobile-demo-shell-stage-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem 4rem;
+}
+
+/* Simulated in-app status bar (iOS / Android) inside viewport */
+.mobile-demo-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  color: var(--mobile-status-fg, #0f172a);
+}
+
+.mobile-demo-status-bar--ios {
+  padding-top: 2px;
+  height: 32px;
+}
+
+.mobile-demo-status-bar--android {
+  height: 26px;
+  font-size: 10px;
+}
+
+.mobile-demo-status-bar__time {
+  flex: 1;
+}
+
+.mobile-demo-status-bar__icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.mobile-demo-viewport--with-status {
+  padding-top: 0;
+}
+
+.mobile-demo-viewport--with-status .mobile-demo-viewport-clip {
+  padding-top: var(--mobile-demo-safe-top);
+}
+
+.mobile-demo-viewport--with-status.mobile-demo-viewport--ios-status .mobile-demo-viewport-clip {
+  padding-top: calc(var(--mobile-demo-safe-top) + 24px);
+}
+
+.mobile-demo-viewport--with-status.mobile-demo-viewport--android-status .mobile-demo-viewport-clip {
+  padding-top: calc(var(--mobile-demo-safe-top) + 20px);
+}
+
+/* iPhone 17 Pro — slightly wider Dynamic Island */
+.mobile-demo-notch--iphone17pro {
+  top: 13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 132px;
+  height: 36px;
+  border-radius: 22px;
+  background: #0a0a0c;
+}
+
+.mobile-demo-bezel--apple.mobile-demo-bezel--iphone17pro {
+  border-radius: 54px;
+  padding: 11px;
+}
+
+/* KSIA mobile demo page overrides */
+.ksia-mobile-demo-page .dashboard-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  pointer-events: none;
+}
+
+.ksia-mobile-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+.ksia-mobile-demo-page .dashboard-main-wrap {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  body.ksia-mobile-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7100;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+    pointer-events: auto;
+  }
+
+  body.ksia-mobile-demo-page--nav-open .dashboard-sidebar,
+  body.ksia-mobile-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-demo-shell-channel-row {
+    padding-inline: 0.65rem;
+  }
+
+  .mobile-demo-shell-device-btn span.mobile-demo-shell-device-btn-label {
+    display: none;
+  }
+}

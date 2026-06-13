@@ -1,0 +1,20 @@
+{
+  "demoId": "ksia-mobile",
+  "prefix": "ksia",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "storagePrefix": "ksia",
+  "iframeIds": [
+    "ksiaMobileFrame"
+  ],
+  "labCoreScript": "demos/ksia/ksia-lab-core.js",
+  "appEntryUrl": "demos/ksia/mobile/index.html",
+  "webDemoUrl": "ksia-demo.html",
+  "mobileDemoUrl": "ksia-mobile-demo.html"
+}
