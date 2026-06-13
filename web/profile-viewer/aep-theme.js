@@ -97,7 +97,7 @@
     if (!doc.head || doc.querySelector('script[data-aep-fullscreen="1"]')) return;
     var s = doc.createElement('script');
     s.defer = true;
-    s.src = 'aep-fullscreen.js?v=20260421-fs-icon';
+    s.src = 'aep-fullscreen.js?v=20260614-no-browser-fs';
     s.setAttribute('data-aep-fullscreen', '1');
     doc.head.appendChild(s);
   }

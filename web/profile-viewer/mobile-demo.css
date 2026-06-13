@@ -161,6 +161,53 @@ body.mobile-demo-page--fs .mobile-demo-hint {
   display: none !important;
 }
 
+.mobile-demo-browser-fs-banner {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(42rem, calc(100vw - 1.5rem));
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 251, 235, 0.96);
+  color: #78350f;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.16);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mobile-demo-browser-fs-banner__text {
+  margin: 0;
+  flex: 1;
+}
+
+.mobile-demo-browser-fs-banner__dismiss {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 53, 15, 0.25);
+  background: #ffffff;
+  color: #78350f;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mobile-demo-browser-fs-banner__dismiss:hover {
+  background: #fff7ed;
+}
+
+.mobile-demo-browser-fs-banner__dismiss:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
 .mobile-demo-topbar {
   display: flex;
   align-items: flex-start;

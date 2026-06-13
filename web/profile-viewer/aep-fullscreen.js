@@ -31,9 +31,17 @@
   function shouldSkip(doc) {
     var body = doc && doc.body;
     if (body && body.classList && body.classList.contains('home-page')) return true;
+    /* Mobile simulator pages use CSS presentation mode — never inject browser Fullscreen API here */
+    if (body && body.classList && (
+      body.classList.contains('mobile-demo-shell-page') ||
+      body.classList.contains('mobile-demo-page')
+    )) return true;
+    if (doc && doc.getElementById('mobileDemoFsRoot')) return true;
     var p = (global.location && global.location.pathname) || '';
     if (/\/home\.html?$/i.test(p)) return true;
     if (/\/global-settings\.html?$/i.test(p)) return true;
+    if (/-mobile-demo\.html?$/i.test(p)) return true;
+    if (/\/mobile-demo(?:-apalmer)?\.html?$/i.test(p)) return true;
     return false;
   }
 

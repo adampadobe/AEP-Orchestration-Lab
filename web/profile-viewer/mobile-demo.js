@@ -262,60 +262,79 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    if (isPresentation()) {
+      setPresentation(false);
+      return;
+    }
     if (document.fullscreenElement || document.webkitFullscreenElement) {
-      exitFs().catch(function () {});
+      exitBrowserFs().catch(function () {});
       return;
     }
     setPanelOpen(false);
   });
 
-  /* Fullscreen */
-  function isFs() {
+  /* Presentation mode (CSS maximize — no Fullscreen API / Chrome Esc hint) */
+  var PRESENTATION_CLASS = 'mobile-demo-fs-root--presentation';
+  var PRESENTATION_ON_LABEL = 'Exit presentation';
+  var PRESENTATION_OFF_LABEL = 'Expand simulator';
+
+  function isBrowserFs() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
 
-  function exitFs() {
+  function exitBrowserFs() {
     if (document.exitFullscreen) return document.exitFullscreen();
     if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
     return Promise.resolve();
   }
 
-  function enterFs(el) {
-    if (!el) return Promise.resolve();
-    if (el.requestFullscreen) return el.requestFullscreen();
-    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
-    return Promise.resolve();
+  function isPresentation() {
+    return fsRoot && fsRoot.classList.contains(PRESENTATION_CLASS);
   }
 
   var fsExitFloat = document.getElementById('mobileDemoFsExitFloat');
 
   function syncFsButton() {
-    var fs = isFs();
+    var on = isPresentation();
     if (fsBtn) {
-      fsBtn.textContent = fs ? 'Exit full screen' : 'Full screen';
-      fsBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
+      fsBtn.textContent = on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL;
+      fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      fsBtn.setAttribute('title', on ? 'Exit presentation mode' : 'Expand simulator (presentation mode)');
+      fsBtn.setAttribute('aria-label', on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL);
     }
-    if (fsExitFloat) fsExitFloat.hidden = !fs;
-    document.body.classList.toggle('mobile-demo-page--fs', fs);
+    if (fsExitFloat) {
+      fsExitFloat.hidden = !on;
+      fsExitFloat.setAttribute('aria-label', PRESENTATION_ON_LABEL);
+      fsExitFloat.textContent = PRESENTATION_ON_LABEL;
+    }
+    document.body.classList.toggle('mobile-demo-page--fs', on);
+  }
+
+  function setPresentation(on) {
+    if (!fsRoot) return;
+    fsRoot.classList.toggle(PRESENTATION_CLASS, !!on);
+    syncFsButton();
   }
 
   if (fsBtn && fsRoot) {
+    if (isBrowserFs()) exitBrowserFs().catch(function () {});
+
     fsBtn.addEventListener('click', function () {
-      if (isFs()) {
-        exitFs().catch(function () {});
-      } else {
-        enterFs(fsRoot).catch(function () {});
-      }
+      setPresentation(!isPresentation());
     });
 
     if (fsExitFloat) {
       fsExitFloat.addEventListener('click', function () {
-        exitFs().catch(function () {});
+        setPresentation(false);
       });
     }
 
-    document.addEventListener('fullscreenchange', syncFsButton);
-    document.addEventListener('webkitfullscreenchange', syncFsButton);
+    document.addEventListener('fullscreenchange', function () {
+      if (isBrowserFs()) exitBrowserFs().catch(function () {});
+    });
+    document.addEventListener('webkitfullscreenchange', function () {
+      if (isBrowserFs()) exitBrowserFs().catch(function () {});
+    });
     syncFsButton();
   }
 
