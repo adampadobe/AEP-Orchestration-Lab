@@ -26,14 +26,16 @@ Full API and migration guide: [`docs/env-bar-shared-module.md`](env-bar-shared-m
 
 **Why Sky over Etihad:** Etihad matched the older skill template (stacked fields + park launcher). Sky/JLR reflect colleague work on dropdown UX, horizontal Tags layout, and site-clone BC without copy/paste drift.
 
-## Unified bundle + bootstrap (2026-06-02)
+## Unified bundle + bootstrap (historical — superseded by `shared/env-bar.js`)
 
-All **site-clone** demos load one CSS bundle and one init function — no per-page links to `aep-demo-env-bar.css` / `site-clone-bc-env-strip.css`, no duplicated `initStandardEnvBar` blocks.
+As of **2026-06-12**, site-clone demos load **`shared/env-bar.js`** only. The loader injects `demo-env-bar.bundle.css`, `env-bar-compact.css`, `demo-env-bar-spectrum.css` (when `variant: 'spectrum'`), and defers the script chain including `demo-env-bar-bootstrap.js` (`initLabDemoEnvBar` — internal only, not called from demo JS).
+
+Legacy direct links (do **not** use on new demos):
 
 | File | Role |
 |------|------|
-| `web/profile-viewer/shared/demo-env-bar.bundle.css?v=20260602-env-bar-bundle` | `@import` of `aep-demo-env-bar.css` + `site-clone-bc-env-strip.css` (Sky stacked profile lookup + Tags row) |
-| `web/profile-viewer/shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap` | `window.initLabDemoEnvBar({ prefix, … })` — mount strip, init env bar, optional `SiteCloneDemoEnv` |
+| `shared/demo-env-bar.bundle.css` | Env bar + strip CSS (now loaded by env-bar.js) |
+| `shared/demo-env-bar-bootstrap.js` | Internal bootstrap — loaded by env-bar.js |
 | `web/profile-viewer/shared/demo-env-strip.js` | `DemoEnvStrip.autoMount` from `data-demo-env-strip-mount` |
 | `web/profile-viewer/site-clone-bc-env.js` | Style URL, datastream, web push by sandbox, BC prefs |
 | `web/profile-viewer/site-clone-bc.js` | Modal / injected / full-screen BC |
@@ -52,22 +54,16 @@ Do **not** link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly
 
 ### Scripts (site-clone demos — env bar slice)
 
-After `aep-demo-web-push.js`:
+Demo HTML loads only:
 
 ```html
-<script src="shared/demo-env-strip.js?v=20260601-env-strip-mount-sync"></script>
-<script src="shared/demo-env-bar-bootstrap.js?v=20260602-env-bar-bootstrap"></script>
-<script src="demo-tags-injection.js?v=20260601-tags-property-boot"></script>
-<script src="aep-demo-env-bar.js?v=20260601-launch-unset-expand"></script>
+<script src="shared/env-bar.js?v=20260612-env-bar"></script>
+<script>
+  window.envBarConfig = { prefix: 'sky', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true } };
+</script>
 ```
 
-Demo JS ends with:
-
-```js
-window.initLabDemoEnvBar && window.initLabDemoEnvBar({ prefix: 'sky' });
-```
-
-`DemoTagsInjection.init` stays in demo JS (BC, web push, iframe hooks) and **must** pass `hideTagsCompanyUi: true`.
+Demo **lab-core JS** wires `DemoTagsInjection.init` inside `envBar.ready().then(…)` when Tags must run after the strip mounts. Do **not** call `initLabDemoEnvBar` from demo JS.
 
 ### `initLabDemoEnvBar` options
 
@@ -126,7 +122,7 @@ After `brand-concierge-toggle.js`:
 
 | Page | Status |
 |------|--------|
-| All 22 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, KSIA, Admiral, Navigator, Race, Donate, Old Mutual ×4, Saga, Aviva Target, social ×2, Miral ×4) | **Done** — `site-clone-shell` + bundle CSS + `initLabDemoEnvBar` |
+| All 22 site-clone HTML pages (Sky, JLR, MOD, Premier Inn, Etihad, KSIA, Admiral, Navigator, Race, Donate, Old Mutual ×4, Saga, Aviva Target, social ×2, Miral ×4) | **Done** — `site-clone-shell` + `shared/env-bar.js` + `window.envBarConfig` |
 
 ### Exceptions (redirect / iframe passthrough only) {#exceptions-not-site-clone}
 
@@ -154,9 +150,9 @@ CI/local script `scripts/verify-demo-env-strip.mjs` fails when:
 
 | Pattern | Why forbidden |
 |---------|----------------|
-| Site-clone demo missing `shared/demo-env-bar.bundle.css` | Must use unified CSS bundle |
+| Site-clone demo missing `shared/env-bar.js` | Must use canonical loader (CSS chain loaded by env-bar.js) |
 | Direct `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` on site-clone HTML | Causes version / layout drift |
-| Demo JS calling `AepDemoEnvStrip.initStandardEnvBar` directly | Use `initLabDemoEnvBar({ prefix })` |
+| Demo JS calling `initLabDemoEnvBar` or `AepDemoEnvStrip.initStandardEnvBar` directly | Use `shared/env-bar.js` + `window.envBarConfig`; wrap lab init in `envBar.ready()` |
 | `grid-template-columns: 1fr 300px` in demo CSS | Legacy side-by-side env + profile layout |
 | `.aep-demo-env-*`, `#aepDemoProfileSection`, `.site-clone-bc-env-strip` in demo CSS | Belongs in shared bundle only |
 | Inline `{prefix}SdkConfigFields` HTML | Markup must come from `shared/demo-env-strip.js` mount only |

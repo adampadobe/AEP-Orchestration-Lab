@@ -535,7 +535,7 @@ On **every leaf** under a customer (`Web` / `Mobile` / `Call Centre` links and p
 |-------|------------------------|--------|
 | **Loader** | `shared/env-bar.js` + `window.envBarConfig` | Preload strip/bootstrap/Tags/env-bar/BC scripts in demo HTML |
 | **CSS** | Loaded by `env-bar.js` from `shared/demo-env-bar.bundle.css` | Link `aep-demo-env-bar.css` or `site-clone-bc-env-strip.css` directly on site-clone demo HTML |
-| **Init** | `env-bar.js` → `initLabDemoEnvBar({ prefix })` | Call `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
+| **Init** | `shared/env-bar.js` + `window.envBarConfig` (loader calls `initLabDemoEnvBar` internally) | Call `initLabDemoEnvBar` or `AepDemoEnvStrip.initStandardEnvBar` from demo JS |
 | **Markup** | `shared/demo-env-strip.js` — **`data-demo-env-strip-mount="site-clone-shell"`** (one mount per demo) | Paste inline env/profile/Tags HTML, copy `site-clone-bc-env-strip.fragment.html`, or duplicate `{prefix}SdkConfigFields` blocks |
 | **Remote defaults** | Optional Firestore `envBarConfigs/{demoId}` via `GET /api/env-bar-config` | Require seeded Firestore docs for demos to work |
 
@@ -657,7 +657,26 @@ Sky iframe may waive static HTML with comment `decisioning-mounts: dynamic-only`
 
 #### Greenfield scaffold
 
-Run `node scripts/scaffold-site-clone-demo.mjs --prefix <id> --output web/profile-viewer/demos/<id>/index.html --iframe-src demos/<id>/snapshot.html` to generate a Spectrum env-bar shell; then add decisioning mount zones to the iframe snapshot and implement `{prefix}-lab-core.js`. See [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
+[`scripts/scaffold-site-clone-demo.mjs`](scripts/scaffold-site-clone-demo.mjs) generates a Spectrum env-bar shell in two modes:
+
+| Mode | Flag | Pattern | Next steps |
+|------|------|---------|------------|
+| **Iframe site clone** (default) | `--mode iframe` | Sky / MOD — full-page iframe + `SiteCloneBcPage` | Add decisioning mount zones to iframe snapshot HTML; implement `{prefix}-lab-core.js` |
+| **Parent document** | `--mode parent-doc` | Race for Life — mounts on shell `<main>`, `decisioning.useParentDocument: true` | Style parent markup; implement lab-core JS; seed Firestore via `node scripts/export-env-bar-config-seeds.mjs --write` |
+
+```bash
+# Iframe (default)
+node scripts/scaffold-site-clone-demo.mjs \
+  --prefix mybrand --output web/profile-viewer/demos/mybrand/index.html \
+  --iframe-src demos/mybrand/snapshot.html --lab-core demos/mybrand/mybrand-lab-core.js
+
+# Parent-document
+node scripts/scaffold-site-clone-demo.mjs \
+  --mode parent-doc --prefix mybrand --output web/profile-viewer/mybrand-demo.html \
+  --lab-core mybrand-demo.js --decisioning-view-name "My Brand"
+```
+
+See [`.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md`](.cursor/skills/profile-viewer-lab-demo-strip/SKILL.md).
 
 **Legacy mount contract (deprecated — do not use on new demos):**
 
@@ -680,7 +699,7 @@ Run `node scripts/scaffold-site-clone-demo.mjs --prefix <id> --output web/profil
 
 #### Exceptions (not site-clone)
 
-These lab demos use a **different UX** and are **not** required to load `shared/demo-env-bar.bundle.css` or call `initLabDemoEnvBar`. Full policy and explicit file list: [`docs/demo-env-strip-standard.md` → Exceptions (not site-clone)](docs/demo-env-strip-standard.md#exceptions-not-site-clone).
+These lab demos use a **different UX** and are **not** required to load `shared/env-bar.js` or the full site-clone strip. Full policy and explicit file list: [`docs/demo-env-strip-standard.md` → Exceptions (not site-clone)](docs/demo-env-strip-standard.md#exceptions-not-site-clone).
 
 | Page pattern | Why exempt | What they use instead | Verifiers still required |
 |--------------|------------|----------------------|-------------------------|
@@ -689,7 +708,7 @@ These lab demos use a **different UX** and are **not** required to load `shared/
 | `sky-llm-*.html` (8 shells + redirect stub) | LLM Optimizer snapshot viewers | Inline sandbox + profile lookup via `aep-demo-env-bar.css` / `.js` directly | Same |
 | `mobile-demo.html`, `mobile-demo-apalmer.html` | Device simulator chrome | Iframe target demo owns env controls | Same |
 
-**Scripts (site-clone slice, after profile modal + drawer):** `shared/demo-env-strip.js` → `shared/demo-env-bar-bootstrap.js` → `demo-tags-injection.js` → `aep-demo-env-bar.js` → `aep-demo-generator-targets.js` → … → demo JS calling **`initLabDemoEnvBar({ prefix })`** → `site-clone-bc.js`.
+**Scripts (site-clone slice):** `shared/env-bar.js` loads CSS + `shared/demo-env-strip.js` → `shared/demo-env-bar-bootstrap.js` → `demo-tags-injection.js` → `aep-demo-env-bar.js` → … → demo **lab-core JS** (Tags via `DemoTagsInjection.init`, wrapped in `envBar.ready()` when needed) → `site-clone-bc.js`. Demo JS must **not** call `initLabDemoEnvBar` directly.
 
 **CSS (site-clone slice):** `{brand}-demo.css` → `site-clone-bc.css` → **`shared/demo-env-bar.bundle.css`** → `brand-concierge-controls.css` → `aep-profile-drawer.css` → `shared/profile-viewer-modal.css` → `aep-theme.css` last.
 
@@ -728,7 +747,7 @@ Paste into PR description when adding or editing a **lab demo** under `web/profi
 
 ```markdown
 ### Lab demo PR checklist
-- [ ] Site-clone strip: `shared/demo-env-bar.bundle.css` + `initLabDemoEnvBar({ prefix })` + **`data-demo-env-strip-mount="site-clone-shell"`** (no inline env bar HTML)
+- [ ] Site-clone strip: `shared/env-bar.js` + `window.envBarConfig` + **`data-demo-env-strip-mount="site-clone-shell"`** (no inline env bar HTML; no direct `initLabDemoEnvBar` in demo JS)
 - [ ] Tags/BC/Target/Decisioning: injected by `shared/demo-env-strip.js` only; `hideTagsCompanyUi: true`
 - [ ] Stable ids: `sandboxSelect`, `generatorTarget`, `aepDemoProfileSection`, `{prefix}InjectSdkBtn`, `customerEmail`, `queryProfileBtn`
 - [ ] Profile drawer: `#profileViewerModalMount` + `shared/profile-viewer-modal.js` (no inline `#profileDrawer`)
