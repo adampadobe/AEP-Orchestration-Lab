@@ -68,6 +68,7 @@
           selectedScriptCodeId:
             opt.selectedScriptCodeId || (prefix ? prefix + 'SelectedScript' : undefined),
           sandboxSelectId: opt.sandboxSelectId || 'sandboxSelect',
+          prefix: prefix || undefined,
           envSectionId: opt.envSectionId,
           envEditorId: opt.envEditorId,
           envCollapsibleGridId: opt.envCollapsibleGridId,

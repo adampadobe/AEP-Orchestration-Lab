@@ -39,6 +39,28 @@
 
     var PINNED = 'aep-demo-env-section--pinned-open';
 
+    function labEnvConfiguredStorageKey() {
+      var prefix = String(c.prefix || '').trim();
+      if (!prefix) {
+        try {
+          if (global.envBarConfig && global.envBarConfig.prefix) {
+            prefix = String(global.envBarConfig.prefix).trim();
+          }
+        } catch (_e) {
+          /* noop */
+        }
+      }
+      return prefix ? 'aepLabEnvConfigured:' + prefix : 'aepLabEnvConfigured';
+    }
+
+    function configuredThisSession() {
+      try {
+        return global.sessionStorage.getItem(labEnvConfiguredStorageKey()) === '1';
+      } catch (_e) {
+        return false;
+      }
+    }
+
     function hasCompactToolbarOverlay() {
       var anchor =
         sec.closest('.lab-env-top-anchor') ||
@@ -193,7 +215,7 @@
     }
 
     scheduleRefresh();
-    if (hasCompactToolbarOverlay() && launchScriptNotSet()) {
+    if (hasCompactToolbarOverlay() && launchScriptNotSet() && !configuredThisSession()) {
       global.requestAnimationFrame(function () {
         requestOverlayOpen();
       });
@@ -250,6 +272,7 @@
       fieldsId: cfg.fieldsId,
       sandboxSelectId: sandboxId,
       selectedScriptCodeId: cfg.selectedScriptCodeId,
+      prefix: cfg.prefix,
     });
   }
 

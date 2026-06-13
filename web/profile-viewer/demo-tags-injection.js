@@ -256,6 +256,34 @@
     const companyStorageKey = storagePrefix + 'SelectedTagsCompanyBySandbox';
     const propertyStorageKey = storagePrefix + 'SelectedTagsPropertyBySandbox';
     const environmentStorageKey = storagePrefix + 'SelectedTagsEnvironmentBySandbox';
+
+    function resolveLabEnvPrefix() {
+      try {
+        if (global.envBarConfig && global.envBarConfig.prefix) {
+          return String(global.envBarConfig.prefix).trim();
+        }
+      } catch (_e) {
+        /* noop */
+      }
+      if (cfg.labEnvPrefix) return String(cfg.labEnvPrefix).trim();
+      return '';
+    }
+
+    function labEnvConfiguredStorageKey() {
+      const prefix = resolveLabEnvPrefix();
+      return prefix ? 'aepLabEnvConfigured:' + prefix : 'aepLabEnvConfigured';
+    }
+
+    function markLabEnvConfiguredSession() {
+      if (!isSdkConfiguredForSandbox()) return;
+      const script = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
+      if (!script) return;
+      try {
+        sessionStorage.setItem(labEnvConfiguredStorageKey(), '1');
+      } catch (_e) {
+        /* noop */
+      }
+    }
     const identityEventType = String(cfg.identityEventType || 'demo.identity.stitch');
 
     let injectSdkBtn = byId(cfg.injectButtonId);
@@ -620,6 +648,7 @@
           new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: !!expanded } })
         );
         if (!expanded) {
+          markLabEnvConfiguredSession();
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
@@ -1251,6 +1280,7 @@
       renderSelectedScript(persistedScript);
       const configured = isSdkConfiguredForSandbox();
       setSdkConfigExpanded(!configured);
+      if (configured && persistedScript) markLabEnvConfiguredSession();
       if (opts.announceSandboxChange) {
         if (configured) {
           setMessage('Sandbox changed. Existing SDK config found for this sandbox.', 'success');
