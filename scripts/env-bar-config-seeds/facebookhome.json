@@ -1,0 +1,21 @@
+{
+  "demoId": "facebookhome",
+  "prefix": "facebookHome",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "facebookHome",
+    "webPushBySandboxKey": "facebookHomeWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "facebookHomeWebPushOnInjectToggle",
+    "webPushToggleId": "facebookHomeWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "facebookHomeBcOnInjectToggle",
+    "bcStyleSelectId": "facebookHomeBcStyleSelect"
+  },
+  "iframeIds": []
+}

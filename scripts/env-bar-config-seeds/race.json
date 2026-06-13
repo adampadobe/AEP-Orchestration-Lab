@@ -9,11 +9,6 @@
     "bc": true,
     "decisioning": true
   },
-  "decisioning": {
-    "useParentDocument": true,
-    "viewName": "Race for Life",
-    "mountLayoutPreset": "generic"
-  },
   "siteCloneDemoEnv": {
     "storagePrefix": "raceForLifeDemo",
     "webPushBySandboxKey": "raceForLifeDemoWebPushOnInjectBySandbox",
@@ -21,5 +16,10 @@
     "webPushToggleId": "raceWebPushOnInjectToggle",
     "bcOnInjectToggleId": "raceBcOnInjectToggle",
     "bcStyleSelectId": "raceBcStyleSelect"
+  },
+  "decisioning": {
+    "useParentDocument": true,
+    "viewName": "Race for Life",
+    "mountLayoutPreset": "generic"
   }
 }

@@ -1,0 +1,21 @@
+{
+  "demoId": "wbworld",
+  "prefix": "wbworld",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "wbworld",
+    "webPushBySandboxKey": "wbworldWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "wbworldWebPushOnInjectToggle",
+    "webPushToggleId": "wbworldWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "wbworldBcOnInjectToggle",
+    "bcStyleSelectId": "wbworldBcStyleSelect"
+  },
+  "iframeIds": []
+}

@@ -17,6 +17,9 @@
     "bcOnInjectToggleId": "skyBcOnInjectToggle",
     "bcStyleSelectId": "skyBcStyleSelect"
   },
+  "iframeIds": [
+    "skyDemoSiteFrame"
+  ],
   "decisioning": {
     "mountLayoutPreset": "sky-home"
   }

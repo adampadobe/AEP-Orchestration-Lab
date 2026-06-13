@@ -1,0 +1,20 @@
+{
+  "demoId": "donate",
+  "prefix": "donate",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "donateDemo",
+    "webPushBySandboxKey": "donateDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "donateWebPushOnInjectToggle",
+    "webPushToggleId": "donateWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "donateBcOnInjectToggle",
+    "bcStyleSelectId": "donateBcStyleSelect"
+  }
+}

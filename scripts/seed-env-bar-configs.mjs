@@ -11,6 +11,9 @@
  *   node scripts/seed-env-bar-configs.mjs --only ksia,sky
  *   node scripts/seed-env-bar-configs.mjs --export-json   # write JSON only, no Firestore
  *
+ * Regenerate all 22 site-clone seeds from demo HTML:
+ *   node scripts/export-env-bar-config-seeds.mjs --write
+ *
  * Requires Application Default Credentials (Firebase Admin) on project aep-orchestration-lab:
  *   gcloud auth application-default login
  *   # or GOOGLE_APPLICATION_CREDENTIALS pointing at a service account key

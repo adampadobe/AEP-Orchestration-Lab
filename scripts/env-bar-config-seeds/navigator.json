@@ -1,0 +1,23 @@
+{
+  "demoId": "navigator",
+  "prefix": "navigator",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "navigatorGlobalDemo",
+    "webPushBySandboxKey": "navigatorGlobalDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "navigatorWebPushOnInjectToggle",
+    "webPushToggleId": "navigatorWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "navigatorBcOnInjectToggle",
+    "bcStyleSelectId": "navigatorBcStyleSelect"
+  },
+  "iframeIds": [
+    "navigatorDemoSiteFrame"
+  ]
+}

@@ -7,7 +7,7 @@
   "features": {
     "webPush": true,
     "bc": true,
-    "decisioning": false
+    "decisioning": true
   },
   "siteCloneDemoEnv": {
     "storagePrefix": "avivaTarget",
@@ -17,5 +17,7 @@
     "bcOnInjectToggleId": "avivaTargetBcOnInjectToggle",
     "bcStyleSelectId": "avivaTargetBcStyleSelect"
   },
-  "iframeIds": ["avivaTargetFrame"]
+  "iframeIds": [
+    "avivaTargetFrame"
+  ]
 }

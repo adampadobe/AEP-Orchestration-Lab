@@ -3,20 +3,15 @@
   "prefix": "ksia",
   "defaultSandbox": "apalmer",
   "variant": "spectrum",
-  "mode": "shell",
+  "mode": "journey",
   "features": {
     "webPush": true,
     "bc": true,
     "decisioning": true
   },
   "storagePrefix": "ksia",
-  "siteCloneDemoEnv": {
-    "storagePrefix": "ksia",
-    "webPushBySandboxKey": "ksiaWebPushOnInjectBySandbox",
-    "webPushLegacyKey": "ksiaWebPushOnInjectToggle",
-    "webPushToggleId": "ksiaWebPushOnInjectToggle",
-    "bcOnInjectToggleId": "ksiaBcOnInjectToggle",
-    "bcStyleSelectId": "ksiaBcStyleSelect"
-  },
-  "iframeIds": ["ksiaSiteFrame"]
+  "iframeIds": [
+    "ksiaSiteFrame"
+  ],
+  "labCoreScript": "demos/ksia/ksia-lab-core.js"
 }

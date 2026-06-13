@@ -1,0 +1,23 @@
+{
+  "demoId": "saga",
+  "prefix": "saga",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "sagaDemo",
+    "webPushBySandboxKey": "sagaDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "sagaDemoWebPushOnInjectToggle",
+    "webPushToggleId": "sagaWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "sagaBcOnInjectToggle",
+    "bcStyleSelectId": "sagaBcStyleSelect"
+  },
+  "iframeIds": [
+    "sagaSiteFrame"
+  ]
+}

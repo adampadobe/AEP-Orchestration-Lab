@@ -1,0 +1,21 @@
+{
+  "demoId": "tiktok",
+  "prefix": "tiktok",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "tiktok",
+    "webPushBySandboxKey": "tiktokWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "tiktokWebPushOnInjectToggle",
+    "webPushToggleId": "tiktokWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "tiktokBcOnInjectToggle",
+    "bcStyleSelectId": "tiktokBcStyleSelect"
+  },
+  "iframeIds": []
+}

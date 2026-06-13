@@ -1,0 +1,20 @@
+{
+  "demoId": "om",
+  "prefix": "om",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "oldMutualPersonal",
+    "webPushBySandboxKey": "oldMutualPersonalWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "oldMutualPersonalWebPushOnInjectToggle",
+    "webPushToggleId": "omWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "omBcOnInjectToggle",
+    "bcStyleSelectId": "omBcStyleSelect"
+  }
+}

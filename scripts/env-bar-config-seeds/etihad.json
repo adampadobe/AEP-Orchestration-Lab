@@ -17,5 +17,7 @@
     "bcOnInjectToggleId": "etihadBcOnInjectToggle",
     "bcStyleSelectId": "etihadBcStyleSelect"
   },
-  "iframeIds": ["etihadSiteFrame"]
+  "iframeIds": [
+    "etihadSiteFrame"
+  ]
 }

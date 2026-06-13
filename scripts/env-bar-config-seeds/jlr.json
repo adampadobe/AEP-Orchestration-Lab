@@ -1,0 +1,23 @@
+{
+  "demoId": "jlr",
+  "prefix": "jlr",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "jlrDemo",
+    "webPushBySandboxKey": "jlrDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "jlrDemoWebPushOnInjectToggle",
+    "webPushToggleId": "jlrWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "jlrBcOnInjectToggle",
+    "bcStyleSelectId": "jlrBcStyleSelect"
+  },
+  "iframeIds": [
+    "jlrSiteFrame"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "demoId": "premierinn",
+  "prefix": "premierInn",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "premierInnDemo",
+    "webPushBySandboxKey": "premierInnDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "premierInnWebPushOnInjectToggle",
+    "webPushToggleId": "premierInnWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "premierInnBcOnInjectToggle",
+    "bcStyleSelectId": "premierInnBcStyleSelect"
+  },
+  "iframeIds": [
+    "premierInnSiteFrame"
+  ]
+}

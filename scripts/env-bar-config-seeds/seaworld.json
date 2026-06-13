@@ -1,0 +1,21 @@
+{
+  "demoId": "seaworld",
+  "prefix": "seaworld",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "seaworld",
+    "webPushBySandboxKey": "seaworldWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "seaworldWebPushOnInjectToggle",
+    "webPushToggleId": "seaworldWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "seaworldBcOnInjectToggle",
+    "bcStyleSelectId": "seaworldBcStyleSelect"
+  },
+  "iframeIds": []
+}

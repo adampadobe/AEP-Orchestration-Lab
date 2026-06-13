@@ -1,0 +1,21 @@
+{
+  "demoId": "ferrariworld",
+  "prefix": "ferrariworld",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "ferrariworld",
+    "webPushBySandboxKey": "ferrariworldWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "ferrariworldWebPushOnInjectToggle",
+    "webPushToggleId": "ferrariworldWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "ferrariworldBcOnInjectToggle",
+    "bcStyleSelectId": "ferrariworldBcStyleSelect"
+  },
+  "iframeIds": []
+}

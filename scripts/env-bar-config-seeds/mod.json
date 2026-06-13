@@ -1,0 +1,23 @@
+{
+  "demoId": "mod",
+  "prefix": "mod",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "modDemo",
+    "webPushBySandboxKey": "modDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "modDemoWebPushOnInjectToggle",
+    "webPushToggleId": "modWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "modBcOnInjectToggle",
+    "bcStyleSelectId": "modBcStyleSelect"
+  },
+  "iframeIds": [
+    "modSiteFrame"
+  ]
+}

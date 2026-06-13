@@ -1,0 +1,23 @@
+{
+  "demoId": "admiral",
+  "prefix": "admiral",
+  "defaultSandbox": "apalmer",
+  "variant": "spectrum",
+  "mode": "shell",
+  "features": {
+    "webPush": true,
+    "bc": true,
+    "decisioning": false
+  },
+  "siteCloneDemoEnv": {
+    "storagePrefix": "admiralDemo",
+    "webPushBySandboxKey": "admiralDemoWebPushOnInjectBySandbox",
+    "webPushLegacyKey": "admiralWebPushOnInjectToggle",
+    "webPushToggleId": "admiralWebPushOnInjectToggle",
+    "bcOnInjectToggleId": "admiralBcOnInjectToggle",
+    "bcStyleSelectId": "admiralBcStyleSelect"
+  },
+  "iframeIds": [
+    "admiralSiteFrame"
+  ]
+}
