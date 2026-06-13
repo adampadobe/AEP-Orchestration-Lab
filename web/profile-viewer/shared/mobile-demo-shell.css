@@ -9,6 +9,10 @@
   background: var(--dash-bg, #f1f5f9);
   color: var(--dash-text, #0f172a);
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Channel row + compact toolbar — on body so anchor and fs-root siblings inherit */
+  --mobile-shell-channel-height: 2.5rem;
+  --env-bar-toolbar-height: 3rem;
+  --env-bar-height: calc(var(--env-bar-toolbar-height) + var(--mobile-shell-channel-height));
 }
 
 .mobile-demo-shell-page.home-dashboard-concierge {
@@ -23,19 +27,60 @@
 
 /* Compact env bar: fixed toolbar + overlay (see shared/env-bar-compact.css) */
 .mobile-demo-shell-env-anchor.lab-env-top-anchor {
-  --env-bar-height: calc(3rem + 2.25rem);
+  --env-bar-height: calc(var(--env-bar-toolbar-height) + var(--mobile-shell-channel-height));
   position: fixed;
   z-index: 7200;
-}
-
-@media (max-width: 48rem) {
-  .mobile-demo-shell-env-anchor.lab-env-top-anchor {
-    --env-bar-height: calc(5.5rem + 2.25rem);
-  }
+  height: var(--env-bar-height);
 }
 
 .mobile-demo-shell-env-anchor.lab-env-top-anchor ~ .mobile-demo-fs-root {
-  padding-top: var(--env-bar-height, 3rem);
+  padding-top: var(--env-bar-height);
+}
+
+/* Stack Web|Mobile channel row above compact toolbar; both stay above expanded overlay */
+.mobile-demo-shell-env-anchor.lab-env-top-anchor [class*='-demo-id-banner'] {
+  display: flex;
+  flex-direction: column;
+  height: var(--env-bar-height);
+  max-height: var(--env-bar-height);
+  overflow: visible;
+}
+
+.mobile-demo-shell-env-anchor .mobile-demo-shell-channel-row {
+  flex: 0 0 var(--mobile-shell-channel-height);
+  position: relative;
+  z-index: 6502;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.mobile-demo-shell-env-anchor [class*='-demo-id-inner'] {
+  flex: 0 0 var(--env-bar-toolbar-height);
+  height: var(--env-bar-toolbar-height);
+  max-height: var(--env-bar-toolbar-height);
+  min-height: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 6501;
+}
+
+.mobile-demo-shell-env-anchor .lab-env-toolbar,
+.mobile-demo-shell-env-anchor .spectrum-env-status-bar.lab-env-toolbar {
+  min-height: var(--env-bar-toolbar-height);
+  max-height: var(--env-bar-toolbar-height);
+}
+
+.mobile-demo-shell-env-anchor.lab-env-top-anchor .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor::after {
+  top: calc(var(--mobile-shell-channel-height) + var(--env-bar-toolbar-height));
+}
+
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded .mobile-demo-shell-channel-row,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned .mobile-demo-shell-channel-row,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded [class*='-demo-id-inner'],
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned [class*='-demo-id-inner'] {
+  background: var(--dash-surface);
 }
 
 /* Presentation mode: maximize simulator below fixed env bar (no browser Fullscreen API) */
@@ -65,7 +110,10 @@
   gap: 0.65rem 1rem;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0.45rem 1rem 0;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  min-height: var(--mobile-shell-channel-height);
+  max-height: var(--mobile-shell-channel-height);
 }
 
 .mobile-demo-shell-channel-toggle {
@@ -276,6 +324,20 @@
   body.mobile-demo-shell-page .dashboard-sidebar:focus-within {
     transform: translateX(0);
     box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+}
+
+@media (max-width: 48rem) {
+  body.mobile-demo-shell-page {
+    --env-bar-toolbar-height: 5.5rem;
+    --env-bar-height: calc(var(--env-bar-toolbar-height) + var(--mobile-shell-channel-height));
+  }
+}
+
+@media (max-width: 24rem) {
+  body.mobile-demo-shell-page {
+    --env-bar-toolbar-height: 6.25rem;
+    --env-bar-height: calc(var(--env-bar-toolbar-height) + var(--mobile-shell-channel-height));
   }
 }
 

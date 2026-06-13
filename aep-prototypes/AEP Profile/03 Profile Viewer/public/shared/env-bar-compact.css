@@ -154,8 +154,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   flex-wrap: nowrap;
   gap: 0.5rem 0.625rem;
   padding: 0 0.625rem;
-  min-height: var(--env-bar-height);
-  max-height: var(--env-bar-height);
+  min-height: var(--env-bar-toolbar-height, var(--env-bar-height));
+  max-height: var(--env-bar-toolbar-height, var(--env-bar-height));
   align-items: center;
   cursor: pointer;
 }
@@ -438,12 +438,15 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 @media (max-width: 48rem) {
   .mod-demo-top-anchor,
-  [class*='-demo-top-anchor'],
-  .mobile-demo-shell-env-anchor,
-  .lab-env-top-anchor {
+  [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
+  .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
     --env-bar-height: 5.5rem;
     --lab-env-overlay-max: min(82dvh, calc(100dvh - var(--env-bar-height) - 0.5rem));
     height: var(--env-bar-height);
+  }
+
+  .mobile-demo-shell-env-anchor.lab-env-top-anchor {
+    --lab-env-overlay-max: min(82dvh, calc(100dvh - var(--env-bar-height) - 0.5rem));
   }
 
   .mod-demo-id-banner,
@@ -457,8 +460,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   .spectrum-env-status-bar.lab-env-toolbar {
     flex-wrap: wrap;
     align-content: center;
-    max-height: var(--env-bar-height);
-    min-height: var(--env-bar-height);
+    max-height: var(--env-bar-toolbar-height, var(--env-bar-height));
+    min-height: var(--env-bar-toolbar-height, var(--env-bar-height));
     padding: 0.3rem 0.5rem;
     row-gap: 0.25rem;
     overflow: hidden;
@@ -509,10 +512,13 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 @media (max-width: 24rem) {
   .mod-demo-top-anchor,
-  [class*='-demo-top-anchor'],
-  .mobile-demo-shell-env-anchor,
-  .lab-env-top-anchor {
+  [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
+  .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
     --env-bar-height: 6.25rem;
+    --lab-env-overlay-max: min(78dvh, calc(100dvh - var(--env-bar-height) - 0.25rem));
+  }
+
+  .mobile-demo-shell-env-anchor.lab-env-top-anchor {
     --lab-env-overlay-max: min(78dvh, calc(100dvh - var(--env-bar-height) - 0.25rem));
   }
 
