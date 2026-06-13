@@ -1691,6 +1691,13 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
   margin: 0 0 8px;
   color: var(--ksia-sunlit);
 }
+.ksia-board-hero-lead {
+  margin: 0 0 16px;
+  max-width: 640px;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: rgba(230, 220, 200, 0.85);
+}
 .ksia-board-hero-meta {
   display: flex;
   flex-wrap: wrap;
