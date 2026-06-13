@@ -1,14 +1,14 @@
 {
-  "gitSha": "73b1a71154400ae34f0b0546791c982adb32c5d4",
-  "gitShortSha": "73b1a711",
+  "gitSha": "4a6580c769579a161de508c602fca34caf7873cd",
+  "gitShortSha": "4a6580c7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: mobile demo fullscreen exit and sticky ESC hint",
+  "gitCommitSubject": "[apalmer] chore: stamp hosting version.json for 73b1a711 deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-13T21:50:12+01:00",
-  "deployedAt": "2026-06-13T20:50:22.957Z",
+  "gitCommitDate": "2026-06-13T21:53:01+01:00",
+  "deployedAt": "2026-06-13T20:53:12.610Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/73b1a71154400ae34f0b0546791c982adb32c5d4"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4a6580c769579a161de508c602fca34caf7873cd"
 }
