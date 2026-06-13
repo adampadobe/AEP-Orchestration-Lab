@@ -129,6 +129,15 @@ const SANDBOX_ONLY_ENV_BAR_JS = ['fnb-demo.js'];
 /** Site-clone demos on shared/env-bar.js — must match SITE_CLONE_DEMO_HTML. @see docs/env-bar-shared-module.md */
 const MIGRATED_TO_ENV_BAR_HTML = new Set(SITE_CLONE_DEMO_HTML);
 
+/**
+ * Spectrum site-clone shells exempt from static *-demo-top-anchor in HTML (anchor injected at runtime).
+ * @see shared/env-bar-compact.js findTopAnchor()
+ */
+const DEMO_TOP_ANCHOR_EXCEPTION_HTML = new Set([]);
+
+/** Matches mod-demo-top-anchor or {prefix}-demo-top-anchor in HTML class attributes. */
+const DEMO_TOP_ANCHOR_CLASS_RE = /(?:mod-demo-top-anchor|[\w-]+-demo-top-anchor)/;
+
 /** Demo JS that delegates env bar init to shared/env-bar.js */
 const MIGRATED_ENV_BAR_JS = new Set(SITE_CLONE_DEMO_JS);
 
@@ -376,6 +385,11 @@ for (const rel of SITE_CLONE_DEMO_HTML) {
   }
   for (const { re, label } of FORBIDDEN_HTML_PATTERNS) {
     if (label && re.test(html)) fail(`${rel}: ${label}`);
+  }
+  if (!DEMO_TOP_ANCHOR_EXCEPTION_HTML.has(rel) && !DEMO_TOP_ANCHOR_CLASS_RE.test(html)) {
+    fail(
+      `${rel}: missing *-demo-top-anchor wrapper (required for EnvBarCompact.init overlay — see shared/env-bar-compact.js)`,
+    );
   }
 }
 
