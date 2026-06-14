@@ -1,14 +1,14 @@
 {
-  "gitSha": "dbddec24ce1098e3da96d63048c4d1da11af9eb8",
-  "gitShortSha": "dbddec24",
+  "gitSha": "3ddf64b40c093a9d26fce6004af149f17b0a73c7",
+  "gitShortSha": "3ddf64b4",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: env bar expanded panel pointer-events on site-clone demos",
+  "gitCommitSubject": "[apalmer] feat: floating cog dock toggle for env bar",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T14:28:20+01:00",
-  "deployedAt": "2026-06-14T13:29:58.227Z",
+  "gitCommitDate": "2026-06-14T14:37:39+01:00",
+  "deployedAt": "2026-06-14T13:37:53.519Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/dbddec24ce1098e3da96d63048c4d1da11af9eb8"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3ddf64b40c093a9d26fce6004af149f17b0a73c7"
 }
