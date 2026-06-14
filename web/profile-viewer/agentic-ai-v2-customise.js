@@ -50,6 +50,22 @@
     return o;
   }
 
+  function extractAgentUrls(section) {
+    if (!section || typeof section !== 'object') return null;
+    if (section.agentUrls && typeof section.agentUrls === 'object') {
+      return section.agentUrls;
+    }
+    var flat = emptyRecord();
+    var has = false;
+    FIELD_KEYS.forEach(function (k) {
+      if (typeof section[k] === 'string' && section[k].trim()) {
+        flat[k] = section[k].trim();
+        has = true;
+      }
+    });
+    return has ? flat : null;
+  }
+
   function applyUrlsToAgentCards(urls) {
     var u = normalizeStored(urls);
     FIELD_KEYS.forEach(function (key) {
@@ -152,15 +168,16 @@
     el.className = 'status' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
   }
 
-  function loadUrlsFromRtdb() {
+  function loadUrlsFromRtdb(sandboxSlug) {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
+    var sb = c.normalizeSlug(sandboxSlug) || c.getActiveSandboxSlug();
     return c.whenReady().then(function () {
-      return c.migrateLocalStorageKeys(c.getActiveSandboxSlug());
+      return c.migrateLocalStorageKeys(sb);
     }).then(function () {
-      return c.loadSection(c.SECTIONS.AgenticLayer);
+      return c.loadSection(c.SECTIONS.AgenticLayer, { sandboxSlug: sb });
     }).then(function (section) {
-      return section && section.agentUrls ? section.agentUrls : null;
+      return extractAgentUrls(section);
     });
   }
 
@@ -247,19 +264,21 @@
     }
   }
 
-  function initSandboxSelect() {
+  function initSandboxSelect(onReady) {
     var sel = document.getElementById('agenticV2SandboxSelect');
-    if (!sel || typeof AepGlobalSandbox === 'undefined') return;
+    if (!sel || typeof AepGlobalSandbox === 'undefined') {
+      if (typeof onReady === 'function') onReady();
+      return;
+    }
     AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
       AepGlobalSandbox.onSandboxSelectChange(sel);
       AepGlobalSandbox.attachStorageSync(sel);
+      if (typeof onReady === 'function') onReady();
     });
   }
 
   function init() {
     initDock();
-    initSandboxSelect();
-    bindAgentCardsOnce();
 
     var btn = document.getElementById('agenticV2CustomiseUpdate');
     if (btn) {
@@ -285,11 +304,15 @@
     }
 
     function refreshFromRtdb() {
-      loadUrlsFromRtdb().then(function (urls) {
+      var sb = currentSandboxName();
+      loadUrlsFromRtdb(sb).then(function (urls) {
         fillInputsFromStored(urls);
         applyUrlsToAgentCards(urls);
       });
     }
+
+    bindAgentCardsOnce();
+    initSandboxSelect(refreshFromRtdb);
 
     window.addEventListener('aep-global-sandbox-change', function () {
       var sel = document.getElementById('agenticV2SandboxSelect');
@@ -304,11 +327,18 @@
 
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
 
-    if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-      window.__aepLabSyncReady.then(refreshFromRtdb);
-    } else {
-      refreshFromRtdb();
+    document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
+
+    function scheduleRefreshAfterAuth() {
+      if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
+        window.__aepLabSyncReady.then(refreshFromRtdb);
+      } else {
+        refreshFromRtdb();
+      }
+      window.setTimeout(refreshFromRtdb, 1500);
     }
+
+    scheduleRefreshAfterAuth();
   }
 
   if (document.readyState === 'loading') {

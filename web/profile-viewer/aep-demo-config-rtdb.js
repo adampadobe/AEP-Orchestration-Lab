@@ -194,6 +194,11 @@
     return 'ajoLookups/' + ldapSlug + '/sandboxes/' + sandboxSlug + '/' + section;
   }
 
+  /** When LDAP slug is not yet resolved, many personal lab trees use sandbox name as the RTDB root segment. */
+  function effectiveLdapSlug(ldapSlug, sandboxSlug) {
+    return normalizeSlug(ldapSlug) || normalizeSlug(sandboxSlug) || '';
+  }
+
   function sandboxRestUrl(ldapSlug, sandboxSlug) {
     return getRtdbBase() + '/ajoLookups/' + encodeURIComponent(ldapSlug) + '/sandboxes/' + encodeURIComponent(sandboxSlug) + '.json';
   }
@@ -450,7 +455,8 @@
 
   function loadSectionInner(section, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      if (!ldapSlug || !sandboxSlug) {
+      var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
+      if (!ldapForPath || !sandboxSlug) {
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
           if (!legacy) return null;
           if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || null;
@@ -473,7 +479,7 @@
       var url =
         getRtdbBase() +
         '/' +
-        sectionPath(ldapSlug, sandboxSlug, section) +
+        sectionPath(ldapForPath, sandboxSlug, section) +
         '.json';
       return fetchJson(url).then(function (nested) {
         if (nested && typeof nested === 'object' && Object.keys(nested).length) return nested;
