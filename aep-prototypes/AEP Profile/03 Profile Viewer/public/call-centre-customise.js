@@ -8,6 +8,7 @@
   var BRAND_INPUT_IDS = ['ccCustomiseBrandName', 'ccCustomiseAgentName', 'ccCustomiseAccentColour'];
   var lastSaved = null;
   var saveInFlight = null;
+  var refreshGeneration = 0;
 
   function rtdb() {
     return window.AepDemoConfigRtdb;
@@ -135,6 +136,11 @@
     return BRAND_INPUT_IDS.indexOf(active.id) >= 0;
   }
 
+  function configHasMeaningfulData(cfg) {
+    var c = normalizeConfig(cfg);
+    return !!(c.industryId || c.brandName || c.agentName || c.accentColour);
+  }
+
   function loadConfigFromRtdb(sandboxSlug) {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
@@ -142,9 +148,7 @@
     return c
       .whenReady()
       .then(function () {
-        return c.migrateLocalStorageKeys(sb);
-      })
-      .then(function () {
+        // migrateLocalStorageKeys runs inside loadSection → ensurePrepReady after auth/provision.
         return c.loadSection(c.SECTIONS.CallCentre, { sandboxSlug: sb });
       })
       .then(function (section) {
@@ -225,24 +229,53 @@
   }
 
   function refreshFromRtdb() {
+    var gen = ++refreshGeneration;
     var sb = currentSandboxName();
     loadConfigFromRtdb(sb)
       .then(function (cfg) {
+        if (gen !== refreshGeneration) return;
         var normalized = normalizeConfig(cfg);
         lastSaved = normalized;
         if (!isUserEditingBrandInputs()) {
           fillInputs(cfg);
         }
         applyToDemo(cfg);
+        updateSandboxLabel();
         if (!sb) {
           setStatus('Select a sandbox in the environment bar to load saved settings.', 'err');
+        } else {
+          setStatus('', '');
         }
-        updateSandboxLabel();
       })
       .catch(function (e) {
+        if (gen !== refreshGeneration) return;
         console.warn('[call-centre-customise] RTDB load failed:', e);
+        if (lastSaved && configHasMeaningfulData(lastSaved)) {
+          setStatus('', '');
+          return;
+        }
         setStatus('Could not load settings from RTDB.', 'err');
       });
+  }
+
+  function scheduleRefreshAfterAuth() {
+    function tryRefresh() {
+      refreshFromRtdb();
+    }
+    if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
+      window.__aepLabSyncReady.then(function () {
+        tryRefresh();
+        if (!currentSandboxName()) {
+          window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+        }
+      });
+    } else {
+      tryRefresh();
+      if (!currentSandboxName()) {
+        window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+      }
+    }
+    window.setTimeout(tryRefresh, 1500);
   }
 
   function bindDrawerRefresh() {
@@ -298,12 +331,7 @@
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
     window.addEventListener('aep-call-centre-lab-ready', refreshFromRtdb);
 
-    if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-      window.__aepLabSyncReady.then(refreshFromRtdb);
-    } else {
-      refreshFromRtdb();
-    }
-    window.setTimeout(refreshFromRtdb, 1500);
+    scheduleRefreshAfterAuth();
   }
 
   if (document.readyState === 'loading') {

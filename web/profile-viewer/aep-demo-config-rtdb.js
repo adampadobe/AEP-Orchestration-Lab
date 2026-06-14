@@ -751,7 +751,14 @@
     } catch (_e4) {}
 
     if (!tasks.length) return Promise.resolve({ migrated: false });
-    return Promise.all(tasks).then(function () {
+    return Promise.all(
+      tasks.map(function (task) {
+        return task.catch(function (err) {
+          console.warn('[aep-demo-config-rtdb] migrateLocalStorageKeys skipped:', err);
+          return null;
+        });
+      }),
+    ).then(function () {
       return { migrated: true };
     });
   }
