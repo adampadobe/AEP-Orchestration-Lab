@@ -1,14 +1,14 @@
 {
-  "gitSha": "4a6580c769579a161de508c602fca34caf7873cd",
-  "gitShortSha": "4a6580c7",
+  "gitSha": "096f59ff6fd33087088e92b6193a25a5d366a849",
+  "gitShortSha": "096f59ff",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp hosting version.json for 73b1a711 deploy",
+  "gitCommitSubject": "[apalmer] sync: Express mirror mobile demo presentation mode",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-13T21:53:01+01:00",
-  "deployedAt": "2026-06-13T20:53:12.610Z",
+  "gitCommitDate": "2026-06-14T13:30:43+01:00",
+  "deployedAt": "2026-06-14T12:30:53.167Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4a6580c769579a161de508c602fca34caf7873cd"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/096f59ff6fd33087088e92b6193a25a5d366a849"
 }
