@@ -190,21 +190,24 @@
     el.className = 'status' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
   }
 
+  function urlsHasMeaningfulData(urls) {
+    var u = normalizeStored(urls);
+    return FIELD_KEYS.some(function (k) {
+      return !!u[k];
+    });
+  }
+
   function loadUrlsFromRtdb(sandboxSlug) {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
     var sb = c.normalizeSlug(sandboxSlug) || c.getActiveSandboxSlug();
     return c.whenReady().then(function () {
-      return c.migrateLocalStorageKeys(sb);
-    }).then(function () {
+      // migrateLocalStorageKeys runs inside loadSection → ensurePrepReady after auth/provision.
       return c.loadSection(c.SECTIONS.AgenticLayer, { sandboxSlug: sb });
     }).then(function (section) {
       return extractAgentUrls(section);
     });
   }
-
-  var lastSavedUrls = null;
-  var saveInFlight = null;
 
   function urlsEqual(a, b) {
     var x = normalizeStored(a);
@@ -364,8 +367,10 @@
     });
 
     function refreshFromRtdb() {
+      var gen = ++refreshGeneration;
       var sb = currentSandboxName();
       loadUrlsFromRtdb(sb).then(function (urls) {
+        if (gen !== refreshGeneration) return;
         var normalized = normalizeStored(urls);
         lastSavedUrls = normalized;
         if (!isUserEditingInputs()) {
@@ -375,11 +380,38 @@
         updateSandboxLabel();
         if (!sb) {
           setStatus('Select a sandbox in the environment bar to load saved agent URLs.', 'err');
+        } else {
+          setStatus('', '');
         }
       }).catch(function (e) {
+        if (gen !== refreshGeneration) return;
         console.warn('[agentic-v2] RTDB agent URL load failed:', e);
+        if (lastSavedUrls && urlsHasMeaningfulData(lastSavedUrls)) {
+          setStatus('', '');
+          return;
+        }
         setStatus('Could not load agent URLs from RTDB.', 'err');
       });
+    }
+
+    function scheduleRefreshAfterAuth() {
+      function tryRefresh() {
+        refreshFromRtdb();
+      }
+      if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
+        window.__aepLabSyncReady.then(function () {
+          tryRefresh();
+          if (!currentSandboxName()) {
+            window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+          }
+        });
+      } else {
+        tryRefresh();
+        if (!currentSandboxName()) {
+          window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+        }
+      }
+      window.setTimeout(tryRefresh, 1500);
     }
 
     bindAgentCardsOnce();
@@ -393,15 +425,6 @@
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
 
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
-
-    function scheduleRefreshAfterAuth() {
-      if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-        window.__aepLabSyncReady.then(refreshFromRtdb);
-      } else {
-        refreshFromRtdb();
-      }
-      window.setTimeout(refreshFromRtdb, 1500);
-    }
 
     scheduleRefreshAfterAuth();
   }
