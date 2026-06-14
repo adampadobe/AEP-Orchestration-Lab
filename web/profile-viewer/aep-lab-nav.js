@@ -344,26 +344,6 @@
           ],
         },
         {
-          id: 'demoMobileLab',
-          label: 'Mobile',
-          items: [
-            {
-              label: 'Internal preview (web-in-frame)',
-              href: 'mobile-demo-apalmer.html#etihad-phone',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoApalmerPhone',
-              ico: '\uD83D\uDCF1',
-            },
-            {
-              label: 'iPad',
-              href: 'etihad-ipad.html',
-              inDevelopment: true,
-              navHideKey: 'mobileDemoApalmerIpad',
-              ico: '\uD83D\uDCF2',
-            },
-          ],
-        },
-        {
           id: 'demoCallCentreLab',
           label: 'Call Centre',
           items: [
@@ -407,6 +387,14 @@
                   navHideKey: 'etihadMobileDemo',
                   demoMeta: { owners: ['apalmer'] },
                   ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'Etihad iPad (in development)',
+                  href: 'etihad-ipad.html',
+                  inDevelopment: true,
+                  navHideKey: 'mobileDemoApalmerIpad',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF2',
                 },
               ],
             },
@@ -472,8 +460,8 @@
               label: 'Mobile',
               items: [
                 {
-                  label: 'Phone (in development)',
-                  href: 'mobile-demo.html#fnb-phone',
+                  label: 'FNB journey (web · mobile sim)',
+                  href: 'fnb-demo.html?aepSimMobile=1',
                   inDevelopment: true,
                   navHideKey: 'mobileDemoFnbPhone',
                   demoMeta: { owners: ['kirkham'] },

@@ -8,8 +8,8 @@
  *   4. Add PAGE_CONFIGS.{demoId} here + thin page JS calling MobileDemoShell.init
  *   5. Wire lab-core with envBarConfig.iframeIds targeting the shell iframe
  *
- * Internal preview only: mobile-demo-apalmer.html (web-in-frame, env bar inside iframe).
- * Do NOT add new customers to LEGACY_DEMOS — use dedicated mobile pages instead.
+ * Legacy hub stubs (mobile-demo-apalmer.html, mobile-demo.html) only redirect bookmarks;
+ * do not add new customers there — use dedicated mobile pages instead.
  *
  * @see shared/mobile-demo-shell.js
  */
@@ -84,37 +84,19 @@
     },
   };
 
-  /** Legacy customize drawer list (mobile-demo-apalmer without env bar). Do not extend for new customers. */
-  var LEGACY_DEMOS = [
-    { value: 'etihad-demo.html', label: 'Etihad (demo)' },
-    { value: 'fnb-demo.html', label: 'FNB (demo)' },
-    { value: 'oldmutual-demo.html', label: 'Old Mutual (demo)' },
-    { value: 'oldmutual-wealth.html', label: 'Old Mutual Wealth (demo)' },
-    { value: 'donate-demo.html', label: 'Donate (demo)' },
-    { value: 'race-for-life-demo.html', label: 'Race for Life (demo)' },
-    { value: 'events-trigger.html', label: 'Events trigger' },
-    { value: 'firebase-hosting.html', label: 'Firebase images' },
-  ];
-
   /**
-   * Hash routes → config or redirect. Keys match location.hash without #.
-   * Dedicated pages ({customer}-mobile-demo.html) set window.mobileDemoConfig directly.
+   * Bookmark hash → redirect URL for retired hub stubs only.
+   * Keep aligned with inline maps in mobile-demo-apalmer.html and mobile-demo.html.
    */
-  var HASH_ROUTES = {
-    'etihad-phone': {
-      redirect: 'etihad-mobile-demo.html',
+  var LEGACY_HASH_REDIRECTS = {
+    apalmer: {
+      'etihad-phone': 'etihad-mobile-demo.html',
+      'ksia-phone': 'ksia-mobile-demo.html',
+      'etihad-ipad': 'etihad-ipad.html',
     },
-    'etihad-ipad': {
-      demoId: 'etihad',
-      brandName: 'Etihad',
-      appEntryUrl: 'etihad-demo.html',
-      defaultDevice: 'ipad11',
-      deviceToggleDevices: ['iphone17pro', 's24u'],
-      envBar: false,
-      legacyDemoSelect: true,
-    },
-    'ksia-phone': {
-      redirect: 'ksia-mobile-demo.html',
+    fnb: {
+      'fnb-phone': 'fnb-demo.html?aepSimMobile=1',
+      'fnb-ipad': 'fnb-demo.html?aepSimMobile=1',
     },
   };
 
@@ -154,15 +136,15 @@
 
   global.MobileDemoConfigs = {
     DEVICES: DEVICES,
-    LEGACY_DEMOS: LEGACY_DEMOS,
-    HASH_ROUTES: HASH_ROUTES,
+    LEGACY_HASH_REDIRECTS: LEGACY_HASH_REDIRECTS,
     PAGE_CONFIGS: PAGE_CONFIGS,
     getDevice: function (id) {
       return DEVICES[id] || DEVICES.s24u;
     },
-    resolveHashRoute: function (hashKey) {
+    resolveLegacyHashRedirect: function (hub, hashKey) {
       var key = String(hashKey || '').replace(/^#/, '').trim();
-      return HASH_ROUTES[key] || null;
+      var map = LEGACY_HASH_REDIRECTS[hub];
+      return map && map[key] ? map[key] : null;
     },
     getPageConfig: function (demoId) {
       return PAGE_CONFIGS[demoId] || null;

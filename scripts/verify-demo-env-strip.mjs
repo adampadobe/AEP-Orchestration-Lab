@@ -34,14 +34,11 @@ const ENV_BAR_MANIFEST = envBarVersions?.manifestVersion ?? '20260612-env-bar';
  */
 const ENV_BAR_REDIRECT_HTML = [
   'call-center-demo-apalmer.html',
+  'mobile-demo.html',
+  'mobile-demo-apalmer.html',
   'sky-llm-referral-traffic.html',
   'sky-llm-llm-response.html',
 ];
-
-/**
- * Mobile simulator shell — env controls live in iframe target demo, not simulator chrome.
- */
-const MOBILE_SIMULATOR_HTML = ['mobile-demo.html', 'mobile-demo-apalmer.html'];
 
 /** @deprecated — kept empty; all former exceptions migrated to shared/env-bar.js (Jun 2026). */
 const ENV_STRIP_EXCEPTION_HTML = [];
@@ -196,12 +193,8 @@ function isEnvBarRedirect(rel) {
   return ENV_BAR_REDIRECT_HTML.includes(rel.replace(/\\/g, '/'));
 }
 
-function isMobileSimulator(rel) {
-  return MOBILE_SIMULATOR_HTML.includes(rel.replace(/\\/g, '/'));
-}
-
 function isEnvStripException(rel) {
-  return isMobileSimulator(rel) || isEnvBarRedirect(rel);
+  return isEnvBarRedirect(rel);
 }
 
 function envBarHrefFor(rel) {
@@ -548,5 +541,5 @@ if (failed) {
   process.exit(1);
 }
 console.log(
-  `verify-demo-env-strip: OK (${SITE_CLONE_DEMO_HTML.length} site-clone demos, ${MIGRATED_TO_ENV_BAR_HTML.size} on shared/env-bar.js, ${MINIMAL_ENV_BAR_HTML.length} minimal + ${SANDBOX_ONLY_ENV_BAR_HTML.length} sandbox-only, ${MOBILE_SIMULATOR_HTML.length} mobile iframe passthrough, ${ENV_STRIP_EXCEPTION_HTML.length} legacy exceptions, no env strip drift)`,
+  `verify-demo-env-strip: OK (${SITE_CLONE_DEMO_HTML.length} site-clone demos, ${MIGRATED_TO_ENV_BAR_HTML.size} on shared/env-bar.js, ${MINIMAL_ENV_BAR_HTML.length} minimal + ${SANDBOX_ONLY_ENV_BAR_HTML.length} sandbox-only, ${ENV_BAR_REDIRECT_HTML.length} redirect stubs, ${ENV_STRIP_EXCEPTION_HTML.length} legacy exceptions, no env strip drift)`,
 );

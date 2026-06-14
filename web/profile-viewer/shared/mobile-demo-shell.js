@@ -5,8 +5,7 @@
  *   window.mobileDemoConfig = MobileDemoConfigs.getPageConfig('ksia');
  *   MobileDemoShell.init({ config: window.mobileDemoConfig, storageKeyPrefix: 'ksiaMobile' });
  *
- * Hash routes (mobile-demo-apalmer.html#etihad-phone):
- *   MobileDemoShell.initFromHash({ defaultHash: 'etihad-phone', storageKeyPrefix: 'apalmerLab' });
+ * Legacy hub bookmarks (#etihad-phone, …) redirect via mobile-demo-apalmer.html stubs.
  *
  * SDK injection: Tags inject targets iframe via env bar lab-core iframeIds.
  * In-app BC mount: #brand-concierge-mobile-mount inside iframe (see ksia-mobile-app.js).
@@ -124,7 +123,6 @@
    * @param {object} opts
    * @param {object} opts.config — MobileDemoConfig
    * @param {string} [opts.storageKeyPrefix='mobileDemo']
-   * @param {boolean} [opts.showLegacyCustomize=false]
    */
   function init(opts) {
     opts = opts || {};
@@ -274,11 +272,6 @@
     applyDevice(initialDevice, false);
     applyAppUrl(config.appEntryUrl, false);
 
-    /* Legacy customize drawer (etihad multi-demo picker) */
-    if (opts.showLegacyCustomize) {
-      initLegacyCustomize(config, storageDemoKey, applyAppUrl, applyDevice);
-    }
-
     /* Status bar clock */
     if (statusBarEl) {
       setInterval(function () {
@@ -290,86 +283,6 @@
     initFullscreen();
 
     return { applyDevice: applyDevice, applyAppUrl: applyAppUrl, getConfig: function () { return config; } };
-  }
-
-  function initLegacyCustomize(config, storageDemoKey, applyAppUrl, applyDevice) {
-    var Cfgs = global.MobileDemoConfigs;
-    var select = $('mobileDemoSelect');
-    var deviceSelect = $('mobileDemoDeviceSelect');
-    var panel = $('mobileDemoCustomizePanel');
-    var backdrop = $('mobileDemoCustomizeBackdrop');
-    var toggleBtn = $('mobileDemoCustomizeToggle');
-    var closeBtn = $('mobileDemoCustomizeClose');
-
-    if (!select || !Cfgs || !Cfgs.LEGACY_DEMOS) return;
-
-    Cfgs.LEGACY_DEMOS.forEach(function (demo) {
-      var opt = document.createElement('option');
-      opt.value = demo.value;
-      opt.textContent = demo.label;
-      select.appendChild(opt);
-    });
-
-    if (deviceSelect && Cfgs.DEVICES) {
-      var toggleIds = config.deviceToggleDevices || ['iphone17pro', 's24u'];
-      toggleIds.forEach(function (id) {
-        var d = Cfgs.getDevice(id);
-        if (!d) return;
-        var devOpt = document.createElement('option');
-        devOpt.value = d.id;
-        devOpt.textContent = d.label;
-        deviceSelect.appendChild(devOpt);
-      });
-      var initialDev = config.defaultDevice || toggleIds[0] || 's24u';
-      try {
-        var savedDev = sessionStorage.getItem('aepMobileSimDevice_apalmerLab');
-        if (savedDev && toggleIds.indexOf(savedDev) >= 0) initialDev = savedDev;
-      } catch (_) {
-        /* ignore */
-      }
-      deviceSelect.value = initialDev;
-      deviceSelect.addEventListener('change', function () {
-        if (typeof applyDevice === 'function') applyDevice(deviceSelect.value, true);
-      });
-    }
-
-    var initial = config.appEntryUrl || 'etihad-demo.html';
-    try {
-      var saved = sessionStorage.getItem(storageDemoKey);
-      if (saved) initial = saved;
-    } catch (_) {
-      /* ignore */
-    }
-    select.value = String(initial).split('?')[0];
-
-    select.addEventListener('change', function () {
-      applyAppUrl(select.value, true);
-    });
-
-    function setPanelOpen(open) {
-      var on = !!open;
-      if (panel) {
-        panel.classList.toggle('mobile-demo-customize--open', on);
-        panel.setAttribute('aria-hidden', on ? 'false' : 'true');
-      }
-      if (backdrop) {
-        backdrop.hidden = !on;
-        backdrop.setAttribute('aria-hidden', on ? 'false' : 'true');
-      }
-      if (toggleBtn) {
-        toggleBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
-        toggleBtn.classList.toggle('mobile-demo-customize-tab--open', on);
-      }
-    }
-
-    if (toggleBtn) toggleBtn.addEventListener('click', function () {
-      setPanelOpen(!panel || !panel.classList.contains('mobile-demo-customize--open'));
-    });
-    if (closeBtn) closeBtn.addEventListener('click', function () { setPanelOpen(false); });
-    if (backdrop) backdrop.addEventListener('click', function () { setPanelOpen(false); });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') setPanelOpen(false);
-    });
   }
 
   function initFullscreen() {
@@ -425,67 +338,8 @@
     syncFsButton();
   }
 
-  /**
-   * @param {object} opts
-   * @param {string} [opts.defaultHash='etihad-phone']
-   * @param {string} [opts.storageKeyPrefix='apalmerLab']
-   */
-  function initFromHash(opts) {
-    opts = opts || {};
-    var Cfgs = global.MobileDemoConfigs;
-    if (!Cfgs) return null;
-
-    function normalizeHashKey() {
-      return (global.location.hash || '').replace(/^#/, '').trim();
-    }
-
-    function ensureDefaultNavHash(defaultKey) {
-      var k = normalizeHashKey();
-      if (Cfgs.resolveHashRoute(k)) return k;
-      if (!k && global.history && global.history.replaceState) {
-        try {
-          global.history.replaceState(null, '', global.location.pathname + global.location.search + '#' + defaultKey);
-        } catch (_) {
-          /* ignore */
-        }
-        return defaultKey;
-      }
-      return k;
-    }
-
-    var hashKey = ensureDefaultNavHash(opts.defaultHash || 'etihad-phone');
-    var route = Cfgs.resolveHashRoute(hashKey);
-
-    if (route && route.redirect) {
-      global.location.replace(route.redirect);
-      return null;
-    }
-
-    var config = route || Cfgs.resolveHashRoute('etihad-phone') || {};
-    var shell = init({
-      config: config,
-      storageKeyPrefix: opts.storageKeyPrefix || 'apalmerLab',
-      showLegacyCustomize: !!config.legacyDemoSelect,
-    });
-
-    global.addEventListener('hashchange', function () {
-      var k = normalizeHashKey();
-      var r = Cfgs.resolveHashRoute(k);
-      if (r && r.redirect) {
-        global.location.replace(r.redirect);
-        return;
-      }
-      if (!r || !shell) return;
-      shell.applyAppUrl(r.appEntryUrl, true);
-      if (r.defaultDevice) shell.applyDevice(r.defaultDevice, true);
-    });
-
-    return shell;
-  }
-
   global.MobileDemoShell = {
     init: init,
-    initFromHash: initFromHash,
     buildSrc: buildSrc,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

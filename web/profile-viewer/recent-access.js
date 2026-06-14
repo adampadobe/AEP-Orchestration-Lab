@@ -24,8 +24,10 @@
     'call-center-demo.html': { name: 'FNB · Call centre (demo)' },
     'call-centre-demo-v1.html': { name: 'Contact centre (v1)' },
     'call-center-demo-apalmer.html': { name: 'Contact centre (legacy URL → v1)' },
-    'mobile-demo.html': { name: 'Mobile simulator (FNB)' },
-    'mobile-demo-apalmer.html': { name: 'Mobile simulator (apalmer · Etihad)' },
+    'mobile-demo.html': { name: 'FNB mobile (legacy redirect)' },
+    'mobile-demo-apalmer.html': { name: 'Mobile preview (legacy redirect)' },
+    'etihad-mobile-demo.html': { name: 'Etihad mobile (demo)' },
+    'ksia-mobile-demo.html': { name: 'KSIA mobile (demo)' },
     'premier-inn-demo.html': { name: 'Premier Inn (demo)' },
     'miral/wbworld-demo.html': { name: 'Miral · WB World Yas Island (demo)' },
     'miral/seaworld-demo.html': { name: 'Miral · SeaWorld Yas Island (demo)' },
@@ -116,12 +118,22 @@
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
     },
     'mobile-demo.html': {
-      label: 'Mobile simulator (FNB)',
+      label: 'FNB mobile (legacy)',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
     },
     'mobile-demo-apalmer.html': {
-      label: 'Mobile simulator (apalmer)',
+      label: 'Mobile preview (legacy)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
+    },
+    'etihad-mobile-demo.html': {
+      label: 'Etihad mobile',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
+    },
+    'ksia-mobile-demo.html': {
+      label: 'KSIA mobile',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
     },

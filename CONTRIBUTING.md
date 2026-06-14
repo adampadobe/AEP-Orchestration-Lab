@@ -486,7 +486,7 @@ FNB
 - Add one **subgroup** per customer under the **Demos** group with `demoCustomer: true` and a `channels` array.
 - Each channel is `{ id, label, items }` where `label` is `Web`, `Mobile`, or `Call Centre`.
 - **Phone** / **iPad** are normal `items` under the **Mobile** channel; iPad may use `navPlaceholder: true` (no `href`) plus `navHideKey` and the same `demoMeta` as sibling links so **Mine / sandbox** filters stay coherent.
-- Hash deep links for the mobile simulator (`#fnb-phone`, `#etihad-phone`, …) must stay aligned with `HASH_ROUTES` in `mobile-demo.js` / `mobile-demo-apalmer.js`.
+- Hash deep links for retired mobile hub stubs (`#fnb-phone`, `#etihad-phone`, …) must stay aligned with the inline redirect maps in `mobile-demo.html` / `mobile-demo-apalmer.html` and `LEGACY_HASH_REDIRECTS` in `shared/mobile-demo-configs.js`.
 
 **Rules**
 
@@ -706,7 +706,7 @@ These lab demos use a **different UX** and are **not** required to load `shared/
 | `fnb-demo.html`, `fnb-*.html` | Compact FNB header, not Tags strip | Profile login email + `#generatorTarget` in `fnb-aep-login-bar` | `verify:demo-env-strip` (passes — skipped), `verify:profile-viewer-routes`, profile modal |
 | `call-center-demo.html`, `call-center-demo-apalmer.html`, `call-centre-demo-v1.html` | Agent desktop; pinned lookup | `call-center-pinned-lookup` + event destination; no Tags/sandbox strip | Same |
 | `sky-llm-*.html` (8 shells + redirect stub) | LLM Optimizer snapshot viewers | Inline sandbox + profile lookup via `aep-demo-env-bar.css` / `.js` directly | Same |
-| `mobile-demo.html`, `mobile-demo-apalmer.html` | Device simulator chrome | Iframe target demo owns env controls | Same |
+| `mobile-demo.html`, `mobile-demo-apalmer.html` | Retired hub redirect stubs | Target demo or customer mobile page owns env controls | Same |
 
 **Scripts (site-clone slice):** `shared/env-bar.js` loads CSS + `shared/demo-env-strip.js` → `shared/demo-env-bar-bootstrap.js` → `demo-tags-injection.js` → `aep-demo-env-bar.js` → … → demo **lab-core JS** (Tags via `DemoTagsInjection.init`, wrapped in `envBar.ready()` when needed) → `site-clone-bc.js`. Demo JS must **not** call `initLabDemoEnvBar` directly.
 

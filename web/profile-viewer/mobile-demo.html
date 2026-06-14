@@ -1,84 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile (demo) – AEP Profile Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile simulator (FNB) — moved</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="mobile-demo.css?v=20260614-no-browser-fs">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <script>
+    (function () {
+      var target = 'fnb-demo.html?aepSimMobile=1';
+      var map = {
+        'fnb-phone': target,
+        'fnb-ipad': target,
+      };
+      var h = (location.hash || '').replace(/^#/, '').trim();
+      if (h && map[h]) {
+        try {
+          location.replace(map[h]);
+        } catch (e) {
+          location.href = map[h];
+        }
+      }
+    })();
+  </script>
 </head>
-<body class="mobile-demo-page">
-  <div class="mobile-demo-fs-root" id="mobileDemoFsRoot">
-    <header class="mobile-demo-topbar">
-      <a class="mobile-demo-home" href="home.html">← Home</a>
-      <div class="mobile-demo-topbar-text">
-        <h1 class="mobile-demo-title">Mobile simulator</h1>
-        <p class="mobile-demo-sub">Resizable preview · same demos as <strong>Demos</strong> on Home · profile drawer on the left inside the phone</p>
-      </div>
-      <div class="mobile-demo-topbar-actions">
-        <button type="button" class="mobile-demo-fullscreen-btn" id="mobileDemoFullscreenBtn" aria-pressed="false" title="Expand simulator (presentation mode)" aria-label="Expand simulator">
-          Expand simulator
-        </button>
-      </div>
-    </header>
-
-    <main class="mobile-demo-main">
-      <div class="mobile-demo-stage">
-        <div class="mobile-demo-device-label" id="mobileDemoDeviceLabel">Samsung Galaxy S24 Ultra · simulator</div>
-        <div class="mobile-demo-frame-outer">
-          <div class="mobile-demo-bezel mobile-demo-bezel--samsung" id="mobileDemoBezel">
-            <div class="mobile-demo-notch mobile-demo-notch--samsung" id="mobileDemoNotch" aria-hidden="true"></div>
-            <div class="mobile-demo-viewport" id="mobileDemoViewport">
-              <div class="mobile-demo-viewport-clip">
-                <iframe
-                  id="mobileDemoFrame"
-                  title="Demo preview"
-                  src="fnb-demo.html?aepSimMobile=1"
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="mobile-demo-hint">
-          Drag the lower-right corner of the preview to resize. Use Customize to pick the demo and device frame.
-        </p>
-      </div>
-    </main>
-    <button type="button" class="mobile-demo-fs-exit-float" id="mobileDemoFsExitFloat" hidden aria-label="Exit presentation">
-      Exit presentation
-    </button>
-  </div>
-
-  <button type="button" class="mobile-demo-customize-tab" id="mobileDemoCustomizeToggle" aria-expanded="false" aria-controls="mobileDemoCustomizePanel">
-    Customize
-  </button>
-  <div class="mobile-demo-customize-backdrop" id="mobileDemoCustomizeBackdrop" hidden aria-hidden="true"></div>
-  <aside class="mobile-demo-customize" id="mobileDemoCustomizePanel" aria-hidden="true" aria-labelledby="mobileDemoCustomizeTitle">
-    <div class="mobile-demo-customize-head">
-      <h2 id="mobileDemoCustomizeTitle">Customize</h2>
-      <button type="button" class="mobile-demo-customize-close" id="mobileDemoCustomizeClose" aria-label="Close customize panel">×</button>
-    </div>
-    <div class="mobile-demo-customize-body">
-      <label class="mobile-demo-field">
-        <span class="mobile-demo-field-label">Set demo</span>
-        <select id="mobileDemoSelect" class="mobile-demo-select" aria-describedby="mobileDemoCustomizeHelp"></select>
-      </label>
-      <label class="mobile-demo-field">
-        <span class="mobile-demo-field-label">Device frame</span>
-        <select id="mobileDemoDeviceSelect" class="mobile-demo-select" aria-describedby="mobileDemoDeviceHelp"></select>
-      </label>
-      <p id="mobileDemoDeviceHelp" class="mobile-demo-customize-note">
-        Chooses frame style and default logical screen size (CSS px). You can still resize the preview by dragging its corner.
-      </p>
-      <p id="mobileDemoCustomizeHelp" class="mobile-demo-customize-note">
-        Matches the entries under <strong>Demos</strong> on Home. Internal links keep mobile preview mode while you navigate.
-      </p>
-    </div>
-  </aside>
-
-  <script src="mobile-demo.js?v=20260614-no-browser-fs" defer></script>
+<body class="home-dashboard-concierge">
+  <main style="max-width: 36rem; margin: 2.5rem auto; padding: 0 1.25rem; color: var(--dash-text); font-family: Inter, system-ui, sans-serif;">
+    <h1 style="font-size: 1.35rem; margin: 0 0 0.75rem;">FNB mobile simulator retired</h1>
+    <p style="margin: 0 0 1rem; color: var(--dash-text-secondary); line-height: 1.5;">
+      FNB does not have a dedicated mobile demo page yet. Use the web journey in mobile preview mode instead:
+    </p>
+    <p style="margin: 0 0 1.25rem;">
+      <a href="fnb-demo.html?aepSimMobile=1">FNB journey (mobile sim)</a>
+    </p>
+    <p style="margin: 0;"><a href="home.html">← Home</a></p>
+  </main>
 </body>
 </html>
