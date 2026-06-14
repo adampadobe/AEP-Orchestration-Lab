@@ -18,17 +18,9 @@ const COLLECTION = 'genericProfileConnections';
 
 const store = createProfileConnectionStore({ collection: COLLECTION });
 
-async function getGenericProfileConnection(sandbox) {
-  return store.get(sandbox);
-}
-
-async function saveGenericProfileConnection(sandbox, patch) {
-  return store.save(sandbox, patch);
-}
-
 module.exports = {
+  ...store,
   COLLECTION,
-  getGenericProfileConnection,
-  saveGenericProfileConnection,
-  docIdForSandbox: store.docIdForSandbox,
+  getGenericProfileConnection: (sandbox) => store.get(sandbox),
+  saveGenericProfileConnection: (sandbox, patch) => store.save(sandbox, patch),
 };

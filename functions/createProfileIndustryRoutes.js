@@ -6,11 +6,9 @@
  *   - GET  /api/<route>-infra/flow-lookup    → consentFlowLookup.lookupConsentHttpFlow
  *   - GET/POST /api/<route>-connection       → connectionStore.get / .save
  *
- * Generic and Travel keep their hand-rolled handlers in `functions/index.js`
- * (preserves the Phase 0 "behaviour-unchanged" guarantee for those two
- * already-shipped industries). Every NEW industry (FSI, Telecom, Retail,
- * Media, Sports) uses this factory so each industry adds ~10 LOC to
- * `index.js` instead of cloning ~140 LOC of route boilerplate.
+ * All seven lab industries (Generic, Travel, FSI, Telecom, Retail, Media,
+ * Sports) register through this factory from `profileRoutes.js` so each
+ * industry adds ~10 LOC instead of cloning ~140 LOC of route boilerplate.
  *
  * Design notes
  * ------------

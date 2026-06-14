@@ -18,17 +18,9 @@ const COLLECTION = 'travelProfileConnections';
 
 const store = createProfileConnectionStore({ collection: COLLECTION });
 
-async function getTravelProfileConnection(sandbox) {
-  return store.get(sandbox);
-}
-
-async function saveTravelProfileConnection(sandbox, patch) {
-  return store.save(sandbox, patch);
-}
-
 module.exports = {
+  ...store,
   COLLECTION,
-  getTravelProfileConnection,
-  saveTravelProfileConnection,
-  docIdForSandbox: store.docIdForSandbox,
+  getTravelProfileConnection: (sandbox) => store.get(sandbox),
+  saveTravelProfileConnection: (sandbox, patch) => store.save(sandbox, patch),
 };

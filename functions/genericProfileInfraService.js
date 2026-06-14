@@ -44,25 +44,14 @@ const service = createProfileInfraService({
 
 const GENERIC_PROFILE_INFRA_STEP_NAMES = service.STEP_NAMES;
 
-async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
-  return service.runStatus(sandbox, token, clientId, orgId);
-}
-
-async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepName) {
-  return service.runStep(sandbox, token, clientId, orgId, stepName);
-}
-
-async function runGenericProfileInfraEnableProfile(sandbox, token, clientId, orgId) {
-  return service.runEnableProfile(sandbox, token, clientId, orgId);
-}
-
 module.exports = {
-  runGenericProfileInfraStatus,
-  runGenericProfileInfraStep,
-  runGenericProfileInfraEnableProfile,
+  ...service,
   GENERIC_PROFILE_SCHEMA_TITLE,
   GENERIC_PROFILE_DATASET_NAME,
   GENERIC_PROFILE_HTTP_DATAFLOW_NAME,
   GENERIC_PROFILE_FIELD_GROUP_TITLE,
-  GENERIC_PROFILE_INFRA_STEP_NAMES,
+  GENERIC_PROFILE_INFRA_STEP_NAMES: service.STEP_NAMES,
+  runGenericProfileInfraStatus: (...args) => service.runStatus(...args),
+  runGenericProfileInfraStep: (...args) => service.runStep(...args),
+  runGenericProfileInfraEnableProfile: (...args) => service.runEnableProfile(...args),
 };

@@ -145,24 +145,13 @@ const service = createProfileInfraService({
 
 const TRAVEL_PROFILE_INFRA_STEP_NAMES = service.STEP_NAMES;
 
-async function runTravelProfileInfraStatus(sandbox, token, clientId, orgId) {
-  return service.runStatus(sandbox, token, clientId, orgId);
-}
-
-async function runTravelProfileInfraStep(sandbox, token, clientId, orgId, stepName) {
-  return service.runStep(sandbox, token, clientId, orgId, stepName);
-}
-
-async function runTravelProfileInfraEnableProfile(sandbox, token, clientId, orgId) {
-  return service.runEnableProfile(sandbox, token, clientId, orgId);
-}
-
 module.exports = {
-  runTravelProfileInfraStatus,
-  runTravelProfileInfraStep,
-  runTravelProfileInfraEnableProfile,
+  ...service,
   TRAVEL_PROFILE_SCHEMA_TITLE,
   TRAVEL_PROFILE_DATASET_NAME,
   TRAVEL_PROFILE_HTTP_DATAFLOW_NAME,
-  TRAVEL_PROFILE_INFRA_STEP_NAMES,
+  TRAVEL_PROFILE_INFRA_STEP_NAMES: service.STEP_NAMES,
+  runTravelProfileInfraStatus: (...args) => service.runStatus(...args),
+  runTravelProfileInfraStep: (...args) => service.runStep(...args),
+  runTravelProfileInfraEnableProfile: (...args) => service.runEnableProfile(...args),
 };
