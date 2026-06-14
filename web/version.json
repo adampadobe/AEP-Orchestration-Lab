@@ -1,14 +1,14 @@
 {
-  "gitSha": "4804a09145ccbccebc090024d2544dc6cd5e708d",
-  "gitShortSha": "4804a091",
+  "gitSha": "3d4b3312ab1531f6bab00fe91ee9011709f0078d",
+  "gitShortSha": "3d4b3312",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: LLM demo auto-load scrapes from global sandbox",
+  "gitCommitSubject": "[apalmer] fix: LLM demo wait for global sandbox before loading scrapes",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T20:41:34+01:00",
-  "deployedAt": "2026-06-14T19:41:48.147Z",
+  "gitCommitDate": "2026-06-14T20:51:47+01:00",
+  "deployedAt": "2026-06-14T19:52:04.807Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4804a09145ccbccebc090024d2544dc6cd5e708d"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3d4b3312ab1531f6bab00fe91ee9011709f0078d"
 }
