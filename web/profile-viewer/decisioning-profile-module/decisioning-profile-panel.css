@@ -34,9 +34,6 @@
   align-items: center;
   justify-content: center;
   font: inherit;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
   pointer-events: auto;
   flex-shrink: 0;
   transition:
@@ -56,16 +53,19 @@
     0 0 0 2px color-mix(in srgb, var(--dash-blue) 22%, transparent);
 }
 
-.dpm-panel-trigger-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--dash-blue);
+.dpm-panel-trigger-icon {
+  display: block;
+  flex-shrink: 0;
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dpm-panel-trigger[aria-expanded='true'] .dpm-panel-trigger-dot {
-  transform: scale(1.12);
+.dpm-panel-trigger[aria-expanded='true'] .dpm-panel-trigger-icon {
+  transform: scale(1.08);
+}
+
+.dpm-panel-trigger:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
 }
 
 .dpm-panel-shell {
@@ -179,7 +179,7 @@
   .dpm-panel-shell,
   .dpm-panel-backdrop,
   .dpm-panel-trigger,
-  .dpm-panel-trigger-dot,
+  .dpm-panel-trigger-icon,
   .decisioning-profile-module .dpm-micro-profile-chevron {
     transition-duration: 0.01ms;
   }
