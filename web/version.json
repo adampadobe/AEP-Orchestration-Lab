@@ -1,14 +1,14 @@
 {
-  "gitSha": "bfc6751a4eb2e0fa432ed6548f0889c51badf877",
-  "gitShortSha": "bfc6751a",
+  "gitSha": "401d26160037e927364f05637bc46ed72738cc49",
+  "gitShortSha": "401d2616",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: mirror CoreDemoData saves to legacy RTDB root",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json for hosting deploy (bfc6751a)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T22:26:31+01:00",
-  "deployedAt": "2026-06-14T21:26:49.487Z",
+  "gitCommitDate": "2026-06-14T22:31:48+01:00",
+  "deployedAt": "2026-06-14T21:32:22.027Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bfc6751a4eb2e0fa432ed6548f0889c51badf877"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/401d26160037e927364f05637bc46ed72738cc49"
 }
