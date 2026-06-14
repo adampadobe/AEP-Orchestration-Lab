@@ -42,8 +42,7 @@
   pointer-events: none;
 }
 
-html.aep-sim-mobile .etihad-demo-top-anchor,
-html.aep-sim-mobile .mobile-demo-shell-channel-row {
+html.aep-sim-mobile .etihad-demo-top-anchor {
   display: none !important;
 }
 

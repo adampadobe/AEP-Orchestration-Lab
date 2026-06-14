@@ -89,6 +89,35 @@
     );
   }
 
+  function channelToggleMarkup(c) {
+    var webUrl = String((c && c.webUrl) || '').trim();
+    var mobileUrl = String((c && c.mobileUrl) || '').trim();
+    if (!webUrl || !mobileUrl) return '';
+    var channel = String((c && c.channel) || 'web').trim().toLowerCase();
+    var webActive = channel === 'web' ? ' is-active' : '';
+    var mobileActive = channel === 'mobile' ? ' is-active' : '';
+    var webCurrent = channel === 'web' ? ' aria-current="page"' : '';
+    var mobileCurrent = channel === 'mobile' ? ' aria-current="page"' : '';
+    return (
+      '<nav class="mobile-demo-shell-channel-toggle lab-env-toolbar__channel-toggle" aria-label="Demo channel">' +
+      '<a href="' +
+      esc(webUrl) +
+      '" class="mobile-demo-shell-channel-toggle__link' +
+      webActive +
+      '"' +
+      webCurrent +
+      '>Web</a>' +
+      '<a href="' +
+      esc(mobileUrl) +
+      '" class="mobile-demo-shell-channel-toggle__link' +
+      mobileActive +
+      '"' +
+      mobileCurrent +
+      '>Mobile</a>' +
+      '</nav>'
+    );
+  }
+
   function siteCloneSpectrumFullMarkup(config) {
     var c = config || {};
     var prefix = String(c.prefix || '').trim();
@@ -148,7 +177,9 @@
       '</strong>' +
       '<span class="spectrum-env-status-bar__subtitle">' +
       esc(subtitle) +
-      '</span></div></div>' +
+      '</span></div>' +
+      channelToggleMarkup(c) +
+      '</div>' +
       '<span class="lab-env-toolbar-divider" aria-hidden="true"></span>' +
       '<div class="spectrum-env-status-bar__stats lab-env-toolbar__stats">' +
       '<div class="spectrum-env-stat spectrum-env-stat--sandbox"><span class="spectrum-env-stat__label">Sandbox</span><span class="spectrum-env-pill spectrum-env-pill--blue lab-env-sandbox-chip lab-env-chip" id="aepSpectrumSandboxPill" title="Sandbox">—</span></div>' +

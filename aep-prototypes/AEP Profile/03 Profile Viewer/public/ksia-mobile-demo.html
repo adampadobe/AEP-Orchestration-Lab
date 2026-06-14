@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mobile-demo.css?v=20260614-no-browser-fs">
-  <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260614-env-bar-expand-fix">
+  <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260614-inline-channel">
   <link rel="stylesheet" href="ksia-demo.css?v=20260612">
   <link rel="stylesheet" href="ksia-mobile-demo.css?v=20260613">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -35,17 +35,14 @@
 <body class="ksia-mobile-demo-page mobile-demo-shell-page mobile-demo-page home-dashboard-concierge">
   <div class="mobile-demo-shell-env-anchor" id="ksiaMobileDemoEnvAnchor">
     <section class="ksia-demo-id-banner mobile-demo-shell-id-banner" aria-label="KSIA mobile demo controls">
-      <div class="mobile-demo-shell-channel-row">
-        <nav class="mobile-demo-shell-channel-toggle" aria-label="Demo channel">
-          <a href="ksia-demo.html" class="mobile-demo-shell-channel-toggle__link">Web</a>
-          <a href="ksia-mobile-demo.html" class="mobile-demo-shell-channel-toggle__link is-active" aria-current="page">Mobile</a>
-        </nav>
-      </div>
       <div
         class="ksia-demo-id-inner aep-demo-id-inner"
         data-demo-env-strip-mount="site-clone-shell"
         data-demo-env-strip-variant="spectrum"
         data-demo-env-strip-title="KSIA (mobile)"
+        data-demo-env-strip-web-url="ksia-demo.html"
+        data-demo-env-strip-mobile-url="ksia-mobile-demo.html"
+        data-demo-env-strip-channel="mobile"
         data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-bc-bottom="1"
         data-demo-env-strip-prefix="ksia"

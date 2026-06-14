@@ -51,6 +51,9 @@
       subtitle: host.getAttribute('data-demo-env-strip-subtitle') || 'Active Configuration',
       hideGeneratorTarget: host.getAttribute('data-demo-env-strip-hide-generator-target') === '1',
       hideNamespace: host.getAttribute('data-demo-env-strip-hide-namespace') === '1',
+      webUrl: host.getAttribute('data-demo-env-strip-web-url') || '',
+      mobileUrl: host.getAttribute('data-demo-env-strip-mobile-url') || '',
+      channel: host.getAttribute('data-demo-env-strip-channel') || '',
     };
   }
 
