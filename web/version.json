@@ -1,14 +1,14 @@
 {
-  "gitSha": "3ddf64b40c093a9d26fce6004af149f17b0a73c7",
-  "gitShortSha": "3ddf64b4",
+  "gitSha": "9598a03a8ce185c20072af3d5689aad38d0e93a8",
+  "gitShortSha": "9598a03a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: floating cog dock toggle for env bar",
+  "gitCommitSubject": "[apalmer] chore: retire internal mobile preview hub in favour of per-customer mobile demos",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T14:37:39+01:00",
-  "deployedAt": "2026-06-14T13:37:53.519Z",
+  "gitCommitDate": "2026-06-14T14:44:41+01:00",
+  "deployedAt": "2026-06-14T13:44:54.913Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3ddf64b40c093a9d26fce6004af149f17b0a73c7"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9598a03a8ce185c20072af3d5689aad38d0e93a8"
 }
