@@ -209,7 +209,11 @@
       return Promise.resolve(true);
     }
     setStatus((statusPrefix || 'Saving') + '…', '');
-    if (saveInFlight) return saveInFlight;
+    if (saveInFlight) {
+      return saveInFlight.then(function () {
+        return persistConfig(cfg, sandboxSlug, statusPrefix);
+      });
+    }
     saveInFlight = saveConfigToRtdb(norm, sb)
       .then(function () {
         lastSaved = norm;
@@ -224,11 +228,13 @@
       })
       .finally(function () {
         saveInFlight = null;
+        refreshFromRtdb();
       });
     return saveInFlight;
   }
 
   function refreshFromRtdb() {
+    if (saveInFlight) return;
     var gen = ++refreshGeneration;
     var sb = currentSandboxName();
     loadConfigFromRtdb(sb)

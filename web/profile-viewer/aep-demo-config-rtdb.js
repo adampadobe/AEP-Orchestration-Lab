@@ -571,7 +571,8 @@
 
   function saveSectionInner(section, partial, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      if (!ldapSlug || !sandboxSlug) {
+      var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
+      if (!ldapForPath || !sandboxSlug) {
         return Promise.reject(new Error('LDAP slug and sandbox are required to save demo config.'));
       }
       var db = getDatabase();
@@ -581,10 +582,10 @@
       if (!u || !u.email) {
         return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
       }
-      var ref = db.ref(sectionPath(ldapSlug, sandboxSlug, section));
+      var ref = db.ref(sectionPath(ldapForPath, sandboxSlug, section));
       return ref.update(partial).then(function () {
-        dispatchConfigChanged({ section: section, ldapSlug: ldapSlug, sandboxSlug: sandboxSlug });
-        return { ok: true, ldapSlug: ldapSlug, sandboxSlug: sandboxSlug, section: section };
+        dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
+        return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
       });
     });
   }

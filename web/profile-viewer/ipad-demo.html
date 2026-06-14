@@ -413,41 +413,36 @@
     <div class="cc-customize-panel" id="ccCustomizePanel" role="region" aria-label="Workspace customise" aria-hidden="true">
       <div class="cc-customize-panel-inner">
         <p class="cc-customize-sandbox-line" id="ccCustomiseSandboxLabel" aria-live="polite">Sandbox: <span class="cc-customize-sandbox-name">—</span></p>
-        <p class="cc-customize-field-hint">Settings are saved per AEP sandbox for your signed-in lab account. Change sandbox in the environment bar above.</p>
         <div class="cc-customize-field">
-          <label for="ccIndustrySelect">Industry context</label>
-          <p class="cc-customize-field-hint">
-            Same preset as the <a href="call-centre-demo-v1.html">Contact centre</a> lab: aligns with <code>POST /api/profile/generate</code> industry keys (<code>generic</code>, <code>travel</code>, <code>fsi</code>, <code>telecom</code>, <code>retail</code>, <code>media</code>, <code>sports</code>). Changes sync across open tabs.
-          </p>
+          <label for="ccIndustrySelect">CallCentre.industryId</label>
           <select id="ccIndustrySelect" class="cc-industry-select"></select>
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseBrandName">Customer / brand name</label>
+          <label for="ccCustomiseBrandName">CoreDemoData.name</label>
           <input id="ccCustomiseBrandName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Etihad Airways">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseShortName">Short name</label>
-          <p class="cc-customize-field-hint">Hero subtitle and iPad title chip (<code>CoreDemoData.shortName</code>).</p>
+          <label for="ccCustomiseShortName">CoreDemoData.shortName</label>
           <input id="ccCustomiseShortName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Etihad">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseAgentName">Gate agent name</label>
+          <label for="ccCustomiseAgentName">StaffPortal.AgentName</label>
           <input id="ccCustomiseAgentName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Demo agent">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseAccentColour">Accent colour</label>
+          <label for="ccCustomiseAccentColour">StaffPortal.Colour</label>
           <input id="ccCustomiseAccentColour" type="text" class="cc-customize-input" autocomplete="off" placeholder="1473e6" maxlength="7">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseFlightNumber">Flight number</label>
+          <label for="ccCustomiseFlightNumber">TravelData.flightNumber</label>
           <input id="ccCustomiseFlightNumber" type="text" class="cc-customize-input" autocomplete="off" placeholder="EY455">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseRoute">Route</label>
+          <label for="ccCustomiseRoute">TravelData.route</label>
           <input id="ccCustomiseRoute" type="text" class="cc-customize-input" autocomplete="off" placeholder="AUH → LHR">
         </div>
         <div class="cc-customize-field">
-          <label for="ccCustomiseGate">Gate</label>
+          <label for="ccCustomiseGate">TravelData.gate</label>
           <input id="ccCustomiseGate" type="text" class="cc-customize-input" autocomplete="off" placeholder="B12">
         </div>
         <div class="cc-customize-actions">
@@ -463,12 +458,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="aep-ldap-slug.js?v=20260612"></script>
-  <script src="aep-demo-config-rtdb.js?v=20260614-rtdb-brand"></script>
+  <script src="aep-demo-config-rtdb.js?v=20260614-ipad-save"></script>
   <script src="aep-global-sandbox.js?v=20260513-etihad-ipad-cache"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
   <script src="aep-lab-industry-context.js?v=20260515-profile-gen-industry"></script>
   <script src="etihad-ipad.js?v=20260614-rtdb-customise"></script>
-  <script defer src="ipad-customise.js?v=20260614-rtdb-customise"></script>
+  <script defer src="ipad-customise.js?v=20260614-ipad-save"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260614-ipad-rtdb"></script>

@@ -16,6 +16,7 @@
   ];
   var lastSaved = null;
   var saveInFlight = null;
+  var refreshGeneration = 0;
 
   function rtdb() {
     return window.AepDemoConfigRtdb;
@@ -159,6 +160,20 @@
     return FIELD_INPUT_IDS.indexOf(active.id) >= 0;
   }
 
+  function configHasMeaningfulData(cfg) {
+    var c = normalizeConfig(cfg);
+    return !!(
+      c.industryId ||
+      c.brandName ||
+      c.shortName ||
+      c.agentName ||
+      c.accentColour ||
+      c.flightNumber ||
+      c.route ||
+      c.gate
+    );
+  }
+
   function loadConfigFromRtdb(sandboxSlug) {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
@@ -166,9 +181,7 @@
     return c
       .whenReady()
       .then(function () {
-        return c.migrateLocalStorageKeys(sb);
-      })
-      .then(function () {
+        // migrateLocalStorageKeys runs inside loadSection → ensurePrepReady after auth/provision.
         return Promise.all([
           c.loadSection(c.SECTIONS.CallCentre, { sandboxSlug: sb }),
           c.loadIPadFlat({ sandboxSlug: sb }),
@@ -204,12 +217,11 @@
         Colour: colour,
       },
       ipad: {
-        Mobile: { StaffName: norm.agentName, Gate: norm.gate },
-        TravelData: {
-          flightNumber: norm.flightNumber,
-          route: norm.route,
-          gate: norm.gate,
-        },
+        'Mobile/StaffName': norm.agentName,
+        'Mobile/Gate': norm.gate,
+        'TravelData/flightNumber': norm.flightNumber,
+        'TravelData/route': norm.route,
+        'TravelData/gate': norm.gate,
       },
       flat: {
         CoreDemoData: {
@@ -277,7 +289,11 @@
       return Promise.resolve(true);
     }
     setStatus((statusPrefix || 'Saving') + '…', '');
-    if (saveInFlight) return saveInFlight;
+    if (saveInFlight) {
+      return saveInFlight.then(function () {
+        return persistConfig(cfg, sandboxSlug, statusPrefix);
+      });
+    }
     saveInFlight = saveConfigToRtdb(norm, sb)
       .then(function () {
         lastSaved = norm;
@@ -292,29 +308,60 @@
       })
       .finally(function () {
         saveInFlight = null;
+        refreshFromRtdb();
       });
     return saveInFlight;
   }
 
   function refreshFromRtdb() {
+    if (saveInFlight) return;
+    var gen = ++refreshGeneration;
     var sb = currentSandboxName();
     loadConfigFromRtdb(sb)
       .then(function (cfg) {
+        if (gen !== refreshGeneration) return;
         var normalized = normalizeConfig(cfg);
         lastSaved = normalized;
         if (!isUserEditingInputs()) {
           fillInputs(cfg);
         }
         applyToDemo(cfg);
+        updateSandboxLabel();
         if (!sb) {
           setStatus('Select a sandbox in the environment bar to load saved settings.', 'err');
+        } else {
+          setStatus('', '');
         }
-        updateSandboxLabel();
       })
       .catch(function (e) {
+        if (gen !== refreshGeneration) return;
         console.warn('[ipad-customise] RTDB load failed:', e);
+        if (lastSaved && configHasMeaningfulData(lastSaved)) {
+          setStatus('', '');
+          return;
+        }
         setStatus('Could not load settings from RTDB.', 'err');
       });
+  }
+
+  function scheduleRefreshAfterAuth() {
+    function tryRefresh() {
+      refreshFromRtdb();
+    }
+    if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
+      window.__aepLabSyncReady.then(function () {
+        tryRefresh();
+        if (!currentSandboxName()) {
+          window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+        }
+      });
+    } else {
+      tryRefresh();
+      if (!currentSandboxName()) {
+        window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
+      }
+    }
+    window.setTimeout(tryRefresh, 1500);
   }
 
   function bindDrawerRefresh() {
@@ -366,12 +413,7 @@
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
 
-    if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-      window.__aepLabSyncReady.then(refreshFromRtdb);
-    } else {
-      refreshFromRtdb();
-    }
-    window.setTimeout(refreshFromRtdb, 1500);
+    scheduleRefreshAfterAuth();
   }
 
   if (document.readyState === 'loading') {
