@@ -132,123 +132,6 @@
               </fieldset>
               <p id="aepDemoNavFilterHint" class="dashboard-hero-subtitle" style="margin: 12px 0 0; font-size: 12px; color: var(--dash-text-secondary);"></p>
             </div>
-            <div id="aepRtdbLabDemosSection" class="aep-global-settings-rtdb-wrap">
-              <details class="aep-global-settings-disclosure" open aria-label="Demo prep — Realtime Database">
-                <summary class="aep-global-settings-disclosure__summary">
-                  <span class="aep-global-settings-disclosure__title">Demo prep — Realtime Database</span>
-                  <span class="aep-global-settings-disclosure__hint">One place to prep every lab demo section for your active Adobe sandbox.</span>
-                </summary>
-                <div class="aep-global-settings-disclosure__body">
-                  <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">
-                    Stored at <code>ajoLookups/&lt;ldap&gt;/sandboxes/&lt;sandbox&gt;/</code> (public read for AJO custom-action GETs). Configure Call Centre, Agentic layer, iPad, and other lab demos here once per sandbox before your session — the same data powers those apps across the orchestration lab. Writes use your <strong>lab Adobe sign-in</strong>.
-                  </p>
-                  <p class="dashboard-hero-subtitle" style="margin: 0 0 8px; font-size: 12px; color: var(--dash-text-secondary);">
-                    LDAP slug: <strong id="aepRtdbLdapPreview">—</strong> · Active sandbox: <strong id="aepRtdbSeedSlugPreview">—</strong>
-                  </p>
-                  <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 12px; color: var(--dash-text-secondary); word-break: break-all;">
-                    REST URL: <code id="aepRtdbSandboxUrlPreview">—</code>
-                  </p>
-                  <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;">
-                    <a href="firebase-database.html" class="dashboard-btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;">Advanced JSON editor</a>
-                    <button type="button" class="dashboard-btn-outline" id="aepRtdbSeedBtn" hidden>Re-merge missing sections</button>
-                    <span id="aepRtdbSeedStatus" class="dashboard-hero-subtitle" style="margin:0; font-size:13px;"></span>
-                  </div>
-                  <p id="aepDemoPrepStatus" class="dashboard-hero-subtitle" style="margin: 0 0 8px; font-size: 13px;"></p>
-                  <div id="aepDemoPrepStructure" class="aep-demo-prep-structure-wrap" aria-live="polite"></div>
-
-                  <details class="aep-global-settings-disclosure" open style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Customer &amp; brand</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Customer / programme name <input type="text" id="aepPrepCore_name" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Airline / alt name <input type="text" id="aepPrepCore_airlineName" class="schema-aep-sandbox-input" style="width:100%;" placeholder="Optional — travel demos" /></label>
-                      <label>Short name <input type="text" id="aepPrepCore_shortName" class="schema-aep-sandbox-input" style="width:100%;" placeholder="Hero label, e.g. Saga" /></label>
-                      <label>Slogan <input type="text" id="aepPrepCore_slogan" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Website URL <input type="url" id="aepPrepCore_url" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Logo URL <input type="url" id="aepPrepCore_customerLogo" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveCoreDemoData">Save customer &amp; brand</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Agent &amp; chrome</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Agent name <input type="text" id="aepPrepStaff_AgentName" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Agent ID <input type="text" id="aepPrepStaff_AgentID" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Agent type / role <input type="text" id="aepPrepStaff_AgentType" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Brand colour (hex) <input type="text" id="aepPrepStaff_Colour" class="schema-aep-sandbox-input" style="width:100%;" placeholder="#1473e6" /></label>
-                      <label>Terminal / location hint <input type="text" id="aepPrepStaff_FlightTerminalInfo" class="schema-aep-sandbox-input" style="width:100%;" placeholder="Optional" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveStaffPortal">Save agent &amp; chrome</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">iPad</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <p class="dashboard-hero-subtitle" style="margin:0;font-size:12px;color:var(--dash-text-secondary);">Travel and loyalty only — customer name and agent chrome come from the sections above.</p>
-                      <label>Flight number <input type="text" id="aepPrepIpadFlight" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Route <input type="text" id="aepPrepIpadRoute" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Gate <input type="text" id="aepPrepIpadGate" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveiPad">Save iPad</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Call Centre</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <p class="dashboard-hero-subtitle" style="margin:0;font-size:12px;color:var(--dash-text-secondary);">Industry preset only — brand and agent use the shared sections above.</p>
-                      <label>Industry preset <select id="aepPrepCcIndustry" class="schema-aep-sandbox-input" style="width:100%;"></select></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveCallCentre">Save Call Centre</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Agentic layer</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Brand agent URL <input type="url" id="aepPrepAgentic_brand" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Product agent URL <input type="url" id="aepPrepAgentic_product" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Operational agent URL <input type="url" id="aepPrepAgentic_operational" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Field agent URL <input type="url" id="aepPrepAgentic_field" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Audience agent URL <input type="url" id="aepPrepAgentic_audience" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Journey agent URL <input type="url" id="aepPrepAgentic_journey" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Data agent URL <input type="url" id="aepPrepAgentic_data" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Support agent URL <input type="url" id="aepPrepAgentic_support" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveAgenticLayer">Save Agentic layer</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Experimentation visualiser</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Treatment A image URL <input type="url" id="aepPrepExpViz_treatmentA" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Treatment B image URL <input type="url" id="aepPrepExpViz_treatmentB" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Treatment C image URL <input type="url" id="aepPrepExpViz_treatmentC" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Email A preview URL <input type="url" id="aepPrepExpViz_emailA" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Email B preview URL <input type="url" id="aepPrepExpViz_emailB" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveExpVisualiser">Save Exp visualiser</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure" style="margin-bottom:12px;">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Experimentation accelerator</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Display name override <input type="text" id="aepPrepExpAccel_displayNameOverride" class="schema-aep-sandbox-input" style="width:100%;" placeholder="Optional — overrides sandbox label in the demo" /></label>
-                      <label>Opportunity industry <input type="text" id="aepPrepExpAccel_opportunityIndustry" class="schema-aep-sandbox-input" style="width:100%;" placeholder="general" /></label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveExpAccelerator">Save Exp accelerator</button>
-                    </div>
-                  </details>
-
-                  <details class="aep-global-settings-disclosure">
-                    <summary class="aep-global-settings-disclosure__summary"><span class="aep-global-settings-disclosure__title">Content decision live</span></summary>
-                    <div class="aep-global-settings-disclosure__body" style="display:grid;gap:10px;max-width:520px;">
-                      <label>Edge datastream / config ID <input type="text" id="aepPrepCdLive_edgeConfigId" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label>Decision scopes (comma-separated) <input type="text" id="aepPrepCdLive_decisionScopes" class="schema-aep-sandbox-input" style="width:100%;" /></label>
-                      <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="aepPrepCdLive_edgeForceConfigure" /> Force configure on send</label>
-                      <button type="button" class="dashboard-btn-outline" id="aepPrepSaveContentDecisionLive">Save Content decision live</button>
-                    </div>
-                  </details>
-                </div>
-              </details>
-            </div>
             <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dash-border);">
               <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">In-development capabilities</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
@@ -283,10 +166,6 @@
     </div>
   </div>
 
-  <script src="firebase-database-config.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="aep-access-scope.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
@@ -821,9 +700,5 @@
   </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-ldap-slug.js?v=20260612"></script>
-  <script defer src="aep-demo-config-rtdb.js?v=20260613-shared-brand"></script>
-  <script defer src="aep-demo-config-prep-ui.js?v=20260613-shared-brand"></script>
-  <script defer src="aep-rtdb-lab-demos-seed.js?v=20260613-prep-auto"></script>
 </body>
 </html>
