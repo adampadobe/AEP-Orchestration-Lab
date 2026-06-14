@@ -240,11 +240,6 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
   outline: none;
 }
 
-.ipad-sandbox-label {
-  font-size: 0.75rem;
-  color: var(--dash-text-secondary);
-}
-
 /* ── Screen stack ───────────────────────────────────────────────────────── */
 .ipad-screen-stack {
   display: flex;

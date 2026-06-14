@@ -120,8 +120,8 @@
   }
 
   function getSandboxName() {
-    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-      return window.AepGlobalSandbox.getSandboxName() || '';
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSelected === 'function') {
+      return window.AepGlobalSandbox.getSelected() || '';
     }
     return 'apalmer';
   }
@@ -502,18 +502,6 @@
     return !!(customer && customer !== 'Experience Cloud' && customer !== '—');
   }
 
-  function updateIpadEnvBarCompactLabel(cd) {
-    var compactText = document.getElementById('aepDemoEnvCompactText');
-    if (!compactText) return;
-    var customer = ipadHeroCustomerLabel(cd || {});
-    var sandbox = normalizeAjoLookupSlug(getSandboxName()) || getSandboxName() || '—';
-    if (ipadHasRtdbCustomerLabel(customer)) {
-      compactText.textContent = customer + ' · iPad · ' + sandbox;
-    } else {
-      compactText.textContent = 'iPad · ' + sandbox;
-    }
-  }
-
   function applyIpadHeroTitleFromRtdb(cd) {
     cd = cd || {};
     var customer = ipadHeroCustomerLabel(cd);
@@ -534,7 +522,6 @@
     } catch (e) {
       /* ignore */
     }
-    updateIpadEnvBarCompactLabel(cd);
   }
 
   function applyRtdbToShell() {
@@ -612,7 +599,6 @@
     }
 
     updateFlightCountdown(td);
-    setText('ipadSandboxLabel', normalizeAjoLookupSlug(getSandboxName()) || getSandboxName() || '—');
 
     applyIpadHeroTitleFromRtdb(cd);
 
