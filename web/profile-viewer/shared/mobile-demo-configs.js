@@ -92,7 +92,7 @@
     apalmer: {
       'etihad-phone': 'etihad-mobile-demo.html',
       'ksia-phone': 'ksia-mobile-demo.html',
-      'etihad-ipad': 'etihad-ipad.html',
+      'etihad-ipad': 'ipad-demo.html',
     },
     fnb: {
       'fnb-phone': 'fnb-demo.html?aepSimMobile=1',

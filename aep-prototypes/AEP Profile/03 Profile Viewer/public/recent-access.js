@@ -27,6 +27,8 @@
     'mobile-demo.html': { name: 'FNB mobile (legacy redirect)' },
     'mobile-demo-apalmer.html': { name: 'Mobile preview (legacy redirect)' },
     'etihad-mobile-demo.html': { name: 'Etihad mobile (demo)' },
+    'ipad-demo.html': { name: 'iPad (lab)' },
+    'etihad-ipad.html': { name: 'iPad (legacy URL → ipad-demo)' },
     'ksia-mobile-demo.html': { name: 'KSIA mobile (demo)' },
     'premier-inn-demo.html': { name: 'Premier Inn (demo)' },
     'miral/wbworld-demo.html': { name: 'Miral · WB World Yas Island (demo)' },
@@ -131,6 +133,16 @@
       label: 'Etihad mobile',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
+    },
+    'ipad-demo.html': {
+      label: 'iPad',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5" ry="1.5"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>',
+    },
+    'etihad-ipad.html': {
+      label: 'iPad (legacy URL)',
+      svg:
+        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5" ry="1.5"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>',
     },
     'ksia-mobile-demo.html': {
       label: 'KSIA mobile',
