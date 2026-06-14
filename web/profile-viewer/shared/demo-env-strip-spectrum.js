@@ -190,6 +190,8 @@
       '</div>' +
       '<div class="lab-env-toolbar__actions">' +
       '<a class="lab-env-version-pill" id="aepLabEnvVersionPill" href="/version.json" target="_blank" rel="noopener noreferrer" title="Lab deploy version" aria-label="Lab deploy version">—</a>' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-dock-toolbar-btn" id="aepLabEnvDockToolbarBtn" aria-label="Hide environment bar" title="Hide environment bar">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 14.7 12 9.4l5.3 5.3 1.4-1.4-6.7-6.7-6.7 6.7 1.4 1.4Z"/></svg></button>' +
       '<button type="button" class="spectrum-env-icon-btn lab-env-toggle-btn" id="aepLabEnvToggleBtn" aria-label="Show environment controls" aria-expanded="false" title="Expand environment panel">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg></button>' +
       '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment panel open" aria-pressed="false" title="Pin environment panel open">' +

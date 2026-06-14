@@ -20,11 +20,11 @@
     assets: {
       bundleCss: '20260623-env-inline',
       spectrumCss: '20260613-bc-display-mode',
-      demoEnvStripSpectrum: '20260613-mobile-narrow',
+      demoEnvStripSpectrum: '20260614-env-bar-dock',
       demoEnvStrip: '20260625-version-pill',
       spectrumSync: '20260614-sdk-compact-status',
-      compactJs: '20260614-inject-guard',
-      compactCss: '20260614-mobile-shell-env-stack',
+      compactJs: '20260614-env-bar-dock',
+      compactCss: '20260614-env-bar-dock',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260614-inject-guard',
       prefsSync: '20260614-inject-guard',
@@ -825,6 +825,34 @@
     return false;
   }
 
+  function dockEnvBar() {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.dock === 'function') {
+      return global.EnvBarCompact.dock();
+    }
+    return false;
+  }
+
+  function undockEnvBar() {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.undock === 'function') {
+      return global.EnvBarCompact.undock();
+    }
+    return false;
+  }
+
+  function toggleDockEnvBar() {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.toggleDock === 'function') {
+      return global.EnvBarCompact.toggleDock();
+    }
+    return false;
+  }
+
+  function isEnvBarDocked() {
+    if (global.EnvBarCompact && typeof global.EnvBarCompact.isDocked === 'function') {
+      return global.EnvBarCompact.isDocked();
+    }
+    return false;
+  }
+
   function whenPrefsReady() {
     return ensurePrefsReady();
   }
@@ -872,6 +900,10 @@
     registerTagsInjection: registerTagsInjection,
     openOverlay: openEnvOverlay,
     closeOverlay: closeEnvOverlay,
+    dock: dockEnvBar,
+    undock: undockEnvBar,
+    toggleDock: toggleDockEnvBar,
+    isDocked: isEnvBarDocked,
   };
 
   scheduleAutoInit();

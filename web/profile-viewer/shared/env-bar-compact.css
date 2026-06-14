@@ -370,7 +370,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 }
 
 .lab-env-toggle-btn,
-.lab-env-pin-btn {
+.lab-env-pin-btn,
+.lab-env-dock-toolbar-btn {
   flex-shrink: 0;
   width: 2.75rem;
   height: 2.75rem;
@@ -396,6 +397,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .lab-env-toggle-btn:focus-visible,
 .lab-env-pin-btn:focus-visible,
+.lab-env-dock-toolbar-btn:focus-visible,
 .lab-env-chip:focus-visible,
 .lab-env-toolbar .spectrum-env-link-btn:focus-visible {
   outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
@@ -608,10 +610,107 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   }
 
   .lab-env-toggle-btn,
-  .lab-env-pin-btn {
+  .lab-env-pin-btn,
+  .lab-env-dock-toolbar-btn {
     width: 2.5rem;
     height: 2.5rem;
     min-width: 2.5rem;
     min-height: 2.5rem;
+  }
+}
+
+/* ── Dock off-screen + floating restore cog ───────────────────── */
+.mod-demo-top-anchor.lab-env-top-anchor--docked-hidden,
+[class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden,
+.lab-env-top-anchor.lab-env-top-anchor--docked-hidden {
+  transform: translateY(calc(-100% - 0.5rem));
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 0.22s ease,
+    visibility 0.22s ease;
+}
+
+.mod-demo-top-anchor.lab-env-top-anchor--docked-hidden::after,
+[class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden::after,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden::after,
+.lab-env-top-anchor.lab-env-top-anchor--docked-hidden::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.env-bar-dock-btn {
+  position: fixed;
+  top: calc(50% - 3rem);
+  right: 0.85rem;
+  z-index: 7145;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface);
+  color: var(--dash-blue);
+  box-shadow: var(--dash-shadow);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  pointer-events: auto;
+  transform: translateY(-50%);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    opacity 0.18s ease,
+    visibility 0.18s ease;
+}
+
+.env-bar-dock-btn:not(.env-bar-dock-btn--docked):not(.env-bar-dock-btn--standalone) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.env-bar-dock-btn--docked,
+.env-bar-dock-btn--standalone {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.env-bar-dock-btn:hover {
+  background: var(--dash-hover);
+}
+
+.env-bar-dock-btn:focus-visible {
+  outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
+  outline-offset: 2px;
+}
+
+.env-bar-dock-btn[aria-pressed='true'] {
+  border-color: var(--dash-blue);
+  box-shadow:
+    var(--dash-shadow),
+    0 0 0 2px color-mix(in srgb, var(--dash-blue) 22%, transparent);
+}
+
+@media (max-width: 480px) {
+  .env-bar-dock-btn {
+    right: 0.5rem;
+    top: calc(50% - 2.85rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden,
+  [class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden,
+  .mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden,
+  .lab-env-top-anchor.lab-env-top-anchor--docked-hidden,
+  .env-bar-dock-btn {
+    transition-duration: 0.01ms;
   }
 }

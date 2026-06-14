@@ -6,10 +6,15 @@
   'use strict';
 
   var PIN_STORAGE_KEY = 'aepLabEnvBarPinned';
+  var DOCK_STORAGE_KEY = 'aepLabEnvBarDocked';
   var PIN_BTN_ID = 'aepLabEnvPinBtn';
   var TOGGLE_BTN_ID = 'aepLabEnvToggleBtn';
+  var DOCK_TOOLBAR_BTN_ID = 'aepLabEnvDockToolbarBtn';
+  var FLOATING_DOCK_BTN_ID = 'aepLabEnvFloatingDockBtn';
   var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
   var EXPAND_BTN_ID = 'aepDemoEnvExpandBtn';
+  var COG_ICON_SVG =
+    '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm9 3.75a8.2 8.2 0 0 1-.15 1.55l2.02 1.58-1.9 3.29-2.38-.98a8.27 8.27 0 0 1-1.34.78l-.36 2.53H9.71l-.36-2.53a8.27 8.27 0 0 1-1.34-.78l-2.38.98-1.9-3.29 2.02-1.58A8.2 8.2 0 0 1 3 12c0-.53.05-1.05.15-1.55L1.13 8.87l1.9-3.29 2.38.98c.4-.3.86-.56 1.34-.78l.36-2.53h4.58l.36 2.53c.48.22.94.48 1.34.78l2.38-.98 1.9 3.29-2.02 1.58c.1.5.15 1.02.15 1.55Z"/></svg>';
 
   function byId(id) {
     return id ? document.getElementById(id) : null;
@@ -80,6 +85,91 @@
     try {
       global.sessionStorage.setItem(PIN_STORAGE_KEY, pinned ? '1' : '0');
     } catch (_e) {}
+  }
+
+  function readDockedFromStorage() {
+    try {
+      return global.sessionStorage.getItem(DOCK_STORAGE_KEY) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function writeDockedToStorage(docked) {
+    try {
+      global.sessionStorage.setItem(DOCK_STORAGE_KEY, docked ? '1' : '0');
+    } catch (_e) {}
+  }
+
+  /** @type {HTMLButtonElement|null} */
+  var floatingDockBtn = null;
+
+  function getOrCreateFloatingDockBtn() {
+    if (floatingDockBtn && document.contains(floatingDockBtn)) return floatingDockBtn;
+    var existing = byId(FLOATING_DOCK_BTN_ID);
+    if (existing) {
+      floatingDockBtn = existing;
+      return floatingDockBtn;
+    }
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = FLOATING_DOCK_BTN_ID;
+    btn.className = 'env-bar-dock-btn';
+    btn.innerHTML = COG_ICON_SVG;
+    btn.setAttribute('aria-label', 'Hide environment bar');
+    btn.setAttribute('title', 'Hide environment bar');
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleDockPublic();
+    });
+    document.body.appendChild(btn);
+    floatingDockBtn = btn;
+    return floatingDockBtn;
+  }
+
+  function updateFloatingDockBtn(docked) {
+    var btn = getOrCreateFloatingDockBtn();
+    var hasToolbarDock = !!byId(DOCK_TOOLBAR_BTN_ID);
+    btn.classList.toggle('env-bar-dock-btn--docked', !!docked);
+    btn.classList.toggle('env-bar-dock-btn--standalone', !hasToolbarDock);
+    btn.setAttribute('aria-label', docked ? 'Show environment bar' : 'Hide environment bar');
+    btn.setAttribute('title', docked ? 'Show environment bar' : 'Hide environment bar');
+    btn.setAttribute('aria-pressed', docked ? 'true' : 'false');
+  }
+
+  function applyDockState(anchor, docked) {
+    if (!anchor) return;
+    anchor.classList.toggle('lab-env-top-anchor--docked-hidden', !!docked);
+    updateFloatingDockBtn(!!docked);
+    if (docked) {
+      closeOverlay(anchor, { force: true });
+    }
+  }
+
+  function isDockedPublic() {
+    var anchor = resolveAnchor();
+    return !!(anchor && anchor.classList.contains('lab-env-top-anchor--docked-hidden'));
+  }
+
+  function dockPublic() {
+    var anchor = resolveAnchor();
+    if (!anchor) return false;
+    applyDockState(anchor, true);
+    writeDockedToStorage(true);
+    return true;
+  }
+
+  function undockPublic() {
+    var anchor = resolveAnchor();
+    if (!anchor) return false;
+    applyDockState(anchor, false);
+    writeDockedToStorage(false);
+    return true;
+  }
+
+  function toggleDockPublic() {
+    return isDockedPublic() ? undockPublic() : dockPublic();
   }
 
   function isOverlayOpen(anchor) {
@@ -161,6 +251,19 @@
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
 
+    getOrCreateFloatingDockBtn();
+    if (readDockedFromStorage()) applyDockState(anchor, true);
+    else updateFloatingDockBtn(false);
+
+    var dockToolbarBtn = byId(DOCK_TOOLBAR_BTN_ID);
+    if (dockToolbarBtn) {
+      dockToolbarBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        dockPublic();
+      });
+    }
+
     var toggleBtn = byId(TOGGLE_BTN_ID);
     if (toggleBtn) {
       toggleBtn.addEventListener('click', function (ev) {
@@ -236,6 +339,10 @@
     closeOverlay: closeOverlayPublic,
     isOpen: isOverlayOpenPublic,
     isPinned: isOverlayPinned,
+    dock: dockPublic,
+    undock: undockPublic,
+    toggleDock: toggleDockPublic,
+    isDocked: isDockedPublic,
   };
 
   global.addEventListener('aep-demo-env-strip-mounted', function () {
