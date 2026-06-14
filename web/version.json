@@ -1,14 +1,14 @@
 {
-  "gitSha": "b67361d1ce3b4002eea0604f66ed413fa899856e",
-  "gitShortSha": "b67361d1",
+  "gitSha": "4804a09145ccbccebc090024d2544dc6cd5e708d",
+  "gitShortSha": "4804a091",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: remove duplicate sandbox picker from iPad demo banner",
+  "gitCommitSubject": "[apalmer] fix: LLM demo auto-load scrapes from global sandbox",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T20:33:50+01:00",
-  "deployedAt": "2026-06-14T19:34:04.408Z",
+  "gitCommitDate": "2026-06-14T20:41:34+01:00",
+  "deployedAt": "2026-06-14T19:41:48.147Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b67361d1ce3b4002eea0604f66ed413fa899856e"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/4804a09145ccbccebc090024d2544dc6cd5e708d"
 }
