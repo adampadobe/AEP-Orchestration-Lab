@@ -118,6 +118,21 @@
     pushConfigToFrame();
   }
 
+  function readSandboxFromStorage() {
+    try {
+      var direct = String(global.localStorage.getItem('aepGlobalSandboxName') || '').trim();
+      if (direct) return direct;
+      var raw = global.localStorage.getItem('aepLabEnvBarV1');
+      if (raw) {
+        var doc = JSON.parse(raw);
+        if (doc && doc.selectedSandbox) return String(doc.selectedSandbox).trim();
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return '';
+  }
+
   function getSandboxName() {
     var sandbox = '';
     if (typeof AepGlobalSandbox !== 'undefined') {
@@ -131,7 +146,87 @@
     if (!sandbox && global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
       sandbox = String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
     }
+    if (!sandbox) sandbox = readSandboxFromStorage();
+    if (!sandbox) {
+      try {
+        var select = document.getElementById('sandboxSelect');
+        if (select) sandbox = String(select.value || '').trim();
+      } catch (e2) {
+        /* ignore */
+      }
+    }
     return sandbox;
+  }
+
+  function syncEnvBarSandboxSelect(sandbox) {
+    var name = String(sandbox || '').trim();
+    if (!name) return;
+    try {
+      var select = document.getElementById('sandboxSelect');
+      if (!select || String(select.value || '').trim() === name) return;
+      var matched = false;
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === name) {
+          select.selectedIndex = i;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) select.value = name;
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function whenSandboxHydrated() {
+    var chain = Promise.resolve();
+    if (global.envBar) {
+      if (typeof global.envBar.whenPrefsReady === 'function') {
+        chain = chain.then(function () {
+          return global.envBar.whenPrefsReady();
+        });
+      } else if (typeof global.envBar.ready === 'function') {
+        chain = chain.then(function () {
+          return global.envBar.ready();
+        });
+      }
+    }
+    if (global.AepLabSandboxSync && global.AepLabSandboxSync.whenReady) {
+      chain = chain.then(function () {
+        return global.AepLabSandboxSync.whenReady.catch(function () {
+          return null;
+        });
+      });
+    }
+    if (global.AepLabEnvBarPrefsSync && typeof global.AepLabEnvBarPrefsSync.pull === 'function') {
+      chain = chain.then(function () {
+        return global.AepLabEnvBarPrefsSync.pull().catch(function () {
+          return null;
+        });
+      });
+    }
+    return chain;
+  }
+
+  function waitForSandboxName(maxMs) {
+    var limit = typeof maxMs === 'number' ? maxMs : 12000;
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      function tick() {
+        var sandbox = getSandboxName();
+        if (sandbox) {
+          syncEnvBarSandboxSelect(sandbox);
+          resolve(sandbox);
+          return;
+        }
+        if (Date.now() - start >= limit) {
+          resolve('');
+          return;
+        }
+        global.setTimeout(tick, 250);
+      }
+      tick();
+    });
   }
 
   function formatScrapeOption(item) {
@@ -305,13 +400,30 @@
       sandboxSelect.addEventListener('change', refreshScrapeList);
     }
     window.addEventListener('aep-global-sandbox-change', refreshScrapeList);
+    window.addEventListener('aep-lab-env-bar-prefs-synced', refreshScrapeList);
+    window.addEventListener('aep-lab-env-bar-prefs-change', function (ev) {
+      var detail = ev && ev.detail;
+      if (!detail || detail.type === 'sandbox') refreshScrapeList();
+    });
+    window.addEventListener('aep-lab-sandbox-synced', refreshScrapeList);
     window.addEventListener('env-bar-change', function (ev) {
       var detail = ev && ev.detail;
       if (!detail || detail.type === 'init' || detail.type === 'sandbox') {
         refreshScrapeList();
       }
     });
-    refreshScrapeList();
+
+    function scheduleInitialScrapeList() {
+      whenSandboxHydrated()
+        .then(function () {
+          return waitForSandboxName(12000);
+        })
+        .then(function (sandbox) {
+          if (sandbox) syncEnvBarSandboxSelect(sandbox);
+          refreshScrapeList();
+        });
+    }
+    scheduleInitialScrapeList();
 
     applyBtn.addEventListener('click', function () {
       if (!urlInput.value.trim()) {
@@ -445,9 +557,9 @@
     initFrameConfigSync();
   }
 
-  if (global.envBar && typeof global.envBar.ready === 'function') {
-    global.envBar.ready().then(run);
-  } else {
-    run();
-  }
+  whenSandboxHydrated()
+    .then(run)
+    .catch(function () {
+      run();
+    });
 })(typeof window !== 'undefined' ? window : globalThis);
