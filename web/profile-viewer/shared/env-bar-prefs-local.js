@@ -11,6 +11,10 @@
   var LS_SANDBOX = 'aepGlobalSandboxName';
   var GEN_TARGET_LEGACY = 'aepDemoGeneratorTargetBySandbox';
   var MIGRATED_FLAG = 'aepLabEnvBarV1Migrated';
+  var USER_PICK_SESSION_KEY = 'aepLabEnvBarSandboxUserPickAt';
+
+  /** Monotonic stamp when the user explicitly picks a sandbox (dropdown / setEnvironment). */
+  var localSandboxUserPickAt = 0;
 
   /** Legacy map suffix → unified tags field */
   var TAGS_SUFFIX_TO_FIELD = {
@@ -222,6 +226,35 @@
     return doc;
   }
 
+  function readSandboxUserPickAt() {
+    if (localSandboxUserPickAt > 0) return localSandboxUserPickAt;
+    try {
+      var raw = global.sessionStorage.getItem(USER_PICK_SESSION_KEY);
+      var n = raw ? parseInt(raw, 10) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    } catch (_e) {
+      return 0;
+    }
+  }
+
+  function markSandboxUserPick() {
+    localSandboxUserPickAt = Date.now();
+    try {
+      global.sessionStorage.setItem(USER_PICK_SESSION_KEY, String(localSandboxUserPickAt));
+    } catch (_s) {}
+  }
+
+  function hasLocalSandboxUserPick() {
+    return readSandboxUserPickAt() > 0;
+  }
+
+  function shouldKeepLocalSandboxOverRemote(remoteSandbox) {
+    var local = getSelectedSandbox();
+    var remote = String(remoteSandbox || '').trim();
+    if (!local || !remote || local === remote) return false;
+    return hasLocalSandboxUserPick();
+  }
+
   function getSelectedSandbox() {
     var doc = getDoc();
     if (doc.selectedSandbox) return doc.selectedSandbox;
@@ -232,16 +265,15 @@
     }
   }
 
-  function setSelectedSandbox(name) {
+  function setSelectedSandbox(name, opts) {
     var v = String(name || '').trim();
+    var explicit = !opts || opts.explicit !== false;
+    if (explicit && v) markSandboxUserPick();
     patchDoc({ selectedSandbox: v });
     try {
       if (v) global.localStorage.setItem(LS_SANDBOX, v);
       else global.localStorage.removeItem(LS_SANDBOX);
     } catch (_e) {}
-    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function' && v) {
-      /* AepGlobalSandbox.setSelected also writes LS — already synced */
-    }
     try {
       global.dispatchEvent(new CustomEvent('aep-lab-env-bar-prefs-change', { detail: { type: 'sandbox', sandbox: v } }));
     } catch (_ev) {}
@@ -381,28 +413,28 @@
     };
   }
 
-  function importFromSync(prefs) {
+  function importFromSync(prefs, opts) {
     if (!prefs || typeof prefs !== 'object') return getDoc();
-    patchDoc({
-      selectedSandbox: prefs.selectedSandbox,
+    var remoteSb = String(prefs.selectedSandbox || '').trim();
+    var skipSandbox = shouldKeepLocalSandboxOverRemote(remoteSb);
+    var patch = {
       tagsBySandbox: prefs.tagsBySandbox,
       bcBySandbox: prefs.bcBySandbox,
       generatorTargetBySandbox: prefs.generatorTargetBySandbox,
-    });
-    var sb = String(prefs.selectedSandbox || '').trim();
-    if (sb) {
+    };
+    if (!skipSandbox) patch.selectedSandbox = prefs.selectedSandbox;
+    patchDoc(patch);
+    var sb = skipSandbox ? getSelectedSandbox() : remoteSb;
+    if (sb && !skipSandbox) {
       try {
         global.localStorage.setItem(LS_SANDBOX, sb);
       } catch (_e) {}
       if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-        global.AepGlobalSandbox.setSelected(sb);
+        global.AepGlobalSandbox.setSelected(sb, { source: 'sync' });
       }
       var select = global.document && global.document.getElementById('sandboxSelect');
       if (select) {
         select.value = sb;
-        try {
-          select.dispatchEvent(new Event('change', { bubbles: true }));
-        } catch (_c) {}
       }
     }
     try {
@@ -419,6 +451,8 @@
     patchDoc: patchDoc,
     getSelectedSandbox: getSelectedSandbox,
     setSelectedSandbox: setSelectedSandbox,
+    markSandboxUserPick: markSandboxUserPick,
+    hasLocalSandboxUserPick: hasLocalSandboxUserPick,
     hasUserSandboxPref: hasUserSandboxPref,
     readMap: readMap,
     writeMap: writeMap,

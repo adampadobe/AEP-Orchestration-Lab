@@ -121,15 +121,21 @@
 
   function bindListeners() {
     global.addEventListener('aep-lab-env-bar-prefs-change', schedulePush);
-    global.addEventListener('aep-global-sandbox-change', function () {
+    global.addEventListener('aep-global-sandbox-change', function (ev) {
       var mod = prefsModule();
       if (!mod) return;
+      var detail = ev && ev.detail ? ev.detail : {};
       var name =
-        global.AepGlobalSandbox && global.AepGlobalSandbox.getSandboxName
-          ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
-          : '';
-      if (name) mod.setSelectedSandbox(name);
-      else schedulePush();
+        detail.name != null
+          ? String(detail.name || '').trim()
+          : global.AepGlobalSandbox && global.AepGlobalSandbox.getSandboxName
+            ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
+            : '';
+      if (name) {
+        mod.setSelectedSandbox(name, { explicit: detail.source === 'user' });
+      } else {
+        schedulePush();
+      }
     });
   }
 

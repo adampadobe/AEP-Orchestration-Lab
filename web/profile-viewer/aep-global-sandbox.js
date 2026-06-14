@@ -38,15 +38,18 @@
     } catch (e) {}
   }
 
-  function setSelected(name) {
+  function setSelected(name, opts) {
     var v = name != null ? String(name) : '';
+    var source = opts && opts.source ? String(opts.source) : 'programmatic';
     try {
       if (v) localStorage.setItem(LS_SANDBOX, v);
       else localStorage.removeItem(LS_SANDBOX);
     } catch (e) {}
     pushRecent(v);
     try {
-      global.dispatchEvent(new CustomEvent('aep-global-sandbox-change', { detail: { name: v } }));
+      global.dispatchEvent(
+        new CustomEvent('aep-global-sandbox-change', { detail: { name: v, source: source } }),
+      );
     } catch (e) {}
   }
 
@@ -172,12 +175,8 @@
     } else if (byName['kirkham']) {
       sandboxSelect.value = 'kirkham';
     }
-    // Never overwrite localStorage when user already chose a sandbox — only seed
-    // LS when empty (first visit / cleared storage).
-    var resolved = String(sandboxSelect.value || '').trim();
-    if (resolved && !saved) {
-      setSelected(resolved);
-    }
+    // UI-only default — never persist apalmer/kirkham unless the user picks from the dropdown.
+    // getSandboxName() reads #sandboxSelect before localStorage, so API calls still honor the visible default.
   }
 
   async function loadSandboxesIntoSelect(sandboxSelect) {
@@ -202,7 +201,7 @@
     if (!sandboxSelect || sandboxSelect.dataset.aepGlobalListener === '1') return;
     sandboxSelect.dataset.aepGlobalListener = '1';
     sandboxSelect.addEventListener('change', function () {
-      setSelected(sandboxSelect.value);
+      setSelected(sandboxSelect.value, { source: 'user' });
     });
   }
 

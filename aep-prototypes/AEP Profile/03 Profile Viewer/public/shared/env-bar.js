@@ -26,8 +26,8 @@
       compactJs: '20260613-mobile-env-expand',
       compactCss: '20260614-mobile-shell-env-stack',
       bootstrap: '20260602-env-bar-bootstrap',
-      prefsLocal: '20260614-env-bar-prefs',
-      prefsSync: '20260614-env-bar-prefs',
+      prefsLocal: '20260614-sandbox-pick-guard',
+      prefsSync: '20260614-sandbox-pick-guard',
       tagsInjection: '20260614-env-bar-prefs',
       aepDemoEnvBar: '20260625-env-configured',
       siteCloneBcEnv: '20260614-env-bar-prefs',
@@ -563,21 +563,17 @@
     if (!cfg.defaultSandbox) return;
     var sandbox = String(cfg.defaultSandbox).trim();
     if (!sandbox) return;
-    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-      var current =
-        typeof global.AepGlobalSandbox.getSandboxName === 'function'
-          ? global.AepGlobalSandbox.getSandboxName()
-          : '';
-      if (!current) global.AepGlobalSandbox.setSelected(sandbox);
-    }
     var select = document.getElementById('sandboxSelect');
-    if (select && !select.value) {
-      select.value = sandbox;
-      try {
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (_e) {
-        /* IE-compat not needed */
+    if (select && !String(select.value || '').trim()) {
+      var matched = false;
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === sandbox) {
+          select.selectedIndex = i;
+          matched = true;
+          break;
+        }
       }
+      if (!matched) select.value = sandbox;
     }
   }
 
@@ -706,10 +702,9 @@
     log('setEnvironment', name);
 
     if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-      global.AepGlobalSandbox.setSelected(name);
-    }
-    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
-      global.AepLabEnvBarPrefs.setSelectedSandbox(name);
+      global.AepGlobalSandbox.setSelected(name, { source: 'user' });
+    } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
+      global.AepLabEnvBarPrefs.setSelectedSandbox(name, { explicit: true });
     }
 
     var select = document.getElementById('sandboxSelect');
