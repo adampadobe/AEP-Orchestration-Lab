@@ -65,7 +65,7 @@ Browser → Firebase Hosting (web/)
 
 **`web/`** — Firebase Hosting root. Vanilla HTML/CSS/JS, no build step, no framework. All dashboard pages are in `web/profile-viewer/`. The Experience Decisioning Playground at `web/profile-viewer/experience-decisioning-playground/` is a React + Vite sub-app that builds into `web/profile-viewer/experience-decisioning/`.
 
-**`functions/`** — Firebase Cloud Functions v2 (Node 22). `index.js` is the thin export layer (~2500 LOC); complex logic lives in `*Service.js` modules. All functions use `onRequest`, region `us-central1`, and the shared `aepHeaders()` helper for IMS token caching. Every `/api/*` route is a rewrite in `firebase.json` pointing to a named function.
+**`functions/`** — Firebase Cloud Functions v2 (Node 22). `index.js` is the central export/routing layer (~100 named exports, ~5.7k LOC — still shrinking via extractions); complex logic lives in `*Service.js` modules. Shared boundaries: `adobeAuth.js` (IMS token cache + `aepHeaders`), `adobePlatform.js` (regional platform host allowlist), `httpCors.js`, `firestoreSerialize.js`. All functions use `onRequest`, region `us-central1`. Every `/api/*` route is a rewrite in `firebase.json` pointing to a named function.
 
 **`aep-prototypes/AEP Profile/03 Profile Viewer/public/`** — a vendored Express mirror of `web/profile-viewer/`. **`web/profile-viewer/` is canonical.** Run `npm run sync-profile-viewer-ui` after editing there; never sync in the reverse direction.
 

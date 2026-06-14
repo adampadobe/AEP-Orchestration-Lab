@@ -31,8 +31,10 @@ const RESOLVED_ADOBE_SANDBOX = String(
   process.env.ADOBE_SANDBOX_NAME || DEFAULT_ADOBE_SANDBOX
 ).trim();
 
-const BASE_PLATFORM = 'https://platform.adobe.io';
-const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v2';
+const { setCors } = require('./httpCors');
+const { serializeFirestoreRecord } = require('./firestoreSerialize');
+const { DEFAULT_PLATFORM_BASE_URL, resolvePlatformBaseUrl } = require('./adobePlatform');
+const { createAdobeAuth } = require('./adobeAuth');
 /** Lazy require: defer loading heavy modules until first handler use (keeps deploy analysis under timeout). */
 function lazyRequireMod(p) {
   let cache;
@@ -278,15 +280,6 @@ const SNOWFLAKE_AGENTIC_FN_OPTS = {
   memory: '2GiB',
 };
 
-function serializeConsentFirestoreRecord(doc) {
-  if (!doc || typeof doc !== 'object') return null;
-  const o = { ...doc };
-  if (o.updatedAt && typeof o.updatedAt.toDate === 'function') {
-    o.updatedAt = o.updatedAt.toDate().toISOString();
-  }
-  return o;
-}
-
 /** Selected sandbox from ?sandbox= or deploy default. */
 function resolveSandboxFromQuery(req) {
   const q = String(req.query.sandbox || '').trim();
@@ -301,101 +294,12 @@ function resolveSandboxForProfileBody(req) {
   return resolveSandboxFromQuery(req);
 }
 
-let tokenCache = { accessToken: null, expiresAtMs: 0 };
-
-const buildInfo = require('./buildInfo');
-
-function setCors(res, methods = 'GET, POST, OPTIONS') {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', methods);
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  // Stamp every response with the deployed git SHA so deploy-status.mjs
-  // and any in-page version pill can show what's actually live. See
-  // functions/buildInfo.js for details and Access-Control-Expose-Headers
-  // wiring so browser JS can read the X-Build-* values.
-  buildInfo.setBuildHeaders(res);
-}
-
-async function getAdobeAccessToken() {
-  const now = Date.now();
-  if (tokenCache.accessToken && now < tokenCache.expiresAtMs - 5 * 60 * 1000) {
-    return tokenCache.accessToken;
-  }
-  const clientId = ADOBE_CLIENT_ID.value();
-  const clientSecret = ADOBE_CLIENT_SECRET.value();
-  const scopes = ADOBE_SCOPES.value();
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret,
-    scope: scopes,
-  });
-  const r = await fetch(IMS_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    const detail = data.error_description || data.error || r.statusText;
-    throw new Error(`IMS ${r.status}: ${detail}`);
-  }
-  const accessToken = data.access_token;
-  const expiresIn = Number(data.expires_in) || 3600;
-  tokenCache = {
-    accessToken,
-    expiresAtMs: now + expiresIn * 1000,
-  };
-  return accessToken;
-}
-
-function aepHeaders(accessToken, extra) {
-  const clientId = ADOBE_CLIENT_ID.value();
-  const org = ADOBE_IMS_ORG.value();
-  const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    'x-api-key': clientId,
-    'x-gw-ims-org-id': org,
-    Accept: 'application/json',
-  };
-  const allowed = new Set(['x-schema-id', 'accept', 'content-type', 'if-match', 'if-none-match']);
-  if (extra && typeof extra === 'object') {
-    for (const [k, v] of Object.entries(extra)) {
-      if (v == null || String(v).trim() === '') continue;
-      if (!allowed.has(k.toLowerCase())) continue;
-      if (k.toLowerCase() === 'accept') {
-        delete headers.Accept;
-        headers.Accept = String(v);
-      } else {
-        headers[k] = String(v);
-      }
-    }
-  }
-  return headers;
-}
-
-/** Default Platform API host; optional regional hosts for lake/export (e.g. platform-nld2.adobe.io). */
-const DEFAULT_PLATFORM_BASE_URL = 'https://platform.adobe.io';
-
-/**
- * @param {unknown} raw
- * @returns {string} HTTPS origin only, no trailing slash
- */
-function resolvePlatformBaseUrl(raw) {
-  if (raw == null || String(raw).trim() === '') return DEFAULT_PLATFORM_BASE_URL;
-  const s = String(raw).trim().replace(/\/+$/, '');
-  let hostname = '';
-  try {
-    const u = new URL(s);
-    if (u.protocol !== 'https:') return DEFAULT_PLATFORM_BASE_URL;
-    hostname = u.hostname.toLowerCase();
-  } catch {
-    return DEFAULT_PLATFORM_BASE_URL;
-  }
-  if (hostname === 'platform.adobe.io') return s;
-  if (/^platform-[a-z0-9]+\.adobe\.io$/i.test(hostname)) return s;
-  return DEFAULT_PLATFORM_BASE_URL;
-}
+const { getAdobeAccessToken, aepHeaders } = createAdobeAuth({
+  getClientId: () => ADOBE_CLIENT_ID.value(),
+  getClientSecret: () => ADOBE_CLIENT_SECRET.value(),
+  getScopes: () => ADOBE_SCOPES.value(),
+  getImsOrg: () => ADOBE_IMS_ORG.value(),
+});
 
 exports.aepProxy = onRequest(
   {
@@ -542,7 +446,7 @@ exports.aepProxy = onRequest(
   }
 );
 
-const AJO_UNITARY_EXECUTIONS_URL = `${BASE_PLATFORM}/ajo/im/executions/unitary`;
+const AJO_UNITARY_EXECUTIONS_URL = `${DEFAULT_PLATFORM_BASE_URL}/ajo/im/executions/unitary`;
 
 /**
  * POST /api/ajo/live-activity — AJO in-app messaging unitary execution (Live Activity push).
@@ -1189,7 +1093,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
   if (req.method === 'GET') {
     try {
       const record = await consentConnectionStore.getConsentConnection(sandboxQ);
-      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[consentConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
@@ -1204,7 +1108,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
         streaming: body.streaming,
         infra: body.infra,
       });
-      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[consentConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
@@ -1397,7 +1301,7 @@ exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (
   if (req.method === 'GET') {
     try {
       const record = await genericProfileConnectionStore.getGenericProfileConnection(sandboxQ);
-      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[genericProfileConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
@@ -1412,7 +1316,7 @@ exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (
         streaming: body.streaming,
         infra: body.infra,
       });
-      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[genericProfileConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
@@ -1605,7 +1509,7 @@ exports.travelProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (r
   if (req.method === 'GET') {
     try {
       const record = await travelProfileConnectionStore.getTravelProfileConnection(sandboxQ);
-      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[travelProfileConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
@@ -1620,7 +1524,7 @@ exports.travelProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (r
         streaming: body.streaming,
         infra: body.infra,
       });
-      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeFirestoreRecord(record) });
     } catch (e) {
       console.log('[travelProfileConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
@@ -1650,7 +1554,7 @@ const profileIndustryRoutesCtx = {
   adobeClientIdValue: () => ADOBE_CLIENT_ID.value(),
   adobeImsOrgValue: () => ADOBE_IMS_ORG.value(),
   flowLookup: (...args) => consentFlowLookup.lookupConsentHttpFlow(...args),
-  serializeFirestoreRecord: serializeConsentFirestoreRecord,
+  serializeFirestoreRecord: serializeFirestoreRecord,
 };
 
 const fsiProfileRoutes = createProfileIndustryRoutes({

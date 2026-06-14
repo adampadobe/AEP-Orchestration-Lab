@@ -5,7 +5,12 @@
  * using the hosting-invoker service account identity (ID token).
  */
 const { GoogleAuth } = require('google-auth-library');
-const buildInfo = require('./buildInfo');
+const { setCors: setCorsBase } = require('./httpCors');
+
+const GATEWAY_CORS_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+function setCors(res) {
+  setCorsBase(res, GATEWAY_CORS_METHODS);
+}
 
 const HOP_BY_HOP = new Set([
   'connection',
@@ -63,13 +68,6 @@ function resolveRoute(requestPath) {
 
 function backendBaseUrl(projectId, region, functionId) {
   return `https://${region}-${projectId}.cloudfunctions.net/${functionId}`;
-}
-
-function setCors(res, methods = 'GET, POST, PUT, PATCH, DELETE, OPTIONS') {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', methods);
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  buildInfo.setBuildHeaders(res);
 }
 
 function pickForwardHeaders(incoming) {

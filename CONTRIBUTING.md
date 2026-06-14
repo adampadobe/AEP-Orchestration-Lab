@@ -817,8 +817,9 @@ All functions live in `functions/index.js` and use Firebase Functions **v2**
    const PROFILE_FN_SECRETS = [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES];
    ```
 
-2. Use the shared `aepHeaders()` helper for Adobe API calls (handles IMS
-   token caching and x-sandbox-name).
+2. Use the shared `aepHeaders()` helper from `adobeAuth.js` (via `createAdobeAuth`
+   in `index.js`) for Adobe API calls — handles IMS token caching and
+   `x-sandbox-name`.
 
 3. Export with consistent options:
 
@@ -849,7 +850,9 @@ All functions live in `functions/index.js` and use Firebase Functions **v2**
 
 Complex logic goes into a separate `*Service.js` file in `functions/`
 (e.g. `schemaViewerService.js`, `consentInfraService.js`).
-Keep `index.js` as a thin routing / export layer.
+Cross-cutting helpers belong in small modules (`adobeAuth.js`, `adobePlatform.js`,
+`httpCors.js`, `firestoreSerialize.js`); keep new route glue out of `index.js`
+when a domain-specific `*Routes.js` file is clearer.
 
 ### AJO content templates (HTML) via platform API
 
