@@ -186,10 +186,68 @@
     });
   }
 
-  function saveUrlsToRtdb(urls) {
+  var lastSavedUrls = null;
+  var saveInFlight = null;
+
+  function urlsEqual(a, b) {
+    var x = normalizeStored(a);
+    var y = normalizeStored(b);
+    return FIELD_KEYS.every(function (k) {
+      return x[k] === y[k];
+    });
+  }
+
+  function isUserEditingInputs() {
+    var active = document.activeElement;
+    if (!active || !active.id) return false;
+    return FIELD_KEYS.some(function (k) {
+      return active.id === INPUT_IDS[k];
+    });
+  }
+
+  function saveUrlsToRtdb(urls, sandboxSlug) {
     var c = rtdb();
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
-    return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls });
+    var sb = c.normalizeSlug(sandboxSlug) || c.normalizeSlug(currentSandboxName());
+    if (!sb) {
+      return Promise.reject(new Error('Select a sandbox to save agent URLs.'));
+    }
+    return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls }, { sandboxSlug: sb });
+  }
+
+  function persistUrls(urls, sandboxSlug, statusPrefix) {
+    var sb = sandboxSlug || currentSandboxName();
+    if (!sb) {
+      setStatus('Select a sandbox to save agent URLs.', 'err');
+      return Promise.resolve(false);
+    }
+    var k;
+    for (k in urls) {
+      if (urls[k] && !validateUrl(urls[k])) {
+        setStatus('Each non-empty URL must be a valid http(s) address.', 'err');
+        return Promise.resolve(false);
+      }
+    }
+    if (lastSavedUrls && urlsEqual(urls, lastSavedUrls)) {
+      return Promise.resolve(true);
+    }
+    setStatus((statusPrefix || 'Saving') + '…', '');
+    if (saveInFlight) return saveInFlight;
+    saveInFlight = saveUrlsToRtdb(urls, sb)
+      .then(function () {
+        lastSavedUrls = normalizeStored(urls);
+        applyUrlsToAgentCards(urls);
+        setStatus('Saved agent links for sandbox “' + sb + '”.', 'ok');
+        return true;
+      })
+      .catch(function (e) {
+        setStatus(String((e && e.message) || e), 'err');
+        return false;
+      })
+      .finally(function () {
+        saveInFlight = null;
+      });
+    return saveInFlight;
   }
 
   function initDock() {
@@ -288,30 +346,34 @@
     var btn = document.getElementById('agenticV2CustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
-        var c = collectInputsRaw();
-        var k;
-        for (k in c) {
-          if (c[k] && !validateUrl(c[k])) {
-            setStatus('Each non-empty URL must be a valid http(s) address.', 'err');
-            return;
-          }
-        }
-        var sb = currentSandboxName();
-        saveUrlsToRtdb(c)
-          .then(function () {
-            applyUrlsToAgentCards(c);
-            setStatus('Saved agent links for sandbox “' + (sb || 'default') + '”.', 'ok');
-          })
-          .catch(function (e) {
-            setStatus(String((e && e.message) || e), 'err');
-          });
+        persistUrls(collectInputsRaw(), currentSandboxName(), 'Saving');
+      });
+    }
+
+    FIELD_KEYS.forEach(function (key) {
+      var inp = document.getElementById(INPUT_IDS[key]);
+      if (!inp) return;
+      inp.addEventListener('blur', function () {
+        persistUrls(collectInputsRaw(), currentSandboxName(), 'Saving');
+      });
+    });
+
+    var sandboxSel = document.getElementById('agenticV2SandboxSelect');
+    if (sandboxSel) {
+      sandboxSel.addEventListener('change', function () {
+        lastSavedUrls = null;
+        refreshFromRtdb();
       });
     }
 
     function refreshFromRtdb() {
       var sb = currentSandboxName();
       loadUrlsFromRtdb(sb).then(function (urls) {
-        fillInputsFromStored(urls);
+        var normalized = normalizeStored(urls);
+        lastSavedUrls = normalized;
+        if (!isUserEditingInputs()) {
+          fillInputsFromStored(urls);
+        }
         applyUrlsToAgentCards(urls);
         if (!sb) {
           setStatus('Select a sandbox to load saved agent URLs.', 'err');
