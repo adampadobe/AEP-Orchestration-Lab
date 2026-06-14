@@ -1,14 +1,14 @@
 {
-  "gitSha": "3d4b3312ab1531f6bab00fe91ee9011709f0078d",
-  "gitShortSha": "3d4b3312",
+  "gitSha": "a2211fb672fbc2c34ca0168f3c97ced4b9b2e120",
+  "gitShortSha": "a2211fb6",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: LLM demo wait for global sandbox before loading scrapes",
+  "gitCommitSubject": "[apalmer] fix: remove duplicate top sandbox bar from LLM demo",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T20:51:47+01:00",
-  "deployedAt": "2026-06-14T19:52:04.807Z",
+  "gitCommitDate": "2026-06-14T20:57:43+01:00",
+  "deployedAt": "2026-06-14T19:58:11.613Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3d4b3312ab1531f6bab00fe91ee9011709f0078d"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a2211fb672fbc2c34ca0168f3c97ced4b9b2e120"
 }
