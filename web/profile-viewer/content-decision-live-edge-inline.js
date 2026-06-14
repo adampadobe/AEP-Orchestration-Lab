@@ -377,26 +377,13 @@ waitForAlloy()
   async function aepCall(payload) {
     payload = withSandboxPlatformHeaders(payload);
     cdLog('UPS proxy →', payload.method || 'POST', payload.path || '', payload.params || {});
-    var res;
-    try {
-      res = await fetch('/api/aep', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch (e) {
-      cdLog('UPS proxy ✗ network', String(e.message || e));
-      return { httpOk: false, data: { error: 'Network error calling /api/aep', detail: String(e.message || e) } };
+    var result = await window.AepProxyClient.aepCall(payload);
+    if (result.networkError) {
+      cdLog('UPS proxy ✗ network', result.data.detail);
+    } else {
+      cdLog('UPS proxy ← HTTP', result.status, result.httpOk ? 'ok' : 'error');
     }
-    var text = await res.text();
-    var data;
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch (e2) {
-      data = { error: 'Non-JSON from proxy', detail: text.slice(0, 200) };
-    }
-    cdLog('UPS proxy ← HTTP', res.status, res.ok ? 'ok' : 'error');
-    return { httpOk: res.ok, data: data };
+    return { httpOk: result.httpOk, data: result.data };
   }
 
   function extractEntityFromUpsClientData(clientData) {
