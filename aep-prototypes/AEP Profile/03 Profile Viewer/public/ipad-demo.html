@@ -33,6 +33,12 @@
       <main class="dashboard-main etihad-ipad-main">
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="etihadIpadHeroTitle">
           <div class="dashboard-hero-inner">
+            <div
+              class="ipad-env-bar-host"
+              data-demo-env-strip-mount="site-clone-sandbox-only"
+              data-demo-env-strip-prefix="ipadLab"
+              aria-label="AEP sandbox"
+            ></div>
             <header class="dashboard-hero-header">
               <h2 id="etihadIpadHeroTitle" class="dashboard-hero-title">iPad</h2>
               <p id="etihadIpadHeroSubtitle" class="dashboard-hero-subtitle" hidden></p>
@@ -122,8 +128,8 @@
                           <div class="ga-header-left">
                             <span class="ga-header-logo" id="gaHeaderLogoEmoji" aria-hidden="true">✈️</span>
                             <div>
-                              <div class="ga-airline-name" id="gaAirlineName">Etihad Airways</div>
-                              <div class="ga-header-sub" id="gaHeaderSub">Gate &amp; cabin crew</div>
+                              <div class="ga-airline-name" id="gaAirlineName">—</div>
+                              <div class="ga-header-sub" id="gaHeaderSub">Front-line service</div>
                             </div>
                             <span id="gaActiveFlightPill" class="ga-active-flight-pill" hidden><span id="gaActiveFlightText">—</span></span>
                           </div>
@@ -429,13 +435,22 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="aep-ldap-slug.js?v=20260612"></script>
-  <script src="aep-demo-config-rtdb.js?v=20260612"></script>
+  <script src="aep-demo-config-rtdb.js?v=20260614-rtdb-brand"></script>
   <script src="aep-global-sandbox.js?v=20260513-etihad-ipad-cache"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
   <script src="aep-lab-industry-context.js?v=20260515-profile-gen-industry"></script>
-  <script src="etihad-ipad.js?v=20260612"></script>
+  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'ipadLab',
+      mode: 'sandbox-only',
+      variant: 'classic',
+      features: { webPush: false, bc: false, decisioning: false },
+    };
+  </script>
+  <script src="etihad-ipad.js?v=20260614-rtdb-brand"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
+  <script defer src="aep-lab-nav.js?v=20260614-ipad-rtdb"></script>
 </body>
 </html>

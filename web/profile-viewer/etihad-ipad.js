@@ -498,16 +498,43 @@
     return w1;
   }
 
+  function ipadHasRtdbCustomerLabel(customer) {
+    return !!(customer && customer !== 'Experience Cloud' && customer !== '—');
+  }
+
+  function updateIpadEnvBarCompactLabel(cd) {
+    var compactText = document.getElementById('aepDemoEnvCompactText');
+    if (!compactText) return;
+    var customer = ipadHeroCustomerLabel(cd || {});
+    var sandbox = normalizeAjoLookupSlug(getSandboxName()) || getSandboxName() || '—';
+    if (ipadHasRtdbCustomerLabel(customer)) {
+      compactText.textContent = customer + ' · iPad · ' + sandbox;
+    } else {
+      compactText.textContent = 'iPad · ' + sandbox;
+    }
+  }
+
   function applyIpadHeroTitleFromRtdb(cd) {
+    cd = cd || {};
     var customer = ipadHeroCustomerLabel(cd);
-    var label = customer + ' iPad';
     var heroEl = document.getElementById('etihadIpadHeroTitle');
-    if (heroEl) heroEl.textContent = label;
+    if (heroEl) heroEl.textContent = 'iPad';
+    var subEl = document.getElementById('etihadIpadHeroSubtitle');
+    if (subEl) {
+      if (ipadHasRtdbCustomerLabel(customer)) {
+        subEl.textContent = customer;
+        subEl.hidden = false;
+      } else if (!subEl.textContent) {
+        subEl.hidden = true;
+      }
+    }
     try {
-      document.title = customer + ' · iPad – AEP Profile Viewer';
+      document.title =
+        (ipadHasRtdbCustomerLabel(customer) ? customer + ' · ' : '') + 'iPad – AEP Profile Viewer';
     } catch (e) {
       /* ignore */
     }
+    updateIpadEnvBarCompactLabel(cd);
   }
 
   function applyRtdbToShell() {
@@ -517,7 +544,11 @@
     var mb = rtdbData.Mobile || {};
 
     var ipc = getMergedIpad();
-    var airlineName = cd.name || cd.airlineName || ipc.defaultBrandName;
+    var airlineName =
+      (cd.name && String(cd.name).trim()) ||
+      (cd.airlineName && String(cd.airlineName).trim()) ||
+      (cd.shortName && String(cd.shortName).trim()) ||
+      '—';
     var agentName = mb.StaffName || sp.AgentName || '—';
     var agentId = mb.StaffId || sp.AgentID || '';
     var agentType = mb.StaffRole || sp.AgentType || '';

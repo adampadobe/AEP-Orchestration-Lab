@@ -292,45 +292,105 @@
   function mergeAppPayload(appSection, shared) {
     var app = appSection && typeof appSection === 'object' ? appSection : {};
     var sh = shared && typeof shared === 'object' ? shared : {};
-    var sharedCore = sh.CoreDemoData && Object.keys(sh.CoreDemoData).length ? sh.CoreDemoData : null;
-    var sharedStaff = sh.StaffPortal && Object.keys(sh.StaffPortal).length ? sh.StaffPortal : null;
+    var sharedCore =
+      sh.CoreDemoData && hasMeaningfulCoreDemoData(sh.CoreDemoData) ? sh.CoreDemoData : null;
+    var sharedStaff =
+      sh.StaffPortal && !isProvisionStaffPortalStub(sh.StaffPortal) ? sh.StaffPortal : null;
     return Object.assign({}, app, {
       CoreDemoData: sharedCore || app.CoreDemoData || {},
       StaffPortal: sharedStaff || app.StaffPortal || {},
     });
   }
 
+  function pickTrimmedBrandField(val) {
+    return val != null ? String(val).trim() : '';
+  }
+
+  function hasMeaningfulCoreDemoData(core) {
+    if (!core || typeof core !== 'object') return false;
+    return !!(
+      pickTrimmedBrandField(core.name) ||
+      pickTrimmedBrandField(core.airlineName) ||
+      pickTrimmedBrandField(core.shortName) ||
+      pickTrimmedBrandField(core.brand) ||
+      pickTrimmedBrandField(core.customerShortName)
+    );
+  }
+
+  function normalizeBrandHexColour(raw) {
+    var s = String(raw || '')
+      .trim()
+      .replace(/^#/, '');
+    return /^[0-9A-Fa-f]{6}$/.test(s) ? s.toLowerCase() : '';
+  }
+
+  function isProvisionStaffPortalStub(staff) {
+    if (!staff || typeof staff !== 'object') return true;
+    var stub = splitStubIntoSections().StaffPortal;
+    var name = pickTrimmedBrandField(staff.AgentName);
+    var id = pickTrimmedBrandField(staff.AgentID);
+    var type = pickTrimmedBrandField(staff.AgentType);
+    var colour = normalizeBrandHexColour(staff.Colour);
+    var stubColour = normalizeBrandHexColour(stub.Colour);
+    if (name && name !== stub.AgentName) return false;
+    if (id && id !== stub.AgentID) return false;
+    if (type && type !== stub.AgentType) return false;
+    if (colour && colour !== stubColour) return false;
+    return true;
+  }
+
+  function mergeCoreDemoDataFields(primary, fallback) {
+    var p = primary && typeof primary === 'object' ? primary : {};
+    var f = fallback && typeof fallback === 'object' ? fallback : {};
+    var keys = ['name', 'airlineName', 'shortName', 'brand', 'customerShortName', 'slogan', 'url', 'customerLogo'];
+    var out = Object.assign({}, f, p);
+    keys.forEach(function (k) {
+      out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || '';
+    });
+    return out;
+  }
+
+  function mergeStaffPortalFields(primary, fallback) {
+    var p = primary && typeof primary === 'object' ? primary : {};
+    var f = fallback && typeof fallback === 'object' ? fallback : {};
+    var keys = ['AgentName', 'AgentID', 'AgentType', 'Colour', 'FlightTerminalInfo', 'agentName'];
+    var out = Object.assign({}, f, p);
+    keys.forEach(function (k) {
+      out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || (p[k] != null ? p[k] : f[k]);
+    });
+    return out;
+  }
+
+  function resolveSharedBrand(core, staff, legacy) {
+    var legacyCore = (legacy && legacy.CoreDemoData) || {};
+    var legacyStaff = (legacy && legacy.StaffPortal) || {};
+    var nestedCore = core && typeof core === 'object' ? core : {};
+    var nestedStaff = staff && typeof staff === 'object' ? staff : {};
+    return {
+      CoreDemoData: !hasMeaningfulCoreDemoData(nestedCore) && hasMeaningfulCoreDemoData(legacyCore)
+        ? legacyCore
+        : mergeCoreDemoDataFields(nestedCore, legacyCore),
+      StaffPortal: isProvisionStaffPortalStub(nestedStaff) && !isProvisionStaffPortalStub(legacyStaff)
+        ? legacyStaff
+        : mergeStaffPortalFields(nestedStaff, legacyStaff),
+    };
+  }
+
   function loadSharedBrand(sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      if (!ldapSlug || !sandboxSlug) {
-        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+      return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+        if (!ldapSlug || !sandboxSlug) {
           return {
             CoreDemoData: (legacy && legacy.CoreDemoData) || {},
             StaffPortal: (legacy && legacy.StaffPortal) || {},
-          };
-        });
-      }
-      var base = getRtdbBase();
-      return Promise.all([
-        fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
-        fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
-      ]).then(function (results) {
-        var core = results[0];
-        var staff = results[1];
-        var hasShared =
-          (core && typeof core === 'object' && Object.keys(core).length) ||
-          (staff && typeof staff === 'object' && Object.keys(staff).length);
-        if (hasShared) {
-          return {
-            CoreDemoData: core && typeof core === 'object' ? core : {},
-            StaffPortal: staff && typeof staff === 'object' ? staff : {},
           };
         }
-        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
-          return {
-            CoreDemoData: (legacy && legacy.CoreDemoData) || {},
-            StaffPortal: (legacy && legacy.StaffPortal) || {},
-          };
+        var base = getRtdbBase();
+        return Promise.all([
+          fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
+          fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
+        ]).then(function (results) {
+          return resolveSharedBrand(results[0], results[1], legacy);
         });
       });
     });
