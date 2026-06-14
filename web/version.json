@@ -1,14 +1,14 @@
 {
-  "gitSha": "b8de85365de4713e9fd00cc12c87e54d038cfd14",
-  "gitShortSha": "b8de8536",
+  "gitSha": "0f31e0cae8edfb2160bade3fafb36b2c694493de",
+  "gitShortSha": "0f31e0ca",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: agentic customise load AgenticLayer from nested RTDB path",
+  "gitCommitSubject": "[apalmer] fix: agentic customise save agent URLs to RTDB",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T21:26:18+01:00",
-  "deployedAt": "2026-06-14T20:26:37.424Z",
+  "gitCommitDate": "2026-06-14T21:31:46+01:00",
+  "deployedAt": "2026-06-14T20:32:05.238Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b8de85365de4713e9fd00cc12c87e54d038cfd14"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0f31e0cae8edfb2160bade3fafb36b2c694493de"
 }
