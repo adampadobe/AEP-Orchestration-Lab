@@ -29,6 +29,17 @@
     return !!(node && node.closest && node.closest('button, a, select, input, textarea, label, [role="button"]'));
   }
 
+  function isOverlayInteractionTarget(node, anchor) {
+    if (!node || !anchor) return false;
+    if (anchor.contains(node)) return true;
+    var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
+    if (panel && panel.contains(node)) return true;
+    var active = document.activeElement;
+    if (!active) return false;
+    if (anchor.contains(active)) return true;
+    return !!(panel && panel.contains(active));
+  }
+
   function setExpanded(anchor, expanded, pinned) {
     if (!anchor) return;
     var isOpen = !!(expanded || pinned);
@@ -195,7 +206,7 @@
         if (!anchor.querySelector('.lab-env-overlay-panel')) return;
         if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
         if (!isOverlayOpen(anchor)) return;
-        if (anchor.contains(ev.target)) return;
+        if (isOverlayInteractionTarget(ev.target, anchor)) return;
         closeOverlay(anchor);
       },
       true,

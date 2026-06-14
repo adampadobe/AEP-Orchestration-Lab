@@ -1,9 +1,8 @@
 /* Ferrari World Abu Dhabi demo overlay — mirrors seaworld-abu-dhabi-demo.css pattern */
 
 .ferrari-world-abu-dhabi-demo-page .dashboard-shell {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
+  position: relative;
+  z-index: 2;
   pointer-events: none;
   display: flex;
 }
@@ -16,35 +15,7 @@
   display: none;
 }
 
-.ferrari-world-abu-dhabi-demo-top-anchor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 6500;
-  pointer-events: none;
-}
-
-.ferrari-world-abu-dhabi-demo-top-anchor::before {
-  content: "";
-  display: block;
-  height: 14px;
-  pointer-events: auto;
-}
-
-.ferrari-world-abu-dhabi-demo-id-banner {
-  pointer-events: auto;
-  background: var(--dash-surface);
-  border-bottom: 1px solid var(--dash-border);
-  box-shadow: var(--dash-shadow);
-  transform: translateY(calc(-100% - 14px));
-  transition: transform 0.2s ease;
-}
-
-.ferrari-world-abu-dhabi-demo-top-anchor:hover .ferrari-world-abu-dhabi-demo-id-banner,
-.ferrari-world-abu-dhabi-demo-top-anchor:focus-within .ferrari-world-abu-dhabi-demo-id-banner {
-  transform: translateY(0);
-}
+/* Top env strip: shared/env-bar-compact.css */
 
 /* Env strip layout: shared/demo-env-bar.bundle.css (Sky master) */
 

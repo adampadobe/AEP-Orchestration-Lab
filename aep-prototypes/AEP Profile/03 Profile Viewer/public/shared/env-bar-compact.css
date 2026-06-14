@@ -134,7 +134,60 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+  z-index: 7599;
+  isolation: isolate;
   -webkit-overflow-scrolling: touch;
+}
+
+/* ── Site-clone legacy peek CSS overrides ─────────────────────── */
+[class*='-demo-top-anchor']:has(.lab-env-overlay-panel)::before,
+.mod-demo-top-anchor:has(.lab-env-overlay-panel)::before,
+.lab-env-top-anchor:has(.lab-env-overlay-panel)::before {
+  display: none !important;
+  pointer-events: none !important;
+  content: none !important;
+}
+
+[class*='-demo-top-anchor']:has(.lab-env-overlay-panel) [class*='-demo-id-banner'],
+.mod-demo-top-anchor:has(.lab-env-overlay-panel) .mod-demo-id-banner {
+  transform: none !important;
+}
+
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned [class*='-demo-id-banner'],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+.lab-env-top-anchor.lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+.lab-env-top-anchor.lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
+  transform: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: auto;
+}
+
+.mod-demo-top-anchor.lab-env-top-anchor--expanded,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned,
+.lab-env-top-anchor.lab-env-top-anchor--expanded,
+.lab-env-top-anchor.lab-env-top-anchor--pinned {
+  z-index: 7600;
+}
+
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded ~ .dashboard-shell,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned ~ .dashboard-shell,
+.lab-env-top-anchor.lab-env-top-anchor--expanded ~ .dashboard-shell,
+.lab-env-top-anchor.lab-env-top-anchor--pinned ~ .dashboard-shell {
+  pointer-events: none !important;
+}
+
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded ~ .dashboard-shell *,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned ~ .dashboard-shell *,
+.lab-env-top-anchor.lab-env-top-anchor--expanded ~ .dashboard-shell *,
+.lab-env-top-anchor.lab-env-top-anchor--pinned ~ .dashboard-shell * {
+  pointer-events: none !important;
 }
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded,
