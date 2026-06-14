@@ -1,14 +1,14 @@
 {
-  "gitSha": "58011b2a5b3575865135895116274f9009bf53ba",
-  "gitShortSha": "58011b2a",
+  "gitSha": "09bfa4641c90834bbf38d244f404c318fe6e6e84",
+  "gitShortSha": "09bfa464",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: env bar dock icon from architecture icon library",
+  "gitCommitSubject": "[apalmer] chore: bump env-bar versions for decisioning channel icon",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T14:50:38+01:00",
-  "deployedAt": "2026-06-14T13:50:52.178Z",
+  "gitCommitDate": "2026-06-14T16:18:09+01:00",
+  "deployedAt": "2026-06-14T15:18:39.473Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/58011b2a5b3575865135895116274f9009bf53ba"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/09bfa4641c90834bbf38d244f404c318fe6e6e84"
 }
