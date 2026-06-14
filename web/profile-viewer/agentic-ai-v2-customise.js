@@ -123,15 +123,20 @@
   }
 
   function currentSandboxName() {
-    if (rtdb()) return rtdb().getActiveSandboxSlug();
+    var sel = document.getElementById('agenticV2SandboxSelect');
+    if (sel && sel.value) return String(sel.value).trim();
+    if (rtdb()) {
+      var slug = rtdb().getActiveSandboxSlug();
+      if (slug) return slug;
+    }
+    try {
+      var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
+      if (stored) return stored;
+    } catch (e) {}
     if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
       return AepGlobalSandbox.getSandboxName() || '';
     }
-    try {
-      return String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
-    } catch (e) {
-      return '';
-    }
+    return '';
   }
 
   function fillInputsFromStored(urls) {
@@ -308,6 +313,12 @@
       loadUrlsFromRtdb(sb).then(function (urls) {
         fillInputsFromStored(urls);
         applyUrlsToAgentCards(urls);
+        if (!sb) {
+          setStatus('Select a sandbox to load saved agent URLs.', 'err');
+        }
+      }).catch(function (e) {
+        console.warn('[agentic-v2] RTDB agent URL load failed:', e);
+        setStatus('Could not load agent URLs from RTDB.', 'err');
       });
     }
 

@@ -59,14 +59,25 @@
   }
 
   function getActiveSandboxSlug() {
+    var fromGlobal = '';
     try {
       if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
-        return normalizeSlug(global.AepGlobalSandbox.getSandboxName());
+        fromGlobal = normalizeSlug(global.AepGlobalSandbox.getSandboxName());
       }
     } catch (_e) {}
+    if (fromGlobal) return fromGlobal;
     try {
-      return normalizeSlug(localStorage.getItem('aepGlobalSandboxName'));
+      var stored = normalizeSlug(localStorage.getItem('aepGlobalSandboxName'));
+      if (stored) return stored;
     } catch (_e2) {}
+    try {
+      if (global.AepAccessScope && typeof global.AepAccessScope.getWorkspaceSlug === 'function') {
+        var ws = normalizeSlug(global.AepAccessScope.getWorkspaceSlug());
+        if (ws) return ws;
+      }
+    } catch (_e3) {}
+    var ldap = getLdapSlugSync();
+    if (ldap) return ldap;
     return '';
   }
 
