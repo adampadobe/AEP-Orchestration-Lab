@@ -1,14 +1,14 @@
 {
-  "gitSha": "a2211fb672fbc2c34ca0168f3c97ced4b9b2e120",
-  "gitShortSha": "a2211fb6",
+  "gitSha": "b8de85365de4713e9fd00cc12c87e54d038cfd14",
+  "gitShortSha": "b8de8536",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: remove duplicate top sandbox bar from LLM demo",
+  "gitCommitSubject": "[apalmer] fix: agentic customise load AgenticLayer from nested RTDB path",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T20:57:43+01:00",
-  "deployedAt": "2026-06-14T19:58:11.613Z",
+  "gitCommitDate": "2026-06-14T21:26:18+01:00",
+  "deployedAt": "2026-06-14T20:26:37.424Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a2211fb672fbc2c34ca0168f3c97ced4b9b2e120"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b8de85365de4713e9fd00cc12c87e54d038cfd14"
 }
