@@ -68,7 +68,7 @@ body.etihad-ipad-page {
 }
 
 .cc-customize-dock.cc-customize-open .cc-customize-panel {
-  max-height: 280px;
+  max-height: min(70vh, 520px);
 }
 
 .cc-customize-panel-inner {
@@ -76,6 +76,76 @@ body.etihad-ipad-page {
   max-width: min(720px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
+}
+
+.cc-customize-dock.cc-customize-open .cc-customize-panel-inner {
+  max-height: min(calc(70vh - 2px), 518px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cc-customize-sandbox-line {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cc-text);
+}
+
+.cc-customize-sandbox-line .cc-customize-sandbox-name {
+  color: var(--dash-blue, var(--cc-accent));
+  font-weight: 700;
+}
+
+.cc-customize-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--cc-border);
+  font-size: 0.9rem;
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+}
+
+.cc-customize-field + .cc-customize-field {
+  margin-top: 1rem;
+}
+
+.cc-customize-actions {
+  margin-top: 1.1rem;
+}
+
+.cc-customize-update-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--cc-border);
+  background: var(--dash-blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-customize-update-btn:hover {
+  filter: brightness(1.05);
+}
+
+.cc-customize-status {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--cc-muted);
+}
+
+.cc-customize-status.ok {
+  color: var(--dash-success);
+}
+
+.cc-customize-status.err {
+  color: var(--dash-error);
 }
 
 .cc-customize-field label {

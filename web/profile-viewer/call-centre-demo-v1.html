@@ -856,11 +856,8 @@
     </button>
     <div class="cc-customize-panel" id="ccCustomizePanel" role="region" aria-label="Workspace customise" aria-hidden="true">
       <div class="cc-customize-panel-inner">
-        <div class="cc-customize-field">
-          <label for="ccCustomiseSandboxSelect">Sandbox</label>
-          <p class="cc-customize-field-hint">Settings are saved per AEP sandbox for your signed-in lab account (same pattern as Agentic layer and other Profile Viewer demos).</p>
-          <select id="ccCustomiseSandboxSelect" class="cc-industry-select" aria-label="Select AEP sandbox"></select>
-        </div>
+        <p class="cc-customize-sandbox-line" id="ccCustomiseSandboxLabel" aria-live="polite">Sandbox: <span class="cc-customize-sandbox-name">—</span></p>
+        <p class="cc-customize-field-hint">Settings are saved per AEP sandbox for your signed-in lab account. Change sandbox in the environment bar above.</p>
         <div class="cc-customize-field">
           <label for="ccIndustrySelect">Industry context</label>
           <p class="cc-customize-field-hint">Presets match <code>POST /api/profile/generate</code> industries: <code>generic</code>, <code>travel</code>, <code>fsi</code>, <code>telecom</code>, <code>retail</code>, <code>media</code>, <code>sports</code>. Legacy keys (<code>adobe</code>, <code>telco</code>, <code>banking</code>, …) migrate automatically. The same selection syncs to the iPad lab.</p>

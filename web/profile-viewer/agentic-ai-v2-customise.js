@@ -123,8 +123,16 @@
   }
 
   function currentSandboxName() {
-    var sel = document.getElementById('agenticV2SandboxSelect');
-    if (sel && sel.value) return String(sel.value).trim();
+    if (typeof AepGlobalSandbox !== 'undefined') {
+      if (typeof AepGlobalSandbox.getSelected === 'function') {
+        var selected = String(AepGlobalSandbox.getSelected() || '').trim();
+        if (selected) return selected;
+      }
+      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
+        var globalName = String(AepGlobalSandbox.getSandboxName() || '').trim();
+        if (globalName) return globalName;
+      }
+    }
     if (rtdb()) {
       var slug = rtdb().getActiveSandboxSlug();
       if (slug) return slug;
@@ -133,10 +141,19 @@
       var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
       if (stored) return stored;
     } catch (e) {}
-    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-      return AepGlobalSandbox.getSandboxName() || '';
-    }
     return '';
+  }
+
+  function updateSandboxLabel() {
+    var el = document.getElementById('agenticV2SandboxLabel');
+    if (!el) return;
+    var sb = currentSandboxName();
+    var strong = el.querySelector('strong');
+    if (strong) {
+      strong.textContent = sb || '—';
+      return;
+    }
+    el.textContent = sb ? 'Sandbox: ' + sb : 'Sandbox: —';
   }
 
   function fillInputsFromStored(urls) {
@@ -210,7 +227,7 @@
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
     var sb = c.normalizeSlug(sandboxSlug) || c.normalizeSlug(currentSandboxName());
     if (!sb) {
-      return Promise.reject(new Error('Select a sandbox to save agent URLs.'));
+      return Promise.reject(new Error('Select a sandbox in the environment bar to save agent URLs.'));
     }
     return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls }, { sandboxSlug: sb });
   }
@@ -218,7 +235,7 @@
   function persistUrls(urls, sandboxSlug, statusPrefix) {
     var sb = sandboxSlug || currentSandboxName();
     if (!sb) {
-      setStatus('Select a sandbox to save agent URLs.', 'err');
+      setStatus('Select a sandbox in the environment bar to save agent URLs.', 'err');
       return Promise.resolve(false);
     }
     var k;
@@ -327,21 +344,9 @@
     }
   }
 
-  function initSandboxSelect(onReady) {
-    var sel = document.getElementById('agenticV2SandboxSelect');
-    if (!sel || typeof AepGlobalSandbox === 'undefined') {
-      if (typeof onReady === 'function') onReady();
-      return;
-    }
-    AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
-      AepGlobalSandbox.onSandboxSelectChange(sel);
-      AepGlobalSandbox.attachStorageSync(sel);
-      if (typeof onReady === 'function') onReady();
-    });
-  }
-
   function init() {
     initDock();
+    updateSandboxLabel();
 
     var btn = document.getElementById('agenticV2CustomiseUpdate');
     if (btn) {
@@ -358,14 +363,6 @@
       });
     });
 
-    var sandboxSel = document.getElementById('agenticV2SandboxSelect');
-    if (sandboxSel) {
-      sandboxSel.addEventListener('change', function () {
-        lastSavedUrls = null;
-        refreshFromRtdb();
-      });
-    }
-
     function refreshFromRtdb() {
       var sb = currentSandboxName();
       loadUrlsFromRtdb(sb).then(function (urls) {
@@ -375,8 +372,9 @@
           fillInputsFromStored(urls);
         }
         applyUrlsToAgentCards(urls);
+        updateSandboxLabel();
         if (!sb) {
-          setStatus('Select a sandbox to load saved agent URLs.', 'err');
+          setStatus('Select a sandbox in the environment bar to load saved agent URLs.', 'err');
         }
       }).catch(function (e) {
         console.warn('[agentic-v2] RTDB agent URL load failed:', e);
@@ -385,16 +383,10 @@
     }
 
     bindAgentCardsOnce();
-    initSandboxSelect(refreshFromRtdb);
 
     window.addEventListener('aep-global-sandbox-change', function () {
-      var sel = document.getElementById('agenticV2SandboxSelect');
-      if (sel && typeof AepGlobalSandbox !== 'undefined') {
-        var n = AepGlobalSandbox.getSandboxName();
-        if (n !== undefined && Array.from(sel.options).some(function (o) { return o.value === n; })) {
-          sel.value = n;
-        }
-      }
+      lastSavedUrls = null;
+      updateSandboxLabel();
       refreshFromRtdb();
     });
 

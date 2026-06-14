@@ -286,7 +286,7 @@ body.call-center-demo-page .dashboard-main {
 }
 
 .cc-customize-dock.cc-customize-open .cc-customize-panel {
-  max-height: 280px;
+  max-height: min(70vh, 520px);
 }
 
 .cc-customize-panel-inner {
@@ -294,6 +294,26 @@ body.call-center-demo-page .dashboard-main {
   max-width: min(720px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
+}
+
+.cc-customize-dock.cc-customize-open .cc-customize-panel-inner {
+  max-height: min(calc(70vh - 2px), 518px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cc-customize-sandbox-line {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cc-text);
+}
+
+.cc-customize-sandbox-line .cc-customize-sandbox-name {
+  color: var(--dash-blue, var(--cc-accent));
+  font-weight: 700;
 }
 
 .cc-customize-field label {

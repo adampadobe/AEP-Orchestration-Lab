@@ -59,8 +59,16 @@
   }
 
   function currentSandboxName() {
-    var sel = document.getElementById('ccCustomiseSandboxSelect');
-    if (sel && sel.value) return String(sel.value).trim();
+    if (typeof AepGlobalSandbox !== 'undefined') {
+      if (typeof AepGlobalSandbox.getSelected === 'function') {
+        var selected = String(AepGlobalSandbox.getSelected() || '').trim();
+        if (selected) return selected;
+      }
+      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
+        var globalName = String(AepGlobalSandbox.getSandboxName() || '').trim();
+        if (globalName) return globalName;
+      }
+    }
     var c = rtdb();
     if (c && c.getActiveSandboxSlug) {
       var slug = c.getActiveSandboxSlug();
@@ -70,10 +78,19 @@
       var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
       if (stored) return stored;
     } catch (e) {}
-    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-      return AepGlobalSandbox.getSandboxName() || '';
-    }
     return '';
+  }
+
+  function updateSandboxLabel() {
+    var el = document.getElementById('ccCustomiseSandboxLabel');
+    if (!el) return;
+    var sb = currentSandboxName();
+    var nameEl = el.querySelector('.cc-customize-sandbox-name');
+    if (nameEl) {
+      nameEl.textContent = sb || '—';
+      return;
+    }
+    el.textContent = sb ? 'Sandbox: ' + sb : 'Sandbox: —';
   }
 
   function setStatus(msg, kind) {
@@ -157,7 +174,7 @@
     var c = rtdb();
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
     var sb = c.normalizeSlug(sandboxSlug) || c.normalizeSlug(currentSandboxName());
-    if (!sb) return Promise.reject(new Error('Select a sandbox to save demo config.'));
+    if (!sb) return Promise.reject(new Error('Select a sandbox in the environment bar to save demo config.'));
     var norm = normalizeConfig(cfg);
     var colour = norm.accentColour ? '#' + norm.accentColour.replace(/^#/, '') : '';
     var tasks = [
@@ -180,7 +197,7 @@
   function persistConfig(cfg, sandboxSlug, statusPrefix) {
     var sb = sandboxSlug || currentSandboxName();
     if (!sb) {
-      setStatus('Select a sandbox to save demo config.', 'err');
+      setStatus('Select a sandbox in the environment bar to save demo config.', 'err');
       return Promise.resolve(false);
     }
     var norm = normalizeConfig(cfg);
@@ -218,26 +235,14 @@
         }
         applyToDemo(cfg);
         if (!sb) {
-          setStatus('Select a sandbox to load saved settings.', 'err');
+          setStatus('Select a sandbox in the environment bar to load saved settings.', 'err');
         }
+        updateSandboxLabel();
       })
       .catch(function (e) {
         console.warn('[call-centre-customise] RTDB load failed:', e);
         setStatus('Could not load settings from RTDB.', 'err');
       });
-  }
-
-  function initSandboxSelect(onReady) {
-    var sel = document.getElementById('ccCustomiseSandboxSelect');
-    if (!sel || typeof AepGlobalSandbox === 'undefined') {
-      if (typeof onReady === 'function') onReady();
-      return;
-    }
-    AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
-      AepGlobalSandbox.onSandboxSelectChange(sel);
-      AepGlobalSandbox.attachStorageSync(sel);
-      if (typeof onReady === 'function') onReady();
-    });
   }
 
   function bindDrawerRefresh() {
@@ -253,6 +258,7 @@
 
   function init() {
     bindDrawerRefresh();
+    updateSandboxLabel();
 
     var btn = document.getElementById('ccCustomiseUpdate');
     if (btn) {
@@ -282,31 +288,15 @@
       });
     }
 
-    var sandboxSel = document.getElementById('ccCustomiseSandboxSelect');
-    if (sandboxSel) {
-      sandboxSel.addEventListener('change', function () {
-        lastSaved = null;
-        refreshFromRtdb();
-      });
-    }
-
     window.addEventListener('aep-global-sandbox-change', function () {
-      var sel = document.getElementById('ccCustomiseSandboxSelect');
-      if (sel && typeof AepGlobalSandbox !== 'undefined') {
-        var n = AepGlobalSandbox.getSandboxName();
-        if (n !== undefined && Array.from(sel.options).some(function (o) { return o.value === n; })) {
-          sel.value = n;
-        }
-      }
       lastSaved = null;
+      updateSandboxLabel();
       refreshFromRtdb();
     });
 
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
     window.addEventListener('aep-call-centre-lab-ready', refreshFromRtdb);
-
-    initSandboxSelect(refreshFromRtdb);
 
     if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
       window.__aepLabSyncReady.then(refreshFromRtdb);

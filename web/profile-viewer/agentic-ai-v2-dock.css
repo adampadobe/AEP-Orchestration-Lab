@@ -226,6 +226,18 @@ html[data-aep-theme='dark'] .agentic-ai-v2-page #agenticV2DockOuter .workflow-do
   line-height: 1.45;
 }
 
+.agentic-ai-v2-page #agenticV2DockOuter .workflow-drawer-scroll .agentic-v2-sandbox-line {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+.agentic-ai-v2-page #agenticV2DockOuter .workflow-drawer-scroll .agentic-v2-sandbox-line strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .agentic-ai-v2-page #agenticV2DockOuter .workflow-drawer-scroll .actions {
   display: flex;
   flex-wrap: wrap;
