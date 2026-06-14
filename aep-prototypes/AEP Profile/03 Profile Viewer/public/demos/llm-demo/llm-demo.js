@@ -327,7 +327,7 @@
       var sandbox = getSandboxName();
       scrapeSelect.innerHTML = '';
       if (!sandbox) {
-        scrapeSelect.appendChild(new Option('Choose sandbox in Environment bar to list scrapes…', ''));
+        scrapeSelect.appendChild(new Option('Set sandbox in Global values to list scrapes…', ''));
         return;
       }
       scrapeSelect.appendChild(new Option('Loading scrapes for ' + sandbox + '…', ''));
@@ -367,7 +367,7 @@
         var sandbox = getSandboxName();
         var scrapeId = scrapeSelect ? scrapeSelect.value : '';
         if (!sandbox) {
-          setStatus('Choose a sandbox in Environment first.', 'err');
+          setStatus('Set a sandbox in Global values first.', 'err');
           return;
         }
         if (!scrapeId) {

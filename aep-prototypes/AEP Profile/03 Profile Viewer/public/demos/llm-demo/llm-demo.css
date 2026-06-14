@@ -1,8 +1,22 @@
 /**
  * LLM Demo — lab shell + bottom hover personalize drawer (uses --dash-* tokens).
+ * No top env strip; sandbox comes from global AepGlobalSandbox / bottom personalize panel.
  */
 .llm-demo-page .mod-demo-site-frame {
+  top: 0;
   bottom: 0;
+}
+
+.llm-demo-env-bootstrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .llm-demo-customize-anchor {

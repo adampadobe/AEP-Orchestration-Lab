@@ -9,29 +9,13 @@
   <link rel="stylesheet" href="../../home.css?v=20260603-llm-demo">
   <link rel="stylesheet" href="../../mod-demo.css?v=20260603-llm-demo">
   <link rel="stylesheet" href="../../sky-llm-optimizer.css?v=20260603-llm-demo">
-  <link rel="stylesheet" href="llm-demo.css?v=20260616">
+  <link rel="stylesheet" href="llm-demo.css?v=20260614c">
   <link rel="stylesheet" href="../../aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="../../shared/profile-viewer-modal.css?v=20260603-modal-central">
   <link rel="stylesheet" href="../../aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="../../aep-theme-palettes.css?v=20260416c">
 </head>
 <body class="mod-demo-page llm-demo-page home-dashboard-concierge">
-  <div class="mod-demo-top-anchor" id="llmDemoTopAnchor">
-    <div class="mod-demo-id-banner" role="region" aria-label="Lab environment">
-      <div class="mod-demo-id-inner aep-demo-id-inner"
-        data-demo-env-strip-mount="site-clone-minimal"
-        data-demo-env-strip-prefix="llmDemo"
-        data-demo-env-strip-ns-id="llmDemoNs"
-        data-demo-env-strip-message-id="llmDemoMessage"
-        data-demo-env-strip-hide-generator-target="1"
-      ></div>
-      <p id="llmDemoMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
-      <p class="mod-demo-disclaimer">
-        <strong>LLM Demo</strong> — Adobe LLM Optimizer export with customer personalization. Move the mouse to the <strong>bottom edge</strong> of the page to personalize from a brand scrape or customer URL; brand, competitors, and opportunity URLs update across the in-app pages.
-      </p>
-    </div>
-  </div>
-
   <iframe
     id="llmDemoFrame"
     class="mod-demo-site-frame sky-llm-optimizer-frame"
@@ -47,7 +31,7 @@
       <div class="llm-demo-customize-inner">
         <h2 id="llmDemoCustomizeTitle">Personalize for customer</h2>
         <p class="llm-demo-customize-hint">
-          Enter the customer site URL. The lab crawls the site and uses Google Search–grounded research to resolve the real brand name, six competitors, and sample paths, then rewrites copy and URLs across Overview, Opportunities, Brand Presence, and related pages.
+          Sandbox is set globally (Global values or lab nav). Move the mouse to the <strong>bottom edge</strong> to personalize from a brand scrape or customer URL — the lab crawls the site and rewrites copy and URLs across Overview, Opportunities, Brand Presence, and related pages.
         </p>
         <div class="llm-demo-customize-row">
           <label for="llmDemoScrapeSelect">Saved brand scrape (sandbox)
@@ -84,6 +68,19 @@
 
   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
 
+  <!-- Env bar bootstrap only (global sandbox via AepGlobalSandbox — no top strip) -->
+  <div class="llm-demo-env-bootstrap visually-hidden" aria-hidden="true">
+    <div
+      class="aep-demo-id-inner"
+      data-demo-env-strip-mount="site-clone-minimal"
+      data-demo-env-strip-prefix="llmDemo"
+      data-demo-env-strip-ns-id="llmDemoNs"
+      data-demo-env-strip-message-id="llmDemoMessage"
+      data-demo-env-strip-hide-generator-target="1"
+    ></div>
+    <p id="llmDemoMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+  </div>
+
   <script src="../../firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -105,7 +102,7 @@
   </script>
   <script src="../../aep-demo-generator-targets.js?v=20260508"></script>
   <script src="llm-demo-config.js?v=20260624"></script>
-  <script src="llm-demo.js?v=20260614b"></script>
+  <script src="llm-demo.js?v=20260614c"></script>
   <script defer src="../../aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="../../aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="../../aep-lab-nav.js?v=20260603-llm-demo"></script>
