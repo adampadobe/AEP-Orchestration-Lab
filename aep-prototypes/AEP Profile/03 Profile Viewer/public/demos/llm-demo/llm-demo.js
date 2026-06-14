@@ -119,11 +119,19 @@
   }
 
   function getSandboxName() {
-    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-      return String(AepGlobalSandbox.getSandboxName() || '').trim();
+    var sandbox = '';
+    if (typeof AepGlobalSandbox !== 'undefined') {
+      if (typeof AepGlobalSandbox.getSelected === 'function') {
+        sandbox = String(AepGlobalSandbox.getSelected() || '').trim();
+      }
+      if (!sandbox && typeof AepGlobalSandbox.getSandboxName === 'function') {
+        sandbox = String(AepGlobalSandbox.getSandboxName() || '').trim();
+      }
     }
-    var sel = document.getElementById('sandboxSelect');
-    return sel ? String(sel.value || '').trim() : '';
+    if (!sandbox && global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
+      sandbox = String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
+    }
+    return sandbox;
   }
 
   function formatScrapeOption(item) {
@@ -224,7 +232,7 @@
       var sandbox = getSandboxName();
       scrapeSelect.innerHTML = '';
       if (!sandbox) {
-        scrapeSelect.appendChild(new Option('Select sandbox to list scrapes…', ''));
+        scrapeSelect.appendChild(new Option('Choose sandbox in Environment bar to list scrapes…', ''));
         return;
       }
       scrapeSelect.appendChild(new Option('Loading scrapes for ' + sandbox + '…', ''));
@@ -296,7 +304,13 @@
     if (sandboxSelect) {
       sandboxSelect.addEventListener('change', refreshScrapeList);
     }
-    document.addEventListener('aep:sandbox-changed', refreshScrapeList);
+    window.addEventListener('aep-global-sandbox-change', refreshScrapeList);
+    window.addEventListener('env-bar-change', function (ev) {
+      var detail = ev && ev.detail;
+      if (!detail || detail.type === 'init' || detail.type === 'sandbox') {
+        refreshScrapeList();
+      }
+    });
     refreshScrapeList();
 
     applyBtn.addEventListener('click', function () {
@@ -356,7 +370,7 @@
       if (scrapeSelect && scrapeSelect.options.length > 1) {
         tryLoad();
       } else {
-        document.addEventListener('aep:sandbox-changed', tryLoad, { once: true });
+        window.addEventListener('aep-global-sandbox-change', tryLoad, { once: true });
         setTimeout(tryLoad, 1200);
       }
     }
