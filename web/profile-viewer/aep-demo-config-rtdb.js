@@ -205,6 +205,27 @@
     return 'ajoLookups/' + ldapSlug + '/sandboxes/' + sandboxSlug + '/' + section;
   }
 
+  /** Legacy flat keys at ajoLookups/{ldap}/ for RTDB viewer + AJO GET …/ajoLookups/{ldap}.json */
+  function legacyRootPath(ldapSlug) {
+    return 'ajoLookups/' + ldapSlug;
+  }
+
+  var LEGACY_ROOT_MIRROR_SECTIONS = {
+    CoreDemoData: true,
+    StaffPortal: true,
+    iPad: true,
+  };
+
+  function mirrorSectionToLegacyRoot(db, ldapSlug, section, partial) {
+    if (!LEGACY_ROOT_MIRROR_SECTIONS[section] || !ldapSlug || !partial || typeof partial !== 'object') {
+      return Promise.resolve();
+    }
+    if (section === SECTIONS.iPad) {
+      return db.ref(legacyRootPath(ldapSlug)).update(partial);
+    }
+    return db.ref(legacyRootPath(ldapSlug) + '/' + section).update(partial);
+  }
+
   /** When LDAP slug is not yet resolved, many personal lab trees use sandbox name as the RTDB root segment. */
   function effectiveLdapSlug(ldapSlug, sandboxSlug) {
     return normalizeSlug(ldapSlug) || normalizeSlug(sandboxSlug) || '';
@@ -420,6 +441,18 @@
   }
 
   /** Legacy flat ajoLookups/{sandbox} or ajoLookups/{ldap} top-level keys. */
+  function extractLegacyFlatKeys(data) {
+    if (!data || typeof data !== 'object') return null;
+    var legacy = {};
+    if (data.CoreDemoData) legacy.CoreDemoData = data.CoreDemoData;
+    if (data.StaffPortal) legacy.StaffPortal = data.StaffPortal;
+    if (data.Mobile) legacy.Mobile = data.Mobile;
+    if (data.TravelData) legacy.TravelData = data.TravelData;
+    if (data.CustomerLoyalty) legacy.CustomerLoyalty = data.CustomerLoyalty;
+    if (data.industryId) legacy.industryId = data.industryId;
+    return Object.keys(legacy).length ? legacy : null;
+  }
+
   function loadLegacyFlat(sandboxSlug, ldapSlug) {
     var base = getRtdbBase();
     var candidates = [];
@@ -433,9 +466,8 @@
         if (found) return found;
         return fetchJson(url).then(function (data) {
           if (!data || typeof data !== 'object') return null;
-          if (data.sandboxes) return null;
-          if (data.StaffPortal || data.TravelData || data.CoreDemoData) return data;
-          return null;
+          if (data.sandboxes) return extractLegacyFlatKeys(data);
+          return extractLegacyFlatKeys(data);
         });
       });
     });
@@ -583,10 +615,15 @@
         return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
       }
       var ref = db.ref(sectionPath(ldapForPath, sandboxSlug, section));
-      return ref.update(partial).then(function () {
-        dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
-        return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
-      });
+      return ref
+        .update(partial)
+        .then(function () {
+          return mirrorSectionToLegacyRoot(db, ldapForPath, section, partial);
+        })
+        .then(function () {
+          dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
+          return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
+        });
     });
   }
 
