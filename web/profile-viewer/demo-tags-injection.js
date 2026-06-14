@@ -695,10 +695,12 @@
       }
       try {
         global.dispatchEvent(
-          new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: !!expanded } })
+          new CustomEvent('aep-demo-tags-ui-state', {
+            detail: { tagFieldsExpanded: !!expanded, sdkConfigured: isSdkConfiguredForSandbox() },
+          })
         );
+        if (isSdkConfiguredForSandbox()) markLabEnvConfiguredSession();
         if (!expanded && !options.skipConfiguredSignals) {
-          markLabEnvConfiguredSession();
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
