@@ -12,7 +12,7 @@
     "bootstrap": "20260602-env-bar-bootstrap",
     "prefsLocal": "20260614-inject-guard",
     "prefsSync": "20260614-inject-guard",
-    "tagsInjection": "20260614-sdk-compact-status",
+    "tagsInjection": "20260614-sandbox-overlay-open",
     "aepDemoEnvBar": "20260625-env-configured",
     "siteCloneBcEnv": "20260614-env-bar-prefs",
     "decisioningModuleCss": "20260615",

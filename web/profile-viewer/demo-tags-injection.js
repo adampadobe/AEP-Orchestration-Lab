@@ -1378,12 +1378,21 @@
       return stitchEmailToEcid(email, ecid);
     }
 
+    function isUserEnvPanelOpen() {
+      if (!global.EnvBarCompact) return false;
+      if (typeof global.EnvBarCompact.isOpen === 'function' && global.EnvBarCompact.isOpen()) return true;
+      if (typeof global.EnvBarCompact.isPinned === 'function' && global.EnvBarCompact.isPinned()) return true;
+      return false;
+    }
+
     function applySandboxConfigState(options) {
       const opts = options || {};
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
       renderSelectedScript(persistedScript);
       const configured = isSdkConfiguredForSandbox();
-      setSdkConfigExpanded(!configured);
+      const keepPanelOpen = !!(opts.announceSandboxChange && isUserEnvPanelOpen());
+      const expandFields = !configured || keepPanelOpen;
+      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen });
       if (configured && persistedScript) markLabEnvConfiguredSession();
       if (opts.announceSandboxChange) {
         if (configured) {
