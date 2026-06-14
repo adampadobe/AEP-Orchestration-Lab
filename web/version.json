@@ -1,14 +1,14 @@
 {
-  "gitSha": "9598a03a8ce185c20072af3d5689aad38d0e93a8",
-  "gitShortSha": "9598a03a",
+  "gitSha": "58011b2a5b3575865135895116274f9009bf53ba",
+  "gitShortSha": "58011b2a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: retire internal mobile preview hub in favour of per-customer mobile demos",
+  "gitCommitSubject": "[apalmer] fix: env bar dock icon from architecture icon library",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T14:44:41+01:00",
-  "deployedAt": "2026-06-14T13:44:54.913Z",
+  "gitCommitDate": "2026-06-14T14:50:38+01:00",
+  "deployedAt": "2026-06-14T13:50:52.178Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9598a03a8ce185c20072af3d5689aad38d0e93a8"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/58011b2a5b3575865135895116274f9009bf53ba"
 }
