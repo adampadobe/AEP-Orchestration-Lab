@@ -1,14 +1,14 @@
 {
-  "gitSha": "05ca1d99fcf1ac05f25112cd65916f41a9dc5efa",
-  "gitShortSha": "05ca1d99",
+  "gitSha": "b67361d1ce3b4002eea0604f66ed413fa899856e",
+  "gitShortSha": "b67361d1",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] refactor(web): consolidate aepCall into aep-proxy-client",
+  "gitCommitSubject": "[apalmer] fix: remove duplicate sandbox picker from iPad demo banner",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T20:02:44+01:00",
-  "deployedAt": "2026-06-14T19:03:19.836Z",
+  "gitCommitDate": "2026-06-14T20:33:50+01:00",
+  "deployedAt": "2026-06-14T19:34:04.408Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/05ca1d99fcf1ac05f25112cd65916f41a9dc5efa"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/b67361d1ce3b4002eea0604f66ed413fa899856e"
 }
