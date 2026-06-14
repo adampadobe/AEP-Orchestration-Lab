@@ -1,14 +1,14 @@
 {
-  "gitSha": "fa5540e98cfaebb71073cb47e94720290ffa5693",
-  "gitShortSha": "fa5540e9",
+  "gitSha": "05ca1d99fcf1ac05f25112cd65916f41a9dc5efa",
+  "gitShortSha": "05ca1d99",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] refactor(profile-viewer): remove RTDB demo prep from Global values",
+  "gitCommitSubject": "[apalmer] refactor(web): consolidate aepCall into aep-proxy-client",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T19:27:45+01:00",
-  "deployedAt": "2026-06-14T18:28:00.564Z",
+  "gitCommitDate": "2026-06-14T20:02:44+01:00",
+  "deployedAt": "2026-06-14T19:03:19.836Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fa5540e98cfaebb71073cb47e94720290ffa5693"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/05ca1d99fcf1ac05f25112cd65916f41a9dc5efa"
 }
