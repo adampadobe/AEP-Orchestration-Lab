@@ -1,14 +1,14 @@
 {
-  "gitSha": "c652c1f601d2159192cc9cfc90906620771d00db",
-  "gitShortSha": "c652c1f6",
+  "gitSha": "502f910432908b8c4ea6207046febbb7b2a3532b",
+  "gitShortSha": "502f9104",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: Call Centre and iPad customise RTDB read/write",
+  "gitCommitSubject": "[apalmer] fix: customise dock scroll and global sandbox only",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T21:37:58+01:00",
-  "deployedAt": "2026-06-14T20:38:29.646Z",
+  "gitCommitDate": "2026-06-14T21:45:22+01:00",
+  "deployedAt": "2026-06-14T20:45:42.324Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c652c1f601d2159192cc9cfc90906620771d00db"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/502f910432908b8c4ea6207046febbb7b2a3532b"
 }
