@@ -150,17 +150,6 @@
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
 
-    var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
-    if (panel) {
-      panel.addEventListener(
-        'focusin',
-        function () {
-          if (!isOverlayOpen(anchor)) openOverlay(anchor, isOverlayPinned(anchor));
-        },
-        true,
-      );
-    }
-
     var toggleBtn = byId(TOGGLE_BTN_ID);
     if (toggleBtn) {
       toggleBtn.addEventListener('click', function (ev) {
