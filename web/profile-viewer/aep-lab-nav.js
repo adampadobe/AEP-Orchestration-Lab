@@ -322,9 +322,9 @@
       items: [],
       /*
        * Demos sidebar policy:
-       * - Flat subgroups first (no demoMeta): shared lab surfaces — Contact centre, iPad, mobile
-       *   shell — tuned at runtime from RTDB (ajoLookups/{sandbox}) so everyone sees the same entry
-       *   points while copy/branding stays sandbox-specific.
+       * - Flat subgroups first (no demoMeta): shared lab surfaces — Contact centre, iPad simulators
+       *   (not the retired mobile preview hub) — tuned at runtime from RTDB (ajoLookups/{sandbox})
+       *   so everyone sees the same entry points while copy/branding stays sandbox-specific.
        * - demoCustomer subgroups below: bespoke Web / Mobile / Call centre per customer; use
        *   demoMeta.owners (and optional sandboxes) so "Mine" / mine+sandbox lists stay owner-scoped.
        */
@@ -340,6 +340,19 @@
               navHideKey: 'llmDemo',
               ico:
                 '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 7h16M4 12h10M4 17h14"/><circle cx="18" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+            },
+          ],
+        },
+        {
+          id: 'demoIpadLab',
+          label: 'iPad',
+          items: [
+            {
+              label: 'Etihad iPad (in development)',
+              href: 'etihad-ipad.html',
+              inDevelopment: true,
+              navHideKey: 'etihadIpadDemo',
+              ico: '\uD83D\uDCF2',
             },
           ],
         },
@@ -392,7 +405,7 @@
                   label: 'Etihad iPad (in development)',
                   href: 'etihad-ipad.html',
                   inDevelopment: true,
-                  navHideKey: 'mobileDemoApalmerIpad',
+                  navHideKey: 'etihadIpadDemo',
                   demoMeta: { owners: ['apalmer'] },
                   ico: '\uD83D\uDCF2',
                 },
@@ -432,6 +445,14 @@
                   demoMeta: { owners: ['apalmer'] },
                   ico: '\uD83D\uDCF1',
                 },
+                {
+                  label: 'KSIA iPad (to be built)',
+                  navPlaceholder: true,
+                  inDevelopment: true,
+                  navHideKey: 'ksiaIpadDemo',
+                  demoMeta: { owners: ['apalmer'] },
+                  ico: '\uD83D\uDCF2',
+                },
               ],
             },
           ],
@@ -466,6 +487,14 @@
                   navHideKey: 'mobileDemoFnbPhone',
                   demoMeta: { owners: ['kirkham'] },
                   ico: '\uD83D\uDCF1',
+                },
+                {
+                  label: 'FNB iPad (to be built)',
+                  navPlaceholder: true,
+                  inDevelopment: true,
+                  navHideKey: 'fnbIpadDemo',
+                  demoMeta: { owners: ['kirkham'] },
+                  ico: '\uD83D\uDCF2',
                 },
               ],
             },
