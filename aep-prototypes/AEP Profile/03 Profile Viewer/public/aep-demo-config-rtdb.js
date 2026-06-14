@@ -525,7 +525,15 @@
         sectionPath(ldapForPath, sandboxSlug, section) +
         '.json';
       return fetchJson(url).then(function (nested) {
-        if (nested && typeof nested === 'object' && Object.keys(nested).length) return nested;
+        if (nested && typeof nested === 'object' && Object.keys(nested).length) {
+          console.log('[AepDemoConfigRtdb] loadSectionInner nested hit', {
+            section: section,
+            ldapForPath: ldapForPath,
+            sandboxSlug: sandboxSlug,
+            url: url,
+          });
+          return nested;
+        }
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
           if (!legacy) return null;
           if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
@@ -605,25 +613,71 @@
     return resolveLdapSlugAsync().then(function (ldapSlug) {
       var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
       if (!ldapForPath || !sandboxSlug) {
+        console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing slug', {
+          section: section,
+          ldapSlug: ldapSlug,
+          sandboxSlug: sandboxSlug,
+        });
         return Promise.reject(new Error('LDAP slug and sandbox are required to save demo config.'));
       }
-      var db = getDatabase();
-      if (!db) return Promise.reject(new Error('Firebase RTDB not available'));
-      var auth = firebase.auth();
-      var u = auth.currentUser;
-      if (!u || !u.email) {
-        return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
-      }
-      var ref = db.ref(sectionPath(ldapForPath, sandboxSlug, section));
-      return ref
-        .update(partial)
-        .then(function () {
-          return mirrorSectionToLegacyRoot(db, ldapForPath, section, partial);
+      var nestedPath = sectionPath(ldapForPath, sandboxSlug, section);
+      var legacyPath =
+        LEGACY_ROOT_MIRROR_SECTIONS[section] ?
+          section === SECTIONS.iPad ?
+            legacyRootPath(ldapForPath)
+          : legacyRootPath(ldapForPath) + '/' + section
+        : null;
+      console.log('[AepDemoConfigRtdb] saveSectionInner start', {
+        section: section,
+        ldapSlug: ldapSlug,
+        ldapForPath: ldapForPath,
+        sandboxSlug: sandboxSlug,
+        nestedPath: nestedPath,
+        legacyPath: legacyPath,
+        partial: partial,
+      });
+
+      return authHeadersPromise().then(function (headers) {
+        if (!headers.Authorization) {
+          console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: not signed in', { section: section });
+          return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
+        }
+        return fetch('/api/lab/save-demo-config', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+          body: JSON.stringify({
+            section: section,
+            partial: partial,
+            sandboxSlug: sandboxSlug,
+            workspaceSlug: ldapForPath,
+          }),
         })
-        .then(function () {
-          dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
-          return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
-        });
+          .then(function (res) {
+            return res.json().then(function (body) {
+              if (!res.ok || !body || !body.ok) {
+                var msg = (body && body.error) || 'Save failed (' + res.status + ')';
+                console.error('[AepDemoConfigRtdb] saveSectionInner API error', {
+                  section: section,
+                  status: res.status,
+                  body: body,
+                });
+                return Promise.reject(new Error(msg));
+              }
+              console.log('[AepDemoConfigRtdb] saveSectionInner success', {
+                section: section,
+                nestedPath: body.nestedPath,
+                legacyPath: body.legacyPath,
+                legacyMirrored: body.legacyMirrored,
+              });
+              dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
+              return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
+            });
+          })
+          .catch(function (err) {
+            console.error('[AepDemoConfigRtdb] saveSectionInner failed', { section: section, error: err });
+            throw err;
+          });
+      });
     });
   }
 

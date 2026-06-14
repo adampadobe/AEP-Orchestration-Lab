@@ -2,6 +2,8 @@
  * Lab config / workspace / auth routes — extracted from index.js (Phase B).
  */
 
+const { normalizeLdapSlug, ldapSlugFromEmail } = require('./labRtdbSlug');
+
 /**
  * @param {object} deps
  * @returns {Record<string, import('firebase-functions/v2/https').HttpsFunction>}
@@ -203,6 +205,86 @@ function registerLabRoutes(deps) {
 
   res.status(405).json({ error: 'Method not allowed' });
 });
+
+  /** POST /api/lab/save-demo-config — Admin SDK RTDB save (customise panels; bypasses client rules) */
+  routes.labSaveDemoConfig = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ ok: false, error: 'Method not allowed' });
+      return;
+    }
+
+    const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+    if (!uid) {
+      res.status(401).json({ ok: false, error: 'Firebase Auth required (lab sign-in).' });
+      return;
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const section = String(body.section || '').trim();
+    const partial = body.partial;
+    const sandboxSlug = String(body.sandboxSlug || '').trim();
+    const workspaceSlug = String(body.workspaceSlug || '').trim();
+
+    if (!section || !sandboxSlug) {
+      res.status(400).json({ ok: false, error: 'section and sandboxSlug are required' });
+      return;
+    }
+    if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
+      res.status(400).json({ ok: false, error: 'partial must be a plain object' });
+      return;
+    }
+    if (!labRtdbProvisionService.DEMO_SECTIONS.includes(section)) {
+      res.status(400).json({ ok: false, error: `Unknown demo section: ${section}` });
+      return;
+    }
+
+    try {
+      const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+      const adobeEmail = String((profile && profile.adobeEmail) || body.adobeEmail || '').trim().toLowerCase();
+      if (!adobeEmail) {
+        res.status(400).json({ ok: false, error: 'Workspace profile or adobeEmail required' });
+        return;
+      }
+
+      let ldapSlug = normalizeLdapSlug(workspaceSlug);
+      if (!ldapSlug && profile && profile.workspaceSlug) {
+        ldapSlug = normalizeLdapSlug(profile.workspaceSlug);
+      }
+      if (!ldapSlug) {
+        ldapSlug = ldapSlugFromEmail(adobeEmail, profile && profile.firstName, profile && profile.lastName);
+      }
+
+      const owns = ldapSlug ? await labRtdbProvisionService.userOwnsWorkspace(null, uid, ldapSlug) : false;
+      if (!owns) {
+        const provisioned = await labRtdbProvisionService.provisionUserRtdbWorkspace({
+          uid,
+          adobeEmail,
+          firstName: profile && profile.firstName,
+          lastName: profile && profile.lastName,
+          workspaceSlug: workspaceSlug || (profile && profile.workspaceSlug) || ldapSlug,
+          defaultSandbox: sandboxSlug,
+        });
+        ldapSlug = provisioned.ldapSlug;
+      }
+
+      const result = await labRtdbProvisionService.saveDemoSection(
+        null,
+        ldapSlug,
+        sandboxSlug,
+        section,
+        partial,
+      );
+      res.status(200).json({ ok: true, ...result });
+    } catch (e) {
+      const status = e && e.code === 'slug_taken' ? 409 : 500;
+      res.status(status).json({ ok: false, error: String(e.message || e), code: e && e.code ? String(e.code) : '' });
+    }
+  });
 
   /** POST /api/lab/provision-rtdb — idempotent RTDB workspace + sandbox demo stub for signed-in lab user */
   routes.labProvisionRtdb = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

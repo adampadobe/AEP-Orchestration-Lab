@@ -286,8 +286,15 @@
     }
     var norm = normalizeConfig(cfg);
     if (lastSaved && configEqual(norm, lastSaved)) {
+      console.log('[AepDemoConfigRtdb] [ipad-customise] persistConfig skipped (unchanged)', { sandbox: sb, norm: norm });
       return Promise.resolve(true);
     }
+    console.log('[AepDemoConfigRtdb] [ipad-customise] persistConfig start', {
+      sandbox: sb,
+      norm: norm,
+      lastSaved: lastSaved,
+      trigger: statusPrefix || 'Saving',
+    });
     setStatus((statusPrefix || 'Saving') + '…', '');
     if (saveInFlight) {
       return saveInFlight.then(function () {
@@ -382,6 +389,7 @@
     var btn = document.getElementById('ccCustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
+        console.log('[AepDemoConfigRtdb] [ipad-customise] Update clicked', collectInputs());
         persistConfig(collectInputs(), currentSandboxName(), 'Saving');
       });
     }
@@ -390,6 +398,7 @@
       var inp = document.getElementById(id);
       if (!inp) return;
       inp.addEventListener('blur', function () {
+        console.log('[AepDemoConfigRtdb] [ipad-customise] blur persist', id, inp.value);
         persistConfig(collectInputs(), currentSandboxName(), 'Saving');
       });
     });

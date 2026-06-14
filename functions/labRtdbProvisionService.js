@@ -214,6 +214,71 @@ async function provisionUserRtdbWorkspace(input) {
 /**
  * Merge default demo sections under sandboxes/{sandboxSlug} if missing.
  */
+const LEGACY_ROOT_MIRROR_SECTIONS = {
+  CoreDemoData: true,
+  StaffPortal: true,
+  iPad: true,
+};
+
+function demoSectionPath(ldapSlug, sandboxSlug, section) {
+  return `ajoLookups/${ldapSlug}/sandboxes/${sandboxSlug}/${section}`;
+}
+
+function legacyRootPath(ldapSlug) {
+  return `ajoLookups/${ldapSlug}`;
+}
+
+async function mirrorSectionToLegacyRoot(db, ldapSlug, section, partial) {
+  if (!LEGACY_ROOT_MIRROR_SECTIONS[section] || !ldapSlug || !partial || typeof partial !== 'object') {
+    return { mirrored: false };
+  }
+  if (section === 'iPad') {
+    await db.ref(legacyRootPath(ldapSlug)).update(partial);
+  } else {
+    await db.ref(`${legacyRootPath(ldapSlug)}/${section}`).update(partial);
+  }
+  return { mirrored: true, legacyPath: section === 'iPad' ? legacyRootPath(ldapSlug) : `${legacyRootPath(ldapSlug)}/${section}` };
+}
+
+/**
+ * Admin SDK write for customise panels — nested sandbox path + legacy root mirror.
+ * @param {import('firebase-admin/database').Database} db
+ */
+async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
+  const ldap = normalizeLdapSlug(ldapSlug);
+  const sb = normalizeLdapSlug(sandboxSlug);
+  const sec = String(section || '').trim();
+  if (!ldap || !sb || !sec) {
+    throw new Error('ldapSlug, sandboxSlug, and section are required');
+  }
+  if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
+    throw new Error('partial must be a plain object');
+  }
+  const database = db || getRtdb();
+  const nestedPath = demoSectionPath(ldap, sb, sec);
+  await database.ref(nestedPath).update(partial);
+  const mirror = await mirrorSectionToLegacyRoot(database, ldap, sec, partial);
+  return {
+    ok: true,
+    ldapSlug: ldap,
+    sandboxSlug: sb,
+    section: sec,
+    nestedPath,
+    legacyMirrored: mirror.mirrored,
+    legacyPath: mirror.legacyPath || null,
+  };
+}
+
+async function userOwnsWorkspace(db, uid, ldapSlug) {
+  const ldap = normalizeLdapSlug(ldapSlug);
+  if (!uid || !ldap) return false;
+  const database = db || getRtdb();
+  const claim = (await database.ref(`workspaceClaims/${ldap}`).once('value')).val();
+  if (claim === uid) return true;
+  const owner = (await database.ref(`userWorkspaceOwners/${uid}`).once('value')).val();
+  return owner === ldap;
+}
+
 async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
   const sb = normalizeLdapSlug(sandboxSlug);
   const ldap = normalizeLdapSlug(ldapSlug);
@@ -241,6 +306,7 @@ async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
 
 module.exports = {
   DEMO_SECTIONS,
+  LEGACY_ROOT_MIRROR_SECTIONS,
   buildFlatLabStub,
   splitStubIntoSections,
   buildSandboxStub,
@@ -248,4 +314,9 @@ module.exports = {
   provisionUserRtdbWorkspace,
   ensureSandboxStub,
   claimWorkspaceSlugTransaction,
+  demoSectionPath,
+  legacyRootPath,
+  mirrorSectionToLegacyRoot,
+  saveDemoSection,
+  userOwnsWorkspace,
 };
