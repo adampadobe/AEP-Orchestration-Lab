@@ -1,14 +1,14 @@
 {
-  "gitSha": "096f59ff6fd33087088e92b6193a25a5d366a849",
-  "gitShortSha": "096f59ff",
+  "gitSha": "738cdce2cad00da12ec7e39fdb72fb54e59bc5b7",
+  "gitShortSha": "738cdce2",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] sync: Express mirror mobile demo presentation mode",
+  "gitCommitSubject": "[apalmer] fix: env bar stay open on inject and preserve sandbox",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T13:30:43+01:00",
-  "deployedAt": "2026-06-14T12:30:53.167Z",
+  "gitCommitDate": "2026-06-14T13:37:54+01:00",
+  "deployedAt": "2026-06-14T12:38:08.707Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/096f59ff6fd33087088e92b6193a25a5d366a849"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/738cdce2cad00da12ec7e39fdb72fb54e59bc5b7"
 }
