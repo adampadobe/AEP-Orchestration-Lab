@@ -24,6 +24,58 @@
 
   var STATUS_LIGHT_VARIANTS = ['positive', 'neutral', 'notice'];
 
+  function readStorageMap(key) {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+      return global.AepLabEnvBarPrefs.readMap(key);
+    }
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function resolveStoragePrefix(prefix) {
+    try {
+      if (global.envBarConfig && global.envBarConfig.storagePrefix) {
+        return String(global.envBarConfig.storagePrefix).trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return String(prefix || '').trim();
+  }
+
+  function sandboxKeyForStorage(sandboxSelect) {
+    var name = '';
+    try {
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+        name = String(global.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    if (!name && sandboxSelect) {
+      name = String(sandboxSelect.value || '').trim();
+    }
+    var raw = name.toLowerCase();
+    return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
+  }
+
+  /** Matches demo-tags-injection.js per-sandbox SDK configured map (fields may stay expanded after inject). */
+  function isPersistedSdkConfigured(storagePrefix, sandboxSelect) {
+    if (!storagePrefix) return false;
+    var sbKey = sandboxKeyForStorage(sandboxSelect);
+    var configuredMap = readStorageMap(storagePrefix + 'SdkConfiguredBySandbox');
+    if (configuredMap[sbKey] !== 1) return false;
+    var scriptMap = readStorageMap(storagePrefix + 'SelectedLaunchScriptBySandbox');
+    var script = scriptMap[sbKey];
+    return !!(script && String(script).trim());
+  }
+
   function setStatusLight(chipEl, dotEl, statusEl, variant, text) {
     var v = STATUS_LIGHT_VARIANTS.indexOf(variant) >= 0 ? variant : 'neutral';
     if (chipEl) {
@@ -137,7 +189,10 @@
       if (propertyChip) syncTruncatedTitle(propertyChip, propVal || 'Tags property not set');
       if (tagsProperty) syncTruncatedTitle(tagsProperty, propVal);
 
-      var sdkConnected = !!(fields && fields.hidden && summary && !summary.hidden);
+      var storagePrefix = resolveStoragePrefix(prefix);
+      var sdkConnectedFromUi = !!(fields && fields.hidden && summary && !summary.hidden);
+      var sdkConnectedFromPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
+      var sdkConnected = sdkConnectedFromUi || sdkConnectedFromPersist;
       setStatusLight(
         sdkChip,
         sdkDot,
@@ -273,6 +328,11 @@
     }
 
     global.addEventListener('aep-demo-tags-ui-state', refresh);
+    global.addEventListener('aep-demo-env-configured', refresh);
+    global.addEventListener('env-bar-change', function (ev) {
+      var detail = ev && ev.detail;
+      if (!detail || detail.type === 'sandbox' || detail.type === 'init') refresh();
+    });
     refresh();
     loadVersionPill();
   }
