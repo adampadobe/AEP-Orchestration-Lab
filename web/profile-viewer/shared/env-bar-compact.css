@@ -619,7 +619,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   }
 }
 
-/* ── Dock off-screen + floating restore cog ───────────────────── */
+/* ── Dock off-screen + floating restore settings icon ─────────── */
 .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden,
 [class*='-demo-top-anchor'].lab-env-top-anchor--docked-hidden,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--docked-hidden,

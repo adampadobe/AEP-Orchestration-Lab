@@ -23,7 +23,7 @@
       demoEnvStripSpectrum: '20260614-env-bar-dock',
       demoEnvStrip: '20260625-version-pill',
       spectrumSync: '20260614-sdk-compact-status',
-      compactJs: '20260614-env-bar-dock',
+      compactJs: '20260614-env-bar-dock-settings-icon',
       compactCss: '20260614-env-bar-dock',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260614-inject-guard',
