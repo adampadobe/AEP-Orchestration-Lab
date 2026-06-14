@@ -1454,16 +1454,6 @@
       setCustomizeOpen(next);
     });
 
-  industrySelect &&
-    industrySelect.addEventListener('change', () => {
-      const id = industrySelect.value;
-      applyIndustry(id);
-      persistIndustry(id);
-      if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.saveSectionDebounced === 'function') {
-        window.AepDemoConfigRtdb.saveSectionDebounced(window.AepDemoConfigRtdb.SECTIONS.CallCentre, { industryId: id }).catch(function () {});
-      }
-    });
-
   CTX.attachCrossPageIndustryListener((id) => {
     if (!INDUSTRIES[id]) return;
     if (id === currentIndustryId) return;
@@ -2326,6 +2316,20 @@
       renderCcEventActivityChart(window._ccLastEvents);
     }
   });
+
+  window.AepCallCentreLab = {
+    applyIndustry,
+    applyLoadedConfig(data) {
+      if (data && data.industryId && INDUSTRIES[data.industryId]) {
+        applyIndustry(data.industryId);
+        if (industrySelect) industrySelect.value = data.industryId;
+      }
+      applyRtdbToAgentUi(data);
+    },
+  };
+  try {
+    window.dispatchEvent(new CustomEvent('aep-call-centre-lab-ready'));
+  } catch (_labReadyErr) {}
 
   renderCcEngagementTrendChart([]);
 

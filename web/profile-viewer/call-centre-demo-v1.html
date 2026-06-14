@@ -857,10 +857,33 @@
     <div class="cc-customize-panel" id="ccCustomizePanel" role="region" aria-label="Workspace customise" aria-hidden="true">
       <div class="cc-customize-panel-inner">
         <div class="cc-customize-field">
+          <label for="ccCustomiseSandboxSelect">Sandbox</label>
+          <p class="cc-customize-field-hint">Settings are saved per AEP sandbox for your signed-in lab account (same pattern as Agentic layer and other Profile Viewer demos).</p>
+          <select id="ccCustomiseSandboxSelect" class="cc-industry-select" aria-label="Select AEP sandbox"></select>
+        </div>
+        <div class="cc-customize-field">
           <label for="ccIndustrySelect">Industry context</label>
           <p class="cc-customize-field-hint">Presets match <code>POST /api/profile/generate</code> industries: <code>generic</code>, <code>travel</code>, <code>fsi</code>, <code>telecom</code>, <code>retail</code>, <code>media</code>, <code>sports</code>. Legacy keys (<code>adobe</code>, <code>telco</code>, <code>banking</code>, …) migrate automatically. The same selection syncs to the iPad lab.</p>
           <select id="ccIndustrySelect" class="cc-industry-select"></select>
         </div>
+        <div class="cc-customize-field">
+          <label for="ccCustomiseBrandName">Customer / brand name</label>
+          <p class="cc-customize-field-hint">Top-bar brand label (RTDB <code>CoreDemoData</code>). Same source as the iPad lab hero subtitle.</p>
+          <input id="ccCustomiseBrandName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Saga">
+        </div>
+        <div class="cc-customize-field">
+          <label for="ccCustomiseAgentName">Agent name</label>
+          <input id="ccCustomiseAgentName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Demo agent">
+        </div>
+        <div class="cc-customize-field">
+          <label for="ccCustomiseAccentColour">Accent colour</label>
+          <p class="cc-customize-field-hint">6-digit hex (optional <code>#</code>) for header and KPI accents (<code>StaffPortal.Colour</code>).</p>
+          <input id="ccCustomiseAccentColour" type="text" class="cc-customize-input" autocomplete="off" placeholder="1473e6" maxlength="7">
+        </div>
+        <div class="cc-customize-actions">
+          <button type="button" class="cc-customize-update-btn" id="ccCustomiseUpdate">Update</button>
+        </div>
+        <p id="ccCustomiseStatus" class="cc-customize-status" role="status" aria-live="polite"></p>
       </div>
     </div>
   </div>
@@ -889,7 +912,8 @@
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
-  <script src="call-center-demo-apalmer.js?v=20260612"></script>
+  <script src="call-center-demo-apalmer.js?v=20260614-rtdb-customise"></script>
+  <script defer src="call-centre-customise.js?v=20260614-rtdb-customise"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
 </body>

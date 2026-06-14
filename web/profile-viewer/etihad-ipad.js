@@ -746,11 +746,6 @@
         setCustomizeDockOpen(next);
       });
     }
-    industrySelect.addEventListener('change', function () {
-      var sid = industrySelect.value;
-      applyIndustryToIpad(sid);
-      C.persistIndustry(sid);
-    });
     C.attachCrossPageIndustryListener(function (jid) {
       if (!C.INDUSTRIES[jid]) return;
       if (jid === currentLabIndustryId) return;
@@ -1848,6 +1843,9 @@
     window.addEventListener('aep-global-sandbox-change', function () {
       loadRtdbData();
     });
+    window.addEventListener('aep-demo-config-changed', function () {
+      loadRtdbData();
+    });
     window.addEventListener('resize', function () {
       applySize(currentSizeKey);
     });
@@ -1882,4 +1880,14 @@
   wireEvents();
   refreshRecentEmailDatalistUi();
   loadRtdbData();
+
+  window.AepIpadLab = {
+    applyIndustry: applyIndustryToIpad,
+    applyRtdbData: function (data) {
+      rtdbData = data && typeof data === 'object' ? data : {};
+      applyRtdbToShell();
+      if (currentProfileData) renderAll(currentProfileData);
+    },
+    reloadFromRtdb: loadRtdbData,
+  };
 })();
