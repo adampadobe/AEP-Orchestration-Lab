@@ -235,11 +235,12 @@
   border-bottom: 1px solid var(--dash-border);
 }
 
-.lab-env-overlay-panel .spectrum-env-cards--duo {
+.lab-env-overlay-panel .spectrum-env-cards--trio {
   gap: var(--dash-space-200, 0.75rem);
   margin: 0;
 }
 
+.lab-env-overlay-panel .spectrum-env-card--data-collection,
 .lab-env-overlay-panel .spectrum-env-card--target {
   margin: 0;
 }
@@ -269,7 +270,8 @@
 }
 
 .lab-env-overlay-panel .spectrum-env-card__body--fields,
-.lab-env-overlay-panel .spectrum-env-card__body--target {
+.lab-env-overlay-panel .spectrum-env-card__body--stacked,
+.lab-env-overlay-panel .spectrum-env-card__body--data-collection {
   gap: var(--dash-space-200, 0.75rem);
 }
 
@@ -513,8 +515,25 @@
   padding: 0;
 }
 
-.spectrum-env-cards--duo {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+.spectrum-env-cards--trio {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.spectrum-env-cards--trio > .spectrum-env-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.spectrum-env-cards--trio .spectrum-env-card__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.spectrum-env-card--profile {
+  margin: 0.85rem 1rem;
 }
 
 .spectrum-env-card {
@@ -526,7 +545,8 @@
 }
 
 .spectrum-env-card--target,
-.spectrum-env-card--profile {
+.spectrum-env-card--profile,
+.spectrum-env-card--data-collection {
   margin: 0;
 }
 
@@ -574,6 +594,25 @@
   padding: 0;
 }
 
+.spectrum-env-card__body--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spectrum-env-field__hint--muted {
+  color: var(--spectrum-text-secondary);
+}
+
+.spectrum-env-sdk-panel--compact {
+  padding-top: 0;
+  margin-top: auto;
+}
+
+.spectrum-env-info-bar--card {
+  margin-top: auto;
+}
+
 .spectrum-env-card__body--fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -583,8 +622,8 @@
 
 .spectrum-env-collapsible-fields__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 0.85rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
   align-items: end;
 }
 
@@ -771,19 +810,25 @@
   display: inline-flex;
 }
 
-/* ── Target card ────────────────────────────────────────────── */
-.spectrum-env-target-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.85fr);
-  gap: 0.85rem 1rem;
-  align-items: start;
+/* ── Data Collection card ───────────────────────────────────── */
+.spectrum-env-card--data-collection .spectrum-env-sdk-panel {
+  padding-top: 0;
 }
 
+/* Pin-open flyout while configuring (Phase 2) */
+.mod-demo-top-anchor--env-pinned .mod-demo-id-banner {
+  transform: translateY(0);
+}
+
+.mod-demo-page .mod-demo-top-anchor--env-pinned::before {
+  height: min(100vh, 520px);
+}
+
+/* ── Info bar + SDK panel ───────────────────────────────────── */
 .spectrum-env-sdk-panel {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding-top: 1.15rem;
 }
 
 .spectrum-env-sdk-panel__meta {
@@ -1075,17 +1120,7 @@
 }
 
 @media (max-width: 72rem) {
-  .spectrum-env-card__body--fields,
-  .spectrum-env-target-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .spectrum-env-sdk-panel {
-    grid-column: 1 / -1;
-    padding-top: 0;
-  }
-
-  .spectrum-env-cards--duo {
+  .spectrum-env-cards--trio {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1110,7 +1145,8 @@
     min-height: min-content;
   }
 
-  .lab-env-overlay-profile .spectrum-env-profile-main {
+  .lab-env-overlay-profile .spectrum-env-profile-main,
+  .spectrum-env-card__body--fields {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--dash-space-200, 0.75rem);
   }
@@ -1132,7 +1168,7 @@
     width: 100%;
   }
 
-  .lab-env-overlay-panel .spectrum-env-cards--duo {
+  .lab-env-overlay-panel .spectrum-env-cards--trio {
     grid-template-columns: minmax(0, 1fr);
   }
 

@@ -245,6 +245,9 @@
     if (typeof global.AepGlobalSandbox.attachStorageSync === 'function') {
       global.AepGlobalSandbox.attachStorageSync(selectEl);
     }
+    if (typeof global.AepGlobalSandbox.applyStoredSandboxToSelect === 'function') {
+      global.AepGlobalSandbox.applyStoredSandboxToSelect(selectEl);
+    }
     if (typeof global.AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
       void global.AepGlobalSandbox.loadSandboxesIntoSelect(selectEl);
     }

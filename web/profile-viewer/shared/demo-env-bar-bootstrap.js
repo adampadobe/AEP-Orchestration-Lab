@@ -10,7 +10,7 @@
 (function attachLabDemoEnvBarBootstrap(global) {
   'use strict';
 
-  var CACHE_BUST = '20260602-env-bar-bootstrap';
+  var CACHE_BUST = '20260624-sandbox-persist';
 
   /**
    * @param {object} [options]
@@ -60,6 +60,17 @@
     }
 
     if (global.AepDemoEnvStrip && typeof global.AepDemoEnvStrip.initStandardEnvBar === 'function') {
+      var sandboxSelect =
+        global.document && global.document.getElementById
+          ? global.document.getElementById(opt.sandboxSelectId || 'sandboxSelect')
+          : null;
+      if (
+        sandboxSelect &&
+        global.AepGlobalSandbox &&
+        typeof global.AepGlobalSandbox.applyStoredSandboxToSelect === 'function'
+      ) {
+        global.AepGlobalSandbox.applyStoredSandboxToSelect(sandboxSelect);
+      }
       var envBarExtra = opt.envBar && typeof opt.envBar === 'object' ? opt.envBar : {};
       var envBarCfg = Object.assign(
         {
