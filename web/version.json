@@ -1,14 +1,14 @@
 {
-  "gitSha": "88ca391181083b3486a754192ccc54471458adbb",
-  "gitShortSha": "88ca3911",
+  "gitSha": "bfc6751a4eb2e0fa432ed6548f0889c51badf877",
+  "gitShortSha": "bfc6751a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: iPad RTDB write and unified customise labels",
+  "gitCommitSubject": "[apalmer] fix: mirror CoreDemoData saves to legacy RTDB root",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T22:18:07+01:00",
-  "deployedAt": "2026-06-14T21:18:19.760Z",
+  "gitCommitDate": "2026-06-14T22:26:31+01:00",
+  "deployedAt": "2026-06-14T21:26:49.487Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/88ca391181083b3486a754192ccc54471458adbb"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bfc6751a4eb2e0fa432ed6548f0889c51badf877"
 }
