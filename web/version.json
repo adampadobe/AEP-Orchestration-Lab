@@ -1,14 +1,14 @@
 {
-  "gitSha": "7840d9e7cf8d9b00c2a5b64e179c778c37ffd259",
-  "gitShortSha": "7840d9e7",
+  "gitSha": "677c9410ab3abd5cd972cdc4a2943ca66da6d8fe",
+  "gitShortSha": "677c9410",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: route RTDB customise saves through Admin API",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json for deploy (7840d9e7)",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T22:40:42+01:00",
-  "deployedAt": "2026-06-14T21:41:02.597Z",
+  "gitCommitDate": "2026-06-14T22:43:04+01:00",
+  "deployedAt": "2026-06-14T21:53:34.279Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/7840d9e7cf8d9b00c2a5b64e179c778c37ffd259"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/677c9410ab3abd5cd972cdc4a2943ca66da6d8fe"
 }
