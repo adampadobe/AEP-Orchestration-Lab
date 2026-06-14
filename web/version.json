@@ -1,14 +1,14 @@
 {
-  "gitSha": "407dcab2550ec6eec20ce6be29c7b7a8e9255161",
-  "gitShortSha": "407dcab2",
+  "gitSha": "88ca391181083b3486a754192ccc54471458adbb",
+  "gitShortSha": "88ca3911",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: iPad customise RTDB load error (match Call Centre)",
+  "gitCommitSubject": "[apalmer] fix: iPad RTDB write and unified customise labels",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T21:56:39+01:00",
-  "deployedAt": "2026-06-14T21:06:47.568Z",
+  "gitCommitDate": "2026-06-14T22:18:07+01:00",
+  "deployedAt": "2026-06-14T21:18:19.760Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/407dcab2550ec6eec20ce6be29c7b7a8e9255161"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/88ca391181083b3486a754192ccc54471458adbb"
 }
