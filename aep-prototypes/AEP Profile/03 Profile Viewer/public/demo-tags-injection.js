@@ -49,6 +49,46 @@
     return raw ? raw.replace(/[^a-z0-9_-]/g, '_') : '__default__';
   }
 
+  function resolvePageStoragePrefix() {
+    try {
+      if (global.envBarConfig && global.envBarConfig.storagePrefix) {
+        return String(global.envBarConfig.storagePrefix).trim();
+      }
+      if (global.envBarConfig && global.envBarConfig.prefix) {
+        return String(global.envBarConfig.prefix).trim();
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function injectGuardSessionKeys(storagePrefix) {
+    const p = String(storagePrefix || resolvePageStoragePrefix() || 'demoTagsInjection');
+    return {
+      inProgress: p + 'InjectInProgress',
+      sandbox: p + 'InjectSandboxSnapshot',
+    };
+  }
+
+  function isTagsInjectInProgress(storagePrefix) {
+    const keys = injectGuardSessionKeys(storagePrefix);
+    try {
+      return global.sessionStorage.getItem(keys.inProgress) === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function readTagsInjectSandboxSnapshot(storagePrefix) {
+    const keys = injectGuardSessionKeys(storagePrefix);
+    try {
+      return String(global.sessionStorage.getItem(keys.sandbox) || '').trim();
+    } catch (_e) {
+      return '';
+    }
+  }
+
   /** Technical sandbox name → Tags property name prefix (datalist filter). */
   const TAGS_PROPERTY_PREFIX_BY_SANDBOX = {
     kirkham: 'kirkham',
@@ -259,6 +299,8 @@
     const scriptStorageKey = storagePrefix + 'SelectedLaunchScriptBySandbox';
     const configuredStorageKey = storagePrefix + 'SdkConfiguredBySandbox';
     const pendingSessionKey = storagePrefix + 'PendingLaunchInject';
+    const injectInProgressKey = storagePrefix + 'InjectInProgress';
+    const injectSandboxSnapshotKey = storagePrefix + 'InjectSandboxSnapshot';
     const ecidBySandboxKey = storagePrefix + 'LastResolvedEcidBySandbox';
     const companyStorageKey = storagePrefix + 'SelectedTagsCompanyBySandbox';
     const propertyStorageKey = storagePrefix + 'SelectedTagsPropertyBySandbox';
@@ -642,7 +684,8 @@
       renderSelectedScript('');
     }
 
-    function setSdkConfigExpanded(expanded) {
+    function setSdkConfigExpanded(expanded, opts) {
+      const options = opts || {};
       if (sdkConfigFields) sdkConfigFields.hidden = !expanded;
       if (sdkConfigSummary) sdkConfigSummary.hidden = expanded;
       if (sdkConfigSummaryText) {
@@ -654,13 +697,63 @@
         global.dispatchEvent(
           new CustomEvent('aep-demo-tags-ui-state', { detail: { tagFieldsExpanded: !!expanded } })
         );
-        if (!expanded) {
+        if (!expanded && !options.skipConfiguredSignals) {
           markLabEnvConfiguredSession();
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
         /* noop */
       }
+    }
+
+    function markInjectGuardActive() {
+      const sb = getSandboxName();
+      try {
+        global.sessionStorage.setItem(injectInProgressKey, '1');
+        if (sb) global.sessionStorage.setItem(injectSandboxSnapshotKey, sb);
+        dtLog('inject guard active', { sandbox: sb || '(empty)' });
+      } catch (e) {
+        dtLog('inject guard active FAILED', e && e.message ? e.message : String(e));
+      }
+    }
+
+    function clearInjectGuard() {
+      try {
+        global.sessionStorage.removeItem(injectInProgressKey);
+        global.sessionStorage.removeItem(injectSandboxSnapshotKey);
+        dtLog('inject guard cleared');
+      } catch (e) {
+        dtLog('inject guard clear FAILED', e && e.message ? e.message : String(e));
+      }
+    }
+
+    function readInjectSandboxSnapshot() {
+      try {
+        return String(global.sessionStorage.getItem(injectSandboxSnapshotKey) || '').trim();
+      } catch (_e) {
+        return '';
+      }
+    }
+
+    function restoreInjectSandboxIfNeeded() {
+      const snap = readInjectSandboxSnapshot();
+      if (!snap) return;
+      const cur = getSandboxName();
+      if (cur === snap) return;
+      dtLog('restoreInjectSandboxIfNeeded', { from: cur || '(empty)', to: snap });
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
+        global.AepGlobalSandbox.setSelected(snap, { source: 'programmatic' });
+      } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
+        global.AepLabEnvBarPrefs.setSelectedSandbox(snap, { explicit: true });
+      }
+      const sel = document.getElementById('sandboxSelect');
+      if (sel) sel.value = snap;
+    }
+
+    function finishInjectFlow() {
+      restoreInjectSandboxIfNeeded();
+      clearInjectGuard();
+      requestEnvOverlayOpen();
     }
 
     function requestEnvOverlayOpen() {
@@ -1222,8 +1315,9 @@
           });
         }
         markSdkConfiguredForSandbox(true);
-        setSdkConfigExpanded(false);
-        dtLog('injectSelectedScriptNow: complete (configured + summary mode)');
+        /* Keep Tags fields + env overlay open after inject (no collapse-to-summary). */
+        setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        dtLog('injectSelectedScriptNow: complete (configured, env bar stays expanded)');
         return true;
       } catch (err) {
         dtLog('injectSelectedScriptNow: FAILED', err && err.message ? err.message : String(err));
@@ -1248,6 +1342,7 @@
         setMessage('Select a valid Tags environment script first.', 'error');
         return;
       }
+      markInjectGuardActive();
       markPendingLaunchInject(scriptUrl);
       persistSelectedScriptUrl(scriptUrl);
       setMessage('Reloading page with cache-busted script injection...', '');
@@ -1400,9 +1495,11 @@
       const pendingScriptInject = sanitiseLaunchScriptUrl(consumePendingLaunchInject());
       if (pendingScriptInject) {
         dtLog('init: post-reload pending inject branch', { preview: dtPreview(pendingScriptInject) });
+        restoreInjectSandboxIfNeeded();
         renderSelectedScript(pendingScriptInject);
         persistSelectedScriptUrl(pendingScriptInject);
         void injectSelectedScriptNow(pendingScriptInject).finally(function () {
+          finishInjectFlow();
           void loadTagsCompanies();
         });
       } else {
@@ -1423,7 +1520,9 @@
             }
           }
           renderSelectedScript(persistedResume);
+          markInjectGuardActive();
           void injectSelectedScriptNow(persistedResume).finally(function () {
+            finishInjectFlow();
             void loadTagsCompanies();
           });
         } else {
@@ -1472,6 +1571,12 @@
 
   global.DemoTagsInjection = {
     init: createInstance,
+  };
+
+  global.AepLabTagsInjectGuard = {
+    isInProgress: isTagsInjectInProgress,
+    getSandboxSnapshot: readTagsInjectSandboxSnapshot,
+    resolveStoragePrefix: resolvePageStoragePrefix,
   };
 
   global.DemoLabEdgeConfig = {

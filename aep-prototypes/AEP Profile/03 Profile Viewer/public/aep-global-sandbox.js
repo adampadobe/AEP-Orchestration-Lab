@@ -121,6 +121,44 @@
     return opt;
   }
 
+  function resolveInjectGuardPrefix() {
+    try {
+      if (global.envBarConfig) {
+        var p = String(global.envBarConfig.storagePrefix || global.envBarConfig.prefix || '').trim();
+        if (p) return p;
+      }
+    } catch (e0) {}
+    return '';
+  }
+
+  function readInjectSandboxSnapshotEarly() {
+    try {
+      if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.getSandboxSnapshot === 'function') {
+        var viaGuard = String(global.AepLabTagsInjectGuard.getSandboxSnapshot() || '').trim();
+        if (viaGuard) return viaGuard;
+      }
+      var prefix = resolveInjectGuardPrefix();
+      if (!prefix) return '';
+      if (global.sessionStorage.getItem(prefix + 'InjectInProgress') !== '1') return '';
+      return String(global.sessionStorage.getItem(prefix + 'InjectSandboxSnapshot') || '').trim();
+    } catch (e1) {
+      return '';
+    }
+  }
+
+  function isInjectReloadInProgress() {
+    try {
+      if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.isInProgress === 'function') {
+        if (global.AepLabTagsInjectGuard.isInProgress()) return true;
+      }
+      var prefix = resolveInjectGuardPrefix();
+      if (!prefix) return false;
+      return global.sessionStorage.getItem(prefix + 'InjectInProgress') === '1';
+    } catch (e2) {
+      return false;
+    }
+  }
+
   function fillSandboxSelect(sandboxSelect, sandboxes) {
     if (!sandboxSelect) return;
     sandboxSelect.innerHTML = '';
@@ -159,6 +197,9 @@
     sandboxSelect.appendChild(allGroup);
 
     var saved = getSelected().trim();
+    if (!saved && isInjectReloadInProgress()) {
+      saved = readInjectSandboxSnapshotEarly();
+    }
     if (saved) {
       if (byName[saved]) {
         sandboxSelect.value = saved;
@@ -174,6 +215,9 @@
       sandboxSelect.value = 'apalmer';
     } else if (byName['kirkham']) {
       sandboxSelect.value = 'kirkham';
+    }
+    if (isInjectReloadInProgress() && saved) {
+      sandboxSelect.value = saved;
     }
     // UI-only default — never persist apalmer/kirkham unless the user picks from the dropdown.
     // getSandboxName() reads #sandboxSelect before localStorage, so API calls still honor the visible default.

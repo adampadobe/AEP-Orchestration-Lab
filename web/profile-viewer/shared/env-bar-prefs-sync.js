@@ -21,6 +21,22 @@
     return global.AepLabEnvBarPrefs || null;
   }
 
+  function tagsInjectInProgress() {
+    if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.isInProgress === 'function') {
+      if (global.AepLabTagsInjectGuard.isInProgress()) return true;
+    }
+    try {
+      var prefix = '';
+      if (global.envBarConfig) {
+        prefix = String(global.envBarConfig.storagePrefix || global.envBarConfig.prefix || '').trim();
+      }
+      if (!prefix) return false;
+      return global.sessionStorage.getItem(prefix + 'InjectInProgress') === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function authHeaders() {
     if (global.AepLabSandboxSync && typeof global.AepLabSandboxSync.getAuthHeaders === 'function') {
       return global.AepLabSandboxSync.getAuthHeaders();
@@ -80,6 +96,9 @@
   function pushNow() {
     var mod = prefsModule();
     if (!mod) return Promise.resolve(null);
+    if (tagsInjectInProgress()) {
+      return Promise.resolve(null);
+    }
     return whenAuthReady()
       .then(function () {
         return authHeaders();
@@ -125,6 +144,9 @@
       var mod = prefsModule();
       if (!mod) return;
       var detail = ev && ev.detail ? ev.detail : {};
+      if (tagsInjectInProgress() && detail.source === 'sync') {
+        return;
+      }
       var name =
         detail.name != null
           ? String(detail.name || '').trim()

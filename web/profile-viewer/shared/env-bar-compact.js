@@ -210,6 +210,7 @@
   }
 
   global.addEventListener('aep-demo-env-configured', function () {
+    if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;
     closeOverlayPublic();
   });
 

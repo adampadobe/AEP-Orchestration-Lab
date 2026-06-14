@@ -23,12 +23,12 @@
       demoEnvStripSpectrum: '20260613-mobile-narrow',
       demoEnvStrip: '20260625-version-pill',
       spectrumSync: '20260625-version-pill',
-      compactJs: '20260613-mobile-env-expand',
+      compactJs: '20260614-inject-guard',
       compactCss: '20260614-mobile-shell-env-stack',
       bootstrap: '20260602-env-bar-bootstrap',
-      prefsLocal: '20260614-sandbox-pick-guard',
-      prefsSync: '20260614-sandbox-pick-guard',
-      tagsInjection: '20260614-env-bar-prefs',
+      prefsLocal: '20260614-inject-guard',
+      prefsSync: '20260614-inject-guard',
+      tagsInjection: '20260614-inject-guard',
       aepDemoEnvBar: '20260625-env-configured',
       siteCloneBcEnv: '20260614-env-bar-prefs',
       decisioningModuleCss: '20260615',
@@ -548,6 +548,25 @@
    * @param {EnvBarConfig} cfg
    */
   function applyDefaultSandbox(cfg) {
+    var injectSnap = '';
+    if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.getSandboxSnapshot === 'function') {
+      injectSnap = String(global.AepLabTagsInjectGuard.getSandboxSnapshot() || '').trim();
+    }
+    if (!injectSnap) {
+      try {
+        var prefix = cfg && (cfg.storagePrefix || cfg.prefix) ? String(cfg.storagePrefix || cfg.prefix).trim() : '';
+        if (!prefix && global.envBarConfig) {
+          prefix = String(global.envBarConfig.storagePrefix || global.envBarConfig.prefix || '').trim();
+        }
+        if (prefix && global.sessionStorage.getItem(prefix + 'InjectInProgress') === '1') {
+          injectSnap = String(global.sessionStorage.getItem(prefix + 'InjectSandboxSnapshot') || '').trim();
+        }
+      } catch (_inj) {}
+    }
+    if (injectSnap) {
+      setEnvironment(injectSnap);
+      return;
+    }
     if (hasUserSandboxSelection()) {
       var saved =
         global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function'

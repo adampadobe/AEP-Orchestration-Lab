@@ -413,24 +413,76 @@
     };
   }
 
+  function resolveInjectGuardPrefix() {
+    try {
+      if (global.envBarConfig) {
+        var p = String(global.envBarConfig.storagePrefix || global.envBarConfig.prefix || '').trim();
+        if (p) return p;
+      }
+    } catch (_cfg) {}
+    return '';
+  }
+
+  function tagsInjectInProgress() {
+    if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.isInProgress === 'function') {
+      if (global.AepLabTagsInjectGuard.isInProgress()) return true;
+    }
+    var prefix = resolveInjectGuardPrefix();
+    if (!prefix) return false;
+    try {
+      return global.sessionStorage.getItem(prefix + 'InjectInProgress') === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function tagsInjectSandboxSnapshot() {
+    if (global.AepLabTagsInjectGuard && typeof global.AepLabTagsInjectGuard.getSandboxSnapshot === 'function') {
+      var viaGuard = String(global.AepLabTagsInjectGuard.getSandboxSnapshot() || '').trim();
+      if (viaGuard) return viaGuard;
+    }
+    var prefix = resolveInjectGuardPrefix();
+    if (!prefix) return '';
+    try {
+      if (global.sessionStorage.getItem(prefix + 'InjectInProgress') !== '1') return '';
+      return String(global.sessionStorage.getItem(prefix + 'InjectSandboxSnapshot') || '').trim();
+    } catch (_e2) {
+      return '';
+    }
+  }
+
   function importFromSync(prefs, opts) {
     if (!prefs || typeof prefs !== 'object') return getDoc();
     var remoteSb = String(prefs.selectedSandbox || '').trim();
     var skipSandbox = shouldKeepLocalSandboxOverRemote(remoteSb);
+    if (tagsInjectInProgress()) {
+      skipSandbox = true;
+    }
     var patch = {
       tagsBySandbox: prefs.tagsBySandbox,
       bcBySandbox: prefs.bcBySandbox,
       generatorTargetBySandbox: prefs.generatorTargetBySandbox,
     };
     if (!skipSandbox) patch.selectedSandbox = prefs.selectedSandbox;
+    else {
+      var injectSnap = tagsInjectSandboxSnapshot();
+      if (injectSnap) patch.selectedSandbox = injectSnap;
+    }
     patchDoc(patch);
     var sb = skipSandbox ? getSelectedSandbox() : remoteSb;
-    if (sb && !skipSandbox) {
+    if (tagsInjectInProgress()) {
+      var snap = tagsInjectSandboxSnapshot();
+      if (snap) sb = snap;
+    }
+    var applySandboxUi = sb && (!skipSandbox || tagsInjectInProgress());
+    if (applySandboxUi) {
       try {
         global.localStorage.setItem(LS_SANDBOX, sb);
       } catch (_e) {}
       if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-        global.AepGlobalSandbox.setSelected(sb, { source: 'sync' });
+        global.AepGlobalSandbox.setSelected(sb, {
+          source: tagsInjectInProgress() ? 'programmatic' : 'sync',
+        });
       }
       var select = global.document && global.document.getElementById('sandboxSelect');
       if (select) {
