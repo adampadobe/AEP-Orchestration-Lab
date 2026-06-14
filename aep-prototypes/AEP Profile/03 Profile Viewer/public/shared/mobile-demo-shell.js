@@ -15,6 +15,73 @@
 (function (global) {
   'use strict';
 
+  var PRESENTATION_CLASS = 'mobile-demo-fs-root--presentation';
+  var PRESENTATION_ON_LABEL = 'Exit presentation';
+  var PRESENTATION_OFF_LABEL = 'Expand simulator';
+  var BROWSER_FS_BANNER_KEY = 'aepMobileDemoBrowserFsBannerDismissed';
+
+  function isBrowserFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function exitBrowserFullscreen() {
+    if (!isBrowserFullscreen()) return Promise.resolve();
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    return Promise.resolve();
+  }
+
+  function purgeBrowserFullscreen() {
+    return exitBrowserFullscreen().catch(function () {});
+  }
+
+  (function purgeBrowserFullscreenEarly() {
+    purgeBrowserFullscreen();
+    ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (evt) {
+      document.addEventListener(evt, function () {
+        if (isBrowserFullscreen()) purgeBrowserFullscreen();
+      });
+    });
+    global.addEventListener('pageshow', function () {
+      purgeBrowserFullscreen();
+    });
+    global.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') purgeBrowserFullscreen();
+    });
+  })();
+
+  function showBrowserFsBannerIfNeeded() {
+    if (!isBrowserFullscreen()) return;
+    try {
+      if (sessionStorage.getItem(BROWSER_FS_BANNER_KEY)) return;
+    } catch (_) {
+      /* ignore */
+    }
+    if (document.getElementById('mobileDemoBrowserFsBanner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'mobileDemoBrowserFsBanner';
+    banner.className = 'mobile-demo-browser-fs-banner';
+    banner.setAttribute('role', 'alert');
+    banner.innerHTML =
+      '<p class="mobile-demo-browser-fs-banner__text">' +
+      '<strong>Browser fullscreen is still active.</strong> Press Esc to exit browser fullscreen, then hard-refresh this page (Ctrl+Shift+R or Cmd+Shift+R).' +
+      '</p>' +
+      '<button type="button" class="mobile-demo-browser-fs-banner__dismiss">Dismiss</button>';
+    var mount = document.body || document.documentElement;
+    mount.appendChild(banner);
+    var dismiss = banner.querySelector('.mobile-demo-browser-fs-banner__dismiss');
+    if (dismiss) {
+      dismiss.addEventListener('click', function () {
+        banner.remove();
+        try {
+          sessionStorage.setItem(BROWSER_FS_BANNER_KEY, '1');
+        } catch (_) {
+          /* ignore */
+        }
+      });
+    }
+  }
+
   var SIM_QUERY = 'aepSimMobile=1';
   var BEZEL_PREFIX = 'mobile-demo-bezel--';
   var NOTCH_PREFIX = 'mobile-demo-notch--';
@@ -310,18 +377,6 @@
     var fsBtn = $('mobileDemoFullscreenBtn');
     var fsExitFloat = $('mobileDemoFsExitFloat');
 
-    var PRESENTATION_CLASS = 'mobile-demo-fs-root--presentation';
-
-    function isBrowserFs() {
-      return !!(document.fullscreenElement || document.webkitFullscreenElement);
-    }
-
-    function exitBrowserFs() {
-      if (document.exitFullscreen) return document.exitFullscreen();
-      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-      return Promise.resolve();
-    }
-
     function isPresentation() {
       return fsRoot && fsRoot.classList.contains(PRESENTATION_CLASS);
     }
@@ -329,10 +384,16 @@
     function syncFsButton() {
       var on = isPresentation();
       if (fsBtn) {
-        fsBtn.textContent = on ? 'Exit full screen' : 'Full screen';
+        fsBtn.textContent = on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL;
         fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        fsBtn.setAttribute('title', on ? 'Exit presentation mode' : 'Expand simulator (presentation mode)');
+        fsBtn.setAttribute('aria-label', on ? PRESENTATION_ON_LABEL : PRESENTATION_OFF_LABEL);
       }
-      if (fsExitFloat) fsExitFloat.hidden = !on;
+      if (fsExitFloat) {
+        fsExitFloat.hidden = !on;
+        fsExitFloat.setAttribute('aria-label', PRESENTATION_ON_LABEL);
+        fsExitFloat.textContent = PRESENTATION_ON_LABEL;
+      }
     }
 
     function setPresentation(on) {
@@ -346,7 +407,9 @@
     if (!fsBtn || !fsRoot) return;
 
     /* CSS presentation mode — avoids Chrome sticky “press and hold Esc” overlay */
-    if (isBrowserFs()) exitBrowserFs().catch(function () {});
+    purgeBrowserFullscreen().finally(function () {
+      if (isBrowserFullscreen()) showBrowserFsBannerIfNeeded();
+    });
 
     fsBtn.addEventListener('click', function () {
       setPresentation(!isPresentation());
@@ -358,12 +421,6 @@
     }
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && isPresentation()) setPresentation(false);
-    });
-    document.addEventListener('fullscreenchange', function () {
-      if (isBrowserFs()) exitBrowserFs().catch(function () {});
-    });
-    document.addEventListener('webkitfullscreenchange', function () {
-      if (isBrowserFs()) exitBrowserFs().catch(function () {});
     });
     syncFsButton();
   }
