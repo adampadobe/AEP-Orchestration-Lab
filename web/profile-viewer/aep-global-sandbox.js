@@ -156,20 +156,26 @@
     sandboxSelect.appendChild(allGroup);
 
     var saved = getSelected().trim();
-    if (saved && byName[saved]) {
-      sandboxSelect.value = saved;
+    if (saved) {
+      if (byName[saved]) {
+        sandboxSelect.value = saved;
+      } else {
+        // Preserve saved sandbox even when absent from list (stale name, slow org load).
+        var orphanOpt = document.createElement('option');
+        orphanOpt.value = saved;
+        orphanOpt.textContent = saved + ' (saved)';
+        sandboxSelect.appendChild(orphanOpt);
+        sandboxSelect.value = saved;
+      }
     } else if (byName['apalmer']) {
       sandboxSelect.value = 'apalmer';
     } else if (byName['kirkham']) {
       sandboxSelect.value = 'kirkham';
     }
-    // getSandboxName() reads #sandboxSelect before localStorage. If we set the
-    // dropdown programmatically (e.g. default to apalmer) while LS still held
-    // another sandbox, API calls would use the wrong technical name until the
-    // user changed the select manually — Decisioning lab looked "configured"
-    // for one sandbox but loaded another org's Firestore config.
+    // Never overwrite localStorage when user already chose a sandbox — only seed
+    // LS when empty (first visit / cleared storage).
     var resolved = String(sandboxSelect.value || '').trim();
-    if (resolved && resolved !== getSelected().trim()) {
+    if (resolved && !saved) {
       setSelected(resolved);
     }
   }

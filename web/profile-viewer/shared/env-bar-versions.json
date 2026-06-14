@@ -1,6 +1,6 @@
 {
-  "manifestVersion": "20260612-env-bar",
-  "moduleVersion": "1.0.0",
+  "manifestVersion": "20260614-env-bar-prefs",
+  "moduleVersion": "1.1.0",
   "assets": {
     "bundleCss": "20260623-env-inline",
     "spectrumCss": "20260613-bc-display-mode",
@@ -10,9 +10,11 @@
     "compactJs": "20260613-mobile-env-expand",
     "compactCss": "20260614-mobile-shell-env-stack",
     "bootstrap": "20260602-env-bar-bootstrap",
-    "tagsInjection": "20260625-env-configured",
+    "prefsLocal": "20260614-env-bar-prefs",
+    "prefsSync": "20260614-env-bar-prefs",
+    "tagsInjection": "20260614-env-bar-prefs",
     "aepDemoEnvBar": "20260625-env-configured",
-    "siteCloneBcEnv": "20260612-strip-dom-defer",
+    "siteCloneBcEnv": "20260614-env-bar-prefs",
     "decisioningModuleCss": "20260615",
     "decisioningPanelCss": "20260621",
     "profileStreamingShared": "20260615",

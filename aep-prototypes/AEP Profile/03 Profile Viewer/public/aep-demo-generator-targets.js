@@ -22,6 +22,9 @@
   }
 
   function readTargetMap() {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+      return global.AepLabEnvBarPrefs.readMap(STORAGE_KEY);
+    }
     try {
       var raw = global.localStorage.getItem(STORAGE_KEY);
       if (!raw) return {};
@@ -33,6 +36,10 @@
   }
 
   function writeTargetMap(m) {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+      global.AepLabEnvBarPrefs.writeMap(STORAGE_KEY, m || {});
+      return;
+    }
     try {
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify(m || {}));
     } catch (e3) {

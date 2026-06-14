@@ -101,7 +101,7 @@
     const etihadTagsInjection =
       typeof window.DemoTagsInjection !== 'undefined'
         ? window.DemoTagsInjection.init({
-            storagePrefix: 'etihadAirline',
+            storagePrefix: 'etihadDemo',
             identityEventType: 'etihadAirline.identity.stitch',
             messageSetter: setEtihadMessage,
             infoEcidId: 'infoEcid',
@@ -141,7 +141,7 @@
     const etihadWebPushRetryBtn = document.getElementById('etihadWebPushRetryBtn');
     if (etihadWebPushRetryBtn && typeof window.AepDemoWebPush !== 'undefined') {
       etihadWebPushRetryBtn.addEventListener('click', function () {
-        void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'etihadAirline' }).then(function (ok) {
+        void window.AepDemoWebPush.promptAndSubscribe({ storagePrefix: 'etihadDemo' }).then(function (ok) {
           setEtihadMessage(
             ok
               ? 'Web push subscription sent (requires Tags Web SDK pushNotifications, permission, and AJO push surface).'

@@ -475,6 +475,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/lab/env-bar-preferences",
+      "functionId": "labEnvBarPreferences",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/events/infra/step",
       "functionId": "eventInfraStep",
       "region": "us-east4"

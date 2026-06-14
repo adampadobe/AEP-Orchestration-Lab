@@ -11,12 +11,12 @@
   'use strict';
 
   /** @type {string} */
-  var MODULE_VERSION = '1.0.0';
+  var MODULE_VERSION = '1.1.0';
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20260612-env-bar',
-    moduleVersion: '1.0.0',
+    manifestVersion: '20260614-env-bar-prefs',
+    moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260623-env-inline',
       spectrumCss: '20260613-bc-display-mode',
@@ -26,9 +26,11 @@
       compactJs: '20260613-mobile-env-expand',
       compactCss: '20260614-mobile-shell-env-stack',
       bootstrap: '20260602-env-bar-bootstrap',
-      tagsInjection: '20260625-env-configured',
+      prefsLocal: '20260614-env-bar-prefs',
+      prefsSync: '20260614-env-bar-prefs',
+      tagsInjection: '20260614-env-bar-prefs',
       aepDemoEnvBar: '20260625-env-configured',
-      siteCloneBcEnv: '20260612-strip-dom-defer',
+      siteCloneBcEnv: '20260614-env-bar-prefs',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260621',
       profileStreamingShared: '20260615',
@@ -78,12 +80,13 @@
   var REMOTE_CONFIG_POLL_MS = 60000;
   var remoteConfigPollTimer = null;
 
-  /** @type {{ config: EnvBarConfig|null, versions: typeof DEFAULT_VERSIONS|null, initialized: boolean, initPromise: Promise<void>|null, changeListeners: Array<Function>, tagsInjection: object|null, basePath: string }} */
+  /** @type {{ config: EnvBarConfig|null, versions: typeof DEFAULT_VERSIONS|null, initialized: boolean, initPromise: Promise<void>|null, prefsReadyPromise: Promise<void>|null, changeListeners: Array<Function>, tagsInjection: object|null, basePath: string }} */
   var state = {
     config: null,
     versions: null,
     initialized: false,
     initPromise: null,
+    prefsReadyPromise: null,
     changeListeners: [],
     tagsInjection: null,
     basePath: '',
@@ -180,6 +183,33 @@
       });
   }
 
+  function loadPrefsScripts(versions) {
+    var a = versions.assets;
+    var chain = [
+      assetUrl('shared/env-bar-prefs-local.js', a.prefsLocal || '20260614-env-bar-prefs'),
+      assetUrl('shared/env-bar-prefs-sync.js', a.prefsSync || '20260614-env-bar-prefs'),
+    ];
+    return chain.reduce(function (p, src) {
+      return p.then(function () {
+        log('load prefs script', src);
+        return loadScript(src);
+      });
+    }, Promise.resolve());
+  }
+
+  function ensurePrefsReady() {
+    if (state.prefsReadyPromise) return state.prefsReadyPromise;
+    state.prefsReadyPromise = loadVersions().then(function (versions) {
+      return loadPrefsScripts(versions).then(function () {
+        if (global.AepLabEnvBarPrefsSync && global.AepLabEnvBarPrefsSync.whenReady) {
+          return global.AepLabEnvBarPrefsSync.whenReady;
+        }
+        return null;
+      });
+    });
+    return state.prefsReadyPromise;
+  }
+
   /**
    * Resolve demo id for Firestore envBarConfigs/{demoId}.
    * @param {Partial<EnvBarConfig>} [cfg]
@@ -206,10 +236,30 @@
   function mergeConfigLayers(pageConfig, remoteConfig) {
     pageConfig = pageConfig && typeof pageConfig === 'object' ? pageConfig : {};
     remoteConfig = remoteConfig && typeof remoteConfig === 'object' ? remoteConfig : {};
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.stripRemoteUserFields === 'function') {
+      remoteConfig = global.AepLabEnvBarPrefs.stripRemoteUserFields(remoteConfig);
+    } else if (pageConfig.defaultSandbox && hasUserSandboxSelection()) {
+      remoteConfig = Object.assign({}, remoteConfig);
+      delete remoteConfig.defaultSandbox;
+    }
     if (pageConfig.localOverride) {
       return Object.assign({}, remoteConfig, pageConfig);
     }
     return Object.assign({}, pageConfig, remoteConfig);
+  }
+
+  function hasUserSandboxSelection() {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.hasUserSandboxPref === 'function') {
+      return global.AepLabEnvBarPrefs.hasUserSandboxPref();
+    }
+    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSelected === 'function') {
+      return !!String(global.AepGlobalSandbox.getSelected() || '').trim();
+    }
+    try {
+      return !!String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
+    } catch (_e) {
+      return false;
+    }
   }
 
   /**
@@ -498,6 +548,18 @@
    * @param {EnvBarConfig} cfg
    */
   function applyDefaultSandbox(cfg) {
+    if (hasUserSandboxSelection()) {
+      var saved =
+        global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function'
+          ? global.AepLabEnvBarPrefs.getSelectedSandbox()
+          : global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSelected === 'function'
+            ? global.AepGlobalSandbox.getSelected()
+            : '';
+      if (saved) {
+        setEnvironment(saved);
+        return;
+      }
+    }
     if (!cfg.defaultSandbox) return;
     var sandbox = String(cfg.defaultSandbox).trim();
     if (!sandbox) return;
@@ -579,7 +641,10 @@
   function init(userConfig) {
     if (state.initPromise && !userConfig) return state.initPromise;
 
-    state.initPromise = loadAndMergeRemoteConfig()
+    state.initPromise = ensurePrefsReady()
+      .then(function () {
+        return loadAndMergeRemoteConfig();
+      })
       .then(function (mergedCfg) {
         startRemoteConfigListen(resolveDemoId(mergedCfg), mergedCfg);
         return loadVersions();
@@ -642,6 +707,9 @@
 
     if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
       global.AepGlobalSandbox.setSelected(name);
+    }
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
+      global.AepLabEnvBarPrefs.setSelectedSandbox(name);
     }
 
     var select = document.getElementById('sandboxSelect');
@@ -743,6 +811,10 @@
     return false;
   }
 
+  function whenPrefsReady() {
+    return ensurePrefsReady();
+  }
+
   /**
    * Resolves when env bar init completes (strip mounted, Tags stack loaded, bootstrap done).
    * Kicks off init when demo lab-core runs before DOMContentLoaded autoInit (Tags boot race).
@@ -778,6 +850,7 @@
     MANIFEST_VERSION: DEFAULT_VERSIONS.manifestVersion,
     init: init,
     ready: ready,
+    whenPrefsReady: whenPrefsReady,
     setEnvironment: setEnvironment,
     reloadSDK: reloadSDK,
     getConfig: getConfig,

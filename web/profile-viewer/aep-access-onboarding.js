@@ -1587,6 +1587,9 @@
       refreshModeChoiceUi();
       setMsg('Choose your access mode, then save.', '');
       if (sandboxRadio) sandboxRadio.focus();
+      if (global.AepLabEnvBarPrefsSync && typeof global.AepLabEnvBarPrefsSync.pull === 'function') {
+        global.AepLabEnvBarPrefsSync.pull().catch(function () {});
+      }
     }
 
     function proceedAfterLogin(user) {

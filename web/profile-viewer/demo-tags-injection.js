@@ -12,6 +12,9 @@
   }
 
   function readStorageMap(key) {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.readMap === 'function') {
+      return global.AepLabEnvBarPrefs.readMap(key);
+    }
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return {};
@@ -23,6 +26,10 @@
   }
 
   function writeStorageMap(key, mapObj) {
+    if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.writeMap === 'function') {
+      global.AepLabEnvBarPrefs.writeMap(key, mapObj || {});
+      return;
+    }
     try {
       localStorage.setItem(key, JSON.stringify(mapObj || {}));
     } catch {

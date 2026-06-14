@@ -108,6 +108,7 @@ const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const claudeSkillsService = lazyRequireMod('./claudeSkillsService');
 const envBarConfigStore = lazyRequireMod('./envBarConfigStore');
+const envBarPreferencesStore = lazyRequireMod('./envBarPreferencesStore');
 const snowflakeService = lazyRequireMod('./snowflakeService');
 const snowflakeDataGeneratorService = lazyRequireMod('./snowflakeDataGeneratorService');
 const snowflakeAgenticTravelService = lazyRequireMod('./snowflakeAgenticTravelService');
@@ -3428,6 +3429,44 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
       res.status(200).json({ ok: true, sandbox: scopeId, scopeType: resolvedScopeType, scopeId, keys });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: scopeId, scopeType: resolvedScopeType, scopeId });
+    }
+    return;
+  }
+
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET/POST /api/lab/env-bar-preferences — per-user env bar prefs (sandbox, Tags, BC, generator) */
+exports.labEnvBarPreferences = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const uid = await envBarPreferencesStore.verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({ ok: false, error: 'Firebase Auth required (anonymous sign-in is enough).' });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const preferences = await envBarPreferencesStore.getPreferences(uid);
+      res.status(200).json({ ok: true, preferences });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const preferences = await envBarPreferencesStore.mergePreferences(uid, body);
+      res.status(200).json({ ok: true, preferences });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e) });
     }
     return;
   }

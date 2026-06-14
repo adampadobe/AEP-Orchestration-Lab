@@ -234,6 +234,18 @@ Journey chrome via `envBar.init({ mode: 'journey' })`: `demos/ksia/ksia-journey-
 5. Add the HTML file to `MIGRATED_TO_ENV_BAR_HTML` and JS to `MIGRATED_ENV_BAR_JS` in `scripts/verify-demo-env-strip.mjs`.
 6. Run `npm run verify:demo-env-strip` and `npm run sync-profile-viewer-ui`.
 
+## User preferences (cross-demo)
+
+Unified env bar user prefs live in **`localStorage.aepLabEnvBarV1`** via `shared/env-bar-prefs-local.js` (`window.AepLabEnvBarPrefs`). Legacy per-demo `{storagePrefix}*` keys migrate on first read. Firestore sync: `GET/POST /api/lab/env-bar-preferences` → collection `labUserEnvBarPreferences/{uid}` (Admin SDK only).
+
+When a user has a saved sandbox, remote `envBarConfigs.defaultSandbox` from seeds is **not** applied (demo static config vs user prefs). Seed scripts may omit `defaultSandbox` for demos where user prefs should win — see `scripts/seed-env-bar-configs.mjs`.
+
+| Method | Description |
+|--------|-------------|
+| `whenPrefsReady()` | Resolves when local prefs + optional Firestore pull complete |
+| `AepLabEnvBarPrefs.getSelectedSandbox()` | Cross-demo sandbox selection |
+| `AepLabEnvBarPrefsSync.pull()` | Re-fetch from Firestore after Adobe sign-in |
+
 ## Verify
 
 ```bash
