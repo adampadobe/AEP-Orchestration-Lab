@@ -3,7 +3,47 @@
  * Waits for shared/env-bar.js before Tags injection (env bar loads demo-tags-injection.js).
  */
 (function skyDemoBoot(global) {
+  /** Reorder Spectrum cards: Environment | Adobe Data Collection | Brand Concierge (Sky-only). */
+  function applySkySpectrumDataCollectionTrio() {
+    var root = document.querySelector('.sky-demo-page .spectrum-env-fields-root');
+    if (!root || root.getAttribute('data-sky-spectrum-trio') === '1') return;
+
+    var grid = root.querySelector('.spectrum-env-cards');
+    var envCard = root.querySelector('.spectrum-env-card--environment');
+    var bcCard = root.querySelector('.spectrum-env-card--bc');
+    var targetCard = root.querySelector('.spectrum-env-card--target');
+    if (!grid || !envCard || !bcCard || !targetCard) return;
+
+    grid.classList.remove('spectrum-env-cards--duo');
+    grid.classList.add('spectrum-env-cards--trio');
+    envCard.after(targetCard);
+
+    targetCard.classList.remove('spectrum-env-card--target');
+    targetCard.classList.add('spectrum-env-card--data-collection');
+
+    var title = targetCard.querySelector('.spectrum-env-card__title');
+    if (title) title.textContent = 'Adobe Data Collection';
+
+    var body = targetCard.querySelector('.spectrum-env-card__body');
+    if (body) {
+      body.classList.remove('spectrum-env-card__body--target');
+      body.classList.add('spectrum-env-card__body--stacked');
+    }
+
+    var targetGrid = targetCard.querySelector('.spectrum-env-target-grid');
+    if (targetGrid) targetGrid.classList.add('spectrum-env-target-grid--stacked');
+
+    var datastreamInput = document.getElementById('siteCloneBcDatastreamId');
+    if (datastreamInput) datastreamInput.placeholder = 'Datastream UUID';
+
+    var hint = document.getElementById('siteCloneBcDatastreamHint');
+    if (hint) hint.textContent = 'Used for lab sendEvent (edgeConfigOverrides).';
+
+    root.setAttribute('data-sky-spectrum-trio', '1');
+  }
+
   function run() {
+    applySkySpectrumDataCollectionTrio();
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'skyNs');
@@ -288,4 +328,8 @@ DemoProfileDrawer.init({
   } else {
     run();
   }
+
+  global.addEventListener('aep-demo-env-strip-mounted', function () {
+    applySkySpectrumDataCollectionTrio();
+  });
 })(typeof window !== 'undefined' ? window : globalThis);
