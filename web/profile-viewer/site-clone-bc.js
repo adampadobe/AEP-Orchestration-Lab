@@ -500,6 +500,31 @@
     return cfg;
   }
 
+  /** Modal shell already paints the gradient — strip BC bottom slab + input fill tokens. */
+  function applyModalSurfaceStyleTokens(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    var base;
+    try {
+      base = JSON.parse(JSON.stringify(cfg));
+    } catch (_cloneErr) {
+      base = Object.assign({}, cfg);
+      if (cfg.theme) base.theme = Object.assign({}, cfg.theme);
+      if (cfg.behavior) base.behavior = Object.assign({}, cfg.behavior);
+    }
+    if (base.theme && typeof base.theme === 'object') {
+      Object.assign(base.theme, {
+        '--message-blocker-background': 'transparent',
+        '--main-container-bottom-background': 'transparent',
+        '--chat-container-bottom-background': 'transparent',
+        '--chat-container-background': 'transparent',
+        '--input-background': 'transparent',
+        '--main-container-background': 'transparent',
+        '--input-box-shadow': 'none',
+      });
+    }
+    return applySiteCloneStyleConfigDefaults(base);
+  }
+
   function assignStyleConfiguration(win, cfg) {
     win.styleConfiguration = applySiteCloneStyleConfigDefaults(cfg);
   }
@@ -977,7 +1002,7 @@
 
   function ensurePromptInnerFlattenStyles(doc) {
     if (!doc || !doc.head) return;
-    var href = resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-prompt-single';
+    var href = resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent';
     var link = doc.querySelector('link[data-aep-bc-prompt-flatten]');
     if (!link) {
       link = doc.createElement('link');
@@ -1087,6 +1112,10 @@
     parentCoreReady = (async function () {
       prepareEmbedBcRuntime(global);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
+      loadStylesheet(
+        resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent',
+        'promptFlatten',
+      );
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
       if (shouldUseLocalArmyBcCatalog(global)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared');
@@ -1231,7 +1260,7 @@
     var isModalMount = selector === MODAL_MOUNT_SELECTOR;
     if (isModalMount) markModalSurfaceReady(false);
     await ensureParentCore();
-    await bootstrapConcierge(global, selector, global.styleConfiguration, {
+    await bootstrapConcierge(global, selector, applyModalSurfaceStyleTokens(global.styleConfiguration), {
       allowConciergeOpenOnRetry: false,
     });
     if (isModalMount) markModalSurfaceReady(true);
@@ -1336,7 +1365,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260625-bc-modal-clear', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260625-modal-prompt-transparent', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }

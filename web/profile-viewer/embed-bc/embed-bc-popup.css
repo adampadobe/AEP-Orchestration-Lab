@@ -193,3 +193,34 @@ body.aep-bc-modal-open {
   background-position: center !important;
   background-repeat: no-repeat !important;
 }
+
+/* Dialog already carries the gradient — BC theme tokens paint a white bottom slab in modal */
+.aep-bc-modal #brand-concierge-mount,
+.aep-bc-modal #siteCloneBcModalMount,
+.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
+.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
+  --message-blocker-background: transparent !important;
+  --main-container-bottom-background: transparent !important;
+  --chat-container-bottom-background: transparent !important;
+  --chat-container-background: transparent !important;
+  --input-background: transparent !important;
+  --main-container-background: transparent !important;
+  --input-box-shadow: none !important;
+}
+
+.aep-bc-modal [class*='message-blocker'],
+.aep-bc-modal .message-blocker,
+.aep-bc-modal #brand-concierge-mount .input-section,
+.aep-bc-modal #siteCloneBcModalMount .input-section {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.aep-bc-modal #brand-concierge-mount .input-container,
+.aep-bc-modal #siteCloneBcModalMount .input-container {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}

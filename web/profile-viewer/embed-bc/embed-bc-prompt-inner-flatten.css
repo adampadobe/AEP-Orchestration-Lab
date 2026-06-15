@@ -16,6 +16,8 @@
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .embed-bc-inline #brand-concierge-mount .input-container .input-bar,
