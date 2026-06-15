@@ -16,6 +16,8 @@
         AgentID: 'AG-001',
         AgentType: 'Customer Care',
         Colour: '#1473e6',
+        TextColourCallCentre: '#ffffff',
+        TextColourIpad: '#ffffff',
         FlightTerminalInfo: 'Terminal 3 · Concourse B',
         CaptainName: 'Captain Lee',
         CoPilotName: 'First Officer Jordan',

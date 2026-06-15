@@ -5,7 +5,13 @@
 (function () {
   'use strict';
 
-  var BRAND_INPUT_IDS = ['ccCustomiseBrandName', 'ccCustomiseAgentName', 'ccCustomiseAccentColour'];
+  var BRAND_INPUT_IDS = [
+    'ccCustomiseBrandName',
+    'ccCustomiseAgentName',
+    'ccCustomiseAccentColour',
+    'ccCustomiseTextColourCallCentre',
+    'ccCustomiseTextColourIpad',
+  ];
   var lastSaved = null;
   var saveInFlight = null;
   var refreshGeneration = 0;
@@ -24,6 +30,8 @@
       brandName: '',
       agentName: '',
       accentColour: '',
+      textColourCallCentre: '',
+      textColourIpad: '',
     };
   }
 
@@ -44,6 +52,16 @@
       '';
     var colour = sp.Colour != null ? String(sp.Colour).trim() : raw.accentColour || '';
     o.accentColour = colour.replace(/^#/, '');
+    o.textColourCallCentre =
+      (sp.TextColourCallCentre != null ? String(sp.TextColourCallCentre).trim() : '') ||
+      (raw.textColourCallCentre && String(raw.textColourCallCentre).trim()) ||
+      '';
+    o.textColourCallCentre = o.textColourCallCentre.replace(/^#/, '');
+    o.textColourIpad =
+      (sp.TextColourIpad != null ? String(sp.TextColourIpad).trim() : '') ||
+      (raw.textColourIpad && String(raw.textColourIpad).trim()) ||
+      '';
+    o.textColourIpad = o.textColourIpad.replace(/^#/, '');
     return o;
   }
 
@@ -54,7 +72,9 @@
       x.industryId === y.industryId &&
       x.brandName === y.brandName &&
       x.agentName === y.agentName &&
-      x.accentColour === y.accentColour
+      x.accentColour === y.accentColour &&
+      x.textColourCallCentre === y.textColourCallCentre &&
+      x.textColourIpad === y.textColourIpad
     );
   }
 
@@ -100,6 +120,10 @@
     if (agentEl) agentEl.value = c.agentName || '';
     var colourEl = document.getElementById('ccCustomiseAccentColour');
     if (colourEl) colourEl.value = c.accentColour || '';
+    var ccTextEl = document.getElementById('ccCustomiseTextColourCallCentre');
+    if (ccTextEl) ccTextEl.value = c.textColourCallCentre || '';
+    var ipadTextEl = document.getElementById('ccCustomiseTextColourIpad');
+    if (ipadTextEl) ipadTextEl.value = c.textColourIpad || '';
   }
 
   function collectInputs() {
@@ -114,6 +138,8 @@
       brandName: val('ccCustomiseBrandName'),
       agentName: val('ccCustomiseAgentName'),
       accentColour: val('ccCustomiseAccentColour').replace(/^#/, ''),
+      textColourCallCentre: val('ccCustomiseTextColourCallCentre').replace(/^#/, ''),
+      textColourIpad: val('ccCustomiseTextColourIpad').replace(/^#/, ''),
     };
   }
 
@@ -125,7 +151,14 @@
 
   function configHasMeaningfulData(cfg) {
     var c = normalizeConfig(cfg);
-    return !!(c.industryId || c.brandName || c.agentName || c.accentColour);
+    return !!(
+      c.industryId ||
+      c.brandName ||
+      c.agentName ||
+      c.accentColour ||
+      c.textColourCallCentre ||
+      c.textColourIpad
+    );
   }
 
   function loadConfigFromRtdb() {
@@ -175,6 +208,10 @@
       StaffPortal: {
         AgentName: c.agentName,
         Colour: c.accentColour ? '#' + c.accentColour.replace(/^#/, '') : '',
+        TextColourCallCentre: c.textColourCallCentre
+          ? '#' + c.textColourCallCentre.replace(/^#/, '')
+          : '',
+        TextColourIpad: c.textColourIpad ? '#' + c.textColourIpad.replace(/^#/, '') : '',
       },
     });
   }
@@ -189,10 +226,17 @@
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
     var norm = normalizeConfig(cfg);
     var colour = norm.accentColour ? '#' + norm.accentColour.replace(/^#/, '') : '';
+    var textCc = norm.textColourCallCentre ? '#' + norm.textColourCallCentre.replace(/^#/, '') : '';
+    var textIpad = norm.textColourIpad ? '#' + norm.textColourIpad.replace(/^#/, '') : '';
     return Promise.all([
       c.saveSection(c.SECTIONS.CallCentre, { industryId: norm.industryId || 'generic' }),
       c.saveCoreDemoData({ name: norm.brandName }),
-      c.saveStaffPortal({ AgentName: norm.agentName, Colour: colour }),
+      c.saveStaffPortal({
+        AgentName: norm.agentName,
+        Colour: colour,
+        TextColourCallCentre: textCc,
+        TextColourIpad: textIpad,
+      }),
     ]).then(function () {
       return { config: norm };
     });

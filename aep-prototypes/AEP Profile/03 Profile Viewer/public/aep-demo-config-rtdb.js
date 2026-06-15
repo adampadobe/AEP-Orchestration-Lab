@@ -284,6 +284,8 @@
         AgentID: 'AG-001',
         AgentType: 'Customer Care',
         Colour: '#1473e6',
+        TextColourCallCentre: '#ffffff',
+        TextColourIpad: '#ffffff',
       },
       CoreDemoData: { name: 'Etihad Airways' },
       Mobile: { StaffName: 'Demo agent', StaffId: 'AG-001' },
@@ -303,6 +305,8 @@
           AgentID: 'AG-001',
           AgentType: 'Customer Care',
           Colour: '#1473e6',
+          TextColourCallCentre: '#ffffff',
+          TextColourIpad: '#ffffff',
         },
         src.StaffPortal || {},
       ),
@@ -414,7 +418,16 @@
   function mergeStaffPortalFields(primary, fallback) {
     var p = primary && typeof primary === 'object' ? primary : {};
     var f = fallback && typeof fallback === 'object' ? fallback : {};
-    var keys = ['AgentName', 'AgentID', 'AgentType', 'Colour', 'FlightTerminalInfo', 'agentName'];
+    var keys = [
+      'AgentName',
+      'AgentID',
+      'AgentType',
+      'Colour',
+      'TextColourCallCentre',
+      'TextColourIpad',
+      'FlightTerminalInfo',
+      'agentName',
+    ];
     var out = Object.assign({}, f, p);
     keys.forEach(function (k) {
       out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || (p[k] != null ? p[k] : f[k]);

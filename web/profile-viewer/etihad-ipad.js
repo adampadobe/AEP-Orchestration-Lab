@@ -542,6 +542,12 @@
     var colour = sp.Colour ? String(sp.Colour).replace(/^#/, '') : '';
 
     setText('gaAirlineName', customerName);
+    var airlineEl = document.getElementById('gaAirlineName');
+    var textColourIpad = sanitizeRtdbHex6(sp.TextColourIpad);
+    if (airlineEl) {
+      if (textColourIpad) airlineEl.style.color = textColourIpad;
+      else airlineEl.style.removeProperty('color');
+    }
     setText('gaAgentName', agentName);
     setText('gaAgentMeta', [agentId, agentType, terminal].filter(Boolean).join(' · ') || '—');
 

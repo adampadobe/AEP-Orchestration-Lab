@@ -114,6 +114,7 @@
     }
     const brandEl = document.getElementById('ccBrandName');
     if (brandEl) brandEl.textContent = CC_DEFAULT_BRAND;
+    if (brandEl) brandEl.style.removeProperty('color');
     const nameEl = document.getElementById('ccAgentName');
     if (nameEl) nameEl.textContent = CC_DEFAULT_AGENT_NAME;
     const initialsEl = document.getElementById('ccUserInitials');
@@ -155,7 +156,12 @@
     /* Same source as etihad-ipad `gaAirlineName`: CoreDemoData.name (not passenger name). */
     const brand = (cd.name && String(cd.name).trim()) || '';
     const brandEl = document.getElementById('ccBrandName');
-    if (brandEl) brandEl.textContent = brand || CC_DEFAULT_BRAND;
+    const textColourCc = sanitizeRtdbHex6(sp.TextColourCallCentre);
+    if (brandEl) {
+      brandEl.textContent = brand || CC_DEFAULT_BRAND;
+      if (textColourCc) brandEl.style.color = textColourCc;
+      else brandEl.style.removeProperty('color');
+    }
 
     const agentNameRaw = sp.AgentName || sp.agentName || mb.StaffName;
     const agentName = agentNameRaw && String(agentNameRaw).trim();

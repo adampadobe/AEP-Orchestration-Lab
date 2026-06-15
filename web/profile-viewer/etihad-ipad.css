@@ -512,6 +512,7 @@ html[data-aep-theme='dark'] .etihad-ipad-page .etihad-ipad-fullscreen-btn {
 }
 
 .ga-app-header .ga-airline-name {
+  /* RTDB StaffPortal.TextColourIpad may override via inline style */
   font-size: 0.98rem;
   font-weight: 700;
   color: inherit;

@@ -10,6 +10,8 @@
     'ccCustomiseShortName',
     'ccCustomiseAgentName',
     'ccCustomiseAccentColour',
+    'ccCustomiseTextColourCallCentre',
+    'ccCustomiseTextColourIpad',
     'ccCustomiseFlightNumber',
     'ccCustomiseRoute',
     'ccCustomiseGate',
@@ -33,6 +35,8 @@
       shortName: '',
       agentName: '',
       accentColour: '',
+      textColourCallCentre: '',
+      textColourIpad: '',
       flightNumber: '',
       route: '',
       gate: '',
@@ -63,6 +67,16 @@
       (raw.accentColour && String(raw.accentColour).trim()) ||
       (sp.Colour != null ? String(sp.Colour).trim() : '');
     o.accentColour = colour.replace(/^#/, '');
+    o.textColourCallCentre =
+      (sp.TextColourCallCentre != null ? String(sp.TextColourCallCentre).trim() : '') ||
+      (raw.textColourCallCentre && String(raw.textColourCallCentre).trim()) ||
+      '';
+    o.textColourCallCentre = o.textColourCallCentre.replace(/^#/, '');
+    o.textColourIpad =
+      (sp.TextColourIpad != null ? String(sp.TextColourIpad).trim() : '') ||
+      (raw.textColourIpad && String(raw.textColourIpad).trim()) ||
+      '';
+    o.textColourIpad = o.textColourIpad.replace(/^#/, '');
     var td = raw.TravelData || {};
     o.flightNumber =
       (raw.flightNumber && String(raw.flightNumber).trim()) ||
@@ -131,6 +145,8 @@
       ccCustomiseShortName: c.shortName,
       ccCustomiseAgentName: c.agentName,
       ccCustomiseAccentColour: c.accentColour,
+      ccCustomiseTextColourCallCentre: c.textColourCallCentre,
+      ccCustomiseTextColourIpad: c.textColourIpad,
       ccCustomiseFlightNumber: c.flightNumber,
       ccCustomiseRoute: c.route,
       ccCustomiseGate: c.gate,
@@ -154,6 +170,8 @@
       shortName: val('ccCustomiseShortName'),
       agentName: val('ccCustomiseAgentName'),
       accentColour: val('ccCustomiseAccentColour').replace(/^#/, ''),
+      textColourCallCentre: val('ccCustomiseTextColourCallCentre').replace(/^#/, ''),
+      textColourIpad: val('ccCustomiseTextColourIpad').replace(/^#/, ''),
       flightNumber: val('ccCustomiseFlightNumber'),
       route: val('ccCustomiseRoute'),
       gate: val('ccCustomiseGate'),
@@ -174,6 +192,8 @@
       c.shortName ||
       c.agentName ||
       c.accentColour ||
+      c.textColourCallCentre ||
+      c.textColourIpad ||
       c.flightNumber ||
       c.route ||
       c.gate
@@ -209,6 +229,8 @@
   function buildRtdbPayload(cfg) {
     var norm = normalizeConfig(cfg);
     var colour = norm.accentColour ? '#' + norm.accentColour.replace(/^#/, '') : '';
+    var textCc = norm.textColourCallCentre ? '#' + norm.textColourCallCentre.replace(/^#/, '') : '';
+    var textIpad = norm.textColourIpad ? '#' + norm.textColourIpad.replace(/^#/, '') : '';
     return {
       callCentre: { industryId: norm.industryId || 'generic' },
       core: {
@@ -218,6 +240,8 @@
       staff: {
         AgentName: norm.agentName,
         Colour: colour,
+        TextColourCallCentre: textCc,
+        TextColourIpad: textIpad,
       },
       mobile: {
         Gate: norm.gate,
@@ -235,6 +259,8 @@
         StaffPortal: {
           AgentName: norm.agentName,
           Colour: colour,
+          TextColourCallCentre: textCc,
+          TextColourIpad: textIpad,
         },
         Mobile: { Gate: norm.gate },
         TravelData: {

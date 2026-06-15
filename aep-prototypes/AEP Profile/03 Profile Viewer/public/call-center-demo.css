@@ -811,6 +811,7 @@ html[data-aep-theme='dark'] .cc-app-header.cc-app-header--rtdb-brand-surface {
 
 .cc-app-header.cc-app-header--rtdb-brand-surface .cc-brand-name,
 .cc-app-header.cc-app-header--rtdb-brand-surface .cc-header-agent-name {
+  /* RTDB StaffPortal.TextColourCallCentre may override via inline style on .cc-brand-name */
   color: var(--cc-header-ink);
   font-weight: 700;
   text-shadow:
