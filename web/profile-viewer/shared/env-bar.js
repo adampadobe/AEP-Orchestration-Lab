@@ -19,18 +19,18 @@
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260624-bc-modal-chrome',
-      spectrumCss: '20260624-spectrum-trio-layout',
-      demoEnvStripSpectrum: '20260624-env-dock-settings',
-      demoEnvStrip: '20260625-version-pill',
+      spectrumCss: '20260625-env-overlay-footer',
+      demoEnvStripSpectrum: '20260625-tags-property-select',
+      demoEnvStrip: '20260625-decisioning-remount',
       spectrumSync: '20260614-sdk-compact-status',
-      compactJs: '20260614-env-bar-dock-settings-icon',
-      compactCss: '20260625-env-dock-stack',
+      compactJs: '20260625-env-toolbar-overlay-sync',
+      compactCss: '20260625-env-toolbar-overlay-sync',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260624-sandbox-persist-fix',
       prefsSync: '20260614-inject-guard',
-      tagsInjection: '20260625-tags-property-list',
+      tagsInjection: '20260625-tags-property-select',
       aepDemoEnvBar: '20260625-env-configured',
-      siteCloneBcEnv: '20260625-datastream-recent',
+      siteCloneBcEnv: '20260625-datastream-recent-picker',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
@@ -346,12 +346,14 @@
     if (!merged.variant) merged.variant = 'spectrum';
     if (merged.mode === 'compact-fnb') merged.mode = 'sandbox-only';
     if (!merged.mode) merged.mode = 'shell';
+    if (!merged.features || typeof merged.features !== 'object') {
+      merged.features = {};
+    }
     if (merged.mode === 'minimal' || merged.mode === 'sandbox-only') {
       merged.variant = merged.variant === 'spectrum' ? 'classic' : merged.variant || 'classic';
-      merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features || {});
-    }
-    if (!merged.features || typeof merged.features !== 'object') {
-      merged.features = { webPush: true, bc: true, decisioning: true };
+      merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features);
+    } else {
+      merged.features = Object.assign({ webPush: true, bc: true, decisioning: true }, merged.features);
     }
     if (merged.autoInit === undefined) merged.autoInit = true;
     if (merged.basePath) state.basePath = merged.basePath;
@@ -372,6 +374,7 @@
     if (cfg.disclaimer) mount.setAttribute('data-demo-env-strip-disclaimer', cfg.disclaimer);
     if (cfg.features && cfg.features.bc === false) mount.setAttribute('data-demo-env-strip-bc-bottom', '0');
     if (cfg.features && cfg.features.decisioning === false) mount.setAttribute('data-demo-env-strip-decisioning', '0');
+    else mount.setAttribute('data-demo-env-strip-decisioning', '1');
     if (cfg.variant === 'spectrum') mount.setAttribute('data-demo-env-strip-variant', 'spectrum');
   }
 

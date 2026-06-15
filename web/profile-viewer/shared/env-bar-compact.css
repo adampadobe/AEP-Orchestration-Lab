@@ -73,7 +73,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   content: '';
   position: fixed;
   inset: 0;
-  top: var(--env-bar-height);
+  top: var(--lab-env-overlay-top, var(--env-bar-height));
   z-index: 6497;
   background: color-mix(in srgb, var(--dash-text) 22%, transparent);
   opacity: 0;
@@ -98,7 +98,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 /* ── Floating overlay panel ───────────────────────────────────── */
 .lab-env-overlay-panel {
   position: fixed;
-  top: var(--env-bar-height);
+  top: var(--lab-env-overlay-top, var(--env-bar-height));
   left: 0;
   right: 0;
   width: 100%;
@@ -402,6 +402,53 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .lab-env-toolbar .spectrum-env-link-btn:focus-visible {
   outline: 2px solid var(--dash-focus-ring, var(--dash-blue));
   outline-offset: 2px;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded,
+.lab-env-top-anchor.lab-env-top-anchor--pinned,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned {
+  height: auto;
+  min-height: var(--env-bar-height);
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+.lab-env-top-anchor.lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+.lab-env-top-anchor.lab-env-top-anchor--pinned [class*='-demo-id-banner'],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
+  height: auto;
+  min-height: var(--env-bar-height);
+  max-height: none;
+  overflow: visible;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-toolbar,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-toolbar {
+  position: relative;
+  z-index: 7602;
+  max-height: none;
+  overflow: visible;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar__actions,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar__actions {
+  z-index: 7603;
 }
 
 /* Hide overlay-only chrome while collapsed */

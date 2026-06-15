@@ -605,6 +605,7 @@ function applySiteCloneBcDatastreamFieldForSandbox(sandboxKey) {
     return String(d.id || '').toLowerCase() === storedId;
   });
   siteCloneBcDatastreamEl().value = hit ? datastreamLabelFromItem(hit) : storedId;
+  if (storedId) recordRecentSiteCloneBcDatastreamId(storedId, sandboxKey);
   renderSiteCloneBcDatastreamSuggestions('');
   refreshSiteCloneBcDatastreamHint();
 }
@@ -615,20 +616,25 @@ function refreshSiteCloneBcDatastreamHint() {
   const sandbox = getSandboxDisplayName();
   if (!hint) return;
   if (!siteCloneBcAllDatastreamOptions.length) {
+    const recent = readRecentSiteCloneBcDatastreamIds();
+    const recentNote = recent.length ? ' · ' + recent.length + ' recent UUID(s) in picker' : '';
     hint.textContent = id
       ? 'Lab override: ' +
         id +
         (sandbox ? ' · sandbox ' + sandbox : '') +
+        recentNote +
         '. Debugger shows Tags Web SDK extension datastream until you publish a new library there.'
       : sandbox
-        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.'
-        : 'Paste a datastream UUID (lab override for sendEvent / Target).';
+        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID.' + recentNote
+        : 'Paste a datastream UUID (lab override for sendEvent / Target).' + recentNote;
     return;
   }
+  const recentCount = readRecentSiteCloneBcDatastreamIds().length;
   hint.textContent =
     siteCloneBcAllDatastreamOptions.length +
     ' datastream(s)' +
     (sandbox ? ' for ' + sandbox : '') +
+    (recentCount ? ' · ' + recentCount + ' recent' : '') +
     (id ? ' · selected ' + id : ' · none selected — pick or paste a UUID.');
 }
 
@@ -910,18 +916,38 @@ function bootSiteCloneBcDatastreamPicker() {
   }
 
   let lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
+  let dsPickerRestoreTimer = null;
 
-  function showAllDatastreamSuggestions() {
+  function openDatastreamPicker() {
+    clearTimeout(dsPickerRestoreTimer);
+    dsInput.dataset.prevPickerValue = dsInput.value;
+    dsInput.value = '';
     renderSiteCloneBcDatastreamSuggestions('');
   }
 
-  dsInput.addEventListener('focus', showAllDatastreamSuggestions);
-  dsInput.addEventListener('mousedown', showAllDatastreamSuggestions);
+  function closeDatastreamPicker() {
+    clearTimeout(dsPickerRestoreTimer);
+    dsPickerRestoreTimer = setTimeout(function () {
+      if (!String(dsInput.value || '').trim() && dsInput.dataset.prevPickerValue) {
+        dsInput.value = dsInput.dataset.prevPickerValue;
+      }
+      delete dsInput.dataset.prevPickerValue;
+      renderSiteCloneBcDatastreamSuggestions('');
+      onDatastreamFieldChange();
+    }, 160);
+  }
+
+  dsInput.addEventListener('focus', openDatastreamPicker);
+  dsInput.addEventListener('mousedown', openDatastreamPicker);
   dsInput.addEventListener('input', function () {
+    clearTimeout(dsPickerRestoreTimer);
     renderSiteCloneBcDatastreamSuggestions(dsInput.value);
   });
-  dsInput.addEventListener('change', onDatastreamFieldChange);
-  dsInput.addEventListener('blur', onDatastreamFieldChange);
+  dsInput.addEventListener('change', function () {
+    clearTimeout(dsPickerRestoreTimer);
+    onDatastreamFieldChange();
+  });
+  dsInput.addEventListener('blur', closeDatastreamPicker);
   return true;
 }
 

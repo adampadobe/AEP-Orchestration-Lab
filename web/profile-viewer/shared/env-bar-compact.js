@@ -35,7 +35,13 @@
   }
 
   function isInteractiveToolbarTarget(node) {
-    return !!(node && node.closest && node.closest('button, a, select, input, textarea, label, [role="button"]'));
+    return !!(
+      node &&
+      node.closest &&
+      node.closest(
+        'button, a, select, input, textarea, label, [role="button"], .lab-env-toolbar__actions, .lab-env-version-pill',
+      )
+    );
   }
 
   function isOverlayInteractionTarget(node, anchor) {
@@ -47,6 +53,26 @@
     if (!active) return false;
     if (anchor.contains(active)) return true;
     return !!(panel && panel.contains(active));
+  }
+
+  function syncToolbarOverlayInset(anchor, isOpen) {
+    if (!anchor) return;
+    if (!isOpen) {
+      anchor.style.removeProperty('--lab-env-overlay-top');
+      return;
+    }
+    var toolbar = anchor.querySelector('.lab-env-toolbar');
+    if (!toolbar) return;
+    var measure = function () {
+      var rect = toolbar.getBoundingClientRect();
+      var h = Math.ceil(rect.height || 0);
+      if (h < 1) {
+        h = parseFloat(getComputedStyle(anchor).getPropertyValue('--env-bar-height')) || 48;
+      }
+      anchor.style.setProperty('--lab-env-overlay-top', h + 'px');
+    };
+    if (typeof global.requestAnimationFrame === 'function') global.requestAnimationFrame(measure);
+    else measure();
   }
 
   function setExpanded(anchor, expanded, pinned) {
@@ -61,6 +87,8 @@
       if (isOpen) panel.removeAttribute('hidden');
       else panel.setAttribute('hidden', '');
     }
+
+    syncToolbarOverlayInset(anchor, isOpen);
 
     var toggleBtn = byId(TOGGLE_BTN_ID);
     if (toggleBtn) {
@@ -254,6 +282,7 @@
     if (banner) banner.classList.add('lab-env-id-banner');
 
     if (readPinnedFromStorage()) openOverlay(anchor, true);
+    else syncToolbarOverlayInset(anchor, false);
 
     getOrCreateFloatingDockBtn();
     if (readDockedFromStorage()) applyDockState(anchor, true);

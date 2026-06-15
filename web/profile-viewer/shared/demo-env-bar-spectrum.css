@@ -70,6 +70,13 @@
   display: none;
 }
 
+.lab-env-top-anchor--expanded .lab-env-overlay-only,
+.lab-env-top-anchor--pinned .lab-env-overlay-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 /* ── Overlay panel layout ─────────────────────────────────────── */
 .lab-env-overlay-panel {
   display: flex;
@@ -109,7 +116,7 @@
 .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
 .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-selected-script,

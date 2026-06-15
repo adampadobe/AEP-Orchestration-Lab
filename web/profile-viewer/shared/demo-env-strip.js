@@ -90,14 +90,9 @@
       '<label for="' +
       esc(p) +
       'TagsProperty">Tags property</label>' +
-      '<input type="text" id="' +
+      '<select id="' +
       esc(p) +
-      'TagsProperty" aria-label="Tags property" placeholder="Select property" list="' +
-      esc(p) +
-      'TagsPropertyList" autocomplete="off" spellcheck="false">' +
-      '<datalist id="' +
-      esc(p) +
-      'TagsPropertyList"></datalist>' +
+      'TagsProperty" aria-label="Tags property"><option value="">Select property</option></select>' +
       '</div>' +
       '<div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">' +
       '<button type="button" id="' +
@@ -530,11 +525,14 @@
     var hostId = c.mountId || 'siteCloneBcPrefsMount';
     var host = document.getElementById(hostId);
     if (!host) return { mounted: false, reason: 'host-not-found' };
-    if (host.getAttribute(MOUNTED_ATTR) === '1') return { mounted: true, alreadyPresent: true };
     var includeBottomDock =
       c.includeBottomDock === true || host.getAttribute('data-demo-env-strip-bc-bottom') === '1';
     var includeDecisioning =
       c.includeDecisioning !== false && host.getAttribute('data-demo-env-strip-decisioning') !== '0';
+    var needsDecisioning = includeDecisioning && !document.getElementById('siteCloneDecisioningEnabledToggle');
+    if (host.getAttribute(MOUNTED_ATTR) === '1' && !needsDecisioning) {
+      return { mounted: true, alreadyPresent: true };
+    }
     host.innerHTML = siteCloneProfileBcPrefsMarkup({ includeBottomDock: includeBottomDock, includeDecisioning: includeDecisioning });
     host.setAttribute(MOUNTED_ATTR, '1');
     return { mounted: true };

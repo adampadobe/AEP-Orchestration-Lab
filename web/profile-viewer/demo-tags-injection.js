@@ -526,8 +526,8 @@
       refreshTagsDom();
       const rec = readPersistedTagsPropertySelection();
       if (rec && rec.propertyId) selectedPropertyId = String(rec.propertyId);
-      if (tagsPropertyInput && rec && rec.propertyLabel) {
-        tagsPropertyInput.value = rec.propertyLabel;
+      if (tagsPropertyInput && rec && rec.propertyId) {
+        setTagsPropertyFieldValue(rec.propertyId, rec.propertyLabel);
       }
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
       if (persistedScript) renderSelectedScript(persistedScript);
@@ -548,13 +548,13 @@
         hit = findPropertyByLabel(rec.propertyLabel);
       }
       if (!hit || !hit.id) {
-        if (tagsPropertyInput && rec.propertyLabel) {
-          tagsPropertyInput.value = rec.propertyLabel;
+        if (tagsPropertyInput && rec.propertyId) {
+          setTagsPropertyFieldValue(rec.propertyId, rec.propertyLabel);
         }
         return;
       }
       selectedPropertyId = String(hit.id);
-      if (tagsPropertyInput) tagsPropertyInput.value = propertyLabelFromItem(hit);
+      setTagsPropertyFieldValue(selectedPropertyId, propertyLabelFromItem(hit));
       persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
       await loadTagsEnvironments(selectedPropertyId);
     }
@@ -852,7 +852,33 @@
       return (n || p.id || 'Unnamed') + ' (' + String(p && p.id ? p.id : '') + ')';
     }
 
-    function renderPropertySuggestions(query) {
+    function isTagsPropertySelect() {
+      return !!(tagsPropertyInput && tagsPropertyInput.tagName === 'SELECT');
+    }
+
+    function setTagsPropertyFieldValue(propertyId, propertyLabel) {
+      if (!tagsPropertyInput) return;
+      if (isTagsPropertySelect()) {
+        tagsPropertyInput.value = propertyId ? String(propertyId) : '';
+        return;
+      }
+      tagsPropertyInput.value = propertyLabel ? String(propertyLabel) : '';
+    }
+
+    function renderPropertyOptions(query) {
+      if (!tagsPropertyInput) return;
+      if (isTagsPropertySelect()) {
+        const keepId = String(selectedPropertyId || tagsPropertyInput.value || '').trim();
+        setSelectOptions(
+          tagsPropertyInput,
+          allPropertyOptions,
+          propertyLabelFromItem,
+          (p) => String(p && p.id ? p.id : ''),
+          'Select property',
+        );
+        if (keepId) tagsPropertyInput.value = keepId;
+        return;
+      }
       if (!tagsPropertyList) return;
       const q = String(query || '').trim().toLowerCase();
       tagsPropertyList.innerHTML = '';
@@ -868,6 +894,22 @@
         opt.value = propertyLabelFromItem(p);
         tagsPropertyList.appendChild(opt);
       });
+    }
+
+    function findPropertyFromField() {
+      if (!tagsPropertyInput) return null;
+      if (isTagsPropertySelect()) {
+        const id = String(tagsPropertyInput.value || '').trim();
+        if (!id) return null;
+        return (
+          allPropertyOptions.find(function (p) {
+            return String(p && p.id ? p.id : '') === id;
+          }) || null
+        );
+      }
+      const raw = String(tagsPropertyInput.value || '').trim();
+      if (!raw) return null;
+      return findPropertyByLabel(raw);
     }
 
     function findPropertyByLabel(label) {
@@ -914,7 +956,7 @@
         if (tagsPropertyInput && !(earlyRec && earlyRec.propertyLabel)) {
           tagsPropertyInput.value = '';
         }
-        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
+        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
 
@@ -971,7 +1013,7 @@
         allPropertyOptions = [];
         selectedPropertyId = '';
         tagsPropertyInput.value = '';
-        renderPropertySuggestions('');
+        renderPropertyOptions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
@@ -991,7 +1033,7 @@
         }
         const earlyRec = readPersistedTagsPropertySelection();
         if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
-        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
+        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         await restorePersistedTagsPropertySelection();
@@ -1034,15 +1076,7 @@
     }
 
     async function applyPropertySelectionFromInput() {
-      const raw = tagsPropertyInput ? String(tagsPropertyInput.value || '').trim() : '';
-      if (!raw) {
-        selectedPropertyId = '';
-        persistTagsPropertySelection('', '');
-        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        syncSelectedScriptDisplayAfterTagsStructureChange();
-        return;
-      }
-      const hit = findPropertyByLabel(raw);
+      const hit = findPropertyFromField();
       if (!hit || !hit.id) {
         selectedPropertyId = '';
         persistTagsPropertySelection('', '');
@@ -1440,21 +1474,18 @@
       }
 
       if (tagsPropertyInput) {
-        function showAllPropertySuggestions() {
-          renderPropertySuggestions('');
-        }
-        tagsPropertyInput.addEventListener('focus', showAllPropertySuggestions);
-        tagsPropertyInput.addEventListener('mousedown', showAllPropertySuggestions);
-        tagsPropertyInput.addEventListener('input', function () {
-          renderPropertySuggestions(tagsPropertyInput.value || '');
-          void applyPropertySelectionFromInput();
-        });
         tagsPropertyInput.addEventListener('change', function () {
           void applyPropertySelectionFromInput();
         });
-        tagsPropertyInput.addEventListener('blur', function () {
-          void applyPropertySelectionFromInput();
-        });
+        if (!isTagsPropertySelect()) {
+          tagsPropertyInput.addEventListener('input', function () {
+            renderPropertyOptions(tagsPropertyInput.value || '');
+            void applyPropertySelectionFromInput();
+          });
+          tagsPropertyInput.addEventListener('blur', function () {
+            void applyPropertySelectionFromInput();
+          });
+        }
       }
 
       if (tagsEnvironmentSelect) {
