@@ -10,6 +10,8 @@
     var(--dash-purple) 52%,
     var(--dash-blue) 100%
   );
+  --bc-modal-bar-pill-width: min(24rem, calc(100vw - 2rem));
+  --bc-modal-bar-panel-width: min(26rem, calc(100vw - 1.5rem));
   position: fixed;
   inset: 0;
   z-index: 6385;
@@ -32,7 +34,7 @@
 }
 
 .bc-modal-bar.is-wide .bc-modal-bar__panel {
-  width: min(28rem, 100vw);
+  width: min(32rem, 100vw);
 }
 
 .bc-modal-bar__panel {
@@ -42,7 +44,7 @@
   top: var(--env-bar-height, 3rem);
   right: 0;
   bottom: 0;
-  width: min(21.5rem, 100vw);
+  width: var(--bc-modal-bar-panel-width);
   background: var(--dash-surface);
   border-left: 1px solid var(--dash-border);
   box-shadow: var(--dash-shadow);
@@ -149,13 +151,70 @@
   display: block;
 }
 
+.bc-modal-bar__intro {
+  padding: 1rem 1rem 0.65rem;
+  flex-shrink: 0;
+}
+
+.bc-modal-bar__intro-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.bc-modal-bar__intro-sub {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--dash-text-secondary);
+}
+
+.bc-modal-bar__suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem 0.85rem;
+  flex-shrink: 0;
+}
+
+.bc-modal-bar__suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.bc-modal-bar__suggestion:hover {
+  background: var(--dash-hover);
+  border-color: color-mix(in srgb, var(--bc-modal-bar-accent) 35%, var(--dash-border));
+}
+
+.bc-modal-bar__suggestion-sparkle {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+  color: var(--bc-modal-bar-accent);
+}
+
 .bc-modal-bar__panel-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  padding: 0;
+  padding: 0 1rem;
 }
 
 .bc-modal-bar__mount {
@@ -165,9 +224,15 @@
   flex-direction: column;
 }
 
-.bc-modal-bar__mount .input-section {
+.bc-modal-bar__mount .input-section,
+.bc-modal-bar__mount .input-container,
+.bc-modal-bar__mount #brand-concierge-mount .input-section,
+.bc-modal-bar__mount #brand-concierge-mount .input-container {
+  display: none !important;
+}
+
+.bc-modal-bar__composer-wrap {
   flex-shrink: 0;
-  margin-top: auto;
   padding: 0.85rem 1rem 0.65rem;
   background:
     radial-gradient(ellipse 120% 80% at 20% 100%, color-mix(in srgb, var(--dash-blue) 16%, transparent), transparent 58%),
@@ -176,14 +241,68 @@
   border-top: 1px solid var(--dash-border);
 }
 
-.bc-modal-bar__panel-footer {
+.bc-modal-bar__composer {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--bc-modal-bar-gradient);
+  box-shadow: var(--dash-shadow);
+}
+
+.bc-modal-bar__composer-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.55rem 0.65rem 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: var(--dash-surface);
+}
+
+.bc-modal-bar__composer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.92rem;
+  color: var(--dash-text);
+  outline: none;
+  font-family: inherit;
+}
+
+.bc-modal-bar__composer-input::placeholder {
+  color: var(--dash-muted);
+}
+
+.bc-modal-bar__send-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--dash-blue);
+  color: var(--dash-surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  padding: 0 1rem 0.65rem;
-  border-top: 0;
+}
+
+.bc-modal-bar__send-btn:hover {
+  background: color-mix(in srgb, var(--dash-blue) 88%, var(--dash-text));
+}
+
+.bc-modal-bar__send-btn svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
 }
 
 .bc-modal-bar__disclaimer {
-  margin: 0;
+  margin: 0.55rem 0 0;
   font-size: 0.68rem;
   line-height: 1.35;
   color: var(--dash-muted);
@@ -198,7 +317,7 @@
   position: fixed;
   right: 1rem;
   bottom: 1.25rem;
-  width: min(24rem, calc(100vw - 2rem));
+  width: var(--bc-modal-bar-pill-width);
   pointer-events: auto;
   z-index: 6386;
 }
@@ -260,6 +379,11 @@
 }
 
 @media (max-width: 480px) {
+  .bc-modal-bar {
+    --bc-modal-bar-pill-width: calc(100vw - 1rem);
+    --bc-modal-bar-panel-width: 100vw;
+  }
+
   .bc-modal-bar__pill {
     right: 0.5rem;
     left: 0.5rem;

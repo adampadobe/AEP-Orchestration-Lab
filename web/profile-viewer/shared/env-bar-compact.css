@@ -483,6 +483,12 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   display: none !important;
 }
 
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar {
+  display: none !important;
+}
+
 /* Reveal SDK editor inside overlay when open */
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-section--collapsed .aep-demo-env-collapsible[hidden],
