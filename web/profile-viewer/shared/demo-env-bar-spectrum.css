@@ -349,6 +349,68 @@
   box-sizing: border-box;
 }
 
+/* Spectrum shell demos (e.g. KSIA) load this file, not site-clone-bc-env-strip.css — manual UUID paste row needs the same layout. */
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  position: relative;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row[hidden],
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row[hidden] {
+  display: none !important;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open {
+  position: relative;
+  z-index: 40;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-input,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font: inherit;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-actions,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-error:not(:empty),
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-error:not(:empty) {
+  color: var(--dash-error, var(--dash-muted));
+}
+
 .lab-env-overlay-panel .spectrum-env-field--grow {
   flex: none;
   width: 100%;

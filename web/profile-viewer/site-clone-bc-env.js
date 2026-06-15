@@ -668,7 +668,6 @@ const DATASTREAM_MANUAL_CANCEL_ID = 'siteCloneBcDatastreamUuidManualCancel';
 const DATASTREAM_MANUAL_FORM_CLASS = 'site-clone-bc-datastream-manual-open';
 
 let siteCloneBcDatastreamManualEntryOpen = false;
-let siteCloneBcDatastreamManualHandlersBound = false;
 
 function isSiteCloneBcDatastreamManualEntryOpen() {
   return siteCloneBcDatastreamManualEntryOpen;
@@ -756,13 +755,13 @@ function openSiteCloneBcDatastreamManualEntry(fallback) {
 }
 
 function bindSiteCloneBcDatastreamManualHandlers(onApplied, getRestoreValue) {
-  if (siteCloneBcDatastreamManualHandlersBound) return;
   const row = findSiteCloneBcDatastreamManualRow();
   const input = findSiteCloneBcDatastreamManualInput();
   const applyBtn = document.getElementById(DATASTREAM_MANUAL_APPLY_ID);
   const cancelBtn = document.getElementById(DATASTREAM_MANUAL_CANCEL_ID);
   if (!row || !input) return;
-  siteCloneBcDatastreamManualHandlersBound = true;
+  if (input.dataset.datastreamManualHandlersBound === '1') return;
+  input.dataset.datastreamManualHandlersBound = '1';
 
   if (applyBtn) {
     applyBtn.addEventListener('click', function () {
@@ -1092,8 +1091,7 @@ function bindStripDomListenersOnce() {
 
 function bootSiteCloneBcDatastreamPicker() {
   const dsInput = siteCloneBcDatastreamEl();
-  if (!dsInput || dsInput.dataset.datastreamPickerBooted === '1') return !!dsInput;
-  dsInput.dataset.datastreamPickerBooted = '1';
+  if (!dsInput) return false;
 
   function onDatastreamFieldChange() {
     const prev = lastBcDatastreamIdForLiveEdge || getSiteCloneBcDatastreamId();
@@ -1112,6 +1110,9 @@ function bootSiteCloneBcDatastreamPicker() {
   bindSiteCloneBcDatastreamManualHandlers(onDatastreamFieldChange, function () {
     return manualEntryRestoreValue;
   });
+
+  if (dsInput.dataset.datastreamPickerBooted === '1') return true;
+  dsInput.dataset.datastreamPickerBooted = '1';
 
   if (dsInput.tagName === 'SELECT') {
     dsInput.addEventListener('change', function () {
