@@ -158,13 +158,23 @@
     'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
   ].join('');
 
-  var injectedToggle = document.getElementById(cfg('injectedToggleId', 'siteCloneBcInjectedToggle'));
-  var modalToggle = document.getElementById(cfg('modalToggleId', 'siteCloneBcModalToggle'));
-  var fullScreenToggle = document.getElementById(cfg('fullScreenToggleId', 'siteCloneBcFullScreenToggle'));
-  var bottomDockToggle = document.getElementById(cfg('bottomDockToggleId', 'siteCloneBcBottomDockToggle'));
+  var injectedToggle = null;
+  var modalToggle = null;
+  var fullScreenToggle = null;
+  var bottomDockToggle = null;
   var BOTTOM_DOCK_MOUNT_SELECTOR = cfg('bottomDockMountSelector', '#bcBottomDockMount');
-  var bcModal = document.getElementById('aepBcModal');
-  var bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
+  var bcModal = null;
+  var bcFab = null;
+
+  /** Env strip mounts display-mode toggles async via shared/env-bar.js — re-query before each sync. */
+  function refreshDisplayModeToggles() {
+    injectedToggle = document.getElementById(cfg('injectedToggleId', 'siteCloneBcInjectedToggle'));
+    modalToggle = document.getElementById(cfg('modalToggleId', 'siteCloneBcModalToggle'));
+    fullScreenToggle = document.getElementById(cfg('fullScreenToggleId', 'siteCloneBcFullScreenToggle'));
+    bottomDockToggle = document.getElementById(cfg('bottomDockToggleId', 'siteCloneBcBottomDockToggle'));
+    bcModal = document.getElementById('aepBcModal');
+    bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
+  }
 
   var parentCoreReady = null;
   var iframeCoreReady = null;
@@ -1399,6 +1409,7 @@
   }
 
   async function syncInner() {
+    refreshDisplayModeToggles();
     updateChromeVisibility();
     var wantInjected = isInjectedOn();
     var wantModal = isModalOn();
@@ -1472,12 +1483,20 @@
   }
 
   function bindToggles() {
+    refreshDisplayModeToggles();
     [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle].forEach(function (el) {
-      if (!el) return;
+      if (!el || el.getAttribute('data-site-clone-bc-toggle-bound') === '1') return;
+      el.setAttribute('data-site-clone-bc-toggle-bound', '1');
       el.addEventListener('change', function () {
         sync();
       });
     });
+  }
+
+  function onEnvStripMountedForBc() {
+    refreshDisplayModeToggles();
+    bindToggles();
+    void sync();
   }
 
   function bindIframeLoad() {
@@ -1497,12 +1516,19 @@
     });
   }
 
+  refreshDisplayModeToggles();
   bindToggles();
   bindIframeLoad();
+  global.addEventListener('aep-demo-env-strip-mounted', onEnvStripMountedForBc);
+  global.addEventListener('aep-demo-tags-injected', function () {
+    refreshDisplayModeToggles();
+    void sync();
+  });
   global.SiteCloneBc = {
     sync: sync,
     invalidateCore: invalidateCore,
     ensureModalReady: ensureModalReady,
+    refreshDisplayModeToggles: refreshDisplayModeToggles,
   };
 
   prepareEmbedBcRuntime(global);
@@ -1525,10 +1551,12 @@
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
+      refreshDisplayModeToggles();
       updateChromeVisibility();
       scheduleInitialSync();
     });
   } else {
+    refreshDisplayModeToggles();
     updateChromeVisibility();
     scheduleInitialSync();
   }
