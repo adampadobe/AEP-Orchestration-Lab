@@ -252,7 +252,8 @@
     var local = getSelectedSandbox();
     var remote = String(remoteSandbox || '').trim();
     if (!local || !remote || local === remote) return false;
-    return hasLocalSandboxUserPick();
+    /* Persisted localStorage wins over Firestore on hard refresh — session pick is optional extra guard. */
+    return hasUserSandboxPref() || hasLocalSandboxUserPick();
   }
 
   function getSelectedSandbox() {

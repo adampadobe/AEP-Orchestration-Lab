@@ -9,10 +9,15 @@
 
   function getSelected() {
     try {
-      return localStorage.getItem(LS_SANDBOX) || '';
+      var v = localStorage.getItem(LS_SANDBOX) || '';
+      if (v) return v;
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
+        return String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
+      }
     } catch (e) {
       return '';
     }
+    return '';
   }
 
   function getRecentSandboxes() {

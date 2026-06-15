@@ -643,7 +643,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .env-bar-dock-btn {
   position: fixed;
-  top: calc(var(--env-bar-height, 3rem) + 0.4rem);
+  top: 50%;
   right: 0.85rem;
   z-index: 7145;
   box-sizing: border-box;
@@ -663,7 +663,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   justify-content: center;
   font: inherit;
   pointer-events: auto;
-  transform: none;
+  transform: translateY(-50%);
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
@@ -704,7 +704,6 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 @media (max-width: 480px) {
   .env-bar-dock-btn {
     right: 0.5rem;
-    top: calc(var(--env-bar-height, 3rem) + 0.35rem);
   }
 }
 

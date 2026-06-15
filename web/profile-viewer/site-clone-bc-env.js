@@ -704,7 +704,22 @@ function saveSiteCloneBcDisplayPrefs(sandboxKey) {
   saveDecisioningEnabledPrefs(key);
 }
 
+function resetSiteCloneBcDisplayPrefsOnUi() {
+  if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+  if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+  if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+  if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+  if (siteCloneDecisioningEnabledToggle) siteCloneDecisioningEnabledToggle.checked = false;
+}
+
+/** Skip restoring saved BC display/decisioning toggles until the user changes sandbox. */
+let restoreBcDisplayPrefsFromStorage = false;
+
 function applySiteCloneBcDisplayPrefsToUi() {
+  if (!restoreBcDisplayPrefsFromStorage) {
+    resetSiteCloneBcDisplayPrefsOnUi();
+    return;
+  }
   const prefs = loadSiteCloneBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen || prefs.bottomDock)) {
     prefs.injected = false;
@@ -750,6 +765,8 @@ function bindStripDomListenersOnce() {
   }
 
   applySiteCloneBcDisplayPrefsToUi();
+  syncSiteCloneBcFromPrefs();
+  syncDecisioningFromPrefs();
   var bcToggles = [
     siteCloneBcFullScreenToggle,
     siteCloneBcModalToggle,
@@ -790,7 +807,6 @@ function bindStripDomListenersOnce() {
       syncDecisioningFromPrefs();
     });
   }
-  saveSiteCloneBcDisplayPrefs();
 
   if (siteCloneBcStyleConfigUrl) {
     applySiteCloneBcStyleConfigFieldForSandbox();
@@ -928,6 +944,7 @@ function bootSiteCloneBcDatastreamPicker() {
   });
 
   global.addEventListener('aep-global-sandbox-change', function () {
+    restoreBcDisplayPrefsFromStorage = true;
     sandboxEnvSwitching = true;
     try {
       if (envSandboxKey) flushEnvForSandboxKey(envSandboxKey);
