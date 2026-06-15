@@ -1,14 +1,14 @@
 {
-  "gitSha": "2af8aea4434002948823580d3dc1d6696b46328e",
-  "gitShortSha": "2af8aea4",
+  "gitSha": "77180fc7d52d38d2f6b7550b8a33ef7064680f44",
+  "gitShortSha": "77180fc7",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: record e5354459 hosting deploy in version.json",
+  "gitCommitSubject": "[apalmer] fix: show datastream UUID paste row only for Enter UUID",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-15T21:39:06+01:00",
-  "deployedAt": "2026-06-15T20:43:44.253Z",
+  "gitCommitDate": "2026-06-15T21:59:14+01:00",
+  "deployedAt": "2026-06-15T21:00:08.227Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2af8aea4434002948823580d3dc1d6696b46328e"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/77180fc7d52d38d2f6b7550b8a33ef7064680f44"
 }
