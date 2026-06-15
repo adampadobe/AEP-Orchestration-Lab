@@ -1882,6 +1882,7 @@
   loadRtdbData();
 
   window.AepIpadLab = {
+    getSandboxName: getSandboxName,
     applyIndustry: applyIndustryToIpad,
     applyRtdbData: function (data) {
       rtdbData = data && typeof data === 'object' ? data : {};

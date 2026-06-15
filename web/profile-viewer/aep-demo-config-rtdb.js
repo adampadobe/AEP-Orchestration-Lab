@@ -642,6 +642,11 @@
           console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: not signed in', { section: section });
           return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
         }
+        var adobeEmail = '';
+        try {
+          var authUser = firebase.auth().currentUser;
+          if (authUser && authUser.email) adobeEmail = String(authUser.email).trim().toLowerCase();
+        } catch (_emailErr) {}
         return fetch('/api/lab/save-demo-config', {
           method: 'POST',
           headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
@@ -650,6 +655,7 @@
             partial: partial,
             sandboxSlug: sandboxSlug,
             workspaceSlug: ldapForPath,
+            adobeEmail: adobeEmail,
           }),
         })
           .then(function (res) {

@@ -72,15 +72,16 @@
     });
   }
 
+  /** Keep in sync with etihad-ipad.js getSandboxName — iPad has no env-bar #sandboxSelect. */
   function currentSandboxName() {
     if (typeof AepGlobalSandbox !== 'undefined') {
+      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
+        var fromName = String(AepGlobalSandbox.getSandboxName() || '').trim();
+        if (fromName) return fromName;
+      }
       if (typeof AepGlobalSandbox.getSelected === 'function') {
         var selected = String(AepGlobalSandbox.getSelected() || '').trim();
         if (selected) return selected;
-      }
-      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
-        var globalName = String(AepGlobalSandbox.getSandboxName() || '').trim();
-        if (globalName) return globalName;
       }
     }
     var c = rtdb();
@@ -92,7 +93,7 @@
       var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
       if (stored) return stored;
     } catch (e) {}
-    return '';
+    return 'apalmer';
   }
 
   function updateSandboxLabel() {
@@ -301,21 +302,27 @@
         return persistConfig(cfg, sandboxSlug, statusPrefix);
       });
     }
-    saveInFlight = saveConfigToRtdb(norm, sb)
+    var c = rtdb();
+    var ready = c && typeof c.whenReady === 'function' ? c.whenReady() : Promise.resolve();
+    saveInFlight = ready
+      .then(function () {
+        return saveConfigToRtdb(norm, sb);
+      })
       .then(function () {
         lastSaved = norm;
         persistIndustryLocal(norm.industryId);
         applyToDemo(norm);
         setStatus('Saved customise settings for sandbox “' + sb + '”.', 'ok');
+        refreshFromRtdb();
         return true;
       })
       .catch(function (e) {
+        console.error('[AepDemoConfigRtdb] [ipad-customise] persistConfig failed', e);
         setStatus(String((e && e.message) || e), 'err');
         return false;
       })
       .finally(function () {
         saveInFlight = null;
-        refreshFromRtdb();
       });
     return saveInFlight;
   }
