@@ -52,7 +52,6 @@ function buildSectionDefaults(flat) {
   return {
     CoreDemoData: {
       name: coreSrc.name || '',
-      airlineName: coreSrc.airlineName || coreSrc.name || '',
       slogan: coreSrc.slogan || '',
       url: coreSrc.url || '',
       customerLogo: coreSrc.customerLogo || '',

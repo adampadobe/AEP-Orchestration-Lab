@@ -70,7 +70,7 @@
 
 /* Hide BC host + reopen btn on park page unless launcher is enabled */
 .seaworld-abu-dhabi-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.seaworld-abu-dhabi-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.seaworld-abu-dhabi-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 

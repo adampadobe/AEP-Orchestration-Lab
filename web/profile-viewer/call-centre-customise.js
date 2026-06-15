@@ -34,7 +34,6 @@
     var cd = raw.CoreDemoData || {};
     o.brandName =
       (cd.name && String(cd.name).trim()) ||
-      (cd.airlineName && String(cd.airlineName).trim()) ||
       (raw.brandName && String(raw.brandName).trim()) ||
       '';
     var sp = raw.StaffPortal || {};
@@ -154,7 +153,6 @@
       industryId: c.industryId,
       CoreDemoData: {
         name: c.brandName,
-        airlineName: c.brandName,
       },
       StaffPortal: {
         AgentName: c.agentName,
@@ -171,7 +169,7 @@
     var colour = norm.accentColour ? '#' + norm.accentColour.replace(/^#/, '') : '';
     return Promise.all([
       c.saveSection(c.SECTIONS.CallCentre, { industryId: norm.industryId || 'generic' }),
-      c.saveCoreDemoData({ name: norm.brandName, airlineName: norm.brandName }),
+      c.saveCoreDemoData({ name: norm.brandName }),
       c.saveStaffPortal({ AgentName: norm.agentName, Colour: colour }),
     ]).then(function () {
       return { config: norm };

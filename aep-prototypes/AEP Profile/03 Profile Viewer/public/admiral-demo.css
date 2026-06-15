@@ -124,7 +124,7 @@
 /* ── Brand Concierge launcher ─────────────────────────────────── */
 
 .admiral-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.admiral-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.admiral-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 

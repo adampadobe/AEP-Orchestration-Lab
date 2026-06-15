@@ -274,7 +274,7 @@
         AgentType: 'Customer Care',
         Colour: '#1473e6',
       },
-      CoreDemoData: { name: 'Etihad Airways', airlineName: 'Etihad Airways' },
+      CoreDemoData: { name: 'Etihad Airways' },
       Mobile: { StaffName: 'Demo agent', StaffId: 'AG-001' },
       TravelData: { flightNumber: 'EY455', route: 'AUH → LHR', departureIso: dep, gate: 'B12' },
       CustomerLoyalty: { tier: 'Gold', miles: '128400' },
@@ -287,7 +287,6 @@
     return {
       CoreDemoData: {
         name: coreSrc.name || '',
-        airlineName: coreSrc.airlineName || coreSrc.name || '',
         slogan: coreSrc.slogan || '',
         url: coreSrc.url || '',
         customerLogo: coreSrc.customerLogo || '',
@@ -368,7 +367,6 @@
     if (!core || typeof core !== 'object') return false;
     return !!(
       pickTrimmedBrandField(core.name) ||
-      pickTrimmedBrandField(core.airlineName) ||
       pickTrimmedBrandField(core.shortName) ||
       pickTrimmedBrandField(core.brand) ||
       pickTrimmedBrandField(core.customerShortName)
@@ -400,7 +398,7 @@
   function mergeCoreDemoDataFields(primary, fallback) {
     var p = primary && typeof primary === 'object' ? primary : {};
     var f = fallback && typeof fallback === 'object' ? fallback : {};
-    var keys = ['name', 'airlineName', 'shortName', 'brand', 'customerShortName', 'slogan', 'url', 'customerLogo'];
+    var keys = ['name', 'shortName', 'brand', 'customerShortName', 'slogan', 'url', 'customerLogo'];
     var out = Object.assign({}, f, p);
     keys.forEach(function (k) {
       out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || '';

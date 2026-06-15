@@ -391,7 +391,7 @@
 
 /* ── Brand Concierge launcher — Navigator Global demo ────────── */
 .navigator-global-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.navigator-global-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.navigator-global-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 .navigator-global-demo-page .aep-bc-park-launcher {

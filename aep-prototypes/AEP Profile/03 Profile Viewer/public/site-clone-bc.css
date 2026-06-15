@@ -1,1 +1,40 @@
-/* Modal mount rules live in embed-bc/embed-bc-popup.css (loaded when Modal is checked). */
+/**
+ * Site-clone Brand Concierge chrome — modal FAB, frame host, modal-armed visibility.
+ * Modal popup shell styles load on demand from embed-bc/embed-bc-popup.css.
+ */
+
+#siteCloneBcFab.site-clone-bc-fab {
+  display: none;
+}
+
+body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-clone-bc-frame-host[hidden] {
+  display: none !important;
+}
+
+/* Modal + bottom dock: BC widget draws a nested bordered prompt — flatten to single bar */
+.aep-bc-modal #brand-concierge-mount .input-container,
+.aep-bc-modal #brand-concierge-mount .input-section .input-container,
+.aep-bc-modal #siteCloneBcModalMount .input-container,
+.aep-bc-modal #siteCloneBcModalMount .input-section .input-container {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Keep Sky/site snapshot visible when BC modal is open — no env-bar grey wash */
+body.aep-bc-modal-open .mod-demo-top-anchor::after,
+body.aep-bc-modal-open [class*='-demo-top-anchor']::after,
+body.aep-bc-modal-open .mobile-demo-shell-env-anchor::after,
+body.aep-bc-modal-open .lab-env-top-anchor::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

@@ -137,7 +137,7 @@ html.aep-sim-mobile .etihad-demo-site-frame {
 /* ── Brand Concierge launcher ─────────────────────────────────── */
 
 .etihad-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.etihad-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.etihad-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 

@@ -441,7 +441,7 @@ const rtdbData = await fetch(`${rtdbBase}/ajoLookups/${encodeURIComponent(sandbo
 | Node | Fields used |
 |---|---|
 | `StaffPortal` | `AgentName`, `AgentID`, `AgentType`, `FlightTerminalInfo`, `Colour` (hex, no `#`) |
-| `CoreDemoData` | `name` / `airlineName` (app header) |
+| `CoreDemoData` | `name` (app header) |
 | `TravelData` | `bookingRef`, `flightNumber`, `origin`, `destination`, `departureDate`, `seatNumber`, `seatPreference`, `mealPreference`, `baggageAllowance`, `checkInStatus`, `gateNumber`, `boardingTime`, `flightClass`, `numberOfPassengers` |
 | `CustomerLoyalty` | `tier`, `miles`, `balance`, `memberSince`, `nextTier`, `milesNeeded`, `programName` |
 | `Mobile` | `captainName`, `coPilotName`, `aircraftType`, `departureCountdown`, `crewManifest` (array of `{name, role}`) |
@@ -1219,7 +1219,7 @@ Behaviours:
     const td = rtdbData.TravelData   || {};
     const mb = rtdbData.Mobile       || {};
 
-    setText('gaAirlineName', cd.name || cd.airlineName || 'Etihad Airways');
+    setText('gaAirlineName', cd.name || 'Etihad Airways');
     setText('gaAgentName',   sp.AgentName || '—');
     setText('gaAgentMeta',   [sp.AgentID, sp.AgentType, sp.FlightTerminalInfo].filter(Boolean).join(' · '));
     setText('ipadSandboxLabel', sandbox);

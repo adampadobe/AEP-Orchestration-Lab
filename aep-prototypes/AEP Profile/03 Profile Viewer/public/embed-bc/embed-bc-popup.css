@@ -58,7 +58,7 @@ body.aep-bc-modal-open {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--dash-text, #131313) 18%, transparent);
   border: none;
   padding: 0;
   cursor: pointer;
@@ -71,7 +71,7 @@ body.aep-bc-modal-open {
   display: flex;
   flex-direction: column;
   width: min(920px, 100%);
-  max-height: min(90vh, 760px);
+  max-height: min(90vh, 950px);
   overflow: hidden;
   border-radius: 16px;
   background: linear-gradient(
@@ -122,13 +122,13 @@ body.aep-bc-modal-open {
 
 .aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount:empty,
 .aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount:empty {
-  min-height: 520px;
+  min-height: 650px;
 }
 
 .aep-bc-modal:not(.aep-bc-modal--surface-ready) .aep-bc-modal__mount,
 .aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount,
 .aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount {
-  min-height: 520px;
+  min-height: 650px;
 }
 
 .aep-bc-modal__mount,
@@ -166,7 +166,7 @@ body.aep-bc-modal-open {
   max-width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
-  max-height: min(68vh, 620px) !important;
+  max-height: min(68vh, 775px) !important;
   margin: 0 !important;
   pointer-events: auto;
   background: transparent !important;
@@ -182,7 +182,7 @@ body.aep-bc-modal-open {
   left: auto !important;
   width: 100% !important;
   max-width: 100% !important;
-  max-height: min(62vh, 580px) !important;
+  max-height: min(62vh, 725px) !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;

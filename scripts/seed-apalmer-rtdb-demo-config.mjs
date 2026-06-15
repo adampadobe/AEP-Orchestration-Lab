@@ -32,7 +32,6 @@ const TEST_VALUES = {
   CoreDemoData: {
     name: 'Saga',
     shortName: 'SAG',
-    airlineName: 'Saga',
     slogan: 'Experience is Everything',
     url: 'https://saga.co.uk/#',
     customerLogo: 'https://aep-orchestration-lab.web.app/cdn/apalmer/logo/logo.png',

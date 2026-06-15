@@ -478,7 +478,7 @@
     }
   }
 
-  /** Banner title: "{customer} iPad" from RTDB CoreDemoData (shortName / brand / name / airlineName). */
+  /** Banner title: "{customer} iPad" from RTDB CoreDemoData (shortName / brand / name). */
   function ipadHeroCustomerLabel(cd) {
     cd = cd || {};
     var i;
@@ -487,7 +487,7 @@
       var ex = extras[i] != null ? String(extras[i]).trim() : '';
       if (ex) return ex;
     }
-    var full = ((cd.name && String(cd.name).trim()) || (cd.airlineName && String(cd.airlineName).trim()) || '');
+    var full = (cd.name && String(cd.name).trim()) || '';
     if (!full) return String(getMergedIpad().defaultBrandName || 'Experience Cloud');
     var parts = full.split(/\s+/).filter(Boolean);
     if (parts.length === 1) return parts[0];
@@ -531,9 +531,8 @@
     var mb = rtdbData.Mobile || {};
 
     var ipc = getMergedIpad();
-    var airlineName =
+    var customerName =
       (cd.name && String(cd.name).trim()) ||
-      (cd.airlineName && String(cd.airlineName).trim()) ||
       (cd.shortName && String(cd.shortName).trim()) ||
       '—';
     var agentName = mb.StaffName || sp.AgentName || '—';
@@ -542,7 +541,7 @@
     var terminal = sp.FlightTerminalInfo || mb.Terminal || '';
     var colour = sp.Colour ? String(sp.Colour).replace(/^#/, '') : '';
 
-    setText('gaAirlineName', airlineName);
+    setText('gaAirlineName', customerName);
     setText('gaAgentName', agentName);
     setText('gaAgentMeta', [agentId, agentType, terminal].filter(Boolean).join(' · ') || '—');
 

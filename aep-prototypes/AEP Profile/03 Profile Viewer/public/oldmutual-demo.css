@@ -1072,7 +1072,7 @@ a.om-tab-pill:hover {
 
 /* ── Brand Concierge launcher ─────────────────────────────────── */
 .oldmutual-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.oldmutual-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.oldmutual-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 .oldmutual-demo-page .aep-bc-park-launcher {

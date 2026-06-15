@@ -22,7 +22,6 @@
       },
       CoreDemoData: {
         name: 'Etihad Airways',
-        airlineName: 'Etihad Airways',
       },
       Mobile: {
         StaffName: 'Demo agent',

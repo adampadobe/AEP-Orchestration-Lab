@@ -46,7 +46,6 @@
     var cd = raw.CoreDemoData || {};
     o.brandName =
       (cd.name && String(cd.name).trim()) ||
-      (cd.airlineName && String(cd.airlineName).trim()) ||
       (raw.brandName && String(raw.brandName).trim()) ||
       '';
     o.shortName = (cd.shortName && String(cd.shortName).trim()) || '';
@@ -197,7 +196,6 @@
       callCentre: { industryId: norm.industryId || 'generic' },
       core: {
         name: norm.brandName,
-        airlineName: norm.brandName,
         shortName: norm.shortName,
       },
       staff: {
@@ -216,7 +214,6 @@
       flat: {
         CoreDemoData: {
           name: norm.brandName,
-          airlineName: norm.brandName,
           shortName: norm.shortName,
         },
         StaffPortal: {

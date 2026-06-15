@@ -152,11 +152,8 @@
       }
     }
 
-    /* Same source as etihad-ipad `gaAirlineName`: CoreDemoData.name || CoreDemoData.airlineName (not passenger name). */
-    const brand =
-      (cd.name && String(cd.name).trim()) ||
-      (cd.airlineName && String(cd.airlineName).trim()) ||
-      '';
+    /* Same source as etihad-ipad `gaAirlineName`: CoreDemoData.name (not passenger name). */
+    const brand = (cd.name && String(cd.name).trim()) || '';
     const brandEl = document.getElementById('ccBrandName');
     if (brandEl) brandEl.textContent = brand || CC_DEFAULT_BRAND;
 

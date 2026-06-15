@@ -48,7 +48,6 @@ function buildFlatLabStub() {
     },
     CoreDemoData: {
       name: 'Etihad Airways',
-      airlineName: 'Etihad Airways',
     },
     Mobile: {
       StaffName: 'Demo agent',
@@ -86,7 +85,6 @@ function splitStubIntoSections(flat) {
   return {
     CoreDemoData: {
       name: coreSrc.name || '',
-      airlineName: coreSrc.airlineName || coreSrc.name || '',
       slogan: coreSrc.slogan || '',
       url: coreSrc.url || '',
       customerLogo: coreSrc.customerLogo || '',
