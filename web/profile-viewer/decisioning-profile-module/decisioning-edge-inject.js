@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260612c';
+  var CACHE_BUST = '20260617-top-ribbon';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -125,6 +125,9 @@
       '#' +
       FRAGMENTS.topRibbon +
       '{position:relative;width:100%;box-sizing:border-box;z-index:1;}' +
+      '#' +
+      FRAGMENTS.topRibbon +
+      '.cd-edge-mount-body--ribbon-inline:not(:empty){position:relative;z-index:2147483000;width:100%;}' +
       '#' +
       FRAGMENTS.topRibbon +
       ':empty{display:none;}' +
@@ -609,6 +612,14 @@
       normalizeBannerToBelow(card);
       hideBannerCta(card);
     }
+    var ribbon = doc.getElementById(FRAGMENTS.topRibbon);
+    if (ribbon && !ribbon.matches(':empty')) {
+      ribbon.classList.add('cd-edge-mount-body--ribbon-inline');
+      ribbon.style.position = 'relative';
+      ribbon.style.zIndex = '2147483000';
+      ribbon.style.width = '100%';
+      normalizeTopRibbonMount(ribbon);
+    }
   }
 
   /** Generic site-clone demos (KSIA, Etihad, …): overlay copy on contained image; expand hero host. */
@@ -648,6 +659,40 @@
     }
   }
 
+  function parseTopRibbonContentFromItem(item) {
+    if (!item) return null;
+    var data = item.data || item.characteristics || item;
+    if (!data || typeof data !== 'object') return null;
+    if (data.type === 'topRibbon' && data.content) return data.content;
+    if (data.content && typeof data.content === 'object') {
+      if (data.content.type === 'topRibbon') {
+        return data.content.content && typeof data.content.content === 'object' ? data.content.content : data.content;
+      }
+      if (data.content.message != null || data.content.imageUrl != null || data.content.imageURL != null) {
+        return data.content;
+      }
+    }
+    if (typeof data.content === 'string') {
+      var t = data.content.trim();
+      if (t.charAt(0) === '{' || t.charAt(0) === '[') {
+        try {
+          var parsed = JSON.parse(t);
+          if (parsed && parsed.type === 'topRibbon' && parsed.content) return parsed.content;
+          if (parsed && (parsed.message != null || parsed.imageUrl != null || parsed.imageURL != null)) return parsed;
+        } catch (_e) {
+          /* noop */
+        }
+      }
+    }
+    return null;
+  }
+
+  function ribbonMountNeedsContent(mount) {
+    if (!mount) return false;
+    if (mount.matches(':empty')) return true;
+    return !mount.querySelector('.TopRibbon, .TopRibbon__content, .cd-banner, .cd-edge-ajo-card-inner, iframe');
+  }
+
   function findTopRibbonItem(propositions) {
     if (!propositions || !propositions.length) return null;
     var pi;
@@ -656,12 +701,8 @@
       var items = propositions[pi].items || [];
       for (ii = 0; ii < items.length; ii++) {
         var item = items[ii];
-        var data = item && (item.data || item.characteristics || item);
-        if (!data) continue;
-        if (data.type === 'topRibbon' && data.content) return { item: item, content: data.content };
-        if (data.content && typeof data.content === 'object' && data.content.type === 'topRibbon') {
-          return { item: item, content: data.content };
-        }
+        var content = parseTopRibbonContentFromItem(item);
+        if (content) return { item: item, content: content };
       }
     }
     return null;
@@ -935,6 +976,23 @@
   }
 
   /**
+   * Apply top ribbon from structured AJO payloads and/or scoped EXD items.
+   * @returns {boolean}
+   */
+  function applyTopRibbonFromPropositions(propositions, scopeRoot, opts) {
+    if (!propositions || !propositions.length || !scopeRoot) return false;
+    var mount = scopeRoot.getElementById(FRAGMENTS.topRibbon);
+    if (!mount || !ribbonMountNeedsContent(mount)) return !!mount && !ribbonMountNeedsContent(mount);
+
+    var structured = findTopRibbonItem(propositions);
+    if (structured && renderStructuredTopRibbon(mount, structured.content)) {
+      normalizeTopRibbonMount(mount);
+      return true;
+    }
+    return injectTopRibbon(propositions, scopeRoot, opts);
+  }
+
+  /**
    * Apply all Code Based Experience surfaces (ribbon, hero, content card) like Race for Life / Edge Lab.
    */
   function applyDecisioningPropositions(propositions, root, opts) {
@@ -946,6 +1004,8 @@
 
     ensureDecisioningMounts(scopeRoot, opts.layout);
 
+    applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
+
     if (typeof global.CdEdgeMounts === 'undefined' || typeof global.CdEdgeMounts.applyPropositionsManually !== 'function') {
       return false;
     }
@@ -954,6 +1014,8 @@
       root: scopeRoot,
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
     });
+
+    applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
 
     var ribbonMount = scopeRoot.getElementById(FRAGMENTS.topRibbon);
     if (ribbonMount) normalizeTopRibbonMount(ribbonMount);

@@ -580,6 +580,25 @@
     return el && !el.querySelector('.cd-edge-ajo-card-inner, .cd-banner, iframe');
   }
 
+  function propositionScopesHintTopRibbon(p) {
+    var scopes = collectScopeStrings(p);
+    var si;
+    for (si = 0; si < scopes.length; si++) {
+      if (/topribbon|top-ribbon/i.test(String(scopes[si] || ''))) return true;
+    }
+    return false;
+  }
+
+  function itemLooksLikeTopRibbon(itm) {
+    if (!itm) return false;
+    var data = getItemData(itm);
+    if (!data || typeof data !== 'object') return false;
+    if (data.type === 'topRibbon') return true;
+    if (data.content && typeof data.content === 'object' && data.content.type === 'topRibbon') return true;
+    if (typeof data.content === 'string' && /topribbon/i.test(data.content)) return true;
+    return false;
+  }
+
   function firstEmptyExdMount(mountByKey) {
     var keys = ['topRibbon', 'hero'];
     var ki;
@@ -689,10 +708,17 @@
     }
     for (i = 0; i < propositions.length; i++) {
       p = propositions[i];
-      if (resolveTargetForProposition(p, mountByKey)) continue;
+      var ribbonMount = mountByKey.topRibbon;
+      if (!ribbonMount || !surfaceNotYetRendered(ribbonMount)) continue;
+      if (resolveTargetForProposition(p, mountByKey) && !propositionScopesHintTopRibbon(p)) continue;
       items = p.items || [];
       for (j = 0; j < items.length; j++) {
-        var exdTarget = firstEmptyExdMount(mountByKey);
+        var ribItm = items[j];
+        if (!itemLooksLikeTopRibbon(ribItm) && !propositionScopesHintTopRibbon(p)) continue;
+        if (applyItemToElement(ribbonMount, ribItm)) break;
+      }
+    }
+    for (i = 0; i < propositions.length; i++) {
         if (!exdTarget) break;
         if (applyItemToElement(exdTarget, items[j])) break;
       }
