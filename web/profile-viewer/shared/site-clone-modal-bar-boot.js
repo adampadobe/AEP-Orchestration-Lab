@@ -54,10 +54,14 @@
     global.BrandConciergeModalBar.init({
       panelTitle: readPanelTitle(),
       pillLabel: cfg(page, 'modalBarPillLabel', 'Ask a question'),
+      placeholder: cfg(page, 'modalBarPlaceholder', 'Ask a question…'),
       disclaimer: readDisclaimer(),
       betaLabel: cfg(page, 'modalBarBetaLabel', 'BETA'),
       mountSelector: cfg(page, 'modalBarMountSelector', '#bcModalBarMount'),
       onExpand: function () {
+        if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.relocateWelcome === 'function') {
+          global.BrandConciergeModalBar.relocateWelcome();
+        }
         if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
           void global.SiteCloneBc.sync();
         }

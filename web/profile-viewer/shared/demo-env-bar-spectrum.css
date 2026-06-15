@@ -112,8 +112,27 @@
 
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar {
   display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-field,
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input {
+  min-height: 2.25rem;
 }
 
 .lab-env-overlay-profile {

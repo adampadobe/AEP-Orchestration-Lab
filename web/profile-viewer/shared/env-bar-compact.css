@@ -485,6 +485,8 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar {
   display: none !important;
 }

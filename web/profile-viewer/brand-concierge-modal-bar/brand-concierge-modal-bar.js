@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-modal-bar-v5';
+  var CACHE_BUST = '20260617-modal-bar-v6';
   var SPARKLE_SVG =
     '<svg class="bc-modal-bar__sparkle" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
@@ -22,24 +22,81 @@
     return node;
   }
 
-  function focusMountInput(mount) {
-    if (!mount) return;
+  function findWelcomeBlock(mount) {
+    if (!mount) return null;
+    return (
+      mount.querySelector('.message-blocker') ||
+      mount.querySelector('[class*="message-blocker"]') ||
+      mount.querySelector('.prompt-suggestions-container') ||
+      mount.querySelector('[class*="welcome"]')
+    );
+  }
+
+  function relocateWelcome(mount, slot) {
+    if (!mount || !slot) return;
+    var blocker = findWelcomeBlock(mount);
+    if (!blocker) return;
+    var host =
+      blocker.closest('.message-blocker') ||
+      blocker.closest('[class*="message-blocker"]') ||
+      blocker;
+    if (!host || host.parentNode === slot) return;
+    slot.appendChild(host);
+  }
+
+  function bindWelcomeRelocate(mount, slot) {
+    if (!mount || !slot || mount.dataset.welcomeBound === '1') return;
+    mount.dataset.welcomeBound = '1';
+    var run = function () {
+      relocateWelcome(mount, slot);
+    };
+    run();
+    if (typeof MutationObserver !== 'undefined') {
+      var observer = new MutationObserver(function () {
+        run();
+      });
+      observer.observe(mount, { childList: true, subtree: true });
+    }
+    [120, 400, 900, 1800].forEach(function (ms) {
+      window.setTimeout(run, ms);
+    });
+  }
+
+  function pushToMount(mount, text) {
+    var q = String(text || '').trim();
+    var inputs = mount.querySelectorAll(
+      '.input-section input, .input-section textarea, .input-section [contenteditable="true"]',
+    );
+    var i;
+    for (i = 0; i < inputs.length; i++) {
+      if (inputs[i].getAttribute('contenteditable') === 'true') {
+        inputs[i].textContent = q;
+      } else {
+        inputs[i].value = q;
+      }
+      inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function submitToMount(mount, text) {
+    var q = String(text || '').trim();
+    if (!q) return;
+    pushToMount(mount, q);
+    var sendBtn = mount.querySelector(
+      '.input-section button[type="submit"], .input-section .send-button, .input-section button[aria-label*="Send"]',
+    );
+    if (sendBtn && typeof sendBtn.click === 'function') {
+      sendBtn.click();
+      return;
+    }
     var input = mount.querySelector(
       '.input-section input, .input-section textarea, .input-section [contenteditable="true"]',
     );
-    if (input && typeof input.focus === 'function') input.focus();
-  }
-
-  function clearMountInput(mount) {
-    if (!mount) return;
-    mount.querySelectorAll('.input-section input, .input-section textarea, .input-section [contenteditable="true"]').forEach(function (node) {
-      if (node.getAttribute('contenteditable') === 'true') {
-        node.textContent = '';
-      } else {
-        node.value = '';
-      }
-      node.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    if (input) {
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }),
+      );
+    }
   }
 
   function init(options) {
@@ -50,6 +107,7 @@
 
     var panelTitle = String(opt.panelTitle || 'Ask').trim() || 'Ask';
     var pillLabel = String(opt.pillLabel || 'Ask a question').trim();
+    var placeholder = String(opt.placeholder || 'Ask a question…').trim();
     var disclaimer = String(opt.disclaimer || '').trim();
     var betaLabel = String(opt.betaLabel || 'BETA').trim();
     var mountSelector = String(opt.mountSelector || '#bcModalBarMount').trim();
@@ -83,16 +141,39 @@
     headerActions.appendChild(closeBtn);
     header.appendChild(headerActions);
 
+    var welcomeSlot = el('div', 'bc-modal-bar__welcome');
+
     var body = el('div', 'bc-modal-bar__panel-body');
     var mount = el('div', 'bc-modal-bar__mount');
     mount.id = mountSelector.replace(/^#/, '') || 'bcModalBarMount';
     body.appendChild(mount);
 
+    var composerWrap = el('div', 'bc-modal-bar__composer-wrap');
+    var composer = el('div', 'bc-modal-bar__composer');
+    var composerInner = el('div', 'bc-modal-bar__composer-inner');
+    composerInner.innerHTML = SPARKLE_SVG;
+    var composerInput = el('input', 'bc-modal-bar__composer-input');
+    composerInput.type = 'text';
+    composerInput.placeholder = placeholder;
+    composerInput.setAttribute('autocomplete', 'off');
+    composerInput.setAttribute('spellcheck', 'false');
+    composerInner.appendChild(composerInput);
+    composerInner.appendChild(el('span', 'bc-modal-bar__beta', betaLabel));
+    var sendBtn = el('button', 'bc-modal-bar__composer-send');
+    sendBtn.type = 'button';
+    sendBtn.setAttribute('aria-label', 'Send question');
+    sendBtn.innerHTML = SEND_SVG;
+    composerInner.appendChild(sendBtn);
+    composer.appendChild(composerInner);
+    composerWrap.appendChild(composer);
+
     var footer = el('div', 'bc-modal-bar__panel-footer');
     if (disclaimer) footer.appendChild(el('p', 'bc-modal-bar__disclaimer', disclaimer));
 
     panel.appendChild(header);
+    panel.appendChild(welcomeSlot);
     panel.appendChild(body);
+    panel.appendChild(composerWrap);
     if (disclaimer) panel.appendChild(footer);
 
     var pillWrap = el('div', 'bc-modal-bar__pill');
@@ -111,6 +192,8 @@
     root.appendChild(pillWrap);
     document.body.appendChild(root);
 
+    bindWelcomeRelocate(mount, welcomeSlot);
+
     function setExpanded(on) {
       root.classList.toggle('is-expanded', !!on);
     }
@@ -118,8 +201,9 @@
     function openPanel() {
       setExpanded(true);
       if (typeof opt.onExpand === 'function') opt.onExpand(mount);
+      relocateWelcome(mount, welcomeSlot);
       window.setTimeout(function () {
-        focusMountInput(mount);
+        composerInput.focus();
       }, 180);
     }
 
@@ -129,6 +213,19 @@
         setExpanded(false);
         root.classList.remove('is-wide');
       }
+    }
+
+    function applyQuestion(text) {
+      var q = String(text || '').trim();
+      if (!q) return;
+      composerInput.value = q;
+      submitToMount(mount, q);
+      if (!root.classList.contains('is-expanded')) openPanel();
+    }
+
+    function clearConversation() {
+      composerInput.value = '';
+      pushToMount(mount, '');
     }
 
     pillBtn.addEventListener('click', function () {
@@ -144,16 +241,35 @@
         root.classList.contains('is-wide') ? 'Narrow panel' : 'Expand panel',
       );
     });
-    clearBtn.addEventListener('click', function () {
-      clearMountInput(mount);
+    clearBtn.addEventListener('click', clearConversation);
+    sendBtn.addEventListener('click', function () {
+      applyQuestion(composerInput.value);
+    });
+    composerInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyQuestion(composerInput.value);
+      }
+    });
+
+    welcomeSlot.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+      if (!btn) return;
+      var label = String(btn.textContent || '').trim();
+      if (!label) return;
+      applyQuestion(label);
     });
 
     var api = {
       root: root,
       mount: mount,
+      welcomeSlot: welcomeSlot,
       setVisible: setVisible,
       setExpanded: setExpanded,
       openPanel: openPanel,
+      relocateWelcome: function () {
+        relocateWelcome(mount, welcomeSlot);
+      },
     };
     global.BrandConciergeModalBar = api;
     return api;
