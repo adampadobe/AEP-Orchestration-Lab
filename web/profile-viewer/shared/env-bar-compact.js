@@ -17,6 +17,7 @@
   var PROFILE_ONLY_CLASS = 'lab-env-top-anchor--profile-only';
   var CONFIGURING_CLASS = 'lab-env-top-anchor--configuring';
   var selectDismissGraceUntil = 0;
+  var datastreamManualEntryOpen = false;
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var DOCK_ICON_SVG =
     '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -77,6 +78,7 @@
 
   function shouldBlockOverlayDismiss(anchor) {
     anchor = anchor || resolveAnchor();
+    if (datastreamManualEntryOpen) return true;
     if (isOverlayPinned(anchor)) return true;
     if (isConfiguring(anchor)) return true;
     if (isNativeSelectEngaged()) return true;
@@ -137,8 +139,10 @@
     panel.addEventListener(
       'focusout',
       function (ev) {
+        if (datastreamManualEntryOpen) return;
         if (!isConfiguring(anchor)) return;
         global.setTimeout(function () {
+          if (datastreamManualEntryOpen) return;
           if (isNativeSelectEngaged()) return;
           if (isOverlayPinned(anchor)) return;
           var active = document.activeElement;
@@ -523,11 +527,21 @@
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Escape') return;
+      if (datastreamManualEntryOpen) return;
       if (isOverlayPinned(anchor)) return;
       if (!isOverlayOpen(anchor)) return;
       closeOverlay(anchor);
     });
   }
+
+  global.addEventListener('aep-lab-datastream-manual-entry', function (ev) {
+    datastreamManualEntryOpen = !!(ev && ev.detail && ev.detail.open);
+    var anchor = resolveAnchor();
+    if (datastreamManualEntryOpen) {
+      setConfiguring(anchor, true);
+      if (anchor && !isOverlayOpen(anchor)) openOverlay(anchor, isOverlayPinned(anchor));
+    }
+  });
 
   global.addEventListener('aep-demo-env-configured', function () {
     if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;

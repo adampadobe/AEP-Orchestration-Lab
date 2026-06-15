@@ -223,10 +223,31 @@
   flex-direction: column;
   gap: 0.45rem;
   margin-top: 0.35rem;
+  position: relative;
+  z-index: 30;
+  pointer-events: auto;
 }
 
 .site-clone-bc-datastream-manual-row[hidden] {
   display: none !important;
+}
+
+.site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.site-clone-bc-datastream-manual-open {
+  position: relative;
+  z-index: 40;
 }
 
 .site-clone-bc-datastream-manual-input {

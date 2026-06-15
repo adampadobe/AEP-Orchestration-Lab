@@ -551,6 +551,7 @@ function datastreamOptionLabelForId(id) {
 function renderSiteCloneBcDatastreamSelectOptions() {
   const el = siteCloneBcDatastreamEl();
   if (!el || el.tagName !== 'SELECT') return;
+  if (isSiteCloneBcDatastreamManualEntryOpen()) return;
   const previous = sanitiseSiteCloneBcDatastreamId(el.value);
   const persisted = readPersistedSiteCloneBcDatastreamId();
   const selectedId = previous || persisted;
@@ -621,6 +622,7 @@ function saveSiteCloneBcDatastreamId() {
 
 function applySiteCloneBcDatastreamFieldForSandbox(sandboxKey) {
   if (!siteCloneBcDatastreamEl()) return;
+  if (isSiteCloneBcDatastreamManualEntryOpen()) return;
   const storedId = readPersistedSiteCloneBcDatastreamId(sandboxKey);
   renderSiteCloneBcDatastreamSelectOptions();
   if (storedId) {
@@ -661,6 +663,30 @@ function refreshSiteCloneBcDatastreamHint() {
 const DATASTREAM_MANUAL_ROW_ID = 'siteCloneBcDatastreamUuidManualRow';
 const DATASTREAM_MANUAL_INPUT_ID = 'siteCloneBcDatastreamUuidManual';
 const DATASTREAM_MANUAL_ERROR_ID = 'siteCloneBcDatastreamUuidManualError';
+const DATASTREAM_MANUAL_APPLY_ID = 'siteCloneBcDatastreamUuidManualApply';
+const DATASTREAM_MANUAL_CANCEL_ID = 'siteCloneBcDatastreamUuidManualCancel';
+const DATASTREAM_MANUAL_FORM_CLASS = 'site-clone-bc-datastream-manual-open';
+
+let siteCloneBcDatastreamManualEntryOpen = false;
+let siteCloneBcDatastreamManualHandlersBound = false;
+
+function isSiteCloneBcDatastreamManualEntryOpen() {
+  return siteCloneBcDatastreamManualEntryOpen;
+}
+
+function setSiteCloneBcDatastreamManualEntryOpen(open) {
+  siteCloneBcDatastreamManualEntryOpen = !!open;
+  const row = findSiteCloneBcDatastreamManualRow();
+  const fieldWrap = row && row.closest('.form-group, .form-row, .site-clone-bc-datastream-row');
+  if (fieldWrap) fieldWrap.classList.toggle(DATASTREAM_MANUAL_FORM_CLASS, siteCloneBcDatastreamManualEntryOpen);
+  try {
+    global.dispatchEvent(
+      new CustomEvent('aep-lab-datastream-manual-entry', { detail: { open: siteCloneBcDatastreamManualEntryOpen } }),
+    );
+  } catch (_evErr) {
+    /* ignore */
+  }
+}
 
 function findSiteCloneBcDatastreamManualRow() {
   return document.getElementById(DATASTREAM_MANUAL_ROW_ID);
@@ -675,7 +701,12 @@ function closeSiteCloneBcDatastreamManualEntry(restoreSelectValue) {
   const err = document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
   if (err) err.textContent = '';
   if (row) row.hidden = true;
+  setSiteCloneBcDatastreamManualEntryOpen(false);
   const dsInput = siteCloneBcDatastreamEl();
+  if (dsInput) {
+    dsInput.removeAttribute('aria-hidden');
+    dsInput.tabIndex = 0;
+  }
   if (dsInput && restoreSelectValue != null) {
     renderSiteCloneBcDatastreamSelectOptions();
     dsInput.value = restoreSelectValue || '';
@@ -696,84 +727,74 @@ function applySiteCloneBcDatastreamManualEntry() {
     return false;
   }
   if (err) err.textContent = '';
+  setSiteCloneBcDatastreamManualEntryOpen(false);
   recordRecentSiteCloneBcDatastreamId(id);
   renderSiteCloneBcDatastreamSelectOptions();
   dsInput.value = id;
-  closeSiteCloneBcDatastreamManualEntry(null);
+  const row = findSiteCloneBcDatastreamManualRow();
+  if (row) row.hidden = true;
+  dsInput.removeAttribute('aria-hidden');
+  dsInput.tabIndex = 0;
   return true;
-}
-
-function ensureSiteCloneBcDatastreamManualRow(selectEl) {
-  let row = findSiteCloneBcDatastreamManualRow();
-  if (row) return row;
-  row = document.createElement('div');
-  row.id = DATASTREAM_MANUAL_ROW_ID;
-  row.className = 'site-clone-bc-datastream-manual-row';
-  row.hidden = true;
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = DATASTREAM_MANUAL_INPUT_ID;
-  input.className =
-    'site-clone-bc-datastream-input site-clone-bc-datastream-manual-input spectrum-env-input';
-  input.placeholder = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
-  input.autocomplete = 'off';
-  input.spellcheck = false;
-  input.setAttribute('aria-label', 'Datastream UUID');
-  input.setAttribute('inputmode', 'text');
-
-  const actions = document.createElement('div');
-  actions.className = 'site-clone-bc-datastream-manual-actions';
-
-  const applyBtn = document.createElement('button');
-  applyBtn.type = 'button';
-  applyBtn.className =
-    'btn-lookup spectrum-btn spectrum-btn--primary site-clone-bc-datastream-manual-apply';
-  applyBtn.textContent = 'Apply UUID';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className =
-    'btn-lookup spectrum-btn spectrum-btn--secondary site-clone-bc-datastream-manual-cancel';
-  cancelBtn.textContent = 'Cancel';
-
-  actions.appendChild(applyBtn);
-  actions.appendChild(cancelBtn);
-
-  const err = document.createElement('p');
-  err.id = DATASTREAM_MANUAL_ERROR_ID;
-  err.className =
-    'site-clone-bc-datastream-manual-error site-clone-bc-style-url-hint spectrum-env-field__hint';
-  err.setAttribute('aria-live', 'polite');
-
-  row.appendChild(input);
-  row.appendChild(actions);
-  row.appendChild(err);
-
-  const hint = document.getElementById('siteCloneBcDatastreamHint');
-  if (hint && hint.parentNode) {
-    hint.parentNode.insertBefore(row, hint);
-  } else if (selectEl && selectEl.parentNode) {
-    selectEl.parentNode.insertBefore(row, selectEl.nextSibling);
-  }
-
-  return row;
 }
 
 function openSiteCloneBcDatastreamManualEntry(fallback) {
   const dsInput = siteCloneBcDatastreamEl();
-  if (!dsInput) return;
-  const row = ensureSiteCloneBcDatastreamManualRow(dsInput);
+  const row = findSiteCloneBcDatastreamManualRow();
   const input = findSiteCloneBcDatastreamManualInput();
-  if (!row || !input) return;
+  if (!dsInput || !row || !input) return;
   row.hidden = false;
+  setSiteCloneBcDatastreamManualEntryOpen(true);
   input.value = fallback || '';
+  dsInput.setAttribute('aria-hidden', 'true');
+  dsInput.tabIndex = -1;
   const err = document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
   if (err) err.textContent = '';
-  global.setTimeout(function () {
-    input.focus();
-    if (typeof input.select === 'function') input.select();
-  }, 0);
+  global.requestAnimationFrame(function () {
+    input.focus({ preventScroll: true });
+  });
+}
+
+function bindSiteCloneBcDatastreamManualHandlers(onApplied, getRestoreValue) {
+  if (siteCloneBcDatastreamManualHandlersBound) return;
+  const row = findSiteCloneBcDatastreamManualRow();
+  const input = findSiteCloneBcDatastreamManualInput();
+  const applyBtn = document.getElementById(DATASTREAM_MANUAL_APPLY_ID);
+  const cancelBtn = document.getElementById(DATASTREAM_MANUAL_CANCEL_ID);
+  if (!row || !input) return;
+  siteCloneBcDatastreamManualHandlersBound = true;
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function () {
+      if (!applySiteCloneBcDatastreamManualEntry()) return;
+      if (typeof onApplied === 'function') onApplied();
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function () {
+      const restore = typeof getRestoreValue === 'function' ? getRestoreValue() : '';
+      closeSiteCloneBcDatastreamManualEntry(restore);
+    });
+  }
+  if (input) {
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (applyBtn) applyBtn.click();
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (cancelBtn) cancelBtn.click();
+      }
+    });
+    input.addEventListener('mousedown', function () {
+      setSiteCloneBcDatastreamManualEntryOpen(true);
+    });
+    input.addEventListener('focus', function () {
+      setSiteCloneBcDatastreamManualEntryOpen(true);
+    });
+  }
 }
 
 async function loadSiteCloneBcDatastreams() {
@@ -1087,53 +1108,20 @@ function bootSiteCloneBcDatastreamPicker() {
 
   let lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
   let manualEntryRestoreValue = '';
-  let manualEntryOpen = false;
 
-  function bindManualRowHandlers(row) {
-    if (!row || row.dataset.manualBound === '1') return;
-    row.dataset.manualBound = '1';
-    const input = findSiteCloneBcDatastreamManualInput();
-    const applyBtn = row.querySelector('.site-clone-bc-datastream-manual-apply');
-    const cancelBtn = row.querySelector('.site-clone-bc-datastream-manual-cancel');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', function () {
-        if (!applySiteCloneBcDatastreamManualEntry()) return;
-        manualEntryOpen = false;
-        onDatastreamFieldChange();
-      });
-    }
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', function () {
-        manualEntryOpen = false;
-        closeSiteCloneBcDatastreamManualEntry(manualEntryRestoreValue);
-      });
-    }
-    if (input) {
-      input.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter') {
-          ev.preventDefault();
-          if (applyBtn) applyBtn.click();
-        } else if (ev.key === 'Escape') {
-          ev.preventDefault();
-          if (cancelBtn) cancelBtn.click();
-        }
-      });
-    }
-  }
+  bindSiteCloneBcDatastreamManualHandlers(onDatastreamFieldChange, function () {
+    return manualEntryRestoreValue;
+  });
 
   if (dsInput.tagName === 'SELECT') {
     dsInput.addEventListener('change', function () {
       if (dsInput.value === DATASTREAM_ENTER_UUID_VALUE) {
         manualEntryRestoreValue =
           lastBcDatastreamIdForLiveEdge || readPersistedSiteCloneBcDatastreamId() || '';
-        const row = ensureSiteCloneBcDatastreamManualRow(dsInput);
-        bindManualRowHandlers(row);
-        manualEntryOpen = true;
         openSiteCloneBcDatastreamManualEntry(manualEntryRestoreValue);
         return;
       }
-      if (manualEntryOpen) {
-        manualEntryOpen = false;
+      if (isSiteCloneBcDatastreamManualEntryOpen()) {
         closeSiteCloneBcDatastreamManualEntry(null);
       }
       onDatastreamFieldChange();
