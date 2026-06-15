@@ -26,11 +26,11 @@
       compactJs: '20260617-profile-peek-v3',
       compactCss: '20260617-profile-peek-v5',
       bootstrap: '20260602-env-bar-bootstrap',
-      prefsLocal: '20260624-sandbox-persist-fix',
-      prefsSync: '20260614-inject-guard',
-      tagsInjection: '20260625-tags-status-stable',
-      aepDemoEnvBar: '20260625-env-configured',
-      siteCloneBcEnv: '20260625-datastream-select',
+      prefsLocal: '20260625-incognito-env-fix',
+      prefsSync: '20260625-incognito-env-fix',
+      tagsInjection: '20260625-incognito-env-fix',
+      aepDemoEnvBar: '20260625-incognito-env-fix',
+      siteCloneBcEnv: '20260625-incognito-env-fix',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
@@ -966,10 +966,18 @@
     if (!name) return false;
     log('setEnvironment', name);
 
-    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-      global.AepGlobalSandbox.setSelected(name, { source: 'user' });
-    } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
-      global.AepLabEnvBarPrefs.setSelectedSandbox(name, { explicit: true });
+    var current =
+      global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function'
+        ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
+        : '';
+    var sandboxChanged = current !== name;
+
+    if (sandboxChanged) {
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
+        global.AepGlobalSandbox.setSelected(name, { source: 'user' });
+      } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
+        global.AepLabEnvBarPrefs.setSelectedSandbox(name, { explicit: true });
+      }
     }
 
     var select = document.getElementById('sandboxSelect');
@@ -983,9 +991,11 @@
         }
       }
       if (!matched) select.value = name;
-      try {
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (_e) {}
+      if (sandboxChanged && String(select.value || '').trim() === name) {
+        try {
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (_e) {}
+      }
     }
 
     if (state.tagsInjection && typeof state.tagsInjection.applySandboxConfigState === 'function') {
@@ -995,7 +1005,7 @@
     }
 
     if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {
-      global.SiteCloneBcEnv.applyForCurrentSandbox();
+      global.SiteCloneBcEnv.applyForCurrentSandbox({ force: sandboxChanged });
     }
 
     notifyChange({ type: 'sandbox', sandbox: name, config: getConfig() });

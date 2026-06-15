@@ -239,6 +239,9 @@
 
   function initSandboxSelect(selectEl) {
     if (!selectEl || typeof global.AepGlobalSandbox === 'undefined') return;
+    if (typeof global.AepGlobalSandbox.applyStoredSandboxToSelect === 'function') {
+      global.AepGlobalSandbox.applyStoredSandboxToSelect(selectEl);
+    }
     if (typeof global.AepGlobalSandbox.onSandboxSelectChange === 'function') {
       global.AepGlobalSandbox.onSandboxSelectChange(selectEl);
     }

@@ -420,6 +420,10 @@
     let selectedScriptUrl = '';
     let allPropertyOptions = [];
     let selectedPropertyId = '';
+    let tagsCompaniesLoadGen = 0;
+    let tagsPropertiesLoadGen = 0;
+    let tagsSandboxReloadTimer = null;
+    let tagsSandboxReloadKey = '';
 
     function renderSelectedScript(url) {
       const prev = selectedScriptUrl;
@@ -957,10 +961,13 @@
 
     async function loadTagsCompanies() {
       if (!tagsCompanySelect) return;
+      const loadGen = ++tagsCompaniesLoadGen;
+      const sandboxKeyAtStart = getSandboxKey();
       applyPersistedTagsFieldsEarly();
       try {
         setMessage('Loading Tags companies...', '');
         const items = await fetchTags('companies');
+        if (loadGen !== tagsCompaniesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
         setSelectOptions(
           tagsCompanySelect,
           items,
@@ -1043,9 +1050,12 @@
         syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
+      const loadGen = ++tagsPropertiesLoadGen;
+      const sandboxKeyAtStart = getSandboxKey();
       try {
         setMessage('Loading properties...', '');
         const items = await fetchTags('properties', companyId, '');
+        if (loadGen !== tagsPropertiesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
         allPropertyOptions = filterPropertiesForSandbox(items, cfg);
         const prefix = resolveTagsPropertyNamePrefix(cfg);
         if (prefix && !allPropertyOptions.length) {
@@ -1557,11 +1567,54 @@
       }
     }
 
-    global.addEventListener('aep-global-sandbox-change', function () {
+    function scheduleTagsReloadForSandbox(options) {
+      const opts = options || {};
+      const nextKey = getSandboxKey();
+      if (!opts.force && nextKey === tagsSandboxReloadKey && tagsCompaniesLoadGen > 0) {
+        refreshTagsDom();
+        applyPersistedTagsFieldsEarly();
+        if (opts.announceSandboxChange) {
+          applySandboxConfigState({ announceSandboxChange: true });
+        }
+        const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
+        if (companyId) {
+          void loadTagsProperties(companyId);
+        }
+        return;
+      }
+      clearTimeout(tagsSandboxReloadTimer);
+      tagsSandboxReloadTimer = setTimeout(function () {
+        tagsSandboxReloadTimer = null;
+        tagsSandboxReloadKey = getSandboxKey();
+        refreshTagsDom();
+        applyPersistedTagsFieldsEarly();
+        if (opts.announceSandboxChange) {
+          applySandboxConfigState({ announceSandboxChange: true });
+        }
+        void loadTagsCompanies();
+      }, 0);
+    }
+
+    function applyTagsPrefsAfterSync() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
-      applySandboxConfigState({ announceSandboxChange: true });
+      applySandboxConfigState();
+      const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
+      if (companyId) {
+        void loadTagsProperties(companyId);
+        return;
+      }
       void loadTagsCompanies();
+    }
+
+    global.addEventListener('aep-global-sandbox-change', function () {
+      scheduleTagsReloadForSandbox({ announceSandboxChange: true });
+    });
+
+    global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
+      if (!tagsDomReady()) return;
+      if (!tagsListenersBound) bindTagsListenersOnce();
+      applyTagsPrefsAfterSync();
     });
 
     let tagsBootStarted = false;

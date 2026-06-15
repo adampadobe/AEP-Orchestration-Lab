@@ -1030,9 +1030,19 @@ function bootSiteCloneBcDatastreamPicker() {
     }
   }
 
-  function applyEnvForCurrentSandbox() {
+  function applyEnvForCurrentSandbox(opts) {
+    var force = !!(opts && opts.force);
     refreshStripDomRefs();
     bindStripDomListenersOnce();
+    var nextKey = getSandboxKey();
+    if (!force && nextKey === envSandboxKey && stripDomListenersBound) {
+      applySiteCloneBcStyleConfigFieldForSandbox();
+      applySiteCloneBcDatastreamFieldForSandbox();
+      applySiteCloneBcDisplayPrefsToUi();
+      syncSiteCloneBcFromPrefs();
+      syncDecisioningFromPrefs();
+      return;
+    }
     bootSiteCloneBcDatastreamPicker();
     if (typeof env().applyWebPushToggle === 'function') env().applyWebPushToggle();
     else applyWebPushOnInjectToggle();
@@ -1086,11 +1096,22 @@ function bootSiteCloneBcDatastreamPicker() {
     sandboxEnvSwitching = true;
     try {
       if (envSandboxKey) flushEnvForSandboxKey(envSandboxKey);
-      envSandboxKey = getSandboxKey();
-      applyEnvForCurrentSandbox();
+      var nextKey = getSandboxKey();
+      var changed = nextKey !== envSandboxKey;
+      envSandboxKey = nextKey;
+      applyEnvForCurrentSandbox({ force: changed });
     } finally {
       sandboxEnvSwitching = false;
     }
+  });
+
+  global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
+    if (!stripDomIsMounted()) return;
+    applySiteCloneBcStyleConfigFieldForSandbox();
+    applySiteCloneBcDatastreamFieldForSandbox();
+    applySiteCloneBcDisplayPrefsToUi();
+    syncSiteCloneBcFromPrefs();
+    syncDecisioningFromPrefs();
   });
 
   envSandboxKey = getSandboxKey();

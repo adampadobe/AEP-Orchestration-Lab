@@ -269,7 +269,9 @@
   function setSelectedSandbox(name, opts) {
     var v = String(name || '').trim();
     var explicit = !opts || opts.explicit !== false;
+    var prev = getSelectedSandbox();
     if (explicit && v) markSandboxUserPick();
+    if (v === prev) return;
     patchDoc({ selectedSandbox: v });
     try {
       if (v) global.localStorage.setItem(LS_SANDBOX, v);
@@ -477,17 +479,26 @@
     }
     var applySandboxUi = sb && (!skipSandbox || tagsInjectInProgress());
     if (applySandboxUi) {
+      var current =
+        global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSelected === 'function'
+          ? String(global.AepGlobalSandbox.getSelected() || '').trim()
+          : getSelectedSandbox();
       try {
-        global.localStorage.setItem(LS_SANDBOX, sb);
+        if (sb) global.localStorage.setItem(LS_SANDBOX, sb);
       } catch (_e) {}
-      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-        global.AepGlobalSandbox.setSelected(sb, {
-          source: tagsInjectInProgress() ? 'programmatic' : 'sync',
-        });
+      if (sb !== current) {
+        if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
+          global.AepGlobalSandbox.setSelected(sb, {
+            source: tagsInjectInProgress() ? 'programmatic' : 'sync',
+          });
+        }
       }
       var select = global.document && global.document.getElementById('sandboxSelect');
-      if (select) {
+      if (select && sb && select.value !== sb) {
         select.value = sb;
+        if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.applyStoredSandboxToSelect === 'function') {
+          global.AepGlobalSandbox.applyStoredSandboxToSelect(select);
+        }
       }
     }
     try {

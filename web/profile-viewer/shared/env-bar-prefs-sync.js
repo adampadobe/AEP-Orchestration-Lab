@@ -119,8 +119,12 @@
               })
               .then(function (body) {
                 if (res.ok && body && body.ok && body.preferences && mod.importFromSync) {
-                  /* Server may sanitize — re-apply */
-                  mod.importFromSync(body.preferences);
+                  var exported = mod.exportForSync();
+                  var serverJson = JSON.stringify(body.preferences);
+                  var localJson = JSON.stringify(exported);
+                  if (serverJson !== localJson) {
+                    mod.importFromSync(body.preferences);
+                  }
                 }
                 return body;
               });
@@ -153,9 +157,9 @@
           : global.AepGlobalSandbox && global.AepGlobalSandbox.getSandboxName
             ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
             : '';
-      if (name) {
+      if (name && name !== mod.getSelectedSandbox()) {
         mod.setSelectedSandbox(name, { explicit: detail.source === 'user' });
-      } else {
+      } else if (!name) {
         schedulePush();
       }
     });
