@@ -50,6 +50,14 @@
   outline: none !important;
 }
 
+.sky-llm-filter-shell input[role='combobox'],
+.sky-llm-filter-shell .multiselect-as-select > button:not(.sky-llm-filter-trigger),
+.sky-llm-filter-shell button[aria-haspopup='listbox']:not(.sky-llm-filter-trigger) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 .sky-llm-platform-host,
 .sky-llm-date-host {
   position: relative;

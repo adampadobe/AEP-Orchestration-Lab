@@ -510,9 +510,7 @@
   }
 
   function findControlShell(control) {
-    if (!control) return null;
-    var shell = findPickerShell(control);
-    return shell || control.parentElement;
+    return findPickerShell(control);
   }
 
   function suppressUiBlockers() {
@@ -827,26 +825,39 @@
     });
   }
 
-  function findPickerShell(combobox) {
-    var el = combobox;
+  function findPickerShell(control) {
+    if (!control) return null;
+    var el = control.parentElement;
+    var best = control.parentElement;
     for (var i = 0; i < 12 && el; i++) {
-      if (
-        el.querySelector &&
-        el.querySelector('input[role="combobox"]') &&
-        el.querySelector('button[aria-haspopup="listbox"]')
-      ) {
-        return el;
+      if (!el.contains(control)) break;
+      var combos = Array.from(el.querySelectorAll('input[role="combobox"]'));
+      var listBtns = Array.from(el.querySelectorAll('button[aria-haspopup="listbox"]'));
+      var exclusive = false;
+      if (control.getAttribute('role') === 'combobox') {
+        exclusive = combos.length === 1 && combos[0] === control;
+      } else if (control.getAttribute('aria-haspopup') === 'listbox') {
+        exclusive = listBtns.length === 1 && listBtns[0] === control && combos.length === 0;
       }
+      if (exclusive) best = el;
       el = el.parentElement;
     }
-    return combobox.parentElement;
+    return best;
   }
 
-  function removePicker(shell, hostClass, shellClass) {
+  function removePicker(shell, hostClass, shellClass, control) {
     if (!shell) return;
-    var host = shell.querySelector('.' + hostClass);
-    if (host) host.remove();
-    shell.classList.remove(shellClass);
+    Array.from(shell.querySelectorAll('.' + hostClass)).forEach(function (host) {
+      if (control && host.__skyControl !== control) return;
+      host.remove();
+    });
+    if (!shell.querySelector('.' + hostClass)) shell.classList.remove(shellClass);
+  }
+
+  function findExistingPickerHost(shell, hostClass, control, triggerClass) {
+    return Array.from(shell.querySelectorAll('.' + hostClass)).find(function (host) {
+      return host.__skyControl === control && (!triggerClass || host.querySelector('.' + triggerClass));
+    });
   }
 
   function findMetricValueInCard(root, labelEl) {
@@ -1478,12 +1489,12 @@
     var shell = findPickerShell(combobox);
     if (!shell) return null;
 
-    var existing = shell.querySelector('.' + config.hostClass);
-    if (existing && existing.querySelector('.' + config.triggerClass)) {
+    var existing = findExistingPickerHost(shell, config.hostClass, combobox, config.triggerClass);
+    if (existing) {
       return { shell: shell, host: existing, closeMenu: existing.__skyCloseMenu };
     }
 
-    removePicker(shell, config.hostClass, config.shellClass);
+    removePicker(shell, config.hostClass, config.shellClass, combobox);
 
     shell.classList.add(config.shellClass);
     combobox.setAttribute('tabindex', '-1');
@@ -1491,6 +1502,7 @@
 
     var host = document.createElement('div');
     host.className = config.hostClass;
+    host.__skyControl = combobox;
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
@@ -1759,16 +1771,16 @@
   }
 
   function buildStagedFilterPicker(control, config) {
-    var shell = findControlShell(control);
+    var shell = findPickerShell(control);
     if (!shell) return null;
 
-    var existing = shell.querySelector('.' + config.hostClass);
+    var existing = findExistingPickerHost(shell, config.hostClass, control);
     if (existing && existing.__skyStagedPicker) {
       if (existing.__skyRenderTrigger) existing.__skyRenderTrigger(false);
       return existing;
     }
 
-    removePicker(shell, config.hostClass, config.shellClass);
+    removePicker(shell, config.hostClass, config.shellClass, control);
 
     shell.classList.add(config.shellClass);
     control.setAttribute('tabindex', '-1');
@@ -1777,6 +1789,7 @@
     var host = document.createElement('div');
     host.className = config.hostClass;
     host.__skyStagedPicker = true;
+    host.__skyControl = control;
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
@@ -2220,15 +2233,13 @@
   function buildCategoryPicker() {
     buildListFilterPicker('category', {
       ariaLabel: 'Category',
-      accentWhenOpen: true,
       options: getCategoryOptions,
       isSelected: function (o) {
         return o.id === state.categoryId;
       },
       renderTrigger: function (isOpen) {
         var sel = selectedListOption(getCategoryOptions(), state.categoryId);
-        var label = isOpen ? 'Category: ' + (sel ? sel.name : 'All Categories') : sel ? sel.name : 'All Categories';
-        return listPickerTriggerHtml(label, isOpen);
+        return listPickerTriggerHtml(sel ? sel.name : 'All Categories', isOpen);
       },
       renderOption: listPickerOptionHtml,
       getOptionId: function (o) {
