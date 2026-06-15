@@ -147,7 +147,9 @@
         global.EnvBarCompact &&
         typeof global.EnvBarCompact.isOpen === 'function' &&
         global.EnvBarCompact.isOpen();
-      var showFullEditor = configuring || pinned || launchScriptNotSet() || overlayOpen;
+      var datastreamPasteVisible = !!document.getElementById('siteCloneBcDatastreamUuidManual');
+      var showFullEditor =
+        configuring || pinned || launchScriptNotSet() || overlayOpen || datastreamPasteVisible;
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
         collapseEl.setAttribute('hidden', '');

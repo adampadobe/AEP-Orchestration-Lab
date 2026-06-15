@@ -821,6 +821,78 @@ function findSiteCloneBcDatastreamManualInput(preferredRoot) {
   return document.getElementById(DATASTREAM_MANUAL_INPUT_ID);
 }
 
+function ensureSiteCloneBcDatastreamManualRow(preferredRoot) {
+  const root = preferredRoot || activeSiteCloneBcEnvStripRoot();
+  let row = findSiteCloneBcDatastreamManualRow(root);
+  if (row) {
+    row.removeAttribute('hidden');
+    return row;
+  }
+  const dsInput = siteCloneBcDatastreamEl(root);
+  if (!dsInput || !dsInput.parentNode) return null;
+
+  row = document.createElement('div');
+  row.id = DATASTREAM_MANUAL_ROW_ID;
+  row.className = 'site-clone-bc-datastream-manual-row';
+
+  const label = document.createElement('label');
+  label.className = 'site-clone-bc-datastream-manual-label spectrum-env-field__label';
+  label.setAttribute('for', DATASTREAM_MANUAL_INPUT_ID);
+  label.textContent = 'Or paste datastream UUID';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = DATASTREAM_MANUAL_INPUT_ID;
+  input.className =
+    'site-clone-bc-datastream-input site-clone-bc-datastream-manual-input spectrum-env-input';
+  input.placeholder = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.setAttribute('aria-label', 'Paste datastream UUID');
+  input.setAttribute('inputmode', 'text');
+
+  const actions = document.createElement('div');
+  actions.className = 'site-clone-bc-datastream-manual-actions';
+
+  const applyBtn = document.createElement('button');
+  applyBtn.type = 'button';
+  applyBtn.id = DATASTREAM_MANUAL_APPLY_ID;
+  applyBtn.className =
+    'btn-lookup spectrum-btn spectrum-btn--primary site-clone-bc-datastream-manual-apply';
+  applyBtn.textContent = 'Apply UUID';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.id = DATASTREAM_MANUAL_CANCEL_ID;
+  cancelBtn.className =
+    'btn-lookup spectrum-btn spectrum-btn--secondary site-clone-bc-datastream-manual-cancel';
+  cancelBtn.textContent = 'Clear';
+
+  actions.appendChild(applyBtn);
+  actions.appendChild(cancelBtn);
+
+  const err = document.createElement('p');
+  err.id = DATASTREAM_MANUAL_ERROR_ID;
+  err.className =
+    'site-clone-bc-datastream-manual-error site-clone-bc-style-url-hint spectrum-env-field__hint';
+  err.setAttribute('aria-live', 'polite');
+
+  row.appendChild(label);
+  row.appendChild(input);
+  row.appendChild(actions);
+  row.appendChild(err);
+
+  const hint = findSiteCloneBcDatastreamHint(root);
+  if (hint && hint.parentNode) {
+    hint.parentNode.insertBefore(row, hint);
+  } else {
+    dsInput.parentNode.insertBefore(row, dsInput.nextSibling);
+  }
+
+  datastreamDebugLog('ensureSiteCloneBcDatastreamManualRow — injected missing paste row');
+  return row;
+}
+
 function syncSiteCloneBcDatastreamManualInputFromStored(storedId, preferredRoot) {
   const input = findSiteCloneBcDatastreamManualInput(preferredRoot);
   if (!input) return;
@@ -896,26 +968,36 @@ function applySiteCloneBcDatastreamManualEntry(scopeFromNode) {
 
 function openSiteCloneBcDatastreamManualEntry(fallback, scopeFromNode) {
   const fieldRoot = resolveDatastreamFieldRoot(scopeFromNode);
+  ensureSiteCloneBcDatastreamManualRow(fieldRoot);
   const dsInput = siteCloneBcDatastreamEl(fieldRoot);
   const row = findSiteCloneBcDatastreamManualRow(fieldRoot);
   const input = findSiteCloneBcDatastreamManualInput(fieldRoot);
-  if (!dsInput || !row || !input) return;
-  if (row.hasAttribute('hidden')) row.removeAttribute('hidden');
+  if (!dsInput || !row || !input) {
+    datastreamDebugLog('openSiteCloneBcDatastreamManualEntry aborted', {
+      hasSelect: !!dsInput,
+      hasRow: !!row,
+      hasInput: !!input,
+    });
+    return;
+  }
+  row.removeAttribute('hidden');
   setSiteCloneBcDatastreamManualEntryOpen(true, fieldRoot);
   if (fallback && !String(input.value || '').trim()) input.value = fallback;
-  dsInput.setAttribute('aria-hidden', 'true');
-  dsInput.tabIndex = -1;
+  if (dsInput) {
+    dsInput.removeAttribute('aria-hidden');
+    dsInput.tabIndex = 0;
+  }
   const errEl = fieldRoot
     ? fieldRoot.querySelector('#' + DATASTREAM_MANUAL_ERROR_ID)
     : document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
   if (errEl) errEl.textContent = '';
   global.requestAnimationFrame(function () {
-    input.focus({ preventScroll: true });
     try {
-      input.select();
-    } catch (_selErr) {
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (_scrollErr) {
       /* noop */
     }
+    input.focus({ preventScroll: true });
   });
 }
 
@@ -1036,7 +1118,9 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
 
 function bootSiteCloneBcDatastreamPicker() {
   ensureSiteCloneBcDatastreamPickerDelegation();
-  const dsInput = siteCloneBcDatastreamEl();
+  const bootRoot = activeSiteCloneBcEnvStripRoot();
+  ensureSiteCloneBcDatastreamManualRow(bootRoot);
+  const dsInput = siteCloneBcDatastreamEl(bootRoot);
   if (!dsInput) {
     datastreamDebugLog('bootSiteCloneBcDatastreamPicker — select not in DOM yet (delegation armed)');
     return false;
@@ -1072,10 +1156,9 @@ function bootSiteCloneBcDatastreamPicker() {
     selectFound: !!dsInput,
     currentId: siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge,
   });
-  const bootRoot = activeSiteCloneBcEnvStripRoot();
   syncSiteCloneBcDatastreamManualInputFromStored(null, bootRoot);
   const row = findSiteCloneBcDatastreamManualRow(bootRoot);
-  if (row && row.hasAttribute('hidden')) row.removeAttribute('hidden');
+  if (row) row.removeAttribute('hidden');
   return true;
 }
 
@@ -1487,6 +1570,11 @@ function bindStripDomListenersOnce() {
     applySiteCloneBcDisplayPrefsToUi();
     syncSiteCloneBcFromPrefs();
     syncDecisioningFromPrefs();
+  });
+
+  global.addEventListener('aep-demo-env-strip-mounted', function () {
+    ensureSiteCloneBcDatastreamManualRow(activeSiteCloneBcEnvStripRoot());
+    bootSiteCloneBcDatastreamPicker();
   });
 
   scheduleStripDomBoot();

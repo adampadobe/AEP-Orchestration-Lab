@@ -377,16 +377,16 @@
 
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select,
 .aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0, 0, 0, 0);
-  overflow: hidden;
-  white-space: nowrap;
-  pointer-events: none;
+  /* Keep list + paste field visible together — do not clip the select when pasting a UUID. */
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: inherit;
+  border: inherit;
+  clip: auto;
+  overflow: visible;
+  pointer-events: auto;
 }
 
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-open,

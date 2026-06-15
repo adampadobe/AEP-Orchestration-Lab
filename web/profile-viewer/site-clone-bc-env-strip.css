@@ -240,16 +240,13 @@
 }
 
 .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0, 0, 0, 0);
-  overflow: hidden;
-  white-space: nowrap;
-  pointer-events: none;
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  clip: auto;
+  overflow: visible;
+  pointer-events: auto;
 }
 
 .site-clone-bc-datastream-manual-open {
