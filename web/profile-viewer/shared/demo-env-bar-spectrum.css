@@ -704,6 +704,106 @@
   color: var(--spectrum-text-secondary);
 }
 
+.spectrum-env-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.spectrum-env-field--has-tooltip {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+.spectrum-env-field--has-tooltip:focus-within {
+  z-index: 6;
+}
+
+.spectrum-env-field-tooltip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.spectrum-env-field-tooltip__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface-alt);
+  color: var(--spectrum-text-secondary);
+  cursor: help;
+  line-height: 1;
+}
+
+.spectrum-env-field-tooltip__trigger svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  display: block;
+}
+
+.spectrum-env-field-tooltip__trigger:hover,
+.spectrum-env-field-tooltip__trigger:focus-visible {
+  background: var(--dash-hover);
+  color: var(--dash-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue) 25%, transparent);
+}
+
+.spectrum-env-field-tooltip__panel {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  bottom: calc(100% + 0.35rem);
+  width: min(18.5rem, calc(100vw - 2rem));
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
+}
+
+.spectrum-env-field-tooltip:hover .spectrum-env-field-tooltip__panel,
+.spectrum-env-field-tooltip:focus-within .spectrum-env-field-tooltip__panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spectrum-env-field-tooltip__lead,
+.spectrum-env-field-tooltip__foot {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--spectrum-text);
+  font-weight: 400;
+}
+
+.spectrum-env-field-tooltip__list {
+  margin: 0.35rem 0 0.35rem 1rem;
+  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--spectrum-text);
+}
+
+.spectrum-env-field-tooltip__list a {
+  color: var(--dash-blue);
+  word-break: break-all;
+}
+
 .spectrum-env-field__hint {
   margin: 0.25rem 0 0;
   font-size: 0.72rem;

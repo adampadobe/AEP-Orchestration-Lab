@@ -59,6 +59,23 @@
     );
   }
 
+  function datastreamUuidTooltipMarkup() {
+    return (
+      '<span class="spectrum-env-field-tooltip">' +
+      '<button type="button" class="spectrum-env-field-tooltip__trigger" aria-label="How to find a datastream UUID">' +
+      spectrumIcon('info') +
+      '</button>' +
+      '<div class="spectrum-env-field-tooltip__panel" role="tooltip">' +
+      '<p class="spectrum-env-field-tooltip__lead">Datastreams are created outside this lab. Use one of the Demo Sandbox Network portals:</p>' +
+      '<ul class="spectrum-env-field-tooltip__list">' +
+      '<li><a href="https://livedemos.adobe.com/" target="_blank" rel="noopener noreferrer">https://livedemos.adobe.com/</a> — live-demos DSN</li>' +
+      '<li><a href="https://dsn.adobe.com/" target="_blank" rel="noopener noreferrer">https://dsn.adobe.com/</a> — standard DSN</li>' +
+      '</ul>' +
+      '<p class="spectrum-env-field-tooltip__foot">Inside DSN, create (or pick) a datastream wired to your sandbox with the services you need (AEP, AJO, Personalization). Copy its <strong>Datastream ID</strong> and the Launch <strong>embed-script URL</strong> from the Web SDK extension — you\u2019ll paste both below.</p>' +
+      '</div></span>'
+    );
+  }
+
   function legacyHiddenToggles(prefix, defaultBc) {
     var miralSel = defaultBc === 'miral' ? ' selected' : '';
     var genericSel = defaultBc === 'generic' ? ' selected' : '';
@@ -244,7 +261,9 @@
       '<article class="spectrum-env-card spectrum-env-card--data-collection">' +
       cardHeader('adobe', 'Adobe Data Collection', 'red') +
       '<div class="spectrum-env-card__body spectrum-env-card__body--stacked">' +
-      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcDatastreamId">Datastream UUID</label><select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select spectrum-env-input" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
+      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full spectrum-env-field--has-tooltip"><div class="spectrum-env-field-label-row"><label for="siteCloneBcDatastreamId">Datastream UUID</label>' +
+      datastreamUuidTooltipMarkup() +
+      '</div><select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select spectrum-env-input" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="generatorTarget">Event destination</label><select id="generatorTarget" class="spectrum-env-input" aria-label="Edge or DCS streaming target"></select></div>' +
       '<div class="spectrum-env-sdk-panel spectrum-env-sdk-panel--compact"><span class="spectrum-env-field__label">SDK status</span><span class="spectrum-env-badge spectrum-env-badge--green spectrum-env-badge--lg" id="aepSpectrumTargetSdkBadge">SDK Connected</span><p class="spectrum-env-sdk-panel__meta" id="aepSpectrumTargetSdkMeta">Destination: Edge · Environment: Development</p></div>' +
       '<div id="' +
