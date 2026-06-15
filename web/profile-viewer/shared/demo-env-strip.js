@@ -220,6 +220,10 @@
       '<input type="checkbox" id="siteCloneBcInjectedToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
       '<span>Injected</span>' +
       '</label>' +
+      '<label class="site-clone-bc-prefs__option">' +
+      '<input type="checkbox" id="siteCloneBcModalBarToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
+      '<span>Modal bar</span>' +
+      '</label>' +
       bottomDockOption +
       '</div>' +
       '</div>' +

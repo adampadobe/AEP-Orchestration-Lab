@@ -27,6 +27,7 @@
           'siteCloneBcModalToggle',
           'siteCloneBcInjectedToggle',
           'siteCloneBcBottomDockToggle',
+          'siteCloneBcModalBarToggle',
         ];
         var i;
         for (i = 0; i < modes.length; i++) {

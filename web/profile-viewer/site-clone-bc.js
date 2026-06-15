@@ -162,7 +162,9 @@
   var modalToggle = null;
   var fullScreenToggle = null;
   var bottomDockToggle = null;
+  var modalBarToggle = null;
   var BOTTOM_DOCK_MOUNT_SELECTOR = cfg('bottomDockMountSelector', '#bcBottomDockMount');
+  var MODAL_BAR_MOUNT_SELECTOR = cfg('modalBarMountSelector', '#bcModalBarMount');
   var bcModal = null;
   var bcFab = null;
 
@@ -172,6 +174,7 @@
     modalToggle = document.getElementById(cfg('modalToggleId', 'siteCloneBcModalToggle'));
     fullScreenToggle = document.getElementById(cfg('fullScreenToggleId', 'siteCloneBcFullScreenToggle'));
     bottomDockToggle = document.getElementById(cfg('bottomDockToggleId', 'siteCloneBcBottomDockToggle'));
+    modalBarToggle = document.getElementById(cfg('modalBarToggleId', 'siteCloneBcModalBarToggle'));
     bcModal = document.getElementById('aepBcModal');
     bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
   }
@@ -618,6 +621,7 @@
   function teardownConflictingBcMounts() {
     clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
     clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+    clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
     hideBcFrameHost();
     global.__aepBcToggleBootstrapped = false;
     global.__brandConciergeBootstrapped = false;
@@ -1348,12 +1352,27 @@
 
   async function bootstrapBottomDock() {
     setBottomDockVisible(true);
+    setModalBarVisible(false);
     await ensureParentCore();
     await bootstrapConcierge(global, BOTTOM_DOCK_MOUNT_SELECTOR, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
     scheduleDisclaimerReposition(document);
     activeMode = 'bottomDock';
+  }
+
+  async function bootstrapModalBar() {
+    setModalBarVisible(true);
+    setBottomDockVisible(false);
+    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setExpanded === 'function') {
+      global.BrandConciergeModalBar.setExpanded(true);
+    }
+    await ensureParentCore();
+    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, global.styleConfiguration, {
+      allowConciergeOpenOnRetry: false,
+    });
+    scheduleDisclaimerReposition(document);
+    activeMode = 'modalBar';
   }
 
   async function bootstrapIframeFullscreen() {
@@ -1395,9 +1414,22 @@
     return !!(bottomDockToggle && bottomDockToggle.checked);
   }
 
+  function isModalBarOn() {
+    return !!(modalBarToggle && modalBarToggle.checked);
+  }
+
   function setBottomDockVisible(on) {
     if (global.BrandConciergeBottomDock && typeof global.BrandConciergeBottomDock.setVisible === 'function') {
       global.BrandConciergeBottomDock.setVisible(!!on);
+    }
+  }
+
+  function setModalBarVisible(on) {
+    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setVisible === 'function') {
+      global.BrandConciergeModalBar.setVisible(!!on);
+    }
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('site-clone-bc-modal-bar-armed', !!on);
     }
   }
 
@@ -1448,6 +1480,10 @@
       setBottomDockVisible(false);
       clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
     }
+    if (!isModalBarOn()) {
+      setModalBarVisible(false);
+      clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
+    }
   }
 
   var syncInFlight = null;
@@ -1475,8 +1511,9 @@
     var wantModal = isModalOn();
     var wantFullScreen = isFullScreenOn();
     var wantBottomDock = isBottomDockOn();
+    var wantModalBar = isModalBarOn();
 
-    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock) {
+    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
       var iframeDocOff = getIframeDoc();
       if (iframeDocOff) {
         setSnapshotFullscreenLayout(iframeDocOff, false);
@@ -1487,8 +1524,10 @@
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
       clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
+      clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
       hideBcFrameHost();
       setBottomDockVisible(false);
+      setModalBarVisible(false);
       activeMode = null;
       reportBcStatus('');
       return;
@@ -1501,8 +1540,16 @@
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
         clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+        clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
         await restoreSiteCloneSnapshotFrame();
         await bootstrapBottomDock();
+      } else if (wantModalBar) {
+        closeBcModal();
+        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+        clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
+        await restoreSiteCloneSnapshotFrame();
+        await bootstrapModalBar();
       } else if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
@@ -1544,7 +1591,7 @@
 
   function bindToggles() {
     refreshDisplayModeToggles();
-    [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle].forEach(function (el) {
+    [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle, modalBarToggle].forEach(function (el) {
       if (!el || el.getAttribute('data-site-clone-bc-toggle-bound') === '1') return;
       el.setAttribute('data-site-clone-bc-toggle-bound', '1');
       el.addEventListener('change', function () {
@@ -1595,7 +1642,7 @@
   void ensureEdgePathPatches(global, document);
 
   function scheduleInitialSync() {
-    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn()) return;
+    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn() && !isModalBarOn()) return;
     var frame = getSiteCloneFrame();
     function run() {
       void sync();

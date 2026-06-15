@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-bc-midrail-sync';
+  var CACHE_BUST = '20260617-modal-bar-modes';
   var TRIGGER_ICON =
     'https://contenthosting.web.app/logos/adobe_icon_146235.webp';
 
@@ -17,6 +17,11 @@
       toggleId: 'siteCloneBcBottomDockToggle',
       label: 'Centre bottom',
       optional: true,
+    },
+    {
+      key: 'modalBar',
+      toggleId: 'siteCloneBcModalBarToggle',
+      label: 'Modal bar',
     },
   ];
 

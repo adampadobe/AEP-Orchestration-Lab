@@ -44,6 +44,9 @@
       bcMidrailPanelCss: '20260617-bc-midrail',
       bcMidrailPanel: '20260617-bc-midrail',
       bcMidrailBoot: '20260617-bc-midrail',
+      modalBarCss: '20260617-modal-bar',
+      modalBarJs: '20260617-modal-bar',
+      modalBarBoot: '20260617-modal-bar',
     },
   };
 
@@ -796,6 +799,38 @@
   }
 
   /**
+   * Load right-side Modal bar BC shell for all site-clone demos with BC enabled.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadModalBarRuntime(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    var barCss = assetUrl(
+      'brand-concierge-modal-bar/brand-concierge-modal-bar.css',
+      a.modalBarCss || '20260617-modal-bar',
+    );
+    var barJs = assetUrl(
+      'brand-concierge-modal-bar/brand-concierge-modal-bar.js',
+      a.modalBarJs || '20260617-modal-bar',
+    );
+    var bootJs = assetUrl('shared/site-clone-modal-bar-boot.js', a.modalBarBoot || '20260617-modal-bar');
+    return linkCss(barCss)
+      .then(function () {
+        return loadScript(barJs);
+      })
+      .then(function () {
+        if (document.querySelector('script[src*="site-clone-modal-bar-boot.js"]')) return;
+        return loadScript(bootJs);
+      })
+      .then(function () {
+        if (global.SiteCloneModalBarBoot && typeof global.SiteCloneModalBarBoot.boot === 'function') {
+          global.SiteCloneModalBarBoot.boot();
+        }
+      });
+  }
+
+  /**
    * Mount BC page chrome (FAB, modal, frame host) and load site-clone-bc.js when the demo
    * enables BC but omits a static script tag (e.g. aviva-target).
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -828,6 +863,9 @@
       })
       .then(function () {
         return loadBottomDockRuntime(versions, cfg);
+      })
+      .then(function () {
+        return loadModalBarRuntime(versions, cfg);
       });
   }
 

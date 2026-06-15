@@ -119,6 +119,7 @@
   let siteCloneBcModalToggle = null;
   let siteCloneBcInjectedToggle = null;
   let siteCloneBcBottomDockToggle = null;
+  let siteCloneBcModalBarToggle = null;
   let siteCloneDecisioningEnabledToggle = null;
   let stripDomListenersBound = false;
 
@@ -131,6 +132,7 @@
     siteCloneBcModalToggle = document.getElementById('siteCloneBcModalToggle');
     siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
     siteCloneBcBottomDockToggle = document.getElementById('siteCloneBcBottomDockToggle');
+    siteCloneBcModalBarToggle = document.getElementById('siteCloneBcModalBarToggle');
     siteCloneDecisioningEnabledToggle = document.getElementById('siteCloneDecisioningEnabledToggle');
   }
 
@@ -711,13 +713,14 @@ const SC_DECISIONING_PREFS_BY_SANDBOX_KEY = 'siteCloneDecisioningPrefsBySandbox'
 
 function normaliseDisplayPrefs(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { fullScreen: false, modal: false, injected: false, bottomDock: false };
+    return { fullScreen: false, modal: false, injected: false, bottomDock: false, modalBar: false };
   }
   return {
     fullScreen: !!raw.fullScreen,
     modal: !!raw.modal,
     injected: !!raw.injected,
     bottomDock: !!raw.bottomDock,
+    modalBar: !!raw.modalBar,
   };
 }
 
@@ -791,6 +794,7 @@ function saveSiteCloneBcDisplayPrefs(sandboxKey) {
     modal: !!(siteCloneBcModalToggle && siteCloneBcModalToggle.checked),
     injected: !!(siteCloneBcInjectedToggle && siteCloneBcInjectedToggle.checked),
     bottomDock: !!(siteCloneBcBottomDockToggle && siteCloneBcBottomDockToggle.checked),
+    modalBar: !!(siteCloneBcModalBarToggle && siteCloneBcModalBarToggle.checked),
   };
   writeStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
   saveDecisioningEnabledPrefs(key);
@@ -801,6 +805,7 @@ function resetSiteCloneBcDisplayPrefsOnUi() {
   if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+  if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
   if (siteCloneDecisioningEnabledToggle) siteCloneDecisioningEnabledToggle.checked = false;
 }
 
@@ -813,21 +818,29 @@ function applySiteCloneBcDisplayPrefsToUi() {
     return;
   }
   const prefs = loadSiteCloneBcDisplayPrefs();
-  if (prefs.modal && (prefs.injected || prefs.fullScreen || prefs.bottomDock)) {
+  if (prefs.modal && (prefs.injected || prefs.fullScreen || prefs.bottomDock || prefs.modalBar)) {
     prefs.injected = false;
     prefs.fullScreen = false;
     prefs.bottomDock = false;
+    prefs.modalBar = false;
   } else if (prefs.fullScreen && prefs.injected) {
     prefs.injected = false;
-  } else if (prefs.bottomDock && (prefs.injected || prefs.fullScreen || prefs.modal)) {
+  } else if (prefs.bottomDock && (prefs.injected || prefs.fullScreen || prefs.modal || prefs.modalBar)) {
     prefs.injected = false;
     prefs.fullScreen = false;
     prefs.modal = false;
+    prefs.modalBar = false;
+  } else if (prefs.modalBar && (prefs.injected || prefs.fullScreen || prefs.modal || prefs.bottomDock)) {
+    prefs.injected = false;
+    prefs.fullScreen = false;
+    prefs.modal = false;
+    prefs.bottomDock = false;
   }
   if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = prefs.injected;
   if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = prefs.fullScreen;
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = prefs.modal;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = prefs.bottomDock;
+  if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = prefs.modalBar;
   applyDecisioningEnabledPrefsToUi();
 }
 
@@ -864,6 +877,7 @@ function bindStripDomListenersOnce() {
     siteCloneBcModalToggle,
     siteCloneBcInjectedToggle,
     siteCloneBcBottomDockToggle,
+    siteCloneBcModalBarToggle,
   ];
   bcToggles.forEach(function (el) {
     if (!el) return;
@@ -872,10 +886,12 @@ function bindStripDomListenersOnce() {
         if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
         if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
         if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
       }
       if ((el === siteCloneBcInjectedToggle || el === siteCloneBcFullScreenToggle) && el.checked) {
         if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
         if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
       }
       if (el === siteCloneBcInjectedToggle && el.checked && siteCloneBcFullScreenToggle) {
         siteCloneBcFullScreenToggle.checked = false;
@@ -887,6 +903,13 @@ function bindStripDomListenersOnce() {
         if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
         if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
         if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+      }
+      if (el === siteCloneBcModalBarToggle && el.checked) {
+        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+        if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
       }
       saveSiteCloneBcDisplayPrefs();
       syncSiteCloneBcFromPrefs();

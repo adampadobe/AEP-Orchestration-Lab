@@ -5,7 +5,7 @@
     "bundleCss": "20260617-iframe-midrail-stack",
     "spectrumCss": "20260616-remote-decisioning",
     "demoEnvStripSpectrum": "20260616-remote-decisioning",
-    "demoEnvStrip": "20260616-remote-decisioning",
+    "demoEnvStrip": "20260617-modal-bar",
     "spectrumSync": "20260614-sdk-compact-status",
     "compactCss": "20260617-iframe-midrail-stack",
     "compactJs": "20260625-env-toolbar-overlay-sync",
@@ -14,13 +14,16 @@
     "prefsSync": "20260614-inject-guard",
     "tagsInjection": "20260625-tags-status-stable",
     "aepDemoEnvBar": "20260625-env-configured",
-    "siteCloneBcEnv": "20260617-bc-sync-defer",
+    "siteCloneBcEnv": "20260617-modal-bar",
     "siteCloneBcChrome": "20260614-modal-dock-parity",
-    "siteCloneBc": "20260617-bc-sync-queue",
+    "siteCloneBc": "20260617-modal-bar",
     "bottomDockCss": "20260614-modal-dock-parity",
     "bottomDockJs": "20260614-modal-dock-parity",
     "bottomDockBoot": "20260614-modal-dock-parity",
-    "envBarJs": "20260617-bc-midrail",
+    "modalBarCss": "20260617-modal-bar",
+    "modalBarJs": "20260617-modal-bar",
+    "modalBarBoot": "20260617-modal-bar",
+    "envBarJs": "20260617-modal-bar",
     "decisioningModuleCss": "20260615",
     "decisioningPanelCss": "20260614-decisioning-channel-icon",
     "profileStreamingShared": "20260615",
@@ -32,7 +35,7 @@
     "decisioningProfilePanel": "20260616-toggle-delegate",
     "siteCloneDecisioningBoot": "20260616-remote-decisioning",
     "bcMidrailPanelCss": "20260617-midrail-slot",
-    "bcMidrailPanel": "20260617-bc-midrail-sync",
-    "bcMidrailBoot": "20260617-bc-midrail-sync"
+    "bcMidrailPanel": "20260617-modal-bar-modes",
+    "bcMidrailBoot": "20260617-modal-bar-modes"
   }
 }
