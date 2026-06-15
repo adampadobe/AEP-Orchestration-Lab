@@ -122,12 +122,16 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 [class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
 [class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 .lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
-.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel {
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
   max-height: var(--lab-env-overlay-max);
   overflow-x: hidden;
   overflow-y: auto;
@@ -137,6 +141,13 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   z-index: 7599;
   isolation: isolate;
   -webkit-overflow-scrolling: touch;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
+  max-height: min(42vh, 24rem);
 }
 
 /* ── Site-clone legacy peek CSS overrides ─────────────────────── */
@@ -456,15 +467,20 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   display: none !important;
 }
 
-.mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-.mobile-demo-shell-env-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.mobile-demo-shell-env-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-.lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]) {
   display: none;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel #aepDemoEnvSection,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .aep-demo-env-section {
+  display: none !important;
 }
 
 /* Reveal SDK editor inside overlay when open */

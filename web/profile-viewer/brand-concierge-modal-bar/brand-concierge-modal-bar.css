@@ -54,6 +54,10 @@
   display: flex;
 }
 
+.bc-modal-bar.is-expanded .bc-modal-bar__pill {
+  display: none;
+}
+
 .bc-modal-bar__panel-header {
   display: flex;
   align-items: center;
@@ -149,19 +153,45 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .bc-modal-bar__mount {
+  flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* BC renders its own prompt — the shell pill is the only composer. */
-.bc-modal-bar__mount .input-section,
-.bc-modal-bar__mount .input-container,
-.bc-modal-bar__mount #brand-concierge-mount .input-section,
-.bc-modal-bar__mount #brand-concierge-mount .input-container {
-  display: none !important;
+.bc-modal-bar__mount .input-section {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 0.85rem 1rem 0.65rem;
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 100%, color-mix(in srgb, var(--dash-blue) 16%, transparent), transparent 58%),
+    radial-gradient(ellipse 90% 70% at 80% 100%, color-mix(in srgb, var(--dash-purple) 14%, transparent), transparent 62%),
+    var(--dash-surface);
+  border-top: 1px solid var(--dash-border);
+}
+
+.bc-modal-bar__panel-footer {
+  flex-shrink: 0;
+  padding: 0 1rem 0.65rem;
+  border-top: 0;
+}
+
+.bc-modal-bar__disclaimer {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dash-muted);
+}
+
+.bc-modal-bar__disclaimer a {
+  color: var(--dash-blue);
+  text-decoration: underline;
 }
 
 .bc-modal-bar__pill {
@@ -183,9 +213,22 @@
   border-radius: 999px;
   background: var(--bc-modal-bar-gradient);
   box-shadow: var(--dash-shadow);
-  cursor: text;
+  cursor: pointer;
   font-family: inherit;
   text-align: left;
+  transition:
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+}
+
+.bc-modal-bar__pill-btn:hover,
+.bc-modal-bar__pill-btn:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--dash-purple) 40%, transparent),
+    0 0 16px color-mix(in srgb, var(--dash-purple) 50%, transparent),
+    0 0 28px color-mix(in srgb, var(--dash-blue) 30%, transparent),
+    var(--dash-shadow);
+  filter: brightness(1.02);
 }
 
 .bc-modal-bar__pill-inner {
@@ -199,19 +242,14 @@
   background: var(--dash-surface);
 }
 
-.bc-modal-bar__pill-input {
+.bc-modal-bar__pill-text {
   flex: 1 1 auto;
   min-width: 0;
-  border: none;
-  background: transparent;
   font-size: 0.92rem;
-  color: var(--dash-text);
-  outline: none;
-  font-family: inherit;
-}
-
-.bc-modal-bar__pill-input::placeholder {
   color: var(--dash-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bc-modal-bar__pill-send {
@@ -219,23 +257,6 @@
   height: 1.35rem;
   flex-shrink: 0;
   color: var(--dash-muted);
-  cursor: pointer;
-}
-
-.bc-modal-bar__pill-send:hover {
-  color: var(--dash-blue);
-}
-
-.bc-modal-bar__disclaimer {
-  margin: 0.55rem 0 0;
-  font-size: 0.68rem;
-  line-height: 1.35;
-  color: var(--dash-muted);
-}
-
-.bc-modal-bar__disclaimer a {
-  color: var(--dash-blue);
-  text-decoration: underline;
 }
 
 @media (max-width: 480px) {

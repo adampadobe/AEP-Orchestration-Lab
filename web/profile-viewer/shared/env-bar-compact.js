@@ -117,7 +117,15 @@
 
   function shouldOpenProfilePeekFirst() {
     var sec = document.getElementById('aepDemoEnvSection');
-    return !!(sec && sec.classList.contains('aep-demo-env-section--collapsed'));
+    if (sec && sec.classList.contains('aep-demo-env-section--collapsed')) return true;
+    var grid = document.getElementById('aepDemoEnvConfigGrid');
+    if (grid && grid.hasAttribute('hidden')) return true;
+    var scriptsBtn = document.getElementById('aepSpectrumScriptsCount');
+    if (scriptsBtn) {
+      var scriptText = String(scriptsBtn.textContent || '').trim();
+      if (scriptText && scriptText !== 'None' && scriptText !== '—') return true;
+    }
+    return false;
   }
 
   function syncFullOpenBtn(anchor) {

@@ -56,10 +56,10 @@
 
 .bcp-panel-trigger-icon {
   display: block;
-  width: 1.125rem;
-  height: 1.125rem;
-  object-fit: contain;
+  width: 1.05rem;
+  height: 1.05rem;
   flex-shrink: 0;
+  color: var(--dash-purple);
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

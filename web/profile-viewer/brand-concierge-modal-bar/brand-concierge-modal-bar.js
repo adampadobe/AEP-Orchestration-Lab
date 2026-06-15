@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-modal-bar-v2';
+  var CACHE_BUST = '20260617-modal-bar-v3';
   var SPARKLE_SVG =
     '<svg class="bc-modal-bar__sparkle" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
@@ -22,6 +22,13 @@
     return node;
   }
 
+  function focusMountPrompt(mount) {
+    var input = mount.querySelector(
+      'input:not([type="hidden"]), textarea, [contenteditable="true"]',
+    );
+    if (input && typeof input.focus === 'function') input.focus();
+  }
+
   function init(options) {
     var opt = options || {};
     if (document.getElementById('bcModalBarRoot')) {
@@ -29,7 +36,6 @@
     }
 
     var panelTitle = String(opt.panelTitle || 'Ask').trim() || 'Ask';
-    var placeholder = String(opt.placeholder || 'Ask a question…').trim();
     var pillLabel = String(opt.pillLabel || 'Ask a question').trim();
     var disclaimer = String(opt.disclaimer || '').trim();
     var betaLabel = String(opt.betaLabel || 'BETA').trim();
@@ -69,8 +75,12 @@
     mount.id = mountSelector.replace(/^#/, '') || 'bcModalBarMount';
     body.appendChild(mount);
 
+    var footer = el('div', 'bc-modal-bar__panel-footer');
+    if (disclaimer) footer.appendChild(el('p', 'bc-modal-bar__disclaimer', disclaimer));
+
     panel.appendChild(header);
     panel.appendChild(body);
+    panel.appendChild(footer);
 
     var pillWrap = el('div', 'bc-modal-bar__pill');
     var pillBtn = el('button', 'bc-modal-bar__pill-btn');
@@ -78,18 +88,11 @@
     pillBtn.setAttribute('aria-label', 'Open assistant');
     var pillInner = el('div', 'bc-modal-bar__pill-inner');
     pillInner.innerHTML = SPARKLE_SVG;
-    var pillInput = el('input', 'bc-modal-bar__pill-input');
-    pillInput.type = 'text';
-    pillInput.placeholder = pillLabel || placeholder;
-    pillInput.setAttribute('autocomplete', 'off');
-    pillInput.setAttribute('spellcheck', 'false');
-    pillInner.appendChild(pillInput);
+    pillInner.appendChild(el('span', 'bc-modal-bar__pill-text', pillLabel));
     pillInner.appendChild(el('span', 'bc-modal-bar__beta', betaLabel));
-    var pillSend = el('span', 'bc-modal-bar__pill-send', SEND_SVG);
-    pillInner.appendChild(pillSend);
+    pillInner.appendChild(el('span', 'bc-modal-bar__pill-send', SEND_SVG));
     pillBtn.appendChild(pillInner);
     pillWrap.appendChild(pillBtn);
-    if (disclaimer) pillWrap.appendChild(el('p', 'bc-modal-bar__disclaimer', disclaimer));
 
     root.appendChild(panel);
     root.appendChild(pillWrap);
@@ -101,10 +104,10 @@
 
     function openPanel() {
       setExpanded(true);
-      window.setTimeout(function () {
-        pillInput.focus();
-      }, 50);
       if (typeof opt.onExpand === 'function') opt.onExpand(mount);
+      window.setTimeout(function () {
+        focusMountPrompt(mount);
+      }, 180);
     }
 
     function setVisible(on) {
@@ -115,30 +118,10 @@
       }
     }
 
-    function applyQuestion(text) {
-      var q = String(text || '').trim();
-      if (!q) return;
-      pillInput.value = q;
-      var inputs = mount.querySelectorAll('input, textarea, [contenteditable="true"]');
-      var i;
-      for (i = 0; i < inputs.length; i++) {
-        if (inputs[i] === pillInput) continue;
-        if (inputs[i].getAttribute('contenteditable') === 'true') {
-          inputs[i].textContent = q;
-        } else {
-          inputs[i].value = q;
-        }
-        inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (!root.classList.contains('is-expanded')) openPanel();
-    }
-
     function clearConversation() {
-      pillInput.value = '';
       var inputs = mount.querySelectorAll('input, textarea, [contenteditable="true"]');
       var i;
       for (i = 0; i < inputs.length; i++) {
-        if (inputs[i] === pillInput) continue;
         if (inputs[i].getAttribute('contenteditable') === 'true') {
           inputs[i].textContent = '';
         } else {
@@ -148,21 +131,8 @@
       }
     }
 
-    pillBtn.addEventListener('click', function (e) {
-      if (e.target === pillInput) return;
+    pillBtn.addEventListener('click', function () {
       openPanel();
-    });
-    pillInput.addEventListener('click', function (e) {
-      e.stopPropagation();
-    });
-    pillInput.addEventListener('focus', function () {
-      if (!root.classList.contains('is-expanded')) openPanel();
-    });
-    pillInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyQuestion(pillInput.value);
-      }
     });
     closeBtn.addEventListener('click', function () {
       setExpanded(false);
@@ -175,11 +145,6 @@
       );
     });
     clearBtn.addEventListener('click', clearConversation);
-    pillSend.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyQuestion(pillInput.value);
-    });
 
     var api = {
       root: root,
