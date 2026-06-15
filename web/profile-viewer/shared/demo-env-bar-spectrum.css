@@ -717,8 +717,26 @@
   z-index: 1;
 }
 
-.spectrum-env-field--has-tooltip:focus-within {
-  z-index: 6;
+.spectrum-env-field--has-tooltip:focus-within,
+.spectrum-env-field--has-tooltip:has(.spectrum-env-field-tooltip:hover) {
+  z-index: 50;
+}
+
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:hover),
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+  position: relative;
+  z-index: 4;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:hover),
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+}
+
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:hover),
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible !important;
 }
 
 .spectrum-env-field-tooltip {
@@ -758,9 +776,11 @@
 
 .spectrum-env-field-tooltip__panel {
   position: absolute;
-  z-index: 30;
+  z-index: 100;
+  top: calc(100% + 0.35rem);
+  bottom: auto;
   left: 0;
-  bottom: calc(100% + 0.35rem);
+  right: auto;
   width: min(18.5rem, calc(100vw - 2rem));
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--dash-border);
