@@ -121,8 +121,15 @@
   display: none !important;
 }
 
-.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input {
-  min-height: 2.25rem;
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main select.spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main input.spectrum-env-input {
+  height: 2.35rem;
+  min-height: 2.35rem;
+  max-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  line-height: 1.25;
+  box-sizing: border-box;
 }
 
 .lab-env-overlay-profile {

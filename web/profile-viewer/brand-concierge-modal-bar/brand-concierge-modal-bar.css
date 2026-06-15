@@ -342,12 +342,26 @@
 .bc-modal-bar__composer-input {
   flex: 1 1 auto;
   min-width: 0;
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: transparent !important;
   font-size: 0.92rem;
   color: var(--dash-text);
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
   font-family: inherit;
+  line-height: 1.4;
+  padding: 0 !important;
+  margin: 0;
+  align-self: center;
+  border-radius: 0 !important;
+  min-height: unset;
+}
+
+.bc-modal-bar__composer-input:focus,
+.bc-modal-bar__composer-input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .bc-modal-bar__composer-input::placeholder {
