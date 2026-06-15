@@ -758,6 +758,25 @@
       requestEnvOverlayOpen();
     }
 
+    function releaseBcSuppressForActiveInject() {
+      try {
+        global.__siteCloneSuppressBcEnable = false;
+      } catch (_e) {
+        /* noop */
+      }
+    }
+
+    function syncSiteCloneBcDisplayAfterInject() {
+      if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
+        void global.SiteCloneBc.sync();
+      }
+      try {
+        global.dispatchEvent(new CustomEvent('aep-demo-tags-injected'));
+      } catch (_e2) {
+        /* noop */
+      }
+    }
+
     function requestEnvOverlayOpen() {
       if (global.EnvBarCompact && typeof global.EnvBarCompact.openOverlay === 'function') {
         global.EnvBarCompact.openOverlay();
@@ -1261,6 +1280,7 @@
     async function injectSelectedScriptNow(scriptOverride) {
       const rawOverride = scriptOverride || selectedScriptUrl;
       const scriptUrl = sanitiseLaunchScriptUrl(rawOverride);
+      releaseBcSuppressForActiveInject();
       dtLog('injectSelectedScriptNow: start', {
         sandboxKey: getSandboxKey(),
         rawPreview: dtPreview(rawOverride),
@@ -1319,6 +1339,7 @@
         markSdkConfiguredForSandbox(true);
         /* Keep Tags fields + env overlay open after inject (no collapse-to-summary). */
         setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        syncSiteCloneBcDisplayAfterInject();
         dtLog('injectSelectedScriptNow: complete (configured, env bar stays expanded)');
         return true;
       } catch (err) {

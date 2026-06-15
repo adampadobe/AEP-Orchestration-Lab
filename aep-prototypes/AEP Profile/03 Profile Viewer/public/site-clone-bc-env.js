@@ -922,6 +922,11 @@ function bootSiteCloneBcDatastreamPicker() {
     global.addEventListener('aep-demo-env-strip-mounted', onStripReady);
   }
 
+  global.addEventListener('aep-demo-tags-injected', function () {
+    syncSiteCloneBcFromPrefs();
+    syncDecisioningFromPrefs();
+  });
+
   global.addEventListener('aep-global-sandbox-change', function () {
     sandboxEnvSwitching = true;
     try {
