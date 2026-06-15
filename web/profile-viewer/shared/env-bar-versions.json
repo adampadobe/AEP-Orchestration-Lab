@@ -14,13 +14,13 @@
     "prefsSync": "20260614-inject-guard",
     "tagsInjection": "20260625-tags-status-stable",
     "aepDemoEnvBar": "20260625-env-configured",
-    "siteCloneBcEnv": "20260625-datastream-select",
+    "siteCloneBcEnv": "20260617-bc-midrail-sync",
     "siteCloneBcChrome": "20260614-modal-dock-parity",
     "siteCloneBc": "20260614-modal-dock-parity",
     "bottomDockCss": "20260614-modal-dock-parity",
     "bottomDockJs": "20260614-modal-dock-parity",
     "bottomDockBoot": "20260614-modal-dock-parity",
-    "envBarJs": "20260616-remote-decisioning",
+    "envBarJs": "20260617-bc-midrail",
     "decisioningModuleCss": "20260615",
     "decisioningPanelCss": "20260614-decisioning-channel-icon",
     "profileStreamingShared": "20260615",
@@ -30,6 +30,9 @@
     "decisioningProfileRuntime": "20260616-surface-urls",
     "decisioningProfileModule": "20260616-no-tweak-collapse",
     "decisioningProfilePanel": "20260616-toggle-delegate",
-    "siteCloneDecisioningBoot": "20260616-remote-decisioning"
+    "siteCloneDecisioningBoot": "20260616-remote-decisioning",
+    "bcMidrailPanelCss": "20260617-bc-midrail",
+    "bcMidrailPanel": "20260617-bc-midrail",
+    "bcMidrailBoot": "20260617-bc-midrail"
   }
 }

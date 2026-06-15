@@ -41,6 +41,9 @@
       decisioningProfileModule: '20260620',
       decisioningProfilePanel: '20260614-decisioning-channel-icon',
       siteCloneDecisioningBoot: '20260624-target-page-url',
+      bcMidrailPanelCss: '20260617-bc-midrail',
+      bcMidrailPanel: '20260617-bc-midrail',
+      bcMidrailBoot: '20260617-bc-midrail',
     },
   };
 
@@ -475,6 +478,21 @@
     ]);
   }
 
+  function isBcFeatureEnabled(cfg) {
+    return !(cfg.features && cfg.features.bc === false);
+  }
+
+  /**
+   * Load BC mid-rail panel CSS when Brand Concierge is enabled on the env strip.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBcMidrailStyles(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    return linkCss(assetUrl('shared/brand-concierge-midrail-panel.css', a.bcMidrailPanelCss));
+  }
+
   /**
    * Load decisioning runtime script chain (Sky parity). Skips files already on the page.
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -499,6 +517,46 @@
         return loadScript(src);
       });
     }, Promise.resolve());
+  }
+
+  /**
+   * Load BC mid-rail display-mode panel scripts.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBcMidrailScripts(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    var chain = [
+      assetUrl('shared/brand-concierge-midrail-panel.js', a.bcMidrailPanel),
+      assetUrl('shared/brand-concierge-midrail-boot.js', a.bcMidrailBoot),
+    ];
+    return chain.reduce(function (p, src) {
+      return p.then(function () {
+        if (
+          src.indexOf('brand-concierge-midrail-panel.js') !== -1 &&
+          document.querySelector('script[src*="brand-concierge-midrail-panel.js"]')
+        ) {
+          return;
+        }
+        if (
+          src.indexOf('brand-concierge-midrail-boot.js') !== -1 &&
+          document.querySelector('script[src*="brand-concierge-midrail-boot.js"]')
+        ) {
+          return;
+        }
+        log('load bc midrail script', src);
+        return loadScript(src);
+      });
+    }, Promise.resolve());
+  }
+
+  function bootBcMidrailPanel(cfg) {
+    if (!isBcFeatureEnabled(cfg)) return;
+    if (global.BrandConciergeMidrailBoot && typeof global.BrandConciergeMidrailBoot.boot === 'function') {
+      log('boot BrandConciergeMidrailBoot');
+      global.BrandConciergeMidrailBoot.boot(cfg);
+    }
   }
 
   /**
@@ -817,6 +875,9 @@
             return loadDecisioningStyles(versions, state.config);
           })
           .then(function () {
+            return loadBcMidrailStyles(versions, state.config);
+          })
+          .then(function () {
             return loadScripts(versions, state.config);
           })
           .then(function () {
@@ -830,6 +891,9 @@
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
           return loadSiteCloneBcRuntime(state.versions, state.config);
         }).then(function () {
+          return loadBcMidrailScripts(state.versions, state.config);
+        }).then(function () {
+          bootBcMidrailPanel(state.config);
           return result;
         });
       })

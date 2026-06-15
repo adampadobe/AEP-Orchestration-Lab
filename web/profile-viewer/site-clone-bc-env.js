@@ -747,10 +747,20 @@ function syncDecisioningFromPrefs() {
     global.DecisioningProfileRuntime.refreshEnabledState();
   }
   if (typeof global.DecisioningProfilePanel !== 'undefined') {
-    var trigger = document.getElementById('dpmPanelTrigger');
-    if (trigger && siteCloneDecisioningEnabledToggle) {
-      trigger.classList.toggle('is-visible', !!siteCloneDecisioningEnabledToggle.checked);
+    var anchor = document.getElementById('dpmPanelAnchor');
+    if (anchor && siteCloneDecisioningEnabledToggle) {
+      anchor.classList.toggle('is-visible', !!siteCloneDecisioningEnabledToggle.checked);
     }
+  }
+  syncBcMidrailFromPrefs();
+}
+
+function syncBcMidrailFromPrefs() {
+  if (
+    global.BrandConciergeMidrailPanel &&
+    typeof global.BrandConciergeMidrailPanel.refreshVisibility === 'function'
+  ) {
+    global.BrandConciergeMidrailPanel.refreshVisibility();
   }
 }
 
