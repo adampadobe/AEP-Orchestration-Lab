@@ -827,22 +827,34 @@
 
   function findPickerShell(control) {
     if (!control) return null;
-    var el = control.parentElement;
-    var best = control.parentElement;
-    for (var i = 0; i < 12 && el; i++) {
-      if (!el.contains(control)) break;
-      var combos = Array.from(el.querySelectorAll('input[role="combobox"]'));
-      var listBtns = Array.from(el.querySelectorAll('button[aria-haspopup="listbox"]'));
-      var exclusive = false;
-      if (control.getAttribute('role') === 'combobox') {
-        exclusive = combos.length === 1 && combos[0] === control;
-      } else if (control.getAttribute('aria-haspopup') === 'listbox') {
-        exclusive = listBtns.length === 1 && listBtns[0] === control && combos.length === 0;
+
+    if (control.getAttribute('aria-haspopup') === 'listbox' && control.getAttribute('role') !== 'combobox') {
+      var multiselect = control.closest('.multiselect-as-select');
+      if (multiselect) return multiselect;
+      var btnEl = control.parentElement;
+      for (var t = 0; t < 10 && btnEl; t++) {
+        var listBtns = btnEl.querySelectorAll('button[aria-haspopup="listbox"]');
+        var comboInputs = btnEl.querySelectorAll('input[role="combobox"]');
+        if (listBtns.length === 1 && listBtns[0] === control && comboInputs.length === 0) {
+          return btnEl;
+        }
+        btnEl = btnEl.parentElement;
       }
-      if (exclusive) best = el;
+      return control.parentElement;
+    }
+
+    var el = control;
+    for (var i = 0; i < 12 && el; i++) {
+      if (
+        el.querySelector &&
+        el.querySelector('input[role="combobox"]') &&
+        el.querySelector('button[aria-haspopup="listbox"], button[aria-label="Show suggestions"]')
+      ) {
+        return el;
+      }
       el = el.parentElement;
     }
-    return best;
+    return control.parentElement;
   }
 
   function removePicker(shell, hostClass, shellClass, control) {
@@ -2233,13 +2245,15 @@
   function buildCategoryPicker() {
     buildListFilterPicker('category', {
       ariaLabel: 'Category',
+      accentWhenOpen: true,
       options: getCategoryOptions,
       isSelected: function (o) {
         return o.id === state.categoryId;
       },
       renderTrigger: function (isOpen) {
         var sel = selectedListOption(getCategoryOptions(), state.categoryId);
-        return listPickerTriggerHtml(sel ? sel.name : 'All Categories', isOpen);
+        var label = isOpen ? 'Category: ' + (sel ? sel.name : 'All Categories') : sel ? sel.name : 'All Categories';
+        return listPickerTriggerHtml(label, isOpen);
       },
       renderOption: listPickerOptionHtml,
       getOptionId: function (o) {
@@ -2284,6 +2298,7 @@
   function ensurePickers() {
     suppressUiBlockers();
     watchWalnutRemoval();
+    state.reactListboxesHidden = false;
     hideReactListboxes();
     syncFilterStateFromBrands();
     buildPlatformPicker();
@@ -2316,6 +2331,7 @@
   function init() {
     if (state.ready && document.querySelector('.sky-llm-platform-host, .sky-llm-filter-host')) {
       state.pageKind = getPageKind();
+      ensurePickers();
       watchNativePlatformSelection();
       refreshDashboardCaches();
       applyDashboard({ animate: false });

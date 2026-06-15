@@ -50,9 +50,13 @@
   outline: none !important;
 }
 
-.sky-llm-filter-shell input[role='combobox'],
-.sky-llm-filter-shell .multiselect-as-select > button:not(.sky-llm-filter-trigger),
-.sky-llm-filter-shell button[aria-haspopup='listbox']:not(.sky-llm-filter-trigger) {
+.sky-llm-filter-shell input[role='combobox'][aria-hidden='true'] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.sky-llm-filter-shell .multiselect-as-select > button:not(.sky-llm-filter-trigger) {
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;
@@ -67,6 +71,7 @@
   align-items: stretch;
   min-width: 0;
   width: 100%;
+  pointer-events: auto !important;
 }
 
 .sky-llm-platform-trigger,
@@ -91,6 +96,7 @@
   color: #222;
   cursor: pointer;
   text-align: left;
+  pointer-events: auto !important;
 }
 
 .sky-llm-platform-trigger:hover,
@@ -218,6 +224,7 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
   align-items: stretch;
   min-width: 0;
   width: 100%;
+  pointer-events: auto !important;
 }
 
 .sky-llm-filter-host.is-open .sky-llm-filter-trigger {
