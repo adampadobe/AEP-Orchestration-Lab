@@ -71,8 +71,11 @@
 
   function wrapAlloy(instanceName) {
     const name = instanceName || 'alloy';
-    const alloyFn = window[name];
+    let alloyFn = window[name];
     if (!alloyFn || alloyFn.__embedBcWrapped) return;
+    if (window.EmbedBcAepEvents && typeof window.EmbedBcAepEvents.wrapAlloyInstance === 'function') {
+      alloyFn = window.EmbedBcAepEvents.wrapAlloyInstance(alloyFn);
+    }
 
     const wrapped = function (command) {
       const args = Array.prototype.slice.call(arguments, 1);
@@ -120,6 +123,9 @@
     }
     const orig = window.adobe.concierge.bootstrap.bind(window.adobe.concierge);
     window.adobe.concierge.bootstrap = async function (config) {
+      if (window.EmbedBcAepEvents && typeof window.EmbedBcAepEvents.augmentBootstrapConfig === 'function') {
+        window.EmbedBcAepEvents.augmentBootstrapConfig(config);
+      }
       const userBefore = config.onBeforeEventSend;
       config.onBeforeEventSend = function (payload) {
         window.__embedBcLastPayload = payload;

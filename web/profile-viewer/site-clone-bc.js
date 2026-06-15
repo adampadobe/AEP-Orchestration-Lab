@@ -192,6 +192,8 @@
   var BC_MAIN_JS =
     'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js';
   var ALLOY_JS = 'https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js';
+  var AEP_EVENTS_JS = 'embed-bc-aep-events.js';
+  var AEP_EVENTS_CACHE = '20260617-bc-aep-events-v1';
 
   function getStyleConfigUrl() {
     if (global.SiteCloneBcConfig && typeof global.SiteCloneBcConfig.getStyleConfigUrl === 'function') {
@@ -857,6 +859,7 @@
       resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.js') + '?v=20260528-bc-disclaimer-frame',
       doc,
     );
+    await loadScript(resolveAssetUrl(BASE + AEP_EVENTS_JS) + '?v=' + AEP_EVENTS_CACHE, doc, 'aep-events');
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);
@@ -867,6 +870,9 @@
           EDGE_DEPLOYMENT +
           '/conversations',
       );
+    }
+    if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.install === 'function') {
+      global.EmbedBcAepEvents.install(win);
     }
   }
 
@@ -1081,6 +1087,9 @@
       selector: selector,
       stickySession: false,
     };
+    if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.augmentBootstrapConfig === 'function') {
+      global.EmbedBcAepEvents.augmentBootstrapConfig(bootOpts);
+    }
     try {
       await win.adobe.concierge.bootstrap(bootOpts);
       win.__siteCloneBcBootstrapped = true;
