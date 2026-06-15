@@ -3,9 +3,9 @@
   "moduleVersion": "1.1.0",
   "assets": {
     "bundleCss": "20260624-bc-modal-chrome",
-    "spectrumCss": "20260625-tags-status-stable",
-    "demoEnvStripSpectrum": "20260625-tags-status-stable",
-    "demoEnvStrip": "20260625-tags-status-stable",
+    "spectrumCss": "20260615-decisioning-row",
+    "demoEnvStripSpectrum": "20260615-decisioning-row",
+    "demoEnvStrip": "20260615-decisioning-row",
     "spectrumSync": "20260614-sdk-compact-status",
     "compactCss": "20260625-env-toolbar-overlay-sync",
     "compactJs": "20260625-env-toolbar-overlay-sync",
@@ -20,7 +20,7 @@
     "bottomDockCss": "20260614-modal-dock-parity",
     "bottomDockJs": "20260614-modal-dock-parity",
     "bottomDockBoot": "20260614-modal-dock-parity",
-    "envBarJs": "20260614-modal-dock-parity",
+    "envBarJs": "20260615-decisioning-reboot",
     "decisioningModuleCss": "20260615",
     "decisioningPanelCss": "20260614-decisioning-channel-icon",
     "profileStreamingShared": "20260615",
@@ -30,6 +30,6 @@
     "decisioningProfileRuntime": "20260624",
     "decisioningProfileModule": "20260620",
     "decisioningProfilePanel": "20260614-decisioning-channel-icon",
-    "siteCloneDecisioningBoot": "20260624-target-page-url"
+    "siteCloneDecisioningBoot": "20260615-decisioning-reboot"
   }
 }

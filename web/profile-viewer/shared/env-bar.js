@@ -614,16 +614,34 @@
 
   function ensureDecisioningPrefsMounted(cfg) {
     if (!isDecisioningFeatureEnabled(cfg)) return;
-    if (!global.DemoEnvStrip || typeof global.DemoEnvStrip.mountSiteCloneProfileBcPrefs !== 'function') return;
-    var host = document.getElementById('siteCloneBcPrefsMount');
-    if (host && !document.getElementById('siteCloneDecisioningEnabledToggle')) {
-      host.removeAttribute('data-demo-env-strip-mounted');
-      host.setAttribute('data-demo-env-strip-decisioning', '1');
+    if (!global.DemoEnvStrip) return;
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) return;
+    if (typeof global.DemoEnvStrip.mountSiteCloneDecisioningPrefs === 'function') {
+      global.DemoEnvStrip.mountSiteCloneDecisioningPrefs({ mountId: 'siteCloneDecisioningPrefsMount' });
+      return;
     }
-    global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({
-      mountId: 'siteCloneBcPrefsMount',
-      includeDecisioning: true,
-    });
+    if (typeof global.DemoEnvStrip.mountSiteCloneProfileBcPrefs === 'function') {
+      var host = document.getElementById('siteCloneBcPrefsMount');
+      if (host) {
+        host.removeAttribute('data-demo-env-strip-mounted');
+        host.setAttribute('data-demo-env-strip-decisioning', '1');
+      }
+      global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({
+        mountId: 'siteCloneBcPrefsMount',
+        includeDecisioning: true,
+      });
+    }
+  }
+
+  function scheduleDecisioningBoot(cfg) {
+    if (!isDecisioningFeatureEnabled(cfg)) return;
+    bootSiteCloneDecisioning(cfg);
+    window.setTimeout(function () {
+      bootSiteCloneDecisioning(cfg);
+    }, 0);
+    window.setTimeout(function () {
+      bootSiteCloneDecisioning(cfg);
+    }, 1200);
   }
 
   /**
@@ -771,7 +789,7 @@
       .then(function () {
         var result = runBootstrap(state.config);
         ensureDecisioningPrefsMounted(state.config);
-        bootSiteCloneDecisioning(state.config);
+        scheduleDecisioningBoot(state.config);
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
           return loadSiteCloneBcRuntime(state.versions, state.config);
         }).then(function () {

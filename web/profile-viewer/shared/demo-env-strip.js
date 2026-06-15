@@ -173,6 +173,19 @@
     );
   }
 
+  function decisioningPrefsFieldMarkup() {
+    return (
+      '<div class="site-clone-decisioning-prefs-field" role="group" aria-labelledby="siteCloneDecisioningPrefsHeading">' +
+      '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>' +
+      '<div class="site-clone-bc-prefs__options">' +
+      '<label class="site-clone-bc-prefs__option">' +
+      '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
+      '<span>Enable</span>' +
+      '</label>' +
+      '</div></div>'
+    );
+  }
+
   function siteCloneProfileBcPrefsMarkup(options) {
     var opt = options || {};
     var bottomDockOption = opt.includeBottomDock
@@ -181,16 +194,7 @@
         '<span>Centre bottom</span>' +
         '</label>'
       : '';
-    var decisioningBlock = opt.includeDecisioning
-      ? '<div class="site-clone-decisioning-prefs-field" role="group" aria-labelledby="siteCloneDecisioningPrefsHeading">' +
-        '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>' +
-        '<div class="site-clone-bc-prefs__options">' +
-        '<label class="site-clone-bc-prefs__option">' +
-        '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
-        '<span>Enable</span>' +
-        '</label>' +
-        '</div></div>'
-      : '';
+    var decisioningBlock = opt.includeDecisioning ? decisioningPrefsFieldMarkup() : '';
     return (
       '<div class="site-clone-profile-lab-prefs-row">' +
       '<div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">' +
@@ -523,6 +527,29 @@
     return { mounted: !!mounted };
   }
 
+  function mountSiteCloneDecisioningPrefs(config) {
+    var c = config || {};
+    var hostId = c.mountId || 'siteCloneDecisioningPrefsMount';
+    var host = document.getElementById(hostId);
+    if (!host) return { mounted: false, reason: 'host-not-found' };
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) {
+      return { mounted: true, alreadyPresent: true };
+    }
+    if (host.getAttribute(MOUNTED_ATTR) === '1') {
+      host.removeAttribute(MOUNTED_ATTR);
+    }
+    host.innerHTML = decisioningPrefsFieldMarkup();
+    host.setAttribute(MOUNTED_ATTR, '1');
+    try {
+      global.dispatchEvent(
+        new CustomEvent(MOUNTED_EVENT, { detail: { mountId: hostId, section: 'decisioning-prefs' } }),
+      );
+    } catch (_e) {
+      /* noop */
+    }
+    return { mounted: true };
+  }
+
   function mountSiteCloneProfileBcPrefs(config) {
     var c = config || {};
     var hostId = c.mountId || 'siteCloneBcPrefsMount';
@@ -559,6 +586,7 @@
     if (shellCfg.variant === 'spectrum' && global.DemoEnvStripSpectrum && typeof global.DemoEnvStripSpectrum.mountSpectrumShell === 'function') {
       return global.DemoEnvStripSpectrum.mountSpectrumShell(host, shellCfg, {
         mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
+        mountSiteCloneDecisioningPrefs: mountSiteCloneDecisioningPrefs,
       });
     }
     host.classList.add('aep-demo-id-inner');
@@ -571,7 +599,7 @@
     mountSiteCloneProfileBcPrefs({
       mountId: 'siteCloneBcPrefsMount',
       includeBottomDock: shellCfg.includeBottomDock,
-      includeDecisioning: shellCfg.includeDecisioning,
+      includeDecisioning: shellCfg.includeDecisioning !== false,
     });
     mountShellFooter(host, shellCfg);
     return { mounted: true };
@@ -630,12 +658,18 @@
       if (host.getAttribute(MOUNTED_ATTR) === '1') return;
       mountSiteCloneProfileBcPrefs({ mountId: host.id || 'siteCloneBcPrefsMount' });
     });
+    var decisioningHosts = document.querySelectorAll('[' + MOUNT_ATTR + '="site-clone-decisioning-prefs"]');
+    decisioningHosts.forEach(function (host) {
+      if (host.getAttribute(MOUNTED_ATTR) === '1') return;
+      mountSiteCloneDecisioningPrefs({ mountId: host.id || 'siteCloneDecisioningPrefsMount' });
+    });
   }
 
   var api = {
     CACHE_BUST: CACHE_BUST,
     siteCloneTagsFieldsMarkup: siteCloneTagsFieldsMarkup,
     siteCloneProfileBcPrefsMarkup: siteCloneProfileBcPrefsMarkup,
+    decisioningPrefsFieldMarkup: decisioningPrefsFieldMarkup,
     siteCloneEnvShellGridMarkup: siteCloneEnvShellGridMarkup,
     siteCloneMinimalGridMarkup: siteCloneMinimalGridMarkup,
     siteCloneSandboxOnlyMarkup: siteCloneSandboxOnlyMarkup,
@@ -643,6 +677,7 @@
     readShellConfig: readShellConfig,
     mountSiteCloneTagsFields: mountSiteCloneTagsFields,
     mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
+    mountSiteCloneDecisioningPrefs: mountSiteCloneDecisioningPrefs,
     mountSiteCloneEnvShell: mountSiteCloneEnvShell,
     mountSiteCloneMinimalShell: mountSiteCloneMinimalShell,
     mountSiteCloneSandboxOnly: mountSiteCloneSandboxOnly,

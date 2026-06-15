@@ -1370,7 +1370,7 @@
         '?v=20260614-modal-dock-parity',
       'modal-dock',
     );
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260614-modal-dock-parity', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260615-modal-header-compact', 'modal');
     if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
       global.SiteCloneBcChrome.upgradeModalShell();
     }

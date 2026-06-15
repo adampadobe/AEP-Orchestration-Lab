@@ -940,6 +940,23 @@
   width: 100%;
 }
 
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-bc-prefs__label {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field {
   margin-left: 0;
   width: 100%;

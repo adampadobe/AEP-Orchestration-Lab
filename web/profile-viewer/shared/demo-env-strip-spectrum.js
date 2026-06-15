@@ -129,9 +129,12 @@
       (c.summaryExtraClass ? ' ' + esc(c.summaryExtraClass) : '');
     var title = c.title || capPrefix(prefix) + ' (web)';
     var subtitle = c.subtitle || 'Active Configuration';
-    var prefsAttrs = 'data-demo-env-strip-mount="site-clone-bc-prefs" id="siteCloneBcPrefsMount"';
-    if (c.includeBottomDock) prefsAttrs += ' data-demo-env-strip-bc-bottom="1"';
-    if (c.includeDecisioning) prefsAttrs += ' data-demo-env-strip-decisioning="1"';
+    var bcPrefsAttrs = 'data-demo-env-strip-mount="site-clone-bc-prefs" id="siteCloneBcPrefsMount"';
+    if (c.includeBottomDock) bcPrefsAttrs += ' data-demo-env-strip-bc-bottom="1"';
+    var decisioningSection =
+      c.includeDecisioning !== false
+        ? '<div class="spectrum-env-display-mode lab-env-decisioning-wrap"><span class="spectrum-env-field__label">Decisioning</span><div data-demo-env-strip-mount="site-clone-decisioning-prefs" id="siteCloneDecisioningPrefsMount"></div></div>'
+        : '';
 
     var overlayFooterParts = [];
     if (c.selectedScriptId) {
@@ -266,8 +269,10 @@
       '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv" role="listitem">Development</span></div>' +
       '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint spectrum-env-card__hint" aria-live="polite"></p>' +
       '<div class="spectrum-env-display-mode lab-env-bc-prefs-wrap"><span class="spectrum-env-field__label">Display mode</span><div ' +
-      prefsAttrs +
-      '></div></div></div></article></div>' +
+      bcPrefsAttrs +
+      '></div></div>' +
+      decisioningSection +
+      '</div></article></div>' +
       legacyHiddenToggles(prefix, c.defaultBcStyle || 'miral') +
       '<div class="form-row mod-demo-tags-company-row" hidden><label for="' +
       esc(prefix) +
@@ -317,8 +322,15 @@
       deps.mountSiteCloneProfileBcPrefs({
         mountId: 'siteCloneBcPrefsMount',
         includeBottomDock: shellCfg.includeBottomDock,
-        includeDecisioning: shellCfg.includeDecisioning,
+        includeDecisioning: false,
       });
+    }
+    if (
+      shellCfg.includeDecisioning !== false &&
+      deps &&
+      typeof deps.mountSiteCloneDecisioningPrefs === 'function'
+    ) {
+      deps.mountSiteCloneDecisioningPrefs({ mountId: 'siteCloneDecisioningPrefsMount' });
     }
 
     if (global.DemoEnvBarSpectrumSync && typeof global.DemoEnvBarSpectrumSync.init === 'function') {
