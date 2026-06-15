@@ -975,9 +975,24 @@
     );
   }
 
+  function ensurePromptInnerFlattenStyles(doc) {
+    if (!doc || !doc.head) return;
+    var href = resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-prompt-single';
+    var link = doc.querySelector('link[data-aep-bc-prompt-flatten]');
+    if (!link) {
+      link = doc.createElement('link');
+      link.rel = 'stylesheet';
+      link.setAttribute('data-aep-bc-prompt-flatten', '1');
+      doc.head.appendChild(link);
+    }
+    link.href = href;
+    doc.head.appendChild(link);
+  }
+
   function scheduleDisclaimerReposition(doc) {
     if (!doc) return;
     function run() {
+      ensurePromptInnerFlattenStyles(doc);
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
         doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
           global.repositionArmyBcDisclaimer(mount);

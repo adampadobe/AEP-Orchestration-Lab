@@ -17,40 +17,6 @@ body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
   display: none !important;
 }
 
-/* Modal + bottom dock: BC widget draws a nested bordered prompt — flatten to single bar */
-.aep-bc-modal #brand-concierge-mount .input-container,
-.aep-bc-modal #brand-concierge-mount .input-section .input-container,
-.aep-bc-modal #siteCloneBcModalMount .input-container,
-.aep-bc-modal #siteCloneBcModalMount .input-section .input-container {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.aep-bc-modal #brand-concierge-mount .input-container > *,
-.aep-bc-modal #siteCloneBcModalMount .input-container > *,
-.aep-bc-modal #brand-concierge-mount .input-section .input-container > *,
-.aep-bc-modal #siteCloneBcModalMount .input-section .input-container > * {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.aep-bc-modal #brand-concierge-mount .input-container input,
-.aep-bc-modal #brand-concierge-mount .input-container textarea,
-.aep-bc-modal #siteCloneBcModalMount .input-container input,
-.aep-bc-modal #siteCloneBcModalMount .input-container textarea {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
 /* Keep Sky/site snapshot visible when BC modal is open — no env-bar grey wash */
 body.aep-bc-modal-open .mod-demo-top-anchor::after,
 body.aep-bc-modal-open [class*='-demo-top-anchor']::after,
