@@ -246,16 +246,36 @@
     };
   }
 
-  function applyToDemo(cfg) {
+  function mergeWorkspaceFields(primary, fallback) {
+    var p = normalizeConfig(primary);
+    var f = normalizeConfig(fallback || {});
+    var out = emptyConfig();
+    Object.keys(out).forEach(function (k) {
+      if (k === 'industryId') {
+        out.industryId = p.industryId || f.industryId;
+      } else {
+        out[k] = p[k] || f[k];
+      }
+    });
+    return out;
+  }
+
+  function applyIndustryChrome(industryId) {
     var lab = window.AepIpadLab;
-    if (!lab) return;
-    var payload = buildRtdbPayload(cfg);
-    if (typeof lab.applyIndustry === 'function' && cfg.industryId) {
-      lab.applyIndustry(cfg.industryId);
+    if (lab && typeof lab.applyIndustry === 'function' && industryId) {
+      lab.applyIndustry(industryId);
     }
-    if (typeof lab.applyRtdbData === 'function') {
-      lab.applyRtdbData(payload.flat);
-    }
+  }
+
+  function applyWorkspaceBrandToDemo(cfg) {
+    var lab = window.AepIpadLab;
+    if (!lab || typeof lab.applyRtdbData !== 'function') return;
+    lab.applyRtdbData(buildRtdbPayload(cfg).flat);
+  }
+
+  function applyToDemo(cfg) {
+    applyIndustryChrome(cfg.industryId);
+    applyWorkspaceBrandToDemo(cfg);
   }
 
   function saveConfigToRtdb(cfg) {
@@ -354,12 +374,12 @@
     loadConfigFromRtdb()
       .then(function (cfg) {
         if (gen !== refreshGeneration) return;
-        var normalized = normalizeConfig(cfg);
-        lastSaved = normalized;
+        var merged = mergeWorkspaceFields(collectInputs(), cfg);
+        lastSaved = merged;
         if (!isUserEditingInputs()) {
-          fillInputs(cfg);
+          fillInputs(merged);
         }
-        applyToDemo(cfg);
+        applyToDemo(merged);
         return getWorkspaceSlug();
       })
       .then(function (ws) {
@@ -428,17 +448,19 @@
     var industrySel = document.getElementById('ccIndustrySelect');
     if (industrySel) {
       industrySel.addEventListener('change', function () {
-        var cfg = collectInputs();
+        var cfg = mergeWorkspaceFields(collectInputs(), lastSaved);
         persistIndustryLocal(cfg.industryId);
-        if (window.AepIpadLab && typeof window.AepIpadLab.applyIndustry === 'function' && cfg.industryId) {
-          window.AepIpadLab.applyIndustry(cfg.industryId);
-        }
         applyToDemo(cfg);
+        lastSaved = mergeWorkspaceFields(cfg, lastSaved);
         persistIndustryOnly(cfg.industryId);
       });
     }
 
-    window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
+    window.addEventListener('aep-demo-config-changed', function (ev) {
+      var section = ev && ev.detail && ev.detail.section;
+      if (section === 'CallCentre') return;
+      refreshFromRtdb();
+    });
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
 
     scheduleRefreshAfterAuth();

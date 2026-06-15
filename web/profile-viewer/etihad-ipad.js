@@ -698,8 +698,6 @@
     var sel = document.getElementById('ccIndustrySelect');
     if (badge) badge.textContent = ind.label;
     if (sel) sel.value = resolved;
-
-    applyRtdbToShell();
   }
 
   function setCustomizeDockOpen(open) {
@@ -1884,7 +1882,23 @@
     getSandboxName: getSandboxName,
     applyIndustry: applyIndustryToIpad,
     applyRtdbData: function (data) {
-      rtdbData = data && typeof data === 'object' ? data : {};
+      if (!data || typeof data !== 'object') return;
+      rtdbData = Object.assign({}, rtdbData, data);
+      if (data.StaffPortal) {
+        rtdbData.StaffPortal = Object.assign({}, rtdbData.StaffPortal || {}, data.StaffPortal);
+      }
+      if (data.CoreDemoData) {
+        rtdbData.CoreDemoData = Object.assign({}, rtdbData.CoreDemoData || {}, data.CoreDemoData);
+      }
+      if (data.Mobile) {
+        rtdbData.Mobile = Object.assign({}, rtdbData.Mobile || {}, data.Mobile);
+      }
+      if (data.TravelData) {
+        rtdbData.TravelData = Object.assign({}, rtdbData.TravelData || {}, data.TravelData);
+      }
+      if (data.CustomerLoyalty) {
+        rtdbData.CustomerLoyalty = Object.assign({}, rtdbData.CustomerLoyalty || {}, data.CustomerLoyalty);
+      }
       applyRtdbToShell();
       if (currentProfileData) renderAll(currentProfileData);
     },

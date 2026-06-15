@@ -145,21 +145,43 @@
     });
   }
 
-  function applyToDemo(cfg) {
+  function mergeWorkspaceFields(primary, fallback) {
+    var p = normalizeConfig(primary);
+    var f = normalizeConfig(fallback || {});
+    var out = emptyConfig();
+    Object.keys(out).forEach(function (k) {
+      if (k === 'industryId') {
+        out.industryId = p.industryId || f.industryId;
+      } else {
+        out[k] = p[k] || f[k];
+      }
+    });
+    return out;
+  }
+
+  function applyIndustryChrome(industryId) {
+    var lab = window.AepCallCentreLab;
+    if (lab && typeof lab.applyIndustry === 'function' && industryId) {
+      lab.applyIndustry(industryId);
+    }
+  }
+
+  function applyWorkspaceBrandToDemo(cfg) {
     var lab = window.AepCallCentreLab;
     if (!lab || typeof lab.applyLoadedConfig !== 'function') return;
     var c = normalizeConfig(cfg);
-    var payload = {
-      industryId: c.industryId,
-      CoreDemoData: {
-        name: c.brandName,
-      },
+    lab.applyLoadedConfig({
+      CoreDemoData: { name: c.brandName },
       StaffPortal: {
         AgentName: c.agentName,
         Colour: c.accentColour ? '#' + c.accentColour.replace(/^#/, '') : '',
       },
-    };
-    lab.applyLoadedConfig(payload);
+    });
+  }
+
+  function applyToDemo(cfg) {
+    applyIndustryChrome(cfg.industryId);
+    applyWorkspaceBrandToDemo(cfg);
   }
 
   function saveConfigToRtdb(cfg) {
@@ -251,12 +273,12 @@
     loadConfigFromRtdb()
       .then(function (cfg) {
         if (gen !== refreshGeneration) return;
-        var normalized = normalizeConfig(cfg);
-        lastSaved = normalized;
+        var merged = mergeWorkspaceFields(collectInputs(), cfg);
+        lastSaved = merged;
         if (!isUserEditingBrandInputs()) {
-          fillInputs(cfg);
+          fillInputs(merged);
         }
-        applyToDemo(cfg);
+        applyToDemo(merged);
         return getWorkspaceSlug();
       })
       .then(function (ws) {
@@ -325,18 +347,19 @@
     var industrySel = document.getElementById('ccIndustrySelect');
     if (industrySel) {
       industrySel.addEventListener('change', function () {
-        var cfg = collectInputs();
-        var lab = window.AepCallCentreLab;
-        if (lab && typeof lab.applyIndustry === 'function' && cfg.industryId) {
-          lab.applyIndustry(cfg.industryId);
-        }
-        applyToDemo(cfg);
+        var cfg = mergeWorkspaceFields(collectInputs(), lastSaved);
         persistIndustryLocal(cfg.industryId);
+        applyToDemo(cfg);
+        lastSaved = mergeWorkspaceFields(cfg, lastSaved);
         persistIndustryOnly(cfg.industryId);
       });
     }
 
-    window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
+    window.addEventListener('aep-demo-config-changed', function (ev) {
+      var section = ev && ev.detail && ev.detail.section;
+      if (section === 'CallCentre') return;
+      refreshFromRtdb();
+    });
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
     window.addEventListener('aep-call-centre-lab-ready', refreshFromRtdb);
 
