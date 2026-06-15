@@ -641,16 +641,23 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   pointer-events: none !important;
 }
 
+/* Mid-rail FAB stack: env settings above decisioning channel icon */
+body.home-dashboard-concierge {
+  --lab-env-midrail-right: 0.85rem;
+  --lab-env-midrail-btn-size: 2rem;
+  --lab-env-midrail-gap: 0.55rem;
+}
+
 .env-bar-dock-btn {
   position: fixed;
-  top: 50%;
-  right: 0.85rem;
-  z-index: 7145;
+  top: calc(50% - var(--lab-env-midrail-btn-size) - var(--lab-env-midrail-gap));
+  right: var(--lab-env-midrail-right);
+  z-index: 7148;
   box-sizing: border-box;
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--lab-env-midrail-btn-size);
+  height: var(--lab-env-midrail-btn-size);
+  min-width: var(--lab-env-midrail-btn-size);
+  min-height: var(--lab-env-midrail-btn-size);
   padding: 0;
   border: 1px solid var(--dash-border);
   border-radius: 999px;
@@ -664,8 +671,10 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   font: inherit;
   pointer-events: auto;
   transform: translateY(-50%);
+  flex-shrink: 0;
   transition:
     border-color 0.18s ease,
+    box-shadow 0.18s ease,
     background 0.18s ease,
     opacity 0.18s ease,
     visibility 0.18s ease;
@@ -693,12 +702,17 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   outline-offset: 2px;
 }
 
+.env-bar-dock-btn:active {
+  transform: translateY(-50%);
+}
+
 .env-bar-dock-btn[aria-pressed='true'] {
   border-color: var(--dash-blue);
-  background: color-mix(in srgb, var(--dash-blue) 10%, var(--dash-surface));
-  outline: 2px solid color-mix(in srgb, var(--dash-blue) 22%, transparent);
-  outline-offset: 0;
-  box-shadow: var(--dash-shadow);
+  background: var(--dash-surface);
+  outline: none;
+  box-shadow:
+    var(--dash-shadow),
+    0 0 0 2px color-mix(in srgb, var(--dash-blue) 22%, transparent);
 }
 
 @media (max-width: 480px) {

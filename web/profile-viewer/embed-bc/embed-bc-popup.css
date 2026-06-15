@@ -58,7 +58,7 @@ body.aep-bc-modal-open {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: color-mix(in srgb, var(--dash-text, #131313) 18%, transparent);
+  background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;

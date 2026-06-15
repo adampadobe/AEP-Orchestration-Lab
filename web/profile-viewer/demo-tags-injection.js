@@ -1440,6 +1440,11 @@
       }
 
       if (tagsPropertyInput) {
+        function showAllPropertySuggestions() {
+          renderPropertySuggestions('');
+        }
+        tagsPropertyInput.addEventListener('focus', showAllPropertySuggestions);
+        tagsPropertyInput.addEventListener('mousedown', showAllPropertySuggestions);
         tagsPropertyInput.addEventListener('input', function () {
           renderPropertySuggestions(tagsPropertyInput.value || '');
           void applyPropertySelectionFromInput();

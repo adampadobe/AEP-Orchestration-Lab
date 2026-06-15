@@ -426,6 +426,8 @@ function invalidateSiteCloneBcCore() {
 
 const SC_BC_DATASTREAM_BY_SANDBOX_KEY = 'siteCloneBcDatastreamIdBySandbox';
 const SC_BC_DATASTREAM_LEGACY_SCALAR = 'siteCloneBcDatastreamId';
+const SC_BC_DATASTREAM_RECENT_BY_SANDBOX_KEY = 'siteCloneBcDatastreamRecentBySandbox';
+const DATASTREAM_RECENT_MAX = 5;
 
 function siteCloneBcDatastreamEl() {
   return document.getElementById('siteCloneBcDatastreamId');
@@ -504,23 +506,77 @@ function getSiteCloneBcDatastreamId() {
   return readPersistedSiteCloneBcDatastreamId();
 }
 
+function readRecentSiteCloneBcDatastreamIds(sandboxKey) {
+  const sk = String(sandboxKey != null ? sandboxKey : getSandboxKey()).trim() || '__default__';
+  const raw = readStorageMap(SC_BC_DATASTREAM_RECENT_BY_SANDBOX_KEY)[sk];
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  raw.forEach(function (entry) {
+    const id = sanitiseSiteCloneBcDatastreamId(entry);
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push(id);
+  });
+  return out.slice(0, DATASTREAM_RECENT_MAX);
+}
+
+function recordRecentSiteCloneBcDatastreamId(id, sandboxKey) {
+  const clean = sanitiseSiteCloneBcDatastreamId(id);
+  if (!clean) return;
+  const sk = String(sandboxKey != null ? sandboxKey : getSandboxKey()).trim() || '__default__';
+  const map = readStorageMap(SC_BC_DATASTREAM_RECENT_BY_SANDBOX_KEY);
+  const prev = Array.isArray(map[sk]) ? map[sk] : [];
+  const next = [clean].concat(prev.filter(function (entry) {
+    return sanitiseSiteCloneBcDatastreamId(entry) !== clean;
+  }));
+  map[sk] = next.slice(0, DATASTREAM_RECENT_MAX);
+  writeStorageMap(SC_BC_DATASTREAM_RECENT_BY_SANDBOX_KEY, map);
+}
+
+function datastreamSuggestionValueForId(id) {
+  const clean = sanitiseSiteCloneBcDatastreamId(id);
+  if (!clean) return '';
+  const hit = siteCloneBcAllDatastreamOptions.find(function (d) {
+    return String(d.id || '').toLowerCase() === clean;
+  });
+  return hit ? datastreamLabelFromItem(hit) : clean;
+}
+
 function renderSiteCloneBcDatastreamSuggestions(query) {
   if (!siteCloneBcDatastreamListEl()) return;
   const q = String(query || '').trim().toLowerCase();
   siteCloneBcDatastreamListEl().innerHTML = '';
-  const matches = siteCloneBcAllDatastreamOptions
+  const seen = new Set();
+  const appendOption = function (value) {
+    const v = String(value || '').trim();
+    if (!v) return;
+    const key = v.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const opt = document.createElement('option');
+    opt.value = v;
+    siteCloneBcDatastreamListEl().appendChild(opt);
+  };
+
+  readRecentSiteCloneBcDatastreamIds().forEach(function (id) {
+    const label = datastreamSuggestionValueForId(id);
+    if (!q || label.toLowerCase().indexOf(q) !== -1 || id.indexOf(q) !== -1) {
+      appendOption(label);
+    }
+  });
+
+  siteCloneBcAllDatastreamOptions
     .filter(function (d) {
       if (!q) return true;
       const label = datastreamLabelFromItem(d).toLowerCase();
       const id = String(d.id || '').toLowerCase();
       return label.indexOf(q) !== -1 || id.indexOf(q) !== -1;
     })
-    .slice(0, 200);
-  matches.forEach(function (d) {
-    const opt = document.createElement('option');
-    opt.value = datastreamLabelFromItem(d);
-    siteCloneBcDatastreamListEl().appendChild(opt);
-  });
+    .slice(0, 200)
+    .forEach(function (d) {
+      appendOption(datastreamLabelFromItem(d));
+    });
 }
 
 function applySiteCloneBcDatastreamInputToStoredId() {
@@ -532,6 +588,7 @@ function applySiteCloneBcDatastreamInputToStoredId() {
     siteCloneBcDatastreamEl().value = datastreamLabelFromItem(hit);
   }
   writeSandboxString(SC_BC_DATASTREAM_BY_SANDBOX_KEY, id);
+  if (id) recordRecentSiteCloneBcDatastreamId(id);
   refreshSiteCloneBcDatastreamHint();
   return id;
 }
@@ -548,6 +605,7 @@ function applySiteCloneBcDatastreamFieldForSandbox(sandboxKey) {
     return String(d.id || '').toLowerCase() === storedId;
   });
   siteCloneBcDatastreamEl().value = hit ? datastreamLabelFromItem(hit) : storedId;
+  renderSiteCloneBcDatastreamSuggestions('');
   refreshSiteCloneBcDatastreamHint();
 }
 
@@ -853,6 +911,12 @@ function bootSiteCloneBcDatastreamPicker() {
 
   let lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
 
+  function showAllDatastreamSuggestions() {
+    renderSiteCloneBcDatastreamSuggestions('');
+  }
+
+  dsInput.addEventListener('focus', showAllDatastreamSuggestions);
+  dsInput.addEventListener('mousedown', showAllDatastreamSuggestions);
   dsInput.addEventListener('input', function () {
     renderSiteCloneBcDatastreamSuggestions(dsInput.value);
   });

@@ -4,7 +4,7 @@
 .dpm-panel-anchor {
   position: fixed;
   top: 50%;
-  right: 0.85rem;
+  right: var(--lab-env-midrail-right, 0.85rem);
   z-index: 7150;
   display: none;
   flex-direction: row-reverse;
@@ -21,8 +21,8 @@
 .dpm-panel-trigger {
   position: relative;
   z-index: 2;
-  width: 2rem;
-  height: 2rem;
+  width: var(--lab-env-midrail-btn-size, 2rem);
+  height: var(--lab-env-midrail-btn-size, 2rem);
   padding: 0;
   border: 1px solid var(--dash-border);
   border-radius: 999px;
