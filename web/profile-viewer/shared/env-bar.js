@@ -18,7 +18,7 @@
     manifestVersion: '20260614-env-bar-prefs',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20260624-bc-modal-chrome',
+      bundleCss: '20260625-datastream-uuid-inline',
       spectrumCss: '20260617-profile-peek-v5',
       demoEnvStripSpectrum: '20260617-profile-peek-v5',
       demoEnvStrip: '20260617-profile-peek-v5',
@@ -30,7 +30,7 @@
       prefsSync: '20260625-incognito-env-fix',
       tagsInjection: '20260625-env-overlay-configuring',
       aepDemoEnvBar: '20260625-env-overlay-configuring',
-      siteCloneBcEnv: '20260625-incognito-env-fix',
+      siteCloneBcEnv: '20260625-datastream-uuid-inline',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
