@@ -415,6 +415,26 @@
     return sanitizeCoreDemoData(out);
   }
 
+  function resolveStaffPortalLocationLabel(staffPortal) {
+    var sp = staffPortal && typeof staffPortal === 'object' ? staffPortal : {};
+    var label = pickTrimmedBrandField(sp.LocationLabel);
+    if (label) return label;
+    return pickTrimmedBrandField(sp.FlightTerminalInfo) || '';
+  }
+
+  function normalizeStaffPortalSave(partial) {
+    var payload = partial && typeof partial === 'object' ? Object.assign({}, partial) : {};
+    if (!pickTrimmedBrandField(payload.LocationLabel)) {
+      var legacy = pickTrimmedBrandField(payload.FlightTerminalInfo);
+      if (legacy) payload.LocationLabel = legacy;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'FlightTerminalInfo')) {
+      delete payload.FlightTerminalInfo;
+    }
+    payload.FlightTerminalInfo = null;
+    return payload;
+  }
+
   function mergeStaffPortalFields(primary, fallback) {
     var p = primary && typeof primary === 'object' ? primary : {};
     var f = fallback && typeof fallback === 'object' ? fallback : {};
@@ -425,13 +445,14 @@
       'Colour',
       'TextColourCallCentre',
       'TextColourIpad',
-      'FlightTerminalInfo',
+      'LocationLabel',
       'agentName',
     ];
     var out = Object.assign({}, f, p);
     keys.forEach(function (k) {
       out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || (p[k] != null ? p[k] : f[k]);
     });
+    out.LocationLabel = resolveStaffPortalLocationLabel(out);
     return out;
   }
 
@@ -642,7 +663,7 @@
   }
 
   function saveStaffPortal(partial, opts) {
-    return saveSection(SECTIONS.StaffPortal, partial, opts);
+    return saveSection(SECTIONS.StaffPortal, normalizeStaffPortalSave(partial), opts);
   }
 
   /** Flat iPad-shaped object for etihad-ipad.js compatibility. */

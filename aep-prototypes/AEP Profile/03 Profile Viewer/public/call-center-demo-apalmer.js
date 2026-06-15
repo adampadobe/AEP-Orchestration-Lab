@@ -190,6 +190,7 @@
       (mb.StaffRole && String(mb.StaffRole).trim()) ||
       '';
     const terminal =
+      (sp.LocationLabel && String(sp.LocationLabel).trim()) ||
       (sp.FlightTerminalInfo && String(sp.FlightTerminalInfo).trim()) ||
       (mb.Terminal && String(mb.Terminal).trim()) ||
       '';

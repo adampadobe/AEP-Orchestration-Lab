@@ -18,7 +18,7 @@
         Colour: '#1473e6',
         TextColourCallCentre: '#ffffff',
         TextColourIpad: '#ffffff',
-        FlightTerminalInfo: 'Terminal 3 · Concourse B',
+        LocationLabel: 'Manchester',
         CaptainName: 'Captain Lee',
         CoPilotName: 'First Officer Jordan',
       },

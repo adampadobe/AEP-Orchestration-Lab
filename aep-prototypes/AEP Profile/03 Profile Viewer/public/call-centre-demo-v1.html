@@ -870,6 +870,11 @@
           <input id="ccCustomiseAgentName" type="text" class="cc-customize-input" autocomplete="off" placeholder="e.g. Demo agent">
         </div>
         <div class="cc-customize-field">
+          <label for="ccCustomiseLocationLabel" title="Shown after agent ID and role in the top bar">StaffPortal.LocationLabel (agent meta line)</label>
+          <input id="ccCustomiseLocationLabel" type="text" class="cc-customize-input" autocomplete="off" placeholder="Manchester" aria-describedby="ccCustomiseLocationLabelHint">
+          <span id="ccCustomiseLocationLabelHint" class="cc-customize-field-hint">Shown after agent ID and role in the top bar</span>
+        </div>
+        <div class="cc-customize-field">
           <label for="ccCustomiseAccentColour">StaffPortal.Colour</label>
           <input id="ccCustomiseAccentColour" type="text" class="cc-customize-input" autocomplete="off" placeholder="1473e6" maxlength="7">
         </div>
@@ -899,7 +904,7 @@
   <script src="aep-demo-config-rtdb.js?v=20260614-rtdb-save-api"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260612"></script>
-  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script src="shared/env-bar.js?v=20260614-modal-dock-parity"></script>
   <script>
     window.envBarConfig = {
       prefix: 'callCenter',

@@ -8,6 +8,7 @@
   var BRAND_INPUT_IDS = [
     'ccCustomiseBrandName',
     'ccCustomiseAgentName',
+    'ccCustomiseLocationLabel',
     'ccCustomiseAccentColour',
     'ccCustomiseTextColourCallCentre',
     'ccCustomiseTextColourIpad',
@@ -29,6 +30,7 @@
       industryId: '',
       brandName: '',
       agentName: '',
+      locationLabel: '',
       accentColour: '',
       textColourCallCentre: '',
       textColourIpad: '',
@@ -49,6 +51,10 @@
       (sp.AgentName && String(sp.AgentName).trim()) ||
       (sp.agentName && String(sp.agentName).trim()) ||
       (raw.agentName && String(raw.agentName).trim()) ||
+      '';
+    o.locationLabel =
+      (sp.LocationLabel && String(sp.LocationLabel).trim()) ||
+      (sp.FlightTerminalInfo && String(sp.FlightTerminalInfo).trim()) ||
       '';
     var colour = sp.Colour != null ? String(sp.Colour).trim() : raw.accentColour || '';
     o.accentColour = colour.replace(/^#/, '');
@@ -72,6 +78,7 @@
       x.industryId === y.industryId &&
       x.brandName === y.brandName &&
       x.agentName === y.agentName &&
+      x.locationLabel === y.locationLabel &&
       x.accentColour === y.accentColour &&
       x.textColourCallCentre === y.textColourCallCentre &&
       x.textColourIpad === y.textColourIpad
@@ -118,6 +125,8 @@
     if (brandEl) brandEl.value = c.brandName || '';
     var agentEl = document.getElementById('ccCustomiseAgentName');
     if (agentEl) agentEl.value = c.agentName || '';
+    var locationEl = document.getElementById('ccCustomiseLocationLabel');
+    if (locationEl) locationEl.value = c.locationLabel || '';
     var colourEl = document.getElementById('ccCustomiseAccentColour');
     if (colourEl) colourEl.value = c.accentColour || '';
     var ccTextEl = document.getElementById('ccCustomiseTextColourCallCentre');
@@ -137,6 +146,7 @@
       industryId: industryId,
       brandName: val('ccCustomiseBrandName'),
       agentName: val('ccCustomiseAgentName'),
+      locationLabel: val('ccCustomiseLocationLabel'),
       accentColour: val('ccCustomiseAccentColour').replace(/^#/, ''),
       textColourCallCentre: val('ccCustomiseTextColourCallCentre').replace(/^#/, ''),
       textColourIpad: val('ccCustomiseTextColourIpad').replace(/^#/, ''),
@@ -155,6 +165,7 @@
       c.industryId ||
       c.brandName ||
       c.agentName ||
+      c.locationLabel ||
       c.accentColour ||
       c.textColourCallCentre ||
       c.textColourIpad
@@ -207,6 +218,7 @@
       CoreDemoData: { name: c.brandName },
       StaffPortal: {
         AgentName: c.agentName,
+        LocationLabel: c.locationLabel,
         Colour: c.accentColour ? '#' + c.accentColour.replace(/^#/, '') : '',
         TextColourCallCentre: c.textColourCallCentre
           ? '#' + c.textColourCallCentre.replace(/^#/, '')
@@ -233,6 +245,7 @@
       c.saveCoreDemoData({ name: norm.brandName }),
       c.saveStaffPortal({
         AgentName: norm.agentName,
+        LocationLabel: norm.locationLabel,
         Colour: colour,
         TextColourCallCentre: textCc,
         TextColourIpad: textIpad,

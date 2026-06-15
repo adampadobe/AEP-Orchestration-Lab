@@ -9,6 +9,7 @@
     'ccCustomiseBrandName',
     'ccCustomiseShortName',
     'ccCustomiseAgentName',
+    'ccCustomiseLocationLabel',
     'ccCustomiseAccentColour',
     'ccCustomiseTextColourCallCentre',
     'ccCustomiseTextColourIpad',
@@ -34,6 +35,7 @@
       brandName: '',
       shortName: '',
       agentName: '',
+      locationLabel: '',
       accentColour: '',
       textColourCallCentre: '',
       textColourIpad: '',
@@ -62,6 +64,10 @@
       (sp.AgentName && String(sp.AgentName).trim()) ||
       (raw.agentName && String(raw.agentName).trim()) ||
       (mb.StaffName && String(mb.StaffName).trim()) ||
+      '';
+    o.locationLabel =
+      (sp.LocationLabel && String(sp.LocationLabel).trim()) ||
+      (sp.FlightTerminalInfo && String(sp.FlightTerminalInfo).trim()) ||
       '';
     var colour =
       (raw.accentColour && String(raw.accentColour).trim()) ||
@@ -144,6 +150,7 @@
       ccCustomiseBrandName: c.brandName,
       ccCustomiseShortName: c.shortName,
       ccCustomiseAgentName: c.agentName,
+      ccCustomiseLocationLabel: c.locationLabel,
       ccCustomiseAccentColour: c.accentColour,
       ccCustomiseTextColourCallCentre: c.textColourCallCentre,
       ccCustomiseTextColourIpad: c.textColourIpad,
@@ -169,6 +176,7 @@
       brandName: val('ccCustomiseBrandName'),
       shortName: val('ccCustomiseShortName'),
       agentName: val('ccCustomiseAgentName'),
+      locationLabel: val('ccCustomiseLocationLabel'),
       accentColour: val('ccCustomiseAccentColour').replace(/^#/, ''),
       textColourCallCentre: val('ccCustomiseTextColourCallCentre').replace(/^#/, ''),
       textColourIpad: val('ccCustomiseTextColourIpad').replace(/^#/, ''),
@@ -191,6 +199,7 @@
       c.brandName ||
       c.shortName ||
       c.agentName ||
+      c.locationLabel ||
       c.accentColour ||
       c.textColourCallCentre ||
       c.textColourIpad ||
@@ -239,6 +248,7 @@
       },
       staff: {
         AgentName: norm.agentName,
+        LocationLabel: norm.locationLabel,
         Colour: colour,
         TextColourCallCentre: textCc,
         TextColourIpad: textIpad,
@@ -258,6 +268,7 @@
         },
         StaffPortal: {
           AgentName: norm.agentName,
+          LocationLabel: norm.locationLabel,
           Colour: colour,
           TextColourCallCentre: textCc,
           TextColourIpad: textIpad,

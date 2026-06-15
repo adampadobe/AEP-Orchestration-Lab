@@ -538,7 +538,11 @@
     var agentName = sp.AgentName || mb.StaffName || '—';
     var agentId = mb.StaffId || sp.AgentID || '';
     var agentType = mb.StaffRole || sp.AgentType || '';
-    var terminal = sp.FlightTerminalInfo || mb.Terminal || '';
+    var terminal =
+      (sp.LocationLabel && String(sp.LocationLabel).trim()) ||
+      (sp.FlightTerminalInfo && String(sp.FlightTerminalInfo).trim()) ||
+      (mb.Terminal && String(mb.Terminal).trim()) ||
+      '';
     var colour = sp.Colour ? String(sp.Colour).replace(/^#/, '') : '';
 
     setText('gaAirlineName', customerName);
