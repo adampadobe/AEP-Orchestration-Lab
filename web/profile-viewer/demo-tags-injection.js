@@ -371,7 +371,32 @@
     const iframes = iframeIds.map(byId).filter(Boolean);
     const hideTagsCompanyUi = cfg.hideTagsCompanyUi === true;
 
-    const setMessage = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+    const setMessageRaw = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+
+    function tagsStatusElement() {
+      if (cfg.tagsStatusId) return byId(cfg.tagsStatusId);
+      if (cfg.tagsPropertyInputId) {
+        return byId(String(cfg.tagsPropertyInputId).replace(/TagsProperty$/, 'TagsStatus'));
+      }
+      return null;
+    }
+
+    function setTagsInlineStatus(text) {
+      const el = tagsStatusElement();
+      if (!el) return;
+      el.textContent = String(text || '');
+    }
+
+    /** Route transient Tags loading copy to the Environment card — avoids footer layout shift. */
+    const setMessage = function (text, type) {
+      const t = String(text || '');
+      if (/^Loading\b/i.test(t)) {
+        setTagsInlineStatus(t);
+        return;
+      }
+      setTagsInlineStatus('');
+      setMessageRaw(t, type);
+    };
     const getSelectedGeneratorTarget =
       typeof cfg.getSelectedGeneratorTarget === 'function' ? cfg.getSelectedGeneratorTarget : null;
 

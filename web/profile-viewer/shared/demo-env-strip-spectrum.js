@@ -231,11 +231,13 @@
       esc(injectId) +
       '" class="btn-lookup spectrum-btn spectrum-btn--primary"><span class="spectrum-btn__icon">' +
       spectrumIcon('send') +
-      '</span>Inject Selected Script</button></div></div></div></div></article>' +
+      '</span>Inject Selected Script</button></div><p id="' +
+      esc(prefix) +
+      'TagsStatus" class="spectrum-env-tags-status spectrum-env-field__hint" aria-live="polite"></p></div></div></div></article>' +
       '<article class="spectrum-env-card spectrum-env-card--data-collection">' +
       cardHeader('adobe', 'Adobe Data Collection', 'red') +
       '<div class="spectrum-env-card__body spectrum-env-card__body--stacked">' +
-      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcDatastreamId">Datastream UUID</label><input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input spectrum-env-input" aria-label="Lab datastream override UUID" placeholder="Datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false"><datalist id="siteCloneBcDatastreamList"></datalist><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
+      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcDatastreamId">Datastream UUID</label><select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select spectrum-env-input" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="generatorTarget">Event destination</label><select id="generatorTarget" class="spectrum-env-input" aria-label="Edge or DCS streaming target"></select></div>' +
       '<div class="spectrum-env-sdk-panel spectrum-env-sdk-panel--compact"><span class="spectrum-env-field__label">SDK status</span><span class="spectrum-env-badge spectrum-env-badge--green spectrum-env-badge--lg" id="aepSpectrumTargetSdkBadge">SDK Connected</span><p class="spectrum-env-sdk-panel__meta" id="aepSpectrumTargetSdkMeta">Destination: Edge · Environment: Development</p></div>' +
       '<div id="' +

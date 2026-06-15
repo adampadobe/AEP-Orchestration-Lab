@@ -1097,11 +1097,27 @@
 
 .spectrum-env-inline-message {
   margin: 0;
+  min-height: 1.25rem;
+}
+
+.spectrum-env-tags-status,
+.site-clone-bc-tags-status {
+  min-height: 1.25rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--dash-muted, var(--dash-text-secondary));
 }
 
 .lab-env-overlay-panel .spectrum-env-inline-message {
   width: 100%;
   box-sizing: border-box;
+}
+
+.lab-env-overlay-panel > .spectrum-env-inline-message[hidden] {
+  display: block !important;
+  visibility: hidden;
+  min-height: 1.25rem;
+  overflow: hidden;
 }
 
 /* Hide legacy flat layout pieces inside spectrum root */

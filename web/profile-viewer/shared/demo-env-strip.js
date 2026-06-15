@@ -108,6 +108,10 @@
       esc(p) +
       'TagsEnvironment" aria-label="Tags environment"></select>' +
       '</div>' +
+      '</div>' +
+      '<p id="' +
+      esc(p) +
+      'TagsStatus" class="site-clone-bc-tags-status" aria-live="polite"></p>' +
       '<div class="site-clone-bc-env-product-block" role="group" aria-labelledby="siteCloneBcProductHeading">' +
       '<span class="site-clone-bc-prefs__label site-clone-env-product-kicker" id="siteCloneBcProductHeading">Brand Concierge</span>' +
       '<div class="form-row site-clone-bc-style-url-row">' +
@@ -120,8 +124,7 @@
       '<span class="site-clone-bc-prefs__label site-clone-env-product-kicker" id="siteCloneTargetProductHeading">Adobe Target</span>' +
       '<div class="form-row site-clone-bc-datastream-row">' +
       '<label for="siteCloneBcDatastreamId">Lab datastream override</label>' +
-      '<input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false">' +
-      '<datalist id="siteCloneBcDatastreamList"></datalist>' +
+      '<select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select>' +
       '<p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p>' +
       '</div>' +
       '</div>' +

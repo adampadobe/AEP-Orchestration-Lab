@@ -19,18 +19,18 @@
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260624-bc-modal-chrome',
-      spectrumCss: '20260625-env-overlay-footer',
-      demoEnvStripSpectrum: '20260625-tags-property-select',
-      demoEnvStrip: '20260625-decisioning-remount',
+      spectrumCss: '20260625-tags-status-stable',
+      demoEnvStripSpectrum: '20260625-tags-status-stable',
+      demoEnvStrip: '20260625-tags-status-stable',
       spectrumSync: '20260614-sdk-compact-status',
       compactJs: '20260625-env-toolbar-overlay-sync',
       compactCss: '20260625-env-toolbar-overlay-sync',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260624-sandbox-persist-fix',
       prefsSync: '20260614-inject-guard',
-      tagsInjection: '20260625-tags-property-select',
+      tagsInjection: '20260625-tags-status-stable',
       aepDemoEnvBar: '20260625-env-configured',
-      siteCloneBcEnv: '20260625-datastream-recent-picker',
+      siteCloneBcEnv: '20260625-datastream-select',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
@@ -612,6 +612,12 @@
     } catch (_e) {}
   }
 
+  function ensureDecisioningPrefsMounted(cfg) {
+    if (!isDecisioningFeatureEnabled(cfg)) return;
+    if (!global.DemoEnvStrip || typeof global.DemoEnvStrip.mountSiteCloneProfileBcPrefs !== 'function') return;
+    global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({ mountId: 'siteCloneBcPrefsMount' });
+  }
+
   /**
    * Load site-clone-bc-env.js after strip mount (BC style hosting + datastream pickers need DOM).
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -621,6 +627,7 @@
     if (!isFullShellMode(cfg)) return Promise.resolve();
     if (cfg.features && cfg.features.bc === false) return Promise.resolve();
     var refresh = function () {
+      ensureDecisioningPrefsMounted(cfg);
       if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {
         global.SiteCloneBcEnv.applyForCurrentSandbox();
         log('SiteCloneBcEnv refreshed after strip mount');
@@ -716,6 +723,7 @@
       })
       .then(function () {
         var result = runBootstrap(state.config);
+        ensureDecisioningPrefsMounted(state.config);
         bootSiteCloneDecisioning(state.config);
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
           return loadSiteCloneBcRuntime(state.versions, state.config);
