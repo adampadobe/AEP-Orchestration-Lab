@@ -52,7 +52,7 @@
     cachedBySandbox[key] = data;
     var c = rtdbCfg();
     if (c && typeof c.saveSection === 'function') {
-      c.saveSection(c.SECTIONS.ExpVisualiser, data, { sandboxSlug: sb }).catch(function () {});
+      c.saveSection(c.SECTIONS.ExpVisualiser, data).catch(function () {});
       return;
     }
     var all = readAll();
@@ -67,7 +67,7 @@
     var c = rtdbCfg();
     if (!c) return Promise.resolve(null);
     return c.whenReady().then(function () {
-      return c.loadSection(c.SECTIONS.ExpVisualiser, { sandboxSlug: sb });
+      return c.loadSection(c.SECTIONS.ExpVisualiser);
     });
   }
 

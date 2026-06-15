@@ -3,7 +3,7 @@
  * Remove stale RTDB demo-config fields after flat workspace-root simplification.
  *
  * - Strips airlineName / brand / customerShortName / brandName from CoreDemoData (flat + nested)
- * - Removes duplicate workspace sections nested under sandboxes/{sandbox}/
+ * - Removes entire sandboxes/{sandbox}/ subtree after flat migration
  *
  * Usage:
  *   node scripts/cleanup-rtdb-workspace-stale-fields.mjs [--ldap apalmer]
@@ -20,7 +20,6 @@ const admin = require('firebase-admin');
 const {
   CANONICAL_CORE_DEMO_KEYS,
   WORKSPACE_ROOT_SECTIONS,
-  SANDBOX_SECTIONS,
   sanitizeCoreDemoData,
 } = require('../functions/labRtdbProvisionService');
 
@@ -104,43 +103,13 @@ async function processWorkspace(ldapSlug) {
 
   const sandboxesSnap = await rootRef.child('sandboxes').once('value');
   const sandboxes = sandboxesSnap.val();
-  if (!sandboxes || typeof sandboxes !== 'object') {
-    return { ldapSlug, actions };
-  }
-
-  for (const sandboxSlug of Object.keys(sandboxes)) {
-    const sb = sandboxes[sandboxSlug];
-    if (!sb || typeof sb !== 'object') continue;
-
-    for (const section of NESTED_WORKSPACE_SECTIONS) {
-      if (sb[section] == null) continue;
-      const removed = await removeNestedWorkspaceSection(ldapSlug, sandboxSlug, section);
-      if (removed) actions.push(removed);
-    }
-
-    const ipad = sb.iPad;
-    if (ipad && typeof ipad === 'object') {
-      for (const nestedKey of ['CoreDemoData', 'StaffPortal']) {
-        if (ipad[nestedKey] == null) continue;
-        const ref = rootRef.child(`sandboxes/${sandboxSlug}/iPad/${nestedKey}`);
-        const action = {
-          path: `ajoLookups/${ldapSlug}/sandboxes/${sandboxSlug}/iPad/${nestedKey}`,
-          action: 'remove_nested_ipad_brand_copy',
-          value: ipad[nestedKey],
-        };
-        actions.push(action);
-        if (APPLY) await ref.remove();
-      }
-      const ipadSnap = await rootRef.child(`sandboxes/${sandboxSlug}/iPad`).once('value');
-      const ipadVal = ipadSnap.val();
-      if (ipadVal && typeof ipadVal === 'object' && !Object.keys(ipadVal).length) {
-        actions.push({
-          path: `ajoLookups/${ldapSlug}/sandboxes/${sandboxSlug}/iPad`,
-          action: 'remove_empty_iPad',
-        });
-        if (APPLY) await rootRef.child(`sandboxes/${sandboxSlug}/iPad`).remove();
-      }
-    }
+  if (sandboxes && typeof sandboxes === 'object' && Object.keys(sandboxes).length) {
+    actions.push({
+      path: `ajoLookups/${ldapSlug}/sandboxes`,
+      action: 'remove_sandboxes_subtree',
+      sandboxKeys: Object.keys(sandboxes),
+    });
+    if (APPLY) await rootRef.child('sandboxes').remove();
   }
 
   return { ldapSlug, actions };
@@ -173,7 +142,7 @@ async function main() {
         ldapFilter: LDAP_FILTER || null,
         workspaces: report.length,
         totalActions,
-        sandboxSectionsPreserved: SANDBOX_SECTIONS,
+        flatWorkspaceOnly: true,
         report,
       },
       null,

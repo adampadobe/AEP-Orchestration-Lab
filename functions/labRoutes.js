@@ -235,8 +235,8 @@ function registerLabRoutes(deps) {
       res.status(400).json({ ok: false, error: 'section is required' });
       return;
     }
-    if (!workspaceRootSections.has(section) && !sandboxSlug) {
-      res.status(400).json({ ok: false, error: 'sandboxSlug is required for sandbox-scoped demo sections' });
+    if (!workspaceRootSections.has(section) && !labRtdbProvisionService.LEGACY_NESTED_SECTIONS.includes(section)) {
+      res.status(400).json({ ok: false, error: `Unknown demo section: ${section}` });
       return;
     }
     if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
@@ -324,15 +324,7 @@ function registerLabRoutes(deps) {
       firstName: profile && profile.firstName,
       lastName: profile && profile.lastName,
       workspaceSlug: (profile && profile.workspaceSlug) || body.workspaceSlug,
-      defaultSandbox: body.defaultSandbox || (profile && profile.workspaceSlug),
     });
-
-    if (body.mergeSandboxStub) {
-      const sb = String(body.defaultSandbox || result.ldapSlug || '').trim();
-      if (sb) {
-        await labRtdbProvisionService.ensureSandboxStub(null, result.ldapSlug, sb, { mergeDefaults: true });
-      }
-    }
 
     res.status(200).json({ ok: true, ...result });
   } catch (e) {

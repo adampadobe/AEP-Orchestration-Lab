@@ -1,7 +1,6 @@
 /**
  * Per-user workspace demo config in Firebase RTDB.
- * Shared brand chrome: ajoLookups/{ldapSlug}/CoreDemoData, StaffPortal, TravelData, Mobile, CallCentre
- * Sandbox-scoped sections: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/AgenticLayer, ExpAccelerator, …
+ * All sections flat at ajoLookups/{ldapSlug}/{section} — no sandboxes/ nesting.
  */
 (function (global) {
   'use strict';
@@ -20,7 +19,7 @@
     ContentDecisionLive: 'ContentDecisionLive',
   };
 
-  /** Flat at workspace root — not partitioned by AEP sandbox picker. */
+  /** Flat at workspace root — all persisted demo sections. */
   var WORKSPACE_ROOT_SECTIONS = {
     CoreDemoData: true,
     StaffPortal: true,
@@ -28,6 +27,10 @@
     TravelData: true,
     Mobile: true,
     CustomerLoyalty: true,
+    AgenticLayer: true,
+    ExpAccelerator: true,
+    ExpVisualiser: true,
+    ContentDecisionLive: true,
   };
 
   var CANONICAL_CORE_DEMO_KEYS = ['name', 'shortName', 'slogan', 'url', 'customerLogo'];
@@ -218,8 +221,9 @@
       });
   }
 
-  function sectionPath(ldapSlug, sandboxSlug, section) {
-    return 'ajoLookups/' + ldapSlug + '/sandboxes/' + sandboxSlug + '/' + section;
+  /** @deprecated Nested sandboxes/ paths removed — use workspaceSectionPath. */
+  function sectionPath(ldapSlug, _sandboxSlug, section) {
+    return workspaceSectionPath(ldapSlug, section);
   }
 
   function workspaceSectionPath(ldapSlug, section) {
@@ -253,26 +257,14 @@
     return sanitizeCoreDemoData(out);
   }
 
-  var nestedFallbackLogged = {};
-  function logNestedFallback(section, ldapSlug, sandboxSlug) {
-    var key = section + ':' + ldapSlug + ':' + sandboxSlug;
-    if (nestedFallbackLogged[key]) return;
-    nestedFallbackLogged[key] = true;
-    console.warn(
-      '[AepDemoConfigRtdb] Deprecated nested read fallback for workspace section',
-      section,
-      '— migrate to flat',
-      workspaceSectionPath(ldapSlug, section),
-    );
-  }
-
   /** When LDAP slug is not yet resolved, many personal lab trees use sandbox name as the RTDB root segment. */
   function effectiveLdapSlug(ldapSlug, sandboxSlug) {
     return normalizeSlug(ldapSlug) || normalizeSlug(sandboxSlug) || '';
   }
 
-  function sandboxRestUrl(ldapSlug, sandboxSlug) {
-    return getRtdbBase() + '/ajoLookups/' + encodeURIComponent(ldapSlug) + '/sandboxes/' + encodeURIComponent(sandboxSlug) + '.json';
+  /** @deprecated sandboxes/ subtree removed. */
+  function sandboxRestUrl(ldapSlug) {
+    return getRtdbBase() + '/ajoLookups/' + encodeURIComponent(ldapSlug) + '.json';
   }
 
   function dispatchConfigChanged(detail) {
@@ -355,8 +347,8 @@
     };
   }
 
-  function prepCacheKey(ldapSlug, sandboxSlug) {
-    return ldapSlug + ':' + sandboxSlug;
+  function prepCacheKey(ldapSlug) {
+    return ldapSlug;
   }
 
   function mergeAppPayload(appSection, shared) {
@@ -460,36 +452,10 @@
         fetchJson(base + '/' + workspaceSectionPath(ldapSlug, SECTIONS.CoreDemoData) + '.json'),
         fetchJson(base + '/' + workspaceSectionPath(ldapSlug, SECTIONS.StaffPortal) + '.json'),
       ]).then(function (results) {
-        var flatCore = results[0];
-        var flatStaff = results[1];
-        if (hasMeaningfulCoreDemoData(flatCore) || !isProvisionStaffPortalStub(flatStaff)) {
-          return {
-            CoreDemoData: flatCore && typeof flatCore === 'object' ? flatCore : {},
-            StaffPortal: flatStaff && typeof flatStaff === 'object' ? flatStaff : {},
-          };
-        }
-        var sandboxSlug = getActiveSandboxSlug();
-        if (!sandboxSlug) {
-          return {
-            CoreDemoData: flatCore || {},
-            StaffPortal: flatStaff || {},
-          };
-        }
-        return Promise.all([
-          fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
-          fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
-        ]).then(function (nestedResults) {
-          logNestedFallback(SECTIONS.CoreDemoData, ldapSlug, sandboxSlug);
-          logNestedFallback(SECTIONS.StaffPortal, ldapSlug, sandboxSlug);
-          return resolveSharedBrand(
-            stripStaleCoreDemoFields(nestedResults[0]),
-            nestedResults[1],
-            {
-              CoreDemoData: flatCore,
-              StaffPortal: flatStaff,
-            },
-          );
-        });
+        return {
+          CoreDemoData: results[0] && typeof results[0] === 'object' ? results[0] : {},
+          StaffPortal: results[1] && typeof results[1] === 'object' ? results[1] : {},
+        };
       });
     });
   }
@@ -535,7 +501,7 @@
     return chain;
   }
 
-  function loadWorkspaceSection(section, ldapSlug, sandboxSlug) {
+  function loadWorkspaceSection(section, ldapSlug) {
     var base = getRtdbBase();
     var flatUrl = base + '/' + workspaceSectionPath(ldapSlug, section) + '.json';
     return fetchJson(flatUrl).then(function (flat) {
@@ -544,18 +510,6 @@
           return stripStaleCoreDemoFields(flat);
         }
         return flat;
-      }
-      if (sandboxSlug) {
-        return fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, section) + '.json').then(function (nested) {
-          if (nested && typeof nested === 'object' && Object.keys(nested).length) {
-            logNestedFallback(section, ldapSlug, sandboxSlug);
-            if (section === SECTIONS.CoreDemoData) {
-              return stripStaleCoreDemoFields(nested);
-            }
-            return nested;
-          }
-          return flat;
-        });
       }
       return flat;
     });
@@ -583,16 +537,54 @@
     });
   }
 
-  function loadSectionInner(section, opts, sandboxSlug) {
+  function loadSectionInner(section, opts, _sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
+      var ldapForPath = effectiveLdapSlug(ldapSlug, _sandboxSlug);
 
-      if (ldapForPath && isWorkspaceRootSection(section)) {
-        return loadWorkspaceSection(section, ldapForPath, sandboxSlug).then(function (flat) {
+      if (section === SECTIONS.iPad) {
+        if (!ldapForPath) {
+          return loadLegacyFlat(_sandboxSlug, ldapSlug).then(function (legacy) {
+            if (!legacy) return splitStubIntoSections().iPad;
+            return {
+              Mobile: legacy.Mobile || {},
+              TravelData: legacy.TravelData || {},
+              CustomerLoyalty: legacy.CustomerLoyalty || {},
+            };
+          });
+        }
+        return Promise.all([
+          loadWorkspaceSection(SECTIONS.Mobile, ldapForPath),
+          loadWorkspaceSection(SECTIONS.TravelData, ldapForPath),
+          loadWorkspaceSection(SECTIONS.CustomerLoyalty, ldapForPath),
+        ]).then(function (results) {
+          return {
+            Mobile: results[0] || {},
+            TravelData: results[1] || {},
+            CustomerLoyalty: results[2] || {},
+          };
+        });
+      }
+
+      if (!ldapForPath) {
+        return loadLegacyFlat(_sandboxSlug, ldapSlug).then(function (legacy) {
+          if (!legacy) return splitStubIntoSections()[section] || null;
+          if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
+          if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || splitStubIntoSections().StaffPortal;
+          if (section === SECTIONS.CallCentre) return { industryId: legacy.industryId || 'travel' };
+          if (section === SECTIONS.TravelData) return legacy.TravelData || {};
+          if (section === SECTIONS.Mobile) return legacy.Mobile || {};
+          if (section === SECTIONS.CustomerLoyalty) return legacy.CustomerLoyalty || {};
+          if (section === SECTIONS.AgenticLayer) return splitStubIntoSections().AgenticLayer;
+          return legacy;
+        });
+      }
+
+      if (isWorkspaceRootSection(section)) {
+        return loadWorkspaceSection(section, ldapForPath).then(function (flat) {
           if (flat && typeof flat === 'object' && Object.keys(flat).length) {
             return flat;
           }
-          return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+          return loadLegacyFlat(_sandboxSlug, ldapSlug).then(function (legacy) {
             if (!legacy) return flat || splitStubIntoSections()[section] || null;
             if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
             if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || splitStubIntoSections().StaffPortal;
@@ -600,72 +592,28 @@
             if (section === SECTIONS.TravelData) return legacy.TravelData || {};
             if (section === SECTIONS.Mobile) return legacy.Mobile || {};
             if (section === SECTIONS.CustomerLoyalty) return legacy.CustomerLoyalty || {};
-            return legacy;
+            return flat || splitStubIntoSections()[section] || null;
           });
         });
       }
 
-      if (!ldapForPath || !sandboxSlug) {
-        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
-          if (!legacy) return null;
-          if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || null;
-          if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || null;
-          if (section === SECTIONS.iPad) {
-            return {
-              Mobile: legacy.Mobile || {},
-              TravelData: legacy.TravelData || {},
-              CustomerLoyalty: legacy.CustomerLoyalty || {},
-            };
-          }
-          if (section === SECTIONS.CallCentre) {
-            return { industryId: legacy.industryId || 'travel' };
-          }
-          if (section === SECTIONS.AgenticLayer) return { agentUrls: splitStubIntoSections().AgenticLayer.agentUrls };
-          return legacy;
-        });
-      }
+      return splitStubIntoSections()[section] || null;
+    });
+  }
 
-      var url =
-        getRtdbBase() +
-        '/' +
-        sectionPath(ldapForPath, sandboxSlug, section) +
-        '.json';
-      return fetchJson(url).then(function (nested) {
-        if (nested && typeof nested === 'object' && Object.keys(nested).length) {
-          return nested;
-        }
-        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
-          if (!legacy) return null;
-          if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
-          if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || splitStubIntoSections().StaffPortal;
-          if (section === SECTIONS.iPad) {
-            return {
-              Mobile: legacy.Mobile || {},
-              TravelData: legacy.TravelData || {},
-              CustomerLoyalty: legacy.CustomerLoyalty || {},
-            };
-          }
-          if (section === SECTIONS.CallCentre) {
-            return { industryId: legacy.industryId || 'travel' };
-          }
-          if (section === SECTIONS.AgenticLayer) {
-            return { agentUrls: splitStubIntoSections().AgenticLayer.agentUrls };
-          }
-          return legacy;
-        });
+  function loadWorkspaceSections(opts) {
+    opts = opts || {};
+    return ensurePrepReady({ silent: true }).then(function () {
+      return resolveLdapSlugAsync().then(function (ldapSlug) {
+        if (!ldapSlug) return null;
+        return fetchJson(sandboxRestUrl(ldapSlug));
       });
     });
   }
 
+  /** @deprecated Use loadWorkspaceSections */
   function loadSandboxSections(opts) {
-    opts = opts || {};
-    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
-    return ensurePrepReady({ sandboxSlug: sandboxSlug, silent: true }).then(function () {
-      return resolveLdapSlugAsync().then(function (ldapSlug) {
-        if (!ldapSlug || !sandboxSlug) return null;
-        return fetchJson(sandboxRestUrl(ldapSlug, sandboxSlug));
-      });
-    });
+    return loadWorkspaceSections(opts);
   }
 
   function loadCoreDemoData(opts) {
@@ -697,9 +645,9 @@
       }
       return Promise.all([
         loadSharedBrand(),
-        loadWorkspaceSection(SECTIONS.TravelData, ldapForPath, sandboxSlug),
-        loadWorkspaceSection(SECTIONS.Mobile, ldapForPath, sandboxSlug),
-        loadWorkspaceSection(SECTIONS.CustomerLoyalty, ldapForPath, sandboxSlug),
+        loadWorkspaceSection(SECTIONS.TravelData, ldapForPath),
+        loadWorkspaceSection(SECTIONS.Mobile, ldapForPath),
+        loadWorkspaceSection(SECTIONS.CustomerLoyalty, ldapForPath),
       ]).then(function (results) {
         var shared = results[0] || {};
         return {
@@ -724,29 +672,19 @@
     });
   }
 
-  function saveSectionInner(section, partial, opts, sandboxSlug) {
+  function saveSectionInner(section, partial, opts, _sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
-      var workspaceRoot = isWorkspaceRootSection(section);
+      var ldapForPath = effectiveLdapSlug(ldapSlug, _sandboxSlug);
 
       if (!ldapForPath) {
         console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing workspace slug', {
           section: section,
           ldapSlug: ldapSlug,
-          sandboxSlug: sandboxSlug,
         });
         return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
       }
-      if (!workspaceRoot && !sandboxSlug) {
-        console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing sandbox', {
-          section: section,
-          ldapSlug: ldapSlug,
-        });
-        return Promise.reject(new Error('Select a sandbox in the environment bar to save sandbox-scoped demo config.'));
-      }
 
-      var flatPath = workspaceRoot ? workspaceSectionPath(ldapForPath, section) : null;
-      var nestedPath = workspaceRoot ? null : sectionPath(ldapForPath, sandboxSlug, section);
+      var flatPath = workspaceSectionPath(ldapForPath, section);
       var payload =
         section === SECTIONS.CoreDemoData && partial && typeof partial === 'object'
           ? sanitizeCoreDemoData(partial)
@@ -755,9 +693,7 @@
         section: section,
         ldapSlug: ldapSlug,
         ldapForPath: ldapForPath,
-        sandboxSlug: sandboxSlug,
         flatPath: flatPath,
-        nestedPath: nestedPath,
         partial: payload,
       });
 
@@ -777,7 +713,6 @@
           body: JSON.stringify({
             section: section,
             partial: payload,
-            sandboxSlug: workspaceRoot ? ldapForPath : sandboxSlug,
             workspaceSlug: ldapForPath,
             adobeEmail: adobeEmail,
           }),
@@ -796,10 +731,9 @@
               console.log('[AepDemoConfigRtdb] saveSectionInner success', {
                 section: section,
                 flatPath: body.flatPath,
-                nestedPath: body.nestedPath,
               });
-              dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
-              return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
+              dispatchConfigChanged({ section: section, ldapSlug: ldapForPath });
+              return { ok: true, ldapSlug: ldapForPath, section: section };
             });
           })
           .catch(function (err) {
@@ -811,7 +745,7 @@
   }
 
   function saveSectionDebounced(section, partial, opts) {
-    var key = section + ':' + (opts && opts.sandboxSlug ? opts.sandboxSlug : getActiveSandboxSlug());
+    var key = section + ':' + (getLdapSlugSync() || 'ws');
     clearTimeout(saveTimers[key]);
     return new Promise(function (resolve, reject) {
       saveTimers[key] = setTimeout(function () {
@@ -820,7 +754,7 @@
     });
   }
 
-  function callProvisionApi(sandboxSlug) {
+  function callProvisionApi() {
     return authHeadersPromise().then(function (headers) {
       if (!headers.Authorization) {
         var err = new Error('Sign in to provision demo config.');
@@ -830,10 +764,7 @@
       return fetch('/api/lab/provision-rtdb', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
-        body: JSON.stringify({
-          defaultSandbox: sandboxSlug,
-          mergeSandboxStub: true,
-        }),
+        body: JSON.stringify({}),
       })
         .then(function (res) {
           return res.json().then(function (body) {
@@ -845,35 +776,34 @@
             throw new Error((result.body && result.body.error) || 'Provision failed');
           }
           if (result.body.ldapSlug) setCachedLdapSlug(result.body.ldapSlug);
-          dispatchConfigChanged({ provisioned: true, sandboxSlug: sandboxSlug });
+          dispatchConfigChanged({ provisioned: true, ldapSlug: result.body.ldapSlug });
           return result.body;
         });
     });
   }
 
   /**
-   * Idempotent: ensures ajoLookups/{ldap}/sandboxes/{sandbox}/ has all demo section stubs.
+   * Idempotent: ensures ajoLookups/{ldap}/ has all flat demo section stubs.
    * Called automatically before load/save and when opening Global settings / RTDB editor.
    */
   function ensurePrepReady(opts) {
     opts = opts || {};
-    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
     return whenReady().then(function () {
       return resolveLdapSlugAsync().then(function (ldapSlug) {
-        if (!ldapSlug || !sandboxSlug) {
+        if (!ldapSlug) {
           return { ok: false, skipped: true, reason: 'no_slug' };
         }
-        var cacheKey = prepCacheKey(ldapSlug, sandboxSlug);
+        var cacheKey = prepCacheKey(ldapSlug);
         if (prepEnsuredKeys[cacheKey]) {
-          return { ok: true, cached: true, ldapSlug: ldapSlug, sandboxSlug: sandboxSlug };
+          return { ok: true, cached: true, ldapSlug: ldapSlug };
         }
         if (prepEnsureInflight && prepEnsureInflight.key === cacheKey) {
           return prepEnsureInflight.promise;
         }
-        var promise = callProvisionApi(sandboxSlug)
+        var promise = callProvisionApi()
           .then(function (body) {
             prepEnsuredKeys[cacheKey] = true;
-            return migrateLocalStorageKeys(sandboxSlug).then(function () {
+            return migrateLocalStorageKeys().then(function () {
               return Object.assign({ ok: true }, body || {});
             });
           })
@@ -898,33 +828,32 @@
     return ensurePrepReady(opts);
   }
 
-  function clearPrepCache(opts) {
-    opts = opts || {};
-    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
-    return resolveLdapSlugAsync().then(function (ldapSlug) {
-      if (ldapSlug && sandboxSlug) {
-        delete prepEnsuredKeys[prepCacheKey(ldapSlug, sandboxSlug)];
-      } else {
-        prepEnsuredKeys = {};
-      }
-      return { ok: true };
-    });
+  function clearPrepCache() {
+    prepEnsuredKeys = {};
+    return Promise.resolve({ ok: true });
   }
 
-  function migrateLocalStorageKeys(sandboxSlug) {
-    var sb = normalizeSlug(sandboxSlug) || getActiveSandboxSlug();
-    if (!sb) return Promise.resolve({ skipped: true });
-
+  function migrateLocalStorageKeys() {
     var tasks = [];
 
     try {
       var agenticRaw = localStorage.getItem('aepAgenticV2AgentUrls');
       if (agenticRaw) {
         var all = JSON.parse(agenticRaw);
-        var urls = all && all[sb] ? all[sb] : all && all._default ? all._default : null;
+        var urls = null;
+        if (all && typeof all === 'object') {
+          var sb = getActiveSandboxSlug();
+          urls = (sb && all[sb]) || all._default || all;
+          if (urls && !urls.brand && !urls.product) {
+            var firstKey = Object.keys(all).find(function (k) {
+              return all[k] && typeof all[k] === 'object';
+            });
+            if (firstKey) urls = all[firstKey];
+          }
+        }
         if (urls && typeof urls === 'object') {
           tasks.push(
-            saveSection(SECTIONS.AgenticLayer, { agentUrls: urls }, { sandboxSlug: sb }).then(function () {
+            saveSection(SECTIONS.AgenticLayer, { agentUrls: urls }, { skipEnsurePrep: true }).then(function () {
               localStorage.removeItem('aepAgenticV2AgentUrls');
             }),
           );
@@ -936,7 +865,7 @@
       var industryRaw = localStorage.getItem('aepLabCallCenterIndustry_v1');
       if (industryRaw) {
         tasks.push(
-          saveSection(SECTIONS.CallCentre, { industryId: String(industryRaw).trim() }, { sandboxSlug: sb }),
+          saveSection(SECTIONS.CallCentre, { industryId: String(industryRaw).trim() }, { skipEnsurePrep: true }),
         );
       }
     } catch (_e2) {}
@@ -945,10 +874,20 @@
       var expVizRaw = localStorage.getItem('aepExpVizImageUrls');
       if (expVizRaw) {
         var evAll = JSON.parse(expVizRaw);
-        var ev = evAll && evAll[sb] ? evAll[sb] : evAll && evAll._default ? evAll._default : null;
+        var ev = null;
+        if (evAll && typeof evAll === 'object') {
+          var sb2 = getActiveSandboxSlug();
+          ev = (sb2 && evAll[sb2]) || evAll._default;
+          if (!ev) {
+            var evKey = Object.keys(evAll).find(function (k) {
+              return evAll[k] && typeof evAll[k] === 'object';
+            });
+            if (evKey) ev = evAll[evKey];
+          }
+        }
         if (ev && typeof ev === 'object') {
           tasks.push(
-            saveSection(SECTIONS.ExpVisualiser, ev, { sandboxSlug: sb }).then(function () {
+            saveSection(SECTIONS.ExpVisualiser, ev, { skipEnsurePrep: true }).then(function () {
               localStorage.removeItem('aepExpVizImageUrls');
             }),
           );
@@ -960,10 +899,20 @@
       var expAccelRaw = localStorage.getItem('aepExpAccelUiPrefs');
       if (expAccelRaw) {
         var eaAll = JSON.parse(expAccelRaw);
-        var ea = eaAll && eaAll[sb] ? eaAll[sb] : eaAll && eaAll._default ? eaAll._default : null;
+        var ea = null;
+        if (eaAll && typeof eaAll === 'object') {
+          var sb3 = getActiveSandboxSlug();
+          ea = (sb3 && eaAll[sb3]) || eaAll._default;
+          if (!ea) {
+            var eaKey = Object.keys(eaAll).find(function (k) {
+              return eaAll[k] && typeof eaAll[k] === 'object';
+            });
+            if (eaKey) ea = eaAll[eaKey];
+          }
+        }
         if (ea && typeof ea === 'object') {
           tasks.push(
-            saveSection(SECTIONS.ExpAccelerator, ea, { sandboxSlug: sb }).then(function () {
+            saveSection(SECTIONS.ExpAccelerator, ea, { skipEnsurePrep: true }).then(function () {
               localStorage.removeItem('aepExpAccelUiPrefs');
             }),
           );
@@ -1026,6 +975,7 @@
     ensureSandboxStub: ensureSandboxStub,
     ensurePrepReady: ensurePrepReady,
     clearPrepCache: clearPrepCache,
+    loadWorkspaceSections: loadWorkspaceSections,
     loadSandboxSections: loadSandboxSections,
     migrateLocalStorageKeys: migrateLocalStorageKeys,
     loadLegacyFlat: loadLegacyFlat,

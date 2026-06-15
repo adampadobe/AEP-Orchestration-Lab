@@ -1,7 +1,6 @@
 /**
  * Provision per-user RTDB demo config on lab approval (Admin SDK).
- * Flat workspace: ajoLookups/{ldapSlug}/CoreDemoData, StaffPortal, …
- * Sandbox-scoped: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/AgenticLayer, …
+ * Flat workspace only: ajoLookups/{ldapSlug}/{section} — no sandboxes/ nesting.
  */
 const admin = require('firebase-admin');
 const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
@@ -9,7 +8,7 @@ const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
 /** Canonical CoreDemoData keys — no airlineName / brand / customerShortName. */
 const CANONICAL_CORE_DEMO_KEYS = ['name', 'shortName', 'slogan', 'url', 'customerLogo'];
 
-/** Shared demo chrome — flat at ajoLookups/{ldap}/ (not per AEP sandbox). */
+/** All demo sections live flat at ajoLookups/{ldap}/ — not partitioned by AEP sandbox picker. */
 const WORKSPACE_ROOT_SECTIONS = new Set([
   'CoreDemoData',
   'StaffPortal',
@@ -17,22 +16,20 @@ const WORKSPACE_ROOT_SECTIONS = new Set([
   'TravelData',
   'Mobile',
   'CustomerLoyalty',
-]);
-
-/** Only these sections belong under sandboxes/{sandbox}/. */
-const SANDBOX_SECTIONS = [
   'AgenticLayer',
   'ExpAccelerator',
   'ExpVisualiser',
   'ContentDecisionLive',
-];
+]);
 
-/** Legacy nested bundle — read fallback only; not provisioned under sandboxes. */
+/** @deprecated — retained for migration scripts; no longer provisioned under sandboxes/. */
+const SANDBOX_SECTIONS = [];
+
+/** Legacy composite — not a persisted RTDB path in flat model. */
 const LEGACY_NESTED_SECTIONS = ['iPad'];
 
 const DEMO_SECTIONS = [
   ...WORKSPACE_ROOT_SECTIONS,
-  ...SANDBOX_SECTIONS,
   ...LEGACY_NESTED_SECTIONS,
 ];
 
@@ -163,7 +160,6 @@ function buildEmptyRootMeta(adobeEmail) {
       provisionedAt: new Date().toISOString(),
       adobeEmail: String(adobeEmail || '').trim().toLowerCase(),
     },
-    sandboxes: {},
   };
 }
 
@@ -211,7 +207,6 @@ async function provisionUserRtdbWorkspace(input) {
     } else if (adobeEmail && !existing.meta.adobeEmail) {
       patch['meta/adobeEmail'] = adobeEmail;
     }
-    if (!existing.sandboxes) patch.sandboxes = {};
     if (Object.keys(patch).length) await rootRef.update(patch);
   }
 
@@ -226,12 +221,7 @@ async function provisionUserRtdbWorkspace(input) {
 
   await ensureWorkspaceStub(db, ldapSlug, { mergeDefaults: true });
 
-  const defaultSandbox = normalizeLdapSlug(input.defaultSandbox || ldapSlug);
-  if (defaultSandbox) {
-    await ensureSandboxStub(db, ldapSlug, defaultSandbox, { mergeDefaults: true });
-  }
-
-  return { ok: true, ldapSlug, uid, defaultSandbox: defaultSandbox || null };
+  return { ok: true, ldapSlug, uid };
 }
 
 function demoSectionPath(ldapSlug, sandboxSlug, section) {
@@ -250,9 +240,8 @@ function workspaceSectionPath(ldapSlug, section) {
  * Admin SDK write for customise panels — flat workspace root or nested sandbox path.
  * @param {import('firebase-admin/database').Database} db
  */
-async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
+async function saveDemoSection(db, ldapSlug, _sandboxSlug, section, partial) {
   const ldap = normalizeLdapSlug(ldapSlug);
-  const sb = normalizeLdapSlug(sandboxSlug);
   const sec = String(section || '').trim();
   if (!ldap || !sec) {
     throw new Error('ldapSlug and section are required');
@@ -260,34 +249,18 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
   if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
     throw new Error('partial must be a plain object');
   }
+  if (!WORKSPACE_ROOT_SECTIONS.has(sec) && !LEGACY_NESTED_SECTIONS.includes(sec)) {
+    throw new Error(`Unknown demo section: ${sec}`);
+  }
   const database = db || getRtdb();
   const payload = sec === 'CoreDemoData' ? sanitizeCoreDemoData(partial) : partial;
-
-  if (WORKSPACE_ROOT_SECTIONS.has(sec)) {
-    const flatPath = workspaceSectionPath(ldap, sec);
-    await database.ref(flatPath).update(payload);
-    return {
-      ok: true,
-      ldapSlug: ldap,
-      sandboxSlug: sb || null,
-      section: sec,
-      nestedPath: null,
-      flatPath,
-    };
-  }
-
-  if (!sb) {
-    throw new Error('sandboxSlug is required for sandbox-scoped demo sections');
-  }
-  const nestedPath = demoSectionPath(ldap, sb, sec);
-  await database.ref(nestedPath).update(payload);
+  const flatPath = workspaceSectionPath(ldap, sec);
+  await database.ref(flatPath).update(payload);
   return {
     ok: true,
     ldapSlug: ldap,
-    sandboxSlug: sb,
     section: sec,
-    nestedPath,
-    flatPath: null,
+    flatPath,
   };
 }
 
@@ -325,29 +298,9 @@ async function ensureWorkspaceStub(db, ldapSlug, opts) {
   return { ok: true, ldapSlug: ldap, merged: Object.keys(patch) };
 }
 
-async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
-  const sb = normalizeLdapSlug(sandboxSlug);
-  const ldap = normalizeLdapSlug(ldapSlug);
-  if (!ldap || !sb) return { ok: false, reason: 'invalid_slug' };
-
-  const database = db || getRtdb();
-  const sbRef = database.ref(`ajoLookups/${ldap}/sandboxes/${sb}`);
-  const snap = await sbRef.once('value');
-  const existing = snap.val() || {};
-  const defaults = splitStubIntoSections(buildFlatLabStub());
-  const patch = {};
-
-  SANDBOX_SECTIONS.forEach((section) => {
-    if (!existing[section] && opts && opts.mergeDefaults) {
-      patch[section] = defaults[section] || {};
-    }
-  });
-
-  if (Object.keys(patch).length) {
-    await sbRef.update(patch);
-  }
-
-  return { ok: true, ldapSlug: ldap, sandboxSlug: sb, merged: Object.keys(patch) };
+/** @deprecated No-op — demo sections are flat at workspace root only. */
+async function ensureSandboxStub() {
+  return { ok: true, skipped: true, reason: 'flat_workspace_only' };
 }
 
 module.exports = {

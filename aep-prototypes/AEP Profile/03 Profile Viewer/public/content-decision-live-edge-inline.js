@@ -182,7 +182,6 @@
           edgeForceConfigure: fc,
           edgeConfigId: ec,
         },
-        { sandboxSlug: sb },
       ).catch(function () {});
     }
   }

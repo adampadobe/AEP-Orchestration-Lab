@@ -1,6 +1,6 @@
 /**
- * Customise dock: per–AEP-sandbox URLs for the eight specialist agent cards on Agentic layer v2.
- * Storage: RTDB ajoLookups/{ldap}/sandboxes/{sandbox}/AgenticLayer/agentUrls
+ * Customise dock: per-workspace URLs for the eight specialist agent cards on Agentic layer v2.
+ * Storage: RTDB ajoLookups/{ldap}/AgenticLayer/agentUrls
  */
 (function () {
   'use strict';
@@ -28,6 +28,10 @@
     data: 'node-agent-data-v2',
     support: 'node-agent-support-v2',
   };
+
+  var lastSavedUrls = null;
+  var saveInFlight = null;
+  var refreshGeneration = 0;
 
   function rtdb() {
     return window.AepDemoConfigRtdb;
@@ -111,7 +115,7 @@
     FIELD_KEYS.forEach(function (key) {
       var el = document.getElementById(CARD_IDS[key]);
       if (!el) return;
-      el.addEventListener('click', function (e) {
+      el.addEventListener('click', function () {
         if (!el.classList.contains('agentic-v2-agent-card--has-link')) return;
         onAgentCardActivate({ currentTarget: el });
       });
@@ -122,38 +126,27 @@
     });
   }
 
-  function currentSandboxName() {
-    if (typeof AepGlobalSandbox !== 'undefined') {
-      if (typeof AepGlobalSandbox.getSelected === 'function') {
-        var selected = String(AepGlobalSandbox.getSelected() || '').trim();
-        if (selected) return selected;
-      }
-      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
-        var globalName = String(AepGlobalSandbox.getSandboxName() || '').trim();
-        if (globalName) return globalName;
-      }
+  function getWorkspaceSlug() {
+    var c = rtdb();
+    if (c && typeof c.resolveLdapSlugAsync === 'function') {
+      return c.resolveLdapSlugAsync();
     }
-    if (rtdb()) {
-      var slug = rtdb().getActiveSandboxSlug();
-      if (slug) return slug;
+    if (c && c.getLdapSlugSync) {
+      return Promise.resolve(c.getLdapSlugSync() || '');
     }
-    try {
-      var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
-      if (stored) return stored;
-    } catch (e) {}
-    return '';
+    return Promise.resolve('');
   }
 
-  function updateSandboxLabel() {
+  function updateWorkspaceLabel(workspaceSlug) {
     var el = document.getElementById('agenticV2SandboxLabel');
     if (!el) return;
-    var sb = currentSandboxName();
+    var ws = workspaceSlug || '';
     var strong = el.querySelector('strong');
     if (strong) {
-      strong.textContent = sb || '—';
+      strong.textContent = ws || '—';
       return;
     }
-    el.textContent = sb ? 'Sandbox: ' + sb : 'Sandbox: —';
+    el.textContent = ws ? 'Workspace: ' + ws : 'Workspace: —';
   }
 
   function fillInputsFromStored(urls) {
@@ -197,13 +190,11 @@
     });
   }
 
-  function loadUrlsFromRtdb(sandboxSlug) {
+  function loadUrlsFromRtdb() {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
-    var sb = c.normalizeSlug(sandboxSlug) || c.getActiveSandboxSlug();
     return c.whenReady().then(function () {
-      // migrateLocalStorageKeys runs inside loadSection → ensurePrepReady after auth/provision.
-      return c.loadSection(c.SECTIONS.AgenticLayer, { sandboxSlug: sb });
+      return c.loadSection(c.SECTIONS.AgenticLayer);
     }).then(function (section) {
       return extractAgentUrls(section);
     });
@@ -225,22 +216,13 @@
     });
   }
 
-  function saveUrlsToRtdb(urls, sandboxSlug) {
+  function saveUrlsToRtdb(urls) {
     var c = rtdb();
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
-    var sb = c.normalizeSlug(sandboxSlug) || c.normalizeSlug(currentSandboxName());
-    if (!sb) {
-      return Promise.reject(new Error('Select a sandbox in the environment bar to save agent URLs.'));
-    }
-    return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls }, { sandboxSlug: sb });
+    return c.saveSection(c.SECTIONS.AgenticLayer, { agentUrls: urls });
   }
 
-  function persistUrls(urls, sandboxSlug, statusPrefix) {
-    var sb = sandboxSlug || currentSandboxName();
-    if (!sb) {
-      setStatus('Select a sandbox in the environment bar to save agent URLs.', 'err');
-      return Promise.resolve(false);
-    }
+  function persistUrls(urls, statusPrefix) {
     var k;
     for (k in urls) {
       if (urls[k] && !validateUrl(urls[k])) {
@@ -253,11 +235,20 @@
     }
     setStatus((statusPrefix || 'Saving') + '…', '');
     if (saveInFlight) return saveInFlight;
-    saveInFlight = saveUrlsToRtdb(urls, sb)
+    saveInFlight = getWorkspaceSlug()
+      .then(function (ws) {
+        if (!ws) {
+          throw new Error('Sign in with your Adobe lab account to save agent URLs.');
+        }
+        return saveUrlsToRtdb(urls);
+      })
       .then(function () {
+        return getWorkspaceSlug();
+      })
+      .then(function (ws) {
         lastSavedUrls = normalizeStored(urls);
         applyUrlsToAgentCards(urls);
-        setStatus('Saved agent links for sandbox “' + sb + '”.', 'ok');
+        setStatus('Saved agent links for workspace “' + (ws || 'your lab') + '”.', 'ok');
         return true;
       })
       .catch(function (e) {
@@ -342,19 +333,18 @@
         function () {
           dockOuter.classList.add('workflow-dock-outer--peek');
         },
-        { passive: true }
+        { passive: true },
       );
     }
   }
 
   function init() {
     initDock();
-    updateSandboxLabel();
 
     var btn = document.getElementById('agenticV2CustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
-        persistUrls(collectInputsRaw(), currentSandboxName(), 'Saving');
+        persistUrls(collectInputsRaw(), 'Saving');
       });
     }
 
@@ -362,14 +352,13 @@
       var inp = document.getElementById(INPUT_IDS[key]);
       if (!inp) return;
       inp.addEventListener('blur', function () {
-        persistUrls(collectInputsRaw(), currentSandboxName(), 'Saving');
+        persistUrls(collectInputsRaw(), 'Saving');
       });
     });
 
     function refreshFromRtdb() {
       var gen = ++refreshGeneration;
-      var sb = currentSandboxName();
-      loadUrlsFromRtdb(sb).then(function (urls) {
+      loadUrlsFromRtdb().then(function (urls) {
         if (gen !== refreshGeneration) return;
         var normalized = normalizeStored(urls);
         lastSavedUrls = normalized;
@@ -377,9 +366,12 @@
           fillInputsFromStored(urls);
         }
         applyUrlsToAgentCards(urls);
-        updateSandboxLabel();
-        if (!sb) {
-          setStatus('Select a sandbox in the environment bar to load saved agent URLs.', 'err');
+        return getWorkspaceSlug();
+      }).then(function (ws) {
+        if (gen !== refreshGeneration) return;
+        updateWorkspaceLabel(ws);
+        if (!ws) {
+          setStatus('Sign in to load your workspace agent URLs.', 'err');
         } else {
           setStatus('', '');
         }
@@ -399,28 +391,14 @@
         refreshFromRtdb();
       }
       if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-        window.__aepLabSyncReady.then(function () {
-          tryRefresh();
-          if (!currentSandboxName()) {
-            window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
-          }
-        });
+        window.__aepLabSyncReady.then(tryRefresh);
       } else {
         tryRefresh();
-        if (!currentSandboxName()) {
-          window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
-        }
       }
       window.setTimeout(tryRefresh, 1500);
     }
 
     bindAgentCardsOnce();
-
-    window.addEventListener('aep-global-sandbox-change', function () {
-      lastSavedUrls = null;
-      updateSandboxLabel();
-      refreshFromRtdb();
-    });
 
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
 
