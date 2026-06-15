@@ -609,7 +609,7 @@ body.race-page section.race-find {
 
 /* ── Brand Concierge launcher ─────────────────────────────────── */
 .race-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.race-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.race-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 .race-page .aep-bc-park-launcher {

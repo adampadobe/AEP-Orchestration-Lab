@@ -681,7 +681,7 @@
 /* ── Brand Concierge launcher ─────────────────────────────────── */
 
 .donate-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host,
-.donate-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn {
+.donate-demo-page:not(.aep-bc-launcher-on) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none !important;
 }
 

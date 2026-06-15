@@ -1,1 +1,18 @@
-/* Modal mount rules live in embed-bc/embed-bc-popup.css (loaded when Modal is checked). */
+/**
+ * Site-clone Brand Concierge chrome — modal FAB, frame host, modal-armed visibility.
+ * Modal popup shell styles load on demand from embed-bc/embed-bc-popup.css.
+ */
+
+#siteCloneBcFab.site-clone-bc-fab {
+  display: none;
+}
+
+body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-clone-bc-frame-host[hidden] {
+  display: none !important;
+}

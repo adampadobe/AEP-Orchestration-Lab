@@ -18,7 +18,7 @@
     manifestVersion: '20260614-env-bar-prefs',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20260623-env-inline',
+      bundleCss: '20260624-bc-fab-visible',
       spectrumCss: '20260624-spectrum-trio-layout',
       demoEnvStripSpectrum: '20260624-spectrum-trio-layout',
       demoEnvStrip: '20260625-version-pill',
@@ -632,7 +632,36 @@
   }
 
   /**
-   * Optionally load demo lab-core script after env bar stack is ready.
+   * Mount BC page chrome (FAB, modal, frame host) and load site-clone-bc.js when the demo
+   * enables BC but omits a static script tag (e.g. aviva-target).
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadSiteCloneBcRuntime(versions, cfg) {
+    if (!isFullShellMode(cfg)) return Promise.resolve();
+    if (cfg.features && cfg.features.bc === false) return Promise.resolve();
+    var a = versions.assets;
+    var chromeSrc = assetUrl('shared/site-clone-bc-chrome.js', a.siteCloneBcChrome || '20260624-bc-chrome');
+    return loadScript(chromeSrc)
+      .then(function () {
+        if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.ensure === 'function') {
+          global.SiteCloneBcChrome.ensure();
+        }
+        if (global.SiteCloneBc) return;
+        if (document.querySelector('script[src*="site-clone-bc.js"]')) return;
+        return loadScript(assetUrl('site-clone-bc.js', a.siteCloneBc || '20260624-bc-toggle-refresh'));
+      })
+      .then(function () {
+        if (global.SiteCloneBc && typeof global.SiteCloneBc.refreshDisplayModeToggles === 'function') {
+          global.SiteCloneBc.refreshDisplayModeToggles();
+        }
+        if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
+          return global.SiteCloneBc.sync();
+        }
+      });
+  }
+
+  /**
    * @param {EnvBarConfig} cfg
    */
   function loadLabCoreIfConfigured(cfg) {
@@ -686,6 +715,8 @@
         var result = runBootstrap(state.config);
         bootSiteCloneDecisioning(state.config);
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
+          return loadSiteCloneBcRuntime(state.versions, state.config);
+        }).then(function () {
           return result;
         });
       })

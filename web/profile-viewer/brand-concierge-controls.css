@@ -103,11 +103,11 @@ body.aep-bc-panel-dismissed #brand-concierge-mount-host {
   }
 }
 
-body:not(.aep-bc-panel-dismissed) .aep-bc-reopen-btn {
+body:not(.aep-bc-panel-dismissed) .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: none;
 }
 
-body.aep-bc-panel-dismissed .aep-bc-reopen-btn {
+body.aep-bc-panel-dismissed .aep-bc-reopen-btn:not(.site-clone-bc-fab) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
