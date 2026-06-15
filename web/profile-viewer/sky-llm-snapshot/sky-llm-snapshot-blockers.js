@@ -5,6 +5,19 @@
 (function () {
   'use strict';
 
+  function stripSpaBundles() {
+    document.querySelectorAll('script[defer][src*="/assets/"], script[defer][src^="./assets/"]').forEach(function (s) {
+      s.parentNode && s.parentNode.removeChild(s);
+    });
+    document.querySelectorAll('script[src*="assets/auth."], script[src*="assets/main."], script[src*="assets/vendor."]').forEach(
+      function (s) {
+        if (s.defer || /auth\.|main\.|vendor\./.test(s.getAttribute('src') || '')) {
+          s.parentNode && s.parentNode.removeChild(s);
+        }
+      }
+    );
+  }
+
   function stripWalnut() {
     var walnut = document.getElementById('walnut-root-popin-element');
     if (!walnut) return false;
@@ -12,6 +25,7 @@
     return true;
   }
 
+  stripSpaBundles();
   stripWalnut();
 
   if (window.MutationObserver) {

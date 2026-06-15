@@ -46,6 +46,10 @@ html = html.replace(
   '<title>Adobe LLM Optimizer</title>'
 );
 
+/** Frozen snapshots must not load the live SPA bundles (they replace #root and blank the page). */
+html = html.replace(/<script>window\.SAMPLE_PAGEVIEWS_AT_RATE[^<]*<\/script>\s*/i, '');
+html = html.replace(/<script defer="defer" src="\.\/assets\/[^"]+"><\/script>\s*/gi, '');
+
 const inject = [
   `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
   `<link rel="stylesheet" href="./sky-llm-snapshot-platform.css?v=${buildId}">`,
