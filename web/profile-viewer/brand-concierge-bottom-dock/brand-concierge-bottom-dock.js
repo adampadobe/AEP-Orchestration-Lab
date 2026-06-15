@@ -90,6 +90,30 @@
 
     function setExpanded(on) {
       root.classList.toggle('is-expanded', !!on);
+      if (!on) root.classList.remove('bc-bottom-dock--typing');
+    }
+
+    function setTyping(on) {
+      root.classList.toggle('bc-bottom-dock--typing', !!on);
+    }
+
+    function syncTypingFromDockInput() {
+      setTyping(!!String(dockInput.value || '').trim());
+    }
+
+    function bindMountTyping() {
+      if (mount.dataset.typingBound === '1') return;
+      mount.dataset.typingBound = '1';
+      mount.addEventListener('input', function (e) {
+        var t = e.target;
+        if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+        setTyping(!!String(t.value || '').trim());
+      });
+      mount.addEventListener('focusin', function (e) {
+        var t = e.target;
+        if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+        if (String(t.value || '').trim()) setTyping(true);
+      });
     }
 
     function setVisible(on) {
@@ -99,6 +123,7 @@
 
     function openPanel() {
       setExpanded(true);
+      bindMountTyping();
       window.setTimeout(function () {
         dockInput.focus();
       }, 50);
@@ -107,6 +132,7 @@
 
     brand.addEventListener('click', openPanel);
     dockInput.addEventListener('focus', openPanel);
+    dockInput.addEventListener('input', syncTypingFromDockInput);
     minBtn.addEventListener('click', function () {
       setExpanded(false);
     });

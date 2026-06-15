@@ -73,16 +73,35 @@ body.aep-bc-modal-open {
   width: min(920px, 100%);
   max-height: min(92vh, 1180px);
   overflow: hidden;
-  border-radius: 16px;
-  background: linear-gradient(
-    122.87deg,
-    #e1e9ff 20.72%,
-    #efe3fa 34.96%,
-    #f5dff8 42.08%,
-    #fcdcf5 49.2%,
-    #ffdec3 91.6%
-  );
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  border-radius: var(--dash-radius, 16px);
+  border: 1px solid var(--dash-border, rgba(19, 19, 19, 0.12));
+  background: var(--dash-surface, #fff);
+  box-shadow: var(--dash-shadow, 0 24px 64px rgba(0, 0, 0, 0.35));
+  pointer-events: auto;
+}
+
+/* Sky-assistant style gradient accent rails (matches centre-bottom dock panel) */
+.aep-bc-modal__dialog::before,
+.aep-bc-modal__dialog::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aep-bc-modal__dialog::before {
+  top: 0;
+  border-radius: var(--dash-radius, 16px) var(--dash-radius, 16px) 0 0;
+  background: linear-gradient(90deg, #4b75ff 0%, #e743c8 52%, #ff7918 100%);
+}
+
+.aep-bc-modal__dialog::after {
+  bottom: 0;
+  border-radius: 0 0 var(--dash-radius, 16px) var(--dash-radius, 16px);
+  background: linear-gradient(90deg, #4b75ff 0%, #9b4dff 48%, #e743c8 100%);
 }
 
 .aep-bc-modal__close {
@@ -149,8 +168,8 @@ body.aep-bc-modal-open {
   margin: 0;
   pointer-events: auto !important;
   overflow: hidden;
-  contain: layout paint;
   background: transparent !important;
+  isolation: isolate;
 }
 
 /* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
@@ -194,7 +213,7 @@ body.aep-bc-modal-open {
   background-repeat: no-repeat !important;
 }
 
-/* Dialog already carries the gradient — BC theme tokens paint a white bottom slab in modal */
+/* White shell — BC chat area transparent; input pill stays white like bottom dock */
 .aep-bc-modal #brand-concierge-mount,
 .aep-bc-modal #siteCloneBcModalMount,
 .aep-bc-modal #brand-concierge-mount .brand-concierge-container,
@@ -203,13 +222,34 @@ body.aep-bc-modal-open {
   --main-container-bottom-background: transparent !important;
   --chat-container-bottom-background: transparent !important;
   --chat-container-background: transparent !important;
-  --input-background: transparent !important;
   --main-container-background: transparent !important;
-  --input-box-shadow: none !important;
+  --input-background: var(--dash-surface, #fff) !important;
+  --input-box-shadow: var(--dash-shadow, 0 2px 12px rgba(0, 0, 0, 0.08)) !important;
 }
 
-.aep-bc-modal [class*='message-blocker'],
-.aep-bc-modal .message-blocker,
+/* Keep BC fixed layers inside the dialog — do not paint over the site snapshot */
+.aep-bc-modal #brand-concierge-mount [class*='message-blocker'],
+.aep-bc-modal #siteCloneBcModalMount [class*='message-blocker'],
+.aep-bc-modal #brand-concierge-mount .message-blocker,
+.aep-bc-modal #siteCloneBcModalMount .message-blocker {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  pointer-events: none !important;
+}
+
+.aep-bc-modal #brand-concierge-mount > div,
+.aep-bc-modal #siteCloneBcModalMount > div,
+.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
+.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
+  max-width: 100% !important;
+}
+
 .aep-bc-modal #brand-concierge-mount .input-section,
 .aep-bc-modal #siteCloneBcModalMount .input-section {
   background: transparent !important;
@@ -218,9 +258,6 @@ body.aep-bc-modal-open {
 
 .aep-bc-modal #brand-concierge-mount .input-container,
 .aep-bc-modal #siteCloneBcModalMount .input-container {
-  background: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  outline: none !important;
+  background: var(--dash-surface, #fff) !important;
+  background-color: var(--dash-surface, #fff) !important;
 }

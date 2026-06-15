@@ -517,9 +517,9 @@
         '--main-container-bottom-background': 'transparent',
         '--chat-container-bottom-background': 'transparent',
         '--chat-container-background': 'transparent',
-        '--input-background': 'transparent',
+        '--input-background': '#FFFFFF',
         '--main-container-background': 'transparent',
-        '--input-box-shadow': 'none',
+        '--input-box-shadow': '0 2px 12px rgba(0, 0, 0, 0.08)',
       });
     }
     return applySiteCloneStyleConfigDefaults(base);
@@ -1365,7 +1365,7 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260625-modal-prompt-transparent', 'modal');
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260613bc-modal-shell-fix', 'modal');
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }

@@ -642,6 +642,39 @@
   }
 
   /**
+   * Load centre-bottom BC dock assets when the env strip exposes bc-bottom toggle.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBottomDockRuntime(versions, cfg) {
+    if (!isFullShellMode(cfg) || (cfg.features && cfg.features.bc === false)) return Promise.resolve();
+    if (!document.querySelector('[data-demo-env-strip-bc-bottom="1"]')) return Promise.resolve();
+    var a = versions.assets;
+    var dockCss = assetUrl(
+      'brand-concierge-bottom-dock/brand-concierge-bottom-dock.css',
+      a.bottomDockCss || '20260613bc-panel-compact'
+    );
+    var dockJs = assetUrl(
+      'brand-concierge-bottom-dock/brand-concierge-bottom-dock.js',
+      a.bottomDockJs || '20260613bc-typing'
+    );
+    var bootJs = assetUrl('shared/site-clone-bottom-dock-boot.js', a.bottomDockBoot || '20260613bc-boot');
+    return linkCss(dockCss)
+      .then(function () {
+        return loadScript(dockJs);
+      })
+      .then(function () {
+        if (document.querySelector('script[src*="site-clone-bottom-dock-boot.js"]')) return;
+        return loadScript(bootJs);
+      })
+      .then(function () {
+        if (global.SiteCloneBottomDockBoot && typeof global.SiteCloneBottomDockBoot.boot === 'function') {
+          global.SiteCloneBottomDockBoot.boot();
+        }
+      });
+  }
+
+  /**
    * Mount BC page chrome (FAB, modal, frame host) and load site-clone-bc.js when the demo
    * enables BC but omits a static script tag (e.g. aviva-target).
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -668,6 +701,9 @@
         if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
           return global.SiteCloneBc.sync();
         }
+      })
+      .then(function () {
+        return loadBottomDockRuntime(versions, cfg);
       });
   }
 
