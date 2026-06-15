@@ -719,6 +719,11 @@
       }
     }
     for (i = 0; i < propositions.length; i++) {
+      p = propositions[i];
+      if (resolveTargetForProposition(p, mountByKey)) continue;
+      items = p.items || [];
+      for (j = 0; j < items.length; j++) {
+        var exdTarget = firstEmptyExdMount(mountByKey);
         if (!exdTarget) break;
         if (applyItemToElement(exdTarget, items[j])) break;
       }

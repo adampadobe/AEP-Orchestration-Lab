@@ -35,7 +35,7 @@
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
       contentDecisionLabConfig: '20260615',
-      contentDecisionEdgeMounts: '20260615',
+      contentDecisionEdgeMounts: '20260615-edge-mounts-syntax',
       decisioningEdgeInject: '20260612c',
       decisioningProfileRuntime: '20260624',
       decisioningProfileModule: '20260620',

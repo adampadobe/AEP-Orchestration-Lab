@@ -25,7 +25,7 @@
     "decisioningPanelCss": "20260614-decisioning-channel-icon",
     "profileStreamingShared": "20260615",
     "contentDecisionLabConfig": "20260615",
-    "contentDecisionEdgeMounts": "20260617-ribbon-routing",
+    "contentDecisionEdgeMounts": "20260615-edge-mounts-syntax",
     "decisioningEdgeInject": "20260617-top-ribbon",
     "decisioningProfileRuntime": "20260616-surface-urls",
     "decisioningProfileModule": "20260616-no-tweak-collapse",

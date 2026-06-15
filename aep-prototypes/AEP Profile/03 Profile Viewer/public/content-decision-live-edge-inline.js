@@ -527,6 +527,9 @@ waitForAlloy()
         ? String(opts.profileEcid).trim()
         : (lastProfileEcid || '').trim();
     var profile = { ecid: ecidRaw || null, email: nsPick === 'email' ? idVal || null : null };
+    if (typeof CdEdgeMounts === 'undefined' || typeof CdEdgeMounts.buildIdentityMap !== 'function') {
+      throw new Error('CdEdgeMounts not loaded — check content-decision-edge-mounts.js for parse errors.');
+    }
     var identityMap = CdEdgeMounts.buildIdentityMap(profile, idVal, nsPick);
     lastIdentityMapSentForDebug = identityMap;
     var surfaces = CdEdgeMounts.buildSurfacesForEdgeLabPage();
