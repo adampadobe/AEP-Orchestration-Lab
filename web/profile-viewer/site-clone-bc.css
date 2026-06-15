@@ -16,3 +16,25 @@ body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
 .site-clone-bc-frame-host[hidden] {
   display: none !important;
 }
+
+/* Modal + bottom dock: BC widget draws a nested bordered prompt — flatten to single bar */
+.aep-bc-modal #brand-concierge-mount .input-container,
+.aep-bc-modal #brand-concierge-mount .input-section .input-container,
+.aep-bc-modal #siteCloneBcModalMount .input-container,
+.aep-bc-modal #siteCloneBcModalMount .input-section .input-container {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Keep Sky/site snapshot visible when BC modal is open — no env-bar grey wash */
+body.aep-bc-modal-open .mod-demo-top-anchor::after,
+body.aep-bc-modal-open [class*='-demo-top-anchor']::after,
+body.aep-bc-modal-open .mobile-demo-shell-env-anchor::after,
+body.aep-bc-modal-open .lab-env-top-anchor::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
