@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Seed apalmer sandbox demo config in RTDB (nested + legacy root).
+ * Seed apalmer workspace demo config in RTDB (flat workspace root).
  *
  * Usage:
  *   node scripts/seed-apalmer-rtdb-demo-config.mjs --dry-run
@@ -18,6 +18,7 @@ const {
   saveDemoSection,
   splitStubIntoSections,
   buildFlatLabStub,
+  WORKSPACE_ROOT_SECTIONS,
 } = require('../functions/labRtdbProvisionService');
 
 const PROJECT_ID = 'aep-orchestration-lab';
@@ -45,12 +46,14 @@ const TEST_VALUES = {
   CallCentre: {
     industryId: 'travel',
   },
-  iPad: {
-    'Mobile/StaffName': 'Alex Palmer',
-    'Mobile/Gate': 'B12',
-    'TravelData/flightNumber': 'SG101',
-    'TravelData/route': 'LHR → FCO',
-    'TravelData/gate': 'B12',
+  Mobile: {
+    StaffName: 'Alex Palmer',
+    Gate: 'B12',
+  },
+  TravelData: {
+    flightNumber: 'SG101',
+    route: 'LHR → FCO',
+    gate: 'B12',
   },
   AgenticLayer: {
     agentUrls: {
@@ -73,21 +76,27 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 console.log('Project:', PROJECT_ID);
-console.log('LDAP / sandbox:', LDAP_SLUG);
+console.log('Workspace LDAP:', LDAP_SLUG);
 console.log('Mode:', dryRun ? 'DRY RUN' : 'APPLY');
 console.log('Values:', JSON.stringify(TEST_VALUES, null, 2));
 console.log('---');
 
 if (dryRun) {
   console.log('Would write sections:', Object.keys(TEST_VALUES).join(', '));
-  console.log('Nested base: ajoLookups/' + LDAP_SLUG + '/sandboxes/' + SANDBOX_SLUG + '/{section}');
-  console.log('Legacy mirror: ajoLookups/' + LDAP_SLUG + '/CoreDemoData, StaffPortal, Mobile/*, TravelData/*');
+  for (const [section] of Object.entries(TEST_VALUES)) {
+    if (WORKSPACE_ROOT_SECTIONS.has(section)) {
+      console.log('  flat:', `ajoLookups/${LDAP_SLUG}/${section}`);
+    } else {
+      console.log('  nested:', `ajoLookups/${LDAP_SLUG}/sandboxes/${SANDBOX_SLUG}/${section}`);
+    }
+  }
   process.exit(0);
 }
 
 for (const [section, partial] of Object.entries(TEST_VALUES)) {
   const result = await saveDemoSection(db, LDAP_SLUG, SANDBOX_SLUG, section, partial);
-  console.log('Saved', section, '→', result.nestedPath, result.legacyMirrored ? '(mirrored)' : '');
+  const target = result.flatPath || result.nestedPath;
+  console.log('Saved', section, '→', target);
 }
 
 const defaults = splitStubIntoSections(buildFlatLabStub());
@@ -96,13 +105,16 @@ const snap = await sbRef.once('value');
 const existing = snap.val() || {};
 const patch = {};
 for (const section of Object.keys(defaults)) {
-  if (!existing[section]) patch[section] = defaults[section];
+  if (!WORKSPACE_ROOT_SECTIONS.has(section) && !existing[section]) {
+    patch[section] = defaults[section] || {};
+  }
 }
 if (Object.keys(patch).length) {
   await sbRef.update(patch);
-  console.log('Merged missing default sections:', Object.keys(patch).join(', '));
+  console.log('Merged missing sandbox-scoped default sections:', Object.keys(patch).join(', '));
 }
 
 console.log('Done. Verify:');
 console.log('  curl -s "' + DATABASE_URL + '/ajoLookups/' + LDAP_SLUG + '/CoreDemoData/name.json"');
-console.log('  curl -s "' + DATABASE_URL + '/ajoLookups/' + LDAP_SLUG + '/sandboxes/' + SANDBOX_SLUG + '/CoreDemoData/name.json"');
+console.log('  curl -s "' + DATABASE_URL + '/ajoLookups/' + LDAP_SLUG + '/StaffPortal/AgentName.json"');
+console.log('  curl -s "' + DATABASE_URL + '/ajoLookups/' + LDAP_SLUG + '/TravelData/flightNumber.json"');

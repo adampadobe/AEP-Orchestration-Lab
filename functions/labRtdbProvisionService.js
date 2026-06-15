@@ -8,6 +8,9 @@ const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
 const DEMO_SECTIONS = [
   'CoreDemoData',
   'StaffPortal',
+  'TravelData',
+  'Mobile',
+  'CustomerLoyalty',
   'iPad',
   'CallCentre',
   'AgenticLayer',
@@ -15,6 +18,16 @@ const DEMO_SECTIONS = [
   'ExpVisualiser',
   'ContentDecisionLive',
 ];
+
+/** Shared demo chrome — flat at ajoLookups/{ldap}/ (not per AEP sandbox). */
+const WORKSPACE_ROOT_SECTIONS = new Set([
+  'CoreDemoData',
+  'StaffPortal',
+  'CallCentre',
+  'TravelData',
+  'Mobile',
+  'CustomerLoyalty',
+]);
 
 function getRtdb() {
   if (!admin.apps.length) admin.initializeApp();
@@ -248,13 +261,38 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
   const ldap = normalizeLdapSlug(ldapSlug);
   const sb = normalizeLdapSlug(sandboxSlug);
   const sec = String(section || '').trim();
-  if (!ldap || !sb || !sec) {
-    throw new Error('ldapSlug, sandboxSlug, and section are required');
+  if (!ldap || !sec) {
+    throw new Error('ldapSlug and section are required');
   }
   if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
     throw new Error('partial must be a plain object');
   }
   const database = db || getRtdb();
+
+  if (WORKSPACE_ROOT_SECTIONS.has(sec)) {
+    let flatPath;
+    if (sec === 'iPad') {
+      flatPath = legacyRootPath(ldap);
+      await database.ref(flatPath).update(partial);
+    } else {
+      flatPath = `${legacyRootPath(ldap)}/${sec}`;
+      await database.ref(flatPath).update(partial);
+    }
+    return {
+      ok: true,
+      ldapSlug: ldap,
+      sandboxSlug: sb || null,
+      section: sec,
+      nestedPath: null,
+      flatPath,
+      legacyMirrored: true,
+      legacyPath: flatPath,
+    };
+  }
+
+  if (!sb) {
+    throw new Error('sandboxSlug is required for sandbox-scoped demo sections');
+  }
   const nestedPath = demoSectionPath(ldap, sb, sec);
   await database.ref(nestedPath).update(partial);
   const mirror = await mirrorSectionToLegacyRoot(database, ldap, sec, partial);
@@ -264,6 +302,7 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
     sandboxSlug: sb,
     section: sec,
     nestedPath,
+    flatPath: mirror.legacyPath || null,
     legacyMirrored: mirror.mirrored,
     legacyPath: mirror.legacyPath || null,
   };
@@ -306,6 +345,7 @@ async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
 
 module.exports = {
   DEMO_SECTIONS,
+  WORKSPACE_ROOT_SECTIONS,
   LEGACY_ROOT_MIRROR_SECTIONS,
   buildFlatLabStub,
   splitStubIntoSections,

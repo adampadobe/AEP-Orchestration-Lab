@@ -78,11 +78,17 @@
   }
 
   async function fetchRtdbLookups() {
-    if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.loadSection === 'function') {
+    if (window.AepDemoConfigRtdb && typeof window.AepDemoConfigRtdb.loadSharedBrand === 'function') {
       try {
         await window.AepDemoConfigRtdb.whenReady();
-        const section = await window.AepDemoConfigRtdb.loadSection(window.AepDemoConfigRtdb.SECTIONS.CallCentre);
-        if (section) return section;
+        const shared = await window.AepDemoConfigRtdb.loadSharedBrand();
+        const callCentre =
+          window.AepDemoConfigRtdb.loadSection ?
+            await window.AepDemoConfigRtdb.loadSection(window.AepDemoConfigRtdb.SECTIONS.CallCentre)
+          : {};
+        if (shared) {
+          return Object.assign({}, callCentre || {}, shared);
+        }
       } catch (_) {
         /* fall through to legacy */
       }

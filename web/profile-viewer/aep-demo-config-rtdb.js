@@ -1,7 +1,7 @@
 /**
- * Per-user + per-sandbox demo config in Firebase RTDB.
- * Path: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/{section}
- * Sections: CoreDemoData, StaffPortal, iPad, CallCentre, AgenticLayer, ExpAccelerator, ExpVisualiser, ContentDecisionLive
+ * Per-user workspace demo config in Firebase RTDB.
+ * Shared brand chrome: ajoLookups/{ldapSlug}/CoreDemoData, StaffPortal, TravelData, Mobile, CallCentre
+ * Sandbox-scoped sections: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/AgenticLayer, ExpAccelerator, …
  */
 (function (global) {
   'use strict';
@@ -9,12 +9,25 @@
   var SECTIONS = {
     CoreDemoData: 'CoreDemoData',
     StaffPortal: 'StaffPortal',
+    TravelData: 'TravelData',
+    Mobile: 'Mobile',
+    CustomerLoyalty: 'CustomerLoyalty',
     iPad: 'iPad',
     CallCentre: 'CallCentre',
     AgenticLayer: 'AgenticLayer',
     ExpAccelerator: 'ExpAccelerator',
     ExpVisualiser: 'ExpVisualiser',
     ContentDecisionLive: 'ContentDecisionLive',
+  };
+
+  /** Flat at workspace root — not partitioned by AEP sandbox picker. */
+  var WORKSPACE_ROOT_SECTIONS = {
+    CoreDemoData: true,
+    StaffPortal: true,
+    CallCentre: true,
+    TravelData: true,
+    Mobile: true,
+    CustomerLoyalty: true,
   };
 
   var cachedLdapSlug = '';
@@ -205,7 +218,15 @@
     return 'ajoLookups/' + ldapSlug + '/sandboxes/' + sandboxSlug + '/' + section;
   }
 
-  /** Legacy flat keys at ajoLookups/{ldap}/ for RTDB viewer + AJO GET …/ajoLookups/{ldap}.json */
+  function workspaceSectionPath(ldapSlug, section) {
+    return 'ajoLookups/' + ldapSlug + '/' + section;
+  }
+
+  function isWorkspaceRootSection(section) {
+    return !!WORKSPACE_ROOT_SECTIONS[section];
+  }
+
+  /** Workspace root ajoLookups/{ldap}/ for RTDB viewer + shared demo chrome */
   function legacyRootPath(ldapSlug) {
     return 'ajoLookups/' + ldapSlug;
   }
@@ -413,21 +434,44 @@
     };
   }
 
-  function loadSharedBrand(sandboxSlug) {
+  function loadSharedBrand() {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
-      return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
-        if (!ldapSlug || !sandboxSlug) {
+      if (!ldapSlug) {
+        return loadLegacyFlat('', '').then(function (legacy) {
           return {
             CoreDemoData: (legacy && legacy.CoreDemoData) || {},
             StaffPortal: (legacy && legacy.StaffPortal) || {},
           };
+        });
+      }
+      var base = getRtdbBase();
+      return Promise.all([
+        fetchJson(base + '/' + workspaceSectionPath(ldapSlug, SECTIONS.CoreDemoData) + '.json'),
+        fetchJson(base + '/' + workspaceSectionPath(ldapSlug, SECTIONS.StaffPortal) + '.json'),
+      ]).then(function (results) {
+        var flatCore = results[0];
+        var flatStaff = results[1];
+        if (hasMeaningfulCoreDemoData(flatCore) || !isProvisionStaffPortalStub(flatStaff)) {
+          return {
+            CoreDemoData: flatCore && typeof flatCore === 'object' ? flatCore : {},
+            StaffPortal: flatStaff && typeof flatStaff === 'object' ? flatStaff : {},
+          };
         }
-        var base = getRtdbBase();
+        var sandboxSlug = getActiveSandboxSlug();
+        if (!sandboxSlug) {
+          return {
+            CoreDemoData: flatCore || {},
+            StaffPortal: flatStaff || {},
+          };
+        }
         return Promise.all([
           fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
           fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
-        ]).then(function (results) {
-          return resolveSharedBrand(results[0], results[1], legacy);
+        ]).then(function (nestedResults) {
+          return resolveSharedBrand(nestedResults[0], nestedResults[1], {
+            CoreDemoData: flatCore,
+            StaffPortal: flatStaff,
+          });
         });
       });
     });
@@ -474,6 +518,25 @@
     return chain;
   }
 
+  function loadWorkspaceSection(section, ldapSlug, sandboxSlug) {
+    var base = getRtdbBase();
+    var flatUrl = base + '/' + workspaceSectionPath(ldapSlug, section) + '.json';
+    return fetchJson(flatUrl).then(function (flat) {
+      if (flat && typeof flat === 'object' && Object.keys(flat).length) {
+        return flat;
+      }
+      if (sandboxSlug) {
+        return fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, section) + '.json').then(function (nested) {
+          if (nested && typeof nested === 'object' && Object.keys(nested).length) {
+            return nested;
+          }
+          return flat;
+        });
+      }
+      return flat;
+    });
+  }
+
   function loadSection(section, opts) {
     opts = opts || {};
     var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
@@ -487,7 +550,7 @@
           !opts.skipBrandMerge &&
           (section === SECTIONS.iPad || section === SECTIONS.CallCentre)
         ) {
-          return loadSharedBrand(sandboxSlug).then(function (shared) {
+          return loadSharedBrand().then(function (shared) {
             return mergeAppPayload(data, shared);
           });
         }
@@ -499,6 +562,25 @@
   function loadSectionInner(section, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
       var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
+
+      if (ldapForPath && isWorkspaceRootSection(section)) {
+        return loadWorkspaceSection(section, ldapForPath, sandboxSlug).then(function (flat) {
+          if (flat && typeof flat === 'object' && Object.keys(flat).length) {
+            return flat;
+          }
+          return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+            if (!legacy) return flat || splitStubIntoSections()[section] || null;
+            if (section === SECTIONS.CoreDemoData) return legacy.CoreDemoData || splitStubIntoSections().CoreDemoData;
+            if (section === SECTIONS.StaffPortal) return legacy.StaffPortal || splitStubIntoSections().StaffPortal;
+            if (section === SECTIONS.CallCentre) return { industryId: legacy.industryId || 'travel' };
+            if (section === SECTIONS.TravelData) return legacy.TravelData || {};
+            if (section === SECTIONS.Mobile) return legacy.Mobile || {};
+            if (section === SECTIONS.CustomerLoyalty) return legacy.CustomerLoyalty || {};
+            return legacy;
+          });
+        });
+      }
+
       if (!ldapForPath || !sandboxSlug) {
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
           if (!legacy) return null;
@@ -526,12 +608,6 @@
         '.json';
       return fetchJson(url).then(function (nested) {
         if (nested && typeof nested === 'object' && Object.keys(nested).length) {
-          console.log('[AepDemoConfigRtdb] loadSectionInner nested hit', {
-            section: section,
-            ldapForPath: ldapForPath,
-            sandboxSlug: sandboxSlug,
-            url: url,
-          });
           return nested;
         }
         return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
@@ -586,15 +662,30 @@
 
   /** Flat iPad-shaped object for etihad-ipad.js compatibility. */
   function loadIPadFlat(opts) {
-    return loadSection(SECTIONS.iPad, opts).then(function (section) {
-      if (!section) return {};
-      return {
-        StaffPortal: section.StaffPortal || {},
-        CoreDemoData: section.CoreDemoData || {},
-        Mobile: section.Mobile || {},
-        TravelData: section.TravelData || {},
-        CustomerLoyalty: section.CustomerLoyalty || {},
-      };
+    opts = opts || {};
+    var sandboxSlug = normalizeSlug(opts.sandboxSlug) || getActiveSandboxSlug();
+    return resolveLdapSlugAsync().then(function (ldapSlug) {
+      var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
+      if (!ldapForPath) {
+        return loadLegacyFlat(sandboxSlug, ldapSlug).then(function (legacy) {
+          return legacy || {};
+        });
+      }
+      return Promise.all([
+        loadSharedBrand(),
+        loadWorkspaceSection(SECTIONS.TravelData, ldapForPath, sandboxSlug),
+        loadWorkspaceSection(SECTIONS.Mobile, ldapForPath, sandboxSlug),
+        loadWorkspaceSection(SECTIONS.CustomerLoyalty, ldapForPath, sandboxSlug),
+      ]).then(function (results) {
+        var shared = results[0] || {};
+        return {
+          StaffPortal: shared.StaffPortal || {},
+          CoreDemoData: shared.CoreDemoData || {},
+          Mobile: results[2] || {},
+          TravelData: results[1] || {},
+          CustomerLoyalty: results[3] || {},
+        };
+      });
     });
   }
 
@@ -612,28 +703,33 @@
   function saveSectionInner(section, partial, opts, sandboxSlug) {
     return resolveLdapSlugAsync().then(function (ldapSlug) {
       var ldapForPath = effectiveLdapSlug(ldapSlug, sandboxSlug);
-      if (!ldapForPath || !sandboxSlug) {
-        console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing slug', {
+      var workspaceRoot = isWorkspaceRootSection(section);
+
+      if (!ldapForPath) {
+        console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing workspace slug', {
           section: section,
           ldapSlug: ldapSlug,
           sandboxSlug: sandboxSlug,
         });
-        return Promise.reject(new Error('LDAP slug and sandbox are required to save demo config.'));
+        return Promise.reject(new Error('Sign in with your Adobe lab account to save demo config.'));
       }
-      var nestedPath = sectionPath(ldapForPath, sandboxSlug, section);
-      var legacyPath =
-        LEGACY_ROOT_MIRROR_SECTIONS[section] ?
-          section === SECTIONS.iPad ?
-            legacyRootPath(ldapForPath)
-          : legacyRootPath(ldapForPath) + '/' + section
-        : null;
+      if (!workspaceRoot && !sandboxSlug) {
+        console.warn('[AepDemoConfigRtdb] saveSectionInner rejected: missing sandbox', {
+          section: section,
+          ldapSlug: ldapSlug,
+        });
+        return Promise.reject(new Error('Select a sandbox in the environment bar to save sandbox-scoped demo config.'));
+      }
+
+      var flatPath = workspaceRoot ? workspaceSectionPath(ldapForPath, section) : null;
+      var nestedPath = workspaceRoot ? null : sectionPath(ldapForPath, sandboxSlug, section);
       console.log('[AepDemoConfigRtdb] saveSectionInner start', {
         section: section,
         ldapSlug: ldapSlug,
         ldapForPath: ldapForPath,
         sandboxSlug: sandboxSlug,
+        flatPath: flatPath,
         nestedPath: nestedPath,
-        legacyPath: legacyPath,
         partial: partial,
       });
 
@@ -653,7 +749,7 @@
           body: JSON.stringify({
             section: section,
             partial: partial,
-            sandboxSlug: sandboxSlug,
+            sandboxSlug: workspaceRoot ? ldapForPath : sandboxSlug,
             workspaceSlug: ldapForPath,
             adobeEmail: adobeEmail,
           }),
@@ -671,9 +767,8 @@
               }
               console.log('[AepDemoConfigRtdb] saveSectionInner success', {
                 section: section,
+                flatPath: body.flatPath,
                 nestedPath: body.nestedPath,
-                legacyPath: body.legacyPath,
-                legacyMirrored: body.legacyMirrored,
               });
               dispatchConfigChanged({ section: section, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug });
               return { ok: true, ldapSlug: ldapForPath, sandboxSlug: sandboxSlug, section: section };
@@ -873,6 +968,7 @@
 
   global.AepDemoConfigRtdb = {
     SECTIONS: SECTIONS,
+    WORKSPACE_ROOT_SECTIONS: WORKSPACE_ROOT_SECTIONS,
     normalizeSlug: normalizeSlug,
     getRtdbBase: getRtdbBase,
     getLdapSlugSync: getLdapSlugSync,
@@ -880,6 +976,9 @@
     resolveLdapSlugAsync: resolveLdapSlugAsync,
     getActiveSandboxSlug: getActiveSandboxSlug,
     sectionPath: sectionPath,
+    workspaceSectionPath: workspaceSectionPath,
+    isWorkspaceRootSection: isWorkspaceRootSection,
+    legacyRootPath: legacyRootPath,
     sandboxRestUrl: sandboxRestUrl,
     buildFlatLabStub: buildFlatLabStub,
     splitStubIntoSections: splitStubIntoSections,

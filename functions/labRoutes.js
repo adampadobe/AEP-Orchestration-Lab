@@ -230,8 +230,13 @@ function registerLabRoutes(deps) {
     const sandboxSlug = String(body.sandboxSlug || '').trim();
     const workspaceSlug = String(body.workspaceSlug || '').trim();
 
-    if (!section || !sandboxSlug) {
-      res.status(400).json({ ok: false, error: 'section and sandboxSlug are required' });
+    const workspaceRootSections = labRtdbProvisionService.WORKSPACE_ROOT_SECTIONS;
+    if (!section) {
+      res.status(400).json({ ok: false, error: 'section is required' });
+      return;
+    }
+    if (!workspaceRootSections.has(section) && !sandboxSlug) {
+      res.status(400).json({ ok: false, error: 'sandboxSlug is required for sandbox-scoped demo sections' });
       return;
     }
     if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {

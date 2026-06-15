@@ -1,6 +1,6 @@
 /**
- * iPad lab customise dock: per-sandbox RTDB read/write for industry, brand chrome, and flight strip.
- * Paths: ajoLookups/{ldap}/sandboxes/{sandbox}/CallCentre, CoreDemoData, StaffPortal, iPad
+ * iPad lab customise dock: per-workspace RTDB read/write for industry, brand chrome, and flight strip.
+ * Paths: ajoLookups/{ldap}/CoreDemoData, StaffPortal, TravelData, Mobile, CallCentre
  */
 (function () {
   'use strict';
@@ -47,6 +47,7 @@
     o.brandName =
       (cd.name && String(cd.name).trim()) ||
       (cd.airlineName && String(cd.airlineName).trim()) ||
+      (raw.brandName && String(raw.brandName).trim()) ||
       '';
     o.shortName = (cd.shortName && String(cd.shortName).trim()) || '';
     var sp = raw.StaffPortal || {};
@@ -72,40 +73,28 @@
     });
   }
 
-  /** Keep in sync with etihad-ipad.js getSandboxName — iPad has no env-bar #sandboxSelect. */
-  function currentSandboxName() {
-    if (typeof AepGlobalSandbox !== 'undefined') {
-      if (typeof AepGlobalSandbox.getSandboxName === 'function') {
-        var fromName = String(AepGlobalSandbox.getSandboxName() || '').trim();
-        if (fromName) return fromName;
-      }
-      if (typeof AepGlobalSandbox.getSelected === 'function') {
-        var selected = String(AepGlobalSandbox.getSelected() || '').trim();
-        if (selected) return selected;
-      }
-    }
+  function getWorkspaceSlug() {
     var c = rtdb();
-    if (c && c.getActiveSandboxSlug) {
-      var slug = c.getActiveSandboxSlug();
-      if (slug) return slug;
+    if (c && typeof c.resolveLdapSlugAsync === 'function') {
+      return c.resolveLdapSlugAsync();
     }
-    try {
-      var stored = String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
-      if (stored) return stored;
-    } catch (e) {}
-    return 'apalmer';
+    if (c && c.getLdapSlugSync) {
+      var sync = c.getLdapSlugSync();
+      return Promise.resolve(sync || '');
+    }
+    return Promise.resolve('');
   }
 
-  function updateSandboxLabel() {
+  function updateWorkspaceLabel(workspaceSlug) {
     var el = document.getElementById('ccCustomiseSandboxLabel');
     if (!el) return;
-    var sb = currentSandboxName();
+    var ws = workspaceSlug || '';
     var nameEl = el.querySelector('.cc-customize-sandbox-name');
     if (nameEl) {
-      nameEl.textContent = sb || '—';
+      nameEl.textContent = ws || '—';
       return;
     }
-    el.textContent = sb ? 'Sandbox: ' + sb : 'Sandbox: —';
+    el.textContent = ws ? 'Workspace: ' + ws : 'Workspace: —';
   }
 
   function setStatus(msg, kind) {
@@ -175,17 +164,15 @@
     );
   }
 
-  function loadConfigFromRtdb(sandboxSlug) {
+  function loadConfigFromRtdb() {
     var c = rtdb();
     if (!c) return Promise.resolve(null);
-    var sb = c.normalizeSlug(sandboxSlug) || c.getActiveSandboxSlug();
     return c
       .whenReady()
       .then(function () {
-        // migrateLocalStorageKeys runs inside loadSection → ensurePrepReady after auth/provision.
         return Promise.all([
-          c.loadSection(c.SECTIONS.CallCentre, { sandboxSlug: sb }),
-          c.loadIPadFlat({ sandboxSlug: sb }),
+          c.loadSection(c.SECTIONS.CallCentre),
+          c.loadIPadFlat(),
         ]);
       })
       .then(function (results) {
@@ -217,12 +204,14 @@
         AgentName: norm.agentName,
         Colour: colour,
       },
-      ipad: {
-        'Mobile/StaffName': norm.agentName,
-        'Mobile/Gate': norm.gate,
-        'TravelData/flightNumber': norm.flightNumber,
-        'TravelData/route': norm.route,
-        'TravelData/gate': norm.gate,
+      mobile: {
+        StaffName: norm.agentName,
+        Gate: norm.gate,
+      },
+      travel: {
+        flightNumber: norm.flightNumber,
+        route: norm.route,
+        gate: norm.gate,
       },
       flat: {
         CoreDemoData: {
@@ -256,19 +245,18 @@
     }
   }
 
-  function saveConfigToRtdb(cfg, sandboxSlug) {
+  function saveConfigToRtdb(cfg) {
     var c = rtdb();
     if (!c) return Promise.reject(new Error('Demo config RTDB module not loaded'));
-    var sb = c.normalizeSlug(sandboxSlug) || c.normalizeSlug(currentSandboxName());
-    if (!sb) return Promise.reject(new Error('Select a sandbox in the environment bar to save demo config.'));
     var payload = buildRtdbPayload(cfg);
     return Promise.all([
-      c.saveSection(c.SECTIONS.CallCentre, payload.callCentre, { sandboxSlug: sb }),
-      c.saveCoreDemoData(payload.core, { sandboxSlug: sb }),
-      c.saveStaffPortal(payload.staff, { sandboxSlug: sb }),
-      c.saveSection(c.SECTIONS.iPad, payload.ipad, { sandboxSlug: sb }),
+      c.saveSection(c.SECTIONS.CallCentre, payload.callCentre),
+      c.saveCoreDemoData(payload.core),
+      c.saveStaffPortal(payload.staff),
+      c.saveSection(c.SECTIONS.Mobile, payload.mobile),
+      c.saveSection(c.SECTIONS.TravelData, payload.travel),
     ]).then(function () {
-      return { sandboxSlug: sb, config: normalizeConfig(cfg) };
+      return { config: normalizeConfig(cfg) };
     });
   }
 
@@ -279,40 +267,60 @@
     }
   }
 
-  function persistConfig(cfg, sandboxSlug, statusPrefix) {
-    var sb = sandboxSlug || currentSandboxName();
-    if (!sb) {
-      setStatus('Select a sandbox in the environment bar to save demo config.', 'err');
-      return Promise.resolve(false);
-    }
+  function persistIndustryOnly(industryId) {
+    var c = rtdb();
+    if (!c || !industryId) return Promise.resolve(false);
+    return c
+      .saveSection(c.SECTIONS.CallCentre, { industryId: industryId })
+      .then(function () {
+        persistIndustryLocal(industryId);
+        return true;
+      })
+      .catch(function (e) {
+        console.warn('[ipad-customise] industry save failed:', e);
+        return false;
+      });
+  }
+
+  function persistConfig(cfg, statusPrefix, opts) {
+    opts = opts || {};
     var norm = normalizeConfig(cfg);
-    if (lastSaved && configEqual(norm, lastSaved)) {
-      console.log('[AepDemoConfigRtdb] [ipad-customise] persistConfig skipped (unchanged)', { sandbox: sb, norm: norm });
+    if (!opts.force && lastSaved && configEqual(norm, lastSaved)) {
+      console.log('[AepDemoConfigRtdb] [ipad-customise] persistConfig skipped (unchanged)', { norm: norm });
       return Promise.resolve(true);
     }
     console.log('[AepDemoConfigRtdb] [ipad-customise] persistConfig start', {
-      sandbox: sb,
       norm: norm,
       lastSaved: lastSaved,
+      force: !!opts.force,
       trigger: statusPrefix || 'Saving',
     });
     setStatus((statusPrefix || 'Saving') + '…', '');
     if (saveInFlight) {
       return saveInFlight.then(function () {
-        return persistConfig(cfg, sandboxSlug, statusPrefix);
+        return persistConfig(cfg, statusPrefix, opts);
       });
     }
     var c = rtdb();
     var ready = c && typeof c.whenReady === 'function' ? c.whenReady() : Promise.resolve();
     saveInFlight = ready
       .then(function () {
-        return saveConfigToRtdb(norm, sb);
+        return getWorkspaceSlug();
+      })
+      .then(function (ws) {
+        if (!ws) {
+          throw new Error('Sign in with your Adobe lab account to save demo config.');
+        }
+        return saveConfigToRtdb(norm);
       })
       .then(function () {
         lastSaved = norm;
         persistIndustryLocal(norm.industryId);
         applyToDemo(norm);
-        setStatus('Saved customise settings for sandbox “' + sb + '”.', 'ok');
+        return getWorkspaceSlug();
+      })
+      .then(function (ws) {
+        setStatus('Saved customise settings for workspace “' + (ws || 'your lab') + '”.', 'ok');
         refreshFromRtdb();
         return true;
       })
@@ -330,8 +338,7 @@
   function refreshFromRtdb() {
     if (saveInFlight) return;
     var gen = ++refreshGeneration;
-    var sb = currentSandboxName();
-    loadConfigFromRtdb(sb)
+    loadConfigFromRtdb()
       .then(function (cfg) {
         if (gen !== refreshGeneration) return;
         var normalized = normalizeConfig(cfg);
@@ -340,9 +347,13 @@
           fillInputs(cfg);
         }
         applyToDemo(cfg);
-        updateSandboxLabel();
-        if (!sb) {
-          setStatus('Select a sandbox in the environment bar to load saved settings.', 'err');
+        return getWorkspaceSlug();
+      })
+      .then(function (ws) {
+        if (gen !== refreshGeneration) return;
+        updateWorkspaceLabel(ws);
+        if (!ws) {
+          setStatus('Sign in to load your workspace demo settings.', 'err');
         } else {
           setStatus('', '');
         }
@@ -363,17 +374,9 @@
       refreshFromRtdb();
     }
     if (window.__aepLabSyncReady && typeof window.__aepLabSyncReady.then === 'function') {
-      window.__aepLabSyncReady.then(function () {
-        tryRefresh();
-        if (!currentSandboxName()) {
-          window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
-        }
-      });
+      window.__aepLabSyncReady.then(tryRefresh);
     } else {
       tryRefresh();
-      if (!currentSandboxName()) {
-        window.addEventListener('aep-global-sandbox-change', tryRefresh, { once: true });
-      }
     }
     window.setTimeout(tryRefresh, 1500);
   }
@@ -391,13 +394,12 @@
 
   function init() {
     bindDrawerRefresh();
-    updateSandboxLabel();
 
     var btn = document.getElementById('ccCustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
         console.log('[AepDemoConfigRtdb] [ipad-customise] Update clicked', collectInputs());
-        persistConfig(collectInputs(), currentSandboxName(), 'Saving');
+        persistConfig(collectInputs(), 'Saving', { force: true });
       });
     }
 
@@ -406,7 +408,7 @@
       if (!inp) return;
       inp.addEventListener('blur', function () {
         console.log('[AepDemoConfigRtdb] [ipad-customise] blur persist', id, inp.value);
-        persistConfig(collectInputs(), currentSandboxName(), 'Saving');
+        persistConfig(collectInputs(), 'Saving');
       });
     });
 
@@ -415,16 +417,13 @@
       industrySel.addEventListener('change', function () {
         var cfg = collectInputs();
         persistIndustryLocal(cfg.industryId);
+        if (window.AepIpadLab && typeof window.AepIpadLab.applyIndustry === 'function' && cfg.industryId) {
+          window.AepIpadLab.applyIndustry(cfg.industryId);
+        }
         applyToDemo(cfg);
-        persistConfig(cfg, currentSandboxName(), 'Saving');
+        persistIndustryOnly(cfg.industryId);
       });
     }
-
-    window.addEventListener('aep-global-sandbox-change', function () {
-      lastSaved = null;
-      updateSandboxLabel();
-      refreshFromRtdb();
-    });
 
     window.addEventListener('aep-demo-config-changed', refreshFromRtdb);
     document.addEventListener('aep-lab-sandbox-keys-applied', refreshFromRtdb);
