@@ -539,6 +539,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 }
 
 @media (max-width: 48rem) {
+  body.home-dashboard-concierge,
   .mod-demo-top-anchor,
   [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
   .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
@@ -613,6 +614,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 }
 
 @media (max-width: 24rem) {
+  body.home-dashboard-concierge,
   .mod-demo-top-anchor,
   [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
   .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
@@ -688,18 +690,38 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   pointer-events: none !important;
 }
 
-/* Mid-rail FAB stack: env settings above decisioning channel icon */
+/* Mid-rail FAB stack (top → bottom): env settings, BC modes, decisioning, fullscreen */
 body.home-dashboard-concierge {
   --lab-env-midrail-right: 0.85rem;
   --lab-env-midrail-btn-size: 2rem;
   --lab-env-midrail-gap: 0.55rem;
+  --lab-env-midrail-slot: calc(var(--lab-env-midrail-btn-size) + var(--lab-env-midrail-gap));
+  --env-bar-height: 3rem;
+}
+
+/* Site iframe sits below the fixed env toolbar so clone nav/ribbon stays visible */
+.mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[class*='-demo-site-frame'],
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[id$='SiteFrame'] {
+  top: var(--env-bar-height, 3rem);
+  height: calc(100% - var(--env-bar-height, 3rem));
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  ~ iframe[class*='-demo-site-frame'],
+body.site-clone-bc-bottom-dock-armed
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  ~ iframe[id$='SiteFrame'] {
+  height: calc(100% - var(--env-bar-height, 3rem) - 5.5rem);
 }
 
 .env-bar-dock-btn {
   position: fixed;
-  top: calc(50% - var(--lab-env-midrail-btn-size) - var(--lab-env-midrail-gap));
+  top: calc(50% - (2 * var(--lab-env-midrail-slot)));
   right: var(--lab-env-midrail-right);
-  z-index: 7148;
+  z-index: 7152;
   box-sizing: border-box;
   width: var(--lab-env-midrail-btn-size);
   height: var(--lab-env-midrail-btn-size);

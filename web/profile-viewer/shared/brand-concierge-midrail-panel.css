@@ -4,7 +4,7 @@
  */
 .bcp-panel-anchor {
   position: fixed;
-  top: calc(50% - 2.55rem);
+  top: calc(50% - var(--lab-env-midrail-slot, 2.55rem));
   right: var(--lab-env-midrail-right, 0.85rem);
   z-index: 7151;
   display: none;

@@ -41,11 +41,20 @@ body.aep-bc-modal-open main.om-site-frame {
   opacity: 1 !important;
 }
 
-/* Centre-bottom dock armed: lift iframe above dock pill, below env bar */
+/* Centre-bottom dock armed: lift iframe above dock pill; top inset from env-bar-compact.css */
 body.site-clone-bc-bottom-dock-armed iframe[class*='-demo-site-frame'],
 body.site-clone-bc-bottom-dock-armed iframe.mod-demo-site-frame,
 body.site-clone-bc-bottom-dock-armed iframe[id$='SiteFrame'] {
   bottom: 5.5rem;
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden ~ iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed
+  .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden
+  ~ iframe[class*='-demo-site-frame'],
+body.site-clone-bc-bottom-dock-armed
+  .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden
+  ~ iframe[id$='SiteFrame'] {
   height: calc(100% - 5.5rem);
 }
 

@@ -2,12 +2,12 @@
   "manifestVersion": "20260614-env-bar-prefs",
   "moduleVersion": "1.1.0",
   "assets": {
-    "bundleCss": "20260624-bc-modal-chrome",
+    "bundleCss": "20260617-iframe-midrail-stack",
     "spectrumCss": "20260616-remote-decisioning",
     "demoEnvStripSpectrum": "20260616-remote-decisioning",
     "demoEnvStrip": "20260616-remote-decisioning",
     "spectrumSync": "20260614-sdk-compact-status",
-    "compactCss": "20260625-env-toolbar-overlay-sync",
+    "compactCss": "20260617-iframe-midrail-stack",
     "compactJs": "20260625-env-toolbar-overlay-sync",
     "bootstrap": "20260602-env-bar-bootstrap",
     "prefsLocal": "20260624-sandbox-persist-fix",
@@ -31,7 +31,7 @@
     "decisioningProfileModule": "20260616-no-tweak-collapse",
     "decisioningProfilePanel": "20260616-toggle-delegate",
     "siteCloneDecisioningBoot": "20260616-remote-decisioning",
-    "bcMidrailPanelCss": "20260617-bc-midrail",
+    "bcMidrailPanelCss": "20260617-midrail-slot",
     "bcMidrailPanel": "20260617-bc-midrail-sync",
     "bcMidrailBoot": "20260617-bc-midrail-sync"
   }

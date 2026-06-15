@@ -244,7 +244,7 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { 
 /* Site-clone demos: stack below the decisioning mid-rail trigger */
 .aep-fullscreen-btn--midrail {
   position: fixed;
-  top: calc(50% + (var(--lab-env-midrail-btn-size, 2rem) / 2) + var(--lab-env-midrail-gap, 0.55rem));
+  top: calc(50% + var(--lab-env-midrail-slot, 2.55rem));
   right: var(--lab-env-midrail-right, 0.85rem);
   z-index: 7145;
   width: var(--lab-env-midrail-btn-size, 2rem);
