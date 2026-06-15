@@ -14,7 +14,7 @@
     "prefsSync": "20260625-incognito-env-fix",
     "tagsInjection": "20260625-env-overlay-configuring",
     "aepDemoEnvBar": "20260625-env-overlay-configuring",
-    "siteCloneBcEnv": "20260625-datastream-paste-visible",
+      "siteCloneBcEnv": "20260615-datastream-debug",
     "siteCloneBcChrome": "20260614-modal-dock-parity",
     "siteCloneBc": "20260617-bc-aep-events-v1",
     "bottomDockCss": "20260614-modal-dock-parity",

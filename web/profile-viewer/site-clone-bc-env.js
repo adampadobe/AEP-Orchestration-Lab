@@ -431,7 +431,55 @@ const SC_BC_DATASTREAM_LEGACY_SCALAR = 'siteCloneBcDatastreamId';
 const SC_BC_DATASTREAM_RECENT_BY_SANDBOX_KEY = 'siteCloneBcDatastreamRecentBySandbox';
 const DATASTREAM_RECENT_MAX = 5;
 
-function siteCloneBcDatastreamEl() {
+/** Filter console with `[AEP lab datastream]`. Disable: localStorage.removeItem('aepLabDatastreamDebug') */
+function datastreamDebugEnabled() {
+  try {
+    if (global.localStorage && global.localStorage.getItem('aepLabDatastreamDebug') === '0') return false;
+  } catch (_lsErr) {
+    /* noop */
+  }
+  return true;
+}
+
+function datastreamDebugLog() {
+  if (!datastreamDebugEnabled()) return;
+  if (typeof console === 'undefined' || typeof console.log !== 'function') return;
+  const args = ['[AEP lab datastream]'].concat(Array.prototype.slice.call(arguments));
+  console.log.apply(console, args);
+}
+
+function activeSiteCloneBcEnvStripRoot() {
+  const selectors = [
+    '.lab-env-overlay-panel:not([hidden])',
+    '.aep-demo-env-bar--spectrum',
+    '.site-clone-bc-env-strip',
+  ];
+  for (let i = 0; i < selectors.length; i++) {
+    const el = document.querySelector(selectors[i]);
+    if (el && el.querySelector('#siteCloneBcDatastreamId')) return el;
+  }
+  return null;
+}
+
+function resolveDatastreamFieldRoot(fromNode) {
+  if (fromNode && typeof fromNode.closest === 'function') {
+    return (
+      fromNode.closest('.site-clone-bc-datastream-row') ||
+      fromNode.closest('.spectrum-env-field') ||
+      fromNode.closest('.site-clone-bc-env-product-block') ||
+      fromNode.closest('.site-clone-bc-env-strip') ||
+      activeSiteCloneBcEnvStripRoot()
+    );
+  }
+  return activeSiteCloneBcEnvStripRoot();
+}
+
+function siteCloneBcDatastreamEl(preferredRoot) {
+  const root = preferredRoot || activeSiteCloneBcEnvStripRoot();
+  if (root) {
+    const scoped = root.querySelector('#siteCloneBcDatastreamId');
+    if (scoped) return scoped;
+  }
   return document.getElementById('siteCloneBcDatastreamId');
 }
 
@@ -692,11 +740,21 @@ function setSiteCloneBcDatastreamManualEntryOpen(open) {
   }
 }
 
-function findSiteCloneBcDatastreamManualRow() {
+function findSiteCloneBcDatastreamManualRow(preferredRoot) {
+  const root = preferredRoot || activeSiteCloneBcEnvStripRoot();
+  if (root) {
+    const scoped = root.querySelector('#' + DATASTREAM_MANUAL_ROW_ID);
+    if (scoped) return scoped;
+  }
   return document.getElementById(DATASTREAM_MANUAL_ROW_ID);
 }
 
-function findSiteCloneBcDatastreamManualInput() {
+function findSiteCloneBcDatastreamManualInput(preferredRoot) {
+  const root = preferredRoot || activeSiteCloneBcEnvStripRoot();
+  if (root) {
+    const scoped = root.querySelector('#' + DATASTREAM_MANUAL_INPUT_ID);
+    if (scoped) return scoped;
+  }
   return document.getElementById(DATASTREAM_MANUAL_INPUT_ID);
 }
 
@@ -728,20 +786,38 @@ function closeSiteCloneBcDatastreamManualEntry(restoreSelectValue) {
   }
 }
 
-function applySiteCloneBcDatastreamManualEntry() {
-  const input = findSiteCloneBcDatastreamManualInput();
-  const dsInput = siteCloneBcDatastreamEl();
-  if (!input || !dsInput) return false;
+function applySiteCloneBcDatastreamManualEntry(scopeFromNode) {
+  const fieldRoot = resolveDatastreamFieldRoot(scopeFromNode);
+  const input = findSiteCloneBcDatastreamManualInput(fieldRoot);
+  const dsInput = siteCloneBcDatastreamEl(fieldRoot);
+  datastreamDebugLog('applySiteCloneBcDatastreamManualEntry', {
+    fieldRoot: fieldRoot,
+    hasInput: !!input,
+    hasSelect: !!dsInput,
+    rawValue: input ? input.value : null,
+    inputConnected: input ? input.isConnected : null,
+    selectConnected: dsInput ? dsInput.isConnected : null,
+  });
+  if (!input || !dsInput) {
+    datastreamDebugLog('apply aborted — missing input or select', {
+      inputId: DATASTREAM_MANUAL_INPUT_ID,
+      selectId: 'siteCloneBcDatastreamId',
+    });
+    return false;
+  }
   const id = sanitiseSiteCloneBcDatastreamId(input.value);
-  const err = document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
+  const errEl = fieldRoot
+    ? fieldRoot.querySelector('#' + DATASTREAM_MANUAL_ERROR_ID)
+    : document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
   if (!id) {
-    if (err) {
-      err.textContent = 'Enter a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).';
+    datastreamDebugLog('apply rejected — invalid UUID', { rawValue: input.value });
+    if (errEl) {
+      errEl.textContent = 'Enter a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).';
     }
     input.focus();
     return false;
   }
-  if (err) err.textContent = '';
+  if (errEl) errEl.textContent = '';
   setSiteCloneBcDatastreamManualEntryOpen(false);
   recordRecentSiteCloneBcDatastreamId(id);
   renderSiteCloneBcDatastreamSelectOptions();
@@ -749,6 +825,7 @@ function applySiteCloneBcDatastreamManualEntry() {
   input.value = id;
   dsInput.removeAttribute('aria-hidden');
   dsInput.tabIndex = 0;
+  datastreamDebugLog('apply succeeded', { id: id, sandbox: getSandboxKey() });
   return true;
 }
 
@@ -799,12 +876,16 @@ function handleSiteCloneBcDatastreamSelectChange(dsInput) {
 function ensureSiteCloneBcDatastreamPickerDelegation() {
   if (siteCloneBcDatastreamPickerState.delegated) return;
   siteCloneBcDatastreamPickerState.delegated = true;
+  datastreamDebugLog(
+    'document delegation armed for datastream picker (disable logs: localStorage.setItem("aepLabDatastreamDebug","0"))',
+  );
 
   document.addEventListener(
     'change',
     function (ev) {
       const t = ev.target;
       if (!t || t.id !== 'siteCloneBcDatastreamId') return;
+      datastreamDebugLog('select change', { value: t.value });
       handleSiteCloneBcDatastreamSelectChange(t);
     },
     true,
@@ -814,16 +895,35 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
     'click',
     function (ev) {
       const t = ev.target;
-      if (!t || !t.id) return;
+      if (!t || typeof t.closest !== 'function') return;
+      const applyBtn = t.closest('#' + DATASTREAM_MANUAL_APPLY_ID);
+      const cancelBtn = t.closest('#' + DATASTREAM_MANUAL_CANCEL_ID);
+      if (!applyBtn && !cancelBtn) return;
       const st = siteCloneBcDatastreamPickerState;
-      if (t.id === DATASTREAM_MANUAL_APPLY_ID) {
+      if (applyBtn) {
         ev.preventDefault();
-        if (!applySiteCloneBcDatastreamManualEntry()) return;
-        if (typeof st.onFieldChange === 'function') st.onFieldChange();
+        datastreamDebugLog('Apply UUID click', {
+          targetTag: t.tagName,
+          targetId: t.id || null,
+          applyBtnConnected: applyBtn.isConnected,
+          onFieldChangeBound: typeof st.onFieldChange === 'function',
+        });
+        const applied = applySiteCloneBcDatastreamManualEntry(applyBtn);
+        if (!applied) {
+          datastreamDebugLog('Apply UUID stopped — applySiteCloneBcDatastreamManualEntry returned false');
+          return;
+        }
+        if (typeof st.onFieldChange === 'function') {
+          datastreamDebugLog('calling onFieldChange (persist + invalidate)');
+          st.onFieldChange();
+        } else {
+          datastreamDebugLog('onFieldChange not bound — UUID applied to DOM only (bootSiteCloneBcDatastreamPicker may not have run)');
+        }
         return;
       }
-      if (t.id === DATASTREAM_MANUAL_CANCEL_ID) {
+      if (cancelBtn) {
         ev.preventDefault();
+        datastreamDebugLog('Cancel manual entry click');
         closeSiteCloneBcDatastreamManualEntry(st.manualEntryRestoreValue);
       }
     },
@@ -849,7 +949,8 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
       if (ev.key === 'Enter') {
         ev.preventDefault();
         ev.stopPropagation();
-        if (!applySiteCloneBcDatastreamManualEntry()) return;
+        datastreamDebugLog('manual input Enter');
+        if (!applySiteCloneBcDatastreamManualEntry(ev.target)) return;
         if (typeof st.onFieldChange === 'function') st.onFieldChange();
       } else if (ev.key === 'Escape') {
         ev.preventDefault();
@@ -871,7 +972,9 @@ function bootSiteCloneBcDatastreamPicker() {
     saveSiteCloneBcDatastreamId();
     const next = getSiteCloneBcDatastreamId();
     st.lastBcDatastreamIdForLiveEdge = next;
+    datastreamDebugLog('onDatastreamFieldChange', { prev: prev, next: next, sandbox: getSandboxKey() });
     if (prev !== next) {
+      datastreamDebugLog('datastream changed — invalidating SiteCloneBc core');
       invalidateSiteCloneBcCore();
       syncSiteCloneBcFromPrefs();
     }
@@ -880,6 +983,10 @@ function bootSiteCloneBcDatastreamPicker() {
   siteCloneBcDatastreamPickerState.onFieldChange = onDatastreamFieldChange;
   siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
   ensureSiteCloneBcDatastreamPickerDelegation();
+  datastreamDebugLog('bootSiteCloneBcDatastreamPicker', {
+    selectFound: !!dsInput,
+    currentId: siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge,
+  });
   syncSiteCloneBcDatastreamManualInputFromStored();
   const row = findSiteCloneBcDatastreamManualRow();
   if (row && row.hasAttribute('hidden')) row.removeAttribute('hidden');
