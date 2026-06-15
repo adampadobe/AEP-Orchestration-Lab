@@ -531,7 +531,13 @@
     var includeBottomDock =
       c.includeBottomDock === true || host.getAttribute('data-demo-env-strip-bc-bottom') === '1';
     var includeDecisioning =
-      c.includeDecisioning !== false && host.getAttribute('data-demo-env-strip-decisioning') !== '0';
+      c.includeDecisioning !== false &&
+      host.getAttribute('data-demo-env-strip-decisioning') !== '0' &&
+      !(
+        global.envBarConfig &&
+        global.envBarConfig.features &&
+        global.envBarConfig.features.decisioning === false
+      );
     var needsDecisioning = includeDecisioning && !document.getElementById('siteCloneDecisioningEnabledToggle');
     if (host.getAttribute(MOUNTED_ATTR) === '1' && !needsDecisioning) {
       return { mounted: true, alreadyPresent: true };

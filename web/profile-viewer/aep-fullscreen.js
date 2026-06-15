@@ -95,21 +95,29 @@
     btn.type = 'button';
     btn.setAttribute('data-aep-fullscreen-btn', '1');
 
-    // Preferred: drop the icon into the dashboard topbar's right-side cluster.
-    var right = doc.querySelector('.dashboard-topbar .dashboard-topbar-right');
-    if (right) {
-      btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
-      right.insertBefore(btn, right.firstChild);
+    // Preferred: lab env toolbar actions (version pill, dock, expand, pin).
+    var toolbarActions = doc.querySelector('.lab-env-toolbar__actions');
+    if (toolbarActions) {
+      btn.className = 'spectrum-env-icon-btn lab-env-fullscreen-btn aep-fullscreen-btn';
+      toolbarActions.insertBefore(btn, toolbarActions.firstChild);
     } else {
-      // Fallback: dashboard topbar exists but no right-side cluster — append.
-      var topbar = doc.querySelector('.dashboard-topbar');
-      if (topbar) {
+      var right = doc.querySelector('.dashboard-topbar .dashboard-topbar-right');
+      if (right) {
         btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
-        topbar.appendChild(btn);
+        right.insertBefore(btn, right.firstChild);
       } else {
-        // No topbar at all (e.g. walnut-guided demos) — use a floating button.
-        btn.className = 'aep-fullscreen-btn aep-fullscreen-btn--floating';
-        (doc.body || doc.documentElement).appendChild(btn);
+        // Fallback: dashboard topbar exists but no right-side cluster — append.
+        var topbar = doc.querySelector('.dashboard-topbar');
+        if (topbar) {
+          btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
+          topbar.appendChild(btn);
+        } else if (doc.body && doc.body.classList.contains('home-dashboard-concierge')) {
+          btn.className = 'aep-fullscreen-btn aep-fullscreen-btn--midrail';
+          (doc.body || doc.documentElement).appendChild(btn);
+        } else {
+          btn.className = 'aep-fullscreen-btn aep-fullscreen-btn--floating';
+          (doc.body || doc.documentElement).appendChild(btn);
+        }
       }
     }
     syncBtn(btn);

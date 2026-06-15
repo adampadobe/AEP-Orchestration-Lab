@@ -1260,7 +1260,7 @@
     var isModalMount = selector === MODAL_MOUNT_SELECTOR;
     if (isModalMount) markModalSurfaceReady(false);
     await ensureParentCore();
-    await bootstrapConcierge(global, selector, applyModalSurfaceStyleTokens(global.styleConfiguration), {
+    await bootstrapConcierge(global, selector, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
     if (isModalMount) markModalSurfaceReady(true);
@@ -1365,7 +1365,15 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260613bc-modal-shell-fix', 'modal');
+    loadStylesheet(
+      resolveAssetUrl(BASE + 'brand-concierge-bottom-dock/brand-concierge-bottom-dock.css') +
+        '?v=20260614-modal-dock-parity',
+      'modal-dock',
+    );
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260614-modal-dock-parity', 'modal');
+    if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
+      global.SiteCloneBcChrome.upgradeModalShell();
+    }
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }

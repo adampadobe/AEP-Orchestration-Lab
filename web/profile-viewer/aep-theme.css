@@ -225,12 +225,12 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { 
 .aep-fullscreen-btn--floating {
   position: fixed;
   top: calc(var(--env-bar-height, 3rem) + 0.4rem);
-  right: 3.85rem;
+  right: var(--lab-env-midrail-right, 0.85rem);
   z-index: 7140;
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--lab-env-midrail-btn-size, 2rem);
+  height: var(--lab-env-midrail-btn-size, 2rem);
+  min-width: var(--lab-env-midrail-btn-size, 2rem);
+  min-height: var(--lab-env-midrail-btn-size, 2rem);
   border-radius: 50%;
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
@@ -239,6 +239,39 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { 
   justify-content: center;
   box-shadow: var(--dash-shadow);
   box-sizing: border-box;
+}
+
+/* Site-clone demos: stack below the decisioning mid-rail trigger */
+.aep-fullscreen-btn--midrail {
+  position: fixed;
+  top: calc(50% + (var(--lab-env-midrail-btn-size, 2rem) / 2) + var(--lab-env-midrail-gap, 0.55rem));
+  right: var(--lab-env-midrail-right, 0.85rem);
+  z-index: 7145;
+  width: var(--lab-env-midrail-btn-size, 2rem);
+  height: var(--lab-env-midrail-btn-size, 2rem);
+  min-width: var(--lab-env-midrail-btn-size, 2rem);
+  min-height: var(--lab-env-midrail-btn-size, 2rem);
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--dash-shadow);
+  box-sizing: border-box;
+  transform: translateY(-50%);
+}
+
+.lab-env-fullscreen-btn {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.lab-env-fullscreen-btn svg {
+  width: 16px;
+  height: 16px;
 }
 html[data-aep-theme='dark'] .aep-fullscreen-btn--floating {
   background: color-mix(in srgb, var(--dash-surface) 92%, transparent);

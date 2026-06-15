@@ -615,7 +615,15 @@
   function ensureDecisioningPrefsMounted(cfg) {
     if (!isDecisioningFeatureEnabled(cfg)) return;
     if (!global.DemoEnvStrip || typeof global.DemoEnvStrip.mountSiteCloneProfileBcPrefs !== 'function') return;
-    global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({ mountId: 'siteCloneBcPrefsMount' });
+    var host = document.getElementById('siteCloneBcPrefsMount');
+    if (host && !document.getElementById('siteCloneDecisioningEnabledToggle')) {
+      host.removeAttribute('data-demo-env-strip-mounted');
+      host.setAttribute('data-demo-env-strip-decisioning', '1');
+    }
+    global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({
+      mountId: 'siteCloneBcPrefsMount',
+      includeDecisioning: true,
+    });
   }
 
   /**
@@ -689,6 +697,9 @@
       .then(function () {
         if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.ensure === 'function') {
           global.SiteCloneBcChrome.ensure();
+        }
+        if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
+          global.SiteCloneBcChrome.upgradeModalShell();
         }
         if (global.SiteCloneBc) return;
         if (document.querySelector('script[src*="site-clone-bc.js"]')) return;

@@ -61,6 +61,13 @@
 
     btn.addEventListener('click', openModal);
 
+    if (!modal.__embedBcPopupCloseBound) {
+      modal.addEventListener('click', function (e) {
+        if (e.target.closest('[data-aep-bc-close]')) closeModal();
+      });
+      modal.__embedBcPopupCloseBound = true;
+    }
+
     closeTargets.forEach(function (el) {
       el.addEventListener('click', closeModal);
     });

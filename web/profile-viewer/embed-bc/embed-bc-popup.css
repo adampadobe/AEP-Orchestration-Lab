@@ -1,4 +1,4 @@
-/* Page 3: floating reopen button + centered Brand Concierge modal */
+/* Page 3: floating reopen button + centred Brand Concierge modal (dock-parity shell) */
 .aep-bc-reopen-btn {
   position: fixed;
   right: 24px;
@@ -48,6 +48,7 @@ body.aep-bc-modal-open {
   justify-content: center;
   padding: clamp(0.75rem, 2vw, 1.5rem);
   box-sizing: border-box;
+  pointer-events: none;
 }
 
 .aep-bc-modal.is-open {
@@ -61,8 +62,7 @@ body.aep-bc-modal-open {
   background: transparent;
   border: none;
   padding: 0;
-  cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .aep-bc-modal__dialog {
@@ -80,7 +80,7 @@ body.aep-bc-modal-open {
   pointer-events: auto;
 }
 
-/* Sky-assistant style gradient accent rails (matches centre-bottom dock panel) */
+/* Reuse bottom-dock panel accent rails on the modal shell */
 .aep-bc-modal__dialog::before,
 .aep-bc-modal__dialog::after {
   content: '';
@@ -89,7 +89,7 @@ body.aep-bc-modal-open {
   right: 0;
   height: 3px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .aep-bc-modal__dialog::before {
@@ -104,50 +104,23 @@ body.aep-bc-modal-open {
   background: linear-gradient(90deg, #4b75ff 0%, #9b4dff 48%, #e743c8 100%);
 }
 
-.aep-bc-modal__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 20;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin: 0;
-  padding: 0;
-  border: 1px solid rgba(19, 19, 19, 0.14);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  color: #131313;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 400;
-  line-height: 1;
-  cursor: pointer;
+.aep-bc-modal__panel-header {
+  position: relative;
+  z-index: 2;
   flex-shrink: 0;
 }
 
-.aep-bc-modal__close:hover {
-  background: #fff;
-  border-color: rgba(19, 19, 19, 0.22);
+.aep-bc-modal__panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
 }
 
-.aep-bc-modal__close:focus-visible {
-  outline: 3px solid #4b75ff;
-  outline-offset: 2px;
-}
-
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount:empty,
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount:empty {
-  min-height: 812px;
-}
-
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) .aep-bc-modal__mount,
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #brand-concierge-mount,
-.aep-bc-modal:not(.aep-bc-modal--surface-ready) #siteCloneBcModalMount {
-  min-height: 812px;
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) .aep-bc-modal__panel-body,
+.aep-bc-modal:not(.aep-bc-modal--surface-ready) .aep-bc-modal__mount {
+  min-height: min(66vh, 906px);
 }
 
 .aep-bc-modal__mount,
@@ -159,46 +132,34 @@ body.aep-bc-modal-open {
   bottom: auto !important;
   left: auto !important;
   top: auto !important;
-  flex: 1 1 auto;
   width: 100% !important;
   max-width: none !important;
   min-height: 0 !important;
-  height: auto !important;
-  max-height: 100% !important;
+  height: 100% !important;
+  max-height: min(66vh, 906px) !important;
   margin: 0;
   pointer-events: auto !important;
-  overflow: hidden;
+  overflow: auto;
   background: transparent !important;
-  isolation: isolate;
 }
 
-/* BC root is usually a div; avoid > * — first child may be an injected <style> tag */
 .aep-bc-modal #brand-concierge-mount > div,
 .aep-bc-modal #siteCloneBcModalMount > div {
   position: relative !important;
   inset: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-  top: auto !important;
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
-  max-height: min(72vh, 968px) !important;
+  max-height: none !important;
   margin: 0 !important;
   pointer-events: auto;
-  background: transparent !important;
 }
 
 .aep-bc-modal #brand-concierge-mount .brand-concierge-container,
 .aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
   position: relative !important;
   inset: auto !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
   width: 100% !important;
   max-width: 100% !important;
   max-height: min(66vh, 906px) !important;
@@ -213,51 +174,14 @@ body.aep-bc-modal-open {
   background-repeat: no-repeat !important;
 }
 
-/* White shell — BC chat area transparent; input pill stays white like bottom dock */
-.aep-bc-modal #brand-concierge-mount,
-.aep-bc-modal #siteCloneBcModalMount,
-.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
-.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
-  --message-blocker-background: transparent !important;
-  --main-container-bottom-background: transparent !important;
-  --chat-container-bottom-background: transparent !important;
-  --chat-container-background: transparent !important;
-  --main-container-background: transparent !important;
-  --input-background: var(--dash-surface, #fff) !important;
-  --input-box-shadow: var(--dash-shadow, 0 2px 12px rgba(0, 0, 0, 0.08)) !important;
-}
-
-/* Keep BC fixed layers inside the dialog — do not paint over the site snapshot */
-.aep-bc-modal #brand-concierge-mount [class*='message-blocker'],
-.aep-bc-modal #siteCloneBcModalMount [class*='message-blocker'],
-.aep-bc-modal #brand-concierge-mount .message-blocker,
-.aep-bc-modal #siteCloneBcModalMount .message-blocker {
+/* Contain BC fixed layers inside the panel body (same containment model as centre-bottom dock) */
+.aep-bc-modal__panel-body [class*='message-blocker'],
+.aep-bc-modal__panel-body .message-blocker {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
-  background: transparent !important;
-  background-color: transparent !important;
   pointer-events: none !important;
-}
-
-.aep-bc-modal #brand-concierge-mount > div,
-.aep-bc-modal #siteCloneBcModalMount > div,
-.aep-bc-modal #brand-concierge-mount .brand-concierge-container,
-.aep-bc-modal #siteCloneBcModalMount .brand-concierge-container {
-  max-width: 100% !important;
-}
-
-.aep-bc-modal #brand-concierge-mount .input-section,
-.aep-bc-modal #siteCloneBcModalMount .input-section {
-  background: transparent !important;
-  background-color: transparent !important;
-}
-
-.aep-bc-modal #brand-concierge-mount .input-container,
-.aep-bc-modal #siteCloneBcModalMount .input-container {
-  background: var(--dash-surface, #fff) !important;
-  background-color: var(--dash-surface, #fff) !important;
 }
