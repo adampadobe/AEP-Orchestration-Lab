@@ -535,7 +535,7 @@
       (cd.name && String(cd.name).trim()) ||
       (cd.shortName && String(cd.shortName).trim()) ||
       '—';
-    var agentName = mb.StaffName || sp.AgentName || '—';
+    var agentName = sp.AgentName || mb.StaffName || '—';
     var agentId = mb.StaffId || sp.AgentID || '';
     var agentType = mb.StaffRole || sp.AgentType || '';
     var terminal = sp.FlightTerminalInfo || mb.Terminal || '';

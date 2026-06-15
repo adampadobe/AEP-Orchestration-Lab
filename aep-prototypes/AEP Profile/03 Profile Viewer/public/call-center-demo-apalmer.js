@@ -157,7 +157,7 @@
     const brandEl = document.getElementById('ccBrandName');
     if (brandEl) brandEl.textContent = brand || CC_DEFAULT_BRAND;
 
-    const agentNameRaw = mb.StaffName || sp.AgentName || sp.agentName;
+    const agentNameRaw = sp.AgentName || sp.agentName || mb.StaffName;
     const agentName = agentNameRaw && String(agentNameRaw).trim();
     if (agentName) {
       const nameEl = document.getElementById('ccAgentName');

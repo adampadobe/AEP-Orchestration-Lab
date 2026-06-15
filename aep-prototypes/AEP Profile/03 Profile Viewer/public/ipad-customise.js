@@ -48,19 +48,36 @@
       (cd.name && String(cd.name).trim()) ||
       (raw.brandName && String(raw.brandName).trim()) ||
       '';
-    o.shortName = (cd.shortName && String(cd.shortName).trim()) || '';
+    o.shortName =
+      (cd.shortName && String(cd.shortName).trim()) ||
+      (raw.shortName && String(raw.shortName).trim()) ||
+      '';
     var sp = raw.StaffPortal || {};
     var mb = raw.Mobile || {};
     o.agentName =
-      (mb.StaffName && String(mb.StaffName).trim()) ||
       (sp.AgentName && String(sp.AgentName).trim()) ||
+      (raw.agentName && String(raw.agentName).trim()) ||
+      (mb.StaffName && String(mb.StaffName).trim()) ||
       '';
-    var colour = sp.Colour != null ? String(sp.Colour).trim() : '';
+    var colour =
+      (raw.accentColour && String(raw.accentColour).trim()) ||
+      (sp.Colour != null ? String(sp.Colour).trim() : '');
     o.accentColour = colour.replace(/^#/, '');
     var td = raw.TravelData || {};
-    o.flightNumber = (td.flightNumber && String(td.flightNumber).trim()) || (td.flight && String(td.flight).trim()) || '';
-    o.route = (td.route && String(td.route).trim()) || '';
-    o.gate = (td.gate && String(td.gate).trim()) || (mb.Gate && String(mb.Gate).trim()) || '';
+    o.flightNumber =
+      (raw.flightNumber && String(raw.flightNumber).trim()) ||
+      (td.flightNumber && String(td.flightNumber).trim()) ||
+      (td.flight && String(td.flight).trim()) ||
+      '';
+    o.route =
+      (raw.route && String(raw.route).trim()) ||
+      (td.route && String(td.route).trim()) ||
+      '';
+    o.gate =
+      (raw.gate && String(raw.gate).trim()) ||
+      (td.gate && String(td.gate).trim()) ||
+      (mb.Gate && String(mb.Gate).trim()) ||
+      '';
     return o;
   }
 
@@ -203,7 +220,6 @@
         Colour: colour,
       },
       mobile: {
-        StaffName: norm.agentName,
         Gate: norm.gate,
       },
       travel: {
@@ -220,7 +236,7 @@
           AgentName: norm.agentName,
           Colour: colour,
         },
-        Mobile: { StaffName: norm.agentName, Gate: norm.gate },
+        Mobile: { Gate: norm.gate },
         TravelData: {
           flightNumber: norm.flightNumber,
           route: norm.route,
