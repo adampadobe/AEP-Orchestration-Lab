@@ -20,7 +20,7 @@
     assets: {
       bundleCss: '20260625-datastream-uuid-paste',
       spectrumCss: '20260625-datastream-manual-spectrum',
-      demoEnvStripSpectrum: '20260617-profile-peek-v5',
+      demoEnvStripSpectrum: '20260625-datastream-tooltip-purpose',
       demoEnvStrip: '20260617-profile-peek-v5',
       spectrumSync: '20260614-sdk-compact-status',
       compactJs: '20260625-datastream-uuid-paste',

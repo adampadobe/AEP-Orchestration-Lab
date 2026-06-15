@@ -4,7 +4,7 @@
   "assets": {
     "bundleCss": "20260625-datastream-uuid-paste",
     "spectrumCss": "20260625-datastream-manual-spectrum",
-    "demoEnvStripSpectrum": "20260625-datastream-uuid-paste",
+    "demoEnvStripSpectrum": "20260625-datastream-tooltip-purpose",
     "demoEnvStrip": "20260625-datastream-uuid-paste",
     "spectrumSync": "20260614-sdk-compact-status",
     "compactCss": "20260625-datastream-uuid-paste",

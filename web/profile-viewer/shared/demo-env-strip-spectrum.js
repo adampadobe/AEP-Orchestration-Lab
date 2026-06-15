@@ -62,16 +62,19 @@
   function datastreamUuidTooltipMarkup() {
     return (
       '<span class="spectrum-env-field-tooltip">' +
-      '<button type="button" class="spectrum-env-field-tooltip__trigger" aria-label="How to find a datastream UUID">' +
+      '<button type="button" class="spectrum-env-field-tooltip__trigger" aria-label="Lab datastream UUID — what it is and how to find one">' +
       spectrumIcon('info') +
       '</button>' +
       '<div class="spectrum-env-field-tooltip__panel" role="tooltip">' +
+      '<p class="spectrum-env-field-tooltip__lead"><strong>Lab override only.</strong> When this page sends events through the browser Web SDK (Alloy) — for example the anonymous page view right after you inject Tags, or Brand Concierge / Target if enabled — this UUID tells Edge which datastream to use (<code>edgeConfigOverrides</code>). It does <strong>not</strong> change the datastream configured inside your Launch property.</p>' +
+      '<p class="spectrum-env-field-tooltip__lead">Pick a datastream from the list, or choose <strong>Enter UUID…</strong> and paste one wired to your sandbox. Align it with the sandbox selected at the top of the env bar so profile lookup and events land in the right place.</p>' +
+      '<p class="spectrum-env-field-tooltip__lead"><strong>Not the same as Event destination.</strong> The dropdown below routes <em>server-side</em> lab events (journey postMessage events, profile lookup <code>application.login</code>, and the drawer timeline mirror) through <code>POST /api/events/generator</code>. Both may need to point at your sandbox for a clean demo, but they are separate pipes.</p>' +
       '<p class="spectrum-env-field-tooltip__lead">Datastreams are created outside this lab. Use one of the Demo Sandbox Network portals:</p>' +
       '<ul class="spectrum-env-field-tooltip__list">' +
       '<li><a href="https://livedemos.adobe.com/" target="_blank" rel="noopener noreferrer">https://livedemos.adobe.com/</a> — live-demos DSN</li>' +
       '<li><a href="https://dsn.adobe.com/" target="_blank" rel="noopener noreferrer">https://dsn.adobe.com/</a> — standard DSN</li>' +
       '</ul>' +
-      '<p class="spectrum-env-field-tooltip__foot">Inside DSN, create (or pick) a datastream wired to your sandbox with the services you need (AEP, AJO, Personalization). Copy its <strong>Datastream ID</strong> and the Launch <strong>embed-script URL</strong> from the Web SDK extension — you\u2019ll paste both below.</p>' +
+      '<p class="spectrum-env-field-tooltip__foot">Inside DSN, create (or pick) a datastream wired to your sandbox with the services you need (AEP, AJO, Personalization). Copy its <strong>Datastream ID</strong> here. Copy the Launch <strong>embed-script URL</strong> from the Web SDK extension into the Tags section above.</p>' +
       '</div></span>'
     );
   }
