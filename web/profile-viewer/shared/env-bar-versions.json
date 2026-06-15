@@ -25,10 +25,10 @@
     "decisioningPanelCss": "20260614-decisioning-channel-icon",
     "profileStreamingShared": "20260615",
     "contentDecisionLabConfig": "20260615",
-    "contentDecisionEdgeMounts": "20260615",
+    "contentDecisionEdgeMounts": "20260616-fallback-routing",
     "decisioningEdgeInject": "20260612c",
-    "decisioningProfileRuntime": "20260624",
-    "decisioningProfileModule": "20260620",
+    "decisioningProfileRuntime": "20260616-surface-urls",
+    "decisioningProfileModule": "20260616-no-tweak-collapse",
     "decisioningProfilePanel": "20260616-toggle-delegate",
     "siteCloneDecisioningBoot": "20260616-remote-decisioning"
   }

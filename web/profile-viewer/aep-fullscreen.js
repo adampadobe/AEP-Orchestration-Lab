@@ -1,9 +1,9 @@
 /**
  * Global full-screen toggle button.
  *
- * Injects an icon-only button into `.dashboard-topbar-right` on every dashboard
- * page EXCEPT the home page (body.home-page) and the global-settings page
- * (pathname /global-settings.html). Uses Spectrum S2 full-screen / exit icons.
+ * Injects an icon-only button into `.lab-env-toolbar__actions` on site-clone demos
+ * (left of the hide-environment-bar control). Falls back to dashboard topbar or
+ * mid-rail only when the spectrum toolbar is not present yet.
  *
  * Target: document.documentElement — the whole viewport goes full-screen.
  */
@@ -31,7 +31,6 @@
   function shouldSkip(doc) {
     var body = doc && doc.body;
     if (body && body.classList && body.classList.contains('home-page')) return true;
-    /* Mobile simulator pages use CSS presentation mode — never inject browser Fullscreen API here */
     if (body && body.classList && (
       body.classList.contains('mobile-demo-shell-page') ||
       body.classList.contains('mobile-demo-page')
@@ -86,27 +85,47 @@
       .finally(function () { syncBtn(btn); });
   }
 
+  function findToolbarInsertPoint(doc) {
+    var dockBtn = doc.getElementById('aepLabEnvDockToolbarBtn');
+    if (dockBtn && dockBtn.parentNode) return { parent: dockBtn.parentNode, before: dockBtn };
+    var toolbarActions = doc.querySelector('.lab-env-toolbar__actions');
+    if (toolbarActions) return { parent: toolbarActions, before: toolbarActions.firstChild };
+    return null;
+  }
+
+  function mountIntoToolbar(btn, doc) {
+    var point = findToolbarInsertPoint(doc);
+    if (!point) return false;
+    btn.className = 'spectrum-env-icon-btn lab-env-fullscreen-btn aep-fullscreen-btn';
+    point.parent.insertBefore(btn, point.before || null);
+    return true;
+  }
+
+  function relocateMidrailButton(doc) {
+    var btn = doc.querySelector('[data-aep-fullscreen-btn].aep-fullscreen-btn--midrail');
+    if (!btn) return false;
+    btn.classList.remove('aep-fullscreen-btn--midrail', 'aep-fullscreen-btn--floating');
+    return mountIntoToolbar(btn, doc);
+  }
+
   function injectButton() {
     var doc = global.document;
     if (shouldSkip(doc)) return;
+    if (relocateMidrailButton(doc)) return;
     if (doc.querySelector('[data-aep-fullscreen-btn]')) return;
 
     var btn = doc.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-aep-fullscreen-btn', '1');
 
-    // Preferred: lab env toolbar actions (version pill, dock, expand, pin).
-    var toolbarActions = doc.querySelector('.lab-env-toolbar__actions');
-    if (toolbarActions) {
-      btn.className = 'spectrum-env-icon-btn lab-env-fullscreen-btn aep-fullscreen-btn';
-      toolbarActions.insertBefore(btn, toolbarActions.firstChild);
+    if (mountIntoToolbar(btn, doc)) {
+      /* mounted in spectrum env toolbar */
     } else {
       var right = doc.querySelector('.dashboard-topbar .dashboard-topbar-right');
       if (right) {
         btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
         right.insertBefore(btn, right.firstChild);
       } else {
-        // Fallback: dashboard topbar exists but no right-side cluster — append.
         var topbar = doc.querySelector('.dashboard-topbar');
         if (topbar) {
           btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
@@ -131,9 +150,18 @@
     injectButton();
   }
 
+  function scheduleRetries() {
+    window.setTimeout(injectButton, 0);
+    window.setTimeout(injectButton, 400);
+    window.setTimeout(injectButton, 1500);
+  }
+
   if (global.document.readyState === 'loading') {
     global.document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
+
+  global.addEventListener('env-bar-change', scheduleRetries);
+  global.addEventListener('aep-demo-env-strip-mounted', scheduleRetries);
 })(typeof window !== 'undefined' ? window : this);

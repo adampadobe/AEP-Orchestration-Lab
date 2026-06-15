@@ -580,6 +580,16 @@
     return el && !el.querySelector('.cd-edge-ajo-card-inner, .cd-banner, iframe');
   }
 
+  function firstEmptyExdMount(mountByKey) {
+    var keys = ['topRibbon', 'hero'];
+    var ki;
+    for (ki = 0; ki < keys.length; ki++) {
+      var el = mountByKey[keys[ki]];
+      if (el && surfaceNotYetRendered(el)) return el;
+    }
+    return null;
+  }
+
   /**
    * @param {ParentNode} [scopeRoot] document when omitted
    * @param {string} [mountIdPrefix] e.g. 'em-web-' → ids cd-edge-em-web-{key}
@@ -675,6 +685,16 @@
           applyItemToElement(cards, itm);
           break;
         }
+      }
+    }
+    for (i = 0; i < propositions.length; i++) {
+      p = propositions[i];
+      if (resolveTargetForProposition(p, mountByKey)) continue;
+      items = p.items || [];
+      for (j = 0; j < items.length; j++) {
+        var exdTarget = firstEmptyExdMount(mountByKey);
+        if (!exdTarget) break;
+        if (applyItemToElement(exdTarget, items[j])) break;
       }
     }
   }

@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260624';
+  var CACHE_BUST = '20260616-surface-urls';
 
   var config = null;
   var lastUpsClientData = null;
@@ -176,14 +176,40 @@
 
   function buildSurfacesForPage() {
     if (typeof global.CdEdgeMounts === 'undefined') return [];
-    var pageUrl = getEffectiveTargetPageUrl();
-    if (pageUrl && typeof global.CdEdgeMounts.buildSurfacesFromPageUrl === 'function') {
-      return global.CdEdgeMounts.buildSurfacesFromPageUrl(pageUrl);
+    var urls = [];
+    function addUrl(raw) {
+      var u = stripUrlQueryHash(raw);
+      if (u && urls.indexOf(u) === -1) urls.push(u);
     }
+    if (labConfigRecord && labConfigRecord.targetPageUrl) addUrl(labConfigRecord.targetPageUrl);
+    addUrl(getEffectiveTargetPageUrl());
+    if (global.location && global.location.href) addUrl(global.location.href);
+    var surfaces = [];
+    var ui;
+    for (ui = 0; ui < urls.length; ui++) {
+      if (typeof global.CdEdgeMounts.buildSurfacesFromPageUrl !== 'function') continue;
+      var built = global.CdEdgeMounts.buildSurfacesFromPageUrl(urls[ui]);
+      var bi;
+      for (bi = 0; bi < built.length; bi++) {
+        if (surfaces.indexOf(built[bi]) === -1) surfaces.push(built[bi]);
+      }
+    }
+    if (surfaces.length) return surfaces;
     if (typeof global.CdEdgeMounts.buildSurfacesForEdgeLabPage === 'function') {
       return global.CdEdgeMounts.buildSurfacesForEdgeLabPage();
     }
     return [];
+  }
+
+  function resolvePersonalizationPageUrl() {
+    if (labConfigRecord && labConfigRecord.targetPageUrl) {
+      var labUrl = stripUrlQueryHash(labConfigRecord.targetPageUrl);
+      if (labUrl) return labUrl;
+    }
+    var iframeUrl = getEffectiveTargetPageUrl();
+    if (iframeUrl) return iframeUrl;
+    if (global.location) return stripUrlQueryHash(global.location.href);
+    return '';
   }
 
   async function loadLabConfig() {
@@ -310,7 +336,7 @@
         ? global.CdEdgeMounts.buildIdentityMap(profile, idVal, ns)
         : {};
     var surfaces = buildSurfacesForPage();
-    var href = getEffectiveTargetPageUrl();
+    var href = resolvePersonalizationPageUrl();
     if (!href && global.location) href = stripUrlQueryHash(global.location.href);
     var viewName =
       typeof cfg('getViewName') === 'function'
@@ -348,7 +374,11 @@
       log('applyPropositions', String(e && e.message ? e.message : e));
     }
     applyPropositionsToIframe(propositions);
-    dispatchUpdated({ ok: true, propositionCount: propositions.length, skipHydrate: true });
+    var appliedCount = propositions.length;
+    dispatchUpdated({ ok: true, propositionCount: appliedCount, skipHydrate: true });
+    if (!appliedCount) {
+      log('sendEvent returned no propositions', { surfaces: surfaces.length, href: href });
+    }
     return result;
   }
 
