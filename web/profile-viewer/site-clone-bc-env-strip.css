@@ -279,6 +279,11 @@
   color: var(--dash-error, var(--dash-muted));
 }
 
+.site-clone-bc-datastream-manual-success {
+  color: var(--dash-success-text, #2d9d78);
+  font-weight: 600;
+}
+
 .site-clone-bc-style-url-select {
   box-sizing: border-box;
   min-height: 2.25rem;

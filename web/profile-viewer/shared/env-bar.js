@@ -19,7 +19,7 @@
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20260625-datastream-uuid-paste',
-      spectrumCss: '20260625-datastream-paste-visible',
+      spectrumCss: '20260615-datastream-apply-boot',
       demoEnvStripSpectrum: '20260625-datastream-paste-visible',
       demoEnvStrip: '20260617-profile-peek-v5',
       spectrumSync: '20260614-sdk-compact-status',
@@ -30,7 +30,7 @@
       prefsSync: '20260625-incognito-env-fix',
       tagsInjection: '20260625-env-overlay-configuring',
       aepDemoEnvBar: '20260625-env-overlay-configuring',
-      siteCloneBcEnv: '20260615-datastream-apply-commit',
+      siteCloneBcEnv: '20260615-datastream-apply-boot',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',

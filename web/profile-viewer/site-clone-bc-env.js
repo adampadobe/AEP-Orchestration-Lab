@@ -106,7 +106,7 @@
     return normaliser ? normaliser(v) : v;
   }
 
-  let envSandboxKey = getSandboxKey();
+  let envSandboxKey = null;
   let sandboxEnvSwitching = false;
   let datastreamLoadGen = 0;
 
@@ -674,6 +674,22 @@ function renderSiteCloneBcDatastreamSelectOptions(opts) {
   });
 }
 
+function showSiteCloneBcDatastreamApplySuccess(fieldRoot, id) {
+  const errEl = fieldRoot
+    ? fieldRoot.querySelector('#' + DATASTREAM_MANUAL_ERROR_ID)
+    : document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
+  if (!errEl) return;
+  errEl.textContent = 'UUID saved — ' + id + ' is now selected for this sandbox.';
+  errEl.classList.add('site-clone-bc-datastream-manual-success');
+  if (showSiteCloneBcDatastreamApplySuccess._timer) {
+    global.clearTimeout(showSiteCloneBcDatastreamApplySuccess._timer);
+  }
+  showSiteCloneBcDatastreamApplySuccess._timer = global.setTimeout(function () {
+    errEl.classList.remove('site-clone-bc-datastream-manual-success');
+    if (errEl.textContent.indexOf('UUID saved —') === 0) errEl.textContent = '';
+  }, 6000);
+}
+
 function commitSiteCloneBcDatastreamSelection(fieldRoot, id) {
   const clean = sanitiseSiteCloneBcDatastreamId(id);
   if (!clean) return '';
@@ -689,6 +705,7 @@ function commitSiteCloneBcDatastreamSelection(fieldRoot, id) {
   const manualInput = findSiteCloneBcDatastreamManualInput(fieldRoot);
   if (manualInput) manualInput.value = clean;
   refreshSiteCloneBcDatastreamHint(fieldRoot);
+  showSiteCloneBcDatastreamApplySuccess(fieldRoot, clean);
   return clean;
 }
 
@@ -969,7 +986,9 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
           datastreamDebugLog('calling onFieldChange (invalidate if changed)');
           st.onFieldChange({ skipPersist: true });
         } else {
-          datastreamDebugLog('onFieldChange not bound — UUID persisted via commit only');
+          datastreamDebugLog('onFieldChange not bound — invalidating SiteCloneBc after commit');
+          invalidateSiteCloneBcCore();
+          syncSiteCloneBcFromPrefs();
         }
         return;
       }
@@ -1016,8 +1035,12 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
 }
 
 function bootSiteCloneBcDatastreamPicker() {
+  ensureSiteCloneBcDatastreamPickerDelegation();
   const dsInput = siteCloneBcDatastreamEl();
-  if (!dsInput) return false;
+  if (!dsInput) {
+    datastreamDebugLog('bootSiteCloneBcDatastreamPicker — select not in DOM yet (delegation armed)');
+    return false;
+  }
 
   function onDatastreamFieldChange(opts) {
     const st = siteCloneBcDatastreamPickerState;
@@ -1042,8 +1065,9 @@ function bootSiteCloneBcDatastreamPicker() {
   }
 
   siteCloneBcDatastreamPickerState.onFieldChange = onDatastreamFieldChange;
-  siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId();
-  ensureSiteCloneBcDatastreamPickerDelegation();
+  siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge = getSiteCloneBcDatastreamId(
+    activeSiteCloneBcEnvStripRoot(),
+  );
   datastreamDebugLog('bootSiteCloneBcDatastreamPicker', {
     selectFound: !!dsInput,
     currentId: siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge,
@@ -1385,6 +1409,7 @@ function bindStripDomListenersOnce() {
     bindStripDomListenersOnce();
     var nextKey = getSandboxKey();
     if (!force && nextKey === envSandboxKey && stripDomListenersBound) {
+      bootSiteCloneBcDatastreamPicker();
       applySiteCloneBcStyleConfigFieldForSandbox();
       applySiteCloneBcDatastreamFieldForSandbox();
       applySiteCloneBcDisplayPrefsToUi();
@@ -1456,6 +1481,7 @@ function bindStripDomListenersOnce() {
 
   global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
     if (!stripDomIsMounted()) return;
+    bootSiteCloneBcDatastreamPicker();
     applySiteCloneBcStyleConfigFieldForSandbox();
     applySiteCloneBcDatastreamFieldForSandbox();
     applySiteCloneBcDisplayPrefsToUi();
@@ -1463,8 +1489,8 @@ function bindStripDomListenersOnce() {
     syncDecisioningFromPrefs();
   });
 
-  envSandboxKey = getSandboxKey();
   scheduleStripDomBoot();
+  ensureSiteCloneBcDatastreamPickerDelegation();
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,
