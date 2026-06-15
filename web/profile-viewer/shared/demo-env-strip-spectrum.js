@@ -141,7 +141,7 @@
       overlayFooterParts.push(
         '<div class="spectrum-env-selected-script ' +
           esc(c.scriptPreviewClass || 'mod-demo-script-preview') +
-          '"><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
+          '" data-env-overlay-footer-item><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
           esc(c.selectedScriptId) +
           '">None</code></div>',
       );
@@ -152,12 +152,12 @@
           esc(c.messageId) +
           '" class="' +
           esc(c.messageClass || 'mod-demo-message') +
-          ' spectrum-env-inline-message" role="status" aria-live="polite" hidden></p>',
+          ' spectrum-env-inline-message" data-env-overlay-footer-item role="status" aria-live="polite" hidden></p>',
       );
     }
     if (c.disclaimerHtml) {
       overlayFooterParts.push(
-        '<div class="spectrum-env-info-bar spectrum-env-info-bar--muted"><span class="spectrum-env-info-bar__icon">' +
+        '<div class="spectrum-env-info-bar spectrum-env-info-bar--muted" data-env-overlay-footer-item><span class="spectrum-env-info-bar__icon">' +
           spectrumIcon('info') +
           '</span><div class="spectrum-env-info-bar__text mod-demo-disclaimer">' +
           c.disclaimerHtml +
@@ -165,7 +165,9 @@
       );
     }
 
-    var overlayFooter = overlayFooterParts.join('');
+    var overlayFooter = overlayFooterParts.length
+      ? '<div class="lab-env-overlay-footer" data-env-overlay-footer>' + overlayFooterParts.join('') + '</div>'
+      : '';
 
     return (
       '<div class="aep-demo-env-bar aep-demo-env-bar--spectrum">' +

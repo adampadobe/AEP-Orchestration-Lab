@@ -77,6 +77,25 @@
     else measure();
   }
 
+  function syncProfilePeekChrome(anchor, isProfileOnly) {
+    var panel = byId(OVERLAY_PANEL_ID) || (anchor && anchor.querySelector('.lab-env-overlay-panel'));
+    if (!panel) return;
+    panel.classList.toggle('lab-env-overlay-panel--profile-only', !!isProfileOnly);
+    panel.querySelectorAll('[data-env-overlay-footer-item]').forEach(function (node) {
+      if (isProfileOnly) {
+        if (!node.hasAttribute('data-env-footer-was-hidden')) {
+          node.setAttribute('data-env-footer-was-hidden', node.hasAttribute('hidden') ? '1' : '0');
+        }
+        node.setAttribute('hidden', '');
+        return;
+      }
+      var wasHidden = node.getAttribute('data-env-footer-was-hidden');
+      if (wasHidden === '0') node.removeAttribute('hidden');
+      else if (wasHidden === '1') node.setAttribute('hidden', '');
+      node.removeAttribute('data-env-footer-was-hidden');
+    });
+  }
+
   function setExpanded(anchor, expanded, pinned, profileOnly) {
     if (!anchor) return;
     var isProfileOnly = !!profileOnly && !expanded;
@@ -92,6 +111,7 @@
       else panel.setAttribute('hidden', '');
     }
 
+    syncProfilePeekChrome(anchor, isProfileOnly);
     syncToolbarOverlayInset(anchor, isOpen);
     syncFullOpenBtn(anchor);
 

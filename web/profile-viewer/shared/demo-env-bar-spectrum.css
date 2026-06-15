@@ -114,21 +114,11 @@
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
-.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar {
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only [data-env-overlay-footer-item] {
   display: none !important;
-}
-
-.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-}
-
-.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-field,
-.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 0;
 }
 
 .lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input {
@@ -179,13 +169,14 @@
 }
 
 .lab-env-overlay-profile .spectrum-env-profile-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: var(--dash-space-200, 0.75rem) var(--dash-space-300, 1rem);
   align-items: end;
   width: 100%;
   flex: 1 1 100%;
   box-sizing: border-box;
+  flex-wrap: nowrap;
 }
 
 .lab-env-overlay-profile .spectrum-env-profile-main .form-group,

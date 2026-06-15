@@ -487,7 +487,10 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
 .lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
-.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar {
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only [data-env-overlay-footer-item] {
   display: none !important;
 }
 
