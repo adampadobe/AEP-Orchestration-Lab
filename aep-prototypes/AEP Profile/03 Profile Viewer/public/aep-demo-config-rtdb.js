@@ -30,6 +30,10 @@
     CustomerLoyalty: true,
   };
 
+  var CANONICAL_CORE_DEMO_KEYS = ['name', 'shortName', 'slogan', 'url', 'customerLogo'];
+
+  var STALE_CORE_DEMO_KEYS = ['airlineName', 'brand', 'customerShortName', 'brandName'];
+
   var cachedLdapSlug = '';
   var saveTimers = {};
   var SAVE_DEBOUNCE_MS = 800;
@@ -231,20 +235,35 @@
     return 'ajoLookups/' + ldapSlug;
   }
 
-  var LEGACY_ROOT_MIRROR_SECTIONS = {
-    CoreDemoData: true,
-    StaffPortal: true,
-    iPad: true,
-  };
+  function sanitizeCoreDemoData(partial) {
+    var src = partial && typeof partial === 'object' && !Array.isArray(partial) ? partial : {};
+    var out = {};
+    CANONICAL_CORE_DEMO_KEYS.forEach(function (key) {
+      out[key] = src[key] != null ? String(src[key]).trim() : '';
+    });
+    return out;
+  }
 
-  function mirrorSectionToLegacyRoot(db, ldapSlug, section, partial) {
-    if (!LEGACY_ROOT_MIRROR_SECTIONS[section] || !ldapSlug || !partial || typeof partial !== 'object') {
-      return Promise.resolve();
-    }
-    if (section === SECTIONS.iPad) {
-      return db.ref(legacyRootPath(ldapSlug)).update(partial);
-    }
-    return db.ref(legacyRootPath(ldapSlug) + '/' + section).update(partial);
+  function stripStaleCoreDemoFields(core) {
+    if (!core || typeof core !== 'object') return core;
+    var out = Object.assign({}, core);
+    STALE_CORE_DEMO_KEYS.forEach(function (key) {
+      delete out[key];
+    });
+    return sanitizeCoreDemoData(out);
+  }
+
+  var nestedFallbackLogged = {};
+  function logNestedFallback(section, ldapSlug, sandboxSlug) {
+    var key = section + ':' + ldapSlug + ':' + sandboxSlug;
+    if (nestedFallbackLogged[key]) return;
+    nestedFallbackLogged[key] = true;
+    console.warn(
+      '[AepDemoConfigRtdb] Deprecated nested read fallback for workspace section',
+      section,
+      '— migrate to flat',
+      workspaceSectionPath(ldapSlug, section),
+    );
   }
 
   /** When LDAP slug is not yet resolved, many personal lab trees use sandbox name as the RTDB root segment. */
@@ -285,13 +304,7 @@
     var src = flat && typeof flat === 'object' ? flat : buildFlatLabStub();
     var coreSrc = src.CoreDemoData && typeof src.CoreDemoData === 'object' ? src.CoreDemoData : {};
     return {
-      CoreDemoData: {
-        name: coreSrc.name || '',
-        slogan: coreSrc.slogan || '',
-        url: coreSrc.url || '',
-        customerLogo: coreSrc.customerLogo || '',
-        shortName: coreSrc.shortName || '',
-      },
+      CoreDemoData: sanitizeCoreDemoData(coreSrc),
       StaffPortal: Object.assign(
         {
           AgentName: 'Demo agent',
@@ -368,8 +381,9 @@
     return !!(
       pickTrimmedBrandField(core.name) ||
       pickTrimmedBrandField(core.shortName) ||
-      pickTrimmedBrandField(core.brand) ||
-      pickTrimmedBrandField(core.customerShortName)
+      pickTrimmedBrandField(core.slogan) ||
+      pickTrimmedBrandField(core.url) ||
+      pickTrimmedBrandField(core.customerLogo)
     );
   }
 
@@ -398,12 +412,11 @@
   function mergeCoreDemoDataFields(primary, fallback) {
     var p = primary && typeof primary === 'object' ? primary : {};
     var f = fallback && typeof fallback === 'object' ? fallback : {};
-    var keys = ['name', 'shortName', 'brand', 'customerShortName', 'slogan', 'url', 'customerLogo'];
     var out = Object.assign({}, f, p);
-    keys.forEach(function (k) {
+    CANONICAL_CORE_DEMO_KEYS.forEach(function (k) {
       out[k] = pickTrimmedBrandField(p[k]) || pickTrimmedBrandField(f[k]) || '';
     });
-    return out;
+    return sanitizeCoreDemoData(out);
   }
 
   function mergeStaffPortalFields(primary, fallback) {
@@ -466,10 +479,16 @@
           fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.CoreDemoData) + '.json'),
           fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, SECTIONS.StaffPortal) + '.json'),
         ]).then(function (nestedResults) {
-          return resolveSharedBrand(nestedResults[0], nestedResults[1], {
-            CoreDemoData: flatCore,
-            StaffPortal: flatStaff,
-          });
+          logNestedFallback(SECTIONS.CoreDemoData, ldapSlug, sandboxSlug);
+          logNestedFallback(SECTIONS.StaffPortal, ldapSlug, sandboxSlug);
+          return resolveSharedBrand(
+            stripStaleCoreDemoFields(nestedResults[0]),
+            nestedResults[1],
+            {
+              CoreDemoData: flatCore,
+              StaffPortal: flatStaff,
+            },
+          );
         });
       });
     });
@@ -521,11 +540,18 @@
     var flatUrl = base + '/' + workspaceSectionPath(ldapSlug, section) + '.json';
     return fetchJson(flatUrl).then(function (flat) {
       if (flat && typeof flat === 'object' && Object.keys(flat).length) {
+        if (section === SECTIONS.CoreDemoData) {
+          return stripStaleCoreDemoFields(flat);
+        }
         return flat;
       }
       if (sandboxSlug) {
         return fetchJson(base + '/' + sectionPath(ldapSlug, sandboxSlug, section) + '.json').then(function (nested) {
           if (nested && typeof nested === 'object' && Object.keys(nested).length) {
+            logNestedFallback(section, ldapSlug, sandboxSlug);
+            if (section === SECTIONS.CoreDemoData) {
+              return stripStaleCoreDemoFields(nested);
+            }
             return nested;
           }
           return flat;
@@ -721,6 +747,10 @@
 
       var flatPath = workspaceRoot ? workspaceSectionPath(ldapForPath, section) : null;
       var nestedPath = workspaceRoot ? null : sectionPath(ldapForPath, sandboxSlug, section);
+      var payload =
+        section === SECTIONS.CoreDemoData && partial && typeof partial === 'object'
+          ? sanitizeCoreDemoData(partial)
+          : partial;
       console.log('[AepDemoConfigRtdb] saveSectionInner start', {
         section: section,
         ldapSlug: ldapSlug,
@@ -728,7 +758,7 @@
         sandboxSlug: sandboxSlug,
         flatPath: flatPath,
         nestedPath: nestedPath,
-        partial: partial,
+        partial: payload,
       });
 
       return authHeadersPromise().then(function (headers) {
@@ -746,7 +776,7 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
           body: JSON.stringify({
             section: section,
-            partial: partial,
+            partial: payload,
             sandboxSlug: workspaceRoot ? ldapForPath : sandboxSlug,
             workspaceSlug: ldapForPath,
             adobeEmail: adobeEmail,
@@ -967,6 +997,7 @@
   global.AepDemoConfigRtdb = {
     SECTIONS: SECTIONS,
     WORKSPACE_ROOT_SECTIONS: WORKSPACE_ROOT_SECTIONS,
+    CANONICAL_CORE_DEMO_KEYS: CANONICAL_CORE_DEMO_KEYS,
     normalizeSlug: normalizeSlug,
     getRtdbBase: getRtdbBase,
     getLdapSlugSync: getLdapSlugSync,
@@ -980,6 +1011,8 @@
     sandboxRestUrl: sandboxRestUrl,
     buildFlatLabStub: buildFlatLabStub,
     splitStubIntoSections: splitStubIntoSections,
+    sanitizeCoreDemoData: sanitizeCoreDemoData,
+    stripStaleCoreDemoFields: stripStaleCoreDemoFields,
     loadSection: loadSection,
     loadCoreDemoData: loadCoreDemoData,
     loadStaffPortal: loadStaffPortal,

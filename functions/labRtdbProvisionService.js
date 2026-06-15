@@ -1,23 +1,13 @@
 /**
  * Provision per-user RTDB demo config on lab approval (Admin SDK).
- * Path: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/…
+ * Flat workspace: ajoLookups/{ldapSlug}/CoreDemoData, StaffPortal, …
+ * Sandbox-scoped: ajoLookups/{ldapSlug}/sandboxes/{sandboxSlug}/AgenticLayer, …
  */
 const admin = require('firebase-admin');
 const { ldapSlugFromEmail, normalizeLdapSlug } = require('./labRtdbSlug');
 
-const DEMO_SECTIONS = [
-  'CoreDemoData',
-  'StaffPortal',
-  'TravelData',
-  'Mobile',
-  'CustomerLoyalty',
-  'iPad',
-  'CallCentre',
-  'AgenticLayer',
-  'ExpAccelerator',
-  'ExpVisualiser',
-  'ContentDecisionLive',
-];
+/** Canonical CoreDemoData keys — no airlineName / brand / customerShortName. */
+const CANONICAL_CORE_DEMO_KEYS = ['name', 'shortName', 'slogan', 'url', 'customerLogo'];
 
 /** Shared demo chrome — flat at ajoLookups/{ldap}/ (not per AEP sandbox). */
 const WORKSPACE_ROOT_SECTIONS = new Set([
@@ -28,6 +18,23 @@ const WORKSPACE_ROOT_SECTIONS = new Set([
   'Mobile',
   'CustomerLoyalty',
 ]);
+
+/** Only these sections belong under sandboxes/{sandbox}/. */
+const SANDBOX_SECTIONS = [
+  'AgenticLayer',
+  'ExpAccelerator',
+  'ExpVisualiser',
+  'ContentDecisionLive',
+];
+
+/** Legacy nested bundle — read fallback only; not provisioned under sandboxes. */
+const LEGACY_NESTED_SECTIONS = ['iPad'];
+
+const DEMO_SECTIONS = [
+  ...WORKSPACE_ROOT_SECTIONS,
+  ...SANDBOX_SECTIONS,
+  ...LEGACY_NESTED_SECTIONS,
+];
 
 function getRtdb() {
   if (!admin.apps.length) admin.initializeApp();
@@ -79,17 +86,20 @@ function buildFlatLabStub() {
   };
 }
 
+function sanitizeCoreDemoData(partial) {
+  const src = partial && typeof partial === 'object' && !Array.isArray(partial) ? partial : {};
+  const out = {};
+  CANONICAL_CORE_DEMO_KEYS.forEach((key) => {
+    out[key] = src[key] != null ? String(src[key]).trim() : '';
+  });
+  return out;
+}
+
 function splitStubIntoSections(flat) {
   const src = flat && typeof flat === 'object' ? flat : buildFlatLabStub();
   const coreSrc = src.CoreDemoData && typeof src.CoreDemoData === 'object' ? src.CoreDemoData : {};
   return {
-    CoreDemoData: {
-      name: coreSrc.name || '',
-      slogan: coreSrc.slogan || '',
-      url: coreSrc.url || '',
-      customerLogo: coreSrc.customerLogo || '',
-      shortName: coreSrc.shortName || '',
-    },
+    CoreDemoData: sanitizeCoreDemoData(coreSrc),
     StaffPortal: Object.assign(
       {
         AgentName: 'Demo agent',
@@ -214,6 +224,8 @@ async function provisionUserRtdbWorkspace(input) {
     });
   }
 
+  await ensureWorkspaceStub(db, ldapSlug, { mergeDefaults: true });
+
   const defaultSandbox = normalizeLdapSlug(input.defaultSandbox || ldapSlug);
   if (defaultSandbox) {
     await ensureSandboxStub(db, ldapSlug, defaultSandbox, { mergeDefaults: true });
@@ -221,15 +233,6 @@ async function provisionUserRtdbWorkspace(input) {
 
   return { ok: true, ldapSlug, uid, defaultSandbox: defaultSandbox || null };
 }
-
-/**
- * Merge default demo sections under sandboxes/{sandboxSlug} if missing.
- */
-const LEGACY_ROOT_MIRROR_SECTIONS = {
-  CoreDemoData: true,
-  StaffPortal: true,
-  iPad: true,
-};
 
 function demoSectionPath(ldapSlug, sandboxSlug, section) {
   return `ajoLookups/${ldapSlug}/sandboxes/${sandboxSlug}/${section}`;
@@ -239,20 +242,12 @@ function legacyRootPath(ldapSlug) {
   return `ajoLookups/${ldapSlug}`;
 }
 
-async function mirrorSectionToLegacyRoot(db, ldapSlug, section, partial) {
-  if (!LEGACY_ROOT_MIRROR_SECTIONS[section] || !ldapSlug || !partial || typeof partial !== 'object') {
-    return { mirrored: false };
-  }
-  if (section === 'iPad') {
-    await db.ref(legacyRootPath(ldapSlug)).update(partial);
-  } else {
-    await db.ref(`${legacyRootPath(ldapSlug)}/${section}`).update(partial);
-  }
-  return { mirrored: true, legacyPath: section === 'iPad' ? legacyRootPath(ldapSlug) : `${legacyRootPath(ldapSlug)}/${section}` };
+function workspaceSectionPath(ldapSlug, section) {
+  return `${legacyRootPath(ldapSlug)}/${section}`;
 }
 
 /**
- * Admin SDK write for customise panels — nested sandbox path + legacy root mirror.
+ * Admin SDK write for customise panels — flat workspace root or nested sandbox path.
  * @param {import('firebase-admin/database').Database} db
  */
 async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
@@ -266,16 +261,11 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
     throw new Error('partial must be a plain object');
   }
   const database = db || getRtdb();
+  const payload = sec === 'CoreDemoData' ? sanitizeCoreDemoData(partial) : partial;
 
   if (WORKSPACE_ROOT_SECTIONS.has(sec)) {
-    let flatPath;
-    if (sec === 'iPad') {
-      flatPath = legacyRootPath(ldap);
-      await database.ref(flatPath).update(partial);
-    } else {
-      flatPath = `${legacyRootPath(ldap)}/${sec}`;
-      await database.ref(flatPath).update(partial);
-    }
+    const flatPath = workspaceSectionPath(ldap, sec);
+    await database.ref(flatPath).update(payload);
     return {
       ok: true,
       ldapSlug: ldap,
@@ -283,8 +273,6 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
       section: sec,
       nestedPath: null,
       flatPath,
-      legacyMirrored: true,
-      legacyPath: flatPath,
     };
   }
 
@@ -292,17 +280,14 @@ async function saveDemoSection(db, ldapSlug, sandboxSlug, section, partial) {
     throw new Error('sandboxSlug is required for sandbox-scoped demo sections');
   }
   const nestedPath = demoSectionPath(ldap, sb, sec);
-  await database.ref(nestedPath).update(partial);
-  const mirror = await mirrorSectionToLegacyRoot(database, ldap, sec, partial);
+  await database.ref(nestedPath).update(payload);
   return {
     ok: true,
     ldapSlug: ldap,
     sandboxSlug: sb,
     section: sec,
     nestedPath,
-    flatPath: mirror.legacyPath || null,
-    legacyMirrored: mirror.mirrored,
-    legacyPath: mirror.legacyPath || null,
+    flatPath: null,
   };
 }
 
@@ -314,6 +299,30 @@ async function userOwnsWorkspace(db, uid, ldapSlug) {
   if (claim === uid) return true;
   const owner = (await database.ref(`userWorkspaceOwners/${uid}`).once('value')).val();
   return owner === ldap;
+}
+
+async function ensureWorkspaceStub(db, ldapSlug, opts) {
+  const ldap = normalizeLdapSlug(ldapSlug);
+  if (!ldap) return { ok: false, reason: 'invalid_slug' };
+
+  const database = db || getRtdb();
+  const rootRef = database.ref(legacyRootPath(ldap));
+  const snap = await rootRef.once('value');
+  const existing = snap.val() || {};
+  const defaults = splitStubIntoSections(buildFlatLabStub());
+  const patch = {};
+
+  WORKSPACE_ROOT_SECTIONS.forEach((section) => {
+    if (!existing[section] && opts && opts.mergeDefaults) {
+      patch[section] = defaults[section] || {};
+    }
+  });
+
+  if (Object.keys(patch).length) {
+    await rootRef.update(patch);
+  }
+
+  return { ok: true, ldapSlug: ldap, merged: Object.keys(patch) };
 }
 
 async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
@@ -328,7 +337,7 @@ async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
   const defaults = splitStubIntoSections(buildFlatLabStub());
   const patch = {};
 
-  DEMO_SECTIONS.forEach((section) => {
+  SANDBOX_SECTIONS.forEach((section) => {
     if (!existing[section] && opts && opts.mergeDefaults) {
       patch[section] = defaults[section] || {};
     }
@@ -342,19 +351,23 @@ async function ensureSandboxStub(db, ldapSlug, sandboxSlug, opts) {
 }
 
 module.exports = {
+  CANONICAL_CORE_DEMO_KEYS,
   DEMO_SECTIONS,
   WORKSPACE_ROOT_SECTIONS,
-  LEGACY_ROOT_MIRROR_SECTIONS,
+  SANDBOX_SECTIONS,
+  LEGACY_NESTED_SECTIONS,
   buildFlatLabStub,
   splitStubIntoSections,
+  sanitizeCoreDemoData,
   buildSandboxStub,
   buildEmptyRootMeta,
   provisionUserRtdbWorkspace,
+  ensureWorkspaceStub,
   ensureSandboxStub,
   claimWorkspaceSlugTransaction,
   demoSectionPath,
+  workspaceSectionPath,
   legacyRootPath,
-  mirrorSectionToLegacyRoot,
   saveDemoSection,
   userOwnsWorkspace,
 };

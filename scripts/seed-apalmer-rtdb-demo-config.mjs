@@ -19,6 +19,7 @@ const {
   splitStubIntoSections,
   buildFlatLabStub,
   WORKSPACE_ROOT_SECTIONS,
+  SANDBOX_SECTIONS,
 } = require('../functions/labRtdbProvisionService');
 
 const PROJECT_ID = 'aep-orchestration-lab';
@@ -103,8 +104,8 @@ const sbRef = db.ref(`ajoLookups/${LDAP_SLUG}/sandboxes/${SANDBOX_SLUG}`);
 const snap = await sbRef.once('value');
 const existing = snap.val() || {};
 const patch = {};
-for (const section of Object.keys(defaults)) {
-  if (!WORKSPACE_ROOT_SECTIONS.has(section) && !existing[section]) {
+for (const section of SANDBOX_SECTIONS) {
+  if (!existing[section]) {
     patch[section] = defaults[section] || {};
   }
 }
