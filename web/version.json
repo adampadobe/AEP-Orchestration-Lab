@@ -1,14 +1,14 @@
 {
-  "gitSha": "21d2f98c79ba34b5be2175ff0f0d7e62ac0a34f2",
-  "gitShortSha": "21d2f98c",
+  "gitSha": "0b5704b3eaa4e4ccbf09391bf961f28a83a22b76",
+  "gitShortSha": "0b5704b3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: datastream Apply UUID logging and scoped DOM lookups",
+  "gitCommitSubject": "[apalmer] fix: apply pasted datastream UUID to visible dropdown",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-15T21:29:13+01:00",
-  "deployedAt": "2026-06-15T20:29:30.195Z",
+  "gitCommitDate": "2026-06-15T21:33:47+01:00",
+  "deployedAt": "2026-06-15T20:34:04.854Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/21d2f98c79ba34b5be2175ff0f0d7e62ac0a34f2"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0b5704b3eaa4e4ccbf09391bf961f28a83a22b76"
 }
