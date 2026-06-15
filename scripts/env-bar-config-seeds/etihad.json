@@ -7,7 +7,7 @@
   "features": {
     "webPush": true,
     "bc": true,
-    "decisioning": false
+    "decisioning": true
   },
   "siteCloneDemoEnv": {
     "storagePrefix": "etihadDemo",

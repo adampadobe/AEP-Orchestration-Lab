@@ -953,8 +953,7 @@
 }
 
 .aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-bc-prefs__label {
-  display: block;
-  margin-bottom: 0.15rem;
+  display: none;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field {

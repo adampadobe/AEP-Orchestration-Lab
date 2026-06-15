@@ -233,6 +233,17 @@
    * @param {object} remoteConfig
    * @returns {EnvBarConfig}
    */
+  function mergeFeatures(pageFeatures, remoteFeatures) {
+    var base = { webPush: true, bc: true, decisioning: true };
+    var merged = Object.assign({}, base, remoteFeatures || {});
+    if (pageFeatures && typeof pageFeatures === 'object') {
+      Object.keys(pageFeatures).forEach(function (key) {
+        if (pageFeatures[key] !== undefined) merged[key] = pageFeatures[key];
+      });
+    }
+    return merged;
+  }
+
   function mergeConfigLayers(pageConfig, remoteConfig) {
     pageConfig = pageConfig && typeof pageConfig === 'object' ? pageConfig : {};
     remoteConfig = remoteConfig && typeof remoteConfig === 'object' ? remoteConfig : {};
@@ -243,9 +254,19 @@
       delete remoteConfig.defaultSandbox;
     }
     if (pageConfig.localOverride) {
-      return Object.assign({}, remoteConfig, pageConfig);
+      var localMerged = Object.assign({}, remoteConfig, pageConfig);
+      localMerged.features = mergeFeatures(pageConfig.features, remoteConfig.features);
+      if (pageConfig.decisioning || remoteConfig.decisioning) {
+        localMerged.decisioning = Object.assign({}, remoteConfig.decisioning || {}, pageConfig.decisioning || {});
+      }
+      return localMerged;
     }
-    return Object.assign({}, pageConfig, remoteConfig);
+    var merged = Object.assign({}, pageConfig, remoteConfig);
+    merged.features = mergeFeatures(pageConfig.features, remoteConfig.features);
+    if (pageConfig.decisioning || remoteConfig.decisioning) {
+      merged.decisioning = Object.assign({}, remoteConfig.decisioning || {}, pageConfig.decisioning || {});
+    }
+    return merged;
   }
 
   function hasUserSandboxSelection() {
@@ -373,8 +394,11 @@
     if (!mount) return;
     if (cfg.disclaimer) mount.setAttribute('data-demo-env-strip-disclaimer', cfg.disclaimer);
     if (cfg.features && cfg.features.bc === false) mount.setAttribute('data-demo-env-strip-bc-bottom', '0');
-    if (cfg.features && cfg.features.decisioning === false) mount.setAttribute('data-demo-env-strip-decisioning', '0');
-    else mount.setAttribute('data-demo-env-strip-decisioning', '1');
+    var htmlDecisioningOn = mount.getAttribute('data-demo-env-strip-decisioning') === '1';
+    var pageDecisioningOn = !!(cfg.features && cfg.features.decisioning === true);
+    var decisioningOn = isDecisioningFeatureEnabled(cfg) || htmlDecisioningOn || pageDecisioningOn;
+    if (decisioningOn) mount.setAttribute('data-demo-env-strip-decisioning', '1');
+    else mount.setAttribute('data-demo-env-strip-decisioning', '0');
     if (cfg.variant === 'spectrum') mount.setAttribute('data-demo-env-strip-variant', 'spectrum');
   }
 
@@ -481,11 +505,12 @@
    * Init decisioning runtime + panel when decisioning feature is enabled (auto-detects iframe wiring).
    * @param {EnvBarConfig} cfg
    */
-  function bootSiteCloneDecisioning(cfg) {
+  function bootSiteCloneDecisioning(cfg, opts) {
+    opts = opts || {};
     if (!isDecisioningFeatureEnabled(cfg)) return;
     if (global.SiteCloneDecisioningBoot && typeof global.SiteCloneDecisioningBoot.boot === 'function') {
       log('boot SiteCloneDecisioningBoot');
-      global.SiteCloneDecisioningBoot.boot(cfg);
+      global.SiteCloneDecisioningBoot.boot(cfg, opts);
     }
   }
 
@@ -616,6 +641,18 @@
     if (!isDecisioningFeatureEnabled(cfg)) return;
     if (!global.DemoEnvStrip) return;
     if (document.getElementById('siteCloneDecisioningEnabledToggle')) return;
+    var prefsHost = document.getElementById('siteCloneDecisioningPrefsMount');
+    if (!prefsHost) {
+      var shellHost = document.querySelector('[data-demo-env-strip-mount="site-clone-shell"]');
+      if (shellHost) {
+        shellHost.setAttribute('data-demo-env-strip-decisioning', '1');
+        shellHost.removeAttribute('data-demo-env-strip-mounted');
+        if (typeof global.DemoEnvStrip.mountSiteCloneEnvShell === 'function') {
+          global.DemoEnvStrip.mountSiteCloneEnvShell({ host: shellHost });
+        }
+      }
+    }
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) return;
     if (typeof global.DemoEnvStrip.mountSiteCloneDecisioningPrefs === 'function') {
       global.DemoEnvStrip.mountSiteCloneDecisioningPrefs({ mountId: 'siteCloneDecisioningPrefsMount' });
       return;
@@ -635,12 +672,12 @@
 
   function scheduleDecisioningBoot(cfg) {
     if (!isDecisioningFeatureEnabled(cfg)) return;
-    bootSiteCloneDecisioning(cfg);
+    bootSiteCloneDecisioning(cfg, { force: true });
     window.setTimeout(function () {
-      bootSiteCloneDecisioning(cfg);
+      bootSiteCloneDecisioning(cfg, { force: true });
     }, 0);
     window.setTimeout(function () {
-      bootSiteCloneDecisioning(cfg);
+      bootSiteCloneDecisioning(cfg, { force: true });
     }, 1200);
   }
 

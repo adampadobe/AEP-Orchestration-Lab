@@ -243,7 +243,7 @@
         mountEl &&
         global.DecisioningProfileModule &&
         typeof global.DecisioningProfileModule.mount === 'function' &&
-        !mountEl.querySelector('#cdMicroProfileRunBtn')
+        (opts.force || !mountEl.querySelector('#cdMicroProfileRunBtn'))
       ) {
         global.DecisioningProfileModule.mount(mountEl, {
           getIdentifierValue: getIdentifierValue,

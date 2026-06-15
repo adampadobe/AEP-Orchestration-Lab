@@ -173,10 +173,18 @@
     );
   }
 
-  function decisioningPrefsFieldMarkup() {
+  function decisioningPrefsFieldMarkup(options) {
+    var opt = options || {};
+    var showLabel = opt.showLabel !== false;
+    var label = showLabel
+      ? '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>'
+      : '';
+    var labelledBy = showLabel ? ' aria-labelledby="siteCloneDecisioningPrefsHeading"' : ' aria-label="Decisioning"';
     return (
-      '<div class="site-clone-decisioning-prefs-field" role="group" aria-labelledby="siteCloneDecisioningPrefsHeading">' +
-      '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>' +
+      '<div class="site-clone-decisioning-prefs-field" role="group"' +
+      labelledBy +
+      '>' +
+      label +
       '<div class="site-clone-bc-prefs__options">' +
       '<label class="site-clone-bc-prefs__option">' +
       '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
@@ -538,7 +546,7 @@
     if (host.getAttribute(MOUNTED_ATTR) === '1') {
       host.removeAttribute(MOUNTED_ATTR);
     }
-    host.innerHTML = decisioningPrefsFieldMarkup();
+    host.innerHTML = decisioningPrefsFieldMarkup({ showLabel: false });
     host.setAttribute(MOUNTED_ATTR, '1');
     try {
       global.dispatchEvent(
