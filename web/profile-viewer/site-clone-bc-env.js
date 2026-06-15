@@ -524,10 +524,12 @@ function findSiteCloneBcDatastreamByLabel(label) {
 
 function resolveSiteCloneBcDatastreamIdFromInput(preferredRoot) {
   const root = preferredRoot || activeSiteCloneBcEnvStripRoot();
-  const manual = findSiteCloneBcDatastreamManualInput(root);
-  if (manual) {
-    const manualId = sanitiseSiteCloneBcDatastreamId(manual.value);
-    if (manualId) return manualId;
+  if (isSiteCloneBcDatastreamManualEntryOpen()) {
+    const manual = findSiteCloneBcDatastreamManualInput(root);
+    if (manual) {
+      const manualId = sanitiseSiteCloneBcDatastreamId(manual.value);
+      if (manualId) return manualId;
+    }
   }
   const el = siteCloneBcDatastreamEl(root);
   if (!el) return '';
@@ -675,19 +677,17 @@ function renderSiteCloneBcDatastreamSelectOptions(opts) {
 }
 
 function showSiteCloneBcDatastreamApplySuccess(fieldRoot, id) {
-  const errEl = fieldRoot
-    ? fieldRoot.querySelector('#' + DATASTREAM_MANUAL_ERROR_ID)
-    : document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
-  if (!errEl) return;
-  errEl.textContent = 'UUID saved — ' + id + ' is now selected for this sandbox.';
-  errEl.classList.add('site-clone-bc-datastream-manual-success');
+  const hint = findSiteCloneBcDatastreamHint(fieldRoot);
+  if (!hint) return;
+  hint.textContent = 'UUID saved — ' + id + ' is now selected for this sandbox.';
+  hint.classList.add('site-clone-bc-datastream-hint--success');
   if (showSiteCloneBcDatastreamApplySuccess._timer) {
     global.clearTimeout(showSiteCloneBcDatastreamApplySuccess._timer);
   }
   showSiteCloneBcDatastreamApplySuccess._timer = global.setTimeout(function () {
-    errEl.classList.remove('site-clone-bc-datastream-manual-success');
-    if (errEl.textContent.indexOf('UUID saved —') === 0) errEl.textContent = '';
-  }, 6000);
+    hint.classList.remove('site-clone-bc-datastream-hint--success');
+    refreshSiteCloneBcDatastreamHint(fieldRoot);
+  }, 5000);
 }
 
 function commitSiteCloneBcDatastreamSelection(fieldRoot, id) {
@@ -740,6 +740,7 @@ function applySiteCloneBcDatastreamFieldForSandbox(sandboxKey) {
     recordRecentSiteCloneBcDatastreamId(storedId, sandboxKey);
   }
   syncSiteCloneBcDatastreamManualInputFromStored(storedId, root);
+  setSiteCloneBcDatastreamManualEntryOpen(false, root);
   refreshSiteCloneBcDatastreamHint(root);
 }
 
@@ -759,8 +760,8 @@ function refreshSiteCloneBcDatastreamHint(preferredRoot) {
         recentNote +
         '. Debugger shows Tags Web SDK extension datastream until you publish a new library there.'
       : sandbox
-        ? 'Load datastreams for sandbox ' + sandbox + ', or paste a UUID below' + recentNote
-        : 'Pick a datastream from the list or paste a UUID below (lab override for sendEvent / Target).' + recentNote;
+        ? 'Load datastreams for sandbox ' + sandbox + ', or choose Enter UUID…' + recentNote
+        : 'Pick a datastream from the list, or choose Enter UUID… to paste a new one.' + recentNote;
     return;
   }
   const recentCount = readRecentSiteCloneBcDatastreamIds().length;
@@ -769,7 +770,7 @@ function refreshSiteCloneBcDatastreamHint(preferredRoot) {
     ' datastream(s)' +
     (sandbox ? ' for ' + sandbox : '') +
     (recentCount ? ' · ' + recentCount + ' recent' : '') +
-    (id ? ' · selected ' + id : ' · none selected — pick from list or paste below.');
+    (id ? ' · selected ' + id : ' · none selected — choose Enter UUID… to paste a new one.');
 }
 
 const DATASTREAM_MANUAL_ROW_ID = 'siteCloneBcDatastreamUuidManualRow';
@@ -788,6 +789,10 @@ function isSiteCloneBcDatastreamManualEntryOpen() {
 function setSiteCloneBcDatastreamManualEntryOpen(open, preferredRoot) {
   siteCloneBcDatastreamManualEntryOpen = !!open;
   const row = findSiteCloneBcDatastreamManualRow(preferredRoot);
+  if (row) {
+    if (siteCloneBcDatastreamManualEntryOpen) row.removeAttribute('hidden');
+    else row.setAttribute('hidden', '');
+  }
   const fieldWrap =
     row &&
     row.closest(
@@ -907,7 +912,10 @@ function closeSiteCloneBcDatastreamManualEntry(restoreSelectValue, preferredRoot
   const errEl = root
     ? root.querySelector('#' + DATASTREAM_MANUAL_ERROR_ID)
     : document.getElementById(DATASTREAM_MANUAL_ERROR_ID);
-  if (errEl) errEl.textContent = '';
+  if (errEl) {
+    errEl.textContent = '';
+    errEl.classList.remove('site-clone-bc-datastream-manual-success');
+  }
   setSiteCloneBcDatastreamManualEntryOpen(false, root);
   const dsInput = siteCloneBcDatastreamEl(root);
   if (dsInput) {
@@ -980,7 +988,6 @@ function openSiteCloneBcDatastreamManualEntry(fallback, scopeFromNode) {
     });
     return;
   }
-  row.removeAttribute('hidden');
   setSiteCloneBcDatastreamManualEntryOpen(true, fieldRoot);
   if (fallback && !String(input.value || '').trim()) input.value = fallback;
   if (dsInput) {
@@ -1084,18 +1091,6 @@ function ensureSiteCloneBcDatastreamPickerDelegation() {
   );
 
   document.addEventListener(
-    'focusin',
-    function (ev) {
-      if (!ev.target || ev.target.id !== DATASTREAM_MANUAL_INPUT_ID) return;
-      const fieldRoot = resolveDatastreamFieldRoot(ev.target);
-      const row = findSiteCloneBcDatastreamManualRow(fieldRoot);
-      if (row && row.hasAttribute('hidden')) row.removeAttribute('hidden');
-      setSiteCloneBcDatastreamManualEntryOpen(true, fieldRoot);
-    },
-    true,
-  );
-
-  document.addEventListener(
     'keydown',
     function (ev) {
       if (!ev.target || ev.target.id !== DATASTREAM_MANUAL_INPUT_ID) return;
@@ -1157,8 +1152,7 @@ function bootSiteCloneBcDatastreamPicker() {
     currentId: siteCloneBcDatastreamPickerState.lastBcDatastreamIdForLiveEdge,
   });
   syncSiteCloneBcDatastreamManualInputFromStored(null, bootRoot);
-  const row = findSiteCloneBcDatastreamManualRow(bootRoot);
-  if (row) row.removeAttribute('hidden');
+  setSiteCloneBcDatastreamManualEntryOpen(false, bootRoot);
   return true;
 }
 

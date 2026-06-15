@@ -125,7 +125,7 @@
       '<div class="form-row site-clone-bc-datastream-row">' +
       '<label for="siteCloneBcDatastreamId">Lab datastream override</label>' +
       '<select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select>' +
-      '<div id="siteCloneBcDatastreamUuidManualRow" class="site-clone-bc-datastream-manual-row">' +
+      '<div id="siteCloneBcDatastreamUuidManualRow" class="site-clone-bc-datastream-manual-row" hidden>' +
       '<label for="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-manual-label">Or paste datastream UUID</label>' +
       '<input type="text" id="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-input site-clone-bc-datastream-manual-input" aria-label="Paste datastream UUID" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">' +
       '<div class="site-clone-bc-datastream-manual-actions">' +
