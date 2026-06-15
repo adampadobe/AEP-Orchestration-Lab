@@ -7,7 +7,9 @@
 #siteCloneBcFrameMount .input-section,
 .site-clone-bc-frame-host #siteCloneBcFrameMount .input-section,
 #bcBottomDockMount .input-section,
-.bc-bottom-dock__mount #brand-concierge-mount .input-section {
+.bc-bottom-dock__mount #brand-concierge-mount .input-section,
+#bcModalBarMount .input-section,
+.bc-modal-bar__mount #brand-concierge-mount .input-section {
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -22,7 +24,9 @@
 #siteCloneBcFrameMount .input-container,
 .site-clone-bc-frame-host #siteCloneBcFrameMount .input-container,
 #bcBottomDockMount .input-container,
-.bc-bottom-dock__mount #brand-concierge-mount .input-container {
+.bc-bottom-dock__mount #brand-concierge-mount .input-container,
+#bcModalBarMount .input-container,
+.bc-modal-bar__mount #brand-concierge-mount .input-container {
   position: relative;
   display: flex;
   flex-wrap: wrap;

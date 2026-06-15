@@ -13,6 +13,8 @@
   var FLOATING_DOCK_BTN_ID = 'aepLabEnvFloatingDockBtn';
   var OVERLAY_PANEL_ID = 'aepLabEnvOverlayPanel';
   var EXPAND_BTN_ID = 'aepDemoEnvExpandBtn';
+  var FULL_OPEN_BTN_ID = 'aepLabEnvFullOpenBtn';
+  var PROFILE_ONLY_CLASS = 'lab-env-top-anchor--profile-only';
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var DOCK_ICON_SVG =
     '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -75,9 +77,11 @@
     else measure();
   }
 
-  function setExpanded(anchor, expanded, pinned) {
+  function setExpanded(anchor, expanded, pinned, profileOnly) {
     if (!anchor) return;
-    var isOpen = !!(expanded || pinned);
+    var isProfileOnly = !!profileOnly && !expanded;
+    var isOpen = !!(expanded || pinned || isProfileOnly);
+    anchor.classList.toggle(PROFILE_ONLY_CLASS, isProfileOnly);
     anchor.classList.toggle('lab-env-top-anchor--expanded', !!expanded);
     anchor.classList.toggle('lab-env-top-anchor--pinned', !!pinned);
     anchor.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -89,12 +93,18 @@
     }
 
     syncToolbarOverlayInset(anchor, isOpen);
+    syncFullOpenBtn(anchor);
 
     var toggleBtn = byId(TOGGLE_BTN_ID);
     if (toggleBtn) {
       toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      toggleBtn.setAttribute('aria-label', isOpen ? 'Hide environment controls' : 'Show environment controls');
-      toggleBtn.setAttribute('title', isOpen ? 'Collapse environment panel' : 'Expand environment panel');
+      if (isProfileOnly) {
+        toggleBtn.setAttribute('aria-label', isOpen ? 'Hide profile lookup' : 'Show profile lookup');
+        toggleBtn.setAttribute('title', isOpen ? 'Collapse profile lookup' : 'Show profile lookup');
+      } else {
+        toggleBtn.setAttribute('aria-label', isOpen ? 'Hide environment controls' : 'Show environment controls');
+        toggleBtn.setAttribute('title', isOpen ? 'Collapse environment panel' : 'Expand environment panel');
+      }
     }
 
     var pinBtn = byId(PIN_BTN_ID);
@@ -103,6 +113,32 @@
       pinBtn.setAttribute('aria-label', pinned ? 'Unpin environment panel' : 'Pin environment panel open');
       pinBtn.setAttribute('title', pinned ? 'Unpin environment panel' : 'Pin environment panel open');
     }
+  }
+
+  function shouldOpenProfilePeekFirst() {
+    var sec = document.getElementById('aepDemoEnvSection');
+    return !!(sec && sec.classList.contains('aep-demo-env-section--collapsed'));
+  }
+
+  function syncFullOpenBtn(anchor) {
+    var btn = byId(FULL_OPEN_BTN_ID);
+    if (!btn) return;
+    var show = !!(anchor && anchor.classList.contains(PROFILE_ONLY_CLASS));
+    if (show) btn.removeAttribute('hidden');
+    else btn.setAttribute('hidden', '');
+  }
+
+  function openProfilePeek(anchor) {
+    setExpanded(anchor, false, false, true);
+  }
+
+  function expandToFullEnvironment(anchor) {
+    var expandBtn = byId(EXPAND_BTN_ID);
+    if (expandBtn) {
+      expandBtn.click();
+      return;
+    }
+    openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
   }
 
   function readPinnedFromStorage() {
@@ -206,13 +242,14 @@
 
   function isOverlayOpen(anchor) {
     return (
+      anchor.classList.contains(PROFILE_ONLY_CLASS) ||
       anchor.classList.contains('lab-env-top-anchor--expanded') ||
       anchor.classList.contains('lab-env-top-anchor--pinned')
     );
   }
 
   function openOverlay(anchor, pin) {
-    setExpanded(anchor, true, !!pin);
+    setExpanded(anchor, true, !!pin, false);
     if (pin) writePinnedToStorage(true);
   }
 
@@ -221,7 +258,7 @@
     if (!anchor) return false;
     var options = opts || {};
     if (!options.force && isOverlayPinned(anchor)) return false;
-    setExpanded(anchor, false, false);
+    setExpanded(anchor, false, false, false);
     if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
     return true;
   }
@@ -266,6 +303,7 @@
       return;
     }
     if (isOverlayOpen(anchor)) closeOverlay(anchor);
+    else if (shouldOpenProfilePeekFirst()) openProfilePeek(anchor);
     else openOverlay(anchor, false);
   }
 
@@ -325,6 +363,15 @@
       });
     }
 
+    var fullOpenBtn = byId(FULL_OPEN_BTN_ID);
+    if (fullOpenBtn) {
+      fullOpenBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        expandToFullEnvironment(anchor);
+      });
+    }
+
     var toolbar = anchor.querySelector('.lab-env-toolbar');
     if (toolbar) {
       toolbar.addEventListener('click', function (ev) {
@@ -332,6 +379,7 @@
         ev.preventDefault();
         ev.stopPropagation();
         if (isOverlayOpen(anchor)) closeOverlay(anchor);
+        else if (shouldOpenProfilePeekFirst()) openProfilePeek(anchor);
         else openOverlay(anchor, anchor.classList.contains('lab-env-top-anchor--pinned'));
       });
     }

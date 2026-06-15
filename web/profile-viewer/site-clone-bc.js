@@ -814,7 +814,7 @@
 
   function bindBcMountRepatch(win, doc) {
     if (!win || !doc) return;
-    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
+    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount, #bcModalBarMount').forEach(function (mount) {
       if (mount.__siteCloneBcRepatchBound) return;
       mount.__siteCloneBcRepatchBound = true;
       mount.addEventListener(
@@ -1023,7 +1023,7 @@
     function run() {
       ensurePromptInnerFlattenStyles(doc);
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
+        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount, #bcModalBarMount').forEach(function (mount) {
           global.repositionArmyBcDisclaimer(mount);
         });
       }
@@ -1371,9 +1371,6 @@
     await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
-    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setExpanded === 'function') {
-      global.BrandConciergeModalBar.setExpanded(true);
-    }
     scheduleDisclaimerReposition(document);
     activeMode = 'modalBar';
   }

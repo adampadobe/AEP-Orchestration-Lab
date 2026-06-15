@@ -89,6 +89,27 @@
   box-sizing: border-box;
 }
 
+.lab-env-full-open-btn[hidden] {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-full-open-btn:not([hidden]) {
+  display: inline-flex;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel #aepDemoEnvSection,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .aep-demo-env-section {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
+  max-height: min(42vh, 24rem);
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .lab-env-overlay-profile {
+  margin-top: 0;
+}
+
 .lab-env-overlay-profile {
   margin: 0;
   padding: 0;
@@ -97,6 +118,7 @@
   box-sizing: border-box;
   flex-shrink: 0;
 }
+
 
 /* Config cards scroll inside overlay; profile lookup stays visible (not flex-shrunk to ~0). */
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section {
