@@ -30,7 +30,7 @@
       prefsSync: '20260625-incognito-env-fix',
       tagsInjection: '20260625-env-overlay-configuring',
       aepDemoEnvBar: '20260625-env-overlay-configuring',
-      siteCloneBcEnv: '20260615-datastream-debug',
+      siteCloneBcEnv: '20260615-datastream-apply-commit',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
