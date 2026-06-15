@@ -1,14 +1,14 @@
 {
-  "gitSha": "677c9410ab3abd5cd972cdc4a2943ca66da6d8fe",
-  "gitShortSha": "677c9410",
+  "gitSha": "e495dc3da0efe2b72ace099ca84703e09f09c710",
+  "gitShortSha": "e495dc3d",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json for deploy (7840d9e7)",
+  "gitCommitSubject": "[apalmer] fix: iPad customise sandbox fallback for RTDB saves",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-14T22:43:04+01:00",
-  "deployedAt": "2026-06-14T21:53:34.279Z",
+  "gitCommitDate": "2026-06-15T10:03:46+01:00",
+  "deployedAt": "2026-06-15T09:04:07.099Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/677c9410ab3abd5cd972cdc4a2943ca66da6d8fe"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e495dc3da0efe2b72ace099ca84703e09f09c710"
 }
