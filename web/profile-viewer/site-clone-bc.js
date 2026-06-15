@@ -1451,11 +1451,19 @@
   }
 
   var syncInFlight = null;
+  var syncQueued = false;
 
   async function sync() {
-    if (syncInFlight) return syncInFlight;
+    if (syncInFlight) {
+      syncQueued = true;
+      return syncInFlight;
+    }
     syncInFlight = syncInner().finally(function () {
       syncInFlight = null;
+      if (syncQueued) {
+        syncQueued = false;
+        void sync();
+      }
     });
     return syncInFlight;
   }

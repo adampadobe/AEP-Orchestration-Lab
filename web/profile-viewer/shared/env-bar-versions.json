@@ -14,9 +14,9 @@
     "prefsSync": "20260614-inject-guard",
     "tagsInjection": "20260625-tags-status-stable",
     "aepDemoEnvBar": "20260625-env-configured",
-    "siteCloneBcEnv": "20260617-bc-midrail-sync",
+    "siteCloneBcEnv": "20260617-bc-sync-defer",
     "siteCloneBcChrome": "20260614-modal-dock-parity",
-    "siteCloneBc": "20260614-modal-dock-parity",
+    "siteCloneBc": "20260617-bc-sync-queue",
     "bottomDockCss": "20260614-modal-dock-parity",
     "bottomDockJs": "20260614-modal-dock-parity",
     "bottomDockBoot": "20260614-modal-dock-parity",
@@ -32,7 +32,7 @@
     "decisioningProfilePanel": "20260616-toggle-delegate",
     "siteCloneDecisioningBoot": "20260616-remote-decisioning",
     "bcMidrailPanelCss": "20260617-bc-midrail",
-    "bcMidrailPanel": "20260617-bc-midrail",
-    "bcMidrailBoot": "20260617-bc-midrail"
+    "bcMidrailPanel": "20260617-bc-midrail-sync",
+    "bcMidrailBoot": "20260617-bc-midrail-sync"
   }
 }

@@ -891,6 +891,9 @@ function bindStripDomListenersOnce() {
       saveSiteCloneBcDisplayPrefs();
       syncSiteCloneBcFromPrefs();
       syncDecisioningFromPrefs();
+      window.setTimeout(function () {
+        syncSiteCloneBcFromPrefs();
+      }, 0);
     });
   });
   if (siteCloneDecisioningEnabledToggle) {

@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-bc-midrail';
+  var CACHE_BUST = '20260617-bc-midrail-sync';
   var TRIGGER_ICON =
     'https://contenthosting.web.app/logos/adobe_icon_146235.webp';
 
@@ -162,14 +162,34 @@
       setVisible(!!enabledFn());
     }
 
+    function applyEnvBcMode(modeKey, enabled) {
+      var defs = activeModeDefs();
+      var i;
+      var primaryEl = null;
+      for (i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        var envEl = envToggle(def);
+        if (!envEl) continue;
+        if (enabled) {
+          envEl.checked = def.key === modeKey;
+          if (def.key === modeKey) primaryEl = envEl;
+        } else if (def.key === modeKey) {
+          envEl.checked = false;
+          primaryEl = envEl;
+        }
+      }
+      if (!primaryEl) return;
+      primaryEl.dispatchEvent(new Event('change', { bubbles: true }));
+      if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
+        void global.SiteCloneBc.sync();
+      }
+    }
+
     function onPanelModeChange(input) {
       if (!input) return;
-      var envId = String(input.getAttribute('data-bcp-env-toggle') || '');
-      var envEl = document.getElementById(envId);
-      if (!envEl) return;
-      if (envEl.checked === input.checked) return;
-      envEl.checked = input.checked;
-      envEl.dispatchEvent(new Event('change', { bubbles: true }));
+      var modeKey = String(input.getAttribute('data-bcp-mode') || '');
+      if (!modeKey) return;
+      applyEnvBcMode(modeKey, !!input.checked);
       window.setTimeout(syncPanelFromEnvBar, 0);
     }
 
