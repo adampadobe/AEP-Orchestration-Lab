@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-modal-bar-v6';
+  var CACHE_BUST = '20260617-modal-bar-v7';
   var SPARKLE_SVG =
     '<svg class="bc-modal-bar__sparkle" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
@@ -32,6 +32,15 @@
     );
   }
 
+  function pruneWelcomeSlot(slot) {
+    if (!slot) return;
+    slot.querySelectorAll(
+      '.disclaimer-message, .embed-bc-disclaimer-external, [class*="disclaimer"], .input-section, .input-container',
+    ).forEach(function (node) {
+      if (node.parentNode) node.parentNode.removeChild(node);
+    });
+  }
+
   function relocateWelcome(mount, slot) {
     if (!mount || !slot) return;
     var blocker = findWelcomeBlock(mount);
@@ -40,8 +49,9 @@
       blocker.closest('.message-blocker') ||
       blocker.closest('[class*="message-blocker"]') ||
       blocker;
-    if (!host || host.parentNode === slot) return;
-    slot.appendChild(host);
+    if (!host) return;
+    if (host.parentNode !== slot) slot.appendChild(host);
+    pruneWelcomeSlot(slot);
   }
 
   function bindWelcomeRelocate(mount, slot) {

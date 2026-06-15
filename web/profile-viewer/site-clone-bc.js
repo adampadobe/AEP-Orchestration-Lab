@@ -503,6 +503,26 @@
     return cfg;
   }
 
+  /** Modal bar: keep selected style-config colours; only nudge welcome layout tokens. */
+  function applyModalBarStyleTokens(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    var base;
+    try {
+      base = JSON.parse(JSON.stringify(cfg));
+    } catch (_cloneErr) {
+      base = Object.assign({}, cfg);
+      if (cfg.theme) base.theme = Object.assign({}, cfg.theme);
+      if (cfg.behavior) base.behavior = Object.assign({}, cfg.behavior);
+    }
+    if (base.theme && typeof base.theme === 'object') {
+      Object.assign(base.theme, {
+        '--welcome-heading-text-align': 'left',
+        '--welcome-subheading-text-align': 'left',
+      });
+    }
+    return applySiteCloneStyleConfigDefaults(base);
+  }
+
   /** Modal shell already paints the gradient — strip BC bottom slab + input fill tokens. */
   function applyModalSurfaceStyleTokens(cfg) {
     if (!cfg || typeof cfg !== 'object') return cfg;
@@ -1370,7 +1390,7 @@
     setModalBarVisible(true);
     setBottomDockVisible(false);
     await ensureParentCore();
-    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, applyModalSurfaceStyleTokens(global.styleConfiguration), {
+    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, applyModalBarStyleTokens(global.styleConfiguration), {
       allowConciergeOpenOnRetry: false,
     });
     scheduleDisclaimerReposition(document);

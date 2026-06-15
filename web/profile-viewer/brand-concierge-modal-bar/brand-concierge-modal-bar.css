@@ -179,12 +179,18 @@
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  background: var(--dash-surface);
-  padding: 0.85rem 1rem 0.35rem;
+  padding: 0;
+  overflow: hidden;
 }
 
 .bc-modal-bar__welcome:empty {
   display: none;
+}
+
+.bc-modal-bar__welcome .disclaimer-message,
+.bc-modal-bar__welcome .embed-bc-disclaimer-external,
+.bc-modal-bar__welcome [class*='disclaimer'] {
+  display: none !important;
 }
 
 .bc-modal-bar__welcome .message-blocker,
@@ -200,47 +206,39 @@
   align-items: stretch !important;
   justify-content: flex-start !important;
   pointer-events: auto !important;
-  background: transparent !important;
-  background-image: none !important;
   padding: 0 !important;
 }
 
-.bc-modal-bar__welcome [class*='main-container'],
-.bc-modal-bar__welcome [class*='welcome'] {
+.bc-modal-bar__welcome [class*='main-container'] {
   justify-content: flex-start !important;
   align-items: stretch !important;
   text-align: left !important;
-  background: transparent !important;
-  background-image: none !important;
   min-height: 0 !important;
   height: auto !important;
+  width: 100% !important;
+  padding: 0.85rem 1rem 0.35rem !important;
 }
 
 .bc-modal-bar__welcome [class*='welcome-heading'],
 .bc-modal-bar__welcome [class*='welcome-subheading'],
 .bc-modal-bar__welcome h1,
-.bc-modal-bar__welcome h2,
-.bc-modal-bar__welcome p {
+.bc-modal-bar__welcome h2 {
   text-align: left !important;
-  color: var(--dash-text) !important;
 }
 
 .bc-modal-bar__welcome .prompt-suggestions-container {
   display: flex !important;
   flex-direction: column !important;
   gap: 0.5rem !important;
-  padding: 0.55rem 0 0 !important;
+  padding: 0.55rem 0 0.85rem !important;
   align-items: stretch !important;
+  width: 100% !important;
 }
 
 .bc-modal-bar__welcome .prompt-suggestions-container button,
 .bc-modal-bar__welcome [class*='prompt-suggestion'] {
   width: 100% !important;
   text-align: left !important;
-  border-radius: 999px !important;
-  background: var(--dash-surface) !important;
-  border: 1px solid var(--dash-border) !important;
-  color: var(--dash-text) !important;
 }
 
 .bc-modal-bar__panel-body {
@@ -274,8 +272,6 @@
   height: 100% !important;
   max-width: none !important;
   overflow: hidden;
-  background: var(--dash-surface) !important;
-  background-image: none !important;
 }
 
 .bc-modal-bar__mount #brand-concierge-mount .brand-concierge-container,
@@ -288,8 +284,6 @@
   justify-content: flex-start !important;
   align-items: stretch !important;
   overflow: hidden !important;
-  background: var(--dash-surface) !important;
-  background-image: none !important;
 }
 
 .bc-modal-bar__mount .message-blocker,
@@ -297,9 +291,10 @@
   display: none !important;
 }
 
-.bc-modal-bar__mount [class*='main-container'] {
-  background: transparent !important;
-  background-image: none !important;
+.bc-modal-bar__mount .disclaimer-message,
+.bc-modal-bar__mount .embed-bc-disclaimer-external,
+.bc-modal-bar__mount [class*='disclaimer'] {
+  display: none !important;
 }
 
 .bc-modal-bar__mount [class*='chat-container'],
@@ -307,7 +302,6 @@
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
-  background: var(--dash-surface) !important;
 }
 
 .bc-modal-bar__mount .input-section,
