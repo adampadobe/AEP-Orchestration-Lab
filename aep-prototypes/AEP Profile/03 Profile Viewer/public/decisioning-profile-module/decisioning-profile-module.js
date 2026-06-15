@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260620';
+  var CACHE_BUST = '20260616';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -96,16 +96,12 @@
     return (
       '<div class="cd-hero-rail" aria-label="Decisioning controls">' +
       '<button type="button" class="primary cd-run-full-btn" id="cdMicroProfileRunBtn">Run content decision</button>' +
-      '<section class="cd-micro-profile is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Tweak profile">' +
-      '<button type="button" class="cd-micro-profile-toggle" id="cdMicroProfileToggle" aria-expanded="true" aria-controls="cdMicroProfileBody">' +
-      '<span class="cd-micro-profile-toggle-cluster">' +
+      '<section class="cd-micro-profile is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Profile attributes">' +
+      '<div class="cd-micro-profile-header">' +
       '<span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">' +
       '<span class="cd-micro-profile-state-dot" aria-hidden="true"></span>' +
       '<span class="cd-micro-profile-state-label">No profile loaded</span>' +
-      '</span></span>' +
-      '<span class="cd-micro-profile-toggle-title">Tweak profile</span>' +
-      '<span class="cd-micro-profile-chevron" aria-hidden="true"></span>' +
-      '</button>' +
+      '</span></div>' +
       '<div id="cdMicroProfileBody" class="cd-micro-profile-body">' +
       '<div class="cd-micro-profile-field">' +
       '<div class="cd-micro-profile-range-row"><label for="cdMicroProfileChurn">Churn risk</label><strong id="cdMicroProfileChurnValue">50</strong></div>' +
@@ -1022,17 +1018,6 @@
       });
     }
 
-    var toggle = $('cdMicroProfileToggle');
-    var panel = $('cdMicroProfilePanel');
-    if (toggle && panel) {
-      toggle.addEventListener('click', function () {
-        var collapsed = panel.classList.contains('is-collapsed');
-        panel.classList.toggle('is-collapsed', !collapsed);
-        toggle.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
-        if (collapsed && isProfileLoaded()) hydrateFromProfile();
-      });
-    }
-
     var runBtn = $('cdMicroProfileRunBtn');
     if (runBtn) {
       runBtn.addEventListener('click', async function () {
@@ -1041,8 +1026,16 @@
         setPipeline('Starting…');
         try {
           if (typeof profileApi.runContentDecision === 'function') {
-            await profileApi.runContentDecision();
-            setPipeline('Done — check Top Ribbon, Hero, and Content Card on the snapshot.', 'ok');
+            var result = await profileApi.runContentDecision();
+            var props = (result && (result.propositions || result.decisions)) || [];
+            if (!props.length) {
+              setPipeline(
+                'No propositions returned — verify Tags inject, sandbox datastream, and Decisioning lab target page URL.',
+                'error',
+              );
+            } else {
+              setPipeline('Done — check Top Ribbon, Hero, and Content Card on the snapshot.', 'ok');
+            }
           } else {
             setPipeline('Decisioning runtime not configured.', 'error');
           }

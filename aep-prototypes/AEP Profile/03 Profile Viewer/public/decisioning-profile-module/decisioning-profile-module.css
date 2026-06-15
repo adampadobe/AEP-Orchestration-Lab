@@ -49,9 +49,24 @@
   box-sizing: border-box;
 }
 
-.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-collapsed {
-  gap: 0;
-  padding: 0.45rem 0.55rem;
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle {
+  display: none !important;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile .cd-micro-profile-body {
+  display: block;
+  max-height: none;
+  overflow: visible;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-collapsed .cd-micro-profile-body {
+  display: block;
 }
 
 .decisioning-profile-module .cd-hero-rail .cd-micro-profile-toggle {

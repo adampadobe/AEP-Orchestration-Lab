@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260614-decisioning-channel-icon';
+  var CACHE_BUST = '20260616-toggle-delegate';
   /** Spectrum 2 workflow icon: Channel (S2_Icon_Channel_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var CHANNEL_ICON_SVG =
     '<svg class="dpm-panel-trigger-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -120,8 +120,10 @@
       };
       applyEnabled();
       if (opt.enabledToggleId) {
-        var toggleEl = document.getElementById(opt.enabledToggleId);
-        if (toggleEl) toggleEl.addEventListener('change', applyEnabled);
+        document.addEventListener('change', function onDecisioningToggleChange(evt) {
+          if (!evt || !evt.target || evt.target.id !== opt.enabledToggleId) return;
+          applyEnabled();
+        });
       }
     } else {
       setVisible(true);

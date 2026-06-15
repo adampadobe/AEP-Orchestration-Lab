@@ -73,7 +73,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   content: '';
   position: fixed;
   inset: 0;
-  top: var(--env-bar-height);
+  top: var(--lab-env-overlay-top, var(--env-bar-height));
   z-index: 6497;
   background: color-mix(in srgb, var(--dash-text) 22%, transparent);
   opacity: 0;
@@ -95,10 +95,19 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   pointer-events: auto;
 }
 
+.mod-demo-top-anchor.lab-env-top-anchor--configuring::after,
+[class*='-demo-top-anchor'].lab-env-top-anchor--configuring::after,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--configuring::after,
+.lab-env-top-anchor.lab-env-top-anchor--configuring::after {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+}
+
 /* ── Floating overlay panel ───────────────────────────────────── */
 .lab-env-overlay-panel {
   position: fixed;
-  top: var(--env-bar-height);
+  top: var(--lab-env-overlay-top, var(--env-bar-height));
   left: 0;
   right: 0;
   width: 100%;
@@ -122,12 +131,16 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 [class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-overlay-panel,
 [class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
 .lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-overlay-panel,
-.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel {
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-overlay-panel,
+.lab-env-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
   max-height: var(--lab-env-overlay-max);
   overflow-x: hidden;
   overflow-y: auto;
@@ -137,6 +150,13 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   z-index: 7599;
   isolation: isolate;
   -webkit-overflow-scrolling: touch;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+.mod-demo-top-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+[class*='-demo-top-anchor'].lab-env-top-anchor--profile-only .lab-env-overlay-panel,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
+  max-height: min(42vh, 24rem);
 }
 
 /* ── Site-clone legacy peek CSS overrides ─────────────────────── */
@@ -404,20 +424,83 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   outline-offset: 2px;
 }
 
+.lab-env-top-anchor.lab-env-top-anchor--expanded,
+.lab-env-top-anchor.lab-env-top-anchor--pinned,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned {
+  height: auto;
+  min-height: var(--env-bar-height);
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+.lab-env-top-anchor.lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+.lab-env-top-anchor.lab-env-top-anchor--pinned [class*='-demo-id-banner'],
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .mod-demo-id-banner,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .mod-demo-id-banner,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded [class*='-demo-id-banner'],
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned [class*='-demo-id-banner'] {
+  height: auto;
+  min-height: var(--env-bar-height);
+  max-height: none;
+  overflow: visible;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar,
+.mod-demo-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar,
+.mod-demo-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar,
+[class*='-demo-top-anchor'].lab-env-top-anchor--expanded .lab-env-toolbar,
+[class*='-demo-top-anchor'].lab-env-top-anchor--pinned .lab-env-toolbar {
+  position: relative;
+  z-index: 7602;
+  max-height: none;
+  overflow: visible;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.lab-env-top-anchor.lab-env-top-anchor--expanded .lab-env-toolbar__actions,
+.lab-env-top-anchor.lab-env-top-anchor--pinned .lab-env-toolbar__actions {
+  z-index: 7603;
+}
+
 /* Hide overlay-only chrome while collapsed */
 .lab-env-overlay-panel[hidden] {
   display: none !important;
 }
 
-.mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.mod-demo-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-.mobile-demo-shell-env-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.mobile-demo-shell-env-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]),
-.lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned)
+.lab-env-top-anchor:not(.lab-env-top-anchor--expanded):not(.lab-env-top-anchor--pinned):not(.lab-env-top-anchor--profile-only)
   .lab-env-overlay-panel:not([hidden]) {
   display: none;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel #aepDemoEnvSection,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .aep-demo-env-section {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only [data-env-overlay-footer-item] {
+  display: none !important;
 }
 
 /* Reveal SDK editor inside overlay when open */
@@ -492,6 +575,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 }
 
 @media (max-width: 48rem) {
+  body.home-dashboard-concierge,
   .mod-demo-top-anchor,
   [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
   .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
@@ -566,6 +650,7 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 }
 
 @media (max-width: 24rem) {
+  body.home-dashboard-concierge,
   .mod-demo-top-anchor,
   [class*='-demo-top-anchor']:not(.mobile-demo-shell-env-anchor),
   .lab-env-top-anchor:not(.mobile-demo-shell-env-anchor) {
@@ -641,16 +726,43 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   pointer-events: none !important;
 }
 
+/* Mid-rail FAB stack (top → bottom): env settings, BC modes, decisioning, fullscreen */
+body.home-dashboard-concierge {
+  --lab-env-midrail-right: 0.85rem;
+  --lab-env-midrail-btn-size: 2rem;
+  --lab-env-midrail-gap: 0.55rem;
+  --lab-env-midrail-slot: calc(var(--lab-env-midrail-btn-size) + var(--lab-env-midrail-gap));
+  --env-bar-height: 3rem;
+}
+
+/* Site iframe sits below the fixed env toolbar so clone nav/ribbon stays visible */
+.mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[class*='-demo-site-frame'],
+[class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden) ~ iframe[id$='SiteFrame'] {
+  top: var(--env-bar-height, 3rem);
+  height: calc(100% - var(--env-bar-height, 3rem));
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor:not(.lab-env-top-anchor--docked-hidden) ~ iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  ~ iframe[class*='-demo-site-frame'],
+body.site-clone-bc-bottom-dock-armed
+  [class*='-demo-top-anchor']:not(.lab-env-top-anchor--docked-hidden)
+  ~ iframe[id$='SiteFrame'] {
+  height: calc(100% - var(--env-bar-height, 3rem) - 5.5rem);
+}
+
 .env-bar-dock-btn {
   position: fixed;
-  top: calc(var(--env-bar-height, 3rem) + 0.4rem);
-  right: 0.85rem;
-  z-index: 7145;
+  top: calc(50% - (2 * var(--lab-env-midrail-slot)));
+  right: var(--lab-env-midrail-right);
+  z-index: 7152;
   box-sizing: border-box;
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--lab-env-midrail-btn-size);
+  height: var(--lab-env-midrail-btn-size);
+  min-width: var(--lab-env-midrail-btn-size);
+  min-height: var(--lab-env-midrail-btn-size);
   padding: 0;
   border: 1px solid var(--dash-border);
   border-radius: 999px;
@@ -663,9 +775,11 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   justify-content: center;
   font: inherit;
   pointer-events: auto;
-  transform: none;
+  transform: translateY(-50%);
+  flex-shrink: 0;
   transition:
     border-color 0.18s ease,
+    box-shadow 0.18s ease,
     background 0.18s ease,
     opacity 0.18s ease,
     visibility 0.18s ease;
@@ -693,18 +807,22 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
   outline-offset: 2px;
 }
 
+.env-bar-dock-btn:active {
+  transform: translateY(-50%);
+}
+
 .env-bar-dock-btn[aria-pressed='true'] {
   border-color: var(--dash-blue);
-  background: color-mix(in srgb, var(--dash-blue) 10%, var(--dash-surface));
-  outline: 2px solid color-mix(in srgb, var(--dash-blue) 22%, transparent);
-  outline-offset: 0;
-  box-shadow: var(--dash-shadow);
+  background: var(--dash-surface);
+  outline: none;
+  box-shadow:
+    var(--dash-shadow),
+    0 0 0 2px color-mix(in srgb, var(--dash-blue) 22%, transparent);
 }
 
 @media (max-width: 480px) {
   .env-bar-dock-btn {
     right: 0.5rem;
-    top: calc(var(--env-bar-height, 3rem) + 0.35rem);
   }
 }
 

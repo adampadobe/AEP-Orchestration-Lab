@@ -162,7 +162,9 @@
   var modalToggle = null;
   var fullScreenToggle = null;
   var bottomDockToggle = null;
+  var modalBarToggle = null;
   var BOTTOM_DOCK_MOUNT_SELECTOR = cfg('bottomDockMountSelector', '#bcBottomDockMount');
+  var MODAL_BAR_MOUNT_SELECTOR = cfg('modalBarMountSelector', '#bcModalBarMount');
   var bcModal = null;
   var bcFab = null;
 
@@ -172,6 +174,7 @@
     modalToggle = document.getElementById(cfg('modalToggleId', 'siteCloneBcModalToggle'));
     fullScreenToggle = document.getElementById(cfg('fullScreenToggleId', 'siteCloneBcFullScreenToggle'));
     bottomDockToggle = document.getElementById(cfg('bottomDockToggleId', 'siteCloneBcBottomDockToggle'));
+    modalBarToggle = document.getElementById(cfg('modalBarToggleId', 'siteCloneBcModalBarToggle'));
     bcModal = document.getElementById('aepBcModal');
     bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
   }
@@ -189,6 +192,8 @@
   var BC_MAIN_JS =
     'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js';
   var ALLOY_JS = 'https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js';
+  var AEP_EVENTS_JS = 'embed-bc-aep-events.js';
+  var AEP_EVENTS_CACHE = '20260617-bc-aep-events-v1';
 
   function getStyleConfigUrl() {
     if (global.SiteCloneBcConfig && typeof global.SiteCloneBcConfig.getStyleConfigUrl === 'function') {
@@ -500,6 +505,53 @@
     return cfg;
   }
 
+  /** Modal bar: keep selected style-config colours; only nudge welcome layout tokens. */
+  function applyModalBarStyleTokens(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    var base;
+    try {
+      base = JSON.parse(JSON.stringify(cfg));
+    } catch (_cloneErr) {
+      base = Object.assign({}, cfg);
+      if (cfg.theme) base.theme = Object.assign({}, cfg.theme);
+      if (cfg.behavior) base.behavior = Object.assign({}, cfg.behavior);
+    }
+    if (base.theme && typeof base.theme === 'object') {
+      Object.assign(base.theme, {
+        '--welcome-heading-text-align': 'left',
+        '--welcome-subheading-text-align': 'left',
+      });
+    }
+    return applySiteCloneStyleConfigDefaults(base);
+  }
+
+  /** Modal shell already paints the gradient — strip BC bottom slab + input fill tokens. */
+  function applyModalSurfaceStyleTokens(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    var base;
+    try {
+      base = JSON.parse(JSON.stringify(cfg));
+    } catch (_cloneErr) {
+      base = Object.assign({}, cfg);
+      if (cfg.theme) base.theme = Object.assign({}, cfg.theme);
+      if (cfg.behavior) base.behavior = Object.assign({}, cfg.behavior);
+    }
+    if (base.theme && typeof base.theme === 'object') {
+      Object.assign(base.theme, {
+        '--message-blocker-background': 'transparent',
+        '--main-container-bottom-background': 'transparent',
+        '--chat-container-bottom-background': 'transparent',
+        '--chat-container-background': 'transparent',
+        '--input-background': '#FFFFFF',
+        '--main-container-background': 'transparent',
+        '--input-box-shadow': 'none',
+        '--welcome-heading-text-align': 'left',
+        '--welcome-subheading-text-align': 'left',
+      });
+    }
+    return applySiteCloneStyleConfigDefaults(base);
+  }
+
   function assignStyleConfiguration(win, cfg) {
     win.styleConfiguration = applySiteCloneStyleConfigDefaults(cfg);
   }
@@ -593,6 +645,7 @@
   function teardownConflictingBcMounts() {
     clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
     clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+    clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
     hideBcFrameHost();
     global.__aepBcToggleBootstrapped = false;
     global.__brandConciergeBootstrapped = false;
@@ -785,7 +838,7 @@
 
   function bindBcMountRepatch(win, doc) {
     if (!win || !doc) return;
-    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
+    doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount, #bcModalBarMount').forEach(function (mount) {
       if (mount.__siteCloneBcRepatchBound) return;
       mount.__siteCloneBcRepatchBound = true;
       mount.addEventListener(
@@ -806,6 +859,7 @@
       resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.js') + '?v=20260528-bc-disclaimer-frame',
       doc,
     );
+    await loadScript(resolveAssetUrl(BASE + AEP_EVENTS_JS) + '?v=' + AEP_EVENTS_CACHE, doc, 'aep-events');
     if (shouldUseLocalArmyBcCatalog(win)) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-engine.js'), doc);
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-local-fallback.js'), doc);
@@ -816,6 +870,9 @@
           EDGE_DEPLOYMENT +
           '/conversations',
       );
+    }
+    if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.install === 'function') {
+      global.EmbedBcAepEvents.install(win);
     }
   }
 
@@ -975,11 +1032,26 @@
     );
   }
 
+  function ensurePromptInnerFlattenStyles(doc) {
+    if (!doc || !doc.head) return;
+    var href = resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent';
+    var link = doc.querySelector('link[data-aep-bc-prompt-flatten]');
+    if (!link) {
+      link = doc.createElement('link');
+      link.rel = 'stylesheet';
+      link.setAttribute('data-aep-bc-prompt-flatten', '1');
+      doc.head.appendChild(link);
+    }
+    link.href = href;
+    doc.head.appendChild(link);
+  }
+
   function scheduleDisclaimerReposition(doc) {
     if (!doc) return;
     function run() {
+      ensurePromptInnerFlattenStyles(doc);
       if (typeof global.repositionArmyBcDisclaimer === 'function') {
-        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount').forEach(function (mount) {
+        doc.querySelectorAll('#brand-concierge-mount, #siteCloneBcFrameMount, #bcBottomDockMount, #bcModalBarMount').forEach(function (mount) {
           global.repositionArmyBcDisclaimer(mount);
         });
       }
@@ -1015,6 +1087,9 @@
       selector: selector,
       stickySession: false,
     };
+    if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.augmentBootstrapConfig === 'function') {
+      global.EmbedBcAepEvents.augmentBootstrapConfig(bootOpts);
+    }
     try {
       await win.adobe.concierge.bootstrap(bootOpts);
       win.__siteCloneBcBootstrapped = true;
@@ -1072,6 +1147,10 @@
     parentCoreReady = (async function () {
       prepareEmbedBcRuntime(global);
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-disclaimer-layout.css') + '?v=20260528-bc-disclaimer-frame', 'shared');
+      loadStylesheet(
+        resolveAssetUrl(BASE + 'embed-bc-prompt-inner-flatten.css') + '?v=20260625-modal-prompt-transparent',
+        'promptFlatten',
+      );
       loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-scroll-fix.css') + '?v=20260528-bc-modal-scroll', 'shared');
       if (shouldUseLocalArmyBcCatalog(global)) {
         loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-local-fallback.css'), 'shared');
@@ -1304,12 +1383,27 @@
 
   async function bootstrapBottomDock() {
     setBottomDockVisible(true);
+    setModalBarVisible(false);
     await ensureParentCore();
     await bootstrapConcierge(global, BOTTOM_DOCK_MOUNT_SELECTOR, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
     scheduleDisclaimerReposition(document);
     activeMode = 'bottomDock';
+  }
+
+  async function bootstrapModalBar() {
+    if (global.SiteCloneModalBarBoot && typeof global.SiteCloneModalBarBoot.boot === 'function') {
+      global.SiteCloneModalBarBoot.boot();
+    }
+    setModalBarVisible(true);
+    setBottomDockVisible(false);
+    await ensureParentCore();
+    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, applyModalBarStyleTokens(global.styleConfiguration), {
+      allowConciergeOpenOnRetry: false,
+    });
+    scheduleDisclaimerReposition(document);
+    activeMode = 'modalBar';
   }
 
   async function bootstrapIframeFullscreen() {
@@ -1321,7 +1415,15 @@
   }
 
   async function loadModalAssets() {
-    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260624-bc-modal-taller', 'modal');
+    loadStylesheet(
+      resolveAssetUrl(BASE + 'brand-concierge-bottom-dock/brand-concierge-bottom-dock.css') +
+        '?v=20260614-modal-dock-parity',
+      'modal-dock',
+    );
+    loadStylesheet(resolveAssetUrl(BASE + 'embed-bc-popup.css') + '?v=20260615-modal-header-compact', 'modal');
+    if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
+      global.SiteCloneBcChrome.upgradeModalShell();
+    }
     if (!document.querySelector('script[data-site-clone-bc="' + resolveAssetUrl(BASE + 'embed-bc-popup.js') + '"]')) {
       await loadScript(resolveAssetUrl(BASE + 'embed-bc-popup.js'));
     }
@@ -1343,9 +1445,22 @@
     return !!(bottomDockToggle && bottomDockToggle.checked);
   }
 
+  function isModalBarOn() {
+    return !!(modalBarToggle && modalBarToggle.checked);
+  }
+
   function setBottomDockVisible(on) {
     if (global.BrandConciergeBottomDock && typeof global.BrandConciergeBottomDock.setVisible === 'function') {
       global.BrandConciergeBottomDock.setVisible(!!on);
+    }
+  }
+
+  function setModalBarVisible(on) {
+    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setVisible === 'function') {
+      global.BrandConciergeModalBar.setVisible(!!on);
+    }
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('site-clone-bc-modal-bar-armed', !!on);
     }
   }
 
@@ -1396,14 +1511,26 @@
       setBottomDockVisible(false);
       clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
     }
+    if (!isModalBarOn()) {
+      setModalBarVisible(false);
+      clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
+    }
   }
 
   var syncInFlight = null;
+  var syncQueued = false;
 
   async function sync() {
-    if (syncInFlight) return syncInFlight;
+    if (syncInFlight) {
+      syncQueued = true;
+      return syncInFlight;
+    }
     syncInFlight = syncInner().finally(function () {
       syncInFlight = null;
+      if (syncQueued) {
+        syncQueued = false;
+        void sync();
+      }
     });
     return syncInFlight;
   }
@@ -1415,8 +1542,9 @@
     var wantModal = isModalOn();
     var wantFullScreen = isFullScreenOn();
     var wantBottomDock = isBottomDockOn();
+    var wantModalBar = isModalBarOn();
 
-    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock) {
+    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
       var iframeDocOff = getIframeDoc();
       if (iframeDocOff) {
         setSnapshotFullscreenLayout(iframeDocOff, false);
@@ -1427,8 +1555,10 @@
       clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
       clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
       clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
+      clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
       hideBcFrameHost();
       setBottomDockVisible(false);
+      setModalBarVisible(false);
       activeMode = null;
       reportBcStatus('');
       return;
@@ -1441,8 +1571,16 @@
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
         clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+        clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
         await restoreSiteCloneSnapshotFrame();
         await bootstrapBottomDock();
+      } else if (wantModalBar) {
+        closeBcModal();
+        clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
+        clearMountInDoc(document, FRAME_OVERLAY_MOUNT_SELECTOR);
+        clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
+        await restoreSiteCloneSnapshotFrame();
+        await bootstrapModalBar();
       } else if (wantFullScreen) {
         closeBcModal();
         clearMountInDoc(document, MODAL_MOUNT_SELECTOR);
@@ -1484,7 +1622,7 @@
 
   function bindToggles() {
     refreshDisplayModeToggles();
-    [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle].forEach(function (el) {
+    [injectedToggle, modalToggle, fullScreenToggle, bottomDockToggle, modalBarToggle].forEach(function (el) {
       if (!el || el.getAttribute('data-site-clone-bc-toggle-bound') === '1') return;
       el.setAttribute('data-site-clone-bc-toggle-bound', '1');
       el.addEventListener('change', function () {
@@ -1535,7 +1673,7 @@
   void ensureEdgePathPatches(global, document);
 
   function scheduleInitialSync() {
-    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn()) return;
+    if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn() && !isModalBarOn()) return;
     var frame = getSiteCloneFrame();
     function run() {
       void sync();

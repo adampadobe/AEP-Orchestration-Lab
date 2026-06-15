@@ -143,7 +143,11 @@
       ensureTagsUiExpandedWhenScriptUnset();
       var configuring = tagFieldsExpanded();
       var pinned = sec.classList.contains(PINNED);
-      var showFullEditor = configuring || pinned || launchScriptNotSet();
+      var overlayOpen =
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isOpen === 'function' &&
+        global.EnvBarCompact.isOpen();
+      var showFullEditor = configuring || pinned || launchScriptNotSet() || overlayOpen;
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
         collapseEl.setAttribute('hidden', '');
@@ -239,6 +243,9 @@
 
   function initSandboxSelect(selectEl) {
     if (!selectEl || typeof global.AepGlobalSandbox === 'undefined') return;
+    if (typeof global.AepGlobalSandbox.applyStoredSandboxToSelect === 'function') {
+      global.AepGlobalSandbox.applyStoredSandboxToSelect(selectEl);
+    }
     if (typeof global.AepGlobalSandbox.onSandboxSelectChange === 'function') {
       global.AepGlobalSandbox.onSandboxSelectChange(selectEl);
     }

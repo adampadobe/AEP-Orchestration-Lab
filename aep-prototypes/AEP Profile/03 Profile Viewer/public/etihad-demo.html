@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="etihad-demo.css?v=20260613-mobile">
   <link rel="stylesheet" href="shared/mobile-demo-shell.css?v=20260614-inline-channel">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
-  <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
+  <link rel="stylesheet" href="site-clone-bc.css?v=20260614-modal-dock-parity">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
@@ -30,6 +30,7 @@
         data-demo-env-strip-channel="web"
         data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-decisioning="1"
         data-demo-env-strip-prefix="etihad"
         data-demo-env-strip-selected-script-id="etihadSelectedScript"
         data-demo-env-strip-script-preview-class="etihad-demo-script-preview"
@@ -81,14 +82,15 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script src="shared/env-bar.js?v=20260616-remote-decisioning"></script>
   <script>
     window.envBarConfig = {
       prefix: 'etihad',
       variant: 'spectrum',
       features: {
-      webPush: true,
-      bc: true,
+        webPush: true,
+        bc: true,
+        decisioning: true,
       },
     };
   </script>
@@ -107,7 +109,7 @@
     window.SiteCloneBcPage = { iframeId: 'etihadSiteFrame', statusMessageId: 'etihadMessage' };
   </script>
   <script src="etihad-demo.js?v=20260601-env-strip"></script>
-  <script src="site-clone-bc.js?v=20260601-etihad-env-strip"></script>
+  <script src="site-clone-bc.js?v=20260614-modal-dock-parity"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260613-etihad-mobile"></script>

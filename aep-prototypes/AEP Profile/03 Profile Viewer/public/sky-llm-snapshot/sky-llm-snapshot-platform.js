@@ -267,12 +267,99 @@
     { id: 'us', name: 'United States' },
   ];
 
+  var PROMPTS_ORIGIN_OPTIONS = [
+    { id: 'all', name: 'All origins' },
+    { id: 'ai', name: 'AI' },
+  ];
+
+  var PROMPTS_BRANDING_OPTIONS = [
+    { id: 'all', name: 'All' },
+    { id: 'branded', name: 'Branded' },
+    { id: 'non-branded', name: 'Non Branded' },
+  ];
+
+  var CLAIMS_SORT_OPTIONS = [
+    { id: 'priority-desc', name: 'Priority (Descending)' },
+    { id: 'priority-asc', name: 'Priority (Ascending)' },
+    { id: 'frequency', name: 'Frequency' },
+    { id: 'risk', name: 'Risk Score' },
+    { id: 'date', name: 'Date' },
+  ];
+
+  var CLAIMS_FILTER_OPTIONS = {
+    marketerAttention: [
+      { id: 'all', name: 'All' },
+      { id: 'high', name: 'High' },
+      { id: 'medium', name: 'Medium' },
+      { id: 'low', name: 'Low' },
+      { id: 'none', name: 'None' },
+    ],
+    sentiment: [
+      { id: 'all', name: 'All' },
+      { id: 'positive', name: 'Positive' },
+      { id: 'neutral', name: 'Neutral' },
+      { id: 'negative', name: 'Negative' },
+      { id: 'mixed', name: 'Mixed' },
+    ],
+    brandRelevance: [
+      { id: 'all', name: 'All' },
+      { id: 'high', name: 'High' },
+      { id: 'medium', name: 'Medium' },
+      { id: 'low', name: 'Low' },
+    ],
+    category: [
+      { id: 'all', name: 'All' },
+      { id: 'product', name: 'Product & Service' },
+      { id: 'pricing', name: 'Pricing & Value' },
+      { id: 'sustainability', name: 'Sustainability' },
+      { id: 'support', name: 'Customer Support' },
+      { id: 'technology', name: 'Technology & AI' },
+    ],
+    claimType: [
+      { id: 'all', name: 'All' },
+      { id: 'factual', name: 'Factual' },
+      { id: 'opinion', name: 'Opinion' },
+      { id: 'comparative', name: 'Comparative' },
+      { id: 'regulatory', name: 'Regulatory' },
+    ],
+    frequency: [
+      { id: 'all', name: 'All' },
+      { id: 'high', name: 'High' },
+      { id: 'medium', name: 'Medium' },
+      { id: 'low', name: 'Low' },
+    ],
+    citations: [
+      { id: 'all', name: 'All' },
+      { id: 'with', name: 'With citations' },
+      { id: 'without', name: 'Without citations' },
+    ],
+    opportunities: [
+      { id: 'all', name: 'All' },
+      { id: 'identified', name: 'Identified' },
+      { id: 'in-progress', name: 'In progress' },
+      { id: 'resolved', name: 'Resolved' },
+      { id: 'none', name: 'None' },
+    ],
+  };
+
   var state = {
     platformId: 'chatgpt-free',
     dateRangeId: '4w',
     siteId: 'sky.com',
     categoryId: 'all',
     marketId: 'all',
+    topicIds: [],
+    promptsOriginId: 'all',
+    promptsBrandingId: 'all',
+    claimsSortId: 'priority-desc',
+    claimsMarketerAttentionId: 'all',
+    claimsSentimentId: 'all',
+    claimsBrandRelevanceId: 'all',
+    claimsCategoryId: 'all',
+    claimsClaimTypeId: 'all',
+    claimsFrequencyId: 'all',
+    claimsCitationsId: 'all',
+    claimsOpportunitiesId: 'all',
     metricNodes: {},
     marketRows: [],
     sentimentColumns: [],
@@ -306,6 +393,7 @@
 
   function getPageKind() {
     if (findSectionRoot('Market Tracking')) return 'brand-presence';
+    if (findSectionRoot('Risk by Theme')) return 'brand-claims';
     return 'overview';
   }
 
@@ -408,6 +496,23 @@
     });
   }
 
+  function findTopicTrigger() {
+    var spans = Array.from(document.querySelectorAll('span')).filter(function (el) {
+      return /^All Topics \(\d+\)$/.test((el.textContent || '').trim());
+    });
+    if (spans.length) {
+      var btn = spans[0].closest('button[aria-haspopup="listbox"]');
+      if (btn) return btn;
+    }
+    return Array.from(document.querySelectorAll('button[aria-haspopup="listbox"]')).find(function (btn) {
+      return (btn.textContent || '').indexOf('All Topics') >= 0;
+    });
+  }
+
+  function findControlShell(control) {
+    return findPickerShell(control);
+  }
+
   function suppressUiBlockers() {
     var walnut = document.getElementById('walnut-root-popin-element');
     if (walnut) {
@@ -457,6 +562,37 @@
     return [{ id: 'brand', name: label }];
   }
 
+  function getTopicOptions() {
+    var brands = llmDemoBrands();
+    if (brands && brands.getBrandPresenceTopics) return brands.getBrandPresenceTopics();
+    return [
+      { id: 'broadband', name: 'Broadband deals & packages' },
+      { id: 'sky-glass', name: 'Sky Glass & streaming setup' },
+      { id: 'sports', name: 'Sports & entertainment bundles' },
+      { id: 'wifi', name: 'WiFi mesh & home connectivity' },
+      { id: 'account', name: 'Account management & billing' },
+      { id: 'tv-packages', name: 'TV packages & pricing' },
+      { id: 'mobile', name: 'Mobile & SIM deals' },
+      { id: 'bundles', name: 'Bundles & value offers' },
+      { id: 'support', name: 'Customer support & troubleshooting' },
+      { id: 'comparisons', name: 'Competitor comparisons' },
+      { id: 'industry', name: 'Industry news & regulation' },
+    ];
+  }
+
+  function topicTriggerLabel(appliedIds) {
+    var options = getTopicOptions();
+    var count = options.length;
+    if (!appliedIds || !appliedIds.length) return 'All Topics (' + count + ')';
+    if (appliedIds.length === 1) {
+      var one = options.find(function (o) {
+        return o.id === appliedIds[0];
+      });
+      return one ? one.name : '1 topic';
+    }
+    return appliedIds.length + ' topics';
+  }
+
   function syncFilterStateFromBrands() {
     var sites = getSiteOptions();
     if (sites.length) state.siteId = sites[0].id;
@@ -466,6 +602,12 @@
     if (!getMarketOptions().some(function (m) { return m.id === state.marketId; })) {
       state.marketId = 'all';
     }
+    var topicOptions = getTopicOptions();
+    state.topicIds = (state.topicIds || []).filter(function (id) {
+      return topicOptions.some(function (o) {
+        return o.id === id;
+      });
+    });
   }
 
   function closeAllPickerMenus() {
@@ -683,26 +825,51 @@
     });
   }
 
-  function findPickerShell(combobox) {
-    var el = combobox;
+  function findPickerShell(control) {
+    if (!control) return null;
+
+    if (control.getAttribute('aria-haspopup') === 'listbox' && control.getAttribute('role') !== 'combobox') {
+      var multiselect = control.closest('.multiselect-as-select');
+      if (multiselect) return multiselect;
+      var btnEl = control.parentElement;
+      for (var t = 0; t < 10 && btnEl; t++) {
+        var listBtns = btnEl.querySelectorAll('button[aria-haspopup="listbox"]');
+        var comboInputs = btnEl.querySelectorAll('input[role="combobox"]');
+        if (listBtns.length === 1 && listBtns[0] === control && comboInputs.length === 0) {
+          return btnEl;
+        }
+        btnEl = btnEl.parentElement;
+      }
+      return control.parentElement;
+    }
+
+    var el = control;
     for (var i = 0; i < 12 && el; i++) {
       if (
         el.querySelector &&
         el.querySelector('input[role="combobox"]') &&
-        el.querySelector('button[aria-haspopup="listbox"]')
+        el.querySelector('button[aria-haspopup="listbox"], button[aria-label="Show suggestions"]')
       ) {
         return el;
       }
       el = el.parentElement;
     }
-    return combobox.parentElement;
+    return control.parentElement;
   }
 
-  function removePicker(shell, hostClass, shellClass) {
+  function removePicker(shell, hostClass, shellClass, control) {
     if (!shell) return;
-    var host = shell.querySelector('.' + hostClass);
-    if (host) host.remove();
-    shell.classList.remove(shellClass);
+    Array.from(shell.querySelectorAll('.' + hostClass)).forEach(function (host) {
+      if (control && host.__skyControl !== control) return;
+      host.remove();
+    });
+    if (!shell.querySelector('.' + hostClass)) shell.classList.remove(shellClass);
+  }
+
+  function findExistingPickerHost(shell, hostClass, control, triggerClass) {
+    return Array.from(shell.querySelectorAll('.' + hostClass)).find(function (host) {
+      return host.__skyControl === control && (!triggerClass || host.querySelector('.' + triggerClass));
+    });
   }
 
   function findMetricValueInCard(root, labelEl) {
@@ -1300,6 +1467,7 @@
   }
 
   function applyDashboard(opts) {
+    if (state.pageKind === 'brand-claims') return;
     if (state.pageKind === 'brand-presence') {
       applyBrandPresenceDashboard(opts);
       return;
@@ -1333,12 +1501,12 @@
     var shell = findPickerShell(combobox);
     if (!shell) return null;
 
-    var existing = shell.querySelector('.' + config.hostClass);
-    if (existing && existing.querySelector('.' + config.triggerClass)) {
+    var existing = findExistingPickerHost(shell, config.hostClass, combobox, config.triggerClass);
+    if (existing) {
       return { shell: shell, host: existing, closeMenu: existing.__skyCloseMenu };
     }
 
-    removePicker(shell, config.hostClass, config.shellClass);
+    removePicker(shell, config.hostClass, config.shellClass, combobox);
 
     shell.classList.add(config.shellClass);
     combobox.setAttribute('tabindex', '-1');
@@ -1346,6 +1514,7 @@
 
     var host = document.createElement('div');
     host.className = config.hostClass;
+    host.__skyControl = combobox;
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
@@ -1590,6 +1759,281 @@
     );
   }
 
+  function filterOptionsBySearch(options, query) {
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(function (o) {
+      return String(o.name || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  function stagedSearchHeader(placeholder) {
+    return function () {
+      var li = document.createElement('li');
+      li.className = 'sky-llm-filter-menu-search-wrap';
+      li.innerHTML =
+        '<label class="sky-llm-filter-menu-search-field" role="search">' +
+        '<span class="sky-llm-filter-menu-search-icon" aria-hidden="true"></span>' +
+        '<input type="search" class="sky-llm-filter-menu-search-input" placeholder="' +
+        String(placeholder || 'Search') +
+        '" autocomplete="off" spellcheck="false" />' +
+        '</label>';
+      return li;
+    };
+  }
+
+  function buildStagedFilterPicker(control, config) {
+    var shell = findPickerShell(control);
+    if (!shell) return null;
+
+    var existing = findExistingPickerHost(shell, config.hostClass, control);
+    if (existing && existing.__skyStagedPicker) {
+      if (existing.__skyRenderTrigger) existing.__skyRenderTrigger(false);
+      return existing;
+    }
+
+    removePicker(shell, config.hostClass, config.shellClass, control);
+
+    shell.classList.add(config.shellClass);
+    control.setAttribute('tabindex', '-1');
+    control.setAttribute('aria-hidden', 'true');
+
+    var host = document.createElement('div');
+    host.className = config.hostClass;
+    host.__skyStagedPicker = true;
+    host.__skyControl = control;
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = config.triggerClass;
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', config.ariaLabel);
+
+    var menu = document.createElement('ul');
+    menu.className = config.menuClass + ' sky-llm-filter-menu--staged';
+    menu.setAttribute('role', 'listbox');
+    menu.hidden = true;
+
+    var menuOpen = false;
+    var pending = null;
+    var searchQuery = '';
+
+    function clonePending() {
+      if (config.mode === 'multi') {
+        var applied = config.getApplied();
+        return applied && applied.length ? applied.slice() : [];
+      }
+      return config.getApplied();
+    }
+
+    function pendingEqualsApplied() {
+      if (config.mode === 'multi') {
+        var applied = config.getApplied() || [];
+        var next = pending || [];
+        if (applied.length !== next.length) return false;
+        return applied.every(function (id) {
+          return next.indexOf(id) >= 0;
+        });
+      }
+      return pending === config.getApplied();
+    }
+
+    function renderTrigger() {
+      trigger.innerHTML = config.renderTrigger(menuOpen);
+    }
+
+    host.__skyRenderTrigger = renderTrigger;
+
+    function closeMenu() {
+      menuOpen = false;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      control.setAttribute('aria-expanded', 'false');
+      host.classList.remove('is-open');
+      renderTrigger();
+    }
+
+    function commitPending() {
+      config.setApplied(pending);
+      if (config.onApply) config.onApply(pending, control);
+      renderTrigger();
+      closeMenu();
+      closeAllPickerMenus();
+    }
+
+    function clearPending() {
+      pending = config.mode === 'multi' ? [] : config.defaultId || 'all';
+      renderMenu();
+    }
+
+    function toggleMultiOption(opt) {
+      var ids = pending ? pending.slice() : [];
+      var idx = ids.indexOf(opt.id);
+      if (idx >= 0) ids.splice(idx, 1);
+      else ids.push(opt.id);
+      pending = ids;
+      renderMenu();
+    }
+
+    function selectSingleOption(opt) {
+      pending = opt.id;
+      renderMenu();
+    }
+
+    function renderMenu() {
+      menu.innerHTML = '';
+      if (config.renderMenuHeader) {
+        menu.appendChild(config.renderMenuHeader());
+      }
+
+      var searchWrap = menu.querySelector('.sky-llm-filter-menu-search-wrap');
+      if (searchWrap) {
+        var input = searchWrap.querySelector('.sky-llm-filter-menu-search-input');
+        if (input && !input.__skyWired) {
+          input.__skyWired = true;
+          input.addEventListener('input', function (e) {
+            e.stopPropagation();
+            searchQuery = input.value || '';
+            renderMenu();
+          });
+          input.addEventListener('mousedown', function (e) {
+            e.stopPropagation();
+          });
+          input.addEventListener('click', function (e) {
+            e.stopPropagation();
+          });
+        }
+        if (input) input.value = searchQuery;
+      }
+
+      var listWrap = document.createElement('li');
+      listWrap.className = 'sky-llm-filter-menu-options-wrap';
+      var list = document.createElement('ul');
+      list.className = 'sky-llm-filter-menu-options';
+
+      filterOptionsBySearch(config.options(), searchQuery).forEach(function (opt) {
+        var li = document.createElement('li');
+        var selected =
+          config.mode === 'multi'
+            ? pending && pending.indexOf(opt.id) >= 0
+            : pending === opt.id;
+
+        if (config.mode === 'multi') {
+          var row = document.createElement('label');
+          row.className = 'sky-llm-filter-checkbox-row' + (selected ? ' is-selected' : '');
+          row.innerHTML =
+            '<input type="checkbox" class="sky-llm-filter-checkbox"' +
+            (selected ? ' checked' : '') +
+            ' />' +
+            '<span class="sky-llm-filter-copy">' +
+            opt.name +
+            '</span>';
+          row.querySelector('input').addEventListener('change', function (e) {
+            e.stopPropagation();
+            toggleMultiOption(opt);
+          });
+          row.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+          li.appendChild(row);
+        } else {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = config.optionClass + (selected ? ' is-selected' : '');
+          btn.setAttribute('role', 'option');
+          btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+          btn.innerHTML = listPickerOptionHtml(opt);
+          btn.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectSingleOption(opt);
+          });
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+          li.appendChild(btn);
+        }
+        list.appendChild(li);
+      });
+
+      listWrap.appendChild(list);
+      menu.appendChild(listWrap);
+
+      var footer = document.createElement('li');
+      footer.className = 'sky-llm-filter-menu-footer';
+      var applyBtn = document.createElement('button');
+      applyBtn.type = 'button';
+      applyBtn.className = 'sky-llm-filter-apply';
+      applyBtn.textContent = 'Apply';
+      applyBtn.disabled = pendingEqualsApplied();
+      applyBtn.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!applyBtn.disabled) commitPending();
+      });
+      var clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'sky-llm-filter-clear';
+      clearBtn.textContent = 'Clear';
+      clearBtn.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearPending();
+      });
+      footer.appendChild(applyBtn);
+      footer.appendChild(clearBtn);
+      menu.appendChild(footer);
+    }
+
+    function openMenu() {
+      closeAllPickerMenus();
+      menuOpen = true;
+      pending = clonePending();
+      searchQuery = '';
+      renderTrigger();
+      state.reactListboxesHidden = false;
+      hideReactListboxes();
+      renderMenu();
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    trigger.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      hideReactListboxes();
+      if (menu.hidden) openMenu();
+      else closeMenu();
+    }, true);
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+
+    if (!state.outsidePickerCloseWired) {
+      state.outsidePickerCloseWired = true;
+      document.addEventListener(
+        'mousedown',
+        function (e) {
+          if (e.target.closest('.sky-llm-platform-host, .sky-llm-date-host, .sky-llm-filter-host')) return;
+          closeAllPickerMenus();
+        },
+        true,
+      );
+    }
+
+    host.appendChild(trigger);
+    host.appendChild(menu);
+    shell.insertBefore(host, control);
+    renderTrigger();
+    host.__skyCloseMenu = closeMenu;
+
+    return host;
+  }
+
   function hideNativeFilterChrome() {
     document
       .querySelectorAll('.sky-llm-platform-shell, .sky-llm-date-shell, .sky-llm-filter-shell, .sky-llm-select-others-shell')
@@ -1610,7 +2054,149 @@
 
   function pageUsesFilterPickers() {
     var kind = getPageKind();
-    return kind === 'overview' || kind === 'brand-presence';
+    return kind === 'overview' || kind === 'brand-presence' || kind === 'brand-claims';
+  }
+
+  function stagedPickerDefaults() {
+    return {
+      shellClass: 'sky-llm-filter-shell',
+      hostClass: 'sky-llm-filter-host',
+      triggerClass: 'sky-llm-filter-trigger',
+      menuClass: 'sky-llm-filter-menu',
+      optionClass: 'sky-llm-filter-option',
+    };
+  }
+
+  function buildTopicPicker() {
+    var control = findTopicTrigger();
+    if (!control) return;
+    buildStagedFilterPicker(
+      control,
+      Object.assign(stagedPickerDefaults(), {
+        ariaLabel: 'Topic',
+        mode: 'multi',
+        options: getTopicOptions,
+        getApplied: function () {
+          return state.topicIds || [];
+        },
+        setApplied: function (val) {
+          state.topicIds = val || [];
+        },
+        onApply: function (val, btn) {
+          var span = btn && btn.querySelector('span[data-placeholder]');
+          if (span) span.textContent = topicTriggerLabel(val);
+        },
+        renderTrigger: function (isOpen) {
+          var label = topicTriggerLabel(state.topicIds);
+          if (isOpen) label = 'Topic: ' + label;
+          return listPickerTriggerHtml(label, isOpen);
+        },
+        renderMenuHeader: stagedSearchHeader('Search Topic'),
+      }),
+    );
+  }
+
+  function buildPromptsOriginPicker() {
+    var control = findCombobox('prompts origin');
+    if (!control) return;
+    buildStagedFilterPicker(
+      control,
+      Object.assign(stagedPickerDefaults(), {
+        ariaLabel: 'Prompts Origin',
+        mode: 'single',
+        defaultId: 'all',
+        options: function () {
+          return PROMPTS_ORIGIN_OPTIONS;
+        },
+        getApplied: function () {
+          return state.promptsOriginId;
+        },
+        setApplied: function (val) {
+          state.promptsOriginId = val || 'all';
+        },
+        onApply: function (val, input) {
+          var sel = selectedListOption(PROMPTS_ORIGIN_OPTIONS, val);
+          if (input && sel) input.value = sel.name;
+        },
+        renderTrigger: function (isOpen) {
+          var sel = selectedListOption(PROMPTS_ORIGIN_OPTIONS, state.promptsOriginId);
+          var label = sel ? sel.name : 'All origins';
+          if (isOpen) label = 'Prompts Origin: ' + label;
+          return listPickerTriggerHtml(label, isOpen);
+        },
+        renderMenuHeader: stagedSearchHeader('Search Prompts Origin'),
+      }),
+    );
+  }
+
+  function buildPromptBrandingPicker() {
+    var control = findCombobox('prompt branding');
+    if (!control) return;
+    buildStagedFilterPicker(
+      control,
+      Object.assign(stagedPickerDefaults(), {
+        ariaLabel: 'Prompt Branding',
+        mode: 'single',
+        defaultId: 'all',
+        options: function () {
+          return PROMPTS_BRANDING_OPTIONS;
+        },
+        getApplied: function () {
+          return state.promptsBrandingId;
+        },
+        setApplied: function (val) {
+          state.promptsBrandingId = val || 'all';
+        },
+        onApply: function (val, input) {
+          var sel = selectedListOption(PROMPTS_BRANDING_OPTIONS, val);
+          if (input && sel) input.value = sel.name;
+        },
+        renderTrigger: function (isOpen) {
+          var sel = selectedListOption(PROMPTS_BRANDING_OPTIONS, state.promptsBrandingId);
+          var label = sel ? sel.name : 'All';
+          if (isOpen) label = 'Prompt Branding: ' + label;
+          return listPickerTriggerHtml(label, isOpen);
+        },
+        renderMenuHeader: stagedSearchHeader('Search Prompt Branding'),
+      }),
+    );
+  }
+
+  function buildClaimsListPicker(labelPart, stateKey, options) {
+    buildListFilterPicker(labelPart, {
+      ariaLabel: labelPart,
+      options: function () {
+        return options;
+      },
+      isSelected: function (o) {
+        return o.id === state[stateKey];
+      },
+      renderTrigger: function (isOpen) {
+        var sel = selectedListOption(options, state[stateKey]);
+        return listPickerTriggerHtml(sel ? sel.name : options[0].name, isOpen);
+      },
+      renderOption: listPickerOptionHtml,
+      getOptionId: function (o) {
+        return o.id;
+      },
+      onSelect: function (o, input) {
+        state[stateKey] = o.id;
+        if (input) input.value = o.name;
+      },
+    });
+  }
+
+  function buildBrandClaimsPickers() {
+    buildBrandPicker();
+    buildClaimsListPicker('sort by', 'claimsSortId', CLAIMS_SORT_OPTIONS);
+    buildClaimsListPicker('marketer attention', 'claimsMarketerAttentionId', CLAIMS_FILTER_OPTIONS.marketerAttention);
+    buildClaimsListPicker('sentiment', 'claimsSentimentId', CLAIMS_FILTER_OPTIONS.sentiment);
+    buildClaimsListPicker('brand relevance', 'claimsBrandRelevanceId', CLAIMS_FILTER_OPTIONS.brandRelevance);
+    buildClaimsListPicker('category', 'claimsCategoryId', CLAIMS_FILTER_OPTIONS.category);
+    buildClaimsListPicker('claim type', 'claimsClaimTypeId', CLAIMS_FILTER_OPTIONS.claimType);
+    buildClaimsListPicker('frequency', 'claimsFrequencyId', CLAIMS_FILTER_OPTIONS.frequency);
+    buildClaimsListPicker('citations', 'claimsCitationsId', CLAIMS_FILTER_OPTIONS.citations);
+    buildClaimsListPicker('opportunities', 'claimsOpportunitiesId', CLAIMS_FILTER_OPTIONS.opportunities);
   }
 
   function buildBrandPicker() {
@@ -1712,17 +2298,28 @@
   function ensurePickers() {
     suppressUiBlockers();
     watchWalnutRemoval();
+    state.reactListboxesHidden = false;
     hideReactListboxes();
     syncFilterStateFromBrands();
     buildPlatformPicker();
     buildDatePicker();
+    var kind = getPageKind();
     if (pageUsesFilterPickers()) {
-      buildSitePicker();
-      buildCategoryPicker();
-      buildMarketPicker();
+      if (kind === 'brand-claims') {
+        buildBrandClaimsPickers();
+      } else {
+        buildSitePicker();
+        buildCategoryPicker();
+        buildMarketPicker();
+      }
     }
-    if (getPageKind() === 'overview') {
+    if (kind === 'overview') {
       buildBrandPicker();
+    }
+    if (kind === 'brand-presence') {
+      buildTopicPicker();
+      buildPromptsOriginPicker();
+      buildPromptBrandingPicker();
     }
     hideNativeFilterChrome();
     syncPlatformTriggerLabel();
@@ -1732,8 +2329,9 @@
   }
 
   function init() {
-    if (state.ready && document.querySelector('.sky-llm-platform-host')) {
+    if (state.ready && document.querySelector('.sky-llm-platform-host, .sky-llm-filter-host')) {
       state.pageKind = getPageKind();
+      ensurePickers();
       watchNativePlatformSelection();
       refreshDashboardCaches();
       applyDashboard({ animate: false });
@@ -1780,7 +2378,7 @@
   window.setTimeout(init, 800);
   [150, 600, 1500, 3000].forEach(function (ms) {
     window.setTimeout(function () {
-      if (!/overview\.html|brand-presence\.html/i.test(location.pathname || '')) return;
+      if (!/overview\.html|brand-presence\.html|brand-claims\.html/i.test(location.pathname || '')) return;
       ensurePickers();
       if (state.ready) applyDashboard({ animate: false });
     }, ms);

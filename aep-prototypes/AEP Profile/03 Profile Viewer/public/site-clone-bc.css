@@ -17,24 +17,51 @@ body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
   display: none !important;
 }
 
-/* Modal + bottom dock: BC widget draws a nested bordered prompt — flatten to single bar */
-.aep-bc-modal #brand-concierge-mount .input-container,
-.aep-bc-modal #brand-concierge-mount .input-section .input-container,
-.aep-bc-modal #siteCloneBcModalMount .input-container,
-.aep-bc-modal #siteCloneBcModalMount .input-section .input-container {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-}
-
-/* Keep Sky/site snapshot visible when BC modal is open — no env-bar grey wash */
+/* Keep site snapshot visible when BC modal or bottom dock is open — no env-bar grey wash */
 body.aep-bc-modal-open .mod-demo-top-anchor::after,
 body.aep-bc-modal-open [class*='-demo-top-anchor']::after,
 body.aep-bc-modal-open .mobile-demo-shell-env-anchor::after,
-body.aep-bc-modal-open .lab-env-top-anchor::after {
+body.aep-bc-modal-open .lab-env-top-anchor::after,
+body:has(.bc-bottom-dock.is-expanded) .mod-demo-top-anchor::after,
+body:has(.bc-bottom-dock.is-expanded) [class*='-demo-top-anchor']::after,
+body:has(.bc-bottom-dock.is-expanded) .mobile-demo-shell-env-anchor::after,
+body:has(.bc-bottom-dock.is-expanded) .lab-env-top-anchor::after {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+/* Site content stays visible behind transparent modal backdrop */
+body.aep-bc-modal-open iframe[class*='-demo-site-frame'],
+body.aep-bc-modal-open iframe.mod-demo-site-frame,
+body.aep-bc-modal-open iframe[id$='SiteFrame'],
+body.aep-bc-modal-open .om-site-frame,
+body.aep-bc-modal-open main.om-site-frame {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Centre-bottom dock armed: lift iframe above dock pill; top inset from env-bar-compact.css */
+body.site-clone-bc-bottom-dock-armed iframe[class*='-demo-site-frame'],
+body.site-clone-bc-bottom-dock-armed iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed iframe[id$='SiteFrame'] {
+  bottom: 5.5rem;
+}
+
+body.site-clone-bc-bottom-dock-armed .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden ~ iframe.mod-demo-site-frame,
+body.site-clone-bc-bottom-dock-armed
+  .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden
+  ~ iframe[class*='-demo-site-frame'],
+body.site-clone-bc-bottom-dock-armed
+  .mod-demo-top-anchor.lab-env-top-anchor--docked-hidden
+  ~ iframe[id$='SiteFrame'] {
+  height: calc(100% - 5.5rem);
+}
+
+body.site-clone-bc-bottom-dock-armed .bc-bottom-dock:not(.is-hidden) {
+  z-index: 6400;
+}
+
+body.site-clone-bc-bottom-dock-armed .om-site-frame {
+  padding-bottom: 5.5rem;
 }

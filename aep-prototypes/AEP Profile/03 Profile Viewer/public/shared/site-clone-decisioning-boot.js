@@ -5,7 +5,7 @@
 (function attachSiteCloneDecisioningBoot(global) {
   'use strict';
 
-  var booted = false;
+  var bootResult = null;
   var syncFn = null;
 
   /** Prefix → site iframe id when it does not match {prefix}SiteFrame. */
@@ -145,21 +145,42 @@
     global.DemoTagsInjection.__siteCloneDecisioningSyncHooked = true;
   }
 
+  function wireIframeLoadRetry(cfg) {
+    var wiring = resolveDecisioningWiring(cfg);
+    if (!wiring.iframeId || wiring.useParentDocument) return;
+    var frame = document.getElementById(wiring.iframeId);
+    if (!frame || frame.getAttribute('data-decisioning-boot-wired') === '1') return;
+    frame.setAttribute('data-decisioning-boot-wired', '1');
+    frame.addEventListener('load', function () {
+      boot(cfg, { force: true });
+    });
+  }
+
   /**
    * @param {import('./env-bar.js').EnvBarConfig} cfg
+   * @param {{ force?: boolean }} [opts]
    * @returns {{ runtimeApi: object|null, panelHandle: object|null, syncKey: string, wiring: object }|null}
    */
-  function boot(cfg) {
+  function boot(cfg, opts) {
+    opts = opts || {};
     cfg = cfg || {};
-    if (booted) return null;
     installStitchSyncHook();
 
     var wiring = resolveDecisioningWiring(cfg);
     if (!wiring.iframeId && !wiring.useParentDocument) {
+      wireIframeLoadRetry(cfg);
       return null;
     }
 
-    booted = true;
+    if (bootResult && !opts.force) return bootResult;
+    if (
+      !global.DecisioningProfileRuntime ||
+      typeof global.DecisioningProfileRuntime.init !== 'function' ||
+      !global.DecisioningProfilePanel ||
+      typeof global.DecisioningProfilePanel.init !== 'function'
+    ) {
+      return null;
+    }
 
     var prefix = String(cfg.prefix || 'siteClone').trim();
     var emailInputId = wiring.emailInputId || 'customerEmail';
@@ -191,25 +212,21 @@
       return String(wiring.viewName || prefix || 'Site clone demo').trim();
     }
 
-    var runtimeApi = null;
-    if (global.DecisioningProfileRuntime && typeof global.DecisioningProfileRuntime.init === 'function') {
-      runtimeApi = global.DecisioningProfileRuntime.init({
-        iframeId: wiring.iframeId || '',
-        useParentDocument: !!wiring.useParentDocument,
-        mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
-        targetPageUrl: wiring.targetPageUrl || '',
-        getTargetPageUrl:
-          typeof wiring.getTargetPageUrl === 'function' ? wiring.getTargetPageUrl : undefined,
-        getViewName: getViewName,
-        getIdentifierValue: getIdentifierValue,
-        getNamespace: getNamespace,
-        getSandboxName: getSandboxName,
-        enabled: isDecisioningEnabled,
-      });
-    }
+    var runtimeApi = global.DecisioningProfileRuntime.init({
+      iframeId: wiring.iframeId || '',
+      useParentDocument: !!wiring.useParentDocument,
+      mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
+      targetPageUrl: wiring.targetPageUrl || '',
+      getTargetPageUrl: typeof wiring.getTargetPageUrl === 'function' ? wiring.getTargetPageUrl : undefined,
+      getViewName: getViewName,
+      getIdentifierValue: getIdentifierValue,
+      getNamespace: getNamespace,
+      getSandboxName: getSandboxName,
+      enabled: isDecisioningEnabled,
+    });
 
     var panelHandle = null;
-    if (global.DecisioningProfilePanel && typeof global.DecisioningProfilePanel.init === 'function') {
+    if (!document.getElementById('dpmPanelAnchor')) {
       panelHandle = global.DecisioningProfilePanel.init({
         isEnabled: isDecisioningEnabled,
         enabledToggleId: 'siteCloneDecisioningEnabledToggle',
@@ -220,6 +237,21 @@
           profileApi: runtimeApi || {},
         },
       });
+    } else if (global.DecisioningProfilePanel && document.getElementById('dpmPanelMount')) {
+      var mountEl = document.getElementById('dpmPanelMount');
+      if (
+        mountEl &&
+        global.DecisioningProfileModule &&
+        typeof global.DecisioningProfileModule.mount === 'function' &&
+        (opts.force || !mountEl.querySelector('#cdMicroProfileRunBtn'))
+      ) {
+        global.DecisioningProfileModule.mount(mountEl, {
+          getIdentifierValue: getIdentifierValue,
+          getNamespace: getNamespace,
+          getSandboxName: getSandboxName,
+          profileApi: runtimeApi || {},
+        });
+      }
     }
 
     syncFn = async function syncDecisioningProfileFromLookup() {
@@ -249,7 +281,9 @@
       global.DecisioningProfileRuntime.refreshEnabledState();
     }
 
-    return { runtimeApi: runtimeApi, panelHandle: panelHandle, syncKey: syncKey, wiring: wiring };
+    bootResult = { runtimeApi: runtimeApi, panelHandle: panelHandle, syncKey: syncKey, wiring: wiring };
+    wireIframeLoadRetry(cfg);
+    return bootResult;
   }
 
   global.SiteCloneDecisioningBoot = {
@@ -257,4 +291,10 @@
     resolveWiring: resolveDecisioningWiring,
     syncFromProfileLookup: syncFromProfileLookup,
   };
+
+  global.addEventListener('aep-demo-env-strip-mounted', function () {
+    if (global.envBarConfig && global.SiteCloneDecisioningBoot) {
+      boot(global.envBarConfig, { force: true });
+    }
+  });
 })(typeof window !== 'undefined' ? window : globalThis);

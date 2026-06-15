@@ -122,7 +122,31 @@
   background: var(--bc-bottom-dock-surface);
   box-shadow: var(--bc-bottom-dock-shadow);
   overflow: hidden;
-  max-height: min(85vh, 900px);
+  max-height: min(92vh, 1180px);
+  position: relative;
+}
+
+.bc-bottom-dock__panel::before,
+.bc-bottom-dock__panel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bc-bottom-dock__panel::before {
+  top: 0;
+  border-radius: var(--dash-radius) var(--dash-radius) 0 0;
+  background: linear-gradient(90deg, #4b75ff 0%, #e743c8 52%, #ff7918 100%);
+}
+
+.bc-bottom-dock__panel::after {
+  bottom: 0;
+  border-radius: 0 0 var(--dash-radius) var(--dash-radius);
+  background: linear-gradient(90deg, #4b75ff 0%, #9b4dff 48%, #e743c8 100%);
 }
 
 .bc-bottom-dock.is-expanded .bc-bottom-dock__panel {
@@ -179,15 +203,28 @@
   color: var(--dash-text);
 }
 
+/* Compact expanded panel matches modal height until the user starts typing */
+.bc-bottom-dock.is-expanded:not(.bc-bottom-dock--typing) .bc-bottom-dock__panel-body,
+.bc-bottom-dock.is-expanded:not(.bc-bottom-dock--typing) .bc-bottom-dock__mount {
+  min-height: 0;
+  max-height: min(66vh, 906px);
+}
+
+.bc-bottom-dock.is-expanded.bc-bottom-dock--typing .bc-bottom-dock__panel-body,
+.bc-bottom-dock.is-expanded.bc-bottom-dock--typing .bc-bottom-dock__mount {
+  min-height: 1000px;
+  max-height: none;
+}
+
 .bc-bottom-dock__panel-body {
   flex: 1 1 auto;
-  min-height: 800px;
+  min-height: 0;
   overflow: auto;
   position: relative;
 }
 
 .bc-bottom-dock__mount {
-  min-height: 800px;
+  min-height: 0;
 }
 
 .bc-bottom-dock__panel-footer {
@@ -200,23 +237,4 @@
   font-size: 0.68rem;
   line-height: 1.35;
   color: var(--bc-bottom-dock-muted);
-}
-
-/* BC widget draws a nested bordered prompt box — flatten to a single bar in the dock */
-.bc-bottom-dock__mount #brand-concierge-mount .input-container,
-.bc-bottom-dock__mount #brand-concierge-mount .input-section .input-container {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  max-width: none !important;
-}
-
-.bc-bottom-dock__mount #brand-concierge-mount .input-section {
-  width: 100%;
-  padding: 0;
-  margin: 0;
 }

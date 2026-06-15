@@ -59,6 +59,26 @@
     );
   }
 
+  function datastreamUuidTooltipMarkup() {
+    return (
+      '<span class="spectrum-env-field-tooltip">' +
+      '<button type="button" class="spectrum-env-field-tooltip__trigger" aria-label="Lab datastream UUID — what it is and how to find one">' +
+      spectrumIcon('info') +
+      '</button>' +
+      '<div class="spectrum-env-field-tooltip__panel" role="tooltip">' +
+      '<p class="spectrum-env-field-tooltip__lead"><strong>Lab override only.</strong> When this page sends events through the browser Web SDK (Alloy) — for example the anonymous page view right after you inject Tags, or Brand Concierge / Target if enabled — this UUID tells Edge which datastream to use (<code>edgeConfigOverrides</code>). It does <strong>not</strong> change the datastream configured inside your Launch property.</p>' +
+      '<p class="spectrum-env-field-tooltip__lead">Pick a datastream from the list, or choose <strong>Enter UUID…</strong> and paste one wired to your sandbox. Align it with the sandbox selected at the top of the env bar so profile lookup and events land in the right place.</p>' +
+      '<p class="spectrum-env-field-tooltip__lead"><strong>Not the same as Event destination.</strong> The dropdown below routes <em>server-side</em> lab events (journey postMessage events, profile lookup <code>application.login</code>, and the drawer timeline mirror) through <code>POST /api/events/generator</code>. Both may need to point at your sandbox for a clean demo, but they are separate pipes.</p>' +
+      '<p class="spectrum-env-field-tooltip__lead">Datastreams are created outside this lab. Use one of the Demo Sandbox Network portals:</p>' +
+      '<ul class="spectrum-env-field-tooltip__list">' +
+      '<li><a href="https://livedemos.adobe.com/" target="_blank" rel="noopener noreferrer">https://livedemos.adobe.com/</a> — live-demos DSN</li>' +
+      '<li><a href="https://dsn.adobe.com/" target="_blank" rel="noopener noreferrer">https://dsn.adobe.com/</a> — standard DSN</li>' +
+      '</ul>' +
+      '<p class="spectrum-env-field-tooltip__foot">Inside DSN, create (or pick) a datastream wired to your sandbox with the services you need (AEP, AJO, Personalization). Copy its <strong>Datastream ID</strong> here. Copy the Launch <strong>embed-script URL</strong> from the Web SDK extension into the Tags section above.</p>' +
+      '</div></span>'
+    );
+  }
+
   function legacyHiddenToggles(prefix, defaultBc) {
     var miralSel = defaultBc === 'miral' ? ' selected' : '';
     var genericSel = defaultBc === 'generic' ? ' selected' : '';
@@ -129,16 +149,19 @@
       (c.summaryExtraClass ? ' ' + esc(c.summaryExtraClass) : '');
     var title = c.title || capPrefix(prefix) + ' (web)';
     var subtitle = c.subtitle || 'Active Configuration';
-    var prefsAttrs = 'data-demo-env-strip-mount="site-clone-bc-prefs" id="siteCloneBcPrefsMount"';
-    if (c.includeBottomDock) prefsAttrs += ' data-demo-env-strip-bc-bottom="1"';
-    if (c.includeDecisioning) prefsAttrs += ' data-demo-env-strip-decisioning="1"';
+    var bcPrefsAttrs = 'data-demo-env-strip-mount="site-clone-bc-prefs" id="siteCloneBcPrefsMount"';
+    if (c.includeBottomDock) bcPrefsAttrs += ' data-demo-env-strip-bc-bottom="1"';
+    var decisioningSection =
+      c.includeDecisioning !== false
+        ? '<div class="spectrum-env-display-mode lab-env-decisioning-wrap"><span class="spectrum-env-field__label">Decisioning</span><div data-demo-env-strip-mount="site-clone-decisioning-prefs" id="siteCloneDecisioningPrefsMount"></div></div>'
+        : '';
 
     var overlayFooterParts = [];
     if (c.selectedScriptId) {
       overlayFooterParts.push(
         '<div class="spectrum-env-selected-script ' +
           esc(c.scriptPreviewClass || 'mod-demo-script-preview') +
-          '"><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
+          '" data-env-overlay-footer-item><span class="spectrum-env-selected-script__label">Selected script:</span> <code id="' +
           esc(c.selectedScriptId) +
           '">None</code></div>',
       );
@@ -149,12 +172,12 @@
           esc(c.messageId) +
           '" class="' +
           esc(c.messageClass || 'mod-demo-message') +
-          ' spectrum-env-inline-message" role="status" aria-live="polite" hidden></p>',
+          ' spectrum-env-inline-message" data-env-overlay-footer-item role="status" aria-live="polite" hidden></p>',
       );
     }
     if (c.disclaimerHtml) {
       overlayFooterParts.push(
-        '<div class="spectrum-env-info-bar spectrum-env-info-bar--muted"><span class="spectrum-env-info-bar__icon">' +
+        '<div class="spectrum-env-info-bar spectrum-env-info-bar--muted" data-env-overlay-footer-item><span class="spectrum-env-info-bar__icon">' +
           spectrumIcon('info') +
           '</span><div class="spectrum-env-info-bar__text mod-demo-disclaimer">' +
           c.disclaimerHtml +
@@ -162,7 +185,9 @@
       );
     }
 
-    var overlayFooter = overlayFooterParts.join('');
+    var overlayFooter = overlayFooterParts.length
+      ? '<div class="lab-env-overlay-footer" data-env-overlay-footer>' + overlayFooterParts.join('') + '</div>'
+      : '';
 
     return (
       '<div class="aep-demo-env-bar aep-demo-env-bar--spectrum">' +
@@ -192,6 +217,8 @@
       '<a class="lab-env-version-pill" id="aepLabEnvVersionPill" href="/version.json" target="_blank" rel="noopener noreferrer" title="Lab deploy version" aria-label="Lab deploy version">—</a>' +
       '<button type="button" class="spectrum-env-icon-btn lab-env-dock-toolbar-btn" id="aepLabEnvDockToolbarBtn" aria-label="Hide environment bar" title="Hide environment bar">' +
       '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10.00391,12.58887c-.88818,0-1.75293-.45996-2.22803-1.2832h0c-.70801-1.22754-.28613-2.80078.93994-3.50879.59326-.34375,1.28516-.43359,1.94922-.25684.6626.17773,1.21631.60352,1.55908,1.19727.34326.59375.43408,1.28613.25684,1.94824-.17773.66309-.60254,1.2168-1.19678,1.55957-.40332.2334-.84473.34375-1.28027.34375Z"/><path d="M6.90674,18.31836c-.33936,0-.68213-.08496-.99219-.26465l-.81982-.47266c-.89307-.51367-1.25-1.64941-.81104-2.58301l.58008-1.2334c-.26514-.36328-.48975-.75098-.67188-1.16113l-1.35693-.1123c-1.02881-.08496-1.83447-.95996-1.83447-1.99121l-.00098-.94629c0-1.0332.80518-1.90918,1.8335-1.99414l1.35449-.11426c.0918-.20898.19238-.40918.30176-.59961.10986-.19141.2334-.37891.36914-.56445l-.58057-1.22949c-.44092-.93262-.08643-2.06836.80713-2.58496l.82031-.47363c.89258-.5166,2.05371-.25879,2.64258.58984l.77734,1.11816c.44385-.0498.89209-.04785,1.34082,0l.77539-1.11914c.58887-.84961,1.75098-1.10938,2.64355-.59375l.81982.47266c.89404.51562,1.24951,1.65137.81055,2.58398l-.58008,1.23242c.26562.36426.49023.75195.67188,1.16113l1.35693.1123c1.02832.08496,1.83398.95996,1.83496,1.99121l.00049.94727c.00098,1.03125-.80371,1.90723-1.83203,1.99414l-1.35547.11426c-.09131.20898-.19189.4082-.30273.59961h0c-.10938.18945-.23242.37793-.36816.56348l.58057,1.22949c.44043.93164.08643,2.06738-.80664,2.58496l-.8208.47461c-.89355.51855-2.05371.25781-2.64258-.59082l-.77734-1.11816c-.4458.04883-.89404.04785-1.34082.00098l-.77637,1.12012c-.38379.55371-1.01172.85645-1.65039.85645Z"/></svg></button>' +
+      '<button type="button" class="spectrum-env-icon-btn lab-env-full-open-btn" id="aepLabEnvFullOpenBtn" hidden aria-label="Open environment settings" title="Environment settings">' +
+      '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10.00391,12.58887c-.88818,0-1.75293-.45996-2.22803-1.2832h0c-.70801-1.22754-.28613-2.80078.93994-3.50879.59326-.34375,1.28516-.43359,1.94922-.25684.6626.17773,1.21631.60352,1.55908,1.19727.34326.59375.43408,1.28613.25684,1.94824-.17773.66309-.60254,1.2168-1.19678,1.55957-.40332.2334-.84473.34375-1.28027.34375Z"/><path d="M6.90674,18.31836c-.33936,0-.68213-.08496-.99219-.26465l-.81982-.47266c-.89307-.51367-1.25-1.64941-.81104-2.58301l.58008-1.2334c-.26514-.36328-.48975-.75098-.67188-1.16113l-1.35693-.1123c-1.02881-.08496-1.83447-.95996-1.83447-1.99121l-.00098-.94629c0-1.0332.80518-1.90918,1.8335-1.99414l1.35449-.11426c.0918-.20898.19238-.40918.30176-.59961.10986-.19141.2334-.37891.36914-.56445l-.58057-1.22949c-.44092-.93262-.08643-2.06836.80713-2.58496l.82031-.47363c.89258-.5166,2.05371-.25879,2.64258.58984l.77734,1.11816c.44385-.0498.89209-.04785,1.34082,0l.77539-1.11914c.58887-.84961,1.75098-1.10938,2.64355-.59375l.81982.47266c.89404.51562,1.24951,1.65137.81055,2.58398l-.58008,1.23242c.26562.36426.49023.75195.67188,1.16113l1.35693.1123c1.02832.08496,1.83398.95996,1.83496,1.99121l.00049.94727c.00098,1.03125-.80371,1.90723-1.83203,1.99414l-1.35547.11426c-.09131.20898-.19189.4082-.30273.59961h0c-.10938.18945-.23242.37793-.36816.56348l.58057,1.22949c.44043.93164.08643,2.06738-.80664,2.58496l-.8208.47461c-.89355.51855-2.05371.25781-2.64258-.59082l-.77734-1.11816c-.4458.04883-.89404.04785-1.34082.00098l-.77637,1.12012c-.38379.55371-1.01172.85645-1.65039.85645Z"/></svg></button>' +
       '<button type="button" class="spectrum-env-icon-btn lab-env-toggle-btn" id="aepLabEnvToggleBtn" aria-label="Show environment controls" aria-expanded="false" title="Expand environment panel">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7 1.4-1.4Z"/></svg></button>' +
       '<button type="button" class="spectrum-env-icon-btn lab-env-pin-btn" id="aepLabEnvPinBtn" aria-label="Pin environment panel open" aria-pressed="false" title="Pin environment panel open">' +
@@ -219,13 +246,9 @@
       '<div class="spectrum-env-collapsible-fields__grid">' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="' +
       esc(prefix) +
-      'TagsProperty">Tags property</label><input type="text" id="' +
+      'TagsProperty">Tags property</label><select id="' +
       esc(prefix) +
-      'TagsProperty" class="spectrum-env-input" aria-label="Tags property" placeholder="Select property" list="' +
-      esc(prefix) +
-      'TagsPropertyList" autocomplete="off" spellcheck="false"><datalist id="' +
-      esc(prefix) +
-      'TagsPropertyList"></datalist></div>' +
+      'TagsProperty" class="spectrum-env-input" aria-label="Tags property"><option value="">Select property</option></select></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="' +
       esc(prefix) +
       'TagsEnvironment">Tags environment</label><select id="' +
@@ -235,11 +258,15 @@
       esc(injectId) +
       '" class="btn-lookup spectrum-btn spectrum-btn--primary"><span class="spectrum-btn__icon">' +
       spectrumIcon('send') +
-      '</span>Inject Selected Script</button></div></div></div></div></article>' +
+      '</span>Inject Selected Script</button></div><p id="' +
+      esc(prefix) +
+      'TagsStatus" class="spectrum-env-tags-status spectrum-env-field__hint" aria-live="polite"></p></div></div></div></article>' +
       '<article class="spectrum-env-card spectrum-env-card--data-collection">' +
       cardHeader('adobe', 'Adobe Data Collection', 'red') +
       '<div class="spectrum-env-card__body spectrum-env-card__body--stacked">' +
-      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="siteCloneBcDatastreamId">Datastream UUID</label><input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input spectrum-env-input" aria-label="Lab datastream override UUID" placeholder="Datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false"><datalist id="siteCloneBcDatastreamList"></datalist><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
+      '<div class="form-group form-row spectrum-env-field spectrum-env-field--full spectrum-env-field--has-tooltip"><div class="spectrum-env-field-label-row"><label for="siteCloneBcDatastreamId">Datastream UUID</label>' +
+      datastreamUuidTooltipMarkup() +
+      '</div><select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select spectrum-env-input" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select><div id="siteCloneBcDatastreamUuidManualRow" class="site-clone-bc-datastream-manual-row"><label for="siteCloneBcDatastreamUuidManual" class="spectrum-env-field__label site-clone-bc-datastream-manual-label">Or paste datastream UUID</label><input type="text" id="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-input site-clone-bc-datastream-manual-input spectrum-env-input" aria-label="Paste datastream UUID" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false"><div class="site-clone-bc-datastream-manual-actions"><button type="button" id="siteCloneBcDatastreamUuidManualApply" class="btn-lookup spectrum-btn spectrum-btn--primary site-clone-bc-datastream-manual-apply">Apply UUID</button><button type="button" id="siteCloneBcDatastreamUuidManualCancel" class="btn-lookup spectrum-btn spectrum-btn--secondary site-clone-bc-datastream-manual-cancel">Cancel</button></div><p id="siteCloneBcDatastreamUuidManualError" class="site-clone-bc-datastream-manual-error site-clone-bc-style-url-hint spectrum-env-field__hint" aria-live="polite"></p></div><p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint spectrum-env-field__hint spectrum-env-field__hint--muted" aria-live="polite">Used for lab sendEvent (edgeConfigOverrides).</p></div>' +
       '<div class="form-group form-row spectrum-env-field spectrum-env-field--full"><label for="generatorTarget">Event destination</label><select id="generatorTarget" class="spectrum-env-input" aria-label="Edge or DCS streaming target"></select></div>' +
       '<div class="spectrum-env-sdk-panel spectrum-env-sdk-panel--compact"><span class="spectrum-env-field__label">SDK status</span><span class="spectrum-env-badge spectrum-env-badge--green spectrum-env-badge--lg" id="aepSpectrumTargetSdkBadge">SDK Connected</span><p class="spectrum-env-sdk-panel__meta" id="aepSpectrumTargetSdkMeta">Destination: Edge · Environment: Development</p></div>' +
       '<div id="' +
@@ -268,8 +295,10 @@
       '<span class="spectrum-env-badge spectrum-env-badge--orange" id="aepSpectrumBcPillEnv" role="listitem">Development</span></div>' +
       '<p id="siteCloneBcStyleConfigResolved" class="site-clone-bc-style-url-hint spectrum-env-card__hint" aria-live="polite"></p>' +
       '<div class="spectrum-env-display-mode lab-env-bc-prefs-wrap"><span class="spectrum-env-field__label">Display mode</span><div ' +
-      prefsAttrs +
-      '></div></div></div></article></div>' +
+      bcPrefsAttrs +
+      '></div></div>' +
+      decisioningSection +
+      '</div></article></div>' +
       legacyHiddenToggles(prefix, c.defaultBcStyle || 'miral') +
       '<div class="form-row mod-demo-tags-company-row" hidden><label for="' +
       esc(prefix) +
@@ -319,8 +348,15 @@
       deps.mountSiteCloneProfileBcPrefs({
         mountId: 'siteCloneBcPrefsMount',
         includeBottomDock: shellCfg.includeBottomDock,
-        includeDecisioning: shellCfg.includeDecisioning,
+        includeDecisioning: false,
       });
+    }
+    if (
+      shellCfg.includeDecisioning !== false &&
+      deps &&
+      typeof deps.mountSiteCloneDecisioningPrefs === 'function'
+    ) {
+      deps.mountSiteCloneDecisioningPrefs({ mountId: 'siteCloneDecisioningPrefsMount' });
     }
 
     if (global.DemoEnvBarSpectrumSync && typeof global.DemoEnvBarSpectrumSync.init === 'function') {

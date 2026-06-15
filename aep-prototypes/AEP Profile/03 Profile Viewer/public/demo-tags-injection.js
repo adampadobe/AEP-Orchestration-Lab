@@ -371,7 +371,32 @@
     const iframes = iframeIds.map(byId).filter(Boolean);
     const hideTagsCompanyUi = cfg.hideTagsCompanyUi === true;
 
-    const setMessage = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+    const setMessageRaw = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+
+    function tagsStatusElement() {
+      if (cfg.tagsStatusId) return byId(cfg.tagsStatusId);
+      if (cfg.tagsPropertyInputId) {
+        return byId(String(cfg.tagsPropertyInputId).replace(/TagsProperty$/, 'TagsStatus'));
+      }
+      return null;
+    }
+
+    function setTagsInlineStatus(text) {
+      const el = tagsStatusElement();
+      if (!el) return;
+      el.textContent = String(text || '');
+    }
+
+    /** Route transient Tags loading copy to the Environment card — avoids footer layout shift. */
+    const setMessage = function (text, type) {
+      const t = String(text || '');
+      if (/^Loading\b/i.test(t)) {
+        setTagsInlineStatus(t);
+        return;
+      }
+      setTagsInlineStatus('');
+      setMessageRaw(t, type);
+    };
     const getSelectedGeneratorTarget =
       typeof cfg.getSelectedGeneratorTarget === 'function' ? cfg.getSelectedGeneratorTarget : null;
 
@@ -395,6 +420,10 @@
     let selectedScriptUrl = '';
     let allPropertyOptions = [];
     let selectedPropertyId = '';
+    let tagsCompaniesLoadGen = 0;
+    let tagsPropertiesLoadGen = 0;
+    let tagsSandboxReloadTimer = null;
+    let tagsSandboxReloadKey = '';
 
     function renderSelectedScript(url) {
       const prev = selectedScriptUrl;
@@ -526,8 +555,8 @@
       refreshTagsDom();
       const rec = readPersistedTagsPropertySelection();
       if (rec && rec.propertyId) selectedPropertyId = String(rec.propertyId);
-      if (tagsPropertyInput && rec && rec.propertyLabel) {
-        tagsPropertyInput.value = rec.propertyLabel;
+      if (tagsPropertyInput && rec && rec.propertyId) {
+        setTagsPropertyFieldValue(rec.propertyId, rec.propertyLabel);
       }
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
       if (persistedScript) renderSelectedScript(persistedScript);
@@ -548,13 +577,13 @@
         hit = findPropertyByLabel(rec.propertyLabel);
       }
       if (!hit || !hit.id) {
-        if (tagsPropertyInput && rec.propertyLabel) {
-          tagsPropertyInput.value = rec.propertyLabel;
+        if (tagsPropertyInput && rec.propertyId) {
+          setTagsPropertyFieldValue(rec.propertyId, rec.propertyLabel);
         }
         return;
       }
       selectedPropertyId = String(hit.id);
-      if (tagsPropertyInput) tagsPropertyInput.value = propertyLabelFromItem(hit);
+      setTagsPropertyFieldValue(selectedPropertyId, propertyLabelFromItem(hit));
       persistTagsPropertySelection(selectedPropertyId, propertyLabelFromItem(hit));
       await loadTagsEnvironments(selectedPropertyId);
     }
@@ -700,7 +729,7 @@
           })
         );
         if (isSdkConfiguredForSandbox()) markLabEnvConfiguredSession();
-        if (!expanded && !options.skipConfiguredSignals) {
+        if (!expanded && !options.skipConfiguredSignals && !isUserEnvPanelOpen()) {
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
@@ -852,7 +881,33 @@
       return (n || p.id || 'Unnamed') + ' (' + String(p && p.id ? p.id : '') + ')';
     }
 
-    function renderPropertySuggestions(query) {
+    function isTagsPropertySelect() {
+      return !!(tagsPropertyInput && tagsPropertyInput.tagName === 'SELECT');
+    }
+
+    function setTagsPropertyFieldValue(propertyId, propertyLabel) {
+      if (!tagsPropertyInput) return;
+      if (isTagsPropertySelect()) {
+        tagsPropertyInput.value = propertyId ? String(propertyId) : '';
+        return;
+      }
+      tagsPropertyInput.value = propertyLabel ? String(propertyLabel) : '';
+    }
+
+    function renderPropertyOptions(query) {
+      if (!tagsPropertyInput) return;
+      if (isTagsPropertySelect()) {
+        const keepId = String(selectedPropertyId || tagsPropertyInput.value || '').trim();
+        setSelectOptions(
+          tagsPropertyInput,
+          allPropertyOptions,
+          propertyLabelFromItem,
+          (p) => String(p && p.id ? p.id : ''),
+          'Select property',
+        );
+        if (keepId) tagsPropertyInput.value = keepId;
+        return;
+      }
       if (!tagsPropertyList) return;
       const q = String(query || '').trim().toLowerCase();
       tagsPropertyList.innerHTML = '';
@@ -868,6 +923,22 @@
         opt.value = propertyLabelFromItem(p);
         tagsPropertyList.appendChild(opt);
       });
+    }
+
+    function findPropertyFromField() {
+      if (!tagsPropertyInput) return null;
+      if (isTagsPropertySelect()) {
+        const id = String(tagsPropertyInput.value || '').trim();
+        if (!id) return null;
+        return (
+          allPropertyOptions.find(function (p) {
+            return String(p && p.id ? p.id : '') === id;
+          }) || null
+        );
+      }
+      const raw = String(tagsPropertyInput.value || '').trim();
+      if (!raw) return null;
+      return findPropertyByLabel(raw);
     }
 
     function findPropertyByLabel(label) {
@@ -890,10 +961,13 @@
 
     async function loadTagsCompanies() {
       if (!tagsCompanySelect) return;
+      const loadGen = ++tagsCompaniesLoadGen;
+      const sandboxKeyAtStart = getSandboxKey();
       applyPersistedTagsFieldsEarly();
       try {
         setMessage('Loading Tags companies...', '');
         const items = await fetchTags('companies');
+        if (loadGen !== tagsCompaniesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
         setSelectOptions(
           tagsCompanySelect,
           items,
@@ -914,7 +988,7 @@
         if (tagsPropertyInput && !(earlyRec && earlyRec.propertyLabel)) {
           tagsPropertyInput.value = '';
         }
-        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
+        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
 
@@ -971,14 +1045,17 @@
         allPropertyOptions = [];
         selectedPropertyId = '';
         tagsPropertyInput.value = '';
-        renderPropertySuggestions('');
+        renderPropertyOptions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         return;
       }
+      const loadGen = ++tagsPropertiesLoadGen;
+      const sandboxKeyAtStart = getSandboxKey();
       try {
         setMessage('Loading properties...', '');
         const items = await fetchTags('properties', companyId, '');
+        if (loadGen !== tagsPropertiesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
         allPropertyOptions = filterPropertiesForSandbox(items, cfg);
         const prefix = resolveTagsPropertyNamePrefix(cfg);
         if (prefix && !allPropertyOptions.length) {
@@ -991,7 +1068,7 @@
         }
         const earlyRec = readPersistedTagsPropertySelection();
         if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
-        renderPropertySuggestions(tagsPropertyInput ? tagsPropertyInput.value : '');
+        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
         await restorePersistedTagsPropertySelection();
@@ -1034,15 +1111,7 @@
     }
 
     async function applyPropertySelectionFromInput() {
-      const raw = tagsPropertyInput ? String(tagsPropertyInput.value || '').trim() : '';
-      if (!raw) {
-        selectedPropertyId = '';
-        persistTagsPropertySelection('', '');
-        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        syncSelectedScriptDisplayAfterTagsStructureChange();
-        return;
-      }
-      const hit = findPropertyByLabel(raw);
+      const hit = findPropertyFromField();
       if (!hit || !hit.id) {
         selectedPropertyId = '';
         persistTagsPropertySelection('', '');
@@ -1411,9 +1480,12 @@
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
       renderSelectedScript(persistedScript);
       const configured = isSdkConfiguredForSandbox();
-      const keepPanelOpen = !!(opts.announceSandboxChange && isUserEnvPanelOpen());
-      const expandFields = !configured || keepPanelOpen;
-      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen });
+      const overlayOpen = isUserEnvPanelOpen();
+      const tagsFieldsVisible = !!(sdkConfigFields && !sdkConfigFields.hidden);
+      const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
+      const preserveEditing = !!opts.preserveEditing || overlayOpen || tagsFieldsVisible;
+      const expandFields = !configured || keepPanelOpen || preserveEditing || !persistedScript;
+      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
       if (configured && persistedScript) markLabEnvConfiguredSession();
       if (opts.announceSandboxChange) {
         if (configured) {
@@ -1440,16 +1512,18 @@
       }
 
       if (tagsPropertyInput) {
-        tagsPropertyInput.addEventListener('input', function () {
-          renderPropertySuggestions(tagsPropertyInput.value || '');
-          void applyPropertySelectionFromInput();
-        });
         tagsPropertyInput.addEventListener('change', function () {
           void applyPropertySelectionFromInput();
         });
-        tagsPropertyInput.addEventListener('blur', function () {
-          void applyPropertySelectionFromInput();
-        });
+        if (!isTagsPropertySelect()) {
+          tagsPropertyInput.addEventListener('input', function () {
+            renderPropertyOptions(tagsPropertyInput.value || '');
+            void applyPropertySelectionFromInput();
+          });
+          tagsPropertyInput.addEventListener('blur', function () {
+            void applyPropertySelectionFromInput();
+          });
+        }
       }
 
       if (tagsEnvironmentSelect) {
@@ -1496,11 +1570,54 @@
       }
     }
 
-    global.addEventListener('aep-global-sandbox-change', function () {
+    function scheduleTagsReloadForSandbox(options) {
+      const opts = options || {};
+      const nextKey = getSandboxKey();
+      if (!opts.force && nextKey === tagsSandboxReloadKey && tagsCompaniesLoadGen > 0) {
+        refreshTagsDom();
+        applyPersistedTagsFieldsEarly();
+        if (opts.announceSandboxChange) {
+          applySandboxConfigState({ announceSandboxChange: true });
+        }
+        const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
+        if (companyId) {
+          void loadTagsProperties(companyId);
+        }
+        return;
+      }
+      clearTimeout(tagsSandboxReloadTimer);
+      tagsSandboxReloadTimer = setTimeout(function () {
+        tagsSandboxReloadTimer = null;
+        tagsSandboxReloadKey = getSandboxKey();
+        refreshTagsDom();
+        applyPersistedTagsFieldsEarly();
+        if (opts.announceSandboxChange) {
+          applySandboxConfigState({ announceSandboxChange: true });
+        }
+        void loadTagsCompanies();
+      }, 0);
+    }
+
+    function applyTagsPrefsAfterSync() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
-      applySandboxConfigState({ announceSandboxChange: true });
+      applySandboxConfigState({ preserveEditing: true });
+      const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
+      if (companyId) {
+        void loadTagsProperties(companyId);
+        return;
+      }
       void loadTagsCompanies();
+    }
+
+    global.addEventListener('aep-global-sandbox-change', function () {
+      scheduleTagsReloadForSandbox({ announceSandboxChange: true });
+    });
+
+    global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
+      if (!tagsDomReady()) return;
+      if (!tagsListenersBound) bindTagsListenersOnce();
+      applyTagsPrefsAfterSync();
     });
 
     let tagsBootStarted = false;

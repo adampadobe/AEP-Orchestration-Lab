@@ -60,17 +60,30 @@
       </div>
       <div class="form-row site-clone-bc-datastream-row">
         <label for="siteCloneBcDatastreamId">Alloy datastream</label>
-        <input
-          type="text"
+        <select
           id="siteCloneBcDatastreamId"
-          class="site-clone-bc-datastream-input"
+          class="site-clone-bc-datastream-input site-clone-bc-datastream-select"
           aria-label="Alloy datastream for Brand Concierge"
-          placeholder="Select or search datastream"
-          list="siteCloneBcDatastreamList"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <datalist id="siteCloneBcDatastreamList"></datalist>
+        >
+          <option value="">Select datastream</option>
+        </select>
+        <div id="siteCloneBcDatastreamUuidManualRow" class="site-clone-bc-datastream-manual-row">
+          <label for="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-manual-label">Or paste datastream UUID</label>
+          <input
+            type="text"
+            id="siteCloneBcDatastreamUuidManual"
+            class="site-clone-bc-datastream-input site-clone-bc-datastream-manual-input"
+            aria-label="Paste datastream UUID"
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="site-clone-bc-datastream-manual-actions">
+            <button type="button" id="siteCloneBcDatastreamUuidManualApply" class="btn-lookup site-clone-bc-datastream-manual-apply">Apply UUID</button>
+            <button type="button" id="siteCloneBcDatastreamUuidManualCancel" class="btn-lookup site-clone-bc-datastream-manual-cancel">Cancel</button>
+          </div>
+          <p id="siteCloneBcDatastreamUuidManualError" class="site-clone-bc-datastream-manual-error site-clone-bc-style-url-hint" aria-live="polite"></p>
+        </div>
         <p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite"></p>
       </div>
     </div>

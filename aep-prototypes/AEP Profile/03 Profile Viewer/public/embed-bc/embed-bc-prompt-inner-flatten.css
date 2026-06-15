@@ -1,0 +1,100 @@
+/**
+ * Brand Concierge prompt — keep .input-container outer chrome only.
+ * Removes the nested inner frame BC draws around the editable text.
+ */
+.embed-bc-inline #brand-concierge-mount .input-container > div,
+.aep-bc-modal #brand-concierge-mount .input-container > div,
+.aep-bc-modal #siteCloneBcModalMount .input-container > div,
+#siteCloneBcInline #brand-concierge-mount .input-container > div,
+.site-clone-bc-inline #brand-concierge-mount .input-container > div,
+#siteCloneBcModalMount .input-container > div,
+#siteCloneBcFrameMount .input-container > div,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container > div,
+#bcBottomDockMount .input-container > div,
+.bc-bottom-dock__mount #brand-concierge-mount .input-container > div,
+#bcModalBarMount .input-container > div,
+.bc-modal-bar__mount #brand-concierge-mount .input-container > div,
+#brand-concierge-mount-host .input-container > div {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.embed-bc-inline #brand-concierge-mount .input-container .input-bar,
+.aep-bc-modal #brand-concierge-mount .input-container .input-bar,
+.aep-bc-modal #siteCloneBcModalMount .input-container .input-bar,
+#siteCloneBcInline #brand-concierge-mount .input-container .input-bar,
+.site-clone-bc-inline #brand-concierge-mount .input-container .input-bar,
+#siteCloneBcModalMount .input-container .input-bar,
+#siteCloneBcFrameMount .input-container .input-bar,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container .input-bar,
+#bcBottomDockMount .input-container .input-bar,
+.bc-bottom-dock__mount #brand-concierge-mount .input-container .input-bar,
+#bcModalBarMount .input-container .input-bar,
+.bc-modal-bar__mount #brand-concierge-mount .input-container .input-bar,
+#brand-concierge-mount-host .input-container .input-bar,
+.embed-bc-inline #brand-concierge-mount .input-container .input-bar *:not(button),
+.aep-bc-modal #brand-concierge-mount .input-container .input-bar *:not(button),
+.aep-bc-modal #siteCloneBcModalMount .input-container .input-bar *:not(button),
+#siteCloneBcInline #brand-concierge-mount .input-container .input-bar *:not(button),
+.site-clone-bc-inline #brand-concierge-mount .input-container .input-bar *:not(button),
+#siteCloneBcModalMount .input-container .input-bar *:not(button),
+#siteCloneBcFrameMount .input-container .input-bar *:not(button),
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container .input-bar *:not(button),
+#bcBottomDockMount .input-container .input-bar *:not(button),
+.bc-bottom-dock__mount #brand-concierge-mount .input-container .input-bar *:not(button),
+#bcModalBarMount .input-container .input-bar *:not(button),
+.bc-modal-bar__mount #brand-concierge-mount .input-container .input-bar *:not(button),
+#brand-concierge-mount-host .input-container .input-bar *:not(button) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.embed-bc-inline #brand-concierge-mount .input-container [contenteditable],
+.aep-bc-modal #brand-concierge-mount .input-container [contenteditable],
+.aep-bc-modal #siteCloneBcModalMount .input-container [contenteditable],
+#siteCloneBcInline #brand-concierge-mount .input-container [contenteditable],
+.site-clone-bc-inline #brand-concierge-mount .input-container [contenteditable],
+#siteCloneBcModalMount .input-container [contenteditable],
+#siteCloneBcFrameMount .input-container [contenteditable],
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container [contenteditable],
+#bcBottomDockMount .input-container [contenteditable],
+.bc-bottom-dock__mount #brand-concierge-mount .input-container [contenteditable],
+#bcModalBarMount .input-container [contenteditable],
+.bc-modal-bar__mount #brand-concierge-mount .input-container [contenteditable],
+#brand-concierge-mount-host .input-container [contenteditable],
+.embed-bc-inline #brand-concierge-mount .input-container textarea,
+.aep-bc-modal #brand-concierge-mount .input-container textarea,
+.aep-bc-modal #siteCloneBcModalMount .input-container textarea,
+#siteCloneBcInline #brand-concierge-mount .input-container textarea,
+.site-clone-bc-inline #brand-concierge-mount .input-container textarea,
+#siteCloneBcModalMount .input-container textarea,
+#siteCloneBcFrameMount .input-container textarea,
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container textarea,
+#bcBottomDockMount .input-container textarea,
+.bc-bottom-dock__mount #brand-concierge-mount .input-container textarea,
+#bcModalBarMount .input-container textarea,
+.bc-modal-bar__mount #brand-concierge-mount .input-container textarea,
+#brand-concierge-mount-host .input-container textarea,
+.embed-bc-inline #brand-concierge-mount .input-container input:not([type='hidden']),
+.aep-bc-modal #brand-concierge-mount .input-container input:not([type='hidden']),
+.aep-bc-modal #siteCloneBcModalMount .input-container input:not([type='hidden']),
+#siteCloneBcInline #brand-concierge-mount .input-container input:not([type='hidden']),
+.site-clone-bc-inline #brand-concierge-mount .input-container input:not([type='hidden']),
+#siteCloneBcModalMount .input-container input:not([type='hidden']),
+#siteCloneBcFrameMount .input-container input:not([type='hidden']),
+.site-clone-bc-frame-host #siteCloneBcFrameMount .input-container input:not([type='hidden']),
+#bcBottomDockMount .input-container input:not([type='hidden']),
+.bc-bottom-dock__mount #brand-concierge-mount .input-container input:not([type='hidden']),
+#bcModalBarMount .input-container input:not([type='hidden']),
+.bc-modal-bar__mount #brand-concierge-mount .input-container input:not([type='hidden']),
+#brand-concierge-mount-host .input-container input:not([type='hidden']) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}

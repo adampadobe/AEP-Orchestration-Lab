@@ -2,22 +2,25 @@
 <html lang="en-ZA">
 <head>
   <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Old Mutual (demo) - AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="oldmutual-demo.css?v=20260520-env-bar-std">
-  <link rel="stylesheet" href="site-clone-bc.css?v=20260527-site-clone-bc">
+  <link rel="stylesheet" href="site-clone-bc.css?v=20260614-modal-dock-parity">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script>if(/\baepSimMobile=1\b/.test(location.search)){document.documentElement.classList.add('aep-sim-mobile');var _as=document.createElement('link');_as.rel='stylesheet';_as.href='aep-sim-mobile.css';document.head.appendChild(_as);}</script>
   <script defer src="aep-sim-mobile.js"></script>
   <!-- Optional: embed Adobe Experience Platform Tags (Launch) before oldmutual-demo.js so window.alloy is available for ECID. -->
 </head>
-<body class="oldmutual-demo-page">
+<body class="oldmutual-demo-page home-dashboard-concierge">
   <div id="raceMessageRevealZone" class="om-message-reveal-zone" aria-hidden="true"></div>
 
   <div class="om-demo-top-anchor" id="omDemoTopAnchor">
@@ -36,6 +39,21 @@
         data-demo-env-strip-profile-btn-label="Login"
         data-demo-env-strip-default-bc-style="miral"></div>
     </header>
+  </div>
+
+  <div id="siteCloneBcFrameHost" class="site-clone-bc-frame-host" hidden>
+    <div id="siteCloneBcFrameMount" class="site-clone-bc-frame-mount"></div>
+  </div>
+  <button type="button" id="siteCloneBcFab" class="aep-bc-reopen-btn site-clone-bc-fab" hidden aria-label="Open Brand Concierge" aria-expanded="false" aria-controls="aepBcModal">
+    <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
+  </button>
+  <div id="aepBcModal" class="aep-bc-modal" role="dialog" aria-modal="true" aria-labelledby="aepBcModalTitle" hidden>
+    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
+    <div class="aep-bc-modal__dialog">
+      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">&times;</button>
+      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
+      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
+    </div>
   </div>
 
   <main class="om-site-frame" aria-label="Old Mutual homepage inspired layout">
@@ -440,14 +458,15 @@
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
   <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/env-bar.js?v=20260612-env-bar"></script>
+  <script src="shared/env-bar.js?v=20260616-remote-decisioning"></script>
   <script>
     window.envBarConfig = {
       prefix: 'om',
       variant: 'spectrum',
       features: {
-      webPush: true,
-      bc: true,
+        webPush: true,
+        bc: true,
+        decisioning: true,
       },
     };
   </script>
@@ -467,35 +486,21 @@
         bcOnInjectToggleId: 'omBcOnInjectToggle',
         bcStyleSelectId: 'omBcStyleSelect',
       };
+      window.SiteCloneBcPage = {
+        statusMessageId: 'omMessage',
+        bottomDockCtaLabel: 'ASK',
+        bottomDockPanelTitle: 'Old Mutual assistant',
+        bottomDockPlaceholder: 'Ask about insurance, investments, and financial planning…',
+        bottomDockBetaLabel: 'BETA',
+      };
     })();
   </script>
   <script src="oldmutual-demo.js?v=20260601-env-strip"></script>
-  <script src="site-clone-bc.js?v=20260601-env-strip"></script>
+  <script src="site-clone-bc.js?v=20260614-modal-dock-parity"></script>
   <script src="recent-access.js"></script>
   <script>AEPRecentAccess.recordCurrentPage();</script>
-  <div id="brand-concierge-mount-host" aria-live="polite">
-    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">×</button>
-    <div id="brand-concierge-mount"></div>
-  </div>
-  <button type="button" id="omBcLauncher" class="aep-bc-park-launcher" aria-label="Open Brand Concierge">
-    <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d="M22 6l1.2 4.4L28 12l-4.8 1.4L22 18l-1.2-4.6L16 12l4.8-1.6L22 6z" fill="currentColor"/>
-      <path d="M10 26l0.6 2 2 0.6-2 0.6L10 31l-0.6-2-2-0.6 2-0.6 0.6-2z" fill="currentColor" opacity=".6"/>
-    </svg>
-    Ask
-  </button>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
-
-  <div id="aepBcModal" class="aep-bc-modal" role="dialog" aria-modal="true" aria-labelledby="aepBcModalTitle" hidden>
-    <button type="button" class="aep-bc-modal__backdrop" data-aep-bc-close aria-label="Close dialog"></button>
-    <div class="aep-bc-modal__dialog">
-      <button type="button" class="aep-bc-modal__close" data-aep-bc-close aria-label="Close Brand Concierge">&times;</button>
-      <h2 id="aepBcModalTitle" class="visually-hidden">Brand Concierge</h2>
-      <div id="brand-concierge-mount" class="aep-bc-modal__mount"></div>
-    </div>
-  </div>
-  <button type="button" id="siteCloneBcFab" class="aep-bc-reopen-btn site-clone-bc-fab" hidden aria-label="Open Brand Concierge" aria-expanded="false" aria-controls="aepBcModal">
-    <img src="https://contenthosting.web.app/logos/adobe_icon_146235.webp" alt="" width="48" height="48" decoding="async" />
-  </button>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
 </body>
 </html>

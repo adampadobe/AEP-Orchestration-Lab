@@ -1,14 +1,14 @@
 {
-  "gitSha": "269a927ef4234eda7d6348ded2d1b483f8b670b2",
-  "gitShortSha": "269a927e",
+  "gitSha": "c3670e4fb94acb2866bd03dd06ae2ffda1e2ba72",
+  "gitShortSha": "c3670e4f",
   "gitBranch": "main",
-  "gitCommitSubject": "[kirkham] fix: refresh BC display toggles after async env strip mount",
-  "gitCommitAuthor": "Alan Kirkham",
-  "gitCommitDate": "2026-06-15T10:34:56+01:00",
-  "deployedAt": "2026-06-15T09:38:34.027Z",
+  "gitCommitSubject": "[apalmer] fix: always show datastream UUID paste field on env bar",
+  "gitCommitAuthor": "adampadobe",
+  "gitCommitDate": "2026-06-15T21:18:48+01:00",
+  "deployedAt": "2026-06-15T20:19:04.503Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/269a927ef4234eda7d6348ded2d1b483f8b670b2"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c3670e4fb94acb2866bd03dd06ae2ffda1e2ba72"
 }

@@ -27,12 +27,11 @@ nav button[type='button'][aria-label][data-current='true'] {
 }
 
 /* Black vertical active indicator (matches Adobe LLM Optimizer) */
-[id^='org-nav-item-'].sky-llm-nav-active {
+[id^='org-nav-item-'] {
   position: relative;
 }
 
-[id^='org-nav-item-'].sky-llm-nav-active::before {
-  content: '';
+.sky-llm-nav-active-rail {
   position: absolute;
   left: 0;
   top: 6px;
@@ -40,7 +39,12 @@ nav button[type='button'][aria-label][data-current='true'] {
   width: 3px;
   background: rgb(26, 26, 26);
   border-radius: 1px;
-  z-index: 2;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.sky-llm-nav-active-rail[hidden] {
+  display: none !important;
 }
 
 /* Hide baked-in rails until JS marks active (avoids wrong page highlight) */

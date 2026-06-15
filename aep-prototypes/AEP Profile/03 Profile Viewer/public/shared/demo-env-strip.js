@@ -90,14 +90,9 @@
       '<label for="' +
       esc(p) +
       'TagsProperty">Tags property</label>' +
-      '<input type="text" id="' +
+      '<select id="' +
       esc(p) +
-      'TagsProperty" aria-label="Tags property" placeholder="Select property" list="' +
-      esc(p) +
-      'TagsPropertyList" autocomplete="off" spellcheck="false">' +
-      '<datalist id="' +
-      esc(p) +
-      'TagsPropertyList"></datalist>' +
+      'TagsProperty" aria-label="Tags property"><option value="">Select property</option></select>' +
       '</div>' +
       '<div class="site-clone-bc-env-strip__inject-actions mod-demo-id-actions">' +
       '<button type="button" id="' +
@@ -113,6 +108,10 @@
       esc(p) +
       'TagsEnvironment" aria-label="Tags environment"></select>' +
       '</div>' +
+      '</div>' +
+      '<p id="' +
+      esc(p) +
+      'TagsStatus" class="site-clone-bc-tags-status" aria-live="polite"></p>' +
       '<div class="site-clone-bc-env-product-block" role="group" aria-labelledby="siteCloneBcProductHeading">' +
       '<span class="site-clone-bc-prefs__label site-clone-env-product-kicker" id="siteCloneBcProductHeading">Brand Concierge</span>' +
       '<div class="form-row site-clone-bc-style-url-row">' +
@@ -125,8 +124,16 @@
       '<span class="site-clone-bc-prefs__label site-clone-env-product-kicker" id="siteCloneTargetProductHeading">Adobe Target</span>' +
       '<div class="form-row site-clone-bc-datastream-row">' +
       '<label for="siteCloneBcDatastreamId">Lab datastream override</label>' +
-      '<input type="text" id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input" aria-label="Lab datastream override UUID" placeholder="Target-enabled datastream UUID" list="siteCloneBcDatastreamList" autocomplete="off" spellcheck="false">' +
-      '<datalist id="siteCloneBcDatastreamList"></datalist>' +
+      '<select id="siteCloneBcDatastreamId" class="site-clone-bc-datastream-input site-clone-bc-datastream-select" aria-label="Lab datastream override UUID"><option value="">Select datastream</option></select>' +
+      '<div id="siteCloneBcDatastreamUuidManualRow" class="site-clone-bc-datastream-manual-row">' +
+      '<label for="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-manual-label">Or paste datastream UUID</label>' +
+      '<input type="text" id="siteCloneBcDatastreamUuidManual" class="site-clone-bc-datastream-input site-clone-bc-datastream-manual-input" aria-label="Paste datastream UUID" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">' +
+      '<div class="site-clone-bc-datastream-manual-actions">' +
+      '<button type="button" id="siteCloneBcDatastreamUuidManualApply" class="btn-lookup site-clone-bc-datastream-manual-apply">Apply UUID</button>' +
+      '<button type="button" id="siteCloneBcDatastreamUuidManualCancel" class="btn-lookup site-clone-bc-datastream-manual-cancel">Cancel</button>' +
+      '</div>' +
+      '<p id="siteCloneBcDatastreamUuidManualError" class="site-clone-bc-datastream-manual-error site-clone-bc-style-url-hint" aria-live="polite"></p>' +
+      '</div>' +
       '<p id="siteCloneBcDatastreamHint" class="site-clone-bc-style-url-hint" aria-live="polite">Used for lab sendEvent / Target (edgeConfigOverrides).</p>' +
       '</div>' +
       '</div>' +
@@ -175,6 +182,27 @@
     );
   }
 
+  function decisioningPrefsFieldMarkup(options) {
+    var opt = options || {};
+    var showLabel = opt.showLabel !== false;
+    var label = showLabel
+      ? '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>'
+      : '';
+    var labelledBy = showLabel ? ' aria-labelledby="siteCloneDecisioningPrefsHeading"' : ' aria-label="Decisioning"';
+    return (
+      '<div class="site-clone-decisioning-prefs-field" role="group"' +
+      labelledBy +
+      '>' +
+      label +
+      '<div class="site-clone-bc-prefs__options">' +
+      '<label class="site-clone-bc-prefs__option">' +
+      '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
+      '<span>Enable</span>' +
+      '</label>' +
+      '</div></div>'
+    );
+  }
+
   function siteCloneProfileBcPrefsMarkup(options) {
     var opt = options || {};
     var bottomDockOption = opt.includeBottomDock
@@ -183,16 +211,7 @@
         '<span>Centre bottom</span>' +
         '</label>'
       : '';
-    var decisioningBlock = opt.includeDecisioning
-      ? '<div class="site-clone-decisioning-prefs-field" role="group" aria-labelledby="siteCloneDecisioningPrefsHeading">' +
-        '<span class="site-clone-bc-prefs__label" id="siteCloneDecisioningPrefsHeading">Decisioning</span>' +
-        '<div class="site-clone-bc-prefs__options">' +
-        '<label class="site-clone-bc-prefs__option">' +
-        '<input type="checkbox" id="siteCloneDecisioningEnabledToggle">' +
-        '<span>Enable</span>' +
-        '</label>' +
-        '</div></div>'
-      : '';
+    var decisioningBlock = opt.includeDecisioning ? decisioningPrefsFieldMarkup() : '';
     return (
       '<div class="site-clone-profile-lab-prefs-row">' +
       '<div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">' +
@@ -209,6 +228,10 @@
       '<label class="site-clone-bc-prefs__option">' +
       '<input type="checkbox" id="siteCloneBcInjectedToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
       '<span>Injected</span>' +
+      '</label>' +
+      '<label class="site-clone-bc-prefs__option">' +
+      '<input type="checkbox" id="siteCloneBcModalBarToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
+      '<span>Modal bar</span>' +
       '</label>' +
       bottomDockOption +
       '</div>' +
@@ -525,16 +548,48 @@
     return { mounted: !!mounted };
   }
 
+  function mountSiteCloneDecisioningPrefs(config) {
+    var c = config || {};
+    var hostId = c.mountId || 'siteCloneDecisioningPrefsMount';
+    var host = document.getElementById(hostId);
+    if (!host) return { mounted: false, reason: 'host-not-found' };
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) {
+      return { mounted: true, alreadyPresent: true };
+    }
+    if (host.getAttribute(MOUNTED_ATTR) === '1') {
+      host.removeAttribute(MOUNTED_ATTR);
+    }
+    host.innerHTML = decisioningPrefsFieldMarkup({ showLabel: false });
+    host.setAttribute(MOUNTED_ATTR, '1');
+    try {
+      global.dispatchEvent(
+        new CustomEvent(MOUNTED_EVENT, { detail: { mountId: hostId, section: 'decisioning-prefs' } }),
+      );
+    } catch (_e) {
+      /* noop */
+    }
+    return { mounted: true };
+  }
+
   function mountSiteCloneProfileBcPrefs(config) {
     var c = config || {};
     var hostId = c.mountId || 'siteCloneBcPrefsMount';
     var host = document.getElementById(hostId);
     if (!host) return { mounted: false, reason: 'host-not-found' };
-    if (host.getAttribute(MOUNTED_ATTR) === '1') return { mounted: true, alreadyPresent: true };
     var includeBottomDock =
       c.includeBottomDock === true || host.getAttribute('data-demo-env-strip-bc-bottom') === '1';
     var includeDecisioning =
-      c.includeDecisioning !== false && host.getAttribute('data-demo-env-strip-decisioning') !== '0';
+      c.includeDecisioning !== false &&
+      host.getAttribute('data-demo-env-strip-decisioning') !== '0' &&
+      !(
+        global.envBarConfig &&
+        global.envBarConfig.features &&
+        global.envBarConfig.features.decisioning === false
+      );
+    var needsDecisioning = includeDecisioning && !document.getElementById('siteCloneDecisioningEnabledToggle');
+    if (host.getAttribute(MOUNTED_ATTR) === '1' && !needsDecisioning) {
+      return { mounted: true, alreadyPresent: true };
+    }
     host.innerHTML = siteCloneProfileBcPrefsMarkup({ includeBottomDock: includeBottomDock, includeDecisioning: includeDecisioning });
     host.setAttribute(MOUNTED_ATTR, '1');
     return { mounted: true };
@@ -552,6 +607,7 @@
     if (shellCfg.variant === 'spectrum' && global.DemoEnvStripSpectrum && typeof global.DemoEnvStripSpectrum.mountSpectrumShell === 'function') {
       return global.DemoEnvStripSpectrum.mountSpectrumShell(host, shellCfg, {
         mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
+        mountSiteCloneDecisioningPrefs: mountSiteCloneDecisioningPrefs,
       });
     }
     host.classList.add('aep-demo-id-inner');
@@ -564,7 +620,7 @@
     mountSiteCloneProfileBcPrefs({
       mountId: 'siteCloneBcPrefsMount',
       includeBottomDock: shellCfg.includeBottomDock,
-      includeDecisioning: shellCfg.includeDecisioning,
+      includeDecisioning: shellCfg.includeDecisioning !== false,
     });
     mountShellFooter(host, shellCfg);
     return { mounted: true };
@@ -623,12 +679,18 @@
       if (host.getAttribute(MOUNTED_ATTR) === '1') return;
       mountSiteCloneProfileBcPrefs({ mountId: host.id || 'siteCloneBcPrefsMount' });
     });
+    var decisioningHosts = document.querySelectorAll('[' + MOUNT_ATTR + '="site-clone-decisioning-prefs"]');
+    decisioningHosts.forEach(function (host) {
+      if (host.getAttribute(MOUNTED_ATTR) === '1') return;
+      mountSiteCloneDecisioningPrefs({ mountId: host.id || 'siteCloneDecisioningPrefsMount' });
+    });
   }
 
   var api = {
     CACHE_BUST: CACHE_BUST,
     siteCloneTagsFieldsMarkup: siteCloneTagsFieldsMarkup,
     siteCloneProfileBcPrefsMarkup: siteCloneProfileBcPrefsMarkup,
+    decisioningPrefsFieldMarkup: decisioningPrefsFieldMarkup,
     siteCloneEnvShellGridMarkup: siteCloneEnvShellGridMarkup,
     siteCloneMinimalGridMarkup: siteCloneMinimalGridMarkup,
     siteCloneSandboxOnlyMarkup: siteCloneSandboxOnlyMarkup,
@@ -636,6 +698,7 @@
     readShellConfig: readShellConfig,
     mountSiteCloneTagsFields: mountSiteCloneTagsFields,
     mountSiteCloneProfileBcPrefs: mountSiteCloneProfileBcPrefs,
+    mountSiteCloneDecisioningPrefs: mountSiteCloneDecisioningPrefs,
     mountSiteCloneEnvShell: mountSiteCloneEnvShell,
     mountSiteCloneMinimalShell: mountSiteCloneMinimalShell,
     mountSiteCloneSandboxOnly: mountSiteCloneSandboxOnly,

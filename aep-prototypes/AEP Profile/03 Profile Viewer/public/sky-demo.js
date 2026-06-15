@@ -250,37 +250,6 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
 });
-
-(function initSkyBottomDock() {
-  if (!document.body.classList.contains('sky-demo-page')) return;
-
-  var skyBottomDockConfig = {
-    ctaLabel: 'ASK SKY',
-    panelTitle: 'Sky assistant',
-    placeholder: 'Ask about TV, broadband, Sky Glass, and packages…',
-    disclaimer: 'This assistant uses demo catalogue data and may provide incomplete responses. Not affiliated with Sky Group.',
-    betaLabel: 'BETA',
-    mountSelector: '#bcBottomDockMount',
-    onExpand: function () {
-      if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
-        void window.SiteCloneBc.sync();
-      }
-    },
-  };
-
-  if (typeof window.BrandConciergeBottomDock !== 'undefined') {
-    window.BrandConciergeBottomDock.init(skyBottomDockConfig);
-  }
-
-  var bottomToggle = document.getElementById('siteCloneBcBottomDockToggle');
-  if (bottomToggle) {
-    var syncBottomDockClass = function () {
-      document.body.classList.toggle('sky-demo-page--bottom-dock-armed', !!bottomToggle.checked);
-    };
-    bottomToggle.addEventListener('change', syncBottomDockClass);
-    syncBottomDockClass();
-  }
-})();
   }
 
   if (global.envBar && typeof global.envBar.ready === 'function') {

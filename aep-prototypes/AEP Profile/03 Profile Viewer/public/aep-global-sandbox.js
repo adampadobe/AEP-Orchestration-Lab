@@ -6,13 +6,26 @@
   var LS_SANDBOX = 'aepGlobalSandboxName';
   var LS_RECENT = 'aepRecentSandboxes';
   var MAX_RECENT = 5;
+  var PENDING_ATTR = 'data-aep-pending-sandbox';
+  var LOAD_GEN_ATTR = 'data-aep-sandbox-load-gen';
+  var lastDispatchedSandbox = null;
+  var loadInFlightBySelect = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
+  function trim(s) {
+    return String(s || '').trim();
+  }
 
   function getSelected() {
     try {
-      return localStorage.getItem(LS_SANDBOX) || '';
+      var v = localStorage.getItem(LS_SANDBOX) || '';
+      if (v) return v;
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.getSelectedSandbox === 'function') {
+        return String(global.AepLabEnvBarPrefs.getSelectedSandbox() || '').trim();
+      }
     } catch (e) {
       return '';
     }
+    return '';
   }
 
   function getRecentSandboxes() {
@@ -39,8 +52,17 @@
   }
 
   function setSelected(name, opts) {
-    var v = name != null ? String(name) : '';
+    var v = name != null ? String(name).trim() : '';
     var source = opts && opts.source ? String(opts.source) : 'programmatic';
+    var force = !!(opts && opts.force);
+    if (!force && v === lastDispatchedSandbox) {
+      try {
+        if (v) localStorage.setItem(LS_SANDBOX, v);
+        else localStorage.removeItem(LS_SANDBOX);
+      } catch (_ls) {}
+      return;
+    }
+    lastDispatchedSandbox = v;
     try {
       if (v) localStorage.setItem(LS_SANDBOX, v);
       else localStorage.removeItem(LS_SANDBOX);
@@ -51,6 +73,43 @@
         new CustomEvent('aep-global-sandbox-change', { detail: { name: v, source: source } }),
       );
     } catch (e) {}
+  }
+
+  function isLoadingPlaceholderSelect(sandboxSelect) {
+    if (!sandboxSelect || !sandboxSelect.options || !sandboxSelect.options.length) return false;
+    var first = sandboxSelect.options[0];
+    var text = first ? String(first.textContent || '').toLowerCase() : '';
+    return text.indexOf('loading sandbox') !== -1;
+  }
+
+  function capturePendingSandboxBeforeLoad(sandboxSelect) {
+    if (!sandboxSelect) return;
+    var pending = '';
+    if (!isLoadingPlaceholderSelect(sandboxSelect)) {
+      pending = trim(sandboxSelect.value);
+    }
+    if (!pending) pending = getSelected();
+    if (pending) sandboxSelect.setAttribute(PENDING_ATTR, pending);
+  }
+
+  function applyStoredSandboxToSelect(sandboxSelect) {
+    if (!sandboxSelect) return;
+    var saved = getSelected();
+    if (!saved) return;
+    sandboxSelect.setAttribute(PENDING_ATTR, saved);
+    if (isLoadingPlaceholderSelect(sandboxSelect)) {
+      sandboxSelect.innerHTML = '';
+      var opt = document.createElement('option');
+      opt.value = saved;
+      opt.textContent = saved + ' (saved)';
+      sandboxSelect.appendChild(opt);
+      sandboxSelect.value = saved;
+      return;
+    }
+    var hasOption = Array.from(sandboxSelect.options).some(function (o) {
+      return o.value === saved;
+    });
+    if (hasOption) sandboxSelect.value = saved;
   }
 
   function parseAepProxyBody(text) {
@@ -159,8 +218,29 @@
     }
   }
 
+  function resolveSandboxSelection(sandboxSelect, byName) {
+    var saved = getSelected();
+    if (!saved && isInjectReloadInProgress()) {
+      saved = readInjectSandboxSnapshotEarly();
+    }
+    var pending = sandboxSelect ? trim(sandboxSelect.getAttribute(PENDING_ATTR)) : '';
+    if (!saved && pending) saved = pending;
+    if (!saved && sandboxSelect && !isLoadingPlaceholderSelect(sandboxSelect)) {
+      var cur = trim(sandboxSelect.value);
+      if (cur && (!byName || byName[cur])) saved = cur;
+    }
+    if (saved) {
+      if (byName && byName[saved]) return saved;
+      return saved;
+    }
+    if (byName && byName['apalmer']) return 'apalmer';
+    if (byName && byName['kirkham']) return 'kirkham';
+    return '';
+  }
+
   function fillSandboxSelect(sandboxSelect, sandboxes) {
     if (!sandboxSelect) return;
+    var previous = trim(sandboxSelect.value);
     sandboxSelect.innerHTML = '';
     var defaultOpt = document.createElement('option');
     defaultOpt.value = '';
@@ -196,28 +276,26 @@
     sorted.forEach(function (s) { allGroup.appendChild(makeOption(s)); });
     sandboxSelect.appendChild(allGroup);
 
-    var saved = getSelected().trim();
-    if (!saved && isInjectReloadInProgress()) {
-      saved = readInjectSandboxSnapshotEarly();
+    var pick = resolveSandboxSelection(sandboxSelect, byName);
+    if (pick && byName[pick]) {
+      sandboxSelect.value = pick;
+    } else if (pick) {
+      var orphanOpt = document.createElement('option');
+      orphanOpt.value = pick;
+      orphanOpt.textContent = pick + ' (saved)';
+      sandboxSelect.appendChild(orphanOpt);
+      sandboxSelect.value = pick;
+    } else if (previous && byName[previous]) {
+      sandboxSelect.value = previous;
     }
-    if (saved) {
-      if (byName[saved]) {
-        sandboxSelect.value = saved;
-      } else {
-        // Preserve saved sandbox even when absent from list (stale name, slow org load).
-        var orphanOpt = document.createElement('option');
-        orphanOpt.value = saved;
-        orphanOpt.textContent = saved + ' (saved)';
-        sandboxSelect.appendChild(orphanOpt);
-        sandboxSelect.value = saved;
-      }
-    } else if (byName['apalmer']) {
-      sandboxSelect.value = 'apalmer';
-    } else if (byName['kirkham']) {
-      sandboxSelect.value = 'kirkham';
+    if (isInjectReloadInProgress()) {
+      var snap = readInjectSandboxSnapshotEarly();
+      if (snap) sandboxSelect.value = snap;
     }
-    if (isInjectReloadInProgress() && saved) {
-      sandboxSelect.value = saved;
+    if (pick || sandboxSelect.value) {
+      sandboxSelect.setAttribute(PENDING_ATTR, trim(sandboxSelect.value));
+    } else {
+      sandboxSelect.removeAttribute(PENDING_ATTR);
     }
     // UI-only default — never persist apalmer/kirkham unless the user picks from the dropdown.
     // getSandboxName() reads #sandboxSelect before localStorage, so API calls still honor the visible default.
@@ -225,26 +303,52 @@
 
   async function loadSandboxesIntoSelect(sandboxSelect) {
     if (!sandboxSelect) return;
-    sandboxSelect.innerHTML = '<option value="">Loading sandboxes…</option>';
-    var sandboxes;
-    try {
-      sandboxes = await fetchSandboxesViaAepProxy();
-    } catch (e1) {
-      try {
-        sandboxes = await fetchSandboxesViaExpress();
-      } catch (e2) {
-        sandboxSelect.innerHTML = '<option value="">Failed to load sandboxes</option>';
-        console.warn('Sandbox list:', e1 && e1.message, e2 && e2.message);
-        return;
-      }
+    if (loadInFlightBySelect && loadInFlightBySelect.has(sandboxSelect)) {
+      return loadInFlightBySelect.get(sandboxSelect);
     }
-    fillSandboxSelect(sandboxSelect, sandboxes);
+    var gen = parseInt(sandboxSelect.getAttribute(LOAD_GEN_ATTR) || '0', 10) + 1;
+    sandboxSelect.setAttribute(LOAD_GEN_ATTR, String(gen));
+    capturePendingSandboxBeforeLoad(sandboxSelect);
+    var showLoading = isLoadingPlaceholderSelect(sandboxSelect) || sandboxSelect.options.length <= 1;
+    if (showLoading) {
+      sandboxSelect.innerHTML = '<option value="">Loading sandboxes…</option>';
+    }
+    var promise = (async function () {
+      var sandboxes;
+      try {
+        sandboxes = await fetchSandboxesViaAepProxy();
+      } catch (e1) {
+        try {
+          sandboxes = await fetchSandboxesViaExpress();
+        } catch (e2) {
+          if (parseInt(sandboxSelect.getAttribute(LOAD_GEN_ATTR) || '0', 10) === gen) {
+            sandboxSelect.innerHTML = '<option value="">Failed to load sandboxes</option>';
+          }
+          console.warn('Sandbox list:', e1 && e1.message, e2 && e2.message);
+          return;
+        }
+      }
+      if (parseInt(sandboxSelect.getAttribute(LOAD_GEN_ATTR) || '0', 10) !== gen) return;
+      fillSandboxSelect(sandboxSelect, sandboxes);
+    })();
+    if (loadInFlightBySelect) {
+      loadInFlightBySelect.set(sandboxSelect, promise);
+      promise.finally(function () {
+        if (loadInFlightBySelect.get(sandboxSelect) === promise) {
+          loadInFlightBySelect.delete(sandboxSelect);
+        }
+      });
+    }
+    return promise;
   }
 
   function onSandboxSelectChange(sandboxSelect) {
     if (!sandboxSelect || sandboxSelect.dataset.aepGlobalListener === '1') return;
     sandboxSelect.dataset.aepGlobalListener = '1';
     sandboxSelect.addEventListener('change', function () {
+      var v = trim(sandboxSelect.value);
+      if (v) sandboxSelect.setAttribute(PENDING_ATTR, v);
+      else sandboxSelect.removeAttribute(PENDING_ATTR);
       setSelected(sandboxSelect.value, { source: 'user' });
     });
   }
@@ -320,6 +424,7 @@
     getScopeQuery: getScopeQuery,
     loadSandboxesIntoSelect: loadSandboxesIntoSelect,
     fillSandboxSelect: fillSandboxSelect,
+    applyStoredSandboxToSelect: applyStoredSandboxToSelect,
     onSandboxSelectChange: onSandboxSelectChange,
     attachStorageSync: attachStorageSync,
   };

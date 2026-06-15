@@ -50,6 +50,18 @@
   outline: none !important;
 }
 
+.sky-llm-filter-shell input[role='combobox'][aria-hidden='true'] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.sky-llm-filter-shell .multiselect-as-select > button:not(.sky-llm-filter-trigger) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 .sky-llm-platform-host,
 .sky-llm-date-host {
   position: relative;
@@ -59,6 +71,7 @@
   align-items: stretch;
   min-width: 0;
   width: 100%;
+  pointer-events: auto !important;
 }
 
 .sky-llm-platform-trigger,
@@ -83,6 +96,7 @@
   color: #222;
   cursor: pointer;
   text-align: left;
+  pointer-events: auto !important;
 }
 
 .sky-llm-platform-trigger:hover,
@@ -210,6 +224,7 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
   align-items: stretch;
   min-width: 0;
   width: 100%;
+  pointer-events: auto !important;
 }
 
 .sky-llm-filter-host.is-open .sky-llm-filter-trigger {
@@ -241,6 +256,130 @@ body [role='listbox']:not(.sky-llm-platform-menu):not(.sky-llm-date-menu):not(.s
   background: #fff;
   font-size: 13px;
   color: #6e6e6e;
+}
+
+.sky-llm-filter-menu-search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 8px 12px;
+  border: 1px solid #dadada;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.sky-llm-filter-menu-search-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background: center / contain no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%236e6e6e' d='M8.5 3a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11m0-2a7.5 7.5 0 1 0 4.74 13.28l3.68 3.67 1.41-1.42-3.67-3.68A7.47 7.47 0 0 0 8.5 1'/%3E%3C/svg%3E");
+}
+
+.sky-llm-filter-menu-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: #222;
+}
+
+.sky-llm-filter-menu--staged {
+  min-width: 15rem;
+  max-width: 20rem;
+  padding-bottom: 0.35rem;
+}
+
+.sky-llm-filter-menu-options-wrap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.sky-llm-filter-menu-options {
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 0;
+}
+
+.sky-llm-filter-menu-options > li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sky-llm-filter-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #222;
+  text-align: left;
+}
+
+.sky-llm-filter-checkbox-row:hover,
+.sky-llm-filter-checkbox-row.is-selected {
+  background: #f2f2f2;
+}
+
+.sky-llm-filter-checkbox {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  accent-color: #1473e6;
+}
+
+.sky-llm-filter-menu-footer {
+  list-style: none;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.35rem;
+  border-top: 1px solid #eee;
+}
+
+.sky-llm-filter-apply,
+.sky-llm-filter-clear {
+  flex: 1;
+  min-height: 2rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sky-llm-filter-apply {
+  border: none;
+  background: #e8e8e8;
+  color: #6e6e6e;
+}
+
+.sky-llm-filter-apply:not(:disabled) {
+  background: #d5d5d5;
+  color: #222;
+}
+
+.sky-llm-filter-apply:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.sky-llm-filter-clear {
+  border: 1px solid #dadada;
+  background: #fff;
+  color: #222;
 }
 
 .sky-llm-platform-icon {

@@ -18,29 +18,35 @@
     manifestVersion: '20260614-env-bar-prefs',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20260624-bc-modal-chrome',
-      spectrumCss: '20260624-spectrum-trio-layout',
-      demoEnvStripSpectrum: '20260624-env-dock-settings',
-      demoEnvStrip: '20260625-version-pill',
+      bundleCss: '20260625-datastream-uuid-paste',
+      spectrumCss: '20260625-datastream-paste-visible',
+      demoEnvStripSpectrum: '20260625-datastream-paste-visible',
+      demoEnvStrip: '20260617-profile-peek-v5',
       spectrumSync: '20260614-sdk-compact-status',
-      compactJs: '20260614-env-bar-dock-settings-icon',
-      compactCss: '20260624-env-dock-stable',
+      compactJs: '20260625-datastream-uuid-paste',
+      compactCss: '20260625-datastream-uuid-paste',
       bootstrap: '20260602-env-bar-bootstrap',
-      prefsLocal: '20260614-inject-guard',
-      prefsSync: '20260614-inject-guard',
-      tagsInjection: '20260624-bc-post-inject-sync',
-      aepDemoEnvBar: '20260625-env-configured',
-      siteCloneBcEnv: '20260624-bc-post-inject-sync',
+      prefsLocal: '20260625-incognito-env-fix',
+      prefsSync: '20260625-incognito-env-fix',
+      tagsInjection: '20260625-env-overlay-configuring',
+      aepDemoEnvBar: '20260625-env-overlay-configuring',
+      siteCloneBcEnv: '20260625-datastream-paste-visible',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',
       contentDecisionLabConfig: '20260615',
-      contentDecisionEdgeMounts: '20260615',
+      contentDecisionEdgeMounts: '20260615-edge-mounts-syntax',
       decisioningEdgeInject: '20260612c',
       decisioningProfileRuntime: '20260624',
       decisioningProfileModule: '20260620',
       decisioningProfilePanel: '20260614-decisioning-channel-icon',
       siteCloneDecisioningBoot: '20260624-target-page-url',
+      bcMidrailPanelCss: '20260617-bc-midrail',
+      bcMidrailPanel: '20260617-bc-midrail',
+      bcMidrailBoot: '20260617-bc-midrail',
+      modalBarCss: '20260617-modal-bar-v7',
+      modalBarJs: '20260617-modal-bar-v7',
+      modalBarBoot: '20260617-modal-bar-v7',
     },
   };
 
@@ -233,6 +239,17 @@
    * @param {object} remoteConfig
    * @returns {EnvBarConfig}
    */
+  function mergeFeatures(pageFeatures, remoteFeatures) {
+    var base = { webPush: true, bc: true, decisioning: true };
+    var merged = Object.assign({}, base, remoteFeatures || {});
+    if (pageFeatures && typeof pageFeatures === 'object') {
+      Object.keys(pageFeatures).forEach(function (key) {
+        if (pageFeatures[key] !== undefined) merged[key] = pageFeatures[key];
+      });
+    }
+    return merged;
+  }
+
   function mergeConfigLayers(pageConfig, remoteConfig) {
     pageConfig = pageConfig && typeof pageConfig === 'object' ? pageConfig : {};
     remoteConfig = remoteConfig && typeof remoteConfig === 'object' ? remoteConfig : {};
@@ -243,9 +260,19 @@
       delete remoteConfig.defaultSandbox;
     }
     if (pageConfig.localOverride) {
-      return Object.assign({}, remoteConfig, pageConfig);
+      var localMerged = Object.assign({}, remoteConfig, pageConfig);
+      localMerged.features = mergeFeatures(pageConfig.features, remoteConfig.features);
+      if (pageConfig.decisioning || remoteConfig.decisioning) {
+        localMerged.decisioning = Object.assign({}, remoteConfig.decisioning || {}, pageConfig.decisioning || {});
+      }
+      return localMerged;
     }
-    return Object.assign({}, pageConfig, remoteConfig);
+    var merged = Object.assign({}, pageConfig, remoteConfig);
+    merged.features = mergeFeatures(pageConfig.features, remoteConfig.features);
+    if (pageConfig.decisioning || remoteConfig.decisioning) {
+      merged.decisioning = Object.assign({}, remoteConfig.decisioning || {}, pageConfig.decisioning || {});
+    }
+    return merged;
   }
 
   function hasUserSandboxSelection() {
@@ -346,12 +373,14 @@
     if (!merged.variant) merged.variant = 'spectrum';
     if (merged.mode === 'compact-fnb') merged.mode = 'sandbox-only';
     if (!merged.mode) merged.mode = 'shell';
+    if (!merged.features || typeof merged.features !== 'object') {
+      merged.features = {};
+    }
     if (merged.mode === 'minimal' || merged.mode === 'sandbox-only') {
       merged.variant = merged.variant === 'spectrum' ? 'classic' : merged.variant || 'classic';
-      merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features || {});
-    }
-    if (!merged.features || typeof merged.features !== 'object') {
-      merged.features = { webPush: true, bc: true, decisioning: true };
+      merged.features = Object.assign({ webPush: false, bc: false, decisioning: false }, merged.features);
+    } else {
+      merged.features = Object.assign({ webPush: true, bc: true, decisioning: true }, merged.features);
     }
     if (merged.autoInit === undefined) merged.autoInit = true;
     if (merged.basePath) state.basePath = merged.basePath;
@@ -371,7 +400,11 @@
     if (!mount) return;
     if (cfg.disclaimer) mount.setAttribute('data-demo-env-strip-disclaimer', cfg.disclaimer);
     if (cfg.features && cfg.features.bc === false) mount.setAttribute('data-demo-env-strip-bc-bottom', '0');
-    if (cfg.features && cfg.features.decisioning === false) mount.setAttribute('data-demo-env-strip-decisioning', '0');
+    var htmlDecisioningOn = mount.getAttribute('data-demo-env-strip-decisioning') === '1';
+    var pageDecisioningOn = !!(cfg.features && cfg.features.decisioning === true);
+    var decisioningOn = isDecisioningFeatureEnabled(cfg) || htmlDecisioningOn || pageDecisioningOn;
+    if (decisioningOn) mount.setAttribute('data-demo-env-strip-decisioning', '1');
+    else mount.setAttribute('data-demo-env-strip-decisioning', '0');
     if (cfg.variant === 'spectrum') mount.setAttribute('data-demo-env-strip-variant', 'spectrum');
   }
 
@@ -448,6 +481,21 @@
     ]);
   }
 
+  function isBcFeatureEnabled(cfg) {
+    return !(cfg.features && cfg.features.bc === false);
+  }
+
+  /**
+   * Load BC mid-rail panel CSS when Brand Concierge is enabled on the env strip.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBcMidrailStyles(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    return linkCss(assetUrl('shared/brand-concierge-midrail-panel.css', a.bcMidrailPanelCss));
+  }
+
   /**
    * Load decisioning runtime script chain (Sky parity). Skips files already on the page.
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -475,14 +523,55 @@
   }
 
   /**
+   * Load BC mid-rail display-mode panel scripts.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBcMidrailScripts(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    var chain = [
+      assetUrl('shared/brand-concierge-midrail-panel.js', a.bcMidrailPanel),
+      assetUrl('shared/brand-concierge-midrail-boot.js', a.bcMidrailBoot),
+    ];
+    return chain.reduce(function (p, src) {
+      return p.then(function () {
+        if (
+          src.indexOf('brand-concierge-midrail-panel.js') !== -1 &&
+          document.querySelector('script[src*="brand-concierge-midrail-panel.js"]')
+        ) {
+          return;
+        }
+        if (
+          src.indexOf('brand-concierge-midrail-boot.js') !== -1 &&
+          document.querySelector('script[src*="brand-concierge-midrail-boot.js"]')
+        ) {
+          return;
+        }
+        log('load bc midrail script', src);
+        return loadScript(src);
+      });
+    }, Promise.resolve());
+  }
+
+  function bootBcMidrailPanel(cfg) {
+    if (!isBcFeatureEnabled(cfg)) return;
+    if (global.BrandConciergeMidrailBoot && typeof global.BrandConciergeMidrailBoot.boot === 'function') {
+      log('boot BrandConciergeMidrailBoot');
+      global.BrandConciergeMidrailBoot.boot(cfg);
+    }
+  }
+
+  /**
    * Init decisioning runtime + panel when decisioning feature is enabled (auto-detects iframe wiring).
    * @param {EnvBarConfig} cfg
    */
-  function bootSiteCloneDecisioning(cfg) {
+  function bootSiteCloneDecisioning(cfg, opts) {
+    opts = opts || {};
     if (!isDecisioningFeatureEnabled(cfg)) return;
     if (global.SiteCloneDecisioningBoot && typeof global.SiteCloneDecisioningBoot.boot === 'function') {
       log('boot SiteCloneDecisioningBoot');
-      global.SiteCloneDecisioningBoot.boot(cfg);
+      global.SiteCloneDecisioningBoot.boot(cfg, opts);
     }
   }
 
@@ -609,6 +698,50 @@
     } catch (_e) {}
   }
 
+  function ensureDecisioningPrefsMounted(cfg) {
+    if (!isDecisioningFeatureEnabled(cfg)) return;
+    if (!global.DemoEnvStrip) return;
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) return;
+    var prefsHost = document.getElementById('siteCloneDecisioningPrefsMount');
+    if (!prefsHost) {
+      var shellHost = document.querySelector('[data-demo-env-strip-mount="site-clone-shell"]');
+      if (shellHost) {
+        shellHost.setAttribute('data-demo-env-strip-decisioning', '1');
+        shellHost.removeAttribute('data-demo-env-strip-mounted');
+        if (typeof global.DemoEnvStrip.mountSiteCloneEnvShell === 'function') {
+          global.DemoEnvStrip.mountSiteCloneEnvShell({ host: shellHost });
+        }
+      }
+    }
+    if (document.getElementById('siteCloneDecisioningEnabledToggle')) return;
+    if (typeof global.DemoEnvStrip.mountSiteCloneDecisioningPrefs === 'function') {
+      global.DemoEnvStrip.mountSiteCloneDecisioningPrefs({ mountId: 'siteCloneDecisioningPrefsMount' });
+      return;
+    }
+    if (typeof global.DemoEnvStrip.mountSiteCloneProfileBcPrefs === 'function') {
+      var host = document.getElementById('siteCloneBcPrefsMount');
+      if (host) {
+        host.removeAttribute('data-demo-env-strip-mounted');
+        host.setAttribute('data-demo-env-strip-decisioning', '1');
+      }
+      global.DemoEnvStrip.mountSiteCloneProfileBcPrefs({
+        mountId: 'siteCloneBcPrefsMount',
+        includeDecisioning: true,
+      });
+    }
+  }
+
+  function scheduleDecisioningBoot(cfg) {
+    if (!isDecisioningFeatureEnabled(cfg)) return;
+    bootSiteCloneDecisioning(cfg, { force: true });
+    window.setTimeout(function () {
+      bootSiteCloneDecisioning(cfg, { force: true });
+    }, 0);
+    window.setTimeout(function () {
+      bootSiteCloneDecisioning(cfg, { force: true });
+    }, 1200);
+  }
+
   /**
    * Load site-clone-bc-env.js after strip mount (BC style hosting + datastream pickers need DOM).
    * @param {typeof DEFAULT_VERSIONS} versions
@@ -618,6 +751,7 @@
     if (!isFullShellMode(cfg)) return Promise.resolve();
     if (cfg.features && cfg.features.bc === false) return Promise.resolve();
     var refresh = function () {
+      ensureDecisioningPrefsMounted(cfg);
       if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {
         global.SiteCloneBcEnv.applyForCurrentSandbox();
         log('SiteCloneBcEnv refreshed after strip mount');
@@ -629,6 +763,71 @@
     var a = versions.assets;
     var src = assetUrl('site-clone-bc-env.js', a.siteCloneBcEnv || '20260612-strip-dom-defer');
     return loadScript(src).then(refresh);
+  }
+
+  /**
+   * Load centre-bottom BC dock assets when the env strip exposes bc-bottom toggle.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadBottomDockRuntime(versions, cfg) {
+    if (!isFullShellMode(cfg) || (cfg.features && cfg.features.bc === false)) return Promise.resolve();
+    if (!document.querySelector('[data-demo-env-strip-bc-bottom="1"]')) return Promise.resolve();
+    var a = versions.assets;
+    var dockCss = assetUrl(
+      'brand-concierge-bottom-dock/brand-concierge-bottom-dock.css',
+      a.bottomDockCss || '20260613bc-panel-compact'
+    );
+    var dockJs = assetUrl(
+      'brand-concierge-bottom-dock/brand-concierge-bottom-dock.js',
+      a.bottomDockJs || '20260613bc-typing'
+    );
+    var bootJs = assetUrl('shared/site-clone-bottom-dock-boot.js', a.bottomDockBoot || '20260613bc-boot');
+    return linkCss(dockCss)
+      .then(function () {
+        return loadScript(dockJs);
+      })
+      .then(function () {
+        if (document.querySelector('script[src*="site-clone-bottom-dock-boot.js"]')) return;
+        return loadScript(bootJs);
+      })
+      .then(function () {
+        if (global.SiteCloneBottomDockBoot && typeof global.SiteCloneBottomDockBoot.boot === 'function') {
+          global.SiteCloneBottomDockBoot.boot();
+        }
+      });
+  }
+
+  /**
+   * Load right-side Modal bar BC shell for all site-clone demos with BC enabled.
+   * @param {typeof DEFAULT_VERSIONS} versions
+   * @param {EnvBarConfig} cfg
+   */
+  function loadModalBarRuntime(versions, cfg) {
+    if (!isFullShellMode(cfg) || !isBcFeatureEnabled(cfg)) return Promise.resolve();
+    var a = versions.assets;
+    var barCss = assetUrl(
+      'brand-concierge-modal-bar/brand-concierge-modal-bar.css',
+      a.modalBarCss || '20260617-modal-bar',
+    );
+    var barJs = assetUrl(
+      'brand-concierge-modal-bar/brand-concierge-modal-bar.js',
+      a.modalBarJs || '20260617-modal-bar',
+    );
+    var bootJs = assetUrl('shared/site-clone-modal-bar-boot.js', a.modalBarBoot || '20260617-modal-bar');
+    return linkCss(barCss)
+      .then(function () {
+        return loadScript(barJs);
+      })
+      .then(function () {
+        if (document.querySelector('script[src*="site-clone-modal-bar-boot.js"]')) return;
+        return loadScript(bootJs);
+      })
+      .then(function () {
+        if (global.SiteCloneModalBarBoot && typeof global.SiteCloneModalBarBoot.boot === 'function') {
+          global.SiteCloneModalBarBoot.boot();
+        }
+      });
   }
 
   /**
@@ -647,6 +846,9 @@
         if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.ensure === 'function') {
           global.SiteCloneBcChrome.ensure();
         }
+        if (global.SiteCloneBcChrome && typeof global.SiteCloneBcChrome.upgradeModalShell === 'function') {
+          global.SiteCloneBcChrome.upgradeModalShell();
+        }
         if (global.SiteCloneBc) return;
         if (document.querySelector('script[src*="site-clone-bc.js"]')) return;
         return loadScript(assetUrl('site-clone-bc.js', a.siteCloneBc || '20260624-bc-toggle-refresh'));
@@ -658,6 +860,12 @@
         if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
           return global.SiteCloneBc.sync();
         }
+      })
+      .then(function () {
+        return loadBottomDockRuntime(versions, cfg);
+      })
+      .then(function () {
+        return loadModalBarRuntime(versions, cfg);
       });
   }
 
@@ -705,6 +913,9 @@
             return loadDecisioningStyles(versions, state.config);
           })
           .then(function () {
+            return loadBcMidrailStyles(versions, state.config);
+          })
+          .then(function () {
             return loadScripts(versions, state.config);
           })
           .then(function () {
@@ -713,10 +924,14 @@
       })
       .then(function () {
         var result = runBootstrap(state.config);
-        bootSiteCloneDecisioning(state.config);
+        ensureDecisioningPrefsMounted(state.config);
+        scheduleDecisioningBoot(state.config);
         return loadSiteCloneBcEnv(state.versions, state.config).then(function () {
           return loadSiteCloneBcRuntime(state.versions, state.config);
         }).then(function () {
+          return loadBcMidrailScripts(state.versions, state.config);
+        }).then(function () {
+          bootBcMidrailPanel(state.config);
           return result;
         });
       })
@@ -751,10 +966,18 @@
     if (!name) return false;
     log('setEnvironment', name);
 
-    if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
-      global.AepGlobalSandbox.setSelected(name, { source: 'user' });
-    } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
-      global.AepLabEnvBarPrefs.setSelectedSandbox(name, { explicit: true });
+    var current =
+      global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function'
+        ? String(global.AepGlobalSandbox.getSandboxName() || '').trim()
+        : '';
+    var sandboxChanged = current !== name;
+
+    if (sandboxChanged) {
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.setSelected === 'function') {
+        global.AepGlobalSandbox.setSelected(name, { source: 'user' });
+      } else if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.setSelectedSandbox === 'function') {
+        global.AepLabEnvBarPrefs.setSelectedSandbox(name, { explicit: true });
+      }
     }
 
     var select = document.getElementById('sandboxSelect');
@@ -768,9 +991,11 @@
         }
       }
       if (!matched) select.value = name;
-      try {
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (_e) {}
+      if (sandboxChanged && String(select.value || '').trim() === name) {
+        try {
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (_e) {}
+      }
     }
 
     if (state.tagsInjection && typeof state.tagsInjection.applySandboxConfigState === 'function') {
@@ -780,7 +1005,7 @@
     }
 
     if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.applyForCurrentSandbox === 'function') {
-      global.SiteCloneBcEnv.applyForCurrentSandbox();
+      global.SiteCloneBcEnv.applyForCurrentSandbox({ force: sandboxChanged });
     }
 
     notifyChange({ type: 'sandbox', sandbox: name, config: getConfig() });

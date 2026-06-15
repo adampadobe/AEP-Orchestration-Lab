@@ -70,6 +70,13 @@
   display: none;
 }
 
+.lab-env-top-anchor--expanded .lab-env-overlay-only,
+.lab-env-top-anchor--pinned .lab-env-overlay-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 /* ── Overlay panel layout ─────────────────────────────────────── */
 .lab-env-overlay-panel {
   display: flex;
@@ -82,6 +89,49 @@
   box-sizing: border-box;
 }
 
+.lab-env-full-open-btn[hidden] {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-full-open-btn:not([hidden]) {
+  display: inline-flex;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel #aepDemoEnvSection,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .aep-demo-env-section {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel {
+  max-height: min(42vh, 24rem);
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel .lab-env-overlay-profile {
+  margin-top: 0;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-selected-script,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-inline-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .mod-demo-message,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > p[role='status'],
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .spectrum-env-info-bar,
+.lab-env-top-anchor--profile-only .lab-env-overlay-panel > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only > .lab-env-overlay-footer,
+.lab-env-overlay-panel--profile-only [data-env-overlay-footer-item] {
+  display: none !important;
+}
+
+.lab-env-top-anchor--profile-only .lab-env-overlay-profile .spectrum-env-profile-main .spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main select.spectrum-env-input,
+.lab-env-overlay-profile .spectrum-env-profile-main input.spectrum-env-input {
+  height: 2.35rem;
+  min-height: 2.35rem;
+  max-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
 .lab-env-overlay-profile {
   margin: 0;
   padding: 0;
@@ -90,6 +140,7 @@
   box-sizing: border-box;
   flex-shrink: 0;
 }
+
 
 /* Config cards scroll inside overlay; profile lookup stays visible (not flex-shrunk to ~0). */
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section {
@@ -109,7 +160,7 @@
 .lab-env-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,
 .lab-env-top-anchor.lab-env-top-anchor--pinned .aep-demo-env-bar--spectrum .lab-env-overlay-panel {
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel > .spectrum-env-selected-script,
@@ -125,13 +176,14 @@
 }
 
 .lab-env-overlay-profile .spectrum-env-profile-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: var(--dash-space-200, 0.75rem) var(--dash-space-300, 1rem);
   align-items: end;
   width: 100%;
   flex: 1 1 100%;
   box-sizing: border-box;
+  flex-wrap: nowrap;
 }
 
 .lab-env-overlay-profile .spectrum-env-profile-main .form-group,
@@ -295,6 +347,77 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Spectrum shell demos (e.g. KSIA) load this file, not site-clone-bc-env-strip.css — manual UUID paste row needs the same layout. */
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-label,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-label,
+.site-clone-bc-datastream-manual-label {
+  margin: 0.35rem 0 0.15rem;
+  font-size: var(--dash-font-detail, 0.75rem);
+  font-weight: 600;
+  color: var(--spectrum-text-secondary, var(--dash-muted));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  position: relative;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-row[hidden],
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row[hidden] {
+  display: none !important;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-open,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open {
+  position: relative;
+  z-index: 40;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-input,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font: inherit;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-actions,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-error:not(:empty),
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-error:not(:empty) {
+  color: var(--dash-error, var(--dash-muted));
 }
 
 .lab-env-overlay-panel .spectrum-env-field--grow {
@@ -652,6 +775,126 @@
   color: var(--spectrum-text-secondary);
 }
 
+.spectrum-env-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.spectrum-env-field--has-tooltip {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+.spectrum-env-field--has-tooltip:focus-within,
+.spectrum-env-field--has-tooltip:has(.spectrum-env-field-tooltip:hover) {
+  z-index: 50;
+}
+
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:hover),
+.spectrum-env-card--data-collection:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+  position: relative;
+  z-index: 4;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:hover),
+.aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible;
+}
+
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:hover),
+.lab-env-overlay-panel:has(.spectrum-env-field-tooltip:focus-within) {
+  overflow: visible !important;
+}
+
+.spectrum-env-field-tooltip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.spectrum-env-field-tooltip__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface-alt);
+  color: var(--spectrum-text-secondary);
+  cursor: help;
+  line-height: 1;
+}
+
+.spectrum-env-field-tooltip__trigger svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  display: block;
+}
+
+.spectrum-env-field-tooltip__trigger:hover,
+.spectrum-env-field-tooltip__trigger:focus-visible {
+  background: var(--dash-hover);
+  color: var(--dash-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-blue) 25%, transparent);
+}
+
+.spectrum-env-field-tooltip__panel {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 0.35rem);
+  bottom: auto;
+  left: 0;
+  right: auto;
+  width: min(18.5rem, calc(100vw - 2rem));
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
+}
+
+.spectrum-env-field-tooltip:hover .spectrum-env-field-tooltip__panel,
+.spectrum-env-field-tooltip:focus-within .spectrum-env-field-tooltip__panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spectrum-env-field-tooltip__lead,
+.spectrum-env-field-tooltip__foot {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--spectrum-text);
+  font-weight: 400;
+}
+
+.spectrum-env-field-tooltip__list {
+  margin: 0.35rem 0 0.35rem 1rem;
+  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--spectrum-text);
+}
+
+.spectrum-env-field-tooltip__list a {
+  color: var(--dash-blue);
+  word-break: break-all;
+}
+
 .spectrum-env-field__hint {
   margin: 0.25rem 0 0;
   font-size: 0.72rem;
@@ -913,7 +1156,7 @@
 
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
   width: 100%;
 }
@@ -922,6 +1165,8 @@
   flex: initial;
   min-width: 0;
   width: 100%;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.72rem;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__label {
@@ -931,6 +1176,22 @@
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-decisioning-prefs-field {
   margin-left: 0;
   width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-decisioning-prefs-field {
+  margin-left: 0;
+  width: 100%;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-decisioning-wrap .site-clone-bc-prefs__label {
+  display: none;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .site-clone-decisioning-prefs-field {
@@ -1090,11 +1351,27 @@
 
 .spectrum-env-inline-message {
   margin: 0;
+  min-height: 1.25rem;
+}
+
+.spectrum-env-tags-status,
+.site-clone-bc-tags-status {
+  min-height: 1.25rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--dash-muted, var(--dash-text-secondary));
 }
 
 .lab-env-overlay-panel .spectrum-env-inline-message {
   width: 100%;
   box-sizing: border-box;
+}
+
+.lab-env-overlay-panel > .spectrum-env-inline-message[hidden] {
+  display: block !important;
+  visibility: hidden;
+  min-height: 1.25rem;
+  overflow: hidden;
 }
 
 /* Hide legacy flat layout pieces inside spectrum root */
