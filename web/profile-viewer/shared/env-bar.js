@@ -44,9 +44,9 @@
       bcMidrailPanelCss: '20260617-bc-midrail',
       bcMidrailPanel: '20260617-bc-midrail',
       bcMidrailBoot: '20260617-bc-midrail',
-      modalBarCss: '20260617-modal-bar',
-      modalBarJs: '20260617-modal-bar',
-      modalBarBoot: '20260617-modal-bar',
+      modalBarCss: '20260617-modal-bar-fix',
+      modalBarJs: '20260617-modal-bar-fix',
+      modalBarBoot: '20260617-modal-bar-fix',
     },
   };
 

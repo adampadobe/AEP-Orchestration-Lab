@@ -920,7 +920,7 @@
 
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
   width: 100%;
 }
@@ -929,6 +929,8 @@
   flex: initial;
   min-width: 0;
   width: 100%;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.72rem;
 }
 
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__label {

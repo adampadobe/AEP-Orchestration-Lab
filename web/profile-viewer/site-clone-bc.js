@@ -1362,15 +1362,18 @@
   }
 
   async function bootstrapModalBar() {
+    if (global.SiteCloneModalBarBoot && typeof global.SiteCloneModalBarBoot.boot === 'function') {
+      global.SiteCloneModalBarBoot.boot();
+    }
     setModalBarVisible(true);
     setBottomDockVisible(false);
-    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setExpanded === 'function') {
-      global.BrandConciergeModalBar.setExpanded(true);
-    }
     await ensureParentCore();
     await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, global.styleConfiguration, {
       allowConciergeOpenOnRetry: false,
     });
+    if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.setExpanded === 'function') {
+      global.BrandConciergeModalBar.setExpanded(true);
+    }
     scheduleDisclaimerReposition(document);
     activeMode = 'modalBar';
   }
