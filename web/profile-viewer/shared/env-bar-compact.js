@@ -15,6 +15,8 @@
   var EXPAND_BTN_ID = 'aepDemoEnvExpandBtn';
   var FULL_OPEN_BTN_ID = 'aepLabEnvFullOpenBtn';
   var PROFILE_ONLY_CLASS = 'lab-env-top-anchor--profile-only';
+  var CONFIGURING_CLASS = 'lab-env-top-anchor--configuring';
+  var selectDismissGraceUntil = 0;
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var DOCK_ICON_SVG =
     '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -46,6 +48,41 @@
     );
   }
 
+  function isOverlayFormControl(node) {
+    return !!(
+      node &&
+      node.closest &&
+      node.closest('select, input, textarea, button, [role="button"], label, datalist, option')
+    );
+  }
+
+  function isNativeSelectEngaged() {
+    if (Date.now() < selectDismissGraceUntil) return true;
+    var active = document.activeElement;
+    if (!active || String(active.tagName || '').toUpperCase() !== 'SELECT') return false;
+    var anchor = resolveAnchor();
+    var panel = byId(OVERLAY_PANEL_ID) || (anchor && anchor.querySelector('.lab-env-overlay-panel'));
+    return !!(panel && panel.contains(active));
+  }
+
+  function isConfiguring(anchor) {
+    anchor = anchor || resolveAnchor();
+    return !!(anchor && anchor.classList.contains(CONFIGURING_CLASS));
+  }
+
+  function setConfiguring(anchor, configuring) {
+    if (!anchor) return;
+    anchor.classList.toggle(CONFIGURING_CLASS, !!configuring);
+  }
+
+  function shouldBlockOverlayDismiss(anchor) {
+    anchor = anchor || resolveAnchor();
+    if (isOverlayPinned(anchor)) return true;
+    if (isConfiguring(anchor)) return true;
+    if (isNativeSelectEngaged()) return true;
+    return false;
+  }
+
   function isOverlayInteractionTarget(node, anchor) {
     if (!node || !anchor) return false;
     if (anchor.contains(node)) return true;
@@ -55,6 +92,62 @@
     if (!active) return false;
     if (anchor.contains(active)) return true;
     return !!(panel && panel.contains(active));
+  }
+
+  function markNativeSelectInteraction() {
+    selectDismissGraceUntil = Date.now() + 800;
+  }
+
+  function bindOverlayInteractionGuards(anchor) {
+    var panel = byId(OVERLAY_PANEL_ID) || (anchor && anchor.querySelector('.lab-env-overlay-panel'));
+    if (!panel || panel.getAttribute('data-lab-env-guards') === '1') return;
+    panel.setAttribute('data-lab-env-guards', '1');
+
+    panel.addEventListener(
+      'focusin',
+      function (ev) {
+        if (!isOverlayFormControl(ev.target)) return;
+        setConfiguring(anchor, true);
+        if (!isOverlayOpen(anchor)) {
+          openOverlay(anchor, isOverlayPinned(anchor));
+        }
+      },
+      true,
+    );
+
+    panel.addEventListener(
+      'mousedown',
+      function (ev) {
+        if (!ev.target || String(ev.target.tagName || '').toUpperCase() !== 'SELECT') return;
+        markNativeSelectInteraction();
+        setConfiguring(anchor, true);
+      },
+      true,
+    );
+
+    panel.addEventListener(
+      'change',
+      function (ev) {
+        if (!ev.target || String(ev.target.tagName || '').toUpperCase() !== 'SELECT') return;
+        markNativeSelectInteraction();
+      },
+      true,
+    );
+
+    panel.addEventListener(
+      'focusout',
+      function (ev) {
+        if (!isConfiguring(anchor)) return;
+        global.setTimeout(function () {
+          if (isNativeSelectEngaged()) return;
+          if (isOverlayPinned(anchor)) return;
+          var active = document.activeElement;
+          if (active && panel.contains(active) && isOverlayFormControl(active)) return;
+          setConfiguring(anchor, false);
+        }, 0);
+      },
+      true,
+    );
   }
 
   function syncToolbarOverlayInset(anchor, isOpen) {
@@ -279,13 +372,15 @@
   function openOverlay(anchor, pin) {
     setExpanded(anchor, true, !!pin, false);
     if (pin) writePinnedToStorage(true);
+    bindOverlayInteractionGuards(anchor);
   }
 
   function closeOverlay(anchor, opts) {
     anchor = anchor || resolveAnchor();
     if (!anchor) return false;
     var options = opts || {};
-    if (!options.force && isOverlayPinned(anchor)) return false;
+    if (!options.force && shouldBlockOverlayDismiss(anchor)) return false;
+    setConfiguring(anchor, false);
     setExpanded(anchor, false, false, false);
     if (options.force || !readPinnedFromStorage()) writePinnedToStorage(false);
     return true;
@@ -330,7 +425,7 @@
       writePinnedToStorage(false);
       return;
     }
-    if (isOverlayOpen(anchor)) closeOverlay(anchor);
+    if (isOverlayOpen(anchor)) closeOverlay(anchor, { force: true });
     else if (shouldOpenProfilePeekFirst()) openProfilePeek(anchor);
     else openOverlay(anchor, false);
   }
@@ -412,12 +507,14 @@
       });
     }
 
+    bindOverlayInteractionGuards(anchor);
+
     document.addEventListener(
       'click',
       function (ev) {
         if (!anchor.querySelector('.lab-env-overlay-panel')) return;
-        if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
         if (!isOverlayOpen(anchor)) return;
+        if (shouldBlockOverlayDismiss(anchor)) return;
         if (isOverlayInteractionTarget(ev.target, anchor)) return;
         closeOverlay(anchor);
       },
@@ -426,7 +523,7 @@
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Escape') return;
-      if (anchor.classList.contains('lab-env-top-anchor--pinned')) return;
+      if (isOverlayPinned(anchor)) return;
       if (!isOverlayOpen(anchor)) return;
       closeOverlay(anchor);
     });
@@ -434,6 +531,7 @@
 
   global.addEventListener('aep-demo-env-configured', function () {
     if (global.AepLabTagsInjectGuard && global.AepLabTagsInjectGuard.isInProgress()) return;
+    if (shouldBlockOverlayDismiss()) return;
     closeOverlayPublic();
   });
 

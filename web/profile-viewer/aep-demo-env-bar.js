@@ -143,7 +143,11 @@
       ensureTagsUiExpandedWhenScriptUnset();
       var configuring = tagFieldsExpanded();
       var pinned = sec.classList.contains(PINNED);
-      var showFullEditor = configuring || pinned || launchScriptNotSet();
+      var overlayOpen =
+        global.EnvBarCompact &&
+        typeof global.EnvBarCompact.isOpen === 'function' &&
+        global.EnvBarCompact.isOpen();
+      var showFullEditor = configuring || pinned || launchScriptNotSet() || overlayOpen;
       if (!showFullEditor) {
         sec.classList.add('aep-demo-env-section--collapsed');
         collapseEl.setAttribute('hidden', '');

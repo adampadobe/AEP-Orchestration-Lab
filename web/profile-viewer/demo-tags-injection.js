@@ -729,7 +729,7 @@
           })
         );
         if (isSdkConfiguredForSandbox()) markLabEnvConfiguredSession();
-        if (!expanded && !options.skipConfiguredSignals) {
+        if (!expanded && !options.skipConfiguredSignals && !isUserEnvPanelOpen()) {
           global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
         }
       } catch (e) {
@@ -1480,9 +1480,12 @@
       const persistedScript = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
       renderSelectedScript(persistedScript);
       const configured = isSdkConfiguredForSandbox();
-      const keepPanelOpen = !!(opts.announceSandboxChange && isUserEnvPanelOpen());
-      const expandFields = !configured || keepPanelOpen;
-      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen });
+      const overlayOpen = isUserEnvPanelOpen();
+      const tagsFieldsVisible = !!(sdkConfigFields && !sdkConfigFields.hidden);
+      const keepPanelOpen = !!(opts.announceSandboxChange && overlayOpen);
+      const preserveEditing = !!opts.preserveEditing || overlayOpen || tagsFieldsVisible;
+      const expandFields = !configured || keepPanelOpen || preserveEditing || !persistedScript;
+      setSdkConfigExpanded(expandFields, { skipConfiguredSignals: keepPanelOpen || preserveEditing });
       if (configured && persistedScript) markLabEnvConfiguredSession();
       if (opts.announceSandboxChange) {
         if (configured) {
@@ -1598,7 +1601,7 @@
     function applyTagsPrefsAfterSync() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
-      applySandboxConfigState();
+      applySandboxConfigState({ preserveEditing: true });
       const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
       if (companyId) {
         void loadTagsProperties(companyId);

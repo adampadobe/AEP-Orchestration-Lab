@@ -84,12 +84,16 @@ html[data-aep-theme='dark'] [class*='-demo-id-inner'] {
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded::after,
 .mod-demo-top-anchor.lab-env-top-anchor--pinned::after,
+.mod-demo-top-anchor.lab-env-top-anchor--configuring::after,
 [class*='-demo-top-anchor'].lab-env-top-anchor--expanded::after,
 [class*='-demo-top-anchor'].lab-env-top-anchor--pinned::after,
+[class*='-demo-top-anchor'].lab-env-top-anchor--configuring::after,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--expanded::after,
 .mobile-demo-shell-env-anchor.lab-env-top-anchor--pinned::after,
+.mobile-demo-shell-env-anchor.lab-env-top-anchor--configuring::after,
 .lab-env-top-anchor.lab-env-top-anchor--expanded::after,
-.lab-env-top-anchor.lab-env-top-anchor--pinned::after {
+.lab-env-top-anchor.lab-env-top-anchor--pinned::after,
+.lab-env-top-anchor.lab-env-top-anchor--configuring::after {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
