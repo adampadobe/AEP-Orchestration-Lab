@@ -1,14 +1,14 @@
 {
-  "gitSha": "e53544591bacf24f2ef0f596d5b10f80969c0f62",
-  "gitShortSha": "e5354459",
+  "gitSha": "2af8aea4434002948823580d3dc1d6696b46328e",
+  "gitShortSha": "2af8aea4",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: register datastream Apply handler on env strip mount",
+  "gitCommitSubject": "[apalmer] chore: record e5354459 hosting deploy in version.json",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-15T21:38:32+01:00",
-  "deployedAt": "2026-06-15T20:38:48.496Z",
+  "gitCommitDate": "2026-06-15T21:39:06+01:00",
+  "deployedAt": "2026-06-15T20:43:44.253Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e53544591bacf24f2ef0f596d5b10f80969c0f62"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2af8aea4434002948823580d3dc1d6696b46328e"
 }
