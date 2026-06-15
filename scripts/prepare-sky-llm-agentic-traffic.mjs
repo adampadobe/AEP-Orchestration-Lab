@@ -10,22 +10,42 @@ import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
   process.env.SKY_LLM_AT_SOURCE_HTML ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer AT.html');
+  path.join(
+    process.env.USERPROFILE || '',
+    'Downloads',
+    'Take a tour of Adobe LLM Optimizer Agent.html',
+  );
 const srcAssetsDir =
   process.env.SKY_LLM_AT_SOURCE_ASSETS ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe LLM Optimizer AT_files');
+  path.join(
+    process.env.USERPROFILE || '',
+    'Downloads',
+    'Take a tour of Adobe LLM Optimizer Agent_files',
+  );
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'agentic-traffic.html');
 
+const buildId = fs
+  .readFileSync(path.join(outDir, 'sky-llm-snapshot-build-id.js'), 'utf8')
+  .match(/'(\d{8})'/)?.[1];
+
+if (!buildId) {
+  console.error('Could not read SKY_LLM_SNAPSHOT_BUILD');
+  process.exit(1);
+}
+
 const SNAPSHOT_ASSETS = [
-  '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">',
-  '<script src="./sky-llm-snapshot-nav.js"></script>',
-  '<script src="./sky-llm-snapshot-patch.js"></script>',
-  '<script src="./sky-llm-snapshot-platform.js"></script>',
-  '<script src="./sky-llm-snapshot-market.js"></script>',
+  `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
+  `<link rel="stylesheet" href="./sky-llm-snapshot-platform.css?v=${buildId}">`,
+  `<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css?v=${buildId}">`,
+  `<script src="./sky-llm-snapshot-build-id.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-blockers.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-nav.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-platform.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-patch.js?v=${buildId}"></script>`,
+  `<script src="./sky-llm-snapshot-market.js?v=${buildId}"></script>`,
 ].join('\n');
 
 function stripAuthScripts(html) {
@@ -39,6 +59,7 @@ function stripAuthScripts(html) {
   html = html.replace(/<script[^>]*src="\.\/assets\/index\.js"[^>]*><\/script>/gi, '');
   html = html.replace(/<script[^>]*src="\.\/assets\/web-vitals[^"]+"[^>]*><\/script>/gi, '');
   html = html.replace(/<script>window\.SAMPLE_PAGEVIEWS_AT_RATE[^<]*<\/script>/i, '');
+  html = html.replace(/<script defer="defer" src="\.\/assets\/[^"]+"><\/script>\s*/gi, '');
   return html;
 }
 
@@ -65,6 +86,7 @@ function copyAssets() {
 }
 
 function patchHtml(html) {
+  html = html.replace(/\.\/Take a tour of Adobe LLM Optimizer Agent_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer AT_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer BP_files\//g, './assets/');
   html = html.replace(/\.\/Adobe LLM Optimizer_files\//g, './assets/');
@@ -73,10 +95,15 @@ function patchHtml(html) {
   html = applyAgenticTrafficBranding(html);
   html = stripLineDash(html);
   html = repairRechartsResponsiveHtml(html);
-  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
-  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-platform\.js"><\/script>/gi, '');
-  if (!html.includes('sky-llm-snapshot-nav.js')) {
-    html = html.replace('</body>', `${SNAPSHOT_ASSETS}\n</body>`);
+  html = html.replace(
+    /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/gi,
+    '',
+  );
+  const idx = html.indexOf('</body>');
+  if (idx >= 0) {
+    html = html.slice(0, idx) + SNAPSHOT_ASSETS + '\n' + html.slice(idx);
+  } else {
+    html = html.replace(/<\/html>\s*$/i, `${SNAPSHOT_ASSETS}\n</html>`);
   }
   return html;
 }
@@ -91,4 +118,4 @@ let html = fs.readFileSync(srcHtml, 'utf8');
 html = patchHtml(html);
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outHtml, html, 'utf8');
-console.log('Wrote', outHtml, '(' + Math.round(html.length / 1024) + ' KB)');
+console.log('Wrote', outHtml, '(' + Math.round(html.length / 1024) + ' KB), build', buildId);

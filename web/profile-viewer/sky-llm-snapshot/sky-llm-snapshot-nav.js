@@ -136,6 +136,9 @@
     document.querySelectorAll('[id^="org-nav-item-"].sky-llm-nav-active').forEach(function (el) {
       el.classList.remove('sky-llm-nav-active');
     });
+    document.querySelectorAll('.sky-llm-nav-active-rail').forEach(function (el) {
+      el.hidden = true;
+    });
     findNavButtons().forEach(function (btn) {
       btn.removeAttribute('aria-current');
       btn.removeAttribute('data-current');
@@ -145,18 +148,16 @@
     });
   }
 
-  function showNativeRail(btn) {
-    var wrap = findNavItemWrapper(btn);
+  function ensureActiveRail(wrap) {
     if (!wrap) return;
-    var rail = wrap.querySelector('.sky-llm-nav-rail-native');
+    var rail = wrap.querySelector('.sky-llm-nav-active-rail');
     if (!rail) {
-      var native = wrap.querySelector('[class*="macro-dynamic-kn9iqo"], [class*="J1DOfn11"], [class*="HkNNfn11"]');
-      if (native) {
-        native.classList.add('sky-llm-nav-rail-native');
-        rail = native;
-      }
+      rail = document.createElement('span');
+      rail.className = 'sky-llm-nav-active-rail';
+      rail.setAttribute('aria-hidden', 'true');
+      wrap.insertBefore(rail, wrap.firstChild);
     }
-    if (rail) rail.style.display = '';
+    rail.hidden = false;
   }
 
   function applyActive(label) {
@@ -167,8 +168,10 @@
       btn.setAttribute('aria-current', 'page');
       btn.setAttribute('data-current', 'true');
       var wrap = findNavItemWrapper(btn);
-      if (wrap) wrap.classList.add('sky-llm-nav-active');
-      showNativeRail(btn);
+      if (wrap) {
+        wrap.classList.add('sky-llm-nav-active');
+        ensureActiveRail(wrap);
+      }
     });
   }
 
