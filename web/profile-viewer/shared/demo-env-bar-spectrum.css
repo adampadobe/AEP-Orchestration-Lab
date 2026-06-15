@@ -350,6 +350,15 @@
 }
 
 /* Spectrum shell demos (e.g. KSIA) load this file, not site-clone-bc-env-strip.css — manual UUID paste row needs the same layout. */
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-label,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-label,
+.site-clone-bc-datastream-manual-label {
+  margin: 0.35rem 0 0.15rem;
+  font-size: var(--dash-font-detail, 0.75rem);
+  font-weight: 600;
+  color: var(--spectrum-text-secondary, var(--dash-muted));
+}
+
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-row,
 .aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-row {
   display: flex;
