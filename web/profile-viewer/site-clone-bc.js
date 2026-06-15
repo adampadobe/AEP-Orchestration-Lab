@@ -522,7 +522,9 @@
         '--chat-container-background': 'transparent',
         '--input-background': '#FFFFFF',
         '--main-container-background': 'transparent',
-        '--input-box-shadow': '0 2px 12px rgba(0, 0, 0, 0.08)',
+        '--input-box-shadow': 'none',
+        '--welcome-heading-text-align': 'left',
+        '--welcome-subheading-text-align': 'left',
       });
     }
     return applySiteCloneStyleConfigDefaults(base);
@@ -1368,7 +1370,7 @@
     setModalBarVisible(true);
     setBottomDockVisible(false);
     await ensureParentCore();
-    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, global.styleConfiguration, {
+    await bootstrapConcierge(global, MODAL_BAR_MOUNT_SELECTOR, applyModalSurfaceStyleTokens(global.styleConfiguration), {
       allowConciergeOpenOnRetry: false,
     });
     scheduleDisclaimerReposition(document);

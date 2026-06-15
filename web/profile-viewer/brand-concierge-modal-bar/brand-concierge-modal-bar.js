@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-modal-bar-v4';
+  var CACHE_BUST = '20260617-modal-bar-v5';
   var SPARKLE_SVG =
     '<svg class="bc-modal-bar__sparkle" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
@@ -14,12 +14,6 @@
     '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 10.5 16.2 4.1c.55-.28 1.15.35.82.9L14.6 10l2.42 5c.33.55-.27 1.18-.82.9L3.5 10.5Z"/></svg>';
   var EXPAND_SVG =
     '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3H3v5M12 3h5v5M12 17h5v-5M8 17H3v-5"/></svg>';
-  var DEFAULT_SUGGESTIONS = [
-    'Where can I go to learn about AI on Experience League?',
-    'Getting started with Experience Manager',
-    'Set up an Adobe Analytics report suite',
-    'Explain Adobe Target A/B testing',
-  ];
 
   function el(tag, className, html) {
     var node = document.createElement(tag);
@@ -28,37 +22,24 @@
     return node;
   }
 
-  function buildSuggestions(parent, items, onPick) {
-    items.forEach(function (text) {
-      var btn = el('button', 'bc-modal-bar__suggestion');
-      btn.type = 'button';
-      btn.innerHTML =
-        '<span class="bc-modal-bar__suggestion-sparkle">' +
-        SPARKLE_SVG +
-        '</span><span>' +
-        String(text).replace(/</g, '&lt;') +
-        '</span>';
-      btn.addEventListener('click', function () {
-        onPick(text);
-      });
-      parent.appendChild(btn);
-    });
+  function focusMountInput(mount) {
+    if (!mount) return;
+    var input = mount.querySelector(
+      '.input-section input, .input-section textarea, .input-section [contenteditable="true"]',
+    );
+    if (input && typeof input.focus === 'function') input.focus();
   }
 
-  function pushToMount(mount, text, skipSelector) {
-    var q = String(text || '').trim();
-    if (!q) return;
-    var inputs = mount.querySelectorAll('input, textarea, [contenteditable="true"]');
-    var i;
-    for (i = 0; i < inputs.length; i++) {
-      if (skipSelector && inputs[i].closest && inputs[i].closest(skipSelector)) continue;
-      if (inputs[i].getAttribute('contenteditable') === 'true') {
-        inputs[i].textContent = q;
+  function clearMountInput(mount) {
+    if (!mount) return;
+    mount.querySelectorAll('.input-section input, .input-section textarea, .input-section [contenteditable="true"]').forEach(function (node) {
+      if (node.getAttribute('contenteditable') === 'true') {
+        node.textContent = '';
       } else {
-        inputs[i].value = q;
+        node.value = '';
       }
-      inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-    }
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   function init(options) {
@@ -68,16 +49,10 @@
     }
 
     var panelTitle = String(opt.panelTitle || 'Ask').trim() || 'Ask';
-    var placeholder = String(opt.placeholder || 'Ask a question…').trim();
     var pillLabel = String(opt.pillLabel || 'Ask a question').trim();
     var disclaimer = String(opt.disclaimer || '').trim();
     var betaLabel = String(opt.betaLabel || 'BETA').trim();
-    var introTitle = String(
-      opt.introTitle || 'Not sure where to start? Ask me anything about Adobe products.',
-    ).trim();
-    var introSub = String(opt.introSub || 'Type your question or pick a suggestion below.').trim();
     var mountSelector = String(opt.mountSelector || '#bcModalBarMount').trim();
-    var suggestions = Array.isArray(opt.suggestions) && opt.suggestions.length ? opt.suggestions : DEFAULT_SUGGESTIONS;
 
     var root = el('div', 'bc-modal-bar is-hidden');
     root.id = 'bcModalBarRoot';
@@ -108,44 +83,17 @@
     headerActions.appendChild(closeBtn);
     header.appendChild(headerActions);
 
-    var intro = el('div', 'bc-modal-bar__intro');
-    intro.appendChild(el('p', 'bc-modal-bar__intro-title', introTitle));
-    intro.appendChild(el('p', 'bc-modal-bar__intro-sub', introSub));
-
-    var suggestionsHost = el('div', 'bc-modal-bar__suggestions');
-    buildSuggestions(suggestionsHost, suggestions, function (text) {
-      applyQuestion(text);
-    });
-
     var body = el('div', 'bc-modal-bar__panel-body');
     var mount = el('div', 'bc-modal-bar__mount');
     mount.id = mountSelector.replace(/^#/, '') || 'bcModalBarMount';
     body.appendChild(mount);
 
-    var composerWrap = el('div', 'bc-modal-bar__composer-wrap');
-    var composer = el('div', 'bc-modal-bar__composer');
-    var composerInner = el('div', 'bc-modal-bar__composer-inner');
-    composerInner.innerHTML = SPARKLE_SVG;
-    var composerInput = el('input', 'bc-modal-bar__composer-input');
-    composerInput.type = 'text';
-    composerInput.placeholder = placeholder;
-    composerInput.setAttribute('autocomplete', 'off');
-    composerInput.setAttribute('spellcheck', 'false');
-    composerInner.appendChild(composerInput);
-    composerInner.appendChild(el('span', 'bc-modal-bar__beta', betaLabel));
-    var sendBtn = el('button', 'bc-modal-bar__send-btn', SEND_SVG);
-    sendBtn.type = 'button';
-    sendBtn.setAttribute('aria-label', 'Send question');
-    composer.appendChild(composerInner);
-    composer.appendChild(sendBtn);
-    composerWrap.appendChild(composer);
-    if (disclaimer) composerWrap.appendChild(el('p', 'bc-modal-bar__disclaimer', disclaimer));
+    var footer = el('div', 'bc-modal-bar__panel-footer');
+    if (disclaimer) footer.appendChild(el('p', 'bc-modal-bar__disclaimer', disclaimer));
 
     panel.appendChild(header);
-    panel.appendChild(intro);
-    panel.appendChild(suggestionsHost);
     panel.appendChild(body);
-    panel.appendChild(composerWrap);
+    if (disclaimer) panel.appendChild(footer);
 
     var pillWrap = el('div', 'bc-modal-bar__pill');
     var pillBtn = el('button', 'bc-modal-bar__pill-btn');
@@ -171,7 +119,7 @@
       setExpanded(true);
       if (typeof opt.onExpand === 'function') opt.onExpand(mount);
       window.setTimeout(function () {
-        composerInput.focus();
+        focusMountInput(mount);
       }, 180);
     }
 
@@ -181,19 +129,6 @@
         setExpanded(false);
         root.classList.remove('is-wide');
       }
-    }
-
-    function applyQuestion(text) {
-      var q = String(text || '').trim();
-      if (!q) return;
-      composerInput.value = q;
-      pushToMount(mount, q, '.bc-modal-bar__composer');
-      if (!root.classList.contains('is-expanded')) openPanel();
-    }
-
-    function clearConversation() {
-      composerInput.value = '';
-      pushToMount(mount, '', '.bc-modal-bar__composer');
     }
 
     pillBtn.addEventListener('click', function () {
@@ -209,15 +144,8 @@
         root.classList.contains('is-wide') ? 'Narrow panel' : 'Expand panel',
       );
     });
-    clearBtn.addEventListener('click', clearConversation);
-    sendBtn.addEventListener('click', function () {
-      applyQuestion(composerInput.value);
-    });
-    composerInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyQuestion(composerInput.value);
-      }
+    clearBtn.addEventListener('click', function () {
+      clearMountInput(mount);
     });
 
     var api = {

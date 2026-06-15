@@ -54,16 +54,8 @@
     global.BrandConciergeModalBar.init({
       panelTitle: readPanelTitle(),
       pillLabel: cfg(page, 'modalBarPillLabel', 'Ask a question'),
-      placeholder: cfg(page, 'modalBarPlaceholder', 'Ask a question…'),
       disclaimer: readDisclaimer(),
       betaLabel: cfg(page, 'modalBarBetaLabel', 'BETA'),
-      introTitle: cfg(
-        page,
-        'modalBarIntroTitle',
-        'Not sure where to start? Ask me anything about Adobe products.',
-      ),
-      introSub: cfg(page, 'modalBarIntroSub', 'Type your question or pick a suggestion below.'),
-      suggestions: Array.isArray(page.modalBarSuggestions) ? page.modalBarSuggestions : undefined,
       mountSelector: cfg(page, 'modalBarMountSelector', '#bcModalBarMount'),
       onExpand: function () {
         if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
