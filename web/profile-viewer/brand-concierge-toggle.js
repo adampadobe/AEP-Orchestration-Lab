@@ -184,12 +184,19 @@
 
       global.__aepBcToggleBootstrapped = true;
       try {
-        global.adobe.concierge.bootstrap({
+        var bootOpts = {
           instanceName: 'alloy',
           stylingConfigurations: global.styleConfiguration,
           selector: '#brand-concierge-mount',
           stickySession: false,
-        });
+        };
+        if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.augmentBootstrapConfig === 'function') {
+          global.EmbedBcAepEvents.augmentBootstrapConfig(bootOpts);
+        }
+        if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.install === 'function') {
+          global.EmbedBcAepEvents.install(global);
+        }
+        global.adobe.concierge.bootstrap(bootOpts);
         log('bootstrapped OK with style', key);
         if (typeof onDone === 'function') onDone(true);
       } catch (e) {

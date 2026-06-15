@@ -1328,6 +1328,9 @@
           }, 8000);
         }
         if (typeof cfg.onEcidResolved === 'function') cfg.onEcidResolved(ecid);
+        if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.install === 'function') {
+          global.EmbedBcAepEvents.install(global);
+        }
         const bcCfg = resolveBrandConciergeCfg();
         if (
           bcCfg &&

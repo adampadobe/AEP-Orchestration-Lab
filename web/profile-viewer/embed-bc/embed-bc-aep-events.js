@@ -1,7 +1,8 @@
 /**
  * Brand Concierge → AEP Experience Events via existing alloy sendEvent.
- * Adds `_demoemea.brandConcierge` (conversationID, turnIndex, actorType, …) without
- * changing identityMap or non-BC sendEvent calls.
+ * Adds `_demoemea.brandConcierge` (conversationID, turnIndex, actorType, …) and
+ * mirrors anonymous demo tenant identification (`_demoemea.identification.core.ecid`
+ * + identityMap.ECID) when a lab ECID is known.
  */
 (function (global) {
   'use strict';
@@ -11,7 +12,27 @@
   var CONV_STORAGE_KEY = 'aepBcConversationId';
   var TURN_STORAGE_KEY = 'aepBcTurnIndex';
   var BC_MOUNT_SELECTOR =
-    '#brand-concierge-mount, #bcBottomDockMount, #bcModalBarMount, #siteCloneBcFrameMount, #siteCloneBcInline';
+    '#brand-concierge-mount, #bcBottomDockMount, #bcModalBarMount, #siteCloneBcFrameMount, #siteCloneBcInline, .bc-bottom-dock__mount';
+  var ECID_UI_ID = 'infoEcid';
+  var DEDUPE_MS = 900;
+
+  function bcDebug() {
+    try {
+      return global.localStorage.getItem('aepLabBcEventsDebug') === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function bcLog() {
+    if (!bcDebug()) return;
+    try {
+      var args = ['[embed-bc-aep-events]'].concat(Array.prototype.slice.call(arguments));
+      global.console.log.apply(global.console, args);
+    } catch (_e2) {
+      /* noop */
+    }
+  }
 
   function readSession(key) {
     try {
@@ -29,6 +50,73 @@
     }
   }
 
+  function sandboxKey() {
+    try {
+      if (global.AepLabEnvBarPrefs && typeof global.AepLabEnvBarPrefs.sandboxKey === 'function') {
+        return global.AepLabEnvBarPrefs.sandboxKey(global.AepLabEnvBarPrefs.getSelectedSandbox());
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    try {
+      if (global.AepGlobalSandbox && typeof global.AepGlobalSandbox.getSandboxName === 'function') {
+        var n = String(global.AepGlobalSandbox.getSandboxName() || '')
+          .trim()
+          .toLowerCase();
+        if (n) return n.replace(/[^a-z0-9_-]/g, '_');
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return '__default__';
+  }
+
+  function normaliseEcidDigits(raw) {
+    var v = String(raw || '').trim();
+    if (!v || v === '—' || v === '-') return '';
+    return /^\d+$/.test(v) ? v : '';
+  }
+
+  function readEcidFromUnifiedPrefs() {
+    try {
+      if (!global.AepLabEnvBarPrefs || typeof global.AepLabEnvBarPrefs.getDoc !== 'function') return '';
+      var doc = global.AepLabEnvBarPrefs.getDoc();
+      var sk = sandboxKey();
+      var entry = doc && doc.tagsBySandbox && doc.tagsBySandbox[sk];
+      return normaliseEcidDigits(entry && entry.ecid);
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function readEcidFromLegacyMaps() {
+    try {
+      if (!global.AepLabEnvBarPrefs || typeof global.AepLabEnvBarPrefs.readMap !== 'function') return '';
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var key = global.localStorage.key(i);
+        if (!key || key.indexOf('LastResolvedEcidBySandbox') === -1) continue;
+        var map = global.AepLabEnvBarPrefs.readMap(key);
+        var hit = normaliseEcidDigits(map[sandboxKey()]);
+        if (hit) return hit;
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function resolveLabEcid() {
+    var fromUi = normaliseEcidDigits(
+      global.document && global.document.getElementById
+        ? (global.document.getElementById(ECID_UI_ID) || {}).textContent
+        : '',
+    );
+    if (fromUi) return fromUi;
+    var fromUnified = readEcidFromUnifiedPrefs();
+    if (fromUnified) return fromUnified;
+    return readEcidFromLegacyMaps();
+  }
+
   function newConversationId() {
     if (global.crypto && typeof global.crypto.randomUUID === 'function') {
       return global.crypto.randomUUID();
@@ -40,6 +128,7 @@
     var id = newConversationId();
     writeSession(CONV_STORAGE_KEY, id);
     writeSession(TURN_STORAGE_KEY, '1');
+    writeSession('aepBcConversationStartSent', '');
     return id;
   }
 
@@ -116,7 +205,44 @@
     } catch (_e) {
       /* noop */
     }
+    try {
+      if (global.DemoLabEdgeConfig && typeof global.DemoLabEdgeConfig.edgeConfigOverrides === 'function') {
+        var lab = global.DemoLabEdgeConfig.edgeConfigOverrides();
+        if (lab && lab.edgeConfigOverrides && lab.edgeConfigOverrides.datastreamId) return lab;
+      }
+    } catch (_e2) {
+      /* noop */
+    }
     return {};
+  }
+
+  function mergeDemoemeaIdentification(xdm) {
+    var next = xdm && typeof xdm === 'object' ? Object.assign({}, xdm) : {};
+    var ecid = resolveLabEcid();
+    if (!ecid) return next;
+
+    var tenant =
+      next[TENANT_KEY] && typeof next[TENANT_KEY] === 'object' ? Object.assign({}, next[TENANT_KEY]) : {};
+    var identification =
+      tenant.identification && typeof tenant.identification === 'object'
+        ? Object.assign({}, tenant.identification)
+        : {};
+    var core =
+      identification.core && typeof identification.core === 'object'
+        ? Object.assign({}, identification.core)
+        : {};
+    if (!core.ecid) core.ecid = ecid;
+    identification.core = core;
+    tenant.identification = identification;
+    next[TENANT_KEY] = tenant;
+
+    var identityMap =
+      next.identityMap && typeof next.identityMap === 'object' ? Object.assign({}, next.identityMap) : {};
+    if (!Array.isArray(identityMap.ECID) || !identityMap.ECID.length) {
+      identityMap.ECID = [{ id: ecid, primary: true }];
+    }
+    next.identityMap = identityMap;
+    return next;
   }
 
   function buildBrandConciergeFields(meta) {
@@ -144,21 +270,63 @@
     if (!bc) return options;
     var base = options && typeof options === 'object' ? options : {};
     var xdm = base.xdm && typeof base.xdm === 'object' ? Object.assign({}, base.xdm) : {};
+    if (
+      xdm[TENANT_KEY] &&
+      typeof xdm[TENANT_KEY] === 'object' &&
+      xdm[TENANT_KEY].brandConcierge &&
+      typeof xdm[TENANT_KEY].brandConcierge === 'object'
+    ) {
+      return base;
+    }
     xdm.eventType = EVENT_TYPE;
     var tenant =
       xdm[TENANT_KEY] && typeof xdm[TENANT_KEY] === 'object' ? Object.assign({}, xdm[TENANT_KEY]) : {};
     tenant.brandConcierge = bc;
     xdm[TENANT_KEY] = tenant;
+    xdm = mergeDemoemeaIdentification(xdm);
     return Object.assign({}, base, edgeConfigOverrides(), { xdm: xdm });
   }
 
-  function sendBrandConciergeInteraction(alloyFn, meta, extraOptions) {
-    if (typeof alloyFn !== 'function') return Promise.resolve(null);
+  var recentDedupe = {};
+
+  function shouldSendInteraction(meta) {
+    var key =
+      String(meta.interactionType || '') +
+      '|' +
+      String(meta.text || '').slice(0, 80) +
+      '|' +
+      String(meta.intent || '');
+    var now = Date.now();
+    if (recentDedupe[key] && now - recentDedupe[key] < DEDUPE_MS) return false;
+    recentDedupe[key] = now;
+    return true;
+  }
+
+  function resolveAlloyFn(win) {
+    var w = win || global;
+    if (typeof w.alloy === 'function') return w.alloy;
+    return null;
+  }
+
+  function sendBrandConciergeInteraction(alloyFn, meta, extraOptions, win) {
+    meta = meta || {};
+    if (!shouldSendInteraction(meta)) return Promise.resolve(null);
+    var alloy = typeof alloyFn === 'function' ? alloyFn : resolveAlloyFn(win);
+    if (typeof alloy !== 'function') {
+      bcLog('skip sendEvent — alloy unavailable', meta.interactionType);
+      return Promise.resolve(null);
+    }
     var payload = enrichSendEventOptions(extraOptions || {}, meta);
-    return Promise.resolve(alloyFn('sendEvent', payload)).catch(function (err) {
-      console.warn('[embed-bc-aep-events] sendEvent failed:', err);
-      return null;
-    });
+    bcLog('sendEvent', meta.interactionType, payload);
+    return Promise.resolve(alloy('sendEvent', payload))
+      .then(function (result) {
+        bcLog('sendEvent OK', meta.interactionType, result);
+        return result;
+      })
+      .catch(function (err) {
+        console.warn('[embed-bc-aep-events] sendEvent failed:', meta.interactionType, err);
+        return null;
+      });
   }
 
   function chainOnBeforeEventSend(existingFn) {
@@ -169,7 +337,7 @@
         if (out !== undefined) base = out;
       }
       if (!base || typeof base !== 'object') base = content || {};
-      if (!global.__embedBcPendingAepMeta) return base;
+      if (!global.__embedBcPendingAepMeta) return enrichSendEventOptions(base, { interactionType: 'userMessage', actorType: 'user', text: extractUserText(base) });
       var meta = global.__embedBcPendingAepMeta;
       global.__embedBcPendingAepMeta = null;
       return enrichSendEventOptions(base, meta);
@@ -186,7 +354,7 @@
         for (var j = 0; j < payloads.length; j++) {
           var response = payloads[j] && payloads[j].response;
           var mm = response && response.multimodalElements;
-          var elements = (mm && mm.elements) || response && response.multimodalElements;
+          var elements = (mm && mm.elements) || (response && response.multimodalElements);
           if (Array.isArray(elements) && elements.length) return true;
           if (Array.isArray(response && response.widgets) && response.widgets.length) return true;
         }
@@ -197,8 +365,9 @@
     return false;
   }
 
-  function wrapAlloyInstance(alloyFn) {
+  function wrapAlloyInstance(alloyFn, win) {
     if (typeof alloyFn !== 'function' || alloyFn.__embedBcAepEventsWrapped) return alloyFn;
+    var w = win || global;
     var native = alloyFn;
     var wrapped = function (command) {
       var args = Array.prototype.slice.call(arguments, 1);
@@ -212,22 +381,26 @@
         var intent = inferIntent(text);
         var productCategory = inferProductCategory(text, intent);
         var baseMeta = { intent: intent, productCategory: productCategory, text: text };
-        void sendBrandConciergeInteraction(native, Object.assign({ interactionType: 'userMessage', actorType: 'user' }, baseMeta));
-        return native.apply(global, [command].concat(args)).then(function (result) {
+        void sendBrandConciergeInteraction(native, Object.assign({ interactionType: 'userMessage', actorType: 'user' }, baseMeta), null, w);
+        return native.apply(w, [command].concat(args)).then(function (result) {
           void sendBrandConciergeInteraction(
             native,
             Object.assign({ interactionType: 'assistantResponse', actorType: 'assistant' }, baseMeta),
+            null,
+            w,
           );
           if (responseHasRecommendations(result)) {
             void sendBrandConciergeInteraction(
               native,
               Object.assign({ interactionType: 'recommendationPresented', actorType: 'assistant' }, baseMeta),
+              null,
+              w,
             );
           }
           return result;
         });
       }
-      return native.apply(global, [command].concat(args));
+      return native.apply(w, [command].concat(args));
     };
     Object.keys(native).forEach(function (key) {
       try {
@@ -243,18 +416,19 @@
   function wrapAlloyOnWindow(win) {
     if (!win) return;
     if (typeof win.alloy === 'function') {
-      win.alloy = wrapAlloyInstance(win.alloy);
+      win.alloy = wrapAlloyInstance(win.alloy, win);
     }
     (win.__alloyNS || []).forEach(function (name) {
       if (typeof win[name] === 'function') {
-        win[name] = wrapAlloyInstance(win[name]);
+        win[name] = wrapAlloyInstance(win[name], win);
       }
     });
   }
 
-  function trackDomInteraction(meta) {
-    if (typeof global.alloy !== 'function') return;
-    void sendBrandConciergeInteraction(global.alloy, meta);
+  function trackDomInteraction(meta, win) {
+    var alloy = resolveAlloyFn(win || global);
+    if (typeof alloy !== 'function') return;
+    void sendBrandConciergeInteraction(alloy, meta, null, win || global);
   }
 
   function cardLabelFromNode(node) {
@@ -267,11 +441,13 @@
     );
   }
 
-  function bindDomTracking() {
-    if (global.__embedBcAepDomBound) return;
-    global.__embedBcAepDomBound = true;
+  function bindDomTracking(win) {
+    var w = win || global;
+    var doc = w.document;
+    if (!doc || w.__embedBcAepDomBound) return;
+    w.__embedBcAepDomBound = true;
 
-    global.document.addEventListener(
+    doc.addEventListener(
       'click',
       function (event) {
         var target = event.target;
@@ -281,50 +457,111 @@
         var card = target.closest('.bc-multimodal-card, .bc-card');
         if (card) {
           var label = cardLabelFromNode(card);
-          trackDomInteraction({
-            interactionType: 'recommendationClicked',
-            actorType: 'user',
-            intent: inferIntent(label),
-            productCategory: inferProductCategory(label),
-            text: label,
-          });
+          trackDomInteraction(
+            {
+              interactionType: 'recommendationClicked',
+              actorType: 'user',
+              intent: inferIntent(label),
+              productCategory: inferProductCategory(label),
+              text: label,
+            },
+            w,
+          );
           return;
         }
 
-        var meetingTrigger = target.closest(
-          'button, a, [role="button"], input[type="submit"]',
-        );
+        var meetingTrigger = target.closest('button, a, [role="button"], input[type="submit"]');
         if (meetingTrigger) {
           var labelText = String(meetingTrigger.textContent || meetingTrigger.value || '').trim();
           if (/schedule\s+(a\s+)?meeting|book\s+(a\s+)?meeting/i.test(labelText)) {
-            trackDomInteraction({
-              interactionType: 'meetingBooked',
-              actorType: 'user',
-              intent: 'meeting',
-              productCategory: 'general',
-              text: labelText,
-            });
+            trackDomInteraction(
+              {
+                interactionType: 'meetingBooked',
+                actorType: 'user',
+                intent: 'meeting',
+                productCategory: 'general',
+                text: labelText,
+              },
+              w,
+            );
           }
         }
       },
       true,
     );
 
-    global.document.addEventListener(
+    doc.addEventListener(
       'submit',
       function (event) {
         var form = event.target;
         if (!form || !form.closest || !form.closest(BC_MOUNT_SELECTOR)) return;
         if (!form.closest('[class*="meeting"], form')) return;
-        trackDomInteraction({
-          interactionType: 'meetingBooked',
-          actorType: 'user',
-          intent: 'meeting',
-          productCategory: 'general',
-        });
+        trackDomInteraction(
+          {
+            interactionType: 'meetingBooked',
+            actorType: 'user',
+            intent: 'meeting',
+            productCategory: 'general',
+          },
+          w,
+        );
       },
       true,
     );
+  }
+
+  function observeMessageNode(node, meta, win) {
+    if (!node || node.__embedBcAepMsgSent) return;
+    var text = String(node.textContent || '').trim();
+    if (!text) return;
+    node.__embedBcAepMsgSent = true;
+    trackDomInteraction(Object.assign({}, meta, { text: text }), win);
+  }
+
+  function observeBcDomMessages(win) {
+    var w = win || global;
+    var doc = w.document;
+    if (!doc || w.__embedBcAepMsgObserved) return;
+    w.__embedBcAepMsgObserved = true;
+
+    function scanMount(mount) {
+      if (!mount || mount.__embedBcAepMountObserved) return;
+      mount.__embedBcAepMountObserved = true;
+      var obs = new MutationObserver(function () {
+        mount.querySelectorAll('.user-message, [class*="user-message"]').forEach(function (node) {
+          observeMessageNode(node, { interactionType: 'userMessage', actorType: 'user' }, w);
+        });
+        mount
+          .querySelectorAll('.assistant-message, [class*="assistant-message"], [class*="agent-message"]')
+          .forEach(function (node) {
+            observeMessageNode(node, { interactionType: 'assistantResponse', actorType: 'assistant' }, w);
+          });
+        mount.querySelectorAll('.bc-multimodal-card, .bc-card').forEach(function (node) {
+          if (node.__embedBcAepCardSeen) return;
+          node.__embedBcAepCardSeen = true;
+          var label = cardLabelFromNode(node);
+          trackDomInteraction(
+            {
+              interactionType: 'recommendationPresented',
+              actorType: 'assistant',
+              intent: inferIntent(label),
+              productCategory: inferProductCategory(label),
+              text: label,
+            },
+            w,
+          );
+        });
+      });
+      obs.observe(mount, { childList: true, subtree: true, characterData: true });
+    }
+
+    function scanAll() {
+      doc.querySelectorAll(BC_MOUNT_SELECTOR).forEach(scanMount);
+    }
+
+    scanAll();
+    var rootObs = new MutationObserver(scanAll);
+    rootObs.observe(doc.documentElement, { childList: true, subtree: true });
   }
 
   function augmentBootstrapConfig(config) {
@@ -333,47 +570,77 @@
     return config;
   }
 
-  function patchConciergeBootstrap() {
-    if (!global.adobe?.concierge?.bootstrap || global.adobe.concierge.bootstrap.__embedBcAepBootstrapPatched) {
+  function patchConciergeBootstrap(targetWin) {
+    var w = targetWin || global;
+    if (!w.adobe?.concierge?.bootstrap || w.adobe.concierge.bootstrap.__embedBcAepBootstrapPatched) {
       return;
     }
-    var orig = global.adobe.concierge.bootstrap.bind(global.adobe.concierge);
-    global.adobe.concierge.bootstrap = async function (config) {
+    var orig = w.adobe.concierge.bootstrap.bind(w.adobe.concierge);
+    w.adobe.concierge.bootstrap = async function (config) {
       augmentBootstrapConfig(config || {});
       var out = await orig(config);
-      wrapAlloyOnWindow(global);
-      bindDomTracking();
+      wrapAlloyOnWindow(w);
+      bindDomTracking(w);
+      observeBcDomMessages(w);
       if (!readSession('aepBcConversationStartSent')) {
         writeSession('aepBcConversationStartSent', '1');
-        void sendBrandConciergeInteraction(global.alloy, {
-          interactionType: 'conversationStart',
-          actorType: 'system',
-          intent: 'general',
-          productCategory: 'general',
-          newConversation: !readSession(CONV_STORAGE_KEY),
-        });
+        void sendBrandConciergeInteraction(
+          resolveAlloyFn(w),
+          {
+            interactionType: 'conversationStart',
+            actorType: 'system',
+            intent: 'general',
+            productCategory: 'general',
+            newConversation: !readSession(CONV_STORAGE_KEY),
+          },
+          null,
+          w,
+        );
       }
       return out;
     };
-    global.adobe.concierge.bootstrap.__embedBcAepBootstrapPatched = true;
+    w.adobe.concierge.bootstrap.__embedBcAepBootstrapPatched = true;
   }
 
   function install(win) {
     var w = win || global;
-    patchConciergeBootstrap();
+    patchConciergeBootstrap(w);
+    patchConciergeBootstrap(global);
     wrapAlloyOnWindow(w);
-    bindDomTracking();
+    if (w !== global) wrapAlloyOnWindow(global);
+    bindDomTracking(w);
+    if (w !== global) bindDomTracking(global);
+    observeBcDomMessages(w);
+    if (w !== global) observeBcDomMessages(global);
+  }
+
+  function onTagsInjected() {
+    bcLog('Tags injected — re-wrap alloy + BC hooks');
+    install(global);
+    try {
+      var frame = global.document.getElementById('skyDemoSiteFrame');
+      if (frame && frame.contentWindow) install(frame.contentWindow);
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  if (!global.__embedBcAepTagsInjectListener) {
+    global.__embedBcAepTagsInjectListener = true;
+    global.addEventListener('aep-demo-tags-injected', onTagsInjected);
   }
 
   global.EmbedBcAepEvents = {
     install: install,
     augmentBootstrapConfig: augmentBootstrapConfig,
     wrapAlloyInstance: wrapAlloyInstance,
+    wrapAlloyOnWindow: wrapAlloyOnWindow,
     buildBrandConciergeFields: buildBrandConciergeFields,
     enrichSendEventOptions: enrichSendEventOptions,
     sendBrandConciergeInteraction: sendBrandConciergeInteraction,
     resetConversationState: resetConversationState,
+    resolveLabEcid: resolveLabEcid,
   };
 
-  patchConciergeBootstrap();
+  patchConciergeBootstrap(global);
 })(typeof window !== 'undefined' ? window : this);
