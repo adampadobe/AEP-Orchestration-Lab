@@ -228,6 +228,58 @@
     return cfg.siteHost || 'sky.com';
   }
 
+  var SKY_BRAND_PRESENCE_TOPICS = [
+    { id: 'broadband', name: 'Broadband deals & packages' },
+    { id: 'sky-glass', name: 'Sky Glass & streaming setup' },
+    { id: 'sports', name: 'Sports & entertainment bundles' },
+    { id: 'wifi', name: 'WiFi mesh & home connectivity' },
+    { id: 'account', name: 'Account management & billing' },
+    { id: 'tv-packages', name: 'TV packages & pricing' },
+    { id: 'mobile', name: 'Mobile & SIM deals' },
+    { id: 'bundles', name: 'Bundles & value offers' },
+    { id: 'support', name: 'Customer support & troubleshooting' },
+    { id: 'comparisons', name: 'Competitor comparisons' },
+    { id: 'industry', name: 'Industry news & regulation' },
+  ];
+
+  var COFFEE_BRAND_PRESENCE_TOPICS = [
+    { id: 'roasting-advanced', name: 'Advanced Roasting & Tasting' },
+    { id: 'brewing', name: 'Brewing Techniques' },
+    { id: 'origins-industry', name: 'Coffee Origins & Industry' },
+    { id: 'roasting-basics', name: 'Coffee Roasting Basics' },
+    { id: 'experimental', name: 'Experimental & Niche Topics' },
+    { id: 'general', name: 'General Coffee Knowledge' },
+    { id: 'origin-business', name: 'Origin, Processing, and Business' },
+    { id: 'process-opt', name: 'Process Optimization & Troubleshooting' },
+    { id: 'equipment', name: 'Equipment & Grinder Maintenance' },
+    { id: 'sustainability', name: 'Sustainability & Fair Trade' },
+    { id: 'cafe-ops', name: 'Cafe Operations & Business' },
+  ];
+
+  function getBrandPresenceTopics() {
+    if (!isActive()) return SKY_BRAND_PRESENCE_TOPICS.slice();
+    var cfg = loadConfig();
+    var host = String(cfg.siteHost || '').toLowerCase();
+    var brand = String(cfg.brand || '').toLowerCase();
+    if (/frescopa|\.coffee/.test(host) || /frescopa|coffee/i.test(brand)) {
+      return COFFEE_BRAND_PRESENCE_TOPICS.slice();
+    }
+    var label = String(cfg.brand || 'Brand').trim();
+    return [
+      { id: 'packages', name: label + ' packages & pricing' },
+      { id: 'setup', name: 'Product setup & onboarding' },
+      { id: 'support', name: 'Customer support & troubleshooting' },
+      { id: 'comparisons', name: 'Comparisons & industry context' },
+      { id: 'reputation', name: label + ' reputation & reviews' },
+      { id: 'loyalty', name: 'Loyalty & membership' },
+      { id: 'sustainability', name: 'Sustainability & ethics' },
+      { id: 'technology', name: 'Technology & innovation' },
+      { id: 'retail', name: 'Retail & channel partners' },
+      { id: 'promotions', name: 'Promotions & seasonal offers' },
+      { id: 'community', name: 'Community & social proof' },
+    ];
+  }
+
   function patchComboboxInput(input, value) {
     if (!input || value == null || value === '') return;
     var next = String(value);
@@ -449,7 +501,9 @@
       urls.patchPage();
     }
 
-    var needPlatform = /overview\.html|brand-presence\.html/i.test(global.location.pathname || '');
+    var needPlatform = /overview\.html|brand-presence\.html|brand-claims\.html/i.test(
+      global.location.pathname || '',
+    );
     if (
       applyPass < MAX_APPLY_PASSES &&
       ((needPlatform && !platformReady()) ||
@@ -557,6 +611,7 @@
     getOverviewCategories: getOverviewCategories,
     getOverviewMarkets: getOverviewMarkets,
     getOverviewSiteHost: getOverviewSiteHost,
+    getBrandPresenceTopics: getBrandPresenceTopics,
     persistConfig: persistConfig,
     applyLegendLabels: applyLegendLabels,
     patchMarketComparisonLabels: patchMarketComparisonLabels,
