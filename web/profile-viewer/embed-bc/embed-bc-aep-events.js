@@ -450,6 +450,9 @@
     meta = meta || {};
     if (!shouldSendInteraction(meta)) return Promise.resolve(null);
     meta = prepareMetaForSend(meta);
+    if (meta.interactionType === 'userMessage' && (!meta.text || !String(meta.text).trim())) {
+      meta.text = extractLastUserTextFromDom(win);
+    }
     if (meta.interactionType === 'userMessage' && meta.text) {
       rememberTurnPrompt(getOrCreateConversationId(), meta.turnIndex, meta.text);
     }
@@ -544,6 +547,7 @@
           .apply(w, [command].concat(args))
           .then(function (result) {
             var assistantText = extractAssistantTextFromResult(result);
+            if (!assistantText) assistantText = extractLastAssistantTextFromDom(w);
             void sendBrandConciergeInteraction(
               native,
               Object.assign(
@@ -623,6 +627,40 @@
     return !!(alloy && alloy.__embedBcAepEventsWrapped && !isLocalBcEngine(win));
   }
 
+  function extractLastUserTextFromDom(win) {
+    var w = win || global;
+    try {
+      var doc = w.document;
+      if (!doc || !doc.querySelectorAll) return '';
+      var nodes = doc.querySelectorAll('.user-message, [class*="user-message"]');
+      for (var i = nodes.length - 1; i >= 0; i--) {
+        var t = String(nodes[i] && nodes[i].textContent ? nodes[i].textContent : '').trim();
+        if (t) return t;
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
+  }
+
+  function extractLastAssistantTextFromDom(win) {
+    var w = win || global;
+    try {
+      var doc = w.document;
+      if (!doc || !doc.querySelectorAll) return '';
+      var nodes = doc.querySelectorAll(
+        '.assistant-message, [class*="assistant-message"], [class*="agent-message"]',
+      );
+      for (var i = nodes.length - 1; i >= 0; i--) {
+        var t = String(nodes[i] && nodes[i].textContent ? nodes[i].textContent : '').trim();
+        if (t) return t;
+      }
+    } catch (_e2) {
+      /* noop */
+    }
+    return '';
+  }
+
   function trackDomInteraction(meta, win) {
     var alloy = resolveAlloyFn(win || global);
     if (typeof alloy !== 'function') return;
@@ -687,6 +725,37 @@
             );
           }
           return;
+        }
+
+        // Fallback: some BC builds render prompt buttons without the exact
+        // `prompt-suggestion` class we match above.
+        var promptSuggestionsContainer = target.closest(
+          '.prompt-suggestions-container, [class*="prompt-suggestions-container"]',
+        );
+        if (promptSuggestionsContainer) {
+          var btn =
+            target.closest('button, [role="button"]') ||
+            promptSuggestionsContainer.querySelector('button, [role="button"]');
+          if (btn) {
+            var aria = String(btn.getAttribute('aria-label') || '').trim().toLowerCase();
+            if (!/send/.test(aria)) {
+              var suggestionText2 = String(btn.textContent || '').trim();
+              if (suggestionText2) {
+                rememberUserText(suggestionText2);
+                trackDomInteraction(
+                  {
+                    interactionType: 'userMessage',
+                    actorType: 'user',
+                    intent: inferIntent(suggestionText2),
+                    productCategory: inferProductCategory(suggestionText2),
+                    text: suggestionText2,
+                  },
+                  w,
+                );
+                return;
+              }
+            }
+          }
         }
 
         var meetingTrigger = target.closest('button, a, [role="button"], input[type="submit"]');
