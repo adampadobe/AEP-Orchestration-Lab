@@ -324,7 +324,11 @@
       '</button>' +
       '<div class="spectrum-env-ecid"><span class="spectrum-env-ecid__label">ECID:</span><strong id="infoEcid" class="spectrum-env-ecid__value">—</strong><button type="button" class="spectrum-env-icon-btn" id="aepSpectrumEcidCopy" aria-label="Copy ECID">' +
       spectrumIcon('copy') +
-      '</button></div></div></div></section>' +
+      '</button></div>' +
+      (global.DemoEnvStrip && typeof global.DemoEnvStrip.labDebugProfileMarkup === 'function'
+        ? global.DemoEnvStrip.labDebugProfileMarkup()
+        : '') +
+      '</div></div></section>' +
       overlayFooter +
       '</div></div>'
     );

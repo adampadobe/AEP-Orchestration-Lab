@@ -3154,6 +3154,10 @@ async function loadProfileDataForDrawer(email, options) {
       : opts.updateMessage && typeof _config.messageSetter === 'function'
         ? _config.messageSetter
         : null;
+  const notifyUser =
+    messageFn && global.AepLabDebug && typeof global.AepLabDebug.wrapMessageSetter === 'function'
+      ? global.AepLabDebug.wrapMessageSetter(messageFn)
+      : messageFn;
 
   const ns = getNamespaceForDrawer(emailTrim);
   try {
@@ -3166,14 +3170,14 @@ async function loadProfileDataForDrawer(email, options) {
     );
     const data = await res.json();
     if (!res.ok) {
-      if (messageFn) {
+      if (notifyUser) {
         let errMsg = String(data.message || data.error || 'Profile request failed.');
         const raw = String(errMsg || '');
         if (ns === 'ecid' && /entity not found|profile not found|not found/i.test(raw)) {
           errMsg =
             'No Unified Profile for this ECID yet (normal for a brand-new browser ID). Send at least one experience event to this sandbox, wait for ingestion, then try again — or look up by email.';
         }
-        messageFn(errMsg, 'error');
+        notifyUser(errMsg, 'error');
       }
       return false;
     }
@@ -3302,8 +3306,8 @@ async function loadProfileDataForDrawer(email, options) {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }
 
-    if (messageFn) {
-      messageFn(
+    if (notifyUser) {
+      notifyUser(
         data.found
           ? 'Profile found. ECID will be sent with the event if valid.'
           : ns === 'ecid'
@@ -3314,7 +3318,7 @@ async function loadProfileDataForDrawer(email, options) {
     }
     return true;
   } catch (err) {
-    if (messageFn) messageFn(err.message || 'Network error', 'error');
+    if (notifyUser) notifyUser(err.message || 'Network error', 'error');
     return false;
   }
 }

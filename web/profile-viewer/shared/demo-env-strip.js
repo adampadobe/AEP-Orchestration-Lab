@@ -10,7 +10,7 @@
   var MOUNT_ATTR = 'data-demo-env-strip-mount';
   var PREFIX_ATTR = 'data-demo-env-strip-prefix';
   var MOUNTED_ATTR = 'data-demo-env-strip-mounted';
-  var CACHE_BUST = '20260623-spectrum';
+  var CACHE_BUST = '20260625-lab-debug';
   var MOUNTED_EVENT = 'aep-demo-env-strip-mounted';
   var FOOTER_ATTR = 'data-demo-env-strip-footer';
 
@@ -25,6 +25,19 @@
     var p = String(prefix || '').trim();
     if (!p) return '';
     return p.charAt(0).toUpperCase() + p.slice(1);
+  }
+
+  /** Profile lookup status + lab debug toggle (visible in minimized profile peek). */
+  function labDebugProfileMarkup() {
+    return (
+      '<div class="aep-lab-debug-profile-wrap">' +
+      '<label class="aep-lab-debug-toggle" for="aepLabDebugModeToggle">' +
+      '<input type="checkbox" id="aepLabDebugModeToggle" aria-controls="aepLabDebugDetail" />' +
+      '<span>Lab debug mode</span></label>' +
+      '<p id="aepLabProfileStatus" class="aep-lab-profile-status mod-demo-message" role="status" aria-live="polite" hidden></p>' +
+      '<pre id="aepLabDebugDetail" class="aep-lab-debug-detail" hidden aria-live="polite"></pre>' +
+      '</div>'
+    );
   }
 
   function readShellConfig(host) {
@@ -333,6 +346,7 @@
       prefsAttrs +
       '></div>' +
       '</div>' +
+      labDebugProfileMarkup() +
       '</div>' +
       '</section>'
     );
@@ -403,6 +417,7 @@
       '</button>' +
       '<span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>' +
       '</div>' +
+      labDebugProfileMarkup() +
       '</div>' +
       '</section>'
     );
@@ -623,6 +638,13 @@
       includeDecisioning: shellCfg.includeDecisioning !== false,
     });
     mountShellFooter(host, shellCfg);
+    try {
+      global.dispatchEvent(
+        new CustomEvent(MOUNTED_EVENT, { detail: { prefix: shellCfg.prefix, mode: 'shell' } }),
+      );
+    } catch (_e3) {
+      /* noop */
+    }
     return { mounted: true };
   }
 
@@ -705,6 +727,7 @@
     siteCloneDemoEnvObject: siteCloneDemoEnvObject,
     autoMount: autoMountFromDom,
     capPrefix: capPrefix,
+    labDebugProfileMarkup: labDebugProfileMarkup,
   };
 
   global.DemoEnvStrip = api;

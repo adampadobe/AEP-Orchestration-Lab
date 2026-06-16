@@ -321,10 +321,16 @@
     return Promise.resolve(alloy('sendEvent', payload))
       .then(function (result) {
         bcLog('sendEvent OK', meta.interactionType, result);
+        if (global.AepLabDebug && typeof global.AepLabDebug.logSendEvent === 'function') {
+          global.AepLabDebug.logSendEvent('bc:' + (meta.interactionType || 'interaction'), payload, result, null);
+        }
         return result;
       })
       .catch(function (err) {
         console.warn('[embed-bc-aep-events] sendEvent failed:', meta.interactionType, err);
+        if (global.AepLabDebug && typeof global.AepLabDebug.logSendEvent === 'function') {
+          global.AepLabDebug.logSendEvent('bc:' + (meta.interactionType || 'interaction'), payload, null, err);
+        }
         return null;
       });
   }

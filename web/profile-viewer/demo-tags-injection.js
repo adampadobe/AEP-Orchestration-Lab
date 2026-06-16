@@ -371,7 +371,14 @@
     const iframes = iframeIds.map(byId).filter(Boolean);
     const hideTagsCompanyUi = cfg.hideTagsCompanyUi === true;
 
-    const setMessageRaw = typeof cfg.messageSetter === 'function' ? cfg.messageSetter : function () {};
+    const setMessageRaw =
+      typeof cfg.messageSetter === 'function'
+        ? global.AepLabDebug && typeof global.AepLabDebug.wrapMessageSetter === 'function'
+          ? global.AepLabDebug.wrapMessageSetter(cfg.messageSetter)
+          : cfg.messageSetter
+        : global.AepLabDebug && typeof global.AepLabDebug.wrapMessageSetter === 'function'
+          ? global.AepLabDebug.wrapMessageSetter(null)
+          : function () {};
 
     function tagsStatusElement() {
       if (cfg.tagsStatusId) return byId(cfg.tagsStatusId);

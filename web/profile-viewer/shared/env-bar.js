@@ -21,14 +21,16 @@
       bundleCss: '20260625-datastream-paste-row-ensure',
       spectrumCss: '20260616-datastream-bc-hint',
       demoEnvStripSpectrum: '20260616-datastream-bc-services-tooltip',
-      demoEnvStrip: '20260625-datastream-paste-visible',
+      demoEnvStrip: '20260625-lab-debug-profile',
       spectrumSync: '20260614-sdk-compact-status',
+      aepLabDebug: '20260625-lab-debug',
+      aepLabDebugCss: '20260625-lab-debug',
       compactJs: '20260625-datastream-uuid-paste',
       compactCss: '20260625-datastream-paste-visible',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260625-incognito-env-fix',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20260616-datastream-change-resend',
+      tagsInjection: '20260625-lab-debug-messages',
       aepDemoEnvBar: '20260625-datastream-paste-row-ensure',
       siteCloneBcEnv: '20260616-datastream-bc-hint',
       decisioningModuleCss: '20260615',
@@ -431,6 +433,11 @@
     return mode === 'shell' || mode === 'journey';
   }
 
+  function isProfileLookupMode(cfg) {
+    var mode = cfg && cfg.mode ? cfg.mode : 'shell';
+    return mode === 'shell' || mode === 'journey' || mode === 'minimal';
+  }
+
   function loadStyles(versions, cfg) {
     var a = versions.assets;
     var jobs = [linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss))];
@@ -439,6 +446,9 @@
     }
     if (cfg.variant === 'spectrum' && isFullShellMode(cfg)) {
       jobs.push(linkCss(assetUrl('shared/demo-env-bar-spectrum.css', a.spectrumCss)));
+    }
+    if (isProfileLookupMode(cfg)) {
+      jobs.push(linkCss(assetUrl('shared/aep-lab-debug.css', a.aepLabDebugCss || a.aepLabDebug)));
     }
     return Promise.all(jobs);
   }
@@ -456,6 +466,9 @@
       chain.push(assetUrl('shared/demo-env-strip-spectrum.js', a.demoEnvStripSpectrum));
     }
     chain.push(assetUrl('shared/demo-env-strip.js', a.demoEnvStrip));
+    if (isProfileLookupMode(cfg)) {
+      chain.push(assetUrl('shared/aep-lab-debug.js', a.aepLabDebug));
+    }
     if (fullShell && cfg.variant === 'spectrum') {
       chain.push(assetUrl('shared/demo-env-bar-spectrum-sync.js', a.spectrumSync));
     }
