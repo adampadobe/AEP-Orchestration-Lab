@@ -1522,6 +1522,47 @@ function isAdobeWebPageViewExperienceEvent(ev) {
   );
 }
 
+/** True for Brand Concierge `web.interaction` experience events. */
+function isWebInteractionExperienceEvent(ev) {
+  const blob = aepDrawerEventHeadTypeBlob(ev);
+  return blob.includes('web.interaction') || blob.includes('webinteraction');
+}
+
+/**
+ * User / Assistant label from `_demoemea.brandConcierge.actorType` (or interactionType fallback).
+ * @param {unknown[] | undefined} rows
+ * @returns {'User'|'Assistant'|'System'|''}
+ */
+function deriveBrandConciergeActorLabelFromRows(rows) {
+  if (!Array.isArray(rows)) return '';
+  let interactionType = '';
+  for (const r of rows) {
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (!p.includes('brandconcierge')) continue;
+    if (p.endsWith('.actortype')) {
+      const actor = String(r.value || '').trim().toLowerCase();
+      if (actor === 'user') return 'User';
+      if (actor === 'assistant') return 'Assistant';
+      if (actor === 'system') return 'System';
+    }
+    if (p.endsWith('.interactiontype')) {
+      interactionType = String(r.value || '').trim().toLowerCase();
+    }
+  }
+  if (
+    interactionType === 'usermessage' ||
+    interactionType === 'recommendationclicked' ||
+    interactionType === 'meetingbooked'
+  ) {
+    return 'User';
+  }
+  if (interactionType === 'assistantresponse' || interactionType === 'recommendationpresented') {
+    return 'Assistant';
+  }
+  if (interactionType === 'conversationstart') return 'System';
+  return '';
+}
+
 function aepDrawerTrimEventTitleSnippet(s, maxLen) {
   const t = String(s || '').trim();
   if (!t) return '';
@@ -1580,7 +1621,14 @@ function formatExperienceEventDisplayTitle(ev) {
     }
     return 'Web Pageview';
   }
-  return normalizeEventName(ev && ev.eventName);
+  const base = normalizeEventName((ev && ev.eventName) || (ev && ev.eventType));
+  if (isWebInteractionExperienceEvent(ev)) {
+    const actor = deriveBrandConciergeActorLabelFromRows(ev && ev.rows);
+    if (actor === 'User' || actor === 'Assistant') {
+      return `${base} - ${actor}`;
+    }
+  }
+  return base;
 }
 
 function formatEventTimelineDate(value) {
