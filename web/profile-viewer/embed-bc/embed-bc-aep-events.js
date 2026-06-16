@@ -1,7 +1,8 @@
 /**
  * Brand Concierge → AEP Experience Events via existing alloy sendEvent.
- * Adds `_demoemea.brandConcierge` (conversationID, turnIndex, actorType, …) and
- * mirrors anonymous demo tenant identification (`_demoemea.identification.core.ecid`
+ * Adds `_demoemea.brandConcierge` (conversationID, turnIndex, actorType, …),
+ * root `conversation` (prompt / response per operational XDM), and mirrors
+ * anonymous demo tenant identification (`_demoemea.identification.core.ecid`
  * + identityMap.ECID) when a lab ECID is known.
  */
 (function (global) {
@@ -129,6 +130,7 @@
     writeSession(CONV_STORAGE_KEY, id);
     writeSession(TURN_STORAGE_KEY, '1');
     writeSession('aepBcConversationStartSent', '');
+    global.__embedBcLastTurnPrompt = null;
     return id;
   }
 
@@ -178,6 +180,120 @@
   function rememberUserText(text) {
     var msg = String(text || '').trim();
     if (msg) global.__embedBcLastUserText = msg;
+  }
+
+  function rememberTurnPrompt(conversationId, turnIndex, text) {
+    var prompt = String(text || '').trim();
+    if (!prompt || !conversationId || turnIndex == null) return;
+    global.__embedBcLastTurnPrompt = {
+      conversationID: String(conversationId),
+      turnIndex: turnIndex,
+      prompt: prompt,
+    };
+  }
+
+  function buildTurnId(conversationId, turnIndex) {
+    return String(conversationId || '') + '-' + String(turnIndex);
+  }
+
+  function buildPromptBlock(text) {
+    var t = String(text || '').trim();
+    if (!t) return null;
+    return {
+      raw: [{ purpose: 'free-form text', text: t }],
+      source: 'end-user',
+    };
+  }
+
+  function buildResponseBlock(text) {
+    var t = String(text || '').trim();
+    if (!t) return null;
+    return {
+      raw: [{ purpose: 'main', text: t }],
+      source: 'system',
+    };
+  }
+
+  /**
+   * Operational XDM `conversation` block (sibling to eventType / _demoemea).
+   * @param {Record<string, unknown>} meta
+   */
+  function buildConversationFields(meta) {
+    meta = meta || {};
+    if (meta.turnIndex == null) return null;
+    var interactionType = String(meta.interactionType || '').trim();
+    if (!interactionType || interactionType === 'conversationStart') return null;
+
+    var conversationID = getOrCreateConversationId({ newConversation: !!meta.newConversation });
+    var conv = {
+      conversationID: conversationID,
+      turnIndex: meta.turnIndex,
+      turnID: buildTurnId(conversationID, meta.turnIndex),
+    };
+
+    var promptText = String(meta.promptText || meta.text || '').trim();
+    var responseText = String(meta.responseText || '').trim();
+
+    if (
+      interactionType === 'userMessage' ||
+      interactionType === 'recommendationClicked' ||
+      interactionType === 'meetingBooked'
+    ) {
+      var prompt = buildPromptBlock(promptText);
+      if (prompt) conv.prompt = prompt;
+    }
+
+    if (interactionType === 'assistantResponse' || interactionType === 'recommendationPresented') {
+      var lastPrompt = global.__embedBcLastTurnPrompt;
+      if (lastPrompt && lastPrompt.conversationID === conversationID && lastPrompt.prompt) {
+        var pairedPrompt = buildPromptBlock(lastPrompt.prompt);
+        if (pairedPrompt) conv.prompt = pairedPrompt;
+      }
+      var response = buildResponseBlock(responseText || promptText);
+      if (response) conv.response = response;
+    }
+
+    return conv;
+  }
+
+  function extractAssistantTextFromResult(result) {
+    try {
+      if (result && result.response) {
+        var direct = result.response.message || result.response.text;
+        if (typeof direct === 'string' && direct.trim()) return direct.trim();
+      }
+      var handles = result && result.handle;
+      if (!Array.isArray(handles)) return '';
+      for (var i = 0; i < handles.length; i++) {
+        var payloads = handles[i] && handles[i].payload;
+        if (!Array.isArray(payloads)) continue;
+        for (var j = 0; j < payloads.length; j++) {
+          var payload = payloads[j] || {};
+          var response = payload.response || payload;
+          if (!response || typeof response !== 'object') continue;
+          if (typeof response.message === 'string' && response.message.trim()) {
+            return response.message.trim();
+          }
+          if (typeof response.text === 'string' && response.text.trim()) {
+            return response.text.trim();
+          }
+          var mm = response.multimodalElements;
+          var elements = (mm && mm.elements) || response.multimodalElements;
+          if (Array.isArray(elements) && elements.length) {
+            var parts = [];
+            for (var k = 0; k < elements.length; k++) {
+              var el = elements[k];
+              var bit = el && (el.text || el.label || el.title || el.name);
+              if (bit) parts.push(String(bit).trim());
+            }
+            if (parts.length) return parts.join(' ');
+          }
+        }
+      }
+    } catch (_e) {
+      /* noop */
+    }
+    return '';
   }
 
   function extractUserText(payload) {
@@ -300,6 +416,8 @@
       xdm[TENANT_KEY] && typeof xdm[TENANT_KEY] === 'object' ? Object.assign({}, xdm[TENANT_KEY]) : {};
     tenant.brandConcierge = bc;
     xdm[TENANT_KEY] = tenant;
+    var conversation = buildConversationFields(meta);
+    if (conversation) xdm.conversation = conversation;
     xdm = mergeDemoemeaIdentification(xdm);
     return Object.assign({}, base, edgeConfigOverrides(), { xdm: xdm });
   }
@@ -332,6 +450,9 @@
     meta = meta || {};
     if (!shouldSendInteraction(meta)) return Promise.resolve(null);
     meta = prepareMetaForSend(meta);
+    if (meta.interactionType === 'userMessage' && meta.text) {
+      rememberTurnPrompt(getOrCreateConversationId(), meta.turnIndex, meta.text);
+    }
     var alloy = typeof alloyFn === 'function' ? alloyFn : resolveAlloyFn(win);
     if (typeof alloy !== 'function') {
       bcLog('skip sendEvent — alloy unavailable', meta.interactionType);
@@ -422,16 +543,31 @@
         return native
           .apply(w, [command].concat(args))
           .then(function (result) {
+            var assistantText = extractAssistantTextFromResult(result);
             void sendBrandConciergeInteraction(
               native,
-              Object.assign({ interactionType: 'assistantResponse', actorType: 'assistant' }, baseMeta),
+              Object.assign(
+                {
+                  interactionType: 'assistantResponse',
+                  actorType: 'assistant',
+                  responseText: assistantText,
+                },
+                baseMeta,
+              ),
               null,
               w,
             );
             if (responseHasRecommendations(result)) {
               void sendBrandConciergeInteraction(
                 native,
-                Object.assign({ interactionType: 'recommendationPresented', actorType: 'assistant' }, baseMeta),
+                Object.assign(
+                  {
+                    interactionType: 'recommendationPresented',
+                    actorType: 'assistant',
+                    responseText: assistantText,
+                  },
+                  baseMeta,
+                ),
                 null,
                 w,
               );
@@ -598,7 +734,9 @@
     var text = String(node.textContent || '').trim();
     if (!text) return;
     node.__embedBcAepMsgSent = true;
-    trackDomInteraction(Object.assign({}, meta, { text: text }), win);
+    var enriched = Object.assign({}, meta, { text: text });
+    if (meta.interactionType === 'assistantResponse') enriched.responseText = text;
+    trackDomInteraction(enriched, win);
   }
 
   function observeBcDomMessages(win) {
