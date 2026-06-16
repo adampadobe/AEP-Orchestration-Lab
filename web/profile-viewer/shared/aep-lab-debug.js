@@ -7,6 +7,8 @@
 
   var STORAGE_KEY = 'aepLabDebugMode';
   var BC_DEBUG_KEY = 'aepLabBcEventsDebug';
+  /** Set true to restore Lab debug mode checkbox + sendEvent payload panel. */
+  var LAB_DEBUG_UI_ENABLED = false;
   var TOGGLE_ID = 'aepLabDebugModeToggle';
   var STATUS_ID = 'aepLabProfileStatus';
   var DETAIL_ID = 'aepLabDebugDetail';
@@ -36,6 +38,7 @@
   }
 
   function isEnabled() {
+    if (!LAB_DEBUG_UI_ENABLED) return false;
     var toggle = byId(TOGGLE_ID);
     if (toggle) return !!toggle.checked;
     return readStoredEnabled();
@@ -132,6 +135,7 @@
   }
 
   function bindToggle() {
+    if (!LAB_DEBUG_UI_ENABLED) return;
     var toggle = byId(TOGGLE_ID);
     if (!toggle || toggle.getAttribute('data-aep-lab-debug-bound') === '1') return;
     toggle.setAttribute('data-aep-lab-debug-bound', '1');
