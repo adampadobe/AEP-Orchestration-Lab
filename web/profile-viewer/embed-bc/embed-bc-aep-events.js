@@ -630,6 +630,14 @@
     global.addEventListener('aep-demo-tags-injected', onTagsInjected);
   }
 
+  if (!global.__embedBcAepDatastreamChangeListener) {
+    global.__embedBcAepDatastreamChangeListener = true;
+    global.addEventListener('aep-lab-edge-datastream-changed', function () {
+      bcLog('datastream changed — re-wrap alloy + BC hooks');
+      onTagsInjected();
+    });
+  }
+
   global.EmbedBcAepEvents = {
     install: install,
     augmentBootstrapConfig: augmentBootstrapConfig,

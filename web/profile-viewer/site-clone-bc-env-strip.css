@@ -276,6 +276,10 @@
   color: var(--dash-error, var(--dash-muted));
 }
 
+.site-clone-bc-datastream-hint--info {
+  color: var(--dash-text-secondary, var(--dash-muted));
+}
+
 .site-clone-bc-datastream-manual-success {
   color: var(--dash-success-text, #2d9d78);
   font-weight: 600;

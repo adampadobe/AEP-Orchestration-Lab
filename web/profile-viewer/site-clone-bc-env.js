@@ -750,15 +750,17 @@ function refreshSiteCloneBcDatastreamHint(preferredRoot) {
   const hint = findSiteCloneBcDatastreamHint(root);
   const sandbox = getSandboxDisplayName();
   if (!hint) return;
+  hint.classList.remove('site-clone-bc-datastream-hint--success', 'site-clone-bc-datastream-hint--info');
   if (!siteCloneBcAllDatastreamOptions.length) {
     const recent = readRecentSiteCloneBcDatastreamIds();
     const recentNote = recent.length ? ' · ' + recent.length + ' recent in list' : '';
+    hint.classList.add('site-clone-bc-datastream-hint--info');
     hint.textContent = id
-      ? 'Lab override: ' +
+      ? 'Lab override active: ' +
         id +
         (sandbox ? ' · sandbox ' + sandbox : '') +
         recentNote +
-        '. Debugger shows Tags Web SDK extension datastream until you publish a new library there.'
+        '. Not an error — Experience Platform Debugger still shows the Tags Web SDK extension datastream until you publish a new Launch library. Ensure AEP (and Brand Concierge if used) are enabled on this datastream in DSN.'
       : sandbox
         ? 'Load datastreams for sandbox ' + sandbox + ', or choose Enter UUID…' + recentNote
         : 'Pick a datastream from the list, or choose Enter UUID… to paste a new one.' + recentNote;
@@ -1140,6 +1142,16 @@ function bootSiteCloneBcDatastreamPicker() {
       datastreamDebugLog('datastream changed — invalidating SiteCloneBc core');
       invalidateSiteCloneBcCore();
       syncSiteCloneBcFromPrefs();
+      try {
+        global.dispatchEvent(
+          new CustomEvent('aep-lab-edge-datastream-changed', { detail: { prev: prev, next: next } }),
+        );
+      } catch (_ev) {
+        /* noop */
+      }
+      if (global.EmbedBcAepEvents && typeof global.EmbedBcAepEvents.install === 'function') {
+        global.EmbedBcAepEvents.install(global);
+      }
     }
   }
 

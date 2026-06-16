@@ -420,6 +420,12 @@
   color: var(--dash-error, var(--dash-muted));
 }
 
+.lab-env-overlay-panel .site-clone-bc-datastream-hint--info,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--info,
+.site-clone-bc-datastream-hint--info {
+  color: var(--dash-text-secondary, var(--spectrum-text-secondary, var(--dash-muted)));
+}
+
 .lab-env-overlay-panel .site-clone-bc-datastream-hint--success,
 .aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--success,
 .site-clone-bc-datastream-hint--success {

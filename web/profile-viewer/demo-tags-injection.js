@@ -1776,6 +1776,15 @@
       applyTagsPrefsAfterSync();
     });
 
+    if (!global[storagePrefix + 'EdgeDatastreamListener']) {
+      global[storagePrefix + 'EdgeDatastreamListener'] = true;
+      global.addEventListener('aep-lab-edge-datastream-changed', function () {
+        if (!isSdkConfiguredForSandbox()) return;
+        dtLog('edge datastream changed — re-send lab page view with new edgeConfigOverrides');
+        void syncEcidFromAlloy();
+      });
+    }
+
     let tagsBootStarted = false;
     function runTagsBoot() {
       if (tagsBootStarted) return true;
