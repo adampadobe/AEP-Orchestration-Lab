@@ -175,6 +175,11 @@
     }
   }
 
+  function rememberUserText(text) {
+    var msg = String(text || '').trim();
+    if (msg) global.__embedBcLastUserText = msg;
+  }
+
   function extractUserText(payload) {
     if (global.ArmyBcLocalEngine && typeof global.ArmyBcLocalEngine.extractUserMessage === 'function') {
       var fromEngine = global.ArmyBcLocalEngine.extractUserMessage(payload);
@@ -302,12 +307,15 @@
   var recentDedupe = {};
 
   function shouldSendInteraction(meta) {
+    var textPart = String(meta.text || '').slice(0, 80);
     var key =
       String(meta.interactionType || '') +
       '|' +
-      String(meta.text || '').slice(0, 80) +
+      textPart +
       '|' +
       String(meta.intent || '');
+    // Distinct turns with no extracted text must not collapse into one dedupe bucket.
+    if (!textPart && meta.interactionType === 'userMessage') return true;
     var now = Date.now();
     if (recentDedupe[key] && now - recentDedupe[key] < DEDUPE_MS) return false;
     recentDedupe[key] = now;
@@ -356,6 +364,7 @@
         if (out !== undefined) base = out;
       }
       if (!base || typeof base !== 'object') base = content || {};
+      if (global.__embedBcSkipBeforeEventSendUserMessage) return base;
       var meta = global.__embedBcPendingAepMeta;
       global.__embedBcPendingAepMeta = null;
       if (!meta) {
@@ -403,26 +412,35 @@
       if (command === 'sendConversationEvent') {
         var payload = args[0];
         var text = extractUserText(payload);
+        rememberUserText(text);
         var intent = inferIntent(text);
         var productCategory = inferProductCategory(text, intent);
         var baseMeta = { intent: intent, productCategory: productCategory, text: text };
-        return native.apply(w, [command].concat(args)).then(function (result) {
-          void sendBrandConciergeInteraction(
-            native,
-            Object.assign({ interactionType: 'assistantResponse', actorType: 'assistant' }, baseMeta),
-            null,
-            w,
-          );
-          if (responseHasRecommendations(result)) {
+        var userMeta = Object.assign({ interactionType: 'userMessage', actorType: 'user' }, baseMeta);
+        global.__embedBcSkipBeforeEventSendUserMessage = true;
+        void sendBrandConciergeInteraction(native, userMeta, null, w);
+        return native
+          .apply(w, [command].concat(args))
+          .then(function (result) {
             void sendBrandConciergeInteraction(
               native,
-              Object.assign({ interactionType: 'recommendationPresented', actorType: 'assistant' }, baseMeta),
+              Object.assign({ interactionType: 'assistantResponse', actorType: 'assistant' }, baseMeta),
               null,
               w,
             );
-          }
-          return result;
-        });
+            if (responseHasRecommendations(result)) {
+              void sendBrandConciergeInteraction(
+                native,
+                Object.assign({ interactionType: 'recommendationPresented', actorType: 'assistant' }, baseMeta),
+                null,
+                w,
+              );
+            }
+            return result;
+          })
+          .finally(function () {
+            global.__embedBcSkipBeforeEventSendUserMessage = false;
+          });
       }
       return native.apply(w, [command].concat(args));
     };
@@ -449,9 +467,24 @@
     });
   }
 
+  function isLocalBcEngine(win) {
+    var w = win || global;
+    try {
+      if (w.__embedBcForceLocal === true) return true;
+      if (w.__embedBcUseLocal === true) return true;
+      if (w.__embedBcUseLocal === false) return false;
+      var params = new URLSearchParams(w.location && w.location.search ? w.location.search : '');
+      if (params.has('embedBcLocal')) return true;
+      if (params.has('embedBcRemote')) return false;
+    } catch (_e) {
+      /* noop */
+    }
+    return false;
+  }
+
   function usesAlloyConversationTracking(win) {
     var alloy = resolveAlloyFn(win || global);
-    return !!(alloy && alloy.__embedBcAepEventsWrapped);
+    return !!(alloy && alloy.__embedBcAepEventsWrapped && !isLocalBcEngine(win));
   }
 
   function trackDomInteraction(meta, win) {
@@ -496,6 +529,27 @@
             },
             w,
           );
+          return;
+        }
+
+        var suggestion = target.closest(
+          '.prompt-suggestion, [class*="prompt-suggestion"], [class*="follow-up"], [class*="followup"]',
+        );
+        if (suggestion) {
+          var suggestionText = String(suggestion.textContent || '').trim();
+          if (suggestionText) {
+            rememberUserText(suggestionText);
+            trackDomInteraction(
+              {
+                interactionType: 'userMessage',
+                actorType: 'user',
+                intent: inferIntent(suggestionText),
+                productCategory: inferProductCategory(suggestionText),
+                text: suggestionText,
+              },
+              w,
+            );
+          }
           return;
         }
 
