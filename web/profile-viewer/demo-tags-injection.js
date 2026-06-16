@@ -424,50 +424,8 @@
     let tagsPropertiesLoadGen = 0;
     let tagsSandboxReloadTimer = null;
     let tagsSandboxReloadKey = '';
-    let tagsPropertiesInflightKey = '';
-    let tagsLastPropertiesLoadedKey = '';
-    let tagsBootFinishedAt = 0;
 
-    const TAGS_SESSION_CACHE_KEY = 'aepLabTagsReactorSessionCache';
-    const TAGS_SESSION_CACHE_TTL_MS = 15 * 60 * 1000;
-    const tagsFetchInflight = new Map();
-
-    function tagsReactorCacheKey(resource, companyId, propertyId) {
-      return [getSandboxKey(), resource, companyId || '', propertyId || ''].join('|');
-    }
-
-    function readTagsSessionCacheEntry(key) {
-      try {
-        const raw = global.sessionStorage.getItem(TAGS_SESSION_CACHE_KEY);
-        if (!raw) return null;
-        const map = JSON.parse(raw);
-        if (!map || typeof map !== 'object') return null;
-        const entry = map[key];
-        if (!entry || !Array.isArray(entry.items)) return null;
-        if (Date.now() - Number(entry.ts || 0) > TAGS_SESSION_CACHE_TTL_MS) return null;
-        return entry.items;
-      } catch (_e) {
-        return null;
-      }
-    }
-
-    function writeTagsSessionCacheEntry(key, items) {
-      try {
-        const raw = global.sessionStorage.getItem(TAGS_SESSION_CACHE_KEY);
-        const map = raw ? JSON.parse(raw) : {};
-        map[key] = { ts: Date.now(), items: items };
-        global.sessionStorage.setItem(TAGS_SESSION_CACHE_KEY, JSON.stringify(map));
-      } catch (_e2) {
-        /* quota / private mode */
-      }
-    }
-
-    function isActiveTagsLoad(loadGen, sandboxKeyAtStart, kind) {
-      if (kind === 'companies') {
-        return loadGen === tagsCompaniesLoadGen && sandboxKeyAtStart === getSandboxKey();
-      }
-      return loadGen === tagsPropertiesLoadGen && sandboxKeyAtStart === getSandboxKey();
-    }
+    function renderSelectedScript(url) {
       const prev = selectedScriptUrl;
       selectedScriptUrl = url || '';
       if (!selectedScriptEl) return;
@@ -894,40 +852,13 @@
       }
     }
 
-    async function fetchTags(resource, companyId, propertyId, opts) {
-      const o = opts || {};
-      const cacheKey = tagsReactorCacheKey(resource, companyId, propertyId);
-      const cached = o.skipCache || o.networkOnly ? null : readTagsSessionCacheEntry(cacheKey);
-      if (cached && !o.cacheOnly) {
-        dtLog('fetchTags: session cache hit', { resource, companyId: companyId || '', count: cached.length });
-        if (!o.networkOnly) {
-          void fetchTags(resource, companyId, propertyId, { networkOnly: true }).catch(function () {
-            /* background refresh */
-          });
-        }
-        return cached;
+    async function fetchTags(resource, companyId, propertyId) {
+      const res = await fetch(tagsApiUrl(resource, companyId, propertyId));
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) {
+        throw new Error(data.error || data.detail || 'Request failed.');
       }
-      if (tagsFetchInflight.has(cacheKey)) {
-        return tagsFetchInflight.get(cacheKey);
-      }
-      const promise = (async function () {
-        const res = await fetch(tagsApiUrl(resource, companyId, propertyId));
-        const data = await res.json().catch(() => ({}));
-        if (!data.ok) {
-          throw new Error(data.error || data.detail || 'Request failed.');
-        }
-        const items = Array.isArray(data.items) ? data.items : [];
-        writeTagsSessionCacheEntry(cacheKey, items);
-        return items;
-      })();
-      tagsFetchInflight.set(cacheKey, promise);
-      try {
-        return await promise;
-      } finally {
-        if (tagsFetchInflight.get(cacheKey) === promise) {
-          tagsFetchInflight.delete(cacheKey);
-        }
-      }
+      return Array.isArray(data.items) ? data.items : [];
     }
 
     function setSelectOptions(select, rows, labelGetter, valueGetter, emptyLabel) {
@@ -1108,9 +1039,8 @@
       }
     }
 
-    async function loadTagsProperties(companyId, opts) {
+    async function loadTagsProperties(companyId) {
       if (!tagsPropertyInput || !tagsEnvironmentSelect) return;
-      const loadOpts = opts || {};
       if (!companyId) {
         allPropertyOptions = [];
         selectedPropertyId = '';
@@ -1118,32 +1048,16 @@
         renderPropertyOptions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
-        tagsPropertiesInflightKey = '';
         return;
       }
       const loadGen = ++tagsPropertiesLoadGen;
       const sandboxKeyAtStart = getSandboxKey();
-      const inflightKey = sandboxKeyAtStart + '|' + String(companyId);
-      if (!loadOpts.force && tagsPropertiesInflightKey === inflightKey) {
-        return;
-      }
-      tagsPropertiesInflightKey = inflightKey;
-
-      const cacheKey = tagsReactorCacheKey('properties', companyId, '');
-      const cachedItems = readTagsSessionCacheEntry(cacheKey);
-      const usedCache = !!cachedItems;
-
-      function applyPropertyItems(items) {
-        if (!isActiveTagsLoad(loadGen, sandboxKeyAtStart, 'properties')) return false;
+      try {
+        setMessage('Loading properties...', '');
+        const items = await fetchTags('properties', companyId, '');
+        if (loadGen !== tagsPropertiesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
         allPropertyOptions = filterPropertiesForSandbox(items, cfg);
         const prefix = resolveTagsPropertyNamePrefix(cfg);
-        const earlyRec = readPersistedTagsPropertySelection();
-        if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
-        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
-        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        syncSelectedScriptDisplayAfterTagsStructureChange();
-        void restorePersistedTagsPropertySelection();
-        tagsLastPropertiesLoadedKey = inflightKey;
         if (prefix && !allPropertyOptions.length) {
           setMessage(
             'No Tags properties starting with “' +
@@ -1151,29 +1065,18 @@
               '” for this sandbox. Check Data Collection or sandbox selection.',
             'error',
           );
-        } else {
-          setMessage(usedCache ? 'Properties loaded (cached — refreshing in background).' : 'Properties loaded.', 'success');
         }
-        return true;
-      }
-
-      try {
-        if (cachedItems) {
-          applyPropertyItems(cachedItems);
-        } else {
-          setMessage('Loading properties...', '');
+        const earlyRec = readPersistedTagsPropertySelection();
+        if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
+        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
+        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+        syncSelectedScriptDisplayAfterTagsStructureChange();
+        await restorePersistedTagsPropertySelection();
+        if (!(prefix && !allPropertyOptions.length)) {
+          setMessage('Properties loaded.', 'success');
         }
-        const items = await fetchTags('properties', companyId, '', cachedItems ? { networkOnly: true } : {});
-        if (!isActiveTagsLoad(loadGen, sandboxKeyAtStart, 'properties')) return;
-        applyPropertyItems(items);
       } catch (err) {
-        if (!isActiveTagsLoad(loadGen, sandboxKeyAtStart, 'properties')) return;
-        if (cachedItems && applyPropertyItems(cachedItems)) return;
         setMessage(err.message || 'Failed to load properties.', 'error');
-      } finally {
-        if (tagsPropertiesInflightKey === inflightKey && loadGen === tagsPropertiesLoadGen) {
-          tagsPropertiesInflightKey = '';
-        }
       }
     }
 
@@ -1703,15 +1606,8 @@
       applyPersistedTagsFieldsEarly();
       applySandboxConfigState({ preserveEditing: true });
       const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
-      const propsKey = getSandboxKey() + '|' + companyId;
-      if (companyId && propsKey === tagsLastPropertiesLoadedKey) {
-        return;
-      }
       if (companyId) {
         void loadTagsProperties(companyId);
-        return;
-      }
-      if (tagsBootFinishedAt && Date.now() - tagsBootFinishedAt < 4000 && tagsCompaniesLoadGen > 0) {
         return;
       }
       void loadTagsCompanies();
@@ -1785,7 +1681,6 @@
           void loadTagsCompanies();
         }
       }
-      tagsBootFinishedAt = Date.now();
       return true;
     }
 
