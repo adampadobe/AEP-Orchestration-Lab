@@ -194,8 +194,8 @@
     };
   }
 
-  function buildTurnId(conversationId, turnIndex) {
-    return String(conversationId || '') + '-' + String(turnIndex);
+  function buildTurnId(turnIndex) {
+    return String(turnIndex);
   }
 
   function promptPurposeForInteraction(interactionType) {
@@ -267,7 +267,7 @@
 
     var conv = {
       conversationID: conversationID,
-      turnID: buildTurnId(conversationID, meta.turnIndex),
+      turnID: buildTurnId(meta.turnIndex),
       signals: buildConversationSignals(meta),
     };
 
