@@ -2827,6 +2827,9 @@ function renderEventTimeline(events) {
 /** Hide application.login in the drawer timeline when it fired within this window (e.g. same session sign-in). */
 const DRAWER_HIDE_APPLICATION_LOGIN_MS = 5 * 60 * 1000;
 
+let _lastApplicationLoginSentAt = 0;
+let _lastApplicationLoginSentKey = '';
+
 function eventTimestampMsForDrawer(ev) {
   if (!ev || ev.timestamp == null) return null;
   const t = typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10);
@@ -3086,14 +3089,24 @@ function augmentGeneratorRequestBody(body) {
 }
 
 function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) {
+  const emailTrim = String(email || '').trim();
   const ecidEl = document.getElementById('infoEcid');
   const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
   const ecid =
     ecidText && ecidText !== '—' && ecidText !== '-' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
+  const dedupeKey = emailTrim.toLowerCase() + '|' + (ecid || '');
+  const now = Date.now();
+  if (
+    dedupeKey &&
+    dedupeKey === _lastApplicationLoginSentKey &&
+    now - _lastApplicationLoginSentAt < DRAWER_HIDE_APPLICATION_LOGIN_MS
+  ) {
+    return Promise.resolve(null);
+  }
   const target = typeof getSelectedGeneratorTarget === 'function' ? getSelectedGeneratorTarget() : null;
   const body = {
     targetId: target ? target.id : undefined,
-    email: String(email || '').trim(),
+    email: emailTrim,
     eventType: 'application.login',
     viewName: _config.viewName || 'Demo',
     viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
@@ -3111,6 +3124,8 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
       .catch(() => ({}))
       .then((data) => {
         if (!res.ok) throw new Error(data.error || data.message || 'Request failed.');
+        _lastApplicationLoginSentKey = dedupeKey;
+        _lastApplicationLoginSentAt = Date.now();
         return data;
       });
   });
@@ -3283,7 +3298,7 @@ async function loadProfileDataForDrawer(email, options) {
     updateProfileDrawer(lastLookedUpProfile);
     startEventsPoll();
 
-    if (data.found && typeof _config.getSelectedGeneratorTarget === 'function') {
+    if (data.found && typeof _config.getSelectedGeneratorTarget === 'function' && opts.sendApplicationLogin !== false) {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }
 
@@ -3447,7 +3462,18 @@ function initAepProfileDrawerHover() {
     body.classList.toggle(openClass, next);
     if (next && !drawerOpenState) {
       const email = String(drawerGetEmail() || '').trim();
-      if (email) loadProfileDataForDrawer(email, { updateMessage: false });
+      if (email) {
+        if (email === _lastLoadedIdentifier && lastLookedUpProfile) {
+          const ecid =
+            lastLookedUpProfile.ecid != null && String(lastLookedUpProfile.ecid).length >= 10
+              ? String(lastLookedUpProfile.ecid)
+              : '';
+          if (ecid) void refreshDrawerEventsForIdentity(ecid, 'ecid');
+          else void refreshDrawerEventsForIdentity(email);
+        } else {
+          void loadProfileDataForDrawer(email, { updateMessage: false, sendApplicationLogin: false });
+        }
+      }
     }
     if (!next) stopEventsPoll();
     drawerOpenState = next;
