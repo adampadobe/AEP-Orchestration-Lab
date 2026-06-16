@@ -245,11 +245,15 @@
 
     if (interactionType === 'assistantResponse' || interactionType === 'recommendationPresented') {
       var lastPrompt = global.__embedBcLastTurnPrompt;
-      if (lastPrompt && lastPrompt.conversationID === conversationID && lastPrompt.prompt) {
-        var pairedPrompt = buildPromptBlock(lastPrompt.prompt);
+      var pairedPromptText = String(meta.promptText || '').trim();
+      if (!pairedPromptText && lastPrompt && lastPrompt.conversationID === conversationID && lastPrompt.prompt) {
+        pairedPromptText = String(lastPrompt.prompt).trim();
+      }
+      if (pairedPromptText) {
+        var pairedPrompt = buildPromptBlock(pairedPromptText);
         if (pairedPrompt) conv.prompt = pairedPrompt;
       }
-      var response = buildResponseBlock(responseText || promptText);
+      var response = buildResponseBlock(responseText);
       if (response) conv.response = response;
     }
 
@@ -294,6 +298,101 @@
       /* noop */
     }
     return '';
+  }
+
+  function extractAssistantTextFromStreamChunk(chunk) {
+    if (!chunk) return '';
+    if (typeof chunk === 'string' && chunk.trim()) return chunk.trim();
+    if (typeof chunk.message === 'string' && chunk.message.trim()) return chunk.message.trim();
+    if (typeof chunk.text === 'string' && chunk.text.trim()) return chunk.text.trim();
+    if (chunk.response && typeof chunk.response === 'object') {
+      return extractAssistantTextFromResult({ response: chunk.response });
+    }
+    return extractAssistantTextFromResult(chunk);
+  }
+
+  function textsLikelySame(a, b) {
+    var left = String(a || '').trim().toLowerCase();
+    var right = String(b || '').trim().toLowerCase();
+    if (!left || !right) return false;
+    return left === right;
+  }
+
+  function wrapConversationPayloadForAssistantCapture(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    var next = Object.assign({}, payload);
+    global.__embedBcLastStreamedAssistantText = '';
+    var origStream = payload.onStreamResponse;
+    next.onStreamResponse = function (chunk) {
+      var captured = extractAssistantTextFromStreamChunk(chunk);
+      if (captured) global.__embedBcLastStreamedAssistantText = captured;
+      if (typeof origStream === 'function') return origStream(chunk);
+    };
+    return next;
+  }
+
+  function resolveAssistantResponseText(result, win, userPromptText) {
+    var prompt = String(userPromptText || '').trim();
+    function pickCandidate() {
+      var fromStream = String(global.__embedBcLastStreamedAssistantText || '').trim();
+      var fromResult = extractAssistantTextFromResult(result);
+      var fromDom = extractLastAssistantTextFromDom(win);
+      var candidates = [fromStream, fromResult, fromDom];
+      for (var i = 0; i < candidates.length; i++) {
+        var hit = String(candidates[i] || '').trim();
+        if (!hit) continue;
+        if (prompt && textsLikelySame(hit, prompt)) continue;
+        return hit;
+      }
+      return '';
+    }
+
+    var immediate = pickCandidate();
+    if (immediate) return Promise.resolve(immediate);
+
+    var delayMs = 300;
+    var maxAttempts = 14;
+    return new Promise(function (resolve) {
+      var attempt = 0;
+      function tick() {
+        var hit = pickCandidate();
+        if (hit) {
+          resolve(hit);
+          return;
+        }
+        attempt += 1;
+        if (attempt >= maxAttempts) {
+          resolve('');
+          return;
+        }
+        setTimeout(tick, delayMs);
+      }
+      setTimeout(tick, delayMs);
+    });
+  }
+
+  function sendAssistantTurnEvents(alloyFn, baseMeta, assistantText, result, win, turnIndex) {
+    var assistantMeta = Object.assign(
+      {
+        interactionType: 'assistantResponse',
+        actorType: 'assistant',
+        responseText: assistantText,
+        promptText: baseMeta.text,
+        text: baseMeta.text,
+        turnIndex: turnIndex,
+      },
+      { intent: baseMeta.intent, productCategory: baseMeta.productCategory },
+    );
+    if (!assistantText) return;
+    void sendBrandConciergeInteraction(alloyFn, assistantMeta, null, win);
+    if (responseHasRecommendations(result)) {
+      void sendBrandConciergeInteraction(
+        alloyFn,
+        Object.assign({}, assistantMeta, { interactionType: 'recommendationPresented' }),
+        null,
+        win,
+      );
+    }
   }
 
   function extractUserText(payload) {
@@ -534,52 +633,29 @@
         }
       }
       if (command === 'sendConversationEvent') {
-        var payload = args[0];
+        var payload = wrapConversationPayloadForAssistantCapture(args[0]);
+        args[0] = payload;
         var text = extractUserText(payload);
         rememberUserText(text);
         var intent = inferIntent(text);
         var productCategory = inferProductCategory(text, intent);
         var baseMeta = { intent: intent, productCategory: productCategory, text: text };
         var userMeta = Object.assign({ interactionType: 'userMessage', actorType: 'user' }, baseMeta);
+        userMeta = prepareMetaForSend(userMeta);
+        var pairedTurnIndex = userMeta.turnIndex;
         global.__embedBcSkipBeforeEventSendUserMessage = true;
         void sendBrandConciergeInteraction(native, userMeta, null, w);
         return native
           .apply(w, [command].concat(args))
           .then(function (result) {
-            var assistantText = extractAssistantTextFromResult(result);
-            if (!assistantText) assistantText = extractLastAssistantTextFromDom(w);
-            void sendBrandConciergeInteraction(
-              native,
-              Object.assign(
-                {
-                  interactionType: 'assistantResponse',
-                  actorType: 'assistant',
-                  responseText: assistantText,
-                },
-                baseMeta,
-              ),
-              null,
-              w,
-            );
-            if (responseHasRecommendations(result)) {
-              void sendBrandConciergeInteraction(
-                native,
-                Object.assign(
-                  {
-                    interactionType: 'recommendationPresented',
-                    actorType: 'assistant',
-                    responseText: assistantText,
-                  },
-                  baseMeta,
-                ),
-                null,
-                w,
-              );
-            }
-            return result;
+            return resolveAssistantResponseText(result, w, text).then(function (assistantText) {
+              sendAssistantTurnEvents(native, baseMeta, assistantText, result, w, pairedTurnIndex);
+              return result;
+            });
           })
           .finally(function () {
             global.__embedBcSkipBeforeEventSendUserMessage = false;
+            global.__embedBcLastStreamedAssistantText = '';
           });
       }
       return native.apply(w, [command].concat(args));
