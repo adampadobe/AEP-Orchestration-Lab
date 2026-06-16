@@ -142,12 +142,23 @@
     return resetConversationState();
   }
 
-  function consumeTurnIndex() {
+  function readTurnIndex() {
     var raw = readSession(TURN_STORAGE_KEY);
     var current = parseInt(raw, 10);
     if (!Number.isFinite(current) || current < 1) current = 1;
+    return current;
+  }
+
+  function allocateTurnIndex() {
+    var current = readTurnIndex();
     writeSession(TURN_STORAGE_KEY, String(current + 1));
     return current;
+  }
+
+  function prepareMetaForSend(meta) {
+    meta = meta || {};
+    if (meta.turnIndex == null) meta.turnIndex = allocateTurnIndex();
+    return meta;
   }
 
   function defaultActorType(interactionType) {
@@ -249,6 +260,7 @@
     meta = meta || {};
     var interactionType = String(meta.interactionType || '').trim();
     if (!interactionType) return null;
+    if (meta.turnIndex == null) return null;
     var text = String(meta.text || '').trim();
     var intent = String(meta.intent || inferIntent(text)).trim() || 'general';
     var actorType = String(meta.actorType || defaultActorType(interactionType)).trim();
@@ -260,14 +272,12 @@
       interactionType: interactionType,
       intent: intent,
       productCategory: String(meta.productCategory || inferProductCategory(text, intent)).trim() || 'general',
-      turnIndex: consumeTurnIndex(),
+      turnIndex: meta.turnIndex,
       actorType: actorType,
     };
   }
 
   function enrichSendEventOptions(options, meta) {
-    var bc = buildBrandConciergeFields(meta);
-    if (!bc) return options;
     var base = options && typeof options === 'object' ? options : {};
     var xdm = base.xdm && typeof base.xdm === 'object' ? Object.assign({}, base.xdm) : {};
     if (
@@ -278,6 +288,8 @@
     ) {
       return base;
     }
+    var bc = buildBrandConciergeFields(meta);
+    if (!bc) return base;
     xdm.eventType = EVENT_TYPE;
     var tenant =
       xdm[TENANT_KEY] && typeof xdm[TENANT_KEY] === 'object' ? Object.assign({}, xdm[TENANT_KEY]) : {};
@@ -311,6 +323,7 @@
   function sendBrandConciergeInteraction(alloyFn, meta, extraOptions, win) {
     meta = meta || {};
     if (!shouldSendInteraction(meta)) return Promise.resolve(null);
+    meta = prepareMetaForSend(meta);
     var alloy = typeof alloyFn === 'function' ? alloyFn : resolveAlloyFn(win);
     if (typeof alloy !== 'function') {
       bcLog('skip sendEvent — alloy unavailable', meta.interactionType);
@@ -343,10 +356,13 @@
         if (out !== undefined) base = out;
       }
       if (!base || typeof base !== 'object') base = content || {};
-      if (!global.__embedBcPendingAepMeta) return enrichSendEventOptions(base, { interactionType: 'userMessage', actorType: 'user', text: extractUserText(base) });
       var meta = global.__embedBcPendingAepMeta;
       global.__embedBcPendingAepMeta = null;
-      return enrichSendEventOptions(base, meta);
+      if (!meta) {
+        meta = { interactionType: 'userMessage', actorType: 'user', text: extractUserText(base) };
+      }
+      if (!shouldSendInteraction(meta)) return base;
+      return enrichSendEventOptions(base, prepareMetaForSend(meta));
     };
   }
 
@@ -378,8 +394,11 @@
     var wrapped = function (command) {
       var args = Array.prototype.slice.call(arguments, 1);
       if (command === 'sendEvent' && global.__embedBcPendingAepMeta) {
-        args[0] = enrichSendEventOptions(args[0] || {}, global.__embedBcPendingAepMeta);
+        var pendingMeta = global.__embedBcPendingAepMeta;
         global.__embedBcPendingAepMeta = null;
+        if (shouldSendInteraction(pendingMeta)) {
+          args[0] = enrichSendEventOptions(args[0] || {}, prepareMetaForSend(pendingMeta));
+        }
       }
       if (command === 'sendConversationEvent') {
         var payload = args[0];
@@ -387,7 +406,6 @@
         var intent = inferIntent(text);
         var productCategory = inferProductCategory(text, intent);
         var baseMeta = { intent: intent, productCategory: productCategory, text: text };
-        void sendBrandConciergeInteraction(native, Object.assign({ interactionType: 'userMessage', actorType: 'user' }, baseMeta), null, w);
         return native.apply(w, [command].concat(args)).then(function (result) {
           void sendBrandConciergeInteraction(
             native,
@@ -429,6 +447,11 @@
         win[name] = wrapAlloyInstance(win[name], win);
       }
     });
+  }
+
+  function usesAlloyConversationTracking(win) {
+    var alloy = resolveAlloyFn(win || global);
+    return !!(alloy && alloy.__embedBcAepEventsWrapped);
   }
 
   function trackDomInteraction(meta, win) {
@@ -534,6 +557,7 @@
       if (!mount || mount.__embedBcAepMountObserved) return;
       mount.__embedBcAepMountObserved = true;
       var obs = new MutationObserver(function () {
+        if (usesAlloyConversationTracking(w)) return;
         mount.querySelectorAll('.user-message, [class*="user-message"]').forEach(function (node) {
           observeMessageNode(node, { interactionType: 'userMessage', actorType: 'user' }, w);
         });
