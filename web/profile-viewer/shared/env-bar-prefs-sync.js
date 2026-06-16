@@ -11,6 +11,7 @@
   var readyResolve;
   var readyReject;
   var booted = false;
+  var AUTH_READY_CAP_MS = 2000;
 
   var readyPromise = new Promise(function (resolve, reject) {
     readyResolve = resolve;
@@ -44,18 +45,31 @@
     return Promise.resolve({});
   }
 
+  function capAuthWait(promise) {
+    return Promise.race([
+      promise,
+      new Promise(function (resolve) {
+        global.setTimeout(function () {
+          resolve(null);
+        }, AUTH_READY_CAP_MS);
+      }),
+    ]);
+  }
+
   function whenAuthReady() {
+    var base;
     if (global.AepLabSandboxSync && global.AepLabSandboxSync.whenReady) {
-      return global.AepLabSandboxSync.whenReady.catch(function () {
+      base = global.AepLabSandboxSync.whenReady.catch(function () {
         return null;
       });
-    }
-    if (global.__aepLabSyncReady && typeof global.__aepLabSyncReady.then === 'function') {
-      return global.__aepLabSyncReady.catch(function () {
+    } else if (global.__aepLabSyncReady && typeof global.__aepLabSyncReady.then === 'function') {
+      base = global.__aepLabSyncReady.catch(function () {
         return null;
       });
+    } else {
+      base = Promise.resolve(null);
     }
-    return Promise.resolve(null);
+    return capAuthWait(base);
   }
 
   function pull() {

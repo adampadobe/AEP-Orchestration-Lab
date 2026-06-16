@@ -27,8 +27,8 @@
       compactCss: '20260625-datastream-paste-visible',
       bootstrap: '20260602-env-bar-bootstrap',
       prefsLocal: '20260625-incognito-env-fix',
-      prefsSync: '20260625-incognito-env-fix',
-      tagsInjection: '20260625-env-overlay-configuring',
+      prefsSync: '20260625-tags-properties-fast',
+      tagsInjection: '20260625-tags-properties-fast',
       aepDemoEnvBar: '20260625-datastream-paste-row-ensure',
       siteCloneBcEnv: '20260615-datastream-manual-collapsed',
       decisioningModuleCss: '20260615',
@@ -203,12 +203,25 @@
     }, Promise.resolve());
   }
 
+  var PREFS_READY_CAP_MS = 1200;
+
+  function capPromise(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise(function (resolve) {
+        global.setTimeout(function () {
+          resolve(null);
+        }, ms);
+      }),
+    ]);
+  }
+
   function ensurePrefsReady() {
     if (state.prefsReadyPromise) return state.prefsReadyPromise;
     state.prefsReadyPromise = loadVersions().then(function (versions) {
       return loadPrefsScripts(versions).then(function () {
         if (global.AepLabEnvBarPrefsSync && global.AepLabEnvBarPrefsSync.whenReady) {
-          return global.AepLabEnvBarPrefsSync.whenReady;
+          return capPromise(global.AepLabEnvBarPrefsSync.whenReady, PREFS_READY_CAP_MS);
         }
         return null;
       });
