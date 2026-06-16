@@ -1,9 +1,8 @@
 /**
  * Brand Concierge → AEP Experience Events via existing alloy sendEvent.
- * Adds `_demoemea.brandConcierge` (conversationID, turnIndex, actorType, …),
- * root `conversation` (prompt / response per operational XDM), and mirrors
- * anonymous demo tenant identification (`_demoemea.identification.core.ecid`
- * + identityMap.ECID) when a lab ECID is known.
+ * Adds root `conversation` (operational XDM) and mirrors anonymous demo tenant
+ * identification (`_demoemea.identification.core.ecid` + identityMap.ECID)
+ * when a lab ECID is known.
  */
 (function (global) {
   'use strict';
@@ -199,22 +198,51 @@
     return String(conversationId || '') + '-' + String(turnIndex);
   }
 
-  function buildPromptBlock(text) {
+  function promptPurposeForInteraction(interactionType) {
+    switch (interactionType) {
+      case 'recommendationClicked':
+        return 'recommendation-click';
+      case 'meetingBooked':
+        return 'meeting-booked';
+      default:
+        return 'free-form text';
+    }
+  }
+
+  function responsePurposeForInteraction(interactionType) {
+    return interactionType === 'recommendationPresented' ? 'recommendation' : 'main';
+  }
+
+  function buildPromptBlock(text, purpose) {
     var t = String(text || '').trim();
     if (!t) return null;
     return {
-      raw: [{ purpose: 'free-form text', text: t }],
+      raw: [{ purpose: purpose || 'free-form text', text: t }],
       source: 'end-user',
     };
   }
 
-  function buildResponseBlock(text) {
+  function buildResponseBlock(text, purpose) {
     var t = String(text || '').trim();
     if (!t) return null;
     return {
-      raw: [{ purpose: 'main', text: t }],
+      raw: [{ purpose: purpose || 'main', text: t }],
       source: 'system',
     };
+  }
+
+  function buildConversationSignals(meta) {
+    var text = String(meta.text || meta.promptText || '').trim();
+    var intent = String(meta.intent || inferIntent(text)).trim() || 'general';
+    var productCategory =
+      String(meta.productCategory || inferProductCategory(text, intent)).trim() || 'general';
+    var attributes = {
+      intents: { values: [intent] },
+    };
+    if (productCategory && productCategory !== 'general') {
+      attributes.subjects = { values: [{ phrase: productCategory, qualifiers: [] }] };
+    }
+    return [{ scope: 'turn', attributes: attributes }];
   }
 
   /**
@@ -223,15 +251,24 @@
    */
   function buildConversationFields(meta) {
     meta = meta || {};
-    if (meta.turnIndex == null) return null;
     var interactionType = String(meta.interactionType || '').trim();
-    if (!interactionType || interactionType === 'conversationStart') return null;
+    if (!interactionType) return null;
 
     var conversationID = getOrCreateConversationId({ newConversation: !!meta.newConversation });
+
+    if (interactionType === 'conversationStart') {
+      return {
+        conversationID: conversationID,
+        signals: buildConversationSignals(meta),
+      };
+    }
+
+    if (meta.turnIndex == null) return null;
+
     var conv = {
       conversationID: conversationID,
-      turnIndex: meta.turnIndex,
       turnID: buildTurnId(conversationID, meta.turnIndex),
+      signals: buildConversationSignals(meta),
     };
 
     var promptText = String(meta.promptText || meta.text || '').trim();
@@ -242,8 +279,8 @@
       interactionType === 'recommendationClicked' ||
       interactionType === 'meetingBooked'
     ) {
-      var prompt = buildPromptBlock(promptText);
-      if (prompt) conv.prompt = prompt;
+      var userPrompt = buildPromptBlock(promptText, promptPurposeForInteraction(interactionType));
+      if (userPrompt) conv.prompt = userPrompt;
     }
 
     if (interactionType === 'assistantResponse' || interactionType === 'recommendationPresented') {
@@ -253,11 +290,14 @@
         pairedPromptText = String(lastPrompt.prompt).trim();
       }
       if (pairedPromptText) {
-        var pairedPrompt = buildPromptBlock(pairedPromptText);
+        var pairedPrompt = buildPromptBlock(pairedPromptText, 'free-form text');
         if (pairedPrompt) conv.prompt = pairedPrompt;
       }
-      var response = buildResponseBlock(responseText);
-      if (response) conv.response = response;
+      var assistantResponse = buildResponseBlock(
+        responseText,
+        responsePurposeForInteraction(interactionType),
+      );
+      if (assistantResponse) conv.response = assistantResponse;
     }
 
     return conv;
@@ -492,47 +532,23 @@
     return next;
   }
 
-  function buildBrandConciergeFields(meta) {
-    meta = meta || {};
-    var interactionType = String(meta.interactionType || '').trim();
-    if (!interactionType) return null;
-    if (meta.turnIndex == null) return null;
-    var text = String(meta.text || '').trim();
-    var intent = String(meta.intent || inferIntent(text)).trim() || 'general';
-    var actorType = String(meta.actorType || defaultActorType(interactionType)).trim();
-    if (actorType !== 'user' && actorType !== 'assistant' && actorType !== 'system') {
-      actorType = defaultActorType(interactionType);
-    }
-    return {
-      conversationID: getOrCreateConversationId({ newConversation: !!meta.newConversation }),
-      interactionType: interactionType,
-      intent: intent,
-      productCategory: String(meta.productCategory || inferProductCategory(text, intent)).trim() || 'general',
-      turnIndex: meta.turnIndex,
-      actorType: actorType,
-    };
-  }
-
   function enrichSendEventOptions(options, meta) {
     var base = options && typeof options === 'object' ? options : {};
     var xdm = base.xdm && typeof base.xdm === 'object' ? Object.assign({}, base.xdm) : {};
-    if (
-      xdm[TENANT_KEY] &&
-      typeof xdm[TENANT_KEY] === 'object' &&
-      xdm[TENANT_KEY].brandConcierge &&
-      typeof xdm[TENANT_KEY].brandConcierge === 'object'
-    ) {
-      return base;
-    }
-    var bc = buildBrandConciergeFields(meta);
-    if (!bc) return base;
+    var interactionType = String(meta.interactionType || '').trim();
+    if (!interactionType) return base;
+
     xdm.eventType = EVENT_TYPE;
-    var tenant =
-      xdm[TENANT_KEY] && typeof xdm[TENANT_KEY] === 'object' ? Object.assign({}, xdm[TENANT_KEY]) : {};
-    tenant.brandConcierge = bc;
-    xdm[TENANT_KEY] = tenant;
     var conversation = buildConversationFields(meta);
     if (conversation) xdm.conversation = conversation;
+
+    if (xdm[TENANT_KEY] && typeof xdm[TENANT_KEY] === 'object') {
+      var tenant = Object.assign({}, xdm[TENANT_KEY]);
+      delete tenant.brandConcierge;
+      xdm[TENANT_KEY] = Object.keys(tenant).length ? tenant : undefined;
+      if (!xdm[TENANT_KEY]) delete xdm[TENANT_KEY];
+    }
+
     xdm = mergeDemoemeaIdentification(xdm);
     return Object.assign({}, base, edgeConfigOverrides(), { xdm: xdm });
   }
@@ -1080,7 +1096,7 @@
     augmentBootstrapConfig: augmentBootstrapConfig,
     wrapAlloyInstance: wrapAlloyInstance,
     wrapAlloyOnWindow: wrapAlloyOnWindow,
-    buildBrandConciergeFields: buildBrandConciergeFields,
+    buildConversationFields: buildConversationFields,
     enrichSendEventOptions: enrichSendEventOptions,
     sendBrandConciergeInteraction: sendBrandConciergeInteraction,
     resetConversationState: resetConversationState,

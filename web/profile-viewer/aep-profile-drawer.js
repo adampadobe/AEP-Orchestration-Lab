@@ -1529,10 +1529,32 @@ function isWebInteractionExperienceEvent(ev) {
 }
 
 /**
- * User / Assistant label from `_demoemea.brandConcierge.actorType` (or interactionType fallback).
+ * User / Assistant label from `conversation` prompt/response (legacy brandConcierge fallback).
  * @param {unknown[] | undefined} rows
  * @returns {'User'|'Assistant'|'System'|''}
  */
+function deriveConversationActorLabelFromRows(rows) {
+  if (!Array.isArray(rows)) return '';
+  let hasConversation = false;
+  let hasTurnId = false;
+  let hasResponse = false;
+  let hasPrompt = false;
+  for (const r of rows) {
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (!p.includes('conversation')) continue;
+    hasConversation = true;
+    if (p.includes('turnid')) hasTurnId = true;
+    if (p.includes('.response')) hasResponse = true;
+    if (p.includes('.prompt')) hasPrompt = true;
+  }
+  if (!hasConversation) return '';
+  if (hasResponse) return 'Assistant';
+  if (hasPrompt) return 'User';
+  if (!hasTurnId) return 'System';
+  return '';
+}
+
+/** @deprecated Legacy `_demoemea.brandConcierge` events only. */
 function deriveBrandConciergeActorLabelFromRows(rows) {
   if (!Array.isArray(rows)) return '';
   let interactionType = '';
@@ -1561,6 +1583,10 @@ function deriveBrandConciergeActorLabelFromRows(rows) {
   }
   if (interactionType === 'conversationstart') return 'System';
   return '';
+}
+
+function deriveWebInteractionActorLabelFromRows(rows) {
+  return deriveConversationActorLabelFromRows(rows) || deriveBrandConciergeActorLabelFromRows(rows);
 }
 
 function aepDrawerTrimEventTitleSnippet(s, maxLen) {
@@ -1623,7 +1649,7 @@ function formatExperienceEventDisplayTitle(ev) {
   }
   const base = normalizeEventName((ev && ev.eventName) || (ev && ev.eventType));
   if (isWebInteractionExperienceEvent(ev)) {
-    const actor = deriveBrandConciergeActorLabelFromRows(ev && ev.rows);
+    const actor = deriveWebInteractionActorLabelFromRows(ev && ev.rows);
     if (actor === 'User' || actor === 'Assistant') {
       return `${base} - ${actor}`;
     }
