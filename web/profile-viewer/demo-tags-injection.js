@@ -424,6 +424,54 @@
     let tagsPropertiesLoadGen = 0;
     let tagsSandboxReloadTimer = null;
     let tagsSandboxReloadKey = '';
+    let tagsPrefsSyncTimer = null;
+    let tagsCompaniesInflightKey = '';
+    let tagsCompaniesInflightPromise = null;
+    let tagsPropertiesInflightKey = '';
+    let tagsPropertiesInflightPromise = null;
+
+    const TAGS_SESSION_CACHE_KEY = 'aepLabTagsReactorSessionCache';
+    const TAGS_SESSION_CACHE_TTL_MS = 15 * 60 * 1000;
+    const TAGS_FETCH_TIMEOUT_MS = 60 * 1000;
+    const tagsFetchInflight = new Map();
+
+    function tagsReactorCacheKey(resource, companyId, propertyId) {
+      return [getSandboxKey(), resource, companyId || '', propertyId || ''].join('|');
+    }
+
+    function readTagsSessionCacheEntry(key) {
+      try {
+        const raw = global.sessionStorage.getItem(TAGS_SESSION_CACHE_KEY);
+        if (!raw) return null;
+        const map = JSON.parse(raw);
+        if (!map || typeof map !== 'object') return null;
+        const entry = map[key];
+        if (!entry || !Array.isArray(entry.items)) return null;
+        if (Date.now() - Number(entry.ts || 0) > TAGS_SESSION_CACHE_TTL_MS) return null;
+        return entry.items;
+      } catch (_e) {
+        return null;
+      }
+    }
+
+    function writeTagsSessionCacheEntry(key, items) {
+      try {
+        const raw = global.sessionStorage.getItem(TAGS_SESSION_CACHE_KEY);
+        const map = raw ? JSON.parse(raw) : {};
+        map[key] = { ts: Date.now(), items: items };
+        global.sessionStorage.setItem(TAGS_SESSION_CACHE_KEY, JSON.stringify(map));
+      } catch (_e2) {
+        /* quota / private mode */
+      }
+    }
+
+    function isActiveTagsCompaniesLoad(loadGen, sandboxKeyAtStart) {
+      return loadGen === tagsCompaniesLoadGen && sandboxKeyAtStart === getSandboxKey();
+    }
+
+    function isActiveTagsPropertiesLoad(loadGen, sandboxKeyAtStart) {
+      return loadGen === tagsPropertiesLoadGen && sandboxKeyAtStart === getSandboxKey();
+    }
 
     function renderSelectedScript(url) {
       const prev = selectedScriptUrl;
@@ -852,13 +900,57 @@
       }
     }
 
-    async function fetchTags(resource, companyId, propertyId) {
-      const res = await fetch(tagsApiUrl(resource, companyId, propertyId));
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) {
-        throw new Error(data.error || data.detail || 'Request failed.');
+    async function fetchTags(resource, companyId, propertyId, opts) {
+      const o = opts || {};
+      const cacheKey = tagsReactorCacheKey(resource, companyId, propertyId);
+      const cached = o.skipCache || o.networkOnly ? null : readTagsSessionCacheEntry(cacheKey);
+      if (cached && !o.cacheOnly) {
+        if (!o.networkOnly) {
+          void fetchTags(resource, companyId, propertyId, { networkOnly: true }).catch(function () {
+            /* background refresh */
+          });
+        }
+        return cached;
       }
-      return Array.isArray(data.items) ? data.items : [];
+      if (tagsFetchInflight.has(cacheKey)) {
+        return tagsFetchInflight.get(cacheKey);
+      }
+      const promise = (async function () {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller
+          ? global.setTimeout(function () {
+              controller.abort();
+            }, TAGS_FETCH_TIMEOUT_MS)
+          : null;
+        try {
+          const res = await fetch(tagsApiUrl(resource, companyId, propertyId), {
+            cache: 'no-store',
+            signal: controller ? controller.signal : undefined,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!data.ok) {
+            throw new Error(data.error || data.detail || 'Request failed.');
+          }
+          const items = Array.isArray(data.items) ? data.items : [];
+          writeTagsSessionCacheEntry(cacheKey, items);
+          return items;
+        } catch (err) {
+          if (err && err.name === 'AbortError') {
+            throw new Error('Tags request timed out. Check your connection and try again.');
+          }
+          throw err;
+        } finally {
+          if (timeoutId != null) global.clearTimeout(timeoutId);
+        }
+      })();
+      tagsFetchInflight.set(cacheKey, promise);
+      try {
+        return await promise;
+      } finally {
+        if (tagsFetchInflight.get(cacheKey) === promise) {
+          tagsFetchInflight.delete(cacheKey);
+        }
+      }
     }
 
     function setSelectOptions(select, rows, labelGetter, valueGetter, emptyLabel) {
@@ -961,82 +1053,125 @@
 
     async function loadTagsCompanies() {
       if (!tagsCompanySelect) return;
-      const loadGen = ++tagsCompaniesLoadGen;
       const sandboxKeyAtStart = getSandboxKey();
-      applyPersistedTagsFieldsEarly();
-      try {
-        setMessage('Loading Tags companies...', '');
-        const items = await fetchTags('companies');
-        if (loadGen !== tagsCompaniesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
-        setSelectOptions(
-          tagsCompanySelect,
-          items,
-          (c) => {
-            const n = c && c.attributes && (c.attributes.name || c.attributes.title);
-            return (n || c.id || 'Unnamed') + ' (' + String(c.id || '') + ')';
-          },
-          (c) => String(c && c.id ? c.id : ''),
-          'Select company'
-        );
-        allPropertyOptions = [];
-        const earlyRec = readPersistedTagsPropertySelection();
-        if (earlyRec && earlyRec.propertyId) {
-          selectedPropertyId = String(earlyRec.propertyId);
-        } else {
-          selectedPropertyId = '';
-        }
-        if (tagsPropertyInput && !(earlyRec && earlyRec.propertyLabel)) {
-          tagsPropertyInput.value = '';
-        }
-        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
-        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        syncSelectedScriptDisplayAfterTagsStructureChange();
-
-        const persistedCompanyId = readPersistedTagsCompanyId();
-        if (
-          persistedCompanyId &&
-          Array.isArray(items) &&
-          items.some(function (c) {
-            return String(c && c.id ? c.id : '') === persistedCompanyId;
-          })
-        ) {
-          tagsCompanySelect.value = persistedCompanyId;
-          if (hideTagsCompanyUi) setTagsCompanyRowVisible(false);
-          await loadTagsProperties(persistedCompanyId);
-          setMessage('Tags companies loaded (restored last property for this sandbox).', 'success');
-          return;
-        }
-
-        if (hideTagsCompanyUi && Array.isArray(items) && items.length > 0) {
-          const pickId = String(
-            (tagsCompanySelect.value && tagsCompanySelect.value.trim()) ||
-              (items[0] && items[0].id ? items[0].id : ''),
-          ).trim();
-          if (pickId) {
-            tagsCompanySelect.value = pickId;
-            persistTagsCompanyId(pickId);
-            setTagsCompanyRowVisible(false);
-            await loadTagsProperties(pickId);
-            setMessage('Tags companies loaded.', 'success');
-            return;
-          }
-        }
-        if (Array.isArray(items) && items.length === 1) {
-          const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
-          if (onlyId) {
-            tagsCompanySelect.value = onlyId;
-            persistTagsCompanyId(onlyId);
-            setTagsCompanyRowVisible(false);
-            await loadTagsProperties(onlyId);
-            return;
-          }
-        }
-        setTagsCompanyRowVisible(!hideTagsCompanyUi);
-        setMessage('Tags companies loaded.', 'success');
-      } catch (err) {
-        setTagsCompanyRowVisible(!hideTagsCompanyUi);
-        setMessage(err.message || 'Failed to load Tags companies.', 'error');
+      if (tagsCompaniesInflightPromise && tagsCompaniesInflightKey === sandboxKeyAtStart) {
+        return tagsCompaniesInflightPromise;
       }
+      const loadGen = ++tagsCompaniesLoadGen;
+      tagsCompaniesInflightKey = sandboxKeyAtStart;
+      tagsCompaniesInflightPromise = (async function () {
+        applyPersistedTagsFieldsEarly();
+        try {
+          setMessage('Loading Tags companies...', '');
+          const items = await fetchTags('companies');
+          if (!isActiveTagsCompaniesLoad(loadGen, sandboxKeyAtStart)) return;
+          setSelectOptions(
+            tagsCompanySelect,
+            items,
+            (c) => {
+              const n = c && c.attributes && (c.attributes.name || c.attributes.title);
+              return (n || c.id || 'Unnamed') + ' (' + String(c.id || '') + ')';
+            },
+            (c) => String(c && c.id ? c.id : ''),
+            'Select company',
+          );
+          allPropertyOptions = [];
+          const earlyRec = readPersistedTagsPropertySelection();
+          if (earlyRec && earlyRec.propertyId) {
+            selectedPropertyId = String(earlyRec.propertyId);
+          } else {
+            selectedPropertyId = '';
+          }
+          if (tagsPropertyInput && !(earlyRec && earlyRec.propertyLabel)) {
+            tagsPropertyInput.value = '';
+          }
+          renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
+          setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+          syncSelectedScriptDisplayAfterTagsStructureChange();
+
+          tagsSandboxReloadKey = getSandboxKey();
+
+          const persistedCompanyId = readPersistedTagsCompanyId();
+          if (
+            persistedCompanyId &&
+            Array.isArray(items) &&
+            items.some(function (c) {
+              return String(c && c.id ? c.id : '') === persistedCompanyId;
+            })
+          ) {
+            tagsCompanySelect.value = persistedCompanyId;
+            if (hideTagsCompanyUi) setTagsCompanyRowVisible(false);
+            await loadTagsProperties(persistedCompanyId);
+            setMessage('Tags companies loaded (restored last property for this sandbox).', 'success');
+            return;
+          }
+
+          if (hideTagsCompanyUi && Array.isArray(items) && items.length > 0) {
+            const pickId = String(
+              (tagsCompanySelect.value && tagsCompanySelect.value.trim()) ||
+                (items[0] && items[0].id ? items[0].id : ''),
+            ).trim();
+            if (pickId) {
+              tagsCompanySelect.value = pickId;
+              persistTagsCompanyId(pickId);
+              setTagsCompanyRowVisible(false);
+              await loadTagsProperties(pickId);
+              setMessage('Tags companies loaded.', 'success');
+              return;
+            }
+          }
+          if (Array.isArray(items) && items.length === 1) {
+            const onlyId = String(items[0] && items[0].id ? items[0].id : '').trim();
+            if (onlyId) {
+              tagsCompanySelect.value = onlyId;
+              persistTagsCompanyId(onlyId);
+              setTagsCompanyRowVisible(false);
+              await loadTagsProperties(onlyId);
+              return;
+            }
+          }
+          setTagsCompanyRowVisible(!hideTagsCompanyUi);
+          setMessage('Tags companies loaded.', 'success');
+        } catch (err) {
+          if (!isActiveTagsCompaniesLoad(loadGen, sandboxKeyAtStart)) return;
+          setTagsCompanyRowVisible(!hideTagsCompanyUi);
+          setMessage(err.message || 'Failed to load Tags companies.', 'error');
+        }
+      })();
+      try {
+        return await tagsCompaniesInflightPromise;
+      } finally {
+        if (tagsCompaniesInflightKey === sandboxKeyAtStart) {
+          tagsCompaniesInflightPromise = null;
+          tagsCompaniesInflightKey = '';
+        }
+      }
+    }
+
+    function applyTagsPropertyItems(items, loadGen, sandboxKeyAtStart, fromCache) {
+      if (!isActiveTagsPropertiesLoad(loadGen, sandboxKeyAtStart)) return false;
+      allPropertyOptions = filterPropertiesForSandbox(items, cfg);
+      const prefix = resolveTagsPropertyNamePrefix(cfg);
+      const earlyRec = readPersistedTagsPropertySelection();
+      if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
+      renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
+      setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
+      syncSelectedScriptDisplayAfterTagsStructureChange();
+      void restorePersistedTagsPropertySelection();
+      if (prefix && !allPropertyOptions.length) {
+        setMessage(
+          'No Tags properties starting with “' +
+            prefix +
+            '” for this sandbox. Check Data Collection or sandbox selection.',
+          'error',
+        );
+      } else {
+        setMessage(
+          fromCache ? 'Properties loaded (cached — refreshing in background).' : 'Properties loaded.',
+          'success',
+        );
+      }
+      return true;
     }
 
     async function loadTagsProperties(companyId) {
@@ -1048,35 +1183,43 @@
         renderPropertyOptions('');
         setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
         syncSelectedScriptDisplayAfterTagsStructureChange();
+        tagsPropertiesInflightKey = '';
+        tagsPropertiesInflightPromise = null;
         return;
       }
-      const loadGen = ++tagsPropertiesLoadGen;
       const sandboxKeyAtStart = getSandboxKey();
+      const inflightKey = sandboxKeyAtStart + '|' + String(companyId);
+      if (tagsPropertiesInflightPromise && tagsPropertiesInflightKey === inflightKey) {
+        return tagsPropertiesInflightPromise;
+      }
+      const loadGen = ++tagsPropertiesLoadGen;
+      tagsPropertiesInflightKey = inflightKey;
+      const cacheKey = tagsReactorCacheKey('properties', companyId, '');
+      const cachedItems = readTagsSessionCacheEntry(cacheKey);
+
+      tagsPropertiesInflightPromise = (async function () {
+        try {
+          if (cachedItems) {
+            applyTagsPropertyItems(cachedItems, loadGen, sandboxKeyAtStart, true);
+          } else {
+            setMessage('Loading properties...', '');
+          }
+          const items = await fetchTags('properties', companyId, '', cachedItems ? { networkOnly: true } : {});
+          if (!isActiveTagsPropertiesLoad(loadGen, sandboxKeyAtStart)) return;
+          applyTagsPropertyItems(items, loadGen, sandboxKeyAtStart, false);
+        } catch (err) {
+          if (!isActiveTagsPropertiesLoad(loadGen, sandboxKeyAtStart)) return;
+          if (cachedItems && applyTagsPropertyItems(cachedItems, loadGen, sandboxKeyAtStart, true)) return;
+          setMessage(err.message || 'Failed to load properties.', 'error');
+        }
+      })();
       try {
-        setMessage('Loading properties...', '');
-        const items = await fetchTags('properties', companyId, '');
-        if (loadGen !== tagsPropertiesLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
-        allPropertyOptions = filterPropertiesForSandbox(items, cfg);
-        const prefix = resolveTagsPropertyNamePrefix(cfg);
-        if (prefix && !allPropertyOptions.length) {
-          setMessage(
-            'No Tags properties starting with “' +
-              prefix +
-              '” for this sandbox. Check Data Collection or sandbox selection.',
-            'error',
-          );
+        return await tagsPropertiesInflightPromise;
+      } finally {
+        if (tagsPropertiesInflightKey === inflightKey) {
+          tagsPropertiesInflightPromise = null;
+          tagsPropertiesInflightKey = '';
         }
-        const earlyRec = readPersistedTagsPropertySelection();
-        if (!(earlyRec && earlyRec.propertyId)) selectedPropertyId = '';
-        renderPropertyOptions(tagsPropertyInput ? tagsPropertyInput.value : '');
-        setSelectOptions(tagsEnvironmentSelect, [], () => '', () => '', 'Select environment');
-        syncSelectedScriptDisplayAfterTagsStructureChange();
-        await restorePersistedTagsPropertySelection();
-        if (!(prefix && !allPropertyOptions.length)) {
-          setMessage('Properties loaded.', 'success');
-        }
-      } catch (err) {
-        setMessage(err.message || 'Failed to load properties.', 'error');
       }
     }
 
@@ -1585,6 +1728,8 @@
         const companyId = tagsCompanySelect ? String(tagsCompanySelect.value || '').trim() : '';
         if (companyId) {
           void loadTagsProperties(companyId);
+        } else {
+          void loadTagsCompanies();
         }
         return;
       }
@@ -1601,7 +1746,7 @@
       }, 0);
     }
 
-    function applyTagsPrefsAfterSync() {
+    function applyTagsPrefsAfterSyncNow() {
       refreshTagsDom();
       applyPersistedTagsFieldsEarly();
       applySandboxConfigState({ preserveEditing: true });
@@ -1611,6 +1756,14 @@
         return;
       }
       void loadTagsCompanies();
+    }
+
+    function applyTagsPrefsAfterSync() {
+      clearTimeout(tagsPrefsSyncTimer);
+      tagsPrefsSyncTimer = setTimeout(function () {
+        tagsPrefsSyncTimer = null;
+        applyTagsPrefsAfterSyncNow();
+      }, 80);
     }
 
     global.addEventListener('aep-global-sandbox-change', function () {

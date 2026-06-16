@@ -5,6 +5,24 @@
 
 const REACTOR_BASE = 'https://reactor.adobe.io';
 
+/** Warm-instance cache — speeds Tags property lists (incognito / cold UI). */
+const REACTOR_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
+const reactorListCache = new Map();
+
+function readReactorListCache(key) {
+  const hit = reactorListCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > REACTOR_LIST_CACHE_TTL_MS) {
+    reactorListCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function writeReactorListCache(key, value) {
+  reactorListCache.set(key, { ts: Date.now(), value });
+}
+
 /** Best-effort display string if Reactor adds actor fields on the property resource. */
 function pickUpdatedBy(attrs) {
   if (!attrs || typeof attrs !== 'object') return '';
@@ -89,12 +107,23 @@ async function reactorPaginate(token, clientId, orgId, relativePath) {
 }
 
 async function listCompanies(token, clientId, orgId) {
-  return reactorPaginate(token, clientId, orgId, '/companies?page[size]=100');
+  const cacheKey = `companies:${orgId}`;
+  const cached = readReactorListCache(cacheKey);
+  if (cached) return cached;
+  const result = await reactorPaginate(token, clientId, orgId, '/companies?page[size]=100');
+  if (result.ok) writeReactorListCache(cacheKey, result);
+  return result;
 }
 
 async function listProperties(token, clientId, orgId, companyId) {
-  const enc = encodeURIComponent(String(companyId || '').trim());
-  return reactorPaginate(token, clientId, orgId, `/companies/${enc}/properties?page[size]=100`);
+  const cid = String(companyId || '').trim();
+  const enc = encodeURIComponent(cid);
+  const cacheKey = `properties:${orgId}:${cid}`;
+  const cached = readReactorListCache(cacheKey);
+  if (cached) return cached;
+  const result = await reactorPaginate(token, clientId, orgId, `/companies/${enc}/properties?page[size]=100`);
+  if (result.ok) writeReactorListCache(cacheKey, result);
+  return result;
 }
 
 /**
