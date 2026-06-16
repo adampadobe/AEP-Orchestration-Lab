@@ -1520,6 +1520,47 @@
   var syncInFlight = null;
   var syncQueued = false;
 
+  function getDesiredBcMode() {
+    if (isBottomDockOn()) return 'bottomDock';
+    if (isModalBarOn()) return 'modalBar';
+    if (isFullScreenOn()) return 'fullscreen';
+    if (isModalOn()) return 'modal';
+    if (isInjectedOn()) return 'injected';
+    return null;
+  }
+
+  function isBcBootstrappedForMode(mode) {
+    if (!mode) return false;
+    if (mode === 'injected' && usesIframeInlineInject()) {
+      var doc = getIframeDoc();
+      var w = doc && doc.defaultView;
+      return !!(w && w.__siteCloneBcBootstrapped);
+    }
+    return !!global.__siteCloneBcBootstrapped;
+  }
+
+  function isBcCoreConfigCurrent() {
+    var styleUrl = resolveAssetUrl(getStyleConfigUrl());
+    var datastreamId = getDatastreamId();
+    var parentStyleOk = !loadedParentStyleUrl || loadedParentStyleUrl === styleUrl;
+    var parentDsOk = !loadedParentDatastreamId || loadedParentDatastreamId === datastreamId;
+    var iframeStyleOk = !loadedIframeStyleUrl || loadedIframeStyleUrl === styleUrl;
+    var iframeDsOk = !loadedIframeDatastreamId || loadedIframeDatastreamId === datastreamId;
+    return parentStyleOk && parentDsOk && iframeStyleOk && iframeDsOk;
+  }
+
+  /** Skip teardown/re-bootstrap when prefs sync or Tags inject re-fires sync with unchanged BC config. */
+  function canSkipBcSync() {
+    var desired = getDesiredBcMode();
+    if (!desired) {
+      return !activeMode && !global.__siteCloneBcBootstrapped;
+    }
+    if (!isBcBootstrappedForMode(desired)) return false;
+    if (activeMode !== desired) return false;
+    if (!isBcCoreConfigCurrent()) return false;
+    return true;
+  }
+
   async function sync() {
     if (syncInFlight) {
       syncQueued = true;
@@ -1538,6 +1579,10 @@
   async function syncInner() {
     refreshDisplayModeToggles();
     updateChromeVisibility();
+    if (canSkipBcSync()) {
+      reportBcStatus('');
+      return;
+    }
     var wantInjected = isInjectedOn();
     var wantModal = isModalOn();
     var wantFullScreen = isFullScreenOn();

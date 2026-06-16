@@ -210,7 +210,13 @@
       for (var bsk in partial.bcBySandbox) {
         if (!Object.prototype.hasOwnProperty.call(partial.bcBySandbox, bsk)) continue;
         var bn = sandboxKey(bsk);
-        doc.bcBySandbox[bn] = Object.assign({}, doc.bcBySandbox[bn] || {}, partial.bcBySandbox[bsk]);
+        var existing = doc.bcBySandbox[bn] || {};
+        var incoming = partial.bcBySandbox[bsk] || {};
+        var merged = Object.assign({}, existing, incoming);
+        if (existing.displayPrefs && typeof existing.displayPrefs === 'object') {
+          merged.displayPrefs = existing.displayPrefs;
+        }
+        doc.bcBySandbox[bn] = merged;
       }
     }
     if (partial && partial.generatorTargetBySandbox) {

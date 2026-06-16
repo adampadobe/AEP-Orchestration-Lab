@@ -1580,8 +1580,10 @@ function bindStripDomListenersOnce() {
     bootSiteCloneBcDatastreamPicker();
     applySiteCloneBcStyleConfigFieldForSandbox();
     applySiteCloneBcDatastreamFieldForSandbox();
-    applySiteCloneBcDisplayPrefsToUi();
-    syncSiteCloneBcFromPrefs();
+    if (!global.__siteCloneBcBootstrapped) {
+      applySiteCloneBcDisplayPrefsToUi();
+      syncSiteCloneBcFromPrefs();
+    }
     syncDecisioningFromPrefs();
   });
 
