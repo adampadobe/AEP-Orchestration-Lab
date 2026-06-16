@@ -14,6 +14,9 @@
   var TURN_STORAGE_KEY = 'aepBcTurnIndex';
   var BC_MOUNT_SELECTOR =
     '#brand-concierge-mount, #bcBottomDockMount, #bcModalBarMount, #siteCloneBcFrameMount, #siteCloneBcInline, .bc-bottom-dock__mount';
+  var ASSISTANT_MESSAGE_SELECTORS =
+    '.assistant-message, [class*="assistant-message"], [class*="agent-message"], ' +
+    '.concierge-message:not(.user-message):not([class*="user-message"])';
   var ECID_UI_ID = 'infoEcid';
   var DEDUPE_MS = 900;
 
@@ -311,6 +314,25 @@
     return extractAssistantTextFromResult(chunk);
   }
 
+  function rememberStreamedAssistantChunk(chunk) {
+    if (!chunk) return;
+    var captured = extractAssistantTextFromStreamChunk(chunk);
+    if (!captured) return;
+    var state = String(chunk.state || '').toLowerCase();
+    var isComplete = state === 'completed' || state === 'complete' || state === 'done';
+    var prev = String(global.__embedBcLastStreamedAssistantText || '');
+    if (isComplete || captured.length >= prev.length) {
+      global.__embedBcLastStreamedAssistantText = captured;
+    }
+  }
+
+  function chainOnStreamResponse(existingFn) {
+    return function (chunk) {
+      rememberStreamedAssistantChunk(chunk);
+      if (typeof existingFn === 'function') return existingFn(chunk);
+    };
+  }
+
   function textsLikelySame(a, b) {
     var left = String(a || '').trim().toLowerCase();
     var right = String(b || '').trim().toLowerCase();
@@ -322,12 +344,7 @@
     if (!payload || typeof payload !== 'object') return payload;
     var next = Object.assign({}, payload);
     global.__embedBcLastStreamedAssistantText = '';
-    var origStream = payload.onStreamResponse;
-    next.onStreamResponse = function (chunk) {
-      var captured = extractAssistantTextFromStreamChunk(chunk);
-      if (captured) global.__embedBcLastStreamedAssistantText = captured;
-      if (typeof origStream === 'function') return origStream(chunk);
-    };
+    next.onStreamResponse = chainOnStreamResponse(payload.onStreamResponse);
     return next;
   }
 
@@ -350,8 +367,8 @@
     var immediate = pickCandidate();
     if (immediate) return Promise.resolve(immediate);
 
-    var delayMs = 300;
-    var maxAttempts = 14;
+    var delayMs = 400;
+    var maxAttempts = 25;
     return new Promise(function (resolve) {
       var attempt = 0;
       function tick() {
@@ -383,7 +400,6 @@
       },
       { intent: baseMeta.intent, productCategory: baseMeta.productCategory },
     );
-    if (!assistantText) return;
     void sendBrandConciergeInteraction(alloyFn, assistantMeta, null, win);
     if (responseHasRecommendations(result)) {
       void sendBrandConciergeInteraction(
@@ -524,7 +540,10 @@
   var recentDedupe = {};
 
   function shouldSendInteraction(meta) {
-    var textPart = String(meta.text || '').slice(0, 80);
+    var textPart =
+      meta.interactionType === 'assistantResponse' || meta.interactionType === 'recommendationPresented'
+        ? String(meta.responseText || meta.text || '').slice(0, 80)
+        : String(meta.text || '').slice(0, 80);
     var key =
       String(meta.interactionType || '') +
       '|' +
@@ -719,20 +738,71 @@
     return '';
   }
 
-  function extractLastAssistantTextFromDom(win) {
-    var w = win || global;
-    try {
-      var doc = w.document;
-      if (!doc || !doc.querySelectorAll) return '';
-      var nodes = doc.querySelectorAll(
-        '.assistant-message, [class*="assistant-message"], [class*="agent-message"]',
-      );
-      for (var i = nodes.length - 1; i >= 0; i--) {
-        var t = String(nodes[i] && nodes[i].textContent ? nodes[i].textContent : '').trim();
-        if (t) return t;
+  function collectBcDomContexts(win) {
+    var contexts = [];
+    var seen = new Set();
+    function addContext(targetWin) {
+      try {
+        if (!targetWin || !targetWin.document || seen.has(targetWin)) return;
+        seen.add(targetWin);
+        contexts.push(targetWin);
+      } catch (_skip) {
+        /* cross-origin */
       }
-    } catch (_e2) {
+    }
+    addContext(win || global);
+    if ((win || global) !== global) addContext(global);
+    try {
+      var frame = global.document.getElementById('skyDemoSiteFrame');
+      if (frame && frame.contentWindow) addContext(frame.contentWindow);
+    } catch (_frame) {
       /* noop */
+    }
+    return contexts;
+  }
+
+  function isUserMessageNode(node) {
+    if (!node || !node.classList) return false;
+    if (node.classList.contains('user-message')) return true;
+    var cls = String(node.className || '');
+    if (/user-message/i.test(cls)) return true;
+    return !!(node.closest && node.closest('.user-message, [class*="user-message"]'));
+  }
+
+  function messageTextFromNode(node) {
+    if (!node) return '';
+    var content = node.querySelector('.message-content:not(.message-loading)');
+    if (content) return String(content.textContent || '').trim();
+    return String(node.textContent || '').trim();
+  }
+
+  function extractLastAssistantTextFromMount(mount) {
+    if (!mount || !mount.querySelectorAll) return '';
+    var nodes = mount.querySelectorAll(ASSISTANT_MESSAGE_SELECTORS);
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      var node = nodes[i];
+      if (!node || isUserMessageNode(node)) continue;
+      if (node.querySelector('.message-loading')) continue;
+      var text = messageTextFromNode(node);
+      if (text) return text;
+    }
+    return '';
+  }
+
+  function extractLastAssistantTextFromDom(win) {
+    var contexts = collectBcDomContexts(win);
+    for (var c = 0; c < contexts.length; c++) {
+      try {
+        var doc = contexts[c].document;
+        if (!doc || !doc.querySelectorAll) continue;
+        var mounts = doc.querySelectorAll(BC_MOUNT_SELECTOR);
+        for (var m = mounts.length - 1; m >= 0; m--) {
+          var hit = extractLastAssistantTextFromMount(mounts[m]);
+          if (hit) return hit;
+        }
+      } catch (_e2) {
+        /* noop */
+      }
     }
     return '';
   }
@@ -898,11 +968,10 @@
         mount.querySelectorAll('.user-message, [class*="user-message"]').forEach(function (node) {
           observeMessageNode(node, { interactionType: 'userMessage', actorType: 'user' }, w);
         });
-        mount
-          .querySelectorAll('.assistant-message, [class*="assistant-message"], [class*="agent-message"]')
-          .forEach(function (node) {
-            observeMessageNode(node, { interactionType: 'assistantResponse', actorType: 'assistant' }, w);
-          });
+        mount.querySelectorAll(ASSISTANT_MESSAGE_SELECTORS).forEach(function (node) {
+          if (isUserMessageNode(node) || node.querySelector('.message-loading')) return;
+          observeMessageNode(node, { interactionType: 'assistantResponse', actorType: 'assistant' }, w);
+        });
         mount.querySelectorAll('.bc-multimodal-card, .bc-card').forEach(function (node) {
           if (node.__embedBcAepCardSeen) return;
           node.__embedBcAepCardSeen = true;
@@ -934,6 +1003,7 @@
   function augmentBootstrapConfig(config) {
     config = config || {};
     config.onBeforeEventSend = chainOnBeforeEventSend(config.onBeforeEventSend);
+    config.onStreamResponse = chainOnStreamResponse(config.onStreamResponse);
     return config;
   }
 

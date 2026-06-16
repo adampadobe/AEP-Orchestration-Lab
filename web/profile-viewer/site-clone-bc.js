@@ -193,7 +193,7 @@
     'https://experience.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js';
   var ALLOY_JS = 'https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js';
   var AEP_EVENTS_JS = 'embed-bc-aep-events.js';
-  var AEP_EVENTS_CACHE = '20260625-assistant-response-text';
+  var AEP_EVENTS_CACHE = '20260616-concierge-message-response';
 
   function getStyleConfigUrl() {
     if (global.SiteCloneBcConfig && typeof global.SiteCloneBcConfig.getStyleConfigUrl === 'function') {
