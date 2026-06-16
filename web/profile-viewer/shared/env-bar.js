@@ -30,7 +30,7 @@
       prefsSync: '20260616-tags-incognito-load',
       tagsInjection: '20260616-tags-incognito-load',
       aepDemoEnvBar: '20260625-datastream-paste-row-ensure',
-      siteCloneBcEnv: '20260615-datastream-manual-collapsed',
+      siteCloneBcEnv: '20260616-bc-display-prefs-restore',
       decisioningModuleCss: '20260615',
       decisioningPanelCss: '20260614-decisioning-channel-icon',
       profileStreamingShared: '20260615',

@@ -1231,6 +1231,7 @@ function loadDecisioningEnabledPrefs() {
 }
 
 function saveDecisioningEnabledPrefs(sandboxKey) {
+  enableBcDisplayPrefsRestore();
   const map = readStorageMap(SC_DECISIONING_PREFS_BY_SANDBOX_KEY);
   const key = sandboxKey != null ? sandboxKey : getSandboxKey();
   map[key] = siteCloneDecisioningEnabledToggle && siteCloneDecisioningEnabledToggle.checked ? '1' : '0';
@@ -1285,6 +1286,7 @@ function loadSiteCloneBcDisplayPrefs() {
 }
 
 function saveSiteCloneBcDisplayPrefs(sandboxKey) {
+  enableBcDisplayPrefsRestore();
   const map = readStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
   const key = sandboxKey != null ? sandboxKey : getSandboxKey();
   map[key] = {
@@ -1307,8 +1309,12 @@ function resetSiteCloneBcDisplayPrefsOnUi() {
   if (siteCloneDecisioningEnabledToggle) siteCloneDecisioningEnabledToggle.checked = false;
 }
 
-/** Skip restoring saved BC display/decisioning toggles until the user changes sandbox. */
+/** Skip restoring saved BC display/decisioning toggles until sandbox is known or user saves. */
 let restoreBcDisplayPrefsFromStorage = false;
+
+function enableBcDisplayPrefsRestore() {
+  restoreBcDisplayPrefsFromStorage = true;
+}
 
 function applySiteCloneBcDisplayPrefsToUi() {
   if (!restoreBcDisplayPrefsFromStorage) {
@@ -1543,7 +1549,7 @@ function bindStripDomListenersOnce() {
   });
 
   global.addEventListener('aep-global-sandbox-change', function () {
-    restoreBcDisplayPrefsFromStorage = true;
+    enableBcDisplayPrefsRestore();
     sandboxEnvSwitching = true;
     try {
       if (envSandboxKey) flushEnvForSandboxKey(envSandboxKey);
@@ -1558,6 +1564,7 @@ function bindStripDomListenersOnce() {
 
   global.addEventListener('aep-lab-env-bar-prefs-synced', function () {
     if (!stripDomIsMounted()) return;
+    enableBcDisplayPrefsRestore();
     bootSiteCloneBcDatastreamPicker();
     applySiteCloneBcStyleConfigFieldForSandbox();
     applySiteCloneBcDatastreamFieldForSandbox();
