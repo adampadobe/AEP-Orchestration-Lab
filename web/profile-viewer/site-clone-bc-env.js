@@ -1269,6 +1269,17 @@ function syncDecisioningFromPrefs() {
   syncBcMidrailFromPrefs();
 }
 
+function ensureDecisioningToggleDelegation() {
+  if (global.__siteCloneDecisioningToggleDelegation) return;
+  global.__siteCloneDecisioningToggleDelegation = true;
+  document.addEventListener('change', function (ev) {
+    if (!ev || !ev.target || ev.target.id !== 'siteCloneDecisioningEnabledToggle') return;
+    siteCloneDecisioningEnabledToggle = ev.target;
+    saveDecisioningEnabledPrefs();
+    syncDecisioningFromPrefs();
+  });
+}
+
 function syncBcMidrailFromPrefs() {
   if (
     global.BrandConciergeMidrailPanel &&
@@ -1318,7 +1329,6 @@ function resetSiteCloneBcDisplayPrefsOnUi() {
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
   if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
-  if (siteCloneDecisioningEnabledToggle) siteCloneDecisioningEnabledToggle.checked = false;
 }
 
 /** Skip restoring saved BC display/decisioning toggles until sandbox is known or user saves. */
@@ -1331,6 +1341,7 @@ function enableBcDisplayPrefsRestore() {
 function applySiteCloneBcDisplayPrefsToUi() {
   if (!restoreBcDisplayPrefsFromStorage) {
     resetSiteCloneBcDisplayPrefsOnUi();
+    applyDecisioningEnabledPrefsToUi();
     return;
   }
   const prefs = loadSiteCloneBcDisplayPrefs();
@@ -1442,6 +1453,8 @@ function bindStripDomListenersOnce() {
     });
   }
 
+  ensureDecisioningToggleDelegation();
+
   if (siteCloneBcStyleConfigUrl) {
     applySiteCloneBcStyleConfigFieldForSandbox();
     function onStyleUrlChange() {
@@ -1516,6 +1529,7 @@ function bindStripDomListenersOnce() {
     if (typeof env().applyWebPushToggle === 'function') env().applyWebPushToggle();
     else applyWebPushOnInjectToggle();
     applyBcOnInjectPrefs();
+    applyDecisioningEnabledPrefsToUi();
     if (siteCloneBcStyleConfigUrl) {
       applySiteCloneBcStyleConfigFieldForSandbox();
     }
@@ -1583,6 +1597,8 @@ function bindStripDomListenersOnce() {
     if (!global.__siteCloneBcBootstrapped) {
       applySiteCloneBcDisplayPrefsToUi();
       syncSiteCloneBcFromPrefs();
+    } else {
+      applyDecisioningEnabledPrefsToUi();
     }
     syncDecisioningFromPrefs();
   });
@@ -1590,10 +1606,14 @@ function bindStripDomListenersOnce() {
   global.addEventListener('aep-demo-env-strip-mounted', function () {
     ensureSiteCloneBcDatastreamManualRow(activeSiteCloneBcEnvStripRoot());
     bootSiteCloneBcDatastreamPicker();
+    refreshStripDomRefs();
+    applyDecisioningEnabledPrefsToUi();
+    syncDecisioningFromPrefs();
   });
 
   scheduleStripDomBoot();
   ensureSiteCloneBcDatastreamPickerDelegation();
+  ensureDecisioningToggleDelegation();
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,

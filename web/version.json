@@ -1,14 +1,14 @@
 {
-  "gitSha": "14e803653238217ef99d0a3067c111dbc840ffef",
-  "gitShortSha": "14e80365",
+  "gitSha": "5ebe36ba0b59121c3e7e59694deb770597279b23",
+  "gitShortSha": "5ebe36ba",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: stop env bar overlay clipping toolbar and card headers",
+  "gitCommitSubject": "[apalmer] fix: KSIA decisioning use iframe journey URL and keep TopRibbon in main",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-17T21:44:58+01:00",
-  "deployedAt": "2026-06-17T20:45:51.228Z",
+  "gitCommitDate": "2026-06-17T21:59:03+01:00",
+  "deployedAt": "2026-06-17T20:59:16.697Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/14e803653238217ef99d0a3067c111dbc840ffef"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5ebe36ba0b59121c3e7e59694deb770597279b23"
 }
