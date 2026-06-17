@@ -1,8 +1,8 @@
 /* Shared Tags/Launch injection flow for demo pages.
  * One-time per-sandbox config, reload-based injection with cache busting, and ECID/email stitching helpers.
- * When the lab email field is empty and this sandbox is still SDK-configured, a normal refresh
- * auto-reinjects the persisted Launch URL so alloy/getIdentity can reuse the same ECID without
- * clicking Inject again (optional cfg.getEmail gates this; cfg.resumeSdkOnReload: false opts out).
+ * A normal refresh removes the injected Launch tag from the DOM; when this sandbox is still SDK-configured,
+ * auto-reinject the persisted Launch URL on load so alloy is live without clicking Inject again
+ * (optional cfg.resumeSdkOnReload: false opts out).
  *
  * Anonymous Edge + _demoemea: see docs/ANONYMOUS_EDGE_DEMO_PATTERN.md (core.ecid + getIdentity + single sendEvent).
  */
@@ -766,24 +766,16 @@
       writeStorageMap(ecidBySandboxKey, map);
     }
 
-    function currentLabEmailForSdkResume() {
-      if (typeof cfg.getEmail === 'function') return String(cfg.getEmail() || '').trim();
-      return '';
-    }
-
     /**
-     * Full page reload removes the injected Launch tag. When the lab email field is empty and this
-     * sandbox is still marked SDK-configured, re-inject the persisted property so alloy/getIdentity
-     * can restore the same anonymous ECID without another manual inject click.
+     * Full page reload removes the injected Launch tag. When this sandbox is still SDK-configured,
+     * re-inject the persisted Launch URL so alloy/getIdentity and decisioning sendEvent work without
+     * another manual Inject click (identified profile lookups still need the Web SDK on the page).
      */
-    function shouldResumeAnonymousSdkInjection() {
+    function shouldResumeSdkInjectionOnReload() {
       if (cfg.resumeSdkOnReload === false) return false;
       if (!isSdkConfiguredForSandbox()) return false;
       const url = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      if (!url) return false;
-      const labEmail = currentLabEmailForSdkResume();
-      if (labEmail && looksLikeEmail(labEmail)) return false;
-      return true;
+      return !!url;
     }
 
     /** Optional `cfg.brandConcierge` — bootstraps Brand Concierge after ECID resolves. Requires brand-concierge-styles-bundle.js + brand-concierge-toggle.js loaded before this script. */
@@ -1917,8 +1909,8 @@
         dtLog('init: no pending inject — applySandboxConfigState');
         applySandboxConfigState();
         const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-        if (shouldResumeAnonymousSdkInjection() && persistedResume) {
-          dtLog('init: anonymous resume — auto-reinject persisted Launch script', {
+        if (shouldResumeSdkInjectionOnReload() && persistedResume) {
+          dtLog('init: resume — auto-reinject persisted Launch script', {
             sandboxKey: getSandboxKey(),
             preview: dtPreview(persistedResume),
           });
