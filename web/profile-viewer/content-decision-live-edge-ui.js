@@ -535,6 +535,17 @@
     return s;
   }
 
+  function mountHeightPxFromCss(css) {
+    var m = String(css || '').trim().match(/^(\d+(?:\.\d+)?)px$/i);
+    return m ? m[1] : '';
+  }
+
+  function syncMountHeightPxField(css) {
+    var px = el('cdStyleMountMinHeightPx');
+    if (!px) return;
+    px.value = mountHeightPxFromCss(css);
+  }
+
   // ----- Brand scrape palette (session tab — one load, shared by all colour rows) -----
   var CD_LAB_PALETTE_SESSION = 'cdLabEdgeBrandPaletteV1';
   var labBrandPaletteColours = [];
@@ -859,7 +870,9 @@
     setChk('cdStyleShowDesc', st.showDesc !== false);
     setChk('cdStyleShowCta', st.showCta !== false);
     setChk('cdStyleShowImage', st.showImage !== false);
-    set('cdStyleMountMinHeight', st.mountMinHeight != null ? String(st.mountMinHeight) : '');
+    var mh = st.mountMinHeight != null ? String(st.mountMinHeight) : '';
+    set('cdStyleMountMinHeight', mh);
+    syncMountHeightPxField(mh);
   }
 
   var VIS_CLASS = ['cd-edge-vis--no-title', 'cd-edge-vis--no-desc', 'cd-edge-vis--no-cta', 'cd-edge-vis--no-fig'];
@@ -882,6 +895,31 @@
       return f === 'topribbon' || k === 'topribbon';
     }
     return mount.id === 'cd-edge-topRibbon';
+  }
+
+  /** True when this mount is the hero-banner code surface (by key or #fragment). */
+  function mountUsesHeroSurface(mount) {
+    if (!mount || !mount.id || mount.id.indexOf('cd-edge-') !== 0) return false;
+    var suffix = mount.id.slice('cd-edge-'.length);
+    var list = currentPlacementList();
+    var i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].key !== suffix) continue;
+      var f = String(list[i].fragment || '')
+        .trim()
+        .replace(/^#/, '')
+        .toLowerCase();
+      var k = String(list[i].key || '')
+        .trim()
+        .toLowerCase();
+      return f === 'hero-banner' || k === 'hero';
+    }
+    return mount.id === 'cd-edge-hero';
+  }
+
+  /** Surfaces that use a fixed preview height when mountMinHeight is set. */
+  function mountUsesFixedHeightSurface(mount) {
+    return mountUsesTopRibbonSurface(mount) || mountUsesHeroSurface(mount);
   }
 
   /** Apply one style entry's CSS custom properties + layout class to a mount. */
@@ -921,8 +959,8 @@
     if (st.showCta === false) mount.classList.add('cd-edge-vis--no-cta');
     if (st.showImage === false) mount.classList.add('cd-edge-vis--no-fig');
     var mh = sanitizeMountMinHeight(st.mountMinHeight);
-    var ribbonFixed = mountUsesTopRibbonSurface(mount) && !!mh;
-    if (ribbonFixed) {
+    var fixedHeight = mountUsesFixedHeightSurface(mount) && !!mh;
+    if (fixedHeight) {
       mount.classList.add('cd-edge-mount-body--ribbon-fixed');
       mount.style.minHeight = mh;
       mount.style.maxHeight = mh;
@@ -1506,8 +1544,30 @@
         if (el(id)) el(id).addEventListener('change', styleFormOnChange);
       });
       if (el('cdStyleMountMinHeight')) {
-        el('cdStyleMountMinHeight').addEventListener('input', styleFormOnChange);
-        el('cdStyleMountMinHeight').addEventListener('change', styleFormOnChange);
+        el('cdStyleMountMinHeight').addEventListener('input', function () {
+          syncMountHeightPxField(el('cdStyleMountMinHeight').value);
+          styleFormOnChange();
+        });
+        el('cdStyleMountMinHeight').addEventListener('change', function () {
+          syncMountHeightPxField(el('cdStyleMountMinHeight').value);
+          styleFormOnChange();
+        });
+      }
+      var mountPx = el('cdStyleMountMinHeightPx');
+      if (mountPx) {
+        mountPx.addEventListener('input', function () {
+          var cssEl = el('cdStyleMountMinHeight');
+          if (!cssEl) return;
+          var v = mountPx.value.trim();
+          if (v === '') {
+            cssEl.value = '';
+          } else {
+            var n = Number(v);
+            if (!Number.isFinite(n) || n < 0) return;
+            cssEl.value = String(Math.round(n)) + 'px';
+          }
+          styleFormOnChange();
+        });
       }
       if (el('cdLabStyleResetBtn')) el('cdLabStyleResetBtn').addEventListener('click', styleResetHandler);
       populateStyleSurfaceDropdown();

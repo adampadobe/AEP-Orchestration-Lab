@@ -884,6 +884,28 @@
       box-sizing: border-box;
     }
     .cd-color-row { display: flex; gap: 0.4rem; align-items: center; }
+    .cd-style-height-row {
+      display: grid;
+      grid-template-columns: auto minmax(72px, 96px) auto 1fr;
+      gap: 0.4rem 0.5rem;
+      align-items: center;
+      margin-top: 0.25rem;
+    }
+    .cd-style-height-row input[type="number"] {
+      width: 100%;
+      margin: 0;
+      padding: 0.35rem 0.5rem;
+      box-sizing: border-box;
+    }
+    .cd-style-height-or {
+      font-size: 0.72rem;
+      color: var(--text-muted, rgba(40, 35, 40, 0.55));
+      margin: 0;
+    }
+    @media (max-width: 560px) {
+      .cd-style-height-row { grid-template-columns: 1fr 1fr; }
+      .cd-style-height-or { grid-column: 1 / -1; }
+    }
     .cd-color-row input[type="color"] { width: 34px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: transparent; cursor: pointer; }
     .cd-color-row input[type="text"] { flex: 1 1 auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     .cd-lab-palette-sel {
@@ -1865,10 +1887,14 @@
                   </div>
                   <div class="cd-style-editor-block cd-style-editor-block--full">
                     <strong>Preview box</strong>
-                    <label for="cdStyleMountMinHeight">Height (CSS)</label>
-                    <input type="text" id="cdStyleMountMinHeight" placeholder="e.g. 32px or 6rem — leave empty for default" maxlength="40" autocomplete="off" spellcheck="false" />
+                    <div class="cd-style-height-row">
+                      <label for="cdStyleMountMinHeightPx">Height (px)</label>
+                      <input type="number" id="cdStyleMountMinHeightPx" min="0" max="2000" step="1" placeholder="e.g. 48" inputmode="numeric" />
+                      <label for="cdStyleMountMinHeight" class="cd-style-height-or">or CSS</label>
+                      <input type="text" id="cdStyleMountMinHeight" placeholder="e.g. 32px or 6rem" maxlength="40" autocomplete="off" spellcheck="false" />
+                    </div>
                     <p class="hint" style="margin: 0.35rem 0 0; font-size: 0.72rem;">
-                      <strong>Top ribbon (#TopRibbon):</strong> this value fixes the preview bar height (text truncates with ellipsis). Other surfaces: minimum height only; content can still grow taller.
+                      <strong>Top ribbon (#TopRibbon):</strong> fixes preview bar height (text truncates). <strong>Hero (#hero-banner):</strong> minimum height; content can grow taller. Auto-saved to Firebase per sandbox with colours (debounced).
                     </p>
                   </div>
                 </div>
@@ -1940,7 +1966,7 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260615-edge-mounts-syntax"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260501-main-stage-mount-prefix"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260615-surface-height-persist"></script>
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="aep-proxy-client.js?v=20260614"></script>

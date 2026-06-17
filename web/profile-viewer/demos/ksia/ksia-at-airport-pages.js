@@ -13,6 +13,11 @@
     return href;
   }
 
+  function catalogHref(productId) {
+    if (!productId) return '';
+    return resolveHref('products/product.html?id=' + encodeURIComponent(productId));
+  }
+
   function pageId() {
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
@@ -373,13 +378,23 @@
 
     var tiers = document.getElementById('ksiaLoungesTiers');
     if (tiers && page.tiers) {
+      var tierCatalogIds = data.KSIA_CATALOG_LOUNGE_TIER_IDS || {};
       tiers.innerHTML = page.tiers
         .map(function (t) {
+          var productId = tierCatalogIds[t.name];
+          var nameHtml = productId
+            ? '<h3 class="ksia-lounge-tier-name"><a href="' + catalogHref(productId) + '" class="ksia-shop-offer-name-link">' + t.name + '</a></h3>'
+            : '<h3 class="ksia-lounge-tier-name">' + t.name + '</h3>';
+          var viewLink = productId
+            ? '<a href="' + catalogHref(productId) + '" class="ksia-at-airport-inline-link">View product &rarr;</a>'
+            : '';
           return (
             '<div class="ksia-lounge-tier-card">' +
-            '<h3 class="ksia-lounge-tier-name">' + t.name + '</h3>' +
+            nameHtml +
             '<p class="ksia-lounge-tier-access">' + t.access + '</p>' +
-            '<p class="ksia-lounge-tier-perks">' + t.perks + '</p></div>'
+            '<p class="ksia-lounge-tier-perks">' + t.perks + '</p>' +
+            viewLink +
+            '</div>'
           );
         })
         .join('');

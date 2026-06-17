@@ -87,6 +87,7 @@ function sanitizePlacements(raw) {
 const JUSTIFY_VALUES = new Set(['flex-start', 'center', 'flex-end']);
 const LAYOUT_MODES = new Set(['overlay', 'half', 'below']);
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const MOUNT_MIN_HEIGHT_RE = /^[0-9a-zA-Z%().,\s+-]+$/;
 
 const DEFAULT_SURFACE_STYLE = {
   layoutMode: 'overlay',
@@ -99,7 +100,27 @@ const DEFAULT_SURFACE_STYLE = {
   ctaBg: '#f0f2f6',
   ctaText: '#1a1d23',
   noImageBg: '',
+  showTitle: true,
+  showDesc: true,
+  showCta: true,
+  showImage: true,
+  mountMinHeight: '',
 };
+
+/** Safe CSS length for preview mount height (matches Edge lab client). */
+function sanitizeMountMinHeight(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  const clipped = s.length > 40 ? s.slice(0, 40) : s;
+  if (!MOUNT_MIN_HEIGHT_RE.test(clipped)) return '';
+  return clipped;
+}
+
+function sanitizeStyleBool(raw, fallback) {
+  if (raw === undefined || raw === null) return fallback;
+  if (raw === false || raw === 'false' || raw === 0 || raw === '0') return false;
+  return true;
+}
 
 function sanitizeSurfaceStyleEntry(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -126,6 +147,11 @@ function sanitizeSurfaceStyleEntry(raw) {
     ctaBg: pickHex(raw.ctaBg, DEFAULT_SURFACE_STYLE.ctaBg),
     ctaText: pickHex(raw.ctaText, DEFAULT_SURFACE_STYLE.ctaText),
     noImageBg,
+    showTitle: sanitizeStyleBool(raw.showTitle, DEFAULT_SURFACE_STYLE.showTitle),
+    showDesc: sanitizeStyleBool(raw.showDesc, DEFAULT_SURFACE_STYLE.showDesc),
+    showCta: sanitizeStyleBool(raw.showCta, DEFAULT_SURFACE_STYLE.showCta),
+    showImage: sanitizeStyleBool(raw.showImage, DEFAULT_SURFACE_STYLE.showImage),
+    mountMinHeight: sanitizeMountMinHeight(raw.mountMinHeight),
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
   return out;
@@ -405,5 +431,8 @@ module.exports = {
   getEffectiveDecisionLabConfig,
   saveEffectiveDecisionLabConfig,
   sanitizePlacements,
+  sanitizeSurfaceStyleEntry,
+  sanitizeSurfaceStyles,
+  sanitizeMountMinHeight,
   docId,
 };
