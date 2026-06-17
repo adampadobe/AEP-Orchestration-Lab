@@ -393,14 +393,53 @@
 }
 
 .decisioning-profile-module .cd-micro-profile-surface-panel {
-  margin-top: 0.5rem;
-  padding: 0.55rem 0.5rem 0.35rem;
-  border: 1px solid var(--dash-border);
+  margin-top: 0;
+  padding: 0;
+  border: none;
   border-radius: var(--dash-radius-sm);
   background: var(--dash-surface);
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    margin-top 0.22s ease,
+    padding 0.22s ease,
+    border-width 0.22s ease;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-panel[hidden] {
+  display: block !important;
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  padding: 0;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.65rem;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.6rem 0.4rem;
+  border: 1px solid var(--dash-border);
+  max-height: 80rem;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded > .cd-micro-profile-field:first-child,
+.decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded > .cd-micro-profile-surface-details,
+.decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded > .cd-micro-profile-surface-vis,
+.decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded > .cd-micro-profile-surface-status {
+  grid-column: 1 / -1;
+}
+
+.decisioning-profile-module #cdMicroSurfaceStylesHost.is-surface-expanded {
+  margin-top: 0.15rem;
 }
 
 .decisioning-profile-module .cd-micro-profile-surface-details {
@@ -470,4 +509,10 @@
 
 .decisioning-profile-module .cd-micro-profile-surface-status.is-err {
   color: var(--dash-error-text);
+}
+
+@media (max-width: 520px) {
+  .decisioning-profile-module .cd-micro-profile-surface-panel.is-expanded {
+    grid-template-columns: 1fr;
+  }
 }

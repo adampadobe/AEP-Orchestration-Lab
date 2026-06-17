@@ -80,6 +80,7 @@
   visibility: hidden;
   pointer-events: none;
   transition:
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.22s ease,
     visibility 0.22s ease;
@@ -93,7 +94,17 @@
 }
 
 .dpm-panel-shell.is-open.is-surface-open {
-  width: min(24rem, calc(100vw - 4.5rem));
+  width: min(34rem, calc(100vw - 2.5rem));
+  max-width: calc(100vw - 2.5rem);
+  max-height: min(90vh, 44rem);
+}
+
+.dpm-panel-shell.is-open.is-surface-open .dpm-panel-inner {
+  max-height: min(90vh, 44rem);
+}
+
+.dpm-panel-shell.is-open.is-surface-open .dpm-panel-body {
+  max-height: calc(min(90vh, 44rem) - 2.75rem);
 }
 
 .dpm-panel-backdrop {
@@ -177,6 +188,11 @@
   .dpm-panel-shell {
     width: min(19rem, calc(100vw - 3.5rem));
   }
+
+  .dpm-panel-shell.is-open.is-surface-open {
+    width: min(28rem, calc(100vw - 1.25rem));
+    max-width: calc(100vw - 1.25rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -184,7 +200,9 @@
   .dpm-panel-backdrop,
   .dpm-panel-trigger,
   .dpm-panel-trigger-icon,
-  .decisioning-profile-module .dpm-micro-profile-chevron {
+  .decisioning-profile-module .dpm-micro-profile-chevron,
+  .decisioning-profile-module .cd-micro-profile-surface-panel,
+  .decisioning-profile-module .cd-micro-profile-surface-chevron {
     transition-duration: 0.01ms;
   }
 }

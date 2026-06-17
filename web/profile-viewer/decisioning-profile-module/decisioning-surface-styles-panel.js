@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260616';
+  var CACHE_BUST = '20260617-surface-expand';
   var core = function () {
     return global.CdSurfaceStylesCore;
   };
@@ -304,9 +304,14 @@
       var panel = $('cdMicroSurfaceStylesPanel');
       var toggle = $('cdMicroSurfaceStylesToggle');
       var shell = document.getElementById('dpmPanelShell');
-      if (panel) panel.hidden = !expanded;
+      var host = container;
+      if (panel) {
+        panel.hidden = !expanded;
+        panel.classList.toggle('is-expanded', expanded);
+      }
       if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       if (shell) shell.classList.toggle('is-surface-open', expanded);
+      if (host) host.classList.toggle('is-surface-expanded', expanded);
       if (expanded) loadEditorForSurface();
     }
 
@@ -401,6 +406,7 @@
 
     wire();
     populateSurfaceSelect();
+    setExpanded(false);
     loadFromFirebase();
 
     return {
