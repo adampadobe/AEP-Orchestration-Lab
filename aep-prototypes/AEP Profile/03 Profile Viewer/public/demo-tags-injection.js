@@ -1,8 +1,8 @@
 /* Shared Tags/Launch injection flow for demo pages.
  * One-time per-sandbox config, reload-based injection with cache busting, and ECID/email stitching helpers.
- * When the lab email field is empty and this sandbox is still SDK-configured, a normal refresh
- * auto-reinjects the persisted Launch URL so alloy/getIdentity can reuse the same ECID without
- * clicking Inject again (optional cfg.getEmail gates this; cfg.resumeSdkOnReload: false opts out).
+ * A normal refresh removes the injected Launch tag from the DOM; when this sandbox is still SDK-configured,
+ * auto-reinject the persisted Launch URL on load so alloy is live without clicking Inject again
+ * (optional cfg.resumeSdkOnReload: false opts out).
  *
  * Anonymous Edge + _demoemea: see docs/ANONYMOUS_EDGE_DEMO_PATTERN.md (core.ecid + getIdentity + single sendEvent).
  */
@@ -199,12 +199,17 @@
     });
   }
 
+  function isAlloyOnWindow() {
+    return typeof global.alloy === 'function' ? global.alloy : null;
+  }
+
   function waitForAlloy(timeoutMs) {
     return new Promise((resolve) => {
       const start = Date.now();
       function poll() {
-        if (typeof global.alloy === 'function') {
-          resolve(global.alloy);
+        const alloy = isAlloyOnWindow();
+        if (alloy) {
+          resolve(alloy);
           return;
         }
         if (Date.now() - start >= timeoutMs) {
@@ -214,6 +219,91 @@
         global.setTimeout(poll, 120);
       }
       poll();
+    });
+  }
+
+  function buildAlloyNotReadyError(storagePrefix) {
+    const prefix = String(storagePrefix || '').trim();
+    if (prefix && isTagsInjectInProgress(prefix)) {
+      return new Error('Web SDK (Alloy) is still loading — wait for Tags inject to finish, then try again.');
+    }
+    const launchId = prefix ? prefix + 'LaunchScript' : '';
+    if (!launchId || !document.getElementById(launchId)) {
+      return new Error('Web SDK (Alloy) not ready — inject Tags first.');
+    }
+    return new Error(
+      'Web SDK (Alloy) not ready — Launch script loaded but alloy is missing (verify your Tags property includes the Web SDK extension).',
+    );
+  }
+
+  /**
+   * Wait for window.alloy after Tags inject (poll + aep-demo-tags-injected + optional sync nudge).
+   * @param {{ timeoutMs?: number, storagePrefix?: string }} [opts]
+   * @returns {Promise<Function>}
+   */
+  function ensureAlloyReady(opts) {
+    opts = opts || {};
+    const maxMs = Math.max(5000, Number(opts.timeoutMs) || 30000);
+    const storagePrefix = String(opts.storagePrefix || '').trim();
+    const immediate = isAlloyOnWindow();
+    if (immediate) return Promise.resolve(immediate);
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const deadline = Date.now() + maxMs;
+      let nudgedSync = false;
+
+      function finish(alloy) {
+        if (settled) return;
+        settled = true;
+        global.removeEventListener('aep-demo-tags-injected', onInjected);
+        resolve(alloy);
+      }
+
+      function fail() {
+        if (settled) return;
+        settled = true;
+        global.removeEventListener('aep-demo-tags-injected', onInjected);
+        reject(buildAlloyNotReadyError(storagePrefix));
+      }
+
+      function onInjected() {
+        const alloy = isAlloyOnWindow();
+        if (alloy) finish(alloy);
+      }
+
+      global.addEventListener('aep-demo-tags-injected', onInjected);
+
+      void (async function poll() {
+        while (Date.now() < deadline && !settled) {
+          const alloy = isAlloyOnWindow();
+          if (alloy) {
+            finish(alloy);
+            return;
+          }
+
+          const elapsed = maxMs - (deadline - Date.now());
+          if (!nudgedSync && elapsed >= 1500) {
+            nudgedSync = true;
+            const inst = global.__envBarTagsInjection;
+            if (inst && typeof inst.syncEcidFromAlloy === 'function') {
+              try {
+                await inst.syncEcidFromAlloy();
+              } catch (_e) {
+                /* noop */
+              }
+              const alloyAfter = isAlloyOnWindow();
+              if (alloyAfter) {
+                finish(alloyAfter);
+                return;
+              }
+            }
+          }
+
+          await new Promise((r) => global.setTimeout(r, 120));
+        }
+        if (!settled) fail();
+      })();
     });
   }
 
@@ -676,24 +766,16 @@
       writeStorageMap(ecidBySandboxKey, map);
     }
 
-    function currentLabEmailForSdkResume() {
-      if (typeof cfg.getEmail === 'function') return String(cfg.getEmail() || '').trim();
-      return '';
-    }
-
     /**
-     * Full page reload removes the injected Launch tag. When the lab email field is empty and this
-     * sandbox is still marked SDK-configured, re-inject the persisted property so alloy/getIdentity
-     * can restore the same anonymous ECID without another manual inject click.
+     * Full page reload removes the injected Launch tag. When this sandbox is still SDK-configured,
+     * re-inject the persisted Launch URL so alloy/getIdentity and decisioning sendEvent work without
+     * another manual Inject click (identified profile lookups still need the Web SDK on the page).
      */
-    function shouldResumeAnonymousSdkInjection() {
+    function shouldResumeSdkInjectionOnReload() {
       if (cfg.resumeSdkOnReload === false) return false;
       if (!isSdkConfiguredForSandbox()) return false;
       const url = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-      if (!url) return false;
-      const labEmail = currentLabEmailForSdkResume();
-      if (labEmail && looksLikeEmail(labEmail)) return false;
-      return true;
+      return !!url;
     }
 
     /** Optional `cfg.brandConcierge` — bootstraps Brand Concierge after ECID resolves. Requires brand-concierge-styles-bundle.js + brand-concierge-toggle.js loaded before this script. */
@@ -836,9 +918,18 @@
       if (sel) sel.value = snap;
     }
 
-    function finishInjectFlow() {
+    function finishInjectFlow(flowOpts) {
+      const opts = flowOpts || {};
       restoreInjectSandboxIfNeeded();
       clearInjectGuard();
+      if (opts.silentResume) {
+        try {
+          global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
+        } catch (_e) {
+          /* noop */
+        }
+        return;
+      }
       requestEnvOverlayOpen();
     }
 
@@ -1499,7 +1590,9 @@
       }
     }
 
-    async function injectSelectedScriptNow(scriptOverride) {
+    async function injectSelectedScriptNow(scriptOverride, injectOpts) {
+      const opts = injectOpts || {};
+      const silentResume = opts.silentResume === true;
       const rawOverride = scriptOverride || selectedScriptUrl;
       const scriptUrl = sanitiseLaunchScriptUrl(rawOverride);
       releaseBcSuppressForActiveInject();
@@ -1559,10 +1652,18 @@
           });
         }
         markSdkConfiguredForSandbox(true);
-        /* Keep Tags fields + env overlay open after inject (no collapse-to-summary). */
-        setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        if (silentResume) {
+          setSdkConfigExpanded(false);
+        } else {
+          /* Keep Tags fields + env overlay open after manual inject (no collapse-to-summary). */
+          setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        }
         syncSiteCloneBcDisplayAfterInject();
-        dtLog('injectSelectedScriptNow: complete (configured, env bar stays expanded)');
+        dtLog(
+          silentResume
+            ? 'injectSelectedScriptNow: complete (configured, collapsed toolbar)'
+            : 'injectSelectedScriptNow: complete (configured, env bar stays expanded)',
+        );
         return true;
       } catch (err) {
         dtLog('injectSelectedScriptNow: FAILED', err && err.message ? err.message : String(err));
@@ -1827,8 +1928,8 @@
         dtLog('init: no pending inject — applySandboxConfigState');
         applySandboxConfigState();
         const persistedResume = sanitiseLaunchScriptUrl(readPersistedSelectedScriptUrl());
-        if (shouldResumeAnonymousSdkInjection() && persistedResume) {
-          dtLog('init: anonymous resume — auto-reinject persisted Launch script', {
+        if (shouldResumeSdkInjectionOnReload() && persistedResume) {
+          dtLog('init: resume — auto-reinject persisted Launch script', {
             sandboxKey: getSandboxKey(),
             preview: dtPreview(persistedResume),
           });
@@ -1842,8 +1943,8 @@
           }
           renderSelectedScript(persistedResume);
           markInjectGuardActive();
-          void injectSelectedScriptNow(persistedResume).finally(function () {
-            finishInjectFlow();
+          void injectSelectedScriptNow(persistedResume, { silentResume: true }).finally(function () {
+            finishInjectFlow({ silentResume: true });
             void loadTagsCompanies();
           });
         } else {
@@ -1892,6 +1993,11 @@
 
   global.DemoTagsInjection = {
     init: createInstance,
+    waitForAlloy: waitForAlloy,
+    ensureAlloyReady: ensureAlloyReady,
+    isAlloyReady: function () {
+      return !!isAlloyOnWindow();
+    },
   };
 
   global.AepLabTagsInjectGuard = {

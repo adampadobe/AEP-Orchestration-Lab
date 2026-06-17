@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-profile-prefetch';
+  var CACHE_BUST = '20260617-profile-hydrate';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -472,10 +472,49 @@
       return '';
     }
 
-    function isProfileLoaded() {
-      if (typeof profileApi.getLastUpsClientData === 'function' && profileApi.getLastUpsClientData()) return true;
+    function hasDrawerMetrics() {
       var drawer = getDrawerProfile();
-      return !!(drawer && (drawer.propensityScore != null || drawer.churnPrediction != null || drawer.email));
+      if (!drawer) return false;
+      return !!(
+        (drawer.propensityScore != null && drawer.propensityScore !== '') ||
+        (drawer.churnPrediction != null && drawer.churnPrediction !== '') ||
+        (drawer.npsScore != null && drawer.npsScore !== '')
+      );
+    }
+
+    function hasUpsMetrics() {
+      if (typeof profileApi.getLastUpsClientData !== 'function') return false;
+      var ups = profileApi.getLastUpsClientData();
+      if (!ups || typeof ups !== 'object' || ups.error) return false;
+      if (ups.platform_response && ups.platform_response.error) return false;
+      var entity = extractEntityFromUps(ups);
+      if (!entity) return false;
+      return (
+        readPropensityFromEntity(entity) != null ||
+        readChurnFromEntity(entity) != null ||
+        readNpsFromEntity(entity) != null ||
+        readAvgOrderFromEntity(entity) != null
+      );
+    }
+
+    function isProfileLoaded() {
+      return hasUpsMetrics() || hasDrawerMetrics();
+    }
+
+    function isSdkInjectInProgress() {
+      var prefix = String((options && options.tagsStoragePrefix) || '').trim();
+      if (!prefix || !global.AepLabTagsInjectGuard || typeof global.AepLabTagsInjectGuard.isInProgress !== 'function') {
+        return false;
+      }
+      return !!global.AepLabTagsInjectGuard.isInProgress(prefix);
+    }
+
+    function isAlloyReady() {
+      if (typeof global.alloy === 'function') return true;
+      if (global.DemoTagsInjection && typeof global.DemoTagsInjection.isAlloyReady === 'function') {
+        return !!global.DemoTagsInjection.isAlloyReady();
+      }
+      return false;
     }
 
     function refreshStateDot() {
@@ -493,8 +532,13 @@
         el.setAttribute('aria-label', 'Loading profile');
         if (labelEl) labelEl.textContent = 'Loading profile…';
       } else if (loaded) {
-        el.setAttribute('aria-label', 'Profile ready');
-        if (labelEl) labelEl.textContent = 'Profile ready';
+        if (!isAlloyReady() && isSdkInjectInProgress()) {
+          el.setAttribute('aria-label', 'Profile ready, Web SDK loading');
+          if (labelEl) labelEl.textContent = 'Profile ready · SDK loading…';
+        } else {
+          el.setAttribute('aria-label', 'Profile ready');
+          if (labelEl) labelEl.textContent = 'Profile ready';
+        }
       } else {
         el.setAttribute('aria-label', 'No profile loaded');
         if (labelEl) labelEl.textContent = 'No profile loaded';
@@ -537,6 +581,14 @@
           profileApi.invalidateProfileLookupCache();
         }
         refreshStateDot();
+      });
+      global.addEventListener('aep-profile-drawer-loaded', function (ev) {
+        if (ev && ev.detail && ev.detail.found === false) return;
+        if (typeof profileApi.invalidateProfileLookupCache === 'function') {
+          profileApi.invalidateProfileLookupCache();
+        }
+        refreshStateDot();
+        triggerAutoLookup('drawer-loaded');
       });
     }
 
@@ -1077,7 +1129,11 @@
       runBtn.addEventListener('click', async function () {
         if (runBtn.disabled) return;
         runBtn.disabled = true;
-        setPipeline('Starting…');
+        setPipeline(
+          typeof global.alloy === 'function'
+            ? 'Starting…'
+            : 'Waiting for Web SDK (Alloy)…',
+        );
         try {
           if (typeof profileApi.runContentDecision === 'function') {
             var result = await profileApi.runContentDecision();
@@ -1132,6 +1188,10 @@
       refreshStateDot();
       if (ev && ev.detail && ev.detail.loading) return;
       if (ev && ev.detail && ev.detail.ok && !ev.detail.skipHydrate) hydrateFromProfile();
+    });
+
+    global.addEventListener('aep-demo-tags-injected', function () {
+      refreshStateDot();
     });
 
     var surfaceStylesHandle = null;

@@ -191,19 +191,35 @@
 
       var storagePrefix = resolveStoragePrefix(prefix);
       var sdkConnectedFromUi = !!(fields && fields.hidden && summary && !summary.hidden);
-      var sdkConnectedFromPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
-      var sdkConnected = sdkConnectedFromUi || sdkConnectedFromPersist;
-      setStatusLight(
-        sdkChip,
-        sdkDot,
-        sdkStatus,
-        sdkConnected ? 'positive' : 'notice',
-        sdkConnected ? 'Connected' : 'Configure SDK',
+      var sdkConfiguredPersist = isPersistedSdkConfigured(storagePrefix, sandboxSelect);
+      var alloyLive = typeof global.alloy === 'function';
+      var injectInProgress = !!(
+        storagePrefix &&
+        global.AepLabTagsInjectGuard &&
+        typeof global.AepLabTagsInjectGuard.isInProgress === 'function' &&
+        global.AepLabTagsInjectGuard.isInProgress(storagePrefix)
       );
+      var sdkStatusVariant = 'notice';
+      var sdkStatusText = 'Configure SDK';
+      var targetBadgeText = 'SDK Not configured';
+      if (alloyLive) {
+        sdkStatusVariant = 'positive';
+        sdkStatusText = 'Connected';
+        targetBadgeText = 'SDK Connected';
+      } else if (injectInProgress) {
+        sdkStatusVariant = 'notice';
+        sdkStatusText = 'Connecting…';
+        targetBadgeText = 'SDK connecting…';
+      } else if (sdkConfiguredPersist || sdkConnectedFromUi) {
+        sdkStatusVariant = 'notice';
+        sdkStatusText = 'Restoring…';
+        targetBadgeText = 'SDK restoring…';
+      }
+      setStatusLight(sdkChip, sdkDot, sdkStatus, sdkStatusVariant, sdkStatusText);
       if (targetBadge) {
-        targetBadge.textContent = sdkConnected ? 'SDK Connected' : 'SDK Not configured';
-        targetBadge.classList.toggle('spectrum-env-badge--green', sdkConnected);
-        targetBadge.classList.toggle('spectrum-env-badge--orange', !sdkConnected);
+        targetBadge.textContent = targetBadgeText;
+        targetBadge.classList.toggle('spectrum-env-badge--green', alloyLive);
+        targetBadge.classList.toggle('spectrum-env-badge--orange', !alloyLive);
       }
 
       var script = scriptText();
@@ -329,6 +345,7 @@
 
     global.addEventListener('aep-demo-tags-ui-state', refresh);
     global.addEventListener('aep-demo-env-configured', refresh);
+    global.addEventListener('aep-demo-tags-injected', refresh);
     global.addEventListener('env-bar-change', function (ev) {
       var detail = ev && ev.detail;
       if (!detail || detail.type === 'sandbox' || detail.type === 'init') refresh();
