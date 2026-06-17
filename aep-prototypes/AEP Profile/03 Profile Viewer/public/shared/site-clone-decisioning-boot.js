@@ -27,6 +27,38 @@
     return !!(toggle && toggle.checked);
   }
 
+  function stripUrlQueryHash(raw) {
+    return String(raw || '')
+      .trim()
+      .split('#')[0]
+      .split('?')[0];
+  }
+
+  /**
+   * Resolve same-origin iframe journey URL for AJO surfaces (shell pathname ≠ iframe path).
+   * @param {string} iframeId
+   * @returns {function(): string}
+   */
+  function buildIframeTargetPageUrlResolver(iframeId) {
+    return function resolveIframeTargetPageUrl() {
+      var frame = document.getElementById(iframeId);
+      if (!frame) return '';
+      try {
+        var win = frame.contentWindow;
+        if (win && win.location && win.location.href) {
+          return stripUrlQueryHash(win.location.href);
+        }
+      } catch (_e) {}
+      var src = frame.getAttribute('src');
+      if (!src) return '';
+      try {
+        return stripUrlQueryHash(new URL(src, global.location && global.location.href ? global.location.href : undefined).href);
+      } catch (_e2) {
+        return '';
+      }
+    };
+  }
+
   function stripTitleForPrefix(prefix) {
     var mount =
       document.querySelector('[data-demo-env-strip-prefix="' + prefix + '"]') ||
@@ -217,7 +249,12 @@
       useParentDocument: !!wiring.useParentDocument,
       mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
       targetPageUrl: wiring.targetPageUrl || '',
-      getTargetPageUrl: typeof wiring.getTargetPageUrl === 'function' ? wiring.getTargetPageUrl : undefined,
+      getTargetPageUrl:
+        typeof wiring.getTargetPageUrl === 'function'
+          ? wiring.getTargetPageUrl
+          : wiring.iframeId && !wiring.useParentDocument
+            ? buildIframeTargetPageUrlResolver(wiring.iframeId)
+            : undefined,
       getViewName: getViewName,
       getIdentifierValue: getIdentifierValue,
       getNamespace: getNamespace,

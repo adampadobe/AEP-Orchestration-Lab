@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-top-ribbon';
+  var CACHE_BUST = '20260617-ksia-journey-url';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -351,6 +351,28 @@
     }
   }
 
+  function ribbonAlreadyInMainContent(ribbon) {
+    if (!ribbon || !ribbon.parentNode || !ribbon.ownerDocument) return false;
+    var main = ribbon.ownerDocument.querySelector('main');
+    return !!(main && main.contains(ribbon));
+  }
+
+  function mountHasRenderedContent(el) {
+    if (!el || el.matches(':empty')) return false;
+    return !!el.querySelector(
+      '.cd-banner, .TopRibbon, .TopRibbon__content, .cd-edge-ajo-card-inner, iframe, .cd-edge-rendered-ribbon',
+    );
+  }
+
+  function countFilledDecisioningMounts(doc) {
+    if (!doc) return { topRibbon: false, hero: false, contentCard: false, filled: 0 };
+    var topRibbon = mountHasRenderedContent(doc.getElementById(FRAGMENTS.topRibbon));
+    var hero = mountHasRenderedContent(doc.getElementById(FRAGMENTS.hero));
+    var contentCard = mountHasRenderedContent(doc.getElementById(FRAGMENTS.contentCard));
+    var filled = (topRibbon ? 1 : 0) + (hero ? 1 : 0) + (contentCard ? 1 : 0);
+    return { topRibbon: topRibbon, hero: hero, contentCard: contentCard, filled: filled };
+  }
+
   /**
    * Ensure AJO fragment mounts exist in target document (iframe or host page).
    * @param {Document} doc
@@ -367,7 +389,7 @@
       if (ribbon.parentNode !== doc.body || ribbon !== doc.body.firstElementChild) {
         safeInsertBefore(doc.body, ribbon, doc.body.firstElementChild);
       }
-    } else if (ribbonRef && ribbonRef.parentNode) {
+    } else if (!ribbonAlreadyInMainContent(ribbon) && ribbonRef && ribbonRef.parentNode) {
       if (ribbon.parentNode !== ribbonRef.parentNode || ribbon.previousSibling !== ribbonRef) {
         insertAfter(ribbonRef.parentNode, ribbon, ribbonRef);
       }
@@ -1065,5 +1087,6 @@
     applyDecisioningPropositions: applyDecisioningPropositions,
     applySurfaceStyles: applySurfaceStyles,
     resolveLayout: resolveLayout,
+    countFilledDecisioningMounts: countFilledDecisioningMounts,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

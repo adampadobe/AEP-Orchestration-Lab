@@ -1030,11 +1030,28 @@
           if (typeof profileApi.runContentDecision === 'function') {
             var result = await profileApi.runContentDecision();
             var props = (result && (result.propositions || result.decisions)) || [];
+            var applied = result && result.appliedMounts;
             if (!props.length) {
               setPipeline(
                 'No propositions returned — verify Tags inject, sandbox datastream, and Decisioning lab target page URL.',
                 'error',
               );
+            } else if (applied && applied.filled === 0) {
+              var pageHint =
+                result && result.personalizationPageUrl
+                  ? ' Page URL sent: ' + result.personalizationPageUrl + '.'
+                  : '';
+              setPipeline(
+                'Propositions returned but none rendered in Top Ribbon, Hero, or Content Card — set Decisioning lab target page URL to the iframe journey (e.g. demos/ksia/index.html), not the shell.' +
+                  pageHint,
+                'error',
+              );
+            } else if (applied && applied.filled > 0) {
+              var parts = [];
+              if (applied.topRibbon) parts.push('Top Ribbon');
+              if (applied.hero) parts.push('Hero');
+              if (applied.contentCard) parts.push('Content Card');
+              setPipeline('Done — updated ' + parts.join(', ') + '.', 'ok');
             } else {
               setPipeline('Done — check Top Ribbon, Hero, and Content Card on the snapshot.', 'ok');
             }

@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260616-surface-styles-panel';
+  var CACHE_BUST = '20260617-ksia-journey-url';
 
   var config = null;
   var lastUpsClientData = null;
@@ -181,8 +181,9 @@
       var u = stripUrlQueryHash(raw);
       if (u && urls.indexOf(u) === -1) urls.push(u);
     }
-    if (labConfigRecord && labConfigRecord.targetPageUrl) addUrl(labConfigRecord.targetPageUrl);
+    // Journey iframe URL first — lab targetPageUrl may still point at the shell page.
     addUrl(getEffectiveTargetPageUrl());
+    if (labConfigRecord && labConfigRecord.targetPageUrl) addUrl(labConfigRecord.targetPageUrl);
     if (global.location && global.location.href) addUrl(global.location.href);
     var surfaces = [];
     var ui;
@@ -202,14 +203,21 @@
   }
 
   function resolvePersonalizationPageUrl() {
-    if (labConfigRecord && labConfigRecord.targetPageUrl) {
-      var labUrl = stripUrlQueryHash(labConfigRecord.targetPageUrl);
-      if (labUrl) return labUrl;
-    }
-    var iframeUrl = getEffectiveTargetPageUrl();
-    if (iframeUrl) return iframeUrl;
+    var effective = getEffectiveTargetPageUrl();
+    if (effective) return effective;
     if (global.location) return stripUrlQueryHash(global.location.href);
     return '';
+  }
+
+  function countAppliedMounts(doc) {
+    if (!doc) return { topRibbon: false, hero: false, contentCard: false, filled: 0 };
+    if (
+      global.DecisioningEdgeInject &&
+      typeof global.DecisioningEdgeInject.countFilledDecisioningMounts === 'function'
+    ) {
+      return global.DecisioningEdgeInject.countFilledDecisioningMounts(doc);
+    }
+    return { topRibbon: false, hero: false, contentCard: false, filled: 0 };
   }
 
   async function loadLabConfig() {
@@ -415,12 +423,29 @@
       log('applyPropositions', String(e && e.message ? e.message : e));
     }
     applyPropositionsToIframe(propositions);
+    var appliedMounts = countAppliedMounts(getIframeDoc());
     var appliedCount = propositions.length;
-    dispatchUpdated({ ok: true, propositionCount: appliedCount, skipHydrate: true });
+    dispatchUpdated({
+      ok: true,
+      propositionCount: appliedCount,
+      appliedMounts: appliedMounts,
+      skipHydrate: true,
+    });
     if (!appliedCount) {
       log('sendEvent returned no propositions', { surfaces: surfaces.length, href: href });
+    } else if (appliedMounts.filled === 0) {
+      log('propositions returned but no mounts rendered', {
+        surfaces: surfaces.length,
+        href: href,
+        propositionCount: appliedCount,
+      });
     }
-    return result;
+    return Object.assign({}, result || {}, {
+      propositions: propositions,
+      appliedMounts: appliedMounts,
+      personalizationPageUrl: href,
+      surfaces: surfaces,
+    });
   }
 
   function ensureMounts() {
