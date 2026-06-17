@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-ksia-journey-url';
+  var CACHE_BUST = '20260617-mount-reset';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -364,6 +364,176 @@
     );
   }
 
+  var mountSnapshotStore = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  var mountSnapshotFallbackDoc = null;
+  var mountSnapshotFallbackData = null;
+  var lastAutoRestoredCount = 0;
+
+  function getMountSnapshotData(doc) {
+    if (!doc) return null;
+    if (mountSnapshotStore) return mountSnapshotStore.get(doc) || null;
+    if (doc === mountSnapshotFallbackDoc) return mountSnapshotFallbackData;
+    return null;
+  }
+
+  function setMountSnapshotData(doc, data) {
+    if (!doc) return;
+    if (mountSnapshotStore) {
+      mountSnapshotStore.set(doc, data);
+      return;
+    }
+    mountSnapshotFallbackDoc = doc;
+    mountSnapshotFallbackData = data;
+  }
+
+  function clearMountSnapshots(doc) {
+    if (!doc) return;
+    if (mountSnapshotStore) {
+      mountSnapshotStore.delete(doc);
+      return;
+    }
+    if (doc === mountSnapshotFallbackDoc) {
+      mountSnapshotFallbackDoc = null;
+      mountSnapshotFallbackData = null;
+    }
+  }
+
+  function snapshotMountElement(el, placementKey) {
+    if (!el) return null;
+    var snap = {
+      innerHTML: el.innerHTML,
+      className: el.className,
+      style: el.getAttribute('style') || '',
+      hidden: el.hasAttribute('hidden'),
+    };
+    var isHero = placementKey === 'hero' || el.id === FRAGMENTS.hero;
+    if (isHero) {
+      var host = el.closest('[data-hero-mount]');
+      if (host) {
+        snap.heroHost = {
+          className: host.className,
+          style: host.getAttribute('style') || '',
+        };
+      }
+    }
+    return snap;
+  }
+
+  /**
+   * Capture pre-decision HTML/state for each configured placement (once per iframe document).
+   * @param {Document} doc
+   */
+  function captureMountSnapshotsIfNeeded(doc) {
+    if (!doc) return;
+    var existing = getMountSnapshotData(doc);
+    if (existing && existing.captured) return;
+    var placements = getPlacements();
+    var snapshots = {};
+    var pi;
+    for (pi = 0; pi < placements.length; pi++) {
+      var frag = String(placements[pi].fragment || '')
+        .trim()
+        .replace(/^#/, '');
+      if (!frag) continue;
+      var el = doc.getElementById(frag);
+      if (!el) continue;
+      snapshots[frag] = snapshotMountElement(el, placements[pi].key);
+    }
+    setMountSnapshotData(doc, { captured: true, snapshots: snapshots });
+    log('captured mount snapshots', Object.keys(snapshots));
+  }
+
+  function hasMountSnapshots(doc) {
+    var data = getMountSnapshotData(doc);
+    return !!(data && data.captured && data.snapshots && Object.keys(data.snapshots).length);
+  }
+
+  /**
+   * Restore one placement to its pre-decision snapshot.
+   * @param {Document} doc
+   * @param {string} fragmentId
+   * @returns {boolean}
+   */
+  function restoreMountSnapshot(doc, fragmentId) {
+    if (!doc || !fragmentId) return false;
+    var data = getMountSnapshotData(doc);
+    if (!data || !data.snapshots) return false;
+    var frag = String(fragmentId).trim().replace(/^#/, '');
+    var snap = data.snapshots[frag];
+    if (!snap) return false;
+    var el = doc.getElementById(frag);
+    if (!el) return false;
+    el.innerHTML = snap.innerHTML;
+    el.className = snap.className;
+    if (snap.style) el.setAttribute('style', snap.style);
+    else el.removeAttribute('style');
+    if (snap.hidden) el.setAttribute('hidden', '');
+    else el.removeAttribute('hidden');
+    if (snap.heroHost) {
+      var host = el.closest('[data-hero-mount]');
+      if (host) {
+        host.className = snap.heroHost.className;
+        if (snap.heroHost.style) host.setAttribute('style', snap.heroHost.style);
+        else host.removeAttribute('style');
+      }
+    }
+    if (frag === FRAGMENTS.topRibbon) normalizeTopRibbonMount(el);
+    if (frag === FRAGMENTS.contentCard) normalizeContentCardLayout(el);
+    log('restored mount snapshot', frag);
+    return true;
+  }
+
+  /**
+   * Restore every configured placement that has a snapshot.
+   * @param {Document} doc
+   * @param {{ surfaceStyles?: object }|null} [opts]
+   * @returns {number} count restored
+   */
+  function restoreAllMountSnapshots(doc, opts) {
+    if (!doc) return 0;
+    var placements = getPlacements();
+    var restored = 0;
+    var pi;
+    for (pi = 0; pi < placements.length; pi++) {
+      var frag = String(placements[pi].fragment || '')
+        .trim()
+        .replace(/^#/, '');
+      if (frag && restoreMountSnapshot(doc, frag)) restored++;
+    }
+    if (opts && opts.surfaceStyles) applySurfaceStyles(doc, opts.surfaceStyles);
+    return restored;
+  }
+
+  /**
+   * When a decision leaves a mount empty, fall back to the pre-decision snapshot.
+   * @param {Document} doc
+   * @param {{ surfaceStyles?: object }|null} [opts]
+   * @returns {number}
+   */
+  function autoRestoreEmptyMounts(doc, opts) {
+    if (!doc) return 0;
+    var data = getMountSnapshotData(doc);
+    if (!data || !data.snapshots) return 0;
+    var placements = getPlacements();
+    var restored = 0;
+    var pi;
+    for (pi = 0; pi < placements.length; pi++) {
+      var frag = String(placements[pi].fragment || '')
+        .trim()
+        .replace(/^#/, '');
+      if (!frag || !data.snapshots[frag]) continue;
+      var el = doc.getElementById(frag);
+      if (!el || mountHasRenderedContent(el)) continue;
+      if (restoreMountSnapshot(doc, frag)) restored++;
+    }
+    if (restored && opts && opts.surfaceStyles) applySurfaceStyles(doc, opts.surfaceStyles);
+    return restored;
+  }
+
+  function getLastAutoRestoredCount() {
+    return lastAutoRestoredCount;
+  }
+
   function countFilledDecisioningMounts(doc) {
     if (!doc) return { topRibbon: false, hero: false, contentCard: false, filled: 0 };
     var topRibbon = mountHasRenderedContent(doc.getElementById(FRAGMENTS.topRibbon));
@@ -434,6 +604,7 @@
 
   function removeDecisioningMounts(doc) {
     if (!doc) return;
+    clearMountSnapshots(doc);
     doc.querySelectorAll('[' + MOUNT_ATTR + '="1"]').forEach(function (el) {
       if (el && el.parentNode) el.parentNode.removeChild(el);
     });
@@ -996,6 +1167,7 @@
     if (!scopeRoot || !scopeRoot.body) return false;
 
     ensureDecisioningMounts(scopeRoot, opts.layout);
+    captureMountSnapshotsIfNeeded(scopeRoot);
     var mount = scopeRoot.getElementById(FRAGMENTS.topRibbon);
     if (!mount) {
       console.warn('[decisioning-edge-inject] No Top Ribbon mount found');
@@ -1004,6 +1176,7 @@
 
     var structured = findTopRibbonItem(propositions);
     if (structured && renderStructuredTopRibbon(mount, structured.content)) {
+      lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
       return true;
     }
 
@@ -1018,6 +1191,7 @@
       mountIdPrefix: opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '',
     });
     normalizeTopRibbonMount(mount);
+    lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
     return mount.innerHTML !== prior && mount.innerHTML.trim() !== '';
   }
 
@@ -1049,6 +1223,7 @@
     if (!scopeRoot || !scopeRoot.body) return false;
 
     ensureDecisioningMounts(scopeRoot, opts.layout);
+    captureMountSnapshotsIfNeeded(scopeRoot);
 
     applyTopRibbonFromPropositions(propositions, scopeRoot, opts);
 
@@ -1073,6 +1248,7 @@
     if (opts.surfaceStyles) applySurfaceStyles(scopeRoot, opts.surfaceStyles);
     normalizeSkyHomeDecisionLayouts(scopeRoot, opts.layout, opts.surfaceStyles);
     normalizeGenericDecisionLayouts(scopeRoot, opts.layout);
+    lastAutoRestoredCount = autoRestoreEmptyMounts(scopeRoot, { surfaceStyles: opts.surfaceStyles });
     markHeroHasDecision(scopeRoot);
     return true;
   }
@@ -1083,6 +1259,13 @@
     LAYOUT_PRESETS: LAYOUT_PRESETS,
     ensureDecisioningMounts: ensureDecisioningMounts,
     removeDecisioningMounts: removeDecisioningMounts,
+    captureMountSnapshotsIfNeeded: captureMountSnapshotsIfNeeded,
+    clearMountSnapshots: clearMountSnapshots,
+    hasMountSnapshots: hasMountSnapshots,
+    restoreMountSnapshot: restoreMountSnapshot,
+    restoreAllMountSnapshots: restoreAllMountSnapshots,
+    autoRestoreEmptyMounts: autoRestoreEmptyMounts,
+    getLastAutoRestoredCount: getLastAutoRestoredCount,
     injectTopRibbon: injectTopRibbon,
     applyDecisioningPropositions: applyDecisioningPropositions,
     applySurfaceStyles: applySurfaceStyles,

@@ -36,6 +36,44 @@
   cursor: not-allowed;
 }
 
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-all,
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-surface {
+  width: 100%;
+  padding: 0.42rem 0.6rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--dash-text);
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  cursor: pointer;
+  text-align: center;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-surfaces {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-all:hover:not(:disabled),
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-surface:hover:not(:disabled) {
+  background: var(--dash-hover);
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-all:disabled,
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-reset-surface:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .decisioning-profile-module .cd-hero-rail .cd-micro-profile {
   margin-top: 0.4rem;
   padding: 0.6rem 0.7rem;

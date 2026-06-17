@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260617-profile-hydrate';
+  var CACHE_BUST = '20260617-mount-reset';
 
   var config = null;
   var lastUpsClientData = null;
@@ -340,6 +340,10 @@
     frame.setAttribute('data-decisioning-mount-wired', '1');
     var onReady = function () {
       if (!isEnabled()) return;
+      var doc = getIframeDoc();
+      if (doc && global.DecisioningEdgeInject && typeof global.DecisioningEdgeInject.clearMountSnapshots === 'function') {
+        global.DecisioningEdgeInject.clearMountSnapshots(doc);
+      }
       ensureLabConfigLoaded()
         .then(function () {
           ensureMounts();
@@ -384,6 +388,33 @@
       });
     }
     throw new Error('Web SDK (Alloy) not ready — inject Tags first.');
+  }
+
+  function resetMountContent(fragmentId) {
+    var doc = getIframeDoc();
+    var inject = global.DecisioningEdgeInject;
+    if (!doc || !inject || typeof inject.restoreMountSnapshot !== 'function') return false;
+    var ok = inject.restoreMountSnapshot(doc, fragmentId);
+    if (ok) applySavedSurfaceStyles();
+    return ok;
+  }
+
+  function resetAllMountContent() {
+    var doc = getIframeDoc();
+    var inject = global.DecisioningEdgeInject;
+    if (!doc || !inject || typeof inject.restoreAllMountSnapshots !== 'function') return 0;
+    var n = inject.restoreAllMountSnapshots(doc, {
+      surfaceStyles: labConfigRecord && labConfigRecord.surfaceStyles,
+    });
+    if (n) applySavedSurfaceStyles();
+    return n;
+  }
+
+  function hasMountContentSnapshots() {
+    var doc = getIframeDoc();
+    var inject = global.DecisioningEdgeInject;
+    if (!doc || !inject || typeof inject.hasMountSnapshots !== 'function') return false;
+    return inject.hasMountSnapshots(doc);
   }
 
   function applyPropositionsToIframe(propositions) {
@@ -433,6 +464,14 @@
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
     await ensureLabConfigLoaded();
     ensureMounts();
+    var preDecisionDoc = getIframeDoc();
+    if (
+      preDecisionDoc &&
+      global.DecisioningEdgeInject &&
+      typeof global.DecisioningEdgeInject.captureMountSnapshotsIfNeeded === 'function'
+    ) {
+      global.DecisioningEdgeInject.captureMountSnapshotsIfNeeded(preDecisionDoc);
+    }
     if (!lastUpsClientData || !isUpsOk(lastUpsClientData)) {
       var ok = await maybeAutoLookup('content-decision');
       if (!ok) throw new Error('Profile lookup failed — enter an identifier and look up profile first.');
@@ -490,10 +529,15 @@
     applyPropositionsToIframe(propositions);
     var appliedMounts = countAppliedMounts(getIframeDoc());
     var appliedCount = propositions.length;
+    var autoRestored =
+      global.DecisioningEdgeInject && typeof global.DecisioningEdgeInject.getLastAutoRestoredCount === 'function'
+        ? global.DecisioningEdgeInject.getLastAutoRestoredCount()
+        : 0;
     dispatchUpdated({
       ok: true,
       propositionCount: appliedCount,
       appliedMounts: appliedMounts,
+      autoRestored: autoRestored,
       skipHydrate: true,
     });
     if (!appliedCount) {
@@ -508,6 +552,7 @@
     return Object.assign({}, result || {}, {
       propositions: propositions,
       appliedMounts: appliedMounts,
+      autoRestored: autoRestored,
       personalizationPageUrl: href,
       surfaces: surfaces,
     });
@@ -571,6 +616,9 @@
       runContentDecision: runContentDecision,
       ensureMounts: ensureMounts,
       removeMounts: removeMounts,
+      resetMountContent: resetMountContent,
+      resetAllMountContent: resetAllMountContent,
+      hasMountContentSnapshots: hasMountContentSnapshots,
       injectTopRibbon: function (decisionData) {
         var doc = getIframeDoc();
         if (!doc || !global.DecisioningEdgeInject) return false;

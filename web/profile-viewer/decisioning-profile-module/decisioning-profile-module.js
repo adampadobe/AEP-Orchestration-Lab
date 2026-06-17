@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-profile-hydrate';
+  var CACHE_BUST = '20260617-mount-reset';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -96,6 +96,10 @@
     return (
       '<div class="cd-hero-rail" aria-label="Decisioning controls">' +
       '<button type="button" class="primary cd-run-full-btn" id="cdMicroProfileRunBtn">Run content decision</button>' +
+      '<div class="cd-micro-profile-reset-wrap" id="cdMicroProfileResetWrap">' +
+      '<button type="button" class="cd-micro-profile-reset-all" id="cdMicroProfileResetAll">Reset all surfaces</button>' +
+      '<div class="cd-micro-profile-reset-surfaces" id="cdMicroProfileResetSurfaces" role="group" aria-label="Reset individual surfaces"></div>' +
+      '</div>' +
       '<section class="cd-micro-profile is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Profile attributes">' +
       '<div class="cd-micro-profile-header">' +
       '<span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">' +
@@ -193,6 +197,110 @@
       'var(--dash-warning-border)',
       'color-mix(in srgb, var(--dash-blue) 40%, var(--dash-info-text))',
     ];
+
+    function getDecisionPlacements() {
+      if (global.CdEdgeMounts && typeof global.CdEdgeMounts.getPlacements === 'function') {
+        var fromMounts = global.CdEdgeMounts.getPlacements();
+        if (Array.isArray(fromMounts) && fromMounts.length) return fromMounts;
+      }
+      return [
+        { key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon' },
+        { key: 'hero', fragment: 'hero-banner', label: 'Hero banner' },
+        { key: 'contentCard', fragment: 'ContentCardContainer', label: 'Content card' },
+      ];
+    }
+
+    function populateResetSurfaces() {
+      var host = $('cdMicroProfileResetSurfaces');
+      if (!host) return;
+      var placements = getDecisionPlacements();
+      host.innerHTML = placements
+        .map(function (p) {
+          var frag = String(p.fragment || '')
+            .trim()
+            .replace(/^#/, '')
+            .replace(/"/g, '&quot;');
+          var label = String(p.label || p.fragment || p.key || 'Surface').replace(/</g, '&lt;');
+          return (
+            '<button type="button" class="cd-micro-profile-reset-surface" data-cd-reset-fragment="' +
+            frag +
+            '">Reset ' +
+            label +
+            '</button>'
+          );
+        })
+        .join('');
+      host.querySelectorAll('.cd-micro-profile-reset-surface').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var frag = btn.getAttribute('data-cd-reset-fragment');
+          if (!frag || typeof profileApi.resetMountContent !== 'function') {
+            setPipeline('Reset is not available.', 'error');
+            return;
+          }
+          if (profileApi.resetMountContent(frag)) {
+            setPipeline('Restored original content for #' + frag + '.', 'ok');
+          } else {
+            setPipeline('No snapshot for #' + frag + ' — run a content decision first.', 'error');
+          }
+        });
+      });
+    }
+
+    function wireResetControls() {
+      populateResetSurfaces();
+      var resetAll = $('cdMicroProfileResetAll');
+      if (resetAll) {
+        resetAll.addEventListener('click', function () {
+          if (typeof profileApi.resetAllMountContent !== 'function') {
+            setPipeline('Reset is not available.', 'error');
+            return;
+          }
+          var n = profileApi.resetAllMountContent();
+          if (n > 0) {
+            setPipeline('Restored original content for ' + n + ' surface(s).', 'ok');
+          } else {
+            setPipeline('No snapshots yet — run a content decision first.', 'error');
+          }
+        });
+      }
+      global.addEventListener('aep-global-sandbox-change', populateResetSurfaces);
+    }
+
+    function formatDecisionPipelineMessage(result, props, applied) {
+      var autoRestored = result && result.autoRestored != null ? Number(result.autoRestored) : 0;
+      var restoreNote =
+        autoRestored > 0
+          ? ' Restored ' + autoRestored + ' empty surface(s) to original content.'
+          : '';
+      if (!props.length) {
+        return {
+          text:
+            'No propositions returned — verify Tags inject, sandbox datastream, and Decisioning lab target page URL.',
+          kind: 'error',
+        };
+      }
+      if (applied && applied.filled === 0) {
+        var pageHint =
+          result && result.personalizationPageUrl
+            ? ' Page URL sent: ' + result.personalizationPageUrl + '.'
+            : '';
+        return {
+          text:
+            'Propositions returned but none rendered in Top Ribbon, Hero, or Content Card — set Decisioning lab target page URL to the iframe journey (e.g. demos/ksia/index.html), not the shell.' +
+            pageHint +
+            restoreNote,
+          kind: autoRestored > 0 ? 'ok' : 'error',
+        };
+      }
+      if (applied && applied.filled > 0) {
+        var parts = [];
+        if (applied.topRibbon) parts.push('Top Ribbon');
+        if (applied.hero) parts.push('Hero');
+        if (applied.contentCard) parts.push('Content Card');
+        return { text: 'Done — updated ' + parts.join(', ') + '.' + restoreNote, kind: 'ok' };
+      }
+      return { text: 'Done — check Top Ribbon, Hero, and Content Card on the snapshot.' + restoreNote, kind: 'ok' };
+    }
 
     function clamp(n, lo, hi) {
       return Math.max(lo, Math.min(hi, n));
@@ -1139,30 +1247,8 @@
             var result = await profileApi.runContentDecision();
             var props = (result && (result.propositions || result.decisions)) || [];
             var applied = result && result.appliedMounts;
-            if (!props.length) {
-              setPipeline(
-                'No propositions returned — verify Tags inject, sandbox datastream, and Decisioning lab target page URL.',
-                'error',
-              );
-            } else if (applied && applied.filled === 0) {
-              var pageHint =
-                result && result.personalizationPageUrl
-                  ? ' Page URL sent: ' + result.personalizationPageUrl + '.'
-                  : '';
-              setPipeline(
-                'Propositions returned but none rendered in Top Ribbon, Hero, or Content Card — set Decisioning lab target page URL to the iframe journey (e.g. demos/ksia/index.html), not the shell.' +
-                  pageHint,
-                'error',
-              );
-            } else if (applied && applied.filled > 0) {
-              var parts = [];
-              if (applied.topRibbon) parts.push('Top Ribbon');
-              if (applied.hero) parts.push('Hero');
-              if (applied.contentCard) parts.push('Content Card');
-              setPipeline('Done — updated ' + parts.join(', ') + '.', 'ok');
-            } else {
-              setPipeline('Done — check Top Ribbon, Hero, and Content Card on the snapshot.', 'ok');
-            }
+            var pipelineMsg = formatDecisionPipelineMessage(result, props, applied);
+            setPipeline(pipelineMsg.text, pipelineMsg.kind);
           } else {
             setPipeline('Decisioning runtime not configured.', 'error');
           }
@@ -1178,6 +1264,7 @@
     if (applyBtn) applyBtn.addEventListener('click', onApply);
 
     wireRangeMirrors();
+    wireResetControls();
     setMicroBaselineFromDom();
     wireProfilePrefetchWatchers(options || {});
     refreshStateDot();
