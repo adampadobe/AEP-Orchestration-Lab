@@ -176,6 +176,26 @@
   box-shadow: 0 0 0 2px var(--dash-success-bg);
 }
 
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state[data-loading='true'] .cd-micro-profile-state-dot {
+  background: var(--dash-warning-border, var(--dash-blue));
+  box-shadow: 0 0 0 2px var(--dash-warning-bg, var(--dash-info-bg));
+  animation: dpm-profile-state-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dpm-profile-state-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.decisioning-profile-module .cd-hero-rail .cd-micro-profile-state[data-loading='true'] {
+  color: var(--dash-text-secondary);
+}
+
 .decisioning-profile-module .cd-hero-rail .cd-micro-profile-state[data-loaded='true'] {
   color: var(--dash-success-text, var(--dash-text));
 }

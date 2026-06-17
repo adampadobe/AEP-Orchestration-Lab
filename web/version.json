@@ -1,14 +1,14 @@
 {
-  "gitSha": "5ebe36ba0b59121c3e7e59694deb770597279b23",
-  "gitShortSha": "5ebe36ba",
+  "gitSha": "0ac6a5bddbda5808946d839897d5872cb8a66e22",
+  "gitShortSha": "0ac6a5bd",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: KSIA decisioning use iframe journey URL and keep TopRibbon in main",
+  "gitCommitSubject": "[apalmer] fix: persist Decisioning toggle across hard refresh per sandbox",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-17T21:59:03+01:00",
-  "deployedAt": "2026-06-17T20:59:16.697Z",
+  "gitCommitDate": "2026-06-17T22:06:41+01:00",
+  "deployedAt": "2026-06-17T21:06:53.033Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/5ebe36ba0b59121c3e7e59694deb770597279b23"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0ac6a5bddbda5808946d839897d5872cb8a66e22"
 }

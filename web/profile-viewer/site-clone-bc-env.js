@@ -1266,6 +1266,16 @@ function syncDecisioningFromPrefs() {
       anchor.classList.toggle('is-visible', !!siteCloneDecisioningEnabledToggle.checked);
     }
   }
+  if (siteCloneDecisioningEnabledToggle && siteCloneDecisioningEnabledToggle.checked) {
+    if (typeof global.__siteCloneSyncDecisioningProfile === 'function') {
+      void global.__siteCloneSyncDecisioningProfile();
+    } else if (
+      global.DecisioningProfileRuntime &&
+      typeof global.DecisioningProfileRuntime.maybeAutoLookup === 'function'
+    ) {
+      void global.DecisioningProfileRuntime.maybeAutoLookup('decisioning-enabled');
+    }
+  }
   syncBcMidrailFromPrefs();
 }
 

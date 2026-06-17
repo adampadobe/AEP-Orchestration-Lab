@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-surface-expand';
+  var CACHE_BUST = '20260617-profile-prefetch';
   /** Spectrum 2 workflow icon: Channel (S2_Icon_Channel_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var CHANNEL_ICON_SVG =
     '<svg class="dpm-panel-trigger-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -66,6 +66,17 @@
       backdrop.classList.toggle('is-open', open);
       trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (!open) clearHideTimer();
+      if (open) {
+        try {
+          global.dispatchEvent(new CustomEvent('decisioning-panel-opened'));
+        } catch (_e) {}
+        if (
+          global.DecisioningProfileRuntime &&
+          typeof global.DecisioningProfileRuntime.maybeAutoLookup === 'function'
+        ) {
+          void global.DecisioningProfileRuntime.maybeAutoLookup('panel-open');
+        }
+      }
     }
 
     var hideTimer = null;

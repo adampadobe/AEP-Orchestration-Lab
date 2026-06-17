@@ -167,8 +167,22 @@
       if (instance && typeof instance.stitchAfterProfileLookup === 'function') {
         var origStitch = instance.stitchAfterProfileLookup.bind(instance);
         instance.stitchAfterProfileLookup = async function stitchWithDecisioningSync(profile, fallbackIdentifier) {
+          var prefetch = null;
+          try {
+            var toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
+            if (
+              toggle &&
+              toggle.checked &&
+              global.SiteCloneDecisioningBoot &&
+              typeof global.SiteCloneDecisioningBoot.syncFromProfileLookup === 'function'
+            ) {
+              prefetch = global.SiteCloneDecisioningBoot.syncFromProfileLookup();
+            }
+          } catch (_prefetchErr) {
+            /* noop */
+          }
           var result = await origStitch(profile, fallbackIdentifier);
-          await syncFromProfileLookup();
+          if (prefetch) await prefetch;
           return result;
         };
       }
@@ -271,6 +285,8 @@
           getIdentifierValue: getIdentifierValue,
           getNamespace: getNamespace,
           getSandboxName: getSandboxName,
+          emailInputId: emailInputId,
+          namespaceSelectId: nsSelectId,
           profileApi: runtimeApi || {},
         },
       });
@@ -286,6 +302,8 @@
           getIdentifierValue: getIdentifierValue,
           getNamespace: getNamespace,
           getSandboxName: getSandboxName,
+          emailInputId: emailInputId,
+          namespaceSelectId: nsSelectId,
           profileApi: runtimeApi || {},
         });
       }
@@ -296,6 +314,10 @@
         if (panelHandle && panelHandle.moduleHandle && typeof panelHandle.moduleHandle.hydrate === 'function') {
           panelHandle.moduleHandle.hydrate();
         }
+        return;
+      }
+      if (runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
+        await runtimeApi.maybeAutoLookup('profile-lookup-sync');
         return;
       }
       if (runtimeApi && typeof runtimeApi.runProfileLookup === 'function') {
@@ -316,6 +338,9 @@
       typeof global.DecisioningProfileRuntime.refreshEnabledState === 'function'
     ) {
       global.DecisioningProfileRuntime.refreshEnabledState();
+    }
+    if (isDecisioningEnabled() && runtimeApi && typeof runtimeApi.maybeAutoLookup === 'function') {
+      void runtimeApi.maybeAutoLookup('decisioning-boot');
     }
 
     bootResult = { runtimeApi: runtimeApi, panelHandle: panelHandle, syncKey: syncKey, wiring: wiring };

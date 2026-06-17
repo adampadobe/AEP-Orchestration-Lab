@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-surface-expand';
+  var CACHE_BUST = '20260617-profile-prefetch';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -482,10 +482,62 @@
       var el = $('cdMicroProfileState');
       if (!el) return;
       var loaded = isProfileLoaded();
+      var loading =
+        !loaded &&
+        ((typeof profileApi.isProfileLookupInFlight === 'function' && profileApi.isProfileLookupInFlight()) ||
+          (el.getAttribute('data-loading') === 'true'));
       var labelEl = el.querySelector('.cd-micro-profile-state-label');
       el.setAttribute('data-loaded', loaded ? 'true' : 'false');
-      el.setAttribute('aria-label', loaded ? 'Profile ready' : 'No profile loaded');
-      if (labelEl) labelEl.textContent = loaded ? 'Profile ready' : 'No profile loaded';
+      el.setAttribute('data-loading', loading ? 'true' : 'false');
+      if (loading) {
+        el.setAttribute('aria-label', 'Loading profile');
+        if (labelEl) labelEl.textContent = 'Loading profile…';
+      } else if (loaded) {
+        el.setAttribute('aria-label', 'Profile ready');
+        if (labelEl) labelEl.textContent = 'Profile ready';
+      } else {
+        el.setAttribute('aria-label', 'No profile loaded');
+        if (labelEl) labelEl.textContent = 'No profile loaded';
+      }
+    }
+
+    function triggerAutoLookup(reason) {
+      if (typeof profileApi.maybeAutoLookup === 'function') {
+        void profileApi.maybeAutoLookup(reason);
+        return;
+      }
+      if (typeof profileApi.runProfileLookup === 'function') {
+        void profileApi.runProfileLookup({ silent: true });
+      }
+    }
+
+    function wireProfilePrefetchWatchers(options) {
+      options = options || {};
+      var emailInputId = options.emailInputId || 'customerEmail';
+      var nsSelectId = options.namespaceSelectId || '';
+
+      function onIdentityInputsChanged() {
+        if (typeof profileApi.invalidateProfileLookupCache === 'function') {
+          profileApi.invalidateProfileLookupCache();
+        }
+        refreshStateDot();
+        triggerAutoLookup('identity-change');
+      }
+
+      document.addEventListener('change', function (ev) {
+        var t = ev && ev.target;
+        if (!t || !t.id) return;
+        if (t.id === emailInputId || (nsSelectId && t.id === nsSelectId)) onIdentityInputsChanged();
+      });
+      document.addEventListener('decisioning-panel-opened', function () {
+        triggerAutoLookup('panel-open');
+      });
+      global.addEventListener('aep-global-sandbox-change', function () {
+        if (typeof profileApi.invalidateProfileLookupCache === 'function') {
+          profileApi.invalidateProfileLookupCache();
+        }
+        refreshStateDot();
+      });
     }
 
     function snapshotMicroForm() {
@@ -1071,10 +1123,14 @@
 
     wireRangeMirrors();
     setMicroBaselineFromDom();
+    wireProfilePrefetchWatchers(options || {});
     refreshStateDot();
+    if (isProfileLoaded()) hydrateFromProfile();
+    else triggerAutoLookup('module-mount');
 
     global.addEventListener('decisioning-profile-updated', function (ev) {
       refreshStateDot();
+      if (ev && ev.detail && ev.detail.loading) return;
       if (ev && ev.detail && ev.detail.ok && !ev.detail.skipHydrate) hydrateFromProfile();
     });
 

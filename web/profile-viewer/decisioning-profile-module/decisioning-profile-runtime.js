@@ -6,13 +6,30 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260617-ksia-journey-url';
+  var CACHE_BUST = '20260617-profile-prefetch';
 
   var config = null;
   var lastUpsClientData = null;
   var lastProfileEcid = '';
   var labConfigRecord = null;
   var labConfigLoadPromise = null;
+  var autoLookupInFlight = null;
+  var autoLookupLastKey = '';
+
+  function lookupIdentityKey() {
+    var idVal =
+      typeof cfg('getIdentifierValue') === 'function' ? String(cfg('getIdentifierValue')() || '').trim() : '';
+    var ns =
+      typeof cfg('getNamespace') === 'function' ? String(cfg('getNamespace')() || 'email').trim().toLowerCase() : 'email';
+    var sandbox =
+      typeof cfg('getSandboxName') === 'function' ? String(cfg('getSandboxName')() || '').trim() : '';
+    return sandbox + '\u0001' + ns + '\u0001' + idVal;
+  }
+
+  function hasCachedProfileForCurrentIdentity() {
+    if (!lastUpsClientData || !isUpsOk(lastUpsClientData)) return false;
+    return lookupIdentityKey() === autoLookupLastKey;
+  }
 
   function log() {
     try {
@@ -100,32 +117,58 @@
     var sandbox =
       typeof cfg('getSandboxName') === 'function' ? String(cfg('getSandboxName')() || '').trim() : '';
     if (!idVal) {
-      dispatchUpdated({ ok: false, reason: 'missing-identifier' });
+      dispatchUpdated({ ok: false, reason: 'missing-identifier', loading: false });
       return false;
     }
     var qs = new URLSearchParams({ namespace: ns, identifier: idVal });
     if (sandbox) qs.set('sandbox', sandbox);
+    dispatchUpdated({ loading: true });
     try {
       var res = await fetch('/api/profile/table?' + qs.toString(), { headers: { Accept: 'application/json' } });
       var data = await res.json().catch(function () {
         return {};
       });
       lastUpsClientData = data;
+      autoLookupLastKey = lookupIdentityKey();
       if (!res.ok || !isUpsOk(data)) {
         lastUpsClientData = null;
         lastProfileEcid = '';
-        dispatchUpdated({ ok: false });
+        dispatchUpdated({ ok: false, loading: false });
         return false;
       }
       lastProfileEcid = extractEcidFromUps(data);
-      dispatchUpdated({ ok: true, ecid: lastProfileEcid, skipHydrate: !!opts.skipHydrate });
+      dispatchUpdated({ ok: true, ecid: lastProfileEcid, skipHydrate: !!opts.skipHydrate, loading: false });
       return true;
     } catch (e) {
       lastUpsClientData = null;
       lastProfileEcid = '';
-      dispatchUpdated({ ok: false, error: String(e && e.message ? e.message : e) });
+      dispatchUpdated({ ok: false, error: String(e && e.message ? e.message : e), loading: false });
       return false;
     }
+  }
+
+  /**
+   * Coalesced profile prefetch — safe to call from panel open, toggle enable, sandbox change.
+   * @param {string} [reason]
+   */
+  async function maybeAutoLookup(reason) {
+    if (!isEnabled()) return false;
+    var key = lookupIdentityKey();
+    var idVal = key.split('\u0001')[2] || '';
+    if (!idVal) return false;
+    if (autoLookupInFlight) return autoLookupInFlight;
+    if (key === autoLookupLastKey && hasCachedProfileForCurrentIdentity()) return true;
+    log('maybeAutoLookup', reason || 'unspecified', { sandbox: key.split('\u0001')[0], ns: key.split('\u0001')[1] });
+    autoLookupInFlight = runProfileLookup({ silent: true }).finally(function () {
+      autoLookupInFlight = null;
+    });
+    return autoLookupInFlight;
+  }
+
+  function invalidateProfileLookupCache() {
+    autoLookupLastKey = '';
+    lastUpsClientData = null;
+    lastProfileEcid = '';
   }
 
   function stripUrlQueryHash(raw) {
@@ -369,7 +412,7 @@
     await ensureLabConfigLoaded();
     ensureMounts();
     if (!lastUpsClientData || !isUpsOk(lastUpsClientData)) {
-      var ok = await runProfileLookup({ silent: true });
+      var ok = await maybeAutoLookup('content-decision');
       if (!ok) throw new Error('Profile lookup failed — enter an identifier and look up profile first.');
     } else if (!lastProfileEcid) {
       lastProfileEcid = extractEcidFromUps(lastUpsClientData);
@@ -467,13 +510,16 @@
     labConfigLoadPromise = loadLabConfig();
     try {
       global.addEventListener('aep-global-sandbox-change', function () {
+        invalidateProfileLookupCache();
         labConfigRecord = null;
         labConfigLoadPromise = loadLabConfig().then(function () {
           applySavedSurfaceStyles();
+          if (isEnabled()) void maybeAutoLookup('sandbox-change');
           return labConfigRecord;
         });
       });
     } catch (_e) {}
+    if (isEnabled()) void maybeAutoLookup('runtime-init');
     labConfigLoadPromise.then(function () {
       if (isEnabled()) {
         ensureMounts();
@@ -494,6 +540,11 @@
         return lastProfileEcid;
       },
       runProfileLookup: runProfileLookup,
+      maybeAutoLookup: maybeAutoLookup,
+      invalidateProfileLookupCache: invalidateProfileLookupCache,
+      isProfileLookupInFlight: function () {
+        return !!autoLookupInFlight;
+      },
       patchLastUpsClientData: patchLastUpsClientData,
       runContentDecision: runContentDecision,
       ensureMounts: ensureMounts,
@@ -513,6 +564,7 @@
     if (isEnabled()) {
       ensureMounts();
       applySavedSurfaceStyles();
+      void maybeAutoLookup('enabled');
     } else removeMounts();
   }
 
@@ -523,6 +575,8 @@
     ensureMounts: ensureMounts,
     removeMounts: removeMounts,
     runProfileLookup: runProfileLookup,
+    maybeAutoLookup: maybeAutoLookup,
+    invalidateProfileLookupCache: invalidateProfileLookupCache,
     runContentDecision: runContentDecision,
     refreshEnabledState: refreshEnabledState,
     applySavedSurfaceStyles: applySavedSurfaceStyles,
