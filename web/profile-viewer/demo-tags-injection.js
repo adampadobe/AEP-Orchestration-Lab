@@ -918,9 +918,18 @@
       if (sel) sel.value = snap;
     }
 
-    function finishInjectFlow() {
+    function finishInjectFlow(flowOpts) {
+      const opts = flowOpts || {};
       restoreInjectSandboxIfNeeded();
       clearInjectGuard();
+      if (opts.silentResume) {
+        try {
+          global.dispatchEvent(new CustomEvent('aep-demo-env-configured'));
+        } catch (_e) {
+          /* noop */
+        }
+        return;
+      }
       requestEnvOverlayOpen();
     }
 
@@ -1581,7 +1590,9 @@
       }
     }
 
-    async function injectSelectedScriptNow(scriptOverride) {
+    async function injectSelectedScriptNow(scriptOverride, injectOpts) {
+      const opts = injectOpts || {};
+      const silentResume = opts.silentResume === true;
       const rawOverride = scriptOverride || selectedScriptUrl;
       const scriptUrl = sanitiseLaunchScriptUrl(rawOverride);
       releaseBcSuppressForActiveInject();
@@ -1641,10 +1652,18 @@
           });
         }
         markSdkConfiguredForSandbox(true);
-        /* Keep Tags fields + env overlay open after inject (no collapse-to-summary). */
-        setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        if (silentResume) {
+          setSdkConfigExpanded(false);
+        } else {
+          /* Keep Tags fields + env overlay open after manual inject (no collapse-to-summary). */
+          setSdkConfigExpanded(true, { skipConfiguredSignals: true });
+        }
         syncSiteCloneBcDisplayAfterInject();
-        dtLog('injectSelectedScriptNow: complete (configured, env bar stays expanded)');
+        dtLog(
+          silentResume
+            ? 'injectSelectedScriptNow: complete (configured, collapsed toolbar)'
+            : 'injectSelectedScriptNow: complete (configured, env bar stays expanded)',
+        );
         return true;
       } catch (err) {
         dtLog('injectSelectedScriptNow: FAILED', err && err.message ? err.message : String(err));
@@ -1924,8 +1943,8 @@
           }
           renderSelectedScript(persistedResume);
           markInjectGuardActive();
-          void injectSelectedScriptNow(persistedResume).finally(function () {
-            finishInjectFlow();
+          void injectSelectedScriptNow(persistedResume, { silentResume: true }).finally(function () {
+            finishInjectFlow({ silentResume: true });
             void loadTagsCompanies();
           });
         } else {
