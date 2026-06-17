@@ -756,49 +756,69 @@
     return true;
   }
 
-  var STYLE_DEFAULTS = {
-    layoutMode: 'overlay',
-    blockY: 'flex-end',
-    titleH: 'center',
-    titleV: 'flex-start',
-    descH: 'center',
-    descV: 'center',
-    ctaH: 'center',
-    ctaV: 'flex-end',
-    titleColor: '',
-    descColor: '',
-    ctaBg: '',
-    ctaText: '',
-    noImageBg: '',
-    showTitle: true,
-    showDesc: true,
-    showCta: true,
-    showImage: true,
-    mountMinHeight: '',
-  };
+  var STYLE_DEFAULTS =
+    global.CdSurfaceStylesCore && global.CdSurfaceStylesCore.STYLE_DEFAULTS_INJECT
+      ? global.CdSurfaceStylesCore.STYLE_DEFAULTS_INJECT
+      : {
+          layoutMode: 'overlay',
+          blockY: 'flex-end',
+          titleH: 'center',
+          titleV: 'flex-start',
+          descH: 'center',
+          descV: 'center',
+          ctaH: 'center',
+          ctaV: 'flex-end',
+          titleColor: '',
+          descColor: '',
+          ctaBg: '',
+          ctaText: '',
+          noImageBg: '',
+          showTitle: true,
+          showDesc: true,
+          showCta: true,
+          showImage: true,
+          mountMinHeight: '',
+        };
 
-  var VIS_CLASS = [
-    'cd-edge-vis--no-title',
-    'cd-edge-vis--no-desc',
-    'cd-edge-vis--no-cta',
-    'cd-edge-vis--no-fig',
-  ];
-
-  function sanitizeMountMinHeight(raw) {
-    var s = String(raw || '').trim();
-    if (!s) return '';
-    if (s.length > 40) s = s.slice(0, 40);
-    if (!/^[0-9a-zA-Z%().,\s+-]+$/.test(s)) return '';
-    return s;
+  function coreApplyStyleToMount(mount, st) {
+    if (global.CdSurfaceStylesCore && typeof global.CdSurfaceStylesCore.applyStyleToMount === 'function') {
+      global.CdSurfaceStylesCore.applyStyleToMount(mount, st, {
+        mode: 'inject',
+        defaults: STYLE_DEFAULTS,
+        topRibbonFragment: FRAGMENTS.topRibbon,
+        heroFragment: FRAGMENTS.hero,
+        injectHooks: {
+          normalizeBannerToBelow: normalizeBannerToBelow,
+          reapplySkyHeroMetricsFromCache: reapplySkyHeroMetricsFromCache,
+          hideBannerCta: hideBannerCta,
+          normalizeOverlayBanner: normalizeOverlayBanner,
+          expandHeroHostFullWidth: expandHeroHostFullWidth,
+        },
+      });
+      return;
+    }
+    applyStyleToMountLegacy(mount, st);
   }
 
-  function mountUsesTopRibbonSurface(mount) {
-    if (!mount) return false;
-    if (mount.id === FRAGMENTS.topRibbon) return true;
-    return /topribbon/i.test(String(mount.id || ''));
-  }
-
-  function applyStyleToMount(mount, st) {
+  function applyStyleToMountLegacy(mount, st) {
+    var VIS_CLASS = [
+      'cd-edge-vis--no-title',
+      'cd-edge-vis--no-desc',
+      'cd-edge-vis--no-cta',
+      'cd-edge-vis--no-fig',
+    ];
+    function sanitizeMountMinHeight(raw) {
+      var s = String(raw || '').trim();
+      if (!s) return '';
+      if (s.length > 40) s = s.slice(0, 40);
+      if (!/^[0-9a-zA-Z%().,\s+-]+$/.test(s)) return '';
+      return s;
+    }
+    function mountUsesTopRibbonSurface(mountEl) {
+      if (!mountEl) return false;
+      if (mountEl.id === FRAGMENTS.topRibbon) return true;
+      return /topribbon/i.test(String(mountEl.id || ''));
+    }
     if (!mount || !st) return;
     var isHeroFlow = mount.classList.contains('cd-edge-mount-body--hero-flow');
     var isLayoutBelow = mount.classList.contains('cd-edge-mount-body--layout-below');
@@ -907,6 +927,10 @@
       mount.style.overflow = '';
       mount.style.minHeight = mh || '';
     }
+  }
+
+  function applyStyleToMount(mount, st) {
+    coreApplyStyleToMount(mount, st);
   }
 
   /**

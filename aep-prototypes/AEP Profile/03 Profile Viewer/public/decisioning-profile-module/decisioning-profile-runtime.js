@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260616-surface-urls';
+  var CACHE_BUST = '20260616-surface-styles-panel';
 
   var config = null;
   var lastUpsClientData = null;
@@ -224,6 +224,7 @@
           global.CdEdgeMounts.setPlacements(labConfigRecord.placements);
         }
         log('loadLabConfig', 'ok');
+        applySavedSurfaceStyles();
         return labConfigRecord;
       }
     } catch (e) {
@@ -237,10 +238,41 @@
     return labConfigLoadPromise;
   }
 
+  function applySavedSurfaceStyles() {
+    if (!isEnabled()) return;
+    ensureMounts();
+    var doc = getIframeDoc();
+    if (!doc || !global.DecisioningEdgeInject) return;
+    var styles = labConfigRecord && labConfigRecord.surfaceStyles;
+    if (!styles || typeof styles !== 'object') return;
+    global.DecisioningEdgeInject.applySurfaceStyles(doc, styles);
+  }
+
+  function getLabConfigRecord() {
+    return labConfigRecord;
+  }
+
+  function updateSurfaceStyles(surfaceStyles, opts) {
+    opts = opts || {};
+    if (!labConfigRecord) labConfigRecord = {};
+    labConfigRecord.surfaceStyles =
+      surfaceStyles && typeof surfaceStyles === 'object' && !Array.isArray(surfaceStyles)
+        ? Object.assign({}, surfaceStyles)
+        : {};
+    applySavedSurfaceStyles();
+    if (!opts.skipSave && global.CdLabConfigApi && typeof global.CdLabConfigApi.saveDecisionLabConfig === 'function') {
+      return global.CdLabConfigApi.saveDecisionLabConfig({ surfaceStyles: labConfigRecord.surfaceStyles });
+    }
+    return Promise.resolve({ ok: true });
+  }
+
   function wireIframeMountRetries() {
     if (useParentDocument()) {
       var onDomReady = function () {
-        if (isEnabled()) ensureMounts();
+        if (isEnabled()) {
+          ensureMounts();
+          applySavedSurfaceStyles();
+        }
       };
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', onDomReady);
@@ -253,7 +285,16 @@
     if (!frame || frame.getAttribute('data-decisioning-mount-wired') === '1') return;
     frame.setAttribute('data-decisioning-mount-wired', '1');
     var onReady = function () {
-      if (isEnabled()) ensureMounts();
+      if (!isEnabled()) return;
+      ensureLabConfigLoaded()
+        .then(function () {
+          ensureMounts();
+          applySavedSurfaceStyles();
+        })
+        .catch(function () {
+          ensureMounts();
+          applySavedSurfaceStyles();
+        });
     };
     try {
       if (frame.contentDocument && frame.contentDocument.body) onReady();
@@ -402,11 +443,20 @@
     try {
       global.addEventListener('aep-global-sandbox-change', function () {
         labConfigRecord = null;
-        labConfigLoadPromise = loadLabConfig();
+        labConfigLoadPromise = loadLabConfig().then(function () {
+          applySavedSurfaceStyles();
+          return labConfigRecord;
+        });
       });
     } catch (_e) {}
-    if (isEnabled()) ensureMounts();
-    else removeMounts();
+    labConfigLoadPromise.then(function () {
+      if (isEnabled()) {
+        ensureMounts();
+        applySavedSurfaceStyles();
+      } else {
+        removeMounts();
+      }
+    });
     return getApi();
   }
 
@@ -428,12 +478,17 @@
         if (!doc || !global.DecisioningEdgeInject) return false;
         return global.DecisioningEdgeInject.injectTopRibbon(decisionData, doc, { layout: mountLayout() });
       },
+      applySavedSurfaceStyles: applySavedSurfaceStyles,
+      getLabConfigRecord: getLabConfigRecord,
+      updateSurfaceStyles: updateSurfaceStyles,
     };
   }
 
   function refreshEnabledState() {
-    if (isEnabled()) ensureMounts();
-    else removeMounts();
+    if (isEnabled()) {
+      ensureMounts();
+      applySavedSurfaceStyles();
+    } else removeMounts();
   }
 
   global.DecisioningProfileRuntime = {
@@ -445,5 +500,8 @@
     runProfileLookup: runProfileLookup,
     runContentDecision: runContentDecision,
     refreshEnabledState: refreshEnabledState,
+    applySavedSurfaceStyles: applySavedSurfaceStyles,
+    getLabConfigRecord: getLabConfigRecord,
+    updateSurfaceStyles: updateSurfaceStyles,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

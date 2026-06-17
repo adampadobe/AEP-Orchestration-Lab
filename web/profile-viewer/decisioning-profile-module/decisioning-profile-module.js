@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260616';
+  var CACHE_BUST = '20260616-surface-styles';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -139,7 +139,9 @@
       '<div class="cd-micro-profile-actions">' +
       '<button type="button" class="cd-micro-profile-apply" id="cdMicroProfileApply">Apply</button>' +
       '<p class="cd-micro-profile-status" id="cdMicroProfileStatus" aria-live="polite"></p>' +
-      '</div></div></section>' +
+      '</div></div>' +
+      '<div id="cdMicroSurfaceStylesHost"></div>' +
+      '</section>' +
       '<p class="cd-micro-profile-pipeline" id="cdMicroProfilePipeline" aria-live="polite"></p>' +
       '</div>'
     );
@@ -1059,7 +1061,42 @@
       if (ev && ev.detail && ev.detail.ok && !ev.detail.skipHydrate) hydrateFromProfile();
     });
 
-    return { refresh: refreshStateDot, hydrate: hydrateFromProfile };
+    var surfaceStylesHandle = null;
+    var surfaceHost = $('cdMicroSurfaceStylesHost');
+    if (
+      surfaceHost &&
+      global.DecisioningSurfaceStylesPanel &&
+      typeof global.DecisioningSurfaceStylesPanel.mount === 'function'
+    ) {
+      surfaceStylesHandle = global.DecisioningSurfaceStylesPanel.mount(surfaceHost, {
+        getPlacements: function () {
+          if (global.CdEdgeMounts && typeof global.CdEdgeMounts.getPlacements === 'function') {
+            return global.CdEdgeMounts.getPlacements();
+          }
+          return [];
+        },
+        getSandboxName: getSandboxName,
+        onApply: function (surfaceStyles) {
+          if (
+            global.DecisioningProfileRuntime &&
+            typeof global.DecisioningProfileRuntime.updateSurfaceStyles === 'function'
+          ) {
+            global.DecisioningProfileRuntime.updateSurfaceStyles(surfaceStyles, { skipSave: true });
+          }
+        },
+      });
+      global.addEventListener('aep-global-sandbox-change', function () {
+        if (surfaceStylesHandle && typeof surfaceStylesHandle.reload === 'function') {
+          surfaceStylesHandle.reload();
+        }
+      });
+    }
+
+    return {
+      refresh: refreshStateDot,
+      hydrate: hydrateFromProfile,
+      surfaceStylesHandle: surfaceStylesHandle,
+    };
   }
 
   global.DecisioningProfileModule = {

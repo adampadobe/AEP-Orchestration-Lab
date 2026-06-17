@@ -492,7 +492,8 @@
   // formatting. Value shape: one entry per field the style form exposes.
   var currentSurfaceStyles = {};
 
-  var STYLE_DEFAULTS = {
+  var core = global.CdSurfaceStylesCore;
+  var STYLE_DEFAULTS = core ? core.STYLE_DEFAULTS_LAB : {
     layoutMode: 'overlay',
     blockY: 'flex-end',
     titleH: 'center', titleV: 'flex-start',
@@ -509,10 +510,11 @@
     showImage: true,
     mountMinHeight: '',
   };
-  var JUSTIFY_VALUES = { 'flex-start': 1, 'center': 1, 'flex-end': 1 };
-  var LAYOUT_MODES = { overlay: 1, half: 1, below: 1 };
+  var JUSTIFY_VALUES = core ? core.JUSTIFY_VALUES : { 'flex-start': 1, 'center': 1, 'flex-end': 1 };
+  var LAYOUT_MODES = core ? core.LAYOUT_MODES : { overlay: 1, half: 1, below: 1 };
 
   function normaliseHex(v) {
+    if (core && core.normaliseHex) return core.normaliseHex(v);
     if (!v) return '';
     var s = String(v).trim();
     if (s[0] !== '#') s = '#' + s;
@@ -522,17 +524,29 @@
     if (/^#[0-9a-fA-F]{8}$/.test(s)) return s.toLowerCase();
     return '';
   }
-  function pickJustify(v, fb) { return JUSTIFY_VALUES[v] ? v : fb; }
-  function pickHex(v, fb) { var n = normaliseHex(v); return n || fb; }
-  function pickLayout(v, fb) { return LAYOUT_MODES[v] ? v : fb; }
+  function pickJustify(v, fb) { return core && core.pickJustify ? core.pickJustify(v, fb) : (JUSTIFY_VALUES[v] ? v : fb); }
+  function pickHex(v, fb) { return core && core.pickHex ? core.pickHex(v, fb) : (normaliseHex(v) || fb); }
+  function pickLayout(v, fb) { return core && core.pickLayout ? core.pickLayout(v, fb) : (LAYOUT_MODES[v] ? v : fb); }
 
-  /** Allow safe CSS lengths only (min-height on the preview mount). */
   function sanitizeMountMinHeight(raw) {
+    if (core && core.sanitizeMountMinHeight) return core.sanitizeMountMinHeight(raw);
     var s = String(raw || '').trim();
     if (!s) return '';
     if (s.length > 40) s = s.slice(0, 40);
     if (!/^[0-9a-zA-Z%().,\s+-]+$/.test(s)) return '';
     return s;
+  }
+
+  function mountHeightPxFromCss(css) {
+    if (core && core.mountHeightPxFromCss) return core.mountHeightPxFromCss(css);
+    var m = String(css || '').trim().match(/^(\d+(?:\.\d+)?)px$/i);
+    return m ? m[1] : '';
+  }
+
+  function syncMountHeightPxField(css) {
+    var px = el('cdStyleMountMinHeightPx');
+    if (!px) return;
+    px.value = mountHeightPxFromCss(css);
   }
 
   // ----- Brand scrape palette (session tab — one load, shared by all colour rows) -----
@@ -859,34 +873,41 @@
     setChk('cdStyleShowDesc', st.showDesc !== false);
     setChk('cdStyleShowCta', st.showCta !== false);
     setChk('cdStyleShowImage', st.showImage !== false);
-    set('cdStyleMountMinHeight', st.mountMinHeight != null ? String(st.mountMinHeight) : '');
+    var mh = st.mountMinHeight != null ? String(st.mountMinHeight) : '';
+    set('cdStyleMountMinHeight', mh);
+    syncMountHeightPxField(mh);
   }
 
-  var VIS_CLASS = ['cd-edge-vis--no-title', 'cd-edge-vis--no-desc', 'cd-edge-vis--no-cta', 'cd-edge-vis--no-fig'];
+  var VIS_CLASS = core ? core.VIS_CLASS : ['cd-edge-vis--no-title', 'cd-edge-vis--no-desc', 'cd-edge-vis--no-cta', 'cd-edge-vis--no-fig'];
 
-  /** True when this mount is the TopRibbon code surface (by key or #fragment). */
   function mountUsesTopRibbonSurface(mount) {
-    if (!mount || !mount.id || mount.id.indexOf('cd-edge-') !== 0) return false;
-    var suffix = mount.id.slice('cd-edge-'.length);
-    var list = currentPlacementList();
-    var i;
-    for (i = 0; i < list.length; i++) {
-      if (list[i].key !== suffix) continue;
-      var f = String(list[i].fragment || '')
-        .trim()
-        .replace(/^#/, '')
-        .toLowerCase();
-      var k = String(list[i].key || '')
-        .trim()
-        .toLowerCase();
-      return f === 'topribbon' || k === 'topribbon';
+    if (core && core.mountUsesTopRibbonSurface) {
+      return core.mountUsesTopRibbonSurface(mount, { getPlacements: currentPlacementList });
     }
-    return mount.id === 'cd-edge-topRibbon';
+    return false;
+  }
+
+  function mountUsesHeroSurface(mount) {
+    if (core && core.mountUsesHeroSurface) {
+      return core.mountUsesHeroSurface(mount, { getPlacements: currentPlacementList });
+    }
+    return false;
+  }
+
+  function mountUsesFixedHeightSurface(mount) {
+    if (core && core.mountUsesFixedHeightSurface) {
+      return core.mountUsesFixedHeightSurface(mount, { getPlacements: currentPlacementList });
+    }
+    return mountUsesTopRibbonSurface(mount) || mountUsesHeroSurface(mount);
   }
 
   /** Apply one style entry's CSS custom properties + layout class to a mount. */
   function applyStyleToMount(mount, st) {
     if (!mount || !st) return;
+    if (core && core.applyStyleToMount) {
+      core.applyStyleToMount(mount, st, { mode: 'lab', defaults: STYLE_DEFAULTS, getPlacements: currentPlacementList });
+      return;
+    }
     var banner = mount.querySelector('.cd-banner');
     if (banner) {
       banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
@@ -921,8 +942,8 @@
     if (st.showCta === false) mount.classList.add('cd-edge-vis--no-cta');
     if (st.showImage === false) mount.classList.add('cd-edge-vis--no-fig');
     var mh = sanitizeMountMinHeight(st.mountMinHeight);
-    var ribbonFixed = mountUsesTopRibbonSurface(mount) && !!mh;
-    if (ribbonFixed) {
+    var fixedHeight = mountUsesFixedHeightSurface(mount) && !!mh;
+    if (fixedHeight) {
       mount.classList.add('cd-edge-mount-body--ribbon-fixed');
       mount.style.minHeight = mh;
       mount.style.maxHeight = mh;
@@ -1506,8 +1527,30 @@
         if (el(id)) el(id).addEventListener('change', styleFormOnChange);
       });
       if (el('cdStyleMountMinHeight')) {
-        el('cdStyleMountMinHeight').addEventListener('input', styleFormOnChange);
-        el('cdStyleMountMinHeight').addEventListener('change', styleFormOnChange);
+        el('cdStyleMountMinHeight').addEventListener('input', function () {
+          syncMountHeightPxField(el('cdStyleMountMinHeight').value);
+          styleFormOnChange();
+        });
+        el('cdStyleMountMinHeight').addEventListener('change', function () {
+          syncMountHeightPxField(el('cdStyleMountMinHeight').value);
+          styleFormOnChange();
+        });
+      }
+      var mountPx = el('cdStyleMountMinHeightPx');
+      if (mountPx) {
+        mountPx.addEventListener('input', function () {
+          var cssEl = el('cdStyleMountMinHeight');
+          if (!cssEl) return;
+          var v = mountPx.value.trim();
+          if (v === '') {
+            cssEl.value = '';
+          } else {
+            var n = Number(v);
+            if (!Number.isFinite(n) || n < 0) return;
+            cssEl.value = String(Math.round(n)) + 'px';
+          }
+          styleFormOnChange();
+        });
       }
       if (el('cdLabStyleResetBtn')) el('cdLabStyleResetBtn').addEventListener('click', styleResetHandler);
       populateStyleSurfaceDropdown();

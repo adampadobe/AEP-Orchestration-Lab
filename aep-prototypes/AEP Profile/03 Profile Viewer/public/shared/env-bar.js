@@ -18,28 +18,32 @@
     manifestVersion: '20260614-env-bar-prefs',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20260625-datastream-uuid-paste',
-      spectrumCss: '20260625-datastream-paste-visible',
-      demoEnvStripSpectrum: '20260625-datastream-paste-visible',
-      demoEnvStrip: '20260617-profile-peek-v5',
+      bundleCss: '20260625-datastream-paste-row-ensure',
+      spectrumCss: '20260616-datastream-bc-hint',
+      demoEnvStripSpectrum: '20260616-datastream-bc-services-tooltip',
+      demoEnvStrip: '20260616-hide-lab-debug-ui',
       spectrumSync: '20260614-sdk-compact-status',
+      aepLabDebug: '20260616-hide-lab-debug-ui',
+      aepLabDebugCss: '20260616-hide-lab-debug-ui',
       compactJs: '20260625-datastream-uuid-paste',
-      compactCss: '20260625-datastream-uuid-paste',
+      compactCss: '20260625-datastream-paste-visible',
       bootstrap: '20260602-env-bar-bootstrap',
-      prefsLocal: '20260625-incognito-env-fix',
-      prefsSync: '20260625-incognito-env-fix',
-      tagsInjection: '20260625-env-overlay-configuring',
-      aepDemoEnvBar: '20260625-env-overlay-configuring',
-      siteCloneBcEnv: '20260625-datastream-paste-visible',
-      decisioningModuleCss: '20260615',
-      decisioningPanelCss: '20260614-decisioning-channel-icon',
+      prefsLocal: '20260625-bc-incognito-sync-skip',
+      prefsSync: '20260616-tags-incognito-load',
+      tagsInjection: '20260625-lab-debug-messages',
+      aepDemoEnvBar: '20260625-datastream-paste-row-ensure',
+      siteCloneBcEnv: '20260625-bc-incognito-sync-skip',
+      decisioningModuleCss: '20260616-surface-styles',
+      decisioningPanelCss: '20260616-surface-styles',
       profileStreamingShared: '20260615',
+      contentDecisionSurfaceStylesCore: '20260616',
       contentDecisionLabConfig: '20260615',
       contentDecisionEdgeMounts: '20260615-edge-mounts-syntax',
-      decisioningEdgeInject: '20260612c',
-      decisioningProfileRuntime: '20260624',
-      decisioningProfileModule: '20260620',
-      decisioningProfilePanel: '20260614-decisioning-channel-icon',
+      decisioningEdgeInject: '20260617-top-ribbon',
+      decisioningProfileRuntime: '20260616-surface-styles-panel',
+      decisioningProfileModule: '20260616-surface-styles',
+      decisioningSurfaceStylesPanel: '20260616',
+      decisioningProfilePanel: '20260616-surface-styles',
       siteCloneDecisioningBoot: '20260624-target-page-url',
       bcMidrailPanelCss: '20260617-bc-midrail',
       bcMidrailPanel: '20260617-bc-midrail',
@@ -203,12 +207,25 @@
     }, Promise.resolve());
   }
 
+  var PREFS_READY_CAP_MS = 1500;
+
+  function capPromise(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise(function (resolve) {
+        global.setTimeout(function () {
+          resolve(null);
+        }, ms);
+      }),
+    ]);
+  }
+
   function ensurePrefsReady() {
     if (state.prefsReadyPromise) return state.prefsReadyPromise;
     state.prefsReadyPromise = loadVersions().then(function (versions) {
       return loadPrefsScripts(versions).then(function () {
         if (global.AepLabEnvBarPrefsSync && global.AepLabEnvBarPrefsSync.whenReady) {
-          return global.AepLabEnvBarPrefsSync.whenReady;
+          return capPromise(global.AepLabEnvBarPrefsSync.whenReady, PREFS_READY_CAP_MS);
         }
         return null;
       });
@@ -418,6 +435,11 @@
     return mode === 'shell' || mode === 'journey';
   }
 
+  function isProfileLookupMode(cfg) {
+    var mode = cfg && cfg.mode ? cfg.mode : 'shell';
+    return mode === 'shell' || mode === 'journey' || mode === 'minimal';
+  }
+
   function loadStyles(versions, cfg) {
     var a = versions.assets;
     var jobs = [linkCss(assetUrl('shared/demo-env-bar.bundle.css', a.bundleCss))];
@@ -426,6 +448,9 @@
     }
     if (cfg.variant === 'spectrum' && isFullShellMode(cfg)) {
       jobs.push(linkCss(assetUrl('shared/demo-env-bar-spectrum.css', a.spectrumCss)));
+    }
+    if (isProfileLookupMode(cfg)) {
+      jobs.push(linkCss(assetUrl('shared/aep-lab-debug.css', a.aepLabDebugCss || a.aepLabDebug)));
     }
     return Promise.all(jobs);
   }
@@ -443,6 +468,9 @@
       chain.push(assetUrl('shared/demo-env-strip-spectrum.js', a.demoEnvStripSpectrum));
     }
     chain.push(assetUrl('shared/demo-env-strip.js', a.demoEnvStrip));
+    if (isProfileLookupMode(cfg)) {
+      chain.push(assetUrl('shared/aep-lab-debug.js', a.aepLabDebug));
+    }
     if (fullShell && cfg.variant === 'spectrum') {
       chain.push(assetUrl('shared/demo-env-bar-spectrum-sync.js', a.spectrumSync));
     }
@@ -506,11 +534,13 @@
     var a = versions.assets;
     var chain = [
       assetUrl('profile-streaming-shared.js', a.profileStreamingShared),
+      assetUrl('content-decision-surface-styles-core.js', a.contentDecisionSurfaceStylesCore),
       assetUrl('content-decision-lab-config.js', a.contentDecisionLabConfig),
       assetUrl('content-decision-edge-mounts.js', a.contentDecisionEdgeMounts),
       assetUrl('decisioning-profile-module/decisioning-edge-inject.js', a.decisioningEdgeInject),
       assetUrl('decisioning-profile-module/decisioning-profile-runtime.js', a.decisioningProfileRuntime),
       assetUrl('decisioning-profile-module/decisioning-profile-module.js', a.decisioningProfileModule),
+      assetUrl('decisioning-profile-module/decisioning-surface-styles-panel.js', a.decisioningSurfaceStylesPanel),
       assetUrl('decisioning-profile-module/decisioning-profile-panel.js', a.decisioningProfilePanel),
       assetUrl('shared/site-clone-decisioning-boot.js', a.siteCloneDecisioningBoot),
     ];

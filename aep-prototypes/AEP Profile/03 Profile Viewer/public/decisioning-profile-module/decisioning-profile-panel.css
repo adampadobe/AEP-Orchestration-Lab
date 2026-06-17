@@ -92,6 +92,10 @@
   pointer-events: auto;
 }
 
+.dpm-panel-shell.is-open.is-surface-open {
+  width: min(24rem, calc(100vw - 4.5rem));
+}
+
 .dpm-panel-backdrop {
   position: fixed;
   inset: 0;

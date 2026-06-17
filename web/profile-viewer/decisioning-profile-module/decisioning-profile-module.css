@@ -343,3 +343,131 @@
 .decisioning-profile-module .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points input[type='range'] {
   opacity: 0.45;
 }
+
+/* Surface styling expander (env-bar Decisioning panel) */
+.decisioning-profile-module .cd-micro-profile-surface-footer {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-toggle:hover {
+  background: var(--dash-hover);
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-toggle[aria-expanded='true'] {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface-alt));
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-chevron {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--dash-muted);
+  border-bottom: 2px solid var(--dash-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-toggle[aria-expanded='true'] .cd-micro-profile-surface-chevron {
+  transform: rotate(45deg);
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-panel {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.5rem 0.35rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-details {
+  font-size: 0.72rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-color-row input[type='color'] {
+  width: 2rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.decisioning-profile-module .cd-micro-profile-color-row input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-height-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.35rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-vis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-vis label.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-status {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--dash-text-secondary);
+  min-height: 1em;
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-status.is-ok {
+  color: var(--dash-success-text);
+}
+
+.decisioning-profile-module .cd-micro-profile-surface-status.is-err {
+  color: var(--dash-error-text);
+}

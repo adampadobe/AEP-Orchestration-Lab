@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260616-toggle-delegate';
+  var CACHE_BUST = '20260616-surface-styles';
   /** Spectrum 2 workflow icon: Channel (S2_Icon_Channel_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var CHANNEL_ICON_SVG =
     '<svg class="dpm-panel-trigger-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
