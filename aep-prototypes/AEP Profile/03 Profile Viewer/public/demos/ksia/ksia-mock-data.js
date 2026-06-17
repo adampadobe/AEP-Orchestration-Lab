@@ -781,12 +781,13 @@
   var SHOP_DINE_CATEGORIES = [
     { id: 'duty-free', label: 'Duty-free', desc: 'Saudi crafts, fragrances, and global brands — collect at gate.', icon: '&#128722;', href: 'shop-dine/duty-free.html' },
     { id: 'restaurants', label: 'Restaurants', desc: 'From quick bites to fine dining — filter by terminal and cuisine.', icon: '&#127869;', href: 'shop-dine/restaurants.html' },
+    { id: 'catalog', label: 'Product catalog', desc: 'Browse all bookable products — duty-free, parking, dining, and lounges.', icon: '&#128230;', href: 'products/index.html' },
     { id: 'retail', label: 'Retail', desc: 'Fashion, electronics, and travel essentials across terminals.', icon: '&#128085;', href: 'shop-dine/duty-free.html' },
   ];
 
   var SHOP_PERSONALIZED_PICKS = [
-    { title: 'Saudi Heritage gift set', desc: 'Recommended based on your profile — oud & dates collection.', badge: 'For you', href: 'shop-dine/duty-free.html' },
-    { title: 'Altitude Café — Gate B12', desc: '15 min walk from security — your usual pre-board coffee.', badge: 'Near your gate', href: 'shop-dine/restaurants.html' },
+    { title: 'Saudi Heritage gift set', desc: 'Recommended based on your profile — oud & dates collection.', badge: 'For you', href: 'products/product.html?id=ksia_dutyfree_heritage_gift_set' },
+    { title: 'Altitude Café — Gate B12', desc: '15 min walk from security — your usual pre-board coffee.', badge: 'Near your gate', href: 'products/product.html?id=ksia_restaurant_altitude_cafe' },
     { title: 'Pre-order duty-free', desc: 'Collect at Gate B12 before boarding SV 123.', badge: 'Save time', href: 'shop-dine/duty-free.html' },
   ];
 
@@ -856,6 +857,74 @@
     walkTime: '15 min from security',
     lead: 'Altitude Café is your nearest featured restaurant — enough time before boarding SV 123 at 17:05.',
   };
+
+  /** Brand Concierge product catalog — stable ids, page URLs, and images for CSV + product.html */
+  var KSIA_PRODUCT_CATALOG = [
+    { productID: 'ksia_dutyfree_heritage_gift_set', productName: 'Saudi Heritage gift set', productDescription: 'Oud, dates and artisan crafts — popular departure gift. Pre-order for Gate B12 collection on SV 123.', productPageURL: 'products/product.html?id=ksia_dutyfree_heritage_gift_set', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 5, category: 'duty-free', price: 'SAR 189' },
+    { productID: 'ksia_dutyfree_arabian_oud', productName: 'Arabian Oud Signature', productDescription: 'Exclusive KSIA duty-free fragrance blend — collect at your departure gate before boarding.', productPageURL: 'products/product.html?id=ksia_dutyfree_arabian_oud', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 5, category: 'duty-free', price: 'SAR 320' },
+    { productID: 'ksia_dutyfree_date_chocolate', productName: 'Date chocolate assortment', productDescription: 'Local premium dates coated in dark chocolate — travel-friendly gift from KSIA duty-free.', productPageURL: 'products/product.html?id=ksia_dutyfree_date_chocolate', productImageURL: 'assets/images/ksia-gallery-2030.png', productRating: 4, category: 'duty-free', price: 'SAR 65' },
+    { productID: 'ksia_dutyfree_noise_earbuds', productName: 'Noise-cancelling earbuds', productDescription: 'Travel essentials with gate-side collection — ideal for long-haul departures from Terminal 1.', productPageURL: 'products/product.html?id=ksia_dutyfree_noise_earbuds', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 4, category: 'duty-free', price: 'SAR 449' },
+    { productID: 'ksia_dutyfree_luxury_fragrance_duo', productName: 'Luxury fragrance duo', productDescription: 'Personalised duty-free pick based on your profile — save 15% when you pre-order via AIVC.', productPageURL: 'products/product.html?id=ksia_dutyfree_luxury_fragrance_duo', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 5, category: 'duty-free', price: 'SAR 580' },
+    { productID: 'ksia_dutyfree_ajwa_dates', productName: 'Ajwa dates premium box', productDescription: 'Authentic Madinah ajwa dates — duty-free exclusive pack for gifts and hospitality.', productPageURL: 'products/product.html?id=ksia_dutyfree_ajwa_dates', productImageURL: 'assets/images/ksia-gallery-2030.png', productRating: 4, category: 'duty-free', price: 'SAR 95' },
+    { productID: 'ksia_parking_p1_short_stay', productName: 'P1 Short-stay parking', productDescription: 'Closest parking to Terminal 1 departures — 2 min walk. Pay and extend with your AIVC wallet.', productPageURL: 'products/product.html?id=ksia_parking_p1_short_stay', productImageURL: 'assets/images/ksia-hero-1.jpg', productRating: 5, category: 'parking', price: 'SAR 45 / 3 hrs' },
+    { productID: 'ksia_parking_p3_long_stay', productName: 'P3 Long-stay parking', productDescription: 'Best value for trips of 3+ days — covered options and shuttle to all terminals every 8 minutes.', productPageURL: 'products/product.html?id=ksia_parking_p3_long_stay', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 4, category: 'parking', price: 'SAR 95 / 24 hrs' },
+    { productID: 'ksia_parking_premium_valet', productName: 'Premium Valet parking', productDescription: 'Kerbside handover at Terminal 1 — vehicle ready on return with optional wash and charge (mock).', productPageURL: 'products/product.html?id=ksia_parking_premium_valet', productImageURL: 'assets/images/ksia-hero-1.jpg', productRating: 5, category: 'parking', price: 'SAR 180 / day' },
+    { productID: 'ksia_restaurant_altitude_cafe', productName: 'Altitude Café', productDescription: 'Coffee and light meals near Gate B12 — about 15 minutes from security for SV 123 passengers.', productPageURL: 'products/product.html?id=ksia_restaurant_altitude_cafe', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 5, category: 'dining', price: 'From SAR 25' },
+    { productID: 'ksia_restaurant_al_nakheel', productName: 'Al Nakheel Restaurant', productDescription: 'Saudi and Middle Eastern dining in Terminal 1 — halal menu with gluten-free options available.', productPageURL: 'products/product.html?id=ksia_restaurant_al_nakheel', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 4, category: 'dining', price: 'From SAR 55' },
+    { productID: 'ksia_restaurant_sushi_express', productName: 'Sushi Express', productDescription: 'Japanese quick-service in Terminal 2 — pescatarian and nut-free options with short wait times.', productPageURL: 'products/product.html?id=ksia_restaurant_sushi_express', productImageURL: 'assets/images/ksia-gallery-mbs.png', productRating: 4, category: 'dining', price: 'From SAR 48' },
+    { productID: 'ksia_restaurant_grill_house', productName: 'The Grill House', productDescription: 'International grill in Terminal 1 — halal steaks, salads, and table service before your flight.', productPageURL: 'products/product.html?id=ksia_restaurant_grill_house', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 4, category: 'dining', price: 'From SAR 72' },
+    { productID: 'ksia_restaurant_quick_bites', productName: 'Quick Bites', productDescription: 'Fast food in Terminal 3 — grab-and-go meals with standard allergen information on menu boards.', productPageURL: 'products/product.html?id=ksia_restaurant_quick_bites', productImageURL: 'assets/images/ksia-news-oct.webp', productRating: 4, category: 'dining', price: 'From SAR 32' },
+    { productID: 'ksia_restaurant_levant_kitchen', productName: 'Levant Kitchen', productDescription: 'Levantine mezze and mains in Terminal 2 — vegan platter and halal options for connecting guests.', productPageURL: 'products/product.html?id=ksia_restaurant_levant_kitchen', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 5, category: 'dining', price: 'From SAR 58' },
+    { productID: 'ksia_lounge_alfursan_gold', productName: 'Alfursan Gold lounge access', productDescription: 'Complimentary Saudia Alfursan Lounge in Terminal 1 — showers, hot buffet, and business zone.', productPageURL: 'products/product.html?id=ksia_lounge_alfursan_gold', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 5, category: 'lounge', price: 'Complimentary (eligible tiers)' },
+    { productID: 'ksia_lounge_priority_pass', productName: 'Priority Pass lounge access', productDescription: 'Walk-in or pre-book partner lounges in Terminals 1 and 2 — subject to capacity.', productPageURL: 'products/product.html?id=ksia_lounge_priority_pass', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 4, category: 'lounge', price: 'Membership / walk-in' },
+    { productID: 'ksia_lounge_paid_day_pass', productName: 'Paid lounge day pass', productDescription: 'Same-day lounge entry when space is available — book through your AIVC companion.', productPageURL: 'products/product.html?id=ksia_lounge_paid_day_pass', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 4, category: 'lounge', price: 'From SAR 199' },
+    { productID: 'ksia_lounge_emirates', productName: 'Emirates Lounge', productDescription: 'Terminal 2 Level 2 — showers, à la carte dining, and quiet workspace for Emirates guests.', productPageURL: 'products/product.html?id=ksia_lounge_emirates', productImageURL: 'assets/images/ksia-gallery-mbs.png', productRating: 5, category: 'lounge', price: 'Eligible EK fares' },
+    { productID: 'ksia_lounge_ba_galleries', productName: 'BA Galleries Club', productDescription: 'Oneworld eligible lounge in Terminal 3 — hot buffet, bar, and shower suites near Gate D3.', productPageURL: 'products/product.html?id=ksia_lounge_ba_galleries', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 5, category: 'lounge', price: 'Eligible BA / Oneworld' },
+    { productID: 'ksia_lounge_f_plus', productName: 'F-Plus pay-per-use lounge', productDescription: 'Compact lounge in Terminal 4 — day passes from SAR 149 when space is available.', productPageURL: 'products/product.html?id=ksia_lounge_f_plus', productImageURL: 'assets/images/ksia-news-oct.webp', productRating: 4, category: 'lounge', price: 'From SAR 149' },
+    { productID: 'ksia_fast_track_security', productName: 'Fast Track security lane B', productDescription: 'Skip the main queue with AIVC biometric screening — recommended for SV 123 Terminal 1 departures.', productPageURL: 'products/product.html?id=ksia_fast_track_security', productImageURL: 'assets/images/ksia-gallery-gate.png', productRating: 5, category: 'airport-service', price: 'Included with AIVC wallet' },
+    { productID: 'ksia_aivc_premium_chauffeur', productName: 'AIVC Premium chauffeur', productDescription: 'Door-to-gate meet-and-greet with luggage assistance — book via AIVC PoT #14 (demo stub).', productPageURL: 'products/product.html?id=ksia_aivc_premium_chauffeur', productImageURL: 'assets/images/ksia-hero-1.jpg', productRating: 5, category: 'transport', price: 'From SAR 350' },
+    { productID: 'ksia_disruption_voucher', productName: 'Disruption compensation voucher', productDescription: 'Automated delay voucher (mock 200 SAR) with rebooking options — no call-centre queue required.', productPageURL: 'products/product.html?id=ksia_disruption_voucher', productImageURL: 'assets/images/ksia-gallery-2030.png', productRating: 5, category: 'aivc', price: '200 SAR voucher' },
+    { productID: 'ksia_transport_saptco_express', productName: 'SAPTCO Airport Express', productDescription: 'Bus service from KSIA Terminal 1 transport hub to King Fahd Road — departures every 20 minutes.', productPageURL: 'products/product.html?id=ksia_transport_saptco_express', productImageURL: 'assets/images/ksia-hero-1.jpg', productRating: 4, category: 'transport', price: 'SAR 25' },
+    { productID: 'ksia_retail_harrods_travel', productName: 'Harrods Travel retail', productDescription: 'Luxury travel retail at Terminal 3 Gate D mezzanine — fashion and gifts for European departures.', productPageURL: 'products/product.html?id=ksia_retail_harrods_travel', productImageURL: 'assets/images/ksia-gallery-mbs.png', productRating: 5, category: 'retail', price: 'Varies' },
+    { productID: 'ksia_retail_gulf_duty_free', productName: 'Gulf Duty Free', productDescription: 'Collect at Gate A4 for Emirates departures — fragrances, confectionery, and electronics.', productPageURL: 'products/product.html?id=ksia_retail_gulf_duty_free', productImageURL: 'assets/images/ksia-gallery-saudi.png', productRating: 4, category: 'retail', price: 'Varies' },
+  ];
+
+  var KSIA_CATALOG_OFFER_IDS = {
+    heritage: 'ksia_dutyfree_heritage_gift_set',
+    fragrance: 'ksia_dutyfree_arabian_oud',
+    chocolate: 'ksia_dutyfree_date_chocolate',
+    electronics: 'ksia_dutyfree_noise_earbuds',
+    perfume: 'ksia_dutyfree_luxury_fragrance_duo',
+    dates: 'ksia_dutyfree_ajwa_dates',
+    short: 'ksia_parking_p1_short_stay',
+    long: 'ksia_parking_p3_long_stay',
+    valet: 'ksia_parking_premium_valet',
+  };
+
+  var KSIA_CATALOG_RESTAURANT_IDS = {
+    'Altitude Café': 'ksia_restaurant_altitude_cafe',
+    'Al Nakheel Restaurant': 'ksia_restaurant_al_nakheel',
+    'Sushi Express': 'ksia_restaurant_sushi_express',
+    'The Grill House': 'ksia_restaurant_grill_house',
+    'Quick Bites': 'ksia_restaurant_quick_bites',
+    'Levant Kitchen': 'ksia_restaurant_levant_kitchen',
+  };
+
+  var KSIA_CATALOG_LOUNGE_TIER_IDS = {
+    'Alfursan Gold': 'ksia_lounge_alfursan_gold',
+    'Priority Pass': 'ksia_lounge_priority_pass',
+    'Paid day pass': 'ksia_lounge_paid_day_pass',
+  };
+
+  function findKsiaProduct(productId) {
+    var id = String(productId || '').trim();
+    if (!id) return null;
+    return (
+      KSIA_PRODUCT_CATALOG.find(function (p) {
+        return p.productID === id;
+      }) || null
+    );
+  }
 
   var AIVC_HERO = {
     kicker: 'Your AIVC companion',
@@ -1448,6 +1517,11 @@
     SHOP_ASSISTANT_SUGGESTIONS: SHOP_ASSISTANT_SUGGESTIONS,
     DUTY_FREE_COLLECTION: DUTY_FREE_COLLECTION,
     RESTAURANTS_GATE_HINT: RESTAURANTS_GATE_HINT,
+    KSIA_PRODUCT_CATALOG: KSIA_PRODUCT_CATALOG,
+    KSIA_CATALOG_OFFER_IDS: KSIA_CATALOG_OFFER_IDS,
+    KSIA_CATALOG_RESTAURANT_IDS: KSIA_CATALOG_RESTAURANT_IDS,
+    KSIA_CATALOG_LOUNGE_TIER_IDS: KSIA_CATALOG_LOUNGE_TIER_IDS,
+    findKsiaProduct: findKsiaProduct,
     AIVC_HERO: AIVC_HERO,
     AIVC_JOURNEY_STAGES: AIVC_JOURNEY_STAGES,
     AIVC_NEXT_ACTIONS: AIVC_NEXT_ACTIONS,

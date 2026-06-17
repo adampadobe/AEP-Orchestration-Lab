@@ -377,16 +377,16 @@
 
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select,
 .aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-open .site-clone-bc-datastream-select {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0, 0, 0, 0);
-  overflow: hidden;
-  white-space: nowrap;
-  pointer-events: none;
+  /* Keep list + paste field visible together — do not clip the select when pasting a UUID. */
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: inherit;
+  border: inherit;
+  clip: auto;
+  overflow: visible;
+  pointer-events: auto;
 }
 
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-open,
@@ -418,6 +418,25 @@
 .lab-env-overlay-panel .site-clone-bc-datastream-manual-error:not(:empty),
 .aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-error:not(:empty) {
   color: var(--dash-error, var(--dash-muted));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-hint--info,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--info,
+.site-clone-bc-datastream-hint--info {
+  color: var(--dash-text-secondary, var(--spectrum-text-secondary, var(--dash-muted)));
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-hint--success,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-hint--success,
+.site-clone-bc-datastream-hint--success {
+  color: var(--dash-success-text, var(--spectrum-green, #2d9d78));
+  font-weight: 600;
+}
+
+.lab-env-overlay-panel .site-clone-bc-datastream-manual-success,
+.aep-demo-env-bar--spectrum .site-clone-bc-datastream-manual-success {
+  color: var(--dash-success-text, var(--spectrum-green, #2d9d78));
+  font-weight: 600;
 }
 
 .lab-env-overlay-panel .spectrum-env-field--grow {

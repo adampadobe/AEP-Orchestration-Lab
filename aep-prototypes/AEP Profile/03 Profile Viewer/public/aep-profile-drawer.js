@@ -1522,6 +1522,73 @@ function isAdobeWebPageViewExperienceEvent(ev) {
   );
 }
 
+/** True for Brand Concierge `web.interaction` experience events. */
+function isWebInteractionExperienceEvent(ev) {
+  const blob = aepDrawerEventHeadTypeBlob(ev);
+  return blob.includes('web.interaction') || blob.includes('webinteraction');
+}
+
+/**
+ * User / Assistant label from `conversation` prompt/response (legacy brandConcierge fallback).
+ * @param {unknown[] | undefined} rows
+ * @returns {'User'|'Assistant'|'System'|''}
+ */
+function deriveConversationActorLabelFromRows(rows) {
+  if (!Array.isArray(rows)) return '';
+  let hasConversation = false;
+  let hasTurnId = false;
+  let hasResponse = false;
+  let hasPrompt = false;
+  for (const r of rows) {
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (!p.includes('conversation')) continue;
+    hasConversation = true;
+    if (p.includes('turnid')) hasTurnId = true;
+    if (p.includes('.response')) hasResponse = true;
+    if (p.includes('.prompt')) hasPrompt = true;
+  }
+  if (!hasConversation) return '';
+  if (hasResponse) return 'Assistant';
+  if (hasPrompt) return 'User';
+  if (!hasTurnId) return 'System';
+  return '';
+}
+
+/** @deprecated Legacy `_demoemea.brandConcierge` events only. */
+function deriveBrandConciergeActorLabelFromRows(rows) {
+  if (!Array.isArray(rows)) return '';
+  let interactionType = '';
+  for (const r of rows) {
+    const p = aepDrawerNormalizeEventRowPath(r.path);
+    if (!p.includes('brandconcierge')) continue;
+    if (p.endsWith('.actortype')) {
+      const actor = String(r.value || '').trim().toLowerCase();
+      if (actor === 'user') return 'User';
+      if (actor === 'assistant') return 'Assistant';
+      if (actor === 'system') return 'System';
+    }
+    if (p.endsWith('.interactiontype')) {
+      interactionType = String(r.value || '').trim().toLowerCase();
+    }
+  }
+  if (
+    interactionType === 'usermessage' ||
+    interactionType === 'recommendationclicked' ||
+    interactionType === 'meetingbooked'
+  ) {
+    return 'User';
+  }
+  if (interactionType === 'assistantresponse' || interactionType === 'recommendationpresented') {
+    return 'Assistant';
+  }
+  if (interactionType === 'conversationstart') return 'System';
+  return '';
+}
+
+function deriveWebInteractionActorLabelFromRows(rows) {
+  return deriveConversationActorLabelFromRows(rows) || deriveBrandConciergeActorLabelFromRows(rows);
+}
+
 function aepDrawerTrimEventTitleSnippet(s, maxLen) {
   const t = String(s || '').trim();
   if (!t) return '';
@@ -1580,7 +1647,14 @@ function formatExperienceEventDisplayTitle(ev) {
     }
     return 'Web Pageview';
   }
-  return normalizeEventName(ev && ev.eventName);
+  const base = normalizeEventName((ev && ev.eventName) || (ev && ev.eventType));
+  if (isWebInteractionExperienceEvent(ev)) {
+    const actor = deriveWebInteractionActorLabelFromRows(ev && ev.rows);
+    if (actor === 'User' || actor === 'Assistant') {
+      return `${base} - ${actor}`;
+    }
+  }
+  return base;
 }
 
 function formatEventTimelineDate(value) {
@@ -2827,6 +2901,9 @@ function renderEventTimeline(events) {
 /** Hide application.login in the drawer timeline when it fired within this window (e.g. same session sign-in). */
 const DRAWER_HIDE_APPLICATION_LOGIN_MS = 5 * 60 * 1000;
 
+let _lastApplicationLoginSentAt = 0;
+let _lastApplicationLoginSentKey = '';
+
 function eventTimestampMsForDrawer(ev) {
   if (!ev || ev.timestamp == null) return null;
   const t = typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10);
@@ -3086,14 +3163,24 @@ function augmentGeneratorRequestBody(body) {
 }
 
 function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) {
+  const emailTrim = String(email || '').trim();
   const ecidEl = document.getElementById('infoEcid');
   const ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
   const ecid =
     ecidText && ecidText !== '—' && ecidText !== '-' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
+  const dedupeKey = emailTrim.toLowerCase() + '|' + (ecid || '');
+  const now = Date.now();
+  if (
+    dedupeKey &&
+    dedupeKey === _lastApplicationLoginSentKey &&
+    now - _lastApplicationLoginSentAt < DRAWER_HIDE_APPLICATION_LOGIN_MS
+  ) {
+    return Promise.resolve(null);
+  }
   const target = typeof getSelectedGeneratorTarget === 'function' ? getSelectedGeneratorTarget() : null;
   const body = {
     targetId: target ? target.id : undefined,
-    email: String(email || '').trim(),
+    email: emailTrim,
     eventType: 'application.login',
     viewName: _config.viewName || 'Demo',
     viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
@@ -3111,6 +3198,8 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
       .catch(() => ({}))
       .then((data) => {
         if (!res.ok) throw new Error(data.error || data.message || 'Request failed.');
+        _lastApplicationLoginSentKey = dedupeKey;
+        _lastApplicationLoginSentAt = Date.now();
         return data;
       });
   });
@@ -3139,6 +3228,10 @@ async function loadProfileDataForDrawer(email, options) {
       : opts.updateMessage && typeof _config.messageSetter === 'function'
         ? _config.messageSetter
         : null;
+  const notifyUser =
+    messageFn && global.AepLabDebug && typeof global.AepLabDebug.wrapMessageSetter === 'function'
+      ? global.AepLabDebug.wrapMessageSetter(messageFn)
+      : messageFn;
 
   const ns = getNamespaceForDrawer(emailTrim);
   try {
@@ -3151,14 +3244,14 @@ async function loadProfileDataForDrawer(email, options) {
     );
     const data = await res.json();
     if (!res.ok) {
-      if (messageFn) {
+      if (notifyUser) {
         let errMsg = String(data.message || data.error || 'Profile request failed.');
         const raw = String(errMsg || '');
         if (ns === 'ecid' && /entity not found|profile not found|not found/i.test(raw)) {
           errMsg =
             'No Unified Profile for this ECID yet (normal for a brand-new browser ID). Send at least one experience event to this sandbox, wait for ingestion, then try again — or look up by email.';
         }
-        messageFn(errMsg, 'error');
+        notifyUser(errMsg, 'error');
       }
       return false;
     }
@@ -3283,12 +3376,12 @@ async function loadProfileDataForDrawer(email, options) {
     updateProfileDrawer(lastLookedUpProfile);
     startEventsPoll();
 
-    if (data.found && typeof _config.getSelectedGeneratorTarget === 'function') {
+    if (data.found && typeof _config.getSelectedGeneratorTarget === 'function' && opts.sendApplicationLogin !== false) {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }
 
-    if (messageFn) {
-      messageFn(
+    if (notifyUser) {
+      notifyUser(
         data.found
           ? 'Profile found. ECID will be sent with the event if valid.'
           : ns === 'ecid'
@@ -3299,7 +3392,7 @@ async function loadProfileDataForDrawer(email, options) {
     }
     return true;
   } catch (err) {
-    if (messageFn) messageFn(err.message || 'Network error', 'error');
+    if (notifyUser) notifyUser(err.message || 'Network error', 'error');
     return false;
   }
 }
@@ -3447,7 +3540,18 @@ function initAepProfileDrawerHover() {
     body.classList.toggle(openClass, next);
     if (next && !drawerOpenState) {
       const email = String(drawerGetEmail() || '').trim();
-      if (email) loadProfileDataForDrawer(email, { updateMessage: false });
+      if (email) {
+        if (email === _lastLoadedIdentifier && lastLookedUpProfile) {
+          const ecid =
+            lastLookedUpProfile.ecid != null && String(lastLookedUpProfile.ecid).length >= 10
+              ? String(lastLookedUpProfile.ecid)
+              : '';
+          if (ecid) void refreshDrawerEventsForIdentity(ecid, 'ecid');
+          else void refreshDrawerEventsForIdentity(email);
+        } else {
+          void loadProfileDataForDrawer(email, { updateMessage: false, sendApplicationLogin: false });
+        }
+      }
     }
     if (!next) stopEventsPoll();
     drawerOpenState = next;

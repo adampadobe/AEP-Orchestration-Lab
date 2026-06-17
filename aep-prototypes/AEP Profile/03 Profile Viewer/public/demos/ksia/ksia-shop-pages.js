@@ -13,6 +13,15 @@
     return href;
   }
 
+  function catalogHref(productId) {
+    if (!productId) return '';
+    return resolveHref('products/product.html?id=' + encodeURIComponent(productId));
+  }
+
+  function findCatalogProduct(productId) {
+    return data.findKsiaProduct ? data.findKsiaProduct(productId) : null;
+  }
+
   function pageId() {
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
@@ -164,6 +173,7 @@
 
     var mount = document.getElementById('ksiaDutyFreeGrid');
     var offers = data.DUTY_FREE_OFFERS || [];
+    var offerCatalogIds = data.KSIA_CATALOG_OFFER_IDS || {};
 
     function render(filterRecommended) {
       if (!mount) return;
@@ -175,13 +185,23 @@
           var badge = o.recommended
             ? '<span class="ksia-shop-offer-badge">Recommended for you</span>'
             : '';
+          var productId = offerCatalogIds[o.id];
+          var product = productId ? findCatalogProduct(productId) : null;
+          var thumb = product
+            ? '<img class="ksia-shop-offer-thumb" src="' + resolveHref(product.productImageURL) + '" alt="" loading="lazy">'
+            : '';
+          var nameHtml = product
+            ? '<h3 class="ksia-shop-offer-name"><a href="' + catalogHref(productId) + '" class="ksia-shop-offer-name-link">' + o.name + '</a></h3>'
+            : '<h3 class="ksia-shop-offer-name">' + o.name + '</h3>';
           return (
             '<article class="ksia-shop-offer-card' + (o.recommended ? ' ksia-shop-offer-card--recommended' : '') + '">' +
             badge +
+            thumb +
             '<span class="ksia-shop-offer-category">' + o.category + '</span>' +
-            '<h3 class="ksia-shop-offer-name">' + o.name + '</h3>' +
+            nameHtml +
             '<p class="ksia-shop-offer-price">' + o.price + '</p>' +
             '<p class="ksia-shop-offer-note">' + o.note + '</p>' +
+            (product ? '<a href="' + catalogHref(productId) + '" class="ksia-at-airport-inline-link ksia-shop-offer-details-link">View product &rarr;</a>' : '') +
             '<button type="button" class="ksia-btn ksia-btn-secondary ksia-shop-preorder-btn" data-offer-id="' + o.id + '">Pre-order</button>' +
             '</article>'
           );
@@ -255,6 +275,7 @@
 
     var mount = document.getElementById('ksiaRestaurantsGrid');
     var restaurants = data.RESTAURANTS || [];
+    var restaurantCatalogIds = data.KSIA_CATALOG_RESTAURANT_IDS || {};
     var cuisineFilter = document.getElementById('ksiaRestaurantCuisineFilter');
     var terminalFilter = document.getElementById('ksiaRestaurantTerminalFilter');
 
@@ -290,13 +311,23 @@
         ? filtered
             .map(function (r) {
               var featured = r.featured ? ' ksia-shop-restaurant-card--featured' : '';
+              var productId = restaurantCatalogIds[r.name];
+              var product = productId ? findCatalogProduct(productId) : null;
+              var thumb = product
+                ? '<img class="ksia-shop-offer-thumb" src="' + resolveHref(product.productImageURL) + '" alt="" loading="lazy">'
+                : '';
+              var nameHtml = product
+                ? '<h3 class="ksia-shop-restaurant-name"><a href="' + catalogHref(productId) + '" class="ksia-shop-offer-name-link">' + r.name + '</a></h3>'
+                : '<h3 class="ksia-shop-restaurant-name">' + r.name + '</h3>';
               return (
                 '<article class="ksia-shop-restaurant-card' + featured + '">' +
                 (r.featured ? '<span class="ksia-shop-pick-badge">Near your gate</span>' : '') +
-                '<h3 class="ksia-shop-restaurant-name">' + r.name + '</h3>' +
+                thumb +
+                nameHtml +
                 '<p class="ksia-shop-restaurant-meta">' + r.terminal + ' · ' + r.cuisine + '</p>' +
                 '<p class="ksia-shop-restaurant-wait">Wait: <strong>' + r.waitTime + '</strong></p>' +
                 '<p class="ksia-shop-restaurant-dietary">' + r.dietary + '</p>' +
+                (product ? '<a href="' + catalogHref(productId) + '" class="ksia-at-airport-inline-link ksia-shop-offer-details-link">View product &rarr;</a>' : '') +
                 '<button type="button" class="ksia-btn ksia-btn-secondary ksia-shop-reserve-btn">Reserve (mock)</button>' +
                 '</article>'
               );

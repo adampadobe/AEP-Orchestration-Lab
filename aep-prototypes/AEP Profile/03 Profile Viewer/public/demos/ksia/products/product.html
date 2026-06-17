@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product — King Salman International Airport</title>
+  <link rel="stylesheet" href="../ksia-site.css?v=20260615a">
+</head>
+<body class="ksia-site" data-ksia-page-id="product-detail" data-ksia-context="product catalog retail" data-ksia-journey-stage="airport">
+  <div id="ksia-chrome-mount"></div>
+  <main class="ksia-main" id="ksia-main">
+    <nav class="ksia-product-breadcrumb" aria-label="Breadcrumb">
+      <a href="index.html" id="ksiaProductCatalogLink">Product catalog</a>
+      <span aria-hidden="true"> / </span>
+      <span id="ksiaProductBreadcrumbCurrent">Product</span>
+    </nav>
+
+    <article class="ksia-product-detail" id="ksiaProductDetail" hidden>
+      <div class="ksia-product-detail-media">
+        <img id="ksiaProductImage" src="" alt="" width="480" height="320" loading="eager">
+        <span class="ksia-product-detail-category" id="ksiaProductCategory"></span>
+      </div>
+      <div class="ksia-product-detail-body">
+        <div class="ksia-product-detail-rating" id="ksiaProductRating" aria-label="Product rating"></div>
+        <h1 class="ksia-page-title" id="ksiaProductName"></h1>
+        <p class="ksia-product-detail-price" id="ksiaProductPrice"></p>
+        <p class="ksia-product-detail-desc" id="ksiaProductDescription"></p>
+        <div class="ksia-product-detail-actions">
+          <button type="button" class="ksia-btn ksia-btn-primary" id="ksiaProductPrimaryCta">Add to AIVC wallet (mock)</button>
+          <a href="../shop-dine/duty-free.html" class="ksia-btn ksia-btn-secondary" id="ksiaProductBackLink">Back to shop</a>
+        </div>
+        <p class="ksia-product-detail-id"><span class="ksia-product-detail-id-label">Product ID</span> <code id="ksiaProductId"></code></p>
+      </div>
+    </article>
+
+    <section class="ksia-section ksia-section--white" id="ksiaProductNotFound" hidden>
+      <h1 class="ksia-page-title">Product not found</h1>
+      <p class="ksia-subpage-hero-lead">This catalog item is not available. Browse all KSIA products or return to shop &amp; dine.</p>
+      <div class="ksia-product-detail-actions">
+        <a href="index.html" class="ksia-btn ksia-btn-primary">Browse catalog</a>
+        <a href="../shop-dine/index.html" class="ksia-btn ksia-btn-secondary">Shop &amp; dine</a>
+      </div>
+    </section>
+
+    <section class="ksia-section ksia-section--sand" aria-labelledby="ksia-product-related-heading" id="ksiaProductRelatedSection" hidden>
+      <h2 class="ksia-section-title" id="ksia-product-related-heading">More in this category</h2>
+      <div class="ksia-product-catalog-grid" id="ksiaProductRelated"></div>
+    </section>
+  </main>
+  <script src="../ksia-mock-data.js?v=20260615a"></script>
+  <script src="../ksia-events.js?v=20260612"></script>
+  <script src="../ksia-chrome.js?v=20260612b"></script>
+  <script src="../ksia-journey-chrome.js?v=20260623-env-inline" defer></script>
+  <script src="../ksia-product-page.js?v=20260615a"></script>
+</body>
+</html>

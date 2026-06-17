@@ -13,6 +13,11 @@
     return href;
   }
 
+  function catalogHref(productId) {
+    if (!productId) return '';
+    return resolveHref('products/product.html?id=' + encodeURIComponent(productId));
+  }
+
   function pageId() {
     return document.body && document.body.getAttribute('data-ksia-page-id');
   }
@@ -165,19 +170,25 @@
 
     var mount = document.getElementById('ksiaParkingProducts');
     var products = data.PARKING_PRODUCTS || [];
+    var parkingCatalogIds = data.KSIA_CATALOG_OFFER_IDS || {};
     if (mount) {
       mount.innerHTML = products
         .map(function (p) {
+          var productId = parkingCatalogIds[p.id];
+          var nameHtml = productId
+            ? '<h3 class="ksia-transport-product-name"><a href="' + catalogHref(productId) + '" class="ksia-shop-offer-name-link">' + p.name + '</a></h3>'
+            : '<h3 class="ksia-transport-product-name">' + p.name + '</h3>';
           return (
             '<article class="ksia-transport-product-card">' +
             '<span class="ksia-transport-product-type">' + p.type + '</span>' +
-            '<h3 class="ksia-transport-product-name">' + p.name + '</h3>' +
+            nameHtml +
             '<p class="ksia-transport-product-terminal">' + p.terminal + ' · ' + p.proximity + '</p>' +
             '<p class="ksia-transport-product-price">' + p.price + '</p>' +
             '<p class="ksia-transport-product-price-note">' + p.priceNote + '</p>' +
             '<ul class="ksia-transport-product-features">' +
             p.features.map(function (f) { return '<li>' + f + '</li>'; }).join('') +
             '</ul>' +
+            (productId ? '<a href="' + catalogHref(productId) + '" class="ksia-at-airport-inline-link ksia-shop-offer-details-link">View product &rarr;</a>' : '') +
             '<button type="button" class="ksia-btn ksia-btn-primary ksia-transport-book-btn" data-parking-id="' + p.id + '">Book (mock)</button>' +
             '</article>'
           );
