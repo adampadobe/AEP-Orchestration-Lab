@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-profile-hydrate';
+  var CACHE_BUST = '20260617-panel-editing-guard';
   /** Spectrum 2 workflow icon: Channel (S2_Icon_Channel_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var CHANNEL_ICON_SVG =
     '<svg class="dpm-panel-trigger-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -61,6 +61,80 @@
       moduleHandle = global.DecisioningProfileModule.mount(mountEl, opt.moduleOptions || {});
     }
 
+    var nativePickerEngagedUntil = 0;
+    var panelInteractionEngagedUntil = 0;
+    var NATIVE_PICKER_GRACE_MS = 12000;
+    var PANEL_INTERACTION_GRACE_MS = 12000;
+
+    function isFormControl(el) {
+      if (!el || el.nodeType !== 1) return false;
+      var tag = el.tagName;
+      return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON';
+    }
+
+    function markNativePickerEngaged() {
+      nativePickerEngagedUntil = Date.now() + NATIVE_PICKER_GRACE_MS;
+      markPanelInteractionEngaged();
+    }
+
+    function markPanelInteractionEngaged() {
+      panelInteractionEngagedUntil = Date.now() + PANEL_INTERACTION_GRACE_MS;
+      clearHideTimer();
+    }
+
+    function isNativePickerEngaged() {
+      if (Date.now() < nativePickerEngagedUntil) return true;
+      var active = document.activeElement;
+      if (active && active.type === 'color' && shell.contains(active)) return true;
+      return false;
+    }
+
+    function isPanelInteractionEngaged() {
+      if (Date.now() < panelInteractionEngagedUntil) return true;
+      if (isNativePickerEngaged()) return true;
+      if (shell.classList.contains('is-surface-open')) return true;
+      var active = document.activeElement;
+      if (active && shell.contains(active) && isFormControl(active)) return true;
+      return false;
+    }
+
+    function wirePanelInteractionGuards(root) {
+      if (!root || root.getAttribute('data-dpm-interaction-guard') === '1') return;
+      root.setAttribute('data-dpm-interaction-guard', '1');
+      root.addEventListener(
+        'pointerdown',
+        function (ev) {
+          markPanelInteractionEngaged();
+          var t = ev && ev.target;
+          if (t && t.type === 'color') markNativePickerEngaged();
+        },
+        true
+      );
+      root.addEventListener(
+        'focusin',
+        function (ev) {
+          markPanelInteractionEngaged();
+          var t = ev && ev.target;
+          if (t && t.type === 'color') markNativePickerEngaged();
+        },
+        true
+      );
+      root.addEventListener(
+        'focusout',
+        function () {
+          markPanelInteractionEngaged();
+          window.setTimeout(function () {
+            if (shell.contains(document.activeElement)) markPanelInteractionEngaged();
+          }, 0);
+        },
+        true
+      );
+    }
+
+    wirePanelInteractionGuards(shell);
+
+    document.addEventListener('decisioning-panel-editing', markPanelInteractionEngaged);
+
     function setOpen(open) {
       shell.classList.toggle('is-open', open);
       backdrop.classList.toggle('is-open', open);
@@ -93,9 +167,10 @@
     }
     function scheduleClose() {
       if (!shell.classList.contains('is-open')) return;
+      if (isPanelInteractionEngaged()) return;
       clearHideTimer();
       hideTimer = window.setTimeout(function () {
-        setOpen(false);
+        if (!isPanelInteractionEngaged()) setOpen(false);
       }, 280);
     }
 
@@ -114,11 +189,15 @@
       setOpen(false);
     });
     anchor.addEventListener('mouseenter', clearHideTimer);
-    anchor.addEventListener('mouseleave', scheduleClose);
+    anchor.addEventListener('mouseleave', function () {
+      if (isPanelInteractionEngaged()) return;
+      scheduleClose();
+    });
     document.addEventListener(
       'pointerdown',
       function (evt) {
         if (!shell.classList.contains('is-open')) return;
+        if (isPanelInteractionEngaged()) return;
         var t = evt.target;
         if (!t || typeof t.closest !== 'function') return;
         if (t.closest('#dpmPanelAnchor')) return;

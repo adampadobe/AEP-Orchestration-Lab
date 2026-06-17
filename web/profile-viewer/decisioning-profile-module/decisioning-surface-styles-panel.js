@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-surface-expand';
+  var CACHE_BUST = '20260617-live-preview';
   var core = function () {
     return global.CdSurfaceStylesCore;
   };
@@ -105,6 +105,12 @@
     var placements = [];
     var saveTimer = null;
     var expanded = false;
+
+    function markPanelEditing() {
+      try {
+        global.dispatchEvent(new CustomEvent('decisioning-panel-editing'));
+      } catch (_e) {}
+    }
 
     function $(id) {
       return document.getElementById(id);
@@ -270,6 +276,12 @@
           if (data.record && data.record.surfaceStyles) {
             currentSurfaceStyles = Object.assign({}, data.record.surfaceStyles);
           }
+          populateSurfaceSelect();
+          var sel = $('cdMicroSurfaceSelect');
+          if (sel) {
+            var frag = sel.value;
+            if (frag) sel.value = frag;
+          }
         } else {
           setStatus((data && data.error) || 'Save failed.', 'err');
         }
@@ -278,17 +290,22 @@
       }
     }
 
-    function onFormChange() {
+    function onFormPreview() {
       var sel = $('cdMicroSurfaceSelect');
       if (!sel) return;
       var frag = (sel.value || '').trim();
       if (!frag) return;
+      markPanelEditing();
       var st = readForm();
       currentSurfaceStyles[frag] = Object.assign({ updatedAt: new Date().toISOString() }, st);
       applyToTarget();
       scheduleSave();
-      populateSurfaceSelect();
-      sel.value = frag;
+    }
+
+    function wireLiveControl(el, handler) {
+      if (!el || typeof handler !== 'function') return;
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
     }
 
     function loadEditorForSurface() {
@@ -313,6 +330,7 @@
       if (shell) shell.classList.toggle('is-surface-open', expanded);
       if (host) host.classList.toggle('is-surface-expanded', expanded);
       if (expanded) loadEditorForSurface();
+      markPanelEditing();
     }
 
     function wireColorPair(pickId, hexId) {
@@ -321,16 +339,24 @@
       if (pick) {
         pick.addEventListener('input', function () {
           if (hex) hex.value = pick.value;
-          onFormChange();
+          onFormPreview();
         });
       }
       if (hex) {
         hex.addEventListener('input', function () {
           var v = normaliseHex(hex.value);
           if (v && pick) pick.value = v;
-          onFormChange();
+          onFormPreview();
         });
       }
+    }
+
+    function wireDetailsLivePreview() {
+      var panel = $('cdMicroSurfaceStylesPanel');
+      if (!panel) return;
+      panel.querySelectorAll('.cd-micro-profile-surface-details').forEach(function (details) {
+        details.addEventListener('toggle', markPanelEditing);
+      });
     }
 
     function wire() {
@@ -341,7 +367,12 @@
         });
       }
       var surfaceSel = $('cdMicroSurfaceSelect');
-      if (surfaceSel) surfaceSel.addEventListener('change', loadEditorForSurface);
+      if (surfaceSel) {
+        surfaceSel.addEventListener('change', function () {
+          loadEditorForSurface();
+          onFormPreview();
+        });
+      }
 
       [
         'cdMicroSurfaceLayout',
@@ -353,8 +384,7 @@
         'cdMicroSurfaceCtaH',
         'cdMicroSurfaceCtaV',
       ].forEach(function (id) {
-        var el = $(id);
-        if (el) el.addEventListener('change', onFormChange);
+        wireLiveControl($(id), onFormPreview);
       });
 
       wireColorPair('cdMicroSurfaceTitleColorPick', 'cdMicroSurfaceTitleColor');
@@ -365,8 +395,7 @@
 
       ['cdMicroSurfaceShowTitle', 'cdMicroSurfaceShowDesc', 'cdMicroSurfaceShowImage', 'cdMicroSurfaceShowCta'].forEach(
         function (id) {
-          var el = $(id);
-          if (el) el.addEventListener('change', onFormChange);
+          wireLiveControl($(id), onFormPreview);
         }
       );
 
@@ -374,7 +403,7 @@
       if (heightCss) {
         heightCss.addEventListener('input', function () {
           syncHeightPxField(heightCss.value);
-          onFormChange();
+          onFormPreview();
         });
       }
       var heightPx = $('cdMicroSurfaceHeightPx');
@@ -382,9 +411,11 @@
         heightPx.addEventListener('input', function () {
           var v = heightPx.value.trim();
           if (heightCss) heightCss.value = v === '' ? '' : String(Math.round(Number(v))) + 'px';
-          onFormChange();
+          onFormPreview();
         });
       }
+
+      wireDetailsLivePreview();
     }
 
     async function loadFromFirebase() {
