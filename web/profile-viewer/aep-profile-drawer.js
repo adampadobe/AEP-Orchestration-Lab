@@ -3376,6 +3376,16 @@ async function loadProfileDataForDrawer(email, options) {
     updateProfileDrawer(lastLookedUpProfile);
     startEventsPoll();
 
+    try {
+      global.dispatchEvent(
+        new CustomEvent('aep-profile-drawer-loaded', {
+          detail: { identifier: emailTrim, namespace: ns, found: !!data.found },
+        }),
+      );
+    } catch (_drawerEvtErr) {
+      /* noop */
+    }
+
     if (data.found && typeof _config.getSelectedGeneratorTarget === 'function' && opts.sendApplicationLogin !== false) {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }

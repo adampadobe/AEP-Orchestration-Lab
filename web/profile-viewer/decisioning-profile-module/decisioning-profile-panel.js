@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-profile-prefetch';
+  var CACHE_BUST = '20260617-profile-hydrate';
   /** Spectrum 2 workflow icon: Channel (S2_Icon_Channel_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var CHANNEL_ICON_SVG =
     '<svg class="dpm-panel-trigger-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -70,12 +70,17 @@
         try {
           global.dispatchEvent(new CustomEvent('decisioning-panel-opened'));
         } catch (_e) {}
-        if (
-          global.DecisioningProfileRuntime &&
-          typeof global.DecisioningProfileRuntime.maybeAutoLookup === 'function'
-        ) {
-          void global.DecisioningProfileRuntime.maybeAutoLookup('panel-open');
-        }
+        void (async function refreshPanelProfile() {
+          if (
+            global.DecisioningProfileRuntime &&
+            typeof global.DecisioningProfileRuntime.maybeAutoLookup === 'function'
+          ) {
+            await global.DecisioningProfileRuntime.maybeAutoLookup('panel-open');
+          }
+          if (moduleHandle && typeof moduleHandle.hydrate === 'function') {
+            moduleHandle.hydrate();
+          }
+        })();
       }
     }
 

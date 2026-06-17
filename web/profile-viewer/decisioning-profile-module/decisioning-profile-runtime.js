@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260617-alloy-ready';
+  var CACHE_BUST = '20260617-profile-hydrate';
 
   var config = null;
   var lastUpsClientData = null;
@@ -157,7 +157,10 @@
     var idVal = key.split('\u0001')[2] || '';
     if (!idVal) return false;
     if (autoLookupInFlight) return autoLookupInFlight;
-    if (key === autoLookupLastKey && hasCachedProfileForCurrentIdentity()) return true;
+    if (key === autoLookupLastKey && hasCachedProfileForCurrentIdentity()) {
+      dispatchUpdated({ ok: true, cached: true, loading: false });
+      return true;
+    }
     log('maybeAutoLookup', reason || 'unspecified', { sandbox: key.split('\u0001')[0], ns: key.split('\u0001')[1] });
     autoLookupInFlight = runProfileLookup({ silent: true }).finally(function () {
       autoLookupInFlight = null;

@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-alloy-ready';
+  var CACHE_BUST = '20260617-profile-hydrate';
   var LOG_PREFIX = '[decisioning-profile-module]';
 
   function extractEntityFromUps(clientData) {
@@ -472,10 +472,33 @@
       return '';
     }
 
-    function isProfileLoaded() {
-      if (typeof profileApi.getLastUpsClientData === 'function' && profileApi.getLastUpsClientData()) return true;
+    function hasDrawerMetrics() {
       var drawer = getDrawerProfile();
-      return !!(drawer && (drawer.propensityScore != null || drawer.churnPrediction != null || drawer.email));
+      if (!drawer) return false;
+      return !!(
+        (drawer.propensityScore != null && drawer.propensityScore !== '') ||
+        (drawer.churnPrediction != null && drawer.churnPrediction !== '') ||
+        (drawer.npsScore != null && drawer.npsScore !== '')
+      );
+    }
+
+    function hasUpsMetrics() {
+      if (typeof profileApi.getLastUpsClientData !== 'function') return false;
+      var ups = profileApi.getLastUpsClientData();
+      if (!ups || typeof ups !== 'object' || ups.error) return false;
+      if (ups.platform_response && ups.platform_response.error) return false;
+      var entity = extractEntityFromUps(ups);
+      if (!entity) return false;
+      return (
+        readPropensityFromEntity(entity) != null ||
+        readChurnFromEntity(entity) != null ||
+        readNpsFromEntity(entity) != null ||
+        readAvgOrderFromEntity(entity) != null
+      );
+    }
+
+    function isProfileLoaded() {
+      return hasUpsMetrics() || hasDrawerMetrics();
     }
 
     function isSdkInjectInProgress() {
@@ -558,6 +581,14 @@
           profileApi.invalidateProfileLookupCache();
         }
         refreshStateDot();
+      });
+      global.addEventListener('aep-profile-drawer-loaded', function (ev) {
+        if (ev && ev.detail && ev.detail.found === false) return;
+        if (typeof profileApi.invalidateProfileLookupCache === 'function') {
+          profileApi.invalidateProfileLookupCache();
+        }
+        refreshStateDot();
+        triggerAutoLookup('drawer-loaded');
       });
     }
 
