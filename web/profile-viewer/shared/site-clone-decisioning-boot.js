@@ -261,6 +261,7 @@
     var runtimeApi = global.DecisioningProfileRuntime.init({
       iframeId: wiring.iframeId || '',
       useParentDocument: !!wiring.useParentDocument,
+      tagsStoragePrefix: prefix,
       mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
       targetPageUrl: wiring.targetPageUrl || '',
       getTargetPageUrl:
@@ -287,6 +288,7 @@
           getSandboxName: getSandboxName,
           emailInputId: emailInputId,
           namespaceSelectId: nsSelectId,
+          tagsStoragePrefix: prefix,
           profileApi: runtimeApi || {},
         },
       });
@@ -304,6 +306,7 @@
           getSandboxName: getSandboxName,
           emailInputId: emailInputId,
           namespaceSelectId: nsSelectId,
+          tagsStoragePrefix: prefix,
           profileApi: runtimeApi || {},
         });
       }

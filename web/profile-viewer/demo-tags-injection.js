@@ -199,12 +199,17 @@
     });
   }
 
+  function isAlloyOnWindow() {
+    return typeof global.alloy === 'function' ? global.alloy : null;
+  }
+
   function waitForAlloy(timeoutMs) {
     return new Promise((resolve) => {
       const start = Date.now();
       function poll() {
-        if (typeof global.alloy === 'function') {
-          resolve(global.alloy);
+        const alloy = isAlloyOnWindow();
+        if (alloy) {
+          resolve(alloy);
           return;
         }
         if (Date.now() - start >= timeoutMs) {
@@ -214,6 +219,91 @@
         global.setTimeout(poll, 120);
       }
       poll();
+    });
+  }
+
+  function buildAlloyNotReadyError(storagePrefix) {
+    const prefix = String(storagePrefix || '').trim();
+    if (prefix && isTagsInjectInProgress(prefix)) {
+      return new Error('Web SDK (Alloy) is still loading — wait for Tags inject to finish, then try again.');
+    }
+    const launchId = prefix ? prefix + 'LaunchScript' : '';
+    if (!launchId || !document.getElementById(launchId)) {
+      return new Error('Web SDK (Alloy) not ready — inject Tags first.');
+    }
+    return new Error(
+      'Web SDK (Alloy) not ready — Launch script loaded but alloy is missing (verify your Tags property includes the Web SDK extension).',
+    );
+  }
+
+  /**
+   * Wait for window.alloy after Tags inject (poll + aep-demo-tags-injected + optional sync nudge).
+   * @param {{ timeoutMs?: number, storagePrefix?: string }} [opts]
+   * @returns {Promise<Function>}
+   */
+  function ensureAlloyReady(opts) {
+    opts = opts || {};
+    const maxMs = Math.max(5000, Number(opts.timeoutMs) || 30000);
+    const storagePrefix = String(opts.storagePrefix || '').trim();
+    const immediate = isAlloyOnWindow();
+    if (immediate) return Promise.resolve(immediate);
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const deadline = Date.now() + maxMs;
+      let nudgedSync = false;
+
+      function finish(alloy) {
+        if (settled) return;
+        settled = true;
+        global.removeEventListener('aep-demo-tags-injected', onInjected);
+        resolve(alloy);
+      }
+
+      function fail() {
+        if (settled) return;
+        settled = true;
+        global.removeEventListener('aep-demo-tags-injected', onInjected);
+        reject(buildAlloyNotReadyError(storagePrefix));
+      }
+
+      function onInjected() {
+        const alloy = isAlloyOnWindow();
+        if (alloy) finish(alloy);
+      }
+
+      global.addEventListener('aep-demo-tags-injected', onInjected);
+
+      void (async function poll() {
+        while (Date.now() < deadline && !settled) {
+          const alloy = isAlloyOnWindow();
+          if (alloy) {
+            finish(alloy);
+            return;
+          }
+
+          const elapsed = maxMs - (deadline - Date.now());
+          if (!nudgedSync && elapsed >= 1500) {
+            nudgedSync = true;
+            const inst = global.__envBarTagsInjection;
+            if (inst && typeof inst.syncEcidFromAlloy === 'function') {
+              try {
+                await inst.syncEcidFromAlloy();
+              } catch (_e) {
+                /* noop */
+              }
+              const alloyAfter = isAlloyOnWindow();
+              if (alloyAfter) {
+                finish(alloyAfter);
+                return;
+              }
+            }
+          }
+
+          await new Promise((r) => global.setTimeout(r, 120));
+        }
+        if (!settled) fail();
+      })();
     });
   }
 
@@ -1892,6 +1982,11 @@
 
   global.DemoTagsInjection = {
     init: createInstance,
+    waitForAlloy: waitForAlloy,
+    ensureAlloyReady: ensureAlloyReady,
+    isAlloyReady: function () {
+      return !!isAlloyOnWindow();
+    },
   };
 
   global.AepLabTagsInjectGuard = {

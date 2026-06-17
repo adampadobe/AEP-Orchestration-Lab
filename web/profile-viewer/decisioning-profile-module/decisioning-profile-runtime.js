@@ -6,7 +6,7 @@
   'use strict';
 
   var LOG_PREFIX = '[decisioning-profile-runtime]';
-  var CACHE_BUST = '20260617-profile-prefetch';
+  var CACHE_BUST = '20260617-alloy-ready';
 
   var config = null;
   var lastUpsClientData = null;
@@ -353,12 +353,31 @@
     frame.addEventListener('load', onReady);
   }
 
+  function resolveAlloyFn() {
+    if (typeof global.alloy === 'function') return global.alloy;
+    var frame = getFrame();
+    if (!frame) return null;
+    try {
+      var win = frame.contentWindow;
+      if (win && typeof win.alloy === 'function') return win.alloy;
+    } catch (_e) {}
+    return null;
+  }
+
   async function waitForAlloy(maxMs) {
-    var deadline = Date.now() + (maxMs || 20000);
+    var storagePrefix = typeof cfg('tagsStoragePrefix') === 'string' ? String(cfg('tagsStoragePrefix') || '').trim() : '';
+    if (global.DemoTagsInjection && typeof global.DemoTagsInjection.ensureAlloyReady === 'function') {
+      return global.DemoTagsInjection.ensureAlloyReady({
+        timeoutMs: maxMs || 30000,
+        storagePrefix: storagePrefix,
+      });
+    }
+    var deadline = Date.now() + (maxMs || 30000);
     while (Date.now() < deadline) {
-      if (typeof global.alloy === 'function') return global.alloy;
+      var alloy = resolveAlloyFn();
+      if (alloy) return alloy;
       await new Promise(function (r) {
-        setTimeout(r, 200);
+        setTimeout(r, 150);
       });
     }
     throw new Error('Web SDK (Alloy) not ready — inject Tags first.');
