@@ -5,8 +5,37 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-mount-reset';
+  var CACHE_BUST = '20260617-reset-icon-toolbar';
   var LOG_PREFIX = '[decisioning-profile-module]';
+
+  /** Spectrum 2 workflow icons from vendor/spectrum-workflow-icons/ (fill currentColor for --dash-* theming). */
+  var RESET_ICON_UNDO =
+    '<svg class="cd-micro-profile-reset-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+    '<path d="m12.25732,5H3.80811l1.71973-1.71973c.29297-.29297.29297-.76758,0-1.06055s-.76758-.29297-1.06055,0l-2.99756,2.99756c-.29297.29248-.29297.76709-.00049,1.06006l2.99756,3.00244c.14648.14697.33838.22021.53076.22021.19189,0,.3833-.07324.52979-.21924.29346-.29248.29346-.76758.00098-1.06055l-1.71747-1.72021h8.44647c2.48145,0,4.50049,2.01855,4.50049,4.5s-2.01904,4.5-4.50049,4.5h-3.73779c-.41406,0-.75.33594-.75.75s.33594.75.75.75h3.73779c3.30859,0,6.00049-2.69141,6.00049-6s-2.69189-6-6.00049-6Z"/>' +
+    '</svg>';
+  var RESET_ICON_RIBBON =
+    '<svg class="cd-micro-profile-reset-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+    '<path d="m16.34521,16.37939l-1.9281-4.45544c1.13184-1.13171,1.83289-2.69434,1.83289-4.4176,0-3.44629-2.80371-6.25-6.25-6.25S3.75,4.06006,3.75,7.50635c0,1.72327.70105,3.28589,1.83289,4.4176l-1.9281,4.45544c-.10303.23877-.0752.51367.07324.72656.14844.21338.39111.32715.65674.32031l1.85791-.10303,1.19727,1.42529c.14355.1709.35449.26758.57422.26758.03809,0,.07666-.00293.11523-.00879.25928-.04053.47852-.21338.57861-.45605l1.29199-3.14209,1.29199,3.14209c.1001.24268.31934.41553.57861.45605.03857.00586.07715.00879.11523.00879.21973,0,.43066-.09668.57422-.26758l1.19727-1.42529,1.85791.10303c.2666.00732.5083-.10693.65674-.32031.14844-.21289.17627-.48779.07324-.72656ZM5.25,7.50635c0-2.61914,2.13086-4.75,4.75-4.75s4.75,2.13086,4.75,4.75-2.13086,4.75-4.75,4.75-4.75-2.13086-4.75-4.75Zm2.5415,9.32861l-.6416-.76367c-.15186-.18018-.37988-.27734-.61572-.2666l-1.02051.05664,1.29449-2.99121c.68665.41016,1.4566.69067,2.27979.81201l-1.29645,3.15283Zm5.67432-1.03027c-.24316-.01172-.46338.08643-.61572.2666l-.6416.76367-1.29645-3.15283c.82318-.12134,1.59314-.40186,2.27979-.81201l1.29449,2.99121-1.02051-.05664Z"/>' +
+    '</svg>';
+  var RESET_ICON_IMAGE =
+    '<svg class="cd-micro-profile-reset-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+    '<path d="m14.5,7.52114c0,.82843-.67157,1.5-1.5,1.5-.82843,0-1.5-.67157-1.5-1.5,0-.82843.67157-1.5,1.5-1.5s1.5.67157,1.5,1.5h0"/>' +
+    '<path d="m16.75,3H3.25c-1.24023,0-2.25,1.00977-2.25,2.25v9.5c0,1.24023,1.00977,2.25,2.25,2.25h13.5c1.24023,0,2.25-1.00977,2.25-2.25V5.25c0-1.24023-1.00977-2.25-2.25-2.25Zm-13.5,1.5h13.5c.41309,0,.75.33691.75.75v8.21094l-1.90918-1.90918c-.87695-.87695-2.30469-.87695-3.18164,0l-1.23145,1.23145c-.09961.09766-.25684.09668-.35449.00098l-3.23242-3.23242c-.84961-.84961-2.33203-.84961-3.18164,0l-1.90918,1.90918v-6.21094c0-.41309.33691-.75.75-.75Zm0,11c-.41309,0-.75-.33691-.75-.75v-1.16797l2.96973-2.96973c.29297-.29297.76758-.29297,1.06055,0l3.2334,3.2334c.68164.67969,1.79199.68066,2.47363-.00098l1.23242-1.23242c.29297-.29297.76758-.29297,1.06055,0l2.70068,2.70068c-.1311.11206-.29565.18701-.48096.18701H3.25Z"/>' +
+    '</svg>';
+  var RESET_ICON_LAYOUT =
+    '<svg class="cd-micro-profile-reset-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+    '<path d="m15.75,2H4.25c-1.24023,0-2.25,1.00977-2.25,2.25v11.5c0,1.24023,1.00977,2.25,2.25,2.25h11.5c1.24023,0,2.25-1.00977,2.25-2.25V4.25c0-1.24023-1.00977-2.25-2.25-2.25ZM3.5,4.25c0-.41309.33691-.75.75-.75h11.5c.41309,0,.75.33691.75.75v3.75H3.5v-3.75Zm0,11.5v-6.25h4.5v7h-3.75c-.41309,0-.75-.33691-.75-.75Zm12.25.75h-6.25v-7h7v6.25c0,.41309-.33691.75-.75.75Z"/>' +
+    '</svg>';
+
+  var SURFACE_RESET_ICON_BY_KEY = {
+    topRibbon: RESET_ICON_RIBBON,
+    hero: RESET_ICON_IMAGE,
+    contentCard: RESET_ICON_LAYOUT,
+  };
+
+  function surfaceResetIconForKey(key) {
+    return SURFACE_RESET_ICON_BY_KEY[key] || RESET_ICON_LAYOUT;
+  }
 
   function extractEntityFromUps(clientData) {
     if (!clientData || typeof clientData !== 'object') return null;
@@ -96,10 +125,6 @@
     return (
       '<div class="cd-hero-rail" aria-label="Decisioning controls">' +
       '<button type="button" class="primary cd-run-full-btn" id="cdMicroProfileRunBtn">Run content decision</button>' +
-      '<div class="cd-micro-profile-reset-wrap" id="cdMicroProfileResetWrap">' +
-      '<button type="button" class="cd-micro-profile-reset-all" id="cdMicroProfileResetAll">Reset all surfaces</button>' +
-      '<div class="cd-micro-profile-reset-surfaces" id="cdMicroProfileResetSurfaces" role="group" aria-label="Reset individual surfaces"></div>' +
-      '</div>' +
       '<section class="cd-micro-profile is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Profile attributes">' +
       '<div class="cd-micro-profile-header">' +
       '<span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">' +
@@ -140,6 +165,12 @@
       '<select id="cdMicroProfileChannel" aria-label="Preferred marketing channel">' +
       buildChannelOptions() +
       '</select></div>' +
+      '<div class="cd-micro-profile-reset-toolbar" id="cdMicroProfileResetWrap" role="group" aria-label="Reset decisioning surfaces">' +
+      '<button type="button" class="cd-micro-profile-reset-btn cd-micro-profile-reset-all" id="cdMicroProfileResetAll" aria-label="Reset all surfaces" title="Reset all surfaces">' +
+      RESET_ICON_UNDO +
+      '</button>' +
+      '<div class="cd-micro-profile-reset-surfaces" id="cdMicroProfileResetSurfaces" role="group" aria-label="Reset individual surfaces"></div>' +
+      '</div>' +
       '<div class="cd-micro-profile-actions">' +
       '<button type="button" class="cd-micro-profile-apply" id="cdMicroProfileApply">Apply</button>' +
       '<p class="cd-micro-profile-status" id="cdMicroProfileStatus" aria-live="polite"></p>' +
@@ -221,11 +252,17 @@
             .replace(/^#/, '')
             .replace(/"/g, '&quot;');
           var label = String(p.label || p.fragment || p.key || 'Surface').replace(/</g, '&lt;');
+          var labelAttr = label.replace(/"/g, '&quot;');
+          var icon = surfaceResetIconForKey(p.key);
           return (
-            '<button type="button" class="cd-micro-profile-reset-surface" data-cd-reset-fragment="' +
+            '<button type="button" class="cd-micro-profile-reset-btn cd-micro-profile-reset-surface" data-cd-reset-fragment="' +
             frag +
-            '">Reset ' +
-            label +
+            '" aria-label="Reset ' +
+            labelAttr +
+            '" title="Reset ' +
+            labelAttr +
+            '">' +
+            icon +
             '</button>'
           );
         })
