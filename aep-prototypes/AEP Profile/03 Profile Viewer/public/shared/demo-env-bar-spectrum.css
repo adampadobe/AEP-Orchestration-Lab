@@ -142,13 +142,11 @@
 }
 
 
-/* Config cards scroll inside overlay; profile lookup stays visible (not flex-shrunk to ~0). */
+/* Config cards scroll with the overlay panel — avoid nested scroll clipping card headers. */
 .aep-demo-env-bar--spectrum .lab-env-overlay-panel .aep-demo-env-section {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
 .mod-demo-top-anchor.lab-env-top-anchor--expanded .aep-demo-env-bar--spectrum .lab-env-overlay-panel,

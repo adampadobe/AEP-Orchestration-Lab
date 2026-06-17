@@ -18,6 +18,7 @@
   var CONFIGURING_CLASS = 'lab-env-top-anchor--configuring';
   var selectDismissGraceUntil = 0;
   var datastreamManualEntryOpen = false;
+  var toolbarResizeObserver = null;
   /** Spectrum 2 workflow icon: Settings (S2_Icon_Settings_20_N.svg) from vendor/spectrum-workflow-icons/. */
   var DOCK_ICON_SVG =
     '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -156,22 +157,50 @@
 
   function syncToolbarOverlayInset(anchor, isOpen) {
     if (!anchor) return;
+    if (toolbarResizeObserver) {
+      toolbarResizeObserver.disconnect();
+      toolbarResizeObserver = null;
+    }
     if (!isOpen) {
       anchor.style.removeProperty('--lab-env-overlay-top');
       return;
     }
     var toolbar = anchor.querySelector('.lab-env-toolbar');
+    var panel = byId(OVERLAY_PANEL_ID) || anchor.querySelector('.lab-env-overlay-panel');
     if (!toolbar) return;
-    var measure = function () {
+
+    function applyInset() {
       var rect = toolbar.getBoundingClientRect();
-      var h = Math.ceil(rect.height || 0);
-      if (h < 1) {
-        h = parseFloat(getComputedStyle(anchor).getPropertyValue('--env-bar-height')) || 48;
+      var topPx = Math.max(0, Math.ceil(rect.bottom));
+      if (topPx < 1) {
+        topPx = Math.ceil(parseFloat(getComputedStyle(anchor).getPropertyValue('--env-bar-height')) || 48);
       }
-      anchor.style.setProperty('--lab-env-overlay-top', h + 'px');
-    };
-    if (typeof global.requestAnimationFrame === 'function') global.requestAnimationFrame(measure);
-    else measure();
+      anchor.style.setProperty('--lab-env-overlay-top', topPx + 'px');
+      if (panel) {
+        panel.scrollTop = 0;
+        var section = panel.querySelector('.aep-demo-env-section');
+        if (section) section.scrollTop = 0;
+      }
+    }
+
+    function scheduleInset() {
+      if (typeof global.requestAnimationFrame === 'function') {
+        global.requestAnimationFrame(function () {
+          global.requestAnimationFrame(applyInset);
+        });
+      } else {
+        applyInset();
+      }
+    }
+
+    scheduleInset();
+
+    if (typeof global.ResizeObserver === 'function') {
+      toolbarResizeObserver = new global.ResizeObserver(function () {
+        applyInset();
+      });
+      toolbarResizeObserver.observe(toolbar);
+    }
   }
 
   function syncProfilePeekChrome(anchor, isProfileOnly) {
