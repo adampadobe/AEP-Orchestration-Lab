@@ -3619,3 +3619,206 @@ body.ksia-journey-chrome-page .ksia-main { padding-top: 0; }
 @media (max-width: 768px) {
   .ksia-product-detail { grid-template-columns: 1fr; }
 }
+
+/* ── Login / sign-up (Etihad lab pairing pattern) ── */
+.ksia-top-utils {
+  position: fixed;
+  top: 14px;
+  right: 20px;
+  z-index: 96;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ksia-login-btn {
+  font-family: var(--ksia-font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 220, 200, 0.35);
+  background: rgba(40, 35, 40, 0.72);
+  color: var(--ksia-sunlit);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.ksia-login-btn:hover {
+  background: var(--ksia-charcoal);
+  border-color: var(--ksia-warm-gold);
+}
+
+.ksia-login-btn.is-signed-in {
+  border-color: var(--ksia-warm-gold);
+  color: var(--ksia-warm-gold);
+}
+
+.ksia-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ksia-login-overlay[hidden] { display: none; }
+
+.ksia-login-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(40, 35, 40, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.ksia-login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--ksia-white);
+  color: var(--ksia-charcoal);
+  border-radius: var(--ksia-radius);
+  border: 1px solid rgba(155, 110, 75, 0.25);
+  box-shadow: var(--ksia-shadow);
+  padding: 2rem 2rem 1.75rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.ksia-login-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(40, 35, 40, 0.15);
+  background: transparent;
+  color: rgba(40, 35, 40, 0.6);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ksia-login-close:hover { background: var(--ksia-gray); }
+
+.ksia-login-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.ksia-login-logo img {
+  width: 56px;
+  height: auto;
+}
+
+.ksia-login-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--ksia-font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ksia-charcoal);
+}
+
+.ksia-login-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(40, 35, 40, 0.68);
+  text-align: center;
+}
+
+.ksia-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.ksia-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ksia-login-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(40, 35, 40, 0.75);
+}
+
+.ksia-login-field input {
+  font-family: var(--ksia-font-body);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(40, 35, 40, 0.18);
+  border-radius: 8px;
+  background: var(--ksia-white);
+  color: var(--ksia-charcoal);
+}
+
+.ksia-login-field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--ksia-warm-gold) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.ksia-login-error {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  color: #9b2c2c;
+  text-align: center;
+}
+
+.ksia-login-submit {
+  width: 100%;
+  justify-content: center;
+}
+
+.ksia-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ksia-login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--ksia-white);
+  border-radius: 50%;
+  animation: ksiaLoginSpin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes ksiaLoginSpin {
+  to { transform: rotate(360deg); }
+}
+
+.ksia-login-guest-link {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.ksia-login-guest-link a {
+  color: var(--ksia-warm-gold);
+  text-decoration: none;
+}
+
+.ksia-login-guest-link a:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .ksia-top-utils {
+    top: 10px;
+    right: 12px;
+  }
+  .ksia-login-btn {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.7rem;
+  }
+}
+

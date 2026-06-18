@@ -20,6 +20,24 @@
 
     var customerEmail = document.getElementById('customerEmail');
     var ksiaNs = document.getElementById('ksiaNs');
+    var siteFrameId = options.siteFrameId || 'ksiaSiteFrame';
+    var siteFrame = document.getElementById(siteFrameId);
+
+    function rememberKsiaSessionIdentifier(value) {
+      if (typeof setSessionIdentifier !== 'function') return;
+      var ns = 'email';
+      try {
+        if (typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function') {
+          ns = AepIdentityPicker.getNamespace('customerEmail') || 'email';
+        } else if (ksiaNs && ksiaNs.value) {
+          ns = String(ksiaNs.value).trim().toLowerCase();
+        }
+      } catch (_e) {
+        /* noop */
+      }
+      setSessionIdentifier(value, ns);
+    }
+
     if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail', 'recentEmails', 'ksiaNs');
     if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'ksiaNs');
     if (typeof hydrateIdentifierFromSession === 'function') hydrateIdentifierFromSession('customerEmail', 'ksiaNs');
@@ -218,6 +236,63 @@
         fetchBrowserEcidOnInit: true,
       });
     }
+
+    function postToSiteFrame(msg) {
+      if (siteFrame && siteFrame.contentWindow) {
+        siteFrame.contentWindow.postMessage(msg, '*');
+      }
+    }
+
+    async function handleKsiaLabMessage(data) {
+      if (!data || data.source !== 'ksia-airport-lab') return;
+
+      if (data.type === 'login-request') {
+        var email = String(data.email || '').trim();
+        if (!email) return;
+
+        if (customerEmail) customerEmail.value = email;
+        rememberKsiaSessionIdentifier(email);
+
+        setKsiaMessage('Looking up profile...', '');
+        var ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+        var profile =
+          global.DemoProfileDrawer && typeof global.DemoProfileDrawer.getLastLookedUpProfile === 'function'
+            ? global.DemoProfileDrawer.getLastLookedUpProfile()
+            : null;
+        var profileMsg = profile
+          ? {
+              firstName: profile.firstName || null,
+              loyaltyStatus: profile.loyaltyStatus || null,
+              churnPrediction: profile.churnPrediction != null ? profile.churnPrediction : null,
+              propensityScore: profile.propensityScore != null ? profile.propensityScore : null,
+            }
+          : null;
+
+        postToSiteFrame({
+          source: 'ksia-demo-shell',
+          type: 'login-complete',
+          found: !!ok,
+          email: email,
+          firstName: profile ? profile.firstName || null : null,
+          profile: profileMsg,
+        });
+        if (ok && profileMsg) {
+          postToSiteFrame({ source: 'ksia-demo-shell', type: 'profile-loaded', profile: profileMsg });
+        }
+
+        if (ok && ksiaTagsInjection && typeof ksiaTagsInjection.stitchAfterProfileLookup === 'function') {
+          var stitched = await ksiaTagsInjection.stitchAfterProfileLookup(profile, email);
+          if (stitched) setKsiaMessage('Profile loaded and identity linked to ECID.', 'success');
+        }
+      }
+    }
+
+    global.addEventListener('message', function (ev) {
+      var fromIframe = siteFrame && siteFrame.contentWindow && ev.source === siteFrame.contentWindow;
+      var fromSameDoc = !siteFrame && ev.source === global;
+      if (!fromIframe && !fromSameDoc) return;
+      void handleKsiaLabMessage(ev.data);
+    });
 
     return { tagsInjection: ksiaTagsInjection, setMessage: setKsiaMessage, getSelectedGeneratorTarget: getSelectedGeneratorTarget };
   }

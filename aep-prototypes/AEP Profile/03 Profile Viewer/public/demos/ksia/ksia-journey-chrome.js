@@ -157,7 +157,7 @@
       autoInit: false,
       storagePrefix: 'ksia',
       features: { webPush: true, bc: true, decisioning: true },
-      labCoreScript: 'demos/ksia/ksia-lab-core.js?v=20260624-ksia-env-bar',
+      labCoreScript: 'demos/ksia/ksia-lab-core.js?v=20260618-login',
       siteCloneDemoEnv: {
         storagePrefix: 'ksia',
         webPushBySandboxKey: 'ksiaWebPushOnInjectBySandbox',

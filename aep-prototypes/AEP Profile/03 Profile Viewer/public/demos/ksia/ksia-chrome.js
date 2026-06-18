@@ -290,6 +290,13 @@
     wireSidebarCollapse();
     wireContactForm();
 
+    if (!document.querySelector('script[src*="ksia-login.js"]')) {
+      var loginScript = document.createElement('script');
+      loginScript.src = resolveHref('ksia-login.js?v=20260618-login');
+      loginScript.defer = true;
+      document.body.appendChild(loginScript);
+    }
+
     if (window.KsiaLabEvents && typeof window.KsiaLabEvents.emitPageView === 'function') {
       var ctx = document.body && document.body.getAttribute('data-ksia-context');
       var section = (meta && meta.section) || ctx || pageId.split('-')[0];
