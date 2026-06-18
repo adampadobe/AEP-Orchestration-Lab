@@ -9,7 +9,7 @@
     "spectrumSync": "20260617-sdk-live-status",
     "aepLabDebug": "20260616-hide-lab-debug-ui",
     "aepLabDebugCss": "20260616-hide-lab-debug-ui",
-    "compactCss": "20260617-overlay-inset",
+    "compactCss": "20260618-midrail-dynamic-stack",
     "compactJs": "20260617-overlay-inset",
     "bootstrap": "20260602-env-bar-bootstrap",
     "prefsLocal": "20260625-bc-incognito-sync-skip",
@@ -27,7 +27,7 @@
     "modalBarBoot": "20260617-modal-bar-v7",
     "envBarJs": "20260625-datastream-paste-row-ensure",
     "decisioningModuleCss": "20260618-reset-apply-spacing",
-    "decisioningPanelCss": "20260617-surface-expand",
+    "decisioningPanelCss": "20260618-midrail-dynamic-stack",
     "profileStreamingShared": "20260615",
     "contentDecisionSurfaceStylesCore": "20260616",
     "contentDecisionLabConfig": "20260615",
@@ -38,8 +38,8 @@
     "decisioningSurfaceStylesPanel": "20260617-live-preview",
     "decisioningProfilePanel": "20260617-panel-editing-guard",
     "siteCloneDecisioningBoot": "20260617-alloy-ready",
-    "bcMidrailPanelCss": "20260617-sparkle-icon",
-    "bcMidrailPanel": "20260617-sparkle-icon",
+    "bcMidrailPanelCss": "20260618-midrail-dynamic-stack",
+    "bcMidrailPanel": "20260618-midrail-dynamic-stack",
     "bcMidrailBoot": "20260617-sparkle-icon"
   }
 }

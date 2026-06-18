@@ -739,8 +739,32 @@ body.home-dashboard-concierge {
   --lab-env-midrail-right: 0.85rem;
   --lab-env-midrail-btn-size: 2rem;
   --lab-env-midrail-gap: 0.55rem;
+  --lab-env-midrail-gap-tight: 0.25rem;
   --lab-env-midrail-slot: calc(var(--lab-env-midrail-btn-size) + var(--lab-env-midrail-gap));
+  --lab-env-midrail-pair-step: calc(
+    (var(--lab-env-midrail-btn-size) + var(--lab-env-midrail-gap-tight)) / 2
+  );
   --env-bar-height: 3rem;
+}
+
+/* Mid-rail stack (default): env settings + decisioning only — tight pair centred on viewport */
+body.home-dashboard-concierge .dpm-panel-anchor {
+  top: calc(50% + var(--lab-env-midrail-pair-step));
+  transition: top 0.22s ease;
+}
+
+body.home-dashboard-concierge .aep-fullscreen-btn--midrail {
+  top: calc(50% + var(--lab-env-midrail-pair-step) + var(--lab-env-midrail-slot));
+  transition: top 0.22s ease;
+}
+
+/* BC mid-rail visible — reserve middle slot; decisioning drops to centre */
+html[data-lab-midrail-bc-visible] body.home-dashboard-concierge .dpm-panel-anchor {
+  top: 50%;
+}
+
+html[data-lab-midrail-bc-visible] body.home-dashboard-concierge .aep-fullscreen-btn--midrail {
+  top: calc(50% + var(--lab-env-midrail-slot));
 }
 
 /* Site iframe sits below the fixed env toolbar so clone nav/ribbon stays visible */
@@ -763,7 +787,7 @@ body.site-clone-bc-bottom-dock-armed
 
 .env-bar-dock-btn {
   position: fixed;
-  top: calc(50% - (2 * var(--lab-env-midrail-slot)));
+  top: calc(50% - var(--lab-env-midrail-pair-step));
   right: var(--lab-env-midrail-right);
   z-index: 7152;
   box-sizing: border-box;
@@ -790,7 +814,12 @@ body.site-clone-bc-bottom-dock-armed
     box-shadow 0.18s ease,
     background 0.18s ease,
     opacity 0.18s ease,
-    visibility 0.18s ease;
+    visibility 0.18s ease,
+    top 0.22s ease;
+}
+
+html[data-lab-midrail-bc-visible] .env-bar-dock-btn {
+  top: calc(50% - (2 * var(--lab-env-midrail-slot)));
 }
 
 .env-bar-dock-btn:not(.env-bar-dock-btn--docked):not(.env-bar-dock-btn--standalone) {

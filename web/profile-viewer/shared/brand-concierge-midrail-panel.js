@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-sparkle-icon';
+  var CACHE_BUST = '20260618-midrail-dynamic-stack';
   var TRIGGER_SPARKLE_SVG =
     '<svg class="bcp-panel-trigger-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<path d="M12 2.5l1.05 3.65L16.7 7.3l-3.65 1.75L12 12.5l-1.05-3.55L7.3 7.3l3.65-1.15L12 2.5z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
@@ -145,8 +145,18 @@
       }, 280);
     }
 
+    function syncMidrailStackState() {
+      var on = anchor.classList.contains('is-visible');
+      if (on) {
+        document.documentElement.setAttribute('data-lab-midrail-bc-visible', '');
+      } else {
+        document.documentElement.removeAttribute('data-lab-midrail-bc-visible');
+      }
+    }
+
     function setVisible(visible) {
       anchor.classList.toggle('is-visible', !!visible);
+      syncMidrailStackState();
       if (!visible) setOpen(false);
     }
 

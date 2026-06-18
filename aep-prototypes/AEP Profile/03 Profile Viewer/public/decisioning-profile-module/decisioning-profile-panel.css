@@ -12,6 +12,7 @@
   gap: 0.55rem;
   transform: translateY(-50%);
   pointer-events: none;
+  transition: top 0.22s ease;
 }
 
 .dpm-panel-anchor.is-visible {
