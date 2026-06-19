@@ -29,12 +29,24 @@
     return snapshotLayout() === 'saga-home';
   }
 
+  function isKsiaHomeLayout() {
+    return snapshotLayout() === 'ksia-home';
+  }
+
   function isModernSiteCloneLayout() {
-    return isSkyHomeLayout() || isJlrHomeLayout() || isSagaHomeLayout();
+    return isSkyHomeLayout() || isJlrHomeLayout() || isSagaHomeLayout() || isKsiaHomeLayout();
   }
 
   function getInjectedLayoutAnchor(doc) {
     if (!doc) return null;
+    if (isKsiaHomeLayout()) {
+      return (
+        doc.querySelector('[data-hero-mount]') ||
+        doc.querySelector('.ksia-hero') ||
+        doc.querySelector('.ksia-subpage-hero') ||
+        doc.querySelector('main')
+      );
+    }
     if (isSagaHomeLayout()) {
       return doc.querySelector('.saga-hero-banner') || doc.querySelector('.saga-meganav') || doc.querySelector('main');
     }
@@ -54,6 +66,9 @@
 
   function getFullscreenLayoutHeader(doc) {
     if (!doc) return null;
+    if (isKsiaHomeLayout()) {
+      return doc.querySelector('#ksiaScrollHeader') || doc.querySelector('#ksia-chrome-mount');
+    }
     if (isSagaHomeLayout()) {
       return doc.querySelector('.saga-meganav');
     }
@@ -134,11 +149,29 @@
     'html.site-clone-bc-fs-active .saga-meganav{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
     'html.site-clone-bc-fs-active .saga-hero-banner,html.site-clone-bc-fs-active main,html.site-clone-bc-fs-active footer{display:none!important;pointer-events:none!important;}',
   ].join('');
+  var KSIA_INJECTED_LAYOUT_CSS = [
+    'html.site-clone-bc-injected-active,html.site-clone-bc-injected-active body{overflow-x:hidden!important;}',
+    'html.site-clone-bc-injected-active [data-hero-mount],html.site-clone-bc-injected-active .ksia-hero{position:relative!important;z-index:2!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline{position:relative!important;z-index:2!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;pointer-events:auto!important;display:block!important;margin:0!important;padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,2rem)!important;background:' +
+      BC_SURFACE_GRADIENT +
+      '!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline .embed-bc-inline__mount,html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount{width:100%!important;max-width:none!important;min-height:540px!important;margin:0!important;border-radius:16px!important;overflow:visible!important;}',
+    'html.site-clone-bc-injected-active #siteCloneBcInline.embed-bc-inline #brand-concierge-mount *{pointer-events:auto!important;}',
+  ].join('');
+  var KSIA_FS_LAYOUT_CSS = [
+    'html.site-clone-bc-fs-active,html.site-clone-bc-fs-active body{overflow:hidden!important;}',
+    'html.site-clone-bc-fs-active #ksiaScrollHeader{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-fs-active #ksia-chrome-mount{position:relative!important;z-index:1200!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-fs-active #ksia-main > *{visibility:hidden!important;pointer-events:none!important;}',
+    'html.site-clone-bc-fs-active #ksiaScrollHeader{visibility:visible!important;pointer-events:auto!important;}',
+    'html.site-clone-bc-fs-active .ksia-footer{visibility:hidden!important;pointer-events:none!important;}',
+  ].join('');
 
   function injectedLayoutCssForSnapshot() {
     if (isSkyHomeLayout()) return SKY_INJECTED_LAYOUT_CSS;
     if (isJlrHomeLayout()) return JLR_INJECTED_LAYOUT_CSS;
     if (isSagaHomeLayout()) return SAGA_INJECTED_LAYOUT_CSS;
+    if (isKsiaHomeLayout()) return KSIA_INJECTED_LAYOUT_CSS;
     return SNAPSHOT_INJECTED_LAYOUT_CSS;
   }
 
@@ -146,6 +179,7 @@
     if (isSkyHomeLayout()) return SKY_FS_LAYOUT_CSS;
     if (isJlrHomeLayout()) return JLR_FS_LAYOUT_CSS;
     if (isSagaHomeLayout()) return SAGA_FS_LAYOUT_CSS;
+    if (isKsiaHomeLayout()) return KSIA_FS_LAYOUT_CSS;
     return SNAPSHOT_FS_LAYOUT_CSS;
   }
   var SNAPSHOT_INJECTED_LAYOUT_CSS = [
@@ -688,6 +722,10 @@
       if (!fullscreen && isSagaHomeLayout()) {
         var sagaHero = doc.querySelector('.saga-hero-banner');
         if (sagaHero) anchor = sagaHero;
+      }
+      if (!fullscreen && isKsiaHomeLayout()) {
+        var ksiaHero = doc.querySelector('[data-hero-mount]') || doc.querySelector('.ksia-hero');
+        if (ksiaHero) anchor = ksiaHero;
       }
       if (anchor) {
         var anchorRect = anchor.getBoundingClientRect();
@@ -1366,7 +1404,9 @@
             ? findJlrHeroBlockForInject(doc)
             : isSagaHomeLayout()
               ? doc.querySelector('.saga-hero-banner')
-              : doc.querySelector('.exp-hero-banner');
+              : isKsiaHomeLayout()
+                ? doc.querySelector('[data-hero-mount]') || doc.querySelector('.ksia-hero')
+                : doc.querySelector('.exp-hero-banner');
         if (scrollTarget && typeof scrollTarget.scrollIntoView === 'function') {
           scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
