@@ -214,6 +214,30 @@ export function applyAgenticTrafficBranding(html) {
   return html;
 }
 
+/** Referral Traffic export — site filter, traffic insights tables. */
+export function applyReferralTrafficBranding(html) {
+  html = applySkyBranding(html);
+
+  html = html.replace(/frescopa\.coffee/gi, 'sky.com');
+  html = html.replace(/frescopacoffee\.com/gi, 'sky.com');
+  html = html.replace(/frescopa-coffee-/gi, 'sky-');
+  html = html.replace(/frescopa-/gi, 'sky-');
+
+  html = html.replace(/ÔåÆ/g, '→');
+  html = html.replace(/Ã¢â€ â€™/g, '→');
+
+  html = html.replace(/Site:\s*frescopa\.coffee/gi, 'Site: sky.com');
+  html = html.replace(/>Site:\s*frescopa\.coffee</gi, '>Site: sky.com<');
+
+  html = html.replace(/>Coffee</g, '>TV<');
+  html = html.replace(/>Tea</g, '>Broadband<');
+  html = html.replace(/"Coffee"/g, '"TV"');
+  html = html.replace(/"Tea"/g, '"Broadband"');
+  html = html.replace(/Category:\s*Coffee/gi, 'Category: TV');
+
+  return html;
+}
+
 /** Opportunities export — prioritized tasks, onsite/offsite filters (not URL Inspector charts). */
 export function applyOpportunitiesBranding(html) {
   html = applySkyBranding(html);
