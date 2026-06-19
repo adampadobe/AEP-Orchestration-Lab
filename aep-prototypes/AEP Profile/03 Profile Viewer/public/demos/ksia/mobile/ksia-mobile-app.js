@@ -21,7 +21,8 @@
     { key: 'injected', label: 'Injected' },
     { key: 'modal', label: 'Modal' },
     { key: 'fullScreen', label: 'Full screen' },
-    { key: 'bottomDock', label: 'FAB' },
+    { key: 'bottomDock', label: 'Centre bottom' },
+    { key: 'modalBar', label: 'Modal bar' },
   ];
 
   function ensureInlineBcMount() {
@@ -137,6 +138,8 @@
   function syncBcPresentationClasses() {
     document.body.classList.toggle('ksia-mobile-bc-display-fullscreen', bcDisplayMode === 'fullScreen');
     document.body.classList.toggle('ksia-mobile-bc-display-modal', bcDisplayMode === 'modal');
+    document.body.classList.toggle('ksia-mobile-bc-display-bottomdock', bcDisplayMode === 'bottomDock');
+    document.body.classList.toggle('ksia-mobile-bc-display-modalbar', bcDisplayMode === 'modalBar');
   }
 
   function setBcUxMode(mode) {

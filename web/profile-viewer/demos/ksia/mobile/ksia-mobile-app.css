@@ -693,6 +693,28 @@ body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-body {
   padding-bottom: calc(var(--ksia-safe-bottom) + 8px);
 }
 
+/* Centre bottom — compact in-app sheet (FAB opens) */
+body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-panel {
+  max-height: min(72vh, 560px);
+}
+
+body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-mount--sheet {
+  min-height: min(58vh, 440px);
+}
+
+body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-body {
+  padding-bottom: calc(var(--ksia-tab-height) + 8px);
+}
+
+/* Modal bar — standard FAB sheet */
+body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-sheet-panel {
+  max-height: min(84vh, 680px);
+}
+
+body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-mount--sheet {
+  min-height: min(64vh, 500px);
+}
+
 /* Bottom tab bar */
 .ksia-mobile-tabbar {
   position: fixed;

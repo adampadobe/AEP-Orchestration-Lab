@@ -18,6 +18,7 @@
   var loadedIframeStyleUrl = null;
   var loadedIframeDatastreamId = null;
   var activeMode = null;
+  var activeDisplayMode = null;
   var syncInFlight = null;
   var syncQueued = false;
   var patched = false;
@@ -162,8 +163,9 @@
     var body = document.body;
     if (body && body.classList) {
       body.classList.add('ksia-mobile-bc-suppress-chrome');
+      body.classList.remove('site-clone-bc-bottom-dock-armed', 'site-clone-bc-modal-bar-armed');
     }
-    ['siteCloneBcFab', 'aepBcModal', 'siteCloneBcFrameHost'].forEach(function (id) {
+    ['siteCloneBcFab', 'aepBcModal', 'siteCloneBcFrameHost', 'bcBottomDockRoot', 'bcModalBarRoot'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) {
         el.hidden = true;
@@ -423,7 +425,8 @@
   }
 
   function resolveMount(doc, uxMode) {
-    var mountMode = uxMode === 'fab-idle' || isSheetUxMode(uxMode) ? 'sheet' : uxMode;
+    var mountMode =
+      uxMode === 'fab' || uxMode === 'fab-idle' || isSheetUxMode(uxMode) ? 'sheet' : uxMode;
     var selector = mountMode === 'injected' ? injectedMountSelector() : sheetMountSelector();
     var mount = doc.querySelector(selector);
     if (!mount && mountMode === 'injected') {
@@ -501,6 +504,7 @@
     var uxMode = getEffectiveUxMode(toggles);
     if (!toggles.enabled) {
       activeMode = null;
+      activeDisplayMode = null;
       var docOff = getIframeDoc();
       if (docOff) {
         clearSnapshotBcLayout(docOff);
@@ -519,10 +523,10 @@
     if (canSkipSync(uxMode)) {
       var docSkip = getIframeDoc();
       if (docSkip) clearSnapshotBcLayout(docSkip);
-      postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
       if (bcReadyNeedsSignal(uxMode)) {
         postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
       }
+      postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
       reportStatus('');
       return;
     }
@@ -541,6 +545,7 @@
     await bootstrapConcierge(win, mount, win.styleConfiguration);
 
     activeMode = uxMode;
+    activeDisplayMode = getEffectiveDisplayModeKey(toggles);
     postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
     postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
     reportStatus('');

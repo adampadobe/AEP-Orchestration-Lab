@@ -1595,6 +1595,16 @@ function ensureBcEnabledToggleDelegation() {
 }
 
 function syncSiteCloneBcFromPrefs() {
+  if (
+    global.MobileBcBoot &&
+    typeof global.MobileBcBoot.isMobileAdapter === 'function' &&
+    global.MobileBcBoot.isMobileAdapter()
+  ) {
+    if (typeof global.MobileBcBoot.sync === 'function') {
+      void global.MobileBcBoot.sync();
+    }
+    return;
+  }
   if (typeof window.SiteCloneBc !== 'undefined' && typeof window.SiteCloneBc.sync === 'function') {
     window.SiteCloneBc.sync();
   }

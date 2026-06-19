@@ -1556,6 +1556,12 @@
   }
 
   function updateChromeVisibility() {
+    if (isMobileBcAdapter()) {
+      if (global.MobileBcBoot && typeof global.MobileBcBoot.suppressParentBcChrome === 'function') {
+        global.MobileBcBoot.suppressParentBcChrome();
+      }
+      return;
+    }
     var presentationActive = isPresentationModeActive();
     if (!isEffectiveModalOn() || !presentationActive) {
       closeBcModal();
@@ -1670,6 +1676,9 @@
 
   async function syncInner() {
     if (isMobileBcAdapter()) {
+      if (global.MobileBcBoot && typeof global.MobileBcBoot.sync === 'function') {
+        return global.MobileBcBoot.sync();
+      }
       return;
     }
     refreshDisplayModeToggles();
@@ -1782,6 +1791,12 @@
   function onEnvStripMountedForBc() {
     refreshDisplayModeToggles();
     bindToggles();
+    if (isMobileBcAdapter()) {
+      if (global.MobileBcBoot && typeof global.MobileBcBoot.sync === 'function') {
+        void global.MobileBcBoot.sync();
+      }
+      return;
+    }
     void sync();
   }
 

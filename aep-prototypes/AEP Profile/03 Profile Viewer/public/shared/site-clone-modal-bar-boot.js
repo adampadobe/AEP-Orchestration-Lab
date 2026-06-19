@@ -9,6 +9,14 @@
     return fallback;
   }
 
+  function isMobileBcAdapter() {
+    return (
+      global.MobileBcBoot &&
+      typeof global.MobileBcBoot.isMobileAdapter === 'function' &&
+      global.MobileBcBoot.isMobileAdapter()
+    );
+  }
+
   function readPanelTitle() {
     var page = global.SiteCloneBcPage || {};
     var fromPage = cfg(page, 'modalBarPanelTitle', '');
@@ -29,6 +37,7 @@
   }
 
   function wireBodyClass() {
+    if (isMobileBcAdapter()) return;
     var toggle = document.getElementById('siteCloneBcModalBarToggle');
     if (!toggle || toggle.dataset.modalBarBodyBound === '1') return;
     toggle.dataset.modalBarBodyBound = '1';
@@ -42,6 +51,7 @@
   }
 
   function boot() {
+    if (isMobileBcAdapter()) return { booted: false, reason: 'mobile-adapter' };
     if (typeof global.BrandConciergeModalBar === 'undefined' || typeof global.BrandConciergeModalBar.init !== 'function') {
       return { booted: false, reason: 'modal-bar-module-missing' };
     }
@@ -59,6 +69,12 @@
       betaLabel: cfg(page, 'modalBarBetaLabel', 'BETA'),
       mountSelector: cfg(page, 'modalBarMountSelector', '#bcModalBarMount'),
       onExpand: function () {
+        if (isMobileBcAdapter()) {
+          if (global.MobileBcBoot && typeof global.MobileBcBoot.sync === 'function') {
+            void global.MobileBcBoot.sync();
+          }
+          return;
+        }
         if (global.BrandConciergeModalBar && typeof global.BrandConciergeModalBar.relocateWelcome === 'function') {
           global.BrandConciergeModalBar.relocateWelcome();
         }

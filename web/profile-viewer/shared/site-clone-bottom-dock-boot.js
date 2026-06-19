@@ -10,6 +10,14 @@
     return fallback;
   }
 
+  function isMobileBcAdapter() {
+    return (
+      global.MobileBcBoot &&
+      typeof global.MobileBcBoot.isMobileAdapter === 'function' &&
+      global.MobileBcBoot.isMobileAdapter()
+    );
+  }
+
   function hasBottomDockFeature() {
     return !!document.querySelector('[data-demo-env-strip-bc-bottom="1"]');
   }
@@ -25,6 +33,7 @@
   }
 
   function wireBottomDockBodyClass() {
+    if (isMobileBcAdapter()) return;
     var toggle = document.getElementById('siteCloneBcBottomDockToggle');
     if (!toggle || toggle.dataset.bottomDockBodyBound === '1') return;
     toggle.dataset.bottomDockBodyBound = '1';
@@ -38,6 +47,7 @@
   }
 
   function boot() {
+    if (isMobileBcAdapter()) return { booted: false, reason: 'mobile-adapter' };
     if (!hasBottomDockFeature()) return { booted: false, reason: 'no-bc-bottom-flag' };
     if (typeof global.BrandConciergeBottomDock === 'undefined' || typeof global.BrandConciergeBottomDock.init !== 'function') {
       return { booted: false, reason: 'dock-module-missing' };
@@ -56,6 +66,12 @@
       betaLabel: cfg(page, 'bottomDockBetaLabel', 'BETA'),
       mountSelector: cfg(page, 'bottomDockMountSelector', '#bcBottomDockMount'),
       onExpand: function () {
+        if (isMobileBcAdapter()) {
+          if (global.MobileBcBoot && typeof global.MobileBcBoot.sync === 'function') {
+            void global.MobileBcBoot.sync();
+          }
+          return;
+        }
         if (global.SiteCloneBc && typeof global.SiteCloneBc.sync === 'function') {
           void global.SiteCloneBc.sync();
         }
