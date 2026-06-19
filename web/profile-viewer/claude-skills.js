@@ -6,7 +6,8 @@
   'use strict';
 
   var STORAGE_LEGACY_KEY = 'claudeSkillsCatalogV1';
-  var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml', 'zip'];
+  var ACCEPTED_EXTENSIONS = ['md', 'txt', 'json', 'yaml', 'yml', 'skill', 'zip'];
+  var ARCHIVE_EXTENSIONS = ['skill', 'zip'];
   /** Must stay under Cloud Functions ~32 MiB JSON body (base64 adds ~33%). */
   var MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
   var MAX_JSON_PAYLOAD_BYTES = 31 * 1024 * 1024;
@@ -89,12 +90,18 @@
     return base === '.DS_Store' || base.indexOf('._') === 0;
   }
 
+  function isArchiveExtension(ext) {
+    return ARCHIVE_EXTENSIONS.indexOf(ext) !== -1;
+  }
+
   function isAcceptedSkillZipEntry(entryPath) {
     var normalized = normalizeZipPath(entryPath);
     if (!normalized || isUnsafeZipPath(normalized)) return false;
     var base = normalized.split('/').pop() || '';
     if (!base || base.charAt(0) === '.') return false;
-    return ACCEPTED_EXTENSIONS.indexOf(fileExtension(base)) !== -1;
+    var ext = fileExtension(base);
+    if (ext === 'skill') return true;
+    return ['md', 'txt', 'json', 'yaml', 'yml'].indexOf(ext) !== -1;
   }
 
   function ensureFflate() {
@@ -122,7 +129,7 @@
         });
         if (!kept) {
           throw new Error(
-            'ZIP contains no skill files (.md, .txt, .json, .yaml, .yml). Add SKILL.md or upload the markdown file directly.',
+            'ZIP contains no skill files (.md, .txt, .json, .yaml, .yml, or .skill). Add SKILL.md, a .skill bundle, or upload the markdown file directly.',
           );
         }
         var slimBytes = zipLib.zipSync(filtered);
@@ -138,7 +145,7 @@
     if (payloadEstimate <= MAX_JSON_PAYLOAD_BYTES && file.size <= MAX_UPLOAD_BYTES) {
       return Promise.resolve({ file: file, note: '' });
     }
-    if (ext !== 'zip') {
+    if (!isArchiveExtension(ext)) {
       throw new Error(
         'Upload failed (file too large): ' +
           formatFileSize(file.size) +
@@ -451,10 +458,10 @@
     var ext = fileExtension(file.name);
     if (ACCEPTED_EXTENSIONS.indexOf(ext) === -1) {
       hideDropSuccess();
-      setDropStatus('Unsupported file type. Use .md, .txt, .json, .yaml, .yml, or .zip.', 'error');
+      setDropStatus('Unsupported file type. Use .md, .txt, .json, .yaml, .yml, .skill, or .zip.', 'error');
       return;
     }
-    var isZip = ext === 'zip';
+    var isArchive = isArchiveExtension(ext);
 
     hideDropSuccess();
     setAdvancedOpen(false);
@@ -464,7 +471,7 @@
     if (fileLabel) fileLabel.textContent = file.name;
 
     setDropZoneBusy(true);
-    setDropStatus(isZip ? 'Preparing ZIP…' : 'Uploading…', 'info');
+    setDropStatus(isArchive ? 'Preparing archive…' : 'Uploading…', 'info');
 
     try {
       var prepared = await prepareUploadFile(file);
@@ -472,7 +479,7 @@
       if (prepared.note) {
         setDropStatus(prepared.note + ' Uploading…', 'info');
       } else {
-        setDropStatus(isZip ? 'Uploading ZIP…' : 'Uploading…', 'info');
+        setDropStatus(isArchive ? 'Uploading archive…' : 'Uploading…', 'info');
       }
 
       var contentBase64 = await readFileAsBase64(uploadFile);
@@ -678,6 +685,7 @@
     var ext = String(extension || '').trim().toLowerCase();
     if (!ext) return '';
     if (ext === 'yml') return 'YAML';
+    if (ext === 'skill') return 'SKILL';
     return ext.toUpperCase();
   }
 

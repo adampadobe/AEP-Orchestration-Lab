@@ -28,7 +28,10 @@ const MAX_ZIP_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
 const MAX_STORAGE_PATH_DEPTH = 6;
 const MAX_TEXT_ANALYZE_CHARS = 48_000;
 const ACCEPTED_EXTENSIONS = new Set(['md', 'txt', 'json', 'yaml', 'yml']);
-const ACCEPTED_UPLOAD_EXTENSIONS = new Set([...ACCEPTED_EXTENSIONS, 'zip']);
+/** Claude/Cursor skill bundles are ZIP archives with a .skill extension. */
+const ARCHIVE_EXTENSIONS = new Set(['zip', 'skill']);
+const ACCEPTED_UPLOAD_EXTENSIONS = new Set([...ACCEPTED_EXTENSIONS, ...ARCHIVE_EXTENSIONS]);
+const MAX_NESTED_ARCHIVE_DEPTH = 3;
 
 /**
  * Lab GCS bucket for claude-skills/* objects. Firebase Web config may name
@@ -152,7 +155,7 @@ function safeStorageRelPath(relPath) {
     : parts;
   const last = trimmed[trimmed.length - 1];
   const ext = extensionFromFileName(last);
-  if (!ACCEPTED_EXTENSIONS.has(ext)) {
+  if (!ACCEPTED_EXTENSIONS.has(ext) && ext !== 'skill') {
     trimmed[trimmed.length - 1] = `${safeSegment(last.replace(/\.[a-z0-9]+$/i, '') || 'skill')}.md`;
   }
   return trimmed.join('/');
@@ -228,13 +231,17 @@ function pickPrimarySkillCandidate(files) {
   return files[0];
 }
 
-async function extractSkillFromZip(zipBytes) {
+function isArchiveExtension(ext) {
+  return ARCHIVE_EXTENSIONS.has(ext);
+}
+
+async function extractSkillFromZip(zipBytes, depth = 0) {
   const unzipper = require('unzipper');
   let directory;
   try {
     directory = await unzipper.Open.buffer(zipBytes);
   } catch (_e) {
-    const err = new Error('Invalid or corrupt ZIP file');
+    const err = new Error(depth > 0 ? 'Invalid or corrupt nested .skill archive' : 'Invalid or corrupt ZIP file');
     err.status = 400;
     throw err;
   }
@@ -259,8 +266,6 @@ async function extractSkillFromZip(zipBytes) {
     if (!base || base.startsWith('.')) continue;
 
     const ext = extensionFromFileName(base);
-    if (!ACCEPTED_EXTENSIONS.has(ext)) continue;
-
     const bytes = await zEntry.buffer();
     totalUncompressed += bytes.length;
     if (totalUncompressed > MAX_ZIP_UNCOMPRESSED_BYTES) {
@@ -271,11 +276,28 @@ async function extractSkillFromZip(zipBytes) {
       throw err;
     }
 
+    if (ext === 'skill') {
+      if (depth >= MAX_NESTED_ARCHIVE_DEPTH) continue;
+      try {
+        const nested = await extractSkillFromZip(bytes, depth + 1);
+        for (const nestedFile of nested.files) {
+          candidates.push(nestedFile);
+        }
+      } catch (_nestedErr) {
+        /* skip invalid nested .skill bundles */
+      }
+      continue;
+    }
+
+    if (!ACCEPTED_EXTENSIONS.has(ext)) continue;
+
     candidates.push({ rawPath, ext, bytes });
   }
 
   if (!candidates.length) {
-    const err = new Error('ZIP contains no skill files (.md, .txt, .json, .yaml, .yml)');
+    const err = new Error(
+      'ZIP contains no skill files (.md, .txt, .json, .yaml, .yml, or nested .skill archives)',
+    );
     err.status = 400;
     throw err;
   }
@@ -296,6 +318,8 @@ function contentTypeForExt(ext) {
     json: 'application/json; charset=utf-8',
     yaml: 'text/yaml; charset=utf-8',
     yml: 'text/yaml; charset=utf-8',
+    skill: 'application/zip',
+    zip: 'application/zip',
   };
   return map[ext] || 'text/plain; charset=utf-8';
 }
@@ -334,7 +358,7 @@ function decodeUploadBody(body) {
   const fileName = String(body.fileName || body.filename || 'skill.md').trim();
   const ext = extensionFromFileName(fileName);
   const contentType = String(body.contentType || '').trim().toLowerCase();
-  const isZip = ext === 'zip' || contentType.includes('zip');
+  const isZip = isArchiveExtension(ext) || contentType.includes('zip');
   if (!isZip && !ACCEPTED_EXTENSIONS.has(ext)) {
     const err = new Error(
       `Unsupported extension .${ext || '(none)'}. Use: ${[...ACCEPTED_UPLOAD_EXTENSIONS].join(', ')}`,
@@ -342,8 +366,8 @@ function decodeUploadBody(body) {
     err.status = 400;
     throw err;
   }
-  if (isZip && ext !== 'zip' && !ACCEPTED_EXTENSIONS.has(ext)) {
-    const err = new Error('ZIP uploads must use a .zip file name');
+  if (isZip && !isArchiveExtension(ext) && !ACCEPTED_EXTENSIONS.has(ext)) {
+    const err = new Error('Archive uploads must use a .zip or .skill file name');
     err.status = 400;
     throw err;
   }
@@ -377,7 +401,7 @@ function decodeUploadBody(body) {
     err.status = 413;
     throw err;
   }
-  return { fileName, ext: isZip ? 'zip' : ext, bytes, isZip };
+  return { fileName, ext: isZip ? (ext === 'skill' ? 'skill' : 'zip') : ext, bytes, isZip };
 }
 
 async function saveSkillObject(bucket, skillId, relPath, bytes, ext, originalName) {
@@ -688,7 +712,9 @@ module.exports = {
   MAX_ZIP_ENTRIES,
   MAX_ZIP_UNCOMPRESSED_BYTES,
   ACCEPTED_EXTENSIONS,
+  ARCHIVE_EXTENSIONS,
   ACCEPTED_UPLOAD_EXTENSIONS,
+  isArchiveExtension,
   resolveClaudeSkillsBucketName,
   resolveProjectId,
   safeZipArchiveName,

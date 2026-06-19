@@ -81,6 +81,31 @@ test('extractSkillFromZip rejects empty skill archive', async () => {
   );
 });
 
+test('extractSkillFromZip unwraps nested .skill archives', async () => {
+  const innerSkill = await buildZipBufferFromEntries([
+    { name: 'adobe-pptx/SKILL.md', buffer: Buffer.from('# PPTX skill\n', 'utf8') },
+    { name: 'adobe-pptx/scripts/helper.py', buffer: Buffer.from('print("ok")\n', 'utf8') },
+  ]);
+  const buf = await buildZipBufferFromEntries([
+    { name: 'adobe-pptx.skill', buffer: innerSkill },
+    { name: 'readme.txt', buffer: Buffer.from('bundle notes', 'utf8') },
+  ]);
+  const { primary, files } = await extractSkillFromZip(buf);
+  assert.strictEqual(primary.rawPath, 'adobe-pptx/SKILL.md');
+  assert.ok(files.some((f) => f.rawPath === 'adobe-pptx/SKILL.md'));
+  assert.ok(!files.some((f) => f.rawPath.endsWith('.py')));
+  assert.ok(files.some((f) => f.rawPath === 'readme.txt'));
+});
+
+test('extractSkillFromZip accepts direct .skill archive upload bytes', async () => {
+  const buf = await buildZipBufferFromEntries([
+    { name: 'my-skill/SKILL.md', buffer: Buffer.from('# My skill\n', 'utf8') },
+  ]);
+  const { primary, files } = await extractSkillFromZip(buf);
+  assert.strictEqual(primary.rawPath, 'my-skill/SKILL.md');
+  assert.strictEqual(files.length, 1);
+});
+
 test('extractSkillFromZip rejects too many entries', async () => {
   const entries = [];
   for (let i = 0; i < MAX_ZIP_ENTRIES + 1; i += 1) {

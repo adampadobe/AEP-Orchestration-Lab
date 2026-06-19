@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="claude-skills.css?v=20260603">
+  <link rel="stylesheet" href="claude-skills.css?v=20260619">
   <link rel="stylesheet" href="home.css?v=20260602">
   <link rel="stylesheet" href="aep-theme.css?v=20260602">
 </head>
@@ -32,7 +32,7 @@
             <header class="dashboard-hero-header">
               <h2 id="skillsBannerHeading" class="dashboard-hero-title">Claude skills</h2>
               <p class="dashboard-hero-subtitle">
-                Drop a Claude skill file or ZIP archive (skill text files up to 20 MB; large ZIPs with videos are auto-trimmed to .md/.txt/.json/.yaml). The lab uploads, classifies with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically. Published files are served at <code>/skills/{id}/{file}</code>.
+                Drop a Claude skill file, <code>.skill</code> bundle, or ZIP archive (skill text files up to 20&nbsp;MB; large ZIPs with videos are auto-trimmed to <code>.md</code>/<code>.txt</code>/<code>.json</code>/<code>.yaml</code>/<code>.skill</code>). The lab uploads, classifies with <strong>Vertex AI Gemini</strong>, and publishes a team tile automatically. Published files are served at <code>/skills/{id}/{file}</code>.
               </p>
             </header>
           </div>
@@ -48,12 +48,12 @@
             role="button"
             aria-label="Drop a skill file or ZIP here or activate to browse"
           >
-            <input id="skillFileInput" type="file" class="skills-dropzone-input" accept=".md,.txt,.json,.yaml,.yml,.zip,text/markdown,text/plain,application/json,application/zip">
+            <input id="skillFileInput" type="file" class="skills-dropzone-input" accept=".md,.txt,.json,.yaml,.yml,.skill,.zip,text/markdown,text/plain,application/json,application/zip">
             <p class="skills-dropzone-kicker">Shared lab catalog</p>
-            <p class="skills-dropzone-title">Drop skill file or ZIP here</p>
-            <p class="skills-dropzone-hint">or click to browse · <code>.md</code> <code>.txt</code> <code>.json</code> <code>.yaml</code> <code>.zip</code></p>
+            <p class="skills-dropzone-title">Drop skill file or archive here</p>
+            <p class="skills-dropzone-hint">or click to browse · <code>.md</code> <code>.txt</code> <code>.json</code> <code>.yaml</code> <code>.skill</code> <code>.zip</code></p>
             <p class="skills-dropzone-limits skills-muted">
-              ZIP archives are extracted server-side (<code>SKILL.md</code> or first <code>.md</code>). Very large uploads may hit Cloud Functions platform limits (~20&nbsp;MB per request).
+              Archives (<code>.zip</code>, <code>.skill</code>, or <code>.skill.zip</code>) are extracted server-side (<code>SKILL.md</code>, nested <code>.skill</code> bundles, or first <code>.md</code>). Very large uploads may hit Cloud Functions platform limits (~20&nbsp;MB per request).
             </p>
             <p id="skillsDropFileName" class="skills-dropzone-file" aria-live="polite"></p>
             <p id="skillsDropStatus" class="skills-dropzone-status" aria-live="polite"></p>
@@ -140,8 +140,8 @@
     </div>
   </div>
 
-  <script src="fflate.min.js?v=20260603"></script>
-  <script src="claude-skills.js?v=20260603"></script>
+  <script src="fflate.min.js?v=20260619"></script>
+  <script src="claude-skills.js?v=20260619"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-lab-nav.js?v=20260602-claude-skills"></script>
 </body>
