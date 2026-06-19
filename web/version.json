@@ -1,14 +1,14 @@
 {
-  "gitSha": "0ac6a5bddbda5808946d839897d5872cb8a66e22",
-  "gitShortSha": "0ac6a5bd",
+  "gitSha": "14c84492fec94c4cd4603cddde59a2ee51cc5f81",
+  "gitShortSha": "14c84492",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: persist Decisioning toggle across hard refresh per sandbox",
+  "gitCommitSubject": "[apalmer] feat: enable decisioning on KSIA mobile emulator",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-17T22:06:41+01:00",
-  "deployedAt": "2026-06-17T21:06:53.033Z",
+  "gitCommitDate": "2026-06-19T21:07:17+01:00",
+  "deployedAt": "2026-06-19T20:07:38.568Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0ac6a5bddbda5808946d839897d5872cb8a66e22"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/14c84492fec94c4cd4603cddde59a2ee51cc5f81"
 }
