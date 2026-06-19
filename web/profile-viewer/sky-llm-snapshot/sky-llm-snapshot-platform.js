@@ -392,6 +392,7 @@
   ];
 
   function getPageKind() {
+    if (document.getElementById('agentic-traffic-dashboard')) return 'agentic-traffic';
     if (findSectionRoot('Market Tracking')) return 'brand-presence';
     if (findSectionRoot('Risk by Theme')) return 'brand-claims';
     return 'overview';
@@ -2329,6 +2330,7 @@
   }
 
   function init() {
+    if (getPageKind() === 'agentic-traffic') return;
     if (state.ready && document.querySelector('.sky-llm-platform-host, .sky-llm-filter-host')) {
       state.pageKind = getPageKind();
       ensurePickers();

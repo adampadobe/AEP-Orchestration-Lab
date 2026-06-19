@@ -13,14 +13,14 @@ const srcHtml =
   path.join(
     process.env.USERPROFILE || '',
     'Downloads',
-    'Take a tour of Adobe LLM Optimizer Agent.html',
+    'Adobe LLM Optimizer AT.html',
   );
 const srcAssetsDir =
   process.env.SKY_LLM_AT_SOURCE_ASSETS ||
   path.join(
     process.env.USERPROFILE || '',
     'Downloads',
-    'Take a tour of Adobe LLM Optimizer Agent_files',
+    'Adobe LLM Optimizer AT_files',
   );
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const assetsDir = path.join(outDir, 'assets');
@@ -37,13 +37,10 @@ if (!buildId) {
 
 const SNAPSHOT_ASSETS = [
   `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
-  `<link rel="stylesheet" href="./sky-llm-snapshot-platform.css?v=${buildId}">`,
-  `<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css?v=${buildId}">`,
   `<script src="./sky-llm-snapshot-build-id.js?v=${buildId}"></script>`,
   `<script src="./sky-llm-snapshot-blockers.js?v=${buildId}"></script>`,
   `<script src="./sky-llm-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
   `<script src="./sky-llm-snapshot-nav.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-platform.js?v=${buildId}"></script>`,
   `<script src="./sky-llm-snapshot-patch.js?v=${buildId}"></script>`,
   `<script src="./sky-llm-snapshot-market.js?v=${buildId}"></script>`,
 ].join('\n');
