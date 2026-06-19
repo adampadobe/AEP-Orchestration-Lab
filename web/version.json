@@ -1,14 +1,14 @@
 {
-  "gitSha": "14c84492fec94c4cd4603cddde59a2ee51cc5f81",
-  "gitShortSha": "14c84492",
+  "gitSha": "7783c5b6ac66ffa0fb30666300db1719fe724eed",
+  "gitShortSha": "7783c5b6",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: enable decisioning on KSIA mobile emulator",
+  "gitCommitSubject": "[apalmer] fix: keep TopRibbon in KSIA mobile scroll column",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-19T21:07:17+01:00",
-  "deployedAt": "2026-06-19T20:07:38.568Z",
+  "gitCommitDate": "2026-06-19T21:13:48+01:00",
+  "deployedAt": "2026-06-19T20:14:07.524Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/14c84492fec94c4cd4603cddde59a2ee51cc5f81"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/7783c5b6ac66ffa0fb30666300db1719fe724eed"
 }
