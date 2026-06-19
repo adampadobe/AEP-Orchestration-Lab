@@ -88,12 +88,82 @@
   function patchBrandSelector() {
     var brand = getBrandLabel();
     var sel = document.getElementById('org-brand-selector');
-    if (!sel) return;
-    sel.querySelectorAll('[data-rsp-slot="text"], button[aria-label]').forEach(function (el) {
-      if (el.tagName === 'BUTTON' && el.getAttribute('aria-label') === 'Information') return;
-      if (el.childElementCount === 0 && el.textContent.trim() && el.textContent.trim() !== 'Brand') {
-        el.textContent = brand;
+    if (sel) {
+      sel.querySelectorAll('[data-rsp-slot="text"], button[aria-label]').forEach(function (el) {
+        if (el.tagName === 'BUTTON' && el.getAttribute('aria-label') === 'Information') return;
+        if (el.childElementCount === 0 && el.textContent.trim() && el.textContent.trim() !== 'Brand') {
+          el.textContent = brand;
+        }
+      });
+    }
+    document.querySelectorAll('#org-brand-selector input[type="text"]').forEach(function (input) {
+      if (/frescopa|coffee|sweet maria|cropster|agtron/i.test(input.value || '')) {
+        input.value = brand;
+        input.setAttribute('title', brand);
       }
+    });
+  }
+
+  function findFocusGrid() {
+    var labeled = document.querySelector('[aria-label="Recommended strategies table"]');
+    if (labeled) return labeled;
+    var title = findLeafText('Recommended focus areas');
+    if (!title) return null;
+    var walk = title.parentElement;
+    for (var i = 0; i < 24 && walk; i++) {
+      var grid = walk.querySelector('[role="grid"]');
+      if (grid) return grid;
+      walk = walk.parentElement;
+    }
+    return document.querySelector('[role="grid"]');
+  }
+
+  function markFocusGridLayout(grid) {
+    if (!grid) return;
+    grid.classList.add('sky-llm-ow__focus-grid');
+    var wrap =
+      grid.closest('.K6Neosc11') ||
+      grid.closest('[class*="macro-static-tbdIeb"]') ||
+      grid.parentElement;
+    if (wrap) wrap.classList.add('sky-llm-ow__focus-wrap');
+    grid.querySelectorAll('[role="presentation"]').forEach(function (el) {
+      var w = parseInt(el.style.width, 10);
+      if (w > 400) {
+        el.style.width = '100%';
+        el.style.maxWidth = '100%';
+      }
+    });
+  }
+
+  function focusDataRows(grid) {
+    return Array.from(grid.querySelectorAll('[role="row"][aria-rowindex]'))
+      .filter(function (row) {
+        var idx = parseInt(row.getAttribute('aria-rowindex'), 10);
+        return idx >= 2 && row.querySelector('[role="rowheader"]');
+      })
+      .slice(0, 5);
+  }
+
+  function patchFocusGrid() {
+    var grid = findFocusGrid();
+    if (!grid) return;
+    markFocusGridLayout(grid);
+    var rows = focusDataRows(grid);
+    if (!rows.length) return;
+    var areas = getFocusAreas();
+    rows.forEach(function (row, idx) {
+      var area = areas[idx];
+      if (!area) return;
+      var topicEl = row.querySelector('[role="rowheader"] [data-rsp-slot="text"]');
+      if (topicEl) topicEl.textContent = area.topic;
+      var gridTexts = Array.from(row.querySelectorAll('[role="gridcell"] [data-rsp-slot="text"]'));
+      if (gridTexts[1]) {
+        gridTexts[1].textContent = area.visibility + '% ' + (area.trend === 'up' ? '↑' : '↓');
+        gridTexts[1].className =
+          'sky-llm-ow__visibility ' +
+          (area.trend === 'up' ? 'sky-llm-ow__trend--up' : 'sky-llm-ow__trend--down');
+      }
+      if (gridTexts[2]) gridTexts[2].textContent = String(area.prompts);
     });
   }
 
@@ -125,6 +195,7 @@
   }
 
   function patchFocusTable() {
+    patchFocusGrid();
     var table = findFocusTable();
     if (!table) return;
     var tbody = table.querySelector('tbody');
