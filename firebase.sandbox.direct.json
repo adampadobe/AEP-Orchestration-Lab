@@ -119,20 +119,6 @@
         }
       },
       {
-        "source": "/api/client-journey/generate",
-        "function": {
-          "functionId": "clientJourneyGenerate",
-          "region": "us-east4"
-        }
-      },
-      {
-        "source": "/api/client-journey/pptx",
-        "function": {
-          "functionId": "clientJourneyPptx",
-          "region": "us-east4"
-        }
-      },
-      {
         "source": "/api/demo-use-case/generate",
         "function": {
           "functionId": "demoUseCaseGenerate",

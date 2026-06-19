@@ -345,11 +345,6 @@
       "region": "us-east4"
     },
     {
-      "source": "/api/client-journey/generate",
-      "functionId": "clientJourneyGenerate",
-      "region": "us-east4"
-    },
-    {
       "source": "/api/demo-use-case/generate",
       "functionId": "demoUseCaseGenerate",
       "region": "us-east4"
@@ -427,11 +422,6 @@
     {
       "source": "/api/consent-infra/ensure",
       "functionId": "consentInfraEnsure",
-      "region": "us-east4"
-    },
-    {
-      "source": "/api/client-journey/pptx",
-      "functionId": "clientJourneyPptx",
       "region": "us-east4"
     },
     {

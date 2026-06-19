@@ -175,7 +175,7 @@ Hardcoded **`aep-orchestration-lab`** / **`aep-orchestration-lab.web.app`** stil
 - `functions/index.js` — `LAB_APPROVAL_BASE_URL` defaults; `schemaViewerCacheWarm` origin.
 - `functions/labWorkspaceAuthService.js` — approval link fallback origin.
 - `functions/brandScraperService.js` — `User-Agent` public URL fragment.
-- `web/profile-viewer/{brand-scraper,client-journey-asset,client-journey-asset-v2,demo-use-case-asset,content-decision-live-edge-ui,image-hosting}.js` — Cloud Functions base URL resolution.
+- `web/profile-viewer/{brand-scraper,client-journey-asset-v2,demo-use-case-asset,content-decision-live-edge-ui,image-hosting}.js` — Cloud Functions base URL resolution.
 - `web/profile-viewer/firebase-database-config.js` — optional `window.__FIREBASE_CONFIG__` overlay (see file header).
 
 After editing under `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned.
