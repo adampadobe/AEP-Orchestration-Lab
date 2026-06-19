@@ -159,11 +159,21 @@ body.ksia-mobile-app {
   position: relative;
 }
 
+/* Native card: block width + 16px margins; never force width:100% from inject pre-decision rules */
+.ksia-mobile-hero-card[data-hero-mount]:not(.cd-edge-hero-host-has-decision),
+.ksia-mobile-concierge-hero[data-hero-mount]:not(.cd-edge-hero-host-has-decision) {
+  width: auto;
+  max-width: none;
+  overflow: visible;
+}
+
 /* Decisioning hero: stay inside card margin rhythm (16px); fill rounded card interior */
 .ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision,
 .ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision {
   padding: 0;
   overflow: hidden;
+  width: auto;
+  max-width: none;
 }
 
 .ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision #hero-banner,

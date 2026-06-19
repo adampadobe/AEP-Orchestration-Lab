@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260619-hero-contain';
+  var CACHE_BUST = '20260619-hero-contain-native';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -216,10 +216,7 @@
       FRAGMENTS.hero +
       '.cd-edge-has-decision:not(:empty)):not(.cd-edge-hero-host-contained),' +
       '[data-hero-mount].cd-edge-hero-host-has-decision:not(.cd-edge-hero-host-contained){overflow:visible;height:auto;min-height:min(42vh,360px);width:100%;max-width:none;box-sizing:border-box;}' +
-      '[data-hero-mount].cd-edge-hero-host-contained,' +
-      '[data-hero-mount][data-hero-mount-fit="contain"],' +
-      '[data-hero-mount][data-hero-auto-size="1"],' +
-      '[data-hero-mount][data-hero-auto-size="true"]{overflow:hidden;height:auto;min-height:0;width:100%;max-width:100%;box-sizing:border-box;}' +
+      '[data-hero-mount].cd-edge-hero-host-contained{overflow:hidden;height:auto;min-height:0;box-sizing:border-box;}' +
       '[data-hero-mount].cd-edge-hero-host-contained #hero-banner.cd-edge-mount-body--hero-flow,' +
       '[data-hero-mount].cd-edge-hero-host-contained #' +
       FRAGMENTS.hero +
@@ -623,6 +620,24 @@
     doc.querySelectorAll('[' + MOUNT_ATTR + '="1"]').forEach(function (el) {
       if (el && el.parentNode) el.parentNode.removeChild(el);
     });
+    var styleEl = doc.getElementById(STYLE_ID);
+    if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+    doc.querySelectorAll('[data-hero-mount]').forEach(function (host) {
+      host.classList.remove(
+        'cd-edge-hero-host-has-decision',
+        'cd-edge-hero-host-contained',
+        'cd-edge-hero-host-full-width',
+      );
+      host.style.removeProperty('overflow');
+      host.style.removeProperty('width');
+      host.style.removeProperty('max-width');
+      host.style.removeProperty('height');
+      host.style.removeProperty('min-height');
+      host.style.removeProperty('box-sizing');
+      host.style.removeProperty('margin-left');
+      host.style.removeProperty('margin-right');
+      host.style.removeProperty('left');
+    });
     var heroParent = findSkyHeroBlockForInject(doc);
     if (heroParent && heroParent.style.position === 'relative') heroParent.style.position = '';
   }
@@ -740,8 +755,8 @@
       host.classList.add('cd-edge-hero-host-contained');
       host.classList.remove('cd-edge-hero-host-full-width');
       host.style.overflow = 'hidden';
-      host.style.width = '100%';
-      host.style.maxWidth = '100%';
+      host.style.removeProperty('width');
+      host.style.removeProperty('max-width');
       host.style.removeProperty('margin-left');
       host.style.removeProperty('margin-right');
       host.style.removeProperty('left');
