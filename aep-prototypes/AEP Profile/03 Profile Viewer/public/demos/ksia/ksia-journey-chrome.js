@@ -157,6 +157,10 @@
       autoInit: false,
       storagePrefix: 'ksia',
       features: { webPush: true, bc: true, decisioning: true },
+      decisioning: {
+        mountLayoutPreset: 'generic',
+        viewName: 'KSIA (web)',
+      },
       labCoreScript: 'demos/ksia/ksia-lab-core.js?v=20260618-login',
       siteCloneDemoEnv: {
         storagePrefix: 'ksia',

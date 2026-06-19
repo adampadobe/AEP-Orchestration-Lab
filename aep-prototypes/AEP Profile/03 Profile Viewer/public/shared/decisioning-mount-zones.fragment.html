@@ -10,10 +10,15 @@
   decisioning overlay on the existing hero instead of a sibling #hero-banner.
 
   Hero sizing (decisioning-edge-inject.js):
-    data-hero-mount-fit="contain" — auto width/height inside host padding (mobile cards)
-    data-hero-mount-fit="full"     — viewport-bleed full width (desktop site heroes)
+    data-hero-mount-fit="contain" — auto width/height inside host bounds (mobile cards, KSIA web .ksia-hero)
+    data-hero-mount-fit="full"     — viewport-bleed full width (Etihad and other full-bleed site heroes)
     data-hero-auto-size="1"        — alias for contain; "0" forces full bleed
     .ksia-mobile-app shells default to contain when fit is omitted
+
+  KSIA web (demos/ksia/index.html):
+    .ksia-hero uses data-hero-mount-fit="contain" so decisioning stays in the main column
+    (no 100vw bleed under the sidebar). Site CSS in ksia-site.css aligns TopRibbon /
+    ContentCardContainer margins and hero copy padding with native overlay rhythm (48px desktop).
 
   Do NOT use alternate spellings (#topribbon, #contentcardarea, #Hero-Banner).
 

@@ -618,6 +618,40 @@ body:has(.ksia-sidebar.collapsed) .ksia-main { margin-left: var(--ksia-sidebar-c
 }
 .ksia-hero-ind-active { background: var(--ksia-warm-gold); transform: scale(1.15); }
 
+/* ─── Decisioning mount zones (AJO / Edge surface fragments) ─── */
+#TopRibbon:not(:empty),
+#ContentCardContainer:not(:empty) {
+  margin: 0 24px 16px;
+}
+
+.ksia-hero[data-hero-mount] {
+  position: relative;
+}
+
+/* Decisioning hero: stay inside main column (avoid 100vw bleed under sidebar); match overlay copy rhythm */
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision {
+  overflow: hidden;
+}
+
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision #hero-banner,
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner {
+  border-radius: 0;
+}
+
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy {
+  padding: 1.35rem 3rem 1.5rem;
+  align-items: flex-start;
+  text-align: left;
+  justify-content: center;
+}
+
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-image,
+.ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-figure img {
+  max-height: min(520px, 62vh);
+  object-fit: cover;
+  object-position: center;
+}
+
 /* Royal profile section */
 .ksia-royal {
   display: grid;
@@ -2431,6 +2465,13 @@ body.ksia-journey-chrome-page .ksia-main { padding-top: 0; }
   .ksia-nav-flyout { left: var(--ksia-sidebar-collapsed); }
   .ksia-hero-overlay { padding: 0 24px; }
   .ksia-hero-controls { left: 24px; right: 24px; }
+  #TopRibbon:not(:empty),
+  #ContentCardContainer:not(:empty) {
+    margin: 0 20px 12px;
+  }
+  .ksia-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy {
+    padding: 1rem 1.5rem 1.125rem;
+  }
   .ksia-section { padding: 32px 20px; }
   .ksia-stats-grid { grid-template-columns: 1fr; }
 }
