@@ -148,6 +148,17 @@ body.ksia-mobile-app {
   line-height: 1.25;
 }
 
+/* ─── Decisioning mount zones (AJO / Edge surface fragments) ─── */
+#TopRibbon:not(:empty),
+#ContentCardContainer:not(:empty) {
+  margin: 0 16px 12px;
+}
+
+.ksia-mobile-hero-card[data-hero-mount],
+.ksia-mobile-concierge-hero[data-hero-mount] {
+  position: relative;
+}
+
 /* ─── Hero trip card ─── */
 .ksia-mobile-hero-card {
   margin: 12px 16px 16px;

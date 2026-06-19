@@ -115,7 +115,12 @@
     window.envBarConfig = {
       prefix: 'ksia',
       variant: 'spectrum',
-      features: { webPush: true, bc: true, decisioning: false },
+      features: { webPush: true, bc: true, decisioning: true },
+      decisioning: {
+        mountLayoutPreset: 'generic',
+        viewName: 'KSIA (mobile)',
+        iframeId: 'ksiaMobileFrame',
+      },
       storagePrefix: 'ksia',
       iframeIds: ['ksiaMobileFrame'],
       labCoreScript: 'demos/ksia/ksia-lab-core.js',
