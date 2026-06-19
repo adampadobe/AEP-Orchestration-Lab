@@ -392,6 +392,9 @@
   ];
 
   function getPageKind() {
+    if (document.getElementById('agentic-traffic-dashboard')) return 'agentic-traffic';
+    var heading = document.getElementById('dashboard-layout-heading');
+    if (heading && /referral traffic/i.test((heading.textContent || '').trim())) return 'referral-traffic';
     if (findSectionRoot('Market Tracking')) return 'brand-presence';
     if (findSectionRoot('Risk by Theme')) return 'brand-claims';
     return 'overview';
@@ -2329,6 +2332,7 @@
   }
 
   function init() {
+    if (getPageKind() === 'agentic-traffic' || getPageKind() === 'referral-traffic') return;
     if (state.ready && document.querySelector('.sky-llm-platform-host, .sky-llm-filter-host')) {
       state.pageKind = getPageKind();
       ensurePickers();

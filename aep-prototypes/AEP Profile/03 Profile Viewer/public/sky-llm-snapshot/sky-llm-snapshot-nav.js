@@ -13,7 +13,7 @@
     'Prompts Management': 'prompts-management.html',
     'URL Inspector': 'url-inspector.html',
     'Agentic Traffic': 'agentic-traffic.html',
-    'Referral Traffic': 'overview.html',
+    'Referral Traffic': 'referral-traffic.html',
     Opportunities: 'opportunities.html',
     'Opportunity Workspace': 'opportunity-workspace.html',
     'Brands Management': 'overview.html',
@@ -31,6 +31,7 @@
     'prompts-management.html': 'Prompts Management',
     'url-inspector.html': 'URL Inspector',
     'agentic-traffic.html': 'Agentic Traffic',
+    'referral-traffic.html': 'Referral Traffic',
     'opportunities.html': 'Opportunities',
     'opportunity-workspace.html': 'Opportunity Workspace',
   };

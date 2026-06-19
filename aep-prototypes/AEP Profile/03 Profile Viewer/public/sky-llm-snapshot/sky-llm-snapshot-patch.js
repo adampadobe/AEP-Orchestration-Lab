@@ -65,6 +65,47 @@
     });
   }
 
+  var AGENTIC_MOVER_URLS = [
+    [/sky\.com\/TV and broadband\/expres/gi, 'sky.com/tv/sky-glass'],
+    [/sky\.com\/TV and broadband\/latte/gi, 'sky.com/broadband/full-fibre'],
+    [/sky\.com\/TV and broadband\/lat\b/gi, 'sky.com/broadband/full-fibre'],
+    [/sky\.com\/TV and broadband\/live sport/gi, 'sky.com/tv/sky-sports'],
+    [/sky\.com\/fr\/products\/hbdr1/gi, 'sky.com/shop/tv-packs'],
+    [/sky\.com\/uk\/products\/hbdr1/gi, 'sky.com/shop/tv-packs'],
+    [/sky\.com\/products\/l034-mystic-serenade[^\s<]*/gi, 'sky.com/tv/sky-glass'],
+    [/sky\.com\/fr\/products\/tea103[^\s<]*/gi, 'sky.com/broadband/deals'],
+    [/sky\.com\/uk\/products\/tea103[^\s<]*/gi, 'sky.com/broadband/deals'],
+    [/sky\.com\/uk\/products\/csm5148[^\s<]*/gi, 'sky.com/mobile/plans'],
+    [/sky\.com\/TV and broadband\//gi, 'sky.com/tv/'],
+  ];
+
+  function patchAgenticMoverText(txt) {
+    var out = (txt || '').replace(/ÔåÆ/g, '→');
+    AGENTIC_MOVER_URLS.forEach(function (pair) {
+      out = out.replace(pair[0], pair[1]);
+    });
+    return out;
+  }
+
+  function patchAgenticTrafficPage() {
+    if (!/agentic-traffic\.html/i.test(location.pathname || '')) return;
+    document.querySelectorAll('span, a, div, p').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
+      var txt = el.textContent || '';
+      if (!/ÔåÆ|TV and broadband|tea103|hbdr1|mystic-serenade|csm5148/i.test(txt)) return;
+      var next = patchAgenticMoverText(txt);
+      if (next !== txt) el.textContent = next;
+    });
+    var top = document.getElementById('agentic-traffic-top-movers-table');
+    var bot = document.getElementById('agentic-traffic-bottom-movers-table');
+    if (!top || !bot) return;
+    var grid = top.closest('[class*="macro-static-IHcRc"]');
+    while (grid && !grid.contains(bot)) {
+      grid = grid.parentElement && grid.parentElement.closest('[class*="macro-static-IHcRc"]');
+    }
+    if (grid) grid.classList.add('sky-llm-agentic-movers-row');
+  }
+
   /** True only inside LLM Demo iframe (?llmDemo=1). Sky LLM Optimizer must stay on frozen Sky labels. */
   function llmDemoMode() {
     return /(?:\?|&)llmDemo=1(?:&|$)/.test(location.search || '');
@@ -80,6 +121,7 @@
       patchSiteField();
       patchAxisLabels();
       patchBrandInputs();
+      patchAgenticTrafficPage();
     } catch (e) {
       /* frozen snapshot */
     }

@@ -79,3 +79,18 @@ nav .sky-llm-nav-rail-native {
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+/* Agentic Traffic — Top / Bottom Movers side-by-side with centred gap */
+.sky-llm-agentic-movers-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 24px 32px !important;
+  width: 100% !important;
+  align-items: start !important;
+  box-sizing: border-box !important;
+}
+
+.sky-llm-agentic-movers-row > [class*='macro-static-O6MD7c'] {
+  min-width: 0 !important;
+  width: 100% !important;
+}

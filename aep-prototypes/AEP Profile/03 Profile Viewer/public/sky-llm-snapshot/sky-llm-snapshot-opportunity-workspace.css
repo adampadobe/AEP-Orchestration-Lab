@@ -24,3 +24,61 @@ nav[class*='macro-static'] {
 .sky-llm-ow__trend--up {
   color: rgb(22, 163, 74);
 }
+
+/* Recommended focus areas — virtualized grid uses fixed 2600px+ widths in the export */
+.sky-llm-ow__focus-wrap {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.sky-llm-ow__focus-grid {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.sky-llm-ow__focus-grid > [role='presentation'],
+.sky-llm-ow__focus-grid [role='presentation'][style*='width: 2677'],
+.sky-llm-ow__focus-grid [role='presentation'][style*='width: 2161'] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.sky-llm-ow__focus-grid [role='row'] {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  position: relative !important;
+}
+
+.sky-llm-ow__focus-grid [role='row'] > [role='presentation'] {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+}
+
+.sky-llm-ow__focus-grid [role='rowheader'] {
+  flex: 2 1 35% !important;
+  max-width: 45% !important;
+}
+
+.sky-llm-ow__focus-grid [role='gridcell'] {
+  flex: 1 1 0 !important;
+  min-width: 72px !important;
+  max-width: 28% !important;
+}
+
+.sky-llm-ow__focus-grid [role='rowheader'] [data-rsp-slot='text'],
+.sky-llm-ow__focus-grid [role='gridcell'] [data-rsp-slot='text'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
