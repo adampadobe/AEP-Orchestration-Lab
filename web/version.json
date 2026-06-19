@@ -1,14 +1,14 @@
 {
-  "gitSha": "f3a92936b8458968a54ff9af16e7c39cc7b86e5a",
-  "gitShortSha": "f3a92936",
+  "gitSha": "a3feffd43d82cbf9054318086548ab4066e1c72a",
+  "gitShortSha": "a3feffd4",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: KSIA mobile BC Centre bottom, Modal bar, and Full Screen height",
+  "gitCommitSubject": "[apalmer] fix: keep BC FAB visible when Enable on with no display mode",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-19T22:25:14+01:00",
-  "deployedAt": "2026-06-19T21:26:39.457Z",
+  "gitCommitDate": "2026-06-19T22:52:12+01:00",
+  "deployedAt": "2026-06-19T21:52:31.545Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f3a92936b8458968a54ff9af16e7c39cc7b86e5a"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a3feffd43d82cbf9054318086548ab4066e1c72a"
 }
