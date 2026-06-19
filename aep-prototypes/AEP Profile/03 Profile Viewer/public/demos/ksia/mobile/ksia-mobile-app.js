@@ -14,6 +14,15 @@
   var data = window.KsiaMockData || {};
   var bcUxMode = 'off';
   var bcReady = false;
+  var bcEnabled = false;
+  var bcDisplayMode = '';
+
+  var BC_MODE_OPTIONS = [
+    { key: 'injected', label: 'Injected' },
+    { key: 'modal', label: 'Modal' },
+    { key: 'fullScreen', label: 'Full screen' },
+    { key: 'bottomDock', label: 'FAB' },
+  ];
 
   function ensureInlineBcMount() {
     if (document.getElementById('brand-concierge-mobile-mount')) return;
@@ -51,9 +60,74 @@
     });
   }
 
+  function ensureBcModePicker() {
+    if (document.getElementById('ksiaMobileBcModePicker')) return;
+    var picker = document.createElement('div');
+    picker.id = 'ksiaMobileBcModePicker';
+    picker.className = 'ksia-mobile-bc-mode-picker';
+    picker.hidden = true;
+    picker.setAttribute('role', 'menu');
+    picker.setAttribute('aria-label', 'Brand Concierge display mode');
+    picker.innerHTML = BC_MODE_OPTIONS.map(function (opt) {
+      return (
+        '<button type="button" class="ksia-mobile-bc-mode-option" role="menuitemradio" data-bc-mode="' +
+        opt.key +
+        '">' +
+        opt.label +
+        '</button>'
+      );
+    }).join('');
+    document.body.appendChild(picker);
+    picker.querySelectorAll('[data-bc-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var mode = btn.getAttribute('data-bc-mode');
+        setBcModePickerOpen(false);
+        postBcDisplayModeToParent(mode);
+      });
+    });
+  }
+
+  function setBcModePickerOpen(open) {
+    var picker = document.getElementById('ksiaMobileBcModePicker');
+    if (!picker) return;
+    picker.hidden = !open;
+    document.body.classList.toggle('ksia-mobile-bc-mode-picker-open', !!open);
+    if (open) syncBcModePickerHighlight();
+  }
+
+  function syncBcModePickerHighlight() {
+    var picker = document.getElementById('ksiaMobileBcModePicker');
+    if (!picker) return;
+    var active = bcDisplayMode || '';
+    picker.querySelectorAll('[data-bc-mode]').forEach(function (btn) {
+      var mode = btn.getAttribute('data-bc-mode');
+      var isActive = mode === active;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
+  }
+
+  function postBcDisplayModeToParent(modeKey) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            source: 'ksia-mobile-lab',
+            type: 'bc-set-display-mode',
+            mode: String(modeKey || '').trim(),
+          },
+          '*',
+        );
+      }
+    } catch (_) {
+      /* cross-origin guard */
+    }
+  }
+
   function ensureBcInfrastructure() {
     ensureBcSheetHost();
     ensureInlineBcMount();
+    ensureBcModePicker();
   }
 
   function setBcUxMode(mode) {
@@ -62,6 +136,7 @@
       'ksia-mobile-bc-mode-injected',
       'ksia-mobile-bc-mode-sheet',
       'ksia-mobile-bc-mode-fab',
+      'ksia-mobile-bc-mode-fab-idle',
       'ksia-mobile-bc-mode-off',
     );
     if (bcUxMode !== 'off') {
@@ -73,12 +148,16 @@
     } else if (bcUxMode !== 'sheet') {
       closeBcSheet();
     }
+    syncBcModePickerHighlight();
   }
 
   function updateFabVisibility() {
     var fab = document.getElementById('ksiaMobileBcFab');
     if (!fab) return;
-    var showFab = bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet');
+    var showFab =
+      bcEnabled &&
+      bcReady &&
+      (bcUxMode === 'fab' || bcUxMode === 'sheet' || bcUxMode === 'fab-idle' || bcUxMode === 'injected');
     fab.hidden = !showFab;
     fab.setAttribute('aria-hidden', showFab ? 'false' : 'true');
   }
@@ -134,7 +213,25 @@
     var fab = document.getElementById('ksiaMobileBcFab');
     if (!fab) return;
     fab.hidden = true;
+    var longPressTimer = null;
+    function clearLongPress() {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+    fab.addEventListener('pointerdown', function () {
+      clearLongPress();
+      longPressTimer = setTimeout(function () {
+        longPressTimer = null;
+        setBcModePickerOpen(true);
+      }, 520);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (evtName) {
+      fab.addEventListener(evtName, clearLongPress);
+    });
     fab.addEventListener('click', function () {
+      if (document.body.classList.contains('ksia-mobile-bc-mode-picker-open')) return;
       postExperienceEvent('ksia.mobile.concierge.open', { action: 'open_concierge' });
       if (bcUxMode === 'injected') {
         if (scrollToInlineMount()) return;
@@ -143,13 +240,21 @@
         }
         return;
       }
-      if (bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet')) {
+      if (bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet' || bcUxMode === 'fab-idle')) {
         openBcSheet();
         return;
       }
       if (PAGE_ID !== 'concierge') {
         window.location.href = 'concierge.html?aepSimMobile=1';
       }
+    });
+    document.addEventListener('pointerdown', function (ev) {
+      var picker = document.getElementById('ksiaMobileBcModePicker');
+      if (!picker || picker.hidden) return;
+      var t = ev.target;
+      if (!t || typeof t.closest !== 'function') return;
+      if (t.closest('#ksiaMobileBcModePicker') || t.closest('#ksiaMobileBcFab')) return;
+      setBcModePickerOpen(false);
     });
   }
 
@@ -382,6 +487,14 @@
 
   window.addEventListener('message', function (ev) {
     if (!ev.data || ev.data.source !== 'ksia-mobile-lab-parent') return;
+    if (typeof ev.data.bcEnabled === 'boolean') {
+      bcEnabled = ev.data.bcEnabled;
+      updateFabVisibility();
+    }
+    if (ev.data.displayMode) {
+      bcDisplayMode = String(ev.data.displayMode || '').trim();
+      syncBcModePickerHighlight();
+    }
     if (ev.data.type === 'sdk-injected') {
       var hint = document.getElementById('ksiaMobileSdkHint');
       if (hint) hint.hidden = true;
@@ -394,12 +507,14 @@
     }
     if (ev.data.type === 'bc-ready') {
       bcReady = true;
+      if (typeof ev.data.bcEnabled === 'boolean') bcEnabled = ev.data.bcEnabled;
       setBcUxMode(ev.data.mode || bcUxMode);
       var hint = document.getElementById('ksiaMobileSdkHint');
       if (hint) hint.hidden = true;
       return;
     }
     if (ev.data.type === 'bc-display-mode') {
+      if (typeof ev.data.bcEnabled === 'boolean') bcEnabled = ev.data.bcEnabled;
       setBcUxMode(ev.data.mode || 'off');
     }
   });

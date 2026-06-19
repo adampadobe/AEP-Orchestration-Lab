@@ -238,6 +238,10 @@
       '<span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Brand Concierge</span>' +
       '<div class="site-clone-bc-prefs__options">' +
       '<label class="site-clone-bc-prefs__option">' +
+      '<input type="checkbox" id="siteCloneBcEnabledToggle">' +
+      '<span>Enable</span>' +
+      '</label>' +
+      '<label class="site-clone-bc-prefs__option">' +
       '<input type="checkbox" id="siteCloneBcFullScreenToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
       '<span>Full Screen</span>' +
       '</label>' +
@@ -609,7 +613,8 @@
         global.envBarConfig.features.decisioning === false
       );
     var needsDecisioning = includeDecisioning && !document.getElementById('siteCloneDecisioningEnabledToggle');
-    if (host.getAttribute(MOUNTED_ATTR) === '1' && !needsDecisioning) {
+    var needsBcEnable = !document.getElementById('siteCloneBcEnabledToggle');
+    if (host.getAttribute(MOUNTED_ATTR) === '1' && !needsDecisioning && !needsBcEnable) {
       return { mounted: true, alreadyPresent: true };
     }
     host.innerHTML = siteCloneProfileBcPrefsMarkup({ includeBottomDock: includeBottomDock, includeDecisioning: includeDecisioning });

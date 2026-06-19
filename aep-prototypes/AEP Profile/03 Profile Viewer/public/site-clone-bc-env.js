@@ -120,6 +120,7 @@
   let siteCloneBcInjectedToggle = null;
   let siteCloneBcBottomDockToggle = null;
   let siteCloneBcModalBarToggle = null;
+  let siteCloneBcEnabledToggle = null;
   let siteCloneDecisioningEnabledToggle = null;
   let stripDomListenersBound = false;
 
@@ -133,6 +134,7 @@
     siteCloneBcInjectedToggle = document.getElementById('siteCloneBcInjectedToggle');
     siteCloneBcBottomDockToggle = document.getElementById('siteCloneBcBottomDockToggle');
     siteCloneBcModalBarToggle = document.getElementById('siteCloneBcModalBarToggle');
+    siteCloneBcEnabledToggle = document.getElementById('siteCloneBcEnabledToggle');
     siteCloneDecisioningEnabledToggle = document.getElementById('siteCloneDecisioningEnabledToggle');
   }
 
@@ -1219,11 +1221,35 @@ window.SiteCloneBcConfig = {
 // Brand Concierge display prefs (env bar) — army-mod-home injected / modal modes
 const SC_BC_PREFS_BY_SANDBOX_KEY = 'siteCloneBcDisplayPrefsBySandbox';
 const SC_BC_PREFS_KEY = 'siteCloneBcDisplayPrefs';
+const SC_BC_ENABLED_BY_SANDBOX_KEY = 'siteCloneBcEnabledPrefsBySandbox';
+const SC_BC_ENABLED_LEGACY_SCALAR = 'siteCloneBcEnabled';
 const SC_DECISIONING_PREFS_BY_SANDBOX_KEY = 'siteCloneDecisioningPrefsBySandbox';
+
+const BC_DISPLAY_MODE_KEYS = ['fullScreen', 'modal', 'injected', 'bottomDock', 'modalBar'];
+const BC_DISPLAY_MODE_TOGGLE_IDS = {
+  fullScreen: 'siteCloneBcFullScreenToggle',
+  modal: 'siteCloneBcModalToggle',
+  injected: 'siteCloneBcInjectedToggle',
+  bottomDock: 'siteCloneBcBottomDockToggle',
+  modalBar: 'siteCloneBcModalBarToggle',
+};
+const BC_DEFAULT_DISPLAY_MODE = 'modal';
+
+function normaliseDisplayModeKey(raw) {
+  var key = String(raw || '').trim();
+  return BC_DISPLAY_MODE_KEYS.indexOf(key) >= 0 ? key : '';
+}
 
 function normaliseDisplayPrefs(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { fullScreen: false, modal: false, injected: false, bottomDock: false, modalBar: false };
+    return {
+      fullScreen: false,
+      modal: false,
+      injected: false,
+      bottomDock: false,
+      modalBar: false,
+      lastDisplayMode: BC_DEFAULT_DISPLAY_MODE,
+    };
   }
   return {
     fullScreen: !!raw.fullScreen,
@@ -1231,7 +1257,71 @@ function normaliseDisplayPrefs(raw) {
     injected: !!raw.injected,
     bottomDock: !!raw.bottomDock,
     modalBar: !!raw.modalBar,
+    lastDisplayMode: normaliseDisplayModeKey(raw.lastDisplayMode) || BC_DEFAULT_DISPLAY_MODE,
   };
+}
+
+function getBcDisplayToggleEl(modeKey) {
+  var id = BC_DISPLAY_MODE_TOGGLE_IDS[normaliseDisplayModeKey(modeKey)];
+  return id ? document.getElementById(id) : null;
+}
+
+function getCheckedDisplayModeKey() {
+  var i;
+  for (i = 0; i < BC_DISPLAY_MODE_KEYS.length; i++) {
+    var el = getBcDisplayToggleEl(BC_DISPLAY_MODE_KEYS[i]);
+    if (el && el.checked) return BC_DISPLAY_MODE_KEYS[i];
+  }
+  return '';
+}
+
+function setDisplayModeOnUi(modeKey, options) {
+  var opts = options || {};
+  var target = normaliseDisplayModeKey(modeKey);
+  var i;
+  for (i = 0; i < BC_DISPLAY_MODE_KEYS.length; i++) {
+    var key = BC_DISPLAY_MODE_KEYS[i];
+    var el = getBcDisplayToggleEl(key);
+    if (!el) continue;
+    el.checked = !!target && key === target;
+  }
+  if (opts.dispatchChange && target) {
+    var primary = getBcDisplayToggleEl(target);
+    if (primary) primary.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+function loadBcEnabledPrefs() {
+  migrateLegacyScalar(SC_BC_ENABLED_BY_SANDBOX_KEY, SC_BC_ENABLED_LEGACY_SCALAR);
+  var raw = readStorageMap(SC_BC_ENABLED_BY_SANDBOX_KEY)[getSandboxKey()];
+  if (raw === '1' || raw === true) return true;
+  if (raw === '0' || raw === false) return false;
+  return false;
+}
+
+function saveBcEnabledPrefs(sandboxKey) {
+  enableBcDisplayPrefsRestore();
+  var map = readStorageMap(SC_BC_ENABLED_BY_SANDBOX_KEY);
+  var key = sandboxKey != null ? sandboxKey : getSandboxKey();
+  map[key] = siteCloneBcEnabledToggle && siteCloneBcEnabledToggle.checked ? '1' : '0';
+  writeStorageMap(SC_BC_ENABLED_BY_SANDBOX_KEY, map);
+}
+
+function applyBcEnabledPrefsToUi() {
+  if (!siteCloneBcEnabledToggle) return;
+  siteCloneBcEnabledToggle.checked = loadBcEnabledPrefs();
+}
+
+function isBcMasterEnabled() {
+  if (siteCloneBcEnabledToggle) return !!siteCloneBcEnabledToggle.checked;
+  return loadBcEnabledPrefs();
+}
+
+function getEffectiveDisplayModeKey() {
+  var checked = getCheckedDisplayModeKey();
+  if (checked) return checked;
+  if (!isBcMasterEnabled()) return '';
+  return loadSiteCloneBcDisplayPrefs().lastDisplayMode || BC_DEFAULT_DISPLAY_MODE;
 }
 
 function loadDecisioningEnabledPrefs() {
@@ -1318,19 +1408,56 @@ function loadSiteCloneBcDisplayPrefs() {
   return { fullScreen: false, modal: false, injected: false };
 }
 
-function saveSiteCloneBcDisplayPrefs(sandboxKey) {
+function getModeKeyForToggleEl(el) {
+  if (!el) return '';
+  var i;
+  for (i = 0; i < BC_DISPLAY_MODE_KEYS.length; i++) {
+    if (getBcDisplayToggleEl(BC_DISPLAY_MODE_KEYS[i]) === el) return BC_DISPLAY_MODE_KEYS[i];
+  }
+  return '';
+}
+
+function persistBcDisplayPrefsFromUi(uncheckedModeKey) {
   enableBcDisplayPrefsRestore();
-  const map = readStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
-  const key = sandboxKey != null ? sandboxKey : getSandboxKey();
+  var map = readStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
+  var key = getSandboxKey();
+  var checked = getCheckedDisplayModeKey();
+  var prev = normaliseDisplayPrefs(map[key]);
+  var remembered = normaliseDisplayModeKey(uncheckedModeKey) || checked || prev.lastDisplayMode || BC_DEFAULT_DISPLAY_MODE;
   map[key] = {
     fullScreen: !!(siteCloneBcFullScreenToggle && siteCloneBcFullScreenToggle.checked),
     modal: !!(siteCloneBcModalToggle && siteCloneBcModalToggle.checked),
     injected: !!(siteCloneBcInjectedToggle && siteCloneBcInjectedToggle.checked),
     bottomDock: !!(siteCloneBcBottomDockToggle && siteCloneBcBottomDockToggle.checked),
     modalBar: !!(siteCloneBcModalBarToggle && siteCloneBcModalBarToggle.checked),
+    lastDisplayMode: remembered,
   };
   writeStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
+  saveBcEnabledPrefs(key);
   saveDecisioningEnabledPrefs(key);
+}
+
+function saveSiteCloneBcDisplayPrefs(sandboxKey) {
+  if (sandboxKey != null) {
+    enableBcDisplayPrefsRestore();
+    var map = readStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY);
+    var key = String(sandboxKey || '').trim() || getSandboxKey();
+    var checked = getCheckedDisplayModeKey();
+    var prev = normaliseDisplayPrefs(map[key]);
+    map[key] = {
+      fullScreen: !!(siteCloneBcFullScreenToggle && siteCloneBcFullScreenToggle.checked),
+      modal: !!(siteCloneBcModalToggle && siteCloneBcModalToggle.checked),
+      injected: !!(siteCloneBcInjectedToggle && siteCloneBcInjectedToggle.checked),
+      bottomDock: !!(siteCloneBcBottomDockToggle && siteCloneBcBottomDockToggle.checked),
+      modalBar: !!(siteCloneBcModalBarToggle && siteCloneBcModalBarToggle.checked),
+      lastDisplayMode: checked || prev.lastDisplayMode || BC_DEFAULT_DISPLAY_MODE,
+    };
+    writeStorageMap(SC_BC_PREFS_BY_SANDBOX_KEY, map);
+    saveBcEnabledPrefs(key);
+    saveDecisioningEnabledPrefs(key);
+    return;
+  }
+  persistBcDisplayPrefsFromUi();
 }
 
 function resetSiteCloneBcDisplayPrefsOnUi() {
@@ -1339,6 +1466,7 @@ function resetSiteCloneBcDisplayPrefsOnUi() {
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
   if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+  if (siteCloneBcEnabledToggle) siteCloneBcEnabledToggle.checked = false;
 }
 
 /** Skip restoring saved BC display/decisioning toggles until sandbox is known or user saves. */
@@ -1354,6 +1482,7 @@ function applySiteCloneBcDisplayPrefsToUi() {
     applyDecisioningEnabledPrefsToUi();
     return;
   }
+  applyBcEnabledPrefsToUi();
   const prefs = loadSiteCloneBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen || prefs.bottomDock || prefs.modalBar)) {
     prefs.injected = false;
@@ -1379,6 +1508,90 @@ function applySiteCloneBcDisplayPrefsToUi() {
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = prefs.bottomDock;
   if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = prefs.modalBar;
   applyDecisioningEnabledPrefsToUi();
+}
+
+function syncBcFromPrefs() {
+  syncSiteCloneBcFromPrefs();
+  syncBcMidrailFromPrefs();
+  try {
+    global.dispatchEvent(
+      new CustomEvent('aep-lab-bc-prefs-changed', {
+        detail: {
+          enabled: isBcMasterEnabled(),
+          displayMode: getEffectiveDisplayModeKey(),
+          checkedMode: getCheckedDisplayModeKey(),
+        },
+      }),
+    );
+  } catch (_ev) {
+    /* noop */
+  }
+}
+
+function applyMutuallyExclusiveBcDisplayMode(changedEl) {
+  var el = changedEl;
+  if (!el) return;
+  if (el === siteCloneBcModalToggle && el.checked) {
+    if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+    if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+    if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+    if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+  }
+  if ((el === siteCloneBcInjectedToggle || el === siteCloneBcFullScreenToggle) && el.checked) {
+    if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+    if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+    if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+  }
+  if (el === siteCloneBcInjectedToggle && el.checked && siteCloneBcFullScreenToggle) {
+    siteCloneBcFullScreenToggle.checked = false;
+  }
+  if (el === siteCloneBcFullScreenToggle && el.checked && siteCloneBcInjectedToggle) {
+    siteCloneBcInjectedToggle.checked = false;
+  }
+  if (el === siteCloneBcBottomDockToggle && el.checked) {
+    if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+    if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+    if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+    if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+  }
+  if (el === siteCloneBcModalBarToggle && el.checked) {
+    if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
+    if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
+    if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
+    if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
+  }
+}
+
+function setBcDisplayMode(modeKey, options) {
+  var opts = options || {};
+  var target = normaliseDisplayModeKey(modeKey);
+  if (!target) return false;
+  if (!isBcMasterEnabled() && opts.requireEnabled !== false) {
+    if (siteCloneBcEnabledToggle) siteCloneBcEnabledToggle.checked = true;
+    saveBcEnabledPrefs();
+  }
+  setDisplayModeOnUi(target, false);
+  saveSiteCloneBcDisplayPrefs();
+  if (opts.sync !== false) syncBcFromPrefs();
+  return true;
+}
+
+function ensureBcEnabledToggleDelegation() {
+  if (global.__siteCloneBcEnabledToggleDelegation) return;
+  global.__siteCloneBcEnabledToggleDelegation = true;
+  document.addEventListener('change', function (ev) {
+    if (!ev || !ev.target || ev.target.id !== 'siteCloneBcEnabledToggle') return;
+    siteCloneBcEnabledToggle = ev.target;
+    saveBcEnabledPrefs();
+    if (siteCloneBcEnabledToggle.checked) {
+      var prefs = loadSiteCloneBcDisplayPrefs();
+      var restoreMode = getCheckedDisplayModeKey() || prefs.lastDisplayMode || BC_DEFAULT_DISPLAY_MODE;
+      setDisplayModeOnUi(restoreMode, false);
+      saveSiteCloneBcDisplayPrefs();
+    }
+    syncBcFromPrefs();
+    syncDecisioningFromPrefs();
+  });
 }
 
 function syncSiteCloneBcFromPrefs() {
@@ -1419,43 +1632,36 @@ function bindStripDomListenersOnce() {
   bcToggles.forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
-      if (el === siteCloneBcModalToggle && el.checked) {
-        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
-        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
-        if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
-        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
+      if (el.checked) {
+        applyMutuallyExclusiveBcDisplayMode(el);
+        saveSiteCloneBcDisplayPrefs();
+      } else if (isBcMasterEnabled()) {
+        persistBcDisplayPrefsFromUi(getModeKeyForToggleEl(el));
+      } else {
+        saveSiteCloneBcDisplayPrefs();
       }
-      if ((el === siteCloneBcInjectedToggle || el === siteCloneBcFullScreenToggle) && el.checked) {
-        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
-        if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
-        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
-      }
-      if (el === siteCloneBcInjectedToggle && el.checked && siteCloneBcFullScreenToggle) {
-        siteCloneBcFullScreenToggle.checked = false;
-      }
-      if (el === siteCloneBcFullScreenToggle && el.checked && siteCloneBcInjectedToggle) {
-        siteCloneBcInjectedToggle.checked = false;
-      }
-      if (el === siteCloneBcBottomDockToggle && el.checked) {
-        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
-        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
-        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
-        if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
-      }
-      if (el === siteCloneBcModalBarToggle && el.checked) {
-        if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
-        if (siteCloneBcInjectedToggle) siteCloneBcInjectedToggle.checked = false;
-        if (siteCloneBcFullScreenToggle) siteCloneBcFullScreenToggle.checked = false;
-        if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
-      }
-      saveSiteCloneBcDisplayPrefs();
-      syncSiteCloneBcFromPrefs();
+      syncBcFromPrefs();
       syncDecisioningFromPrefs();
       window.setTimeout(function () {
         syncSiteCloneBcFromPrefs();
       }, 0);
     });
   });
+  if (siteCloneBcEnabledToggle) {
+    siteCloneBcEnabledToggle.addEventListener('change', function () {
+      saveBcEnabledPrefs();
+      if (siteCloneBcEnabledToggle.checked) {
+        var prefs = loadSiteCloneBcDisplayPrefs();
+        var restoreMode = getCheckedDisplayModeKey() || prefs.lastDisplayMode || BC_DEFAULT_DISPLAY_MODE;
+        setDisplayModeOnUi(restoreMode, false);
+        saveSiteCloneBcDisplayPrefs();
+      }
+      syncBcFromPrefs();
+      syncDecisioningFromPrefs();
+    });
+  }
+
+  ensureBcEnabledToggleDelegation();
   if (siteCloneDecisioningEnabledToggle) {
     siteCloneDecisioningEnabledToggle.addEventListener('change', function () {
       saveDecisioningEnabledPrefs();
@@ -1539,6 +1745,7 @@ function bindStripDomListenersOnce() {
     if (typeof env().applyWebPushToggle === 'function') env().applyWebPushToggle();
     else applyWebPushOnInjectToggle();
     applyBcOnInjectPrefs();
+    applyBcEnabledPrefsToUi();
     applyDecisioningEnabledPrefsToUi();
     if (siteCloneBcStyleConfigUrl) {
       applySiteCloneBcStyleConfigFieldForSandbox();
@@ -1580,7 +1787,7 @@ function bindStripDomListenersOnce() {
   }
 
   global.addEventListener('aep-demo-tags-injected', function () {
-    syncSiteCloneBcFromPrefs();
+    syncBcFromPrefs();
     syncDecisioningFromPrefs();
   });
 
@@ -1617,6 +1824,7 @@ function bindStripDomListenersOnce() {
     ensureSiteCloneBcDatastreamManualRow(activeSiteCloneBcEnvStripRoot());
     bootSiteCloneBcDatastreamPicker();
     refreshStripDomRefs();
+    applyBcEnabledPrefsToUi();
     applyDecisioningEnabledPrefsToUi();
     syncDecisioningFromPrefs();
   });
@@ -1624,11 +1832,16 @@ function bindStripDomListenersOnce() {
   scheduleStripDomBoot();
   ensureSiteCloneBcDatastreamPickerDelegation();
   ensureDecisioningToggleDelegation();
+  ensureBcEnabledToggleDelegation();
 
   global.SiteCloneBcEnv = {
     applyForCurrentSandbox: applyEnvForCurrentSandbox,
     flushForSandboxKey: flushEnvForSandboxKey,
     getSandboxKey: getSandboxKey,
+    isBcEnabled: isBcMasterEnabled,
+    getEffectiveDisplayMode: getEffectiveDisplayModeKey,
+    getCheckedDisplayMode: getCheckedDisplayModeKey,
+    setDisplayMode: setBcDisplayMode,
     isDecisioningEnabled: function () {
       return !!(siteCloneDecisioningEnabledToggle && siteCloneDecisioningEnabledToggle.checked);
     },

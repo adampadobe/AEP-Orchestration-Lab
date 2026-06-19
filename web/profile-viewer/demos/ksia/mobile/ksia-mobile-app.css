@@ -528,8 +528,50 @@ body.ksia-mobile-bc-mode-sheet #brand-concierge-mobile-mount {
 }
 
 body.ksia-mobile-bc-mode-injected .ksia-mobile-bc-fab[hidden],
-body.ksia-mobile-bc-mode-off .ksia-mobile-bc-fab[hidden] {
+body.ksia-mobile-bc-mode-off .ksia-mobile-bc-fab[hidden],
+body.ksia-mobile-bc-mode-fab-idle .ksia-mobile-bc-fab[hidden] {
   display: none !important;
+}
+
+.ksia-mobile-bc-mode-picker {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--ksia-tab-height) + var(--ksia-safe-bottom) + 84px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 148px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--ksia-white);
+  border: 1px solid var(--ksia-border);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.ksia-mobile-bc-mode-picker[hidden] {
+  display: none !important;
+}
+
+.ksia-mobile-bc-mode-option {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--ksia-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ksia-mobile-bc-mode-option.is-active,
+.ksia-mobile-bc-mode-option:hover {
+  background: var(--ksia-surface-alt);
+}
+
+.ksia-mobile-bc-mode-option.is-active {
+  color: var(--ksia-accent-blue);
+  font-weight: 600;
 }
 
 /* In-app BC bottom sheet (modal / fullscreen / FAB modes) */

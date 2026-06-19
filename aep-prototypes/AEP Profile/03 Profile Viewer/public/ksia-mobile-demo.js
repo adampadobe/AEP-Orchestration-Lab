@@ -117,6 +117,13 @@ window.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.source !== 'ksia-mobile-lab') return;
   if (ev.data.type === 'ksia-experience-event') {
     void sendKsiaMobileExperienceEvent(ev.data.payload);
+    return;
+  }
+  if (ev.data.type === 'bc-set-display-mode' && window.SiteCloneBcEnv && typeof window.SiteCloneBcEnv.setDisplayMode === 'function') {
+    window.SiteCloneBcEnv.setDisplayMode(ev.data.mode, { sync: true });
+    if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
+      void window.MobileBcBoot.sync();
+    }
   }
 });
 

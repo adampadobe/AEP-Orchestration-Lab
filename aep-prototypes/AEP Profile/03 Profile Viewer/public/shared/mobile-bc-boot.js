@@ -95,6 +95,7 @@
 
   function refreshToggles() {
     return {
+      enabled: isBcMasterEnabled(),
       injected: !!(document.getElementById('siteCloneBcInjectedToggle') || {}).checked,
       modal: !!(document.getElementById('siteCloneBcModalToggle') || {}).checked,
       fullScreen: !!(document.getElementById('siteCloneBcFullScreenToggle') || {}).checked,
@@ -103,13 +104,43 @@
     };
   }
 
+  function isBcMasterEnabled() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.isBcEnabled === 'function') {
+      return !!global.SiteCloneBcEnv.isBcEnabled();
+    }
+    return !!(document.getElementById('siteCloneBcEnabledToggle') || {}).checked;
+  }
+
+  function getEffectiveDisplayModeKey(toggles) {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getEffectiveDisplayMode === 'function') {
+      return String(global.SiteCloneBcEnv.getEffectiveDisplayMode() || '').trim();
+    }
+    if (!toggles) toggles = refreshToggles();
+    if (toggles.injected) return 'injected';
+    if (toggles.modal) return 'modal';
+    if (toggles.fullScreen) return 'fullScreen';
+    if (toggles.bottomDock) return 'bottomDock';
+    if (toggles.modalBar) return 'modalBar';
+    return 'modal';
+  }
+
+  function hasPresentationModeChecked(toggles) {
+    if (!toggles) toggles = refreshToggles();
+    return !!(toggles.injected || toggles.modal || toggles.fullScreen || toggles.bottomDock || toggles.modalBar);
+  }
+
   /** Map env-bar display modes to in-app UX (Phase 2). */
   function getEffectiveUxMode(toggles) {
     if (!toggles) toggles = refreshToggles();
+    if (!toggles.enabled) return 'off';
     if (toggles.injected) return 'injected';
     if (toggles.modal || toggles.fullScreen) return 'sheet';
     if (toggles.bottomDock || toggles.modalBar) return 'fab';
-    return 'off';
+    var effective = getEffectiveDisplayModeKey(toggles);
+    if (effective === 'injected') return 'injected';
+    if (effective === 'modal' || effective === 'fullScreen') return 'fab-idle';
+    if (effective === 'bottomDock' || effective === 'modalBar') return 'fab-idle';
+    return 'fab-idle';
   }
 
   function suppressParentBcChrome() {
@@ -140,7 +171,14 @@
     if (!frame || !frame.contentWindow) return;
     try {
       frame.contentWindow.postMessage(
-        Object.assign({ source: 'ksia-mobile-lab-parent' }, payload),
+        Object.assign(
+          {
+            source: 'ksia-mobile-lab-parent',
+            bcEnabled: isBcMasterEnabled(),
+            displayMode: getEffectiveDisplayModeKey(refreshToggles()),
+          },
+          payload,
+        ),
         '*',
       );
     } catch (_e) {
@@ -370,9 +408,10 @@
   }
 
   function resolveMount(doc, uxMode) {
-    var selector = uxMode === 'injected' ? injectedMountSelector() : sheetMountSelector();
+    var mountMode = uxMode === 'fab-idle' ? 'sheet' : uxMode;
+    var selector = mountMode === 'injected' ? injectedMountSelector() : sheetMountSelector();
     var mount = doc.querySelector(selector);
-    if (!mount && uxMode === 'injected') {
+    if (!mount && mountMode === 'injected') {
       mount = doc.querySelector(sheetMountSelector());
     }
     if (!mount) {
@@ -422,7 +461,7 @@
     if (!uxMode || uxMode === 'off') {
       return !activeMode;
     }
-    if (activeMode !== uxMode) return false;
+    if (activeMode !== uxMode && !(uxMode === 'fab-idle' && activeMode === 'fab')) return false;
     var doc = getIframeDoc();
     var win = doc && doc.defaultView;
     if (!win || !win.__siteCloneBcBootstrapped) return false;
@@ -433,17 +472,15 @@
     return true;
   }
 
+  function bcReadyNeedsSignal(uxMode) {
+    return uxMode === 'fab-idle' || uxMode === 'fab' || uxMode === 'sheet';
+  }
+
   async function mobileSyncInner() {
     suppressParentBcChrome();
     var toggles = refreshToggles();
     var uxMode = getEffectiveUxMode(toggles);
-    if (canSkipSync(uxMode)) {
-      postToIframe({ type: 'bc-display-mode', mode: uxMode });
-      reportStatus('');
-      return;
-    }
-
-    if (uxMode === 'off') {
+    if (!toggles.enabled) {
       activeMode = null;
       var docOff = getIframeDoc();
       if (docOff) {
@@ -455,7 +492,15 @@
         if (winOff) winOff.__siteCloneBcBootstrapped = false;
       }
       iframeCoreReady = null;
-      postToIframe({ type: 'bc-display-mode', mode: 'off' });
+      postToIframe({ type: 'bc-display-mode', mode: 'off', bcEnabled: false });
+      reportStatus('');
+      return;
+    }
+    if (canSkipSync(uxMode)) {
+      postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
+      if (bcReadyNeedsSignal(uxMode)) {
+        postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
+      }
       reportStatus('');
       return;
     }
@@ -472,8 +517,8 @@
     await bootstrapConcierge(win, mount, win.styleConfiguration);
 
     activeMode = uxMode;
-    postToIframe({ type: 'bc-ready', mode: uxMode });
-    postToIframe({ type: 'bc-display-mode', mode: uxMode });
+    postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
+    postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
     reportStatus('');
   }
 
@@ -548,6 +593,7 @@
 
   function bindToggleListeners() {
     [
+      'siteCloneBcEnabledToggle',
       'siteCloneBcInjectedToggle',
       'siteCloneBcModalToggle',
       'siteCloneBcFullScreenToggle',
@@ -598,6 +644,10 @@
     global.addEventListener('aep-demo-tags-injected', function () {
       bindToggleListeners();
       patchSiteCloneBc();
+      void mobileSync();
+    });
+
+    global.addEventListener('aep-lab-bc-prefs-changed', function () {
       void mobileSync();
     });
 

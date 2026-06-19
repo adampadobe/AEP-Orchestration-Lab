@@ -40,6 +40,11 @@
   }
 
   function isAnyBcDisplayModeActive() {
+    var master = document.getElementById('siteCloneBcEnabledToggle');
+    if (master) return !!master.checked;
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.isBcEnabled === 'function') {
+      return !!global.SiteCloneBcEnv.isBcEnabled();
+    }
     var modes = activeModeDefs();
     var i;
     for (i = 0; i < modes.length; i++) {
@@ -234,6 +239,10 @@
     document.addEventListener('change', function onEnvBcToggleChange(evt) {
       if (!evt || !evt.target || !evt.target.id) return;
       var id = evt.target.id;
+      if (id === 'siteCloneBcEnabledToggle') {
+        refreshVisibility();
+        return;
+      }
       var watched = activeModeDefs().some(function (mode) {
         return mode.toggleId === id;
       });

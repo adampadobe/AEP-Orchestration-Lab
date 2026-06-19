@@ -322,7 +322,7 @@
 
     global.addEventListener('aep-global-sandbox-change', refresh);
 
-    ['siteCloneBcModalToggle', 'siteCloneBcInjectedToggle', 'siteCloneBcFullScreenToggle', 'siteCloneBcBottomDockToggle', 'siteCloneDecisioningEnabledToggle'].forEach(
+    ['siteCloneBcEnabledToggle', 'siteCloneBcModalToggle', 'siteCloneBcInjectedToggle', 'siteCloneBcFullScreenToggle', 'siteCloneBcBottomDockToggle', 'siteCloneBcModalBarToggle', 'siteCloneDecisioningEnabledToggle'].forEach(
       function (id) {
         var el = byId(id);
         if (el) el.addEventListener('change', refresh);

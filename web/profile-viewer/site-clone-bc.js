@@ -1433,6 +1433,62 @@
     return !!(injectedToggle && injectedToggle.checked);
   }
 
+  function isBcMasterEnabled() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.isBcEnabled === 'function') {
+      return !!global.SiteCloneBcEnv.isBcEnabled();
+    }
+    var master = document.getElementById('siteCloneBcEnabledToggle');
+    return !!(master && master.checked);
+  }
+
+  function getEffectiveDisplayModeKey() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getEffectiveDisplayMode === 'function') {
+      return String(global.SiteCloneBcEnv.getEffectiveDisplayMode() || '').trim();
+    }
+    if (isBottomDockOn()) return 'bottomDock';
+    if (isModalBarOn()) return 'modalBar';
+    if (isFullScreenOn()) return 'fullScreen';
+    if (isModalOn()) return 'modal';
+    if (isInjectedOn()) return 'injected';
+    return '';
+  }
+
+  function isEffectiveInjectedOn() {
+    return getEffectiveDisplayModeKey() === 'injected';
+  }
+
+  function isEffectiveModalOn() {
+    return getEffectiveDisplayModeKey() === 'modal';
+  }
+
+  function isEffectiveFullScreenOn() {
+    return getEffectiveDisplayModeKey() === 'fullScreen';
+  }
+
+  function isEffectiveBottomDockOn() {
+    return getEffectiveDisplayModeKey() === 'bottomDock';
+  }
+
+  function isEffectiveModalBarOn() {
+    return getEffectiveDisplayModeKey() === 'modalBar';
+  }
+
+  function isPresentationModeActive() {
+    return !!getCheckedDisplayModeKey();
+  }
+
+  function getCheckedDisplayModeKey() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getCheckedDisplayMode === 'function') {
+      return String(global.SiteCloneBcEnv.getCheckedDisplayMode() || '').trim();
+    }
+    if (isBottomDockOn()) return 'bottomDock';
+    if (isModalBarOn()) return 'modalBar';
+    if (isFullScreenOn()) return 'fullScreen';
+    if (isModalOn()) return 'modal';
+    if (isInjectedOn()) return 'injected';
+    return '';
+  }
+
   function isModalOn() {
     return !!(modalToggle && modalToggle.checked);
   }
@@ -1491,29 +1547,43 @@
   }
 
   function updateChromeVisibility() {
-    if (!isModalOn()) {
+    var presentationActive = isPresentationModeActive();
+    if (!isEffectiveModalOn() || !presentationActive) {
       closeBcModal();
       setModalFabArmed(false);
+    } else if (isBcMasterEnabled()) {
+      setModalFabArmed(true);
     }
     if (document.body && document.body.classList) {
-      document.body.classList.toggle('site-clone-bc-fullscreen-armed', isFullScreenOn());
+      document.body.classList.toggle(
+        'site-clone-bc-fullscreen-armed',
+        isEffectiveFullScreenOn() && presentationActive,
+      );
     }
     var doc = getIframeDoc();
     if (doc) {
-      if (!isFullScreenOn()) setSnapshotFullscreenLayout(doc, false);
-      if (!isInjectedOn()) setSnapshotInjectedLayout(doc, false);
-      if (!isInjectedOn() && !isFullScreenOn()) teardownIframeInlineSection(doc);
+      if (!isEffectiveFullScreenOn() || !presentationActive) setSnapshotFullscreenLayout(doc, false);
+      if (!isEffectiveInjectedOn() || !presentationActive) setSnapshotInjectedLayout(doc, false);
+      if (
+        (!isEffectiveInjectedOn() || !presentationActive) &&
+        (!isEffectiveFullScreenOn() || !presentationActive)
+      ) {
+        teardownIframeInlineSection(doc);
+      }
     }
-    if (!isInjectedOn() && !isFullScreenOn()) {
+    if ((!isEffectiveInjectedOn() || !presentationActive) && (!isEffectiveFullScreenOn() || !presentationActive)) {
       hideBcFrameHost();
     }
-    if (!isBottomDockOn()) {
+    if (!isEffectiveBottomDockOn() || !presentationActive) {
       setBottomDockVisible(false);
       clearMountInDoc(document, BOTTOM_DOCK_MOUNT_SELECTOR);
     }
-    if (!isModalBarOn()) {
+    if (!isEffectiveModalBarOn() || !presentationActive) {
       setModalBarVisible(false);
       clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
+    }
+    if (isBcMasterEnabled() && !presentationActive && (isEffectiveModalOn() || isEffectiveFullScreenOn())) {
+      setModalFabArmed(true);
     }
   }
 
@@ -1521,12 +1591,19 @@
   var syncQueued = false;
 
   function getDesiredBcMode() {
+    if (!isBcMasterEnabled()) return null;
     if (isBottomDockOn()) return 'bottomDock';
     if (isModalBarOn()) return 'modalBar';
     if (isFullScreenOn()) return 'fullscreen';
     if (isModalOn()) return 'modal';
     if (isInjectedOn()) return 'injected';
-    return null;
+    var effective = getEffectiveDisplayModeKey();
+    if (effective === 'fullScreen') return 'fullscreen';
+    if (effective === 'bottomDock') return 'bottomDock';
+    if (effective === 'modalBar') return 'modalBar';
+    if (effective === 'modal') return 'modal';
+    if (effective === 'injected') return 'injected';
+    return 'modal';
   }
 
   function isBcBootstrappedForMode(mode) {
@@ -1551,9 +1628,15 @@
 
   /** Skip teardown/re-bootstrap when prefs sync or Tags inject re-fires sync with unchanged BC config. */
   function canSkipBcSync() {
+    if (!isBcMasterEnabled()) {
+      return !activeMode && !global.__siteCloneBcBootstrapped;
+    }
     var desired = getDesiredBcMode();
     if (!desired) {
       return !activeMode && !global.__siteCloneBcBootstrapped;
+    }
+    if (!isPresentationModeActive() && (desired === 'modal' || desired === 'fullscreen')) {
+      return !!activeMode || !!global.__siteCloneBcBootstrapped;
     }
     if (!isBcBootstrappedForMode(desired)) return false;
     if (activeMode !== desired) return false;
@@ -1579,17 +1662,7 @@
   async function syncInner() {
     refreshDisplayModeToggles();
     updateChromeVisibility();
-    if (canSkipBcSync()) {
-      reportBcStatus('');
-      return;
-    }
-    var wantInjected = isInjectedOn();
-    var wantModal = isModalOn();
-    var wantFullScreen = isFullScreenOn();
-    var wantBottomDock = isBottomDockOn();
-    var wantModalBar = isModalBarOn();
-
-    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
+    if (!isBcMasterEnabled()) {
       var iframeDocOff = getIframeDoc();
       if (iframeDocOff) {
         setSnapshotFullscreenLayout(iframeDocOff, false);
@@ -1604,7 +1677,25 @@
       hideBcFrameHost();
       setBottomDockVisible(false);
       setModalBarVisible(false);
+      setModalFabArmed(false);
       activeMode = null;
+      reportBcStatus('');
+      return;
+    }
+    if (canSkipBcSync()) {
+      reportBcStatus('');
+      return;
+    }
+    var wantInjected = isEffectiveInjectedOn() && isPresentationModeActive();
+    var wantModal = isEffectiveModalOn() && isPresentationModeActive();
+    var wantFullScreen = isEffectiveFullScreenOn() && isPresentationModeActive();
+    var wantBottomDock = isEffectiveBottomDockOn() && isPresentationModeActive();
+    var wantModalBar = isEffectiveModalBarOn() && isPresentationModeActive();
+
+    if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
+      if (isEffectiveModalOn() || isEffectiveFullScreenOn()) {
+        setModalFabArmed(true);
+      }
       reportBcStatus('');
       return;
     }
