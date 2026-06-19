@@ -16,6 +16,7 @@
   var bcReady = false;
   var bcEnabled = false;
   var bcDisplayMode = '';
+  var bcLastDisplayMode = 'modal';
 
   var BC_MODE_OPTIONS = [
     { key: 'injected', label: 'Injected' },
@@ -170,11 +171,11 @@
     if (!fab) return;
     var showFab =
       bcEnabled &&
-      bcReady &&
-      (bcUxMode === 'fab' ||
-        isSheetUxMode(bcUxMode) ||
-        bcUxMode === 'fab-idle' ||
-        bcUxMode === 'injected');
+      (bcUxMode === 'fab-idle' ||
+        (bcReady &&
+          (bcUxMode === 'fab' ||
+            isSheetUxMode(bcUxMode) ||
+            bcUxMode === 'injected')));
     fab.hidden = !showFab;
     fab.setAttribute('aria-hidden', showFab ? 'false' : 'true');
   }
@@ -257,7 +258,15 @@
         }
         return;
       }
-      if (bcReady && (bcUxMode === 'fab' || isSheetUxMode(bcUxMode) || bcUxMode === 'fab-idle')) {
+      if (bcUxMode === 'fab-idle') {
+        if (!bcReady) {
+          postBcDisplayModeToParent(bcLastDisplayMode || bcDisplayMode || 'modal');
+          return;
+        }
+        openBcSheet();
+        return;
+      }
+      if (bcReady && (bcUxMode === 'fab' || isSheetUxMode(bcUxMode))) {
         openBcSheet();
         return;
       }
@@ -510,6 +519,7 @@
     }
     if (ev.data.displayMode) {
       bcDisplayMode = String(ev.data.displayMode || '').trim();
+      if (bcDisplayMode) bcLastDisplayMode = bcDisplayMode;
       syncBcPresentationClasses();
       syncBcModePickerHighlight();
     }

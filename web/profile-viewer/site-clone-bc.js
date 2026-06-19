@@ -211,6 +211,7 @@
     modalBarToggle = document.getElementById(cfg('modalBarToggleId', 'siteCloneBcModalBarToggle'));
     bcModal = document.getElementById('aepBcModal');
     bcFab = document.getElementById(cfg('fabId', 'siteCloneBcFab'));
+    bindFabIdleTap();
   }
 
   var parentCoreReady = null;
@@ -423,6 +424,11 @@
   }
 
   async function ensureModalReady() {
+    if (isFabIdleState()) {
+      if (restoreLastDisplayModeForInteraction()) {
+        await sync();
+      }
+    }
     if (!isModalOn()) return;
     await ensureModalPopupUi();
     if (!global.__siteCloneBcBootstrapped) {
@@ -1526,6 +1532,29 @@
     return !!getCheckedDisplayModeKey();
   }
 
+  function isFabIdleState() {
+    return isBcMasterEnabled() && !isPresentationModeActive();
+  }
+
+  function getLastDisplayModeKey() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getLastDisplayMode === 'function') {
+      return String(global.SiteCloneBcEnv.getLastDisplayMode() || '').trim();
+    }
+    return 'modal';
+  }
+
+  function restoreLastDisplayModeForInteraction() {
+    if (!isFabIdleState()) return false;
+    var lastMode = getLastDisplayModeKey();
+    if (!lastMode) return false;
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.setDisplayMode === 'function') {
+      global.SiteCloneBcEnv.setDisplayMode(lastMode, { sync: false });
+      refreshDisplayModeToggles();
+      return true;
+    }
+    return false;
+  }
+
   function getCheckedDisplayModeKey() {
     if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getCheckedDisplayMode === 'function') {
       return String(global.SiteCloneBcEnv.getCheckedDisplayMode() || '').trim();
@@ -1588,6 +1617,21 @@
     if (bcFab) bcFab.hidden = !armed;
   }
 
+  function bindFabIdleTap() {
+    if (!bcFab || bcFab.getAttribute('data-bc-idle-tap-bound') === '1') return;
+    bcFab.setAttribute('data-bc-idle-tap-bound', '1');
+    bcFab.addEventListener(
+      'click',
+      function () {
+        if (!isFabIdleState()) return;
+        if (restoreLastDisplayModeForInteraction()) {
+          void sync();
+        }
+      },
+      true,
+    );
+  }
+
   async function ensureModalPopupUi() {
     await loadModalAssets();
     if (typeof global.initArmyBcPopup === 'function') {
@@ -1637,7 +1681,7 @@
       setModalBarVisible(false);
       clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
     }
-    if (isBcMasterEnabled() && !presentationActive && (isEffectiveModalOn() || isEffectiveFullScreenOn())) {
+    if (isFabIdleState()) {
       setModalFabArmed(true);
     }
   }
@@ -1652,13 +1696,7 @@
     if (isFullScreenOn()) return 'fullscreen';
     if (isModalOn()) return 'modal';
     if (isInjectedOn()) return 'injected';
-    var effective = getEffectiveDisplayModeKey();
-    if (effective === 'fullScreen') return 'fullscreen';
-    if (effective === 'bottomDock') return 'bottomDock';
-    if (effective === 'modalBar') return 'modalBar';
-    if (effective === 'modal') return 'modal';
-    if (effective === 'injected') return 'injected';
-    return 'modal';
+    return null;
   }
 
   function isBcBootstrappedForMode(mode) {
@@ -1689,6 +1727,9 @@
     var desired = getDesiredBcMode();
     if (!desired) {
       return !activeMode && !global.__siteCloneBcBootstrapped;
+    }
+    if (isFabIdleState()) {
+      return true;
     }
     if (!isPresentationModeActive() && (desired === 'modal' || desired === 'fullscreen')) {
       return !!activeMode || !!global.__siteCloneBcBootstrapped;
@@ -1754,7 +1795,7 @@
     var wantModalBar = isEffectiveModalBarOn() && isPresentationModeActive();
 
     if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
-      if (isEffectiveModalOn() || isEffectiveFullScreenOn()) {
+      if (isFabIdleState()) {
         setModalFabArmed(true);
       }
       reportBcStatus('');
@@ -1878,6 +1919,10 @@
 
   function scheduleInitialSync() {
     if (isMobileBcAdapter()) return;
+    if (isFabIdleState()) {
+      void sync();
+      return;
+    }
     if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn() && !isModalBarOn()) return;
     var frame = getSiteCloneFrame();
     function run() {

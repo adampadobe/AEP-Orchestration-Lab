@@ -122,6 +122,13 @@
     if (toggles.fullScreen) return 'fullScreen';
     if (toggles.bottomDock) return 'bottomDock';
     if (toggles.modalBar) return 'modalBar';
+    return '';
+  }
+
+  function getLastDisplayModeKey() {
+    if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.getLastDisplayMode === 'function') {
+      return String(global.SiteCloneBcEnv.getLastDisplayMode() || '').trim();
+    }
     return 'modal';
   }
 
@@ -138,11 +145,7 @@
     if (toggles.fullScreen) return 'sheet-fullscreen';
     if (toggles.modal) return 'sheet';
     if (toggles.bottomDock || toggles.modalBar) return 'fab';
-    var effective = getEffectiveDisplayModeKey(toggles);
-    if (effective === 'injected') return 'injected';
-    if (effective === 'fullScreen') return 'sheet-fullscreen';
-    if (effective === 'modal') return 'sheet';
-    if (effective === 'bottomDock' || effective === 'modalBar') return 'fab-idle';
+    if (!hasPresentationModeChecked(toggles)) return 'fab-idle';
     return 'fab-idle';
   }
 
@@ -479,6 +482,9 @@
     if (!uxMode || uxMode === 'off') {
       return !activeMode;
     }
+    if (uxMode === 'fab-idle') {
+      return activeMode === 'fab-idle';
+    }
     var toggles = refreshToggles();
     var displayMode = getEffectiveDisplayModeKey(toggles);
     if (activeDisplayMode && displayMode && activeDisplayMode !== displayMode) {
@@ -522,6 +528,25 @@
       }
       iframeCoreReady = null;
       postToIframe({ type: 'bc-display-mode', mode: 'off', bcEnabled: false });
+      reportStatus('');
+      return;
+    }
+    if (uxMode === 'fab-idle') {
+      var docIdle = getIframeDoc();
+      if (docIdle) clearSnapshotBcLayout(docIdle);
+      activeMode = 'fab-idle';
+      activeDisplayMode = '';
+      var lastMode = getLastDisplayModeKey();
+      var idleWin = docIdle && docIdle.defaultView;
+      postToIframe({
+        type: 'bc-display-mode',
+        mode: 'fab-idle',
+        bcEnabled: true,
+        displayMode: lastMode,
+      });
+      if (idleWin && idleWin.__siteCloneBcBootstrapped) {
+        postToIframe({ type: 'bc-ready', mode: 'fab-idle', bcEnabled: true, displayMode: lastMode });
+      }
       reportStatus('');
       return;
     }

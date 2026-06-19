@@ -1318,8 +1318,10 @@ function isBcMasterEnabled() {
 }
 
 function getEffectiveDisplayModeKey() {
-  var checked = getCheckedDisplayModeKey();
-  if (checked) return checked;
+  return getCheckedDisplayModeKey();
+}
+
+function getLastBcDisplayModeKey() {
   if (!isBcMasterEnabled()) return '';
   return loadSiteCloneBcDisplayPrefs().lastDisplayMode || BC_DEFAULT_DISPLAY_MODE;
 }
@@ -1851,6 +1853,7 @@ function bindStripDomListenersOnce() {
     isBcEnabled: isBcMasterEnabled,
     getEffectiveDisplayMode: getEffectiveDisplayModeKey,
     getCheckedDisplayMode: getCheckedDisplayModeKey,
+    getLastDisplayMode: getLastBcDisplayModeKey,
     setDisplayMode: setBcDisplayMode,
     isDecisioningEnabled: function () {
       return !!(siteCloneDecisioningEnabledToggle && siteCloneDecisioningEnabledToggle.checked);
