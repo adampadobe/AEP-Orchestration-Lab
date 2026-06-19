@@ -353,8 +353,13 @@
 
   function ribbonAlreadyInMainContent(ribbon) {
     if (!ribbon || !ribbon.parentNode || !ribbon.ownerDocument) return false;
-    var main = ribbon.ownerDocument.querySelector('main');
-    return !!(main && main.contains(ribbon));
+    var doc = ribbon.ownerDocument;
+    var main = doc.querySelector('main');
+    if (main && main.contains(ribbon)) return true;
+    // Mobile / app-shell journeys (KSIA AIVC): TopRibbon sits in the scroll column with [data-hero-mount].
+    var heroHost = doc.querySelector('[data-hero-mount]');
+    if (heroHost && heroHost.parentElement && heroHost.parentElement.contains(ribbon)) return true;
+    return false;
   }
 
   function mountHasRenderedContent(el) {
