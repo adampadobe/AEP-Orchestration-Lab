@@ -8,11 +8,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
   process.env.SKY_LLM_NEW_OVERVIEW_HTML ||
-  path.join(
-    process.env.USERPROFILE || '',
-    'Downloads',
-    'Adobe LLM Optimizer New Overview.html',
-  );
+  path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot', 'overview.html');
 const snapshotDir = path.join(repoRoot, 'web', 'profile-viewer', 'sky-llm-snapshot');
 const targets = [
   'overview.html',
@@ -66,18 +62,48 @@ function replaceNav(html, newNav) {
   throw new Error('Could not replace nav in target HTML');
 }
 
+function hasAsset(html, kind, filename) {
+  const re =
+    kind === 'link'
+      ? new RegExp(`href="\\./${filename}(?:\\?[^"]*)?"`)
+      : new RegExp(`src="\\./${filename}(?:\\?[^"]*)?"`);
+  return re.test(html);
+}
+
+/** Drop unversioned nav tags when a ?v= copy is already present (sync re-run guard). */
+function dedupeNavAssets(html) {
+  const hasVersionedCss = /href="\.\/sky-llm-snapshot-nav\.css\?/.test(html);
+  const hasVersionedJs = /src="\.\/sky-llm-snapshot-nav\.js\?/.test(html);
+  let out = html;
+  if (hasVersionedCss) {
+    out = out.replace(/\n?<link rel="stylesheet" href="\.\/sky-llm-snapshot-nav\.css">\n?/g, '\n');
+  }
+  if (hasVersionedJs) {
+    out = out.replace(/\n?<script src="\.\/sky-llm-snapshot-nav\.js"><\/script>\n?/g, '\n');
+  }
+  return out;
+}
+
 function ensureNavAssets(html, basename) {
   const inject = [
-    '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
-    '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
-    '<script src="./sky-llm-snapshot-nav.js"></script>',
+    { kind: 'link', file: 'sky-llm-snapshot-nav.css', tag: '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">' },
+    {
+      kind: 'script',
+      file: 'sky-llm-snapshot-opportunities-catalog.js',
+      tag: '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
+    },
+    { kind: 'script', file: 'sky-llm-snapshot-nav.js', tag: '<script src="./sky-llm-snapshot-nav.js"></script>' },
   ];
   if (basename === 'overview.html') {
-    inject.push('<script src="./sky-llm-snapshot-overview.js"></script>');
+    inject.push({
+      kind: 'script',
+      file: 'sky-llm-snapshot-overview.js',
+      tag: '<script src="./sky-llm-snapshot-overview.js"></script>',
+    });
   }
-  let out = html;
-  for (const tag of inject) {
-    if (!out.includes(tag)) {
+  let out = dedupeNavAssets(html);
+  for (const { kind, file, tag } of inject) {
+    if (!hasAsset(out, kind, file)) {
       out = out.replace('</body>', `${tag}\n</body>`);
     }
   }

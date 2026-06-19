@@ -3,6 +3,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { applyReferralTrafficBranding } from './sky-llm-snapshot-sky-text.mjs';
 import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
@@ -117,3 +118,13 @@ html = patchHtml(html);
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outHtml, html, 'utf8');
 console.log('Wrote', outHtml, '(' + Math.round(html.length / 1024) + ' KB), build', buildId);
+
+execSync('node scripts/sync-sky-llm-nav.mjs', {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    SKY_LLM_NEW_OVERVIEW_HTML: path.join(outDir, 'overview.html'),
+  },
+});
+console.log('Synced sidebar nav from overview.html');
