@@ -68,19 +68,23 @@ function extractMoversGrid(html) {
 }
 
 function extractOldMoversGrid(html) {
-  const id = 'id="agentic-traffic-top-movers-table"';
-  const idx = html.indexOf(id);
-  if (idx < 0) return extractMoversGrid(html.replace('Top Movers', 'X'));
-  let start = idx;
-  for (let step = 0; step < 20; step++) {
-    const prev = html.lastIndexOf('<div', start - 4);
-    if (prev < 0) break;
-    start = prev;
-    const block = balanceFrom(html, start);
-    if (!block) continue;
-    if (block.includes('agentic-traffic-top-movers-table') && block.includes('Top Movers')) {
+  const idx = html.indexOf('id="agentic-traffic-top-movers-table"');
+  if (idx < 0) return null;
+  let pos = idx;
+  for (let step = 0; step < 30; step++) {
+    const ihIdx = html.lastIndexOf('-macro-static-IHcRc', pos);
+    if (ihIdx < 0) break;
+    const divStart = html.lastIndexOf('<div', ihIdx);
+    if (divStart < 0) break;
+    const block = balanceFrom(html, divStart);
+    if (
+      block &&
+      block.includes('agentic-traffic-top-movers-table') &&
+      !block.includes('agentic-traffic-bottom-movers-table')
+    ) {
       return block;
     }
+    pos = divStart - 1;
   }
   return null;
 }

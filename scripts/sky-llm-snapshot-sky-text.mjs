@@ -174,6 +174,10 @@ export function applyAgenticTrafficBranding(html) {
   html = html.replace(/frescopa-coffee-/gi, 'sky-');
   html = html.replace(/frescopa-/gi, 'sky-');
 
+  /* Mojibake UTF-8 arrow (→) saved as Latin-1 in frozen HTML. */
+  html = html.replace(/ÔåÆ/g, '→');
+  html = html.replace(/Ã¢â€ â€™/g, '→');
+
   const urlMap = [
     ['/blog/cold-brew', '/tv/sky-glass'],
     ['/blog/', '/tv/'],
@@ -181,6 +185,19 @@ export function applyAgenticTrafficBranding(html) {
     ['/subscribe', '/broadband'],
     ['cold-brew-101', 'tv/sky-glass'],
     ['home-brewer', 'broadband/full-fibre'],
+    ['sky.com/TV and broadband/expres', 'sky.com/tv/sky-glass'],
+    ['sky.com/TV and broadband/latte', 'sky.com/broadband/full-fibre'],
+    ['sky.com/TV and broadband/lat', 'sky.com/broadband/full-fibre'],
+    ['sky.com/TV and broadband/live sport', 'sky.com/tv/sky-sports'],
+    ['sky.com/fr/products/hbdr1', 'sky.com/shop/tv-packs'],
+    ['sky.com/uk/products/hbdr1', 'sky.com/shop/tv-packs'],
+    ['sky.com/products/l034-mystic-serenade/l034-mystic-serenade', 'sky.com/tv/sky-glass'],
+    ['sky.com/fr/products/tea103/TEA103', 'sky.com/broadband/deals'],
+    ['sky.com/fr/products/tea103/TEA0', 'sky.com/broadband/deals'],
+    ['sky.com/uk/products/tea103/TEA0', 'sky.com/broadband/deals'],
+    ['sky.com/uk/products/tea103/TEA103', 'sky.com/broadband/deals'],
+    ['sky.com/uk/products/csm5148/CSM54', 'sky.com/mobile/plans'],
+    ['sky.com/TV and broadband/', 'sky.com/tv/'],
   ];
   for (const [from, to] of urlMap) {
     html = html.split(from).join(to);
