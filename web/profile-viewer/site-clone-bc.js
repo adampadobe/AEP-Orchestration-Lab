@@ -229,6 +229,15 @@
     return !!cfg('injectBcInIframe', false);
   }
 
+  /** KSIA mobile lab — MobileBcBoot owns BC inside the phone iframe; skip web snapshot fullscreen/injected layout. */
+  function isMobileBcAdapter() {
+    return (
+      global.MobileBcBoot &&
+      typeof global.MobileBcBoot.isMobileAdapter === 'function' &&
+      global.MobileBcBoot.isMobileAdapter()
+    );
+  }
+
   async function restoreSiteCloneSnapshotFrame() {
     var doc = getIframeDoc();
     if (doc) {
@@ -1660,6 +1669,9 @@
   }
 
   async function syncInner() {
+    if (isMobileBcAdapter()) {
+      return;
+    }
     refreshDisplayModeToggles();
     updateChromeVisibility();
     if (!isBcMasterEnabled()) {
@@ -1777,6 +1789,7 @@
     var frame = getSiteCloneFrame();
     if (!frame) return;
     frame.addEventListener('load', function () {
+      if (isMobileBcAdapter()) return;
       iframeCoreReady = null;
       loadedIframeStyleUrl = null;
       if (isInjectedOn() || isFullScreenOn()) {
@@ -1809,6 +1822,7 @@
   void ensureEdgePathPatches(global, document);
 
   function scheduleInitialSync() {
+    if (isMobileBcAdapter()) return;
     if (!isInjectedOn() && !isModalOn() && !isFullScreenOn() && !isBottomDockOn() && !isModalBarOn()) return;
     var frame = getSiteCloneFrame();
     function run() {

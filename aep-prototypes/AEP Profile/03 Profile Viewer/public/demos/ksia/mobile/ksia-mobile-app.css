@@ -494,7 +494,8 @@ body.ksia-mobile-bc-mode-injected #brand-concierge-mobile-mount:not(:empty) {
 
 body.ksia-mobile-bc-mode-injected #brand-concierge-mobile-mount:empty,
 body.ksia-mobile-bc-mode-fab #brand-concierge-mobile-mount,
-body.ksia-mobile-bc-mode-sheet #brand-concierge-mobile-mount {
+body.ksia-mobile-bc-mode-sheet #brand-concierge-mobile-mount,
+body.ksia-mobile-bc-mode-sheet-fullscreen #brand-concierge-mobile-mount {
   display: none;
 }
 
@@ -672,6 +673,24 @@ body.ksia-mobile-bc-sheet-open .ksia-mobile-tabbar {
 
 body.ksia-mobile-bc-sheet-open .ksia-mobile-bc-fab {
   z-index: 90;
+}
+
+/* Full Screen env-bar mode — near-fullscreen in-app presentation */
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-panel {
+  max-height: min(96vh, 820px);
+  border-radius: var(--ksia-radius-lg) var(--ksia-radius-lg) 0 0;
+}
+
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-backdrop {
+  background: rgba(40, 35, 40, 0.62);
+}
+
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-mount--sheet {
+  min-height: min(82vh, 640px);
+}
+
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-body {
+  padding-bottom: calc(var(--ksia-safe-bottom) + 8px);
 }
 
 /* Bottom tab bar */

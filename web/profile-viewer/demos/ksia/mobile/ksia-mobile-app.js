@@ -130,11 +130,21 @@
     ensureBcModePicker();
   }
 
+  function isSheetUxMode(mode) {
+    return mode === 'sheet' || mode === 'sheet-fullscreen';
+  }
+
+  function syncBcPresentationClasses() {
+    document.body.classList.toggle('ksia-mobile-bc-display-fullscreen', bcDisplayMode === 'fullScreen');
+    document.body.classList.toggle('ksia-mobile-bc-display-modal', bcDisplayMode === 'modal');
+  }
+
   function setBcUxMode(mode) {
     bcUxMode = mode || 'off';
     document.body.classList.remove(
       'ksia-mobile-bc-mode-injected',
       'ksia-mobile-bc-mode-sheet',
+      'ksia-mobile-bc-mode-sheet-fullscreen',
       'ksia-mobile-bc-mode-fab',
       'ksia-mobile-bc-mode-fab-idle',
       'ksia-mobile-bc-mode-off',
@@ -142,10 +152,11 @@
     if (bcUxMode !== 'off') {
       document.body.classList.add('ksia-mobile-bc-mode-' + bcUxMode);
     }
+    syncBcPresentationClasses();
     updateFabVisibility();
-    if (bcUxMode === 'sheet' && bcReady) {
+    if (isSheetUxMode(bcUxMode) && bcReady) {
       openBcSheet();
-    } else if (bcUxMode !== 'sheet') {
+    } else if (!isSheetUxMode(bcUxMode)) {
       closeBcSheet();
     }
     syncBcModePickerHighlight();
@@ -157,7 +168,10 @@
     var showFab =
       bcEnabled &&
       bcReady &&
-      (bcUxMode === 'fab' || bcUxMode === 'sheet' || bcUxMode === 'fab-idle' || bcUxMode === 'injected');
+      (bcUxMode === 'fab' ||
+        isSheetUxMode(bcUxMode) ||
+        bcUxMode === 'fab-idle' ||
+        bcUxMode === 'injected');
     fab.hidden = !showFab;
     fab.setAttribute('aria-hidden', showFab ? 'false' : 'true');
   }
@@ -240,7 +254,7 @@
         }
         return;
       }
-      if (bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet' || bcUxMode === 'fab-idle')) {
+      if (bcReady && (bcUxMode === 'fab' || isSheetUxMode(bcUxMode) || bcUxMode === 'fab-idle')) {
         openBcSheet();
         return;
       }
@@ -493,6 +507,7 @@
     }
     if (ev.data.displayMode) {
       bcDisplayMode = String(ev.data.displayMode || '').trim();
+      syncBcPresentationClasses();
       syncBcModePickerHighlight();
     }
     if (ev.data.type === 'sdk-injected') {

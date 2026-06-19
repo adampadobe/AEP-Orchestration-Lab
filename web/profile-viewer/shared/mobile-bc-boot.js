@@ -134,13 +134,28 @@
     if (!toggles) toggles = refreshToggles();
     if (!toggles.enabled) return 'off';
     if (toggles.injected) return 'injected';
-    if (toggles.modal || toggles.fullScreen) return 'sheet';
+    if (toggles.fullScreen) return 'sheet-fullscreen';
+    if (toggles.modal) return 'sheet';
     if (toggles.bottomDock || toggles.modalBar) return 'fab';
     var effective = getEffectiveDisplayModeKey(toggles);
     if (effective === 'injected') return 'injected';
-    if (effective === 'modal' || effective === 'fullScreen') return 'fab-idle';
+    if (effective === 'fullScreen') return 'sheet-fullscreen';
+    if (effective === 'modal') return 'sheet';
     if (effective === 'bottomDock' || effective === 'modalBar') return 'fab-idle';
     return 'fab-idle';
+  }
+
+  function isSheetUxMode(uxMode) {
+    return uxMode === 'sheet' || uxMode === 'sheet-fullscreen';
+  }
+
+  function clearSnapshotBcLayout(doc) {
+    if (!doc || !doc.documentElement) return;
+    doc.documentElement.classList.remove('site-clone-bc-fs-active', 'site-clone-bc-injected-active');
+    var fsStyle = doc.getElementById('aep-mod-bc-fullscreen-layout');
+    if (fsStyle) fsStyle.textContent = '';
+    var injStyle = doc.getElementById('aep-mod-bc-injected-layout');
+    if (injStyle) injStyle.textContent = '';
   }
 
   function suppressParentBcChrome() {
@@ -408,7 +423,7 @@
   }
 
   function resolveMount(doc, uxMode) {
-    var mountMode = uxMode === 'fab-idle' ? 'sheet' : uxMode;
+    var mountMode = uxMode === 'fab-idle' || isSheetUxMode(uxMode) ? 'sheet' : uxMode;
     var selector = mountMode === 'injected' ? injectedMountSelector() : sheetMountSelector();
     var mount = doc.querySelector(selector);
     if (!mount && mountMode === 'injected') {
@@ -461,7 +476,11 @@
     if (!uxMode || uxMode === 'off') {
       return !activeMode;
     }
-    if (activeMode !== uxMode && !(uxMode === 'fab-idle' && activeMode === 'fab')) return false;
+    var sameSheetPresentation =
+      isSheetUxMode(uxMode) && isSheetUxMode(activeMode);
+    if (activeMode !== uxMode && !sameSheetPresentation && !(uxMode === 'fab-idle' && activeMode === 'fab')) {
+      return false;
+    }
     var doc = getIframeDoc();
     var win = doc && doc.defaultView;
     if (!win || !win.__siteCloneBcBootstrapped) return false;
@@ -473,7 +492,7 @@
   }
 
   function bcReadyNeedsSignal(uxMode) {
-    return uxMode === 'fab-idle' || uxMode === 'fab' || uxMode === 'sheet';
+    return uxMode === 'fab-idle' || uxMode === 'fab' || isSheetUxMode(uxMode);
   }
 
   async function mobileSyncInner() {
@@ -484,6 +503,7 @@
       activeMode = null;
       var docOff = getIframeDoc();
       if (docOff) {
+        clearSnapshotBcLayout(docOff);
         var inlineMount = docOff.querySelector(injectedMountSelector());
         var sheetMount = docOff.querySelector(sheetMountSelector());
         if (inlineMount) clearMount(inlineMount);
@@ -497,6 +517,8 @@
       return;
     }
     if (canSkipSync(uxMode)) {
+      var docSkip = getIframeDoc();
+      if (docSkip) clearSnapshotBcLayout(docSkip);
       postToIframe({ type: 'bc-display-mode', mode: uxMode, bcEnabled: true });
       if (bcReadyNeedsSignal(uxMode)) {
         postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
@@ -509,6 +531,8 @@
     if (!doc || !doc.body) {
       throw new Error('Mobile app iframe is not ready');
     }
+
+    clearSnapshotBcLayout(doc);
 
     postToIframe({ type: 'bc-prepare', mode: uxMode });
     await ensureIframeCore(doc);
