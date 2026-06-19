@@ -1,14 +1,14 @@
 {
-  "gitSha": "93c60c9ca5b461fc2be2bc4b54cde783bf3f77ae",
-  "gitShortSha": "93c60c9c",
+  "gitSha": "f3a92936b8458968a54ff9af16e7c39cc7b86e5a",
+  "gitShortSha": "f3a92936",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: contain KSIA web hero banner in main column",
+  "gitCommitSubject": "[apalmer] fix: KSIA mobile BC Centre bottom, Modal bar, and Full Screen height",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-19T21:21:16+01:00",
-  "deployedAt": "2026-06-19T20:21:33.510Z",
+  "gitCommitDate": "2026-06-19T22:25:14+01:00",
+  "deployedAt": "2026-06-19T21:26:39.457Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/93c60c9ca5b461fc2be2bc4b54cde783bf3f77ae"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f3a92936b8458968a54ff9af16e7c39cc7b86e5a"
 }

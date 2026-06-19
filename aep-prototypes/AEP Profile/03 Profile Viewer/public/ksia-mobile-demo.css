@@ -34,7 +34,9 @@ html[data-aep-theme='dark'] body.ksia-mobile-demo-page.mobile-demo-shell-page .m
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #siteCloneBcFab,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #aepBcModal,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #siteCloneBcFrameHost,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcBottomDockRoot,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcBottomDockMount,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcModalBarRoot,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcModalBarMount,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome .bc-bottom-dock,
 body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome .bc-modal-bar {

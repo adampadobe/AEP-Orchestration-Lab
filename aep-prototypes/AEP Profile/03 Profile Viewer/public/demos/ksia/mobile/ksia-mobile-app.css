@@ -675,44 +675,77 @@ body.ksia-mobile-bc-sheet-open .ksia-mobile-bc-fab {
   z-index: 90;
 }
 
-/* Full Screen env-bar mode — near-fullscreen in-app presentation */
-body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-panel {
-  max-height: min(96vh, 820px);
-  border-radius: var(--ksia-radius-lg) var(--ksia-radius-lg) 0 0;
+/* Full Screen — fill simulator viewport above tab bar (not partial vh sheet) */
+body.ksia-mobile-bc-mode-sheet-fullscreen .ksia-mobile-bc-sheet,
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet {
+  justify-content: flex-start;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
+body.ksia-mobile-bc-mode-sheet-fullscreen .ksia-mobile-bc-sheet-panel,
+body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-panel {
+  max-height: none;
+  height: calc(100% - var(--ksia-tab-height) - var(--ksia-safe-bottom));
+  min-height: 0;
+  margin-top: 0;
+  border-radius: 0;
+  padding-bottom: 0;
+}
+
+body.ksia-mobile-bc-mode-sheet-fullscreen .ksia-mobile-bc-sheet-backdrop,
 body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-backdrop {
   background: rgba(40, 35, 40, 0.62);
 }
 
+body.ksia-mobile-bc-mode-sheet-fullscreen .ksia-mobile-bc-mount--sheet,
 body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-mount--sheet {
-  min-height: min(82vh, 640px);
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
 }
 
+body.ksia-mobile-bc-mode-sheet-fullscreen .ksia-mobile-bc-sheet-body,
 body.ksia-mobile-bc-display-fullscreen .ksia-mobile-bc-sheet-body {
-  padding-bottom: calc(var(--ksia-safe-bottom) + 8px);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 12px calc(var(--ksia-safe-bottom) + 8px);
+}
+
+/* Modal env-bar mode — compact bottom sheet */
+body.ksia-mobile-bc-display-modal .ksia-mobile-bc-sheet-panel,
+body.ksia-mobile-bc-mode-sheet:not(.ksia-mobile-bc-mode-sheet-fullscreen) .ksia-mobile-bc-sheet-panel {
+  max-height: min(72%, calc(100% - var(--ksia-tab-height) - var(--ksia-safe-bottom) - 24px));
+}
+
+body.ksia-mobile-bc-display-modal .ksia-mobile-bc-mount--sheet,
+body.ksia-mobile-bc-mode-sheet:not(.ksia-mobile-bc-mode-sheet-fullscreen) .ksia-mobile-bc-mount--sheet {
+  min-height: min(52%, 420px);
 }
 
 /* Centre bottom — compact in-app sheet (FAB opens) */
-body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-panel {
-  max-height: min(72vh, 560px);
+body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-panel,
+body.ksia-mobile-bc-mode-fab.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-panel {
+  max-height: min(68%, calc(100% - var(--ksia-tab-height) - var(--ksia-safe-bottom) - 32px));
 }
 
-body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-mount--sheet {
-  min-height: min(58vh, 440px);
+body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-mount--sheet,
+body.ksia-mobile-bc-mode-fab.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-mount--sheet {
+  min-height: min(48%, 380px);
 }
 
 body.ksia-mobile-bc-display-bottomdock .ksia-mobile-bc-sheet-body {
   padding-bottom: calc(var(--ksia-tab-height) + 8px);
 }
 
-/* Modal bar — standard FAB sheet */
-body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-sheet-panel {
-  max-height: min(84vh, 680px);
+/* Modal bar — FAB + compact sheet */
+body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-sheet-panel,
+body.ksia-mobile-bc-mode-fab.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-sheet-panel {
+  max-height: min(68%, calc(100% - var(--ksia-tab-height) - var(--ksia-safe-bottom) - 32px));
 }
 
-body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-mount--sheet {
-  min-height: min(64vh, 500px);
+body.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-mount--sheet,
+body.ksia-mobile-bc-mode-fab.ksia-mobile-bc-display-modalbar .ksia-mobile-bc-mount--sheet {
+  min-height: min(48%, 380px);
 }
 
 /* Bottom tab bar */

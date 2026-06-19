@@ -479,6 +479,11 @@
     if (!uxMode || uxMode === 'off') {
       return !activeMode;
     }
+    var toggles = refreshToggles();
+    var displayMode = getEffectiveDisplayModeKey(toggles);
+    if (activeDisplayMode && displayMode && activeDisplayMode !== displayMode) {
+      return false;
+    }
     var sameSheetPresentation =
       isSheetUxMode(uxMode) && isSheetUxMode(activeMode);
     if (activeMode !== uxMode && !sameSheetPresentation && !(uxMode === 'fab-idle' && activeMode === 'fab')) {
@@ -523,6 +528,7 @@
     if (canSkipSync(uxMode)) {
       var docSkip = getIframeDoc();
       if (docSkip) clearSnapshotBcLayout(docSkip);
+      activeDisplayMode = getEffectiveDisplayModeKey(toggles);
       if (bcReadyNeedsSignal(uxMode)) {
         postToIframe({ type: 'bc-ready', mode: uxMode, bcEnabled: true });
       }
@@ -647,6 +653,7 @@
       loadedIframeStyleUrl = null;
       loadedIframeDatastreamId = null;
       activeMode = null;
+      activeDisplayMode = null;
       if (getEffectiveUxMode() !== 'off') {
         void mobileSync();
       }
