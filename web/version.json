@@ -1,14 +1,14 @@
 {
-  "gitSha": "7783c5b6ac66ffa0fb30666300db1719fe724eed",
-  "gitShortSha": "7783c5b6",
+  "gitSha": "93c60c9ca5b461fc2be2bc4b54cde783bf3f77ae",
+  "gitShortSha": "93c60c9c",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: keep TopRibbon in KSIA mobile scroll column",
+  "gitCommitSubject": "[apalmer] fix: contain KSIA web hero banner in main column",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-19T21:13:48+01:00",
-  "deployedAt": "2026-06-19T20:14:07.524Z",
+  "gitCommitDate": "2026-06-19T21:21:16+01:00",
+  "deployedAt": "2026-06-19T20:21:33.510Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/7783c5b6ac66ffa0fb30666300db1719fe724eed"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/93c60c9ca5b461fc2be2bc4b54cde783bf3f77ae"
 }
