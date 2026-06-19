@@ -9,6 +9,12 @@
   Optional: mark the native hero wrapper with data-hero-mount when you prefer
   decisioning overlay on the existing hero instead of a sibling #hero-banner.
 
+  Hero sizing (decisioning-edge-inject.js):
+    data-hero-mount-fit="contain" — auto width/height inside host padding (mobile cards)
+    data-hero-mount-fit="full"     — viewport-bleed full width (desktop site heroes)
+    data-hero-auto-size="1"        — alias for contain; "0" forces full bleed
+    .ksia-mobile-app shells default to contain when fit is omitted
+
   Do NOT use alternate spellings (#topribbon, #contentcardarea, #Hero-Banner).
 
   Layout preset:

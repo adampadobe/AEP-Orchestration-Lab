@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var CACHE_BUST = '20260617-mount-reset';
+  var CACHE_BUST = '20260619-hero-contain';
   var LOG_PREFIX = '[decisioning-edge-inject]';
   var MOUNT_ATTR = 'data-decisioning-edge-mount';
   var STYLE_ID = 'decisioningEdgeMountStyles';
@@ -214,9 +214,19 @@
       '.cd-banner-image,.cd-edge-ajo-card-img{width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain;display:block;margin-left:auto;margin-right:auto;}' +
       '[data-hero-mount]:has(#' +
       FRAGMENTS.hero +
-      '.cd-edge-has-decision:not(:empty)),' +
-      '[data-hero-mount].cd-edge-hero-host-has-decision{overflow:visible;height:auto;min-height:min(42vh,360px);width:100%;max-width:none;box-sizing:border-box;}' +
-      '[data-hero-mount].cd-edge-hero-host-full-width{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);position:relative;left:0;}' +
+      '.cd-edge-has-decision:not(:empty)):not(.cd-edge-hero-host-contained),' +
+      '[data-hero-mount].cd-edge-hero-host-has-decision:not(.cd-edge-hero-host-contained){overflow:visible;height:auto;min-height:min(42vh,360px);width:100%;max-width:none;box-sizing:border-box;}' +
+      '[data-hero-mount].cd-edge-hero-host-contained,' +
+      '[data-hero-mount][data-hero-mount-fit="contain"],' +
+      '[data-hero-mount][data-hero-auto-size="1"],' +
+      '[data-hero-mount][data-hero-auto-size="true"]{overflow:hidden;height:auto;min-height:0;width:100%;max-width:100%;box-sizing:border-box;}' +
+      '[data-hero-mount].cd-edge-hero-host-contained #hero-banner.cd-edge-mount-body--hero-flow,' +
+      '[data-hero-mount].cd-edge-hero-host-contained #' +
+      FRAGMENTS.hero +
+      '.cd-edge-mount-body--hero-flow{width:100%;max-width:100%;}' +
+      '[data-hero-mount].cd-edge-hero-host-contained .cd-banner--overlay.cd-banner--contain-fit{min-height:0;border-radius:inherit;}' +
+      '[data-hero-mount].cd-edge-hero-host-contained .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy{padding:1rem;}' +
+      '[data-hero-mount].cd-edge-hero-host-full-width:not(.cd-edge-hero-host-contained){width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);position:relative;left:0;}' +
       '#' +
       FRAGMENTS.hero +
       '.cd-edge-mount-body--hero-flow:not(.cd-edge-mount-body--layout-below){width:100%;max-width:100%;}' +
@@ -697,15 +707,57 @@
     });
   }
 
-  /** Expand [data-hero-mount] to full content / viewport width (KSIA .ksia-hero, Etihad, …). */
-  function expandHeroHostFullWidth(host) {
+  /**
+   * Hero mount sizing: contained (auto w/h inside host padding) vs full viewport bleed.
+   * Opt-in: data-hero-mount-fit="contain"|"full", data-hero-auto-size="1"|"0".
+   * Mobile app shells (.ksia-mobile-app) default to contain unless fit="full".
+   */
+  function heroMountFitMode(host) {
+    if (!host || !host.getAttribute) return 'full';
+    var explicit = String(host.getAttribute('data-hero-mount-fit') || '')
+      .trim()
+      .toLowerCase();
+    if (explicit === 'contain' || explicit === 'auto' || explicit === 'inline') return 'contain';
+    if (explicit === 'full' || explicit === 'bleed' || explicit === 'viewport') return 'full';
+    var autoSize = String(host.getAttribute('data-hero-auto-size') || '')
+      .trim()
+      .toLowerCase();
+    if (autoSize === '1' || autoSize === 'true' || autoSize === 'yes') return 'contain';
+    if (autoSize === '0' || autoSize === 'false' || autoSize === 'no') return 'full';
+    var doc = host.ownerDocument;
+    if (doc && doc.body && doc.body.classList.contains('ksia-mobile-app')) return 'contain';
+    return 'full';
+  }
+
+  /** Apply post-decision layout on [data-hero-mount] (contain vs full-bleed). */
+  function applyHeroHostDecisionLayout(host) {
     if (!host) return;
-    host.classList.add('cd-edge-hero-host-has-decision', 'cd-edge-hero-host-full-width');
-    host.style.overflow = 'visible';
+    var mode = heroMountFitMode(host);
+    host.classList.add('cd-edge-hero-host-has-decision');
     host.style.height = 'auto';
+    host.style.boxSizing = 'border-box';
+    if (mode === 'contain') {
+      host.classList.add('cd-edge-hero-host-contained');
+      host.classList.remove('cd-edge-hero-host-full-width');
+      host.style.overflow = 'hidden';
+      host.style.width = '100%';
+      host.style.maxWidth = '100%';
+      host.style.removeProperty('margin-left');
+      host.style.removeProperty('margin-right');
+      host.style.removeProperty('left');
+      host.style.removeProperty('min-height');
+      return;
+    }
+    host.classList.remove('cd-edge-hero-host-contained');
+    host.classList.add('cd-edge-hero-host-full-width');
+    host.style.overflow = 'visible';
     host.style.width = '100%';
     host.style.maxWidth = 'none';
-    host.style.boxSizing = 'border-box';
+  }
+
+  /** Expand [data-hero-mount] to full content / viewport width (KSIA .ksia-hero, Etihad, …). */
+  function expandHeroHostFullWidth(host) {
+    applyHeroHostDecisionLayout(host);
   }
 
   /** Measure native hero host height before decisioning hides siblings. */

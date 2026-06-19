@@ -159,6 +159,36 @@ body.ksia-mobile-app {
   position: relative;
 }
 
+/* Decisioning hero: stay inside card margin rhythm (16px); fill rounded card interior */
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision #hero-banner,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision #hero-banner {
+  border-radius: inherit;
+}
+
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner {
+  border-radius: inherit;
+}
+
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner--overlay.cd-banner--contain-fit .cd-banner-copy {
+  padding: 1rem 1rem 1.125rem;
+}
+
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-image,
+.ksia-mobile-hero-card[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-figure img,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-image,
+.ksia-mobile-concierge-hero[data-hero-mount].cd-edge-hero-host-has-decision .cd-banner-figure img {
+  border-radius: inherit;
+  max-height: min(36vh, 280px);
+}
+
 /* ─── Hero trip card ─── */
 .ksia-mobile-hero-card {
   margin: 12px 16px 16px;
