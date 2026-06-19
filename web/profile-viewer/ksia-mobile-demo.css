@@ -29,3 +29,16 @@ body.ksia-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap 
 html[data-aep-theme='dark'] body.ksia-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
   background: var(--dash-bg);
 }
+
+/* Suppress parent-page BC chrome — concierge renders inside phone iframe */
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #siteCloneBcFab,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #aepBcModal,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #siteCloneBcFrameHost,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcBottomDockMount,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome #bcModalBarMount,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome .bc-bottom-dock,
+body.ksia-mobile-demo-page.ksia-mobile-bc-suppress-chrome .bc-modal-bar {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

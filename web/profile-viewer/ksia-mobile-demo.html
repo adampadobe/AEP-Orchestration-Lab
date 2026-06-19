@@ -16,6 +16,15 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <script>
+    window.SiteCloneBcPage = {
+      iframeId: 'ksiaMobileFrame',
+      channel: 'mobile',
+      injectBcInIframe: true,
+      injectedMountSelector: '#brand-concierge-mobile-mount',
+      modalMountSelector: '#ksiaMobileBcSheetMount',
+      suppressParentBcChrome: true,
+      statusMessageId: 'ksiaMessage',
+    };
     window.mobileDemoConfig = {
       demoId: 'ksia',
       brandName: 'KSIA AIVC',
@@ -31,6 +40,7 @@
       channelLabel: 'Mobile',
     };
   </script>
+  <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
 <body class="ksia-mobile-demo-page mobile-demo-shell-page mobile-demo-page home-dashboard-concierge">
   <div class="mobile-demo-shell-env-anchor" id="ksiaMobileDemoEnvAnchor">
@@ -140,7 +150,8 @@
   <script src="shared/mobile-demo-configs.js?v=20260613"></script>
   <script src="shared/mobile-demo-shell.js?v=20260614-no-browser-fs"></script>
   <script src="demos/ksia/ksia-lab-core.js?v=20260624-ksia-env-bar"></script>
-  <script src="ksia-mobile-demo.js?v=20260613"></script>
+  <script src="shared/mobile-bc-boot.js?v=20260619-ksia-mobile-bc"></script>
+  <script src="ksia-mobile-demo.js?v=20260619-ksia-mobile-bc"></script>
   <script defer src="aep-theme.js?v=20260614-no-browser-fs"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260613-ksia-mobile"></script>

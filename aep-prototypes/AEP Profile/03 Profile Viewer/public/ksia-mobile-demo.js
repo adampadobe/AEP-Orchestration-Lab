@@ -37,6 +37,17 @@ function whenEnvBarReady(run) {
 
 whenEnvBarReady(bootKsiaMobileLab);
 
+function initKsiaMobileBcAdapter() {
+  if (window.MobileBcBoot && typeof window.MobileBcBoot.init === 'function') {
+    window.MobileBcBoot.init();
+  }
+  if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
+    void window.MobileBcBoot.sync();
+  }
+}
+
+whenEnvBarReady(initKsiaMobileBcAdapter);
+
 function setKsiaMessage(text, type) {
   if (ksiaLab && typeof ksiaLab.setMessage === 'function') {
     ksiaLab.setMessage(text, type);
@@ -109,7 +120,7 @@ window.addEventListener('message', function (ev) {
   }
 });
 
-/* Notify iframe when SDK injected (placeholder bridge) */
+/* Notify iframe when SDK injected; trigger mobile BC sync */
 if (window.envBar && typeof window.envBar.onChange === 'function') {
   window.envBar.onChange(function (detail) {
     if (detail && detail.type === 'tags-injected' && ksiaMobileFrame && ksiaMobileFrame.contentWindow) {
@@ -117,6 +128,9 @@ if (window.envBar && typeof window.envBar.onChange === 'function') {
         ksiaMobileFrame.contentWindow.postMessage({ source: 'ksia-mobile-lab-parent', type: 'sdk-injected' }, '*');
       } catch (_) {
         /* ignore */
+      }
+      if (window.MobileBcBoot && typeof window.MobileBcBoot.sync === 'function') {
+        void window.MobileBcBoot.sync();
       }
     }
   });

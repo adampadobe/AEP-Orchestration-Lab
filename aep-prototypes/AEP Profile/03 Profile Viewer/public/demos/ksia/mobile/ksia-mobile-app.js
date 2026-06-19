@@ -3,14 +3,112 @@
  *
  * SDK / Tags hooks:
  * - #brand-concierge-mobile-mount — Brand Concierge inject target inside app shell
+ * - #ksiaMobileBcSheetMount — sheet mount for modal / fullscreen / FAB modes
  * - window.postMessage to parent: { source: 'ksia-mobile-lab', type: 'ksia-experience-event', payload }
- * - Listens for parent: { source: 'ksia-mobile-lab-parent', type: 'sdk-injected' }
+ * - Listens for parent: { source: 'ksia-mobile-lab-parent', type: 'sdk-injected' | 'bc-ready' | 'bc-display-mode' }
  */
 (function () {
   'use strict';
 
   var PAGE_ID = document.body && document.body.getAttribute('data-ksia-mobile-page');
   var data = window.KsiaMockData || {};
+  var bcUxMode = 'off';
+  var bcReady = false;
+
+  function ensureInlineBcMount() {
+    if (document.getElementById('brand-concierge-mobile-mount')) return;
+    var scroll = document.querySelector('.ksia-mobile-app-scroll');
+    if (!scroll) return;
+    var mount = document.createElement('div');
+    mount.id = 'brand-concierge-mobile-mount';
+    mount.setAttribute('aria-live', 'polite');
+    mount.className = 'ksia-mobile-bc-mount ksia-mobile-bc-mount--inline';
+    scroll.appendChild(mount);
+  }
+
+  function ensureBcSheetHost() {
+    if (document.getElementById('ksiaMobileBcSheet')) return;
+    var sheet = document.createElement('div');
+    sheet.id = 'ksiaMobileBcSheet';
+    sheet.className = 'ksia-mobile-bc-sheet';
+    sheet.hidden = true;
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-label', 'Brand Concierge');
+    sheet.innerHTML =
+      '<button type="button" class="ksia-mobile-bc-sheet-backdrop" data-ksia-bc-sheet-close aria-label="Close assistant"></button>' +
+      '<div class="ksia-mobile-bc-sheet-panel">' +
+      '<header class="ksia-mobile-bc-sheet-header">' +
+      '<h2 class="ksia-mobile-bc-sheet-title">AIVC assistant</h2>' +
+      '<button type="button" class="ksia-mobile-bc-sheet-close" data-ksia-bc-sheet-close aria-label="Close assistant">&times;</button>' +
+      '</header>' +
+      '<div class="ksia-mobile-bc-sheet-body">' +
+      '<div id="ksiaMobileBcSheetMount" class="ksia-mobile-bc-mount ksia-mobile-bc-mount--sheet" aria-live="polite"></div>' +
+      '</div></div>';
+    document.body.appendChild(sheet);
+    sheet.querySelectorAll('[data-ksia-bc-sheet-close]').forEach(function (btn) {
+      btn.addEventListener('click', closeBcSheet);
+    });
+  }
+
+  function ensureBcInfrastructure() {
+    ensureBcSheetHost();
+    ensureInlineBcMount();
+  }
+
+  function setBcUxMode(mode) {
+    bcUxMode = mode || 'off';
+    document.body.classList.remove(
+      'ksia-mobile-bc-mode-injected',
+      'ksia-mobile-bc-mode-sheet',
+      'ksia-mobile-bc-mode-fab',
+      'ksia-mobile-bc-mode-off',
+    );
+    if (bcUxMode !== 'off') {
+      document.body.classList.add('ksia-mobile-bc-mode-' + bcUxMode);
+    }
+    updateFabVisibility();
+    if (bcUxMode === 'sheet' && bcReady) {
+      openBcSheet();
+    } else if (bcUxMode !== 'sheet') {
+      closeBcSheet();
+    }
+  }
+
+  function updateFabVisibility() {
+    var fab = document.getElementById('ksiaMobileBcFab');
+    if (!fab) return;
+    var showFab = bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet');
+    fab.hidden = !showFab;
+    fab.setAttribute('aria-hidden', showFab ? 'false' : 'true');
+  }
+
+  function openBcSheet() {
+    var sheet = document.getElementById('ksiaMobileBcSheet');
+    if (!sheet) return;
+    sheet.hidden = false;
+    document.body.classList.add('ksia-mobile-bc-sheet-open');
+    var fab = document.getElementById('ksiaMobileBcFab');
+    if (fab) fab.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeBcSheet() {
+    var sheet = document.getElementById('ksiaMobileBcSheet');
+    if (!sheet) return;
+    sheet.hidden = true;
+    document.body.classList.remove('ksia-mobile-bc-sheet-open');
+    var fab = document.getElementById('ksiaMobileBcFab');
+    if (fab) fab.setAttribute('aria-expanded', 'false');
+  }
+
+  function scrollToInlineMount() {
+    var mount = document.getElementById('brand-concierge-mobile-mount');
+    if (mount && mount.children.length) {
+      mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return true;
+    }
+    return false;
+  }
 
   function postExperienceEvent(eventType, extra) {
     var payload = {
@@ -34,15 +132,21 @@
 
   function bindBcFab() {
     var fab = document.getElementById('ksiaMobileBcFab');
-    var mount = document.getElementById('brand-concierge-mobile-mount');
     if (!fab) return;
+    fab.hidden = true;
     fab.addEventListener('click', function () {
       postExperienceEvent('ksia.mobile.concierge.open', { action: 'open_concierge' });
-      if (mount && mount.children.length) {
-        mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (bcUxMode === 'injected') {
+        if (scrollToInlineMount()) return;
+        if (PAGE_ID !== 'concierge') {
+          window.location.href = 'concierge.html?aepSimMobile=1';
+        }
         return;
       }
-      /* Navigate to concierge hub when BC not yet injected */
+      if (bcReady && (bcUxMode === 'fab' || bcUxMode === 'sheet')) {
+        openBcSheet();
+        return;
+      }
       if (PAGE_ID !== 'concierge') {
         window.location.href = 'concierge.html?aepSimMobile=1';
       }
@@ -263,6 +367,7 @@
   }
 
   function initPage() {
+    ensureBcInfrastructure();
     renderTabBar();
     bindBcFab();
     fillHero();
@@ -271,6 +376,7 @@
     fillNextActions();
     fillWallet();
     fillNotifications();
+    updateFabVisibility();
     postExperienceEvent('ksia.mobile.page.view', { page: PAGE_ID });
   }
 
@@ -279,6 +385,22 @@
     if (ev.data.type === 'sdk-injected') {
       var hint = document.getElementById('ksiaMobileSdkHint');
       if (hint) hint.hidden = true;
+      return;
+    }
+    if (ev.data.type === 'bc-prepare') {
+      bcReady = false;
+      updateFabVisibility();
+      return;
+    }
+    if (ev.data.type === 'bc-ready') {
+      bcReady = true;
+      setBcUxMode(ev.data.mode || bcUxMode);
+      var hint = document.getElementById('ksiaMobileSdkHint');
+      if (hint) hint.hidden = true;
+      return;
+    }
+    if (ev.data.type === 'bc-display-mode') {
+      setBcUxMode(ev.data.mode || 'off');
     }
   });
 
