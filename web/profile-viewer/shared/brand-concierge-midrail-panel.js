@@ -39,17 +39,11 @@
     return document.getElementById(mode.toggleId);
   }
 
-  function isAnyBcDisplayModeActive() {
+  function isBcEnableActive() {
     var master = document.getElementById('siteCloneBcEnabledToggle');
     if (master) return !!master.checked;
     if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.isBcEnabled === 'function') {
       return !!global.SiteCloneBcEnv.isBcEnabled();
-    }
-    var modes = activeModeDefs();
-    var i;
-    for (i = 0; i < modes.length; i++) {
-      var el = envToggle(modes[i]);
-      if (el && el.checked) return true;
     }
     return false;
   }
@@ -178,7 +172,7 @@
     }
 
     function refreshVisibility() {
-      var enabledFn = typeof opt.isEnabled === 'function' ? opt.isEnabled : isAnyBcDisplayModeActive;
+      var enabledFn = typeof opt.isEnabled === 'function' ? opt.isEnabled : isBcEnableActive;
       setVisible(!!enabledFn());
     }
 

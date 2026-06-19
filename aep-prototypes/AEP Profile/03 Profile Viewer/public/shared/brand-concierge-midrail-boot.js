@@ -20,19 +20,13 @@
       return null;
     }
 
+    // Visibility follows env-bar Enable — not whether a display type is checked (fab-idle keeps midrail up).
     var handle = global.BrandConciergeMidrailPanel.init({
       isEnabled: function () {
-        var modes = [
-          'siteCloneBcFullScreenToggle',
-          'siteCloneBcModalToggle',
-          'siteCloneBcInjectedToggle',
-          'siteCloneBcBottomDockToggle',
-          'siteCloneBcModalBarToggle',
-        ];
-        var i;
-        for (i = 0; i < modes.length; i++) {
-          var el = document.getElementById(modes[i]);
-          if (el && el.checked) return true;
+        var master = document.getElementById('siteCloneBcEnabledToggle');
+        if (master) return !!master.checked;
+        if (global.SiteCloneBcEnv && typeof global.SiteCloneBcEnv.isBcEnabled === 'function') {
+          return !!global.SiteCloneBcEnv.isBcEnabled();
         }
         return false;
       },

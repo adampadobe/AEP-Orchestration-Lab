@@ -7,7 +7,8 @@
   display: none;
 }
 
-body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
+body.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab:not([hidden]),
+body.site-clone-bc-fab-idle #siteCloneBcFab.site-clone-bc-fab:not([hidden]) {
   display: flex !important;
   align-items: center;
   justify-content: center;
