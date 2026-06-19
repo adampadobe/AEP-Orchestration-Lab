@@ -236,11 +236,16 @@
       '<div class="site-clone-profile-lab-prefs-row">' +
       '<div class="site-clone-bc-prefs-field" role="group" aria-labelledby="siteCloneBcPrefsHeading">' +
       '<span class="site-clone-bc-prefs__label" id="siteCloneBcPrefsHeading">Brand Concierge</span>' +
-      '<div class="site-clone-bc-prefs__options">' +
-      '<label class="site-clone-bc-prefs__option">' +
+      '<div class="site-clone-bc-prefs__enable-row">' +
+      '<div class="site-clone-bc-prefs__options site-clone-bc-prefs__options--enable">' +
+      '<label class="site-clone-bc-prefs__option site-clone-bc-prefs__option--enable">' +
       '<input type="checkbox" id="siteCloneBcEnabledToggle">' +
       '<span>Enable</span>' +
       '</label>' +
+      '</div>' +
+      '</div>' +
+      '<div class="site-clone-bc-prefs__display-modes">' +
+      '<div class="site-clone-bc-prefs__options site-clone-bc-prefs__options--modes">' +
       '<label class="site-clone-bc-prefs__option">' +
       '<input type="checkbox" id="siteCloneBcFullScreenToggle" data-site-clone-bc-style-from="siteCloneBcStyleConfigUrl">' +
       '<span>Full Screen</span>' +
@@ -258,6 +263,7 @@
       '<span>Modal bar</span>' +
       '</label>' +
       bottomDockOption +
+      '</div>' +
       '</div>' +
       '</div>' +
       decisioningBlock +

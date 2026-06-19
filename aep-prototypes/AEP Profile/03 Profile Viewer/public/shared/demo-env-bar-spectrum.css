@@ -1165,20 +1165,44 @@
 }
 
 .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
   align-self: stretch;
   width: 100%;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option {
+  flex: 1 1 100%;
+  min-width: 100%;
+  width: 100%;
+  border-radius: 999px;
+  padding-right: 0.85rem;
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option:has(input:checked) {
+  background: var(--spectrum-green-muted);
+  border-color: var(--spectrum-green);
+  color: var(--spectrum-green);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spectrum-green) 25%, transparent);
+}
+
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
   width: 100%;
 }
 
-.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__option {
+.aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes .site-clone-bc-prefs__option {
   flex: initial;
   min-width: 0;
   width: 100%;
@@ -1492,7 +1516,7 @@
     font-size: 0.75rem;
   }
 
-  .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options {
+  .aep-demo-env-bar--spectrum .lab-env-bc-prefs-wrap .site-clone-bc-prefs-field .site-clone-bc-prefs__options--modes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

@@ -190,6 +190,14 @@
   gap: 0.45rem 0.9rem;
 }
 
+.aep-demo-profile-section .site-clone-bc-prefs__options--enable {
+  width: 100%;
+}
+
+.aep-demo-profile-section .site-clone-bc-prefs__options--enable .site-clone-bc-prefs__option {
+  width: 100%;
+}
+
 .aep-demo-profile-section .site-clone-bc-prefs__option {
   display: inline-flex;
   align-items: center;
