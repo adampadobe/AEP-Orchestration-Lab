@@ -108,8 +108,7 @@
   display: none;
 }
 
-.mod-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab,
-.mod-demo-page.site-clone-bc-fab-idle #siteCloneBcFab.site-clone-bc-fab {
+.mod-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab {
   display: flex;
 }
 

@@ -1681,12 +1681,6 @@
       setModalBarVisible(false);
       clearMountInDoc(document, MODAL_BAR_MOUNT_SELECTOR);
     }
-    if (document.body && document.body.classList) {
-      document.body.classList.toggle('site-clone-bc-fab-idle', isFabIdleState());
-    }
-    if (isFabIdleState()) {
-      setModalFabArmed(true);
-    }
   }
 
   var syncInFlight = null;
@@ -1798,9 +1792,6 @@
     var wantModalBar = isEffectiveModalBarOn() && isPresentationModeActive();
 
     if (!wantInjected && !wantModal && !wantFullScreen && !wantBottomDock && !wantModalBar) {
-      if (isFabIdleState()) {
-        setModalFabArmed(true);
-      }
       reportBcStatus('');
       return;
     }
