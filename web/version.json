@@ -1,14 +1,14 @@
 {
-  "gitSha": "a3feffd43d82cbf9054318086548ab4066e1c72a",
-  "gitShortSha": "a3feffd4",
+  "gitSha": "49865a56e313dbd18cd675eacc3391073335b41c",
+  "gitShortSha": "49865a56",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: keep BC FAB visible when Enable on with no display mode",
+  "gitCommitSubject": "[apalmer] fix: hide web BC modal FAB when no display type selected",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-19T22:52:12+01:00",
-  "deployedAt": "2026-06-19T21:52:31.545Z",
+  "gitCommitDate": "2026-06-20T19:59:29+01:00",
+  "deployedAt": "2026-06-20T18:59:41.989Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a3feffd43d82cbf9054318086548ab4066e1c72a"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/49865a56e313dbd18cd675eacc3391073335b41c"
 }
