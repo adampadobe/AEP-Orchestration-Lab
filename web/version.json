@@ -1,14 +1,14 @@
 {
-  "gitSha": "fca90dec9a549833f15d30a066ccea6c75340af8",
-  "gitShortSha": "fca90dec",
+  "gitSha": "271d7c7f8fb86aa8ec455fc9623dcbb40c1fdf66",
+  "gitShortSha": "271d7c7f",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: stabilize AEP & Apps slide HUD height on state change",
+  "gitCommitSubject": "[apalmer] feat: complete AEP architecture diagram with governance and full flows",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:40:42+01:00",
-  "deployedAt": "2026-06-21T09:40:54.754Z",
+  "gitCommitDate": "2026-06-21T11:37:05+01:00",
+  "deployedAt": "2026-06-21T10:37:17.292Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fca90dec9a549833f15d30a066ccea6c75340af8"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/271d7c7f8fb86aa8ec455fc9623dcbb40c1fdf66"
 }
