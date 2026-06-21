@@ -17,16 +17,31 @@
 
   var FLOW_IDS = [
     'flow-tags-edge',
+    'flow-sdk-edge',
     'flow-sources-stream',
     'flow-sources-batch',
     'flow-stream-lake',
     'flow-batch-lake',
+    'flow-query-lake',
+    'flow-lake-query',
+    'flow-intel-lake',
+    'flow-lake-intel',
     'flow-lake-pipeline',
     'flow-pipeline-profile',
     'flow-edge-profile',
+    'flow-profile-edge-back',
     'flow-profile-seg',
+    'flow-seg-profile-back',
+    'flow-profile-decision',
+    'flow-seg-decision',
     'flow-seg-jo',
     'flow-profile-cdp',
+    'flow-creative-aem',
+    'flow-edge-aem',
+    'flow-aem-decision',
+    'flow-lake-gov',
+    'flow-lake-cja',
+    'flow-lake-mix',
     'flow-edge-inbound',
     'flow-jo-msg',
     'flow-cdp-paid',
@@ -36,22 +51,55 @@
 
   var FLOW_LABELS = {
     'flow-tags-edge': 'Tags → Edge',
+    'flow-sdk-edge': 'SDK → Edge',
     'flow-sources-stream': 'Sources → Streaming',
     'flow-sources-batch': 'Sources → Batch',
     'flow-stream-lake': 'Streaming → Lake',
     'flow-batch-lake': 'Batch → Lake',
+    'flow-query-lake': 'Query Service → Lake',
+    'flow-lake-query': 'Lake → Query Service',
+    'flow-intel-lake': 'Intelligence & AI → Lake',
+    'flow-lake-intel': 'Lake → Intelligence & AI',
     'flow-lake-pipeline': 'Lake → Pipeline',
     'flow-pipeline-profile': 'Pipeline → Profile',
     'flow-edge-profile': 'Edge → Profile',
+    'flow-profile-edge-back': 'Profile → Edge',
     'flow-profile-seg': 'Profile → Segmentation',
+    'flow-seg-profile-back': 'Segmentation → Profile',
+    'flow-profile-decision': 'Profile → Decisioning',
+    'flow-seg-decision': 'Segmentation → Decisioning',
     'flow-seg-jo': 'Segmentation → JO',
     'flow-profile-cdp': 'Profile → RTCDP',
+    'flow-creative-aem': 'Creative Cloud → AEM',
+    'flow-edge-aem': 'Edge → AEM Assets',
+    'flow-aem-decision': 'AEM → Decisioning',
+    'flow-lake-gov': 'Lake → Governance',
+    'flow-lake-cja': 'Lake → CJA (Raw Data)',
+    'flow-lake-mix': 'Lake → Mix Modeler (Raw Data)',
     'flow-edge-inbound': 'Edge → Inbound',
     'flow-jo-msg': 'JO → Message Delivery',
     'flow-cdp-paid': 'RTCDP → Paid Media',
     'flow-cja-jrpt': 'CJA → Journey Reporting',
     'flow-mix-mrpt': 'Mix Modeler → Marketing Performance',
   };
+
+  /** All connector flows for slide 1 — full reference architecture overview. */
+  var STATE1_OVERVIEW_FLOWS = FLOW_IDS.map(function (fid) {
+    var kind =
+      fid === 'flow-tags-edge' ||
+      fid === 'flow-sdk-edge' ||
+      fid === 'flow-sources-stream' ||
+      fid === 'flow-sources-batch'
+        ? 'ingress'
+        : fid === 'flow-edge-inbound' ||
+            fid === 'flow-jo-msg' ||
+            fid === 'flow-cdp-paid' ||
+            fid === 'flow-cja-jrpt' ||
+            fid === 'flow-mix-mrpt'
+          ? 'egress'
+          : 'intra';
+    return { id: fid, stroke: FLOW_COLORS[kind], kind: kind };
+  });
 
   /** Embedded fallback — deck-aligned default (mirrors data/aep-architecture-tour-default.json). */
   var EMBEDDED_TOUR = {
@@ -63,8 +111,8 @@
         headline: 'Adobe Experience Platform as the centralized data foundation',
         body:
           'Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant digital customer experiences.',
-        highlights: ['node-aep', 'node-edge'],
-        flows: [],
+        highlights: ['node-aep'],
+        flows: STATE1_OVERVIEW_FLOWS.slice(),
       },
       {
         label: '2 — Four native apps',
@@ -172,15 +220,15 @@
         headline: 'Alerts, Audit Logs, and Access Controls',
         body:
           'Because Experience Platform is an API-oriented system, you can set it up to provide Alerts that tell you when something went wrong or needs attention. Audit Logs will tell you who logged into Experience Platform, the actions they took, and the time they took those actions—all important for governance. Granular Access Controls allow you to restrict who has access to what so that everyone has the exact right level of access for their role.',
-        highlights: ['node-lake', 'node-aep'],
-        flows: [],
+        highlights: ['node-lake', 'node-aep', 'node-cbox-gov-audit', 'node-cbox-gov-alerts', 'node-cbox-gov-access'],
+        flows: [{ id: 'flow-lake-gov', stroke: FLOW_COLORS.intra, kind: 'intra' }],
       },
       {
         label: '14 — Sandboxing',
         headline: 'Sandboxes for development and production',
         body:
           'A sandbox creates a complete Experience Platform environment. Sandboxing allows you to create separate development and production environments, separate environments to handle highly sensitive data, or separate environments for subsidiaries if you are a multi-business company.',
-        highlights: ['node-aep'],
+        highlights: ['node-aep', 'node-cbox-gov-sandbox'],
         flows: [],
       },
       {
@@ -418,6 +466,7 @@
     FLOW_COLORS: FLOW_COLORS,
     FLOW_IDS: FLOW_IDS,
     FLOW_LABELS: FLOW_LABELS,
+    STATE1_OVERVIEW_FLOWS: STATE1_OVERVIEW_FLOWS,
     EMBEDDED_TOUR: EMBEDDED_TOUR,
     EMBEDDED_STATES: EMBEDDED_TOUR.states,
     normalizeFlow: normalizeFlow,

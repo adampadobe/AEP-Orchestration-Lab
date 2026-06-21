@@ -6,8 +6,40 @@
       "label": "1 — Platform overview",
       "headline": "Adobe Experience Platform as the centralized data foundation",
       "body": "Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant digital customer experiences.",
-      "highlights": ["node-aep", "node-edge"],
-      "flows": []
+      "highlights": ["node-aep"],
+      "flows": [
+        { "id": "flow-tags-edge", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-sdk-edge", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-sources-stream", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-sources-batch", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-stream-lake", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-batch-lake", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-query-lake", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-query", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-intel-lake", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-intel", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-pipeline", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-pipeline-profile", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-edge-profile", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-profile-edge-back", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-profile-seg", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-seg-profile-back", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-profile-decision", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-seg-decision", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-seg-jo", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-profile-cdp", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-creative-aem", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-edge-aem", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-aem-decision", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-gov", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-cja", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-lake-mix", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-edge-inbound", "stroke": "#e34850", "kind": "egress" },
+        { "id": "flow-jo-msg", "stroke": "#e34850", "kind": "egress" },
+        { "id": "flow-cdp-paid", "stroke": "#e34850", "kind": "egress" },
+        { "id": "flow-cja-jrpt", "stroke": "#e34850", "kind": "egress" },
+        { "id": "flow-mix-mrpt", "stroke": "#e34850", "kind": "egress" }
+      ]
     },
     {
       "label": "2 — Four native apps",
@@ -113,14 +145,16 @@
       "label": "13 — Governance & controls",
       "headline": "Alerts, Audit Logs, and Access Controls",
       "body": "Because Experience Platform is an API-oriented system, you can set it up to provide Alerts that tell you when something went wrong or needs attention. Audit Logs will tell you who logged into Experience Platform, the actions they took, and the time they took those actions—all important for governance. Granular Access Controls allow you to restrict who has access to what so that everyone has the exact right level of access for their role.",
-      "highlights": ["node-lake", "node-aep"],
-      "flows": []
+      "highlights": ["node-lake", "node-aep", "node-cbox-gov-audit", "node-cbox-gov-alerts", "node-cbox-gov-access"],
+      "flows": [
+        { "id": "flow-lake-gov", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
     },
     {
       "label": "14 — Sandboxing",
       "headline": "Sandboxes for development and production",
       "body": "A sandbox creates a complete Experience Platform environment. Sandboxing allows you to create separate development and production environments, separate environments to handle highly sensitive data, or separate environments for subsidiaries if you are a multi-business company.",
-      "highlights": ["node-aep"],
+      "highlights": ["node-aep", "node-cbox-gov-sandbox"],
       "flows": []
     },
     {

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260621f">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260621g">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -135,21 +135,49 @@
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
               <path id="flow-tags-edge" class="arch-flow" d="M 133 116 L 133 96 L 440 96 L 440 58"/>
+              <path id="flow-sdk-edge" class="arch-flow" d="M 192 157 L 240 157 L 240 76 L 260 76"/>
               <path id="flow-sources-stream" class="arch-flow" d="M 192 224 L 215 224 L 215 200 L 262 200"/>
               <path id="flow-sources-batch" class="arch-flow" d="M 192 284 L 210 284 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
+              <path id="flow-query-lake" class="arch-flow" d="M 293 344 L 293 356"/>
+              <path id="flow-lake-query" class="arch-flow" d="M 305 356 L 305 344"/>
+              <path id="flow-intel-lake" class="arch-flow" d="M 361 344 L 361 356"/>
+              <path id="flow-lake-intel" class="arch-flow" d="M 349 356 L 349 344"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
               <path id="flow-pipeline-profile" class="arch-flow" d="M 468 308 L 490 308 L 490 236 L 504 236"/>
               <path id="flow-edge-profile" class="arch-flow" d="M 440 94 L 440 200 L 490 200 L 490 236"/>
+              <path id="flow-profile-edge-back" class="arch-flow" d="M 504 200 L 468 200 L 468 76 L 440 76"/>
               <path id="flow-profile-seg" class="arch-flow" d="M 574 252 L 574 266"/>
+              <path id="flow-seg-profile-back" class="arch-flow" d="M 558 266 L 558 252"/>
+              <path id="flow-profile-decision" class="arch-flow" d="M 658 226 L 682 226"/>
+              <path id="flow-seg-decision" class="arch-flow" d="M 658 310 L 682 310"/>
               <path id="flow-seg-jo" class="arch-flow" d="M 658 310 L 682 310 L 682 268"/>
               <path id="flow-profile-cdp" class="arch-flow" d="M 658 226 L 744 226 L 744 316 L 682 316"/>
+              <path id="flow-creative-aem" class="arch-flow" d="M 680 94 L 680 100"/>
+              <path id="flow-edge-aem" class="arch-flow" d="M 620 76 L 628 114"/>
+              <path id="flow-aem-decision" class="arch-flow" d="M 732 114 L 682 228"/>
+              <path id="flow-lake-gov" class="arch-flow" d="M 274 412 L 274 538"/>
+              <path id="flow-lake-cja" class="arch-flow" d="M 392 384 L 682 378"/>
+              <path id="flow-lake-mix" class="arch-flow" d="M 392 400 L 682 420"/>
               <path id="flow-edge-inbound" class="arch-flow" d="M 732 94 L 1069 94 L 1069 222 L 1011 222"/>
               <path id="flow-jo-msg" class="arch-flow" d="M 801 288 L 1011 274"/>
               <path id="flow-cdp-paid" class="arch-flow" d="M 801 316 L 1011 322"/>
               <path id="flow-cja-jrpt" class="arch-flow" d="M 801 360 L 1011 366"/>
               <path id="flow-mix-mrpt" class="arch-flow" d="M 801 404 L 1011 410"/>
+            </g>
+
+            <!-- Flow labels (editable via label mode) -->
+            <g id="layer-flow-labels" pointer-events="none">
+              <text x="228" y="218" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Streaming Data (SDK, API)</text>
+              <text x="228" y="278" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Batch Data (API, Connectors)</text>
+              <text x="478" y="318" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Events</text>
+              <text x="548" y="262" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Profiles</text>
+              <text x="548" y="272" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Audience Membership</text>
+              <text x="662" y="222" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Profile Lookup</text>
+              <text x="662" y="306" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Profile Activation</text>
+              <text x="520" y="392" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Raw Data</text>
+              <text x="668" y="210" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Content</text>
             </g>
 
             <!-- Middle 3/5: Profile + Decisioning (strip above AEP shell only; no full-height side column boxes — keeps flow lines visible) -->
@@ -362,9 +390,6 @@
               <text x="1067" y="410" text-anchor="middle" class="arch-node-label" font-size="8px">Marketing Performance</text>
               <text x="1067" y="422" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
             </g>
-
-            <!-- Platform utilities (reference deck) -->
-            <text x="600" y="600" text-anchor="middle" fill="#9ca3af" font-family="Inter,system-ui,sans-serif" font-size="5.5px">Audit Logs · Alerts · Access Controls · Sandboxing</text>
 
             <!-- Key -->
             <g transform="translate(18, 640)">
@@ -863,10 +888,10 @@
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
-  <script defer src="diagram/playback.js?v=20260621b"></script>
+  <script defer src="diagram/playback.js?v=20260621d"></script>
   <script defer src="diagram/tour-editor.js?v=20260621"></script>
   <script defer src="diagram/arch-assist-panel.js?v=20260621c"></script>
   <script defer src="diagram/tests.js?v=20260621"></script>
-  <script defer src="aep-architecture-apps.js?v=20260621c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260621d"></script>
 </body>
 </html>

@@ -1273,6 +1273,15 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   animation: archFlowDash 1.4s linear infinite;
 }
 
+.arch-flow-label {
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.arch-int-viewport--edit-mode .arch-flow-label {
+  pointer-events: all;
+}
+
 @keyframes archFlowDash {
   to {
     stroke-dashoffset: -24;

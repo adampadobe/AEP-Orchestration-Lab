@@ -1,0 +1,74 @@
+{
+  "version": 10,
+  "source": "Adobe reference deck — bundled default layout",
+  "customBoxes": [
+    {
+      "id": "gov-audit",
+      "x": 272,
+      "y": 528,
+      "w": 78,
+      "h": 20,
+      "name": "Audit Logs",
+      "fill": "#e5e7eb",
+      "stroke": "#9ca3af",
+      "labelFontSize": 6.5
+    },
+    {
+      "id": "gov-alerts",
+      "x": 356,
+      "y": 528,
+      "w": 78,
+      "h": 20,
+      "name": "Alerts",
+      "fill": "#e5e7eb",
+      "stroke": "#9ca3af",
+      "labelFontSize": 6.5
+    },
+    {
+      "id": "gov-access",
+      "x": 272,
+      "y": 552,
+      "w": 78,
+      "h": 20,
+      "name": "Access Controls",
+      "fill": "#e5e7eb",
+      "stroke": "#9ca3af",
+      "labelFontSize": 6.5
+    },
+    {
+      "id": "gov-sandbox",
+      "x": 356,
+      "y": 552,
+      "w": 78,
+      "h": 20,
+      "name": "Sandboxing",
+      "fill": "#e5e7eb",
+      "stroke": "#9ca3af",
+      "labelFontSize": 6.5
+    },
+    {
+      "id": "gateway-side",
+      "x": 234,
+      "y": 318,
+      "w": 96,
+      "h": 14,
+      "name": "Gateway / Adobe I/O",
+      "fill": "transparent",
+      "stroke": "transparent",
+      "labelFontSize": 6,
+      "angle": -90
+    },
+    {
+      "id": "gateway-bottom",
+      "x": 520,
+      "y": 556,
+      "w": 160,
+      "h": 14,
+      "name": "Gateway / Adobe I/O",
+      "fill": "transparent",
+      "stroke": "transparent",
+      "labelFontSize": 6
+    }
+  ],
+  "userLines": []
+}

@@ -244,7 +244,7 @@
       archSourcesDividersLoad();
     }
     if (!Array.isArray(snap.customBoxes)) {
-      archCustomBoxesLoad();
+      archCustomBoxes = archCustomBoxesDefaultArray();
     }
     archLabelApplyAll();
     archDragApply();
@@ -1330,10 +1330,15 @@
     var e = archDragWorldRect('edge');
     var st = archDragWorldRect('streaming');
     var b = archDragWorldRect('batch');
+    var q = archDragWorldRect('query');
+    var intel = archDragWorldRect('intel');
     var lk = archDragWorldRect('lake');
     var pi = archDragWorldRect('pipeline');
     var pr = archDragWorldRect('profile');
     var sg = archDragWorldRect('seg');
+    var dec = archDragWorldRect('decision');
+    var cr = archDragWorldRect('creative');
+    var aem = archDragWorldRect('aem');
     var jo = archDragWorldRect('jo');
     var rt = archDragWorldRect('rtcdp');
     var inbound = archDragWorldRect('inbound');
@@ -1365,6 +1370,33 @@
         ' ' +
         e.top;
       archFlowSet('flow-tags-edge', d);
+    }
+
+    if (s && e) {
+      var sdkY = archClamp(s.top + 35, s.top + 8, s.bottom - 8);
+      var xJoinSdk = e.left - 18;
+      d =
+        'M ' +
+        s.right +
+        ' ' +
+        sdkY +
+        ' L ' +
+        xJoinSdk +
+        ' ' +
+        sdkY +
+        ' L ' +
+        xJoinSdk +
+        ' ' +
+        e.bottom +
+        ' L ' +
+        e.cx +
+        ' ' +
+        e.bottom +
+        ' L ' +
+        e.cx +
+        ' ' +
+        e.top;
+      archFlowSet('flow-sdk-edge', d);
     }
 
     if (s && st) {
@@ -1455,6 +1487,20 @@
       archFlowSet('flow-batch-lake', d);
     }
 
+    if (q && lk) {
+      d = 'M ' + q.cx + ' ' + q.bottom + ' L ' + q.cx + ' ' + lk.top;
+      archFlowSet('flow-query-lake', d);
+      d = 'M ' + (q.cx + 12) + ' ' + lk.top + ' L ' + (q.cx + 12) + ' ' + q.bottom;
+      archFlowSet('flow-lake-query', d);
+    }
+
+    if (intel && lk) {
+      d = 'M ' + intel.cx + ' ' + intel.bottom + ' L ' + intel.cx + ' ' + lk.top;
+      archFlowSet('flow-intel-lake', d);
+      d = 'M ' + (intel.cx - 12) + ' ' + lk.top + ' L ' + (intel.cx - 12) + ' ' + intel.bottom;
+      archFlowSet('flow-lake-intel', d);
+    }
+
     if (lk && pi) {
       var yLake = lk.top + 28;
       var xLake = lk.left + Math.min(156, lk.w - 8);
@@ -1500,9 +1546,61 @@
       archFlowSet('flow-edge-profile', d);
     }
 
+    if (e && pr) {
+      var xBack = pr.left + 14;
+      d =
+        'M ' +
+        xBack +
+        ' ' +
+        pr.top +
+        ' L ' +
+        (e.cx - 28) +
+        ' ' +
+        pr.top +
+        ' L ' +
+        (e.cx - 28) +
+        ' ' +
+        e.bottom +
+        ' L ' +
+        e.cx +
+        ' ' +
+        e.bottom;
+      archFlowSet('flow-profile-edge-back', d);
+    }
+
     if (pr && sg) {
       d = 'M ' + pr.cx + ' ' + pr.bottom + ' L ' + pr.cx + ' ' + sg.top;
       archFlowSet('flow-profile-seg', d);
+      d = 'M ' + (pr.cx - 16) + ' ' + sg.top + ' L ' + (pr.cx - 16) + ' ' + pr.bottom;
+      archFlowSet('flow-seg-profile-back', d);
+    }
+
+    if (pr && dec) {
+      var yLookup = pr.top + 26;
+      d =
+        'M ' +
+        pr.right +
+        ' ' +
+        yLookup +
+        ' L ' +
+        dec.left +
+        ' ' +
+        yLookup;
+      archFlowSet('flow-profile-decision', d);
+    }
+
+    if (sg && dec) {
+      var yAct = sg.top + 22;
+      d =
+        'M ' +
+        sg.right +
+        ' ' +
+        yAct +
+        ' L ' +
+        dec.left +
+        ' ' +
+        yAct;
+      archFlowSet('flow-seg-decision', d);
     }
 
     if (sg && jo) {
@@ -1543,6 +1641,78 @@
         ' ' +
         rt.bottom;
       archFlowSet('flow-profile-cdp', d);
+    }
+
+    if (cr && aem) {
+      d = 'M ' + cr.cx + ' ' + cr.bottom + ' L ' + aem.cx + ' ' + aem.top;
+      archFlowSet('flow-creative-aem', d);
+    }
+
+    if (e && aem) {
+      d =
+        'M ' +
+        (e.right - 8) +
+        ' ' +
+        e.bottom +
+        ' L ' +
+        (e.right - 8) +
+        ' ' +
+        (aem.cy - 6) +
+        ' L ' +
+        aem.left +
+        ' ' +
+        aem.cy;
+      archFlowSet('flow-edge-aem', d);
+    }
+
+    if (aem && dec) {
+      d =
+        'M ' +
+        aem.right +
+        ' ' +
+        aem.cy +
+        ' L ' +
+        dec.left +
+        ' ' +
+        (dec.top + 18);
+      archFlowSet('flow-aem-decision', d);
+    }
+
+    if (lk) {
+      var govBox = archCustomBoxFind('gov-audit');
+      var govRect = govBox ? archCustomBoxWorldRect(govBox) : null;
+      var govX = govRect ? govRect.cx : lk.left + 12;
+      var govY = govRect ? govRect.cy : lk.bottom + 126;
+      d = 'M ' + (lk.left + 12) + ' ' + lk.bottom + ' L ' + govX + ' ' + govY;
+      archFlowSet('flow-lake-gov', d);
+    }
+
+    if (lk && cja) {
+      var yRawCja = lk.top + 28;
+      d =
+        'M ' +
+        lk.right +
+        ' ' +
+        yRawCja +
+        ' L ' +
+        cja.left +
+        ' ' +
+        cja.cy;
+      archFlowSet('flow-lake-cja', d);
+    }
+
+    if (lk && mix) {
+      var yRawMix = lk.top + 44;
+      d =
+        'M ' +
+        lk.right +
+        ' ' +
+        yRawMix +
+        ' L ' +
+        mix.left +
+        ' ' +
+        mix.cy;
+      archFlowSet('flow-lake-mix', d);
     }
 
     if (e && inbound) {
@@ -5658,17 +5828,63 @@
     return null;
   }
 
+  /** Default governance pills + Gateway labels (reference deck). */
+  function archCustomBoxesDefaultArray() {
+    function pill(id, name, x, y) {
+      return {
+        id: id,
+        x: x,
+        y: y,
+        w: 78,
+        h: 20,
+        name: name,
+        fill: '#e5e7eb',
+        stroke: '#9ca3af',
+        labelFontSize: 6.5,
+      };
+    }
+    return [
+      pill('gov-audit', 'Audit Logs', 272, 528),
+      pill('gov-alerts', 'Alerts', 356, 528),
+      pill('gov-access', 'Access Controls', 272, 552),
+      pill('gov-sandbox', 'Sandboxing', 356, 552),
+      {
+        id: 'gateway-side',
+        x: 234,
+        y: 318,
+        w: 96,
+        h: 14,
+        name: 'Gateway / Adobe I/O',
+        fill: 'transparent',
+        stroke: 'transparent',
+        labelFontSize: 6,
+        angle: -90,
+      },
+      {
+        id: 'gateway-bottom',
+        x: 520,
+        y: 556,
+        w: 160,
+        h: 14,
+        name: 'Gateway / Adobe I/O',
+        fill: 'transparent',
+        stroke: 'transparent',
+        labelFontSize: 6,
+      },
+    ];
+  }
+
   function archCustomBoxesLoad() {
     try {
       var r = localStorage.getItem(LS_CUSTOM_BOXES);
       if (!r) {
-        archCustomBoxes = [];
+        archCustomBoxes = archCustomBoxesDefaultArray();
         return;
       }
       var p = JSON.parse(r);
-      archCustomBoxes = Array.isArray(p) ? p.map(archCustomBoxNormalize) : [];
+      archCustomBoxes = Array.isArray(p) ? p.map(archCustomBoxNormalize) : archCustomBoxesDefaultArray();
     } catch (e) {
-      archCustomBoxes = [];
+      archCustomBoxes = archCustomBoxesDefaultArray();
     }
   }
 
