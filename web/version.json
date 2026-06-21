@@ -1,14 +1,14 @@
 {
-  "gitSha": "6c7349c37afda71a65f2338ec70302afc969e99c",
-  "gitShortSha": "6c7349c3",
+  "gitSha": "fc960088e8905388432a238845d7cc63913117db",
+  "gitShortSha": "fc960088",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: Vertex AI assist for AEP & Apps architecture diagram",
+  "gitCommitSubject": "[apalmer] fix: remove Assets lab archived Firebase images disclaimer",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:21:02+01:00",
-  "deployedAt": "2026-06-21T09:21:16.712Z",
+  "gitCommitDate": "2026-06-21T10:29:29+01:00",
+  "deployedAt": "2026-06-21T09:29:41.238Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6c7349c37afda71a65f2338ec70302afc969e99c"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fc960088e8905388432a238845d7cc63913117db"
 }
