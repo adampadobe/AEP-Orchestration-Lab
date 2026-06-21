@@ -283,6 +283,9 @@
       if (!st.body) errors.push('state ' + i + ': missing body');
       if (!Array.isArray(st.highlights)) errors.push('state ' + i + ': highlights must be an array');
       if (!Array.isArray(st.flows)) errors.push('state ' + i + ': flows must be an array');
+      if (st.userLineIds != null && !Array.isArray(st.userLineIds)) {
+        errors.push('state ' + i + ': userLineIds must be an array when present');
+      }
     });
     return { ok: errors.length === 0, errors: errors, tour: t };
   }
@@ -345,28 +348,45 @@
       path.classList.toggle('arch-flow--selected', selectedFlowId === path.id);
     });
 
-    if (ctx.userLineElements && Array.isArray(st.userLineIds)) {
-      var showIds = {};
-      st.userLineIds.forEach(function (id) {
-        showIds[id] = true;
-      });
-      ctx.userLineElements.forEach(function (el) {
-        var lid = el.getAttribute('data-user-line-id') || el.id || '';
-        if (!st.userLineIds.length) {
+    if (ctx.userLineElements) {
+      var inEdit = !!ctx.isEditMode;
+      if (inEdit) {
+        ctx.userLineElements.forEach(function (el) {
+          el.classList.remove('is-visible');
           el.style.removeProperty('opacity');
           el.style.removeProperty('pointer-events');
-          return;
+          el.style.removeProperty('visibility');
+        });
+      } else {
+        var lineIds = Array.isArray(st.userLineIds) ? st.userLineIds : [];
+        if (!lineIds.length) {
+          ctx.userLineElements.forEach(function (el) {
+            el.classList.remove('is-visible');
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+            el.style.visibility = 'hidden';
+          });
+        } else {
+          var showIds = {};
+          lineIds.forEach(function (id) {
+            showIds[id] = true;
+          });
+          ctx.userLineElements.forEach(function (el) {
+            var lid = el.getAttribute('data-user-line-id') || el.id || '';
+            var visible = !!showIds[lid];
+            el.style.opacity = visible ? '' : '0';
+            el.style.pointerEvents = visible ? '' : 'none';
+            el.style.visibility = visible ? '' : 'hidden';
+            el.classList.toggle('is-visible', visible);
+          });
         }
-        var visible = !!showIds[lid];
-        el.style.opacity = visible ? '' : '0.15';
-        el.style.pointerEvents = visible ? '' : 'none';
-      });
+      }
     }
 
     var total = ctx.totalStates != null ? ctx.totalStates : 1;
     if (ctx.hudTitle) ctx.hudTitle.textContent = st.label;
-    if (ctx.hudMeta) ctx.hudMeta.textContent = 'State ' + (stateIndex + 1) + ' / ' + total;
-    if (ctx.stateKicker) ctx.stateKicker.textContent = 'State ' + (stateIndex + 1) + ' of ' + total;
+    if (ctx.hudMeta) ctx.hudMeta.textContent = 'Slide ' + (stateIndex + 1) + ' / ' + total;
+    if (ctx.stateKicker) ctx.stateKicker.textContent = 'Slide ' + (stateIndex + 1) + ' of ' + total;
     if (ctx.stateHeadline) ctx.stateHeadline.textContent = st.headline || '';
     if (ctx.stateBody) ctx.stateBody.textContent = st.body || '';
 
@@ -378,7 +398,7 @@
 
     if (ctx.liveRegion) {
       ctx.liveRegion.textContent =
-        'State ' + (stateIndex + 1) + ' of ' + total + ': ' + (st.headline || st.label);
+        'Slide ' + (stateIndex + 1) + ' of ' + total + ': ' + (st.headline || st.label);
     }
 
     if (ctx.viewport) {

@@ -1,14 +1,14 @@
 {
-  "gitSha": "49865a56e313dbd18cd675eacc3391073335b41c",
-  "gitShortSha": "49865a56",
+  "gitSha": "e9c419485ca05bfa301bb25ce8eded5a204c85f6",
+  "gitShortSha": "e9c41948",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: hide web BC modal FAB when no display type selected",
+  "gitCommitSubject": "[apalmer] feat: deck-aligned AEP & Apps tour, editor, and play mode",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-20T19:59:29+01:00",
-  "deployedAt": "2026-06-20T18:59:41.989Z",
+  "gitCommitDate": "2026-06-21T09:30:53+01:00",
+  "deployedAt": "2026-06-21T08:35:36.477Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/49865a56e313dbd18cd675eacc3391073335b41c"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e9c419485ca05bfa301bb25ce8eded5a204c85f6"
 }

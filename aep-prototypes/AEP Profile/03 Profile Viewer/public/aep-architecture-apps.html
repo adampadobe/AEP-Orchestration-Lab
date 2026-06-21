@@ -50,7 +50,7 @@
 
         <section class="arch-int-viewport" id="archIntViewport" aria-label="Architecture diagram">
           <div class="arch-int-state-copy" id="archIntStateCopy">
-            <p class="arch-int-state-kicker" id="archIntStateKicker">State 1 of 16</p>
+            <p class="arch-int-state-kicker" id="archIntStateKicker">Slide 1 of 16</p>
             <h3 class="arch-int-state-headline" id="archIntStateHeadline">Adobe Experience Platform as the centralized data foundation</h3>
             <p class="arch-int-state-body" id="archIntStateBody">
               Collects, standardizes, governs, applies AI insights to, and unifies data to power thoughtful and relevant customer experiences.
@@ -63,7 +63,7 @@
                   <div class="arch-int-compact-top-left">
                     <div class="arch-int-compact-titles">
                       <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
-                      <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+                      <div id="archIntHudMeta" class="arch-int-hud-meta">Slide 1 / 16</div>
                     </div>
                     <div class="arch-int-compact-edit">
                       <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Move the tool panel to the left or right side">⇄ Side</button>
@@ -589,7 +589,7 @@
                     <button type="button" class="dashboard-btn-outline" id="archTourDuplicateState" title="Duplicate this state">Duplicate</button>
                     <button type="button" class="dashboard-btn-outline" id="archTourAddState" title="Add a state after this one">Add</button>
                     <button type="button" class="dashboard-btn-outline" id="archTourDeleteState" title="Delete this state">Delete</button>
-                    <button type="button" class="dashboard-btn-outline" id="archTourResetAll" title="Restore the 16-state Adobe deck default">Reset tour</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourResetAll" title="Reload tour from aep-architecture-tour-default.json">Reset tour to Adobe default</button>
                   </div>
                   <div class="arch-int-hud-view" aria-label="Diagram view">
                     <label class="arch-drag-toggle">
@@ -609,6 +609,11 @@
                     <summary class="arch-highlight-picker-summary">Animated flows (state <span class="arch-tour-state-num-ref">1</span>)</summary>
                     <p class="arch-highlight-picker-help">Toggle built-in connector animations for this step.</p>
                     <div id="archFlowPicker" class="arch-flow-picker" role="group" aria-label="Flows to animate for the current diagram state"></div>
+                  </details>
+                  <details class="arch-highlight-picker-wrap arch-flow-picker-wrap" id="archUserLinePickerWrap">
+                    <summary class="arch-highlight-picker-summary">User-drawn lines (state <span class="arch-tour-state-num-ref">1</span>)</summary>
+                    <p class="arch-highlight-picker-help">Choose which custom connector lines appear on this slide during playback. In Edit mode all lines stay visible.</p>
+                    <div id="archUserLinePicker" class="arch-flow-picker" role="group" aria-label="User lines visible for the current diagram state"></div>
                   </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
@@ -831,8 +836,9 @@
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
-  <script defer src="diagram/playback.js?v=20260621"></script>
+  <script defer src="diagram/playback.js?v=20260621b"></script>
+  <script defer src="diagram/tour-editor.js?v=20260621"></script>
   <script defer src="diagram/tests.js?v=20260621"></script>
-  <script defer src="aep-architecture-apps.js?v=20260621"></script>
+  <script defer src="aep-architecture-apps.js?v=20260621b"></script>
 </body>
 </html>

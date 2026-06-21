@@ -7,404 +7,12 @@
 
   var PB = window.AEPDiagram && window.AEPDiagram.playback;
   var C = PB ? PB.FLOW_COLORS : { ingress: '#308fff', intra: '#7d8a9e', egress: '#e34850' };
-
-  /** Active tour states (deck-aligned default; editable in Tour panel). */
-  var STATES = PB ? PB.EMBEDDED_STATES.slice() : [];
-  var archTour = PB ? PB.cloneTour(PB.EMBEDDED_TOUR) : { version: 1, states: STATES };
-  var archDefaultTour = PB ? PB.cloneTour(PB.EMBEDDED_TOUR) : { version: 1, states: STATES.slice() };
-  var LS_TOUR = 'aepArchTour';
-  var archTourEditorSyncing = false;
-  var archPlayTimerId = null;
-  var archTourReady = false;
-
-  /** Order of boxes in the highlight picker (matches diagram regions left→right, top→bottom). */
-  var ARCH_HIGHLIGHT_KEYS = [
-    'tags',
-    'sources',
-    'edge',
-    'creative',
-    'aem',
-    'aep',
-    'streaming',
-    'batch',
-    'query',
-    'intel',
-    'lake',
-    'pipeline',
-    'profile',
-    'identity',
-    'seg',
-    'decision',
-    'jo',
-    'rtcdp',
-    'cja',
-    'mix',
-    'inbound',
-    'msg',
-    'paid',
-    'jrpt',
-    'mrpt',
-  ];
-
-  var ARCH_NODE_LABELS = {
-    tags: 'Tags',
-    sources: 'Sources',
-    edge: 'Edge Network',
-    creative: 'Creative Cloud',
-    aem: 'AEM Assets',
-    aep: 'Adobe Experience Platform',
-    streaming: 'Streaming collection',
-    batch: 'Batch collection',
-    query: 'Query Service',
-    intel: 'Intelligence & AI',
-    lake: 'Data Lake',
-    pipeline: 'Pipeline',
-    profile: 'Real-Time Profile',
-    identity: 'Identity Graph',
-    seg: 'Segmentation',
-    decision: 'Decisioning / Journeys',
-    jo: 'Journey Optimizer',
-    rtcdp: 'Real-Time CDP',
-    cja: 'Customer Journey Analytics',
-    mix: 'Mix Modeler',
-    inbound: 'Inbound experiences',
-    msg: 'Message Delivery',
-    paid: 'Paid Media',
-    jrpt: 'Journey Reporting',
-    mrpt: 'Marketing performance',
-  };
-
-  var LS_STATE_HILITE_OVERRIDES = 'aepArchStateHighlightOverrides';
-  var LS_PLAY_DELAY = 'aepArchPlayDelayMs';
-
-  /** Per-state override of which node ids are highlighted; key = state index string "0".."n". */
-  var archStateHighlightOverrides = {};
-  var archHighlightPickerSyncing = false;
-
-  function archTourNormalize(raw) {
-    if (PB && PB.normalizeTour) return PB.normalizeTour(raw);
-    return raw && typeof raw === 'object' ? raw : { version: 1, states: STATES.slice() };
-  }
-
-  function archTourApplyStatesFromTour(tour) {
-    archTour = archTourNormalize(tour);
-    STATES = archTour.states.slice();
-    if (idx >= STATES.length) idx = Math.max(0, STATES.length - 1);
-    archTourRebuildDots();
-  }
-
-  function archTourPersist() {
-    try {
-      localStorage.setItem(LS_TOUR, JSON.stringify(archTour));
-    } catch (e) {}
-  }
-
-  function archTourLoadFromStorage() {
-    try {
-      var raw = localStorage.getItem(LS_TOUR);
-      if (!raw) return false;
-      archTourApplyStatesFromTour(JSON.parse(raw));
-      return true;
-    } catch (e2) {
-      return false;
-    }
-  }
-
-  function archTourInitFromDefault() {
-    if (!PB) return Promise.resolve();
-    return PB.loadDefaultTour(PB.DEFAULT_TOUR_URL).then(function (tour) {
-      archDefaultTour = PB.cloneTour(tour);
-      if (!archTourLoadFromStorage()) {
-        archTourApplyStatesFromTour(archDefaultTour);
-      }
-      archTourReady = true;
-    });
-  }
-
-  function archTourDefaultState(index) {
-    if (archDefaultTour && archDefaultTour.states && archDefaultTour.states[index]) {
-      return PB ? PB.normalizeState(archDefaultTour.states[index]) : archDefaultTour.states[index];
-    }
-    return STATES[index] ? (PB ? PB.normalizeState(STATES[index]) : STATES[index]) : null;
-  }
-
-  function archTourCurrentStateRaw() {
-    return STATES[idx] || null;
-  }
-
-  function archTourUpdateCurrentState(patch) {
-    if (!STATES[idx]) return;
-    var st = PB ? PB.normalizeState(Object.assign({}, STATES[idx], patch || {})) : Object.assign({}, STATES[idx], patch || {});
-    STATES[idx] = st;
-    archTour.states[idx] = st;
-    archTourPersist();
-  }
-
-  function archTourRebuildDots() {
-    var dots = qs('#archIntDots');
-    if (!dots) return;
-    dots.textContent = '';
-    dotButtons = [];
-    for (var i = 0; i < STATES.length; i++) {
-      (function (stateIndex) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'arch-int-dot';
-        b.title = 'Go to state ' + (stateIndex + 1);
-        b.addEventListener('click', function () {
-          archPlayStop();
-          goTo(stateIndex);
-        });
-        dots.appendChild(b);
-        dotButtons.push(b);
-      })(i);
-    }
-    archSyncPlaybackNav();
-  }
-
-  function archFlowPickerInit() {
-    var host = qs('#archFlowPicker');
-    if (!host || host.getAttribute('data-arch-built')) return;
-    host.setAttribute('data-arch-built', '1');
-    var ids = PB && PB.FLOW_IDS ? PB.FLOW_IDS : [];
-    var labels = PB && PB.FLOW_LABELS ? PB.FLOW_LABELS : {};
-    ids.forEach(function (fid) {
-      var wrap = document.createElement('label');
-      wrap.className = 'arch-flow-picker-item';
-      var inp = document.createElement('input');
-      inp.type = 'checkbox';
-      inp.setAttribute('data-flow-id', fid);
-      inp.addEventListener('change', archFlowPickerOnChange);
-      var span = document.createElement('span');
-      span.textContent = labels[fid] || fid;
-      wrap.appendChild(inp);
-      wrap.appendChild(span);
-      host.appendChild(wrap);
-    });
-  }
-
-  function archFlowPickerSync() {
-    var host = qs('#archFlowPicker');
-    if (!host) return;
-    var st = STATES[idx];
-    var active = {};
-    if (st && st.flows) {
-      st.flows.forEach(function (f) {
-        active[f.id] = true;
-      });
-    }
-    archTourEditorSyncing = true;
-    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      var fid = cb.getAttribute('data-flow-id');
-      cb.checked = !!active[fid];
-    });
-    archTourEditorSyncing = false;
-  }
-
-  function archFlowPickerOnChange() {
-    if (archTourEditorSyncing) return;
-    var host = qs('#archFlowPicker');
-    if (!host) return;
-    var selectedIds = [];
-    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      if (cb.checked) selectedIds.push(cb.getAttribute('data-flow-id'));
-    });
-    var flows = selectedIds.map(function (fid) {
-      var kind = fid.indexOf('inbound') >= 0 || fid.indexOf('-msg') >= 0 || fid.indexOf('-paid') >= 0 || fid.indexOf('-jrpt') >= 0 || fid.indexOf('-mrpt') >= 0 ? 'egress' : fid.indexOf('sources') >= 0 || fid.indexOf('tags') >= 0 ? 'ingress' : 'intra';
-      return { id: fid, stroke: C[kind], kind: kind };
-    });
-    archTourUpdateCurrentState({ flows: flows });
-    applyState();
-  }
-
-  function archTourEditorSync() {
-    var numStr = String(idx + 1);
-    $all('.arch-tour-state-num-ref').forEach(function (el) {
-      el.textContent = numStr;
-    });
-    var st = STATES[idx];
-    var labelInp = qs('#archTourStateLabel');
-    var headInp = qs('#archTourStateHeadline');
-    var bodyInp = qs('#archTourStateBody');
-    archTourEditorSyncing = true;
-    if (labelInp) labelInp.value = st && st.label ? st.label : '';
-    if (headInp) headInp.value = st && st.headline ? st.headline : '';
-    if (bodyInp) bodyInp.value = st && st.body ? st.body : '';
-    archTourEditorSyncing = false;
-    archHighlightPickerSync();
-    archFlowPickerSync();
-    var countEl = qs('#archTourStateCount');
-    if (countEl) countEl.textContent = String(STATES.length);
-  }
-
-  function archTourEditorOnFieldChange() {
-    if (archTourEditorSyncing) return;
-    var labelInp = qs('#archTourStateLabel');
-    var headInp = qs('#archTourStateHeadline');
-    var bodyInp = qs('#archTourStateBody');
-    archTourUpdateCurrentState({
-      label: labelInp ? labelInp.value : '',
-      headline: headInp ? headInp.value : '',
-      body: bodyInp ? bodyInp.value : '',
-    });
-    applyState();
-  }
-
-  function archTourDuplicateState() {
-    if (!STATES[idx]) return;
-    var copy = PB ? PB.normalizeState(STATES[idx]) : JSON.parse(JSON.stringify(STATES[idx]));
-    STATES.splice(idx + 1, 0, copy);
-    archTour.states = STATES.slice();
-    archTourPersist();
-    archTourRebuildDots();
-    goTo(idx + 1);
-    archTourEditorSync();
-  }
-
-  function archTourDeleteState() {
-    if (STATES.length <= 1) return;
-    if (!window.confirm('Delete state ' + (idx + 1) + '?')) return;
-    STATES.splice(idx, 1);
-    archTour.states = STATES.slice();
-    archTourPersist();
-    if (idx >= STATES.length) idx = STATES.length - 1;
-    archTourRebuildDots();
-    applyState();
-    archTourEditorSync();
-  }
-
-  function archTourAddState() {
-    var blank = PB
-      ? PB.normalizeState({ label: 'New state', headline: 'Headline', body: 'Body copy for this step.', highlights: [], flows: [] })
-      : { label: 'New state', headline: 'Headline', body: 'Body copy for this step.', highlights: [], flows: [] };
-    STATES.splice(idx + 1, 0, blank);
-    archTour.states = STATES.slice();
-    archTourPersist();
-    archTourRebuildDots();
-    goTo(idx + 1);
-    archTourEditorSync();
-  }
-
-  function archTourMoveState(delta) {
-    var target = idx + delta;
-    if (target < 0 || target >= STATES.length) return;
-    var tmp = STATES[idx];
-    STATES[idx] = STATES[target];
-    STATES[target] = tmp;
-    archTour.states = STATES.slice();
-    archTourPersist();
-    idx = target;
-    archTourRebuildDots();
-    applyState();
-    archTourEditorSync();
-  }
-
-  function archTourResetAll() {
-    if (!window.confirm('Reset the tour to the deck-aligned Adobe default (16 states)?')) return;
-    archTourApplyStatesFromTour(archDefaultTour);
-    archStateHighlightOverrides = {};
-    archStateHighlightOverridesPersist();
-    try {
-      localStorage.removeItem(LS_TOUR);
-    } catch (e) {}
-    idx = 0;
-    archTourRebuildDots();
-    applyState();
-    archTourEditorSync();
-  }
-
-  function archTourInitEditor() {
-    archFlowPickerInit();
-    var labelInp = qs('#archTourStateLabel');
-    var headInp = qs('#archTourStateHeadline');
-    var bodyInp = qs('#archTourStateBody');
-    if (labelInp) labelInp.addEventListener('input', archTourEditorOnFieldChange);
-    if (headInp) headInp.addEventListener('input', archTourEditorOnFieldChange);
-    if (bodyInp) bodyInp.addEventListener('input', archTourEditorOnFieldChange);
-    var dupBtn = qs('#archTourDuplicateState');
-    var delBtn = qs('#archTourDeleteState');
-    var addBtn = qs('#archTourAddState');
-    var upBtn = qs('#archTourMoveUp');
-    var downBtn = qs('#archTourMoveDown');
-    var resetBtn = qs('#archTourResetAll');
-    if (dupBtn) dupBtn.addEventListener('click', archTourDuplicateState);
-    if (delBtn) delBtn.addEventListener('click', archTourDeleteState);
-    if (addBtn) addBtn.addEventListener('click', archTourAddState);
-    if (upBtn) upBtn.addEventListener('click', function () { archTourMoveState(-1); });
-    if (downBtn) downBtn.addEventListener('click', function () { archTourMoveState(1); });
-    if (resetBtn) resetBtn.addEventListener('click', archTourResetAll);
-    archTourEditorSync();
-  }
-
-  function archPlayGetDelayMs() {
-    var inp = qs('#archPlayDelayMs');
-    var val = inp ? parseInt(inp.value, 10) : 3200;
-    if (!val || val < 500) val = 3200;
-    return val;
-  }
-
-  function archPlayDelayLabelSync() {
-    var lab = qs('#archPlayDelayLabel');
-    if (lab) lab.textContent = String(archPlayGetDelayMs()) + ' ms';
-  }
-
-  function archPlayPrefersReducedMotion() {
-    try {
-      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function archPlayStop() {
-    if (archPlayTimerId) {
-      clearTimeout(archPlayTimerId);
-      archPlayTimerId = null;
-    }
-    var playBtn = qs('#archPlayBtn');
-    if (playBtn) playBtn.disabled = false;
-  }
-
-  function archPlayStep() {
-    if (idx >= STATES.length - 1) {
-      archPlayStop();
-      return;
-    }
-    go(1);
-    archPlayTimerId = setTimeout(archPlayStep, archPlayGetDelayMs());
-  }
-
-  function archPlayStart() {
-    archPlayStop();
-    if (archPlayPrefersReducedMotion()) {
-      goTo(STATES.length - 1);
-      return;
-    }
-    var playBtn = qs('#archPlayBtn');
-    if (playBtn) playBtn.disabled = true;
-    if (idx >= STATES.length - 1) idx = 0;
-    applyState();
-    archPlayTimerId = setTimeout(archPlayStep, archPlayGetDelayMs());
-  }
-
-  function archPlayInitControls() {
-    var playBtn = qs('#archPlayBtn');
-    var delayInp = qs('#archPlayDelayMs');
-    if (playBtn) playBtn.addEventListener('click', archPlayStart);
-    if (delayInp) {
-      try {
-        var saved = localStorage.getItem(LS_PLAY_DELAY);
-        if (saved) delayInp.value = saved;
-      } catch (e) {}
-      delayInp.addEventListener('input', function () {
-        archPlayDelayLabelSync();
-        try {
-          localStorage.setItem(LS_PLAY_DELAY, delayInp.value);
-        } catch (e2) {}
-      });
-      archPlayDelayLabelSync();
-    }
-  }
+  /** Tour editor module (diagram/tour-editor.js) — installed in init() after DOM helpers exist. */
+  var TE = null;
+  var ARCH_NODE_LABELS =
+    window.AEPDiagram && window.AEPDiagram.tourEditor
+      ? window.AEPDiagram.tourEditor.ARCH_NODE_LABELS
+      : {};
 
   var idx = 0;
   var hudTitle;
@@ -414,7 +22,52 @@
   var stateHeadline;
   var stateBody;
   var archViewport;
+  /** @deprecated — use TE.getDotButtons() after init */
   var dotButtons = [];
+
+  function archInstallTourEditor() {
+    if (TE || !(window.AEPDiagram && window.AEPDiagram.tourEditor)) return;
+    TE = window.AEPDiagram.tourEditor.install({
+      qs: qs,
+      $all: $all,
+      playback: PB,
+      getIdx: function () { return idx; },
+      setIdx: function (v) { idx = v; },
+      applyState: applyState,
+      getNodeLayout: function () { return NODE_LAYOUT; },
+      getUserLines: function () { return userLines.lines; },
+      getViewport: function () { return archViewport; },
+      syncPlaybackNav: archSyncPlaybackNav,
+    });
+  }
+
+  function archHiliteOverrides() {
+    return TE ? TE.getHighlightOverrides() : {};
+  }
+
+  function archHighlightsForState(stateIndex) {
+    return TE ? TE.highlightsForState(stateIndex) : [];
+  }
+
+  function archStateHighlightOverridesPersist() {
+    if (TE) TE.highlightOverridesPersist();
+  }
+
+  function archStateHighlightOverridesLoad() {
+    if (TE) TE.highlightOverridesLoad();
+  }
+
+  function archHighlightResetCurrentState() {
+    if (TE) TE.highlightResetCurrentState();
+  }
+
+  function archGetStates() {
+    return TE ? TE.getStates() : [];
+  }
+
+  function archGetTour() {
+    return TE ? TE.getTour() : { version: 1, states: [] };
+  }
 
   /** Full-layout undo (snapshots via AEPDiagram.undo). */
   var archUndoStack = null;
@@ -432,7 +85,8 @@
     var next = qs('#archIntNext');
     if (prev) prev.disabled = false;
     if (next) next.disabled = false;
-    dotButtons.forEach(function (b) { b.disabled = false; });
+    var dots = TE ? TE.getDotButtons() : dotButtons;
+    dots.forEach(function (b) { b.disabled = false; });
   }
 
   function archSelectionRefreshDom() {
@@ -916,21 +570,9 @@
     }
   }
 
-  function archHighlightsForState(stateIndex) {
-    var o = archStateHighlightOverrides[stateIndex];
-    if (o === undefined) o = archStateHighlightOverrides[String(stateIndex)];
-    if (Array.isArray(o)) return o.slice();
-    var st = STATES[stateIndex];
-    return st && st.highlights ? st.highlights.slice() : [];
-  }
-
-  function archResolvedState(stateIndex) {
-    var st = STATES[stateIndex];
-    if (!st) return null;
-    return Object.assign({}, st, { highlights: archHighlightsForState(stateIndex) });
-  }
-
   function archBuildApplyCtx() {
+    var states = TE ? TE.getStates() : [];
+    var dots = TE ? TE.getDotButtons() : [];
     return {
       viewport: archViewport,
       hudTitle: hudTitle,
@@ -938,11 +580,13 @@
       stateKicker: stateKicker,
       stateHeadline: stateHeadline,
       stateBody: stateBody,
-      dotButtons: dotButtons,
+      dotButtons: dots,
       liveRegion: liveRegion,
-      totalStates: STATES.length,
+      totalStates: states.length,
       selectedFlowId: archSelectedFlowId,
       flowElements: $all('.arch-flow'),
+      userLineElements: $all('#layer-user-lines .arch-user-line'),
+      isEditMode: archIsEditMode(),
       isFlowHidden: archHiddenFlowsHas,
       refreshNodeHighlights: function (hilites) {
         $all('.arch-node').forEach(function (el) {
@@ -950,125 +594,23 @@
         });
       },
       onAfterApply: function () {
-        archHighlightPickerSync();
-        archFlowPickerSync();
-        archTourEditorSync();
+        if (TE) {
+          TE.highlightPickerSync();
+          TE.editorSync();
+        }
       },
     };
   }
 
-  function archHighlightArraysEqual(a, b) {
-    if (!a || !b || a.length !== b.length) return false;
-    var sa = a.slice().sort();
-    var sb = b.slice().sort();
-    for (var i = 0; i < sa.length; i++) {
-      if (sa[i] !== sb[i]) return false;
-    }
-    return true;
-  }
-
-  function archStateHighlightOverridesPersist() {
-    try {
-      localStorage.setItem(LS_STATE_HILITE_OVERRIDES, JSON.stringify(archStateHighlightOverrides));
-    } catch (e) {}
-  }
-
-  function archStateHighlightOverridesLoad() {
-    try {
-      var r = localStorage.getItem(LS_STATE_HILITE_OVERRIDES);
-      if (!r) {
-        archStateHighlightOverrides = {};
-        return;
-      }
-      var p = JSON.parse(r);
-      archStateHighlightOverrides = p && typeof p === 'object' ? p : {};
-    } catch (e2) {
-      archStateHighlightOverrides = {};
-    }
-  }
-
-  function archHighlightPickerInit() {
-    var host = qs('#archHighlightPicker');
-    if (!host || host.getAttribute('data-arch-built')) return;
-    host.setAttribute('data-arch-built', '1');
-    ARCH_HIGHLIGHT_KEYS.forEach(function (key) {
-      if (!NODE_LAYOUT[key]) return;
-      var id = 'node-' + key;
-      var lab = ARCH_NODE_LABELS[key] || key;
-      var wrap = document.createElement('label');
-      wrap.className = 'arch-highlight-picker-item';
-      var inp = document.createElement('input');
-      inp.type = 'checkbox';
-      inp.setAttribute('data-node-id', id);
-      inp.addEventListener('change', archHighlightPickerOnChange);
-      var span = document.createElement('span');
-      span.textContent = lab;
-      wrap.appendChild(inp);
-      wrap.appendChild(span);
-      host.appendChild(wrap);
-    });
-  }
-
-  function archHighlightPickerSync() {
-    var host = qs('#archHighlightPicker');
-    if (!host) return;
-    var hilites = archHighlightsForState(idx);
-    archHighlightPickerSyncing = true;
-    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      var nid = cb.getAttribute('data-node-id');
-      cb.checked = hilites.indexOf(nid) >= 0;
-    });
-    archHighlightPickerSyncing = false;
-  }
-
-  function archHighlightPickerOnChange() {
-    if (archHighlightPickerSyncing) return;
-    var host = qs('#archHighlightPicker');
-    if (!host) return;
-    var selected = [];
-    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      if (cb.checked) selected.push(cb.getAttribute('data-node-id'));
-    });
-    var def = archTourDefaultState(idx);
-    var defH = def && def.highlights ? def.highlights : [];
-    if (archHighlightArraysEqual(selected, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
-      archTourUpdateCurrentState({ highlights: defH.slice() });
-    } else {
-      archStateHighlightOverrides[String(idx)] = selected;
-      archTourUpdateCurrentState({ highlights: selected.slice() });
-    }
-    archStateHighlightOverridesPersist();
-    applyState();
-  }
-
-  function archHighlightResetCurrentState() {
-    var def = archTourDefaultState(idx);
-    delete archStateHighlightOverrides[idx];
-    delete archStateHighlightOverrides[String(idx)];
-    if (def) {
-      archTourUpdateCurrentState({
-        label: def.label || '',
-        headline: def.headline || '',
-        body: def.body || '',
-        highlights: def.highlights ? def.highlights.slice() : [],
-        flows: def.flows ? def.flows.slice() : [],
-      });
-    }
-    archStateHighlightOverridesPersist();
-    applyState();
-  }
-
   function archRefreshNodeHighlightClasses() {
-    var hilites = archHighlightsForState(idx);
+    var hilites = TE ? TE.highlightsForState(idx) : [];
     $all('.arch-node').forEach(function (el) {
       el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
     });
   }
 
   function applyState() {
-    var st = archResolvedState(idx);
+    var st = TE ? TE.resolvedState(idx) : null;
     if (!st) return;
     if (PB && PB.applyStateToDom) {
       PB.applyStateToDom(archBuildApplyCtx(), idx, st);
@@ -1076,7 +618,7 @@
     }
     archRefreshNodeHighlightClasses();
     var activeIds = {};
-    st.flows.forEach(function (f) {
+    (st.flows || []).forEach(function (f) {
       activeIds[f.id] = f;
     });
     $all('.arch-flow').forEach(function (path) {
@@ -1093,36 +635,41 @@
       path.classList.add('is-visible');
       path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
     });
+    var statesLen = TE ? TE.getStates().length : 1;
     if (hudTitle) hudTitle.textContent = st.label;
-    if (hudMeta) hudMeta.textContent = 'State ' + (idx + 1) + ' / ' + STATES.length;
-    if (stateKicker) stateKicker.textContent = 'State ' + (idx + 1) + ' of ' + STATES.length;
+    if (hudMeta) hudMeta.textContent = 'Slide ' + (idx + 1) + ' / ' + statesLen;
+    if (stateKicker) stateKicker.textContent = 'Slide ' + (idx + 1) + ' of ' + statesLen;
     if (stateHeadline) stateHeadline.textContent = st.headline || '';
     if (stateBody) stateBody.textContent = st.body || '';
-    dotButtons.forEach(function (btn, i) {
+    var dots = TE ? TE.getDotButtons() : [];
+    dots.forEach(function (btn, i) {
       btn.setAttribute('aria-current', i === idx ? 'true' : 'false');
     });
     if (liveRegion) {
-      liveRegion.textContent = 'State ' + (idx + 1) + ' of ' + STATES.length + ': ' + (st.headline || st.label);
+      liveRegion.textContent = 'Slide ' + (idx + 1) + ' of ' + statesLen + ': ' + (st.headline || st.label);
     }
     if (archViewport) archViewport.classList.toggle('arch-int-viewport--intro', idx === 0);
-    archHighlightPickerSync();
-    archFlowPickerSync();
-    archTourEditorSync();
+    if (TE) {
+      TE.highlightPickerSync();
+      TE.editorSync();
+    }
   }
 
   function go(delta) {
-    archPlayStop();
+    if (TE) TE.playStop();
+    var states = TE ? TE.getStates() : [];
     var n = idx + delta;
-    if (n < 0 || n >= STATES.length) return;
+    if (n < 0 || n >= states.length) return;
     idx = n;
     applyState();
   }
 
   function goTo(i) {
-    archPlayStop();
-    if (i < 0 || i >= STATES.length) return;
-    idx = i;
-    applyState();
+    if (TE) TE.goTo(i);
+    else {
+      idx = i;
+      applyState();
+    }
   }
 
   var LS_STATE_HILITE = 'aepArchStateHighlights';
@@ -1152,6 +699,8 @@
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
+    archInstallTourEditor();
+
     var mainPresentationEl = qs('main.dashboard-main.app-page');
     var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
     var LS_ARCH_DOCK = 'aepArchEditorDockRight';
@@ -1174,7 +723,7 @@
     archStateHighlightOverridesLoad();
     archHiddenFlowsLoad();
     archHiddenNodesLoad();
-    archHighlightPickerInit();
+    if (TE) TE.highlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
     if (archHighlightResetBtn) {
       archHighlightResetBtn.addEventListener('click', function () {
@@ -1189,15 +738,17 @@
       go(1);
     });
 
-    archPlayInitControls();
-    archTourInitEditor();
+    if (TE) {
+      TE.playInitControls();
+      TE.initEditor();
+    }
 
     function archBootstrapAfterTourLoad() {
-      archTourRebuildDots();
+      if (TE) TE.rebuildDots();
       applyState();
     }
 
-    var tourBoot = archTourInitFromDefault();
+    var tourBoot = TE ? TE.initFromDefault() : Promise.resolve();
     if (tourBoot && typeof tourBoot.then === 'function') {
       tourBoot.then(archBootstrapAfterTourLoad).catch(archBootstrapAfterTourLoad);
     } else {
@@ -4889,12 +4440,12 @@
     var domId = 'node-cbox-' + nb.id;
     var curH = archHighlightsForState(idx).slice();
     if (curH.indexOf(domId) < 0) curH.push(domId);
-    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
     if (archHighlightArraysEqual(curH, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
+      delete archHiliteOverrides()[idx];
+      delete archHiliteOverrides()[String(idx)];
     } else {
-      archStateHighlightOverrides[String(idx)] = curH;
+      archHiliteOverrides()[String(idx)] = curH;
     }
     archStateHighlightOverridesPersist();
     archCustomBoxesPersist();
@@ -4940,12 +4491,12 @@
     var domId = 'node-cbox-' + nb.id;
     var curH = archHighlightsForState(idx).slice();
     if (curH.indexOf(domId) < 0) curH.push(domId);
-    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
     if (archHighlightArraysEqual(curH, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
+      delete archHiliteOverrides()[idx];
+      delete archHiliteOverrides()[String(idx)];
     } else {
-      archStateHighlightOverrides[String(idx)] = curH;
+      archHiliteOverrides()[String(idx)] = curH;
     }
     archStateHighlightOverridesPersist();
     archCustomBoxesPersist();
@@ -6142,7 +5693,9 @@
       var inp = document.createElement('input');
       inp.type = 'checkbox';
       inp.setAttribute('data-node-id', domId);
-      inp.addEventListener('change', archHighlightPickerOnChange);
+      inp.addEventListener('change', function () {
+        if (TE) TE.highlightPickerApplyFromDom();
+      });
       var span = document.createElement('span');
       span.textContent = b.name || 'Custom box';
       lab.appendChild(inp);
@@ -6221,12 +5774,12 @@
     var domId = 'node-cbox-' + nb.id;
     var curH = archHighlightsForState(idx).slice();
     if (curH.indexOf(domId) < 0) curH.push(domId);
-    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
     if (archHighlightArraysEqual(curH, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
+      delete archHiliteOverrides()[idx];
+      delete archHiliteOverrides()[String(idx)];
     } else {
-      archStateHighlightOverrides[String(idx)] = curH;
+      archHiliteOverrides()[String(idx)] = curH;
     }
     archStateHighlightOverridesPersist();
     archCustomBoxesPersist();
@@ -6258,11 +5811,11 @@
     });
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
-    Object.keys(archStateHighlightOverrides).forEach(function (k) {
-      var arr = archStateHighlightOverrides[k];
+    Object.keys(archHiliteOverrides()).forEach(function (k) {
+      var arr = archHiliteOverrides()[k];
       if (!Array.isArray(arr)) return;
       var domId = 'node-cbox-' + sid;
-      archStateHighlightOverrides[k] = arr.filter(function (id) {
+      archHiliteOverrides()[k] = arr.filter(function (id) {
         return id !== domId;
       });
     });
@@ -6380,7 +5933,7 @@
       layer.appendChild(g);
     });
     archHighlightPickerRefreshCustomBoxes();
-    archHighlightPickerSync();
+    if (TE) TE.highlightPickerSync();
     archRefreshNodeHighlightClasses();
     archCustomBoxSyncPropsHud();
   }
@@ -6450,12 +6003,12 @@
     var domId = 'node-cbox-' + nb.id;
     var curH = archHighlightsForState(idx).slice();
     if (curH.indexOf(domId) < 0) curH.push(domId);
-    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
     if (archHighlightArraysEqual(curH, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
+      delete archHiliteOverrides()[idx];
+      delete archHiliteOverrides()[String(idx)];
     } else {
-      archStateHighlightOverrides[String(idx)] = curH;
+      archHiliteOverrides()[String(idx)] = curH;
     }
     archStateHighlightOverridesPersist();
     archCustomBoxesPersist();
@@ -6504,12 +6057,12 @@
     var domId = 'node-cbox-' + nb.id;
     var curH = archHighlightsForState(idx).slice();
     if (curH.indexOf(domId) < 0) curH.push(domId);
-    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
     if (archHighlightArraysEqual(curH, defH)) {
-      delete archStateHighlightOverrides[idx];
-      delete archStateHighlightOverrides[String(idx)];
+      delete archHiliteOverrides()[idx];
+      delete archHiliteOverrides()[String(idx)];
     } else {
-      archStateHighlightOverrides[String(idx)] = curH;
+      archHiliteOverrides()[String(idx)] = curH;
     }
     archStateHighlightOverridesPersist();
     archCustomBoxesPersist();
@@ -6792,8 +6345,8 @@
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
-      stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
-      tour: PB ? PB.cloneTour(archTour) : JSON.parse(JSON.stringify(archTour)),
+      stateHighlightOverrides: JSON.parse(JSON.stringify(archHiliteOverrides())),
+      tour: PB ? PB.cloneTour(archGetTour()) : JSON.parse(JSON.stringify(archGetTour())),
       sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
       hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
@@ -6826,15 +6379,20 @@
     }
     if (Array.isArray(data.userLines)) userLines.lines = data.userLines.map(archUserLineMigrateLegacy);
     if (data.stateHighlightOverrides && typeof data.stateHighlightOverrides === 'object') {
-      archStateHighlightOverrides = {};
-      Object.keys(data.stateHighlightOverrides).forEach(function (k) {
-        var v = data.stateHighlightOverrides[k];
-        if (Array.isArray(v)) archStateHighlightOverrides[k] = v.slice();
-      });
+      if (TE) {
+        var hiliteO = {};
+        Object.keys(data.stateHighlightOverrides).forEach(function (k) {
+          var v = data.stateHighlightOverrides[k];
+          if (Array.isArray(v)) hiliteO[k] = v.slice();
+        });
+        TE.setHighlightOverrides(hiliteO);
+      }
     }
     if (data.tour && typeof data.tour === 'object') {
-      archTourApplyStatesFromTour(data.tour);
-      archTourPersist();
+      if (TE) {
+        TE.applyStatesFromTour(data.tour);
+        TE.persist();
+      }
     }
     if (Array.isArray(data.sourcesDividers)) {
       archSourcesDividers = archSourcesDividersNormalize(data.sourcesDividers);
@@ -6961,6 +6519,8 @@
       g.appendChild(hit);
     });
     archUserLineHandlesRefresh();
+    if (TE) TE.userLinePickerRefresh();
+    applyState();
   }
 
   function archUserLineFindById(id) {
@@ -7190,12 +6750,12 @@
       var domId = 'node-cbox-' + nb.id;
       var curH = archHighlightsForState(idx).slice();
       if (curH.indexOf(domId) < 0) curH.push(domId);
-      var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      var defH = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
       if (archHighlightArraysEqual(curH, defH)) {
-        delete archStateHighlightOverrides[idx];
-        delete archStateHighlightOverrides[String(idx)];
+        delete archHiliteOverrides()[idx];
+        delete archHiliteOverrides()[String(idx)];
       } else {
-        archStateHighlightOverrides[String(idx)] = curH;
+        archHiliteOverrides()[String(idx)] = curH;
       }
       archStateHighlightOverridesPersist();
       archCustomBoxesPersist();
@@ -7643,7 +7203,7 @@
       localStorage.removeItem(LS_CUSTOM_BOXES);
       localStorage.removeItem('aepArchDragTags');
       localStorage.removeItem('aepArchDragSources');
-      localStorage.removeItem(LS_STATE_HILITE_OVERRIDES);
+      localStorage.removeItem('aepArchStateHighlightOverrides');
       localStorage.removeItem('aepDiagramUndoStack');
       localStorage.removeItem('aepDiagramSelection');
       localStorage.removeItem(LS_LINE_TOOLBAR_DEFAULTS);
@@ -7772,12 +7332,12 @@
       var domId = 'node-cbox-' + nb.id;
       var curH = archHighlightsForState(idx).slice();
       if (curH.indexOf(domId) < 0) curH.push(domId);
-      var defHil = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      var defHil = archGetStates()[idx] && archGetStates()[idx].highlights ? archGetStates()[idx].highlights : [];
       if (archHighlightArraysEqual(curH, defHil)) {
-        delete archStateHighlightOverrides[idx];
-        delete archStateHighlightOverrides[String(idx)];
+        delete archHiliteOverrides()[idx];
+        delete archHiliteOverrides()[String(idx)];
       } else {
-        archStateHighlightOverrides[String(idx)] = curH;
+        archHiliteOverrides()[String(idx)] = curH;
       }
     });
     archStateHighlightOverridesPersist();
@@ -8279,7 +7839,7 @@
     return {
       version: 2,
       keys: out,
-      tour: PB ? PB.cloneTour(archTour) : JSON.parse(JSON.stringify(archTour)),
+      tour: PB ? PB.cloneTour(archGetTour()) : JSON.parse(JSON.stringify(archGetTour())),
     };
   }
 
@@ -8296,10 +7856,12 @@
       }
     }
     if (snapshot.tour && typeof snapshot.tour === 'object') {
-      archTourApplyStatesFromTour(snapshot.tour);
-      archTourPersist();
-    } else if (version < 2) {
-      archTourLoadFromStorage();
+      if (TE) {
+        TE.applyStatesFromTour(snapshot.tour);
+        TE.persist();
+      }
+    } else if (version < 2 && TE) {
+      TE.highlightOverridesLoad();
     }
   }
 

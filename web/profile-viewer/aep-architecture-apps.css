@@ -1263,6 +1263,32 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   }
 }
 
+/* User-drawn lines — animated dash when visible on a tour slide */
+.arch-user-lines-layer .arch-user-line.is-visible {
+  stroke-dasharray: 14 10;
+  animation: archFlowDash 1.1s linear infinite;
+}
+
+/* Present / play mode — hide edit chrome while auto-advancing */
+.arch-int-viewport--playing .arch-edit-mode-toggle,
+.arch-int-viewport--playing .arch-proposals-bar,
+.arch-int-viewport--playing .arch-int-compact-edit,
+.arch-int-viewport--playing .arch-dock-flip-btn,
+.arch-int-viewport--playing #archEditorDock {
+  opacity: 0;
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.arch-int-viewport--playing .arch-int-play-row {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* Editor side panel — scrollable tool stack */
 .arch-editor-panel.arch-int-hud {
   flex: 1;
