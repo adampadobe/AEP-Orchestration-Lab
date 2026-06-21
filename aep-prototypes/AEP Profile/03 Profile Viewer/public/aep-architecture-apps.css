@@ -5,6 +5,9 @@
   --arch-editor-rail-w: 3.35rem;
   --arch-editor-panel-min-w: 14.5rem;
   --arch-editor-panel-max-w: 22rem;
+  /* Reserve slide copy height so nav controls do not jump between tour states */
+  --arch-int-state-headline-lines: 2;
+  --arch-int-state-body-lines: 7;
 }
 
 .arch-int-page .dashboard-main.app-page {
@@ -107,6 +110,12 @@
   padding: 0.85rem 1rem 0.75rem;
   border-bottom: 1px solid var(--dash-border, #e4e6eb);
   background: rgba(255, 255, 255, 0.65);
+  min-height: calc(
+    0.85rem + 0.75rem +
+    (0.7rem * 1.2) + 0.35rem +
+    (0.9rem * 1.55 * var(--arch-int-state-headline-lines)) + 0.35rem +
+    (0.875rem * 1.45 * var(--arch-int-state-body-lines))
+  );
 }
 
 .arch-int-state-kicker {
@@ -127,6 +136,7 @@
   line-height: 1.55;
   letter-spacing: normal;
   color: var(--dash-muted);
+  min-height: calc(0.9rem * 1.55 * var(--arch-int-state-headline-lines));
 }
 
 .arch-int-state-body {
@@ -135,6 +145,10 @@
   line-height: 1.45;
   color: var(--dash-muted, #4b5563);
   max-width: 72ch;
+  min-height: calc(0.875rem * 1.45 * var(--arch-int-state-body-lines));
+  max-height: calc(0.875rem * 1.45 * var(--arch-int-state-body-lines));
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .arch-int-viewport-body {
