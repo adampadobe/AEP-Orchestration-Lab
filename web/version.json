@@ -1,14 +1,14 @@
 {
-  "gitSha": "e9c419485ca05bfa301bb25ce8eded5a204c85f6",
-  "gitShortSha": "e9c41948",
+  "gitSha": "112236b80608729b9dfc983d8a931afa6a9a8364",
+  "gitShortSha": "112236b8",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: deck-aligned AEP & Apps tour, editor, and play mode",
+  "gitCommitSubject": "[apalmer] feat: AEP architecture tour Phase E — user lines, tour-editor module, present mode",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T09:30:53+01:00",
-  "deployedAt": "2026-06-21T08:35:36.477Z",
+  "gitCommitDate": "2026-06-21T10:04:06+01:00",
+  "deployedAt": "2026-06-21T09:04:21.788Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/e9c419485ca05bfa301bb25ce8eded5a204c85f6"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/112236b80608729b9dfc983d8a931afa6a9a8364"
 }
