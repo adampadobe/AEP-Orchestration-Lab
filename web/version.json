@@ -1,14 +1,14 @@
 {
-  "gitSha": "c943b1d2c32ee13632e432ceee533e08e24aba0c",
-  "gitShortSha": "c943b1d2",
+  "gitSha": "fca90dec9a549833f15d30a066ccea6c75340af8",
+  "gitShortSha": "fca90dec",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: unify page banner heading typography across Profile Viewer",
+  "gitCommitSubject": "[apalmer] fix: stabilize AEP & Apps slide HUD height on state change",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:37:00+01:00",
-  "deployedAt": "2026-06-21T09:37:14.322Z",
+  "gitCommitDate": "2026-06-21T10:40:42+01:00",
+  "deployedAt": "2026-06-21T09:40:54.754Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c943b1d2c32ee13632e432ceee533e08e24aba0c"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fca90dec9a549833f15d30a066ccea6c75340af8"
 }
