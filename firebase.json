@@ -665,6 +665,13 @@
         }
       },
       {
+        "source": "/api/arch-diagram/assist",
+        "function": {
+          "functionId": "archDiagramAssist",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/arch-proposals",
         "function": {
           "functionId": "archProposals",

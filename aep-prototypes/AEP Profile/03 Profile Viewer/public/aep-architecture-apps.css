@@ -2871,3 +2871,106 @@ html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
 .arch-custom-box--product-logo .arch-custom-box-spectrum-img {
   pointer-events: none;
 }
+
+/* Vertex AI assist panel (Edit mode rail) */
+.arch-assist-chat-wrap {
+  margin: 0.65rem 0 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+  max-height: 14rem;
+  overflow: hidden;
+}
+
+.arch-assist-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.arch-assist-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.arch-assist-msg-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.arch-assist-msg-body {
+  color: var(--dash-text);
+  white-space: pre-wrap;
+}
+
+.arch-assist-msg--assistant .arch-assist-msg-body {
+  color: var(--dash-text-secondary);
+}
+
+.arch-assist-prompt {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--dash-input-border, var(--dash-border));
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-input-bg, var(--dash-surface));
+  color: var(--dash-text);
+}
+
+.arch-assist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.arch-assist-status {
+  margin-top: 0.45rem;
+  min-height: 1.1rem;
+}
+
+.arch-assist-status.is-error {
+  color: var(--dash-error-text, #b91c1c);
+}
+
+.arch-assist-preview-wrap {
+  margin-top: 0.75rem;
+}
+
+.arch-assist-preview {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.65rem;
+  max-height: 10rem;
+  overflow: auto;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  color: var(--dash-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+html[data-aep-theme='dark'] .arch-assist-chat-wrap {
+  background: var(--dash-surface);
+}
+
+html[data-aep-theme='dark'] .arch-assist-prompt {
+  background: var(--dash-input-bg);
+  border-color: var(--dash-input-border);
+}
+

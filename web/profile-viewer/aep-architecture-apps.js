@@ -520,10 +520,10 @@
     archCustomBoxesRender();
   }
 
-  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file | none). */
+  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file | assist | none). */
   function archEditorSetPanel(panelId) {
     var prev = archEditorActivePanelId;
-    var valid = ['layout', 'highlights', 'sources', 'spectrum-icons', 'file'];
+    var valid = ['layout', 'highlights', 'sources', 'spectrum-icons', 'file', 'assist'];
     archEditorActivePanelId = valid.indexOf(panelId) >= 0 ? panelId : null;
     if (prev === 'spectrum-icons' && archEditorActivePanelId !== 'spectrum-icons') {
       archLogoLibraryEditModeSet(false);
@@ -6016,6 +6016,98 @@
     archUserLineRender();
   }
 
+  /** Add custom box from AI assist action payload. */
+  function archAssistAddCustomBox(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var nb = archCustomBoxNormalize(Object.assign({ id: 'cbox-' + Date.now() }, raw));
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    archCustomBoxesRender();
+    archUndoMaybePushSnapshot();
+    applyState();
+    return nb;
+  }
+
+  /** Add connector from AI assist action payload. */
+  function archAssistAddUserLine(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var id = 'ul-ai-' + Date.now();
+    var from = raw.from;
+    var to = raw.to;
+    if (!from || !to) return null;
+    var pts = Array.isArray(raw.points) && raw.points.length >= 2
+      ? raw.points.map(function (p) {
+          return { x: Number(p.x) || 0, y: Number(p.y) || 0 };
+        })
+      : [{ x: Number(from.x) || 0, y: Number(from.y) || 0 }, { x: Number(to.x) || 0, y: Number(to.y) || 0 }];
+    var lar = raw.lineArrows === 'none' || raw.lineArrows === 'end' || raw.lineArrows === 'both'
+      ? raw.lineArrows
+      : 'end';
+    userLines.lines.push({
+      id: id,
+      from: { kind: 'free', x: pts[0].x, y: pts[0].y },
+      to: { kind: 'free', x: pts[pts.length - 1].x, y: pts[pts.length - 1].y },
+      points: pts,
+      stroke: typeof raw.stroke === 'string' ? raw.stroke : '#308fff',
+      strokeWidth: typeof raw.strokeWidth === 'number' ? raw.strokeWidth : 2,
+      lineArrows: lar,
+      bidirectional: lar === 'both',
+      dashStyle: raw.dashStyle === 'dotted' ? 'dotted' : 'solid',
+    });
+    userLines.selectedId = id;
+    archUserLineRender();
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    return id;
+  }
+
+  function archAssistLayoutSummary() {
+    var boxes = archCustomBoxes.map(function (b) {
+      return {
+        name: b.name,
+        x: b.x,
+        y: b.y,
+        w: b.w,
+        h: b.h,
+        logoFile: b.logoFile || '',
+        kind: b.kind || '',
+      };
+    });
+    var offsets = {};
+    Object.keys(archDrag.pos || {}).forEach(function (k) {
+      var p = archDrag.pos[k];
+      if (!p || (p.x === 0 && p.y === 0 && p.w == null && p.h == null)) return;
+      offsets[k] = { x: p.x, y: p.y };
+      if (typeof p.w === 'number') offsets[k].w = p.w;
+      if (typeof p.h === 'number') offsets[k].h = p.h;
+    });
+    return {
+      customBoxCount: archCustomBoxes.length,
+      customBoxes: boxes.slice(0, 40),
+      userLineCount: userLines.lines.length,
+      nodeOffsets: offsets,
+    };
+  }
+
+  function archAssistInstallOnce() {
+    if (!(window.AEPDiagram && window.AEPDiagram.archAssist)) return;
+    window.AEPDiagram.archAssist.install({
+      qs: qs,
+      getIdx: function () { return idx; },
+      getTour: archGetTour,
+      getLayoutSummary: archAssistLayoutSummary,
+      applyState: applyState,
+      tourEditor: TE,
+      playback: PB,
+      addCustomBox: archAssistAddCustomBox,
+      addUserLine: archAssistAddUserLine,
+      undoMaybePush: archUndoMaybePushSnapshot,
+      saveProposalAs: typeof archProposalsHandleSaveAs === 'function' ? archProposalsHandleSaveAs : null,
+      isEditMode: archIsEditMode,
+    }).init();
+  }
+
   /** Preset custom boxes (Visio-like palette). Keys match data-arch-palette on buttons. */
   var ARCH_PALETTE_PRESETS = {
     process: { name: 'Process', w: 120, h: 56, fill: '#eff6ff', stroke: '#2563eb' },
@@ -7796,6 +7888,7 @@
 
     archStateHighlightOverridesPersist();
     archProposalsBarInit();
+    archAssistInstallOnce();
   }
 
   /* ============================================================

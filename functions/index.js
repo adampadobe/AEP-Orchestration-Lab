@@ -87,6 +87,7 @@ const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
+const archDiagramAssistService = lazyRequireMod('./archDiagramAssistService');
 const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
@@ -2527,6 +2528,19 @@ exports.schemaViewerCacheWarm = onSchedule(
         urls.map((url) => fetch(url).catch(() => {})),
       );
     }
+  },
+);
+
+/** POST archDiagramAssist — Vertex AI assistant for AEP & Apps architecture diagram (tour + layout actions). */
+exports.archDiagramAssist = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    await archDiagramAssistService.handleAssist(req, res);
   },
 );
 
