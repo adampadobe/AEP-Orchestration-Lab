@@ -1,14 +1,14 @@
 {
-  "gitSha": "d26277d3cc2b9acdee5eff0a3896516cf2eacd93",
-  "gitShortSha": "d26277d3",
+  "gitSha": "c943b1d2c32ee13632e432ceee533e08e24aba0c",
+  "gitShortSha": "c943b1d2",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: align AEP & Apps header typography with lab pages",
+  "gitCommitSubject": "[apalmer] fix: unify page banner heading typography across Profile Viewer",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:34:01+01:00",
-  "deployedAt": "2026-06-21T09:34:17.681Z",
+  "gitCommitDate": "2026-06-21T10:37:00+01:00",
+  "deployedAt": "2026-06-21T09:37:14.322Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d26277d3cc2b9acdee5eff0a3896516cf2eacd93"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c943b1d2c32ee13632e432ceee533e08e24aba0c"
 }
