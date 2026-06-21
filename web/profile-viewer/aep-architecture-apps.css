@@ -78,6 +78,22 @@
   flex-shrink: 0;
 }
 
+/* Lab shell typography — inherit Inter from body.home-dashboard-concierge; match home.css page-banner */
+.arch-int-page .dashboard-hero--page-banner .dashboard-hero-title {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: clamp(1.28rem, 2vw, 1.58rem);
+  letter-spacing: -0.02em;
+  line-height: 1.22;
+  color: var(--dash-text);
+}
+
+.arch-int-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  font-family: inherit;
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
 .arch-int-viewport {
   display: flex;
   flex-direction: column;
@@ -120,8 +136,9 @@
 
 .arch-int-state-headline {
   margin: 0 0 0.4rem;
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: inherit;
+  font-size: clamp(1.05rem, 1.75vw, 1.15rem);
+  font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.02em;
   color: var(--dash-text, #1a1d21);
