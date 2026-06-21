@@ -1,14 +1,14 @@
 {
-  "gitSha": "112236b80608729b9dfc983d8a931afa6a9a8364",
-  "gitShortSha": "112236b8",
+  "gitSha": "6c7349c37afda71a65f2338ec70302afc969e99c",
+  "gitShortSha": "6c7349c3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: AEP architecture tour Phase E — user lines, tour-editor module, present mode",
+  "gitCommitSubject": "[apalmer] feat: Vertex AI assist for AEP & Apps architecture diagram",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:04:06+01:00",
-  "deployedAt": "2026-06-21T09:04:21.788Z",
+  "gitCommitDate": "2026-06-21T10:21:02+01:00",
+  "deployedAt": "2026-06-21T09:21:16.712Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/112236b80608729b9dfc983d8a931afa6a9a8364"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/6c7349c37afda71a65f2338ec70302afc969e99c"
 }
