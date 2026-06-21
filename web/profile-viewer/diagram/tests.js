@@ -103,6 +103,17 @@
       console.warn('[diagram.tests] AEPDiagram.interop missing');
     }
 
+    var PB = global.AEPDiagram && global.AEPDiagram.playback;
+    if (PB && typeof PB.validateTour === 'function') {
+      var embedded = PB.validateTour(PB.EMBEDDED_TOUR);
+      console.assert(embedded.ok, 'playback embedded tour valid: ' + (embedded.errors && embedded.errors.join('; ')));
+      console.assert(embedded.tour.states.length === PB.EXPECTED_STATE_COUNT, 'playback state count');
+      var bad = PB.validateTour({ version: 1, states: [{ label: 'x' }] });
+      console.assert(!bad.ok, 'playback rejects incomplete state');
+    } else {
+      console.warn('[diagram.tests] AEPDiagram.playback missing');
+    }
+
     console.info('[diagram.tests] OK');
   }
 

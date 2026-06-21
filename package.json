@@ -15,6 +15,7 @@
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
+    "validate:aep-architecture-tour": "node scripts/validate-aep-architecture-tour.mjs",
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
     "verify:profile-viewer-routes": "node scripts/verify-profile-viewer-routes.mjs",
     "verify:demo-env-strip": "node scripts/verify-demo-env-strip.mjs",

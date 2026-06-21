@@ -12,8 +12,18 @@ const admin = require('firebase-admin');
 const PROPOSAL_COLLECTION = 'architectureProposals';
 const MASTER_COLLECTION = 'architectureMasters';
 const MASTER_DOC_ID = 'default';
-/** Only this sandbox may write to the shared master baseline. */
-const MASTER_OWNER_SANDBOX = 'apalmer';
+/** Only these sandboxes may write to the shared master baseline (comma-separated env override). */
+const MASTER_OWNER_SANDBOXES = String(process.env.ARCH_MASTER_OWNER_SANDBOXES || 'apalmer')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+/** @deprecated use MASTER_OWNER_SANDBOXES */
+const MASTER_OWNER_SANDBOX = MASTER_OWNER_SANDBOXES[0] || 'apalmer';
+
+function isMasterOwnerSandbox(sandbox) {
+  const name = String(sandbox || '').trim();
+  return MASTER_OWNER_SANDBOXES.includes(name);
+}
 const MAX_SNAPSHOT_CHARS = 1_500_000;
 const MAX_NAME_CHARS = 120;
 
@@ -140,8 +150,8 @@ async function getMaster() {
 
 async function saveMaster(sandbox, payload) {
   const name = String(sandbox || '').trim();
-  if (name !== MASTER_OWNER_SANDBOX) {
-    const err = new Error(`Only sandbox "${MASTER_OWNER_SANDBOX}" may save the master.`);
+  if (!isMasterOwnerSandbox(name)) {
+    const err = new Error(`Only sandboxes [${MASTER_OWNER_SANDBOXES.join(', ')}] may save the master.`);
     err.code = 'master-forbidden';
     throw err;
   }
@@ -174,4 +184,6 @@ module.exports = {
   getMaster,
   saveMaster,
   MASTER_OWNER_SANDBOX,
+  MASTER_OWNER_SANDBOXES,
+  isMasterOwnerSandbox,
 };

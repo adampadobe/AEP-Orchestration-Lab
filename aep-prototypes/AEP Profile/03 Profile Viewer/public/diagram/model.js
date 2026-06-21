@@ -1,11 +1,15 @@
 /**
  * Unified scene graph + layout versioning (vanilla JS, no dependencies).
  * Consumed by aep-architecture-apps.js for master JSON v8+.
+ *
+ * Master layout v10 adds optional `tour` ({ version, states[] }) for deck-aligned
+ * playback; proposals snapshot v2 embeds the same tour object alongside localStorage keys.
  */
 (function (global) {
   'use strict';
 
   var VERSION = 8;
+  var LAYOUT_TOUR_VERSION = 1;
 
   function emptyScene() {
     return {
@@ -83,6 +87,7 @@
   global.AEPDiagram = global.AEPDiagram || {};
   global.AEPDiagram.model = {
     VERSION: VERSION,
+    LAYOUT_TOUR_VERSION: LAYOUT_TOUR_VERSION,
     emptyScene: emptyScene,
     legacyToScene: legacyToScene,
     normalizeScene: normalizeScene,

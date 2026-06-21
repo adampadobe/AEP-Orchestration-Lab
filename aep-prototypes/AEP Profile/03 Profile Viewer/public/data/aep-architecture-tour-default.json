@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "source": "AEP Architecture.pptx",
+  "states": [
+    {
+      "label": "1 — Platform overview",
+      "headline": "Adobe Experience Platform as the centralized data foundation",
+      "body": "Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant digital customer experiences.",
+      "highlights": ["node-aep", "node-edge"],
+      "flows": []
+    },
+    {
+      "label": "2 — Four native apps",
+      "headline": "Four applications natively built on Experience Platform",
+      "body": "Four applications are natively built on Experience Platform: Adobe Real-Time Customer Data Platform (RTCDP), Journey Optimizer (AJO), Customer Journey Analytics (CJA), and Adobe Mix Modeler.",
+      "highlights": ["node-jo", "node-rtcdp", "node-cja", "node-mix"],
+      "flows": []
+    },
+    {
+      "label": "3 — Ingestion",
+      "headline": "Ingest data from almost any source",
+      "body": "Adobe Experience Platform can ingest data from almost any source needed to power a customer experience—web and mobile behavioral data, Adobe Experience Cloud applications, third-party systems, cloud-based storage or databases, enterprise data sources like CRMs, ETL tools, external data warehouses, and more. Experience Platform ingests data from sources either by streaming or batch.",
+      "highlights": ["node-sources", "node-tags", "node-streaming", "node-batch"],
+      "flows": [
+        { "id": "flow-sources-stream", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-sources-batch", "stroke": "#308fff", "kind": "ingress" }
+      ]
+    },
+    {
+      "label": "4 — Real-time streaming",
+      "headline": "Real-time streaming updates the profile in context",
+      "body": "Experience Platform supports streaming data from your data sources using either an SDK or an API. That data updates the Real-Time Customer Profile in real time, which in turn can support real-time experiences and personalization.",
+      "highlights": ["node-sources", "node-streaming", "node-edge"],
+      "flows": [
+        { "id": "flow-sources-stream", "stroke": "#308fff", "kind": "ingress" }
+      ]
+    },
+    {
+      "label": "5 — Batch ingestion",
+      "headline": "Batch ingestion enriches the profile on a schedule",
+      "body": "You can batch upload data on a one-time or periodic basis using an API or a pre-built connector. Batch ingested data gets loaded into the Experience Platform Data Lake and enriches the Real-Time Customer Profile once daily.",
+      "highlights": ["node-sources", "node-batch", "node-lake"],
+      "flows": [
+        { "id": "flow-sources-batch", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-batch-lake", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "6 — Edge Network & Tags",
+      "headline": "Edge Network and Tags simplify deployment",
+      "body": "You can stream data directly into Experience Platform or via the Edge Network, a globally distributed network of servers that minimizes latency for sending data to Experience Platform and delivering content by using a server physically close to the customer. Tags expedites and simplifies your Experience Platform deployment. It gives users a simple way to deploy and manage all the analytics, marketing, and advertising tags necessary to power relevant customer experiences.",
+      "highlights": ["node-tags", "node-edge"],
+      "flows": [
+        { "id": "flow-tags-edge", "stroke": "#308fff", "kind": "ingress" }
+      ]
+    },
+    {
+      "label": "7 — Streaming to profile",
+      "headline": "Streaming data enriches Real-Time Customer Profile",
+      "body": "Streaming data enriches the Real-Time Customer Profile, unlocking your ability to do real-time personalization, journey orchestration, and activation at destinations.",
+      "highlights": ["node-streaming", "node-pipeline", "node-profile", "node-edge"],
+      "flows": [
+        { "id": "flow-sources-stream", "stroke": "#308fff", "kind": "ingress" },
+        { "id": "flow-edge-profile", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-pipeline-profile", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "8 — Identity Graph",
+      "headline": "Identity Graph unifies customer identities",
+      "body": "Identity Graph is a collection of a single customer's identities across your data sources—their CRM ID, email ID, support ID, and others.",
+      "highlights": ["node-profile", "node-identity"],
+      "flows": [
+        { "id": "flow-pipeline-profile", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "9 — Segmentation & audiences",
+      "headline": "Segmentation and Audience Composition",
+      "body": "Experience Platform provides marketer-friendly rules-based segmentation capabilities. As streaming data streams in and attaches to a profile, the rules are applied to immediately qualify or disqualify individuals for segments. In comparison, segmentation is only applied to batch data once a day.",
+      "highlights": ["node-seg", "node-profile"],
+      "flows": [
+        { "id": "flow-profile-seg", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "10 — Federated Audience Composition",
+      "headline": "Federated Audience Composition from data warehouses",
+      "body": "Federated Audience Composition allows you to import third-party audiences from data warehouses into Experience Platform so that you can build and enrich audiences with these third-party audiences.",
+      "highlights": ["node-seg", "node-sources"],
+      "flows": []
+    },
+    {
+      "label": "11 — Query Service & AI",
+      "headline": "Query Service and Intelligence & AI",
+      "body": "Query Service and Intelligence and AI are additional capabilities that can offer your business value by helping you answer questions based on data in the Data Lake.",
+      "highlights": ["node-query", "node-intel", "node-lake"],
+      "flows": [
+        { "id": "flow-stream-lake", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-batch-lake", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "12 — Data Lake egress",
+      "headline": "Export select data from the Data Lake",
+      "body": "You can take select data out of the Data Lake to any external destination that accepts information from the Data Lake—for example, to use in a third-party data visualization product like Tableau.",
+      "highlights": ["node-lake"],
+      "flows": [
+        { "id": "flow-lake-pipeline", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "13 — Governance & controls",
+      "headline": "Alerts, Audit Logs, and Access Controls",
+      "body": "Because Experience Platform is an API-oriented system, you can set it up to provide Alerts that tell you when something went wrong or needs attention. Audit Logs will tell you who logged into Experience Platform, the actions they took, and the time they took those actions—all important for governance. Granular Access Controls allow you to restrict who has access to what so that everyone has the exact right level of access for their role.",
+      "highlights": ["node-lake", "node-aep"],
+      "flows": []
+    },
+    {
+      "label": "14 — Sandboxing",
+      "headline": "Sandboxes for development and production",
+      "body": "A sandbox creates a complete Experience Platform environment. Sandboxing allows you to create separate development and production environments, separate environments to handle highly sensitive data, or separate environments for subsidiaries if you are a multi-business company.",
+      "highlights": ["node-aep"],
+      "flows": []
+    },
+    {
+      "label": "15 — Application entitlements",
+      "headline": "Application access to Profile and Data Lake",
+      "body": "Real-Time Customer Data Platform, Journey Optimizer, Customer Journey Analytics, and Mix Modeler are all applications natively built on Experience Platform. Each has different access to the Real-Time Customer Profile and Data Lake based on use cases solved for by each product and the entitlements of specific packages purchased.",
+      "highlights": ["node-jo", "node-rtcdp", "node-cja", "node-mix", "node-profile", "node-lake"],
+      "flows": [
+        { "id": "flow-profile-cdp", "stroke": "#7d8a9e", "kind": "intra" },
+        { "id": "flow-seg-jo", "stroke": "#7d8a9e", "kind": "intra" }
+      ]
+    },
+    {
+      "label": "16 — Journey Optimizer channels",
+      "headline": "Journey Optimizer for inbound and outbound engagement",
+      "body": "Journey Optimizer uses the Real-Time Customer Profile to personalize customer engagement for inbound and outbound channels.",
+      "highlights": ["node-jo", "node-inbound", "node-msg", "node-edge"],
+      "flows": [
+        { "id": "flow-edge-inbound", "stroke": "#e34850", "kind": "egress" },
+        { "id": "flow-jo-msg", "stroke": "#e34850", "kind": "egress" }
+      ]
+    }
+  ]
+}

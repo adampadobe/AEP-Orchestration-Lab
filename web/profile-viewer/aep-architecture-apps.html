@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEP &amp; Apps (in development) – AEP Profile Viewer</title>
+  <title>AEP &amp; Apps – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,7 +22,6 @@
       <header class="dashboard-topbar">
         <div class="dashboard-topbar-brand">
           <h1 class="dashboard-topbar-title">AEP &amp; Apps</h1>
-          <span class="dashboard-env-pill" title="Work in progress">In development</span>
         </div>
         <div class="dashboard-topbar-right">
           <span class="dashboard-env-pill" title="Area">Architecture</span>
@@ -38,10 +37,9 @@
             <header class="dashboard-hero-header arch-apps-hero-header">
               <div class="arch-apps-hero-title-row">
                 <h2 id="archIntBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
-                <span class="dashboard-env-pill" title="Work in progress">In development</span>
               </div>
               <p class="dashboard-hero-subtitle">
-                Interactive reference architecture — use arrows or dots to step through 16 states (highlights and animated flows). No server; runs entirely in the browser.
+                Interactive reference architecture — deck-aligned tour with 16 states. Use arrows, dots, or <strong>Play</strong> to step through highlights and animated flows. Fork the tour in Edit mode; save proposals per sandbox.
               </p>
               <p class="dashboard-hero-subtitle" style="margin-top: 0.65rem; font-size: 0.9rem; max-width: 52rem;">
                 <strong>Assets lab:</strong> use <a href="image-hosting.html">Image hosting</a> for the CDN image library and brand scraper. The older local-folder “Firebase images” Hosting manager is <a href="_archive/firebase-hosting-legacy/firebase-hosting.html">archived here</a> for reference only (not linked from Tools).
@@ -89,6 +87,14 @@
                 <div class="arch-int-compact-nav">
                   <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
                   <div class="arch-int-compact-nav-actions">
+                    <div class="arch-int-play-row" role="group" aria-label="Tour playback">
+                      <button type="button" class="dashboard-btn-primary" id="archPlayBtn" title="Auto-advance through tour states">Play</button>
+                      <label class="arch-int-play-delay">
+                        <span class="arch-int-play-delay-label">Step delay</span>
+                        <input type="range" id="archPlayDelayMs" min="800" max="8000" step="200" value="3200" aria-label="Milliseconds between tour steps"/>
+                        <span id="archPlayDelayLabel" class="arch-int-play-delay-val">3200 ms</span>
+                      </label>
+                    </div>
                     <div class="arch-int-hud-nav">
                       <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
                       <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
@@ -516,7 +522,7 @@
                   </span>
                   <span class="visually-hidden">Tools — canvas and drawing</span>
                 </button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Which boxes light up for each tour step" aria-pressed="false">
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Edit tour steps — copy, highlights, and flows" aria-pressed="false">
                   <span class="arch-editor-rail-icon" aria-hidden="true">
                     <!-- Spectrum Workflow: S2_Icon_Apps_20_N.svg (Apache-2.0) -->
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-apps-icon">
@@ -563,8 +569,28 @@
                   <p class="arch-tool-micro arch-tools-layout-hint">Shapes and selection controls are on the <strong>floating Tools bar</strong> on the diagram (rail: Tools). Connectors: <strong>arrow</strong> on the rail · save / undo: <strong>archive</strong> on the rail.</p>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
-                  <p class="arch-editor-panel-heading">Tour highlights</p>
-                  <p class="arch-tool-lead">Control which boxes are emphasized for <strong>each numbered step</strong> of the tour (saved in this browser).</p>
+                  <p class="arch-editor-panel-heading">Tour editor</p>
+                  <p class="arch-tool-lead">Edit the deck-aligned tour: copy, highlighted boxes, and animated flows for each step. Saved in this browser and included in Download JSON / proposals.</p>
+                  <p class="arch-tool-micro arch-tour-state-meta"><span id="archTourStateCount">16</span> states · editing state <strong class="arch-tour-state-num-ref">1</strong></p>
+                  <div class="arch-tour-copy-fields">
+                    <label class="arch-hud-label arch-hud-label--block">Step label (HUD)
+                      <input type="text" id="archTourStateLabel" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="120" autocomplete="off" aria-label="Tour step label"/>
+                    </label>
+                    <label class="arch-hud-label arch-hud-label--block">Headline
+                      <input type="text" id="archTourStateHeadline" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="240" autocomplete="off" aria-label="Tour step headline"/>
+                    </label>
+                    <label class="arch-hud-label arch-hud-label--block">Body
+                      <textarea id="archTourStateBody" class="arch-tour-body-input arch-diagram-ui" rows="4" maxlength="2000" aria-label="Tour step body"></textarea>
+                    </label>
+                  </div>
+                  <div class="arch-tour-state-actions" role="group" aria-label="Tour state actions">
+                    <button type="button" class="dashboard-btn-outline" id="archTourMoveUp" title="Move this state earlier">↑</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourMoveDown" title="Move this state later">↓</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourDuplicateState" title="Duplicate this state">Duplicate</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourAddState" title="Add a state after this one">Add</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourDeleteState" title="Delete this state">Delete</button>
+                    <button type="button" class="dashboard-btn-outline" id="archTourResetAll" title="Restore the 16-state Adobe deck default">Reset tour</button>
+                  </div>
                   <div class="arch-int-hud-view" aria-label="Diagram view">
                     <label class="arch-drag-toggle">
                       <input type="checkbox" id="archStateHighlightsToggle" checked/>
@@ -572,12 +598,17 @@
                     </label>
                   </div>
                   <details class="arch-highlight-picker-wrap" id="archHighlightPickerWrap">
-                    <summary class="arch-highlight-picker-summary">Which boxes are highlighted in this state</summary>
-                    <p class="arch-highlight-picker-help">Choose boxes for <strong>state <span id="archHighlightStateNum">1</span></strong> (saved in this browser; included in Download JSON).</p>
+                    <summary class="arch-highlight-picker-summary">Highlighted boxes (state <span class="arch-tour-state-num-ref">1</span>)</summary>
+                    <p class="arch-highlight-picker-help">Choose boxes for the current step. Use arrow keys or Previous/Next to preview while editing.</p>
                     <div id="archHighlightPicker" class="arch-highlight-picker" role="group" aria-label="Boxes to highlight for the current diagram state"></div>
                     <div class="arch-highlight-picker-actions">
-                      <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights for this state only">Reset this state to Adobe default</button>
+                      <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights and flows for this state only">Reset this state to Adobe default</button>
                     </div>
+                  </details>
+                  <details class="arch-highlight-picker-wrap arch-flow-picker-wrap" id="archFlowPickerWrap">
+                    <summary class="arch-highlight-picker-summary">Animated flows (state <span class="arch-tour-state-num-ref">1</span>)</summary>
+                    <p class="arch-highlight-picker-help">Toggle built-in connector animations for this step.</p>
+                    <div id="archFlowPicker" class="arch-flow-picker" role="group" aria-label="Flows to animate for the current diagram state"></div>
                   </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
@@ -800,7 +831,8 @@
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
-  <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260419a"></script>
+  <script defer src="diagram/playback.js?v=20260621"></script>
+  <script defer src="diagram/tests.js?v=20260621"></script>
+  <script defer src="aep-architecture-apps.js?v=20260621"></script>
 </body>
 </html>

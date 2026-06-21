@@ -5,184 +5,17 @@
 (function () {
   'use strict';
 
-  var C = {
-    ingress: '#308fff',
-    intra: '#7d8a9e',
-    egress: '#e34850',
-  };
+  var PB = window.AEPDiagram && window.AEPDiagram.playback;
+  var C = PB ? PB.FLOW_COLORS : { ingress: '#308fff', intra: '#7d8a9e', egress: '#e34850' };
 
-  /**
-   * Each state: label for HUD, node ids to highlight, flows { id, stroke, kind }
-   * kind: 'ingress' | 'intra' | 'egress' — sets data-flow-kind for dash styling
-   */
-  var STATES = [
-    {
-      label: '1 — Platform frame',
-      headline: 'Adobe Experience Platform as the centralized data foundation',
-      body:
-        'Collects, standardizes, governs, applies AI insights to, and unifies data to power thoughtful and relevant customer experiences.',
-      highlights: ['node-aep', 'node-edge'],
-      /** Intro: static overview — no flow animation (see arch-int-viewport--intro) */
-      flows: [],
-    },
-    {
-      label: '2 — Ingress: Tags & Edge',
-      headline: 'Ingress from tags, SDKs, and streaming sources',
-      body:
-        'Experience Platform Tags and streaming collection bring first-party data into the Edge Network so it can be processed consistently with your governance policies.',
-      highlights: ['node-tags', 'node-sources', 'node-edge', 'node-streaming'],
-      flows: [
-        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
-        { id: 'flow-sources-stream', stroke: C.ingress, kind: 'ingress' },
-      ],
-    },
-    {
-      label: '3 — Batch collection',
-      headline: 'Batch ingestion from enterprise systems and warehouses',
-      body:
-        'CRM, cloud apps, ETL, and data warehouses load large volumes on a schedule; batch paths land in the lake alongside streaming for a full customer picture.',
-      highlights: ['node-sources', 'node-batch', 'node-lake'],
-      flows: [
-        { id: 'flow-sources-batch', stroke: C.ingress, kind: 'ingress' },
-        { id: 'flow-batch-lake', stroke: C.intra, kind: 'intra' },
-      ],
-    },
-    {
-      label: '4 — Data Lake & governance',
-      headline: 'Data Lake plus query, intelligence, and governance',
-      body:
-        'Raw and processed data resides in the lake; Query Service, AI/ML, and governance tools help you explore, label, and control usage across downstream applications.',
-      highlights: ['node-lake', 'node-query', 'node-intel'],
-      flows: [
-        { id: 'flow-stream-lake', stroke: C.intra, kind: 'intra' },
-        { id: 'flow-batch-lake', stroke: C.intra, kind: 'intra' },
-      ],
-    },
-    {
-      label: '5 — Pipeline bus',
-      headline: 'Pipeline from lake to Real-Time Customer Profile',
-      body:
-        'Identity resolution and ingestion pipelines move governed data from the lake into the profile store so unified identities stay current for activation.',
-      highlights: ['node-lake', 'node-pipeline', 'node-profile'],
-      flows: [
-        { id: 'flow-lake-pipeline', stroke: C.intra, kind: 'intra' },
-        { id: 'flow-pipeline-profile', stroke: C.intra, kind: 'intra' },
-      ],
-    },
-    {
-      label: '6 — Real-Time Profile',
-      headline: 'Real-Time Customer Profile at the center',
-      body:
-        'Edge and batch updates merge into a single profile graph with identity resolution—so decisions and journeys use the same up-to-date view of the customer.',
-      highlights: ['node-profile', 'node-identity', 'node-edge'],
-      flows: [
-        { id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' },
-        { id: 'flow-pipeline-profile', stroke: C.intra, kind: 'intra' },
-      ],
-    },
-    {
-      label: '7 — Segmentation',
-      headline: 'Segmentation across streaming, batch, and audiences',
-      body:
-        'Audiences are built on the profile using segmentation services—powering eligibility for journeys, offers, and channel destinations in near real time or on a schedule.',
-      highlights: ['node-seg', 'node-profile'],
-      flows: [{ id: 'flow-profile-seg', stroke: C.intra, kind: 'intra' }],
-    },
-    {
-      label: '8 — Decisioning trio → Journey Optimizer',
-      headline: 'Decision management, journeys, and Journey Optimizer',
-      body:
-        'Orchestration and decisioning use profile and audience context to determine the next best experience; Journey Optimizer executes messages across channels from the same stack.',
-      highlights: ['node-decision', 'node-jo'],
-      flows: [
-        { id: 'flow-seg-jo', stroke: C.intra, kind: 'intra' },
-        { id: 'flow-profile-cdp', stroke: C.intra, kind: 'intra' },
-      ],
-    },
-    {
-      label: '9 — Egress: Edge → Inbound',
-      headline: 'Personalization back to digital properties',
-      body:
-        'Profile and decision outcomes return through the Edge Network to inbound web and app experiences—same-session relevance without shipping raw data to every channel silo.',
-      highlights: ['node-edge', 'node-inbound'],
-      flows: [{ id: 'flow-edge-inbound', stroke: C.egress, kind: 'egress' }],
-    },
-    {
-      label: '10 — Egress: JO → Message Delivery',
-      headline: 'Journey execution to Message Delivery',
-      body:
-        'Journey Optimizer hands off to message execution so email, SMS, push, and other channels deliver the chosen treatment with tracking and consent in place.',
-      highlights: ['node-jo', 'node-msg'],
-      flows: [{ id: 'flow-jo-msg', stroke: C.egress, kind: 'egress' }],
-    },
-    {
-      label: '11 — Egress: CDP → Paid Media',
-      headline: 'Real-Time CDP to paid media and ad platforms',
-      body:
-        'Audience and suppression lists sync to paid media destinations so acquisition and retargeting stay aligned with the same profile and consent you use in owned channels.',
-      highlights: ['node-rtcdp', 'node-paid'],
-      flows: [{ id: 'flow-cdp-paid', stroke: C.egress, kind: 'egress' }],
-    },
-    {
-      label: '12 — Egress: CJA → Journey reporting',
-      headline: 'Customer Journey Analytics to journey reporting',
-      body:
-        'Behavioral and journey data flows to reporting surfaces so teams can measure journeys, attribution, and channel performance on a common event foundation.',
-      highlights: ['node-cja', 'node-jrpt'],
-      flows: [{ id: 'flow-cja-jrpt', stroke: C.egress, kind: 'egress' }],
-    },
-    {
-      label: '13 — Egress: Mix Modeler → Marketing performance',
-      headline: 'Mix Modeler to marketing performance measurement',
-      body:
-        'Unified data supports marketing mix and incrementality views so budget and channel decisions reflect both digital signals and broader business outcomes.',
-      highlights: ['node-mix', 'node-mrpt'],
-      flows: [{ id: 'flow-mix-mrpt', stroke: C.egress, kind: 'egress' }],
-    },
-    {
-      label: '14 — Creative & AEM',
-      headline: 'Creative Cloud and AEM alongside the Edge',
-      body:
-        'Creative assets and web experiences connect to the same customer context—content and personalization can reflect profile-aware decisions at the edge.',
-      highlights: ['node-creative', 'node-aem', 'node-edge'],
-      flows: [{ id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' }],
-    },
-    {
-      label: '15 — Full ingress picture',
-      headline: 'All major ingress paths together',
-      body:
-        'Tags, SDKs, batch, and enterprise sources feed the Edge and lake in parallel—illustrating how Experience Platform ingests the full breadth of customer data.',
-      highlights: ['node-tags', 'node-sources', 'node-edge', 'node-streaming', 'node-batch'],
-      flows: [
-        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
-        { id: 'flow-sources-stream', stroke: C.ingress, kind: 'ingress' },
-        { id: 'flow-sources-batch', stroke: C.ingress, kind: 'ingress' },
-      ],
-    },
-    {
-      label: '16 — End-to-end (all flow types)',
-      headline: 'End-to-end: ingress, platform, and egress in one view',
-      body:
-        'A single architecture carries data from collection through profile and decisioning to inbound experiences and outbound channels—ingress, intra-platform, and egress flows together.',
-      highlights: [
-        'node-tags',
-        'node-edge',
-        'node-lake',
-        'node-pipeline',
-        'node-profile',
-        'node-seg',
-        'node-jo',
-        'node-inbound',
-        'node-msg',
-      ],
-      flows: [
-        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
-        { id: 'flow-lake-pipeline', stroke: C.intra, kind: 'intra' },
-        { id: 'flow-edge-inbound', stroke: C.egress, kind: 'egress' },
-        { id: 'flow-jo-msg', stroke: C.egress, kind: 'egress' },
-      ],
-    },
-  ];
+  /** Active tour states (deck-aligned default; editable in Tour panel). */
+  var STATES = PB ? PB.EMBEDDED_STATES.slice() : [];
+  var archTour = PB ? PB.cloneTour(PB.EMBEDDED_TOUR) : { version: 1, states: STATES };
+  var archDefaultTour = PB ? PB.cloneTour(PB.EMBEDDED_TOUR) : { version: 1, states: STATES.slice() };
+  var LS_TOUR = 'aepArchTour';
+  var archTourEditorSyncing = false;
+  var archPlayTimerId = null;
+  var archTourReady = false;
 
   /** Order of boxes in the highlight picker (matches diagram regions left→right, top→bottom). */
   var ARCH_HIGHLIGHT_KEYS = [
@@ -242,10 +75,336 @@
   };
 
   var LS_STATE_HILITE_OVERRIDES = 'aepArchStateHighlightOverrides';
+  var LS_PLAY_DELAY = 'aepArchPlayDelayMs';
 
-  /** Per-state override of which node ids are highlighted; key = state index string "0".."15". */
+  /** Per-state override of which node ids are highlighted; key = state index string "0".."n". */
   var archStateHighlightOverrides = {};
   var archHighlightPickerSyncing = false;
+
+  function archTourNormalize(raw) {
+    if (PB && PB.normalizeTour) return PB.normalizeTour(raw);
+    return raw && typeof raw === 'object' ? raw : { version: 1, states: STATES.slice() };
+  }
+
+  function archTourApplyStatesFromTour(tour) {
+    archTour = archTourNormalize(tour);
+    STATES = archTour.states.slice();
+    if (idx >= STATES.length) idx = Math.max(0, STATES.length - 1);
+    archTourRebuildDots();
+  }
+
+  function archTourPersist() {
+    try {
+      localStorage.setItem(LS_TOUR, JSON.stringify(archTour));
+    } catch (e) {}
+  }
+
+  function archTourLoadFromStorage() {
+    try {
+      var raw = localStorage.getItem(LS_TOUR);
+      if (!raw) return false;
+      archTourApplyStatesFromTour(JSON.parse(raw));
+      return true;
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  function archTourInitFromDefault() {
+    if (!PB) return Promise.resolve();
+    return PB.loadDefaultTour(PB.DEFAULT_TOUR_URL).then(function (tour) {
+      archDefaultTour = PB.cloneTour(tour);
+      if (!archTourLoadFromStorage()) {
+        archTourApplyStatesFromTour(archDefaultTour);
+      }
+      archTourReady = true;
+    });
+  }
+
+  function archTourDefaultState(index) {
+    if (archDefaultTour && archDefaultTour.states && archDefaultTour.states[index]) {
+      return PB ? PB.normalizeState(archDefaultTour.states[index]) : archDefaultTour.states[index];
+    }
+    return STATES[index] ? (PB ? PB.normalizeState(STATES[index]) : STATES[index]) : null;
+  }
+
+  function archTourCurrentStateRaw() {
+    return STATES[idx] || null;
+  }
+
+  function archTourUpdateCurrentState(patch) {
+    if (!STATES[idx]) return;
+    var st = PB ? PB.normalizeState(Object.assign({}, STATES[idx], patch || {})) : Object.assign({}, STATES[idx], patch || {});
+    STATES[idx] = st;
+    archTour.states[idx] = st;
+    archTourPersist();
+  }
+
+  function archTourRebuildDots() {
+    var dots = qs('#archIntDots');
+    if (!dots) return;
+    dots.textContent = '';
+    dotButtons = [];
+    for (var i = 0; i < STATES.length; i++) {
+      (function (stateIndex) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'arch-int-dot';
+        b.title = 'Go to state ' + (stateIndex + 1);
+        b.addEventListener('click', function () {
+          archPlayStop();
+          goTo(stateIndex);
+        });
+        dots.appendChild(b);
+        dotButtons.push(b);
+      })(i);
+    }
+    archSyncPlaybackNav();
+  }
+
+  function archFlowPickerInit() {
+    var host = qs('#archFlowPicker');
+    if (!host || host.getAttribute('data-arch-built')) return;
+    host.setAttribute('data-arch-built', '1');
+    var ids = PB && PB.FLOW_IDS ? PB.FLOW_IDS : [];
+    var labels = PB && PB.FLOW_LABELS ? PB.FLOW_LABELS : {};
+    ids.forEach(function (fid) {
+      var wrap = document.createElement('label');
+      wrap.className = 'arch-flow-picker-item';
+      var inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.setAttribute('data-flow-id', fid);
+      inp.addEventListener('change', archFlowPickerOnChange);
+      var span = document.createElement('span');
+      span.textContent = labels[fid] || fid;
+      wrap.appendChild(inp);
+      wrap.appendChild(span);
+      host.appendChild(wrap);
+    });
+  }
+
+  function archFlowPickerSync() {
+    var host = qs('#archFlowPicker');
+    if (!host) return;
+    var st = STATES[idx];
+    var active = {};
+    if (st && st.flows) {
+      st.flows.forEach(function (f) {
+        active[f.id] = true;
+      });
+    }
+    archTourEditorSyncing = true;
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      var fid = cb.getAttribute('data-flow-id');
+      cb.checked = !!active[fid];
+    });
+    archTourEditorSyncing = false;
+  }
+
+  function archFlowPickerOnChange() {
+    if (archTourEditorSyncing) return;
+    var host = qs('#archFlowPicker');
+    if (!host) return;
+    var selectedIds = [];
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      if (cb.checked) selectedIds.push(cb.getAttribute('data-flow-id'));
+    });
+    var flows = selectedIds.map(function (fid) {
+      var kind = fid.indexOf('inbound') >= 0 || fid.indexOf('-msg') >= 0 || fid.indexOf('-paid') >= 0 || fid.indexOf('-jrpt') >= 0 || fid.indexOf('-mrpt') >= 0 ? 'egress' : fid.indexOf('sources') >= 0 || fid.indexOf('tags') >= 0 ? 'ingress' : 'intra';
+      return { id: fid, stroke: C[kind], kind: kind };
+    });
+    archTourUpdateCurrentState({ flows: flows });
+    applyState();
+  }
+
+  function archTourEditorSync() {
+    var numStr = String(idx + 1);
+    $all('.arch-tour-state-num-ref').forEach(function (el) {
+      el.textContent = numStr;
+    });
+    var st = STATES[idx];
+    var labelInp = qs('#archTourStateLabel');
+    var headInp = qs('#archTourStateHeadline');
+    var bodyInp = qs('#archTourStateBody');
+    archTourEditorSyncing = true;
+    if (labelInp) labelInp.value = st && st.label ? st.label : '';
+    if (headInp) headInp.value = st && st.headline ? st.headline : '';
+    if (bodyInp) bodyInp.value = st && st.body ? st.body : '';
+    archTourEditorSyncing = false;
+    archHighlightPickerSync();
+    archFlowPickerSync();
+    var countEl = qs('#archTourStateCount');
+    if (countEl) countEl.textContent = String(STATES.length);
+  }
+
+  function archTourEditorOnFieldChange() {
+    if (archTourEditorSyncing) return;
+    var labelInp = qs('#archTourStateLabel');
+    var headInp = qs('#archTourStateHeadline');
+    var bodyInp = qs('#archTourStateBody');
+    archTourUpdateCurrentState({
+      label: labelInp ? labelInp.value : '',
+      headline: headInp ? headInp.value : '',
+      body: bodyInp ? bodyInp.value : '',
+    });
+    applyState();
+  }
+
+  function archTourDuplicateState() {
+    if (!STATES[idx]) return;
+    var copy = PB ? PB.normalizeState(STATES[idx]) : JSON.parse(JSON.stringify(STATES[idx]));
+    STATES.splice(idx + 1, 0, copy);
+    archTour.states = STATES.slice();
+    archTourPersist();
+    archTourRebuildDots();
+    goTo(idx + 1);
+    archTourEditorSync();
+  }
+
+  function archTourDeleteState() {
+    if (STATES.length <= 1) return;
+    if (!window.confirm('Delete state ' + (idx + 1) + '?')) return;
+    STATES.splice(idx, 1);
+    archTour.states = STATES.slice();
+    archTourPersist();
+    if (idx >= STATES.length) idx = STATES.length - 1;
+    archTourRebuildDots();
+    applyState();
+    archTourEditorSync();
+  }
+
+  function archTourAddState() {
+    var blank = PB
+      ? PB.normalizeState({ label: 'New state', headline: 'Headline', body: 'Body copy for this step.', highlights: [], flows: [] })
+      : { label: 'New state', headline: 'Headline', body: 'Body copy for this step.', highlights: [], flows: [] };
+    STATES.splice(idx + 1, 0, blank);
+    archTour.states = STATES.slice();
+    archTourPersist();
+    archTourRebuildDots();
+    goTo(idx + 1);
+    archTourEditorSync();
+  }
+
+  function archTourMoveState(delta) {
+    var target = idx + delta;
+    if (target < 0 || target >= STATES.length) return;
+    var tmp = STATES[idx];
+    STATES[idx] = STATES[target];
+    STATES[target] = tmp;
+    archTour.states = STATES.slice();
+    archTourPersist();
+    idx = target;
+    archTourRebuildDots();
+    applyState();
+    archTourEditorSync();
+  }
+
+  function archTourResetAll() {
+    if (!window.confirm('Reset the tour to the deck-aligned Adobe default (16 states)?')) return;
+    archTourApplyStatesFromTour(archDefaultTour);
+    archStateHighlightOverrides = {};
+    archStateHighlightOverridesPersist();
+    try {
+      localStorage.removeItem(LS_TOUR);
+    } catch (e) {}
+    idx = 0;
+    archTourRebuildDots();
+    applyState();
+    archTourEditorSync();
+  }
+
+  function archTourInitEditor() {
+    archFlowPickerInit();
+    var labelInp = qs('#archTourStateLabel');
+    var headInp = qs('#archTourStateHeadline');
+    var bodyInp = qs('#archTourStateBody');
+    if (labelInp) labelInp.addEventListener('input', archTourEditorOnFieldChange);
+    if (headInp) headInp.addEventListener('input', archTourEditorOnFieldChange);
+    if (bodyInp) bodyInp.addEventListener('input', archTourEditorOnFieldChange);
+    var dupBtn = qs('#archTourDuplicateState');
+    var delBtn = qs('#archTourDeleteState');
+    var addBtn = qs('#archTourAddState');
+    var upBtn = qs('#archTourMoveUp');
+    var downBtn = qs('#archTourMoveDown');
+    var resetBtn = qs('#archTourResetAll');
+    if (dupBtn) dupBtn.addEventListener('click', archTourDuplicateState);
+    if (delBtn) delBtn.addEventListener('click', archTourDeleteState);
+    if (addBtn) addBtn.addEventListener('click', archTourAddState);
+    if (upBtn) upBtn.addEventListener('click', function () { archTourMoveState(-1); });
+    if (downBtn) downBtn.addEventListener('click', function () { archTourMoveState(1); });
+    if (resetBtn) resetBtn.addEventListener('click', archTourResetAll);
+    archTourEditorSync();
+  }
+
+  function archPlayGetDelayMs() {
+    var inp = qs('#archPlayDelayMs');
+    var val = inp ? parseInt(inp.value, 10) : 3200;
+    if (!val || val < 500) val = 3200;
+    return val;
+  }
+
+  function archPlayDelayLabelSync() {
+    var lab = qs('#archPlayDelayLabel');
+    if (lab) lab.textContent = String(archPlayGetDelayMs()) + ' ms';
+  }
+
+  function archPlayPrefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function archPlayStop() {
+    if (archPlayTimerId) {
+      clearTimeout(archPlayTimerId);
+      archPlayTimerId = null;
+    }
+    var playBtn = qs('#archPlayBtn');
+    if (playBtn) playBtn.disabled = false;
+  }
+
+  function archPlayStep() {
+    if (idx >= STATES.length - 1) {
+      archPlayStop();
+      return;
+    }
+    go(1);
+    archPlayTimerId = setTimeout(archPlayStep, archPlayGetDelayMs());
+  }
+
+  function archPlayStart() {
+    archPlayStop();
+    if (archPlayPrefersReducedMotion()) {
+      goTo(STATES.length - 1);
+      return;
+    }
+    var playBtn = qs('#archPlayBtn');
+    if (playBtn) playBtn.disabled = true;
+    if (idx >= STATES.length - 1) idx = 0;
+    applyState();
+    archPlayTimerId = setTimeout(archPlayStep, archPlayGetDelayMs());
+  }
+
+  function archPlayInitControls() {
+    var playBtn = qs('#archPlayBtn');
+    var delayInp = qs('#archPlayDelayMs');
+    if (playBtn) playBtn.addEventListener('click', archPlayStart);
+    if (delayInp) {
+      try {
+        var saved = localStorage.getItem(LS_PLAY_DELAY);
+        if (saved) delayInp.value = saved;
+      } catch (e) {}
+      delayInp.addEventListener('input', function () {
+        archPlayDelayLabelSync();
+        try {
+          localStorage.setItem(LS_PLAY_DELAY, delayInp.value);
+        } catch (e2) {}
+      });
+      archPlayDelayLabelSync();
+    }
+  }
 
   var idx = 0;
   var hudTitle;
@@ -765,6 +924,39 @@
     return st && st.highlights ? st.highlights.slice() : [];
   }
 
+  function archResolvedState(stateIndex) {
+    var st = STATES[stateIndex];
+    if (!st) return null;
+    return Object.assign({}, st, { highlights: archHighlightsForState(stateIndex) });
+  }
+
+  function archBuildApplyCtx() {
+    return {
+      viewport: archViewport,
+      hudTitle: hudTitle,
+      hudMeta: hudMeta,
+      stateKicker: stateKicker,
+      stateHeadline: stateHeadline,
+      stateBody: stateBody,
+      dotButtons: dotButtons,
+      liveRegion: liveRegion,
+      totalStates: STATES.length,
+      selectedFlowId: archSelectedFlowId,
+      flowElements: $all('.arch-flow'),
+      isFlowHidden: archHiddenFlowsHas,
+      refreshNodeHighlights: function (hilites) {
+        $all('.arch-node').forEach(function (el) {
+          el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
+        });
+      },
+      onAfterApply: function () {
+        archHighlightPickerSync();
+        archFlowPickerSync();
+        archTourEditorSync();
+      },
+    };
+  }
+
   function archHighlightArraysEqual(a, b) {
     if (!a || !b || a.length !== b.length) return false;
     var sa = a.slice().sort();
@@ -820,8 +1012,6 @@
   function archHighlightPickerSync() {
     var host = qs('#archHighlightPicker');
     if (!host) return;
-    var nums = qs('#archHighlightStateNum');
-    if (nums) nums.textContent = String(idx + 1);
     var hilites = archHighlightsForState(idx);
     archHighlightPickerSyncing = true;
     host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
@@ -839,20 +1029,33 @@
     host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
       if (cb.checked) selected.push(cb.getAttribute('data-node-id'));
     });
-    var def = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
-    if (archHighlightArraysEqual(selected, def)) {
+    var def = archTourDefaultState(idx);
+    var defH = def && def.highlights ? def.highlights : [];
+    if (archHighlightArraysEqual(selected, defH)) {
       delete archStateHighlightOverrides[idx];
       delete archStateHighlightOverrides[String(idx)];
+      archTourUpdateCurrentState({ highlights: defH.slice() });
     } else {
       archStateHighlightOverrides[String(idx)] = selected;
+      archTourUpdateCurrentState({ highlights: selected.slice() });
     }
     archStateHighlightOverridesPersist();
     applyState();
   }
 
   function archHighlightResetCurrentState() {
+    var def = archTourDefaultState(idx);
     delete archStateHighlightOverrides[idx];
     delete archStateHighlightOverrides[String(idx)];
+    if (def) {
+      archTourUpdateCurrentState({
+        label: def.label || '',
+        headline: def.headline || '',
+        body: def.body || '',
+        highlights: def.highlights ? def.highlights.slice() : [],
+        flows: def.flows ? def.flows.slice() : [],
+      });
+    }
     archStateHighlightOverridesPersist();
     applyState();
   }
@@ -865,16 +1068,17 @@
   }
 
   function applyState() {
-    var st = STATES[idx];
+    var st = archResolvedState(idx);
     if (!st) return;
-
+    if (PB && PB.applyStateToDom) {
+      PB.applyStateToDom(archBuildApplyCtx(), idx, st);
+      return;
+    }
     archRefreshNodeHighlightClasses();
-
     var activeIds = {};
     st.flows.forEach(function (f) {
       activeIds[f.id] = f;
     });
-
     $all('.arch-flow').forEach(function (path) {
       var spec = activeIds[path.id];
       if (!spec || archHiddenFlowsHas(path.id)) {
@@ -889,33 +1093,25 @@
       path.classList.add('is-visible');
       path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
     });
-
     if (hudTitle) hudTitle.textContent = st.label;
     if (hudMeta) hudMeta.textContent = 'State ' + (idx + 1) + ' / ' + STATES.length;
-
-    if (stateKicker) {
-      stateKicker.textContent = 'State ' + (idx + 1) + ' of ' + STATES.length;
-    }
+    if (stateKicker) stateKicker.textContent = 'State ' + (idx + 1) + ' of ' + STATES.length;
     if (stateHeadline) stateHeadline.textContent = st.headline || '';
     if (stateBody) stateBody.textContent = st.body || '';
-
     dotButtons.forEach(function (btn, i) {
       btn.setAttribute('aria-current', i === idx ? 'true' : 'false');
     });
-
     if (liveRegion) {
-      liveRegion.textContent =
-        'State ' + (idx + 1) + ' of ' + STATES.length + ': ' + (st.headline || st.label);
+      liveRegion.textContent = 'State ' + (idx + 1) + ' of ' + STATES.length + ': ' + (st.headline || st.label);
     }
-
-    if (archViewport) {
-      archViewport.classList.toggle('arch-int-viewport--intro', idx === 0);
-    }
-
+    if (archViewport) archViewport.classList.toggle('arch-int-viewport--intro', idx === 0);
     archHighlightPickerSync();
+    archFlowPickerSync();
+    archTourEditorSync();
   }
 
   function go(delta) {
+    archPlayStop();
     var n = idx + delta;
     if (n < 0 || n >= STATES.length) return;
     idx = n;
@@ -923,6 +1119,7 @@
   }
 
   function goTo(i) {
+    archPlayStop();
     if (i < 0 || i >= STATES.length) return;
     idx = i;
     applyState();
@@ -992,21 +1189,19 @@
       go(1);
     });
 
-    var dots = qs('#archIntDots');
-    if (dots) {
-      for (var i = 0; i < STATES.length; i++) {
-        (function (stateIndex) {
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'arch-int-dot';
-          b.title = 'Go to state ' + (stateIndex + 1);
-          b.addEventListener('click', function () {
-            goTo(stateIndex);
-          });
-          dots.appendChild(b);
-          dotButtons.push(b);
-        })(i);
-      }
+    archPlayInitControls();
+    archTourInitEditor();
+
+    function archBootstrapAfterTourLoad() {
+      archTourRebuildDots();
+      applyState();
+    }
+
+    var tourBoot = archTourInitFromDefault();
+    if (tourBoot && typeof tourBoot.then === 'function') {
+      tourBoot.then(archBootstrapAfterTourLoad).catch(archBootstrapAfterTourLoad);
+    } else {
+      archBootstrapAfterTourLoad();
     }
 
     document.addEventListener('keydown', function (e) {
@@ -1024,7 +1219,6 @@
         archEditorApplyEditMode();
         return;
       }
-      if (archIsEditMode()) return;
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         go(-1);
@@ -6593,12 +6787,13 @@
 
   function archMasterSerialize() {
     var payload = {
-      version: 9,
+      version: 10,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
+      tour: PB ? PB.cloneTour(archTour) : JSON.parse(JSON.stringify(archTour)),
       sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
       hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
@@ -6636,6 +6831,10 @@
         var v = data.stateHighlightOverrides[k];
         if (Array.isArray(v)) archStateHighlightOverrides[k] = v.slice();
       });
+    }
+    if (data.tour && typeof data.tour === 'object') {
+      archTourApplyStatesFromTour(data.tour);
+      archTourPersist();
     }
     if (Array.isArray(data.sourcesDividers)) {
       archSourcesDividers = archSourcesDividersNormalize(data.sourcesDividers);
@@ -8036,7 +8235,6 @@
     }
 
     archStateHighlightOverridesPersist();
-    applyState();
     archProposalsBarInit();
   }
 
@@ -8053,6 +8251,7 @@
     'aepArchCustomBoxes',
     'aepArchStateHighlights',
     'aepArchStateHighlightOverrides',
+    'aepArchTour',
     'aepArchCustomLogoLibrary',
     'aepArchCatalogLogoOverrides',
     'aepArchCatalogLogoHiddenFromPicker',
@@ -8060,9 +8259,15 @@
     'aepArchMenuGroupLabelOverrides',
     'aepArchHiddenFlows',
     'aepArchHiddenNodes',
+    'aepArchPlayDelayMs',
   ];
   var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
-  var ARCH_MASTER_OWNER_SANDBOX = 'apalmer';
+  /** Sandboxes allowed to overwrite the shared master baseline (server env may extend). */
+  var ARCH_MASTER_OWNER_SANDBOXES = ['apalmer'];
+
+  function archCanSaveMaster() {
+    return ARCH_MASTER_OWNER_SANDBOXES.indexOf(archProposalsActiveSandbox()) >= 0;
+  }
 
   function archSnapshotCollect() {
     var out = {};
@@ -8071,11 +8276,16 @@
       var v = localStorage.getItem(k);
       if (v != null) out[k] = v;
     }
-    return { version: 1, keys: out };
+    return {
+      version: 2,
+      keys: out,
+      tour: PB ? PB.cloneTour(archTour) : JSON.parse(JSON.stringify(archTour)),
+    };
   }
 
   function archSnapshotRestore(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return;
+    var version = Number(snapshot.version) || 1;
     var keys = snapshot.keys && typeof snapshot.keys === 'object' ? snapshot.keys : snapshot;
     for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
       var k = ARCH_SNAPSHOT_KEYS[i];
@@ -8084,6 +8294,12 @@
       } else {
         try { localStorage.removeItem(k); } catch (e) {}
       }
+    }
+    if (snapshot.tour && typeof snapshot.tour === 'object') {
+      archTourApplyStatesFromTour(snapshot.tour);
+      archTourPersist();
+    } else if (version < 2) {
+      archTourLoadFromStorage();
     }
   }
 
@@ -8285,8 +8501,8 @@
 
   async function archProposalsHandleSaveMaster() {
     var sandbox = archProposalsActiveSandbox();
-    if (sandbox !== ARCH_MASTER_OWNER_SANDBOX) {
-      archProposalsSetStatus('Only the ' + ARCH_MASTER_OWNER_SANDBOX + ' sandbox can save master.');
+    if (!archCanSaveMaster()) {
+      archProposalsSetStatus('Only master-owner sandboxes can save master (' + ARCH_MASTER_OWNER_SANDBOXES.join(', ') + ').');
       return;
     }
     if (!window.confirm('Overwrite the shared base diagram for everyone with the current canvas?')) return;
@@ -8302,7 +8518,7 @@
   function archProposalsMasterBtnSyncVisibility() {
     var btn = qs('#archProposalsSaveMaster');
     if (!btn) return;
-    btn.hidden = archProposalsActiveSandbox() !== ARCH_MASTER_OWNER_SANDBOX;
+    btn.hidden = !archCanSaveMaster();
   }
 
   function archProposalsBarSyncVisibility() {
