@@ -1,14 +1,14 @@
 {
-  "gitSha": "fc960088e8905388432a238845d7cc63913117db",
-  "gitShortSha": "fc960088",
+  "gitSha": "d26277d3cc2b9acdee5eff0a3896516cf2eacd93",
+  "gitShortSha": "d26277d3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: remove Assets lab archived Firebase images disclaimer",
+  "gitCommitSubject": "[apalmer] fix: align AEP & Apps header typography with lab pages",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T10:29:29+01:00",
-  "deployedAt": "2026-06-21T09:29:41.238Z",
+  "gitCommitDate": "2026-06-21T10:34:01+01:00",
+  "deployedAt": "2026-06-21T09:34:17.681Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fc960088e8905388432a238845d7cc63913117db"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/d26277d3cc2b9acdee5eff0a3896516cf2eacd93"
 }
