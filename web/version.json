@@ -1,14 +1,14 @@
 {
-  "gitSha": "271d7c7f8fb86aa8ec455fc9623dcbb40c1fdf66",
-  "gitShortSha": "271d7c7f",
+  "gitSha": "2b29f51fae7f6ae6a7b95571e60bfee2f07ec078",
+  "gitShortSha": "2b29f51f",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: complete AEP architecture diagram with governance and full flows",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after architecture diagram deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-21T11:37:05+01:00",
-  "deployedAt": "2026-06-21T10:37:17.292Z",
+  "gitCommitDate": "2026-06-21T11:37:36+01:00",
+  "deployedAt": "2026-06-21T10:43:31.754Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/271d7c7f8fb86aa8ec455fc9623dcbb40c1fdf66"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/2b29f51fae7f6ae6a7b95571e60bfee2f07ec078"
 }
