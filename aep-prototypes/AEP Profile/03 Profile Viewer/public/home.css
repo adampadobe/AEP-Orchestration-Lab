@@ -1641,6 +1641,17 @@ body.home-dashboard-concierge.home-page .dashboard-main {
  * Global page banner — tool pages use <section class="dashboard-hero dashboard-hero--page-banner">.
  * Standard: inner spans the main column (full width); title + purpose copy are centered with a
  * comfortable max-width so banners stay informative but visually lighter than the old tall gradient card.
+ *
+ * Canonical banner heading (h2.dashboard-hero-title) — do not override per page:
+ *   font-family: inherit (Inter from body.home-dashboard-concierge)
+ *   font-size: clamp(1.28rem, 2vw, 1.58rem)
+ *   font-weight: 600
+ *   letter-spacing: -0.02em
+ *   line-height: 1.22
+ *   color: var(--dash-text)
+ *
+ * Canonical banner subtitle (p.dashboard-hero-subtitle):
+ *   font-size: 0.9rem; font-weight: 400; line-height: 1.55; color: var(--dash-muted)
  */
 .dashboard-hero.dashboard-hero--page-banner {
   width: 100%;
@@ -1679,6 +1690,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-hero--page-banner .dashboard-hero-title {
+  font-family: inherit;
   color: var(--dash-text);
   font-size: clamp(1.28rem, 2vw, 1.58rem);
   font-weight: 600;

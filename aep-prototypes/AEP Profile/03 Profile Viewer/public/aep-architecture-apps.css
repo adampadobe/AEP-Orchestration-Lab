@@ -78,22 +78,6 @@
   flex-shrink: 0;
 }
 
-/* Lab shell typography — inherit Inter from body.home-dashboard-concierge; match home.css page-banner */
-.arch-int-page .dashboard-hero--page-banner .dashboard-hero-title {
-  font-family: inherit;
-  font-weight: 600;
-  font-size: clamp(1.28rem, 2vw, 1.58rem);
-  letter-spacing: -0.02em;
-  line-height: 1.22;
-  color: var(--dash-text);
-}
-
-.arch-int-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
-  font-family: inherit;
-  font-weight: 400;
-  color: var(--dash-muted);
-}
-
 .arch-int-viewport {
   display: flex;
   flex-direction: column;
@@ -134,14 +118,15 @@
   color: var(--dash-muted, #6b7280);
 }
 
+/* Tour step title — subtitle tier; must not compete with h2.dashboard-hero-title in the page banner */
 .arch-int-state-headline {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.35rem;
   font-family: inherit;
-  font-size: clamp(1.05rem, 1.75vw, 1.15rem);
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-  color: var(--dash-text, #1a1d21);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: normal;
+  color: var(--dash-muted);
 }
 
 .arch-int-state-body {
@@ -2030,7 +2015,7 @@ html[data-aep-theme='dark'] .arch-int-state-copy {
 }
 
 html[data-aep-theme='dark'] .arch-int-state-headline {
-  color: var(--dash-text, #e8eaed);
+  color: var(--dash-muted);
 }
 
 html[data-aep-theme='dark'] .arch-int-state-body {
@@ -2168,13 +2153,6 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
   gap: 0.5rem;
   flex-wrap: wrap;
   min-width: 0;
-}
-
-.arch-apps-hero-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
 }
 
 /* Sources panel — narrow column: SDK header (centered) + body rows (icon axis | label axis) */
