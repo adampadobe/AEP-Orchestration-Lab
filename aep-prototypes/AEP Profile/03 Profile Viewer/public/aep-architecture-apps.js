@@ -398,7 +398,7 @@
         archNodeIconSelectedKey +
         '\nTitle: ' +
         (ARCH_NODE_LABELS[archNodeIconSelectedKey] || archNodeIconSelectedKey) +
-        '\n\nDrag to reposition inside the box. Use Icons & logos in the rail to replace the image.';
+        '\n\nDrag to reposition inside the box. Use Icons & logos in the rail to replace the image. Delete hides the icon (tile stays).';
       return;
     }
     if (!archSelection || archSelection.count() !== 1) {
@@ -742,19 +742,35 @@
     if (archContextMenuEl) archContextMenuEl.hidden = true;
   }
 
+  function archContextMenuIconRestoreKey() {
+    if (archNodeIconSelectedKey && NODE_ICON_PARTS[archNodeIconSelectedKey] && archNodeIconPartIsHidden(archNodeIconSelectedKey)) {
+      return archNodeIconSelectedKey;
+    }
+    if (archSelection && archSelection.count() === 1) {
+      var id = archSelection.primary;
+      if (id && id.indexOf('node-') === 0 && id.indexOf('node-cbox-') !== 0) {
+        var key = id.slice(5);
+        if (NODE_ICON_PARTS[key] && archNodeIconPartIsHidden(key)) return key;
+      }
+    }
+    return null;
+  }
+
   function archContextMenuBuildModel() {
     var hasSel = !!(
       archEditMultiToArray().length ||
       archCustomBoxSelectedId ||
       userLines.selectedId ||
       archLabelSelectedId ||
+      archNodeIconSelectedKey ||
       (archSelection && archSelection.count() > 0)
     );
     var canText =
       !!archLabelSelectedId ||
       !!(archCustomBoxSelectedId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
     var canLayer = archLayerOrderCanAdjust();
-    return [
+    var restoreIconKey = archContextMenuIconRestoreKey();
+    var items = [
       { id: 'cut', label: 'Cut', shortcut: '⌘X', disabled: !hasSel, action: archDiagramCutSelection },
       { id: 'copy', label: 'Copy', shortcut: '⌘C', disabled: !hasSel, action: archDiagramCopySelection },
       { id: 'paste', label: 'Paste', shortcut: '⌘V', disabled: !archDiagramClipboard, action: archDiagramPasteClipboard },
@@ -767,8 +783,16 @@
       { id: 'back', label: 'Send to Back', shortcut: '⌘[', disabled: !canLayer, action: function () { archLayerOrderToExtreme(false); } },
       { id: 'sep3', separator: true },
       { id: 'editText', label: 'Edit Text', disabled: !canText, action: archContextMenuEditText },
-      { id: 'delete', label: 'Delete', shortcut: '⌫', disabled: !hasSel, action: archContextMenuDelete },
     ];
+    if (restoreIconKey) {
+      items.push({
+        id: 'restoreIcon',
+        label: 'Restore default icon',
+        action: function () { archNodeIconPartRestoreDefault(restoreIconKey); },
+      });
+    }
+    items.push({ id: 'delete', label: 'Delete', shortcut: '⌫', disabled: !hasSel, action: archContextMenuDelete });
+    return items;
   }
 
   function archContextMenuEditText() {
@@ -942,6 +966,7 @@
       archSelection.clear();
       archSelectionRefreshDom();
     }
+    archNodeIconPartClear();
     if (liveRegion) liveRegion.textContent = 'Undo: layout restored.';
   }
 
@@ -955,6 +980,7 @@
       archSelection.clear();
       archSelectionRefreshDom();
     }
+    archNodeIconPartClear();
     if (liveRegion) liveRegion.textContent = 'Redo: layout restored.';
   }
 
@@ -1818,6 +1844,32 @@
     return p.iconPart && typeof p.iconPart === 'object' ? p.iconPart : {};
   }
 
+  function archNodeIconPartIsHidden(key) {
+    return !!(key && archNodeIconPartState(key).hidden);
+  }
+
+  function archNodeIconPartHide(key) {
+    if (!key || !NODE_ICON_PARTS[key]) return;
+    if (!archDrag.pos[key]) archDrag.pos[key] = { x: 0, y: 0 };
+    if (!archDrag.pos[key].iconPart) archDrag.pos[key].iconPart = {};
+    archDrag.pos[key].iconPart.hidden = true;
+    archNodeIconPartClear();
+    archNodeIconApplyPositions();
+    archDragSave();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Tile icon hidden.';
+  }
+
+  function archNodeIconPartRestoreDefault(key) {
+    if (!key || !NODE_ICON_PARTS[key]) return;
+    if (archDrag.pos[key] && archDrag.pos[key].iconPart) delete archDrag.pos[key].iconPart;
+    archNodeIconPartClear();
+    archNodeIconApplyPositions();
+    archDragSave();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Tile icon restored.';
+  }
+
   function archNodeIconPartMetrics(key) {
     var def = NODE_ICON_PARTS[key];
     if (!def) return null;
@@ -1953,7 +2005,10 @@
         letter.setAttribute('x', String(m.w / 2));
         letter.setAttribute('y', String(Math.round(m.h * 0.8)));
       }
-      partG.classList.toggle('arch-node-icon-part--selected', archNodeIconSelectedKey === key);
+      var hidden = archNodeIconPartIsHidden(key);
+      partG.style.display = hidden ? 'none' : '';
+      partG.classList.toggle('arch-node-icon-part--hidden', hidden);
+      partG.classList.toggle('arch-node-icon-part--selected', !hidden && archNodeIconSelectedKey === key);
     });
   }
 
@@ -2053,7 +2108,7 @@
     var part = archNodeIconPartFromTarget(e.target);
     if (!part || !part.getAttribute('data-arch-icon-part')) return;
     var key = part.getAttribute('data-arch-node-key');
-    if (!key || !NODE_ICON_PARTS[key]) return;
+    if (!key || !NODE_ICON_PARTS[key] || archNodeIconPartIsHidden(key)) return;
     e.preventDefault();
     e.stopPropagation();
     archNodeIconPartSelect(key);
@@ -9704,6 +9759,8 @@
           archDrag.pos[k] = { x: nk.x, y: nk.y || 0 };
           if (typeof nk.w === 'number') archDrag.pos[k].w = nk.w;
           if (typeof nk.h === 'number') archDrag.pos[k].h = nk.h;
+          if (typeof nk.angle === 'number') archDrag.pos[k].angle = nk.angle;
+          if (nk.iconPart && typeof nk.iconPart === 'object') archDrag.pos[k].iconPart = nk.iconPart;
         }
       });
     }
@@ -10591,6 +10648,22 @@
       moved = true;
     }
 
+    if (archNodeIconSelectedKey && NODE_ICON_PARTS[archNodeIconSelectedKey] && !archNodeIconPartIsHidden(archNodeIconSelectedKey)) {
+      var ikey = archNodeIconSelectedKey;
+      var idef = NODE_ICON_PARTS[ikey];
+      var im = archNodeIconPartMetrics(ikey);
+      if (im && idef) {
+        var ic = archNodeIconPartClamp(ikey, im.dx + dx, im.dy + dy);
+        if (!archDrag.pos[ikey]) archDrag.pos[ikey] = { x: 0, y: 0 };
+        if (!archDrag.pos[ikey].iconPart) archDrag.pos[ikey].iconPart = {};
+        archDrag.pos[ikey].iconPart.dx = ic.dx - idef.shellDx;
+        archDrag.pos[ikey].iconPart.dy = ic.dy - idef.shellDy;
+        archNodeIconApplyPositions();
+        archDragSave();
+        moved = true;
+      }
+    }
+
     if (moved) try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err) {}
     return moved;
   }
@@ -10796,6 +10869,11 @@
       archBackgroundsApply();
       if (liveRegion) liveRegion.textContent = 'Background removed from this proposal.';
       try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (errBg) {}
+      return;
+    }
+    if (archNodeIconSelectedKey && NODE_ICON_PARTS[archNodeIconSelectedKey]) {
+      e.preventDefault();
+      archNodeIconPartHide(archNodeIconSelectedKey);
       return;
     }
     if (archSelection && archSelection.count() > 0) {
@@ -11442,6 +11520,7 @@
               archCustomBoxSelectedId ||
               userLines.selectedId ||
               archLabelSelectedId ||
+              archNodeIconSelectedKey ||
               (archSelection && archSelection.count() > 0)
             );
             if (!hasSel) return;
