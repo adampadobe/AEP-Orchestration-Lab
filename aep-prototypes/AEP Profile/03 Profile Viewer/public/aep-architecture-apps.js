@@ -440,7 +440,7 @@
     archFlowSelectedHandleIdx = null;
     archFlowFloatSetJunction(false);
     archEditLineHandlesRefresh();
-    archFlowFloatUpdateVisibility();
+    archLineFloatUpdateVisibility();
   }
 
   function archFlowSelect(id) {
@@ -463,7 +463,7 @@
     archUserLineSyncPropsHud();
     archSelectionRefreshDom();
     archEditLineHandlesRefresh();
-    archFlowFloatUpdateVisibility();
+    archLineFloatUpdateVisibility();
     archLayerOrderSyncUi();
     if (liveRegion) {
       liveRegion.textContent =
@@ -648,11 +648,9 @@
   function archToolsFloatSyncLineOffsetClass() {
     if (!archViewport) return;
     var lineBar = qs('#archLineFloatBar');
-    var flowBar = qs('#archFlowFloatBar');
     var lineVis = !!(lineBar && !lineBar.hidden && archIsEditMode());
-    var flowVis = !!(flowBar && !flowBar.hidden && archIsEditMode());
     archViewport.classList.toggle('arch-int-viewport--tools-float-line-offset', lineVis);
-    archViewport.classList.toggle('arch-int-viewport--flow-float-open', flowVis);
+    archViewport.classList.remove('arch-int-viewport--flow-float-open');
   }
 
   function archToolsFloatSyncPosition() {
@@ -762,7 +760,7 @@
           TE.editorSync();
         }
         archFlowHandlesRefresh();
-        archFlowFloatUpdateVisibility();
+        archLineFloatUpdateVisibility();
       },
     };
   }
@@ -828,7 +826,7 @@
     });
     if (archIsEditMode()) {
       archFlowHandlesRefresh();
-      archFlowFloatUpdateVisibility();
+      archLineFloatUpdateVisibility();
     }
     var statesLen = TE ? TE.getStates().length : 1;
     if (hudTitle) hudTitle.textContent = st.label;
@@ -2778,50 +2776,32 @@
     archConnectorBodyDragBegin('flow', t.id, e);
   }
 
+  function archConnectorFloatHasFlowSelection() {
+    return !!(archIsEditMode() && archSelectedFlowId && archGetActiveTool() === 'select');
+  }
+
+  function archConnectorFloatHasUserSelection() {
+    return !!(archIsEditMode() && userLines.selectedId);
+  }
+
   function archFlowFloatUpdateVisibility() {
-    var bar = qs('#archFlowFloatBar');
-    if (!bar) return;
-    var show = archIsEditMode() && !!archSelectedFlowId && archGetActiveTool() === 'select';
-    bar.hidden = !show;
-    var resetBtn = qs('#archFlowFloatReset');
-    if (resetBtn) resetBtn.disabled = !show || !archFlowHasOverride(archSelectedFlowId);
-    var juncBtn = qs('#archFlowFloatJunction');
-    if (juncBtn) juncBtn.classList.toggle('is-active', !!archFlowFloatJunctionMode);
-    archToolsFloatSyncLineOffsetClass();
+    archLineFloatUpdateVisibility();
   }
 
   function archFlowFloatSetJunction(on) {
     archFlowFloatJunctionMode = !!on;
-    archFlowFloatUpdateVisibility();
+    lineDefaults.lineTool = on ? 'junction' : lineDefaults.lineTool === 'junction' ? 'arrow' : lineDefaults.lineTool;
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      $all('.arch-line-float-tool', bar).forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineDefaults.lineTool);
+      });
+    }
+    archLineFloatUpdateVisibility();
   }
 
   function archFlowFloatInit() {
-    var bar = qs('#archFlowFloatBar');
-    if (!bar || bar.getAttribute('data-arch-flow-float-init') === '1') return;
-    bar.setAttribute('data-arch-flow-float-init', '1');
-    bar.addEventListener('click', function (e) {
-      var jbtn = e.target.closest && e.target.closest('#archFlowFloatJunction');
-      if (jbtn) {
-        archFlowFloatSetJunction(!archFlowFloatJunctionMode);
-        return;
-      }
-      var rbtn = e.target.closest && e.target.closest('#archFlowFloatReset');
-      if (rbtn) {
-        archFlowResetSelectedToAuto();
-        return;
-      }
-      var dbtn = e.target.closest && e.target.closest('#archFlowFloatDelete');
-      if (dbtn) {
-        archFlowDeleteSelected();
-        return;
-      }
-      var cbtn = e.target.closest && e.target.closest('#archFlowFloatClose');
-      if (cbtn) {
-        archFlowClearSelection();
-        archFlowFloatSetJunction(false);
-        archFlowFloatUpdateVisibility();
-      }
-    });
+    /* Flow bar merged into #archLineFloatBar — reset wired in archLineFloatInit. */
   }
 
   /** Base nodes (arch-draggable groups with id node-<key>) hidden per sandbox/proposal. */
@@ -3650,7 +3630,45 @@
     }
   }
 
+  function archLineFloatSyncFromFlow() {
+    var fid = archSelectedFlowId;
+    if (!fid) return;
+    var el = document.getElementById(fid);
+    if (!el) return;
+    var stroke = el.style.stroke || '';
+    if (!stroke || stroke.indexOf('var(') >= 0) {
+      try {
+        stroke = window.getComputedStyle(el).stroke || '#308fff';
+      } catch (e0) {
+        stroke = '#308fff';
+      }
+    }
+    if (stroke && stroke.indexOf('rgb') === 0) {
+      var m = stroke.match(/\d+/g);
+      if (m && m.length >= 3) {
+        stroke =
+          '#' +
+          ('0' + parseInt(m[0], 10).toString(16)).slice(-2) +
+          ('0' + parseInt(m[1], 10).toString(16)).slice(-2) +
+          ('0' + parseInt(m[2], 10).toString(16)).slice(-2);
+      }
+    }
+    archLineFloatSetHex(stroke || '#308fff');
+    var sw = parseFloat(el.getAttribute('stroke-width') || el.style.strokeWidth, 10);
+    if (isNaN(sw) || sw <= 0) sw = 2.2;
+    archLineFloatSetW(sw);
+  }
+
   function archLineFloatApplySelectedFromBar() {
+    if (archConnectorFloatHasFlowSelection()) {
+      var fel = archSelectedFlowId && document.getElementById(archSelectedFlowId);
+      if (fel) {
+        fel.style.stroke = archLineFloatGetHex();
+        fel.setAttribute('stroke-width', String(archLineFloatGetStrokeW()));
+      }
+      archUndoMaybePushSnapshot();
+      return;
+    }
     var ln = archUserLineGetSelected();
     if (!ln) return;
     ln.stroke = archLineFloatGetHex();
@@ -3683,20 +3701,54 @@
 
   function archLineFloatUpdateVisibility() {
     var bar = qs('#archLineFloatBar');
+    var legacyFlowBar = qs('#archFlowFloatBar');
+    if (legacyFlowBar) legacyFlowBar.hidden = true;
     if (!bar) return;
-    /** Floating bar when Edit mode + Lines tool, or when a user connector is selected. */
-    var show = archIsEditMode() && (userLines.drawMode || !!userLines.selectedId);
+    var hasFlowSel = archConnectorFloatHasFlowSelection();
+    var hasUserSel = archConnectorFloatHasUserSelection();
+    var drawMode = userLines.drawMode;
+    /** One bar: draw mode, user connector selected, or built-in flow selected. */
+    var show = archIsEditMode() && (drawMode || hasUserSel || hasFlowSel);
     bar.hidden = !show;
+
     var del = qs('#archLineFloatDelete');
-    if (del) del.disabled = !show || !userLines.selectedId;
+    if (del) del.disabled = !hasUserSel && !hasFlowSel;
+
+    var flowExtras = qs('#archLineFloatFlowExtras');
+    if (flowExtras) flowExtras.hidden = !hasFlowSel;
+
+    var resetBtn = qs('#archLineFloatFlowReset');
+    if (resetBtn) resetBtn.disabled = !hasFlowSel || !archFlowHasOverride(archSelectedFlowId);
+
+    var toolsSeg = qs('.arch-line-float-tools', bar);
+    if (toolsSeg) toolsSeg.setAttribute('data-arch-flow-selected', hasFlowSel ? '1' : '0');
+
+    var showDrawOnly = drawMode && !hasFlowSel && !hasUserSel;
+    $all('[data-arch-line-draw-only]', bar).forEach(function (el) {
+      el.hidden = !showDrawOnly;
+    });
+
+    var juncBtn = qs('#archLineFloatJunction', bar);
+    if (juncBtn) {
+      juncBtn.classList.toggle('is-active', archLineFloatGetTool() === 'junction' || !!archFlowFloatJunctionMode);
+    }
+
+    if (hasUserSel) {
+      var selLn = archUserLineGetSelected();
+      if (selLn) archLineFloatSyncFromLine(selLn);
+    } else if (hasFlowSel) {
+      archLineFloatSyncFromFlow();
+    }
+
     if (!show) {
       archLineFloatWeightMenuClose();
       archLineFloatColorPopoverClose();
       freehandSession = null;
-      var pv = qs('#archUserLineFreehandPreview');
+      archBoxAnchorHintsClear();
+      var pv = qs('#archUserLinePreview');
       if (pv) {
-        pv.setAttribute('d', '');
         pv.setAttribute('opacity', '0');
+        pv.removeAttribute('stroke-dasharray');
       }
     }
     archToolsFloatSyncLineOffsetClass();

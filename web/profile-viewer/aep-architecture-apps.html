@@ -421,13 +421,15 @@
             <g id="layer-flow-handles" class="arch-flow-handles-layer" pointer-events="all" aria-hidden="true"/>
             <line id="archUserLinePreview" class="arch-user-line-preview" x1="0" y1="0" x2="0" y2="0" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" opacity="0" pointer-events="none"/>
             <path id="archUserLineFreehandPreview" class="arch-user-line-preview" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="" opacity="0" pointer-events="none"/>
+            <!-- Box anchor snap hints (8 points per node/box while drawing or dragging endpoints) -->
+            <g id="layer-box-anchor-hints" class="arch-box-anchor-hints-layer" pointer-events="none" aria-hidden="true"/>
             <!-- PowerPoint-style alignment guides while dragging a box -->
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
-              <div id="archLineFloatBar" class="arch-line-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Lines and connectors">
+              <div id="archLineFloatBar" class="arch-line-float-bar arch-connector-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Lines and connectors">
                 <div class="arch-line-float-seg arch-line-float-tools" role="group" aria-label="Line type">
-                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-draw-only="1" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 17c2.5-6 8-12 14.5-9S22 17 16 19c-4 1.5-7-1-9-4"/></svg>
                   </button>
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="plain" title="Straight segment — no arrowheads, click start then end">
@@ -442,9 +444,12 @@
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="dotted" title="Dotted connector — click start, then end">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="3 3" aria-hidden="true"><path d="M5 12h14"/><path d="M16 9l3 3-3 3"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="junction" title="Corner point — click a line to add a bend; drag the handle (hold Shift for 45° angles)">
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" id="archLineFloatJunction" data-arch-line-tool="junction" title="Corner point — click a connector to add a bend; drag handles (Shift for 45°)">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
                   </button>
+                </div>
+                <div id="archLineFloatFlowExtras" class="arch-line-float-seg arch-line-float-flow-extras" role="group" aria-label="Built-in flow tools" hidden>
+                  <button type="button" class="arch-line-float-btn arch-flow-float-reset-btn" id="archLineFloatFlowReset" title="Reset this flow to auto-route from node positions" disabled>Reset auto-route</button>
                 </div>
                 <div id="archLineFloatWWrap" class="arch-line-float-w-wrap">
                   <button type="button" class="arch-line-float-w-trigger" id="archLineFloatWTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="archLineFloatWMenu" title="Line weight">
@@ -495,44 +500,16 @@
                   <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line" disabled>
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected connector" disabled>
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit Lines tool (Escape)">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Deselect connector or exit Lines tool">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
                 </div>
               </div>
-              <div id="archFlowFloatBar" class="arch-line-float-bar arch-flow-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Built-in flow editing">
-                <div class="arch-line-float-seg" role="group" aria-label="Flow path tools">
-                  <button type="button" class="arch-line-float-btn" id="archFlowFloatJunction" title="Corner point — click the selected flow to add a bend; drag handles (Shift for 45°)">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
-                  </button>
-                  <button type="button" class="arch-line-float-btn arch-flow-float-reset-btn" id="archFlowFloatReset" title="Reset this flow to auto-route from node positions" disabled>Reset auto-route</button>
-                  <button type="button" class="arch-line-float-btn" id="archFlowFloatDelete" title="Remove flow from this proposal">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
-                  </button>
-                </div>
-                <div class="arch-line-float-seg arch-layer-order-seg" role="group" aria-label="Layer order" hidden>
-                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="back" title="Send to back (Shift+[)" aria-label="Send to back">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 16V6"/><path d="M8 10l4 4 4-4"/><path d="M4 20h16"/></svg>
-                  </button>
-                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="down" title="Send backward ([)" aria-label="Send backward">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 10l4 4 4-4"/><path d="M12 6v12"/></svg>
-                  </button>
-                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="up" title="Bring forward (])" aria-label="Bring forward">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 14l4-4 4 4"/><path d="M12 18V6"/></svg>
-                  </button>
-                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="front" title="Bring to front (Shift+])" aria-label="Bring to front">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 8v10"/><path d="M8 14l4 4 4-4"/><path d="M4 4h16"/></svg>
-                  </button>
-                </div>
-                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Close flow bar">
-                  <button type="button" class="arch-line-float-btn" id="archFlowFloatClose" title="Deselect flow">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  </button>
-                </div>
-              </div>
+              <!-- Retired: flow controls merged into #archLineFloatBar -->
+              <div id="archFlowFloatBar" class="arch-line-float-bar arch-flow-float-bar arch-diagram-ui" hidden aria-hidden="true"></div>
               <div id="archToolsFloatBar" class="arch-line-float-bar arch-tools-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Canvas tools">
                 <div class="arch-line-float-seg arch-tools-float-shapes" role="group" aria-label="Add shapes">
                   <button type="button" class="arch-line-float-btn" data-arch-palette="process" title="Add process (rounded box)">

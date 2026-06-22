@@ -825,6 +825,43 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
   margin-top: 0.35rem;
 }
 
+/* Unified connector float bar — single toolbar for user lines and built-in flows */
+.arch-connector-float-bar .arch-line-float-flow-extras {
+  gap: 0.08rem;
+  padding-left: 0.2rem;
+  margin-left: 0.12rem;
+  border-left: 1px solid var(--dash-border, #e2e8f0);
+}
+
+.arch-connector-float-bar .arch-line-float-tools[data-arch-flow-selected='1'] .arch-line-float-tool:not([data-arch-line-tool='junction']) {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.arch-box-anchor-hints-layer .arch-box-anchor-hint {
+  fill: var(--dash-surface, #fff);
+  stroke: var(--dash-blue, #1473e6);
+  stroke-width: 1.25;
+  opacity: 0.55;
+}
+
+.arch-box-anchor-hints-layer .arch-box-anchor-hint.is-active {
+  fill: var(--dash-blue, #1473e6);
+  stroke: var(--dash-blue, #1473e6);
+  opacity: 1;
+  r: 5;
+}
+
+html[data-aep-theme='dark'] .arch-box-anchor-hints-layer .arch-box-anchor-hint {
+  fill: var(--dash-surface-alt, #2a3038);
+  stroke: var(--dash-blue, #4da3ff);
+}
+
+html[data-aep-theme='dark'] .arch-box-anchor-hints-layer .arch-box-anchor-hint.is-active {
+  fill: var(--dash-blue, #4da3ff);
+  stroke: var(--dash-blue, #4da3ff);
+}
+
 .arch-flow-float-reset-btn {
   font-size: 0.68rem;
   font-weight: 600;
