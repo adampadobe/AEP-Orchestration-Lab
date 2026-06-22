@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+/**
+ * Smoke tests for fake-loyalty-provider (local).
+ * Starts server on ephemeral port, exercises /health and /v1/fulfill.
+ */
+
+import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
+const fixturePath = join(root, 'fixtures', 'sample-fulfillment.json');
+const testApiKey = 'smoke-test-api-key-' + Date.now();
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchJson(url, opts = {}) {
+  const res = await fetch(url, opts);
+  const text = await res.text();
+  let body;
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    body = { _raw: text };
+  }
+  return { res, body };
+}
+
+async function main() {
+  const port = 18000 + Math.floor(Math.random() * 1000);
+  const base = `http://127.0.0.1:${port}`;
+  const child = spawn('node', ['server.js'], {
+    cwd: root,
+    env: { ...process.env, PORT: String(port), FAKE_LOYALTY_API_KEY: testApiKey },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  let started = false;
+  for (let i = 0; i < 30; i += 1) {
+    await wait(100);
+    try {
+      const { res } = await fetchJson(`${base}/health`);
+      if (res.ok) {
+        started = true;
+        break;
+      }
+    } catch {
+      /* retry */
+    }
+  }
+
+  if (!started) {
+    child.kill();
+    console.error('FAIL: server did not start');
+    process.exit(1);
+  }
+
+  const failures = [];
+
+  const health = await fetchJson(`${base}/health`);
+  if (!health.res.ok || health.body.status !== 'ok') {
+    failures.push('/health');
+  }
+
+  const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+  const fulfill = await fetchJson(`${base}/v1/fulfill`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': testApiKey,
+      'Idempotency-Key': 'smoke-idem-1',
+    },
+    body: JSON.stringify(fixture),
+  });
+  if (!fulfill.res.ok || fulfill.body.status !== 'accepted' || !fulfill.body.transactionId) {
+    failures.push('/v1/fulfill first call');
+  }
+
+  const fulfillDup = await fetchJson(`${base}/v1/fulfill`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': testApiKey,
+      'Idempotency-Key': 'smoke-idem-1',
+    },
+    body: JSON.stringify(fixture),
+  });
+  if (
+    !fulfillDup.res.ok
+    || fulfillDup.body.transactionId !== fulfill.body.transactionId
+    || !fulfillDup.body.idempotent
+  ) {
+    failures.push('/v1/fulfill idempotency');
+  }
+
+  const unauthorized = await fetchJson(`${base}/v1/fulfill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': 'wrong-key' },
+    body: JSON.stringify(fixture),
+  });
+  if (unauthorized.res.status !== 401) {
+    failures.push('/v1/fulfill unauthorized');
+  }
+
+  const oauth = await fetchJson(`${base}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials',
+  });
+  if (!oauth.res.ok || !oauth.body.access_token) {
+    failures.push('/oauth/token');
+  }
+
+  child.kill();
+
+  if (failures.length) {
+    console.error('FAIL:', failures.join(', '));
+    process.exit(1);
+  }
+  console.log('OK: fake-loyalty-provider smoke tests passed');
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
