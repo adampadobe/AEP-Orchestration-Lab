@@ -1,0 +1,11 @@
+/**
+ * Adobe Brand Visibility — hosts saved Adobe overview snapshot in a full-viewport iframe.
+ */
+
+.llm-demo-page .llm-demo-frame {
+  z-index: 1;
+}
+
+.llm-demo-page .mod-demo-top-anchor {
+  z-index: 6500;
+}

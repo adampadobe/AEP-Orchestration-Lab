@@ -1,11 +1,11 @@
 /**
- * Prepares URL Inspector saved HTML + copies URL assets into sky-llm-snapshot/assets/.
+ * Prepares URL Inspector saved HTML + copies URL assets into demos/llm-demo/snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyUrlInspectorBranding } from './sky-llm-snapshot-sky-text.mjs';
-import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
+import { applyUrlInspectorBranding } from './llm-demo-snapshot-sky-text.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './llm-demo-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -19,13 +19,13 @@ const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'url-inspector.html');
 
 const SNAPSHOT_ASSETS = [
-  '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">',
-  '<script src="./sky-llm-snapshot-nav.js"></script>',
-  '<script src="./sky-llm-snapshot-patch.js"></script>',
-  '<script src="./sky-llm-snapshot-platform.js"></script>',
-  '<script src="./sky-llm-snapshot-market.js"></script>',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css">',
+  '<script src="./llm-demo-snapshot-nav.js"></script>',
+  '<script src="./llm-demo-snapshot-patch.js"></script>',
+  '<script src="./llm-demo-snapshot-platform.js"></script>',
+  '<script src="./llm-demo-snapshot-market.js"></script>',
 ].join('\n');
 
 function stripAuthScripts(html) {
@@ -68,9 +68,9 @@ function patchHtml(html) {
   html = applyUrlInspectorBranding(html);
   html = stripLineDash(html);
   html = repairRechartsResponsiveHtml(html);
-  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
-  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-platform\.js"><\/script>/gi, '');
-  if (!html.includes('sky-llm-snapshot-nav.js')) {
+  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js"><\/script>/gi, '');
+  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-platform\.js"><\/script>/gi, '');
+  if (!html.includes('llm-demo-snapshot-nav.js')) {
     html = html.replace('</body>', `${SNAPSHOT_ASSETS}\n</body>`);
   }
   return html;

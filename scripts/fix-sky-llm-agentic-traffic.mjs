@@ -6,25 +6,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { applyAgenticTrafficBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { applyAgenticTrafficBranding } from './llm-demo-snapshot-sky-text.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outHtml = path.join(repo, 'web/profile-viewer/sky-llm-snapshot/agentic-traffic.html');
+const outHtml = path.join(repo, 'web/profile-viewer/demos/llm-demo/snapshot/agentic-traffic.html');
 const tourBroken = process.env.SKY_LLM_AT_TOUR_HTML
   ? fs.readFileSync(process.env.SKY_LLM_AT_TOUR_HTML, 'utf8')
-  : execSync('git show 27f23ad2:web/profile-viewer/sky-llm-snapshot/agentic-traffic.html', {
+  : execSync('git show 27f23ad2:web/profile-viewer/demos/llm-demo/snapshot/agentic-traffic.html', {
       encoding: 'utf8',
       cwd: repo,
     });
 const buildId = fs
-  .readFileSync(path.join(repo, 'web/profile-viewer/sky-llm-snapshot/sky-llm-snapshot-build-id.js'), 'utf8')
+  .readFileSync(path.join(repo, 'web/profile-viewer/demos/llm-demo/snapshot/llm-demo-snapshot-build-id.js'), 'utf8')
   .match(/'(\d{8})'/)?.[1];
 
 if (!buildId) {
-  console.error('Missing SKY_LLM_SNAPSHOT_BUILD');
+  console.error('Missing LLM_DEMO_SNAPSHOT_BUILD');
   process.exit(1);
 }
-const oldBase = execSync('git show 566424c8:web/profile-viewer/sky-llm-snapshot/agentic-traffic.html', {
+const oldBase = execSync('git show 566424c8:web/profile-viewer/demos/llm-demo/snapshot/agentic-traffic.html', {
   encoding: 'utf8',
   cwd: repo,
 });
@@ -101,21 +101,21 @@ let html = oldBase.replace(oldGrid, tourGrid);
 html = applyAgenticTrafficBranding(html);
 
 const SNAPSHOT_ASSETS = [
-  `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
-  `<script src="./sky-llm-snapshot-build-id.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-blockers.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-nav.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-patch.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-market.js?v=${buildId}"></script>`,
+  `<link rel="stylesheet" href="./llm-demo-snapshot-nav.css?v=${buildId}">`,
+  `<script src="./llm-demo-snapshot-build-id.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-blockers.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-nav.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-patch.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-market.js?v=${buildId}"></script>`,
 ].join('\n');
 
 html = html.replace(
-  /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/gi,
+  /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/gi,
   '',
 );
 html = html.replace(
-  /<script src="\.\/sky-llm-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/gi,
+  /<script src="\.\/llm-demo-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/gi,
   '',
 );
 
@@ -129,7 +129,7 @@ console.log('Wrote', outHtml, Math.round(html.length / 1024) + ' KB');
 console.log({
   bottomMovers: html.includes('Bottom Movers'),
   topMovers: html.includes('Top Movers'),
-  platformJs: html.includes('sky-llm-snapshot-platform.js'),
+  platformJs: html.includes('llm-demo-snapshot-platform.js'),
   tourGridLen: tourGrid.length,
   oldGridLen: oldGrid.length,
 });

@@ -1,10 +1,10 @@
 /**
- * Prepares Prompts Management saved HTML + copies PM assets into sky-llm-snapshot/assets/.
+ * Prepares Prompts Management saved HTML + copies PM assets into demos/llm-demo/snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { applySkyBranding } from './llm-demo-snapshot-sky-text.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -18,12 +18,12 @@ const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'prompts-management.html');
 
 const SNAPSHOT_ASSETS = [
-  '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
-  '<script src="./sky-llm-snapshot-nav.js"></script>',
-  '<script src="./sky-llm-snapshot-patch.js"></script>',
-  '<script src="./sky-llm-snapshot-platform.js"></script>',
-  '<script src="./sky-llm-snapshot-market.js"></script>',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
+  '<script src="./llm-demo-snapshot-nav.js"></script>',
+  '<script src="./llm-demo-snapshot-patch.js"></script>',
+  '<script src="./llm-demo-snapshot-platform.js"></script>',
+  '<script src="./llm-demo-snapshot-market.js"></script>',
 ].join('\n');
 
 function stripAuthScripts(html) {
@@ -64,8 +64,8 @@ function patchHtml(html) {
   html = html.replace(/\.download/g, '');
   html = stripAuthScripts(html);
   html = applySkyBranding(html);
-  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js"><\/script>/gi, '');
-  if (!html.includes('sky-llm-snapshot-nav.js')) {
+  html = html.replace(/<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js"><\/script>/gi, '');
+  if (!html.includes('llm-demo-snapshot-nav.js')) {
     html = html.replace('</body>', `${SNAPSHOT_ASSETS}\n</body>`);
   }
   return html;

@@ -1,12 +1,12 @@
 /**
- * Prepares Referral Traffic saved HTML + copies RT assets into sky-llm-snapshot/assets/.
+ * Prepares Referral Traffic saved HTML + copies RT assets into demos/llm-demo/snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { applyReferralTrafficBranding } from './sky-llm-snapshot-sky-text.mjs';
-import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
+import { applyReferralTrafficBranding } from './llm-demo-snapshot-sky-text.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './llm-demo-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -20,22 +20,22 @@ const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'referral-traffic.html');
 
 const buildId = fs
-  .readFileSync(path.join(outDir, 'sky-llm-snapshot-build-id.js'), 'utf8')
+  .readFileSync(path.join(outDir, 'llm-demo-snapshot-build-id.js'), 'utf8')
   .match(/'(\d{8})'/)?.[1];
 
 if (!buildId) {
-  console.error('Could not read SKY_LLM_SNAPSHOT_BUILD');
+  console.error('Could not read LLM_DEMO_SNAPSHOT_BUILD');
   process.exit(1);
 }
 
 const SNAPSHOT_ASSETS = [
-  `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
-  `<script src="./sky-llm-snapshot-build-id.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-blockers.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-nav.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-patch.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-market.js?v=${buildId}"></script>`,
+  `<link rel="stylesheet" href="./llm-demo-snapshot-nav.css?v=${buildId}">`,
+  `<script src="./llm-demo-snapshot-build-id.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-blockers.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-opportunities-catalog.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-nav.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-patch.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-market.js?v=${buildId}"></script>`,
 ].join('\n');
 
 function stripAuthScripts(html) {
@@ -91,11 +91,11 @@ function patchHtml(html) {
   html = stripLineDash(html);
   html = repairRechartsResponsiveHtml(html);
   html = html.replace(
-    /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/gi,
+    /<link rel="stylesheet" href="\.\/sky-llm-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/gi,
     '',
   );
   html = html.replace(
-    /<script src="\.\/sky-llm-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/sky-llm-snapshot-market\.js[^"]*"><\/script>/gi,
+    /<script src="\.\/llm-demo-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/gi,
     '',
   );
   const idx = html.indexOf('</body>');

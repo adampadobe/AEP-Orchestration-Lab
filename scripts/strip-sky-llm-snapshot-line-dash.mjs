@@ -4,8 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
-import { applyCommonSiteBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './llm-demo-snapshot-line-dash.mjs';
+import { applyCommonSiteBranding } from './llm-demo-snapshot-sky-text.mjs';
 
 const snapshotDir = path.join(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),

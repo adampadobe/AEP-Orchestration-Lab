@@ -1,11 +1,11 @@
 /**
- * Prepares Brand Presence saved HTML + copies BP assets into sky-llm-snapshot/assets/.
+ * Prepares Brand Presence saved HTML + copies BP assets into demos/llm-demo/snapshot/assets/.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
-import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
+import { applySkyBranding } from './llm-demo-snapshot-sky-text.mjs';
+import { stripLineDash, repairRechartsResponsiveHtml } from './llm-demo-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcHtml =
@@ -19,13 +19,13 @@ const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'brand-presence.html');
 
 const SNAPSHOT_SCRIPTS = [
-  '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
-  '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">',
-  '<script src="./sky-llm-snapshot-nav.js"></script>',
-  '<script src="./sky-llm-snapshot-patch.js"></script>',
-  '<script src="./sky-llm-snapshot-platform.js"></script>',
-  '<script src="./sky-llm-snapshot-market.js"></script>',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css">',
+  '<script src="./llm-demo-snapshot-nav.js"></script>',
+  '<script src="./llm-demo-snapshot-patch.js"></script>',
+  '<script src="./llm-demo-snapshot-platform.js"></script>',
+  '<script src="./llm-demo-snapshot-market.js"></script>',
 ].join('\n');
 
 function copyAssets() {
@@ -82,14 +82,14 @@ function patchHtml(html) {
   html = stripLineDash(html);
   html = repairRechartsResponsiveHtml(html);
 
-  if (!html.includes('sky-llm-snapshot-market-charts.css')) {
+  if (!html.includes('llm-demo-snapshot-market-charts.css')) {
     html = html.replace(
-      '<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
-      '<link rel="stylesheet" href="./sky-llm-snapshot-market-charts.css">\n<link rel="stylesheet" href="./sky-llm-snapshot-platform.css">',
+      '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
+      '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css">\n<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
     );
   }
 
-  if (!html.includes('sky-llm-snapshot-nav.js')) {
+  if (!html.includes('llm-demo-snapshot-nav.js')) {
     html = html.replace('</body>', `${SNAPSHOT_SCRIPTS}\n</body>`);
   }
 

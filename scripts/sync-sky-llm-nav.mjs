@@ -72,33 +72,33 @@ function hasAsset(html, kind, filename) {
 
 /** Drop unversioned nav tags when a ?v= copy is already present (sync re-run guard). */
 function dedupeNavAssets(html) {
-  const hasVersionedCss = /href="\.\/sky-llm-snapshot-nav\.css\?/.test(html);
-  const hasVersionedJs = /src="\.\/sky-llm-snapshot-nav\.js\?/.test(html);
+  const hasVersionedCss = /href="\.\/llm-demo-snapshot-nav\.css\?/.test(html);
+  const hasVersionedJs = /src="\.\/llm-demo-snapshot-nav\.js\?/.test(html);
   let out = html;
   if (hasVersionedCss) {
-    out = out.replace(/\n?<link rel="stylesheet" href="\.\/sky-llm-snapshot-nav\.css">\n?/g, '\n');
+    out = out.replace(/\n?<link rel="stylesheet" href="\.\/llm-demo-snapshot-nav\.css">\n?/g, '\n');
   }
   if (hasVersionedJs) {
-    out = out.replace(/\n?<script src="\.\/sky-llm-snapshot-nav\.js"><\/script>\n?/g, '\n');
+    out = out.replace(/\n?<script src="\.\/llm-demo-snapshot-nav\.js"><\/script>\n?/g, '\n');
   }
   return out;
 }
 
 function ensureNavAssets(html, basename) {
   const inject = [
-    { kind: 'link', file: 'sky-llm-snapshot-nav.css', tag: '<link rel="stylesheet" href="./sky-llm-snapshot-nav.css">' },
+    { kind: 'link', file: 'llm-demo-snapshot-nav.css', tag: '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">' },
     {
       kind: 'script',
-      file: 'sky-llm-snapshot-opportunities-catalog.js',
-      tag: '<script src="./sky-llm-snapshot-opportunities-catalog.js"></script>',
+      file: 'llm-demo-snapshot-opportunities-catalog.js',
+      tag: '<script src="./llm-demo-snapshot-opportunities-catalog.js"></script>',
     },
-    { kind: 'script', file: 'sky-llm-snapshot-nav.js', tag: '<script src="./sky-llm-snapshot-nav.js"></script>' },
+    { kind: 'script', file: 'llm-demo-snapshot-nav.js', tag: '<script src="./llm-demo-snapshot-nav.js"></script>' },
   ];
   if (basename === 'overview.html') {
     inject.push({
       kind: 'script',
-      file: 'sky-llm-snapshot-overview.js',
-      tag: '<script src="./sky-llm-snapshot-overview.js"></script>',
+      file: 'llm-demo-snapshot-overview.js',
+      tag: '<script src="./llm-demo-snapshot-overview.js"></script>',
     });
   }
   let out = dedupeNavAssets(html);

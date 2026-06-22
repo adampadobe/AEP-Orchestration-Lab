@@ -14,10 +14,10 @@ const srcHtml =
     'Adobe LLM Optimizer Opportunity Workspace.html'
   );
 const srcDir = path.join(path.dirname(srcHtml), 'Adobe LLM Optimizer Opportunity Workspace_files');
-const assetsDir = path.join(repoRoot, 'web/profile-viewer/sky-llm-snapshot/assets');
-const outHtml = path.join(repoRoot, 'web/profile-viewer/sky-llm-snapshot/opportunity-workspace.html');
+const assetsDir = path.join(repoRoot, 'web/profile-viewer/demos/llm-demo/snapshot/assets');
+const outHtml = path.join(repoRoot, 'web/profile-viewer/demos/llm-demo/snapshot/opportunity-workspace.html');
 const buildId = fs
-  .readFileSync(path.join(repoRoot, 'web/profile-viewer/sky-llm-snapshot/sky-llm-snapshot-build-id.js'), 'utf8')
+  .readFileSync(path.join(repoRoot, 'web/profile-viewer/demos/llm-demo/snapshot/llm-demo-snapshot-build-id.js'), 'utf8')
   .match(/'(\d{8})'/)?.[1];
 
 if (!fs.existsSync(srcHtml)) {
@@ -29,7 +29,7 @@ if (!fs.existsSync(srcDir)) {
   process.exit(1);
 }
 if (!buildId) {
-  console.error('Could not read SKY_LLM_SNAPSHOT_BUILD');
+  console.error('Could not read LLM_DEMO_SNAPSHOT_BUILD');
   process.exit(1);
 }
 
@@ -51,14 +51,14 @@ html = html.replace(/<script>window\.SAMPLE_PAGEVIEWS_AT_RATE[^<]*<\/script>\s*/
 html = html.replace(/<script defer="defer" src="\.\/assets\/[^"]+"><\/script>\s*/gi, '');
 
 const inject = [
-  `<link rel="stylesheet" href="./sky-llm-snapshot-nav.css?v=${buildId}">`,
-  `<link rel="stylesheet" href="./sky-llm-snapshot-platform.css?v=${buildId}">`,
-  `<link rel="stylesheet" href="./sky-llm-snapshot-opportunity-workspace.css?v=${buildId}">`,
-  `<script src="./sky-llm-snapshot-build-id.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-blockers.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-nav.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-opportunity-workspace.js?v=${buildId}"></script>`,
-  `<script src="./sky-llm-snapshot-patch.js?v=${buildId}"></script>`,
+  `<link rel="stylesheet" href="./llm-demo-snapshot-nav.css?v=${buildId}">`,
+  `<link rel="stylesheet" href="./llm-demo-snapshot-platform.css?v=${buildId}">`,
+  `<link rel="stylesheet" href="./llm-demo-snapshot-opportunity-workspace.css?v=${buildId}">`,
+  `<script src="./llm-demo-snapshot-build-id.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-blockers.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-nav.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-opportunity-workspace.js?v=${buildId}"></script>`,
+  `<script src="./llm-demo-snapshot-patch.js?v=${buildId}"></script>`,
 ].join('\n');
 
 const idx = html.indexOf('</body>');

@@ -36,8 +36,6 @@ const ENV_BAR_REDIRECT_HTML = [
   'call-center-demo-apalmer.html',
   'mobile-demo.html',
   'mobile-demo-apalmer.html',
-  'sky-llm-referral-traffic.html',
-  'sky-llm-llm-response.html',
 ];
 
 /** @deprecated — kept empty; all former exceptions migrated to shared/env-bar.js (Jun 2026). */
@@ -46,13 +44,6 @@ const ENV_STRIP_EXCEPTION_HTML = [];
 const ENV_STRIP_EXCEPTION_BASENAME_RE = [];
 
 const MINIMAL_ENV_BAR_HTML = [
-  'sky-llm-brand-presence.html',
-  'sky-llm-agentic-traffic.html',
-  'sky-llm-opportunities.html',
-  'sky-llm-url-inspector.html',
-  'sky-llm-brand-claims.html',
-  'sky-llm-prompts-management.html',
-  'sky-llm-opportunity-workspace.html',
   'call-center-demo.html',
   'demos/llm-demo/llm-demo.html',
 ];
@@ -116,7 +107,6 @@ const SITE_CLONE_DEMO_JS = [
 ];
 
 const MINIMAL_ENV_BAR_JS = [
-  'sky-llm-optimizer.js',
   'call-center-demo.js',
   'call-center-demo-apalmer.js',
   'demos/llm-demo/llm-demo.js',
@@ -211,12 +201,12 @@ function walkJs(dir, out = []) {
   return out;
 }
 
-function walkHtml(dir, out = [], skipDirs = new Set(['node_modules', 'sky-llm-snapshot'])) {
+function walkHtml(dir, out = [], skipDirs = new Set(['node_modules', 'snapshot'])) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) {
       if (!skipDirs.has(ent.name)) walkHtml(abs, out, skipDirs);
-    } else if (ent.isFile() && ent.name.endsWith('.html') && !ent.name.startsWith('sky-llm-snapshot')) {
+    } else if (ent.isFile() && ent.name.endsWith('.html')) {
       out.push(path.relative(pv, abs).replace(/\\/g, '/'));
     }
   }
@@ -227,7 +217,7 @@ function walkCss(dir, out = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory() && ent.name !== 'node_modules') walkCss(abs, out);
-    else if (ent.isFile() && ent.name.endsWith('.css') && !ent.name.startsWith('sky-llm-snapshot')) out.push(abs);
+    else if (ent.isFile() && ent.name.endsWith('.css') && !ent.name.startsWith('llm-demo-snapshot')) out.push(abs);
   }
   return out;
 }

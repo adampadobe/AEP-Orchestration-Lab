@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applySkyBranding } from './sky-llm-snapshot-sky-text.mjs';
+import { applySkyBranding } from './llm-demo-snapshot-sky-text.mjs';
 
 const dir = path.join(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
