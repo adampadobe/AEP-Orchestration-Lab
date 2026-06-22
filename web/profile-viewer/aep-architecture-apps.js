@@ -3748,6 +3748,11 @@
         pv.setAttribute('opacity', '0');
         pv.removeAttribute('stroke-dasharray');
       }
+      var fhpv = qs('#archUserLineFreehandPreview');
+      if (fhpv) {
+        fhpv.setAttribute('d', '');
+        fhpv.setAttribute('opacity', '0');
+      }
     }
     archToolsFloatSyncLineOffsetClass();
   }
@@ -3830,6 +3835,10 @@
       var tbtn = e.target.closest && e.target.closest('.arch-line-float-tool[data-arch-line-tool]');
       if (tbtn) {
         var nt = tbtn.getAttribute('data-arch-line-tool');
+        if (nt === 'junction' && archConnectorFloatHasFlowSelection()) {
+          archFlowFloatSetJunction(!archFlowFloatJunctionMode);
+          return;
+        }
         archLineFloatSetTool(nt);
         if (userLines.selectedId && nt !== 'junction') {
           var ln0 = archUserLineGetSelected();
@@ -3838,12 +3847,19 @@
         }
         return;
       }
+      var rbtn = e.target.closest && e.target.closest('#archLineFloatFlowReset');
+      if (rbtn) {
+        archFlowResetSelectedToAuto();
+        return;
+      }
       var wopt = e.target.closest && e.target.closest('.arch-line-float-w-option[data-arch-line-w]');
       if (wopt) {
         e.stopPropagation();
         archLineFloatSetW(parseFloat(wopt.getAttribute('data-arch-line-w'), 10));
         archLineFloatWeightMenuClose();
-        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        if (archConnectorFloatHasUserSelection() || archConnectorFloatHasFlowSelection()) {
+          archLineFloatApplySelectedFromBar();
+        }
         return;
       }
     });
@@ -3872,7 +3888,9 @@
     if (pickInp) {
       pickInp.addEventListener('input', function () {
         archLineFloatSetHex(pickInp.value);
-        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        if (archConnectorFloatHasUserSelection() || archConnectorFloatHasFlowSelection()) {
+          archLineFloatApplySelectedFromBar();
+        }
       });
     }
     var hexTxt = qs('#archLineFloatColorHexInput');
@@ -3888,7 +3906,9 @@
         if (p) {
           if (err) err.hidden = true;
           archLineFloatSetHex(p);
-          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+          if (archConnectorFloatHasUserSelection() || archConnectorFloatHasFlowSelection()) {
+            archLineFloatApplySelectedFromBar();
+          }
         } else {
           if (err) err.hidden = v.length < 4;
         }
@@ -3911,7 +3931,9 @@
         }
         if (p) {
           archLineFloatSetHex(p);
-          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+          if (archConnectorFloatHasUserSelection() || archConnectorFloatHasFlowSelection()) {
+            archLineFloatApplySelectedFromBar();
+          }
           if (err) err.hidden = true;
         } else {
           archLineFloatSyncColorPopoverInputs();
@@ -3928,13 +3950,20 @@
     var del = qs('#archLineFloatDelete');
     if (del) {
       del.addEventListener('click', function () {
-        archUserLineDeleteSelected();
+        if (archConnectorFloatHasFlowSelection()) archFlowDeleteSelected();
+        else archUserLineDeleteSelected();
       });
     }
     var cl = qs('#archLineFloatClose');
     if (cl) {
       cl.addEventListener('click', function () {
-        archSetActiveTool('select');
+        if (archConnectorFloatHasFlowSelection()) {
+          archFlowClearSelection();
+          archFlowFloatSetJunction(false);
+        } else {
+          archSetActiveTool('select');
+        }
+        archLineFloatUpdateVisibility();
       });
     }
   }
@@ -8737,6 +8766,8 @@
     archUserLineRender();
     archBoxAnchorHintsClear();
   }
+
+  function archUserLineHandlePointerDown(e) {
     if (!archIsEditMode()) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     var t = e.target;
@@ -8822,6 +8853,7 @@
 
   function archUserLineClearPending() {
     userLines.pendingStart = null;
+    archBoxAnchorHintsClear();
     var pv = qs('#archUserLinePreview');
     if (pv) {
       pv.setAttribute('opacity', '0');

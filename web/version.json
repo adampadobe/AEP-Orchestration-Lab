@@ -1,14 +1,14 @@
 {
-  "gitSha": "541b37bfa6a6a49c6db25eb54703606c858a232b",
-  "gitShortSha": "541b37bf",
+  "gitSha": "bc54f1f3e9f25f1551d245343f3dc172311a09dd",
+  "gitShortSha": "bc54f1f3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] feat: unify architecture connector float toolbar",
+  "gitCommitSubject": "[apalmer] feat: unified line bar and box anchor snapping",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T11:42:10+01:00",
-  "deployedAt": "2026-06-22T10:42:14.891Z",
+  "gitCommitDate": "2026-06-22T11:44:10+01:00",
+  "deployedAt": "2026-06-22T10:44:21.656Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 1,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/541b37bfa6a6a49c6db25eb54703606c858a232b"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/bc54f1f3e9f25f1551d245343f3dc172311a09dd"
 }
