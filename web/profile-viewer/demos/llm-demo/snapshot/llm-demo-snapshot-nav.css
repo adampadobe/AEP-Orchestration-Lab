@@ -26,15 +26,19 @@ nav [id^='org-nav-item-'].llm-nav-active > button {
 }
 
 /* Black vertical active indicator (matches Adobe Brand Visibility) */
-[id^='org-nav-item-'] {
+nav [id^='org-nav-item-'] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+nav [id^='org-nav-item-'] > button {
   position: relative;
 }
 
-[id^='org-nav-item-'] > button {
-  position: relative;
-}
-
-.llm-nav-active-rail {
+/* Walnut bakes a sibling rail div on some pages — hide it; lab ::before is canonical */
+nav [id^='org-nav-item-'] > div[class*='macro-dynamic-']:not(:has(button)),
+nav [id^='org-nav-item-'] > div._Pa11,
+nav [id^='org-nav-item-'] > div[class*='E1XPtrc'] {
   display: none !important;
 }
 
@@ -64,7 +68,16 @@ nav [id^='org-nav-item-'].llm-nav-active > button {
   background-image: none !important;
 }
 
-[id^='org-nav-item-'].llm-nav-active::before {
+nav [id^='org-nav-item-'] > button[class*='macro-dynamic-1f3pi9b'],
+nav [id^='org-nav-item-'] > button[class*='xX0ccz'] {
+  border: none !important;
+  border-left: none !important;
+  border-inline-start: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+nav [id^='org-nav-item-'].llm-nav-active::before {
   content: '' !important;
   display: block !important;
   position: absolute;

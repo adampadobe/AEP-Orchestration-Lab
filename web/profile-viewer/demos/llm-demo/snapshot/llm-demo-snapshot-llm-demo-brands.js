@@ -185,6 +185,70 @@
     });
   }
 
+  function findDomainCombobox() {
+    var byLabel = findSelectorCombobox('domain');
+    if (byLabel) return byLabel;
+    return Array.from(document.querySelectorAll('input[role="combobox"]')).find(function (el) {
+      if (el.closest('.sky-llm-platform-shell, .sky-llm-date-shell, .sky-llm-filter-shell')) return false;
+      var val = (el.value || '').trim();
+      if (/^adobe\.com$/i.test(val)) return true;
+      if ((el.getAttribute('placeholder') || '').indexOf('yourdomain') >= 0) return true;
+      var field = el.parentElement;
+      var up;
+      for (up = 0; field && up < 12; up++) {
+        var labels = field.querySelectorAll('[data-rsp-slot="text"], label, span');
+        var i;
+        for (i = 0; i < labels.length; i++) {
+          if (!isLeafTextEl(labels[i])) continue;
+          if ((labels[i].textContent || '').trim() === 'Domain') return true;
+        }
+        field = field.parentElement;
+      }
+      return false;
+    });
+  }
+
+  function inferPrimaryProduct(cfg) {
+    var themes = (cfg && cfg.claimThemes) || [];
+    if (themes.length) {
+      var t = themes[0];
+      if (typeof t === 'string' && t.trim()) return t.split(/[—\-:|]/)[0].trim();
+      if (t && t.title) return String(t.title).split(/[—\-:|]/)[0].trim();
+    }
+    return (cfg && cfg.brand) || brandPickerLabel() || 'platform';
+  }
+
+  function applyAdobeDemoCopy(text) {
+    if (!isActive()) return text;
+    var cfg = loadConfig();
+    var brand = brandPickerLabel();
+    var out = String(text || '');
+    out = out.replace(/\bAdobe's\b/g, brand + "'s");
+    out = out.replace(/\bAdobe\b/g, brand);
+    out = out.replace(/\bPhotoshop\b/gi, inferPrimaryProduct(cfg));
+    if (cfg.siteHost) out = out.replace(/\badobe\.com\b/gi, cfg.siteHost);
+    return out;
+  }
+
+  function findTableSectionRoot(title) {
+    var cacheKey = 'table:' + title;
+    if (sectionRootCache[cacheKey]) return sectionRootCache[cacheKey];
+    var heads = Array.from(document.querySelectorAll('h2, h3, span[data-rsp-slot="text"]')).filter(function (n) {
+      return (n.textContent || '').trim().indexOf(title) === 0 && n.childElementCount === 0;
+    });
+    if (!heads.length) return null;
+    var root = heads[0].parentElement;
+    var i;
+    for (i = 0; i < 15 && root; i++) {
+      if (root.querySelector('table, [role="row"], [role="grid"], [role="rowgroup"]')) {
+        sectionRootCache[cacheKey] = root;
+        return root;
+      }
+      root = root.parentElement;
+    }
+    return null;
+  }
+
   function getOverviewCategories() {
     if (!isActive()) {
       return [
@@ -310,7 +374,7 @@
     }
   }
 
-  /** Brand + Site filter inputs (Overview) — never touch Platform / Date Range comboboxes. */
+  /** Brand + Site/Domain filter inputs — never touch Platform / Date Range comboboxes. */
   function patchOverviewSelectors() {
     if (!isActive()) return;
     var cfg = loadConfig();
@@ -320,10 +384,56 @@
       patchComboboxInput(brandInput, label);
       patchFieldRowLabels(brandInput, label);
     }
-    var siteInput = findSelectorCombobox('site selector');
+    var siteInput = findSelectorCombobox('site selector') || findDomainCombobox();
     if (siteInput && cfg.siteHost) {
       patchComboboxInput(siteInput, cfg.siteHost);
+      patchFieldRowLabels(siteInput, cfg.siteHost);
     }
+  }
+
+  function patchVisibilityOverviewPerformingPrompts() {
+    if (!isActive()) return;
+    if (!/visibility-overview\.html/i.test(global.location.pathname || '')) return;
+    var brand = brandPickerLabel();
+    var cfg = loadConfig();
+    var root = findTableSectionRoot('Performing prompts and topics') || document.body;
+    var topicEls = [];
+    root.querySelectorAll('[data-rsp-slot="text"], span, td').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (!/^Adobe\b/.test(txt) || txt.length > 120) return;
+      topicEls.push(el);
+    });
+    if (!topicEls.length) return;
+    var samples = (cfg.samplePrompts && cfg.samplePrompts.length && cfg.samplePrompts) || [];
+    topicEls.forEach(function (el, idx) {
+      if (samples.length) {
+        var prompt = String(samples[idx % samples.length] || '').trim();
+        if (!prompt) {
+          el.textContent = applyAdobeDemoCopy(el.textContent || '');
+          return;
+        }
+        var topic = prompt.replace(/\?+$/, '').trim();
+        if (topic.length > 88) topic = topic.slice(0, 85) + '…';
+        el.textContent = brand + ' ' + topic.replace(/^Adobe\s+/i, '');
+      } else {
+        el.textContent = applyAdobeDemoCopy(el.textContent || '');
+      }
+    });
+  }
+
+  function patchMarketComparisonCoverageGap() {
+    if (!isActive()) return;
+    if (!/market-comparison\.html/i.test(global.location.pathname || '')) return;
+    var root = findSectionRoot('Market Comparison') || document.body;
+    root.querySelectorAll('[data-rsp-slot="text"], span, strong, p').forEach(function (el) {
+      if (!isLeafTextEl(el)) return;
+      var txt = (el.textContent || '').trim();
+      if (!txt || txt.length > 320) return;
+      if (!/\bAdobe\b|\bPhotoshop\b|adobe\.com|Surface Photoshop/i.test(txt)) return;
+      var next = applyAdobeDemoCopy(txt);
+      if (next !== txt) el.textContent = next;
+    });
   }
 
   function patchBrandPicker() {
@@ -450,6 +560,8 @@
 
     patchSiteHeaderBrand();
     patchBrandPicker();
+    patchVisibilityOverviewPerformingPrompts();
+    patchMarketComparisonCoverageGap();
     patchBrandClaims();
     patchPromptsManagement();
     patchMarketComparisonLabels();

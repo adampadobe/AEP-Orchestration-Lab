@@ -67,6 +67,7 @@ const PAGE_SCRIPTS = {
 };
 
 const DEFAULT_SCRIPTS = [
+  '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
   '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
   '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
   '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',

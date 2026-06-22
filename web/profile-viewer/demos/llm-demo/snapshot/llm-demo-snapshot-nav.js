@@ -148,13 +148,22 @@
     document.querySelectorAll('[id^="org-nav-item-"].llm-nav-active').forEach(function (el) {
       el.classList.remove('llm-nav-active');
     });
-    document.querySelectorAll('.llm-nav-active-rail').forEach(function (el) {
-      el.remove();
+  }
+
+  function stripWalnutNavState() {
+    var nav = findNavRoot();
+    if (!nav) return;
+    nav.querySelectorAll('[id^="org-nav-item-"] > button').forEach(function (btn) {
+      btn.removeAttribute('aria-current');
+    });
+    nav.querySelectorAll('[id^="org-nav-item-"] > div[class*="macro-dynamic-"]').forEach(function (div) {
+      if (!div.querySelector('button')) div.style.setProperty('display', 'none', 'important');
     });
   }
 
   function applyActive(label) {
     clearActive();
+    stripWalnutNavState();
     findNavButtons().forEach(function (btn) {
       var btnLabel = (btn.getAttribute('aria-label') || '').trim();
       if (btnLabel !== label) return;
@@ -276,8 +285,9 @@
     var clone = source.cloneNode(true);
     clone.id = newId;
     clone.classList.remove('llm-nav-active');
-    var rail = clone.querySelector('.llm-nav-active-rail');
-    if (rail) rail.remove();
+    clone.querySelectorAll('[id^="org-nav-item-"] > div[class*="macro-dynamic-"]').forEach(function (div) {
+      if (!div.querySelector('button')) div.remove();
+    });
     var btn = clone.querySelector('button[aria-label]');
     if (!btn) return null;
     btn.setAttribute('aria-label', label);
@@ -451,6 +461,7 @@
     ensureMarketOverviewSection();
     ensureHealthChecksNavItem();
     ensureUsersAndPermissionsNavItem();
+    stripWalnutNavState();
     wireSectionToggles();
     applyStoredSectionStates();
     ensureOpportunityWorkspaceNavItem();
