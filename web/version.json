@@ -1,14 +1,14 @@
 {
-  "gitSha": "3d90d577df51cf309df0f2a1f377fc83e65d3f50",
-  "gitShortSha": "3d90d577",
+  "gitSha": "0fa6ece3dc879d7fecce1b1a548356dbadd2cb7a",
+  "gitShortSha": "0fa6ece3",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: load and unregister architecture layer order keys",
+  "gitCommitSubject": "[apalmer] feat: keyboard shortcuts and init for architecture layer order",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:32:38+01:00",
-  "deployedAt": "2026-06-22T07:32:52.327Z",
+  "gitCommitDate": "2026-06-22T08:33:17+01:00",
+  "deployedAt": "2026-06-22T07:33:35.748Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3d90d577df51cf309df0f2a1f377fc83e65d3f50"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/0fa6ece3dc879d7fecce1b1a548356dbadd2cb7a"
 }
