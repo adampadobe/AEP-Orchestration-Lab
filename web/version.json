@@ -1,14 +1,14 @@
 {
-  "gitSha": "9c6728d71e4574d33da651b19bc9be7880a43a0f",
-  "gitShortSha": "9c6728d7",
+  "gitSha": "3d90d577df51cf309df0f2a1f377fc83e65d3f50",
+  "gitShortSha": "3d90d577",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json after architecture canvas deploy",
+  "gitCommitSubject": "[apalmer] fix: load and unregister architecture layer order keys",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:24:27+01:00",
-  "deployedAt": "2026-06-22T07:26:06.619Z",
+  "gitCommitDate": "2026-06-22T08:32:38+01:00",
+  "deployedAt": "2026-06-22T07:32:52.327Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/9c6728d71e4574d33da651b19bc9be7880a43a0f"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/3d90d577df51cf309df0f2a1f377fc83e65d3f50"
 }

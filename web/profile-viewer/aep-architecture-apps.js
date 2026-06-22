@@ -2635,16 +2635,41 @@
   function archLayerOrderLoad() {
     try {
       var raw = localStorage.getItem(LS_LAYER_ORDER);
-      archLayerOrder = raw ? JSON.parse(raw) : null;
-      if (!Array.isArray(archLayerOrder)) archLayerOrder = null;
+      if (!raw) {
+        archLayerOrder = null;
+        archFlowPathOrder = null;
+        return;
+      }
+      var p = JSON.parse(raw);
+      if (Array.isArray(p)) {
+        archLayerOrder = p;
+        archFlowPathOrder = null;
+        return;
+      }
+      if (p && typeof p === 'object') {
+        archLayerOrder = Array.isArray(p.layerOrder) ? p.layerOrder : null;
+        archFlowPathOrder = Array.isArray(p.flowPathOrder) ? p.flowPathOrder : null;
+        return;
+      }
+      archLayerOrder = null;
+      archFlowPathOrder = null;
     } catch (e) {
       archLayerOrder = null;
+      archFlowPathOrder = null;
     }
   }
 
   function archLayerOrderPersist() {
     try {
-      if (Array.isArray(archLayerOrder)) localStorage.setItem(LS_LAYER_ORDER, JSON.stringify(archLayerOrder));
+      if (Array.isArray(archLayerOrder)) {
+        localStorage.setItem(
+          LS_LAYER_ORDER,
+          JSON.stringify({
+            layerOrder: archLayerOrder,
+            flowPathOrder: archFlowPathOrderFromDom(),
+          })
+        );
+      }
     } catch (e) {}
   }
 
@@ -2804,10 +2829,27 @@
     });
     var key = archLayerOrderSelectionKey();
     if (!show || !key) return;
-    archLayerOrderEnsure();
-    var i = archLayerOrder.indexOf(key);
-    var atBack = i <= 0;
-    var atFront = i < 0 || i >= archLayerOrder.length - 1;
+    var atBack = false;
+    var atFront = false;
+    if (key.indexOf('flow:') === 0) {
+      var layer = qs('#layer-flows');
+      var paths = [];
+      if (layer) $all('.arch-flow', layer).forEach(function (p) { paths.push(p); });
+      var fi = -1;
+      for (var pi = 0; pi < paths.length; pi++) {
+        if (paths[pi].id === key.slice(5)) {
+          fi = pi;
+          break;
+        }
+      }
+      atBack = fi <= 0;
+      atFront = fi < 0 || fi >= paths.length - 1;
+    } else {
+      archLayerOrderEnsure();
+      var i = archLayerOrder.indexOf(key);
+      atBack = i <= 0;
+      atFront = i < 0 || i >= archLayerOrder.length - 1;
+    }
     $all('.arch-layer-order-btn').forEach(function (btn) {
       var cmd = btn.getAttribute('data-arch-layer-cmd');
       if (cmd === 'back' || cmd === 'down') btn.disabled = atBack;
@@ -6979,6 +7021,7 @@
     nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
     nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
     archCustomBoxes.push(nb);
+    archLayerOrderRegisterKey(archLayerOrderKeyCbox(nb.id), archLayerOrderKeyCbox(b.id));
     archCustomBoxSelectedId = nb.id;
     archCustomBoxLabelActiveId = null;
     userLines.selectedId = null;
@@ -9026,9 +9069,11 @@
     archEditorSyncLinesDockChrome();
 
     archEditSelectionInit();
+    archLayerOrderInit();
     archHiddenNodesApply();
     archBackgroundsApply();
     archAepBgPlateSync();
+    archLayerOrderApply();
     archUndoInitOnce();
 
     if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
@@ -9099,6 +9144,28 @@
           if (!mod && e.key === 'Escape') {
             archDiagramDeselectAll();
             return;
+          }
+          if (!mod && archIsEditMode() && archLayerOrderCanAdjust()) {
+            if (e.key === ']' && e.shiftKey) {
+              e.preventDefault();
+              archLayerOrderToExtreme(true);
+              return;
+            }
+            if (e.key === '[' && e.shiftKey) {
+              e.preventDefault();
+              archLayerOrderToExtreme(false);
+              return;
+            }
+            if (e.key === ']') {
+              e.preventDefault();
+              archLayerOrderMove(1);
+              return;
+            }
+            if (e.key === '[') {
+              e.preventDefault();
+              archLayerOrderMove(-1);
+              return;
+            }
           }
           if (!mod && archIsEditMode() && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
             var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || (archSelection && archSelection.count() > 0));
