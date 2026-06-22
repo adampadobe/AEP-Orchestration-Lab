@@ -24,6 +24,8 @@ const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
  * The key is read only via .value() inside a request handler.
  */
 const CONTEXT7_API_KEY = defineSecret('CONTEXT7_API_KEY');
+/** Same secret as Cloud Run FAKE_LOYALTY_API_KEY — ledger proxy only; never exposed to browser. */
+const FAKE_LOYALTY_API_KEY = defineSecret('FAKE_LOYALTY_API_KEY');
 
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
@@ -49,6 +51,7 @@ function lazyRequireMod(p) {
 
 const profileTableHelpers = lazyRequireMod('./profileTableHelpers');
 const ipadEventProxy = lazyRequireMod('./ipadEventProxy');
+const fakeLoyaltyProxy = lazyRequireMod('./fakeLoyaltyProxy');
 const profileConsentPayload = lazyRequireMod('./profileConsentPayload');
 const profileAudiences = lazyRequireMod('./profileAudiences');
 const profileEventsService = lazyRequireMod('./profileEventsService');
@@ -1140,6 +1143,23 @@ exports.webhookListenerProxy = onRequest(
       data: payload,
     });
   }
+);
+
+/** GET /api/fake-loyalty/health|ledger — proxy to fake AJO loyalty reward provider on Cloud Run. */
+exports.fakeLoyaltyTool = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    secrets: [FAKE_LOYALTY_API_KEY],
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    await fakeLoyaltyProxy.handleFakeLoyaltyRequest(req, res, {
+      setCors,
+      FAKE_LOYALTY_API_KEY,
+    });
+  },
 );
 
 // ---------------------------------------------------------------------------

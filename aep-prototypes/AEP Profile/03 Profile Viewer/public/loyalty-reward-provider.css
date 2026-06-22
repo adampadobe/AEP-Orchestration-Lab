@@ -1,0 +1,349 @@
+/* AJO Loyalty fake reward provider tool — uses global --dash-* tokens */
+
+.loyalty-reward-provider-page {
+  color-scheme: light;
+}
+
+html[data-aep-theme='dark'] body.loyalty-reward-provider-page {
+  color-scheme: dark;
+}
+
+.loyalty-reward-provider-page .lrp-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  gap: 1.25rem;
+  padding: 0 1.5rem 2rem;
+  align-items: start;
+}
+
+@media (max-width: 56rem) {
+  .loyalty-reward-provider-page .lrp-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.loyalty-reward-provider-page .lrp-panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--dash-shadow);
+  color: var(--dash-text);
+}
+
+.loyalty-reward-provider-page .lrp-panel h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.loyalty-reward-provider-page .lrp-subhead {
+  margin: 1.1rem 0 0.55rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--dash-border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-secondary);
+}
+
+.loyalty-reward-provider-page .lrp-subhead--first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.loyalty-reward-provider-page .lrp-lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--dash-muted);
+}
+
+.loyalty-reward-provider-page .lrp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.loyalty-reward-provider-page .lrp-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--dash-muted);
+}
+
+.loyalty-reward-provider-page .lrp-status--ok {
+  border-color: var(--dash-success-border, var(--dash-border));
+  background: var(--dash-success-bg, var(--dash-surface-alt));
+  color: var(--dash-success-text, var(--dash-text));
+}
+
+.loyalty-reward-provider-page .lrp-status--ok .lrp-status-dot {
+  background: var(--dash-success, var(--dash-blue));
+}
+
+.loyalty-reward-provider-page .lrp-status--warn {
+  border-color: var(--dash-warning-border, var(--dash-border));
+  background: var(--dash-warning-bg, var(--dash-surface-alt));
+  color: var(--dash-warning-text, var(--dash-text));
+}
+
+.loyalty-reward-provider-page .lrp-status--warn .lrp-status-dot {
+  background: var(--dash-warning, var(--dash-muted));
+}
+
+.loyalty-reward-provider-page .lrp-status--err {
+  border-color: var(--dash-error-border, var(--dash-border));
+  background: var(--dash-error-bg, var(--dash-surface-alt));
+  color: var(--dash-error-text, var(--dash-text));
+}
+
+.loyalty-reward-provider-page .lrp-status--err .lrp-status-dot {
+  background: var(--dash-error, var(--dash-muted));
+}
+
+.loyalty-reward-provider-page .lrp-field {
+  margin-bottom: 0.75rem;
+}
+
+.loyalty-reward-provider-page .lrp-field label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-secondary);
+}
+
+.loyalty-reward-provider-page .lrp-url-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.loyalty-reward-provider-page .lrp-code {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-input-bg, var(--dash-surface-alt));
+  color: var(--dash-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.loyalty-reward-provider-page .lrp-pre {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-input-bg, var(--dash-surface-alt));
+  color: var(--dash-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.loyalty-reward-provider-page .lrp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.loyalty-reward-provider-page .lrp-btn:hover {
+  background: var(--dash-hover);
+}
+
+.loyalty-reward-provider-page .lrp-btn--primary {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: var(--dash-on-accent, #fff);
+}
+
+.loyalty-reward-provider-page .lrp-btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+.loyalty-reward-provider-page .lrp-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.loyalty-reward-provider-page .lrp-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--dash-muted);
+}
+
+.loyalty-reward-provider-page .lrp-note strong {
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+}
+
+.loyalty-reward-provider-page .lrp-msg {
+  margin: 0 1.5rem 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+}
+
+.loyalty-reward-provider-page .lrp-msg--ok {
+  border-color: var(--dash-success-border, var(--dash-border));
+  background: var(--dash-success-bg, var(--dash-surface-alt));
+}
+
+.loyalty-reward-provider-page .lrp-msg--err {
+  border-color: var(--dash-error-border, var(--dash-border));
+  background: var(--dash-error-bg, var(--dash-surface-alt));
+}
+
+.loyalty-reward-provider-page .lrp-sandbox-row select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-input-border, var(--dash-border));
+  background: var(--dash-input-bg, var(--dash-surface-alt));
+  color: var(--dash-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.loyalty-reward-provider-page .lrp-guid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+  color: var(--dash-text);
+}
+
+.loyalty-reward-provider-page .lrp-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--dash-muted);
+}
+
+.loyalty-reward-provider-page .lrp-steps li {
+  margin-bottom: 0.35rem;
+}
+
+.loyalty-reward-provider-page .lrp-steps a {
+  color: var(--dash-blue);
+}
+
+.loyalty-reward-provider-page .lrp-ledger-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.loyalty-reward-provider-page .lrp-ledger-meta {
+  font-size: 0.8125rem;
+  color: var(--dash-muted);
+}
+
+.loyalty-reward-provider-page .lrp-ledger-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--dash-muted);
+  border: 1px dashed var(--dash-border);
+  border-radius: 8px;
+  background: var(--dash-surface-alt);
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table th,
+.loyalty-reward-provider-page .lrp-ledger-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid var(--dash-border);
+  vertical-align: top;
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table th {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-secondary);
+  background: var(--dash-surface-alt);
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table tr:last-child td {
+  border-bottom: none;
+}
+
+.loyalty-reward-provider-page .lrp-ledger-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  word-break: break-all;
+}
+
+.loyalty-reward-provider-page .lrp-payload-preview {
+  max-width: 18rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dash-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loyalty-reward-provider-page .lrp-payload-btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.7rem;
+}

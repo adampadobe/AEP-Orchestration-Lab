@@ -14,8 +14,31 @@ const API_KEY = String(process.env.FAKE_LOYALTY_API_KEY || '').trim();
 /** @type {Map<string, { transactionId: string }>} */
 const idempotencyIndex = new Map();
 
+const MAX_LEDGER_ENTRIES = 500;
+
 /** @type {Array<{ transactionId: string, receivedAt: string, idempotencyKey: string | null, payload: unknown }>} */
 const fulfillmentLedger = [];
+
+/**
+ * @param {unknown} payload
+ * @returns {string | null}
+ */
+function extractMemberId(payload) {
+  if (payload == null) return null;
+  if (typeof payload === 'object' && !Array.isArray(payload)) {
+    const id = /** @type {{ memberId?: unknown }} */ (payload).memberId;
+    return id != null && String(id).trim() ? String(id).trim() : null;
+  }
+  if (typeof payload === 'string') {
+    try {
+      const parsed = JSON.parse(payload);
+      return extractMemberId(parsed);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 function requireApiKey(req, res, next) {
   if (!API_KEY) {
@@ -91,11 +114,37 @@ app.post('/v1/fulfill', requireApiKey, (req, res) => {
     payload: req.body ?? rawPayload,
   };
   fulfillmentLedger.push(entry);
+  while (fulfillmentLedger.length > MAX_LEDGER_ENTRIES) {
+    fulfillmentLedger.shift();
+  }
   if (idempotencyKey) {
     idempotencyIndex.set(idempotencyKey, { transactionId });
   }
 
   res.status(200).json({ status: 'accepted', transactionId });
+});
+
+app.get('/v1/ledger', requireApiKey, (req, res) => {
+  const limitRaw = Number(req.query.limit);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(500, Math.max(1, Math.floor(limitRaw)))
+    : 50;
+  const entries = fulfillmentLedger
+    .slice(-limit)
+    .reverse()
+    .map((entry) => ({
+      transactionId: entry.transactionId,
+      receivedAt: entry.receivedAt,
+      idempotencyKey: entry.idempotencyKey,
+      memberId: extractMemberId(entry.payload),
+      payload: entry.payload,
+    }));
+  res.status(200).json({
+    ok: true,
+    count: entries.length,
+    totalStored: fulfillmentLedger.length,
+    entries,
+  });
 });
 
 app.listen(PORT, () => {

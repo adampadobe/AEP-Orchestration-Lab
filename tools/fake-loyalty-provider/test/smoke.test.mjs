@@ -115,6 +115,18 @@ async function main() {
     failures.push('/oauth/token');
   }
 
+  const ledgerUnauthorized = await fetchJson(`${base}/v1/ledger`);
+  if (ledgerUnauthorized.res.status !== 401) {
+    failures.push('/v1/ledger unauthorized');
+  }
+
+  const ledger = await fetchJson(`${base}/v1/ledger`, {
+    headers: { 'X-API-Key': testApiKey, Accept: 'application/json' },
+  });
+  if (!ledger.res.ok || !Array.isArray(ledger.body.entries) || ledger.body.entries.length < 1) {
+    failures.push('/v1/ledger after fulfill');
+  }
+
   child.kill();
 
   if (failures.length) {

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loyalty reward provider – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="loyalty-reward-provider.css?v=20260622">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge loyalty-reward-provider-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="AJO Loyalty fake reward provider">Loyalty provider</span>
+          <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AJO_LOYALTY_CHALLENGES.md" class="dashboard-topbar-link" target="_blank" rel="noopener">Setup docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="lrpBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="lrpBannerHeading" class="dashboard-hero-title">Loyalty reward provider</h2>
+              <p class="dashboard-hero-subtitle">
+                Public fake fulfillment endpoint for <strong>AJO Loyalty Challenges</strong> (private beta). Copy connection URLs into Loyalty admin, register the provider, and monitor fulfillment requests received by the lab Cloud Run service.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <p id="lrpMessage" class="lrp-msg" hidden role="status"></p>
+
+        <div class="lrp-layout">
+          <div class="lrp-panel">
+            <h3>Connection</h3>
+            <p class="lrp-lead">
+              Adobe calls the fulfillment URL when a member earns a reward. Health checks use the lab Firebase proxy so the browser never needs direct cross-origin access.
+            </p>
+
+            <div id="lrpHealthStatus" class="lrp-status lrp-status--warn" role="status">
+              <span class="lrp-status-dot" aria-hidden="true"></span>
+              <span>Checking…</span>
+            </div>
+            <div class="lrp-btn-row">
+              <button type="button" class="lrp-btn" id="lrpCheckHealth">Check health</button>
+            </div>
+
+            <h4 class="lrp-subhead lrp-subhead--first">Fulfillment URL</h4>
+            <p class="lrp-lead">Register this URL in <strong>Loyalty admin → Reward providers</strong>.</p>
+            <div class="lrp-url-row">
+              <code id="lrpFulfillUrl" class="lrp-code" translate="no"></code>
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpFulfillUrl" data-copy-msg="Fulfillment URL copied.">Copy</button>
+            </div>
+
+            <h4 class="lrp-subhead">Health URL</h4>
+            <div class="lrp-url-row">
+              <code id="lrpHealthUrl" class="lrp-code" translate="no"></code>
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpHealthUrl">Copy</button>
+            </div>
+
+            <h4 class="lrp-subhead">OAuth token URL (optional)</h4>
+            <div class="lrp-url-row">
+              <code id="lrpOauthUrl" class="lrp-code" translate="no"></code>
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpOauthUrl">Copy</button>
+            </div>
+
+            <p class="lrp-note">
+              <strong>API key:</strong> configured in Cloud Run (<code>FAKE_LOYALTY_API_KEY</code>) and AJO Loyalty admin — never shown in this UI.
+            </p>
+
+            <h3 style="margin-top:1.25rem">AJO setup</h3>
+            <p class="lrp-lead">
+              Metadata APIs (register provider, create challenge) run from your terminal — see
+              <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AJO_LOYALTY_CHALLENGES.md" target="_blank" rel="noopener">AJO_LOYALTY_CHALLENGES.md</a>.
+            </p>
+
+            <div class="lrp-field lrp-sandbox-row">
+              <label for="lrpSandboxSelect">Sandbox</label>
+              <select id="lrpSandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
+            </div>
+
+            <h4 class="lrp-subhead lrp-subhead--first">Registered provider GUID</h4>
+            <div class="lrp-url-row">
+              <code id="lrpProviderGuid" class="lrp-code lrp-guid" translate="no"></code>
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpProviderGuid" data-copy-msg="Provider GUID copied.">Copy</button>
+            </div>
+
+            <h4 class="lrp-subhead">Reward definition key</h4>
+            <div class="lrp-url-row">
+              <code id="lrpRewardKey" class="lrp-code" translate="no">points</code>
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpRewardKey">Copy</button>
+            </div>
+
+            <h4 class="lrp-subhead">Headers (Loyalty admin)</h4>
+            <pre id="lrpHeadersSnippet" class="lrp-pre" translate="no"></pre>
+            <div class="lrp-btn-row">
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpHeadersSnippet" data-copy-msg="Headers snippet copied.">Copy headers</button>
+            </div>
+
+            <h4 class="lrp-subhead">Register provider</h4>
+            <pre id="lrpRegisterCmd" class="lrp-pre" translate="no"></pre>
+            <div class="lrp-btn-row">
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpRegisterCmd" data-copy-msg="Command copied.">Copy command</button>
+            </div>
+
+            <h4 class="lrp-subhead">Create challenge</h4>
+            <pre id="lrpChallengeCmd" class="lrp-pre" translate="no"></pre>
+            <div class="lrp-btn-row">
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpChallengeCmd" data-copy-msg="Command copied.">Copy command</button>
+            </div>
+
+            <h4 class="lrp-subhead">Quick steps</h4>
+            <ol class="lrp-steps">
+              <li>Confirm Loyalty Challenges beta + Loyalty admin in AJO.</li>
+              <li>Set identity namespace to match lab profiles (e.g. <code>loyaltyId</code>).</li>
+              <li>Register the fulfillment URL + <code>X-API-Key</code> in Reward providers.</li>
+              <li>Create/publish a challenge linked to the provider and an audience.</li>
+            </ol>
+          </div>
+
+          <div class="lrp-panel">
+            <div class="lrp-ledger-head">
+              <h3 style="margin:0">Fulfillment ledger</h3>
+              <button type="button" class="lrp-btn lrp-btn--primary" id="lrpRefreshLedger">Refresh</button>
+            </div>
+            <p class="lrp-lead">
+              Recent <code>POST /v1/fulfill</code> requests accepted by the fake provider (in-memory on Cloud Run; resets on redeploy).
+            </p>
+            <p id="lrpLedgerMeta" class="lrp-ledger-meta">Loading…</p>
+
+            <div id="lrpLedgerEmpty" class="lrp-ledger-empty" hidden>
+              No fulfillment requests yet. Trigger a reward from AJO or send a test POST with the sample fixture.
+            </div>
+
+            <div id="lrpLedgerTableWrap" class="lrp-ledger-table-wrap" hidden>
+              <table class="lrp-ledger-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Received</th>
+                    <th scope="col">Transaction ID</th>
+                    <th scope="col">Member ID</th>
+                    <th scope="col">Payload</th>
+                  </tr>
+                </thead>
+                <tbody id="lrpLedgerBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="loyalty-reward-provider-config.js?v=20260622"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="loyalty-reward-provider.js?v=20260622"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260520-miral-pages-removed"></script>
+</body>
+</html>

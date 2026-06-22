@@ -485,6 +485,11 @@
       "region": "us-east4"
     },
     {
+      "source": "/api/fake-loyalty/**",
+      "functionId": "fakeLoyaltyTool",
+      "region": "us-east4"
+    },
+    {
       "source": "/api/profile/generate",
       "functionId": "profileGenerateProxy",
       "region": "us-east4"

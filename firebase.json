@@ -266,6 +266,13 @@
         }
       },
       {
+        "source": "/api/fake-loyalty/**",
+        "function": {
+          "functionId": "fakeLoyaltyTool",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/webhooks/**",
         "function": {
           "functionId": "sandboxWebhookTool",
