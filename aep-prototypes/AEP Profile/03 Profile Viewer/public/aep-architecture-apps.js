@@ -2574,7 +2574,10 @@
     var pts = archFlowGetPoints(flowId);
     if (!pts || pts.length < 2 || idx < 0 || idx >= pts.length) return;
     if (idx === 0 || idx === pts.length - 1) {
-      pts[idx] = { x: p.x, y: p.y };
+      var tgt = document.elementFromPoint(e.clientX, e.clientY);
+      var epSnap = archUserLineSnapEndpoint(p.x, p.y, tgt);
+      var ptSnap = archUserLinePointFromEndpoint(epSnap);
+      if (ptSnap) pts[idx] = { x: ptSnap.x, y: ptSnap.y };
     } else {
       var prev = pts[idx - 1];
       var next = pts[idx + 1];
@@ -2611,6 +2614,7 @@
       archUndoMaybePushSnapshot();
       archFlowHandlesRefresh();
     }
+    archBoxAnchorHintsClear();
   }
 
   function archFlowHandlePointerDown(e) {
@@ -2790,13 +2794,6 @@
 
   function archFlowFloatSetJunction(on) {
     archFlowFloatJunctionMode = !!on;
-    lineDefaults.lineTool = on ? 'junction' : lineDefaults.lineTool === 'junction' ? 'arrow' : lineDefaults.lineTool;
-    var bar = qs('#archLineFloatBar');
-    if (bar) {
-      $all('.arch-line-float-tool', bar).forEach(function (b) {
-        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineDefaults.lineTool);
-      });
-    }
     archLineFloatUpdateVisibility();
   }
 
@@ -3464,6 +3461,7 @@
 
   function archLineFloatSetTool(t) {
     lineDefaults.lineTool = t || 'arrow';
+    if (lineDefaults.lineTool !== 'junction') archFlowFloatJunctionMode = false;
     if (lineDefaults.lineTool === 'junction') {
       archUserLineClearPending();
       archUserLineRemoveDrawListeners();
@@ -6127,8 +6125,194 @@
     };
   }
 
-  /** Pixels from a box edge — clicks within this distance snap to that edge (for anchored connectors). */
+  /** Max distance (SVG user units) to snap connector endpoints to box anchor points. */
+  var ARCH_BOX_ANCHOR_SNAP_PX = 12;
+
+  /** Legacy edge snap — kept for hint radius when listing nearby boxes. */
   var USER_LINE_SNAP_PX = 36;
+
+  /** Eight compass anchors on each box (corners + edge midpoints). */
+  var ARCH_BOX_ANCHOR_IDS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+
+  /** Active snap target while dragging/drawing — `{ typ, key, anchor }` or null. */
+  var archBoxAnchorSnapActive = null;
+
+  function archBoxAnchorPointFromRect(wr, anchorId) {
+    if (!wr || !anchorId) return null;
+    var L = wr.left;
+    var R = wr.right;
+    var T = wr.top;
+    var B = wr.bottom;
+    var cx = wr.cx != null ? wr.cx : (L + R) / 2;
+    var cy = wr.cy != null ? wr.cy : (T + B) / 2;
+    switch (anchorId) {
+      case 'n':
+        return { x: cx, y: T };
+      case 'ne':
+        return { x: R, y: T };
+      case 'e':
+        return { x: R, y: cy };
+      case 'se':
+        return { x: R, y: B };
+      case 's':
+        return { x: cx, y: B };
+      case 'sw':
+        return { x: L, y: B };
+      case 'w':
+        return { x: L, y: cy };
+      case 'nw':
+        return { x: L, y: T };
+      default:
+        return null;
+    }
+  }
+
+  /** Returns eight `{ anchor, x, y }` entries for a world rect. */
+  function archBoxAnchorPoints(wr) {
+    var out = [];
+    for (var ai = 0; ai < ARCH_BOX_ANCHOR_IDS.length; ai++) {
+      var aid = ARCH_BOX_ANCHOR_IDS[ai];
+      var pt = archBoxAnchorPointFromRect(wr, aid);
+      if (pt) out.push({ anchor: aid, x: pt.x, y: pt.y });
+    }
+    return out;
+  }
+
+  function archBoxAnchorPointWorld(typ, id, anchorId) {
+    if (!typ || !id || !anchorId) return null;
+    var wr = null;
+    if (typ === 'node') wr = archDragWorldRect(id);
+    else if (typ === 'cbox') {
+      var box = archCustomBoxFind(id);
+      if (box) wr = archCustomBoxWorldRect(box);
+    }
+    if (!wr) return null;
+    return archBoxAnchorPointFromRect(wr, anchorId);
+  }
+
+  function archBoxAnchorNearest(px, py, preferredTyp, preferredId) {
+    var candidates = [];
+    Object.keys(NODE_LAYOUT).forEach(function (key) {
+      var wr = archDragWorldRect(key);
+      if (!wr) return;
+      archBoxAnchorPoints(wr).forEach(function (ap) {
+        candidates.push({
+          typ: 'node',
+          key: key,
+          anchor: ap.anchor,
+          x: ap.x,
+          y: ap.y,
+          dist: Math.hypot(px - ap.x, py - ap.y),
+        });
+      });
+    });
+    archCustomBoxes.forEach(function (box) {
+      var wr2 = archCustomBoxWorldRect(box);
+      archBoxAnchorPoints(wr2).forEach(function (ap) {
+        candidates.push({
+          typ: 'cbox',
+          key: box.id,
+          anchor: ap.anchor,
+          x: ap.x,
+          y: ap.y,
+          dist: Math.hypot(px - ap.x, py - ap.y),
+        });
+      });
+    });
+    candidates.sort(function (a, b) {
+      if (Math.abs(a.dist - b.dist) < 2 && preferredTyp && preferredId) {
+        if (a.typ === preferredTyp && a.key === preferredId) return -1;
+        if (b.typ === preferredTyp && b.key === preferredId) return 1;
+      }
+      return a.dist - b.dist;
+    });
+    var best = candidates[0];
+    if (!best || best.dist > ARCH_BOX_ANCHOR_SNAP_PX) return null;
+    return best;
+  }
+
+  function archBoxAnchorEndpointFromSnap(snap) {
+    if (!snap) return { kind: 'free', x: 0, y: 0 };
+    if (snap.typ === 'cbox') {
+      return { kind: 'cbox', boxId: snap.key, anchor: snap.anchor };
+    }
+    return { kind: 'anchor', node: snap.key, anchor: snap.anchor };
+  }
+
+  function archBoxAnchorHintsClear() {
+    archBoxAnchorSnapActive = null;
+    var layer = qs('#layer-box-anchor-hints');
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+  }
+
+  function archBoxAnchorHintsRefresh(px, py, activeSnap, targetEl) {
+    var layer = qs('#layer-box-anchor-hints');
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    if (px == null || py == null) return;
+
+    var preferredTyp = null;
+    var preferredId = null;
+    if (targetEl && targetEl.closest) {
+      var g = targetEl.closest('g.arch-node');
+      if (g && g.id && g.id.indexOf('node-') === 0) {
+        var rest = g.id.slice(5);
+        if (NODE_LAYOUT[rest]) {
+          preferredTyp = 'node';
+          preferredId = rest;
+        } else if (rest.indexOf('cbox-') === 0) {
+          preferredTyp = 'cbox';
+          preferredId = rest;
+        }
+      }
+    }
+
+    var showBoxes = {};
+    function maybeShowBox(typ, key, wr) {
+      var bk = typ + ':' + key;
+      if (showBoxes[bk]) return;
+      var near = false;
+      archBoxAnchorPoints(wr).forEach(function (ap) {
+        if (Math.hypot(px - ap.x, py - ap.y) <= USER_LINE_SNAP_PX) near = true;
+      });
+      if (!near) return;
+      showBoxes[bk] = true;
+      archBoxAnchorPoints(wr).forEach(function (ap) {
+        var c = document.createElementNS(SVG_NS, 'circle');
+        c.setAttribute('cx', String(ap.x));
+        c.setAttribute('cy', String(ap.y));
+        c.setAttribute('r', '4');
+        c.setAttribute('class', 'arch-box-anchor-hint');
+        if (
+          activeSnap &&
+          activeSnap.typ === typ &&
+          activeSnap.key === key &&
+          activeSnap.anchor === ap.anchor
+        ) {
+          c.classList.add('is-active');
+        }
+        layer.appendChild(c);
+      });
+    }
+
+    Object.keys(NODE_LAYOUT).forEach(function (key) {
+      var wr = archDragWorldRect(key);
+      if (wr) maybeShowBox('node', key, wr);
+    });
+    archCustomBoxes.forEach(function (box) {
+      var wr2 = archCustomBoxWorldRect(box);
+      if (wr2) maybeShowBox('cbox', box.id, wr2);
+    });
+
+    if (preferredTyp && preferredId && !showBoxes[preferredTyp + ':' + preferredId]) {
+      var wrP =
+        preferredTyp === 'node'
+          ? archDragWorldRect(preferredId)
+          : archCustomBoxWorldRect(archCustomBoxFind(preferredId));
+      if (wrP) maybeShowBox(preferredTyp, preferredId, wrP);
+    }
+  }
 
   /** Min half-width (px) for invisible stroke hit-testing along connector paths. */
   var USER_LINE_HIT_STROKE_MIN = 12;
@@ -6318,51 +6502,42 @@
     return archUserLineClosestOnWorldRectBorder(wr, px, py);
   }
 
+  function archUserLineLegacyEdgeToAnchor(edge, t) {
+    var tt = archClamp(t, 0, 1);
+    if (edge === 'n') return tt <= 0.25 ? 'nw' : tt >= 0.75 ? 'ne' : 'n';
+    if (edge === 's') return tt <= 0.25 ? 'sw' : tt >= 0.75 ? 'se' : 's';
+    if (edge === 'w') return tt <= 0.25 ? 'nw' : tt >= 0.75 ? 'sw' : 'w';
+    if (edge === 'e') return tt <= 0.25 ? 'ne' : tt >= 0.75 ? 'se' : 'e';
+    return 'n';
+  }
+
   function archUserLineSnapEndpoint(px, py, targetEl) {
-    var preferredNode = null;
-    var preferredCbox = null;
+    var preferredTyp = null;
+    var preferredId = null;
     if (targetEl && targetEl.closest) {
       var g = targetEl.closest('g.arch-node');
       if (g && g.id && g.id.indexOf('node-') === 0) {
         var rest = g.id.slice(5);
-        if (NODE_LAYOUT[rest]) preferredNode = rest;
-        else if (rest.indexOf('cbox-') === 0) preferredCbox = rest;
+        if (NODE_LAYOUT[rest]) {
+          preferredTyp = 'node';
+          preferredId = rest;
+        } else if (rest.indexOf('cbox-') === 0) {
+          preferredTyp = 'cbox';
+          preferredId = rest;
+        }
       }
     }
-    var candidates = [];
-    Object.keys(NODE_LAYOUT).forEach(function (key) {
-      var c = archUserLineClosestOnNodeBorder(key, px, py);
-      if (c) candidates.push({ typ: 'node', key: key, c: c });
-    });
-    archCustomBoxes.forEach(function (box) {
-      var wr = archCustomBoxWorldRect(box);
-      var c = archUserLineClosestOnWorldRectBorder(wr, px, py);
-      if (c) candidates.push({ typ: 'cbox', boxId: box.id, c: c });
-    });
-    candidates.sort(function (a, b) {
-      var da = a.c.dist;
-      var db = b.c.dist;
-      if (Math.abs(da - db) < 3 && preferredNode) {
-        if (a.typ === 'node' && a.key === preferredNode) return -1;
-        if (b.typ === 'node' && b.key === preferredNode) return 1;
-      }
-      if (Math.abs(da - db) < 3 && preferredCbox) {
-        if (a.typ === 'cbox' && a.boxId === preferredCbox) return -1;
-        if (b.typ === 'cbox' && b.boxId === preferredCbox) return 1;
-      }
-      return da - db;
-    });
-    var first = candidates[0];
-    if (first && first.c.dist <= USER_LINE_SNAP_PX) {
-      if (first.typ === 'cbox') {
-        return { kind: 'cbox', boxId: first.boxId, edge: first.c.edge, t: archClamp(first.c.t, 0, 1) };
-      }
-      return { kind: 'anchor', node: first.key, edge: first.c.edge, t: archClamp(first.c.t, 0, 1) };
-    }
+    var snap = archBoxAnchorNearest(px, py, preferredTyp, preferredId);
+    archBoxAnchorSnapActive = snap;
+    archBoxAnchorHintsRefresh(px, py, snap, targetEl);
+    if (snap) return archBoxAnchorEndpointFromSnap(snap);
     return { kind: 'free', x: px, y: py };
   }
 
-  function archUserLineAnchorToWorld(nodeKey, edge, t) {
+  function archUserLineAnchorToWorld(nodeKey, edge, t, anchorId) {
+    if (anchorId) {
+      return archBoxAnchorPointWorld('node', nodeKey, anchorId);
+    }
     var wr = archDragWorldRect(nodeKey);
     if (!wr) return null;
     var tt = archClamp(t, 0, 1);
@@ -6377,7 +6552,10 @@
     return { x: (L + R) / 2, y: (T + B) / 2 };
   }
 
-  function archCustomBoxEdgeToWorld(boxId, edge, t) {
+  function archCustomBoxEdgeToWorld(boxId, edge, t, anchorId) {
+    if (anchorId) {
+      return archBoxAnchorPointWorld('cbox', boxId, anchorId);
+    }
     var box = null;
     for (var i = 0; i < archCustomBoxes.length; i++) {
       if (archCustomBoxes[i].id === boxId) {
@@ -6402,10 +6580,29 @@
   function archUserLinePointFromEndpoint(ep) {
     if (!ep) return null;
     if (ep.kind === 'anchor') {
+      if (ep.anchor) {
+        var aw2 = archUserLineAnchorToWorld(ep.node, ep.edge, ep.t, ep.anchor);
+        return aw2 || null;
+      }
+      var aid =
+        ep.edge != null && ep.t != null ? archUserLineLegacyEdgeToAnchor(ep.edge, ep.t) : ep.anchor;
+      if (aid) {
+        var aw3 = archUserLineAnchorToWorld(ep.node, ep.edge, ep.t, aid);
+        if (aw3) return aw3;
+      }
       var aw = archUserLineAnchorToWorld(ep.node, ep.edge, ep.t);
       return aw || null;
     }
     if (ep.kind === 'cbox') {
+      if (ep.anchor) {
+        return archCustomBoxEdgeToWorld(ep.boxId, ep.edge, ep.t, ep.anchor);
+      }
+      var caid =
+        ep.edge != null && ep.t != null ? archUserLineLegacyEdgeToAnchor(ep.edge, ep.t) : ep.anchor;
+      if (caid) {
+        var cw = archCustomBoxEdgeToWorld(ep.boxId, ep.edge, ep.t, caid);
+        if (cw) return cw;
+      }
       return archCustomBoxEdgeToWorld(ep.boxId, ep.edge, ep.t);
     }
     if (ep.kind === 'free' || (ep.x != null && ep.y != null)) return { x: ep.x, y: ep.y };
@@ -8538,9 +8735,8 @@
     archUserLinePersist();
     archUndoMaybePushSnapshot();
     archUserLineRender();
+    archBoxAnchorHintsClear();
   }
-
-  function archUserLineHandlePointerDown(e) {
     if (!archIsEditMode()) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     var t = e.target;
