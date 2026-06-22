@@ -144,6 +144,114 @@
     return !!(archViewport && archViewport.classList.contains('arch-int-viewport--edit-mode'));
   }
 
+  var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
+  /** Set from init() — applies Edit diagram toggle + dock chrome. */
+  var archEditorApplyEditModeHook = null;
+
+  function archIsPresentationFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  function archSetEditMode(on) {
+    try {
+      localStorage.setItem(LS_ARCH_EDIT, on ? '1' : '0');
+    } catch (e) {}
+    var emt = qs('#archEditModeToggle');
+    if (emt) emt.checked = !!on;
+    if (archEditorApplyEditModeHook) archEditorApplyEditModeHook();
+  }
+
+  /** Enter Edit diagram + Select (Tools) before routing a double-click to object handlers. */
+  function archDblClickEnterEditForObject() {
+    if (!archIsEditMode()) {
+      archSetEditMode(true);
+    }
+    if (archGetActiveTool() !== 'select') {
+      archSetActiveTool('select');
+      archToolsFloatSetOpen(true);
+    }
+  }
+
+  /** True when double-click hit an editable diagram object (not empty canvas). */
+  function archDblClickHasEditableTarget(e) {
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return false;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return false;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return false;
+
+    if (archDrag && archDrag.svg) {
+      var sp0 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+      if (archFlowPickNearestVisible(sp0.x, sp0.y, FLOW_PICK_NEAR_LABEL_MAX_DIST)) return true;
+      if (archFlowLabelAtSvgPoint(sp0.x, sp0.y)) return true;
+    }
+
+    var flowId = archFlowIdFromTarget(e.target);
+    if (flowId) {
+      var t = document.getElementById(flowId);
+      if (t && t.classList.contains('is-visible') && !archHiddenFlowsHas(t.id)) return true;
+    }
+
+    var ul = e.target.closest && e.target.closest('.arch-user-line, .arch-user-line-hit');
+    if (ul && ul.getAttribute && ul.getAttribute('data-user-line-id')) return true;
+
+    var bgPlate = e.target.closest && e.target.closest('.arch-bg-plate[data-arch-bg]');
+    if (bgPlate) {
+      var bgId = bgPlate.getAttribute('data-arch-bg');
+      if (bgId && !archHiddenBackgroundsHas(bgId)) return true;
+    }
+
+    var g = e.target.closest && e.target.closest('g.arch-node');
+    if (g && g.id && g.id.indexOf('node-') === 0) {
+      if (g.classList.contains('arch-custom-box')) return true;
+      if (NODE_LAYOUT[g.id.slice(5)]) return true;
+    }
+
+    var te = e.target.closest && e.target.closest('text');
+    if (te && te.getAttribute('data-arch-id')) return true;
+
+    return false;
+  }
+
+  /**
+   * Double-click any diagram object to enter contextual edit: enables Edit diagram when off,
+   * switches to Select tool, then routes to the object-type handler (resize, text, line bar, etc.).
+   * No-op in presentation fullscreen or on empty canvas.
+   */
+  function archDblClickEdit(e) {
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (archIsPresentationFullscreen()) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (!archDblClickHasEditableTarget(e)) return;
+
+    archDblClickEnterEditForObject();
+
+    var cboxLabel = e.target.closest && e.target.closest('.arch-custom-box-label');
+    if (cboxLabel) {
+      var cg = cboxLabel.closest('g.arch-custom-box');
+      if (cg) {
+        var cboxRawId = cg.id.replace(/^node-cbox-/, '');
+        if (cboxRawId) {
+          archCustomBoxSelectedId = cboxRawId;
+          archCustomBoxLabelActiveId = cboxRawId;
+          archCustomBoxesRender();
+          archSelectionRefreshDom();
+          archLabelOpenEditor(cboxLabel, { force: true, kind: 'cbox', boxId: cboxRawId });
+        }
+      }
+      return;
+    }
+
+    var handled = archDiagramDblClickSelect(e);
+
+    if (handled) return;
+    var te = e.target.closest && e.target.closest('text[data-arch-id]');
+    if (te) archLabelDblClick(e);
+  }
+
   /** Prev/Next/dot nav stays enabled in Edit mode so you can step through states while editing. */
   function archSyncPlaybackNav() {
     var prev = qs('#archIntPrev');
@@ -508,16 +616,16 @@
   }
 
   /**
-   * Double-click (Edit mode) selects a platform node, custom box, or connector.
+   * Double-click selects a platform node, custom box, or connector (caller enables Edit mode).
    * archSelectionPanelSync enables Move / Labels via archEditorApplyModesForCurrentSelection.
+   * @returns {boolean} true when the event was handled (label/flow/box/node/line/bg).
    */
   function archDiagramDblClickSelect(e) {
-    if (!archIsEditMode()) return;
-    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
-    if (userLines.drawMode || customBoxDrawMode) return;
-    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
-    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
-    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return false;
+    if (userLines.drawMode || customBoxDrawMode) return false;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return false;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return false;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return false;
 
     if (archDrag && archDrag.svg) {
       var sp0 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
@@ -526,7 +634,7 @@
         e.preventDefault();
         e.stopPropagation();
         archFlowSelect(nearFlowId);
-        return;
+        return true;
       }
       var flowLbl = archFlowLabelAtSvgPoint(sp0.x, sp0.y);
       if (flowLbl) {
@@ -535,7 +643,7 @@
         var lid = flowLbl.getAttribute('data-arch-id');
         archLabelSelect(lid, flowLbl);
         archLabelOpenEditor(flowLbl, { force: true });
-        return;
+        return true;
       }
     }
 
@@ -545,7 +653,7 @@
       e.preventDefault();
       e.stopPropagation();
       archFlowSelect(flowEl.id);
-      return;
+      return true;
     }
 
     var ul = e.target.closest && e.target.closest('.arch-user-line, .arch-user-line-hit');
@@ -565,7 +673,7 @@
         archUserLineSyncPropsHud();
         archSelectionRefreshDom();
         if (liveRegion) liveRegion.textContent = 'Connector selected — drag to move, handles to adjust path.';
-        return;
+        return true;
       }
     }
 
@@ -576,16 +684,16 @@
         e.preventDefault();
         e.stopPropagation();
         archBgSelect(bgId);
-        return;
+        return true;
       }
     }
 
     var g = e.target.closest && e.target.closest('g.arch-node');
-    if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
+    if (!g || !g.id || g.id.indexOf('node-') !== 0) return false;
 
     if (g.classList.contains('arch-custom-box')) {
       var rawId = g.id.replace(/^node-cbox-/, '');
-      if (!rawId) return;
+      if (!rawId) return false;
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
       archLabelClearSelection();
@@ -598,11 +706,11 @@
       archUserLineSyncPropsHud();
       archSelectionRefreshDom();
       if (liveRegion) liveRegion.textContent = 'Shape selected — drag to move, handles to resize, Delete to remove.';
-      return;
+      return true;
     }
 
     var key = g.id.slice(5);
-    if (!NODE_LAYOUT[key]) return;
+    if (!NODE_LAYOUT[key]) return false;
     userLines.selectedId = null;
     userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
@@ -616,6 +724,7 @@
     archUserLineSyncPropsHud();
     archSelectionRefreshDom();
     if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
+    return true;
   }
 
   function qs(sel, root) {
@@ -919,23 +1028,12 @@
     archInstallTourEditor();
 
     var mainPresentationEl = qs('main.dashboard-main.app-page');
-    var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
-    var LS_ARCH_DOCK = 'aepArchEditorDockRight';
     try {
       if (localStorage.getItem('aepArchHideControls') === '1') {
         localStorage.setItem(LS_ARCH_EDIT, '0');
       }
       localStorage.removeItem('aepArchHideControls');
     } catch (e) {}
-
-    function archIsPresentationFullscreen() {
-      return !!(
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement
-      );
-    }
 
     archStateHighlightOverridesLoad();
     archHiddenFlowsLoad();
@@ -1045,6 +1143,9 @@
       }
       archEditModeWasOn = on;
     }
+    archEditorApplyEditModeHook = archEditorApplyEditMode;
+
+    var LS_ARCH_DOCK = 'aepArchEditorDockRight';
 
     function archEditorApplyDock() {
       var right = false;
@@ -7307,11 +7408,14 @@
   function archLabelDblClick(e) {
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
+    if (!archIsEditMode()) return;
     if (archLabelIsFlowLabel(te) && archDrag && archDrag.svg) {
       var spDbl = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
       if (archFlowPickNearestVisible(spDbl.x, spDbl.y, FLOW_PICK_NEAR_LABEL_MAX_DIST)) return;
     }
-    if (!archLabelCanInteract(te) && !archLabelIsFlowLabel(te)) return;
+    if (!archLabelCanInteract(te) && !archLabelIsFlowLabel(te)) {
+      archLabelSetEnabled(true);
+    }
     e.preventDefault();
     e.stopPropagation();
     archLabelClearPendingListeners();
@@ -9361,15 +9465,23 @@
       }
     }
 
+    if (archLabelSelectedId) {
+      var lcur = archLabel.state.pos[archLabelSelectedId] || { x: 0, y: 0 };
+      archLabel.state.pos[archLabelSelectedId] = {
+        x: (lcur.x || 0) + dx,
+        y: (lcur.y || 0) + dy,
+      };
+      archLabelApplyAll();
+      archLabelSave();
+      moved = true;
+    }
+
     if (moved) try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err) {}
     return moved;
   }
 
   function archDiagramToggleEditMode() {
-    var emt = qs('#archEditModeToggle');
-    if (!emt) return;
-    emt.checked = !emt.checked;
-    try { emt.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+    archSetEditMode(!archIsEditMode());
   }
 
   function archUserLineAdd(ep1, ep2) {
@@ -10086,8 +10198,7 @@
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('click', archDiagramFlowClick, true);
-    archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
-    archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
+    archDrag.svg.addEventListener('dblclick', archDblClickEdit, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
     archDrag.svg.addEventListener('pointerdown', archUserLineOnPointerDown, false);
 
