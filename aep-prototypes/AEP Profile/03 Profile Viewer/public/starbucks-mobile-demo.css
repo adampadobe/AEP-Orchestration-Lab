@@ -1,0 +1,46 @@
+.starbucks-mobile-demo-page .starbucks-demo-script-preview,
+.starbucks-mobile-demo-page .starbucks-demo-message {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.starbucks-mobile-demo-page .starbucks-demo-message {
+  padding-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.starbucks-mobile-demo-page .starbucks-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.starbucks-mobile-demo-page .starbucks-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+/* Simulator stage uses mobile-demo.css gradient when not in dashboard theme */
+body.starbucks-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background:
+    radial-gradient(ellipse 95% 52% at 50% 108%, rgba(155, 110, 75, 0.18), transparent 55%),
+    radial-gradient(ellipse 130% 65% at 50% -18%, rgba(0, 59, 11, 0.12), transparent 52%),
+    var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] body.starbucks-mobile-demo-page.mobile-demo-shell-page .mobile-demo-shell-stage-wrap {
+  background: var(--dash-bg);
+}
+
+/* Suppress parent-page BC chrome — concierge renders inside phone iframe */
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #siteCloneBcFab,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #aepBcModal,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #siteCloneBcFrameHost,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #bcBottomDockRoot,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #bcBottomDockMount,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #bcModalBarRoot,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome #bcModalBarMount,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome .bc-bottom-dock,
+body.starbucks-mobile-demo-page.starbucks-mobile-bc-suppress-chrome .bc-modal-bar {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

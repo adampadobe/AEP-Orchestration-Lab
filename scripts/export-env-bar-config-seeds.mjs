@@ -30,6 +30,7 @@ const SITE_CLONE_DEMO_HTML = [
   'premier-inn-demo.html',
   'etihad-demo.html',
   'ksia-demo.html',
+  'starbucks-demo.html',
   'admiral-demo.html',
   'navigator-global-demo.html',
   'race-for-life-demo.html',
@@ -60,6 +61,12 @@ const SEED_OVERRIDES = {
     features: { webPush: true, bc: true, decisioning: true },
     labCoreScript: 'demos/ksia/ksia-lab-core.js',
     iframeIds: ['ksiaSiteFrame'],
+  },
+  starbucks: {
+    storagePrefix: 'starbucks',
+    features: { webPush: true, bc: true, decisioning: true },
+    labCoreScript: 'demos/alshaya/starbucks/starbucks-lab-core.js',
+    iframeIds: ['starbucksSiteFrame'],
   },
   race: {
     features: { webPush: true, bc: true, decisioning: true },

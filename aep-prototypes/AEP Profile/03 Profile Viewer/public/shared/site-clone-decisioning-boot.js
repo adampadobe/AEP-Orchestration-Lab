@@ -17,6 +17,7 @@
     premierInn: 'premierInnSiteFrame',
     avivaTarget: 'avivaTargetFrame',
     ksia: 'ksiaSiteFrame',
+    starbucks: 'starbucksSiteFrame',
     etihad: 'etihadSiteFrame',
     admiral: 'admiralSiteFrame',
     saga: 'sagaSiteFrame',

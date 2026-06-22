@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starbucks UAE — Home</title>
+  <link rel="stylesheet" href="starbucks-site.css?v=20260622">
+</head>
+<body class="starbucks-site" data-starbucks-page-id="home">
+  <header class="sb-header">
+    <div class="sb-header-inner">
+      <a class="sb-logo" href="index.html" id="sbLogo">
+        <span class="sb-logo-mark" aria-hidden="true">&#9733;</span>
+        <span>Starbucks</span>
+      </a>
+      <nav aria-label="Primary">
+        <ul class="sb-nav">
+          <li><a href="#menu">Menu</a></li>
+          <li><a href="#rewards">Rewards</a></li>
+          <li><a href="#stores">Stores</a></li>
+          <li><a href="#gift">Gift Cards</a></li>
+        </ul>
+      </nav>
+      <div class="sb-header-cta">
+        <button type="button" class="sb-btn sb-btn-outline" id="sbSignInBtn">Sign in</button>
+        <button type="button" class="sb-btn sb-btn-primary" id="sbJoinRewardsBtn">Join Rewards</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="sb-main">
+    <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+
+    <section class="sb-hero" data-hero-mount data-hero-mount-fit="contain" aria-label="Featured">
+      <div class="sb-hero-pattern" aria-hidden="true"></div>
+      <div class="sb-hero-content">
+        <p class="sb-hero-kicker">Starbucks Rewards</p>
+        <h1>Collect Stars. Get rewarded.</h1>
+        <p>Earn Stars on every handcrafted drink and unlock free beverages, exclusive offers, and more across the UAE.</p>
+        <button type="button" class="sb-btn sb-btn-primary" id="sbHeroCta">Start earning Stars</button>
+      </div>
+    </section>
+
+    <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>
+
+    <section class="sb-section" id="rewards" aria-labelledby="sb-rewards-heading">
+      <p class="sb-section-kicker">Starbucks Rewards</p>
+      <h2 id="sb-rewards-heading">Three ways to celebrate you</h2>
+      <div class="sb-pillars" id="sbRewardsPillars"></div>
+    </section>
+
+    <section class="sb-section" id="menu" aria-labelledby="sb-menu-heading">
+      <p class="sb-section-kicker">Menu highlights</p>
+      <h2 id="sb-menu-heading">Handcrafted favourites</h2>
+      <div class="sb-drinks" id="sbFeaturedDrinks"></div>
+    </section>
+
+    <section class="sb-section" id="stores" aria-labelledby="sb-stores-heading">
+      <p class="sb-section-kicker">Find a store</p>
+      <h2 id="sb-stores-heading">Visit us in the UAE</h2>
+      <div class="sb-pillars" id="sbStoreList"></div>
+    </section>
+  </main>
+
+  <footer class="sb-footer">
+    <div class="sb-footer-inner">
+      <div class="sb-footer-grid">
+        <div>
+          <h3>About</h3>
+          <ul>
+            <li><a href="#">Our Company</a></li>
+            <li><a href="#">Careers</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Rewards</h3>
+          <ul>
+            <li><a href="#rewards">Starbucks Rewards</a></li>
+            <li><a href="#">Terms &amp; Conditions</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Order</h3>
+          <ul>
+            <li><a href="#">Order ahead</a></li>
+            <li><a href="#">Delivery partners</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="sb-disclaimer">
+        Starbucks stores in the UAE are operated by Alshaya Group under license from Starbucks Corporation.
+        This page is an AEP Orchestration Lab mockup for demonstration purposes only and is not affiliated with
+        Starbucks Corporation or Alshaya Group.
+      </p>
+    </div>
+  </footer>
+
+  <script src="starbucks-mock-data.js?v=20260622"></script>
+  <script src="starbucks-events.js?v=20260622"></script>
+  <script>
+    (function () {
+      'use strict';
+      var data = window.StarbucksMockData || {};
+
+      function el(tag, cls, html) {
+        var node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (html != null) node.innerHTML = html;
+        return node;
+      }
+
+      function renderRewards() {
+        var host = document.getElementById('sbRewardsPillars');
+        if (!host || !data.rewardsTiers) return;
+        host.innerHTML = '';
+        data.rewardsTiers.forEach(function (tier) {
+          var card = el('article', 'sb-pillar');
+          card.innerHTML =
+            '<h3>' + tier.label + '</h3>' +
+            '<p><strong>' + tier.stars + ' Stars</strong> — ' + tier.perk + '</p>';
+          host.appendChild(card);
+        });
+      }
+
+      function renderDrinks() {
+        var host = document.getElementById('sbFeaturedDrinks');
+        if (!host || !data.featuredDrinks) return;
+        host.innerHTML = '';
+        data.featuredDrinks.forEach(function (drink) {
+          var card = el('article', 'sb-drink-card');
+          card.innerHTML =
+            '<div class="sb-drink-visual" aria-hidden="true"></div>' +
+            '<div class="sb-drink-body">' +
+            '<span class="sb-tag">' + drink.tag + '</span>' +
+            '<h3>' + drink.name + '</h3>' +
+            '<p class="sb-price">' + drink.price + '</p>' +
+            '</div>';
+          card.querySelector('h3').addEventListener('click', function () {
+            if (window.StarbucksLabEvents) {
+              window.StarbucksLabEvents.emit('starbucks.product.view', { productId: drink.id, name: drink.name });
+            }
+          });
+          host.appendChild(card);
+        });
+      }
+
+      function renderStores() {
+        var host = document.getElementById('sbStoreList');
+        if (!host || !data.stores) return;
+        host.innerHTML = '';
+        data.stores.forEach(function (store) {
+          var card = el('article', 'sb-pillar');
+          card.innerHTML =
+            '<h3>' + store.name + '</h3>' +
+            '<p>' + store.city + ' · ' + store.hours + '</p>';
+          host.appendChild(card);
+        });
+      }
+
+      function wireCtas() {
+        function joinClick() {
+          if (window.StarbucksLabEvents) {
+            window.StarbucksLabEvents.emit('starbucks.rewards.join.click', { source: 'home' });
+          }
+        }
+        ['sbJoinRewardsBtn', 'sbHeroCta'].forEach(function (id) {
+          var btn = document.getElementById(id);
+          if (btn) btn.addEventListener('click', joinClick);
+        });
+        var signIn = document.getElementById('sbSignInBtn');
+        if (signIn) {
+          signIn.addEventListener('click', function () {
+            if (window.StarbucksLabEvents) {
+              window.StarbucksLabEvents.emit('starbucks.signin.click', {});
+            }
+          });
+        }
+      }
+
+      renderRewards();
+      renderDrinks();
+      renderStores();
+      wireCtas();
+
+      if (window.StarbucksLabEvents) {
+        window.StarbucksLabEvents.emitPageView('home', 'Starbucks UAE home');
+      }
+    })();
+  </script>
+</body>
+</html>

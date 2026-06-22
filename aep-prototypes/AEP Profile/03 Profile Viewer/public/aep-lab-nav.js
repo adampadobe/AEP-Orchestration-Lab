@@ -440,6 +440,42 @@
           ],
         },
         {
+          id: 'demoAlshaya',
+          label: 'Alshaya',
+          demoCustomer: true,
+          channels: [
+            {
+              id: 'alshayaWeb',
+              label: 'Web',
+              items: [
+                {
+                  label: 'Starbucks (in development)',
+                  href: 'starbucks-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'starbucksWebDemo',
+                  demoMeta: { owners: ['apalmer'], sandbox: 'demoemea' },
+                  ico:
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M8 14c1.2 2 2.4 3 4 3s2.8-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                },
+              ],
+            },
+            {
+              id: 'alshayaMobile',
+              label: 'Mobile',
+              items: [
+                {
+                  label: 'Starbucks mobile (in development)',
+                  href: 'starbucks-mobile-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'starbucksMobileDemo',
+                  demoMeta: { owners: ['apalmer'], sandbox: 'demoemea' },
+                  ico: '\uD83D\uDCF1',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'demoFnb',
           label: 'FNB',
           demoCustomer: true,

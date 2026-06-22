@@ -1,0 +1,207 @@
+/* Starbucks UAE mobile app shell */
+:root {
+  --sb-green: #00704a;
+  --sb-green-dark: #1e3932;
+  --sb-cream: #f7f7f7;
+  --sb-muted: #6b6b6b;
+  --sb-white: #ffffff;
+  --sb-tab-height: 58px;
+  --sb-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body.sb-mobile-app {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--sb-cream);
+  color: var(--sb-green-dark);
+  overflow: hidden;
+}
+
+.sb-mobile-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100dvh;
+}
+
+.sb-mobile-header {
+  background: var(--sb-green);
+  color: var(--sb-white);
+  padding: 14px 16px 12px;
+  flex-shrink: 0;
+}
+
+.sb-mobile-header h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+}
+
+.sb-mobile-greeting {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.sb-mobile-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px calc(var(--sb-tab-height) + var(--sb-safe-bottom) + 16px);
+}
+
+.sb-mobile-hero {
+  background: linear-gradient(135deg, var(--sb-green-dark), var(--sb-green));
+  color: var(--sb-white);
+  border-radius: 14px;
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+  min-height: 120px;
+}
+
+.sb-mobile-hero-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+.sb-mobile-hero-stars {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.sb-mobile-sdk-hint {
+  font-size: 0.75rem;
+  color: var(--sb-muted);
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--sb-white);
+  border-radius: 8px;
+  border: 1px dashed #ccc;
+}
+
+.sb-mobile-section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+}
+
+.sb-mobile-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sb-mobile-action {
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 0.35rem;
+  background: var(--sb-white);
+  color: var(--sb-green-dark);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.sb-mobile-card {
+  background: var(--sb-white);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.65rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sb-mobile-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--sb-green);
+}
+
+.sb-mobile-card p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.sb-mobile-muted {
+  color: var(--sb-muted);
+  font-size: 0.8rem;
+}
+
+.sb-mobile-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.sb-mobile-list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e8e8e8;
+  font-size: 0.9rem;
+}
+
+.sb-mobile-checkout {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem;
+  background: var(--sb-green);
+  color: var(--sb-white);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.sb-mobile-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  background: var(--sb-white);
+  border-top: 1px solid #e0e0e0;
+  padding-bottom: var(--sb-safe-bottom);
+  height: calc(var(--sb-tab-height) + var(--sb-safe-bottom));
+  z-index: 50;
+}
+
+.sb-mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: var(--sb-muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.sb-mobile-tab--active {
+  color: var(--sb-green);
+}
+
+.sb-mobile-tab span:first-child {
+  font-size: 1.1rem;
+}
+
+#brand-concierge-mobile-mount {
+  min-height: 2rem;
+}

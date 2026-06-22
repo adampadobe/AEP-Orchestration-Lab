@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Starbucks — Home</title>
+  <link rel="stylesheet" href="starbucks-mobile-app.css?v=20260622">
+</head>
+<body class="sb-mobile-app" data-starbucks-mobile-page="home">
+  <div class="sb-mobile-shell">
+    <header class="sb-mobile-header">
+      <p class="sb-mobile-greeting">Good morning</p>
+      <h1>Starbucks Rewards</h1>
+    </header>
+    <div class="sb-mobile-scroll">
+      <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+      <div class="sb-mobile-hero" data-hero-mount data-hero-mount-fit="contain" aria-label="Featured">
+        <p class="sb-mobile-hero-kicker">Your balance</p>
+        <p class="sb-mobile-hero-stars" id="sbMobileStars">—</p>
+      </div>
+      <p class="sb-mobile-sdk-hint" id="sbMobileSdkHint">
+        Inject Tags from the lab env bar above the simulator to load Brand Concierge and Web SDK.
+      </p>
+      <section aria-label="Quick actions">
+        <h2 class="sb-mobile-section-title">Quick actions</h2>
+        <div class="sb-mobile-actions" id="sbMobileQuickActions"></div>
+      </section>
+      <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>
+      <div id="brand-concierge-mobile-mount" aria-live="polite"></div>
+    </div>
+    <nav class="sb-mobile-tabbar" id="sbMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+  <script src="../starbucks-mock-data.js?v=20260622"></script>
+  <script src="starbucks-mobile-app.js?v=20260622"></script>
+</body>
+</html>

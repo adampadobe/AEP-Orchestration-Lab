@@ -20,6 +20,7 @@ const SITE_CLONE_DEMO_HTML = [
   'premier-inn-demo.html',
   'etihad-demo.html',
   'ksia-demo.html',
+  'starbucks-demo.html',
   'admiral-demo.html',
   'navigator-global-demo.html',
   'race-for-life-demo.html',

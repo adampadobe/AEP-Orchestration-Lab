@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Starbucks — Stores</title>
+  <link rel="stylesheet" href="starbucks-mobile-app.css?v=20260622">
+</head>
+<body class="sb-mobile-app" data-starbucks-mobile-page="stores">
+  <div class="sb-mobile-shell">
+    <header class="sb-mobile-header">
+      <p class="sb-mobile-greeting">Find a store</p>
+      <h1>Near you</h1>
+    </header>
+    <div class="sb-mobile-scroll">
+      <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
+      <div class="sb-mobile-hero" data-hero-mount data-hero-mount-fit="contain" aria-label="Store map">
+        <p class="sb-mobile-hero-kicker">UAE</p>
+        <p class="sb-mobile-hero-stars">3 stores within 5 km</p>
+      </div>
+      <section aria-labelledby="sb-store-list">
+        <h2 class="sb-mobile-section-title" id="sb-store-list">Stores</h2>
+        <div id="sbMobileStoreList"></div>
+      </section>
+      <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>
+    </div>
+    <nav class="sb-mobile-tabbar" id="sbMobileTabBar" aria-label="App navigation"></nav>
+  </div>
+  <script src="../starbucks-mock-data.js?v=20260622"></script>
+  <script src="starbucks-mobile-app.js?v=20260622"></script>
+</body>
+</html>

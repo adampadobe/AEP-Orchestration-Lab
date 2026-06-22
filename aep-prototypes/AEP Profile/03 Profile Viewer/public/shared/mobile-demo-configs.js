@@ -92,6 +92,7 @@
     apalmer: {
       'etihad-phone': 'etihad-mobile-demo.html',
       'ksia-phone': 'ksia-mobile-demo.html',
+      'starbucks-phone': 'starbucks-mobile-demo.html',
       'etihad-ipad': 'ipad-demo.html',
     },
     fnb: {
@@ -130,6 +131,21 @@
       webDemoUrl: 'etihad-demo.html',
       mobileDemoUrl: 'etihad-mobile-demo.html',
       pageClass: 'etihad-mobile-demo-page',
+      channelLabel: 'Mobile',
+    },
+    starbucks: {
+      demoId: 'starbucks',
+      brandName: 'Starbucks UAE',
+      appEntryUrl: 'demos/alshaya/starbucks/mobile/index.html',
+      defaultDevice: 'iphone17pro',
+      deviceToggleDevices: ['iphone17pro', 's24u'],
+      envBar: true,
+      envBarPrefix: 'starbucks',
+      iframeId: 'starbucksMobileFrame',
+      labCoreScript: 'demos/alshaya/starbucks/starbucks-lab-core.js',
+      webDemoUrl: 'starbucks-demo.html',
+      mobileDemoUrl: 'starbucks-mobile-demo.html',
+      pageClass: 'starbucks-mobile-demo-page',
       channelLabel: 'Mobile',
     },
   };
