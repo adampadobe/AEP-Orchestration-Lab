@@ -11,6 +11,7 @@
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",
     "ajo:loyalty-create-challenge": "node scripts/ajo-loyalty-create-challenge.mjs",
     "ajo:loyalty-register-provider": "node scripts/ajo-loyalty-register-provider.mjs",
+    "ajo:loyalty-setup": "node scripts/ajo-loyalty-setup.mjs",
     "fake-loyalty:deploy": "node tools/fake-loyalty-provider/deploy-cloud-run.mjs",
     "fake-loyalty:start": "node tools/fake-loyalty-provider/server.js",
     "fake-loyalty:test": "cd tools/fake-loyalty-provider && npm install --no-audit --no-fund && npm test",

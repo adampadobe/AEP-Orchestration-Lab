@@ -60,6 +60,19 @@ IMS token: **client_credentials** from `~/.config/adobe-ims/credentials.env`.
 
 OpenAPI reference: [loyalty-challenges.yaml](https://github.com/AdobeDocs/journey-optimizer-apis/blob/main/static/loyalty-challenges.yaml)
 
+
+## End-to-end setup (script)
+
+Idempotent orchestration for **apalmer** (config namespace, provider, event definition, audience, challenge publish):
+
+```bash
+npm run ajo:loyalty-setup -- --sandbox apalmer
+```
+
+Use `--dry-run` to print planned steps. Journey auto-create may require journey authoring API access; if initialize fails with **403003**, finish **Generate journey → Publish** in Loyalty admin.
+
+Implementation: [`scripts/ajo-loyalty-setup.mjs`](../scripts/ajo-loyalty-setup.mjs)
+
 ## Register reward provider (script)
 
 ```bash

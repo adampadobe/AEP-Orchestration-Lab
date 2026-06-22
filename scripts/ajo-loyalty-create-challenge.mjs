@@ -136,7 +136,9 @@ function buildTask({ taskId, providerGuid, rewardDefinition, rewardValue }) {
     desc: 'Minimal purchase task for AEP Orchestration Lab',
     variables: {
       goal: 1,
-      type: 'quantity',
+      type: 'qty',
+      include: { valuesSet: ['commerce.purchases.value'] },
+      qtyMin: 1,
     },
     schedule: {
       duration: 'task',
