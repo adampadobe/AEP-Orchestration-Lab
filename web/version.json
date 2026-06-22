@@ -1,14 +1,14 @@
 {
-  "gitSha": "f9e951ce6b5a291999e3b836156a55d8efc85ee2",
-  "gitShortSha": "f9e951ce",
+  "gitSha": "fba4741a13153df19b10b82a1520b40cb61df5ff",
+  "gitShortSha": "fba4741a",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json after hosting deploy",
+  "gitCommitSubject": "[apalmer] feat: inline text edit and copy-paste duplicate for diagram objects",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T09:09:26+01:00",
-  "deployedAt": "2026-06-22T08:09:52.903Z",
+  "gitCommitDate": "2026-06-22T09:28:21+01:00",
+  "deployedAt": "2026-06-22T08:30:11.109Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f9e951ce6b5a291999e3b836156a55d8efc85ee2"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/fba4741a13153df19b10b82a1520b40cb61df5ff"
 }
