@@ -39,15 +39,11 @@ const PAGE_SCRIPTS = {
   ],
   'visibility-overview.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
-    '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
-    '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css' + v + '">',
     '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-nav.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-patch.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-platform.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-market.js' + v + '"></script>',
   ],
   'opportunities.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',

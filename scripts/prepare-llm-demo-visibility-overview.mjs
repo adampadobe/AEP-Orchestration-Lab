@@ -7,32 +7,48 @@ import { fileURLToPath } from 'node:url';
 import { stripLineDash, repairRechartsResponsiveHtml } from './sky-llm-snapshot-line-dash.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const srcHtml =
-  process.env.LLM_DEMO_VO_SOURCE_HTML ||
-  path.join(
-    process.env.USERPROFILE || '',
-    'Downloads',
-    'Adobe Brand Visibility - Jun 08, 2026 VO_files',
-    'assets.html',
-  );
-const srcAssetsDir =
-  process.env.LLM_DEMO_VO_SOURCE_ASSETS ||
-  path.join(process.env.USERPROFILE || '', 'Downloads', 'Adobe Brand Visibility - Jun 08, 2026 VO_files');
+const defaultAssetsDir = path.join(
+  process.env.USERPROFILE || '',
+  'Downloads',
+  'Adobe Brand Visibility - Jun 08, 2026 VO_files',
+);
+const srcAssetsDir = process.env.LLM_DEMO_VO_SOURCE_ASSETS || defaultAssetsDir;
+
+function findVoSourceHtml(assetsDir) {
+  if (process.env.LLM_DEMO_VO_SOURCE_HTML && fs.existsSync(process.env.LLM_DEMO_VO_SOURCE_HTML)) {
+    return process.env.LLM_DEMO_VO_SOURCE_HTML;
+  }
+  const preferred = path.join(assetsDir, 'assets(14).html');
+  if (fs.existsSync(preferred)) return preferred;
+  if (fs.existsSync(assetsDir)) {
+    for (const name of fs.readdirSync(assetsDir)) {
+      if (!name.endsWith('.html')) continue;
+      const fp = path.join(assetsDir, name);
+      const html = fs.readFileSync(fp, 'utf8');
+      if (
+        html.includes('Visibility Overview') &&
+        html.includes('AI Visibility') &&
+        html.includes('Mentions by model')
+      ) {
+        return fp;
+      }
+    }
+  }
+  return path.join(assetsDir, 'assets.html');
+}
+
+const srcHtml = findVoSourceHtml(srcAssetsDir);
 const outDir = path.join(repoRoot, 'web', 'profile-viewer', 'demos', 'llm-demo', 'snapshot');
 const assetsDir = path.join(outDir, 'assets');
 const outHtml = path.join(outDir, 'visibility-overview.html');
 
 const SNAPSHOT_SCRIPTS = [
   '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">',
-  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
-  '<link rel="stylesheet" href="./llm-demo-snapshot-market-charts.css">',
   '<script src="./llm-demo-snapshot-build-id.js"></script>',
   '<script src="./llm-demo-snapshot-blockers.js"></script>',
   '<script src="./llm-demo-snapshot-opportunities-catalog.js"></script>',
   '<script src="./llm-demo-snapshot-nav.js"></script>',
   '<script src="./llm-demo-snapshot-patch.js"></script>',
-  '<script src="./llm-demo-snapshot-platform.js"></script>',
-  '<script src="./llm-demo-snapshot-market.js"></script>',
 ].join('\n');
 
 function copyAssets() {
@@ -95,4 +111,5 @@ let html = fs.readFileSync(srcHtml, 'utf8');
 html = patchHtml(html);
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outHtml, html, 'utf8');
+console.log('Source:', srcHtml);
 console.log('Wrote', outHtml, '(' + Math.round(html.length / 1024) + ' KB)');
