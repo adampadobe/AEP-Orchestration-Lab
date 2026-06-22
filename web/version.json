@@ -1,14 +1,14 @@
 {
-  "gitSha": "36aa3f0758120ce85bdeae1e67fcaeb3b4dfeb12",
-  "gitShortSha": "36aa3f07",
+  "gitSha": "c806c2874cd311ee910c35c182522075452b2ec7",
+  "gitShortSha": "c806c287",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: stamp version.json after functions/hosting deploy",
+  "gitCommitSubject": "[apalmer] fix: make architecture canvas background selectable and deletable",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:16:11+01:00",
-  "deployedAt": "2026-06-22T07:21:03.945Z",
+  "gitCommitDate": "2026-06-22T08:21:23+01:00",
+  "deployedAt": "2026-06-22T07:21:56.831Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/36aa3f0758120ce85bdeae1e67fcaeb3b4dfeb12"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/c806c2874cd311ee910c35c182522075452b2ec7"
 }
