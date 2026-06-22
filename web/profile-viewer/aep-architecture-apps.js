@@ -7149,6 +7149,8 @@
     if (TE) TE.highlightPickerSync();
     archRefreshNodeHighlightClasses();
     archCustomBoxSyncPropsHud();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
   }
 
   function archCustomBoxSetDrawMode(on) {
@@ -7634,8 +7636,9 @@
   }
 
   function archMasterSerialize() {
+    archLayerOrderEnsure();
     var payload = {
-      version: 12,
+      version: 13,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
@@ -7648,6 +7651,8 @@
       hiddenNodes: JSON.parse(JSON.stringify(archHiddenNodes || {})),
       hiddenBackgrounds: JSON.parse(JSON.stringify(archHiddenBackgrounds || {})),
       flowOverrides: JSON.parse(JSON.stringify(archFlowOverrides || {})),
+      layerOrder: archLayerOrder.slice(),
+      flowPathOrder: archFlowPathOrderFromDom(),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
       payload.scene = window.AEPDiagram.model.legacyToScene(payload);
@@ -7717,12 +7722,29 @@
     } else {
       archFlowOverrides = {};
     }
+    if (Array.isArray(data.layerOrder)) {
+      archLayerOrder = data.layerOrder.filter(function (k) {
+        return typeof k === 'string';
+      });
+    } else {
+      archLayerOrder = null;
+    }
+    if (Array.isArray(data.flowPathOrder)) {
+      archFlowPathOrder = data.flowPathOrder.filter(function (k) {
+        return typeof k === 'string';
+      });
+    } else {
+      archFlowPathOrder = null;
+    }
+    archLayerOrderPersist();
     archHiddenFlowsPersist();
     archHiddenNodesPersist();
     archHiddenBackgroundsPersist();
     archFlowOverridesPersist();
     archHiddenNodesApply();
     archBackgroundsApply();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
   }
 
   function archMasterTryLoad() {
@@ -7793,6 +7815,9 @@
       var d = meta.d;
       var isFree = meta.kind === 'freehand';
       var isConn = meta.kind === 'connector';
+      var grp = document.createElementNS(SVG_NS, 'g');
+      grp.setAttribute('id', 'ul-' + ln.id);
+      grp.setAttribute('class', 'arch-user-line-group');
       var p = document.createElementNS(SVG_NS, 'path');
       p.setAttribute('d', d);
       p.setAttribute('stroke', ln.stroke || '#308fff');
@@ -7822,7 +7847,7 @@
           p.setAttribute('marker-start', 'url(#archUserArrowStart)');
         }
       }
-      g.appendChild(p);
+      grp.appendChild(p);
       var hit = document.createElementNS(SVG_NS, 'path');
       hit.setAttribute('d', d);
       hit.setAttribute('stroke', 'transparent');
@@ -7831,11 +7856,14 @@
       hit.setAttribute('pointer-events', 'stroke');
       hit.setAttribute('data-user-line-id', ln.id);
       hit.setAttribute('class', 'arch-user-line-hit');
-      g.appendChild(hit);
+      grp.appendChild(hit);
+      g.appendChild(grp);
     });
     archEditLineHandlesRefresh();
     if (TE) TE.userLinePickerRefresh();
     applyState();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
   }
 
   function archUserLineFindById(id) {
@@ -8581,6 +8609,8 @@
       localStorage.removeItem(LS_LINE_TOOLBAR_DEFAULTS);
       localStorage.removeItem(LS_HIDDEN_FLOWS);
       localStorage.removeItem(LS_HIDDEN_NODES);
+      localStorage.removeItem(LS_HIDDEN_BACKGROUNDS);
+      localStorage.removeItem(LS_LAYER_ORDER);
       localStorage.removeItem(LS_FLOW_OVERRIDES);
     } catch (e) {}
     window.location.reload();
