@@ -92,8 +92,13 @@
     if (!list || !data.orderItems) return;
     list.innerHTML = data.orderItems
       .map(function (item) {
+        var thumb = item.image
+          ? '<img class="sb-mobile-list-thumb" src="../' + item.image + '" alt="" loading="lazy">'
+          : '';
         return (
-          '<li class="sb-mobile-list-item"><div><strong>' +
+          '<li class="sb-mobile-list-item">' +
+          thumb +
+          '<div class="sb-mobile-list-body"><strong>' +
           item.name +
           '</strong><br><span class="sb-mobile-muted">' +
           item.modifiers +
@@ -116,14 +121,19 @@
     if (!host || !data.rewardsTiers) return;
     host.innerHTML = data.rewardsTiers
       .map(function (tier) {
+        var icon = tier.image
+          ? '<img class="sb-mobile-card-icon" src="../' + tier.image + '" alt="" loading="lazy">'
+          : '';
         return (
-          '<article class="sb-mobile-card"><h3>' +
+          '<article class="sb-mobile-card">' +
+          icon +
+          '<div class="sb-mobile-card-body"><h3>' +
           tier.label +
           '</h3><p>' +
           tier.stars +
-          ' Stars — ' +
+          ' — ' +
           tier.perk +
-          '</p></article>'
+          '</p></div></article>'
         );
       })
       .join('');
