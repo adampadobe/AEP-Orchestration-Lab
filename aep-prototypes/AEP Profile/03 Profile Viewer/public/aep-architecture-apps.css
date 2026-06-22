@@ -826,11 +826,20 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
 }
 
 /* Unified connector float bar — single toolbar for user lines and built-in flows */
+.arch-connector-float-bar {
+  flex-wrap: wrap;
+  max-width: min(96vw, 44rem);
+  row-gap: 0.22rem;
+  align-content: center;
+  justify-content: center;
+}
+
 .arch-connector-float-bar .arch-line-float-flow-extras {
-  gap: 0.08rem;
-  padding-left: 0.2rem;
-  margin-left: 0.12rem;
+  gap: 0.12rem;
+  padding-left: 0.28rem;
+  margin-left: 0.18rem;
   border-left: 1px solid var(--dash-border, #e2e8f0);
+  flex-shrink: 0;
 }
 
 .arch-connector-float-bar .arch-line-float-tools[data-arch-flow-selected='1'] .arch-line-float-tool:not([data-arch-line-tool='junction']) {
@@ -865,10 +874,35 @@ html[data-aep-theme='dark'] .arch-box-anchor-hints-layer .arch-box-anchor-hint.i
 .arch-flow-float-reset-btn {
   font-size: 0.68rem;
   font-weight: 600;
-  padding: 0 0.55rem;
+  padding: 0 0.62rem;
   min-width: auto;
   white-space: nowrap;
   letter-spacing: 0.01em;
+}
+
+/* Text label button — overrides .arch-line-float-btn icon sizing (1.75rem square) */
+.arch-connector-float-bar .arch-flow-float-reset-btn {
+  width: auto;
+  min-width: auto;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: var(--dash-input-bg, rgba(15, 23, 42, 0.05));
+  border-radius: 8px;
+}
+
+.arch-connector-float-bar .arch-flow-float-reset-btn:hover:not(:disabled) {
+  background: var(--dash-hover, rgba(20, 115, 230, 0.08));
+}
+
+.arch-connector-float-bar .arch-flow-float-reset-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+html[data-aep-theme='dark'] .arch-connector-float-bar .arch-flow-float-reset-btn {
+  background: var(--dash-surface-alt, rgba(255, 255, 255, 0.06));
+  border-color: var(--dash-border, rgba(148, 163, 184, 0.35));
 }
 
 .arch-flow-handles-layer .arch-flow-handle {
@@ -1359,8 +1393,22 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: none;
 }
 
-.arch-int-viewport--edit-mode .arch-flow-label {
-  pointer-events: all;
+/* Flow labels stay click-through unless explicitly selected for edit (connector picks win). */
+.arch-int-viewport--edit-mode svg text.arch-flow-label.arch-label-text--selected,
+.arch-int-viewport.arch-label-edit-on svg text.arch-flow-label.arch-label-text--selected {
+  pointer-events: painted;
+  cursor: text;
+}
+
+.arch-flow-hit {
+  fill: none;
+  stroke: transparent;
+  pointer-events: none;
+}
+
+.arch-int-viewport--edit-mode .arch-flow-hit.is-visible {
+  pointer-events: stroke;
+  cursor: pointer;
 }
 
 @keyframes archFlowDash {
@@ -1756,7 +1804,7 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   touch-action: none;
 }
 
-.arch-int-viewport.arch-label-edit-on svg text {
+.arch-int-viewport.arch-label-edit-on svg text:not(.arch-flow-label) {
   pointer-events: painted;
   cursor: move;
 }
