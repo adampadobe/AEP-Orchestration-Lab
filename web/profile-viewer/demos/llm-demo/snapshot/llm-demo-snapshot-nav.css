@@ -31,7 +31,41 @@ nav button[type='button'][aria-label][data-current='true'] {
   position: relative;
 }
 
+[id^='org-nav-item-'] > button {
+  position: relative;
+}
+
+/* One lab-controlled rail — suppress snapshot + legacy JS rails */
 .sky-llm-nav-active-rail {
+  display: none !important;
+}
+
+nav .macro-dynamic-kn9iqo,
+nav .macro-static-PtZEzb,
+nav .J1DOfn11,
+nav .HkNNfn11,
+nav .G1DOfn11 {
+  display: none !important;
+}
+
+nav [id^='org-nav-item-'] > button::before,
+nav [id^='org-nav-item-'] > button::after {
+  content: none !important;
+  display: none !important;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+nav [id^='org-nav-item-'].sky-llm-nav-active > button {
+  border-left: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+[id^='org-nav-item-'].sky-llm-nav-active::before {
+  content: '' !important;
+  display: block !important;
   position: absolute;
   left: 0;
   top: 6px;
@@ -41,21 +75,6 @@ nav button[type='button'][aria-label][data-current='true'] {
   border-radius: 1px;
   z-index: 3;
   pointer-events: none;
-}
-
-.sky-llm-nav-active-rail[hidden] {
-  display: none !important;
-}
-
-/* Hide baked-in rails until JS marks active (avoids wrong page highlight) */
-nav .macro-dynamic-kn9iqo,
-nav .J1DOfn11,
-nav .HkNNfn11 {
-  display: none !important;
-}
-
-nav .sky-llm-nav-rail-native {
-  display: block !important;
 }
 
 .sky-llm-op-overview-row {

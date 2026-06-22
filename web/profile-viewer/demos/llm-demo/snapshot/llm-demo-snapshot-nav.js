@@ -145,27 +145,12 @@
       el.classList.remove('sky-llm-nav-active');
     });
     document.querySelectorAll('.sky-llm-nav-active-rail').forEach(function (el) {
-      el.hidden = true;
+      el.remove();
     });
     findNavButtons().forEach(function (btn) {
       btn.removeAttribute('aria-current');
       btn.removeAttribute('data-current');
     });
-    document.querySelectorAll('nav .sky-llm-nav-rail-native').forEach(function (el) {
-      el.style.display = 'none';
-    });
-  }
-
-  function ensureActiveRail(wrap) {
-    if (!wrap) return;
-    var rail = wrap.querySelector('.sky-llm-nav-active-rail');
-    if (!rail) {
-      rail = document.createElement('span');
-      rail.className = 'sky-llm-nav-active-rail';
-      rail.setAttribute('aria-hidden', 'true');
-      wrap.insertBefore(rail, wrap.firstChild);
-    }
-    rail.hidden = false;
   }
 
   function applyActive(label) {
@@ -176,10 +161,7 @@
       btn.setAttribute('aria-current', 'page');
       btn.setAttribute('data-current', 'true');
       var wrap = findNavItemWrapper(btn);
-      if (wrap) {
-        wrap.classList.add('sky-llm-nav-active');
-        ensureActiveRail(wrap);
-      }
+      if (wrap) wrap.classList.add('sky-llm-nav-active');
     });
   }
 
@@ -228,8 +210,36 @@
   function setLeafText(root, text) {
     if (!root) return;
     root.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+      if (el.closest('.sky-llm-nav-new-badge-wrap')) return;
+      if ((el.textContent || '').trim() === 'New') return;
       if (el.childElementCount === 0) el.textContent = text;
     });
+  }
+
+  function stripNativeNewBadge(header) {
+    if (!header) return;
+    header.querySelectorAll('[class*="macro-static-PMFcqb"]').forEach(function (el) {
+      el.remove();
+    });
+    header.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+      if ((el.textContent || '').trim() !== 'New') return;
+      var wrap = el.closest('[role="presentation"]') || el.parentElement;
+      if (wrap && wrap !== header) wrap.remove();
+    });
+  }
+
+  function findMarketOverviewTitle(header) {
+    if (!header) return null;
+    var titleRow = header.querySelector('[class*="macro-static-5h50Oc"]');
+    if (!titleRow) return null;
+    var titleEl = null;
+    titleRow.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+      if (el.childElementCount !== 0) return;
+      if (el.closest('.sky-llm-nav-new-badge-wrap')) return;
+      if ((el.textContent || '').trim() === 'New') return;
+      titleEl = el;
+    });
+    return titleEl;
   }
 
   function patchRebrand() {
@@ -252,7 +262,9 @@
   }
 
   function patchBrandPresenceLabel() {
-    var item = document.getElementById('org-nav-item-brand-presence');
+    var item =
+      document.getElementById('org-nav-item-brand-presence') ||
+      document.getElementById('org-nav-item-brand-presence-sr');
     if (!item) return;
     var btn = item.querySelector('button[aria-label]');
     if (btn) btn.setAttribute('aria-label', 'Brand Presence (Semrush)');
@@ -284,7 +296,10 @@
     var header = findSectionHeader(section);
     if (!header) return;
 
-    setLeafText(header, 'Market Overview');
+    stripNativeNewBadge(header);
+
+    var titleEl = findMarketOverviewTitle(header);
+    if (titleEl) titleEl.textContent = 'Market Overview';
 
     var iconHost =
       header.querySelector('[slot="icon"]') ||
@@ -297,12 +312,13 @@
         '</svg></span>';
     }
 
-    var titleEl = null;
-    header.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
-      if (el.childElementCount === 0 && (el.textContent || '').trim() === 'Market Overview') {
-        titleEl = el;
-      }
-    });
+    if (!titleEl) {
+      header.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+        if (el.childElementCount === 0 && (el.textContent || '').trim() === 'Market Overview') {
+          titleEl = el;
+        }
+      });
+    }
     if (!titleEl) return;
 
     var badgeWrap = header.querySelector('.sky-llm-nav-new-badge-wrap');
@@ -314,6 +330,9 @@
       badge.setAttribute('role', 'presentation');
       badge.textContent = 'New';
       badgeWrap.appendChild(badge);
+    } else {
+      var existingBadge = badgeWrap.querySelector('.sky-llm-nav-new-badge');
+      if (existingBadge) existingBadge.textContent = 'New';
     }
 
     var titleRow = titleEl.closest('[class*="macro-static-5h50Oc"]') || titleEl.parentElement;
@@ -340,7 +359,8 @@
     if (header) {
       delete header.dataset.skyLlmSectionWired;
       header.setAttribute('aria-expanded', 'true');
-      setLeafText(header, 'Market Overview');
+      var titleEl = findMarketOverviewTitle(header);
+      if (titleEl) titleEl.textContent = 'Market Overview';
     }
 
     var body = findSectionBody(section);
