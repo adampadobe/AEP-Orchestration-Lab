@@ -69,6 +69,37 @@ function copyAssets() {
   console.log('Copied', n, 'asset files to', assetsDir);
 }
 
+const VO_ASSET_ALIASES = [
+  { walnut: 'assets', out: 'visibility-overview-s2-styles.css' },
+  { walnut: 'assets(1)', out: 'visibility-overview-vendor.css' },
+  { walnut: 'assets(2)', out: 'visibility-overview-main.css' },
+  { walnut: 'assets(3)', out: 'visibility-overview-main-app.css' },
+  { walnut: 'assets(7)', out: 'visibility-overview-icon-7.svg' },
+  { walnut: 'assets(8)', out: 'visibility-overview-icon-8.png' },
+  { walnut: 'assets(9)', out: 'visibility-overview-icon-9.svg' },
+];
+
+function materializeVoAssets() {
+  for (const { walnut, out } of VO_ASSET_ALIASES) {
+    const src = path.join(assetsDir, walnut);
+    const dest = path.join(assetsDir, out);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dest);
+    }
+  }
+  console.log('Materialized', VO_ASSET_ALIASES.length, 'VO assets with file extensions');
+}
+
+function rewriteVoAssetHrefs(html) {
+  const sorted = [...VO_ASSET_ALIASES].sort((a, b) => b.walnut.length - a.walnut.length);
+  for (const { walnut, out } of sorted) {
+    const from = `./assets/${walnut}`;
+    const to = `./assets/${out}`;
+    html = html.split(from).join(to);
+  }
+  return html;
+}
+
 function fixWalnutAssetPaths(html) {
   // Walnut export links sit beside bundle files; after copy they live under ./assets/.
   html = html.replace(/((?:href|src)="\.\/)assets\/index"/g, '$1assets/assets"');
@@ -94,6 +125,7 @@ function patchHtml(html) {
   html = html.replace(/\.\/assets\((\d+)\)/g, './assets($1)');
   html = html.replace(/\.download/g, '');
   html = fixWalnutAssetPaths(html);
+  html = rewriteVoAssetHrefs(html);
   html = stripStrayNotices(html);
 
   html = html.replace(/<script[^>]*src="\.\/assets\/rum-standalone\.js"[^>]*><\/script>/gi, '');
@@ -129,6 +161,7 @@ if (!fs.existsSync(srcHtml)) {
 }
 
 copyAssets();
+materializeVoAssets();
 let html = fs.readFileSync(srcHtml, 'utf8');
 html = patchHtml(html);
 fs.mkdirSync(outDir, { recursive: true });
