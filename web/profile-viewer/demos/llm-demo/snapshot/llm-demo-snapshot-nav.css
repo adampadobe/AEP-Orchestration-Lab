@@ -21,8 +21,7 @@ nav button[type='button'][aria-label] {
   text-align: left;
 }
 
-nav button[type='button'][aria-label][aria-current='page'],
-nav button[type='button'][aria-label][data-current='true'] {
+nav [id^='org-nav-item-'].llm-nav-active > button {
   font-weight: 600;
 }
 
@@ -35,8 +34,7 @@ nav button[type='button'][aria-label][data-current='true'] {
   position: relative;
 }
 
-/* One lab-controlled rail — suppress snapshot + legacy JS rails */
-.sky-llm-nav-active-rail {
+.llm-nav-active-rail {
   display: none !important;
 }
 
@@ -57,13 +55,16 @@ nav [id^='org-nav-item-'] > button::after {
   box-shadow: none !important;
 }
 
-nav [id^='org-nav-item-'].sky-llm-nav-active > button {
+nav [id^='org-nav-item-'].llm-nav-active > button {
+  border: none !important;
   border-left: none !important;
+  border-inline-start: none !important;
   box-shadow: none !important;
+  background: transparent !important;
   background-image: none !important;
 }
 
-[id^='org-nav-item-'].sky-llm-nav-active::before {
+[id^='org-nav-item-'].llm-nav-active::before {
   content: '' !important;
   display: block !important;
   position: absolute;
@@ -77,20 +78,20 @@ nav [id^='org-nav-item-'].sky-llm-nav-active > button {
   pointer-events: none;
 }
 
-.sky-llm-op-overview-row {
+.llm-op-overview-row {
   cursor: pointer;
 }
 
-.sky-llm-op-overview-row:hover {
+.llm-op-overview-row:hover {
   background: rgb(250, 250, 250);
 }
 
 [id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + [class*='macro-static-4d9rBe'],
 [id^='org-sidebar-section-'] [role='button'][aria-expanded='false'] + [class*='macro-static-KcpNYd'],
-.sky-llm-nav-section-collapsed [class*='macro-static-4d9rBe'],
-.sky-llm-nav-section-collapsed [class*='macro-static-KcpNYd'],
-[id^='org-sidebar-section-'] [class*='macro-static-4d9rBe'][data-sky-llm-collapsed='true'],
-[id^='org-sidebar-section-'] [class*='macro-static-KcpNYd'][data-sky-llm-collapsed='true'] {
+.llm-nav-section-collapsed [class*='macro-static-4d9rBe'],
+.llm-nav-section-collapsed [class*='macro-static-KcpNYd'],
+[id^='org-sidebar-section-'] [class*='macro-static-4d9rBe'][data-llm-nav-collapsed='true'],
+[id^='org-sidebar-section-'] [class*='macro-static-KcpNYd'][data-llm-nav-collapsed='true'] {
   display: none !important;
 }
 
@@ -99,35 +100,36 @@ nav [id^='org-nav-item-'].sky-llm-nav-active > button {
   visibility: visible !important;
 }
 
-.sky-llm-nav-new-badge-wrap {
+.llm-nav-new-badge-wrap {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   margin-left: 6px;
 }
 
-.sky-llm-nav-market-title-row {
+.llm-nav-market-title-row {
   display: inline-flex !important;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex-wrap: nowrap;
 }
 
-.sky-llm-nav-semrush-icon {
+.llm-nav-semrush-icon {
   display: flex;
   flex-shrink: 0;
   line-height: 0;
   color: rgb(41, 41, 41);
 }
 
-.sky-llm-nav-semrush-icon img {
+.llm-nav-semrush-icon img {
   display: block;
   width: 18px;
   height: auto;
   object-fit: contain;
 }
 
-.sky-llm-nav-new-badge {
+.llm-nav-new-badge {
   display: inline-block;
   padding: 2px 8px;
   font-size: 11px;
@@ -139,8 +141,18 @@ nav [id^='org-nav-item-'].sky-llm-nav-active > button {
   white-space: nowrap;
 }
 
+/* Hide any baked Walnut New badge chrome — lab pill is canonical */
+nav [class*='macro-static-PMFcqb'],
+nav [class*='macro-static-9hVQLb'] {
+  display: none !important;
+}
+
+nav .llm-nav-new-badge-wrap {
+  display: inline-flex !important;
+}
+
 /* Agentic Traffic — Top / Bottom Movers side-by-side with centred gap */
-.sky-llm-agentic-movers-row {
+.llm-agentic-movers-row {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   gap: 24px 32px !important;
@@ -149,7 +161,7 @@ nav [id^='org-nav-item-'].sky-llm-nav-active > button {
   box-sizing: border-box !important;
 }
 
-.sky-llm-agentic-movers-row > [class*='macro-static-O6MD7c'] {
+.llm-agentic-movers-row > [class*='macro-static-O6MD7c'] {
   min-width: 0 !important;
   width: 100% !important;
 }

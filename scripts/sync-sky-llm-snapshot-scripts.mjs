@@ -12,6 +12,16 @@ const buildMatch = fs.readFileSync(buildIdPath, 'utf8').match(/LLM_DEMO_SNAPSHOT
 const BUILD = buildMatch ? buildMatch[1] : '20260621';
 const v = '?v=' + BUILD;
 
+const WALNUT_PAGE_SCRIPTS = [
+  '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
+  '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-nav.js' + v + '"></script>',
+  '<script src="./llm-demo-snapshot-patch.js' + v + '"></script>',
+];
+
 const PAGE_SCRIPTS = {
   'overview.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
@@ -37,15 +47,9 @@ const PAGE_SCRIPTS = {
     '<script src="./llm-demo-snapshot-patch.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-market.js' + v + '"></script>',
   ],
-  'visibility-overview.html': [
-    '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
-    '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
-    '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-nav.js' + v + '"></script>',
-    '<script src="./llm-demo-snapshot-patch.js' + v + '"></script>',
-  ],
+  'visibility-overview.html': WALNUT_PAGE_SCRIPTS,
+  'prompt-research.html': WALNUT_PAGE_SCRIPTS,
+  'market-comparison.html': WALNUT_PAGE_SCRIPTS,
   'opportunities.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
     '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
@@ -86,7 +90,12 @@ for (const file of fs.readdirSync(snapDir).filter((f) => f.endsWith('.html'))) {
     html = html.replace(blockWithLinksRe, injection);
   } else if (blockScriptsOnlyRe.test(html)) {
     html = html.replace(blockScriptsOnlyRe, injection);
-  } else if (file === 'visibility-overview.html' && blockPatchEndRe.test(html)) {
+  } else if (
+    (file === 'visibility-overview.html' ||
+      file === 'prompt-research.html' ||
+      file === 'market-comparison.html') &&
+    blockPatchEndRe.test(html)
+  ) {
     html = html.replace(blockPatchEndRe, injection);
   } else if (!html.includes('llm-demo-snapshot-blockers.js')) {
     html = html.replace(/<\/body>/i, injection + '\n</body>');

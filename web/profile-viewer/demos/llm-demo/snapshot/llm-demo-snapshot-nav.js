@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'skyLlmNavSectionExpanded';
+  var STORAGE_KEY = 'llmNavSectionExpanded';
 
   var ROUTES = {
     Overview: 'overview.html',
@@ -13,8 +13,8 @@
     'Brand Claims': 'brand-claims.html',
     'Prompts Management': 'prompts-management.html',
     'Visibility Overview': 'visibility-overview.html',
-    'Prompt Research': 'overview.html',
-    'Market Comparison': 'overview.html',
+    'Prompt Research': 'prompt-research.html',
+    'Market Comparison': 'market-comparison.html',
     'URL Inspector': 'url-inspector.html',
     'Agentic Traffic': 'agentic-traffic.html',
     'Referral Traffic': 'referral-traffic.html',
@@ -36,6 +36,8 @@
     'brand-claims.html': 'Brand Claims',
     'prompts-management.html': 'Prompts Management',
     'visibility-overview.html': 'Visibility Overview',
+    'prompt-research.html': 'Prompt Research',
+    'market-comparison.html': 'Market Comparison',
     'url-inspector.html': 'URL Inspector',
     'agentic-traffic.html': 'Agentic Traffic',
     'referral-traffic.html': 'Referral Traffic',
@@ -86,7 +88,9 @@
 
   function readSectionStates() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) raw = localStorage.getItem('skyLlmNavSectionExpanded');
+      return JSON.parse(raw || '{}');
     } catch (e) {
       return {};
     }
@@ -120,10 +124,10 @@
     if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     if (body) {
       body.style.display = expanded ? '' : 'none';
-      body.setAttribute('data-sky-llm-collapsed', expanded ? 'false' : 'true');
+      body.setAttribute('data-llm-nav-collapsed', expanded ? 'false' : 'true');
     }
     updateChevron(header, expanded);
-    section.classList.toggle('sky-llm-nav-section-collapsed', !expanded);
+    section.classList.toggle('llm-nav-section-collapsed', !expanded);
     if (persist) writeSectionState(sectionKey(section), expanded);
   }
 
@@ -141,15 +145,11 @@
   }
 
   function clearActive() {
-    document.querySelectorAll('[id^="org-nav-item-"].sky-llm-nav-active').forEach(function (el) {
-      el.classList.remove('sky-llm-nav-active');
+    document.querySelectorAll('[id^="org-nav-item-"].llm-nav-active').forEach(function (el) {
+      el.classList.remove('llm-nav-active');
     });
-    document.querySelectorAll('.sky-llm-nav-active-rail').forEach(function (el) {
+    document.querySelectorAll('.llm-nav-active-rail').forEach(function (el) {
       el.remove();
-    });
-    findNavButtons().forEach(function (btn) {
-      btn.removeAttribute('aria-current');
-      btn.removeAttribute('data-current');
     });
   }
 
@@ -158,18 +158,16 @@
     findNavButtons().forEach(function (btn) {
       var btnLabel = (btn.getAttribute('aria-label') || '').trim();
       if (btnLabel !== label) return;
-      btn.setAttribute('aria-current', 'page');
-      btn.setAttribute('data-current', 'true');
       var wrap = findNavItemWrapper(btn);
-      if (wrap) wrap.classList.add('sky-llm-nav-active');
+      if (wrap) wrap.classList.add('llm-nav-active');
     });
   }
 
   function wireSectionToggles() {
     document.querySelectorAll('[id^="org-sidebar-section-"]').forEach(function (section) {
       var header = findSectionHeader(section);
-      if (!header || header.dataset.skyLlmSectionWired === '1') return;
-      header.dataset.skyLlmSectionWired = '1';
+      if (!header || header.dataset.llmNavSectionWired === '1') return;
+      header.dataset.llmNavSectionWired = '1';
       header.addEventListener(
         'click',
         function (e) {
@@ -210,7 +208,7 @@
   function setLeafText(root, text) {
     if (!root) return;
     root.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
-      if (el.closest('.sky-llm-nav-new-badge-wrap')) return;
+      if (el.closest('.llm-nav-new-badge-wrap')) return;
       if ((el.textContent || '').trim() === 'New') return;
       if (el.childElementCount === 0) el.textContent = text;
     });
@@ -235,7 +233,7 @@
     var titleEl = null;
     titleRow.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
       if (el.childElementCount !== 0) return;
-      if (el.closest('.sky-llm-nav-new-badge-wrap')) return;
+      if (el.closest('.llm-nav-new-badge-wrap')) return;
       if ((el.textContent || '').trim() === 'New') return;
       titleEl = el;
     });
@@ -277,15 +275,15 @@
     if (!source) return null;
     var clone = source.cloneNode(true);
     clone.id = newId;
-    clone.classList.remove('sky-llm-nav-active');
-    var rail = clone.querySelector('.sky-llm-nav-active-rail');
+    clone.classList.remove('llm-nav-active');
+    var rail = clone.querySelector('.llm-nav-active-rail');
     if (rail) rail.remove();
     var btn = clone.querySelector('button[aria-label]');
     if (!btn) return null;
     btn.setAttribute('aria-label', label);
     btn.removeAttribute('aria-current');
     btn.removeAttribute('data-current');
-    btn.removeAttribute('data-sky-llm-nav-wired');
+    btn.removeAttribute('data-llm-nav-wired');
     setLeafText(clone, label);
     return clone;
   }
@@ -304,9 +302,9 @@
     var iconHost =
       header.querySelector('[slot="icon"]') ||
       header.querySelector('[class*="macro-static-wXhwbd"]');
-    if (iconHost && !iconHost.querySelector('.sky-llm-nav-semrush-icon')) {
+    if (iconHost && !iconHost.querySelector('.llm-nav-semrush-icon')) {
       iconHost.innerHTML =
-        '<span class="sky-llm-nav-semrush-icon" aria-hidden="true">' +
+        '<span class="llm-nav-semrush-icon" aria-hidden="true">' +
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="3.35 0 18.75 11.55" width="18" height="11" focusable="false">' +
         '<path fill="currentColor" d="M16.3321 0.00153191C19.505 0.00153331 22.1008 2.61983 22.1008 5.74789C22.1008 8.87595 19.6034 11.4122 16.4784 11.4929H8.23157L13.2173 8.84014H3.35645L12.3132 4.07857H7.3842L13.3997 0.883318C14.4788 0.32137 15.4458 0 16.3321 0V0.00153191Z"></path>' +
         '</svg></span>';
@@ -321,23 +319,23 @@
     }
     if (!titleEl) return;
 
-    var badgeWrap = header.querySelector('.sky-llm-nav-new-badge-wrap');
+    var badgeWrap = header.querySelector('.llm-nav-new-badge-wrap');
     if (!badgeWrap) {
       badgeWrap = document.createElement('div');
-      badgeWrap.className = 'sky-llm-nav-new-badge-wrap';
+      badgeWrap.className = 'llm-nav-new-badge-wrap';
       var badge = document.createElement('span');
-      badge.className = 'sky-llm-nav-new-badge';
+      badge.className = 'llm-nav-new-badge';
       badge.setAttribute('role', 'presentation');
       badge.textContent = 'New';
       badgeWrap.appendChild(badge);
     } else {
-      var existingBadge = badgeWrap.querySelector('.sky-llm-nav-new-badge');
+      var existingBadge = badgeWrap.querySelector('.llm-nav-new-badge');
       if (existingBadge) existingBadge.textContent = 'New';
     }
 
     var titleRow = titleEl.closest('[class*="macro-static-5h50Oc"]') || titleEl.parentElement;
     if (titleRow && badgeWrap.parentElement !== titleRow) {
-      titleRow.classList.add('sky-llm-nav-market-title-row');
+      titleRow.classList.add('llm-nav-market-title-row');
       titleRow.appendChild(badgeWrap);
     }
   }
@@ -353,11 +351,11 @@
 
     var section = brandSection.cloneNode(true);
     section.id = 'org-sidebar-section-ai-visibility';
-    section.classList.remove('sky-llm-nav-section-collapsed');
+    section.classList.remove('llm-nav-section-collapsed');
 
     var header = findSectionHeader(section);
     if (header) {
-      delete header.dataset.skyLlmSectionWired;
+      delete header.dataset.llmNavSectionWired;
       header.setAttribute('aria-expanded', 'true');
       var titleEl = findMarketOverviewTitle(header);
       if (titleEl) titleEl.textContent = 'Market Overview';
@@ -366,7 +364,7 @@
     var body = findSectionBody(section);
     if (body) {
       body.style.display = '';
-      body.setAttribute('data-sky-llm-collapsed', 'false');
+      body.setAttribute('data-llm-nav-collapsed', 'false');
       body.querySelectorAll('[id^="org-nav-item-"]').forEach(function (el) {
         el.remove();
       });
@@ -431,7 +429,7 @@
   }
 
   function patchOpportunitiesBadge() {
-    var catalog = window.SkyLlmOpportunitiesCatalog;
+    var catalog = window.LlmDemoOpportunitiesCatalog;
     if (!catalog) return;
     var count = catalog.OPPORTUNITIES.length;
     findNavButtons().forEach(function (btn) {
@@ -462,7 +460,11 @@
       var oppSection = document.getElementById('org-sidebar-section-opportunities');
       if (oppSection) setSectionExpanded(oppSection, true, false);
     }
-    if (file === 'visibility-overview.html') {
+    if (
+      file === 'visibility-overview.html' ||
+      file === 'prompt-research.html' ||
+      file === 'market-comparison.html'
+    ) {
       var marketSection = document.getElementById('org-sidebar-section-ai-visibility');
       if (marketSection) setSectionExpanded(marketSection, true, false);
     }
@@ -472,8 +474,8 @@
     findNavButtons().forEach(function (btn) {
       var label = (btn.getAttribute('aria-label') || '').trim();
       var target = ROUTES[label];
-      if (!target || btn.dataset.skyLlmNavWired === '1') return;
-      btn.dataset.skyLlmNavWired = '1';
+      if (!target || btn.dataset.llmNavWired === '1') return;
+      btn.dataset.llmNavWired = '1';
       btn.addEventListener(
         'click',
         function (e) {

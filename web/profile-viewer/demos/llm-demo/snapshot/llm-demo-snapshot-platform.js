@@ -393,9 +393,13 @@
 
   function getPageKind() {
     if (/visibility-overview\.html/i.test(location.pathname || '')) return 'visibility-overview';
+    if (/prompt-research\.html/i.test(location.pathname || '')) return 'prompt-research';
+    if (/market-comparison\.html/i.test(location.pathname || '')) return 'market-comparison';
     if (document.getElementById('agentic-traffic-dashboard')) return 'agentic-traffic';
     var heading = document.getElementById('dashboard-layout-heading');
     if (heading && /visibility overview/i.test((heading.textContent || '').trim())) return 'visibility-overview';
+    if (heading && /prompt research/i.test((heading.textContent || '').trim())) return 'prompt-research';
+    if (heading && /market comparison/i.test((heading.textContent || '').trim())) return 'market-comparison';
     if (heading && /referral traffic/i.test((heading.textContent || '').trim())) return 'referral-traffic';
     if (findSectionRoot('Market Tracking')) return 'brand-presence';
     if (findSectionRoot('Risk by Theme')) return 'brand-claims';
@@ -2337,7 +2341,9 @@
     if (
       getPageKind() === 'agentic-traffic' ||
       getPageKind() === 'referral-traffic' ||
-      getPageKind() === 'visibility-overview'
+      getPageKind() === 'visibility-overview' ||
+      getPageKind() === 'prompt-research' ||
+      getPageKind() === 'market-comparison'
     ) {
       return;
     }

@@ -121,7 +121,7 @@
   }
 
   function patchLatestOpportunities() {
-    var catalog = window.LlmOpportunitiesCatalog || window.SkyLlmOpportunitiesCatalog;
+    var catalog = window.LlmDemoOpportunitiesCatalog || window.LlmOpportunitiesCatalog;
     if (!catalog) return false;
 
     var host = findLatestOpportunitiesHost();
@@ -139,7 +139,7 @@
         return;
       }
       row.style.display = '';
-      row.classList.add('sky-llm-op-overview-row');
+      row.classList.add('llm-op-overview-row');
 
       setLeafText(row, 'macro-static-voHAv', opp.title) ||
         qsa(row, '[data-rsp-slot="text"]').some(function (el) {

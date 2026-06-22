@@ -104,5 +104,5 @@
     detailHref: detailHref,
   };
   global.LlmOpportunitiesCatalog = catalogApi;
-  global.SkyLlmOpportunitiesCatalog = catalogApi;
+  global.LlmDemoOpportunitiesCatalog = catalogApi;
 })(typeof window !== 'undefined' ? window : globalThis);

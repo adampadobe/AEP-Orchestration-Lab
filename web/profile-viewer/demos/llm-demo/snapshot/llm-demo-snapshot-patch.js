@@ -103,7 +103,7 @@
     while (grid && !grid.contains(bot)) {
       grid = grid.parentElement && grid.parentElement.closest('[class*="macro-static-IHcRc"]');
     }
-    if (grid) grid.classList.add('sky-llm-agentic-movers-row');
+    if (grid) grid.classList.add('llm-agentic-movers-row');
   }
 
   /** True only inside LLM Demo iframe (?llmDemo=1). Adobe Brand Visibility must stay on frozen Sky labels. */
