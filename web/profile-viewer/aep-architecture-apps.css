@@ -2091,14 +2091,6 @@ html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle
   flex-shrink: 0;
 }
 
-.arch-container-align-label {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--dash-muted, #6b7280);
-  padding: 0 0.25rem 0 0.15rem;
-  white-space: nowrap;
-}
-
 .arch-container-align-sep {
   width: 1px;
   height: 1.1rem;
