@@ -329,10 +329,10 @@
       subgroups: [
         {
           id: 'demoLlmLab',
-          label: 'LLM',
+          label: 'Brand Visibility',
           items: [
             {
-              label: 'LLM Demo (in development)',
+              label: 'Brand Visibility Demo (in development)',
               href: 'demos/llm-demo/llm-demo.html',
               inDevelopment: true,
               navHideKey: 'llmDemo',

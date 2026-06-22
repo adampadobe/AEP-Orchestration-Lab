@@ -115,7 +115,7 @@
       DemoProfileDrawer.init({
         emailInputId: 'customerEmail',
         profileOpenClass: 'mod-demo-page--profile-open',
-        viewName: 'Sky LLM Optimizer',
+        viewName: 'Adobe Brand Visibility',
         emailGetter: getEmail,
         messageSetter: setMessage,
         getSelectedGeneratorTarget: getSelectedGeneratorTarget,

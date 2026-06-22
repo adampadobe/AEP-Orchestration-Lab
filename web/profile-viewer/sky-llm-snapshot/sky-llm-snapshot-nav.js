@@ -1,5 +1,5 @@
 /**
- * Sidebar navigation for frozen LLM Optimizer snapshots (2026 grouped nav).
+ * Sidebar navigation for frozen Adobe Brand Visibility snapshots (2026 grouped nav).
  */
 (function () {
   'use strict';
@@ -9,15 +9,21 @@
   var ROUTES = {
     Overview: 'overview.html',
     'Brand Presence': 'brand-presence.html',
+    'Brand Presence (Semrush)': 'brand-presence.html',
     'Brand Claims': 'brand-claims.html',
     'Prompts Management': 'prompts-management.html',
+    'Visibility Overview': 'overview.html',
+    'Prompt Research': 'overview.html',
+    'Market Comparison': 'overview.html',
     'URL Inspector': 'url-inspector.html',
     'Agentic Traffic': 'agentic-traffic.html',
     'Referral Traffic': 'referral-traffic.html',
+    'Health Checks': 'overview.html',
     Opportunities: 'opportunities.html',
     'Opportunity Workspace': 'opportunity-workspace.html',
     'Brands Management': 'overview.html',
     Collaboration: 'overview.html',
+    'Users and Permissions': 'overview.html',
     Settings: 'overview.html',
     'LLMO University': 'overview.html',
     Documentation: 'overview.html',
@@ -26,7 +32,7 @@
 
   var PAGE_ACTIVE = {
     'overview.html': 'Overview',
-    'brand-presence.html': 'Brand Presence',
+    'brand-presence.html': 'Brand Presence (Semrush)',
     'brand-claims.html': 'Brand Claims',
     'prompts-management.html': 'Prompts Management',
     'url-inspector.html': 'URL Inspector',
@@ -218,6 +224,135 @@
     });
   }
 
+  function setLeafText(root, text) {
+    if (!root) return;
+    root.querySelectorAll('[data-rsp-slot="text"]').forEach(function (el) {
+      if (el.childElementCount === 0) el.textContent = text;
+    });
+  }
+
+  function patchRebrand() {
+    if (/Adobe LLM Optimizer/i.test(document.title || '')) {
+      document.title = document.title.replace(/Adobe LLM Optimizer/gi, 'Adobe Brand Visibility');
+    }
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      var content = meta.getAttribute('content') || '';
+      if (/Adobe LLM Optimizer/i.test(content)) {
+        meta.setAttribute('content', content.replace(/Adobe LLM Optimizer/gi, 'Adobe Brand Visibility'));
+      }
+    }
+    document.querySelectorAll('[data-rsp-slot="text"], span, div').forEach(function (el) {
+      if (el.childElementCount !== 0) return;
+      if ((el.textContent || '').trim() === 'Adobe LLM Optimizer') {
+        el.textContent = 'Adobe Brand Visibility';
+      }
+    });
+  }
+
+  function patchBrandPresenceLabel() {
+    var item = document.getElementById('org-nav-item-brand-presence');
+    if (!item) return;
+    var btn = item.querySelector('button[aria-label]');
+    if (btn) btn.setAttribute('aria-label', 'Brand Presence (Semrush)');
+    setLeafText(item, 'Brand Presence (Semrush)');
+  }
+
+  function cloneNavItem(sourceId, newId, label) {
+    if (document.getElementById(newId)) return document.getElementById(newId);
+    var source = document.getElementById(sourceId);
+    if (!source) return null;
+    var clone = source.cloneNode(true);
+    clone.id = newId;
+    clone.classList.remove('sky-llm-nav-active');
+    var rail = clone.querySelector('.sky-llm-nav-active-rail');
+    if (rail) rail.remove();
+    var btn = clone.querySelector('button[aria-label]');
+    if (!btn) return null;
+    btn.setAttribute('aria-label', label);
+    btn.removeAttribute('aria-current');
+    btn.removeAttribute('data-current');
+    btn.removeAttribute('data-sky-llm-nav-wired');
+    setLeafText(clone, label);
+    return clone;
+  }
+
+  function ensureMarketOverviewSection() {
+    if (document.getElementById('org-sidebar-section-ai-visibility')) return;
+    var brandSection = document.getElementById('org-sidebar-section-brand');
+    var domainSection = document.getElementById('org-sidebar-section-domain');
+    if (!brandSection || !domainSection || !brandSection.parentNode) return;
+
+    var section = brandSection.cloneNode(true);
+    section.id = 'org-sidebar-section-ai-visibility';
+    section.classList.remove('sky-llm-nav-section-collapsed');
+
+    var header = findSectionHeader(section);
+    if (header) {
+      delete header.dataset.skyLlmSectionWired;
+      header.setAttribute('aria-expanded', 'true');
+      setLeafText(header, 'Market Overview');
+      if (!header.querySelector('.sky-llm-nav-new-badge')) {
+        var badgeWrap = document.createElement('div');
+        badgeWrap.className = 'sky-llm-nav-new-badge-wrap';
+        var badge = document.createElement('span');
+        badge.className = 'sky-llm-nav-new-badge';
+        badge.setAttribute('role', 'presentation');
+        badge.textContent = 'New';
+        badgeWrap.appendChild(badge);
+        var chevron = header.querySelector('svg');
+        var chevronWrap = chevron && chevron.parentElement;
+        while (chevronWrap && chevronWrap !== header && chevronWrap.parentElement !== header) {
+          chevronWrap = chevronWrap.parentElement;
+        }
+        if (chevronWrap && chevronWrap.parentElement === header) {
+          header.insertBefore(badgeWrap, chevronWrap);
+        } else {
+          header.appendChild(badgeWrap);
+        }
+      }
+    }
+
+    var body = findSectionBody(section);
+    if (body) {
+      body.style.display = '';
+      body.setAttribute('data-sky-llm-collapsed', 'false');
+      body.querySelectorAll('[id^="org-nav-item-"]').forEach(function (el) {
+        el.remove();
+      });
+    }
+
+    var listWrap = (body && body.querySelector('[class*="macro-static-KcpNYd"]')) || body;
+    if (!listWrap) return;
+
+    [
+      ['org-nav-item-ai-visibility-results', 'Visibility Overview'],
+      ['org-nav-item-prompt-research-results', 'Prompt Research'],
+      ['org-nav-item-competitor-research', 'Market Comparison'],
+    ].forEach(function (pair) {
+      var item = cloneNavItem('org-nav-item-brand-claims', pair[0], pair[1]);
+      if (item) listWrap.appendChild(item);
+    });
+
+    brandSection.parentNode.insertBefore(section, domainSection);
+  }
+
+  function ensureHealthChecksNavItem() {
+    if (document.getElementById('org-nav-item-health-checks')) return;
+    var referral = document.getElementById('org-nav-item-referral-traffic');
+    var item = cloneNavItem('org-nav-item-referral-traffic', 'org-nav-item-health-checks', 'Health Checks');
+    if (!item || !referral || !referral.parentElement) return;
+    referral.parentElement.appendChild(item);
+  }
+
+  function ensureUsersAndPermissionsNavItem() {
+    if (document.getElementById('org-nav-item-users-and-permissions')) return;
+    var settings = document.getElementById('org-nav-item-settings');
+    var item = cloneNavItem('org-nav-item-settings', 'org-nav-item-users-and-permissions', 'Users and Permissions');
+    if (!item || !settings || !settings.parentElement) return;
+    settings.parentElement.insertBefore(item, settings);
+  }
+
   function ensureOpportunityWorkspaceNavItem() {
     if (document.getElementById('org-nav-item-opportunity-workspace')) return;
     var oppItem = document.getElementById('org-nav-item-opportunities');
@@ -262,6 +397,11 @@
 
   function wireNav() {
     ensureNavVisible();
+    patchRebrand();
+    patchBrandPresenceLabel();
+    ensureMarketOverviewSection();
+    ensureHealthChecksNavItem();
+    ensureUsersAndPermissionsNavItem();
     wireSectionToggles();
     applyStoredSectionStates();
     ensureOpportunityWorkspaceNavItem();
