@@ -1468,7 +1468,6 @@ function resetSiteCloneBcDisplayPrefsOnUi() {
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = false;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = false;
   if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = false;
-  if (siteCloneBcEnabledToggle) siteCloneBcEnabledToggle.checked = false;
 }
 
 /** Skip restoring saved BC display/decisioning toggles until sandbox is known or user saves. */
@@ -1479,12 +1478,12 @@ function enableBcDisplayPrefsRestore() {
 }
 
 function applySiteCloneBcDisplayPrefsToUi() {
+  applyBcEnabledPrefsToUi();
+  applyDecisioningEnabledPrefsToUi();
   if (!restoreBcDisplayPrefsFromStorage) {
     resetSiteCloneBcDisplayPrefsOnUi();
-    applyDecisioningEnabledPrefsToUi();
     return;
   }
-  applyBcEnabledPrefsToUi();
   const prefs = loadSiteCloneBcDisplayPrefs();
   if (prefs.modal && (prefs.injected || prefs.fullScreen || prefs.bottomDock || prefs.modalBar)) {
     prefs.injected = false;
@@ -1509,7 +1508,6 @@ function applySiteCloneBcDisplayPrefsToUi() {
   if (siteCloneBcModalToggle) siteCloneBcModalToggle.checked = prefs.modal;
   if (siteCloneBcBottomDockToggle) siteCloneBcBottomDockToggle.checked = prefs.bottomDock;
   if (siteCloneBcModalBarToggle) siteCloneBcModalBarToggle.checked = prefs.modalBar;
-  applyDecisioningEnabledPrefsToUi();
 }
 
 function syncBcFromPrefs() {
@@ -1827,7 +1825,9 @@ function bindStripDomListenersOnce() {
       applySiteCloneBcDisplayPrefsToUi();
       syncSiteCloneBcFromPrefs();
     } else {
+      applyBcEnabledPrefsToUi();
       applyDecisioningEnabledPrefsToUi();
+      syncBcFromPrefs();
     }
     syncDecisioningFromPrefs();
   });
@@ -1838,6 +1838,7 @@ function bindStripDomListenersOnce() {
     refreshStripDomRefs();
     applyBcEnabledPrefsToUi();
     applyDecisioningEnabledPrefsToUi();
+    syncBcFromPrefs();
     syncDecisioningFromPrefs();
   });
 

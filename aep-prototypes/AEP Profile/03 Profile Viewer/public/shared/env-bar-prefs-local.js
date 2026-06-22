@@ -31,6 +31,7 @@
     siteCloneBcStyleConfigUrlBySandbox: 'styleUrl',
     siteCloneBcDatastreamIdBySandbox: 'datastreamId',
     siteCloneBcDisplayPrefsBySandbox: 'displayPrefs',
+    siteCloneBcEnabledPrefsBySandbox: 'enabledPrefs',
     siteCloneDecisioningPrefsBySandbox: 'decisioningPrefs',
   };
 
