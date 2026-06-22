@@ -1,14 +1,14 @@
 {
-  "gitSha": "cacf9ae2ff153858bca66f6af70f0b0916fdf318",
-  "gitShortSha": "cacf9ae2",
+  "gitSha": "f51d278416a73084d563884d0f6a587ef6067ce4",
+  "gitShortSha": "f51d2784",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: sync hosting version stamp before deploy",
+  "gitCommitSubject": "[apalmer] feat: double-click objects to enter contextual edit mode",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T12:09:40+01:00",
-  "deployedAt": "2026-06-22T11:11:00.341Z",
+  "gitCommitDate": "2026-06-22T13:38:51+01:00",
+  "deployedAt": "2026-06-22T12:39:03.164Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
   "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/cacf9ae2ff153858bca66f6af70f0b0916fdf318"
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f51d278416a73084d563884d0f6a587ef6067ce4"
 }
