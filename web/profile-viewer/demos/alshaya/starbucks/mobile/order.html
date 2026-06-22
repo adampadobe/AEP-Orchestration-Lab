@@ -4,17 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>Starbucks — Order</title>
-  <link rel="stylesheet" href="starbucks-mobile-app.css?v=20260622">
+  <link rel="stylesheet" href="starbucks-mobile-app.css?v=20260622b">
 </head>
 <body class="sb-mobile-app" data-starbucks-mobile-page="order">
   <div class="sb-mobile-shell">
     <header class="sb-mobile-header">
-      <p class="sb-mobile-greeting">Order ahead</p>
-      <h1>Your bag</h1>
+      <div class="sb-mobile-header-row">
+        <img src="../assets/logo.png" alt="" class="sb-mobile-header-logo" width="32" height="32" aria-hidden="true">
+        <div>
+          <p class="sb-mobile-greeting">Order ahead</p>
+          <h1>Your bag</h1>
+        </div>
+      </div>
     </header>
     <div class="sb-mobile-scroll">
       <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
-      <div class="sb-mobile-hero" data-hero-mount data-hero-mount-fit="contain" aria-label="Order promo">
+      <div class="sb-mobile-hero sb-mobile-hero--image" data-hero-mount data-hero-mount-fit="contain" aria-label="Order promo" style="background-image: url('../assets/hero-order-ahead.webp')">
         <p class="sb-mobile-hero-kicker">Pick up in 5–10 min</p>
         <p class="sb-mobile-hero-stars">Dubai Mall · Store #142</p>
       </div>
@@ -24,7 +29,7 @@
     </div>
     <nav class="sb-mobile-tabbar" id="sbMobileTabBar" aria-label="App navigation"></nav>
   </div>
-  <script src="../starbucks-mock-data.js?v=20260622"></script>
-  <script src="starbucks-mobile-app.js?v=20260622"></script>
+  <script src="../starbucks-mock-data.js?v=20260622b"></script>
+  <script src="starbucks-mobile-app.js?v=20260622b"></script>
 </body>
 </html>

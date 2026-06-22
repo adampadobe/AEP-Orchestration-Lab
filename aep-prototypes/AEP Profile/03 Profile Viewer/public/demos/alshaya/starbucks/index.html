@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Starbucks UAE — Home</title>
-  <link rel="stylesheet" href="starbucks-site.css?v=20260622">
+  <link rel="stylesheet" href="starbucks-site.css?v=20260622b">
 </head>
 <body class="starbucks-site" data-starbucks-page-id="home">
   <header class="sb-header">
     <div class="sb-header-inner">
       <a class="sb-logo" href="index.html" id="sbLogo">
-        <span class="sb-logo-mark" aria-hidden="true">&#9733;</span>
-        <span>Starbucks</span>
+        <img class="sb-logo-img" src="assets/logo.png" alt="Starbucks" width="48" height="48">
+        <span class="sb-logo-text">Starbucks</span>
       </a>
       <nav aria-label="Primary">
         <ul class="sb-nav">
@@ -32,20 +32,28 @@
     <section id="TopRibbon" aria-label="Personalized top ribbon" role="region"></section>
 
     <section class="sb-hero" data-hero-mount data-hero-mount-fit="contain" aria-label="Featured">
-      <div class="sb-hero-pattern" aria-hidden="true"></div>
-      <div class="sb-hero-content">
-        <p class="sb-hero-kicker">Starbucks Rewards</p>
-        <h1>Collect Stars. Get rewarded.</h1>
-        <p>Earn Stars on every handcrafted drink and unlock free beverages, exclusive offers, and more across the UAE.</p>
-        <button type="button" class="sb-btn sb-btn-primary" id="sbHeroCta">Start earning Stars</button>
+      <div class="sb-hero-slides" id="sbHeroSlides"></div>
+      <div class="sb-hero-overlay">
+        <div class="sb-hero-text-wrap" id="sbHeroTextWrap"></div>
+        <div class="sb-hero-controls">
+          <button type="button" class="sb-hero-ctrl" id="sbHeroPrev" aria-label="Previous slide">&#8249;</button>
+          <div class="sb-hero-indicators" id="sbHeroIndicators"></div>
+          <button type="button" class="sb-hero-ctrl" id="sbHeroNext" aria-label="Next slide">&#8250;</button>
+        </div>
       </div>
     </section>
 
     <section id="ContentCardContainer" class="ContentCardContainer" aria-label="Content cards" role="region"></section>
 
+    <section class="sb-section sb-promos" id="promos" aria-labelledby="sb-promos-heading">
+      <p class="sb-section-kicker">Discover more</p>
+      <h2 id="sb-promos-heading">Curated for you</h2>
+      <div class="sb-promo-grid" id="sbPromoCards"></div>
+    </section>
+
     <section class="sb-section" id="rewards" aria-labelledby="sb-rewards-heading">
       <p class="sb-section-kicker">Starbucks Rewards</p>
-      <h2 id="sb-rewards-heading">Three ways to celebrate you</h2>
+      <h2 id="sb-rewards-heading">Say hello to easy ordering, endless choice — and yes, free coffee</h2>
       <div class="sb-pillars" id="sbRewardsPillars"></div>
     </section>
 
@@ -64,6 +72,10 @@
 
   <footer class="sb-footer">
     <div class="sb-footer-inner">
+      <div class="sb-footer-brand">
+        <img src="assets/logo.png" alt="" width="40" height="40" class="sb-footer-logo" aria-hidden="true">
+        <p class="sb-footer-tagline">Starbucks United Arab Emirates</p>
+      </div>
       <div class="sb-footer-grid">
         <div>
           <h3>About</h3>
@@ -95,18 +107,82 @@
     </div>
   </footer>
 
-  <script src="starbucks-mock-data.js?v=20260622"></script>
-  <script src="starbucks-events.js?v=20260622"></script>
+  <script src="starbucks-mock-data.js?v=20260622b"></script>
+  <script src="starbucks-events.js?v=20260622b"></script>
+  <script src="starbucks-login.js?v=20260622-login"></script>
+  <script src="starbucks-home.js?v=20260622b"></script>
   <script>
     (function () {
       'use strict';
       var data = window.StarbucksMockData || {};
+
+      function openLogin(mode, eventType, publicObj) {
+        if (window.StarbucksLogin && typeof window.StarbucksLogin.open === 'function') {
+          window.StarbucksLogin.open({ mode: mode });
+        }
+        if (window.StarbucksLabEvents) {
+          window.StarbucksLabEvents.emit(eventType, publicObj || {});
+        }
+      }
 
       function el(tag, cls, html) {
         var node = document.createElement(tag);
         if (cls) node.className = cls;
         if (html != null) node.innerHTML = html;
         return node;
+      }
+
+      function renderHero() {
+        var slidesHost = document.getElementById('sbHeroSlides');
+        var textHost = document.getElementById('sbHeroTextWrap');
+        var indHost = document.getElementById('sbHeroIndicators');
+        if (!slidesHost || !data.heroSlides) return;
+        data.heroSlides.forEach(function (slide, i) {
+          var slideEl = el('div', 'sb-hero-slide' + (i === 0 ? ' active' : ''));
+          slideEl.setAttribute('role', 'img');
+          slideEl.setAttribute('aria-label', slide.alt || slide.title);
+          slideEl.style.backgroundImage = 'url("' + slide.image + '")';
+          slidesHost.appendChild(slideEl);
+
+          var textEl = el('div', 'sb-hero-text-slide' + (i === 0 ? ' active' : ''));
+          textEl.innerHTML =
+            '<p class="sb-hero-kicker">' + slide.kicker + '</p>' +
+            '<h1>' + slide.title + '</h1>' +
+            '<p>' + slide.copy + '</p>' +
+            '<button type="button" class="sb-btn sb-btn-primary sb-hero-cta">Find out more</button>';
+          textHost.appendChild(textEl);
+
+          var ind = el('button', 'sb-hero-ind' + (i === 0 ? ' sb-hero-ind-active' : ''));
+          ind.type = 'button';
+          ind.setAttribute('aria-label', 'Slide ' + (i + 1));
+          indHost.appendChild(ind);
+        });
+        textHost.querySelectorAll('.sb-hero-cta').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            openLogin('join', 'starbucks.rewards.join.click', { source: 'hero' });
+          });
+        });
+      }
+
+      function renderPromos() {
+        var host = document.getElementById('sbPromoCards');
+        if (!host || !data.promoCards) return;
+        host.innerHTML = '';
+        data.promoCards.forEach(function (card) {
+          var article = el('article', 'sb-promo-card');
+          article.innerHTML =
+            '<div class="sb-promo-visual"><img src="' + card.image + '" alt="' + card.alt + '" loading="lazy"></div>' +
+            '<div class="sb-promo-body">' +
+            '<h3>' + card.title + '</h3>' +
+            '<span class="sb-promo-cta">' + card.cta + ' &rarr;</span>' +
+            '</div>';
+          article.addEventListener('click', function () {
+            if (/join/i.test(card.cta)) {
+              openLogin('join', 'starbucks.rewards.join.click', { source: 'promo', promoId: card.id });
+            }
+          });
+          host.appendChild(article);
+        });
       }
 
       function renderRewards() {
@@ -116,8 +192,9 @@
         data.rewardsTiers.forEach(function (tier) {
           var card = el('article', 'sb-pillar');
           card.innerHTML =
+            '<img class="sb-pillar-icon" src="' + tier.image + '" alt="" width="72" height="72" loading="lazy">' +
             '<h3>' + tier.label + '</h3>' +
-            '<p><strong>' + tier.stars + ' Stars</strong> — ' + tier.perk + '</p>';
+            '<p><strong>' + tier.stars + '</strong> — ' + tier.perk + '</p>';
           host.appendChild(card);
         });
       }
@@ -129,7 +206,7 @@
         data.featuredDrinks.forEach(function (drink) {
           var card = el('article', 'sb-drink-card');
           card.innerHTML =
-            '<div class="sb-drink-visual" aria-hidden="true"></div>' +
+            '<div class="sb-drink-visual"><img src="' + drink.image + '" alt="' + drink.name + '" loading="lazy"></div>' +
             '<div class="sb-drink-body">' +
             '<span class="sb-tag">' + drink.tag + '</span>' +
             '<h3>' + drink.name + '</h3>' +
@@ -159,24 +236,22 @@
 
       function wireCtas() {
         function joinClick() {
-          if (window.StarbucksLabEvents) {
-            window.StarbucksLabEvents.emit('starbucks.rewards.join.click', { source: 'home' });
-          }
+          openLogin('join', 'starbucks.rewards.join.click', { source: 'header' });
         }
-        ['sbJoinRewardsBtn', 'sbHeroCta'].forEach(function (id) {
+        ['sbJoinRewardsBtn'].forEach(function (id) {
           var btn = document.getElementById(id);
           if (btn) btn.addEventListener('click', joinClick);
         });
         var signIn = document.getElementById('sbSignInBtn');
         if (signIn) {
           signIn.addEventListener('click', function () {
-            if (window.StarbucksLabEvents) {
-              window.StarbucksLabEvents.emit('starbucks.signin.click', {});
-            }
+            openLogin('signin', 'starbucks.signin.click', { source: 'header' });
           });
         }
       }
 
+      renderHero();
+      renderPromos();
       renderRewards();
       renderDrinks();
       renderStores();

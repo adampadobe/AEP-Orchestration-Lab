@@ -54,15 +54,22 @@ body.starbucks-site {
   letter-spacing: 0.02em;
 }
 
-.sb-logo-mark {
-  width: 40px;
-  height: 40px;
+.sb-logo-img {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--sb-green);
-  color: var(--sb-white);
-  display: grid;
-  place-items: center;
-  font-size: 1.25rem;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sb-logo-text {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .sb-logo-text {
+    display: inline;
+  }
 }
 
 .sb-nav {
@@ -131,22 +138,72 @@ body.starbucks-site {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  min-height: 360px;
-  background: linear-gradient(135deg, var(--sb-green-dark) 0%, var(--sb-green) 55%, #0d4f3c 100%);
+  min-height: 420px;
+  background: var(--sb-green-dark);
   color: var(--sb-white);
   margin-bottom: 2rem;
 }
 
 .sb-hero[data-hero-mount] {
-  display: flex;
-  align-items: flex-end;
+  position: relative;
 }
 
-.sb-hero-content {
-  position: relative;
+.sb-hero-slides {
+  position: absolute;
+  inset: 0;
+}
+
+.sb-hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.sb-hero-slide.active {
+  opacity: 1;
+}
+
+.sb-hero-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(30, 57, 50, 0.82) 0%, rgba(30, 57, 50, 0.45) 55%, transparent 100%);
+}
+
+.sb-hero-overlay {
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 2rem;
+}
+
+.sb-hero-text-wrap {
+  position: relative;
+  min-height: 180px;
   max-width: 520px;
+}
+
+.sb-hero-text-slide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+
+.sb-hero-text-slide.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .sb-hero-kicker {
@@ -157,25 +214,62 @@ body.starbucks-site {
   opacity: 0.9;
 }
 
-.sb-hero h1 {
+.sb-hero-text-slide h1 {
   margin: 0 0 0.75rem;
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
   line-height: 1.15;
 }
 
-.sb-hero p {
+.sb-hero-text-slide p {
   margin: 0 0 1.25rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
   opacity: 0.95;
+  max-width: 440px;
 }
 
-.sb-hero-pattern {
+.sb-hero-controls {
   position: absolute;
-  inset: 0;
-  opacity: 0.15;
-  background-image: radial-gradient(circle at 20% 80%, var(--sb-gold) 0%, transparent 45%),
-    radial-gradient(circle at 80% 20%, var(--sb-white) 0%, transparent 40%);
-  pointer-events: none;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sb-hero-ctrl {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--sb-white);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sb-hero-ctrl:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.sb-hero-indicators {
+  display: flex;
+  gap: 6px;
+}
+
+.sb-hero-ind {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+}
+
+.sb-hero-ind-active {
+  background: var(--sb-gold);
+  transform: scale(1.2);
 }
 
 #ContentCardContainer {
@@ -207,11 +301,68 @@ body.starbucks-site {
   gap: 1rem;
 }
 
+.sb-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.sb-promo-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--sb-border);
+  background: var(--sb-white);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.sb-promo-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.sb-promo-visual {
+  aspect-ratio: 531 / 273;
+  overflow: hidden;
+  background: var(--sb-cream);
+}
+
+.sb-promo-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sb-promo-body {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.sb-promo-body h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--sb-text);
+}
+
+.sb-promo-cta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--sb-green);
+}
+
 .sb-pillar {
   background: var(--sb-cream);
   border-radius: 12px;
   padding: 1.25rem;
   border: 1px solid var(--sb-border);
+  text-align: center;
+}
+
+.sb-pillar-icon {
+  display: block;
+  margin: 0 auto 0.75rem;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
 }
 
 .sb-pillar h3 {
@@ -240,8 +391,16 @@ body.starbucks-site {
 }
 
 .sb-drink-visual {
-  height: 120px;
-  background: linear-gradient(160deg, #2d5a4a, var(--sb-green));
+  height: 140px;
+  background: var(--sb-cream);
+  overflow: hidden;
+}
+
+.sb-drink-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .sb-drink-body {
@@ -280,6 +439,24 @@ body.starbucks-site {
   margin: 0 auto;
 }
 
+.sb-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sb-footer-logo {
+  border-radius: 50%;
+  opacity: 0.95;
+}
+
+.sb-footer-tagline {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 .sb-footer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -314,12 +491,195 @@ body.starbucks-site {
   line-height: 1.5;
 }
 
+.sb-btn.is-signed-in {
+  border-color: var(--sb-gold);
+  color: var(--sb-gold);
+}
+
+.sb-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sb-login-overlay[hidden] {
+  display: none;
+}
+
+.sb-login-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 57, 50, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.sb-login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--sb-white);
+  color: var(--sb-text);
+  border-radius: 12px;
+  border: 1px solid var(--sb-border);
+  box-shadow: 0 12px 40px rgba(30, 57, 50, 0.18);
+  padding: 2rem 2rem 1.75rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.sb-login-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid var(--sb-border);
+  background: transparent;
+  color: var(--sb-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sb-login-close:hover {
+  background: var(--sb-cream);
+}
+
+.sb-login-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.sb-login-logo img {
+  width: 56px;
+  height: auto;
+}
+
+.sb-login-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--sb-green-dark);
+}
+
+.sb-login-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--sb-muted);
+  text-align: center;
+}
+
+.sb-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.sb-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sb-login-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sb-text);
+}
+
+.sb-login-field input {
+  font-family: var(--sb-font);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  background: var(--sb-white);
+  color: var(--sb-text);
+}
+
+.sb-login-field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--sb-green) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.sb-login-error {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  color: #9b2c2c;
+  text-align: center;
+}
+
+.sb-login-submit {
+  width: 100%;
+  justify-content: center;
+}
+
+.sb-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.sb-login-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--sb-white);
+  border-radius: 50%;
+  animation: sbLoginSpin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes sbLoginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sb-login-guest-link {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.sb-login-guest-link a {
+  color: var(--sb-green);
+  text-decoration: none;
+}
+
+.sb-login-guest-link a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .sb-nav {
     display: none;
   }
 
   .sb-hero {
-    min-height: 280px;
+    min-height: 320px;
+  }
+
+  .sb-hero-overlay {
+    padding: 1.25rem;
+  }
+
+  .sb-hero-controls {
+    left: 1.25rem;
+    right: 1.25rem;
+    justify-content: center;
+  }
+
+  .sb-hero-text-wrap {
+    min-height: 200px;
+    padding-bottom: 2.5rem;
   }
 }

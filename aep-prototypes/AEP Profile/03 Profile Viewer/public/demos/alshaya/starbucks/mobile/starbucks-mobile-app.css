@@ -42,6 +42,17 @@ body.sb-mobile-app {
   flex-shrink: 0;
 }
 
+.sb-mobile-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sb-mobile-header-logo {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .sb-mobile-header h1 {
   margin: 0.15rem 0 0;
   font-size: 1.25rem;
