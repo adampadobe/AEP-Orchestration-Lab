@@ -1861,6 +1861,39 @@ html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle
   stroke: #c2186d;
 }
 
+.arch-container-align-seg {
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.arch-container-align-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--dash-muted, #6b7280);
+  padding: 0 0.25rem 0 0.15rem;
+  white-space: nowrap;
+}
+
+.arch-container-align-sep {
+  width: 1px;
+  height: 1.1rem;
+  margin: 0 0.15rem;
+  background: var(--dash-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.arch-container-align-btn {
+  min-width: 1.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.arch-container-align-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .arch-hud-label {
   display: inline-flex;
   align-items: center;

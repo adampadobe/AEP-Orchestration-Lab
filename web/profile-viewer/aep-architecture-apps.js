@@ -166,6 +166,7 @@
     archEditorApplyModesForCurrentSelection();
     archInspectorSync();
     archLayerOrderSyncUi();
+    archContainerAlignSyncUi();
   }
 
   /** Inspector: custom box (if selected) else single platform node (Edit mode). */
@@ -214,7 +215,7 @@
           Math.round(cb.w) +
           ' × ' +
           Math.round(cb.h) +
-          '\n\nUse the floating Tools bar on the diagram for fill, outline, name, and layer order ([ / ]).';
+          '\n\nUse the floating Tools bar on the diagram for fill, outline, name, align-inside, and layer order ([ / ]).';
         return;
       }
     }
@@ -241,7 +242,7 @@
       human +
       '\nElement id: ' +
       id +
-      '\n\nDrag to move, corners to resize, double-click text to edit. Layer order: [ / ] or toolbar buttons.';
+      '\n\nDrag to move, corners to resize, double-click text to edit. Align contents inside: Tools bar Align buttons. Layer order: [ / ] or toolbar buttons.';
   }
 
   function archEditSelectionInit() {
@@ -1269,12 +1270,83 @@
     });
   }
 
-  function archDragCollectAlignmentTargets(excludeKey) {
+  /** exclude: null | node key string | { kind: 'node'|'cbox'|'label', id: string } */
+  function archDragNormalizeExclude(exclude) {
+    if (!exclude) return null;
+    if (typeof exclude === 'string') return { kind: 'node', id: exclude };
+    return exclude;
+  }
+
+  function archDragExcludeMatch(exclude, kind, id) {
+    var ex = archDragNormalizeExclude(exclude);
+    return !!(ex && ex.kind === kind && String(ex.id) === String(id));
+  }
+
+  /** World-space bbox for a diagram label (includes translate offset). */
+  function archLabelWorldRect(labelId) {
+    if (!labelId || !archDrag.svg) return null;
+    var el = qs('[data-arch-id="' + labelId + '"]');
+    if (!el) return null;
+    try {
+      var bb = el.getBBox();
+      if (!bb.width && !bb.height) return null;
+      var pt = archDrag.svg.createSVGPoint();
+      var ctm = el.getCTM();
+      if (!ctm) return null;
+      var corners = [
+        [bb.x, bb.y],
+        [bb.x + bb.width, bb.y],
+        [bb.x, bb.y + bb.height],
+        [bb.x + bb.width, bb.y + bb.height],
+      ];
+      var xs = [];
+      var ys = [];
+      corners.forEach(function (c) {
+        pt.x = c[0];
+        pt.y = c[1];
+        var w = pt.matrixTransform(ctm);
+        xs.push(w.x);
+        ys.push(w.y);
+      });
+      var left = Math.min.apply(null, xs);
+      var right = Math.max.apply(null, xs);
+      var top = Math.min.apply(null, ys);
+      var bottom = Math.max.apply(null, ys);
+      return {
+        left: left,
+        top: top,
+        right: right,
+        bottom: bottom,
+        w: right - left,
+        h: bottom - top,
+        cx: (left + right) / 2,
+        cy: (top + bottom) / 2,
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function archDragForEachWorldRect(exclude, fn) {
+    Object.keys(NODE_LAYOUT).forEach(function (k) {
+      if (archDragExcludeMatch(exclude, 'node', k)) return;
+      fn(archDragWorldRect(k));
+    });
+    archCustomBoxes.forEach(function (box) {
+      if (archDragExcludeMatch(exclude, 'cbox', box.id)) return;
+      fn(archCustomBoxWorldRect(box));
+    });
+    $all('.arch-int-svg-wrap svg [data-arch-id]').forEach(function (el) {
+      var id = el.getAttribute('data-arch-id');
+      if (!id || archDragExcludeMatch(exclude, 'label', id)) return;
+      fn(archLabelWorldRect(id));
+    });
+  }
+
+  function archDragCollectAlignmentTargets(exclude) {
     var xs = [];
     var ys = [];
-    Object.keys(NODE_LAYOUT).forEach(function (k) {
-      if (k === excludeKey) return;
-      var o = archDragWorldRect(k);
+    archDragForEachWorldRect(exclude, function (o) {
       if (!o) return;
       xs.push(o.left, o.cx, o.right);
       ys.push(o.top, o.cy, o.bottom);
@@ -1282,17 +1354,17 @@
     return { xs: xs, ys: ys };
   }
 
-  function archDragCollectVerticalGapSamples(excludeKey) {
+  function archDragCollectVerticalGapSamples(exclude) {
     var seen = {};
-    var keys = Object.keys(NODE_LAYOUT).filter(function (k) {
-      return k !== excludeKey;
+    var rects = [];
+    archDragForEachWorldRect(exclude, function (r) {
+      if (r) rects.push(r);
     });
-    for (var i = 0; i < keys.length; i++) {
-      for (var j = 0; j < keys.length; j++) {
+    for (var i = 0; i < rects.length; i++) {
+      for (var j = 0; j < rects.length; j++) {
         if (i === j) continue;
-        var a = archDragWorldRect(keys[i]);
-        var b = archDragWorldRect(keys[j]);
-        if (!a || !b) continue;
+        var a = rects[i];
+        var b = rects[j];
         if (a.bottom < b.top - 2) {
           var g = b.top - a.bottom;
           if (g > 2 && g < 420) seen[String(Math.round(g * 10) / 10)] = g;
@@ -1304,17 +1376,17 @@
     });
   }
 
-  function archDragCollectHorizontalGapSamples(excludeKey) {
+  function archDragCollectHorizontalGapSamples(exclude) {
     var seen = {};
-    var keys = Object.keys(NODE_LAYOUT).filter(function (k) {
-      return k !== excludeKey;
+    var rects = [];
+    archDragForEachWorldRect(exclude, function (r) {
+      if (r) rects.push(r);
     });
-    for (var i = 0; i < keys.length; i++) {
-      for (var j = 0; j < keys.length; j++) {
+    for (var i = 0; i < rects.length; i++) {
+      for (var j = 0; j < rects.length; j++) {
         if (i === j) continue;
-        var a = archDragWorldRect(keys[i]);
-        var b = archDragWorldRect(keys[j]);
-        if (!a || !b) continue;
+        var a = rects[i];
+        var b = rects[j];
         if (a.right < b.left - 2) {
           var g = b.left - a.right;
           if (g > 2 && g < 520) seen[String(Math.round(g * 10) / 10)] = g;
@@ -1326,12 +1398,10 @@
     });
   }
 
-  function archDragFindRectAbove(wr, excludeKey) {
+  function archDragFindRectAbove(wr, exclude) {
     var best = null;
     var bestBottom = -1e9;
-    Object.keys(NODE_LAYOUT).forEach(function (k) {
-      if (k === excludeKey) return;
-      var r = archDragWorldRect(k);
+    archDragForEachWorldRect(exclude, function (r) {
       if (!r || r.bottom >= wr.top - 0.5) return;
       if (r.bottom > bestBottom) {
         bestBottom = r.bottom;
@@ -1341,12 +1411,10 @@
     return best;
   }
 
-  function archDragFindRectLeft(wr, excludeKey) {
+  function archDragFindRectLeft(wr, exclude) {
     var best = null;
     var bestRight = -1e9;
-    Object.keys(NODE_LAYOUT).forEach(function (k) {
-      if (k === excludeKey) return;
-      var r = archDragWorldRect(k);
+    archDragForEachWorldRect(exclude, function (r) {
       if (!r || r.right >= wr.left - 0.5) return;
       if (r.right > bestRight) {
         bestRight = r.right;
@@ -1373,19 +1441,33 @@
     return { vx: vx, hy: hy };
   }
 
-  function archDragSnapBoxPosition(activeKey, ox, oy, startOw, startOh) {
-    var posBase = { x: ox, y: oy };
-    if (startOw != null) posBase.w = startOw;
-    if (startOh != null) posBase.h = startOh;
+  /** Snap a world-space rect to alignment targets; returns snapped left/top + guide lines. */
+  function archSnapWorldRect(wr, exclude) {
+    if (!wr) return { left: 0, top: 0, guides: { vx: [], hy: [] } };
+    var left = wr.left;
+    var top = wr.top;
+    var w = wr.w;
+    var h = wr.h;
 
-    var wr = archDragGetWorldRect(activeKey, posBase);
-    if (!wr) return { ox: ox, oy: oy, guides: { vx: [], hy: [] } };
+    function wrAt(l, t) {
+      return {
+        left: l,
+        top: t,
+        right: l + w,
+        bottom: t + h,
+        w: w,
+        h: h,
+        cx: l + w / 2,
+        cy: t + h / 2,
+      };
+    }
 
-    var tgt = archDragCollectAlignmentTargets(activeKey);
+    var cur = wrAt(left, top);
+    var tgt = archDragCollectAlignmentTargets(exclude);
 
     var bestAdjX = 0;
     var bestAbsX = ARCH_DRAG_SNAP_PX + 1;
-    [wr.left, wr.cx, wr.right].forEach(function (av) {
+    [cur.left, cur.cx, cur.right].forEach(function (av) {
       tgt.xs.forEach(function (sx) {
         var adj = sx - av;
         if (Math.abs(adj) <= ARCH_DRAG_SNAP_PX && Math.abs(adj) < bestAbsX) {
@@ -1394,12 +1476,12 @@
         }
       });
     });
-    ox += bestAdjX;
-    wr = archDragGetWorldRect(activeKey, Object.assign({}, posBase, { x: ox, y: oy }));
+    left += bestAdjX;
+    cur = wrAt(left, top);
 
     var bestAdjY = 0;
     var bestAbsY = ARCH_DRAG_SNAP_PX + 1;
-    [wr.top, wr.cy, wr.bottom].forEach(function (av) {
+    [cur.top, cur.cy, cur.bottom].forEach(function (av) {
       tgt.ys.forEach(function (sy) {
         var adj = sy - av;
         if (Math.abs(adj) <= ARCH_DRAG_SNAP_PX && Math.abs(adj) < bestAbsY) {
@@ -1408,16 +1490,16 @@
         }
       });
     });
-    oy += bestAdjY;
-    wr = archDragGetWorldRect(activeKey, Object.assign({}, posBase, { x: ox, y: oy }));
+    top += bestAdjY;
+    cur = wrAt(left, top);
 
     var gapHy = [];
     var gapVx = [];
 
-    var vGaps = archDragCollectVerticalGapSamples(activeKey);
-    var above = archDragFindRectAbove(wr, activeKey);
+    var vGaps = archDragCollectVerticalGapSamples(exclude);
+    var above = archDragFindRectAbove(cur, exclude);
     if (above && vGaps.length) {
-      var cvg = wr.top - above.bottom;
+      var cvg = cur.top - above.bottom;
       var bestG = null;
       var bestGd = ARCH_DRAG_SNAP_PX + 1;
       vGaps.forEach(function (g) {
@@ -1428,16 +1510,16 @@
         }
       });
       if (bestG != null) {
-        oy += bestG - cvg;
-        wr = archDragGetWorldRect(activeKey, Object.assign({}, posBase, { x: ox, y: oy }));
-        gapHy.push(above.bottom, wr.top);
+        top += bestG - cvg;
+        cur = wrAt(left, top);
+        gapHy.push(above.bottom, cur.top);
       }
     }
 
-    var hGaps = archDragCollectHorizontalGapSamples(activeKey);
-    var leftN = archDragFindRectLeft(wr, activeKey);
+    var hGaps = archDragCollectHorizontalGapSamples(exclude);
+    var leftN = archDragFindRectLeft(cur, exclude);
     if (leftN && hGaps.length) {
-      var chg = wr.left - leftN.right;
+      var chg = cur.left - leftN.right;
       var bestHg = null;
       var bestHd = ARCH_DRAG_SNAP_PX + 1;
       hGaps.forEach(function (g) {
@@ -1448,21 +1530,186 @@
         }
       });
       if (bestHg != null) {
-        ox += bestHg - chg;
-        wr = archDragGetWorldRect(activeKey, Object.assign({}, posBase, { x: ox, y: oy }));
-        gapVx.push(leftN.right, wr.left);
+        left += bestHg - chg;
+        cur = wrAt(left, top);
+        gapVx.push(leftN.right, cur.left);
       }
     }
 
-    tgt = archDragCollectAlignmentTargets(activeKey);
-    var guides = archDragGuidesForRect(wr, tgt);
+    tgt = archDragCollectAlignmentTargets(exclude);
+    var guides = archDragGuidesForRect(cur, tgt);
     gapHy.forEach(function (y) {
       if (guides.hy.indexOf(y) < 0) guides.hy.push(y);
     });
     gapVx.forEach(function (x) {
       if (guides.vx.indexOf(x) < 0) guides.vx.push(x);
     });
-    return { ox: ox, oy: oy, guides: guides };
+    return { left: left, top: top, guides: guides };
+  }
+
+  function archDragSnapBoxPosition(activeKey, ox, oy, startOw, startOh) {
+    var posBase = { x: ox, y: oy };
+    if (startOw != null) posBase.w = startOw;
+    if (startOh != null) posBase.h = startOh;
+
+    var wr = archDragGetWorldRect(activeKey, posBase);
+    if (!wr) return { ox: ox, oy: oy, guides: { vx: [], hy: [] } };
+
+    var snapped = archSnapWorldRect(wr, activeKey);
+    var L = NODE_LAYOUT[activeKey];
+    return {
+      ox: snapped.left - L.base[0] - L.rect[0],
+      oy: snapped.top - L.base[1] - L.rect[1],
+      guides: snapped.guides,
+    };
+  }
+
+  var ARCH_CONTAINER_ALIGN_PAD = 8;
+
+  function archContainerGetSelected() {
+    if (archCustomBoxSelectedId) {
+      return { kind: 'cbox', id: archCustomBoxSelectedId };
+    }
+    if (archSelection && archSelection.count() === 1) {
+      var pid = archSelection.primary;
+      if (pid && pid.indexOf('node-') === 0 && pid.indexOf('node-cbox-') !== 0) {
+        var key = pid.slice(5);
+        if (NODE_LAYOUT[key]) return { kind: 'node', id: key };
+      }
+    }
+    return null;
+  }
+
+  function archContainerWorldRect(sel) {
+    if (!sel) return null;
+    if (sel.kind === 'node') return archDragWorldRect(sel.id);
+    if (sel.kind === 'cbox') return archCustomBoxWorldRect(archCustomBoxFind(sel.id));
+    return null;
+  }
+
+  function archRectCenterInside(inner, outer) {
+    if (!inner || !outer) return false;
+    return inner.cx >= outer.left && inner.cx <= outer.right && inner.cy >= outer.top && inner.cy <= outer.bottom;
+  }
+
+  function archContainerFindChildrenInside(parentWR, parentSel) {
+    var children = [];
+    var seen = {};
+    function pushChild(ch) {
+      if (!ch || !ch.wr || seen[ch.key]) return;
+      seen[ch.key] = true;
+      children.push(ch);
+    }
+    if (parentSel.kind === 'node') {
+      var g = qs('#node-' + parentSel.id);
+      if (g) {
+        g.querySelectorAll('[data-arch-id]').forEach(function (el) {
+          var id = el.getAttribute('data-arch-id');
+          if (!id) return;
+          var wr = archLabelWorldRect(id);
+          if (wr && archRectCenterInside(wr, parentWR)) {
+            pushChild({ kind: 'label', id: id, wr: wr, key: 'label:' + id });
+          }
+        });
+      }
+    }
+    $all('.arch-int-svg-wrap svg [data-arch-id]').forEach(function (el) {
+      var id = el.getAttribute('data-arch-id');
+      if (!id) return;
+      if (parentSel.kind === 'node' && el.closest('#node-' + parentSel.id)) return;
+      var wr = archLabelWorldRect(id);
+      if (wr && archRectCenterInside(wr, parentWR)) {
+        pushChild({ kind: 'label', id: id, wr: wr, key: 'label:' + id });
+      }
+    });
+    archCustomBoxes.forEach(function (box) {
+      if (parentSel.kind === 'cbox' && box.id === parentSel.id) return;
+      var wr = archCustomBoxWorldRect(box);
+      if (wr && archRectCenterInside(wr, parentWR)) {
+        pushChild({ kind: 'cbox', id: box.id, wr: wr, key: 'cbox:' + box.id });
+      }
+    });
+    return children;
+  }
+
+  function archContainerAlignSyncUi() {
+    var seg = qs('#archContainerAlignSeg');
+    if (!seg) return;
+    var sel = archContainerGetSelected();
+    var show = !!(sel && archIsEditMode() && archGetActiveTool() === 'select');
+    seg.hidden = !show;
+    if (!show) return;
+    var parentWR = archContainerWorldRect(sel);
+    var kids = parentWR ? archContainerFindChildrenInside(parentWR, sel) : [];
+    $all('.arch-container-align-btn', seg).forEach(function (btn) {
+      btn.disabled = kids.length === 0;
+    });
+  }
+
+  function archContainerAlignInside(mode) {
+    var sel = archContainerGetSelected();
+    if (!sel) return;
+    var parentWR = archContainerWorldRect(sel);
+    if (!parentWR) return;
+    var children = archContainerFindChildrenInside(parentWR, sel);
+    if (!children.length) return;
+    var pad = ARCH_CONTAINER_ALIGN_PAD;
+    var inner = {
+      left: parentWR.left + pad,
+      top: parentWR.top + pad,
+      right: parentWR.right - pad,
+      bottom: parentWR.bottom - pad,
+      cx: parentWR.cx,
+      cy: parentWR.cy,
+    };
+    var union = {
+      left: Infinity,
+      top: Infinity,
+      right: -Infinity,
+      bottom: -Infinity,
+    };
+    children.forEach(function (ch) {
+      union.left = Math.min(union.left, ch.wr.left);
+      union.top = Math.min(union.top, ch.wr.top);
+      union.right = Math.max(union.right, ch.wr.right);
+      union.bottom = Math.max(union.bottom, ch.wr.bottom);
+    });
+    union.cx = (union.left + union.right) / 2;
+    union.cy = (union.top + union.bottom) / 2;
+    var dx = 0;
+    var dy = 0;
+    if (mode === 'left') dx = inner.left - union.left;
+    else if (mode === 'center') dx = inner.cx - union.cx;
+    else if (mode === 'right') dx = inner.right - union.right;
+    else if (mode === 'top') dy = inner.top - union.top;
+    else if (mode === 'middle') dy = inner.cy - union.cy;
+    else if (mode === 'bottom') dy = inner.bottom - union.bottom;
+    else return;
+    if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+    children.forEach(function (ch) {
+      if (ch.kind === 'label') {
+        var cur = archLabel.state.pos[ch.id] || { x: 0, y: 0 };
+        archLabel.state.pos[ch.id] = { x: (cur.x || 0) + dx, y: (cur.y || 0) + dy };
+      } else if (ch.kind === 'cbox') {
+        var box = archCustomBoxFind(ch.id);
+        if (box) {
+          box.x += dx;
+          box.y += dy;
+        }
+      }
+    });
+    archLabelApplyAll();
+    archCustomBoxesRender();
+    archDragRebuildFlows();
+    archUserLineRender();
+    archLabelSave();
+    archCustomBoxesPersist();
+    archDragSave();
+    archUndoMaybePushSnapshot();
+    archContainerAlignSyncUi();
+    if (liveRegion) {
+      liveRegion.textContent = 'Aligned ' + children.length + ' object(s) inside the selected box.';
+    }
   }
 
   function archClamp(v, lo, hi) {
@@ -6312,9 +6559,11 @@
       oy: archLabel.dragPending.oy,
       mx: archLabel.dragPending.sx,
       my: archLabel.dragPending.sy,
+      worldRect: archLabelWorldRect(archLabel.dragPending.id),
     };
     archLabelClearPendingListeners();
     if (archViewport) archViewport.classList.add('arch-label-dragging');
+    if (archViewport) archViewport.classList.add('arch-dragging');
     window.addEventListener('pointermove', archLabelPointerMoveWin, true);
     window.addEventListener('pointerup', archLabelPointerUpWin, true);
     window.addEventListener('pointercancel', archLabelPointerUpWin, true);
@@ -6374,8 +6623,29 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var dx = p.x - archLabel.dragStart.mx;
     var dy = p.y - archLabel.dragStart.my;
-    var ox = archLabel.dragStart.ox + dx;
-    var oy = archLabel.dragStart.oy + dy;
+    var rawOx = archLabel.dragStart.ox + dx;
+    var rawOy = archLabel.dragStart.oy + dy;
+    var ox = rawOx;
+    var oy = rawOy;
+    var startWR = archLabel.dragStart.worldRect;
+    if (startWR) {
+      var ddx = rawOx - archLabel.dragStart.ox;
+      var ddy = rawOy - archLabel.dragStart.oy;
+      var twr = {
+        left: startWR.left + ddx,
+        top: startWR.top + ddy,
+        right: startWR.right + ddx,
+        bottom: startWR.bottom + ddy,
+        w: startWR.w,
+        h: startWR.h,
+        cx: startWR.cx + ddx,
+        cy: startWR.cy + ddy,
+      };
+      var snapped = archSnapWorldRect(twr, { kind: 'label', id: archLabel.dragActive });
+      ox = archLabel.dragStart.ox + (snapped.left - startWR.left);
+      oy = archLabel.dragStart.oy + (snapped.top - startWR.top);
+      archDragGuidesShow(snapped.guides);
+    }
     archLabel.state.pos[archLabel.dragActive] = { x: ox, y: oy };
     var el = qs('[data-arch-id="' + archLabel.dragActive + '"]');
     if (el) {
@@ -6386,13 +6656,16 @@
 
   function archLabelPointerUpWin() {
     if (!archLabel.dragActive) return;
+    archDragGuidesClear();
     if (archViewport) archViewport.classList.remove('arch-label-dragging');
+    if (archViewport) archViewport.classList.remove('arch-dragging');
     window.removeEventListener('pointermove', archLabelPointerMoveWin, true);
     window.removeEventListener('pointerup', archLabelPointerUpWin, true);
     window.removeEventListener('pointercancel', archLabelPointerUpWin, true);
     archLabel.dragActive = null;
     archLabel.dragStart = null;
     archLabelSave();
+    archUndoMaybePushSnapshot();
   }
 
   function archLabelPointerDownCapture(e) {
@@ -7448,10 +7721,24 @@
     var nx = archCustomDrag.start.ox + dx;
     var ny = archCustomDrag.start.oy + dy;
     var b = archCustomBoxNormalize(box);
+    var twr = {
+      left: nx,
+      top: ny,
+      right: nx + b.w,
+      bottom: ny + b.h,
+      w: b.w,
+      h: b.h,
+      cx: nx + b.w / 2,
+      cy: ny + b.h / 2,
+    };
+    var snapped = archSnapWorldRect(twr, { kind: 'cbox', id: box.id });
+    nx = snapped.left;
+    ny = snapped.top;
     nx = archClamp(nx, 0, ARCH_GUIDE_VIEW.w - b.w);
     ny = archClamp(ny, 0, ARCH_GUIDE_VIEW.h - b.h);
     box.x = nx;
     box.y = ny;
+    archDragGuidesShow(snapped.guides);
     archCustomBoxesRender();
     archDragRebuildFlows();
     archUserLineRender();
@@ -7459,6 +7746,7 @@
 
   function archCustomBoxDragPointerUpWin() {
     if (!archCustomDrag.active) return;
+    archDragGuidesClear();
     archCustomDrag.active = null;
     archCustomDrag.start = null;
     if (archViewport) archViewport.classList.remove('arch-dragging');
@@ -7559,6 +7847,7 @@
       oy: box.y,
       mx: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).x,
       my: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).y,
+      worldRect: archCustomBoxWorldRect(box),
     };
     if (archViewport) archViewport.classList.add('arch-dragging');
     window.addEventListener('pointermove', archCustomBoxDragPointerMoveWin, true);
@@ -9219,6 +9508,17 @@
       tfClose.setAttribute('data-arch-tf-close', '1');
       tfClose.addEventListener('click', function () {
         archToolsFloatSetOpen(false);
+      });
+    }
+
+    var containerAlignSeg = qs('#archContainerAlignSeg');
+    if (containerAlignSeg && !containerAlignSeg.getAttribute('data-arch-container-align-ready')) {
+      containerAlignSeg.setAttribute('data-arch-container-align-ready', '1');
+      containerAlignSeg.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-arch-container-align]');
+        if (!btn || btn.disabled) return;
+        var mode = btn.getAttribute('data-arch-container-align');
+        if (mode) archContainerAlignInside(mode);
       });
     }
 
