@@ -616,7 +616,8 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
 .arch-spectrum-pen-brush-icon,
 .arch-spectrum-archive-icon,
 .arch-spectrum-apps-icon,
-.arch-spectrum-add-content-icon {
+.arch-spectrum-add-content-icon,
+.arch-spectrum-assist-icon {
   display: block;
   width: 1.125rem;
   height: 1.125rem;
