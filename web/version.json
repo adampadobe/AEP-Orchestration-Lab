@@ -1,14 +1,14 @@
 {
-  "gitSha": "f045656688dace4777735871d8707822fb8ccc1f",
-  "gitShortSha": "f0456566",
+  "gitSha": "a269f36ce0c18c1cef99b576dc351548ebd6c9b1",
+  "gitShortSha": "a269f36c",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] chore: bump architecture apps cache buster and stamp version.json",
+  "gitCommitSubject": "[apalmer] chore: stamp version.json after hosting deploy",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T08:34:01+01:00",
-  "deployedAt": "2026-06-22T07:34:14.172Z",
+  "gitCommitDate": "2026-06-22T08:34:33+01:00",
+  "deployedAt": "2026-06-22T07:40:38.659Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": false,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f045656688dace4777735871d8707822fb8ccc1f"
+  "dirtyWorkingTree": true,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/a269f36ce0c18c1cef99b576dc351548ebd6c9b1"
 }
