@@ -903,11 +903,14 @@ html[data-aep-theme='dark'] .arch-canvas-zoom-pct:hover {
   display: none !important;
 }
 
-/* Canvas Tools — same shell as Lines; stacks below line/flow bars in document flow */
+/* Canvas Tools — single wide row (PowerPoint-style); scroll on narrow viewports */
 .arch-tools-float-bar {
-  flex-wrap: wrap;
-  max-width: min(96vw, 42rem);
-  row-gap: 0.2rem;
+  flex-wrap: nowrap;
+  max-width: min(96vw, 56rem);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .arch-flow-float-bar {
@@ -1019,8 +1022,8 @@ html[data-aep-theme='dark'] .arch-connector-float-bar .arch-flow-float-reset-btn
 .arch-tools-float-selected {
   align-items: center;
   gap: 0.35rem;
-  flex-wrap: wrap;
-  max-width: 100%;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .arch-tools-float-name-wrap {
@@ -2077,7 +2080,11 @@ html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle
 
 .arch-container-align-seg {
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.06rem;
+  padding-left: 0.2rem;
+  margin-left: 0.12rem;
+  border-left: 1px solid var(--dash-border, #e2e8f0);
+  flex-shrink: 0;
 }
 
 .arch-container-align-label {
@@ -2096,11 +2103,9 @@ html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle
   flex-shrink: 0;
 }
 
-.arch-container-align-btn {
-  min-width: 1.65rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.arch-container-align-btn .arch-line-float-ico {
+  width: 1rem;
+  height: 1rem;
 }
 
 .arch-container-align-btn:disabled {
@@ -3195,6 +3200,32 @@ html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
 .arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img,
 .arch-custom-box--product-logo .arch-custom-box-spectrum-img {
   pointer-events: none;
+}
+
+/* Platform tile embedded icons — hit target on transparent rect; decorative art is click-through */
+.arch-node-icon-part image,
+.arch-node-icon-part .arch-node-icon-part-badge,
+.arch-node-icon-part .arch-node-icon-part-badge-letter {
+  pointer-events: none;
+}
+
+.arch-int-viewport--edit-mode .arch-node-icon-part [data-arch-icon-hit] {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-icon-part [data-arch-icon-hit] {
+  cursor: grab;
+}
+
+.arch-int-viewport.arch-drag-on.arch-dragging .arch-node-icon-part [data-arch-icon-hit] {
+  cursor: grabbing;
+}
+
+.arch-node-icon-part--selected [data-arch-icon-hit] {
+  stroke: var(--dash-blue, #1473e6);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
 }
 
 /* Vertex AI assist panel (Edit mode rail) */
