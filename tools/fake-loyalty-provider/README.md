@@ -6,13 +6,16 @@ This is **not** the same as AJO **Integrations** (read-only personalization). Fu
 
 ## Deployed service
 
-After deploy, the Cloud Run URL is printed by the deploy script. Example shape:
+**Cloud Run (aep-orchestration-lab, us-central1):**
 
 ```
-https://fake-loyalty-provider-<hash>-uc.a.run.app
+https://fake-loyalty-provider-a5xduykcsq-uc.a.run.app
 ```
 
-Update this section with your deployed URL after first deploy (no secrets here).
+- Health: `GET /health`
+- Fulfillment (register in AJO): `POST /v1/fulfill`
+
+`FAKE_LOYALTY_API_KEY` is configured on the Cloud Run revision (not in git). Set the same value in AJO Loyalty admin headers when registering the provider.
 
 | Endpoint | Method | Auth | Response |
 |----------|--------|------|----------|
