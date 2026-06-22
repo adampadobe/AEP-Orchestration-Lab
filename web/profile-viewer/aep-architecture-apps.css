@@ -75,6 +75,7 @@
   width: 100%;
   height: auto;
   max-height: 100%;
+  flex: 0 0 auto;
 }
 
 .arch-int-page .dashboard-hero--page-banner {
@@ -85,7 +86,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: min(72dvh, 900px);
+  min-height: min(56dvh, 780px);
   width: 100%;
   background: linear-gradient(180deg, #f4f6f9 0%, #eef1f6 100%);
   border-radius: 12px;
@@ -748,22 +749,32 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
   flex: 1;
   min-height: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 0 0.5rem 0.45rem;
 }
 
 .arch-int-svg-wrap svg {
   display: block;
+  flex: 0 0 auto;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-width: 100%;
 }
 
-/* Floating line toolbar (Edit mode — draw lines or selected connector) */
+/* Line / flow / canvas toolbars — sit directly under the diagram canvas */
 .arch-line-float-bar {
   --arch-line-float-stroke: #308fff;
-  position: absolute;
-  left: 50%;
-  bottom: 0.65rem;
-  transform: translateX(-50%);
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
   z-index: 8;
+  margin: 0.4rem auto 0;
+  flex-shrink: 0;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -796,24 +807,15 @@ html[data-aep-theme='dark'] .arch-proposals-bar {
   display: none !important;
 }
 
-/* Canvas Tools — same shell as Lines; position stacked above Lines bar when both visible */
+/* Canvas Tools — same shell as Lines; stacks below line/flow bars in document flow */
 .arch-tools-float-bar {
-  bottom: 0.65rem;
   flex-wrap: wrap;
   max-width: min(96vw, 42rem);
   row-gap: 0.2rem;
 }
 
-.arch-int-viewport--tools-float-line-offset .arch-tools-float-bar:not([hidden]) {
-  bottom: 3.65rem;
-}
-
 .arch-flow-float-bar {
-  bottom: 3.65rem;
-}
-
-.arch-int-viewport--tools-float-line-offset .arch-flow-float-bar:not([hidden]) {
-  bottom: 6.65rem;
+  margin-top: 0.35rem;
 }
 
 .arch-flow-float-reset-btn {

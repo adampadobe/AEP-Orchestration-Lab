@@ -7874,6 +7874,8 @@
       p.setAttribute('stroke-linejoin', 'round');
       if (ln.dashStyle === 'dotted') {
         p.setAttribute('stroke-dasharray', '5 4');
+      } else {
+        p.removeAttribute('stroke-dasharray');
       }
       p.setAttribute('data-user-line-id', ln.id);
       p.setAttribute(
@@ -7887,9 +7889,13 @@
         var la = archUserLineGetLineArrows(ln);
         if (la === 'end' || la === 'both') {
           p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
+        } else {
+          p.removeAttribute('marker-end');
         }
         if (la === 'both') {
           p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+        } else {
+          p.removeAttribute('marker-start');
         }
       }
       grp.appendChild(p);
@@ -8017,8 +8023,8 @@
   function archUserLineSyncPropsHud() {
     var sel = archUserLineGetSelected();
     archLineFloatUpdateVisibility();
-    if (sel && userLines.drawMode) {
-      archEditorSetPanel('sources');
+    if (sel) {
+      if (userLines.drawMode) archEditorSetPanel('sources');
       archLineFloatSyncFromLine(sel);
     }
     archEditorApplyModesForCurrentSelection();
