@@ -39,6 +39,7 @@ const PAGE_SCRIPTS = {
   ],
   'visibility-overview.html': [
     '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css' + v + '">',
+    '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css' + v + '">',
     '<script src="./llm-demo-snapshot-build-id.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-blockers.js' + v + '"></script>',
     '<script src="./llm-demo-snapshot-opportunities-catalog.js' + v + '"></script>',
@@ -74,6 +75,8 @@ const blockWithLinksRe =
   /<link rel="stylesheet" href="\.\/llm-demo-snapshot[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/i;
 const blockScriptsOnlyRe =
   /<script src="\.\/llm-demo-snapshot-build-id\.js[^"]*"><\/script>[\s\S]*?<script src="\.\/llm-demo-snapshot-market\.js[^"]*"><\/script>/i;
+const blockPatchEndRe =
+  /<link rel="stylesheet" href="\.\/llm-demo-snapshot-nav\.css[^"]*">[\s\S]*?<script src="\.\/llm-demo-snapshot-patch\.js[^"]*"><\/script>/i;
 
 for (const file of fs.readdirSync(snapDir).filter((f) => f.endsWith('.html'))) {
   const fp = path.join(snapDir, file);
@@ -83,6 +86,8 @@ for (const file of fs.readdirSync(snapDir).filter((f) => f.endsWith('.html'))) {
     html = html.replace(blockWithLinksRe, injection);
   } else if (blockScriptsOnlyRe.test(html)) {
     html = html.replace(blockScriptsOnlyRe, injection);
+  } else if (file === 'visibility-overview.html' && blockPatchEndRe.test(html)) {
+    html = html.replace(blockPatchEndRe, injection);
   } else if (!html.includes('llm-demo-snapshot-blockers.js')) {
     html = html.replace(/<\/body>/i, injection + '\n</body>');
   }

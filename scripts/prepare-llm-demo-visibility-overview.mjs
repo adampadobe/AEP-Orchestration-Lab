@@ -44,6 +44,7 @@ const outHtml = path.join(outDir, 'visibility-overview.html');
 
 const SNAPSHOT_SCRIPTS = [
   '<link rel="stylesheet" href="./llm-demo-snapshot-nav.css">',
+  '<link rel="stylesheet" href="./llm-demo-snapshot-platform.css">',
   '<script src="./llm-demo-snapshot-build-id.js"></script>',
   '<script src="./llm-demo-snapshot-blockers.js"></script>',
   '<script src="./llm-demo-snapshot-opportunities-catalog.js"></script>',
@@ -68,11 +69,32 @@ function copyAssets() {
   console.log('Copied', n, 'asset files to', assetsDir);
 }
 
+function fixWalnutAssetPaths(html) {
+  // Walnut export links sit beside bundle files; after copy they live under ./assets/.
+  html = html.replace(/((?:href|src)="\.\/)assets\/index"/g, '$1assets/assets"');
+  html = html.replace(/((?:href|src)="\.\/)assets\((\d+)\)"/g, '$1assets/assets($2)"');
+  html = html.replace(/((?:href|src)="\.\/)assets"/g, '$1assets/assets"');
+  return html;
+}
+
+function stripStrayNotices(html) {
+  html = html.replace(
+    /<div[^>]*role="status"[^>]*>[\s\S]*?Welcome to Users and Permissions[\s\S]*?<\/button>\s*<\/div>/gi,
+    '',
+  );
+  html = html.replace(
+    /<div[^>]*-macro-static-xHSEkc[^>]*>[\s\S]*?Welcome to Users and Permissions[\s\S]*?<\/div>\s*<\/div>/gi,
+    '',
+  );
+  return html;
+}
+
 function patchHtml(html) {
   html = html.replace(/\.\/Adobe Brand Visibility - Jun 08, 2026 VO_files\//g, './assets/');
   html = html.replace(/\.\/assets\((\d+)\)/g, './assets($1)');
-  html = html.replace(/href="\.\/assets"/g, 'href="./assets/index"');
   html = html.replace(/\.download/g, '');
+  html = fixWalnutAssetPaths(html);
+  html = stripStrayNotices(html);
 
   html = html.replace(/<script[^>]*src="\.\/assets\/rum-standalone\.js"[^>]*><\/script>/gi, '');
   html = html.replace(/<script[^>]*src="\.\/assets\/adobe-ims\.[^"]+"[^>]*><\/script>/gi, '');
