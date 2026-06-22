@@ -218,7 +218,7 @@
       if (NODE_LAYOUT[g.id.slice(5)]) return true;
     }
 
-    var iconPartHit = e.target.closest && e.target.closest('[data-arch-icon-part]');
+    var iconPartHit = archNodeIconPartFromTarget(e.target);
     if (iconPartHit) {
       var ik = iconPartHit.getAttribute('data-arch-node-key');
       if (ik && NODE_ICON_PARTS[ik]) return true;
@@ -299,14 +299,20 @@
     if (archGetActiveTool() !== 'select') return;
     var hasPlatform = archSelection && archSelection.count() > 0;
     var hasCbox = !!archCustomBoxSelectedId;
-    var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox;
+    var hasIconPart = !!(archNodeIconSelectedKey && NODE_ICON_PARTS[archNodeIconSelectedKey]);
+    var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox && !hasIconPart;
     if (lineOnly) return;
-    if (!hasPlatform && !hasCbox && !archLabelSelectedId) return;
+    if (!hasPlatform && !hasCbox && !archLabelSelectedId && !hasIconPart) return;
 
     archDragSetEnabled(true);
 
     if (archLabelSelectedId) {
       archLabelSetEnabled(true);
+      return;
+    }
+
+    if (hasIconPart) {
+      archLabelSetEnabled(false);
       return;
     }
 
@@ -384,6 +390,16 @@
           '\n\nUse the floating Tools bar on the diagram for fill, outline, name, align-inside, and layer order ([ / ]).';
         return;
       }
+    }
+    if (archNodeIconSelectedKey && NODE_ICON_PARTS[archNodeIconSelectedKey]) {
+      ins.hidden = false;
+      body.textContent =
+        'Tile icon\nKey: ' +
+        archNodeIconSelectedKey +
+        '\nTitle: ' +
+        (ARCH_NODE_LABELS[archNodeIconSelectedKey] || archNodeIconSelectedKey) +
+        '\n\nDrag to reposition inside the box. Use Icons & logos in the rail to replace the image.';
+      return;
     }
     if (!archSelection || archSelection.count() !== 1) {
       if (!archBgSelectedId) ins.hidden = true;
@@ -946,7 +962,7 @@
     if (!archIsEditMode() || !archSelection) return;
     if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
     if (userLines.drawMode || customBoxDrawMode) return;
-    var iconPart = e.target.closest && e.target.closest('[data-arch-icon-part]');
+    var iconPart = archNodeIconPartFromTarget(e.target);
     if (iconPart) {
       var ikey = iconPart.getAttribute('data-arch-node-key');
       if (ikey && NODE_ICON_PARTS[ikey]) {
@@ -1138,7 +1154,7 @@
       }
     }
 
-    var iconPartDbl = e.target.closest && e.target.closest('[data-arch-icon-part]');
+    var iconPartDbl = archNodeIconPartFromTarget(e.target);
     if (iconPartDbl) {
       var ikeyDbl = iconPartDbl.getAttribute('data-arch-node-key');
       if (ikeyDbl && NODE_ICON_PARTS[ikeyDbl]) {
@@ -1827,6 +1843,88 @@
     };
   }
 
+  function archNodeIconPartFromTarget(target) {
+    if (!target || !target.closest) return null;
+    if (target.closest('[data-arch-icon-part]')) return target.closest('[data-arch-icon-part]');
+    var hit = target.closest('[data-arch-icon-hit]');
+    return hit ? hit.closest('[data-arch-icon-part]') : null;
+  }
+
+  function archNodeIconEnsureDom() {
+    Object.keys(NODE_ICON_PARTS).forEach(function (key) {
+      var nodeG = qs('#node-' + key);
+      if (!nodeG || nodeG.querySelector('[data-arch-icon-part]')) return;
+      var def = NODE_ICON_PARTS[key];
+      var partG = document.createElementNS(SVG_NS, 'g');
+      partG.setAttribute('class', 'arch-node-icon-part');
+      partG.setAttribute('data-arch-icon-part', '1');
+      partG.setAttribute('data-arch-node-key', key);
+      partG.setAttribute('transform', 'translate(' + def.shellDx + ',' + def.shellDy + ')');
+
+      var hit = document.createElementNS(SVG_NS, 'rect');
+      hit.setAttribute('data-arch-icon-hit', '1');
+      hit.setAttribute('x', '0');
+      hit.setAttribute('y', '0');
+      hit.setAttribute('width', String(def.w));
+      hit.setAttribute('height', String(def.h));
+      hit.setAttribute('fill', 'transparent');
+
+      if (def.kind === 'image') {
+        var legacyImg = nodeG.querySelector('image:not(.arch-node-icon-part-img)');
+        var href = def.href;
+        if (legacyImg) {
+          href =
+            legacyImg.getAttribute('href') ||
+            legacyImg.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ||
+            href;
+          legacyImg.remove();
+        }
+        var img = document.createElementNS(SVG_NS, 'image');
+        img.setAttribute('class', 'arch-node-icon-part-img');
+        img.setAttribute('href', href);
+        img.setAttribute('x', '0');
+        img.setAttribute('y', '0');
+        img.setAttribute('width', String(def.w));
+        img.setAttribute('height', String(def.h));
+        img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        partG.appendChild(img);
+      } else if (def.kind === 'badge') {
+        nodeG.querySelectorAll('rect:not([data-arch-shell])').forEach(function (r) {
+          r.remove();
+        });
+        nodeG.querySelectorAll('text').forEach(function (t) {
+          if (t.classList.contains('arch-node-sublabel')) return;
+          if ((archGetTextContent(t) || '').trim() === 'A') t.remove();
+        });
+        var badge = document.createElementNS(SVG_NS, 'rect');
+        badge.setAttribute('class', 'arch-node-icon-part-badge');
+        badge.setAttribute('x', '0');
+        badge.setAttribute('y', '0');
+        badge.setAttribute('width', String(def.w));
+        badge.setAttribute('height', String(def.h));
+        badge.setAttribute('rx', '2');
+        badge.setAttribute('fill', '#e1251b');
+        var letter = document.createElementNS(SVG_NS, 'text');
+        letter.setAttribute('class', 'arch-node-icon-part-badge-letter');
+        letter.setAttribute('x', String(def.w / 2));
+        letter.setAttribute('y', String(Math.round(def.h * 0.8)));
+        letter.setAttribute('text-anchor', 'middle');
+        letter.setAttribute('fill', '#ffffff');
+        letter.setAttribute('font-family', 'Inter,system-ui,sans-serif');
+        letter.setAttribute('font-size', '6px');
+        letter.setAttribute('font-weight', '800');
+        letter.textContent = 'A';
+        partG.appendChild(badge);
+        partG.appendChild(letter);
+      }
+
+      partG.appendChild(hit);
+      var labelText = nodeG.querySelector('text.arch-node-sublabel, text');
+      if (labelText) nodeG.insertBefore(partG, labelText);
+      else nodeG.appendChild(partG);
+    });
+  }
+
   function archNodeIconApplyPositions() {
     Object.keys(NODE_ICON_PARTS).forEach(function (key) {
       var partG = qs('#node-' + key + ' [data-arch-icon-part]');
@@ -1878,7 +1976,11 @@
     archFlowClearSelection();
     archBgClearSelection();
     archLabelClearSelection();
-    if (archSelection) archSelection.setSingle('node-' + key);
+    if (archSelection) archSelection.clear();
+    if (archEditMulti) {
+      archEditMulti.ids.clear();
+      archEditMulti.primary = null;
+    }
     archNodeIconApplyPositions();
     archCustomBoxesRender();
     archUserLineRender();
@@ -1948,7 +2050,7 @@
     if (!archIsEditMode() || archGetActiveTool() !== 'select') return;
     if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    var part = e.currentTarget;
+    var part = archNodeIconPartFromTarget(e.target);
     if (!part || !part.getAttribute('data-arch-icon-part')) return;
     var key = part.getAttribute('data-arch-node-key');
     if (!key || !NODE_ICON_PARTS[key]) return;
@@ -1972,8 +2074,9 @@
   }
 
   function archNodeIconInitListeners() {
-    if (archNodeIconListenersBound) return;
     $all('[data-arch-icon-part]').forEach(function (el) {
+      if (el.getAttribute('data-arch-icon-listener') === '1') return;
+      el.setAttribute('data-arch-icon-listener', '1');
       el.addEventListener('pointerdown', archNodeIconPartPointerDown);
     });
     archNodeIconListenersBound = true;
@@ -11219,6 +11322,7 @@
       g.addEventListener('pointerdown', archDragPointerDown);
     });
 
+    archNodeIconEnsureDom();
     archNodeIconInitListeners();
     archNodeIconApplyPositions();
 

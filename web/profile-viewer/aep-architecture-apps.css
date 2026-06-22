@@ -3206,10 +3206,14 @@ html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
   pointer-events: none;
 }
 
-/* Platform tile embedded icons — hit target on transparent rect; decorative art is click-through */
+/* Platform tile embedded icons — hit target on transparent rect (topmost); decorative art is click-through */
 .arch-node-icon-part image,
 .arch-node-icon-part .arch-node-icon-part-badge,
 .arch-node-icon-part .arch-node-icon-part-badge-letter {
+  pointer-events: none;
+}
+
+.arch-node-icon-part [data-arch-icon-hit] {
   pointer-events: none;
 }
 

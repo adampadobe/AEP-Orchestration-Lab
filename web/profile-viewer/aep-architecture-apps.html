@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622h">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622i">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -337,14 +337,20 @@
 
             <g id="node-creative" class="arch-node arch-draggable">
               <rect data-arch-shell="1" x="628" y="58" width="104" height="36" rx="6" fill="#ffffff" stroke="#d1d5db"/>
-              <image href="images/creative-cloud-app-icon.png" x="634" y="68" width="16" height="16" preserveAspectRatio="xMidYMid meet"/>
+              <g class="arch-node-icon-part" data-arch-icon-part="1" data-arch-node-key="creative" transform="translate(6,10)">
+                <image class="arch-node-icon-part-img" href="images/creative-cloud-app-icon.png" x="0" y="0" width="16" height="16" preserveAspectRatio="xMidYMid meet"/>
+                <rect data-arch-icon-hit="1" x="0" y="0" width="16" height="16" fill="transparent"/>
+              </g>
               <text x="656" y="80" text-anchor="start" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
             </g>
 
             <g id="node-aem" class="arch-node arch-draggable">
               <rect data-arch-shell="1" x="628" y="100" width="104" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
-              <rect x="634" y="106" width="10" height="10" rx="2" fill="#e1251b"/>
-              <text x="639" y="114" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
+              <g class="arch-node-icon-part" data-arch-icon-part="1" data-arch-node-key="aem" transform="translate(6,6)">
+                <rect class="arch-node-icon-part-badge" x="0" y="0" width="10" height="10" rx="2" fill="#e1251b"/>
+                <text class="arch-node-icon-part-badge-letter" x="5" y="8" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
+                <rect data-arch-icon-hit="1" x="0" y="0" width="10" height="10" fill="transparent"/>
+              </g>
               <text x="650" y="117" text-anchor="start" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
             </g>
 
@@ -977,6 +983,6 @@
   <script defer src="diagram/tour-editor.js?v=20260621"></script>
   <script defer src="diagram/arch-assist-panel.js?v=20260621c"></script>
   <script defer src="diagram/tests.js?v=20260621"></script>
-  <script defer src="aep-architecture-apps.js?v=20260622c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260622d"></script>
 </body>
 </html>
