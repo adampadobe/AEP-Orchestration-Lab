@@ -8,7 +8,25 @@
   var ledgerEmptyEl = document.getElementById('lrpLedgerEmpty');
   var ledgerTableWrapEl = document.getElementById('lrpLedgerTableWrap');
 
+  function selectedSandbox() {
+    var sandbox = 'apalmer';
+    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+      var selected = window.AepGlobalSandbox.getSandboxName();
+      if (selected) sandbox = selected;
+    }
+    var select = document.getElementById('lrpSandboxSelect');
+    if (select && select.value) sandbox = select.value;
+    return String(sandbox || 'apalmer').trim().toLowerCase();
+  }
+
   function getCfg() {
+    var sb = selectedSandbox();
+    if (
+      window.loyaltyRewardProviderConfig &&
+      typeof window.loyaltyRewardProviderConfig.getForSandbox === 'function'
+    ) {
+      return window.loyaltyRewardProviderConfig.getForSandbox(sb);
+    }
     return window.loyaltyRewardProviderConfig || {};
   }
 
@@ -17,7 +35,8 @@
   }
 
   function fulfillUrl() {
-    return baseUrl() + '/v1/fulfill';
+    if (getCfg().fulfillUrl) return getCfg().fulfillUrl;
+    return baseUrl() + '/' + selectedSandbox() + '/v1/fulfill';
   }
 
   function healthUrl() {
@@ -26,6 +45,14 @@
 
   function oauthUrl() {
     return baseUrl() + '/oauth/token';
+  }
+
+  function ledgerApiUrl() {
+    return '/api/loyalty-provider/' + encodeURIComponent(selectedSandbox()) + '/ledger?limit=50';
+  }
+
+  function healthApiUrl() {
+    return '/api/loyalty-provider/health?sandbox=' + encodeURIComponent(selectedSandbox());
   }
 
   function showMsg(text, kind) {
@@ -133,12 +160,12 @@
   async function checkHealth() {
     setHealthStatus('Checking…', 'warn');
     try {
-      var res = await fetch('/api/fake-loyalty/health', { headers: { Accept: 'application/json' } });
+      var res = await fetch(healthApiUrl(), { headers: { Accept: 'application/json' } });
       var data = await res.json().catch(function () {
         return {};
       });
       if (res.ok && data.ok && data.reachable) {
-        setHealthStatus('Healthy', 'ok');
+        setHealthStatus('Healthy (' + selectedSandbox() + ')', 'ok');
         return;
       }
       var err = data.error || 'Provider unreachable';
@@ -154,7 +181,11 @@
     var count = Array.isArray(entries) ? entries.length : 0;
     if (ledgerMetaEl) {
       var totalNote = typeof totalStored === 'number' ? ' · ' + totalStored + ' stored in memory' : '';
-      ledgerMetaEl.textContent = count ? count + ' recent request' + (count === 1 ? '' : 's') + totalNote : 'No requests yet' + totalNote;
+      ledgerMetaEl.textContent =
+        (count ? count + ' recent request' + (count === 1 ? '' : 's') : 'No requests yet') +
+        ' · sandbox ' +
+        selectedSandbox() +
+        totalNote;
     }
 
     ledgerBodyEl.innerHTML = '';
@@ -208,7 +239,7 @@
   async function refreshLedger() {
     if (ledgerMetaEl) ledgerMetaEl.textContent = 'Loading…';
     try {
-      var res = await fetch('/api/fake-loyalty/ledger?limit=50', {
+      var res = await fetch(ledgerApiUrl(), {
         headers: { Accept: 'application/json' },
       });
       var data = await res.json().catch(function () {
@@ -230,6 +261,8 @@
   }
 
   function initStaticUrls() {
+    var cfg = getCfg();
+    var sandbox = selectedSandbox();
     var fulfillEl = document.getElementById('lrpFulfillUrl');
     var healthEl = document.getElementById('lrpHealthUrl');
     var oauthEl = document.getElementById('lrpOauthUrl');
@@ -238,56 +271,61 @@
     var headersPre = document.getElementById('lrpHeadersSnippet');
     var registerCmd = document.getElementById('lrpRegisterCmd');
     var configureCmd = document.getElementById('lrpConfigureCmd');
+    var resetCmd = document.getElementById('lrpResetCmd');
     var challengeCmd = document.getElementById('lrpChallengeCmd');
     var challengeIdEl = document.getElementById('lrpChallengeId');
     var audienceIdEl = document.getElementById('lrpAudienceId');
     var audienceNameEl = document.getElementById('lrpAudienceName');
+    var sandboxLabelEl = document.getElementById('lrpSandboxLabel');
 
     if (fulfillEl) fulfillEl.textContent = fulfillUrl();
     if (healthEl) healthEl.textContent = healthUrl();
     if (oauthEl) oauthEl.textContent = oauthUrl();
-    if (guidEl) guidEl.textContent = getCfg().registeredProviderGuid || '—';
-    if (rewardEl) rewardEl.textContent = getCfg().rewardDefinitionKey || 'points';
+    if (guidEl) guidEl.textContent = cfg.registeredProviderGuid || '(register via setup script)';
+    if (rewardEl) rewardEl.textContent = cfg.rewardDefinitionKey || 'points';
+    if (sandboxLabelEl) sandboxLabelEl.textContent = sandbox;
 
     var headersSnippet =
       'X-API-Key: <configured in Cloud Run / AJO Loyalty admin>\nContent-Type: application/json';
     if (headersPre) headersPre.textContent = headersSnippet;
-
-    var sandbox = getCfg().defaultSandbox || 'apalmer';
-    if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
-      var selected = window.AepGlobalSandbox.getSandboxName();
-      if (selected) sandbox = selected;
-    }
 
     if (registerCmd) {
       registerCmd.textContent =
         'npm run ajo:loyalty-register-provider -- \\\n  --url ' +
         fulfillUrl() +
         ' \\\n  --sandbox ' +
-        sandbox;
+        sandbox +
+        ' \\\n  --name "' +
+        sandbox +
+        ' loyalty provider"';
     }
     if (configureCmd) {
-      configureCmd.textContent =
-        'npm run ajo:loyalty-setup -- \\\n  --sandbox ' + sandbox;
+      configureCmd.textContent = 'npm run ajo:loyalty-setup -- \\\n  --sandbox ' + sandbox;
     }
-    if (challengeIdEl) challengeIdEl.textContent = getCfg().labChallengeId || '—';
-    if (audienceIdEl) audienceIdEl.textContent = getCfg().labAudienceId || '—';
+    if (resetCmd) {
+      resetCmd.textContent = 'npm run ajo:loyalty-reset -- \\\n  --sandbox ' + sandbox;
+    }
+    if (challengeIdEl) challengeIdEl.textContent = cfg.labChallengeId || '(created by setup)';
+    if (audienceIdEl) audienceIdEl.textContent = cfg.labAudienceId || '—';
     if (audienceNameEl) {
-      var audName = getCfg().labAudienceName;
-      audienceNameEl.textContent = audName ? audName + (getCfg().labChallengeState ? ' · challenge ' + getCfg().labChallengeState : '') : '';
+      var audName = cfg.labAudienceName;
+      audienceNameEl.textContent = audName
+        ? audName + (cfg.labChallengeState ? ' · challenge ' + cfg.labChallengeState : '')
+        : '';
     }
     if (challengeCmd) {
       challengeCmd.textContent =
         'npm run ajo:loyalty-create-challenge -- \\\n  --sandbox ' +
         sandbox +
         ' \\\n  --audience-id ' +
-        (getCfg().labAudienceId || '<segment-uuid>') +
+        (cfg.labAudienceId || '<segment-uuid>') +
         ' \\\n  --provider-guid ' +
-        (getCfg().registeredProviderGuid || '<provider-guid>') +
+        (cfg.registeredProviderGuid || '<provider-guid>') +
         ' \\\n  --reward-definition ' +
-        (getCfg().rewardDefinitionKey || 'points') +
+        (cfg.rewardDefinitionKey || 'points') +
         ' \\\n  --task-id ' +
-        (getCfg().labTaskId || 'aep-lab-purchase-task');
+        (cfg.labTaskId || 'aep-lab-coffee-purchase-task') +
+        ' \\\n  --name "Buy 3 Coffees — Lab Challenge"';
     }
   }
 
@@ -307,6 +345,8 @@
 
     select.addEventListener('change', function () {
       initStaticUrls();
+      checkHealth();
+      refreshLedger();
     });
   }
 

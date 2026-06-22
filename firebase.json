@@ -266,6 +266,13 @@
         }
       },
       {
+        "source": "/api/loyalty-provider/**",
+        "function": {
+          "functionId": "loyaltyRewardProviderTool",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/fake-loyalty/**",
         "function": {
           "functionId": "fakeLoyaltyTool",

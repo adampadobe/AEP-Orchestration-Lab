@@ -22,7 +22,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="AJO Loyalty fake reward provider">Loyalty provider</span>
+          <span class="dashboard-env-pill" title="AJO Loyalty reward fulfillment gateway">Loyalty provider</span>
           <a href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AJO_LOYALTY_CHALLENGES.md" class="dashboard-topbar-link" target="_blank" rel="noopener">Setup docs</a>
           <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
           <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
@@ -35,7 +35,7 @@
             <header class="dashboard-hero-header">
               <h2 id="lrpBannerHeading" class="dashboard-hero-title">Loyalty reward provider</h2>
               <p class="dashboard-hero-subtitle">
-                Public fake fulfillment endpoint for <strong>AJO Loyalty Challenges</strong> (private beta). Copy connection URLs into Loyalty admin, register the provider, and monitor fulfillment requests received by the lab Cloud Run service.
+                Sandbox-aware <strong>reward fulfillment gateway</strong> for <strong>AJO Loyalty Challenges</strong> (private beta). Register the sandbox fulfillment URL in Loyalty admin, run setup scripts from your terminal, and monitor fulfillment requests received by the lab Cloud Run service.
               </p>
             </header>
           </div>
@@ -45,7 +45,21 @@
 
         <div class="lrp-layout">
           <div class="lrp-panel">
-            <h3>Connection</h3>
+            <h3>Reward provider role</h3>
+            <p class="lrp-lead">
+              When a member completes a challenge task, <strong>AJO calls your registered fulfillment URL</strong> — you are a
+              <strong>reward gateway</strong>, not a passive log collector. A production provider would credit points in a loyalty system,
+              issue coupon codes, or update member balances via downstream APIs. This lab provider accepts the fulfillment payload,
+              returns <code>{ "status": "accepted" }</code>, and logs requests to an in-memory ledger (optionally sync to AEP
+              <code>loyalty.points</code> is a future enhancement).
+            </p>
+            <p class="lrp-lead">
+              <strong>Progress tracking</strong> (e.g. buy 3 coffees) happens in <strong>AEP experience events + AJO</strong>, not in the
+              reward provider. Send qualifying events for profiles in the challenge audience; AJO evaluates task progress and triggers
+              fulfillment when the goal is met. This is the standard challenge pattern — not BYOD.
+            </p>
+
+            <h3 style="margin-top:1.25rem">Connection</h3>
             <p class="lrp-lead">
               Adobe calls the fulfillment URL when a member earns a reward. Health checks use the lab Firebase proxy so the browser never needs direct cross-origin access.
             </p>
@@ -78,7 +92,11 @@
             </div>
 
             <p class="lrp-note">
-              <strong>API key:</strong> configured in Cloud Run (<code>FAKE_LOYALTY_API_KEY</code>) and AJO Loyalty admin — never shown in this UI.
+              <strong>API key:</strong> configured in Cloud Run (<code>LOYALTY_PROVIDER_API_KEY</code>) and AJO Loyalty admin — never shown in this UI.
+            </p>
+
+            <p class="lrp-note">
+              <strong>Sandbox path:</strong> fulfillment URL includes the sandbox key (<code id="lrpSandboxLabel">apalmer</code>) so each sandbox can register an isolated endpoint and ledger.
             </p>
 
             <h3 style="margin-top:1.25rem">AJO setup</h3>
@@ -122,6 +140,12 @@
               <button type="button" class="lrp-btn" data-lrp-copy="lrpConfigureCmd" data-copy-msg="Command copied.">Copy command</button>
             </div>
 
+            <h4 class="lrp-subhead">Reset lab config (idempotent)</h4>
+            <pre id="lrpResetCmd" class="lrp-pre" translate="no"></pre>
+            <div class="lrp-btn-row">
+              <button type="button" class="lrp-btn" data-lrp-copy="lrpResetCmd" data-copy-msg="Command copied.">Copy command</button>
+            </div>
+
             <h4 class="lrp-subhead">Lab challenge ID</h4>
             <div class="lrp-url-row">
               <code id="lrpChallengeId" class="lrp-code lrp-guid" translate="no"></code>
@@ -156,7 +180,7 @@
               <button type="button" class="lrp-btn lrp-btn--primary" id="lrpRefreshLedger">Refresh</button>
             </div>
             <p class="lrp-lead">
-              Recent <code>POST /v1/fulfill</code> requests accepted by the fake provider (in-memory on Cloud Run; resets on redeploy).
+              Recent <code>POST /{sandbox}/v1/fulfill</code> requests accepted by the lab provider (in-memory on Cloud Run; resets on redeploy). Ledger is isolated per sandbox.
             </p>
             <p id="lrpLedgerMeta" class="lrp-ledger-meta">Loading…</p>
 

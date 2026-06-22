@@ -1,7 +1,7 @@
 {
-  "name": "fake-loyalty-provider",
-  "description": "Fake AJO Loyalty reward fulfillment provider for AEP Orchestration Lab demos.",
-  "version": "1.0.0",
+  "name": "loyalty-reward-provider",
+  "description": "Sandbox-aware AJO Loyalty reward fulfillment provider for AEP Orchestration Lab.",
+  "version": "2.0.0",
   "private": true,
   "engines": {
     "node": ">=22"

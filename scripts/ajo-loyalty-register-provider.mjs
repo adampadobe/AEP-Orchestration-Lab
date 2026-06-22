@@ -6,14 +6,15 @@
  * Loads ~/.config/adobe-ims/credentials.env without overwriting non-empty env vars.
  *
  * Usage:
- *   export FAKE_LOYALTY_API_KEY='same-as-cloud-run'
+ *   export LOYALTY_PROVIDER_API_KEY='same-as-cloud-run'
  *   npm run ajo:loyalty-register-provider -- \
- *     --url https://fake-loyalty-provider-xxxxx-uc.a.run.app/v1/fulfill \
- *     --sandbox apalmer
+ *     --url https://loyalty-reward-provider-xxxxx-uc.a.run.app/apalmer/v1/fulfill \
+ *     --sandbox apalmer \
+ *     --name "apalmer loyalty provider"
  *
  *   npm run ajo:loyalty-register-provider -- --dry-run --url https://example.com/v1/fulfill
  *
- * Env: ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_SCOPES, ADOBE_IMS_ORG, FAKE_LOYALTY_API_KEY
+ * Env: ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_SCOPES, ADOBE_IMS_ORG, LOYALTY_PROVIDER_API_KEY
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -53,8 +54,8 @@ function mergeCredentialsIntoEnv(filePath) {
 function parseArgs(argv) {
   const out = {
     url: '',
-    name: 'AEP Lab Fake Loyalty',
-    desc: 'Lab reward provider for apalmer sandbox',
+    name: 'apalmer loyalty provider',
+    desc: 'Lab reward fulfillment gateway for apalmer sandbox',
     sandbox: '',
     rewardKey: 'points',
     rewardName: 'Program Points',
@@ -153,9 +154,11 @@ async function main() {
     process.exit(1);
   }
 
-  const apiKey = String(process.env.FAKE_LOYALTY_API_KEY || '').trim();
+  const apiKey = String(
+    process.env.LOYALTY_PROVIDER_API_KEY || process.env.FAKE_LOYALTY_API_KEY || '',
+  ).trim();
   if (!apiKey && !args.dryRun) {
-    console.error('Set FAKE_LOYALTY_API_KEY (same value configured on Cloud Run and in AJO headers).');
+    console.error('Set LOYALTY_PROVIDER_API_KEY (same value configured on Cloud Run and in AJO headers).');
     process.exit(1);
   }
 
@@ -170,7 +173,7 @@ async function main() {
     name: args.name,
     desc: args.desc,
     url: args.url,
-    apiKey: apiKey || '<set-FAKE_LOYALTY_API_KEY>',
+    apiKey: apiKey || '<set-LOYALTY_PROVIDER_API_KEY>',
     rewardKey: args.rewardKey,
     rewardName: 'Program Points',
   });

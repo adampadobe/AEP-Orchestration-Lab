@@ -15,7 +15,7 @@
  *   npm run ajo:loyalty-setup -- --dry-run
  *
  * Env: ADOBE_* from ~/.config/adobe-ims/credentials.env
- *      FAKE_LOYALTY_API_KEY (only if provider must be registered)
+ *      LOYALTY_PROVIDER_API_KEY (or legacy FAKE_LOYALTY_API_KEY if provider must be registered)
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -24,16 +24,26 @@ import { join } from 'node:path';
 
 const credPath = join(homedir(), '.config', 'adobe-ims', 'credentials.env');
 
-const DEFAULT_PROVIDER_GUID = '15b4d932-9d69-4c3a-b6bd-f8daa5656fdd';
-const DEFAULT_FULFILL_URL =
-  'https://fake-loyalty-provider-a5xduykcsq-uc.a.run.app/v1/fulfill';
+const DEFAULT_PROVIDER_HOST =
+  process.env.LOYALTY_PROVIDER_HOST || 'loyalty-reward-provider-a5xduykcsq-uc.a.run.app';
 const LAB_NAMESPACE = 'loyaltyId';
-const LAB_EVENT_NAME = 'AEP Lab Purchase Event';
-const LAB_EVENT_IDENTIFIER = 'commerce.purchases.value';
-const LAB_TASK_ID = 'aep-lab-purchase-task';
-const LAB_CHALLENGE_NAME = 'AEP Lab Standard Challenge';
+const LAB_EVENT_NAME = 'AEP Lab Coffee Purchase Event';
+const LAB_EVENT_IDENTIFIER = 'loyalty.coffee.purchase';
+const LAB_TASK_ID = 'aep-lab-coffee-purchase-task';
+const LAB_CHALLENGE_NAME = 'Buy 3 Coffees — Lab Challenge';
+const COFFEE_PURCHASE_GOAL = 3;
+const COFFEE_REWARD_POINTS = '100';
 const EVENT_TRANSFORMER =
-  '{ "loyaltyId": _demoemea.identification.core.loyaltyId, "quantity": 1 }';
+  '{ "loyaltyId": _demoemea.identification.core.loyaltyId, "quantity": 1, "productCategory": "coffee" }';
+
+function defaultFulfillUrl(sandbox) {
+  const sb = String(sandbox || 'apalmer').trim().toLowerCase();
+  return `https://${DEFAULT_PROVIDER_HOST}/${sb}/v1/fulfill`;
+}
+
+function providerDisplayName(sandbox) {
+  return `${String(sandbox || 'apalmer').trim().toLowerCase()} loyalty provider`;
+}
 
 function loadEnvFile(filePath) {
   const out = {};
@@ -63,8 +73,8 @@ function mergeCredentialsIntoEnv(filePath) {
 function parseArgs(argv) {
   const out = {
     sandbox: '',
-    providerGuid: DEFAULT_PROVIDER_GUID,
-    fulfillUrl: DEFAULT_FULFILL_URL,
+    providerGuid: '',
+    fulfillUrl: '',
     audienceId: '',
     dryRun: false,
     skipJourney: false,
@@ -155,10 +165,10 @@ function isoDaysFromNow(days) {
   return d.toISOString();
 }
 
-function buildProviderPayload({ url, apiKey }) {
+function buildProviderPayload({ url, apiKey, sandbox }) {
   return {
-    name: 'AEP Lab Fake Loyalty',
-    desc: 'Lab reward provider for apalmer sandbox',
+    name: providerDisplayName(sandbox),
+    desc: `Lab reward fulfillment gateway for ${sandbox} sandbox`,
     enabled: true,
     url,
     additionalHeaders: {
@@ -182,30 +192,30 @@ function buildPurchaseTask(providerGuid) {
   return {
     taskType: 'purchase',
     taskId: LAB_TASK_ID,
-    taskName: 'Lab purchase task',
-    desc: 'Minimal purchase task for AEP Orchestration Lab',
+    taskName: 'Buy 3 coffees',
+    desc: 'Purchase task — buy 3 coffee products to earn the lab reward',
     variables: {
-      goal: 1,
+      goal: COFFEE_PURCHASE_GOAL,
       type: 'qty',
       include: { valuesSet: [LAB_EVENT_IDENTIFIER] },
       qtyMin: 1,
     },
     schedule: { duration: 'task', maxRepeat: 1 },
-    reward: { endpoint: providerGuid, definition: 'points', rewardValue: '100' },
+    reward: { endpoint: providerGuid, definition: 'points', rewardValue: COFFEE_REWARD_POINTS },
   };
 }
 
 function buildChallenge({ audienceId, providerGuid, task }) {
   return {
     name: LAB_CHALLENGE_NAME,
-    desc: 'Lab demo Standard loyalty challenge (API-created)',
+    desc: 'Buy 3 coffees, earn 100 loyalty points (AEP Orchestration Lab demo)',
     startDate: isoDaysFromNow(0),
     endDate: isoDaysFromNow(90),
     state: 'draft',
     audienceId,
     tasksToComplete: 1,
     tasks: [task],
-    reward: { endpoint: providerGuid, definition: 'points', rewardValue: '100' },
+    reward: { endpoint: providerGuid, definition: 'points', rewardValue: COFFEE_REWARD_POINTS },
   };
 }
 
@@ -213,9 +223,9 @@ function buildJourneyMetadata(challengeId, audienceId, audienceName) {
   return {
     metadata: {
       challengeId,
-      journeyName: 'AEP Lab Loyalty Challenge Journey',
+      journeyName: 'Buy 3 Coffees — Lab Journey',
       numberOfTasks: 1,
-      taskNames: { '0': 'Lab purchase task' },
+      taskNames: { '0': 'Buy 3 coffees' },
       creationStatus: 'inProgress',
     },
     audienceQualification: {
@@ -277,35 +287,66 @@ async function ensureNamespace(auth, dryRun) {
   return { ok: true, config: put.parsed };
 }
 
+function normalizeFulfillUrl(url) {
+  return String(url || '').trim().replace(/\/+$/, '');
+}
+
 async function ensureProvider(auth, args, dryRun) {
+  const fulfillUrl = normalizeFulfillUrl(args.fulfillUrl || defaultFulfillUrl(auth.sandbox));
+  const expectedName = providerDisplayName(auth.sandbox);
+
   const list = await loyaltyFetch(auth, 'GET', '/loyalty/metadata/config/rewards/providers');
   if (!list.res.ok) throw new Error(`GET providers ${list.res.status}`);
   const providers = Array.isArray(list.parsed) ? list.parsed : [];
-  const byGuid = providers.find((p) => p.guid === args.providerGuid);
-  if (byGuid) {
-    console.log(`Reward provider found: ${byGuid.guid} (${byGuid.name})`);
-    return byGuid.guid;
+  if (args.providerGuid) {
+    const byGuid = providers.find((p) => p.guid === args.providerGuid);
+    if (byGuid) {
+      console.log(`Reward provider found: ${byGuid.guid} (${byGuid.name})`);
+      return byGuid.guid;
+    }
   }
-  const byUrl = providers.find((p) => p.url === args.fulfillUrl);
+  const byUrl = providers.find((p) => normalizeFulfillUrl(p.url) === fulfillUrl);
   if (byUrl?.guid) {
-    console.log(`Reward provider matched by URL: ${byUrl.guid}`);
+    console.log(`Reward provider matched by URL: ${byUrl.guid} (${byUrl.name})`);
     return byUrl.guid;
   }
+  const byName = providers.find((p) => p.name === expectedName);
+  if (byName?.guid) {
+    console.log(`Reward provider matched by name: ${byName.guid}`);
+    return byName.guid;
+  }
 
-  const apiKey = String(process.env.FAKE_LOYALTY_API_KEY || '').trim();
+  const apiKey = String(
+    process.env.LOYALTY_PROVIDER_API_KEY || process.env.FAKE_LOYALTY_API_KEY || '',
+  ).trim();
   if (!apiKey && !dryRun) {
     throw new Error(
-      'Provider not found. Set FAKE_LOYALTY_API_KEY to register, or pass --provider-guid for an existing provider.',
+      'Provider not found. Set LOYALTY_PROVIDER_API_KEY to register, or pass --provider-guid for an existing provider.',
     );
   }
-  console.log('Registering reward provider…');
-  if (dryRun) return args.providerGuid;
+  console.log(`Registering reward provider "${expectedName}" at ${fulfillUrl}…`);
+  if (dryRun) return args.providerGuid || '(dry-run-provider-guid)';
   const post = await loyaltyFetch(
     auth,
     'POST',
     '/loyalty/metadata/config/rewards/providers',
-    buildProviderPayload({ url: args.fulfillUrl, apiKey: apiKey || '<dry-run>' }),
+    buildProviderPayload({
+      url: fulfillUrl,
+      apiKey: apiKey || '<dry-run>',
+      sandbox: auth.sandbox,
+    }),
   );
+  if (post.res.status === 409) {
+    const refreshed = await loyaltyFetch(auth, 'GET', '/loyalty/metadata/config/rewards/providers');
+    const again = Array.isArray(refreshed.parsed) ? refreshed.parsed : [];
+    const existing =
+      again.find((p) => p.name === expectedName)
+      || again.find((p) => normalizeFulfillUrl(p.url) === fulfillUrl);
+    if (existing?.guid) {
+      console.log(`Reward provider already exists: ${existing.guid}`);
+      return existing.guid;
+    }
+  }
   if (!post.res.ok) throw new Error(`POST provider ${post.res.status}: ${JSON.stringify(post.parsed)}`);
   return post.parsed.guid || args.providerGuid;
 }
@@ -332,6 +373,7 @@ async function ensureEventDefinition(auth, config, dryRun) {
   if (dryRun) return '(dry-run-event-guid)';
   const post = await loyaltyFetch(auth, 'POST', '/loyalty/metadata/config/events', payload);
   if (!post.res.ok) throw new Error(`POST event ${post.res.status}: ${JSON.stringify(post.parsed)}`);
+  if (post.parsed?.guid) return post.parsed.guid;
   const refreshed = await loyaltyFetch(auth, 'GET', '/loyalty/metadata/config/events');
   const created = (Array.isArray(refreshed.parsed) ? refreshed.parsed : []).find(
     (e) => e.name === LAB_EVENT_NAME,
@@ -452,6 +494,7 @@ async function main() {
   mergeCredentialsIntoEnv(credPath);
   const args = parseArgs(process.argv);
   const sandbox = args.sandbox || process.env.ADOBE_SANDBOX_NAME || 'apalmer';
+  if (!args.fulfillUrl) args.fulfillUrl = defaultFulfillUrl(sandbox);
   const orgId = process.env.ADOBE_IMS_ORG || process.env.ADOBE_ORG_ID;
   if (!orgId) throw new Error('Missing ADOBE_IMS_ORG.');
 
@@ -521,8 +564,12 @@ async function main() {
     sandbox,
     namespace: LAB_NAMESPACE,
     providerGuid,
+    providerName: providerDisplayName(sandbox),
+    fulfillUrl: args.fulfillUrl,
     eventDefinitionGuid: eventGuid,
     eventIdentifier: LAB_EVENT_IDENTIFIER,
+    coffeePurchaseGoal: COFFEE_PURCHASE_GOAL,
+    rewardPoints: COFFEE_REWARD_POINTS,
     taskId: LAB_TASK_ID,
     audienceId: boundAudienceId,
     audienceName: boundAudienceName,

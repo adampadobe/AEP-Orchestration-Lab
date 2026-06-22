@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke tests for fake-loyalty-provider (local).
- * Starts server on ephemeral port, exercises /health and /v1/fulfill.
+ * Smoke tests for loyalty-reward-provider (local, sandbox-aware paths).
  */
 
 import { spawn } from 'node:child_process';
@@ -13,6 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const fixturePath = join(root, 'fixtures', 'sample-fulfillment.json');
 const testApiKey = 'smoke-test-api-key-' + Date.now();
+const testSandbox = 'apalmer';
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,7 +35,12 @@ async function main() {
   const base = `http://127.0.0.1:${port}`;
   const child = spawn('node', ['server.js'], {
     cwd: root,
-    env: { ...process.env, PORT: String(port), FAKE_LOYALTY_API_KEY: testApiKey },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      LOYALTY_PROVIDER_API_KEY: testApiKey,
+      LOYALTY_DEFAULT_SANDBOX: testSandbox,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
@@ -66,8 +71,13 @@ async function main() {
     failures.push('/health');
   }
 
+  const sandboxHealth = await fetchJson(`${base}/${testSandbox}/health`);
+  if (!sandboxHealth.res.ok || sandboxHealth.body.sandbox !== testSandbox) {
+    failures.push('/{sandbox}/health');
+  }
+
   const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
-  const fulfill = await fetchJson(`${base}/v1/fulfill`, {
+  const fulfill = await fetchJson(`${base}/${testSandbox}/v1/fulfill`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -77,10 +87,10 @@ async function main() {
     body: JSON.stringify(fixture),
   });
   if (!fulfill.res.ok || fulfill.body.status !== 'accepted' || !fulfill.body.transactionId) {
-    failures.push('/v1/fulfill first call');
+    failures.push('/{sandbox}/v1/fulfill first call');
   }
 
-  const fulfillDup = await fetchJson(`${base}/v1/fulfill`, {
+  const fulfillDup = await fetchJson(`${base}/${testSandbox}/v1/fulfill`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -94,16 +104,16 @@ async function main() {
     || fulfillDup.body.transactionId !== fulfill.body.transactionId
     || !fulfillDup.body.idempotent
   ) {
-    failures.push('/v1/fulfill idempotency');
+    failures.push('/{sandbox}/v1/fulfill idempotency');
   }
 
-  const unauthorized = await fetchJson(`${base}/v1/fulfill`, {
+  const unauthorized = await fetchJson(`${base}/${testSandbox}/v1/fulfill`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-Key': 'wrong-key' },
     body: JSON.stringify(fixture),
   });
   if (unauthorized.res.status !== 401) {
-    failures.push('/v1/fulfill unauthorized');
+    failures.push('/{sandbox}/v1/fulfill unauthorized');
   }
 
   const oauth = await fetchJson(`${base}/oauth/token`, {
@@ -115,16 +125,28 @@ async function main() {
     failures.push('/oauth/token');
   }
 
-  const ledgerUnauthorized = await fetchJson(`${base}/v1/ledger`);
+  const ledgerUnauthorized = await fetchJson(`${base}/${testSandbox}/v1/ledger`);
   if (ledgerUnauthorized.res.status !== 401) {
-    failures.push('/v1/ledger unauthorized');
+    failures.push('/{sandbox}/v1/ledger unauthorized');
   }
 
-  const ledger = await fetchJson(`${base}/v1/ledger`, {
+  const ledger = await fetchJson(`${base}/${testSandbox}/v1/ledger`, {
     headers: { 'X-API-Key': testApiKey, Accept: 'application/json' },
   });
   if (!ledger.res.ok || !Array.isArray(ledger.body.entries) || ledger.body.entries.length < 1) {
-    failures.push('/v1/ledger after fulfill');
+    failures.push('/{sandbox}/v1/ledger after fulfill');
+  }
+
+  const legacyFulfill = await fetchJson(`${base}/v1/fulfill`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': testApiKey,
+    },
+    body: JSON.stringify(fixture),
+  });
+  if (!legacyFulfill.res.ok || legacyFulfill.body.sandbox !== testSandbox) {
+    failures.push('legacy /v1/fulfill');
   }
 
   child.kill();
@@ -133,7 +155,7 @@ async function main() {
     console.error('FAIL:', failures.join(', '));
     process.exit(1);
   }
-  console.log('OK: fake-loyalty-provider smoke tests passed');
+  console.log('OK: loyalty-reward-provider smoke tests passed');
 }
 
 main().catch((err) => {

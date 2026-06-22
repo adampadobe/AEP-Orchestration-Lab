@@ -1,27 +1,59 @@
 /**
- * Non-secret defaults for the AJO Loyalty fake reward provider lab tool.
+ * Non-secret defaults for the AJO Loyalty reward provider lab tool.
  * API key lives in Cloud Run / AJO Loyalty admin only — never in this file.
  */
 (function () {
-  var defaults = {
-    providerBaseUrl: 'https://fake-loyalty-provider-a5xduykcsq-uc.a.run.app',
-    defaultSandbox: 'apalmer',
-    registeredProviderGuid: '15b4d932-9d69-4c3a-b6bd-f8daa5656fdd',
-    rewardDefinitionKey: 'points',
-    labAudienceId: '7a22b088-cff4-4ecc-824f-856bc3c15746',
-    labAudienceName: 'Hotel - Elevated modelled churn risk',
-    labChallengeId: 'e07ca362-4d53-42cc-a6d5-0e78e8015a26',
-    labChallengeName: 'AEP Lab Standard Challenge',
-    labChallengeState: 'published',
-    labEventDefinitionGuid: 'f1fcdc05-17be-4b01-bd40-2a7ba54db385',
-    labEventDefinitionName: 'AEP Lab Purchase Event',
-    labEventIdentifier: 'commerce.purchases.value',
-    labTaskId: 'aep-lab-purchase-task',
-    labJourneyName: 'AEP Lab Loyalty Challenge Journey',
-    labIdentityNamespace: 'loyaltyId',
-    docsUrl:
-      'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AJO_LOYALTY_CHALLENGES.md',
+  var providerCloudRunHost = 'loyalty-reward-provider-a5xduykcsq-uc.a.run.app';
+  var defaultSandbox = 'apalmer';
+
+  /** @type {Record<string, object>} */
+  var sandboxProfiles = {
+    apalmer: {
+      registeredProviderGuid: '2938ecb7-2e47-4098-9d55-89a57b919bd9',
+      rewardDefinitionKey: 'points',
+      labAudienceId: '409d05fa-9ca6-45ef-8109-fecd33605a14',
+      labAudienceName: 'Hotel - Recorded destination context',
+      labChallengeId: '7d144e04-64cc-4660-a85d-d3755583db93',
+      labChallengeName: 'Buy 3 Coffees — Lab Challenge',
+      labChallengeState: 'published',
+      labEventDefinitionGuid: '0c5c7286-4c51-4f2f-a7bb-d45467d8e7da',
+      labEventDefinitionName: 'AEP Lab Coffee Purchase Event',
+      labEventIdentifier: 'loyalty.coffee.purchase',
+      labTaskId: 'aep-lab-coffee-purchase-task',
+      labCoffeePurchaseGoal: 3,
+      labRewardPoints: '100',
+      labJourneyName: 'Buy 3 Coffees — Lab Journey',
+      labIdentityNamespace: 'loyaltyId',
+    },
   };
+
+  function buildProviderBaseUrl() {
+    return 'https://' + providerCloudRunHost;
+  }
+
+  function fulfillPathForSandbox(sandbox) {
+    return '/' + String(sandbox || defaultSandbox).trim().toLowerCase() + '/v1/fulfill';
+  }
+
+  function resolveSandboxProfile(sandbox) {
+    var key = String(sandbox || defaultSandbox).trim().toLowerCase();
+    var base = sandboxProfiles[key] || sandboxProfiles[defaultSandbox] || {};
+    return Object.assign({}, base, { sandbox: key });
+  }
+
+  function buildConfigForSandbox(sandbox) {
+    var profile = resolveSandboxProfile(sandbox);
+    var baseUrl = buildProviderBaseUrl();
+    return Object.assign({}, profile, {
+      providerCloudRunHost: providerCloudRunHost,
+      providerBaseUrl: baseUrl,
+      defaultSandbox: defaultSandbox,
+      fulfillPath: fulfillPathForSandbox(profile.sandbox || sandbox),
+      fulfillUrl: baseUrl + fulfillPathForSandbox(profile.sandbox || sandbox),
+      docsUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/AJO_LOYALTY_CHALLENGES.md',
+    });
+  }
 
   var overlay =
     typeof window !== 'undefined' &&
@@ -30,5 +62,12 @@
       ? window.__LOYALTY_REWARD_PROVIDER_CONFIG__
       : {};
 
-  window.loyaltyRewardProviderConfig = Object.assign({}, defaults, overlay);
+  window.loyaltyRewardProviderConfig = Object.assign(
+    buildConfigForSandbox(defaultSandbox),
+    overlay,
+  );
+
+  window.loyaltyRewardProviderConfig.getForSandbox = function (sandbox) {
+    return Object.assign(buildConfigForSandbox(sandbox), overlay);
+  };
 })();
