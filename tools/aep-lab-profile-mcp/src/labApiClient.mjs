@@ -1,0 +1,156 @@
+/**
+ * Thin HTTP client for AEP Orchestration Lab public /api/* endpoints.
+ * Lab functions remain public invoker in Phase 1; MCP key protects this server only.
+ */
+
+const DEFAULT_ORIGIN = 'https://aep-orchestration-lab.web.app';
+
+export function getLabApiOrigin() {
+  return String(process.env.AEP_LAB_API_ORIGIN || DEFAULT_ORIGIN).replace(/\/$/, '');
+}
+
+/**
+ * @param {string} path - e.g. /api/sandboxes
+ * @param {object} [opts]
+ * @param {string} [opts.method]
+ * @param {Record<string, string | number | boolean | undefined | null>} [opts.query]
+ * @param {unknown} [opts.body]
+ * @param {number} [opts.timeoutMs]
+ */
+export async function labApiRequest(path, opts = {}) {
+  const origin = getLabApiOrigin();
+  const method = String(opts.method || 'GET').toUpperCase();
+  const url = new URL(path.startsWith('/') ? path : `/${path}`, origin);
+
+  if (opts.query && typeof opts.query === 'object') {
+    for (const [k, v] of Object.entries(opts.query)) {
+      if (v == null || v === '') continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  const timeoutMs = opts.timeoutMs ?? 120_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  /** @type {RequestInit} */
+  const init = {
+    method,
+    headers: {
+      Accept: 'application/json',
+    },
+    signal: controller.signal,
+  };
+
+  if (opts.body !== undefined && opts.body !== null) {
+    init.headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(opts.body);
+  }
+
+  let response;
+  try {
+    response = await fetch(url.toString(), init);
+  } catch (err) {
+    clearTimeout(timer);
+    const msg = err && err.name === 'AbortError' ? `Lab API timeout after ${timeoutMs}ms` : String(err.message || err);
+    return {
+      ok: false,
+      status: 0,
+      url: url.toString(),
+      error: msg,
+      data: null,
+    };
+  }
+  clearTimeout(timer);
+
+  const contentType = response.headers.get('Content-Type') || '';
+  let data;
+  if (contentType.toLowerCase().includes('json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = { raw: await response.text() };
+    }
+  } else {
+    data = { raw: (await response.text()).slice(0, 50_000) };
+  }
+
+  if (!response.ok) {
+    const detail =
+      (data && typeof data === 'object' && (data.error || data.detail || data.message)) ||
+      response.statusText ||
+      `HTTP ${response.status}`;
+    return {
+      ok: false,
+      status: response.status,
+      url: url.toString(),
+      error: String(detail),
+      data,
+    };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    url: url.toString(),
+    data,
+  };
+}
+
+export async function listSandboxes() {
+  return labApiRequest('/api/sandboxes');
+}
+
+/**
+ * @param {object} params
+ * @param {string} params.sandbox
+ * @param {boolean} [params.refresh]
+ */
+export async function profileInfraStatusAll({ sandbox, refresh = false }) {
+  return labApiRequest('/api/profile-infra/status-all', {
+    query: {
+      sandbox,
+      ...(refresh ? { refresh: '1' } : {}),
+    },
+    timeoutMs: 180_000,
+  });
+}
+
+/**
+ * @param {object} params
+ */
+export async function generateProfile(params) {
+  const body = {
+    email: params.email,
+    industry: params.industry,
+    sandbox: params.sandbox,
+  };
+  if (params.attributes && typeof params.attributes === 'object') {
+    body.attributes = params.attributes;
+  }
+  if (params.append_if_existing != null) {
+    body.appendIfExisting = params.append_if_existing;
+  }
+  if (params.test_profile != null) {
+    body.testProfile = params.test_profile;
+  }
+  return labApiRequest('/api/profile/generate', {
+    method: 'POST',
+    body,
+    timeoutMs: 120_000,
+  });
+}
+
+/**
+ * @param {object} params
+ */
+export async function lookupProfile(params) {
+  return labApiRequest('/api/profile/table', {
+    query: {
+      sandbox: params.sandbox,
+      namespace: params.namespace,
+      identifier: params.identifier,
+    },
+    timeoutMs: 120_000,
+  });
+}

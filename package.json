@@ -53,6 +53,7 @@
     "deploy:stamp": "node scripts/build-version.mjs",
     "deploy:status": "node scripts/deploy-status.mjs",
     "mcp:aep-lab-adobe": "node tools/aep-lab-adobe-mcp/src/server.mjs",
+    "profile-mcp": "node tools/aep-lab-profile-mcp/src/server.mjs",
     "profile-viewer": "cd \"aep-prototypes/AEP Profile/03 Profile Viewer\" && npm start",
     "profile-viewer:install": "cd \"aep-prototypes/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
     "restore:decision-lab:kirkham-preset": "node scripts/restore-decision-lab-config.mjs kirkham --preset=race-for-life-retail",
