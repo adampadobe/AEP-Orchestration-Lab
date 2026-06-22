@@ -1,14 +1,14 @@
 {
-  "gitSha": "8eade574d4affd0807f51181e8410325457c2158",
-  "gitShortSha": "8eade574",
+  "gitSha": "f4408aaf2e81e1044b4c696b47bc811b7013f843",
+  "gitShortSha": "f4408aaf",
   "gitBranch": "main",
-  "gitCommitSubject": "[apalmer] fix: remove Align inside label from tools bar",
+  "gitCommitSubject": "[apalmer] Sync Express mirror LLM demo snapshot paths and validate diagram groups.",
   "gitCommitAuthor": "adampadobe",
-  "gitCommitDate": "2026-06-22T14:31:42+01:00",
-  "deployedAt": "2026-06-22T13:32:06.565Z",
+  "gitCommitDate": "2026-06-22T21:40:47+01:00",
+  "deployedAt": "2026-06-22T20:41:14.820Z",
   "deployedBy": "adampadobe",
   "aheadOfOrigin": 0,
   "behindOrigin": 0,
-  "dirtyWorkingTree": true,
-  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/8eade574d4affd0807f51181e8410325457c2158"
+  "dirtyWorkingTree": false,
+  "commitUrl": "https://github.com/adampadobe/AEP-Orchestration-Lab/commit/f4408aaf2e81e1044b4c696b47bc811b7013f843"
 }
