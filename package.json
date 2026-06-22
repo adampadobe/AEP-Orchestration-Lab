@@ -9,6 +9,11 @@
   "scripts": {
     "aep:create-hotel-edge-segments": "node scripts/create-hotel-edge-segments.mjs",
     "ajo:create-content-template": "node scripts/create-ajo-content-template.mjs",
+    "ajo:loyalty-create-challenge": "node scripts/ajo-loyalty-create-challenge.mjs",
+    "ajo:loyalty-register-provider": "node scripts/ajo-loyalty-register-provider.mjs",
+    "fake-loyalty:deploy": "node tools/fake-loyalty-provider/deploy-cloud-run.mjs",
+    "fake-loyalty:start": "node tools/fake-loyalty-provider/server.js",
+    "fake-loyalty:test": "cd tools/fake-loyalty-provider && npm install --no-audit --no-fund && npm test",
     "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build",
     "build:eds-doc-starter-zip": "python3 scripts/build_eds_doc_starter_zip.py",
     "build:eds-quickstart": "([ -f tools/eds-quickstart/package.json ] || git submodule update --init tools/eds-quickstart) && cd tools/eds-quickstart && npm install && npm run build:standalone && rsync -a --delete --exclude='*.map' --exclude='*.LICENSE.txt' dist/ ../../web/profile-viewer/eds-quickstart/",

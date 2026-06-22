@@ -1,0 +1,17 @@
+{
+  "name": "fake-loyalty-provider",
+  "description": "Fake AJO Loyalty reward fulfillment provider for AEP Orchestration Lab demos.",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.test.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

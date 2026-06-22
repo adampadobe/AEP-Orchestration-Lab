@@ -1,0 +1,11 @@
+{
+  "memberId": "LAB-LOYALTY-0001",
+  "challengeId": "00000000-0000-4000-8000-000000000001",
+  "taskId": "lab-purchase-task",
+  "rewardValue": "100",
+  "denomination": "Points",
+  "metadata": {
+    "source": "aep-orchestration-lab-fixture",
+    "note": "Replace fields after capturing a real AJO fulfillment payload in beta"
+  }
+}
