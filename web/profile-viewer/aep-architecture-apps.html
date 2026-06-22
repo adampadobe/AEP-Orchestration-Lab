@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622b">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260622c">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -132,7 +132,17 @@
             <text x="775" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">EXPERIENCE DECISIONING</text>
             <text x="1067" y="28" text-anchor="middle" class="arch-lane">CUSTOMER ENGAGEMENT</text>
 
-            <!-- Flow layer (under nodes) -->
+            <!-- Decorative background plates (behind flows by default; z-order editable in Edit mode) -->
+            <g id="layer-backgrounds" class="arch-bg-layer">
+              <g id="arch-bg-profile-strip" class="arch-bg-plate" data-arch-bg="profile-strip">
+                <rect x="250" y="42" width="700" height="68" rx="0" fill="#f9fafb" stroke="none"/>
+              </g>
+              <g id="arch-bg-aep-platform" class="arch-bg-plate" data-arch-bg="aep-platform">
+                <rect data-arch-bg-shell="1" x="250" y="112" width="700" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
+              </g>
+            </g>
+
+            <!-- Flow layer (above background plates, under nodes by default) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
               <path id="flow-tags-edge" class="arch-flow" d="M 133 116 L 133 96 L 440 96 L 440 58"/>
               <path id="flow-sdk-edge" class="arch-flow" d="M 192 157 L 240 157 L 240 76 L 260 76"/>
@@ -178,16 +188,6 @@
               <text x="662" y="306" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Profile Activation</text>
               <text x="520" y="392" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Raw Data</text>
               <text x="668" y="210" class="arch-node-sublabel arch-flow-label" font-size="5.5px">Content</text>
-            </g>
-
-            <!-- Decorative background plates (selectable / deletable in Edit mode) -->
-            <g id="layer-backgrounds" class="arch-bg-layer">
-              <g id="arch-bg-profile-strip" class="arch-bg-plate" data-arch-bg="profile-strip">
-                <rect x="250" y="42" width="700" height="68" rx="0" fill="#f9fafb" stroke="none"/>
-              </g>
-              <g id="arch-bg-aep-platform" class="arch-bg-plate" data-arch-bg="aep-platform">
-                <rect data-arch-bg-shell="1" x="250" y="112" width="700" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
-              </g>
             </g>
 
             <!-- Edge Network — shortened strip; Creative Cloud tile shares the same row (y=58) -->
@@ -398,6 +398,9 @@
               <text x="1067" y="422" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
             </g>
 
+            <!-- Stackable layers are reordered before this anchor in Edit mode (see archLayerOrderApply) -->
+            <g id="archLayerOrderAnchor" aria-hidden="true" pointer-events="none"/>
+
             <!-- Key -->
             <g transform="translate(18, 640)">
               <text x="0" y="0" class="arch-node-sublabel" font-weight="700">Diagram Key</text>
@@ -474,6 +477,20 @@
                     </div>
                   </div>
                 </div>
+                <div class="arch-line-float-seg arch-layer-order-seg" role="group" aria-label="Layer order" hidden>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="back" title="Send to back (Shift+[)" aria-label="Send to back">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 16V6"/><path d="M8 10l4 4 4-4"/><path d="M4 20h16"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="down" title="Send backward ([)" aria-label="Send backward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 10l4 4 4-4"/><path d="M12 6v12"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="up" title="Bring forward (])" aria-label="Bring forward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 14l4-4 4 4"/><path d="M12 18V6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="front" title="Bring to front (Shift+])" aria-label="Bring to front">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 8v10"/><path d="M8 14l4 4 4-4"/><path d="M4 4h16"/></svg>
+                  </button>
+                </div>
                 <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Actions">
                   <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
@@ -495,6 +512,22 @@
                   <button type="button" class="arch-line-float-btn" id="archFlowFloatDelete" title="Remove flow from this proposal">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                   </button>
+                </div>
+                <div class="arch-line-float-seg arch-layer-order-seg" role="group" aria-label="Layer order" hidden>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="back" title="Send to back (Shift+[)" aria-label="Send to back">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 16V6"/><path d="M8 10l4 4 4-4"/><path d="M4 20h16"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="down" title="Send backward ([)" aria-label="Send backward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 10l4 4 4-4"/><path d="M12 6v12"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="up" title="Bring forward (])" aria-label="Bring forward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 14l4-4 4 4"/><path d="M12 18V6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="front" title="Bring to front (Shift+])" aria-label="Bring to front">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 8v10"/><path d="M8 14l4 4 4-4"/><path d="M4 4h16"/></svg>
+                  </button>
+                </div>
+                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Close flow bar">
                   <button type="button" class="arch-line-float-btn" id="archFlowFloatClose" title="Deselect flow">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
@@ -540,6 +573,20 @@
                       <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                     </button>
                   </div>
+                </div>
+                <div class="arch-line-float-seg arch-layer-order-seg" role="group" aria-label="Layer order" hidden>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="back" title="Send to back (Shift+[)" aria-label="Send to back">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 16V6"/><path d="M8 10l4 4 4-4"/><path d="M4 20h16"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="down" title="Send backward ([)" aria-label="Send backward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 10l4 4 4-4"/><path d="M12 6v12"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="up" title="Bring forward (])" aria-label="Bring forward">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 14l4-4 4 4"/><path d="M12 18V6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-layer-order-btn" data-arch-layer-cmd="front" title="Bring to front (Shift+])" aria-label="Bring to front">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 8v10"/><path d="M8 14l4 4 4-4"/><path d="M4 4h16"/></svg>
+                  </button>
                 </div>
                 <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Close">
                   <button type="button" class="arch-line-float-btn" id="archToolsFloatClose" title="Close (Escape)">

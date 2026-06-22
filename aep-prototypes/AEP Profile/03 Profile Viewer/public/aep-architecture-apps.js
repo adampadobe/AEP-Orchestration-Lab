@@ -165,6 +165,7 @@
   function archSelectionPanelSync() {
     archEditorApplyModesForCurrentSelection();
     archInspectorSync();
+    archLayerOrderSyncUi();
   }
 
   /** Inspector: custom box (if selected) else single platform node (Edit mode). */
@@ -183,7 +184,7 @@
         (ARCH_BG_LABELS[archBgSelectedId] || archBgSelectedId) +
         '\nId: ' +
         archBgSelectedId +
-        '\n\nPress Delete to remove from this proposal.';
+        '\n\nPress Delete to remove from this proposal. Use layer buttons ([ / ]) to send backward or bring forward.';
       return;
     }
     if (archCustomBoxSelectedId) {
@@ -213,7 +214,7 @@
           Math.round(cb.w) +
           ' × ' +
           Math.round(cb.h) +
-          '\n\nUse the floating Tools bar on the diagram for fill, outline, and name.';
+          '\n\nUse the floating Tools bar on the diagram for fill, outline, name, and layer order ([ / ]).';
         return;
       }
     }
@@ -240,7 +241,7 @@
       human +
       '\nElement id: ' +
       id +
-      '\n\nDrag to move, corners to resize, double-click text to edit.';
+      '\n\nDrag to move, corners to resize, double-click text to edit. Layer order: [ / ] or toolbar buttons.';
   }
 
   function archEditSelectionInit() {
@@ -415,6 +416,7 @@
     archSelectionRefreshDom();
     archEditLineHandlesRefresh();
     archFlowFloatUpdateVisibility();
+    archLayerOrderSyncUi();
     if (liveRegion) {
       liveRegion.textContent =
         'Built-in flow selected — drag handles to bend, Corner tool to add bends, Reset to restore auto-route.';
@@ -2586,6 +2588,8 @@
     });
     if (archBgSelectedId && archHiddenBackgroundsHas(archBgSelectedId)) archBgClearSelection();
     archBgRefreshDom();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
   }
 
   function archAepBgPlateSync() {
@@ -2600,6 +2604,340 @@
     shell.setAttribute('width', String(wh.w));
     shell.setAttribute('height', String(wh.h));
   }
+
+  /** Canvas z-order: bottom-to-top stack keys persisted in master layout v13 `layerOrder`. */
+  var LS_LAYER_ORDER = 'aepArchLayerOrder';
+  var archLayerOrder = null;
+  var ARCH_LAYER_ORDER_STATIC = ['bg:profile-strip', 'bg:aep-platform', 'layer:flows', 'layer:flow-labels'];
+  var ARCH_LAYER_ORDER_NODE_KEYS = [
+    'edge', 'aep', 'tags', 'sources', 'streaming', 'batch', 'query', 'intel', 'lake', 'pipeline',
+    'profile', 'identity', 'seg', 'decision', 'creative', 'aem', 'jo', 'rtcdp', 'cja', 'mix',
+    'inbound', 'msg', 'paid', 'jrpt', 'mrpt',
+  ];
+
+  function archLayerOrderKeyBg(id) {
+    return 'bg:' + id;
+  }
+  function archLayerOrderKeyNode(key) {
+    return 'node:' + key;
+  }
+  function archLayerOrderKeyCbox(id) {
+    return 'cbox:' + id;
+  }
+  function archLayerOrderKeyUl(id) {
+    return 'ul:' + id;
+  }
+  function archLayerOrderKeyFlow(id) {
+    return 'flow:' + id;
+  }
+
+  function archLayerOrderLoad() {
+    try {
+      var raw = localStorage.getItem(LS_LAYER_ORDER);
+      archLayerOrder = raw ? JSON.parse(raw) : null;
+      if (!Array.isArray(archLayerOrder)) archLayerOrder = null;
+    } catch (e) {
+      archLayerOrder = null;
+    }
+  }
+
+  function archLayerOrderPersist() {
+    try {
+      if (Array.isArray(archLayerOrder)) localStorage.setItem(LS_LAYER_ORDER, JSON.stringify(archLayerOrder));
+    } catch (e) {}
+  }
+
+  function archLayerOrderBuildDefault() {
+    var order = ARCH_LAYER_ORDER_STATIC.slice();
+    ARCH_LAYER_ORDER_NODE_KEYS.forEach(function (k) {
+      if (NODE_LAYOUT[k]) order.push(archLayerOrderKeyNode(k));
+    });
+    archCustomBoxes.forEach(function (b) {
+      if (b && b.id) order.push(archLayerOrderKeyCbox(b.id));
+    });
+    userLines.lines.forEach(function (ln) {
+      if (ln && ln.id) order.push(archLayerOrderKeyUl(ln.id));
+    });
+    return order;
+  }
+
+  function archLayerOrderKnownKeys() {
+    var known = archLayerOrderBuildDefault();
+    if (Array.isArray(archFlowPathOrder) && archFlowPathOrder.length) {
+      archFlowPathOrder.forEach(function (fid) {
+        var fk = archLayerOrderKeyFlow(fid);
+        if (known.indexOf(fk) < 0) known.push(fk);
+      });
+    }
+    return known;
+  }
+
+  function archLayerOrderEnsure() {
+    var def = archLayerOrderKnownKeys();
+    if (!Array.isArray(archLayerOrder)) archLayerOrder = def.slice();
+    var next = [];
+    archLayerOrder.forEach(function (k) {
+      if (typeof k === 'string' && def.indexOf(k) >= 0 && next.indexOf(k) < 0) next.push(k);
+    });
+    def.forEach(function (k) {
+      if (next.indexOf(k) < 0) next.push(k);
+    });
+    archLayerOrder = next;
+  }
+
+  function archLayerOrderResolveEl(key) {
+    if (!key || typeof key !== 'string') return null;
+    if (key.indexOf('bg:') === 0) {
+      return qs('.arch-bg-plate[data-arch-bg="' + key.slice(3) + '"]');
+    }
+    if (key === 'layer:flows') return qs('#layer-flows');
+    if (key === 'layer:flow-labels') return qs('#layer-flow-labels');
+    if (key.indexOf('node:') === 0) return qs('#node-' + key.slice(5));
+    if (key.indexOf('cbox:') === 0) return qs('#node-cbox-' + key.slice(5));
+    if (key.indexOf('ul:') === 0) return qs('#ul-' + key.slice(3));
+    if (key.indexOf('flow:') === 0) return qs('#' + key.slice(5));
+    return null;
+  }
+
+  function archLayerOrderIsStackableKey(key) {
+    if (!key) return false;
+    if (key.indexOf('bg:') === 0) return !archHiddenBackgroundsHas(key.slice(3));
+    return !!archLayerOrderResolveEl(key);
+  }
+
+  var archFlowPathOrder = null;
+
+  function archFlowPathOrderFromDom() {
+    var layer = qs('#layer-flows');
+    if (!layer) return [];
+    var ids = [];
+    $all('.arch-flow', layer).forEach(function (p) {
+      if (p.id) ids.push(p.id);
+    });
+    return ids;
+  }
+
+  function archFlowPathOrderApply() {
+    var layer = qs('#layer-flows');
+    if (!layer || !Array.isArray(archFlowPathOrder) || !archFlowPathOrder.length) return;
+    var map = {};
+    $all('.arch-flow', layer).forEach(function (p) {
+      if (p.id) map[p.id] = p;
+    });
+    archFlowPathOrder.forEach(function (fid) {
+      var el = map[fid];
+      if (el) layer.appendChild(el);
+      delete map[fid];
+    });
+    Object.keys(map).forEach(function (fid) {
+      layer.appendChild(map[fid]);
+    });
+  }
+
+  function archLayerOrderApply() {
+    archLayerOrderEnsure();
+    var svg = archDrag && archDrag.svg;
+    var anchor = qs('#archLayerOrderAnchor');
+    if (!svg || !anchor) return;
+    var items = [];
+    archLayerOrder.forEach(function (key) {
+      if (!archLayerOrderIsStackableKey(key)) return;
+      var el = archLayerOrderResolveEl(key);
+      if (el) items.push({ key: key, el: el });
+    });
+    items.forEach(function (item) {
+      if (item.el.parentNode) item.el.parentNode.removeChild(item.el);
+    });
+    items.forEach(function (item) {
+      svg.insertBefore(item.el, anchor);
+    });
+    archFlowPathOrderApply();
+  }
+
+  function archLayerOrderRegisterKey(key, afterKey) {
+    if (!key) return;
+    archLayerOrderEnsure();
+    var i = archLayerOrder.indexOf(key);
+    if (i >= 0) archLayerOrder.splice(i, 1);
+    if (afterKey) {
+      var j = archLayerOrder.indexOf(afterKey);
+      if (j >= 0) archLayerOrder.splice(j + 1, 0, key);
+      else archLayerOrder.push(key);
+    } else {
+      archLayerOrder.push(key);
+    }
+    archLayerOrderPersist();
+  }
+
+  function archLayerOrderUnregisterKey(key) {
+    if (!key || !Array.isArray(archLayerOrder)) return;
+    var i = archLayerOrder.indexOf(key);
+    if (i >= 0) {
+      archLayerOrder.splice(i, 1);
+      archLayerOrderPersist();
+    }
+  }
+
+  function archLayerOrderSelectionKey() {
+    if (archBgSelectedId) return archLayerOrderKeyBg(archBgSelectedId);
+    if (archCustomBoxSelectedId) return archLayerOrderKeyCbox(archCustomBoxSelectedId);
+    if (userLines.selectedId) return archLayerOrderKeyUl(userLines.selectedId);
+    if (archSelectedFlowId) return archLayerOrderKeyFlow(archSelectedFlowId);
+    if (archSelection && archSelection.count() === 1) {
+      var id = archSelection.primary;
+      if (id && id.indexOf('node-') === 0 && id.indexOf('node-cbox-') !== 0) {
+        return archLayerOrderKeyNode(id.slice(5));
+      }
+    }
+    return null;
+  }
+
+  function archLayerOrderCanAdjust() {
+    return !!(archIsEditMode() && archLayerOrderSelectionKey());
+  }
+
+  function archLayerOrderSyncUi() {
+    var show = archLayerOrderCanAdjust();
+    $all('.arch-layer-order-seg').forEach(function (seg) {
+      seg.hidden = !show;
+    });
+    var key = archLayerOrderSelectionKey();
+    if (!show || !key) return;
+    archLayerOrderEnsure();
+    var i = archLayerOrder.indexOf(key);
+    var atBack = i <= 0;
+    var atFront = i < 0 || i >= archLayerOrder.length - 1;
+    $all('.arch-layer-order-btn').forEach(function (btn) {
+      var cmd = btn.getAttribute('data-arch-layer-cmd');
+      if (cmd === 'back' || cmd === 'down') btn.disabled = atBack;
+      else if (cmd === 'front' || cmd === 'up') btn.disabled = atFront;
+    });
+  }
+
+  function archFlowOrderMove(delta) {
+    var fid = archSelectedFlowId;
+    var layer = qs('#layer-flows');
+    if (!fid || !layer) return;
+    var paths = [];
+    $all('.arch-flow', layer).forEach(function (p) {
+      paths.push(p);
+    });
+    var i = -1;
+    for (var pi = 0; pi < paths.length; pi++) {
+      if (paths[pi].id === fid) {
+        i = pi;
+        break;
+      }
+    }
+    if (i < 0) return;
+    var j = i + delta;
+    if (j < 0 || j >= paths.length) return;
+    archUndoMaybePushSnapshot();
+    var tmp = paths[i];
+    paths[i] = paths[j];
+    paths[j] = tmp;
+    paths.forEach(function (p) {
+      layer.appendChild(p);
+    });
+    archFlowPathOrder = archFlowPathOrderFromDom();
+    archLayerOrderPersist();
+    archLayerOrderSyncUi();
+    if (liveRegion) {
+      liveRegion.textContent = delta > 0 ? 'Flow brought forward.' : 'Flow sent backward.';
+    }
+  }
+
+  function archFlowOrderToExtreme(toFront) {
+    var fid = archSelectedFlowId;
+    var layer = qs('#layer-flows');
+    if (!fid || !layer) return;
+    var el = qs('#' + fid);
+    if (!el || !el.classList.contains('arch-flow')) return;
+    archUndoMaybePushSnapshot();
+    if (toFront) layer.appendChild(el);
+    else {
+      var first = layer.querySelector('.arch-flow');
+      if (first) layer.insertBefore(el, first);
+      else layer.appendChild(el);
+    }
+    archFlowPathOrder = archFlowPathOrderFromDom();
+    archLayerOrderPersist();
+    archLayerOrderSyncUi();
+    if (liveRegion) {
+      liveRegion.textContent = toFront ? 'Flow brought to front.' : 'Flow sent to back.';
+    }
+  }
+
+  function archLayerOrderMove(delta) {
+    var key = archLayerOrderSelectionKey();
+    if (!key) return;
+    if (key.indexOf('flow:') === 0) {
+      archFlowOrderMove(delta);
+      return;
+    }
+    archLayerOrderEnsure();
+    var i = archLayerOrder.indexOf(key);
+    if (i < 0) {
+      archLayerOrderRegisterKey(key);
+      i = archLayerOrder.indexOf(key);
+    }
+    var j = i + delta;
+    if (j < 0 || j >= archLayerOrder.length) return;
+    archUndoMaybePushSnapshot();
+    var tmp = archLayerOrder[i];
+    archLayerOrder[i] = archLayerOrder[j];
+    archLayerOrder[j] = tmp;
+    archLayerOrderPersist();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
+    if (liveRegion) {
+      liveRegion.textContent = delta > 0 ? 'Brought forward.' : 'Sent backward.';
+    }
+  }
+
+  function archLayerOrderToExtreme(toFront) {
+    var key = archLayerOrderSelectionKey();
+    if (!key) return;
+    if (key.indexOf('flow:') === 0) {
+      archFlowOrderToExtreme(toFront);
+      return;
+    }
+    archLayerOrderEnsure();
+    var i = archLayerOrder.indexOf(key);
+    if (i < 0) {
+      archLayerOrderRegisterKey(key);
+      i = archLayerOrder.indexOf(key);
+    }
+    archUndoMaybePushSnapshot();
+    archLayerOrder.splice(i, 1);
+    if (toFront) archLayerOrder.push(key);
+    else archLayerOrder.unshift(key);
+    archLayerOrderPersist();
+    archLayerOrderApply();
+    archLayerOrderSyncUi();
+    if (liveRegion) {
+      liveRegion.textContent = toFront ? 'Brought to front.' : 'Sent to back.';
+    }
+  }
+
+  function archLayerOrderHandleCmd(cmd) {
+    if (!archLayerOrderCanAdjust()) return;
+    if (cmd === 'up') archLayerOrderMove(1);
+    else if (cmd === 'down') archLayerOrderMove(-1);
+    else if (cmd === 'front') archLayerOrderToExtreme(true);
+    else if (cmd === 'back') archLayerOrderToExtreme(false);
+  }
+
+  function archLayerOrderInit() {
+    if (document.documentElement.getAttribute('data-arch-layer-order')) return;
+    document.documentElement.setAttribute('data-arch-layer-order', '1');
+    $all('.arch-layer-order-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        archLayerOrderHandleCmd(btn.getAttribute('data-arch-layer-cmd'));
+      });
+    });
+  }
+
   /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
   var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
